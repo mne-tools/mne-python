@@ -836,24 +836,28 @@ class _PhiT(object):
             return x_out / np.sqrt(self.n_dicts)
 
 
-def norm_l21_tf(Z, phi, n_orient):
+def norm_l21_tf(Z, phi, n_orient, w_space=None):
     """L21 norm for TF."""
     if Z.shape[0]:
         l21_norm = np.sqrt(
             phi.norm(Z, ord=2).reshape(-1, n_orient).sum(axis=1))
+        if w_space is not None:
+            l21_norm *= w_space
         l21_norm = l21_norm.sum()
     else:
         l21_norm = 0.
     return l21_norm
 
 
-def norm_l1_tf(Z, phi, n_orient):
+def norm_l1_tf(Z, phi, n_orient, w_time):
     """L1 norm for TF."""
     if Z.shape[0]:
         n_positions = Z.shape[0] // n_orient
         Z_ = np.sqrt(np.sum(
             (np.abs(Z) ** 2.).reshape((n_orient, -1), order='F'), axis=0))
         Z_ = Z_.reshape((n_positions, -1), order='F')
+        if w_time is not None:
+            Z_ *= w_time
         l1_norm = phi.norm(Z_, ord=1).sum()
     else:
         l1_norm = 0.
@@ -985,7 +989,7 @@ def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient):
 
 
 def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT,
-               n_orient, highest_d_obj):
+               n_orient, highest_d_obj, w_space=None, w_time=None):
     """Duality gap for the time-frequency mixed norm inverse problem.
 
     Parameters
@@ -1011,6 +1015,10 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT,
         Number of dipoles per locations (typically 1 or 3).
     highest_d_obj : float
         The highest value of the dual objective so far.
+    w_space : array, shape (n_positions, )
+        Array of spatial weights.
+    w_time : array, shape (n_positions, n_coefs)
+        Array of TF weights.
 
     Returns
     -------
@@ -1037,11 +1045,18 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT,
     X = phiT(Z)
     GX = np.dot(G[:, active_set], X)
     R = M - GX
-    penaltyl1 = norm_l1_tf(Z, phi, n_orient)
-    penaltyl21 = norm_l21_tf(Z, phi, n_orient)
+
+    if w_time is not None:
+        w_time = w_time[active_set[::n_orient]]
+    if w_space is not None:
+        w_space = w_space[active_set[::n_orient]]
+
+    penaltyl1 = norm_l1_tf(Z, phi, n_orient, w_time)
+    penaltyl21 = norm_l21_tf(Z, phi, n_orient, w_space)
     nR2 = sum_squared(R)
     p_obj = 0.5 * nR2 + alpha_space * penaltyl21 + alpha_time * penaltyl1
 
+    #### TODO weighting in the dual/epsilon norm
     l1_ratio = alpha_time / (alpha_space + alpha_time)
     dual_norm = norm_epsilon_inf(G, R, phi, l1_ratio, n_orient)
     scaling = min(1., (alpha_space + alpha_time) / dual_norm)
@@ -1055,8 +1070,9 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT,
 
 def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                                alpha_time, lipschitz_constant, phi, phiT,
-                               n_orient=1, maxit=200, tol=1e-8, dgap_freq=10,
-                               perc=None, timeit=True, verbose=None):
+                               w_space=None, w_time=None, n_orient=1,
+                               maxit=200, tol=1e-8, dgap_freq=10, perc=None,
+                               timeit=True, verbose=None):
 
     # First make G fortran for faster access to blocks of columns
     G = np.asfortranarray(G)
@@ -1074,15 +1090,19 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
 
     E = []  # track primal objective function
 
-    alpha_time_lc = alpha_time / lipschitz_constant
-    alpha_space_lc = alpha_space / lipschitz_constant
+    if w_time is None:
+        alpha_time_lc = alpha_time / lipschitz_constant
+    else:
+        alpha_time_lc = alpha_time * w_time / lipschitz_constant[:, None]
+    if w_space is None:
+        alpha_space_lc = alpha_space / lipschitz_constant
+    else:
+        alpha_space_lc = alpha_space * w_space / lipschitz_constant
 
     converged = False
-    d_obj = -np.Inf
+    d_obj = - np.inf
 
-    ii = -1
-    while True:
-        ii += 1
+    for i in range(maxit):
         for jj in candidates:
             ids = jj * n_orient
             ide = ids + n_orient
@@ -1121,6 +1141,8 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                     # l1
                     shrink = np.maximum(1.0 - alpha_time_lc[jj] / np.maximum(
                                         col_norm, alpha_time_lc[jj]), 0.0)
+                    if w_time is not None:
+                        shrink[w_time[jj] == 0.0] = 0.0
                     Z_j_new *= shrink[np.newaxis, :]
 
                     # l21
@@ -1138,24 +1160,20 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                         active_set_j[:] = True
                         R -= np.dot(G_j, phiT(Z[jj]))
 
-        if (ii + 1) % dgap_freq == 0:
+        if (i + 1) % dgap_freq == 0:
             Zd = np.vstack([Z[pos] for pos in range(n_positions)
                             if np.any(Z[pos])])
             gap, p_obj, d_obj, _ = dgap_l21l1(
                 M, Gd, Zd, active_set, alpha_space, alpha_time, phi, phiT,
-                n_orient, d_obj)
+                n_orient, d_obj, w_space=w_space, w_time=w_time)
             converged = (gap < tol)
             E.append(p_obj)
             logger.info("\n    Iteration %d :: n_active %d" % (
-                        ii + 1, np.sum(active_set) / n_orient))
+                        i + 1, np.sum(active_set) / n_orient))
             logger.info("    dgap %.2e :: p_obj %f :: d_obj %f" % (
                         gap, p_obj, d_obj))
 
         if converged:
-            break
-
-        if (ii == maxit - 1):
-            converged = False
             break
 
         if perc is not None:
@@ -1168,7 +1186,8 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
 @verbose
 def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
                                          lipschitz_constant, phi, phiT,
-                                         Z_init=None, n_orient=1, maxit=200,
+                                         Z_init=None, w_space=None,
+                                         w_time=None, n_orient=1, maxit=200,
                                          tol=1e-8, dgap_freq=10,
                                          verbose=None):
 
@@ -1196,18 +1215,25 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
     d_obj = -np.inf
 
     while True:
+        # single BCD pass on all positions:
         Z_init = dict.fromkeys(np.arange(n_positions), 0.0)
         Z_init.update(dict(zip(active, Z.values())))
         Z, active_set, E_tmp, _ = _tf_mixed_norm_solver_bcd_(
             M, G, Z_init, active_set, candidates, alpha_space, alpha_time,
-            lipschitz_constant, phi, phiT, n_orient=n_orient, maxit=1, tol=tol,
-            perc=None, verbose=verbose)
+            lipschitz_constant, phi, phiT, w_space=w_space, w_time=w_time,
+            n_orient=n_orient, maxit=1, tol=tol, perc=None, verbose=verbose)
 
         E += E_tmp
 
+        # multiple BCD pass on active positions:
         active = np.where(active_set[::n_orient])[0]
         Z_init = dict(zip(range(len(active)), [Z[idx] for idx in active]))
         candidates_ = range(len(active))
+        if w_space is not None:
+            w_space = w_space[active_set[::n_orient]]
+        if w_time is not None:
+            w_time = w_time[active_set[::n_orient]]
+
         Z, as_, E_tmp, converged = _tf_mixed_norm_solver_bcd_(
             M, G[:, active_set], Z_init,
             np.ones(len(active) * n_orient, dtype=np.bool),
@@ -1225,7 +1251,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
             Zd = np.vstack([Z[pos] for pos in range(len(Z)) if np.any(Z[pos])])
             gap, p_obj, d_obj, _ = dgap_l21l1(
                 M, G, Zd, active_set, alpha_space, alpha_time,
-                phi, phiT, n_orient, d_obj)
+                phi, phiT, n_orient, d_obj, w_space, w_time)
             logger.info("\ndgap %.2e :: p_obj %f :: d_obj %f :: n_active %d"
                         % (gap, p_obj, d_obj, np.sum(active_set) / n_orient))
             if gap < tol:
@@ -1358,3 +1384,159 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
         return X, active_set, E, gap
     else:
         return X, active_set, E
+
+
+@verbose
+def iterative_tf_mixed_norm_solver(M, G, alpha_space, alpha_time,
+                                   n_tfmxne_iter, wsize=64, tstep=4,
+                                   maxit=3000, tol=1e-8, debias=True,
+                                   n_orient=1, dgap_freq=10, verbose=None):
+    """Solve TF L0.5/L1 + L1 inverse problem with BCD and active set approach.
+
+    Parameters
+    ----------
+    M: array, shape (n_sensors, n_times)
+        The data.
+    G: array, shape (n_sensors, n_dipoles)
+        The gain matrix a.k.a. lead field.
+    alpha_space: float
+        The spatial regularization parameter. The higher it is the less there
+        will be active sources.
+    alpha_time : float
+        The temporal regularization parameter. The higher it is the smoother
+        will be the estimated time series. 0 means no temporal regularization,
+        aka irMxNE.
+    n_tfmxne_iter : int
+        Number of TFMxNE iterations. If > 1, iterative reweighting is applied.
+    wsize : int or array-like
+        Length of the STFT window in samples (must be a multiple of 4).
+        If an array is passed, multiple TF dictionaries are used (each having
+        its own wsize and tstep) and each entry of wsize must be a multiple
+        of 4.
+    tstep : int or array-like
+        Step between successive windows in samples (must be a multiple of 2,
+        a divider of wsize and smaller than wsize/2) (default: wsize/2).
+        If an array is passed, multiple TF dictionaries are used (each having
+        its own wsize and tstep), and each entry of tstep must be a multiple
+        of 2 and divide the corresponding entry of wsize.
+    maxit : int
+        The maximum number of iterations for each TFMxNE problem.
+    tol : float
+        If absolute difference between estimates at 2 successive iterations
+        is lower than tol, the convergence is reached. Also used as criterion
+        on duality gap for each TFMxNE problem.
+    debias : bool
+        Debias source estimates.
+    n_orient : int
+        The number of orientation (1 : fixed or 3 : free or loose).
+    dgap_freq : int or np.inf
+        The duality gap is evaluated every dgap_freq iterations.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    X : array, shape (n_active, n_times)
+        The source estimates.
+    active_set : array
+        The mask of active sources.
+    E : list
+        The value of the objective function over iterations.
+    """
+    n_sensors, n_times = M.shape
+    n_sources = G.shape[1]
+    n_positions = n_sources // n_orient
+
+    tstep = np.atleast_1d(tstep)
+    wsize = np.atleast_1d(wsize)
+    if len(tstep) != len(wsize):
+        raise ValueError('The same number of window sizes and steps must be '
+                         'passed. Got tstep = %s and wsize = %s' %
+                         (tstep, wsize))
+
+    n_steps = np.ceil(n_times / tstep.astype(float)).astype(int)
+    n_freqs = wsize // 2 + 1
+    n_coefs = n_steps * n_freqs
+    phi = _Phi(wsize, tstep, n_coefs)
+    phiT = _PhiT(tstep, n_freqs, n_steps, n_times)
+
+    if n_orient == 1:
+        lc = np.sum(G * G, axis=0)
+    else:
+        lc = np.empty(n_positions)
+        for j in range(n_positions):
+            G_tmp = G[:, (j * n_orient):((j + 1) * n_orient)]
+            lc[j] = linalg.norm(np.dot(G_tmp.T, G_tmp), ord=2)
+
+    # space and time penalties, and inverse of their derivatives:
+    g_space = lambda Z, eps: np.sqrt(np.sqrt(phi.norm(Z, ord=2).reshape(
+        -1, n_orient).sum(axis=1)) + eps)
+    g_space_prime = lambda Z, eps: 0.5 / g_space(Z, eps)
+
+    g_time = lambda Z, eps: np.sqrt(np.sqrt(np.sum((np.abs(Z) ** 2.).reshape(
+        (n_orient, -1), order='F'), axis=0)).reshape((-1, Z.shape[1]),
+        order='F') + eps)
+    g_time_prime = lambda Z, eps: 0.5 / g_time(Z, eps)
+
+    E = list()
+
+    active_set = np.ones(n_sources, dtype=np.bool)
+    Z = np.zeros((n_sources, phi.n_coefs.sum()), dtype=np.complex)
+
+    eps_act = 0.0
+
+    for k in range(n_tfmxne_iter):
+        active_set_0 = active_set.copy()
+        Z0 = Z.copy()
+
+        if k == 0:
+            w_space = None
+            w_time = None
+        else:
+            w_space = 1. / g_space_prime(Z, eps_act)
+            w_time = g_time_prime(Z, eps_act)
+            w_time[w_time == 0.0] = -1.
+            w_time = 1. / w_time
+            w_time[w_time < 0.0] = 0.0
+
+        X, Z, active_set_, E_, _ = _tf_mixed_norm_solver_bcd_active_set(
+            M, G[:, active_set], alpha_space, alpha_time,
+            lc[active_set[::n_orient]], phi, phiT,
+            Z_init=Z, w_space=w_space, w_time=w_time, n_orient=n_orient,
+            maxit=maxit, tol=tol, dgap_freq=dgap_freq, verbose=None)
+
+        active_set[active_set] = active_set_
+
+        if active_set.sum() > 0:
+            l21_penalty = np.sum(g_space(Z.copy(), eps_act))
+            l1_penalty = phi.norm(g_time(Z.copy(), eps_act), ord=1)
+
+            p_obj = (0.5 * linalg.norm(M - np.dot(G[:, active_set],  X),
+                     'fro') ** 2. + alpha_space * l21_penalty +
+                     alpha_time * l1_penalty)
+
+            E.append(p_obj)
+
+            logger.info('Iteration %d: active set size=%d, E=%f' % (
+                        k + 1, active_set.sum() / n_orient, p_obj))
+
+            # Check convergence
+            if np.array_equal(active_set, active_set_0):
+                max_diff = np.amax(np.abs(Z - Z0))
+                if (max_diff < tol):
+                    print('Convergence reached after %d reweightings!' % k)
+                    break
+        else:
+            p_obj = 0.5 * linalg.norm(M) ** 2.
+            E.append(p_obj)
+            logger.info('Iteration %d: as_size=%d, E=%f' % (
+                        k + 1, active_set.sum() / n_orient, p_obj))
+            break
+
+    if debias:
+        if active_set.sum() > 0:
+            bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)
+            X *= bias[:, np.newaxis]
+
+    return X, active_set, E
