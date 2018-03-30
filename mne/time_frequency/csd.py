@@ -719,8 +719,8 @@ def csd_fourier(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
     epochs, projs = _prepare_csd(epochs, tmin, tmax, picks, projs)
     return csd_array_fourier(epochs.get_data(), sfreq=epochs.info['sfreq'],
                              t0=epochs.tmin, fmin=fmin, fmax=fmax, tmin=tmin,
-                             tmax=tmax, n_fft=n_fft, projs=projs,
-                             n_jobs=n_jobs, verbose=verbose)
+                             tmax=tmax, ch_names=epochs.ch_names, n_fft=n_fft,
+                             projs=projs, n_jobs=n_jobs, verbose=verbose)
 
 
 @verbose
@@ -869,10 +869,10 @@ def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     epochs, projs = _prepare_csd(epochs, tmin, tmax, picks, projs)
     return csd_array_multitaper(epochs.get_data(), sfreq=epochs.info['sfreq'],
                                 t0=epochs.tmin, fmin=fmin, fmax=fmax,
-                                tmin=tmin, tmax=tmax, n_fft=n_fft,
-                                bandwidth=bandwidth, adaptive=adaptive,
-                                low_bias=low_bias, projs=projs, n_jobs=n_jobs,
-                                verbose=verbose)
+                                tmin=tmin, tmax=tmax, ch_names=epochs.ch_names,
+                                n_fft=n_fft, bandwidth=bandwidth,
+                                adaptive=adaptive, low_bias=low_bias,
+                                projs=projs, n_jobs=n_jobs, verbose=verbose)
 
 
 @verbose
@@ -1030,9 +1030,9 @@ def csd_morlet(epochs, frequencies=None, tmin=None, tmax=None, picks=None,
     epochs, projs = _prepare_csd(epochs, tmin, tmax, picks, projs)
     return csd_array_morlet(epochs.get_data(), sfreq=epochs.info['sfreq'],
                             t0=epochs.tmin, frequencies=frequencies, tmin=tmin,
-                            tmax=tmax, n_cycles=n_cycles, use_fft=use_fft,
-                            decim=decim, projs=projs, n_jobs=n_jobs,
-                            verbose=verbose)
+                            tmax=tmax, ch_names=epochs.ch_names,
+                            n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+                            projs=projs, n_jobs=n_jobs, verbose=verbose)
 
 
 @verbose
