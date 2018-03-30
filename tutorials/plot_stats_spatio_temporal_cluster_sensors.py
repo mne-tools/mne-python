@@ -186,7 +186,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
 # - What is the smallest p-value you can obtain, given the finite number of
 #   permutations?
 # - use an F distribution to compute the threshold by traditional significance
-#   levels. Hint: take a look at :obj:`scipy.stats.distributions.f`
+#   levels. Hint: take a look at :obj:`scipy.stats.f`
 #
 # References
 # ==========
