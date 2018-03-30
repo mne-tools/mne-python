@@ -330,8 +330,9 @@ def _test_csd_matrix(csd):
     """Perform a suite of tests on a CSD matrix."""
     # Check shape of the CSD matrix
     n_chan = len(csd.ch_names)
-    n_freqs = len(csd.frequencies)
     assert n_chan == 3
+    assert csd.ch_names == ['CH1', 'CH2', 'CH3']
+    n_freqs = len(csd.frequencies)
     assert n_freqs == 3
     assert csd._data.shape == (6, 3)  # Only upper triangle of CSD matrix
 
@@ -406,7 +407,8 @@ def test_csd_fourier():
     for (tmin, tmax), as_array in parameters:
         if as_array:
             csd = csd_array_fourier(epochs.get_data(), sfreq, epochs.tmin,
-                                    fmin=9, fmax=23, tmin=tmin, tmax=tmax)
+                                    fmin=9, fmax=23, tmin=tmin, tmax=tmax,
+                                    ch_names=epochs.ch_names)
         else:
             csd = csd_fourier(epochs, fmin=9, fmax=23, tmin=tmin, tmax=tmax)
 
@@ -450,7 +452,8 @@ def test_csd_multitaper():
         if as_array:
             csd = csd_array_multitaper(epochs.get_data(), sfreq, epochs.tmin,
                                        adaptive=adaptive, fmin=9, fmax=23,
-                                       tmin=tmin, tmax=tmax)
+                                       tmin=tmin, tmax=tmax,
+                                       ch_names=epochs.ch_names)
         else:
             csd = csd_multitaper(epochs, adaptive=adaptive, fmin=9, fmax=23,
                                  tmin=tmin, tmax=tmax)
@@ -502,7 +505,8 @@ def test_csd_morlet():
         if as_array:
             csd = csd_array_morlet(epochs.get_data(), sfreq,
                                    epochs.tmin, frequencies=freqs,
-                                   n_cycles=n_cycles, tmin=tmin, tmax=tmax)
+                                   n_cycles=n_cycles, tmin=tmin, tmax=tmax,
+                                   ch_names=epochs.ch_names)
         else:
             csd = csd_morlet(epochs, frequencies=freqs, n_cycles=n_cycles,
                              tmin=tmin, tmax=tmax)
