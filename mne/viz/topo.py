@@ -22,7 +22,7 @@ from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
                     add_background_image, plt_show, _setup_vmin_vmax,
                     DraggableColorbar, _set_ax_facecolor, _setup_ax_spines,
-                    _check_cov)
+                    _check_cov, _plot_masked_image)
 
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
@@ -286,7 +286,8 @@ def _check_vlim(vlim):
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 tfr=None, freq=None, x_label=None, y_label=None,
                 colorbar=False, cmap=('RdBu_r', True), yscale='auto',
-                mask=None, mask_alpha=0.1, is_jointplot=False):
+                mask=None, mask_style="both", mask_cmap="Greys",
+                mask_alpha=0.1, is_jointplot=False):
     """Show time-frequency map as two-dimensional image."""
     from matplotlib import pyplot as plt, ticker, __version__ as v
     from matplotlib.widgets import RectangleSelector
@@ -318,49 +319,10 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
         warn("With matplotlib version 2.1.0, lines may not show up in "
              "`AverageTFR.plot_joint`. Upgrade to a more recent versiom.")
 
-    # compute bounds between time samples
-    time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]
-    time_lims = np.concatenate([[times[0] - time_diff[0]], times[:-1] +
-                               time_diff, [times[-1] + time_diff[-1]]])
-
-    # the same for frequency - depending on whether yscale is log
-    if yscale == 'linear':
-        freq_diff = np.diff(freq) / 2. if len(freq) > 1 else [0.5]
-        freq_lims = np.concatenate([[freq[0] - freq_diff[0]], freq[:-1] +
-                                   freq_diff, [freq[-1] + freq_diff[-1]]])
-    else:
-        log_freqs = np.concatenate([[freq[0] / ratio[0]], freq,
-                                   [freq[-1] * ratio[0]]])
-        freq_lims = np.sqrt(log_freqs[:-1] * log_freqs[1:])
-
-    # construct a time-frequency bounds grid
-    time_mesh, freq_mesh = np.meshgrid(time_lims, freq_lims)
-
-    if mask is not None:
-        ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], cmap=cmap, vmin=vmin,
-                      vmax=vmax, alpha=mask_alpha)
-        img = ax.pcolormesh(time_mesh, freq_mesh,
-                            np.ma.masked_where(~mask, tfr[ch_idx]), cmap=cmap,
-                            vmin=vmin, vmax=vmax, alpha=1)
-    else:
-        img = ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], cmap=cmap,
-                            vmin=vmin, vmax=vmax)
-
-    # limits, yscale and yticks
-    ax.set_xlim(time_lims[0], time_lims[-1])
-    if ylim is None:
-        ylim = (freq_lims[0], freq_lims[-1])
-    ax.set_ylim(ylim)
-
-    if yscale == 'log':
-        ax.set_yscale('log')
-        ax.get_yaxis().set_major_formatter(ticker.ScalarFormatter())
-
-    ax.yaxis.set_minor_formatter(ticker.NullFormatter())
-    ax.yaxis.set_minor_locator(ticker.NullLocator())  # get rid of minor ticks
-    tick_vals = freq[np.unique(np.linspace(
-        0, len(freq) - 1, 12).round().astype('int'))]
-    ax.set_yticks(tick_vals)
+    img, t_end = _plot_masked_image(
+        ax, tfr[ch_idx], times, mask, picks=None, yvals=None, cmap=cmap,
+        vmin=vmin, vmax=vmax, mask_style=mask_style, mask_alpha=mask_alpha,
+        mask_cmap=mask_cmap, yscale=yscale)
 
     if x_label is not None:
         ax.set_xlabel(x_label)
@@ -374,6 +336,8 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
         if interactive_cmap:
             ax.CB = DraggableColorbar(cbar, img)
     ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept
+
+    return t_end
 
 
 def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,

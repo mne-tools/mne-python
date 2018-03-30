@@ -1168,9 +1168,11 @@ class AverageTFR(_BaseTFR):
     def _plot(self, picks=None, baseline=None, mode='mean', tmin=None,
               tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
               cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
-              axes=None, layout=None, yscale='auto', mask=None, mask_alpha=.1,
-              combine=None, exclude=None, copy=True, source_plot_joint=False,
-              topomap_args=dict(), ch_type=None, verbose=None):
+              axes=None, layout=None, yscale='auto', mask=None,
+              mask_style=None, mask_alpha=.25, mask_cmap="Greys",
+              combine=None, exclude=None, copy=True,
+              source_plot_joint=False, topomap_args=dict(), ch_type=None,
+              verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         See self.plot() for parameters description.
@@ -1218,19 +1220,20 @@ class AverageTFR(_BaseTFR):
                 tfr._onselect, cmap=cmap, source_plot_joint=source_plot_joint,
                 topomap_args={k: v for k, v in topomap_args.items()
                               if k not in {"vmin", "vmax", "cmap", "axes"}})
-            _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
-                        ylim=None, tfr=data[idx: idx + 1], freq=tfr.freqs,
-                        x_label='Time (s)', y_label='Frequency (Hz)',
-                        colorbar=colorbar, cmap=cmap, yscale=yscale, mask=mask,
-                        mask_alpha=mask_alpha)
+            t_end = _imshow_tfr(
+                ax, 0, tmin, tmax, vmin, vmax, onselect_callback, ylim=None,
+                tfr=data[idx: idx + 1], freq=tfr.freqs, x_label='Time (s)',
+                y_label='Frequency (Hz)', colorbar=colorbar, cmap=cmap,
+                yscale=yscale, mask=mask, mask_style=mask_style,
+                mask_cmap=mask_cmap, mask_alpha=mask_alpha)
 
             if title is None:
                 if combine is None or len(tfr.info['ch_names']) == 1:
-                    title = tfr.info['ch_names'][0]
+                    title = tfr.info['ch_names'][0] + t_end
                 else:
                     title = _set_title_multiple_electrodes(
                         title, combine, tfr.info["ch_names"], all=True,
-                        ch_type=ch_type)
+                        ch_type=ch_type) + t_end
 
             if title:
                 fig.suptitle(title)

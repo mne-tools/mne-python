@@ -133,6 +133,6 @@ for event in event_ids:
         if not ax.is_first_col():
             ax.set_ylabel("")
             ax.set_yticklabels("")
-    fig.colorbar(axes[0].collections[1], cax=axes[-1])
+    fig.colorbar(axes[0].images[-1], cax=axes[-1])
     fig.suptitle("ERDS ({})".format(event))
     fig.show()

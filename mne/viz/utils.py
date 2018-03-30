@@ -2547,3 +2547,121 @@ def _check_time_unit(time_unit, times):
     else:
         raise ValueError("time_unit must be 's' or 'ms', got %r" % time_unit)
     return time_unit, times
+
+
+def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
+                       cmap="RdBu_r", vmin=None, vmax=None, ylim=None,
+                       mask_style="both", mask_alpha=.25, mask_cmap="Greys",
+                       yscale="linear"):
+    "Plot a potentially masked (evoked, TFR, ...) 2D image."
+    if mask_style is None and mask is not None:
+        mask_style = "both"  # default
+    draw_mask = mask_style in {"both", "mask"}
+    draw_contour = mask_style in {"both", "contour"}
+    if cmap is None:
+        mask_cmap = cmap
+
+    # mask param check and preparation
+    if draw_mask is None:
+        if mask is not None:
+            draw_mask = True
+        else:
+            draw_mask = False
+    if draw_contour is None:
+        if mask is not None:
+            draw_contour = True
+        else:
+            draw_contour = False
+    if mask is None:
+        if draw_mask:
+            warn("`mask` is None, not masking the plot ...")
+            draw_mask = False
+        if draw_contour:
+            warn("`mask` is None, not adding contour to the plot ...")
+            draw_contour = False
+
+    if draw_mask:
+        if mask.shape != data.shape:
+            raise ValueError(
+                "The mask must have the same shape as the data, "
+                "i.e., %s, not %s" % (data.shape, mask.shape))
+        if draw_contour and yscale == "log":
+            warn("Cannot draw contours with linear yscale yet ...")
+
+    if yvals is None:  # for e.g. Evoked images
+        yvals = np.arange(data.shape[0])
+
+    if yscale is not "linear":  # pcolormesh for log scale
+        from matplotlib import ticker
+
+        # compute bounds between time samples
+        time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]
+        time_lims = np.concatenate([[times[0] - time_diff[0]], times[:-1] +
+                                   time_diff, [times[-1] + time_diff[-1]]])
+
+        log_yvals = np.concatenate([[yvals[0] / ratio[0]], yvals,
+                                   [yvals[-1] * ratio[0]]])
+        yval_lims = np.sqrt(log_yvals[:-1] * log_yvals[1:])
+
+        # construct a time-yvaluency bounds grid
+        time_mesh, yval_mesh = np.meshgrid(time_lims, yval_lims)
+
+        if mask is not None:
+            ax.pcolormesh(time_mesh, yval_mesh, data, cmap=mask_cmap,
+                          vmin=vmin, vmax=vmax, alpha=mask_alpha)
+            im = ax.pcolormesh(time_mesh, yval_mesh,
+                                np.ma.masked_where(~mask, data), cmap=cmap,
+                                vmin=vmin, vmax=vmax, alpha=1)
+        else:
+            im = ax.pcolormesh(time_mesh, yval_mesh, data, cmap=cmap,
+                                vmin=vmin, vmax=vmax)
+        if ylim is None:
+            ylim = (yval_lims[0], yval_lims[-1])
+        if yscale == 'log':
+            ax.set_yscale('log')
+            ax.get_yaxis().set_major_formatter(ticker.ScalarFormatter())
+
+        ax.yaxis.set_minor_formatter(ticker.NullFormatter())
+        # get rid of minor ticks
+        ax.yaxis.set_minor_locator(ticker.NullLocator())
+        tick_vals = yvals[np.unique(np.linspace(
+            0, len(yvals) - 1, 12).round().astype('int'))]
+        ax.set_yticks(tick_vals)
+
+    else:
+        # imshow for linear because the y ticks are nicer
+        # and the masked areas look better
+        extent = [times[0], times[-1], yvals[0], yvals[-1]]
+        im_args = dict(interpolation='nearest', origin='lower',
+                       extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
+
+        if draw_mask:
+            ax.imshow(data, alpha=mask_alpha, cmap=mask_cmap, **im_args)
+            im = ax.imshow(
+                np.ma.masked_where(~mask, data), cmap=cmap, **im_args)
+        else:
+            print("im args: ", times)
+            im = ax.imshow(data, cmap=cmap[0], **im_args)
+
+        if draw_contour and np.unique(mask).size == 2:
+                big_mask = np.kron(mask, np.ones((10, 10)))
+                ax.contour(big_mask, colors=["k"], extent=extent,
+                           linewidths=[.75], corner_mask=False,
+                           antialiased=False, levels=[.5])
+        time_lims = times[[0, -1]]
+        ylim = yvals[[0, -1]]
+
+    ax.set_xlim(time_lims[0], time_lims[-1])
+    ax.set_ylim(ylim)
+
+    if (draw_mask or draw_contour) and mask is not None:
+        if mask.all():
+            t_end = ", all points masked)"
+        else:
+            fraction = np.float(mask.sum()) / np.float(mask.size)
+            percent = np.floor(fraction * 100).astype(int)
+            t_end = ", " + str(percent) + "% of points masked)"
+    else:
+        t_end = ")"
+
+    return im, t_end
