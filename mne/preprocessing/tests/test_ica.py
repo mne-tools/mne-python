@@ -683,6 +683,7 @@ def test_ica_reject_buffer(method):
 @pytest.mark.parametrize("method", ["fastica", "picard"])
 def test_ica_twice(method):
     """Test running ICA twice."""
+    _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     picks = pick_types(raw.info, meg='grad', exclude='bads')
     n_components = 0.9
@@ -807,6 +808,7 @@ def test_max_pca_components_none(method):
 @pytest.mark.parametrize("method", ["fastica", "picard"])
 def test_n_components_none(method):
     """Test n_components=None."""
+    _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     events = read_events(event_name)
     picks = pick_types(raw.info, eeg=True, meg=False)
