@@ -5,7 +5,7 @@ import pytest
 from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_almost_equal)
+                           assert_almost_equal, assert_allclose)
 import warnings
 
 import mne
@@ -97,6 +97,24 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
 
     return raw, epochs, evoked, data_cov, noise_cov, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol
+
+
+@testing.requires_testing_data
+def test_lcmv_vector():
+    """Test vector LCMV solutions."""
+    raw, epochs, evoked, data_cov, noise_cov, label, forward,\
+        forward_surf_ori, forward_fixed, forward_vol = _get_data()
+    with pytest.raises(ValueError, match='pick_ori must be one of'):
+        make_lcmv(evoked.info, forward_vol, data_cov, 0.05, noise_cov,
+                  pick_ori='bad')
+    filters = make_lcmv(evoked.info, forward, data_cov, 0.05, noise_cov)
+    filters_vector = make_lcmv(evoked.info, forward, data_cov, 0.05, noise_cov,
+                               pick_ori='vector')
+    stc = apply_lcmv(evoked, filters)
+    assert isinstance(stc, mne.SourceEstimate)
+    stc_vector = apply_lcmv(evoked, filters_vector)
+    assert isinstance(stc_vector, mne.VectorSourceEstimate)
+    assert_allclose(stc.data, stc_vector.magnitude().data)
 
 
 @pytest.mark.slowtest
@@ -493,6 +511,10 @@ def test_tf_lcmv():
     assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
                   tstep, win_lengths, freq_bins, weight_norm='nai')
 
+    # Test unsupported pick_ori (vector not supported here)
+    with pytest.raises(ValueError, match='pick_ori must be one of'):
+        tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
+                freq_bins, pick_ori='vector')
     # Test correct detection of preloaded epochs objects that do not contain
     # the underlying raw object
     epochs_preloaded = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
