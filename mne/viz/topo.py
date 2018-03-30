@@ -289,7 +289,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 mask=None, mask_style="both", mask_cmap="Greys",
                 mask_alpha=0.1, is_jointplot=False):
     """Show time-frequency map as two-dimensional image."""
-    from matplotlib import pyplot as plt, ticker, __version__ as v
+    from matplotlib import pyplot as plt, ticker
     from matplotlib.widgets import RectangleSelector
 
     if yscale not in ['auto', 'linear', 'log']:
@@ -299,28 +299,8 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     cmap, interactive_cmap = cmap
     times = np.linspace(tmin, tmax, num=tfr[ch_idx].shape[1])
 
-    # test yscale
-    if yscale == 'log' and not freq[0] > 0:
-        raise ValueError('Using log scale for frequency axis requires all your'
-                         ' frequencies to be positive (you cannot include'
-                         ' the DC component (0 Hz) in the TFR).')
-    if len(freq) < 2 or freq[0] == 0:
-        yscale = 'linear'
-    elif yscale != 'linear':
-        ratio = freq[1:] / freq[:-1]
-    if yscale == 'auto':
-        if freq[0] > 0 and np.allclose(ratio, ratio[0]):
-            yscale = 'log'
-        else:
-            yscale = 'linear'
-
-    # https://github.com/matplotlib/matplotlib/pull/9477
-    if yscale == "log" and is_jointplot is True and v == "2.1.0":
-        warn("With matplotlib version 2.1.0, lines may not show up in "
-             "`AverageTFR.plot_joint`. Upgrade to a more recent versiom.")
-
     img, t_end = _plot_masked_image(
-        ax, tfr[ch_idx], times, mask, picks=None, yvals=None, cmap=cmap,
+        ax, tfr[ch_idx], times, mask, picks=None, yvals=freq, cmap=cmap,
         vmin=vmin, vmax=vmax, mask_style=mask_style, mask_alpha=mask_alpha,
         mask_cmap=mask_cmap, yscale=yscale)
 

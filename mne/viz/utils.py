@@ -2590,10 +2590,36 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
 
     if yvals is None:  # for e.g. Evoked images
         yvals = np.arange(data.shape[0])
+    # else, if TFR plot, yvals will be freqs
 
-    if yscale is not "linear":  # pcolormesh for log scale
-        from matplotlib import ticker
+    from matplotlib import ticker, __version__ as v
 
+    print('rcdfbcfvsdh: ')
+    print(yvals, yvals[0])
+    #print("rcdfbcfvsdh: ", yvals, yvals[0], yvals[-1])
+
+    # test yscale
+    if yscale == 'log' and not yvals[0] > 0:
+        raise ValueError('Using log scale for frequency axis requires all your'
+                         ' frequencies to be positive (you cannot include'
+                         ' the DC component (0 Hz) in the TFR).')
+
+    if len(yvals) < 2 or yvals[0] == 0:
+        yscale = 'linear'
+    elif yscale != 'linear':
+        ratio = yvals[1:] / yvals[:-1]
+    if yscale == 'auto':
+        if yvals[0] > 0 and np.allclose(ratio, ratio[0]):
+            yscale = 'log'
+        else:
+            yscale = 'linear'
+
+    # https://github.com/matplotlib/matplotlib/pull/9477
+    if yscale == "log" and is_jointplot is True and v == "2.1.0":
+        warn("With matplotlib version 2.1.0, lines may not show up in "
+             "`AverageTFR.plot_joint`. Upgrade to a more recent versiom.")
+
+    if yscale is "log":  # pcolormesh for log scale
         # compute bounds between time samples
         time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]
         time_lims = np.concatenate([[times[0] - time_diff[0]], times[:-1] +
@@ -2640,8 +2666,7 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
             im = ax.imshow(
                 np.ma.masked_where(~mask, data), cmap=cmap, **im_args)
         else:
-            print("im args: ", times)
-            im = ax.imshow(data, cmap=cmap[0], **im_args)
+            im = ax.imshow(data, cmap=cmap, **im_args)
 
         if draw_contour and np.unique(mask).size == 2:
                 big_mask = np.kron(mask, np.ones((10, 10)))

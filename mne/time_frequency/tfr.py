@@ -1247,7 +1247,7 @@ class AverageTFR(_BaseTFR):
                    vmin=None, vmax=None, cmap='RdBu_r', dB=False,
                    colorbar=True, show=True, title=None, layout=None,
                    yscale='auto', combine='mean', exclude=[],
-                   topomap_args=None, verbose=None):
+                   topomap_args=None, image_args=None, verbose=None):
         """Plot TFRs as a two-dimensional image with topomaps.
 
         Parameters
@@ -1327,6 +1327,11 @@ class AverageTFR(_BaseTFR):
             A dict of `kwargs` that are forwarded to `mne.viz.plot_topomap`
             to style the topomaps. `axes` and `show` are ignored. If `times`
             is not in this dict, automatic peak detection is used. Beyond that,
+            if ``None``, no customizable arguments will be passed.
+            Defaults to ``None``.
+        image_args : None | dict
+            A dict of `kwargs` that are forwarded to `AverageTFR.plot` to
+            style the image. `axes` and `show` are ignored. Beyond that,
             if ``None``, no customizable arguments will be passed.
             Defaults to ``None``.
         verbose : bool, str, int, or None
@@ -1427,13 +1432,15 @@ class AverageTFR(_BaseTFR):
         # image plot
         # we also use this to baseline and truncate (times and freqs)
         # (a copy of) the instance
+        if image_args is None:
+            image_args = dict()
         fig = tfr._plot(
             picks=None, baseline=baseline, mode=mode, tmin=tmin, tmax=tmax,
             fmin=fmin, fmax=fmax, vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
             colorbar=False, show=False, title=title, axes=tf_ax, layout=layout,
             yscale=yscale, combine=combine, exclude=None, copy=False,
             source_plot_joint=True, topomap_args=topomap_args_pass,
-            ch_type=ch_type)
+            ch_type=ch_type, **image_args)
 
         # set and check time and freq limits ...
         # can only do this after the tfr plot because it may change these
