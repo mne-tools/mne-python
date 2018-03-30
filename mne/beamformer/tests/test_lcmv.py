@@ -102,19 +102,44 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
 @testing.requires_testing_data
 def test_lcmv_vector():
     """Test vector LCMV solutions."""
-    raw, epochs, evoked, data_cov, noise_cov, label, forward,\
-        forward_surf_ori, forward_fixed, forward_vol = _get_data()
+    info = mne.io.read_raw_fif(fname_raw).info
+    info = mne.pick_info(info, mne.pick_types(info, meg=True, exclude=()))
+    info.update(bads=[], projs=[])
+    forward = mne.read_forward_solution(fname_fwd)
+    forward = mne.pick_channels_forward(forward, info['ch_names'])
+    vertices = [s['vertno'][::100] for s in forward['src']]
+    n_vertices = sum(len(v) for v in vertices)
+    assert 5 < n_vertices < 20
+    stc = mne.SourceEstimate(100e-9 * np.eye(n_vertices), vertices,
+                             0, 1. / info['sfreq'])
+    forward_sim = mne.convert_forward_solution(forward, force_fixed=True,
+                                               use_cps=True)
+    forward_sim = mne.forward.restrict_forward_to_stc(forward_sim, stc)
+    data_cov = mne.make_ad_hoc_cov(info)
+    noise_cov = mne.make_ad_hoc_cov(info)
+    noise_cov['data'] = np.diag(noise_cov['data'])
+    evoked = mne.EvokedArray(forward_sim['sol']['data'], info)
     with pytest.raises(ValueError, match='pick_ori must be one of'):
-        make_lcmv(evoked.info, forward_vol, data_cov, 0.05, noise_cov,
+        make_lcmv(evoked.info, forward, data_cov, 0.05, noise_cov,
                   pick_ori='bad')
-    filters = make_lcmv(evoked.info, forward, data_cov, 0.05, noise_cov)
-    filters_vector = make_lcmv(evoked.info, forward, data_cov, 0.05, noise_cov,
-                               pick_ori='vector')
-    stc = apply_lcmv(evoked, filters)
-    assert isinstance(stc, mne.SourceEstimate)
-    stc_vector = apply_lcmv(evoked, filters_vector)
-    assert isinstance(stc_vector, mne.VectorSourceEstimate)
-    assert_allclose(stc.data, stc_vector.magnitude().data)
+    angles = list()
+    for ti in range(n_vertices):
+        data_cov['data'] = (np.outer(evoked.data[:, ti], evoked.data[:, ti]) +
+                            noise_cov['data'])
+        filters = make_lcmv(evoked.info, forward, data_cov, 0.05, noise_cov)
+        filters_vector = make_lcmv(evoked.info, forward, data_cov, 0.05,
+                                   noise_cov, pick_ori='vector')
+        stc = apply_lcmv(evoked, filters)
+        assert isinstance(stc, mne.SourceEstimate)
+        stc_vector = apply_lcmv(evoked, filters_vector)
+        assert isinstance(stc_vector, mne.VectorSourceEstimate)
+        assert_allclose(stc.data, stc_vector.magnitude().data)
+        # Check the orientation
+        sim_ori = forward_sim['source_nn'][ti]
+        lcmv_ori = stc_vector.data[ti, :, ti]
+        lcmv_ori /= np.linalg.norm(lcmv_ori)
+        angles.append(np.rad2deg(np.arccos(np.dot(lcmv_ori, sim_ori))))
+    assert np.mean(angles) < 45
 
 
 @pytest.mark.slowtest
