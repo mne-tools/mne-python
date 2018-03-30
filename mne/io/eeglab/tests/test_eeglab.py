@@ -283,6 +283,7 @@ def _test_io_set(use_hdf=True):
 
 
 @testing.requires_testing_data
+@requires_h5py
 def test_degenerate():
     """Test some degenerate conditions."""
     # test if .dat file raises an error
