@@ -9,7 +9,6 @@ import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal
-from nose.tools import assert_true, assert_false
 
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io.kit import read_mrk
@@ -40,9 +39,9 @@ def test_combine_markers_model():
     model = CombineMarkersModel()
 
     # set one marker file
-    assert_false(model.mrk3.can_save)
+    assert not model.mrk3.can_save
     model.mrk1.file = mrk_pre_path
-    assert_true(model.mrk3.can_save)
+    assert model.mrk3.can_save
     assert_array_equal(model.mrk3.points, model.mrk1.points)
 
     # setting second marker file
@@ -52,7 +51,7 @@ def test_combine_markers_model():
     # set second marker
     model.mrk2.clear = True
     model.mrk2.file = mrk_post_path
-    assert_true(np.any(model.mrk3.points))
+    assert np.any(model.mrk3.points)
     points_interpolate_mrk1_mrk2 = model.mrk3.points
 
     # change interpolation method

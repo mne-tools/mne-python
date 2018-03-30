@@ -6,12 +6,11 @@ import os
 
 from numpy import array
 from numpy.testing import assert_allclose
-from nose.tools import assert_equal, assert_false, assert_raises, assert_true
+import pytest
 
 from mne.datasets import testing
 from mne.io.tests import data_dir as fiff_data_dir
-from mne.utils import (_TempDir, requires_freesurfer, requires_mayavi,
-                       run_tests_if_main, traits_test)
+from mne.utils import _TempDir, requires_mayavi, run_tests_if_main, traits_test
 from mne.channels import read_dig_montage
 
 data_path = testing.data_path(download=False)
@@ -30,12 +29,12 @@ def test_bem_source():
     from mne.gui._file_traits import SurfaceSource
 
     bem = SurfaceSource()
-    assert_equal(bem.surf.rr.shape, (0, 3))
-    assert_equal(bem.surf.tris.shape, (0, 3))
+    assert bem.surf.rr.shape == (0, 3)
+    assert bem.surf.tris.shape == (0, 3)
 
     bem.file = bem_path
-    assert_equal(bem.surf.rr.shape, (642, 3))
-    assert_equal(bem.surf.tris.shape, (1280, 3))
+    assert bem.surf.rr.shape == (642, 3)
+    assert bem.surf.tris.shape == (1280, 3)
 
 
 @testing.requires_testing_data
@@ -54,7 +53,7 @@ def test_fiducials_source():
     assert_allclose(fid.points, points, 1e-6)
 
     fid.file = ''
-    assert_equal(fid.points, None)
+    assert fid.points is None
 
 
 @testing.requires_testing_data
@@ -66,10 +65,10 @@ def test_inst_source():
     tempdir = _TempDir()
 
     inst = DigSource()
-    assert_equal(inst.inst_fname, '-')
+    assert inst.inst_fname == '-'
 
     inst.file = inst_path
-    assert_equal(inst.inst_dir, os.path.dirname(inst_path))
+    assert inst.inst_dir == os.path.dirname(inst_path)
 
     lpa = array([[-7.13766068e-02, 0.00000000e+00, 5.12227416e-09]])
     nasion = array([[3.72529030e-09, 1.02605611e-01, 4.19095159e-09]])
@@ -96,25 +95,24 @@ def test_subject_source():
 
     mri = MRISubjectSource()
     mri.subjects_dir = subjects_dir
-    assert_true('sample' in mri.subjects)
+    assert 'sample' in mri.subjects
     mri.subject = 'sample'
 
 
 @testing.requires_testing_data
 @requires_mayavi
 @traits_test
-@requires_freesurfer
 def test_subject_source_with_fsaverage():
     """Test SubjectSelector."""
     from mne.gui._file_traits import MRISubjectSource
     tempdir = _TempDir()
 
     mri = MRISubjectSource()
-    assert_false(mri.can_create_fsaverage)
-    assert_raises(RuntimeError, mri.create_fsaverage)
+    assert not mri.can_create_fsaverage
+    pytest.raises(RuntimeError, mri.create_fsaverage)
 
     mri.subjects_dir = tempdir
-    assert_true(mri.can_create_fsaverage)
+    assert mri.can_create_fsaverage
     mri.create_fsaverage()
 
 

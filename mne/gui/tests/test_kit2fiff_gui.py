@@ -8,7 +8,7 @@ import warnings
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
-from nose import SkipTest
+from unittest import SkipTest
 
 import mne
 from mne.io.kit.tests import data_dir as kit_data_dir
