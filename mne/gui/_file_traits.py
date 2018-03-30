@@ -503,15 +503,15 @@ class MRISubjectSource(HasPrivateTraits):
 
     def create_fsaverage(self):  # noqa: D102
         if not self.subjects_dir:
-            err = ("No subjects directory is selected. Please specify "
-                   "subjects_dir first.")
-            raise RuntimeError(err)
+            raise RuntimeError(
+                "No subjects directory is selected. Please specify "
+                "subjects_dir first.")
 
         fs_home = get_fs_home()
         if fs_home is None:
-            err = ("FreeSurfer contains files that are needed for copying the "
-                   "fsaverage brain. Please install FreeSurfer and try again.")
-            raise RuntimeError(err)
+            raise RuntimeError(
+                "FreeSurfer contains files that are needed for copying the "
+                "fsaverage brain. Please install FreeSurfer and try again.")
 
         create_default_subject(fs_home=fs_home, update=True,
                                subjects_dir=self.subjects_dir)
