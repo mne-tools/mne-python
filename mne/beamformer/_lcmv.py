@@ -28,19 +28,47 @@ depr_message = ("This function is deprecated and will be removed in 0.17, "
                 "please use `make_lcmv` and `%s` instead.")
 
 
-def _reg_pinv(x, reg):
-    """Compute a regularized pseudoinverse of a square array."""
-    if reg == 0:
-        covrank = estimate_rank(x, tol='auto', norm=False,
-                                return_singular=False)
-        if covrank < x.shape[0]:
-            warn('Covariance matrix is rank-deficient, but no regularization '
+def _reg_pinv(x, reg, rcond=1e-15):
+    """Compute a regularized pseudoinverse of a square array.
+
+    Parameters
+    ----------
+    x : ndarray, shape (n, n)
+        Square array to invert.
+    reg : float
+        Regularization parameter.
+    rcond : float | 'auto'
+        Cutoff for small singular values. Singular values smaller (in modulus)
+        than `rcond` * largest_singular_value (again, in modulus) are set to
+        zero. Use 'auto' to attempt to automatically set a sane value. Defaults
+        to 1e-15.
+    """
+    covrank, s = estimate_rank(x, tol='auto', norm=False, return_singular=True)
+
+    # This adds the regularization without using np.eye
+    d = reg * np.trace(x) / len(x)
+    x = x.copy()
+    x.flat[::x.shape[0] + 1] += d
+
+    if covrank < len(x):
+        if reg == 0:
+            warn('Covariance matrix is rank-deficient and no regularization '
                  'is done.')
 
-    # This adds it to the diagonal without using np.eye
-    d = reg * np.trace(x) / len(x)
-    x.flat[::x.shape[0] + 1] += d
-    return linalg.pinv(x), d
+        if rcond == 'auto':
+            # Reduce the toleration of the pseudo-inverse to force a solution
+            s = linalg.svd(x, compute_uv=False)
+            tol = s[covrank - 1:covrank + 1].mean()
+            tol = max(
+                tol,
+                len(x) * linalg.norm(x) * np.finfo(float).eps
+            )
+            rcond = tol / s.max()
+
+    if rcond == 'auto':
+        rcond = 1e-15
+
+    return linalg.pinv(x, rcond=rcond), d
 
 
 def _eig_inv(x, rank):
@@ -192,8 +220,37 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     Returns
     -------
-    filters | dict
-        Beamformer weights.
+    filters : dict
+        Dictionary containing filter weights from LCMV beamformer.
+        Contains the following keys:
+
+            'weights' : {array}
+                The filter weights of the beamformer.
+            'data_cov' : {instance of Covariance}
+                The data covariance matrix used to compute the beamformer.
+            'noise_cov' : {instance of Covariance | None}
+                The noise covariance matrix used to compute the beamformer.
+            'whitener' : {None | array}
+                Whitening matrix, provided if whitening was applied to the
+                covariance matrix and leadfield during computation of the
+                beamformer weights.
+            'weight_norm' : {'unit-noise-gain'| 'nai' | None}
+                Type of weight normalization used to compute the filter
+                weights.
+            'pick_ori' : {None | 'normal'}
+                Orientation selection used in filter computation.
+            'ch_names' : {list}
+                Channels used to compute the beamformer.
+            'proj' : {array}
+                Projections used to compute the beamformer.
+            'is_ssp' : {bool}
+                If True, projections were applied prior to filter computation.
+            'vertices' : {list}
+                Vertices for which the filter weights were computed.
+            'is_free_ori' : {bool}
+                If True, the filter was computed with free source orientation.
+            'src' : {instance of SourceSpaces}
+                Source space information.
 
     Notes
     -----
@@ -448,7 +505,8 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
     logger.info('[done]')
 
 
-def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
+def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
+                              leadfield_norm=None):
     """Input preparation common for all beamformer functions.
 
     Check input values, prepare channel list and gain matrix. For documentation
@@ -502,9 +560,28 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
     if info['projs']:
         G = np.dot(proj, G)
 
-    # Pick after applying the projections
+    # Pick after applying the projections. This makes a copy of G, so further
+    # operations can be safely done in-place.
     G = G[picks_forward]
     proj = proj[np.ix_(picks_forward, picks_forward)]
+
+    # Normalize the leadfield if requested
+    if leadfield_norm == 'dipole':
+        G /= np.linalg.norm(G, axis=0)
+    elif leadfield_norm == 'point':
+        depth_prior = np.sum(G ** 2, axis=0)
+        if is_free_ori:
+            depth_prior = depth_prior.reshape(-1, 3).sum(axis=1)
+        # Spherical leadfield can be zero at the center
+        depth_prior[depth_prior == 0.] = np.min(
+            depth_prior[depth_prior != 0.])
+        if is_free_ori:
+            depth_prior = np.repeat(depth_prior, 3)
+        source_weighting = np.sqrt(1. / depth_prior)
+        G *= source_weighting[np.newaxis, :]
+    elif leadfield_norm is not None:
+        raise ValueError('Got invalid value for "leadfield_norm". Valid '
+                         'values are: "dipole", "point" or None.')
 
     return is_free_ori, ch_names, proj, vertno, G
 

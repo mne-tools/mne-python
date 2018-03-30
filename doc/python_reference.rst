@@ -712,9 +712,10 @@ Inverse Solutions
    apply_lcmv
    apply_lcmv_epochs
    apply_lcmv_raw
-   dics
-   dics_epochs
-   dics_source_power
+   make_dics
+   apply_dics
+   apply_dics_csd
+   apply_dics_epochs
    rap_music
    tf_dics
    tf_lcmv
