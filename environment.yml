@@ -45,5 +45,5 @@ dependencies:
   - pytest-faulthandler
   - pydocstyle
   - sphinx_bootstrap_theme
-  - git+https://github.com/sphinx-gallery/sphinx-gallery.git
+  - "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master"
   - python-picard
