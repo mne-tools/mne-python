@@ -8,6 +8,7 @@ from __future__ import print_function
 
 import atexit
 from collections import Iterable
+from contextlib import contextmanager
 from distutils.version import LooseVersion
 from functools import wraps
 import ftplib
@@ -1143,6 +1144,25 @@ def _import_mlab():
     return mlab
 
 
+@contextmanager
+def traits_test_context():
+    """Context to raise errors in trait handlers."""
+    from traits.api import push_exception_handler
+
+    push_exception_handler(reraise_exceptions=True)
+    yield
+    push_exception_handler(reraise_exceptions=False)
+
+
+def traits_test(test_func):
+    """Raise errors in trait handlers (decorator)."""
+    @wraps(test_func)
+    def dec(*args, **kwargs):
+        with traits_test_context():
+            return test_func(*args, **kwargs)
+    return dec
+
+
 @verbose
 def run_subprocess(command, verbose=None, *args, **kwargs):
     """Run command using subprocess.Popen.
@@ -1462,14 +1482,16 @@ known_config_types = (
     'MNE_COREG_GUESS_MRI_SUBJECT',
     'MNE_COREG_HEAD_HIGH_RES',
     'MNE_COREG_HEAD_OPACITY',
+    'MNE_COREG_INTERACTION',
     'MNE_COREG_MARK_INSIDE',
     'MNE_COREG_PREPARE_BEM',
     'MNE_COREG_PROJECT_EEG',
     'MNE_COREG_ORIENT_TO_SURFACE',
     'MNE_COREG_SCALE_LABELS',
     'MNE_COREG_SCALE_BY_DISTANCE',
-    'MNE_COREG_SCENE_HEIGHT',
-    'MNE_COREG_SCENE_WIDTH',
+    'MNE_COREG_SCENE_SCALE',
+    'MNE_COREG_WINDOW_HEIGHT',
+    'MNE_COREG_WINDOW_WIDTH',
     'MNE_COREG_SUBJECTS_DIR',
     'MNE_CUDA_IGNORE_PRECISION',
     'MNE_DATA',

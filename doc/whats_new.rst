@@ -73,11 +73,17 @@ Changelog
 
 - Add :meth:`mne.io.Raw.reorder_channels`, :meth:`mne.Evoked.reorder_channels`, etc. to reorder channels, by `Eric Larson`_
 
-- Improve visibility of points inside the head in ``mne coreg`` and :func:`mne.gui.coregistration` by `Eric Larson`_
+- Add to ``mne coreg`` and :func:`mne.gui.coregistration` by `Eric Larson`_:
+
+  - Improved visibility of points inside the head
+  - Projection of EEG electrodes
+  - Orientation of extra points toward the surface
+  - Scaling points by distance to the head surface
+  - Display of HPI points
+  - ICP fitting with convergence criteria
+  - Faster display updates
 
 - Add ability to exclude components interactively by clicking on their labels in :meth:`mne.preprocessing.ICA.plot_components` by `Mikołaj Magnuski`_
-
-- Add projection of EEG electrodes, orientation of extra points, and scaling points by distance to the head surface; display of HPI points; and marking points inside the head surface in a different color by ``mne coreg`` / :func:`mne.gui.coregistration` by `Eric Larson`_
 
 - Add reader for manual annotations of raw data produced by Brainstorm by `Anne-Sophie Dubarry`_
 
@@ -151,6 +157,8 @@ Bug
 - Fix bug when reading event latencies (in samples) from eeglab files didn't translate indices to 0-based python indexing by `Mikołaj Magnuski`_
 
 - Fix consistency between :class:`mne.Epochs` and :func:`mne.stats.linear_regression_raw` in converting between samples and times (:func:`mne.stats.linear_regression_raw` now rounds, instead of truncating) by `Phillip Alday`_
+
+- Fix bug in ``mne coreg`` where sphere surfaces were scaled by `Eric Larson`_
 
 - Fix bug when passing ``show_sensors=1`` to :func:`mne.viz.plot_compare_evokeds` resulted in sensors legend placed in lower right of the figure (position 4 in matplotlib), not upper right by `Mikołaj Magnuski`_
 
