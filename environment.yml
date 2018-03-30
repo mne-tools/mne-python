@@ -24,6 +24,7 @@ dependencies:
 - numpydoc
 - flake8
 - spyder
+- numexpr
 - pip:
   - mne
   # The Qt5 on conda is 5.6.1, which has some nasty bugs. We can't use latest
@@ -45,3 +46,4 @@ dependencies:
   - pydocstyle
   - sphinx_bootstrap_theme
   - git+https://github.com/sphinx-gallery/sphinx-gallery.git
+  - python-picard

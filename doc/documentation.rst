@@ -232,6 +232,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/preprocessing/plot_find_ecg_artifacts.rst
     auto_examples/preprocessing/plot_find_eog_artifacts.rst
     auto_examples/preprocessing/plot_head_positions.rst
+    auto_examples/preprocessing/plot_ica_comparison.rst
     auto_examples/preprocessing/plot_interpolate_bad_channels.rst
     auto_examples/preprocessing/plot_movement_compensation.rst
     auto_examples/preprocessing/plot_rereference_eeg.rst

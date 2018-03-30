@@ -805,7 +805,7 @@ def buggy_mkl_svd(function):
     return dec
 
 
-def requires_version(library, min_version):
+def requires_version(library, min_version='0.0'):
     """Check for a library version."""
     import pytest
     return pytest.mark.skipif(not check_version(library, min_version),
@@ -815,19 +815,18 @@ def requires_version(library, min_version):
 
 def requires_module(function, name, call=None):
     """Skip a test if package is not available (decorator)."""
+    import pytest
     call = ('import %s' % name) if call is None else call
-
-    @wraps(function)
-    def dec(*args, **kwargs):  # noqa: D102
-        try:
-            exec(call) in globals(), locals()
-        except Exception as exc:
-            msg = 'Test %s skipped, requires %s.' % (function.__name__, name)
-            if len(str(exc)) > 0:
-                msg += ' Got exception (%s)' % (exc,)
-            raise SkipTest(msg)
-        return function(*args, **kwargs)
-    return dec
+    reason = 'Test %s skipped, requires %s.' % (function.__name__, name)
+    try:
+        exec(call) in globals(), locals()
+    except Exception as exc:
+        if len(str(exc)) > 0 and str(exc) != 'No module named %s' % name:
+            reason += ' Got exception (%s)' % (exc,)
+        skip = True
+    else:
+        skip = False
+    return pytest.mark.skipif(skip, reason=reason)(function)
 
 
 def copy_doc(source):
