@@ -525,7 +525,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         vmin = -vmax
     else:
         vmin, vmax = ylim[this_type]
-    extent = [times[0], times[-1], 0, data.shape[0]]
+    extent = [times[0], times[-1], 0, len(data)]
     im_args = dict(interpolation='nearest', origin='lower',
                    extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
 
