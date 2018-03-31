@@ -64,12 +64,10 @@ def _check_mat_struct(fname):
     from scipy import io
     try:
         # Try to read old style Matlab file
-        fhandle = open(fname, 'rb')
-        mat = io.whosmat(fhandle, struct_as_record=False, squeeze_me=True)
-        fhandle.close()
+        with open(fname, 'rb') as fhandle:
+            mat = io.whosmat(fhandle, struct_as_record=False, squeeze_me=True)
     except NotImplementedError:
         # Try to read new style Matlab file
-        fhandle.close()
         import h5py
         f = h5py.File(fname)
         mat = list(f.keys())
@@ -537,17 +535,14 @@ def _get_eeg_data(input_fname, uint16_codec=None):
     from scipy import io
     try:
         # Try to read old style Matlab file
-        fhandle = open(input_fname, 'rb')
-        eeg = io.loadmat(fhandle, struct_as_record=False,
-                         squeeze_me=True,
-                         uint16_codec=uint16_codec)['EEG']
-        print("Closing    %s" % input_fname)
-        fhandle.close()
+        with open(input_fname, 'rb') as fhandle:
+            eeg = io.loadmat(fhandle, struct_as_record=False,
+                             squeeze_me=True,
+                             uint16_codec=uint16_codec)['EEG']
     except NotImplementedError:
         # Try to read new style Matlab file (Version 7.3+)
         # Note: Now eeg will be returned as a Bunch object,
         # instead of an io.matlab.mio5_params.mat_struct object.
-        fhandle.close()
         import h5py  # Added to read newer Matlab files (7.3 and later)
         logger.info("Attempting to read Matlab style hdf file")
         f = h5py.File(input_fname)
@@ -1002,14 +997,12 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
         from scipy import io
 
         try:
-            fhandle = open(eeg, 'rb')
-            eeg = io.loadmat(fhandle, struct_as_record=False,
-                             squeeze_me=True,
-                             uint16_codec=uint16_codec)['EEG']
-            fhandle.close()
+            with open(eeg, 'rb') as fhandle:
+                eeg = io.loadmat(fhandle, struct_as_record=False,
+                                 squeeze_me=True,
+                                 uint16_codec=uint16_codec)['EEG']
         except NotImplementedError:
             # Try to read new style Matlab file (Version 7.3+)
-            fhandle.close()
             import h5py  # Added to read newer Matlab files (7.3 and later)
             logger.info("Attempting to read Matlab style hdf file")
             f = h5py.File(eeg)
