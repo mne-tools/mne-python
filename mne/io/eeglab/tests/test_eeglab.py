@@ -47,16 +47,17 @@ def test_io_set():
 @requires_h5py
 def _test_io_set(use_hdf=True):
     """Test importing EEGLAB .set files."""
-    global raw_fname
-    global raw_fname_onefile
-    global epochs_fname
-    global epochs_fname_onefile
 
     if use_hdf:
         raw_fname = op.join(base_dir, 'test_raw_h5.set')
         raw_fname_onefile = op.join(base_dir, 'test_raw_onefile_h5.set')
         epochs_fname = op.join(base_dir, 'test_epochs_h5.set')
         epochs_fname_onefile = op.join(base_dir, 'test_epochs_onefile_h5.set')
+    else:
+        raw_fname = op.join(base_dir, 'test_raw.set')
+        raw_fname_onefile = op.join(base_dir, 'test_raw_onefile.set')
+        epochs_fname = op.join(base_dir, 'test_epochs.set')
+        epochs_fname_onefile = op.join(base_dir, 'test_epochs_onefile.set')
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')

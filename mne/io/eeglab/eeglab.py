@@ -68,7 +68,12 @@ def _check_mat_struct(fname):
             mat = io.whosmat(fhandle, struct_as_record=False, squeeze_me=True)
     except NotImplementedError:
         # Try to read new style Matlab file
-        import h5py
+        try:
+            import h5py
+        except ImportError:
+            raise RuntimeError('Reading v7+ MATLAB format .set',
+                               'requires h5py, which could not',
+                               'be imported')
         f = h5py.File(fname)
         mat = list(f.keys())
         f.close()
@@ -373,7 +378,12 @@ def _bunch_derefs(orig, bunch_data, deref_fields):
     """ Dereferences h5py.h5r.Reference objects. Ensures that each
         field of bunch object with dereferenced objects stores them
         in a list, even if that list has only 1 element. """
-    import h5py
+    try:
+        import h5py
+    except ImportError:
+        raise RuntimeError('Reading v7+ MATLAB format .set',
+                           'requires h5py, which could not',
+                           'be imported')
 
     for curr_field in deref_fields:
         bd = bunch_data[0].__dict__[curr_field]
@@ -400,7 +410,12 @@ def _bunch_derefs(orig, bunch_data, deref_fields):
 
 def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
     """Convert h5py obj to dict."""
-    import h5py
+    try:
+        import h5py
+    except ImportError:
+        raise RuntimeError('Reading v7+ MATLAB format .set',
+                           'requires h5py, which could not',
+                           'be imported')
     out_dict = {}
     variable_names = in_hdf.keys()
     indent_incr = '    '
@@ -499,7 +514,12 @@ def _hlGroup_2_bunch_list(orig, in_hlGroup, tuple_name, indent):
        and that these refs all reference 2D numpy arrays that need to
        be flattened to either 1D arrays or Scalars"""
 
-    import h5py
+    try:
+        import h5py
+    except ImportError:
+        raise RuntimeError('Reading v7+ MATLAB format .set',
+                           'requires h5py, which could not',
+                           'be imported')
 
     try:
         # h5_values gives dict of 1D arrays of HDF obj references
@@ -543,7 +563,12 @@ def _get_eeg_data(input_fname, uint16_codec=None):
         # Try to read new style Matlab file (Version 7.3+)
         # Note: Now eeg will be returned as a Bunch object,
         # instead of an io.matlab.mio5_params.mat_struct object.
-        import h5py  # Added to read newer Matlab files (7.3 and later)
+        try:
+            import h5py
+        except ImportError:
+            raise RuntimeError('Reading v7+ MATLAB format .set',
+                               'requires h5py, which could not',
+                               'be imported')
         logger.info("Attempting to read Matlab style hdf file")
         f = h5py.File(input_fname)
         eeg_dict = hdf_2_dict(f, f['EEG'], parent=None)
@@ -1003,7 +1028,12 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
                                  uint16_codec=uint16_codec)['EEG']
         except NotImplementedError:
             # Try to read new style Matlab file (Version 7.3+)
-            import h5py  # Added to read newer Matlab files (7.3 and later)
+            try:
+                import h5py
+            except ImportError:
+                raise RuntimeError('Reading v7+ MATLAB format .set',
+                                   'requires h5py, which could not',
+                                   'be imported')
             logger.info("Attempting to read Matlab style hdf file")
             f = h5py.File(eeg)
             eeg_dict = hdf_2_dict(f, f['EEG'], parent=None)
