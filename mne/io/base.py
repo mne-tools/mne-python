@@ -657,10 +657,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @property
     def filenames(self):
         """The filenames used."""
-        try:
-            return tuple(self._filenames)
-        except AttributeError:
-            return tuple([None])
+        return tuple(self._filenames)
 
     @annotations.setter
     def annotations(self, annotations, emit_warning=True):

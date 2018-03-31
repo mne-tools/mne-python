@@ -422,6 +422,7 @@ def _get_hdf_eeg_data(input_fname):
     eeg_dict = hdf_2_dict(f, f['EEG'], parent=None)
     f.close()
     eeg = _bunchify(eeg_dict)
+    eeg.data = eeg.data.transpose()
 
     return eeg
 
@@ -695,11 +696,6 @@ class RawEEGLAB(BaseRaw):
             ascii_check = _check_for_ascii_filename(eeg, input_fname)
             if ascii_check[0]:
                 eeg.data = ascii_check[1]
-                hdf5_transpose = False
-            else:
-                hdf5_transpose = True
-        else:
-            hdf5_transpose = False
 
         if isinstance(eeg.data, string_types):
             data_fname = op.join(basedir, eeg.data)
@@ -720,12 +716,6 @@ class RawEEGLAB(BaseRaw):
             if eeg.nbchan == 1 and len(eeg.data.shape) == 1:
                 n_chan, n_times = [1, eeg.data.shape[0]]
             else:
-                n_chan, n_times = eeg.data.shape
-
-            # Seem to have transpose with matlab hdf storage
-            if hdf5_transpose:
-                temp = eeg.data.transpose()
-                eeg.data = temp
                 n_chan, n_times = eeg.data.shape
 
             data = np.empty((n_chan + 1, n_times), dtype=np.double)
@@ -921,11 +911,6 @@ class EpochsEEGLAB(BaseEpochs):
             ascii_check = _check_for_ascii_filename(eeg, input_fname)
             if ascii_check[0]:
                 eeg.data = ascii_check[1]
-                hdf5_transpose = False
-            else:
-                hdf5_transpose = True
-        else:
-            hdf5_transpose = False
 
         if isinstance(eeg.data, string_types):
             basedir = op.dirname(input_fname)
@@ -942,11 +927,6 @@ class EpochsEEGLAB(BaseEpochs):
             data = data[np.newaxis, :]
         data = data.transpose((2, 0, 1)).astype('double')
         data *= CAL
-
-        # If data read from hdf5 file, pnts and nbchan axes will be
-        # swapped
-        if hdf5_transpose:
-            data = data.transpose((1, 0, 2)).astype('double')
 
         assert data.shape == (eeg.trials, eeg.nbchan, eeg.pnts)
         tmin, tmax = eeg.xmin, eeg.xmax
