@@ -2594,10 +2594,6 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
 
     from matplotlib import ticker, __version__ as v
 
-    print('rcdfbcfvsdh: ')
-    print(yvals, yvals[0])
-    #print("rcdfbcfvsdh: ", yvals, yvals[0], yvals[-1])
-
     # test yscale
     if yscale == 'log' and not yvals[0] > 0:
         raise ValueError('Using log scale for frequency axis requires all your'
