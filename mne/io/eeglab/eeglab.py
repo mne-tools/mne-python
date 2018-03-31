@@ -420,7 +420,11 @@ def _get_hdf_eeg_data(input_fname):
     with h5py.File(input_fname) as f:
         eeg_dict = hdf_2_dict(f, f['EEG'], parent=None)
     eeg = _bunchify(eeg_dict)
-    eeg.data = eeg.data.transpose()
+    ascii_check = _check_for_ascii_filename(eeg, input_fname)
+    if ascii_check[0]:
+        eeg.data = ascii_check[1]
+    else:
+        eeg.data = eeg.data.transpose()
 
     return eeg
 
@@ -686,14 +690,6 @@ class RawEEGLAB(BaseRaw):
         events = read_events_eeglab(eeg, event_id=event_id,
                                     event_id_func=event_id_func)
         self._create_event_ch(events, n_samples=eeg.pnts)
-
-        # read the data
-        if isinstance(eeg, Bunch):
-            # if hdf5 data was read in, then file name might be encoded
-            # as array of ascii values of characters
-            ascii_check = _check_for_ascii_filename(eeg, input_fname)
-            if ascii_check[0]:
-                eeg.data = ascii_check[1]
 
         if isinstance(eeg.data, string_types):
             data_fname = op.join(basedir, eeg.data)
