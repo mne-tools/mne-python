@@ -74,9 +74,8 @@ def _check_mat_struct(fname):
             raise RuntimeError('Reading v7+ MATLAB format .set',
                                'requires h5py, which could not',
                                'be imported')
-        f = h5py.File(fname)
-        mat = list(f.keys())
-        f.close()
+        with h5py.File(fname) as f:
+            mat = list(f.keys())
         if 'ALLEEG' in mat:
             mat[0] = u'ALLEEG'
         elif 'EEG' in mat:
@@ -418,9 +417,8 @@ def _get_hdf_eeg_data(input_fname):
                            'be imported')
 
     logger.info("Attempting to read Matlab style hdf file")
-    f = h5py.File(input_fname)
-    eeg_dict = hdf_2_dict(f, f['EEG'], parent=None)
-    f.close()
+    with h5py.File(input_fname) as f:
+        eeg_dict = hdf_2_dict(f, f['EEG'], parent=None)
     eeg = _bunchify(eeg_dict)
     eeg.data = eeg.data.transpose()
 
