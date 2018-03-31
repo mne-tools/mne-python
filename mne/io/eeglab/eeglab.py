@@ -408,6 +408,24 @@ def _bunch_derefs(orig, bunch_data, deref_fields):
     return bunch_data
 
 
+def _get_hdf_eeg_data(input_fname):
+
+    try:
+        import h5py
+    except ImportError:
+        raise RuntimeError('Reading v7+ MATLAB format .set',
+                           'requires h5py, which could not',
+                           'be imported')
+
+    logger.info("Attempting to read Matlab style hdf file")
+    f = h5py.File(input_fname)
+    eeg_dict = hdf_2_dict(f, f['EEG'], parent=None)
+    f.close()
+    eeg = _bunchify(eeg_dict)
+
+    return eeg
+
+
 def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
     """Convert h5py obj to dict."""
     try:
@@ -563,18 +581,7 @@ def _get_eeg_data(input_fname, uint16_codec=None):
         # Try to read new style Matlab file (Version 7.3+)
         # Note: Now eeg will be returned as a Bunch object,
         # instead of an io.matlab.mio5_params.mat_struct object.
-        try:
-            import h5py
-        except ImportError:
-            raise RuntimeError('Reading v7+ MATLAB format .set',
-                               'requires h5py, which could not',
-                               'be imported')
-        logger.info("Attempting to read Matlab style hdf file")
-        f = h5py.File(input_fname)
-        eeg_dict = hdf_2_dict(f, f['EEG'], parent=None)
-        f.close()
-        eeg = _bunchify(eeg_dict)
-
+        eeg = _get_hdf_eeg_data(input_fname)
         str_conversion_fields = ('datfile', 'filename', 'filepath',
                                  'history', 'ref', 'saved', 'setname')
         for curr_field in str_conversion_fields:
@@ -1028,17 +1035,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
                                  uint16_codec=uint16_codec)['EEG']
         except NotImplementedError:
             # Try to read new style Matlab file (Version 7.3+)
-            try:
-                import h5py
-            except ImportError:
-                raise RuntimeError('Reading v7+ MATLAB format .set',
-                                   'requires h5py, which could not',
-                                   'be imported')
-            logger.info("Attempting to read Matlab style hdf file")
-            f = h5py.File(eeg)
-            eeg_dict = hdf_2_dict(f, f['EEG'], parent=None)
-            f.close()
-            eeg = _bunchify(eeg_dict)
+            eeg = _get_hdf_eeg_data(eeg)
 
     annotations = _read_annotations_eeglab(eeg)
     types = annotations.description
