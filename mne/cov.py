@@ -1347,13 +1347,18 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         out_idx_type[ch_type] = [k for k in range(len(C))
                                  if ch_names[k] in ch_names_dict[ch_type]]
 
+    del picks_dict
+
     # re-index based on ch_names order
     ch_names_type = dict()
     info_picks = dict()
     for ch_type, ch_picks in out_idx_type.items():
         ch_names_type[ch_type] = [ch_names[k] for k in ch_picks]
-        info_picks[ch_type] = pick_channels(info['ch_names'],
-                                            ch_names_type[ch_type])
+        info_picks[ch_type] = []
+        if ch_names_type[ch_type]:
+            # as pick_channels return full list if include is []
+            info_picks[ch_type] = pick_channels(info['ch_names'],
+                                                ch_names_type[ch_type])
 
     for ch_type, ch_picks in out_idx_type.items():
         assert (len(info_picks[ch_type]) ==
@@ -1382,7 +1387,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
             continue
         this_picks = out_idx_type[ch_type]
         this_C = C[np.ix_(this_picks, this_picks)]
-        this_info = pick_info(_simplify_info(info), picks_dict[ch_type],
+        this_info = pick_info(_simplify_info(info), info_picks[ch_type],
                               copy=False)
         this_rank = ranks_type[ch_type]
         if ranks_type[ch_type] is None:
