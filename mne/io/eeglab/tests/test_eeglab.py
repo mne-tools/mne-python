@@ -26,10 +26,17 @@ from mne.utils import _TempDir, run_tests_if_main, requires_h5py
 
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
-raw_fname = op.join(base_dir, 'test_raw.set')
-raw_fname_onefile = op.join(base_dir, 'test_raw_onefile.set')
-epochs_fname = op.join(base_dir, 'test_epochs.set')
-epochs_fname_onefile = op.join(base_dir, 'test_epochs_onefile.set')
+
+raw_fname_mat = op.join(base_dir, 'test_raw.set')
+raw_fname_onefile_mat = op.join(base_dir, 'test_raw_onefile.set')
+epochs_fname_mat = op.join(base_dir, 'test_epochs.set')
+epochs_fname_onefile_mat = op.join(base_dir, 'test_epochs_onefile.set')
+
+raw_fname_h5 = op.join(base_dir, 'test_raw.set')
+raw_fname_onefile_h5 = op.join(base_dir, 'test_raw_onefile.set')
+epochs_fname_h5 = op.join(base_dir, 'test_epochs.set')
+epochs_fname_onefile_h5 = op.join(base_dir, 'test_epochs_onefile.set')
+
 montage = op.join(base_dir, 'test_chans.locs')
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -49,15 +56,15 @@ def _test_io_set(use_hdf=True):
     """Test importing EEGLAB .set files."""
 
     if use_hdf:
-        raw_fname = op.join(base_dir, 'test_raw_h5.set')
-        raw_fname_onefile = op.join(base_dir, 'test_raw_onefile_h5.set')
-        epochs_fname = op.join(base_dir, 'test_epochs_h5.set')
-        epochs_fname_onefile = op.join(base_dir, 'test_epochs_onefile_h5.set')
+        raw_fname = raw_fname_mat
+        raw_fname_onefile = raw_fname_onefile_mat
+        epochs_fname = epochs_fname_mat
+        epochs_fname_onefile = epochs_fname_onefile_mat
     else:
-        raw_fname = op.join(base_dir, 'test_raw.set')
-        raw_fname_onefile = op.join(base_dir, 'test_raw_onefile.set')
-        epochs_fname = op.join(base_dir, 'test_epochs.set')
-        epochs_fname_onefile = op.join(base_dir, 'test_epochs_onefile.set')
+        raw_fname = raw_fname_h5
+        raw_fname_onefile = raw_fname_onefile_h5
+        epochs_fname = epochs_fname_h5
+        epochs_fname_onefile = epochs_fname_onefile_h5
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -289,7 +296,7 @@ def test_degenerate():
     """Test some degenerate conditions."""
     # test if .dat file raises an error
     temp_dir = _TempDir()
-    eeg = _get_eeg_data(epochs_fname, uint16_codec=None)
+    eeg = _get_eeg_data(epochs_fname_mat, uint16_codec=None)
     if isinstance(eeg, Bunch):
         # io.savemat will fail when trying to save a Bunch object
         # from an hdf5 file instead of a mat_struct object. That
@@ -315,7 +322,7 @@ def test_degenerate():
 @requires_h5py
 def test_eeglab_annotations():
     """Test reading annotations in EEGLAB files"""
-    for fname in [raw_fname_onefile, raw_fname]:
+    for fname in [raw_fname_onefile_mat, raw_fname_mat]:
         annotations = read_annotations_eeglab(fname)
         assert len(annotations) == 154
         assert set(annotations.description) == set(['rt', 'square'])
