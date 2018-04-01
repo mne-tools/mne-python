@@ -308,7 +308,7 @@ def test_degenerate():
                {'trials': eeg.trials, 'srate': eeg.srate,
                 'nbchan': eeg.nbchan, 'data': eeg.data,
                 'epoch': eeg.epoch, 'event': eeg.event,
-                'chanlocs': eeg.chanlocs}})
+                'chanlocs': eeg.chanlocs}}, appendmat=False)
     shutil.copyfile(op.join(base_dir, 'test_epochs.fdt'),
                     op.join(temp_dir, 'test_epochs.dat'))
     with warnings.catch_warnings(record=True) as w:
