@@ -36,11 +36,12 @@ def _check_fname(fname):
 
 
 def _check_for_ascii_filename(eeg, input_fname):
+    """Check to see if eeg.data is array of ascii values.
 
-    """Checks to see if eeg.data is array of ascii values
-       of filename. Does not check if extension is valid
-       (or if it exists), since this is handled by _check_fname"""
-
+    The ascii values are assumed to represent a filename.
+    This method does not check if extension is valid
+    (or if it exists), since this is handled by _check_fname
+    """
     if (isinstance(eeg.data, np.ndarray) and
        len(eeg.data.shape) == 1 and
        np.issubdtype(eeg.data.dtype, np.integer)):
@@ -349,18 +350,22 @@ def _bunch_wrapper(name, **kwargs):
 
 
 def _bunch_data_2_strs(bunch_data, field, lower=True):
-    """ Takes string values stored as ascii values in numpy arrays
-        in bunch objects and returns list of human-readable strings"""
+    """Convert ascii strings to human-readable strings.
 
+    Takes string values stored as ascii values in numpy arrays
+    in bunch objects and returns list of human-readable strings
+    """
     str_list = [''.join([chr(x) for x in curr_label.__dict__[field]]).strip()
                 for curr_label in bunch_data]
     return str_list
 
 
 def _bunch_str_conversions(bunch_data, str_conversion_fields):
-    """ Converts selected fields from bunch object from 1D array
-        aof ascii values to strs"""
+    """Convert selected fields.
 
+    Fields are from bunch object from 1D array
+    of ascii values of chars.
+    """
     for curr_field in str_conversion_fields:
         c1 = (len(bunch_data) > 0)
         c2 = (c1 and (curr_field in bunch_data[0]))
@@ -374,9 +379,12 @@ def _bunch_str_conversions(bunch_data, str_conversion_fields):
 
 
 def _bunch_derefs(orig, bunch_data, deref_fields):
-    """ Dereferences h5py.h5r.Reference objects. Ensures that each
-        field of bunch object with dereferenced objects stores them
-        in a list, even if that list has only 1 element. """
+    """Dereference h5py.h5r.Reference objects.
+
+    Ensures that each field of bunch object with dereferenced
+    objects stores them in a list, even if that list has only
+    1 element.
+    """
     try:
         import h5py
     except ImportError:
@@ -529,12 +537,14 @@ def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
 
 
 def _hlGroup_2_bunch_list(orig, in_hlGroup, tuple_name, indent):
-    """Returns list of Bunch objects - A Bunch object is a
-       dictionary-like object that exposes its keys as attributes.
-       ASSUMES: The group consists solely of arrays of HDF5 obj refs,
-       and that these refs all reference 2D numpy arrays that need to
-       be flattened to either 1D arrays or Scalars"""
+    r"""Return list of Bunch objects.
 
+    A Bunch object is a dictionary-like object that exposes its
+    keys as attributes.
+    ASSUMES: The group consists solely of arrays of HDF5 obj refs,
+    and that these refs all reference 2D numpy arrays that need to
+    be flattened to either 1D arrays or Scalars
+    """
     try:
         import h5py
     except ImportError:
@@ -666,7 +676,7 @@ class RawEEGLAB(BaseRaw):
     def __init__(self, input_fname, montage, eog=(), event_id=None,
                  event_id_func='strip_to_integer', preload=False,
                  verbose=None, uint16_codec=None):  # noqa: D102
-
+        """Initialize RawEEGLAB object."""
         basedir = op.dirname(input_fname)
         _check_mat_struct(input_fname)
         eeg = _get_eeg_data(input_fname, uint16_codec)
@@ -832,6 +842,7 @@ class EpochsEEGLAB(BaseEpochs):
                  baseline=None, reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, montage=None, eog=(), verbose=None,
                  uint16_codec=None):  # noqa: D102
+        """Initialize EpochsEEGLAB object."""
         _check_mat_struct(input_fname)
         eeg = _get_eeg_data(input_fname, uint16_codec)
 
