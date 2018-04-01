@@ -25,11 +25,12 @@ References
 import matplotlib.pyplot as plt
 from scipy.stats import ttest_ind
 import numpy as np
-np.random.seed(0)
 
 import mne
 from mne.channels import find_layout, find_ch_connectivity
 from mne.stats import spatio_temporal_cluster_test
+
+np.random.seed(0)
 
 # Load the data
 path = mne.datasets.kiloword.data_path() + '/kword_metadata-epo.fif'
@@ -64,10 +65,10 @@ for (tmin, tmax) in time_windows:
         time_win = "{} < time < {}".format(tmin, tmax)
         A = long.to_data_frame().query(time_win)[elec].groupby("condition")
         B = short.to_data_frame().query(time_win)[elec].groupby("condition")
-        
+
         # conduct t test
         t, p = ttest_ind(A.mean(), B.mean())
-        
+
         # display results
         format_dict = dict(elec=elec, tmin=tmin, tmax=tmax,
                            df=len(epochs.events) - 2, t_val=t, p=p)
@@ -141,7 +142,7 @@ for roi_name, ax in zip(sorted(rois.keys()), axes):
     ax.set_title(roi_name)
 
 fig.colorbar(ax.images[-1], ax=axes, fraction=.1, aspect=20,
-             pad=.05, shrink=2/3, label="uV", orientation="vertical");
+             pad=.05, shrink=2 / 3, label="uV", orientation="vertical")
 fig.suptitle(name, x=.95, y=.875)
 
 plt.show()
