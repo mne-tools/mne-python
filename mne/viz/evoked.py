@@ -223,7 +223,9 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
             raise ValueError('exclude has to be a list of channel names or '
                              '"bads"')
 
-        picks = list(set(picks).difference(exclude))
+        picks = [pick for pick in picks if pick not in exclude]
+    if len(picks) != len(set(picks)):
+        picks = set(picks)
     picks = np.array(picks)
 
     types = np.array([channel_type(info, idx) for idx in picks])
