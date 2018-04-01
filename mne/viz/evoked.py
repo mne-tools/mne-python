@@ -560,7 +560,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         if mask.all():
             t_end = ", all points masked)"
         else:
-            fraction = np.float(mask.sum()) / np.float(mask.size)
+            fraction =  1 - (np.float(mask.sum()) / np.float(mask.size))
             percent = np.floor(fraction * 100).astype(int)
             t_end = ", " + str(percent) + "% of points masked)"
     else:
