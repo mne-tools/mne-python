@@ -2368,7 +2368,7 @@ def _set_ax_label_style(ax, params, italicize=True):
 
 def _check_sss(info):
     """Check SSS history in info."""
-    ch_used = [ch for ch in ['eeg', 'grad', 'mag']
+    ch_used = [ch for ch in _DATA_CH_TYPES_SPLIT
                if _contains_ch_type(info, ch)]
     has_meg = 'mag' in ch_used and 'grad' in ch_used
     has_sss = (has_meg and len(info['proc_history']) > 0 and
@@ -2381,10 +2381,12 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
     if rank is None:
         rank = dict()
     if scalings is None:
-        scalings = dict(mag=1e12, grad=1e11, eeg=1e5)
+        scalings = dict(mag=1e12, grad=1e11, eeg=1e5, seeg=1e3,
+                        ecog=1e3)
 
     # Only look at good channels
-    picks = pick_types(info, meg=True, eeg=True, ref_meg=False, exclude='bads')
+    picks = pick_types(info, meg=True, eeg=True, seeg=True,
+                       ecog=True, ref_meg=False, exclude='bads')
     info = pick_info(info, picks)
     ch_used, has_meg, has_sss = _check_sss(info)
     if has_sss:

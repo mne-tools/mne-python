@@ -1063,7 +1063,8 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     for idx in passive_idx[::-1]:  # reverse order so idx does not change
         evoked.del_proj(idx)
 
-    evoked.pick_types(meg=True, eeg=True, ref_meg=False, exclude='bads')
+    evoked.pick_types(meg=True, eeg=True, seeg=True, ecog=True,
+                      ref_meg=False, exclude='bads')
     n_ch_used, rank_list, picks_list, has_sss = _triage_rank_sss(
         evoked.info, noise_cov, rank, scalings)
     del rank, scalings
@@ -1118,8 +1119,9 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         titles_['meg'] = 'MEG (combined)'
 
     colors = [plt.cm.Set1(i) for i in np.linspace(0, 0.5, len(noise_cov))]
+    # XXX : should maybe use _handle_default with color arg...
     ch_colors = {'eeg': 'black', 'mag': 'blue', 'grad': 'cyan',
-                 'meg': 'steelblue'}
+                 'meg': 'steelblue', 'seeg': 'saddlebrown', 'ecog': 'k'}
     iter_gfp = zip(evokeds_white, noise_cov, rank_list, colors)
 
     # the first is by law the best noise cov, on the left we plot that one.
