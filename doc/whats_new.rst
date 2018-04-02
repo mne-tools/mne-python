@@ -95,18 +95,18 @@ Changelog
 
 - Add the Picard algorithm to perform ICA for :class:`mne.preprocessing.ICA`, by `Pierre Ablin`_ and `Alex Gramfort`_
 
-- Add ability to supply a mask to the plot in :func:`mne.viz.evoked.plot_evoked_image` by `Jona Sassenhagen`.
+- Add ability to supply a mask to the plot in :func:`mne.viz.plot_evoked_image` by `Jona Sassenhagen`.
 
 - Add :func:`mne.time_frequency.csd_morlet` and :func:`mne.time_frequency.csd_array_morlet` to estimate cross-spectral density using Morlet wavelets, by `Marijn van Vliet`_
 
-- Add multidictionary time-frequency support to :func:`mne.inverse_sparse.mxne_inverse.tf_mixed_norm` by `Mathurin Massias`_ and `Daniel Strohmeier`_
+- Add multidictionary time-frequency support to :func:`mne.inverse_sparse.tf_mixed_norm` by `Mathurin Massias`_ and `Daniel Strohmeier`_
 
 Bug
 ~~~
 
 - Fix bug in EEG interpolation code to do nothing if there is no channel to interpolate by `Mainak Jas`_
 
-- Fix bug in :func:`mne.preprocessing.peak_finder` to output datatype consistently and added input check for empty vectors by `Tommy Clausner`_
+- Fix bug in ``mne.preprocessing.peak_finder`` to output datatype consistently and added input check for empty vectors by `Tommy Clausner`_
 
 - Fix bug in :func:`mne.io.read_raw_brainvision` to use the correct conversion for filters from time constant to frequency by `Stefan Appelhoff`_
 
@@ -175,11 +175,11 @@ API
 
 - Changed the behavior of :meth:`mne.io.Raw.pick_channels` and similar methods to be consistent with :func:`mne.pick_channels` to treat channel list as a set (ignoring order) -- if reordering is necessary use ``inst.reorder_channels``, by `Eric Larson`_
 
-- :func:`mne.time_frequency.csd_epochs` has been refactored into :func:`mne.time_frequency.csd_fourier` and :func:`mne.time_frequency.csd_multitaper`, by `Marijn van Vliet`_
+- ``mne.time_frequency.csd_epochs`` has been refactored into :func:`mne.time_frequency.csd_fourier` and :func:`mne.time_frequency.csd_multitaper`, by `Marijn van Vliet`_
 
-- :func:`mne.time_frequency.csd_array` has been refactored into :func:`mne.time_frequency.csd_array_fourier` and :func:`mne.time_frequency.csd_array_multitaper`, by `Marijn van Vliet`_
+- ``mne.time_frequency.csd_array`` has been refactored into :func:`mne.time_frequency.csd_array_fourier` and :func:`mne.time_frequency.csd_array_multitaper`, by `Marijn van Vliet`_
 
-- Added ``clean_names=False`` parameter to :func:`mne.io.read_raw_ctf` and :class:`mne.io.ctf.RawCTF` constructor for control over cleaning of main channel names and compensation channel names from CTF suffixes by `Oleh Kozynets`_
+- Added ``clean_names=False`` parameter to :func:`mne.io.read_raw_ctf` for control over cleaning of main channel names and compensation channel names from CTF suffixes by `Oleh Kozynets`_
 
 .. _changes_0_15:
 
@@ -773,7 +773,7 @@ Changelog
 
 - Adds faster ``n_fft='auto'`` option to :meth:`mne.io.Raw.apply_hilbert` by `Eric Larson`_
 
-- Adds new function :func:`mne.time_frequency.csd_array` to compute the cross-spectral density of multivariate signals stored in an array, by `Nick Foti`_
+- Adds new function ``mne.time_frequency.csd_array`` to compute the cross-spectral density of multivariate signals stored in an array, by `Nick Foti`_
 
 - Add order params 'selection' and 'position' for :func:`mne.viz.plot_raw` to allow plotting of specific brain regions by `Jaakko Leppakangas`_
 
@@ -915,7 +915,7 @@ API
 
 - When CTF gradient compensation is applied to raw data, it is no longer reverted on save of :meth:`mne.io.Raw.save` by `Eric Larson`_
 
-- Adds :func:`mne.time_frequency.csd_epochs` to replace ``mne.time_frequency.csd_compute_epochs`` for naming consistency. ``mne.time_frequency.csd_compute_epochs`` is now deprecated and will be removed in mne 0.14, by `Nick Foti`_
+- Adds ``mne.time_frequency.csd_epochs`` to replace ``mne.time_frequency.csd_compute_epochs`` for naming consistency. ``mne.time_frequency.csd_compute_epochs`` is now deprecated and will be removed in mne 0.14, by `Nick Foti`_
 
 - Weighted addition and subtraction of :class:`Evoked` as ``ev1 + ev2`` and ``ev1 - ev2`` have been deprecated, use explicit :func:`mne.combine_evoked(..., weights='nave') <mne.combine_evoked>` instead by `Eric Larson`_
 
@@ -2630,3 +2630,5 @@ of commits):
 .. _Tommy Clausner: https://github.com/TommyClausner
 
 .. _Pierre Ablin: https://pierreablin.com
+
+.. _Oleh Kozynets: https://github.com/OlehKSS
