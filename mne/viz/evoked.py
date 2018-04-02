@@ -212,6 +212,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 
     if picks is None:
         picks = list(range(info['nchan']))
+    if len(picks) != len(set(picks)):
+        raise ValueError("`picks` are not unique. Please remove duplicates.")
 
     bad_ch_idx = [info['ch_names'].index(ch) for ch in info['bads']
                   if ch in info['ch_names']]
@@ -222,10 +224,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
               all(isinstance(ch, string_types) for ch in exclude)):
             exclude = [info['ch_names'].index(ch) for ch in exclude]
         else:
-            raise ValueError('exclude has to be a list of channel names or '
-                             '"bads"')
+            raise ValueError(
+                'exclude has to be a list of channel names or "bads"')
 
-        picks = list(set(picks).difference(exclude))
+        picks = [pick for pick in picks if pick not in exclude]
     picks = np.array(picks)
 
     types = np.array([channel_type(info, idx) for idx in picks])
@@ -527,7 +529,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         vmin = -vmax
     else:
         vmin, vmax = ylim[this_type]
-    extent = [times[0], times[-1], 0, data.shape[0]]
+    extent = [times[0], times[-1], 0, len(data)]
     im_args = dict(interpolation='nearest', origin='lower',
                    extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
 
@@ -560,7 +562,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         if mask.all():
             t_end = ", all points masked)"
         else:
-            fraction = np.float(mask.sum()) / np.float(mask.size)
+            fraction = 1. - np.mean(mask)
             percent = np.floor(fraction * 100).astype(int)
             t_end = ", " + str(percent) + "% of points masked)"
     else:
