@@ -1337,7 +1337,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
                     % ncomp)
         C = np.dot(proj, np.dot(C, proj.T))
 
-    picks_dict = dict(_picks_by_type(info, meg_combined=False,
+    picks_dict = dict(_picks_by_type(info, meg_combined=True,
                                      ref_meg=False, exclude='bads'))
 
     ch_names_dict = dict()
