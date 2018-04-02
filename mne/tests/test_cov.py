@@ -24,11 +24,12 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_covariance,
                  compute_covariance, read_evokeds, compute_proj_raw,
                  pick_channels_cov, pick_types, pick_info, make_ad_hoc_cov)
+from mne.fixes import _get_args
 from mne.io import read_raw_fif, RawArray, read_info
 from mne.tests.common import assert_naming, assert_snr
 from mne.utils import _TempDir, requires_version, run_tests_if_main
 from mne.io.proc_history import _get_sss_rank
-from mne.io.pick import channel_type, _picks_by_type
+from mne.io.pick import channel_type, _picks_by_type, _DATA_CH_TYPES_SPLIT
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -347,9 +348,11 @@ def test_regularize_cov():
     reg_noise_cov = regularize(noise_cov, raw.info,
                                mag=0.1, grad=0.1, eeg=0.1, proj=True,
                                exclude='bads')
-    assert_true(noise_cov['dim'] == reg_noise_cov['dim'])
-    assert_true(noise_cov['data'].shape == reg_noise_cov['data'].shape)
-    assert_true(np.mean(noise_cov['data'] < reg_noise_cov['data']) < 0.08)
+    assert noise_cov['dim'] == reg_noise_cov['dim']
+    assert noise_cov['data'].shape == reg_noise_cov['data'].shape
+    assert np.mean(noise_cov['data'] < reg_noise_cov['data']) < 0.08
+    # make sure all args are represented
+    assert set(_DATA_CH_TYPES_SPLIT) - set(_get_args(regularize)) == set()
 
 
 def test_whiten_evoked():

@@ -493,7 +493,9 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
                         'oas', 'shrunk', 'pca', 'factor_analysis', 'shrinkage')
     _method_params = {
         'empirical': {'store_precision': False, 'assume_centered': True},
-        'diagonal_fixed': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.0,
+        'diagonal_fixed': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.,
+                           'seeg': 0., 'ecog': 0.,
+                           'hbo': 0., 'hbr': 0.,
                            'store_precision': False, 'assume_centered': True},
         'ledoit_wolf': {'store_precision': False, 'assume_centered': True},
         'oas': {'store_precision': False, 'assume_centered': True},
@@ -1093,10 +1095,12 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
 class _RegCovariance(BaseEstimator):
     """Aux class."""
 
-    def __init__(self, info, grad=0.01, mag=0.01, eeg=0.0, seeg=0.0, ecog=0.0,
-                 hbo=0.0, hbr=0.0, store_precision=False,
+    def __init__(self, info, grad=0.01, mag=0.01, eeg=0., seeg=0., ecog=0.,
+                 hbo=0., hbr=0., store_precision=False,
                  assume_centered=False):
         self.info = info
+        # For sklearn compat, these cannot (easily?) be combined into
+        # a single dictionary
         self.grad = grad
         self.mag = mag
         self.eeg = eeg
@@ -1120,9 +1124,11 @@ class _RegCovariance(BaseEstimator):
             data=self.covariance_, names=self.info['ch_names'],
             bads=self.info['bads'], projs=self.info['projs'],
             nfree=len(self.covariance_))
-        cov_ = regularize(cov_, self.info, grad=self.grad, mag=self.mag,
-                          eeg=self.eeg, proj=False,
-                          exclude='bads')  # ~proj == important!!
+        cov_ = regularize(
+            cov_, self.info, proj=False, exclude='bads',
+            grad=self.grad, mag=self.mag, eeg=self.eeg,
+            ecog=self.ecog, seeg=self.seeg,
+            hbo=self.hbo, hbr=self.hbr)  # ~proj == important!!
         self.estimator_.covariance_ = self.covariance_ = cov_.data
         return self
 
@@ -1413,7 +1419,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
 
 
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
-               proj=True, seeg=0.0, ecog=0.0, hbo=0.0, hbr=0.0,
+               proj=True, seeg=0.1, ecog=0.1, hbo=0.1, hbr=0.1,
                verbose=None):
     """Regularize noise covariance matrix.
 
@@ -1445,13 +1451,13 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         are extracted from both info['bads'] and cov['bads'].
     proj : bool (default true)
         Apply or not projections to keep rank of data.
-    seeg : float (default 0.)
+    seeg : float (default 0.1)
         Regularization factor for sEEG signals.
-    ecog : float (default 0.)
+    ecog : float (default 0.1)
         Regularization factor for ECoG signals.
-    hbo : float (default 0.)
+    hbo : float (default 0.1)
         Regularization factor for HBO signals.
-    hbr : float (default 0.)
+    hbr : float (default 0.1)
         Regularization factor for HBR signals.
     verbose : bool | str | int | None (default None)
         If not None, override default verbose level (see :func:`mne.verbose`).
@@ -1623,8 +1629,7 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
     """
     if picks is None:
         # If this changes, we will need to change _setup_plot_projector, too:
-        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                           seeg=True, exclude='bads')
+        picks = _pick_data_channels(info, with_ref_meg=False, exclude='bads')
 
     ch_names = [info['ch_names'][k] for k in picks]
 

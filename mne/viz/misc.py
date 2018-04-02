@@ -21,9 +21,11 @@ from collections import defaultdict
 import numpy as np
 from scipy import linalg
 
+from ..defaults import DEFAULTS
 from ..surface import read_surface
 from ..externals.six import string_types
 from ..io.proj import make_projector
+from ..io.pick import _DATA_CH_TYPES_SPLIT, pick_types
 from ..source_space import read_source_spaces, SourceSpaces
 from ..utils import logger, verbose, get_subjects_dir, warn
 from ..io.pick import _picks_by_type
@@ -81,15 +83,12 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
         idx_by_type[ch_type] = [ch_names.index(info_ch_names[c])
                                 for c in sel if info_ch_names[c] in ch_names]
 
-    idx_names = [(idx_by_type['eeg'], 'EEG covariance', 'uV', 1e6),
-                 (idx_by_type['grad'], 'Gradiometers', 'fT/cm', 1e13),
-                 (idx_by_type['mag'], 'Magnetometers', 'fT', 1e15),
-                 (idx_by_type['seeg'], 'SEEG covariance', 'mV', 1e3),
-                 (idx_by_type['ecog'], 'ECoG covariance', 'uV', 1e6),
-                 ]
-    idx_names = [(idx, name, unit, scaling)
-                 for idx, name, unit, scaling in idx_names if len(idx) > 0]
-
+    idx_names = [(idx_by_type[key],
+                  '%s covariance' % DEFAULTS['titles'][key],
+                  DEFAULTS['units'][key],
+                  DEFAULTS['scalings'][key])
+                 for key in _DATA_CH_TYPES_SPLIT
+                 if len(idx_by_type[key]) > 0]
     C = cov.data[ch_idx][:, ch_idx]
 
     if proj:

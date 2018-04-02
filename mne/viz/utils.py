@@ -26,7 +26,7 @@ from ..defaults import _handle_default
 from ..io import show_fiff, Info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT,
-                       pick_types, pick_info, _picks_by_type)
+                       pick_info, _picks_by_type)
 from ..io.proc_history import _get_rank_sss
 from ..io.proj import setup_proj
 from ..utils import logger, verbose, set_config, warn
@@ -2317,10 +2317,7 @@ def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True,
     if noise_cov is not None and use_noise_cov:
         # any channels in noise_cov['bads'] but not in info['bads'] get
         # set to nan, which means that they are not plotted.
-        # XXX This picking call mimics what is done in compute_whitener...
-        # should probably allow for other channel types, too (e.g., ECoG)!
-        data_picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                                exclude=())
+        data_picks = _pick_data_channels(info, with_ref_meg=False, exclude=())
         data_names = set(info['ch_names'][pick] for pick in data_picks)
         # these can be toggled by the user
         bad_names = set(info['bads'])
@@ -2385,8 +2382,7 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
                         ecog=1e3)
 
     # Only look at good channels
-    picks = pick_types(info, meg=True, eeg=True, seeg=True,
-                       ecog=True, ref_meg=False, exclude='bads')
+    picks = _pick_data_channels(info, with_ref_meg=False, exclude='bads')
     info = pick_info(info, picks)
     ch_used, has_meg, has_sss = _check_sss(info)
     if has_sss:
