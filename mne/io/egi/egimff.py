@@ -466,6 +466,7 @@ class RawMff(BaseRaw):
                 pns_idx = idx[pns_chans] - n_eeg_channels
         else:
             eeg_idx = idx
+            pns_idx = []
 
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # Go to starting block
