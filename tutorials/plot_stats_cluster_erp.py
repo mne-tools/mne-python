@@ -136,13 +136,10 @@ for roi_name, ax in zip(sorted(rois.keys()), axes):
     ax.set_yticks((np.arange(len(picks))) + .5)
     ax.set_yticklabels([evoked.ch_names[idx] for idx in picks])
     if not ax.is_last_row():  # remove xticklabels for all but bottom axis
-        ax.set_xlabel('')
-        ax.set_xticklabels([])
-    ax.set_ylabel('')
-    ax.set_title(roi_name)
+        ax.set(xlabel='', xticklabels=[])
+    ax.set(ylabel='', title=roi_name)
 
 fig.colorbar(ax.images[-1], ax=axes, fraction=.1, aspect=20,
              pad=.05, shrink=2 / 3, label="uV", orientation="vertical")
-fig.suptitle(name, x=.95, y=.875)
 
 plt.show()
