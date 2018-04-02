@@ -268,16 +268,19 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         for group, axes_dict in zip(groups, axes_list):
             ch_type = group[1]
             ax = axes_dict["evoked"]
+            this_ymin, this_ymax = these_ylims = ylims[ch_type]
+            ax.set_ylim(these_ylims)
+            yticks = np.array(ax.get_yticks())
+            max_height = yticks[yticks < this_ymax][-1]
             if not manual_ylims:
-                ax.set_ylim(ylims[ch_type])
+                ax.spines["left"].set_bounds(this_ymin, max_height)
             if len(vlines) > 0:
-                upper_v, lower_v = ylims[ch_type]
                 if overlay_times is not None:
                     overlay = {overlay_times.mean(), np.median(overlay_times)}
                 else:
                     overlay = {}
                 for line in vlines:
-                    ax.vlines(line, upper_v, lower_v, colors='k',
+                    ax.vlines(line, this_ymin, max_height, colors='k',
                               linestyles='-' if line in overlay else "--",
                               linewidth=2. if line in overlay else 1.)
 
@@ -442,6 +445,22 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
             ts_args_]
 
 
+def _make_epochs_image_axis_grid(axes_dict=dict(), colorbar=False,
+                                 evoked=False):
+    """Create axes for image plotting. Helper for plot_epochs_image."""
+    import matplotlib.pyplot as plt
+    axes_dict["image"] = axes_dict.get("image", plt.subplot2grid(
+        (3, 10), (0, 0), colspan=9 if colorbar else 10,
+        rowspan=2 if evoked else 3))
+    if evoked:
+        axes_dict["evoked"] = plt.subplot2grid(
+            (3, 10), (2, 0), colspan=9 if colorbar else 10, rowspan=1)
+    if colorbar:
+        axes_dict["colorbar"] = plt.subplot2grid(
+            (3, 10), (0, 9), colspan=1, rowspan=2 if evoked else 3)
+    return axes_dict
+
+
 def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
     """Prepare axes for image plotting. Helper for plot_epochs_image."""
     import matplotlib.pyplot as plt
@@ -451,15 +470,8 @@ def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
         if fig is None:
             fig = plt.figure()
         plt.figure(fig.number)
-        axes_dict["image"] = plt.subplot2grid(
-            (3, 10), (0, 0), colspan=9 if colorbar else 10,
-            rowspan=2 if evoked else 3)
-        if evoked:
-            axes_dict["evoked"] = plt.subplot2grid(
-                (3, 10), (2, 0), colspan=9 if colorbar else 10, rowspan=1)
-        if colorbar:
-            axes_dict["colorbar"] = plt.subplot2grid((3, 10), (0, 9),
-                                                     colspan=1, rowspan=3)
+        axes_dict = _make_epochs_image_axis_grid(
+            axes_dict, colorbar, evoked)
     else:
         if fig is not None:
             raise ValueError('Both figure and axes were passed, please'

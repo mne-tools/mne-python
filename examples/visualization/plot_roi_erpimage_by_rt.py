@@ -11,7 +11,7 @@ to simple visual stimuli - is read in and response times are calculated.
 Regions of Interest are determined by the channel types (in 10/20 channel
 notation, even channels are right, odd are left, and 'z' are central). The
 median and the Global Field Power within each channel group is calculated,
-and the trials are plotted, sorted by response time.
+and the trials are plotted, sorting by response time.
 """
 # Authors: Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #

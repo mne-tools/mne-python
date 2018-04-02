@@ -9,10 +9,14 @@ Tests for differential evoked responses in at least
 one condition using a permutation clustering test.
 The FieldTrip neighbor templates will be used to determine
 the adjacency between sensors. This serves as a spatial prior
-to the clustering. Significant spatiotemporal clusters will then
+to the clustering. Spatiotemporal clusters will then
 be visualized using custom matplotlib code.
+
+Caveat for the interpretation of "significant" clusters: see
+the `FieldTrip website`_.
 """
 # Authors: Denis Engemann <denis.engemann@gmail.com>
+#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -25,6 +29,7 @@ import mne
 from mne.stats import spatio_temporal_cluster_test
 from mne.datasets import sample
 from mne.channels import find_ch_connectivity
+from mne.viz import plot_compare_evokeds
 
 print(__doc__)
 
@@ -34,7 +39,7 @@ print(__doc__)
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-event_id = {'Aud_L': 1, 'Aud_R': 2, 'Vis_L': 3, 'Vis_R': 4}
+event_id = {'Aud/L': 1, 'Aud/R': 2, 'Vis/L': 3, 'Vis/R': 4}
 tmin = -0.2
 tmax = 0.5
 
@@ -56,8 +61,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 epochs.drop_channels(['EOG 061'])
 epochs.equalize_event_counts(event_id)
 
-condition_names = 'Aud_L', 'Aud_R', 'Vis_L', 'Vis_R'
-X = [epochs[k].get_data() for k in condition_names]  # as 3D matrix
+X = [epochs[k].get_data() for k in event_id]  # as 3D matrix
 X = [np.transpose(x, (0, 2, 1)) for x in X]  # transpose for clustering
 
 
@@ -114,17 +118,16 @@ good_cluster_inds = np.where(p_values < p_accept)[0]
 # ------------------
 
 # configure variables for visualization
-times = epochs.times * 1e3
-colors = 'r', 'r', 'steelblue', 'steelblue'
-linestyles = '-', '--', '-', '--'
-
-# grand average as numpy arrray
-grand_ave = np.array(X).mean(axis=1)
+colors = {"Aud": "crimson", "Vis": 'steelblue'}
+linestyles = {"L": '-', "R": '--'}
 
 # get sensor positions via layout
 pos = mne.find_layout(epochs.info).pos
 
-# loop over significant clusters
+# organize data for plotting
+evokeds = {cond: epochs[cond].average() for cond in event_id}
+
+# loop over clusters
 for i_clu, clu_idx in enumerate(good_cluster_inds):
     # unpack cluster information, get unique indices
     time_inds, space_inds = np.squeeze(clusters[clu_idx])
@@ -134,9 +137,8 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     # get topography for F stat
     f_map = T_obs[time_inds, ...].mean(axis=0)
 
-    # get signals at significant sensors
-    signals = grand_ave[..., ch_inds].mean(axis=-1)
-    sig_times = times[time_inds]
+    # get signals at the sensors contributing to the cluster
+    sig_times = epochs.times[time_inds]
 
     # create spatial mask
     mask = np.zeros((f_map.shape[0], 1), dtype=bool)
@@ -144,42 +146,33 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
 
     # initialize figure
     fig, ax_topo = plt.subplots(1, 1, figsize=(10, 3))
-    title = 'Cluster #{0}'.format(i_clu + 1)
-    fig.suptitle(title, fontsize=14)
 
     # plot average test statistic and mark significant sensors
-    image, _ = plot_topomap(f_map, pos, mask=mask, axes=ax_topo,
-                            cmap='Reds', vmin=np.min, vmax=np.max)
+    image, _ = plot_topomap(f_map, pos, mask=mask, axes=ax_topo, cmap='Reds',
+                            vmin=np.min, vmax=np.max, show=False)
 
-    # advanced matplotlib for showing image with figure and colorbar
-    # in one plot
+    # create additional axes (for ERF and colorbar)
     divider = make_axes_locatable(ax_topo)
 
     # add axes for colorbar
     ax_colorbar = divider.append_axes('right', size='5%', pad=0.05)
     plt.colorbar(image, cax=ax_colorbar)
-    ax_topo.set_xlabel('Averaged F-map ({:0.1f} - {:0.1f} ms)'.format(
-        *sig_times[[0, -1]]
-    ))
+    ax_topo.set_xlabel(
+        'Averaged F-map ({:0.3f} - {:0.3f} s)'.format(*sig_times[[0, -1]]))
 
     # add new axis for time courses and plot time courses
     ax_signals = divider.append_axes('right', size='300%', pad=1.2)
-    for signal, name, col, ls in zip(signals, condition_names, colors,
-                                     linestyles):
-        ax_signals.plot(times, signal, color=col, linestyle=ls, label=name)
+    title = 'Cluster #{0}, {1} sensor'.format(i_clu + 1, len(ch_inds))
+    if len(ch_inds) > 1:
+        title += "s (mean)"
+    plot_compare_evokeds(evokeds, title=title, picks=ch_inds, axes=ax_signals,
+                         colors=colors, linestyles=linestyles, show=False,
+                         split_legend=True, truncate_yaxis='max_ticks')
 
-    # add information
-    ax_signals.axvline(0, color='k', linestyle=':', label='stimulus onset')
-    ax_signals.set_xlim([times[0], times[-1]])
-    ax_signals.set_xlabel('time [ms]')
-    ax_signals.set_ylabel('evoked magnetic fields [fT]')
-
-    # plot significant time range
+    # plot temporal cluster extent
     ymin, ymax = ax_signals.get_ylim()
     ax_signals.fill_betweenx((ymin, ymax), sig_times[0], sig_times[-1],
                              color='orange', alpha=0.3)
-    ax_signals.legend(loc='lower right')
-    ax_signals.set_ylim(ymin, ymax)
 
     # clean up viz
     mne.viz.tight_layout(fig=fig)
@@ -191,6 +184,10 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
 # ----------
 #
 # - What is the smallest p-value you can obtain, given the finite number of
-#    permutations?
+#   permutations?
 # - use an F distribution to compute the threshold by traditional significance
-#    levels. Hint: take a look at ``scipy.stats.distributions.f``
+#   levels. Hint: take a look at :obj:`scipy.stats.f`
+#
+# References
+# ==========
+# .. _fieldtrip website: http://www.fieldtriptoolbox.org/faq/how_not_to_interpret_results_from_a_cluster-based_permutation_test  # noqa

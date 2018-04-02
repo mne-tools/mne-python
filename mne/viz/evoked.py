@@ -166,16 +166,18 @@ def _rgb(x, y, z):
 def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
     """Plot (possibly colorized) channel legends for evoked plots."""
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    axis.get_figure().canvas.draw()
     bbox = axis.get_window_extent()  # Determine the correct size.
     ratio = bbox.width / bbox.height
     ax = inset_axes(axis, width=str(size / ratio) + '%',
                     height=str(size) + '%', loc=loc)
+    ax.set_adjustable("box")
     pos_x, pos_y = _prepare_topomap(pos, ax, check_nonzero=False)
     ax.scatter(pos_x, pos_y, color=colors, s=size * .8, marker='.', zorder=1)
     if bads:
         bads = np.array(bads)
-        ax.scatter(pos_x[bads], pos_y[bads], s=size / 6, marker='.', color='w',
-                   zorder=1)
+        ax.scatter(pos_x[bads], pos_y[bads], s=size / 6, marker='.',
+                   color='w', zorder=1)
     _draw_outlines(ax, outlines)
 
 
@@ -1446,14 +1448,18 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
             ymin_bound = round(ymin_bound / precision) * precision
         if ymin is None:
             ymax_bound = round(ymax_bound / precision) * precision
-    else:
-        ticks = axes.get_yticks()
-        ymin_bound, ymax_bound = ticks[[1, -2]]
-        if ymin_bound > 0:
-            ymin_bound = 0
-        ymin_bound = ymin if ymin is not None else ymin_bound
-        ymax_bound = ymax if ymax is not None else ymax_bound
-    axes.spines['left'].set_bounds(ymin_bound, ymax_bound)
+        axes.spines['left'].set_bounds(ymin_bound, ymax_bound)
+    else:  # code stolen from seaborn
+        yticks = axes.get_yticks()
+        firsttick = np.compress(yticks >= min(axes.get_ylim()),
+                                yticks)[0]
+        lasttick = np.compress(yticks <= max(axes.get_ylim()),
+                               yticks)[-1]
+        axes.spines['left'].set_bounds(firsttick, lasttick)
+        newticks = yticks.compress(yticks <= lasttick)
+        newticks = newticks.compress(newticks >= firsttick)
+        axes.set_yticks(newticks)
+        ymin_bound, ymax_bound = newticks[[0, -1]]
     return ymin_bound, ymax_bound
 
 
@@ -1474,9 +1480,9 @@ def _combine_grad(evoked, picks):
     return evoked
 
 
-def _check_loc_legal(loc, what='your choice'):
+def _check_loc_legal(loc, what='your choice', default=1):
     """Check if loc is a legal location for MPL subordinate axes."""
-    true_default = {"show_legend": 3, "show_sensors": 4}.get(what, 1)
+    true_default = {"show_legend": 3, "show_sensors": 4}.get(what, default)
     if isinstance(loc, bool) and loc:
         loc = true_default
     loc_dict = {'upper right': 1, 'upper left': 2, 'lower left': 3,
@@ -1804,7 +1810,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     one_evoked = evokeds[conditions[0]][0]
     times = one_evoked.times
     info = one_evoked.info
-    ch_names = one_evoked.ch_names
     tmin, tmax = times[0], times[-1]
 
     if vlines == "auto" and (tmin < 0 and tmax > 0):
@@ -1995,7 +2000,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     for condition in conditions:
         # plot the actual data ('d') as a line
         d = data_dict[condition].T
-        ax.plot(times, d, zorder=1000, label=condition, **styles[condition])
+        ax.plot(times, d, zorder=1000, label=condition, clip_on=False,
+                **styles[condition])
         if np.any(d > 0) or all_positive:
             any_positive = True
         if np.any(d < 0):
@@ -2005,7 +2011,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         if _ci_fun is not None:
             ci_ = ci_dict[condition]
             ax.fill_between(times, ci_[0].flatten(), ci_[1].flatten(),
-                            zorder=9, color=styles[condition]['c'], alpha=.3)
+                            zorder=9, color=styles[condition]['c'], alpha=.3,
+                            clip_on=False)
 
     # truncate the y axis
     orig_ymin, orig_ymax = ax.get_ylim()
@@ -2048,6 +2055,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     # and now for 3 "legends" ..
     # a head plot showing the sensors that are being plotted
     if show_sensors:
+        if show_sensors is True:
+            ymin, ymax = np.abs(ax.get_ylim())
+            show_sensors = "lower right" if ymin > ymax else "upper right"
         try:
             pos = _auto_topomap_coords(one_evoked.info, pos_picks,
                                        ignore_overlap=True, to_sphere=True)
@@ -2062,8 +2072,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                 raise TypeError("show_sensors must be numeric, str or bool, "
                                 "not " + str(type(show_sensors)))
             show_sensors = _check_loc_legal(show_sensors, "show_sensors")
-            _plot_legend(pos, ["k" for pick in picks], ax, list(), outlines,
-                         show_sensors, size=20)
+            _plot_legend(pos, ["k" for _ in picks], ax, list(), outlines,
+                         show_sensors, size=25)
 
     # the condition legend
     if len(conditions) > 1 and show_legend is not False:
