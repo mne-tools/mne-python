@@ -623,7 +623,8 @@ def get_kit_info(rawfile, allow_unknown_format):
                 np.searchsorted(fll_types, fll_type) - 1]
             warn('Unknown site filter settings (FLL) for system '
                  '"%s" model "%s" (ID %s), will assume FLL %d->%d, check '
-                 'your data for correctness!'
+                 'your data for correctness, including channel scales and '
+                 'filter settings!'
                  % (system_name, model_name, sysid, fll_type, use_fll_type))
             fll_type = use_fll_type
 
