@@ -104,7 +104,9 @@ Changelog
 Bug
 ~~~
 
-- Fix bug in ``mne.preprocessing.peak_finder`` to output datatype consistently and added input check for empty vectors by `Tommy Clausner`_
+- Fix bug in EEG interpolation code to do nothing if there is no channel to interpolate by `Mainak Jas`_
+
+- Fix bug in :func:`mne.preprocessing.peak_finder` to output datatype consistently and added input check for empty vectors by `Tommy Clausner`_
 
 - Fix bug in :func:`mne.io.read_raw_brainvision` to use the correct conversion for filters from time constant to frequency by `Stefan Appelhoff`_
 
