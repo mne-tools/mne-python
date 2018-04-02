@@ -596,11 +596,15 @@ def get_kit_info(rawfile, allow_unknown_format):
             adc_range = unpack('d', fid.read(KIT.DOUBLE))[0]
         adc_polarity, adc_allocated, adc_stored = unpack('3i',
                                                          fid.read(3 * KIT.INT))
+        system_name = system_name.replace('\x00', '')
+        system_name = system_name.strip().replace('\n', '/')
+        model_name = model_name.replace('\x00', '')
+        model_name = model_name.strip().replace('\n', '/')
 
         logger.debug("SQD file basic information:")
         logger.debug("Meg160 version = V%iR%03i", version, revision)
         logger.debug("System ID      = %i", sysid)
-        logger.debug("System name    = %s", system_name.replace('\n', '/'))
+        logger.debug("System name    = %s", system_name)
         logger.debug("Model name     = %s", model_name)
         logger.debug("Channel count  = %i", channel_count)
         logger.debug("Comment        = %s", comment)
@@ -614,7 +618,14 @@ def get_kit_info(rawfile, allow_unknown_format):
 
         # check that we can read this file
         if fll_type not in KIT.FLL_SETTINGS:
-            raise IOError("Unknown FLL type: %i" % fll_type)
+            fll_types = sorted(KIT.FLL_SETTINGS.keys())
+            use_fll_type = fll_types[
+                np.searchsorted(fll_types, fll_type) - 1]
+            warn('Unknown site filter settings (FLL) for system '
+                 '"%s" model "%s" (ID %s), will assume FLL %d->%d, check '
+                 'your data for correctness!'
+                 % (system_name, model_name, sysid, fll_type, use_fll_type))
+            fll_type = use_fll_type
 
         # channel information
         fid.seek(64)
