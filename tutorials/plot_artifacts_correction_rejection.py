@@ -1,6 +1,4 @@
 """
-.. _tut_artifacts_reject:
-
 Rejecting bad data (channels and segments)
 ==========================================
 
@@ -135,7 +133,8 @@ raw.plot(events=eog_events)  # To see the annotated segments.
 
 ###############################################################################
 # It is also possible to draw bad segments interactively using
-# :meth:`raw.plot <mne.io.Raw.plot>` (see :ref:`tut_viz_raw`).
+# :meth:`raw.plot <mne.io.Raw.plot>` (see
+# :ref:`sphx_glr_auto_tutorials_plot_visualize_raw.py`).
 #
 # As the data is epoched, all the epochs overlapping with segments whose
 # description starts with 'bad' are rejected by default. To turn rejection off,

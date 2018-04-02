@@ -2,7 +2,7 @@
 Plotting whitened data
 ======================
 
-The aim of this tutorial is to show you how to plot whitened data.
+This tutorial demonstrates how to plot whitened data.
 
 Data are whitened for many processes, including dipole fitting, source
 localization and some decoding algorithms. Viewing whitened data thus gives

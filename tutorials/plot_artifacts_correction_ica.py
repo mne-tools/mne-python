@@ -1,7 +1,4 @@
 """
-
-.. _tut_artifacts_correct_ica:
-
 Artifact Correction with ICA
 ============================
 
@@ -41,7 +38,7 @@ picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
 
 ###############################################################################
 # Before applying artifact correction please learn about your actual artifacts
-# by reading :ref:`tut_artifacts_detect`.
+# by reading :ref:`sphx_glr_auto_tutorials_plot_artifacts_detection.py`.
 #
 # .. warning:: ICA is sensitive to low-frequency drifts and therefore
 #              requires the data to be high-pass filtered prior to fitting.
@@ -299,7 +296,7 @@ eog_component = reference_ica.get_components()[:, eog_inds[0]]
 # You can also use SSP to correct for artifacts. It is a bit simpler and
 # faster but also less precise than ICA and requires that you know the event
 # timing of your artifact.
-# See :ref:`tut_artifacts_correct_ssp`.
+# See :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_ssp.py`.
 
 ###############################################################################
 # References

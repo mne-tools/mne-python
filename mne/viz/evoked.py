@@ -273,8 +273,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                     units, scalings, hline, gfp, types, zorder, xlim, ylim,
                     times, bad_ch_idx, titles, ch_types_used, selectable,
                     False, line_alpha=1.)
-        for ax in axes:
-            ax.set_xlabel('Time (ms)')
+        plt.setp(axes, xlabel='Time (ms)')
 
     elif plot_type == 'image':
         for ax, this_type in zip(axes, ch_types_used):
@@ -292,8 +291,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                       plot_type=plot_type)
         _draw_proj_checkbox(None, params)
 
-    for ax in fig.axes[:len(ch_types_used) - 1]:
-        ax.set_xlabel('')
+    plt.setp(fig.axes[:len(ch_types_used) - 1], xlabel='')
     fig.canvas.draw()  # for axes plots update axes.
     if set_tight_layout:
         tight_layout(fig=fig)
@@ -548,7 +546,6 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         if xlim == 'tight':
             xlim = (times[0], times[-1])
         ax.set_xlim(xlim)
-    ax.set_xlabel('Time (ms)')
 
     if colorbar:
         cbar = plt.colorbar(im, ax=ax)
@@ -556,7 +553,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         if cmap[1]:
             ax.CB = DraggableColorbar(cbar, im)
 
-    ax.set_ylabel('Channels (index)')
+    ax.set(ylabel='Channel (index)', xlabel='Time (ms)')
 
     if (draw_mask or draw_contour) and mask is not None:
         if mask.all():
@@ -1152,8 +1149,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
             ax = ax_gfp[i]
             ax.set_title(title if n_columns > 1 else
-                         'whitened global field power (GFP),'
-                         ' method = "%s"' % label)
+                         'Whitened GFP, method = "%s"' % label)
 
             data = evoked_white.data[sub_picks]
             gfp = whitened_gfp(data, rank=this_rank)
@@ -1161,7 +1157,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                     label=label if n_columns > 1 else title,
                     color=color if n_columns > 1 else ch_colors[ch],
                     lw=0.5)
-            ax.set(xlabel='times [ms]', ylabel='GFP [chi^2]',
+            ax.set(xlabel='Time (ms)', ylabel='GFP ($\chi^2$)',
                    xlim=[times[0], times[-1]], ylim=(0, 10))
             ax.axhline(1, color='red', linestyle='--', lw=2.)
             if n_columns > 1:
@@ -1216,10 +1212,7 @@ def plot_snr_estimate(evoked, inv, show=True):
     #  http://bconnelly.net/2013/10/creating-colorblind-friendly-figures/
     ax.plot(evoked.times, snr_est, color=[0.0, 0.6, 0.5])
     ax.plot(evoked.times, snr, color=[0.8, 0.4, 0.0])
-    ax.set_xlim(lims[:2])
-    ax.set_ylim(lims[2:])
-    ax.set_ylabel('SNR')
-    ax.set_xlabel('Time (sec)')
+    ax.set(xlim=lims[:2], ylim=lims[2:], ylabel='SNR', xlabel='Time (s)')
     if evoked.comment is not None:
         ax.set_title(evoked.comment)
     plt.draw()
@@ -2105,8 +2098,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             ax_cb.set_yticks(np.arange(len(the_colors)))
             ax_cb.set_yticklabels(np.array(color_conds)[color_order])
         ax_cb.yaxis.tick_right()
-        ax_cb.set_xticks(())
-        ax_cb.set_ylabel(cmap_label)
+        ax_cb.set(xticks=(), ylabel=cmap_label)
 
     plt_show(show)
     return ax.figure

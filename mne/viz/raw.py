@@ -116,7 +116,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     events : array | None
         Events to show with vertical bars.
     duration : float
-        Time window (sec) to plot. The lesser of this value and the duration
+        Time window (s) to plot. The lesser of this value and the duration
         of the raw file will be used.
     start : float
         Initial time to show (can be changed dynamically once plotted). If
@@ -633,10 +633,7 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
         warn(msg)
 
     if estimate == 'auto':
-        if dB:
-            estimate = 'power'
-        else:
-            estimate = 'amplitude'
+        estimate = 'power' if dB else 'amplitude'
 
     if estimate == 'amplitude':
         np.sqrt(psds, out=psds)
