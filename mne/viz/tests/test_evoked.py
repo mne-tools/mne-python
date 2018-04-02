@@ -147,6 +147,8 @@ def test_plot_evoked():
     evoked.plot_image(exclude=evoked.info['bads'])  # does the same thing
     plt.close('all')
 
+    assert_raises(ValueError, evoked.plot_image, picks=[0, 0])  # duplicates
+
     evoked.plot_topo()  # should auto-find layout
     _line_plot_onselect(0, 200, ['mag', 'grad'], evoked.info, evoked.data,
                         evoked.times)
