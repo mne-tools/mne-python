@@ -528,7 +528,10 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
 
     See Also
     --------
-    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, csd_epochs, psd_multitaper
+    mne.io.Raw.plot_psd
+    mne.Epochs.plot_psd
+    csd_multitaper
+    psd_multitaper
 
     Notes
     -----

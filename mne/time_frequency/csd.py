@@ -107,6 +107,13 @@ class CrossSpectralDensity(object):
         return not isinstance(self.frequencies[0], numbers.Number)
 
     def __len__(self):  # noqa: D105
+        """Return number of frequencies.
+
+        Returns
+        -------
+        n_freqs : int
+            The number of frequencies.
+        """
         return len(self.frequencies)
 
     def __repr__(self):  # noqa: D105
@@ -352,6 +359,18 @@ class CrossSpectralDensity(object):
         )
 
     def __getitem__(self, sel):  # noqa: D105
+        """Subselect frequencies.
+
+        Parameters
+        ----------
+        sel : ndarray
+            Array of frequency indices to subselect.
+
+        Returns
+        -------
+        csd : instance of CrossSpectralDensity
+            A new CSD instance with the subset of frequencies.
+        """
         return CrossSpectralDensity(
             data=self._data[:, sel], ch_names=self.ch_names, tmin=self.tmin,
             tmax=self.tmax,
