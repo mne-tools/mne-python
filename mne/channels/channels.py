@@ -594,11 +594,13 @@ class SetChannelsMixin(object):
 class UpdateChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs, AverageTFR."""
 
+    @verbose
     def pick_types(self, meg=True, eeg=False, stim=False, eog=False,
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False, ecog=False,
-                   fnirs=False, include=(), exclude='bads', selection=None):
+                   fnirs=False, include=(), exclude='bads', selection=None,
+                   verbose=None):
         """Pick some channels by type and names.
 
         Parameters
@@ -657,6 +659,10 @@ class UpdateChannelsMixin(object):
             in ``info['bads']``.
         selection : list of string
             Restrict sensor channels (MEG, EEG) to this list of channel names.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -803,6 +809,31 @@ class UpdateChannelsMixin(object):
 
         if hasattr(self, '_cals'):
             self._cals = self._cals[idx]
+
+        if len(self.info['comps']) > 0:
+            current_comp = get_current_comp(self.info)
+            # Check and possibly remove comps
+            comp_names = sorted(set(
+                comp_name for comp in self.info['comps']
+                for comp_name in comp['data']['col_names']))
+            comp_picks = pick_channels(self.ch_names, comp_names)
+            assert len(comp_picks) == len(comp_names)
+            missing = [comp_names[ii]
+                       for ii in np.where(~np.in1d(comp_picks, idx))[0]]
+            if len(missing) > 0:
+                names = ', '.join(missing)
+                names = names[:20] + '...' if len(names) > 20 else names
+                if current_comp != 0:
+                    raise RuntimeError(
+                        'Compensation grade %d has been applied, but '
+                        'compensation channels are missing: %s\n'
+                        'Either remove compensation or pick compensation '
+                        'channels' % (current_comp, names))
+                else:
+                    logger.info('Removing %d compensators from info because '
+                                'not all compensation channels were picked'
+                                % (len(self.info['comps']),))
+                    self.info['comps'] = []
 
         pick_info(self.info, idx, copy=False)
 

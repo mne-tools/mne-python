@@ -18,8 +18,9 @@ from mne import pick_types
 # from mne.tests.common import assert_dig_allclose
 from mne.transforms import apply_trans
 from mne.io import read_raw_fif, read_raw_ctf
+from mne.io.compensator import get_current_comp
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import _TempDir, run_tests_if_main, _clean_names
+from mne.utils import _TempDir, run_tests_if_main, _clean_names, catch_logging
 from mne.datasets import testing, spm_face
 from mne.io.constants import FIFF
 
@@ -271,6 +272,32 @@ def test_read_spm_ctf():
     assert_true(cardinals[3][1] < cardinals[2][1])  # y coord
     for key in cardinals.keys():
         assert_allclose(cardinals[key][2], 0, atol=1e-6)  # z coord
+
+
+@testing.requires_testing_data
+def test_saving_picked():
+    """Test saving picked CTF instances."""
+    temp_dir = _TempDir()
+    out_fname = op.join(temp_dir, 'test_py_raw.fif')
+    raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_1_trial))
+    raw.crop(0, 1).load_data()
+    assert raw.compensation_grade == get_current_comp(raw.info) == 0
+    assert len(raw.info['comps']) == 5
+    pick_kwargs = dict(meg=True, ref_meg=False, verbose=True)
+    with catch_logging() as log:
+        raw_pick = raw.copy().pick_types(**pick_kwargs)
+    assert len(raw.info['comps']) == 5
+    assert len(raw_pick.info['comps']) == 0
+    log = log.getvalue()
+    assert 'Removing 5 compensators' in log
+    raw_pick.save(out_fname)  # should work
+    read_raw_fif(out_fname)
+    read_raw_fif(out_fname, preload=True)
+    # If comp is applied, picking should error
+    raw.apply_gradient_compensation(1)
+    assert raw.compensation_grade == get_current_comp(raw.info) == 1
+    with pytest.raises(RuntimeError, match='Compensation grade 1 has been'):
+        raw.copy().pick_types(**pick_kwargs)
 
 
 run_tests_if_main()
