@@ -16,7 +16,7 @@ ANONYMIZE_FILE_PREFIX = 'anon'
 
 
 def mne_anonymize(fif_fname, out_fname, overwrite=False):
-    """ Call *anonymize_info* on fif file and save.
+    """Call *anonymize_info* on fif file and save.
 
     Parameters
     ----------
