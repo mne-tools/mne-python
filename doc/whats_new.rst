@@ -19,7 +19,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-- Add possibility to pass dict of floats as argument to :func:`mne.cov.make_ad_hoc_cov` by `Nathalie Gayraud`_
+- Add possibility to pass dict of floats as argument to :func:`mne.make_ad_hoc_cov` by `Nathalie Gayraud`_
 
 - Add support for metadata in :class:`mne.Epochs` by `Chris Holdgraf`_, `Alex Gramfort`_, `Jona Sassenhagen`_, and `Eric Larson`_
 
