@@ -1366,7 +1366,6 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
             info_picks[ch_type] = pick_channels(info['ch_names'],
                                                 ch_names_type[ch_type])
 
-    for ch_type, ch_picks in out_idx_type.items():
         assert (len(info_picks[ch_type]) ==
                 len(ch_names_type[ch_type]) ==
                 len(out_idx_type[ch_type]))
@@ -1383,7 +1382,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     ranks_type = {ch_type: None for ch_type in out_idx_type}
     if rank is not None:
         if isinstance(rank, dict):
-            for ch_type, ch_picks in out_idx_type.items():
+            for ch_type in out_idx_type:
                 ranks_type[ch_type] = rank.get(ch_type, None)
         else:
             ranks_type['meg'] = int(rank)
