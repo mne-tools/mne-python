@@ -13,7 +13,6 @@ import copy
 from functools import partial
 import itertools
 from numbers import Integral
-import warnings
 
 import numpy as np
 
@@ -107,21 +106,29 @@ def _plot_update_evoked_topomap(params, bools):
     data = new_evoked.data[:, params['time_idx']] * params['scale']
     if params['merge_grads']:
         data = _merge_grad_data(data)
-    image_off = ~params['image_mask']
 
-    pos = np.asarray(params['pos'])[:, :2]
-    pos_x, pos_y = pos.T
-    interp = _GridData(pos)
-
-    xi = np.linspace(pos_x.min(), pos_x.max(), params['res'])
-    yi = np.linspace(pos_y.min(), pos_y.max(), params['res'])
-    Xi, Yi = np.meshgrid(xi, yi)
-    for ii, im in enumerate(params['images']):
-        Zi = interp.set_values(data[:, ii])(Xi, Yi)
-        Zi[image_off] = np.nan
+    interp = params['interp']
+    new_contours = list()
+    for cont, ax, im, d in zip(params['contours_'], params['axes'],
+                               params['images'], data.T):
+        Zi = interp.set_values(d)()
         im.set_data(Zi)
-    for cont in params['contours']:
-        cont.set_array(np.c_[Xi, Yi, Zi])
+        # must be removed and re-added
+        if len(cont.collections) > 0:
+            tp = cont.collections[0]
+            visible = tp.get_visible()
+            patch_ = tp.get_clip_path()
+            color = tp.get_color()
+            lw = tp.get_linewidth()
+        for tp in cont.collections:
+            tp.remove()
+        cont = ax.contour(interp.Xi, interp.Yi, Zi, params['contours'],
+                          colors=color, linewidths=lw)
+        for tp in cont.collections:
+            tp.set_visible(visible)
+            tp.set_clip_path(patch_)
+        new_contours.append(cont)
+    params['contours_'] = new_contours
 
     params['fig'].canvas.draw()
 
@@ -445,8 +452,16 @@ class _GridData(object):
         self.interpolator = CloughTocher2DInterpolator(self.tri, v)
         return self
 
+    def set_locations(self, Xi, Yi):
+        """Set locations for easier (delayed) calling."""
+        self.Xi = Xi
+        self.Yi = Yi
+        return self
+
     def __call__(self, *args):
         """Evaluate the interpolator."""
+        if len(args) == 0:
+            args = [self.Xi, self.Yi]
         return self.interpolator(*args)
 
 
@@ -555,6 +570,17 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     cn : matplotlib.contour.ContourSet
         The fieldlines.
     """
+    return _plot_topomap(data, pos, vmin, vmax, cmap, sensors, res, axes,
+                         names, show_names, mask, mask_params, outlines,
+                         image_mask, contours, image_interp, show,
+                         head_pos, onselect)[:2]
+
+
+def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
+                  res=64, axes=None, names=None, show_names=False, mask=None,
+                  mask_params=None, outlines='head', image_mask=None,
+                  contours=6, image_interp='bilinear', show=True,
+                  head_pos=None, onselect=None):
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
@@ -641,7 +667,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     xi = np.linspace(xmin, xmax, res)
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
-    Zi = _GridData(np.array((pos_x, pos_y)).T).set_values(data)(Xi, Yi)
+    interp = _GridData(np.array((pos_x, pos_y)).T).set_values(data)
+    Zi = interp.set_locations(Xi, Yi)()
 
     if outlines is None:
         _is_default_outlines = False
@@ -736,7 +763,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     if onselect is not None:
         ax.RS = RectangleSelector(ax, onselect=onselect)
     plt_show(show)
-    return im, cont
+    return im, cont, interp
 
 
 def _make_image_mask(outlines, pos, res):
@@ -1434,8 +1461,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     # Skip comps check here by using private function
     evoked = evoked.copy()._pick_drop_channels(picks, check_comps=False)
 
-    with warnings.catch_warnings(record=True):  # elementwise comparison
-        interactive = times == 'interactive'
+    interactive = isinstance(times, string_types) and times == 'interactive'
     if axes is not None:
         if isinstance(axes, plt.Axes):
             axes = [axes]
@@ -1549,9 +1575,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                   outlines=outlines, image_mask=image_mask, contours=contours,
                   image_interp=image_interp, show=False)
     for idx, time in enumerate(times):
-        tp, cn = plot_topomap(data[:, idx], pos, axes=axes[idx],
-                              mask=mask_[:, idx] if mask is not None else None,
-                              **kwargs)
+        tp, cn, interp = _plot_topomap(
+            data[:, idx], pos, axes=axes[idx],
+            mask=mask_[:, idx] if mask is not None else None, **kwargs)
 
         images.append(tp)
         if cn is not None:
@@ -1594,12 +1620,12 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
 
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
-        params = dict(evoked=evoked, fig=fig, projs=evoked.info['projs'],
-                      picks=picks, images=images, contours=contours_,
-                      time_idx=time_idx, merge_grads=merge_grads,
-                      res=res, pos=pos, image_mask=image_mask,
-                      plot_update_proj_callback=_plot_update_evoked_topomap,
-                      scale=scaling)
+        params = dict(
+            evoked=evoked, fig=fig, projs=evoked.info['projs'], picks=picks,
+            images=images, contours_=contours_, pos=pos, time_idx=time_idx,
+            res=res, plot_update_proj_callback=_plot_update_evoked_topomap,
+            merge_grads=merge_grads, scale=scaling, axes=axes,
+            contours=contours, interp=interp)
         _draw_proj_checkbox(None, params)
 
     plt_show(show)
