@@ -265,13 +265,17 @@ def read_cov(fname, verbose=None):
 # Estimate from data
 
 @verbose
-def make_ad_hoc_cov(info, verbose=None):
+def make_ad_hoc_cov(info, std=None, verbose=None):
     """Create an ad hoc noise covariance.
 
     Parameters
     ----------
     info : instance of Info
         Measurement info.
+    std : dict of float | None
+        Standard_deviation of the diagonal elements. If dict, keys should be
+        `grad` for gradiometers, `mag` for magnetometers and `eeg` for EEG
+        channels. If None, default values will be used (see Notes).
     verbose : bool, str, int, or None (default None)
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -283,24 +287,17 @@ def make_ad_hoc_cov(info, verbose=None):
 
     Notes
     -----
-    This uses values of 5 fT/cm, 20 fT, and 0.2 uV for gradiometers,
-    magnetometers, and EEG channels, respectively.
+    The default noise values are 5 fT/cm, 20 fT, and 0.2 uV for gradiometers,
+    magnetometers, and EEG channels respectively.
 
     .. versionadded:: 0.9.0
     """
     picks = pick_types(info, meg=True, eeg=True, exclude=())
-
-    # Standard deviations to be used
-    grad_std = 5e-13
-    mag_std = 20e-15
-    eeg_std = 0.2e-6
-    logger.info('Using standard noise values '
-                '(MEG grad : %6.1f fT/cm MEG mag : %6.1f fT EEG : %6.1f uV)'
-                % (1e13 * grad_std, 1e15 * mag_std, 1e6 * eeg_std))
+    std = _handle_default('noise_std', std)
 
     data = np.zeros(len(picks))
     for meg, eeg, val in zip(('grad', 'mag', False), (False, False, True),
-                             (grad_std, mag_std, eeg_std)):
+                             (std['grad'], std['mag'], std['eeg'])):
         these_picks = pick_types(info, meg=meg, eeg=eeg)
         data[np.searchsorted(picks, these_picks)] = val * val
     ch_names = [info['ch_names'][pick] for pick in picks]

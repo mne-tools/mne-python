@@ -132,6 +132,12 @@ def test_ad_hoc_cov():
     assert_true('Covariance' in repr(cov))
     cov2 = read_cov(out_fname)
     assert_array_almost_equal(cov['data'], cov2['data'])
+    std = dict(grad=2e-13, mag=10e-15, eeg=0.1e-6)
+    cov = make_ad_hoc_cov(evoked.info, std)
+    cov.save(out_fname)
+    assert_true('Covariance' in repr(cov))
+    cov2 = read_cov(out_fname)
+    assert_array_almost_equal(cov['data'], cov2['data'])
 
 
 def test_io_cov():

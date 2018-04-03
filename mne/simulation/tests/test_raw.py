@@ -110,6 +110,23 @@ def test_simulate_raw_sphere():
                              blink=True, ecg=True, random_state=seed,
                              use_cps=True)
     assert_array_equal(raw_sim_2[:][0], raw_sim[:][0])
+    std = dict(grad=2e-13, mag=10e-15, eeg=0.1e-6)
+    raw_sim = simulate_raw(raw, stc, trans, src, sphere,
+                           make_ad_hoc_cov(raw.info, std=std),
+                           head_pos=head_pos_sim, blink=True, ecg=True,
+                           random_state=seed, use_cps=True)
+    raw_sim_2 = simulate_raw(raw, stc, trans_fname, src_fname, sphere,
+                             cov=std, head_pos=head_pos_sim, blink=True,
+                             ecg=True, random_state=seed, use_cps=True)
+    assert_array_equal(raw_sim_2[:][0], raw_sim[:][0])
+    raw_sim = simulate_raw(raw, stc, trans, src, sphere,
+                           make_ad_hoc_cov(raw.info, std=None),
+                           head_pos=head_pos_sim, blink=True, ecg=True,
+                           random_state=seed, use_cps=True)
+    raw_sim_2 = simulate_raw(raw, stc, trans_fname, src_fname, sphere,
+                             cov='simple', head_pos=head_pos_sim, blink=True,
+                             ecg=True, random_state=seed, use_cps=True)
+    assert_array_equal(raw_sim_2[:][0], raw_sim[:][0])
     # Test IO on processed data
     tempdir = _TempDir()
     test_outname = op.join(tempdir, 'sim_test_raw.fif')
@@ -187,6 +204,8 @@ def test_simulate_raw_sphere():
     stc_bad.tstep += 0.1
     assert_raises(ValueError, simulate_raw, raw, stc_bad, trans, src, sphere,
                   use_cps=True)
+    assert_raises(TypeError, simulate_raw, raw, stc, trans, src, sphere,
+                  cov=0, use_cps=True)  # wrong covariance type
     assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
                   chpi=True, use_cps=True)  # no cHPI info
     assert_raises(ValueError, simulate_raw, raw, stc, trans, src, sphere,
