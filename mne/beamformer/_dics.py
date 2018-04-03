@@ -30,9 +30,8 @@ deprecation_text = ('This function will be removed in 0.17, please use the '
 
 @verbose
 def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
-              mode='scalar', weight_norm='unit-noise-gain',
-              normalize_fwd=False, real_filter=False, reduce_rank=False,
-              verbose=None):
+              mode='vector', weight_norm=None, normalize_fwd=True,
+              real_filter=False, reduce_rank=False, verbose=None):
     """Compute a Dynamic Imaging of Coherent Sources (DICS) spatial filter.
 
     This is a beamformer filter that can be used to estimate the source power
@@ -69,21 +68,23 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                 filters are computer for the orientation that maximizes
                 spectral power.
 
-    mode : 'scalar' | 'vector'
+    mode : 'vector' | 'scalar'
         Whether to compute a scalar or vector beamformer. This determines how
         the filter deals with source spaces in "free" orientation. Such source
-        spaces define three orthogonal dipoles at each source point. A scalar
-        beamformer considers these dipoles simultaneously and computes the
-        filter with a matrix inverse. A vector beamformer considers each dipole
-        individually and computes the filter with a regular division.
-        Defaults to 'scalar'.
+        spaces define three orthogonal dipoles at each source point. A vector
+        beamformer considers each dipole individually and computes the filter
+        with a regular division. A scalar beamformer considers these dipoles
+        simultaneously and computes the filter with a matrix inverse. 
+        Defaults to 'vector'.
     weight_norm : None | 'unit-noise-gain'
         How to normalize the beamformer weights. None means no normalization is
-        performed.  If 'unit-noise-gain', the unit-noise gain minimum variance
+        performed. If 'unit-noise-gain', the unit-noise gain minimum variance
         beamformer will be computed (Borgiotti-Kaplan beamformer) [2]_.
-        Defaults to 'unit-noise-gain'.
+        Defaults to ``None''.
     normalize_fwd : bool
-        Whether to normalize the forward solution. Defaults to False.
+        Whether to normalize the forward solution. Defaults to ``True``. Note
+        that this normalization is not required is weight normalization
+        (``weight_norm``) is used.
     real_filter : bool
         If ``True``, take only the real part of the cross-spectral-density
         matrices to compute real filters. Defaults to ``False``.
@@ -91,10 +92,9 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         If True, the rank of the leadfield will be reduced by 1 for each
         spatial location. Setting reduce_rank to True is typically necessary
         if you use a single sphere model for MEG.
-    verbose : bool, str, int, or None
-        If not ``None``, override default verbose level (see
-        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>` for
-        more).
+    verbose : bool | str | int | None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -130,7 +130,16 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
 
     Notes
     -----
-    The original reference is [1]_.
+    The original reference is [1]_. See [4]_ for a tutorial style paper on the
+    topic.
+
+    The DICS beamformer is very similar to the LCMV (:func:`make_lcmv`)
+    beamformer and many of the parameters are shared. However,
+    :func:`make_dics` and :func:`make_lcmv` currently have different defaults
+    for these parameters, which were settled on separately through extensive
+    practical use case testing (but not necessarily exhaustive parameter space
+    searching), and it remains to be seen how functionally interchangeable they
+    could be.
 
     For more information about ``real_filter``, see the
     `supplemental information <http://www.cell.com/cms/attachment/616681/4982593/mmc1.pdf>`_
@@ -138,13 +147,19 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
 
     References
     ----------
-    .. [1] Gross et al. Dynamic imaging of coherent sources: Studying neural
-           interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
+    .. [1] Gross et al. (2001) Dynamic imaging of coherent sources: Studying
+           neural interactions in the human brain. PNAS vol. 98 (2)
+           pp. 694-699. https://doi.org/10.1073/pnas.98.2.694
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     .. [3] Hipp JF, Engel AK, Siegel M (2011) Oscillatory Synchronization
            in Large-Scale Cortical Networks Predicts Perception.
-           Neuron 69:387-396.
+           Neuron (2011) vol 69 pp. 387-396.
+           https://doi.org/10.1016/j.neuron.2010.12.027
+    .. [4] van Vliet, et al. (2018) Analysis of functional connectivity and
+           oscillatory power using DICS: from raw MEG data to group-level
+           statistics in Python. bioRxiv, 245530.
+           https://doi.org/10.1101/245530
     """  # noqa: E501
     allowed_ori = [None, 'normal', 'max-power']
     if pick_ori not in allowed_ori:
@@ -366,7 +381,7 @@ def apply_dics(evoked, filters, verbose=None):
         DICS spatial filter (beamformer weights)
         Filter weights returned from :func:`make_dics`.
     verbose : bool | str | int | None
-        If not `None`, override default verbose level (see :func:`mne.verbose`
+        If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
@@ -478,9 +493,8 @@ def apply_dics_csd(csd, filters, verbose=None):
         DICS spatial filter (beamformer weights)
         Filter weights returned from `make_dics`.
     verbose : bool | str | int | None
-        If not ``None``, override default verbose level (see
-        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>` for
-        more).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -661,7 +675,7 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.05, label=None,
     real_filter : bool
         If True, take only the real part of the cross-spectral-density matrices
         to compute real filters as in [2]_. Default is False.
-    verbose : bool, str, int, or None
+    verbose : bool | str | int | None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
@@ -742,7 +756,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
     real_filter : bool
         If True, take only the real part of the cross-spectral-density matrices
         to compute real filters as in [1]_. Default is False.
-    verbose : bool, str, int, or None
+    verbose : bool | str | int | None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
@@ -815,7 +829,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
     real_filter : bool
         If True, take only the real part of the cross-spectral-density matrices
         to compute real filters.
-    verbose : bool, str, int, or None
+    verbose : bool | str | int | None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
@@ -930,9 +944,8 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
             noise_csds=None, n_ffts=None, mt_bandwidths=None,
             mt_adaptive=False, mt_low_bias=True, cwt_n_cycles=7, decim=1,
             subtract_evoked=False, reg=0.05, label=None, pick_ori=None,
-            beamformer_mode='scalar', weight_norm='unit-noise-gain',
-            normalize_fwd=False, real_filter=False, reduce_rank=False,
-            verbose=None):
+            beamformer_mode='vector', weight_norm=None, normalize_fwd=True,
+            real_filter=False, reduce_rank=False, verbose=None):
     """5D time-frequency beamforming based on DICS.
 
     Calculate source power in time-frequency windows using a spatial filter
@@ -1019,15 +1032,18 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
                 filters are computer for the orientation that maximizes
                 spectral power.
 
-    beamformer_mode : 'scalar' | 'vector'
-        Whether to compute a scalar or vector beamformer. Defaults to 'scalar'.
+        Defaults to ``None``.
+    beamformer_mode : 'vector' | 'scalar'
+        Whether to compute a scalar or vector beamformer. Defaults to 'vector'.
     weight_norm : None | 'unit-noise-gain'
         How to normalize the beamformer weights. None means no normalization is
         performed.  If 'unit-noise-gain', the unit-noise gain minimum variance
         beamformer will be computed (Borgiotti-Kaplan beamformer) [2]_.
-        Defaults to 'unit-noise-gain'.
+        Defaults to ``None``.
     normalize_fwd : bool
-        Whether to normalize the forward solution. Defaults to False.
+        Whether to normalize the forward solution. Defaults to ``True``. Note
+        that this normalization is not required is weight normalization
+        (``weight_norm``) is used.
     real_filter : bool
         If ``True``, take only the real part of the cross-spectral-density
         matrices to compute real filters. Defaults to ``False``.

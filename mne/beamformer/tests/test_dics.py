@@ -150,7 +150,9 @@ def test_make_dics():
     n_orient = 3
     n_channels = csd.n_channels
 
-    filters = make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None)
+    # Test return values
+    filters = make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
+                        weight_norm='unit-noise-gain')
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert np.iscomplexobj(filters['weights'])
     assert filters['csd'] == csd
@@ -161,20 +163,22 @@ def test_make_dics():
     assert filters['subject'] == fwd_free['src'][0]['subject_his_id']
     assert filters['pick_ori'] is None
     assert filters['n_orient'] == n_orient
-    assert filters['mode'] == 'scalar'
-    assert not filters['normalize_fwd']
+    assert filters['mode'] == 'vector'
+    assert filters['normalize_fwd']
     assert filters['weight_norm'] == 'unit-noise-gain'
     _test_weight_norm(filters)
 
+    # Test picking orientations. Also test weight norming under these different
+    # conditions.
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
-                        pick_ori='normal')
+                        pick_ori='normal', weight_norm='unit-noise-gain')
     n_orient = 1
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert filters['n_orient'] == n_orient
     _test_weight_norm(filters)
 
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
-                        pick_ori='max-power')
+                        pick_ori='max-power', weight_norm='unit-noise-gain')
     n_orient = 1
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert filters['n_orient'] == n_orient
@@ -184,7 +188,6 @@ def test_make_dics():
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
                         pick_ori='normal', real_filter=True)
     assert not np.iscomplexobj(filters['weights'])
-    _test_weight_norm(filters)
 
     # Test forward normalization. In 'vector' mode, the power of a
     # unit-noise CSD should be 1, even without weight normalization.
@@ -268,7 +271,7 @@ def test_apply_dics_csd():
 
     # Test using a real-valued filter
     filters_real = make_dics(epochs.info, fwd_surf, csd, label=label, reg=reg,
-                             real_filter=True, mode='vector')
+                             real_filter=True)
     power, f = apply_dics_csd(csd, filters_real)
     assert f == [10, 20]
     assert np.argmax(power.data[:, 1]) == source_ind
@@ -276,14 +279,15 @@ def test_apply_dics_csd():
 
     # Test rank reduction
     filters_real = make_dics(epochs.info, fwd_surf, csd, label=label, reg=5,
-                             pick_ori='max-power', reduce_rank=True)
+                             pick_ori='max-power', mode='scalar',
+                             reduce_rank=True)
     power, f = apply_dics_csd(csd, filters_real)
     assert f == [10, 20]
     assert np.argmax(power.data[:, 1]) == source_ind
     assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
     # Test computing source power on a volume source space
-    filters_vol = make_dics(epochs.info, fwd_vol, csd, reg=reg, mode='vector')
+    filters_vol = make_dics(epochs.info, fwd_vol, csd, reg=reg)
     power, f = apply_dics_csd(csd, filters_vol)
     vol_source_ind = 3851  # FIXME: not make this hardcoded
     assert f == [10, 20]
@@ -389,8 +393,7 @@ def test_tf_dics():
     for mode in ['fourier', 'multitaper', 'cwt_morlet']:
         stcs = tf_dics(epochs, fwd_surf, tmin, tmax, tstep, win_lengths,
                        csd_mode=mode, freq_bins=freq_bins,
-                       beamformer_mode='vector', frequencies=frequencies,
-                       decim=10, reg=reg, label=label)
+                       frequencies=frequencies, decim=10, reg=reg, label=label)
 
         # Did we find the true source at 20 Hz?
         assert np.argmax(stcs[1].data[:, 0]) == source_ind
@@ -402,7 +405,7 @@ def test_tf_dics():
         # 20 Hz power should be more than 10 Hz power at the true source
         assert stcs[1].data[source_ind, 0] > stcs[0].data[source_ind, 0]
 
-    # Manually compute source power and compare with the last tf_dics result
+    # Manually compute source power and compare with the last tf_dics result.
     source_power = []
     time_windows = [(0, 5), (4, 9)]
     for time_window in time_windows:
@@ -410,17 +413,20 @@ def test_tf_dics():
                          tmin=time_window[0], tmax=time_window[1], decim=10)
         csd = csd.sum()
         csd._data /= csd.n_fft
-        filters = make_dics(epochs.info, fwd_surf, csd, reg=reg, mode='vector',
-                            label=label)
+        filters = make_dics(epochs.info, fwd_surf, csd, reg=reg, label=label)
         stc_source_power, _ = apply_dics_csd(csd, filters)
         source_power.append(stc_source_power.data)
 
     # Comparing tf_dics results with dics_source_power results
     assert_allclose(stcs[1].data, np.array(source_power).squeeze().T, atol=0)
 
-    # Test using noise csds. We're going to use identity matrices. That way, if
-    # all the computations are done correctly, there should be no effect if
-    # `beamformer_mode='vector'`.
+    # Test using noise csds. We're going to use identity matrices. That way,
+    # since we're using unit-noise-gain weight normalization, there should be
+    # no effect.
+    stcs = tf_dics(epochs, fwd_surf, tmin, tmax, tstep, win_lengths,
+                   csd_mode='cwt_morlet', frequencies=frequencies, decim=10,
+                   reg=reg, label=label, normalize_fwd=False,
+                   weight_norm='unit-noise-gain')
     noise_csd = csd.copy()
     inds = np.triu_indices(csd.n_channels)
     # Using [:, :] syntax for in-place broadcasting
@@ -429,8 +435,8 @@ def test_tf_dics():
     noise_csds = [noise_csd, noise_csd]  # Two frequency bins
     stcs_norm = tf_dics(epochs, fwd_surf, tmin, tmax, tstep, win_lengths,
                         csd_mode='cwt_morlet', frequencies=frequencies,
-                        noise_csds=noise_csds, decim=10, reg=reg,
-                        beamformer_mode='vector', label=label)
+                        noise_csds=noise_csds, decim=10, reg=reg, label=label,
+                        normalize_fwd=False, weight_norm='unit-noise-gain')
     assert_allclose(stcs_norm[0].data, stcs[0].data, atol=0)
     assert_allclose(stcs_norm[1].data, stcs[1].data, atol=0)
 
@@ -462,11 +468,11 @@ def test_tf_dics():
            mt_bandwidths=[20])
 
     # Test if subtracting evoked responses yields NaN's, since we only have one
-    # epoch.
-    stcs = tf_dics(epochs, fwd_surf, tmin, tmax, tstep, win_lengths,
-                   csd_mode='cwt_morlet', frequencies=frequencies,
-                   subtract_evoked=True, reg=reg, beamformer_mode='vector',
-                   label=label, decim=20)
+    # epoch. Suppress division warnings.
+    with warnings.catch_warnings(record=True):
+        stcs = tf_dics(epochs, fwd_surf, tmin, tmax, tstep, win_lengths,
+                       csd_mode='cwt_morlet', frequencies=frequencies,
+                       subtract_evoked=True, reg=reg, label=label, decim=20)
     assert np.all(np.isnan(stcs[0].data))
 
 
@@ -647,4 +653,4 @@ def test_dics_source_power():
     assert len(w) == 2  # Also deprecation warning
 
 
-# run_tests_if_main()
+run_tests_if_main()

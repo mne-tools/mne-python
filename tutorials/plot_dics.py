@@ -30,7 +30,7 @@ import mne
 from mne.simulation import simulate_raw
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
-from mne.time_frequency import csd_epochs
+from mne.time_frequency import csd_morlet
 from mne.beamformer import make_dics, apply_dics_csd
 
 # Suppress irrelevant output
@@ -244,39 +244,66 @@ mlab.view(0, 0, 550, [0, 0, 0])
 mlab.title('MNE-dSPM inverse (RMS)', height=0.9)
 
 ###############################################################################
-# Computing a cortical power map at 10 Hz. using a DICS beamformer:
+# We will now compute the cortical power map at 10 Hz. using a DICS beamformer.
+# A beamformer will construct for each vertex a spatial filter that aims to
+# pass activity originating from the vertex, while dampening activity from
+# other sources as much as possible.
+#
+# The :func:`make_dics` function has many switches that offer precise control
+# over the way the filter weights are computed. Currently, there is no clear
+# consensus regarding the best approach. This is why we will demonstrate two
+# approaches here:
+#
+#  1. The approach as described in [2]_, which first normalizes the forward
+#     solution and computes a vector beamformer.
+#  2. The scalar beamforming approach based on [3]_, which uses weight
+#     normalization instead of normalizing the forward solution.
 
 # Estimate the cross-spectral density (CSD) matrix on the trial containing the
 # signal.
-csd_signal = csd_epochs(epochs['signal'], mode='cwt_morlet', frequencies=[10])
+csd_signal = csd_morlet(epochs['signal'], frequencies=[10])
 
-# Compute the DICS powermap.
-filters = make_dics(info, fwd, csd_signal, reg=0.05, pick_ori='max-power')
-power, f = apply_dics_csd(csd_signal, filters)
+# Compute the spatial filters for each vertex, using two approaches.
+filters_approach1 = make_dics(
+    info, fwd, csd_signal, reg=0.05, pick_ori='max-power', normalize_fwd=True,
+    mode='vector')
+filters_approach2 = make_dics(
+    info, fwd, csd_signal, reg=0.05, pick_ori='max-power', normalize_fwd=False,
+    mode='scalar', weight_norm='unit-noise-gain')
 
-# Plot the DICS power map.
-brain = power.plot('sample', subjects_dir=subjects_dir, hemi='both', figure=2,
-                   size=600)
+# Compute the DICS power map by applying the spatial filters to the CSD matrix.
+power_approach1, f = apply_dics_csd(csd_signal, filters_approach1)
+power_approach2, f = apply_dics_csd(csd_signal, filters_approach2)
 
-# Indicate the true locations of the source activity on the plot.
-brain.add_foci(source_vert1, coords_as_verts=True, hemi='lh')
-brain.add_foci(source_vert2, coords_as_verts=True, hemi='rh')
+# Plot the DICS power maps for both approaches.
+for approach, power in enumerate([power_approach1, power_approach2], 1):
+    brain = power.plot('sample', subjects_dir=subjects_dir, hemi='both',
+                       figure=approach + 1, size=600)
 
-# Rotate the view and add a title.
-mlab.view(0, 0, 550, [0, 0, 0])
-mlab.title('DICS power map at %.1f Hz' % f[0], height=0.9)
+    # Indicate the true locations of the source activity on the plot.
+    brain.add_foci(source_vert1, coords_as_verts=True, hemi='lh')
+    brain.add_foci(source_vert2, coords_as_verts=True, hemi='rh')
+
+    # Rotate the view and add a title.
+    mlab.view(0, 0, 550, [0, 0, 0])
+    mlab.title('DICS power map, approach %d' % approach, height=0.9)
 
 ###############################################################################
-# Excellent! Both methods found our two simulated sources. Of course, with a
+# Excellent! All methods found our two simulated sources. Of course, with a
 # signal-to-noise ratio (SNR) of 1, is isn't very hard to find them. You can
-# try playing with the SNR and see how the MNE-dSPM and DICS results hold up in
-# the presence of increasing noise. In the presence of more noise, you may need
-# to increase the regularization parameter of the DICS beamformer.
+# try playing with the SNR and see how the MNE-dSPM and DICS approaches hold up
+# in the presence of increasing noise. In the presence of more noise, you may
+# need to increase the regularization parameter of the DICS beamformer.
 
 ###############################################################################
 # References
 # ----------
-# .. [1] Gross, J., Kujala, J., Hamalainen, M., Timmermann, L., Schnitzler, A.,
-#    & Salmelin, R. (2001). Dynamic imaging of coherent sources: Studying
-#    neural interactions in the human brain. Proceedings of the National
-#    Academy of Sciences, 98(2), 694–699. https://doi.org/10.1073/pnas.98.2.694
+# .. [1] Gross et al. (2001). Dynamic imaging of coherent sources: Studying
+#        neural interactions in the human brain. Proceedings of the National
+#        Academy of Sciences, 98(2), 694-699.
+#        https://doi.org/10.1073/pnas.98.2.694
+# .. [2] van Vliet, et al. (2018) Analysis of functional connectivity and
+#        oscillatory power using DICS: from raw MEG data to group-level
+#        statistics in Python. bioRxiv, 245530. https://doi.org/10.1101/245530
+# .. [3] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
+#        brain imaging (2008) Springer Science & Business Media
