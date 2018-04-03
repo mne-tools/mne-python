@@ -24,7 +24,6 @@ from mne.utils import run_tests_if_main
 from mne import pick_types, pick_info
 from mne.io import read_raw_kit, _empty_info, read_info
 from mne.io.constants import FIFF
-from mne.bem import fit_sphere_to_headshape
 from mne.utils import _TempDir
 matplotlib.use('Agg')  # for testing don't use X server
 
@@ -92,15 +91,6 @@ def test_auto_topomap_coords():
     # with the EEG channels
     del info['dig'][85]
 
-    # Remove head origin from channel locations, so mapping with digitization
-    # points yields the same result
-    dig_kinds = (FIFF.FIFFV_POINT_CARDINAL,
-                 FIFF.FIFFV_POINT_EEG,
-                 FIFF.FIFFV_POINT_EXTRA)
-    _, origin_head, _ = fit_sphere_to_headshape(info, dig_kinds, units='m')
-    for ch in info['chs']:
-        ch['loc'][:3] -= origin_head
-
     # Use channel locations
     l0 = _auto_topomap_coords(info, picks)
 
@@ -117,7 +107,8 @@ def test_auto_topomap_coords():
     assert_raises(ValueError, _auto_topomap_coords, info, mag_picks)
 
     # Test function with too many EEG digitization points: it should fail
-    info['dig'].append({'r': [1, 2, 3], 'kind': FIFF.FIFFV_POINT_EEG})
+    info['dig'].append({'r': [1, 2, 3], 'kind': FIFF.FIFFV_POINT_EEG,
+                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
     assert_raises(ValueError, _auto_topomap_coords, info, picks)
 
     # Test function with too little EEG digitization points: it should fail
