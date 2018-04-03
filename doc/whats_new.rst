@@ -95,7 +95,7 @@ Changelog
 
 - Add the Picard algorithm to perform ICA for :class:`mne.preprocessing.ICA`, by `Pierre Ablin`_ and `Alex Gramfort`_
 
-- Add ability to supply a mask to the plot in :func:`mne.viz.plot_evoked_image` by `Jona Sassenhagen`.
+- Add ability to supply a mask to the plot in :func:`mne.viz.plot_evoked_image` by `Jona Sassenhagen`_
 
 - Add :func:`mne.time_frequency.csd_morlet` and :func:`mne.time_frequency.csd_array_morlet` to estimate cross-spectral density using Morlet wavelets, by `Marijn van Vliet`_
 
@@ -174,6 +174,8 @@ API
 - Changed the line width in :func:`mne.viz.plot_bem` from 2.0 to 1.0 for better visibility of underlying structures, by `Eric Larson`_
 
 - Changed the behavior of :meth:`mne.io.Raw.pick_channels` and similar methods to be consistent with :func:`mne.pick_channels` to treat channel list as a set (ignoring order) -- if reordering is necessary use ``inst.reorder_channels``, by `Eric Larson`_
+
+- Changed the labeling of some plotting functions to use more standard capitalization and units, e.g. "Time (s)" instead of "time [sec]" by `Eric Larson`_
 
 - ``mne.time_frequency.csd_epochs`` has been refactored into :func:`mne.time_frequency.csd_fourier` and :func:`mne.time_frequency.csd_multitaper`, by `Marijn van Vliet`_
 

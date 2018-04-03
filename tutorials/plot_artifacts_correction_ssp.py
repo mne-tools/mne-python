@@ -1,7 +1,4 @@
 """
-
-.. _tut_artifacts_correct_ssp:
-
 Artifact Correction with SSP
 ============================
 

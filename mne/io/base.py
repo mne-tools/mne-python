@@ -1240,8 +1240,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Notes
         -----
-        For more information, see the tutorials :ref:`tut_background_filtering`
-        and :ref:`tut_artifacts_filter`.
+        For more information, see the tutorials
+        :ref:`sphx_glr_auto_tutorials_plot_background_filtering.py`
+        and
+        :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_filtering.py`.
         """
         _check_preload(self, 'raw.filter')
         update_info, picks = _filt_check_picks(self.info, picks,

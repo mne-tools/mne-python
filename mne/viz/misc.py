@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Functions to make simple plots with M/EEG data."""
 
 from __future__ import print_function
@@ -137,7 +138,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
             s[s <= 0] = 1e-10 * s[s > 0].min()
             s = np.sqrt(s) * scaling
             axes[0, k].plot(s)
-            axes[0, k].set(ylabel='Noise std (%s)' % unit, yscale='log',
+            axes[0, k].set(ylabel=u'Noise σ (%s)' % unit, yscale='log',
                            xlabel='Eigenvalue index', title=name)
         tight_layout(fig=fig_svd)
 
@@ -224,9 +225,7 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
                cmap='Reds')
     ax = plt.gca()
 
-    plt.title('Time-frequency source power')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Frequency (Hz)')
+    ax.set(title='Source power', xlabel='Time (s)', ylabel='Frequency (Hz)')
 
     time_tick_labels = [str(np.round(t, 2)) for t in time_bounds]
     n_skip = 1 + len(time_bounds) // 10
@@ -481,7 +480,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     """
     if sfreq is None:
         sfreq = 1.0
-        xlabel = 'samples'
+        xlabel = 'Samples'
     else:
         xlabel = 'Time (s)'
 
@@ -542,8 +541,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     else:
         ax.set_ylim([min_event - 1, max_event + 1])
 
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel('Events id')
+    ax.set(xlabel=xlabel, ylabel='Events id')
 
     ax.grid(True)
 
@@ -599,9 +597,7 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
         ax.plot(dip.times, dip.amplitude * 1e9, color=color, linewidth=1.5)
         xlim[0] = min(xlim[0], dip.times[0])
         xlim[1] = max(xlim[1], dip.times[-1])
-    ax.set_xlim(xlim)
-    ax.set_xlabel('Time (sec)')
-    ax.set_ylabel('Amplitude (nAm)')
+    ax.set(xlim=xlim, xlabel='Time (s)', ylabel='Amplitude (nAm)')
     if show:
         fig.show(warn=False)
     return fig
@@ -755,31 +751,32 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
             gd = group_delay((h, [1.]), omega)[1]
         title = 'FIR filter' if title is None else title
     gd /= sfreq
-    fig, axes = plt.subplots(3)  # eventually axes could be a parameter
+    # eventually axes could be a parameter
+    fig, (ax_time, ax_freq, ax_delay) = plt.subplots(3)
     t = np.arange(len(h)) / sfreq
     f = omega * sfreq / (2 * np.pi)
-    axes[0].plot(t, h, color=color)
-    axes[0].set(xlim=t[[0, -1]], xlabel='Time (sec)',
-                ylabel='Amplitude h(n)', title=title)
+    ax_time.plot(t, h, color=color)
+    ax_time.set(xlim=t[[0, -1]], xlabel='Time (s)',
+                ylabel='Amplitude', title=title)
     mag = 10 * np.log10(np.maximum((H * H.conj()).real, 1e-20))
-    axes[1].plot(f, mag, color=color, linewidth=2, zorder=4)
+    ax_freq.plot(f, mag, color=color, linewidth=2, zorder=4)
     if freq is not None and gain is not None:
-        plot_ideal_filter(freq, gain, axes[1], fscale=fscale,
+        plot_ideal_filter(freq, gain, ax_freq, fscale=fscale,
                           title=None, show=False)
-    axes[1].set(ylabel='Magnitude (dB)', xlabel='', xscale=fscale)
+    ax_freq.set(ylabel='Magnitude (dB)', xlabel='', xscale=fscale)
     sl = slice(0 if fscale == 'linear' else 1, None, None)
-    axes[2].plot(f[sl], gd[sl], color=color, linewidth=2, zorder=4)
-    axes[2].set(xlim=flim, ylabel='Group delay (sec)', xlabel='Frequency (Hz)',
-                xscale=fscale)
+    ax_delay.plot(f[sl], gd[sl], color=color, linewidth=2, zorder=4)
+    ax_delay.set(xlim=flim, ylabel='Group delay (s)', xlabel='Frequency (Hz)',
+                 xscale=fscale)
     xticks, xticklabels = _filter_ticks(flim, fscale)
     dlim = [0, 1.05 * gd[1:].max()]
-    for ax, ylim, ylabel in zip(axes[1:], (alim, dlim),
-                                ('Amplitude (dB)', 'Delay (sec)')):
+    for ax, ylim, ylabel in ((ax_freq, alim, 'Amplitude (dB)'),
+                             (ax_delay, dlim, 'Delay (s)')):
         if xticks is not None:
             ax.set(xticks=xticks)
             ax.set(xticklabels=xticklabels)
         ax.set(xlim=flim, ylim=ylim, xlabel='Frequency (Hz)', ylabel=ylabel)
-    adjust_axes(axes)
+    adjust_axes([ax_time, ax_freq, ax_delay])
     tight_layout()
     plt_show(show)
     return fig

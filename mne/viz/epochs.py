@@ -923,10 +923,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                             color=color, alpha=area_alpha)
         if make_label:
             if ii == len(picks_list) - 1:
-                ax.set_xlabel('Freq (Hz)')
-            ax.set_ylabel(ylabel)
-            ax.set_title(title)
-            ax.set_xlim(freqs[0], freqs[-1])
+                ax.set_xlabel('Frequency (Hz)')
+            ax.set(ylabel=ylabel, title=title, xlim=(freqs[0], freqs[-1]))
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
     plt_show(show)
@@ -1955,7 +1953,7 @@ def _plot_histogram(params):
     for idx in range(len(types)):
         ax = plt.subplot(len(types), 1, idx + 1)
         plt.xlabel(units[types[idx]])
-        plt.ylabel('count')
+        plt.ylabel('Count')
         color = colors[types[idx]]
         rej = None
         if epochs.reject is not None and types[idx] in epochs.reject.keys():

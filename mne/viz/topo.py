@@ -142,8 +142,7 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
             ax = plt.axes(pos[idx])
             ax.patch.set_facecolor(axis_facecolor)
             plt.setp(list(ax.spines.values()), color=axis_spinecolor)
-            ax.set_xticklabels([])
-            ax.set_yticklabels([])
+            ax.set(xticklabels=[], yticklabels=[])
             plt.setp(ax.get_xticklines(), visible=False)
             plt.setp(ax.get_yticklines(), visible=False)
             ax._mne_ch_name = name
@@ -408,7 +407,7 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
             ax.plot(times, data_[ch_idx], color=color_)
 
     if x_label is not None:
-        plt.xlabel(x_label)
+        ax.set(xlabel=x_label)
 
     if y_label is not None:
         if isinstance(y_label, list):
