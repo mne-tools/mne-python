@@ -35,7 +35,7 @@ from ..externals.six import string_types
 
 def _check_cov(info, cov):
     """Check that the user provided a valid covariance matrix for the noise."""
-    if isinstance(cov, Covariance):
+    if isinstance(cov, Covariance) or cov is None:
         pass
     elif isinstance(cov, dict):
         cov = make_ad_hoc_cov(info, cov, verbose=False)
@@ -47,7 +47,7 @@ def _check_cov(info, cov):
     else:
         raise TypeError('Covariance matrix type not recognized. Valid input '
                         'types are: instance of Covariance, dict, str, None. '
-                        ', got %s' % cov)
+                        ', got %s' % (cov,))
     return cov
 
 
@@ -97,7 +97,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         be a filename or 'simple'. If 'simple', an ad hoc covariance matrix
         will be generated with default values. If dict, an ad hoc covariance
         matrix will be generated with the values specified by the dict entries.
-        If None, no noise sill be added.
+        If None, no noise will be added.
     blink : bool
         If true, add simulated blink artifacts. See Notes for details.
     ecg : bool
@@ -258,8 +258,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     src = _ensure_src(src, verbose=False)
     if isinstance(bem, string_types):
         bem = read_bem_solution(bem, verbose=False)
-    if cov is not None:
-        cov = _check_cov(info, cov)
+    cov = _check_cov(info, cov)
     approx_events = int((len(times) / info['sfreq']) /
                         (stc.times[-1] - stc.times[0]))
     logger.info('Provided parameters will provide approximately %s event%s'

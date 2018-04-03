@@ -275,7 +275,7 @@ def make_ad_hoc_cov(info, std=None, verbose=None):
     std : dict of float | None
         Standard_deviation of the diagonal elements. If dict, keys should be
         `grad` for gradiometers, `mag` for magnetometers and `eeg` for EEG
-        channels. If None, default values will be used.
+        channels. If None, default values will be used (see Notes).
     verbose : bool, str, int, or None (default None)
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
