@@ -1175,16 +1175,17 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
                 if csd_mode == 'fourier':
                     csd = csd_fourier(
                         epochs, fmin=fmin, fmax=fmax, tmin=win_tmin,
-                        tmax=win_tmax, n_fft=n_fft)
+                        tmax=win_tmax, n_fft=n_fft, verbose=False)
                 elif csd_mode == 'multitaper':
                     csd = csd_multitaper(
                         epochs, fmin=fmin, fmax=fmax, tmin=win_tmin,
                         tmax=win_tmax, n_fft=n_fft, bandwidth=mt_bandwidth,
-                        low_bias=mt_low_bias)
+                        low_bias=mt_low_bias, verbose=False)
                 elif csd_mode == 'cwt_morlet':
                     csd = csd_morlet(
                         epochs, frequencies=freq_bin, tmin=win_tmin,
-                        tmax=win_tmax, n_cycles=cwt_n_cycles, decim=decim)
+                        tmax=win_tmax, n_cycles=cwt_n_cycles, decim=decim,
+                        verbose=False)
                 else:
                     raise ValueError('Invalid mode, choose either '
                                      "'fourier' or 'multitaper'")
@@ -1201,12 +1202,13 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
                                     weight_norm=weight_norm,
                                     normalize_fwd=normalize_fwd,
                                     reduce_rank=reduce_rank,
-                                    real_filter=real_filter)
-                stc, _ = apply_dics_csd(csd, filters)
+                                    real_filter=real_filter, verbose=False)
+                stc, _ = apply_dics_csd(csd, filters, verbose=False)
 
                 if noise_csds is not None:
                     # Scale signal power by noise power
-                    noise_stc, _ = apply_dics_csd(noise_csd, filters)
+                    noise_stc, _ = apply_dics_csd(noise_csd, filters,
+                                                  verbose=False)
                     stc /= noise_stc
 
                 sol_single.append(stc.data[:, 0])
