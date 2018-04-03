@@ -1160,9 +1160,10 @@ def _check_stim_channel(stim_channel, ch_names, include):
 
 def _find_exclude_idx(ch_names, exclude):
     """Find the index of all channels to exclude.
-    -----
+
     If there are several channels called "A" and we want to exclude "A",
-    then add (the index of) all "A" channels to the exclusion list"""
+    then add (the index of) all "A" channels to the exclusion list.
+    """
     return [idx for idx, ch in enumerate(ch_names) if ch in exclude]
 
 
