@@ -597,7 +597,7 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
         ax.plot(dip.times, dip.amplitude * 1e9, color=color, linewidth=1.5)
         xlim[0] = min(xlim[0], dip.times[0])
         xlim[1] = max(xlim[1], dip.times[-1])
-    ax.set(xlim=xlim, xlabel='Time (sec)', ylabel='Amplitude (nAm)')
+    ax.set(xlim=xlim, xlabel='Time (s)', ylabel='Amplitude (nAm)')
     if show:
         fig.show(warn=False)
     return fig
