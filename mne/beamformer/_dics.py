@@ -74,7 +74,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         spaces define three orthogonal dipoles at each source point. A vector
         beamformer considers each dipole individually and computes the filter
         with a regular division. A scalar beamformer considers these dipoles
-        simultaneously and computes the filter with a matrix inverse. 
+        simultaneously and computes the filter with a matrix inverse.
         Defaults to 'vector'.
     weight_norm : None | 'unit-noise-gain'
         How to normalize the beamformer weights. None means no normalization is
