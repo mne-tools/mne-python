@@ -35,18 +35,19 @@ from ..externals.six import string_types
 
 def _check_cov(info, cov):
     """Check that the user provided a valid covariance matrix for the noise."""
-    if isinstance(cov, dict) and not isinstance(cov, Covariance):
+    if isinstance(cov, Covariance):
+        pass
+    elif isinstance(cov, dict):
         cov = make_ad_hoc_cov(info, cov, verbose=False)
-    elif isinstance(cov, str) or isinstance(cov, unicode):
+    elif isinstance(cov, string_types):
         if cov == 'simple':
             cov = make_ad_hoc_cov(info, None, verbose=False)
         else:
             cov = read_cov(cov, verbose=False)
-    elif isinstance(cov, Covariance):
-        pass
     else:
-        raise ValueError('Covariance matrix type not recognized. Valid input '
-                         'types are: instance of Covariance, dict, str, None')
+        raise TypeError('Covariance matrix type not recognized. Valid input '
+                        'types are: instance of Covariance, dict, str, None. '
+                        ', got %s' % cov)
     return cov
 
 
@@ -91,10 +92,11 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     bem : str | dict
         BEM solution  corresponding to the stc. If string, should be a BEM
         solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
-    cov : instance of Covariance | str | dict | 'simple' | None
-        The sensor covariance matrix used to generate noise. If 'simple',
-        default noise values will be generated. If dict, a custom covariance
-        matrix will be used. If a string, then the covariance will be loaded.
+    cov : instance of Covariance | str | dict of float | None
+        The sensor covariance matrix used to generate noise. If string, should
+        be a filename or 'simple'. If 'simple', an ad hoc covariance matrix
+        will be generated with default values. If dict, an ad hoc covariance
+        matrix will be generated with the values specified by the dict entries.
         If None, no noise sill be added.
     blink : bool
         If true, add simulated blink artifacts. See Notes for details.
@@ -256,6 +258,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     src = _ensure_src(src, verbose=False)
     if isinstance(bem, string_types):
         bem = read_bem_solution(bem, verbose=False)
+    if cov is not None:
+        cov = _check_cov(info, cov)
     approx_events = int((len(times) / info['sfreq']) /
                         (stc.times[-1] - stc.times[0]))
     logger.info('Provided parameters will provide approximately %s event%s'
@@ -445,7 +449,6 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                                  this_data, meg_picks)
         # add sensor noise, ECG, blink, cHPI
         if cov is not None:
-            cov = _check_cov(info, cov)
             noise, zf = _generate_noise(fwd_info, cov, iir_filter, rng,
                                         len(stc_idxs), zi=zf)
             raw_data[meeg_picks, time_sl] += noise

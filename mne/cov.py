@@ -272,11 +272,10 @@ def make_ad_hoc_cov(info, std=None, verbose=None):
     ----------
     info : instance of Info
         Measurement info.
-    std : dict of ndarray | None
-        Standard_deviations of the diagonal elements. If dict, keys should be
+    std : dict of float | None
+        Standard_deviation of the diagonal elements. If dict, keys should be
         `grad` for gradiometers, `mag` for magnetometers and `eeg` for EEG
-        channels. The ndarrays must have the same number of elements as the
-        sensors denoted by their keys.
+        channels. If None, default values will be used.
     verbose : bool, str, int, or None (default None)
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -289,7 +288,7 @@ def make_ad_hoc_cov(info, std=None, verbose=None):
     Notes
     -----
     The default noise values are 5 fT/cm, 20 fT, and 0.2 uV for gradiometers,
-    magnetometers, and EEG channels, respectively.
+    magnetometers, and EEG channels respectively.
 
     .. versionadded:: 0.9.0
     """
@@ -300,7 +299,7 @@ def make_ad_hoc_cov(info, std=None, verbose=None):
     for meg, eeg, val in zip(('grad', 'mag', False), (False, False, True),
                              (std['grad'], std['mag'], std['eeg'])):
         these_picks = pick_types(info, meg=meg, eeg=eeg)
-        data[np.searchsorted(picks, these_picks)] = np.multiply(val, val)
+        data[np.searchsorted(picks, these_picks)] = val * val
     ch_names = [info['ch_names'][pick] for pick in picks]
     return Covariance(data, ch_names, info['bads'], info['projs'], nfree=0)
 
