@@ -141,7 +141,8 @@ def test_plot_topomap():
     # evoked
     warnings.simplefilter('always')
     res = 8
-    fast_test = {"res": res, "contours": 0, "sensors": False}
+    fast_test = dict(res=res, contours=0, sensors=False, time_unit='s')
+    fast_test_noscale = dict(res=res, contours=0, sensors=False)
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
 
@@ -163,7 +164,7 @@ def test_plot_topomap():
     assert_raises(ValueError, plt_topomap, times=[[0]])  # bad time
 
     evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
-                        contours=[-100, 0, 100])
+                        contours=[-100, 0, 100], time_unit='ms')
     plt_topomap = partial(evoked.plot_topomap, **fast_test)
     plt_topomap(0.1, layout=layout, scalings=dict(mag=0.1))
     plt.close('all')
@@ -209,7 +210,7 @@ def test_plot_topomap():
     # Plot array
     for ch_type in ('mag', 'grad'):
         evoked_ = evoked.copy().pick_types(eeg=False, meg=ch_type)
-        plot_topomap(evoked_.data[:, 0], evoked_.info, **fast_test)
+        plot_topomap(evoked_.data[:, 0], evoked_.info, **fast_test_noscale)
     # fail with multiple channel types
     assert_raises(ValueError, plot_topomap, evoked.data[0, :], evoked.info)
 
@@ -230,8 +231,9 @@ def test_plot_topomap():
     with warnings.catch_warnings(record=True):  # can't show
         warnings.simplefilter('always')
         plt_topomap(times, ch_type='mag', layout=None)
+    # projs have already been applied
     assert_raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
-                  proj='interactive')  # projs have already been applied
+                  proj='interactive', time_unit='s')
 
     # change to no-proj mode
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
@@ -248,8 +250,11 @@ def test_plot_topomap():
     assert_true(np.max(fig1.axes[0].images[0]._A) != data_max)
 
     assert_raises(RuntimeError, plot_evoked_topomap, evoked,
-                  np.repeat(.1, 50))
-    assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6])
+                  np.repeat(.1, 50), time_unit='s')
+    assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6],
+                  time_unit='s')
+    with warnings.catch_warnings(record=True):  # deprecated param
+        assert_raises(ValueError, plot_evoked_topomap, evoked, scaling_time=20)
 
     for ch in evoked.info['chs']:
         if ch['coil_type'] == FIFF.FIFFV_COIL_EEG:
@@ -323,7 +328,7 @@ def test_plot_topomap():
     # Remove digitization points. Now topomap should fail
     evoked.info['dig'] = None
     assert_raises(RuntimeError, plot_evoked_topomap, evoked,
-                  times, ch_type='eeg')
+                  times, ch_type='eeg', time_unit='s')
     plt.close('all')
 
     # Error for missing names
@@ -366,7 +371,7 @@ def test_plot_topomap():
     # Test excluding bads channels
     evoked_grad.info['bads'] += [evoked_grad.info['ch_names'][0]]
     orig_bads = evoked_grad.info['bads']
-    evoked_grad.plot_topomap(ch_type='grad', times=[0])
+    evoked_grad.plot_topomap(ch_type='grad', times=[0], time_unit='ms')
     assert_array_equal(evoked_grad.info['bads'], orig_bads)
     plt.close('all')
 

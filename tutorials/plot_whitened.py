@@ -2,7 +2,7 @@
 Plotting whitened data
 ======================
 
-This tutorial demonstrates how to plot whitened data.
+This tutorial demonstrates how to plot whitened evoked data.
 
 Data are whitened for many processes, including dipole fitting, source
 localization and some decoding algorithms. Viewing whitened data thus gives
@@ -50,8 +50,8 @@ epochs.plot(noise_cov=noise_cov)
 # --------------------------
 
 evoked = epochs.average()
-evoked.plot()
-evoked.plot(noise_cov=noise_cov)
+evoked.plot(time_unit='s')
+evoked.plot(noise_cov=noise_cov, time_unit='s')
 
 ###############################################################################
 # Evoked data with scaled whitening
@@ -60,7 +60,7 @@ evoked.plot(noise_cov=noise_cov)
 # scaling the whitened plots to show how well the assumption of Gaussian
 # noise is satisfied by the data:
 
-evoked.plot_white(noise_cov=noise_cov)
+evoked.plot_white(noise_cov=noise_cov, time_unit='s')
 
 ###############################################################################
 # Topographic plot with whitening

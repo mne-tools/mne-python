@@ -29,7 +29,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _validate_if_list_of_axes, _triage_rank_sss,
                     _connection_line, COLORS, _setup_ax_spines,
                     _setup_plot_projector, _prepare_joint_axes,
-                    _set_title_multiple_electrodes)
+                    _set_title_multiple_electrodes, _check_time_unit)
 from ..utils import logger, _clean_names, warn, _pl, verbose
 
 from .topo import _plot_evoked_topo
@@ -187,7 +187,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  gfp=False, window_title=None, spatial_colors=False,
                  set_tight_layout=True, selectable=True, zorder='unsorted',
                  noise_cov=None, colorbar=True, mask=None, mask_style=None,
-                 mask_cmap=None, mask_alpha=.25):
+                 mask_cmap=None, mask_alpha=.25, time_unit=None):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -199,6 +199,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         (x axis: time, y axis: channel). In 'image' mode, the plot is not
         interactive.
     """
+    time_unit, times = _check_time_unit(
+        time_unit, evoked.times, allow_none=True)
     import matplotlib.pyplot as plt
     info = evoked.info
     if axes is not None and proj == 'interactive':
@@ -269,22 +271,21 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     if projector is not None:
         evoked.data[:] = np.dot(projector, evoked.data)
     if plot_type == 'butterfly':
-        times = evoked.times * 1e3  # time in milliseconds
         _plot_lines(evoked.data, info, picks, fig, axes, spatial_colors, unit,
                     units, scalings, hline, gfp, types, zorder, xlim, ylim,
                     times, bad_ch_idx, titles, ch_types_used, selectable,
                     False, line_alpha=1., nave=evoked.nave)
-        plt.setp(axes, xlabel='Time (ms)')
+        plt.setp(axes, xlabel='Time (%s)' % time_unit)
 
     elif plot_type == 'image':
         for ai, (ax, this_type) in enumerate(zip(axes, ch_types_used)):
             use_nave = evoked.nave if ai == 0 else None
             this_picks = list(picks[types == this_type])
             _plot_image(evoked.data, ax, this_type, this_picks, cmap, unit,
-                        units, scalings, evoked.times, xlim, ylim, titles,
+                        units, scalings, times, xlim, ylim, titles,
                         colorbar=colorbar, mask=mask, mask_style=mask_style,
                         mask_cmap=mask_cmap, mask_alpha=mask_alpha,
-                        nave=use_nave)
+                        nave=use_nave, time_unit=time_unit)
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=info['projs'], axes=axes,
@@ -488,9 +489,11 @@ def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
 
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
                 xlim, ylim, titles, colorbar=True, mask=None, mask_cmap=None,
-                mask_style=None, mask_alpha=.25, nave=None):
+                mask_style=None, mask_alpha=.25, nave=None,
+                time_unit=None):
     """Plot images."""
     import matplotlib.pyplot as plt
+    assert time_unit is not None
 
     if mask_style is None and mask is not None:
         mask_style = "both"  # default
@@ -566,7 +569,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         if cmap[1]:
             ax.CB = DraggableColorbar(cbar, im)
 
-    ax.set(ylabel='Channel (index)', xlabel='Time (ms)')
+    ax.set(ylabel='Channel (index)', xlabel='Time (%s)' % (time_unit,))
 
     if (draw_mask or draw_contour) and mask is not None:
         if mask.all():
@@ -587,7 +590,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
                 window_title=None, spatial_colors=False, zorder='unsorted',
-                selectable=True, noise_cov=None, verbose=None):
+                selectable=True, noise_cov=None, time_unit=None, verbose=None):
     """Plot evoked data using butterfly plots.
 
     Left click to a line shows the channel name. Selecting an area by clicking
@@ -677,6 +680,11 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         consider using :meth:`mne.Evoked.plot_white`.
 
         .. versionadded:: 0.16.0
+    time_unit : str
+        The units for the time axis, can be "ms" (default in 0.16)
+        or "s" (will become the default in 0.17).
+
+        .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -690,13 +698,13 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     --------
     mne.viz.plot_evoked_white
     """
-    return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
-                        show=show, ylim=ylim, proj=proj, xlim=xlim,
-                        hline=hline, units=units, scalings=scalings,
-                        titles=titles, axes=axes, plot_type="butterfly",
-                        gfp=gfp, window_title=window_title,
-                        spatial_colors=spatial_colors, selectable=selectable,
-                        zorder=zorder, noise_cov=noise_cov)
+    return _plot_evoked(
+        evoked=evoked, picks=picks, exclude=exclude, unit=unit, show=show,
+        ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
+        scalings=scalings, titles=titles, axes=axes, plot_type="butterfly",
+        gfp=gfp, window_title=window_title, spatial_colors=spatial_colors,
+        selectable=selectable, zorder=zorder, noise_cov=noise_cov,
+        time_unit=time_unit)
 
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
@@ -865,7 +873,8 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
                       show=True, clim=None, xlim='tight', proj=False,
                       units=None, scalings=None, titles=None, axes=None,
                       cmap='RdBu_r', colorbar=True, mask=None,
-                      mask_style=None, mask_cmap="Greys", mask_alpha=.25):
+                      mask_style=None, mask_cmap="Greys", mask_alpha=.25,
+                      time_unit=None):
     """Plot evoked data as images.
 
     Parameters
@@ -945,6 +954,11 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         Defaults to .25.
 
         .. versionadded:: 0.16
+    time_unit : str
+        The units for the time axis, can be "ms" (default in 0.16)
+        or "s" (will become the default in 0.17).
+
+        .. versionadded:: 0.16
 
     Returns
     -------
@@ -956,13 +970,13 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
                         units=units, scalings=scalings, titles=titles,
                         axes=axes, plot_type="image", cmap=cmap,
                         colorbar=colorbar, mask=mask, mask_style=mask_style,
-                        mask_cmap=mask_cmap, mask_alpha=mask_alpha)
+                        mask_cmap=mask_cmap, mask_alpha=mask_alpha,
+                        time_unit=time_unit)
 
 
 def _plot_update_evoked(params, bools):
     """Update the plot evoked lines."""
     picks, evoked = [params[k] for k in ('picks', 'evoked')]
-    times = evoked.times * 1e3
     projs = [proj for ii, proj in enumerate(params['projs'])
              if ii in np.where(bools)[0]]
     params['proj_bools'] = bools
@@ -976,14 +990,15 @@ def _plot_update_evoked(params, bools):
         D = this_scaling * new_evoked.data[idx, :]
         if params['plot_type'] == 'butterfly':
             for line, di in zip(ax.lines, D):
-                line.set_data(times, di)
+                line.set_ydata(di)
         else:
             ax.images[0].set_data(D)
     params['fig'].canvas.draw()
 
 
 @verbose
-def plot_evoked_white(evoked, noise_cov, show=True, rank=None, verbose=None):
+def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit=None,
+                      verbose=None):
     u"""Plot whitened evoked response.
 
     Plots the whitened evoked response and the whitened GFP as described in
@@ -1007,6 +1022,11 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, verbose=None):
         specified separately. If only one is specified, the other one gets
         estimated. Note. The rank estimation will be printed by the logger for
         each noise covariance estimator that is passed.
+    time_unit : str
+        The units for the time axis, can be "ms" (default in 0.16)
+        or "s" (will become the default in 0.17).
+
+        .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1044,10 +1064,12 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, verbose=None):
            signals, vol. 108, 328-342, NeuroImage.
     """
     return _plot_evoked_white(evoked=evoked, noise_cov=noise_cov,
-                              scalings=None, rank=rank, show=show)
+                              scalings=None, rank=rank, show=show,
+                              time_unit=time_unit)
 
 
-def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
+def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True,
+                       time_unit=None):
     """Help plot_evoked_white.
 
     Additional Parameters
@@ -1065,6 +1087,8 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     """
     from ..cov import whiten_evoked, read_cov  # recursive import
     import matplotlib.pyplot as plt
+    time_unit, times = _check_time_unit(
+        time_unit, evoked.times, allow_none=True)
 
     if isinstance(noise_cov, string_types):
         noise_cov = read_cov(noise_cov)
@@ -1127,7 +1151,6 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     else:
         raise RuntimeError('Wrong axes inputs')
 
-    times = evoked.times * 1e3
     titles_ = _handle_default('titles')
     if has_sss:
         titles_['meg'] = 'MEG (combined)'
@@ -1139,7 +1162,8 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     # the first is by law the best noise cov, on the left we plot that one.
     if not has_sss:
         evokeds_white[0].plot(unit=False, axes=axes_evoked,
-                              hline=[-1.96, 1.96], show=False)
+                              hline=[-1.96, 1.96], show=False,
+                              time_unit=time_unit)
     else:
         for ((ch_type, picks), ax) in zip(picks_list, axes_evoked):
             ax.plot(times, evokeds_white[0].data[picks].T, color='k',
@@ -1172,7 +1196,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                     label=label if n_columns > 1 else title,
                     color=color if n_columns > 1 else ch_colors[color_ch],
                     lw=0.5)
-            ax.set(xlabel='Time (ms)', ylabel='GFP ($\chi^2$)',
+            ax.set(xlabel='Time (%s)' % (time_unit,), ylabel='GFP ($\chi^2$)',
                    xlim=[times[0], times[-1]], ylim=(0, 10))
             ax.axhline(1, color='red', linestyle='--', lw=2.)
             if n_columns > 1:
@@ -1286,8 +1310,12 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     """
     import matplotlib.pyplot as plt
 
-    if ts_args is None:
-        ts_args = dict()
+    if ts_args is not None and not isinstance(ts_args, dict):
+        raise TypeError('ts_args must be dict or None, got type %s'
+                        % (type(ts_args),))
+    ts_args = dict() if ts_args is None else ts_args.copy()
+    ts_args['time_unit'], evoked_times = _check_time_unit(
+        ts_args.get('time_unit'), evoked.times, allow_none=True)
     if topomap_args is None:
         topomap_args = dict()
 
@@ -1321,10 +1349,12 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         return figs
 
     # set up time points to show topomaps for
-    times = _process_times(evoked, times, few=True)
+    times_sec = _process_times(evoked, times, few=True)
+    del times
+    _, times_ts = _check_time_unit(ts_args['time_unit'], times_sec)
 
     # prepare axes for topomap
-    fig, ts_ax, map_ax, cbar_ax = _prepare_joint_axes(len(times),
+    fig, ts_ax, map_ax, cbar_ax = _prepare_joint_axes(len(times_sec),
                                                       figsize=(8.0, 4.2))
 
     # butterfly/time series plot
@@ -1367,8 +1397,8 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     topomap_args_pass = topomap_args.copy()
     topomap_args_pass['outlines'] = topomap_args.get('outlines', 'skirt')
     topomap_args_pass['contours'] = contours
-    evoked.plot_topomap(times=times, axes=map_ax, show=False, colorbar=False,
-                        **topomap_args_pass)
+    evoked.plot_topomap(times=times_sec, axes=map_ax, show=False,
+                        colorbar=False, **topomap_args_pass)
 
     if topomap_args.get('colorbar', True):
         from matplotlib import ticker
@@ -1386,14 +1416,13 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
     # connection lines
     # draw the connection lines between time series and topoplots
-    tstimes = [timepoint * 1e3 for timepoint in times]
     lines = [_connection_line(timepoint, fig, ts_ax, map_ax_)
-             for timepoint, map_ax_ in zip(tstimes, map_ax)]
+             for timepoint, map_ax_ in zip(times_ts, map_ax)]
     for line in lines:
         fig.lines.append(line)
 
     # mark times in time series plot
-    for timepoint in tstimes:
+    for timepoint in times_ts:
         ts_ax.axvline(timepoint, color='grey', linestyle='-',
                       linewidth=1.5, alpha=.66, zorder=0)
 

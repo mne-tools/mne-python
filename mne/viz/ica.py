@@ -696,12 +696,12 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
     fig.suptitle('Average signal before (red) and after (black) ICA')
     axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
 
-    evoked.plot(axes=axes, show=show)
+    evoked.plot(axes=axes, show=show, time_unit='s')
     for ax in fig.axes:
         for l in ax.get_lines():
             l.set_color('r')
     fig.canvas.draw()
-    evoked_cln.plot(axes=axes, show=show)
+    evoked_cln.plot(axes=axes, show=show, time_unit='s')
     tight_layout(fig=fig)
 
     fig.subplots_adjust(top=0.90)
