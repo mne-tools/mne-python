@@ -2375,11 +2375,8 @@ def _check_sss(info):
 
 def _triage_rank_sss(info, covs, rank=None, scalings=None):
     from ..cov import _estimate_rank_meeg_cov
-    if rank is None:
-        rank = dict()
-    if scalings is None:
-        scalings = dict(mag=1e12, grad=1e11, eeg=1e5, seeg=1e3,
-                        ecog=1e3)
+    rank = dict() if rank is None else rank
+    scalings = _handle_default('scalings_cov_rank', scalings)
 
     # Only look at good channels
     picks = _pick_data_channels(info, with_ref_meg=False, exclude='bads')

@@ -22,7 +22,8 @@ DEFAULTS = dict(
                            stim=1, resp=1, chpi=1e-4, exci=1, ias=1, syst=1,
                            seeg=1e-4, bio=1e-6, ecog=1e-4, hbo=10e-6,
                            hbr=10e-6, whitened=10.),
-    scalings_cov_rank=dict(mag=1e12, grad=1e11, eeg=1e5),
+    scalings_cov_rank=dict(mag=1e12, grad=1e11, eeg=1e5,  # ~100x scalings
+                           seeg=1e1, ecog=1e4, hbo=1e4, hbr=1e4),
     ylim=dict(mag=(-600., 600.), grad=(-200., 200.), eeg=(-200., 200.),
               misc=(-5., 5.), seeg=(-20., 20.), dipole=(-100., 100.),
               gof=(0., 1.), bio=(-500., 500.), ecog=(-200., 200.), hbo=(0, 20),
