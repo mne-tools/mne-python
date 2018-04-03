@@ -158,6 +158,8 @@ Bug
 
 - Fix bug in :func:`mne.viz.plot_cov` that ignored ``colorbar`` argument by `Nathalie Gayraud`_
 
+- Fix bug when picking CTF channels that could cause data saved to disk to be unreadable by `Eric Larson`_
+
 - Fix bug when reading event latencies (in samples) from eeglab files didn't translate indices to 0-based python indexing by `Mikołaj Magnuski`_
 
 - Fix consistency between :class:`mne.Epochs` and :func:`mne.stats.linear_regression_raw` in converting between samples and times (:func:`mne.stats.linear_regression_raw` now rounds, instead of truncating) by `Phillip Alday`_
