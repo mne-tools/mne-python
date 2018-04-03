@@ -107,8 +107,8 @@ subtract_evoked = False
 noise_csds = []
 for freq_bin, win_length, n_fft in zip(freq_bins, win_lengths, n_ffts):
     noise_csd = csd_fourier(epochs_noise, fmin=freq_bin[0], fmax=freq_bin[1],
-                            fsum=True, tmin=-win_length, tmax=0, n_fft=n_fft)
-    noise_csds.append(noise_csd)
+                            tmin=-win_length, tmax=0, n_fft=n_fft)
+    noise_csds.append(noise_csd.sum())
 
 # Computing DICS solutions for time-frequency windows in a label in source
 # space for faster computation, use label=None for full solution
