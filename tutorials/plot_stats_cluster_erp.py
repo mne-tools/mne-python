@@ -124,7 +124,7 @@ rois = {roi: np.array(picks)[pos[picks, 1].argsort()]
         for roi, picks in rois.items()}
 
 # Visualize the results
-fig, axes = plt.subplots(nrows=3, figsize=(8, 8))
+fig, axes = plt.subplots(nrgows=3, figsize=(8, 8))
 vmax = np.abs(evoked.data).max() * 1e6
 
 # Iterate over ROIs and axes
