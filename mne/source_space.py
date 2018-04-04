@@ -1179,7 +1179,7 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
     # take point locations in MRI space and convert to MNI coordinates
     xfm = _read_talxfm(subject, subjects_dir, mode)
     data = np.array([rr[h][v, :] for h, v in zip(hemis, vertices)])
-    return apply_trans(xfm['trans'], data), xfm
+    return apply_trans(xfm['trans'], data)
 
 
 ##############################################################################
@@ -1187,13 +1187,14 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
 
 
 @verbose
-def aseg_vertex_to_mni(vertices, subject, subjects_dir=None, mode=None,
+def aseg_vertex_to_mni(vertices, subject, mri_head_t, subjects_dir=None,
                        verbose=None):
     """Convert the array of vertices for a hemisphere to MNI coordinates.
+
     Parameters
     ----------
-    vertices : int, or list of int
-        Vertex number(s) to convert
+    vertices : n_vertices x 3 array of float
+        The  coordinates (in mm) of the vertices in head coo system
     subject : string
         Name of the subject to load surfaces from.
     subjects_dir : string, or None
@@ -1206,10 +1207,12 @@ def aseg_vertex_to_mni(vertices, subject, subjects_dir=None, mode=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+
     Returns
     -------
     coordinates : n_vertices x 3 array of float
         The MNI coordinates (in mm) of the vertices
+
     Notes
     -----
     This function requires either nibabel (in Python) or Freesurfer
@@ -1219,12 +1222,13 @@ def aseg_vertex_to_mni(vertices, subject, subjects_dir=None, mode=None,
         raise RuntimeError('NiBabel (Python) or Freesurfer (Unix) must be '
                            'correctly installed and accessible from Python')
 
-    if not isinstance(vertices, list) and not isinstance(vertices, np.ndarray):
-        vertices = [vertices]
+    # before we go from head to MRI (surface RAS)
+    head_mri_t = invert_transform(mri_head_t)
+    coo_MRI_RAS = apply_trans(head_mri_t, vertices)
 
     # take point locations in MRI space and convert to MNI coordinates
-    xfm = _read_talxfm(subject, subjects_dir, mode)
-    return apply_trans(xfm['trans'], vertices), xfm
+    xfm = _read_talxfm(subject, subjects_dir)
+    return apply_trans(xfm['trans'], coo_MRI_RAS*1000)
 
 
 @verbose
