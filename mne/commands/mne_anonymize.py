@@ -3,7 +3,7 @@
 
 You can do for example:
 
-$ mne anonymize sample_audvis_raw.fif
+$ mne anonymize -f sample_audvis_raw.fif
 """
 
 # Authors : Dominik Krzeminski
