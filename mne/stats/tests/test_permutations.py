@@ -4,8 +4,9 @@
 
 from numpy.testing import assert_array_equal, assert_allclose
 import numpy as np
-from scipy import stats
+from scipy import stats, sparse
 
+from mne.stats import permutation_cluster_1samp_test
 from mne.stats.permutations import permutation_t_test, _ci, _bootstrap_ci
 from mne.utils import run_tests_if_main
 
@@ -37,15 +38,25 @@ def test_permutation_t_test():
     is_significant = p_values < 0.05
     assert_array_equal(is_significant, [False, False, False, False, False])
 
+    X *= -1
     t_obs, p_values, H0 = permutation_t_test(
-        -X, n_permutations=999, tail=-1, seed=0)
+        X, n_permutations=999, tail=-1, seed=0)
     assert (p_values > 0).all()
     assert len(H0) == 999
     is_significant = p_values < 0.05
     assert_array_equal(is_significant, [True, True, False, False, False])
 
+    # check equivalence with spatio_temporal_cluster_test
+    for connectivity in (sparse.eye(n_tests), False):
+        t_obs_clust, _, p_values_clust, _ = permutation_cluster_1samp_test(
+            X, n_permutations=999, seed=0, connectivity=connectivity)
+        # the cluster tests drop any clusters that don't get thresholded
+        keep = p_values < 1
+        assert_allclose(t_obs_clust, t_obs)
+        assert_allclose(p_values_clust, p_values[keep], atol=1e-2)
+
     X = np.random.randn(18, 1)
-    t_obs, p_values, H0 = permutation_t_test(X[:, [0]], n_permutations='all')
+    t_obs, p_values, H0 = permutation_t_test(X, n_permutations='all')
     t_obs_scipy, p_values_scipy = stats.ttest_1samp(X[:, 0], 0)
     assert_allclose(t_obs[0], t_obs_scipy, 8)
     assert_allclose(p_values[0], p_values_scipy, rtol=1e-2)
