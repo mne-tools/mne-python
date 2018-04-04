@@ -1812,7 +1812,8 @@ class ProgressBar(object):
             self.update_with_increment_value(1)
 
 
-def _get_ftp(url, temp_file_name, initial_size, file_size, verbose_bool):
+def _get_ftp(url, temp_file_name, initial_size, file_size, timeout,
+             verbose_bool):
     """Safely (resume a) download to a file from FTP."""
     # Adapted from: https://pypi.python.org/pypi/fileDownloader.py
     # but with changes
@@ -1824,9 +1825,9 @@ def _get_ftp(url, temp_file_name, initial_size, file_size, verbose_bool):
 
     data = ftplib.FTP()
     if parsed_url.port is not None:
-        data.connect(parsed_url.hostname, parsed_url.port)
+        data.connect(parsed_url.hostname, parsed_url.port, timeout=timeout)
     else:
-        data.connect(parsed_url.hostname)
+        data.connect(parsed_url.hostname, timeout=timeout)
     data.login()
     if len(server_path) > 1:
         data.cwd(unquoted_server_path)
@@ -1850,14 +1851,15 @@ def _get_ftp(url, temp_file_name, initial_size, file_size, verbose_bool):
     sys.stdout.flush()
 
 
-def _get_http(url, temp_file_name, initial_size, file_size, verbose_bool):
+def _get_http(url, temp_file_name, initial_size, file_size, timeout,
+              verbose_bool):
     """Safely (resume a) download to a file from http(s)."""
     # Actually do the reading
     req = urllib.request.Request(url)
     if initial_size > 0:
         req.headers['Range'] = 'bytes=%s-' % (initial_size,)
     try:
-        response = urllib.request.urlopen(req)
+        response = urllib.request.urlopen(req, timeout=timeout)
     except Exception:
         # There is a problem that may be due to resuming, some
         # servers may not support the "Range" header. Switch
@@ -1866,7 +1868,7 @@ def _get_http(url, temp_file_name, initial_size, file_size, verbose_bool):
                     'rejected the request). Attempting to '
                     'restart downloading the entire file.')
         del req.headers['Range']
-        response = urllib.request.urlopen(req)
+        response = urllib.request.urlopen(req, timeout=timeout)
     total_size = int(response.headers.get('Content-Length', '1').strip())
     if initial_size > 0 and file_size == total_size:
         logger.info('Resuming download failed (resume file size '
@@ -1981,7 +1983,8 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
             # Need to resume or start over
             scheme = urllib.parse.urlparse(url).scheme
             fun = _get_http if scheme in ('http', 'https') else _get_ftp
-            fun(url, temp_file_name, initial_size, file_size, verbose_bool)
+            fun(url, temp_file_name, initial_size, file_size, timeout,
+                verbose_bool)
 
         # check md5sum
         if hash_ is not None:
