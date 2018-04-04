@@ -3305,7 +3305,6 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     if not isinstance(labels, list):
         labels = [labels]
 
-    
     label_tc = _gen_extract_label_time_course(stcs, labels, src, mode=mode,
                                               allow_empty=allow_empty)
 
