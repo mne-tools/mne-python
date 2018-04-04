@@ -1556,6 +1556,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         functions (e.g., time_as_index, or Epochs). New first_samp and
         last_samp are set accordingly.
 
+        Thus function operates in-place on the instance.
+        Use :meth:`mne.Raw.copy` if operation on a copy is desired.
+
         Parameters
         ----------
         tmin : float
@@ -1566,7 +1569,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Returns
         -------
         raw : instance of Raw
-            The cropped raw object.
+            The cropped raw object, modified in-place.
         """
         max_time = (self.n_times - 1) / self.info['sfreq']
         if tmax is None:
