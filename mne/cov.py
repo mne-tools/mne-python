@@ -18,7 +18,8 @@ from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _has_eeg_average_ref_proj)
 from .io import fiff_open
 from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
-                      _picks_by_type, _pick_data_channels)
+                      _picks_by_type, _pick_data_channels,
+                      _DATA_CH_TYPES_SPLIT)
 
 from .io.constants import FIFF
 from .io.meas_info import read_bad_channels, _simplify_info, create_info
@@ -489,7 +490,9 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
                         'oas', 'shrunk', 'pca', 'factor_analysis', 'shrinkage')
     _method_params = {
         'empirical': {'store_precision': False, 'assume_centered': True},
-        'diagonal_fixed': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.0,
+        'diagonal_fixed': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.,
+                           'seeg': 0., 'ecog': 0.,
+                           'hbo': 0., 'hbr': 0.,
                            'store_precision': False, 'assume_centered': True},
         'ledoit_wolf': {'store_precision': False, 'assume_centered': True},
         'oas': {'store_precision': False, 'assume_centered': True},
@@ -500,6 +503,11 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
         'pca': {'iter_n_components': None},
         'factor_analysis': {'iter_n_components': None}
     }
+
+    for ch_type in _DATA_CH_TYPES_SPLIT:
+        if ch_type not in _method_params['diagonal_fixed']:
+            _method_params['diagonal_fixed'][ch_type] = 0.0
+
     if isinstance(method_params, dict):
         for key, values in method_params.items():
             if key not in _method_params:
@@ -1084,12 +1092,19 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
 class _RegCovariance(BaseEstimator):
     """Aux class."""
 
-    def __init__(self, info, grad=0.01, mag=0.01, eeg=0.0,
-                 store_precision=False, assume_centered=False):
+    def __init__(self, info, grad=0.01, mag=0.01, eeg=0., seeg=0., ecog=0.,
+                 hbo=0., hbr=0., store_precision=False,
+                 assume_centered=False):
         self.info = info
+        # For sklearn compat, these cannot (easily?) be combined into
+        # a single dictionary
         self.grad = grad
         self.mag = mag
         self.eeg = eeg
+        self.seeg = seeg
+        self.ecog = ecog
+        self.hbo = hbo
+        self.hbr = hbr
         self.store_precision = store_precision
         self.assume_centered = assume_centered
 
@@ -1106,9 +1121,11 @@ class _RegCovariance(BaseEstimator):
             data=self.covariance_, names=self.info['ch_names'],
             bads=self.info['bads'], projs=self.info['projs'],
             nfree=len(self.covariance_))
-        cov_ = regularize(cov_, self.info, grad=self.grad, mag=self.mag,
-                          eeg=self.eeg, proj=False,
-                          exclude='bads')  # ~proj == important!!
+        cov_ = regularize(
+            cov_, self.info, proj=False, exclude='bads',
+            grad=self.grad, mag=self.mag, eeg=self.eeg,
+            ecog=self.ecog, seeg=self.seeg,
+            hbo=self.hbo, hbr=self.hbr)  # ~proj == important!!
         self.estimator_.covariance_ = self.covariance_ = cov_.data
         return self
 
@@ -1284,10 +1301,11 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         The measurement info (used to get channel types and bad channels).
     ch_names : list
         The channel names to be considered.
-    rank : None | int | dict
+    rank : None | int | dict (default None)
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
+        channels. A dictionary with entries 'eeg', 'meg' or any other
+        data channel type such as 'seeg' or 'ecog' can be used
         to specify the rank for each modality.
     scalings : dict | None
         Data will be rescaled before rank estimation to improve accuracy.
@@ -1322,65 +1340,71 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
                     % ncomp)
         C = np.dot(proj, np.dot(C, proj.T))
 
-    info_pick_meg = pick_types(info, meg=True, eeg=False, ref_meg=False,
-                               exclude='bads')
-    info_pick_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                               exclude='bads')
-    info_meg_names = [info['chs'][k]['ch_name'] for k in info_pick_meg]
-    out_meg_idx = [k for k in range(len(C)) if ch_names[k] in info_meg_names]
-    info_eeg_names = [info['chs'][k]['ch_name'] for k in info_pick_eeg]
-    out_eeg_idx = [k for k in range(len(C)) if ch_names[k] in info_eeg_names]
+    picks_dict = dict(_picks_by_type(info, meg_combined=True,
+                                     ref_meg=False, exclude='bads'))
+
+    ch_names_dict = dict()
+    out_idx_type = dict()
+    for ch_type, ch_picks in picks_dict.items():
+        ch_names_dict[ch_type] = [info['chs'][k]['ch_name'] for k in ch_picks]
+        out_idx_type[ch_type] = [k for k in range(len(C))
+                                 if ch_names[k] in ch_names_dict[ch_type]]
+
+    del picks_dict
+
     # re-index based on ch_names order
-    del info_pick_meg, info_pick_eeg
-    meg_names = [ch_names[k] for k in out_meg_idx]
-    eeg_names = [ch_names[k] for k in out_eeg_idx]
-    if len(meg_names) > 0:
-        info_pick_meg = pick_channels(info['ch_names'], meg_names)
-    else:
-        info_pick_meg = []
-    if len(eeg_names) > 0:
-        info_pick_eeg = pick_channels(info['ch_names'], eeg_names)
-    else:
-        info_pick_eeg = []
-    assert len(info_pick_meg) == len(meg_names) == len(out_meg_idx)
-    assert len(info_pick_eeg) == len(eeg_names) == len(out_eeg_idx)
-    assert(len(out_meg_idx) + len(out_eeg_idx) == n_chan)
+    ch_names_type = dict()
+    info_picks = dict()
+    for ch_type, ch_picks in out_idx_type.items():
+        ch_names_type[ch_type] = [ch_names[k] for k in ch_picks]
+        info_picks[ch_type] = []
+        if ch_names_type[ch_type]:
+            # as pick_channels return full list if include is []
+            info_picks[ch_type] = pick_channels(info['ch_names'],
+                                                ch_names_type[ch_type])
+
+        assert (len(info_picks[ch_type]) ==
+                len(ch_names_type[ch_type]) ==
+                len(out_idx_type[ch_type]))
+
+    assert(sum((len(v) for k, v in out_idx_type.items())) == n_chan)
+
     eigvec = np.zeros((n_chan, n_chan))
     eig = np.zeros(n_chan)
-    has_meg = len(out_meg_idx) > 0
-    has_eeg = len(out_eeg_idx) > 0
+    has_type = dict()
+    for ch_type, ch_picks in out_idx_type.items():
+        has_type[ch_type] = len(ch_picks) > 0
 
     # Get the specified noise covariance rank
+    ranks_type = {ch_type: None for ch_type in out_idx_type}
     if rank is not None:
         if isinstance(rank, dict):
-            rank_meg = rank.get('meg', None)
-            rank_eeg = rank.get('eeg', None)
+            for ch_type in out_idx_type:
+                ranks_type[ch_type] = rank.get(ch_type, None)
         else:
-            rank_meg = int(rank)
-            rank_eeg = None
-    else:
-        rank_meg, rank_eeg = None, None
+            ranks_type['meg'] = int(rank)
 
-    if has_meg:
-        C_meg = C[np.ix_(out_meg_idx, out_meg_idx)]
-        this_info = pick_info(_simplify_info(info), info_pick_meg, copy=False)
-        if rank_meg is None:
-            rank_meg = _estimate_rank_meeg_cov(C_meg, this_info, scalings)
-        eig[out_meg_idx], eigvec[np.ix_(out_meg_idx, out_meg_idx)] = \
-            _get_ch_whitener(C_meg, False, 'MEG', rank_meg)
-    if has_eeg:
-        C_eeg = C[np.ix_(out_eeg_idx, out_eeg_idx)]
-        this_info = pick_info(_simplify_info(info), info_pick_eeg, copy=False)
-        if rank_eeg is None:
-            rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, scalings)
-        eig[out_eeg_idx], eigvec[np.ix_(out_eeg_idx, out_eeg_idx)], = \
-            _get_ch_whitener(C_eeg, False, 'EEG', rank_eeg)
-        if _needs_eeg_average_ref_proj(info) and not \
+    for ch_type, this_has in has_type.items():
+        if not this_has:
+            continue
+        this_picks = out_idx_type[ch_type]
+        this_C = C[np.ix_(this_picks, this_picks)]
+        this_info = pick_info(_simplify_info(info), info_picks[ch_type],
+                              copy=False)
+        this_rank = ranks_type[ch_type]
+        if ranks_type[ch_type] is None:
+            this_rank = _estimate_rank_meeg_cov(this_C, this_info, scalings)
+        eig[this_picks], eigvec[np.ix_(this_picks, this_picks)] = \
+            _get_ch_whitener(this_C, False, ch_type.upper(), this_rank)
+
+        # XXX : also handle ref for sEEG and ECoG
+        if ch_type == 'eeg' and _needs_eeg_average_ref_proj(info) and not \
                 _has_eeg_average_ref_proj(noise_cov['projs']):
             warn('No average EEG reference present in info["projs"], '
                  'covariance may be adversely affected. Consider recomputing '
                  'covariance using with an average eeg reference projector '
                  'added.')
+
     noise_cov = Covariance(
         data=C, names=ch_names, bads=list(noise_cov['bads']),
         projs=deepcopy(noise_cov['projs']),
@@ -1391,7 +1415,8 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
 
 
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
-               proj=True, verbose=None):
+               proj=True, seeg=0.1, ecog=0.1, hbo=0.1, hbr=0.1,
+               verbose=None):
     """Regularize noise covariance matrix.
 
     This method works by adding a constant to the diagonal for each
@@ -1422,6 +1447,14 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         are extracted from both info['bads'] and cov['bads'].
     proj : bool (default true)
         Apply or not projections to keep rank of data.
+    seeg : float (default 0.1)
+        Regularization factor for sEEG signals.
+    ecog : float (default 0.1)
+        Regularization factor for ECoG signals.
+    hbo : float (default 0.1)
+        Regularization factor for HBO signals.
+    hbr : float (default 0.1)
+        Regularization factor for HBR signals.
     verbose : bool | str | int | None (default None)
         If not None, override default verbose level (see :func:`mne.verbose`).
 
@@ -1443,45 +1476,44 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     if exclude == 'bads':
         exclude = info['bads'] + cov['bads']
 
-    sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                         exclude=exclude)
-    sel_mag = pick_types(info, meg='mag', eeg=False, ref_meg=False,
-                         exclude=exclude)
-    sel_grad = pick_types(info, meg='grad', eeg=False, ref_meg=False,
-                          exclude=exclude)
-
+    picks_dict = {ch_type: [] for ch_type in _DATA_CH_TYPES_SPLIT}
+    picks_dict.update(dict(_picks_by_type(info, exclude=exclude)))
     info_ch_names = info['ch_names']
-    ch_names_eeg = [info_ch_names[i] for i in sel_eeg]
-    ch_names_mag = [info_ch_names[i] for i in sel_mag]
-    ch_names_grad = [info_ch_names[i] for i in sel_grad]
-    del sel_eeg, sel_mag, sel_grad
+    ch_names_by_type = dict()
+    for ch_type, picks_type in picks_dict.items():
+        ch_names_by_type[ch_type] = [info_ch_names[i] for i in picks_type]
 
     # This actually removes bad channels from the cov, which is not backward
     # compatible, so let's leave all channels in
     cov_good = pick_channels_cov(cov, include=info_ch_names, exclude=exclude)
     ch_names = cov_good.ch_names
 
-    idx_eeg, idx_mag, idx_grad = [], [], []
+    # Now get the indices for each channel type in the cov
+    idx_cov = {ch_type: [] for ch_type in ch_names_by_type}
     for i, ch in enumerate(ch_names):
-        if ch in ch_names_eeg:
-            idx_eeg.append(i)
-        elif ch in ch_names_mag:
-            idx_mag.append(i)
-        elif ch in ch_names_grad:
-            idx_grad.append(i)
+        for ch_type in ch_names_by_type:
+            if ch in ch_names_by_type[ch_type]:
+                idx_cov[ch_type].append(i)
+                break
         else:
-            raise Exception('channel is unknown type')
+            raise Exception('channel %s is unknown type' % ch)
 
     C = cov_good['data']
 
-    assert len(C) == (len(idx_eeg) + len(idx_mag) + len(idx_grad))
+    assert len(C) == sum(map(len, idx_cov.values()))
 
     if proj:
         projs = info['projs'] + cov_good['projs']
         projs = activate_proj(projs)
 
-    for desc, idx, reg in [('EEG', idx_eeg, eeg), ('MAG', idx_mag, mag),
-                           ('GRAD', idx_grad, grad)]:
+    regs = dict(mag=mag, grad=grad, eeg=eeg,
+                seeg=seeg, ecog=ecog, hbo=hbo, hbr=hbr)
+
+    for ch_type in idx_cov:
+        desc = ch_type.upper()
+        idx = idx_cov[ch_type]
+        reg = regs[ch_type]
+
         if len(idx) == 0 or reg == 0.0:
             logger.info("    %s regularization : None" % desc)
             continue
@@ -1593,8 +1625,7 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
     """
     if picks is None:
         # If this changes, we will need to change _setup_plot_projector, too:
-        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
+        picks = _pick_data_channels(info, with_ref_meg=False, exclude='bads')
 
     ch_names = [info['ch_names'][k] for k in picks]
 
@@ -1630,14 +1661,15 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
     noise_cov : instance of Covariance
         The noise covariance
     picks : array-like of int | None
-        The channel indices to whiten. Can be None to whiten MEG and EEG
-        data.
+        The channel indices to whiten. Can be None to whiten any data channel
+        such as MEG and EEG data.
     diag : bool (default False)
         If True, whiten using only the diagonal of the covariance.
     rank : None | int | dict (default None)
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
+        channels. A dictionary with entries 'eeg', 'meg' or any other
+        data channel type such as 'seeg' or 'ecog' can be used
         to specify the rank for each modality.
     scalings : dict | None (default None)
         To achieve reliable rank estimation on multiple sensors,
@@ -1658,7 +1690,8 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
     """
     evoked = evoked.copy()
     if picks is None:
-        picks = pick_types(evoked.info, meg=True, eeg=True)
+        picks = pick_types(evoked.info, meg=True, eeg=True, seeg=True,
+                           ecog=True)
 
     if diag:
         noise_cov = noise_cov.as_diag()

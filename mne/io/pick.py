@@ -666,28 +666,31 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False, exclude='bads'):
     """
     from ..channels.channels import _contains_ch_type
     picks_list = []
-    has_mag, has_grad, has_eeg = [_contains_ch_type(info, k)
-                                  for k in ('mag', 'grad', 'eeg')]
-    if has_mag and (meg_combined is not True or not has_grad):
+    has = [_contains_ch_type(info, k) for k in _DATA_CH_TYPES_SPLIT]
+    has = dict(zip(_DATA_CH_TYPES_SPLIT, has))
+    if has['mag'] and (meg_combined is not True or not has['grad']):
         picks_list.append(
             ('mag', pick_types(info, meg='mag', eeg=False, stim=False,
              ref_meg=ref_meg, exclude=exclude))
         )
-    if has_grad and (meg_combined is not True or not has_mag):
+    if has['grad'] and (meg_combined is not True or not has['mag']):
         picks_list.append(
             ('grad', pick_types(info, meg='grad', eeg=False, stim=False,
              ref_meg=ref_meg, exclude=exclude))
         )
-    if has_mag and has_grad and meg_combined is True:
+    if has['mag'] and has['grad'] and meg_combined is True:
         picks_list.append(
             ('meg', pick_types(info, meg=True, eeg=False, stim=False,
              ref_meg=ref_meg, exclude=exclude))
         )
-    if has_eeg:
-        picks_list.append(
-            ('eeg', pick_types(info, meg=False, eeg=True, stim=False,
-             ref_meg=ref_meg, exclude=exclude))
-        )
+    for ch_type in _DATA_CH_TYPES_SPLIT:
+        if ch_type in ['grad', 'mag']:  # exclude just MEG channels
+            continue
+        if has[ch_type]:
+            picks_list.append(
+                (ch_type, pick_types(info, meg=False, stim=False,
+                 ref_meg=ref_meg, exclude=exclude, **{ch_type: True}))
+            )
     return picks_list
 
 
@@ -738,8 +741,8 @@ _VALID_CHANNEL_TYPES = ['eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
 
 def _pick_data_channels(info, exclude='bads', with_ref_meg=True):
     """Pick only data channels."""
-    return pick_types(info, ref_meg=with_ref_meg, include=[], exclude=exclude,
-                      selection=None, **_PICK_TYPES_DATA_DICT)
+    return pick_types(info, ref_meg=with_ref_meg, exclude=exclude,
+                      **_PICK_TYPES_DATA_DICT)
 
 
 def _pick_aux_channels(info, exclude='bads'):

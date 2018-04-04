@@ -19,7 +19,8 @@ import numpy as np
 
 from ..io.pick import (channel_type, _pick_data_channels,
                        _VALID_CHANNEL_TYPES, channel_indices_by_type,
-                       _DATA_CH_TYPES_SPLIT, _pick_inst, _get_channel_types)
+                       _DATA_CH_TYPES_SPLIT, _pick_inst, _get_channel_types,
+                       _PICK_TYPES_DATA_DICT)
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
@@ -1064,7 +1065,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     for idx in passive_idx[::-1]:  # reverse order so idx does not change
         evoked.del_proj(idx)
 
-    evoked.pick_types(meg=True, eeg=True, ref_meg=False, exclude='bads')
+    evoked.pick_types(ref_meg=False, exclude='bads', **_PICK_TYPES_DATA_DICT)
     n_ch_used, rank_list, picks_list, has_sss = _triage_rank_sss(
         evoked.info, noise_cov, rank, scalings)
     del rank, scalings
@@ -1119,8 +1120,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         titles_['meg'] = 'MEG (combined)'
 
     colors = [plt.cm.Set1(i) for i in np.linspace(0, 0.5, len(noise_cov))]
-    ch_colors = {'eeg': 'black', 'mag': 'blue', 'grad': 'cyan',
-                 'meg': 'steelblue'}
+    ch_colors = _handle_default('color', None)
     iter_gfp = zip(evokeds_white, noise_cov, rank_list, colors)
 
     # the first is by law the best noise cov, on the left we plot that one.
@@ -1153,9 +1153,11 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
             data = evoked_white.data[sub_picks]
             gfp = whitened_gfp(data, rank=this_rank)
+            # Wrap SSS-processed data (MEG) to the mag color
+            color_ch = 'mag' if ch == 'meg' else ch
             ax.plot(times, gfp,
                     label=label if n_columns > 1 else title,
-                    color=color if n_columns > 1 else ch_colors[ch],
+                    color=color if n_columns > 1 else ch_colors[color_ch],
                     lw=0.5)
             ax.set(xlabel='Time (ms)', ylabel='GFP ($\chi^2$)',
                    xlim=[times[0], times[-1]], ylim=(0, 10))
