@@ -12,7 +12,8 @@ import warnings
 
 from nose.tools import assert_true
 import numpy as np
-from numpy.testing import assert_raises, assert_equal
+from numpy.testing import assert_raises
+import pytest
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
@@ -25,7 +26,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        _import_mlab, _TempDir, requires_nibabel, check_version,
-                       requires_version)
+                       requires_version, traits_test)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.bem import read_bem_solution, read_bem_surfaces
@@ -75,12 +76,15 @@ def test_plot_head_positions():
         assert_raises(ValueError, plot_head_positions, ['pos'])
         assert_raises(ValueError, plot_head_positions, pos[:, :9])
     assert_raises(ValueError, plot_head_positions, pos, 'foo')
+    with pytest.raises(ValueError, match='shape'):
+        plot_head_positions(pos, axes=1.)
     plt.close('all')
 
 
 @testing.requires_testing_data
 @requires_pysurfer
 @requires_mayavi
+@traits_test
 def test_plot_sparse_source_estimates():
     """Test plotting of (sparse) source estimates."""
     sample_src = read_source_spaces(src_fname)
@@ -119,6 +123,7 @@ def test_plot_sparse_source_estimates():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_plot_evoked_field():
     """Test plotting evoked field."""
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
@@ -134,6 +139,7 @@ def test_plot_evoked_field():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_plot_alignment():
     """Test plotting of -trans.fif files and MEG sensor layouts."""
     # generate fiducials file for testing
@@ -191,15 +197,16 @@ def test_plot_alignment():
                        subjects_dir=subjects_dir, src=sample_src)
         mlab.close(all=True)
     # EEG only with strange options
-    evoked_eeg_ecog = evoked.copy().pick_types(meg=False, eeg=True)
-    evoked_eeg_ecog.info['projs'] = []  # "remove" avg proj
-    evoked_eeg_ecog.set_channel_types({'EEG 001': 'ecog'})
+    evoked_eeg_ecog_seeg = evoked.copy().pick_types(meg=False, eeg=True)
+    evoked_eeg_ecog_seeg.info['projs'] = []  # "remove" avg proj
+    evoked_eeg_ecog_seeg.set_channel_types({'EEG 001': 'ecog',
+                                            'EEG 002': 'seeg'})
     with warnings.catch_warnings(record=True) as w:
-        plot_alignment(evoked_eeg_ecog.info, subject='sample',
+        plot_alignment(evoked_eeg_ecog_seeg.info, subject='sample',
                        trans=trans_fname, subjects_dir=subjects_dir,
                        surfaces=['white', 'outer_skin', 'outer_skull'],
                        meg=['helmet', 'sensors'],
-                       eeg=['original', 'projected'], ecog=True)
+                       eeg=['original', 'projected'], ecog=True, seeg=True)
     mlab.close(all=True)
     assert_true(['Cannot plot MEG' in str(ww.message) for ww in w])
 
@@ -258,6 +265,7 @@ def test_plot_alignment():
 @testing.requires_testing_data
 @requires_pysurfer
 @requires_mayavi
+@traits_test
 def test_limits_to_control_points():
     """Test functionality for determing control points."""
     sample_src = read_source_spaces(src_fname)
@@ -305,7 +313,7 @@ def test_limits_to_control_points():
         # thresholded maps
         stc._data.fill(0.)
         plot_source_estimates(stc, **kwargs)
-        assert_equal(len(w), 1)
+        assert any('All data were zero' in str(ww.message) for ww in w)
     mlab.close(all=True)
 
 
@@ -366,6 +374,7 @@ def test_plot_dipole_mri_orthoview():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_snapshot_brain_montage():
     """Test snapshot brain montage."""
     info = read_info(evoked_fname)
@@ -391,6 +400,7 @@ def test_snapshot_brain_montage():
 @testing.requires_testing_data
 @requires_version('surfer', '0.8')
 @requires_mayavi
+@traits_test
 def test_plot_vec_source_estimates():
     """Test plotting of vector source estimates."""
     sample_src = read_source_spaces(src_fname)

@@ -14,12 +14,12 @@ from ..forward import (compute_orient_prior, is_fixed_orient,
                        convert_forward_solution)
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
-from ..utils import logger, verbose
+from ..utils import logger, verbose, warn
 from ..dipole import Dipole
 from ..externals.six.moves import xrange as range
 
-from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver,
-                         norm_l2inf, tf_mixed_norm_solver)
+from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
+                         norm_l2inf, tf_mixed_norm_solver, norm_epsilon_inf)
 
 
 @verbose
@@ -110,8 +110,7 @@ def _prepare_gain(forward, info, noise_cov, pca, depth, loose, weights,
     return gain, gain_info, whitener, source_weighting, mask
 
 
-def _reapply_source_weighting(X, source_weighting, active_set,
-                              n_dip_per_pos):
+def _reapply_source_weighting(X, source_weighting, active_set):
     X *= source_weighting[active_set][:, None]
     return X
 
@@ -283,7 +282,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
                maxit=3000, tol=1e-4, active_set_size=10, pca=True,
                debias=True, time_pca=True, weights=None, weights_min=None,
                solver='auto', n_mxne_iter=1, return_residual=False,
-               return_as_dipoles=False, verbose=None):
+               return_as_dipoles=False, dgap_freq=10, verbose=None):
     """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
 
     Compute L1/L2 mixed-norm solution [1]_ or L0.5/L2 [2]_ mixed-norm
@@ -297,8 +296,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         Forward operator.
     noise_cov : instance of Covariance
         Noise covariance to compute whitener.
-    alpha : float
-        Regularization parameter.
+    alpha : float in range [0, 100)
+        Regularization parameter. 0 means no regularization, 100 would give 0
+        active dipole.
     loose : float in [0, 1] | 'auto'
         Value that weights the source variances of the dipole components
         that are parallel (tangential) to the cortical surface. If loose
@@ -340,6 +340,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         If True, the residual is returned as an Evoked instance.
     return_as_dipoles : bool
         If True, the sources are returned as a list of Dipole instances.
+    dgap_freq : int or np.inf
+        The duality gap is evaluated every dgap_freq iterations. Ignored if
+        solver is 'cd'.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -361,16 +364,22 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     .. [1] A. Gramfort, M. Kowalski, M. Hamalainen,
        "Mixed-norm estimates for the M/EEG inverse problem using accelerated
        gradient methods", Physics in Medicine and Biology, 2012.
-       http://dx.doi.org/10.1088/0031-9155/57/7/1937
+       https://doi.org/10.1088/0031-9155/57/7/1937
 
     .. [2] D. Strohmeier, Y. Bekhti, J. Haueisen, A. Gramfort,
        "The Iterative Reweighted Mixed-Norm Estimate for Spatio-Temporal
        MEG/EEG Source Reconstruction", IEEE Transactions of Medical Imaging,
        Volume 35 (10), pp. 2218-2228, 2016.
     """
+    if not (0. <= alpha < 100.):
+        raise ValueError('alpha must be in [0, 100). '
+                         'Got alpha = %s' % alpha)
     if n_mxne_iter < 1:
         raise ValueError('MxNE has to be computed at least 1 time. '
                          'Requires n_mxne_iter >= 1, got %d' % n_mxne_iter)
+    if dgap_freq <= 0.:
+        raise ValueError('dgap_freq must be a positive integer.'
+                         ' Got dgap_freq = %s' % dgap_freq)
 
     if not isinstance(evoked, list):
         evoked = [evoked]
@@ -419,12 +428,12 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         X, active_set, E = mixed_norm_solver(
             M, gain, alpha, maxit=maxit, tol=tol,
             active_set_size=active_set_size, n_orient=n_dip_per_pos,
-            debias=debias, solver=solver, verbose=verbose)
+            debias=debias, solver=solver, dgap_freq=dgap_freq, verbose=verbose)
     else:
         X, active_set, E = iterative_mixed_norm_solver(
             M, gain, alpha, n_mxne_iter, maxit=maxit, tol=tol,
             n_orient=n_dip_per_pos, active_set_size=active_set_size,
-            debias=debias, solver=solver, verbose=verbose)
+            debias=debias, solver=solver, dgap_freq=dgap_freq, verbose=verbose)
 
     if time_pca:
         X = np.dot(X, Vh)
@@ -443,8 +452,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         raise Exception("No active dipoles found. alpha is too big.")
 
     # Reapply weights to have correct unit
-    X = _reapply_source_weighting(X, source_weighting,
-                                  active_set, n_dip_per_pos)
+    X = _reapply_source_weighting(X, source_weighting, active_set)
 
     outs = list()
     residual = list()
@@ -502,11 +510,12 @@ def _window_evoked(evoked, size):
 
 
 @verbose
-def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
-                  loose='auto', depth=0.8, maxit=3000, tol=1e-4,
-                  weights=None, weights_min=None, pca=True, debias=True,
-                  wsize=64, tstep=4, window=0.02, return_residual=False,
-                  return_as_dipoles=False, verbose=None):
+def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
+                  alpha_time=None, loose='auto', depth=0.8, maxit=3000,
+                  tol=1e-4, weights=None, weights_min=None, pca=True,
+                  debias=True, wsize=64, tstep=4, window=0.02,
+                  return_residual=False, return_as_dipoles=False,
+                  alpha=None, l1_ratio=None, dgap_freq=10, verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
@@ -522,11 +531,13 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         Noise covariance to compute whitener.
     alpha_space : float in [0, 100]
         Regularization parameter for spatial sparsity. If larger than 100,
-        then no source will be active.
+        then no source will be active. alpha_space is deprecated in favor
+        of alpha and l1_ratio, and will be removed in 0.17.
     alpha_time : float in [0, 100]
         Regularization parameter for temporal sparsity. It set to 0,
         no temporal regularization is applied. It this case, TF-MxNE is
-        equivalent to MxNE with L21 norm.
+        equivalent to MxNE with L21 norm. alpha_time is deprecated in favor
+        of alpha and l1_ratio, and will be removed in 0.17.
     loose : float in [0, 1] | 'auto'
         Value that weights the source variances of the dipole components
         that are parallel (tangential) to the cortical surface. If loose
@@ -551,11 +562,17 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         If True the rank of the data is reduced to true dimension.
     debias: bool
         Remove coefficient amplitude bias due to L1 penalty.
-    wsize: int
+    wsize: int or array-like
         Length of the STFT window in samples (must be a multiple of 4).
-    tstep: int
+        If an array is passed, multiple TF dictionaries are used (each having
+        its own wsize and tstep) and each entry of wsize must be a multiple
+        of 4. See [3]_.
+    tstep: int or array-like
         Step between successive windows in samples (must be a multiple of 2,
         a divider of wsize and smaller than wsize/2) (default: wsize/2).
+        If an array is passed, multiple TF dictionaries are used (each having
+        its own wsize and tstep), and each entry of tstep must be a multiple
+        of 2 and divide the corresponding entry of wsize. See [3]_.
     window : float or (float, float)
         Length of time window used to take care of edge artifacts in seconds.
         It can be one float or float if the values are different for left
@@ -564,9 +581,22 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         If True, the residual is returned as an Evoked instance.
     return_as_dipoles : bool
         If True, the sources are returned as a list of Dipole instances.
+    alpha : float in [0, 100) or None
+        Overall regularization parameter.
+        If alpha and l1_ratio are not None, alpha_space and alpha_time are
+        overriden by alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max
+        * l1_ratio. 0 means no regularization, 100 would give 0 active dipole.
+    l1_ratio : float in [0, 1] or None
+        Proportion of temporal regularization.
+        If l1_ratio and alpha are not None, alpha_space and alpha_time are
+        overriden by alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max
+        * l1_ratio. 0 means no time regularization aka MxNE.
+    dgap_freq : int or np.inf
+        The duality gap is evaluated every dgap_freq iterations.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+
 
     Returns
     -------
@@ -594,19 +624,54 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
        Proceedings Information Processing in Medical Imaging
        Lecture Notes in Computer Science, Volume 6801/2011, pp. 600-611, 2011.
        DOI: 10.1007/978-3-642-22092-0_49
+
+    .. [3] Y. Bekhti, D. Strohmeier, M. Jas, R. Badeau, A. Gramfort.
+       "M/EEG source localization with multiscale time-frequency dictionaries",
+       6th International Workshop on Pattern Recognition in Neuroimaging
+       (PRNI), 2016.
+       DOI: 10.1109/PRNI.2016.7552337
     """
     _check_reference(evoked)
 
     all_ch_names = evoked.ch_names
     info = evoked.info
 
+    if alpha is not None and l1_ratio is not None:
+        old_parametrization = False
+
+        if not (0. <= alpha < 100.):
+            raise ValueError('alpha must be in [0, 100). '
+                             'Got alpha = %s' % alpha)
+
+        if not (0. <= l1_ratio <= 1.):
+            raise ValueError('l1_ratio must be in range [0, 1].'
+                             ' Got l1_ratio = %s' % l1_ratio)
+        alpha_space = alpha * (1. - l1_ratio)
+        alpha_time = alpha * l1_ratio
+    else:
+        old_parametrization = True
+        warn('alpha_space and alpha_time are deprecated and will be replaced'
+             ' by alpha and l1_ratio in 0.17.', DeprecationWarning)
+
     if (alpha_space < 0.) or (alpha_space > 100.):
-        raise Exception('alpha_space must be in range [0, 100].'
-                        ' Got alpha_space = %f' % alpha_space)
+        old_parametrization = True
+        raise ValueError('alpha_space must be in range [0, 100].'
+                         ' Got alpha_space = %s' % alpha_space)
 
     if (alpha_time < 0.) or (alpha_time > 100.):
-        raise Exception('alpha_time must be in range [0, 100].'
-                        ' Got alpha_time = %f' % alpha_time)
+        raise ValueError('alpha_time must be in range [0, 100].'
+                         ' Got alpha_time = %s' % alpha_time)
+
+    if dgap_freq <= 0.:
+        raise ValueError('dgap_freq must be a positive integer.'
+                         ' Got dgap_freq = %s' % dgap_freq)
+
+    tstep = np.atleast_1d(tstep)
+    wsize = np.atleast_1d(wsize)
+    if len(tstep) != len(wsize):
+        raise ValueError('The same number of window sizes and steps must be '
+                         'passed. Got tstep = %s and wsize = %s' %
+                         (tstep, wsize))
 
     loose, forward = _check_loose_forward(loose, forward)
 
@@ -632,7 +697,15 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     M = np.dot(whitener, M)
 
     # Scaling to make setting of alpha easy
-    alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos, copy=False)
+    n_steps = np.ceil(M.shape[1] / tstep.astype(float)).astype(int)
+    n_freqs = wsize // 2 + 1
+    n_coefs = n_steps * n_freqs
+    phi = _Phi(wsize, tstep, n_coefs)
+
+    if old_parametrization:
+        alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos)
+    else:
+        alpha_max = norm_epsilon_inf(gain, M, phi, l1_ratio, n_dip_per_pos)
     alpha_max *= 0.01
     gain /= alpha_max
     source_weighting /= alpha_max
@@ -640,7 +713,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     X, active_set, E = tf_mixed_norm_solver(
         M, gain, alpha_space, alpha_time, wsize=wsize, tstep=tstep,
         maxit=maxit, tol=tol, verbose=verbose, n_orient=n_dip_per_pos,
-        log_objective=True, debias=debias)
+        dgap_freq=dgap_freq, debias=debias)
 
     if active_set.sum() == 0:
         raise Exception("No active dipoles found. "
@@ -655,8 +728,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         active_set = active_set_tmp
         del active_set_tmp
 
-    X = _reapply_source_weighting(
-        X, source_weighting, active_set, n_dip_per_pos)
+    X = _reapply_source_weighting(X, source_weighting, active_set)
 
     if return_residual:
         residual = _compute_residual(

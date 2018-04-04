@@ -15,6 +15,7 @@ from scipy import linalg, sparse
 from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
 from .filter import resample
+from .fixes import einsum
 from .evoked import _get_peak
 from .parallel import parallel_func
 from .surface import (read_surface, _get_ico_surface, read_morph_map,
@@ -461,7 +462,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
                                  'dimensions')
 
         if isinstance(vertices, list):
-            vertices = [np.asarray(v) for v in vertices]
+            vertices = [np.asarray(v, int) for v in vertices]
             if any(np.any(np.diff(v.astype(int)) <= 0) for v in vertices):
                 raise ValueError('Vertices must be ordered in increasing '
                                  'order.')
@@ -1953,7 +1954,7 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
             cortex.
         """
         normals = np.vstack([s['nn'][v] for s, v in zip(src, self.vertices)])
-        data_norm = np.einsum('ijk,ij->ik', self.data, normals)
+        data_norm = einsum('ijk,ij->ik', self.data, normals)
         return SourceEstimate(data_norm, self.vertices, self.tmin, self.tstep,
                               self.subject, self.verbose)
 
@@ -2688,16 +2689,16 @@ def _spatio_temporal_src_connectivity_vol(src, n_times):
     return connectivity
 
 
-def _spatio_temporal_src_connectivity_ico(src, n_times):
+def _spatio_temporal_src_connectivity_surf(src, n_times):
     if src[0]['use_tris'] is None:
         # XXX It would be nice to support non oct source spaces too...
         raise RuntimeError("The source space does not appear to be an ico "
                            "surface. Connectivity cannot be extracted from"
                            " non-ico source spaces.")
     used_verts = [np.unique(s['use_tris']) for s in src]
-    lh_tris = np.searchsorted(used_verts[0], src[0]['use_tris'])
-    rh_tris = np.searchsorted(used_verts[1], src[1]['use_tris'])
-    tris = np.concatenate((lh_tris, rh_tris + np.max(lh_tris) + 1))
+    offs = np.cumsum([0] + [len(u_v) for u_v in used_verts])[:-1]
+    tris = np.concatenate([np.searchsorted(u_v, s['use_tris']) + off
+                           for u_v, s, off in zip(used_verts, src, offs)])
     connectivity = spatio_temporal_tris_connectivity(tris, n_times)
 
     # deal with source space only using a subset of vertices
@@ -2763,7 +2764,7 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
         # use distances computed and saved in the source space file
         connectivity = spatio_temporal_dist_connectivity(src, n_times, dist)
     else:
-        connectivity = _spatio_temporal_src_connectivity_ico(src, n_times)
+        connectivity = _spatio_temporal_src_connectivity_surf(src, n_times)
     return connectivity
 
 

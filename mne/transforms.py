@@ -16,7 +16,7 @@ from copy import deepcopy
 from numpy import sin, cos
 from scipy import linalg
 
-from .fixes import _get_sph_harm
+from .fixes import _get_sph_harm, einsum
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
@@ -608,7 +608,8 @@ def transform_surface_to(surf, dest, trans, copy=False):
     trans = _ensure_trans(trans, int(surf['coord_frame']), dest)
     surf['coord_frame'] = dest
     surf['rr'] = apply_trans(trans, surf['rr'])
-    surf['nn'] = apply_trans(trans, surf['nn'], move=False)
+    if 'nn' in surf:
+        surf['nn'] = apply_trans(trans, surf['nn'], move=False)
     return surf
 
 
@@ -755,7 +756,7 @@ def _sph_to_cart_partials(az, pol, g_rad, g_az, g_pol):
     trans = np.array([[c_as * s_ps, -s_as, c_as * c_ps],
                       [s_as * s_ps, c_as, c_ps * s_as],
                       [c_ps, np.zeros_like(c_as), -s_ps]])
-    cart_grads = np.einsum('ijk,kj->ki', trans, sph_grads)
+    cart_grads = einsum('ijk,kj->ki', trans, sph_grads)
     return cart_grads
 
 
@@ -1249,3 +1250,39 @@ def _find_vector_rotation(a, b):
     vx = _skew_symmetric_cross(v)
     R += vx + np.dot(vx, vx) * (1 - c) / s
     return R
+
+
+def _average_quats(quats, weights=None):
+    """Average unit quaternions properly."""
+    assert quats.ndim == 2 and quats.shape[1] in (3, 4)
+    if weights is None:
+        weights = np.ones(quats.shape[0])
+    assert (weights >= 0).all()
+    norm = weights.sum()
+    if weights.sum() == 0:
+        return np.zeros(3)
+    weights = weights / norm
+    # The naive step here would be:
+    #
+    #     avg_quat = np.dot(weights, quats[:, :3])
+    #
+    # But this is not robust to quaternions having sign ambiguity,
+    # i.e., q == -q. Thus we instead use the rank 1 update method:
+    #
+    #     https://arc.aiaa.org/doi/abs/10.2514/1.28949?journalCode=jgcd
+    #     https://github.com/tolgabirdal/averaging_quaternions/blob/master/wavg_quaternion_markley.m  # noqa: E501
+    #
+    # We use unit quats and don't store the last element, so reconstruct it
+    # to get our 4-element quaternions:
+    res = np.maximum(1. - np.sum(quats * quats, axis=-1, keepdims=True), 0.)
+    np.sqrt(res, out=res)
+    quats = np.concatenate((quats, res), axis=-1)
+    quats *= weights[:, np.newaxis]
+    A = np.einsum('ij,ik->jk', quats, quats)  # sum of outer product of each q
+    avg_quat = linalg.eigh(A)[1][:, -1]  # largest eigenvector is the avg
+    # Same as the largest eigenvector from the concatenation of all as
+    # linalg.svd(quats, full_matrices=False)[-1][0], but faster.
+    avg_quat = avg_quat[:3]
+    if avg_quat[-1] != 0:
+        avg_quat *= np.sign(avg_quat[-1])
+    return avg_quat

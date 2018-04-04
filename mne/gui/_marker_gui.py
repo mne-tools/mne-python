@@ -9,21 +9,19 @@ import sys
 
 import numpy as np
 
-from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 from pyface.api import confirm, error, FileDialog, OK, YES
 from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         cached_property, Instance, Property, Array, Bool,
                         Button, Enum, File, Float, List, Str)
 from traitsui.api import View, Item, HGroup, VGroup, CheckListEditor
-from traitsui.menu import Action, CancelButton, NoButtons
-from tvtk.pyface.scene_editor import SceneEditor
+from traitsui.menu import Action, CancelButton
 
 from ..transforms import apply_trans, rotation, translation
 from ..coreg import fit_matched_points
 from ..io.kit import read_mrk
 from ..io.meas_info import _write_dig_points
-from ._viewer import HeadViewController, headview_borders, PointObject
+from ._viewer import PointObject
 
 
 backend_is_wx = False  # is there a way to determine this?
@@ -417,60 +415,40 @@ class CombineMarkersPanel(HasTraits):  # noqa: D401
     def __init__(self, *args, **kwargs):  # noqa: D102
         super(CombineMarkersPanel, self).__init__(*args, **kwargs)
 
-        m = self.model
-        m.sync_trait('distance', self, 'distance', mutual=False)
+        self.model.sync_trait('distance', self, 'distance', mutual=False)
 
         self.mrk1_obj = PointObject(scene=self.scene,
                                     color=(0.608, 0.216, 0.216),
                                     point_scale=self.scale)
-        self.sync_trait('trans', self.mrk1_obj, mutual=False)
-        m.mrk1.sync_trait('points', self.mrk1_obj, 'points', mutual=False)
-        m.mrk1.sync_trait('enabled', self.mrk1_obj, 'visible',
-                          mutual=False)
+        self.model.mrk1.sync_trait(
+            'enabled', self.mrk1_obj, 'visible', mutual=False)
 
         self.mrk2_obj = PointObject(scene=self.scene,
                                     color=(0.216, 0.608, 0.216),
                                     point_scale=self.scale)
-        self.sync_trait('trans', self.mrk2_obj, mutual=False)
-        m.mrk2.sync_trait('points', self.mrk2_obj, 'points', mutual=False)
-        m.mrk2.sync_trait('enabled', self.mrk2_obj, 'visible',
-                          mutual=False)
+        self.model.mrk2.sync_trait(
+            'enabled', self.mrk2_obj, 'visible', mutual=False)
 
         self.mrk3_obj = PointObject(scene=self.scene,
                                     color=(0.588, 0.784, 1.),
                                     point_scale=self.scale)
-        self.sync_trait('trans', self.mrk3_obj, mutual=False)
-        m.mrk3.sync_trait('points', self.mrk3_obj, 'points', mutual=False)
-        m.mrk3.sync_trait('enabled', self.mrk3_obj, 'visible', mutual=False)
+        self.model.mrk3.sync_trait(
+            'enabled', self.mrk3_obj, 'visible', mutual=False)
 
+    @on_trait_change('model:mrk1:points,trans')
+    def _update_mrk1(self):
+        if self.mrk1_obj is not None:
+            self.mrk1_obj.points = apply_trans(self.trans,
+                                               self.model.mrk1.points)
 
-class CombineMarkersFrame(HasTraits):
-    """GUI for interpolating between two KIT marker files.
+    @on_trait_change('model:mrk2:points,trans')
+    def _update_mrk2(self):
+        if self.mrk2_obj is not None:
+            self.mrk2_obj.points = apply_trans(self.trans,
+                                               self.model.mrk2.points)
 
-    Parameters
-    ----------
-    mrk1, mrk2 : str
-        Path to pre- and post measurement marker files (*.sqd) or empty string.
-    """
-
-    model = Instance(CombineMarkersModel, ())
-    scene = Instance(MlabSceneModel, ())
-    headview = Instance(HeadViewController)
-    panel = Instance(CombineMarkersPanel)
-
-    def _headview_default(self):
-        return HeadViewController(scene=self.scene, system='ALS')
-
-    def _panel_default(self):
-        return CombineMarkersPanel(model=self.model, scene=self.scene)
-
-    view = View(HGroup(Item('scene',
-                            editor=SceneEditor(scene_class=MayaviScene),
-                            dock='vertical'),
-                       VGroup(headview_borders,
-                              Item('panel', style="custom"),
-                              show_labels=False),
-                       show_labels=False,
-                       ),
-                width=1100, resizable=True,
-                buttons=NoButtons)
+    @on_trait_change('model:mrk3:points,trans')
+    def _update_mrk3(self):
+        if self.mrk3_obj is not None:
+            self.mrk3_obj.points = apply_trans(self.trans,
+                                               self.model.mrk3.points)

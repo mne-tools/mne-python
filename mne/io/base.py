@@ -766,6 +766,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 if start < 0:
                     raise ValueError('start must be >= -%s' % nchan)
             stop = item[0].stop if item[0].stop is not None else nchan
+            if stop < 0:
+                stop += nchan
+                if stop < 0:
+                    raise ValueError('stop must be >= -%s' % nchan)
             step = item[0].step if item[0].step is not None else 1
             sel = list(range(start, stop, step))
         else:
@@ -1236,8 +1240,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Notes
         -----
-        For more information, see the tutorials :ref:`tut_background_filtering`
-        and :ref:`tut_artifacts_filter`.
+        For more information, see the tutorials
+        :ref:`sphx_glr_auto_tutorials_plot_background_filtering.py`
+        and
+        :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_filtering.py`.
         """
         _check_preload(self, 'raw.filter')
         update_info, picks = _filt_check_picks(self.info, picks,
@@ -1404,7 +1410,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                      but instead epoch and then downsample, as epoching
                      downsampled data jitters triggers.
                      For more, see
-                     `this illustrative gist <https://gist.github.com/Eric89GXL/01642cb3789992fbca59>`_.
+                     `this illustrative gist <https://gist.github.com/larsoner/01642cb3789992fbca59>`_.
 
                      If resampling the continuous data is desired, it is
                      recommended to construct events using the original data.
@@ -1649,6 +1655,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         overwrite : bool
             If True, the destination file (if it exists) will be overwritten.
             If False (default), an error will be raised if the file exists.
+            To overwrite original file (the same one that was loaded),
+            data must be preloaded upon reading.
         split_size : string | int
             Large raw files are automatically split into multiple pieces. This
             parameter specifies the maximum size of each piece. If the
@@ -1742,12 +1750,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
              show_first_samp=False, proj=True, group_by='type',
-             butterfly=False, decim='auto'):
+             butterfly=False, decim='auto', noise_cov=None, event_id=None):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
                         lowpass, filtorder, clipping, show_first_samp, proj,
-                        group_by, butterfly, decim)
+                        group_by, butterfly, decim, noise_cov=noise_cov,
+                        event_id=event_id)
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
@@ -2336,7 +2345,7 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     #
     # Annotations
     #
-    if annotations is not None and len(annotations.onset) > 0:
+    if annotations is not None:  # allow saving empty annotations
         _write_annotations(fid, annotations)
 
     #
@@ -2488,7 +2497,8 @@ def concatenate_raws(raws, preload=None, events_list=None):
         return raws[0], events
 
 
-def _check_update_montage(info, montage, path=None, update_ch_names=False):
+def _check_update_montage(info, montage, path=None, update_ch_names=False,
+                          raise_missing=True):
     """Help eeg readers to add montage."""
     if montage is not None:
         if not isinstance(montage, (string_types, Montage)):
@@ -2505,11 +2515,11 @@ def _check_update_montage(info, montage, path=None, update_ch_names=False):
                        FIFF.FIFFV_STIM_CH)
             for ch in info['chs']:
                 if not ch['kind'] in exclude:
-                    if np.unique(ch['loc']).size == 1:
+                    if not np.isfinite(ch['loc'][:3]).all():
                         missing_positions.append(ch['ch_name'])
 
             # raise error if positions are missing
-            if missing_positions:
+            if missing_positions and raise_missing:
                 raise KeyError(
                     "The following positions are missing from the montage "
                     "definitions: %s. If those channels lack positions "

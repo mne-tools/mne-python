@@ -10,6 +10,7 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 
 from mne import io, pick_types
+from mne.fixes import einsum
 from mne.utils import requires_version, run_tests_if_main, check_version
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
@@ -324,7 +325,7 @@ def test_time_delaying_fast_calc():
                 y[:, ii % y.shape[-1]] = np.convolve(X[:, ii], kernel, 'same')
             x_xt, x_yt, n_ch_x = _compute_corrs(X, y, smin, smax + 1)
             X_del = _delay_time_series(X, smin, smax, 1., fill_mean=False)
-            x_yt_true = np.einsum('tfd,to->ofd', X_del, y)
+            x_yt_true = einsum('tfd,to->ofd', X_del, y)
             x_yt_true = np.reshape(x_yt_true, (x_yt_true.shape[0], -1)).T
             assert_allclose(x_yt, x_yt_true, atol=1e-7, err_msg=(smin, smax))
             X_del.shape = (X.shape[0], -1)

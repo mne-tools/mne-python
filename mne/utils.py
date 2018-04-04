@@ -8,6 +8,7 @@ from __future__ import print_function
 
 import atexit
 from collections import Iterable
+from contextlib import contextmanager
 from distutils.version import LooseVersion
 from functools import wraps
 import ftplib
@@ -805,7 +806,7 @@ def buggy_mkl_svd(function):
     return dec
 
 
-def requires_version(library, min_version):
+def requires_version(library, min_version='0.0'):
     """Check for a library version."""
     import pytest
     return pytest.mark.skipif(not check_version(library, min_version),
@@ -815,19 +816,18 @@ def requires_version(library, min_version):
 
 def requires_module(function, name, call=None):
     """Skip a test if package is not available (decorator)."""
+    import pytest
     call = ('import %s' % name) if call is None else call
-
-    @wraps(function)
-    def dec(*args, **kwargs):  # noqa: D102
-        try:
-            exec(call) in globals(), locals()
-        except Exception as exc:
-            msg = 'Test %s skipped, requires %s.' % (function.__name__, name)
-            if len(str(exc)) > 0:
-                msg += ' Got exception (%s)' % (exc,)
-            raise SkipTest(msg)
-        return function(*args, **kwargs)
-    return dec
+    reason = 'Test %s skipped, requires %s.' % (function.__name__, name)
+    try:
+        exec(call) in globals(), locals()
+    except Exception as exc:
+        if len(str(exc)) > 0 and str(exc) != 'No module named %s' % name:
+            reason += ' Got exception (%s)' % (exc,)
+        skip = True
+    else:
+        skip = False
+    return pytest.mark.skipif(skip, reason=reason)(function)
 
 
 def copy_doc(source):
@@ -1144,6 +1144,25 @@ def _import_mlab():
     return mlab
 
 
+@contextmanager
+def traits_test_context():
+    """Context to raise errors in trait handlers."""
+    from traits.api import push_exception_handler
+
+    push_exception_handler(reraise_exceptions=True)
+    yield
+    push_exception_handler(reraise_exceptions=False)
+
+
+def traits_test(test_func):
+    """Raise errors in trait handlers (decorator)."""
+    @wraps(test_func)
+    def dec(*args, **kwargs):
+        with traits_test_context():
+            return test_func(*args, **kwargs)
+    return dec
+
+
 @verbose
 def run_subprocess(command, verbose=None, *args, **kwargs):
     """Run command using subprocess.Popen.
@@ -1367,7 +1386,10 @@ def _get_extra_data_path(home_dir=None):
     if home_dir is None:
         # this has been checked on OSX64, Linux64, and Win32
         if 'nt' == os.name.lower():
-            home_dir = os.getenv('APPDATA')
+            if op.isdir(op.join(os.getenv('APPDATA'), '.mne')):
+                home_dir = os.getenv('APPDATA')
+            else:
+                home_dir = os.getenv('USERPROFILE')
         else:
             # This is a more robust way of getting the user's home folder on
             # Linux platforms (not sure about OSX, Unix or BSD) than checking
@@ -1405,7 +1427,7 @@ def get_config_path(home_dir=None):
     -------
     config_path : str
         The path to the mne-python configuration file. On windows, this
-        will be '%APPDATA%\.mne\mne-python.json'. On every other
+        will be '%USERPROFILE%\.mne\mne-python.json'. On every other
         system, this will be ~/.mne/mne-python.json.
     """
     val = op.join(_get_extra_data_path(home_dir=home_dir),
@@ -1460,10 +1482,16 @@ known_config_types = (
     'MNE_COREG_GUESS_MRI_SUBJECT',
     'MNE_COREG_HEAD_HIGH_RES',
     'MNE_COREG_HEAD_OPACITY',
+    'MNE_COREG_INTERACTION',
+    'MNE_COREG_MARK_INSIDE',
     'MNE_COREG_PREPARE_BEM',
+    'MNE_COREG_PROJECT_EEG',
+    'MNE_COREG_ORIENT_TO_SURFACE',
     'MNE_COREG_SCALE_LABELS',
-    'MNE_COREG_SCENE_HEIGHT',
-    'MNE_COREG_SCENE_WIDTH',
+    'MNE_COREG_SCALE_BY_DISTANCE',
+    'MNE_COREG_SCENE_SCALE',
+    'MNE_COREG_WINDOW_HEIGHT',
+    'MNE_COREG_WINDOW_WIDTH',
     'MNE_COREG_SUBJECTS_DIR',
     'MNE_CUDA_IGNORE_PRECISION',
     'MNE_DATA',
@@ -1482,6 +1510,7 @@ known_config_types = (
     'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
     'MNE_DATASETS_KILOWORD_PATH',
     'MNE_DATASETS_FIELDTRIP_CMC_PATH',
+    'MNE_DATASETS_PHANTOM_4DBTI_PATH',
     'MNE_FORCE_SERIAL',
     'MNE_KIT2FIFF_STIM_CHANNELS',
     'MNE_KIT2FIFF_STIM_CHANNEL_CODING',
@@ -2144,9 +2173,11 @@ def _check_preload(inst, msg):
     if isinstance(inst, BaseEpochs):
         name = 'epochs'
     if not inst.preload:
-        raise RuntimeError(msg + ' requires %s data to be loaded. Use '
-                           'preload=True (or string) in the constructor or '
-                           '%s.load_data().' % (name, name))
+        raise RuntimeError(
+            "By default, MNE does not load data into main memory to "
+            "conserve ressources. " + msg + ' requires %s data to be loaded. '
+            'Use preload=True (or string) in the constructor or '
+            '%s.load_data().' % (name, name))
 
 
 def _check_pandas_installed(strict=True):
@@ -2594,8 +2625,12 @@ def sys_info(fid=None, show_paths=False):
     for li, line in enumerate(lines):
         for key in ('lapack', 'blas'):
             if line.startswith('%s_opt_info' % key):
-                libs += ['%s=' % key +
-                         lines[li + 1].split('[')[1].split("'")[1]]
+                lib = lines[li + 1]
+                if 'NOT AVAILABLE' in lib:
+                    lib = 'unknown'
+                else:
+                    lib = lib.split('[')[1].split("'")[1]
+                libs += ['%s=%s' % (key, lib)]
     libs = ', '.join(libs)
     version_texts = dict(pycuda='VERSION_TEXT')
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '',
@@ -2607,6 +2642,9 @@ def sys_info(fid=None, show_paths=False):
         out += ('%s:' % mod_name).ljust(ljust)
         try:
             mod = __import__(mod_name)
+            if mod_name == 'mayavi':
+                # the real test
+                from mayavi import mlab  # noqa, analysis:ignore
         except Exception:
             out += 'Not found\n'
         else:
@@ -2614,6 +2652,14 @@ def sys_info(fid=None, show_paths=False):
             extra = (' (%s)' % op.dirname(mod.__file__)) if show_paths else ''
             if mod_name == 'numpy':
                 extra = ' {%s}%s' % (libs, extra)
+            elif mod_name == 'matplotlib':
+                extra = ' {backend=%s}%s' % (mod.get_backend(), extra)
+            elif mod_name == 'mayavi':
+                try:
+                    from pyface.qt import qt_api
+                except Exception:
+                    qt_api = 'unknown'
+                extra = ' {qt_api=%s}%s' % (qt_api, extra)
             out += '%s%s\n' % (version, extra)
     print(out, end='', file=fid)
 

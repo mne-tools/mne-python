@@ -19,26 +19,14 @@ def _initialize_gui(frame, view=None):
         return frame
 
 
-def combine_kit_markers():
-    """Create a new KIT marker file by interpolating two marker files.
-
-    Notes
-    -----
-    The functionality in this GUI is also part of :func:`kit2fiff`.
-    """
-    _check_mayavi_version()
-    from ._backend import _check_backend
-    _check_backend()
-    from ._marker_gui import CombineMarkersFrame
-    frame = CombineMarkersFrame()
-    return _initialize_gui(frame)
-
-
 @verbose
-def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
+def coregistration(tabbed=False, split=True, width=None, inst=None,
                    subject=None, subjects_dir=None, guess_mri_subject=None,
-                   scene_height=None, head_opacity=None, head_high_res=None,
-                   trans=None, scrollable=True, verbose=None):
+                   height=None, head_opacity=None, head_high_res=None,
+                   trans=None, scrollable=True, project_eeg=None,
+                   orient_to_surface=None, scale_by_distance=None,
+                   mark_inside=None, interaction=None, scale=None,
+                   verbose=None):
     """Coregister an MRI with a subject's head shape.
 
     The recommended way to use the GUI is through bash with:
@@ -56,10 +44,10 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     split : bool
         Split the main panels with a movable splitter (good for QT4 but
         unnecessary for wx backend).
-    scene_width : int | None
-        Specify a minimum width for the 3d scene (in pixels).
-        Default is None, which uses ``MNE_COREG_SCENE_WIDTH`` config value
-        (which defaults to 500).
+    width : int | None
+        Specify the width for window (in logical pixels).
+        Default is None, which uses ``MNE_COREG_WINDOW_WIDTH`` config value
+        (which defaults to 800).
     inst : None | str
         Path to an instance file containing the digitizer data. Compatible for
         Raw, Epochs, and Evoked files.
@@ -71,9 +59,9 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     guess_mri_subject : bool
         When selecting a new head shape file, guess the subject's name based
         on the filename and change the MRI subject accordingly (default True).
-    scene_height : int | None
-        Specify a minimum height for the 3d scene (in pixels).
-        Default is None, which uses ``MNE_COREG_SCENE_WIDTH`` config value
+    height : int | None
+        Specify a height for window (in logical pixels).
+        Default is None, which uses ``MNE_COREG_WINDOW_WIDTH`` config value
         (which defaults to 400).
     head_opacity : float | None
         The opacity of the head surface in the range [0., 1.].
@@ -87,12 +75,46 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
         The transform file to use.
     scrollable : bool
         Make the coregistration panel vertically scrollable (default True).
+    project_eeg : bool | None
+        If True (default None), project EEG electrodes to the head surface.
+        This is only for visualization purposes and does not affect fitting.
+
+        .. versionadded:: 0.16
+    orient_to_surface : bool | None
+        If True (default None), orient EEG electrode and head shape points
+        to the head surface.
+
+        .. versionadded:: 0.16
+    scale_by_distance : bool | None
+        If True (default None), scale the digitization points by their
+        distance from the scalp surface.
+
+        .. versionadded:: 0.16
+    mark_inside : bool | None
+        If True (default None), mark points inside the head surface in a
+        different color.
+
+        .. versionadded:: 0.16
+    interaction : str | None
+        Can be 'terrain' (default None), use terrain-style interaction (where
+        "up" is the Z/superior direction), or 'trackball' to use
+        orientationless interactions.
+
+        .. versionadded:: 0.16
+    scale : float | None
+        The scaling for the scene.
+
+        ..versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
+    Many parameters (e.g., ``project_eeg``) take None as a parameter,
+    which means that the default will be read from the MNE-Python
+    configuration file (which gets saved when exiting).
+
     Step by step instructions for the coregistrations can be accessed as
     slides, `for subjects with structural MRI
     <http://www.slideshare.net/mne-python/mnepython-coregistration>`_ and `for
@@ -107,25 +129,45 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
         head_high_res = config.get('MNE_COREG_HEAD_HIGH_RES', 'true') == 'true'
     if head_opacity is None:
         head_opacity = config.get('MNE_COREG_HEAD_OPACITY', 1.)
-    if scene_width is None:
-        scene_width = config.get('MNE_COREG_SCENE_WIDTH', 500)
-    if scene_height is None:
-        scene_height = config.get('MNE_COREG_SCENE_HEIGHT', 400)
+    if width is None:
+        width = config.get('MNE_COREG_WINDOW_WIDTH', 800)
+    if height is None:
+        height = config.get('MNE_COREG_WINDOW_HEIGHT', 600)
     if subjects_dir is None:
         if 'SUBJECTS_DIR' in config:
             subjects_dir = config['SUBJECTS_DIR']
         elif 'MNE_COREG_SUBJECTS_DIR' in config:
             subjects_dir = config['MNE_COREG_SUBJECTS_DIR']
+    if project_eeg is None:
+        project_eeg = config.get('MNE_COREG_PROJECT_EEG', '') == 'true'
+    if orient_to_surface is None:
+        orient_to_surface = (config.get('MNE_COREG_ORIENT_TO_SURFACE', '') ==
+                             'true')
+    if scale_by_distance is None:
+        scale_by_distance = (config.get('MNE_COREG_SCALE_BY_DISTANCE', '') ==
+                             'true')
+    if interaction is None:
+        interaction = config.get('MNE_COREG_INTERACTION', 'trackball')
+    if mark_inside is None:
+        mark_inside = config.get('MNE_COREG_MARK_INSIDE', '') == 'true'
+    if scale is None:
+        scale = config.get('MNE_COREG_SCENE_SCALE', 0.16)
     head_opacity = float(head_opacity)
-    scene_width = int(scene_width)
-    scene_height = int(scene_height)
+    width = int(width)
+    height = int(height)
+    scale = float(scale)
     _check_mayavi_version()
     from ._backend import _check_backend
     _check_backend()
     from ._coreg_gui import CoregFrame, _make_view
-    view = _make_view(tabbed, split, scene_width, scene_height, scrollable)
+    view = _make_view(tabbed, split, width, height, scrollable)
     frame = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
-                       head_opacity, head_high_res, trans, config)
+                       head_opacity, head_high_res, trans, config,
+                       project_eeg=project_eeg,
+                       orient_to_surface=orient_to_surface,
+                       scale_by_distance=scale_by_distance,
+                       mark_inside=mark_inside, interaction=interaction,
+                       scale=scale)
     return _initialize_gui(frame, view)
 
 

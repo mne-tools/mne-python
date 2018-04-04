@@ -199,7 +199,7 @@ brain = stc.plot(surface='white', subjects_dir=subjects_dir,
 # .. [1] Hämäläinen, M. S., Hari, R., Ilmoniemi, R. J., Knuutila, J., &
 #    Lounasmaa, O. V. "Magnetoencephalography - theory, instrumentation, and
 #    applications to noninvasive studies of the working human brain", Reviews
-#    of Modern Physics, 1993. http://dx.doi.org/10.1103/RevModPhys.65.413
+#    of Modern Physics, 1993. https://doi.org/10.1103/RevModPhys.65.413
 #
 # .. [2] Lin, F. H., Belliveau, J. W., Dale, A. M., & Hämäläinen, M. S. (2006).
 #    Distributed current estimates using cortical orientation constraints.

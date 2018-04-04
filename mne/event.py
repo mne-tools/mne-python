@@ -420,6 +420,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
                             pad_stop=pad_stop, merge=merge)
 
 
+@verbose
 def _find_events(data, first_samp, verbose=None, output='onset',
                  consecutive='increasing', min_samples=0, mask=None,
                  uint_cast=False, mask_type='and', initial_event=False):
@@ -823,7 +824,7 @@ def shift_time_events(events, ids, tshift, sfreq):
     return events
 
 
-def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
+def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
                              first_samp=True):
     """Make a set of events separated by a fixed duration.
 
@@ -832,7 +833,7 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
     raw : instance of Raw
         A raw object to use the data from.
     id : int
-        The id to use.
+        The id to use (default 1).
     start : float
         Time of first event.
     stop : float | None

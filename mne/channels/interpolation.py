@@ -6,6 +6,7 @@ import numpy as np
 from numpy.polynomial.legendre import legval
 from scipy import linalg
 
+from ..fixes import einsum
 from ..utils import logger, warn, verbose
 from ..io.pick import pick_types, pick_channels, pick_info
 from ..surface import _normalize_vectors
@@ -97,8 +98,8 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
     if isinstance(inst, (BaseRaw, Evoked)):
         inst._data[bads_idx] = interpolation.dot(inst._data[goods_idx])
     elif isinstance(inst, BaseEpochs):
-        inst._data[:, bads_idx, :] = np.einsum('ij,xjy->xiy', interpolation,
-                                               inst._data[:, goods_idx, :])
+        inst._data[:, bads_idx, :] = einsum(
+            'ij,xjy->xiy', interpolation, inst._data[:, goods_idx, :])
     else:
         raise ValueError('Inputs of type {0} are not supported'
                          .format(type(inst)))
@@ -122,7 +123,8 @@ def _interpolate_bads_eeg(inst, verbose=None):
     inst.info._check_consistency()
     bads_idx[picks] = [inst.ch_names[ch] in inst.info['bads'] for ch in picks]
 
-    if len(picks) == 0 or len(bads_idx) == 0:
+    if len(picks) == 0 or bads_idx.sum() == 0:
+        warn('No bad channels to interpolate. Doing nothing...')
         return
 
     goods_idx[picks] = True

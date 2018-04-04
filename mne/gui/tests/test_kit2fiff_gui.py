@@ -8,13 +8,13 @@ import warnings
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
-from nose import SkipTest
-from nose.tools import assert_true, assert_false, assert_equal
+from unittest import SkipTest
 
 import mne
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io import read_raw_fif
-from mne.utils import _TempDir, requires_mayavi, run_tests_if_main
+from mne.utils import (_TempDir, requires_mayavi, run_tests_if_main,
+                       traits_test)
 
 mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')
 mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
@@ -36,6 +36,7 @@ def _check_ci():
 
 
 @requires_mayavi
+@traits_test
 def test_kit2fiff_model():
     """Test Kit2Fiff model."""
     from mne.gui._kit2fiff_gui import Kit2FiffModel
@@ -43,34 +44,34 @@ def test_kit2fiff_model():
     tgt_fname = os.path.join(tempdir, 'test-raw.fif')
 
     model = Kit2FiffModel()
-    assert_false(model.can_save)
-    assert_equal(model.misc_chs_desc, "No SQD file selected...")
-    assert_equal(model.stim_chs_comment, "")
+    assert not model.can_save
+    assert model.misc_chs_desc == "No SQD file selected..."
+    assert model.stim_chs_comment == ""
     model.markers.mrk1.file = mrk_pre_path
     model.markers.mrk2.file = mrk_post_path
     model.sqd_file = sqd_path
-    assert_equal(model.misc_chs_desc, "160:192")
+    assert model.misc_chs_desc == "160:192"
     model.hsp_file = hsp_path
-    assert_false(model.can_save)
+    assert not model.can_save
     model.fid_file = fid_path
-    assert_true(model.can_save)
+    assert model.can_save
 
     # events
     model.stim_slope = '+'
-    assert_equal(model.get_event_info(), {1: 2})
+    assert model.get_event_info() == {1: 2}
     model.stim_slope = '-'
-    assert_equal(model.get_event_info(), {254: 2, 255: 2})
+    assert model.get_event_info() == {254: 2, 255: 2}
 
     # stim channels
     model.stim_chs = "181:184, 186"
     assert_array_equal(model.stim_chs_array, [181, 182, 183, 186])
-    assert_true(model.stim_chs_ok)
-    assert_equal(model.get_event_info(), {})
+    assert model.stim_chs_ok
+    assert model.get_event_info() == {}
     model.stim_chs = "181:184, bad"
-    assert_false(model.stim_chs_ok)
-    assert_false(model.can_save)
+    assert not model.stim_chs_ok
+    assert not model.can_save
     model.stim_chs = ""
-    assert_true(model.can_save)
+    assert model.can_save
 
     # export raw
     raw_out = model.get_raw()
@@ -81,22 +82,22 @@ def test_kit2fiff_model():
     raw_bin = read_raw_fif(fif_path)
     trans_bin = raw.info['dev_head_t']['trans']
     want_keys = list(raw_bin.info.keys())
-    assert_equal(sorted(want_keys), sorted(list(raw.info.keys())))
+    assert sorted(want_keys) == sorted(list(raw.info.keys()))
     trans_transform = raw_bin.info['dev_head_t']['trans']
     assert_allclose(trans_transform, trans_bin, 0.1)
 
     # Averaging markers
     model.markers.mrk3.method = "Average"
     trans_avg = model.dev_head_trans
-    assert_false(np.all(trans_avg == trans_transform))
+    assert not np.all(trans_avg == trans_transform)
     assert_allclose(trans_avg, trans_bin, 0.1)
 
     # Test exclusion of one marker
     model.markers.mrk3.method = "Transform"
     model.use_mrk = [1, 2, 3, 4]
-    assert_false(np.all(model.dev_head_trans == trans_transform))
-    assert_false(np.all(model.dev_head_trans == trans_avg))
-    assert_false(np.all(model.dev_head_trans == np.eye(4)))
+    assert not np.all(model.dev_head_trans == trans_transform)
+    assert not np.all(model.dev_head_trans == trans_avg)
+    assert not np.all(model.dev_head_trans == np.eye(4))
 
     # test setting stim channels
     model.stim_slope = '+'
@@ -122,11 +123,12 @@ def test_kit2fiff_model():
 
     # test reset
     model.clear_all()
-    assert_equal(model.use_mrk, [0, 1, 2, 3, 4])
-    assert_equal(model.sqd_file, "")
+    assert model.use_mrk == [0, 1, 2, 3, 4]
+    assert model.sqd_file == ""
 
 
 @requires_mayavi
+@traits_test
 def test_kit2fiff_gui():
     """Test Kit2Fiff GUI."""
     _check_ci()
@@ -139,8 +141,8 @@ def test_kit2fiff_gui():
         gui.process_events()
 
         ui, frame = mne.gui.kit2fiff()
-        assert_false(frame.model.can_save)
-        assert_equal(frame.model.stim_threshold, 1.)
+        assert not frame.model.can_save
+        assert frame.model.stim_threshold == 1.
         frame.model.stim_threshold = 10.
         frame.model.stim_chs = 'save this!'
         frame.save_config(home_dir)
@@ -150,12 +152,25 @@ def test_kit2fiff_gui():
 
         # test setting persistence
         ui, frame = mne.gui.kit2fiff()
-        assert_equal(frame.model.stim_threshold, 10.)
-        assert_equal(frame.model.stim_chs, 'save this!')
+        assert frame.model.stim_threshold == 10.
+        assert frame.model.stim_chs == 'save this!'
 
+        # set and reset marker file
+        points = [[-0.084612, 0.021582, -0.056144],
+                  [0.080425, 0.021995, -0.061171],
+                  [-0.000787, 0.105530, 0.014168],
+                  [-0.047943, 0.091835, 0.010240],
+                  [0.042976, 0.094380, 0.010807]]
+        assert_array_equal(frame.marker_panel.mrk1_obj.points, 0)
+        assert_array_equal(frame.marker_panel.mrk3_obj.points, 0)
         frame.model.markers.mrk1.file = mrk_pre_path
+        assert_allclose(frame.marker_panel.mrk1_obj.points, points, atol=1e-6)
+        assert_allclose(frame.marker_panel.mrk3_obj.points, points, atol=1e-6)
         frame.marker_panel.mrk1_obj.label = True
         frame.marker_panel.mrk1_obj.label = False
+        frame.kit2fiff_panel.clear_all = True
+        assert_array_equal(frame.marker_panel.mrk1_obj.points, 0)
+        assert_array_equal(frame.marker_panel.mrk3_obj.points, 0)
         ui.dispose()
 
         gui.process_events()

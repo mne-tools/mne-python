@@ -5,19 +5,21 @@
 import os
 import os.path as op
 import re
+import shutil
 import sys
 from unittest import SkipTest
+import warnings
 
 import numpy as np
 from numpy.testing import assert_allclose
 from nose.tools import (assert_equal, assert_almost_equal, assert_false,
                         assert_raises, assert_true)
-import warnings
 
 import mne
 from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
-from mne.utils import _TempDir, run_tests_if_main, requires_mayavi
+from mne.transforms import invert_transform
+from mne.utils import _TempDir, run_tests_if_main, requires_mayavi, traits_test
 from mne.externals.six import string_types
 
 # backend needs to be set early
@@ -40,6 +42,32 @@ warnings.simplefilter('always')
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
+def test_coreg_model_decimation():
+    """Test CoregModel decimation of high-res to low-res head."""
+    from mne.gui._coreg_gui import CoregModel
+    tempdir = _TempDir()
+    subject_dir = op.join(tempdir, 'sample')
+    shutil.copytree(op.join(subjects_dir, 'sample'), subject_dir)
+    # This makes the test much faster
+    shutil.move(op.join(subject_dir, 'bem', 'outer_skin.surf'),
+                op.join(subject_dir, 'surf', 'lh.seghead'))
+    for fname in ('sample-head.fif', 'sample-head-dense.fif'):
+        os.remove(op.join(subject_dir, 'bem', fname))
+
+    model = CoregModel(guess_mri_subject=False)
+    with warnings.catch_warnings(record=True) as w:
+        model.mri.subjects_dir = tempdir
+    assert model.mri.subject == 'sample'  # already set by setting subjects_dir
+    assert any('No low-resolution' in str(ww.message) for ww in w)
+    assert model.mri.bem_low_res.file == ''
+    assert len(model.mri.bem_low_res.surf.rr) == 2562
+    assert len(model.mri.bem_high_res.surf.rr) == 2562  # because we moved it
+
+
+@testing.requires_testing_data
+@requires_mayavi
+@traits_test
 def test_coreg_model():
     """Test CoregModel."""
     from mne.gui._coreg_gui import CoregModel
@@ -48,8 +76,6 @@ def test_coreg_model():
 
     model = CoregModel()
     assert_raises(RuntimeError, model.save_trans, 'blah.fif')
-
-    model.mri.use_high_res_head = False
 
     model.mri.subjects_dir = subjects_dir
     model.mri.subject = 'sample'
@@ -64,40 +90,44 @@ def test_coreg_model():
     assert_allclose(model.hsp.lpa, [[-7.137e-2, 0, 5.122e-9]], 1e-4)
     assert_allclose(model.hsp.rpa, [[+7.527e-2, 0, 5.588e-9]], 1e-4)
     assert_allclose(model.hsp.nasion, [[+3.725e-9, 1.026e-1, 4.191e-9]], 1e-4)
-    assert_true(model.has_fid_data)
+    assert model.has_lpa_data
+    assert model.has_nasion_data
+    assert model.has_rpa_data
+    assert len(model.hsp.eeg_points) > 1
+
+    assert len(model.mri.bem_low_res.surf.rr) == 2562
+    assert len(model.mri.bem_high_res.surf.rr) == 267122
 
     lpa_distance = model.lpa_distance
     nasion_distance = model.nasion_distance
     rpa_distance = model.rpa_distance
     avg_point_distance = np.mean(model.point_distance)
 
-    model.fit_auricular_points()
-    old_x = lpa_distance ** 2 + rpa_distance ** 2
-    new_x = model.lpa_distance ** 2 + model.rpa_distance ** 2
-    assert_true(new_x < old_x)
-
-    model.fit_fiducials()
+    model.nasion_weight = 1.
+    model.fit_fiducials(0)
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
     new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2 +
              model.nasion_distance ** 2)
-    assert_true(new_x < old_x)
+    assert new_x < old_x
 
-    model.fit_hsp_points()
-    assert_true(np.mean(model.point_distance) < avg_point_distance)
+    model.fit_icp(0)
+    new_dist = np.mean(model.point_distance)
+    assert new_dist < avg_point_distance
 
     model.save_trans(trans_dst)
     trans = mne.read_trans(trans_dst)
-    assert_allclose(trans['trans'], model.head_mri_trans)
+    assert_allclose(trans['trans'], model.head_mri_t)
 
     # test restoring trans
-    x, y, z, rot_x, rot_y, rot_z = .1, .2, .05, 1.5, 0.1, -1.2
+    x, y, z = 100, 200, 50
+    rot_x, rot_y, rot_z = np.rad2deg([1.5, 0.1, -1.2])
     model.trans_x = x
     model.trans_y = y
     model.trans_z = z
     model.rot_x = rot_x
     model.rot_y = rot_y
     model.rot_z = rot_z
-    trans = model.head_mri_trans
+    trans = model.mri_head_t
     model.reset_traits(["trans_x", "trans_y", "trans_z", "rot_x", "rot_y",
                         "rot_z"])
     assert_equal(model.trans_x, 0)
@@ -123,7 +153,7 @@ def test_coreg_model():
     assert_equal(sdir, subjects_dir)
     assert_equal(sfrom, 'sample')
     assert_equal(sto, 'sample2')
-    assert_equal(scale, model.scale)
+    assert_allclose(scale, model.parameters[6:9])
     assert_equal(skip_fiducials, False)
     # find BEM files
     bems = set()
@@ -139,6 +169,11 @@ def test_coreg_model():
     assert_true(skip_fiducials)
 
     model.load_trans(fname_trans)
+    model.save_trans(trans_dst)
+    trans = mne.read_trans(trans_dst)
+    assert_allclose(trans['trans'], model.head_mri_t)
+    assert_allclose(invert_transform(trans)['trans'][:3, 3] * 1000.,
+                    [model.trans_x, model.trans_y, model.trans_z])
 
 
 def _check_ci():
@@ -149,6 +184,7 @@ def _check_ci():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_coreg_gui():
     """Test CoregFrame."""
     _check_ci()
@@ -160,6 +196,7 @@ def test_coreg_gui():
                       subjects_dir=subjects_dir)
 
         from pyface.api import GUI
+        from tvtk.api import tvtk
         gui = GUI()
 
         # avoid modal dialog if SUBJECTS_DIR is set to a directory that
@@ -174,24 +211,29 @@ def test_coreg_gui():
         frame.model.mri.nasion = [[0, 0.05, 0]]
         frame.model.mri.rpa = [[0.08, 0, 0]]
         assert_true(frame.model.mri.fid_ok)
-        frame.raw_src.file = raw_path
+        frame.data_panel.raw_src.file = raw_path
+        assert isinstance(frame.eeg_obj.glyph.glyph.glyph_source.glyph_source,
+                          tvtk.SphereSource)
+        frame.data_panel.view_options_panel.eeg_obj.project_to_surface = True
+        assert isinstance(frame.eeg_obj.glyph.glyph.glyph_source.glyph_source,
+                          tvtk.CylinderSource)
 
-        # grow hair (high-res head has no norms)
-        assert_true(frame.model.mri.use_high_res_head)
-        frame.model.mri.use_high_res_head = False
+        # grow hair (faster for low-res)
+        assert frame.data_panel.view_options_panel.head_high_res
+        frame.data_panel.view_options_panel.head_high_res = False
         frame.model.grow_hair = 40.
 
         # scale
         frame.coreg_panel.n_scale_params = 3
         frame.coreg_panel.scale_x_inc = True
-        assert_equal(frame.model.scale_x, 1.01)
+        assert frame.model.scale_x == 101.
         frame.coreg_panel.scale_y_dec = True
-        assert_equal(frame.model.scale_y, 0.99)
+        assert frame.model.scale_y == 99.
 
         # reset parameters
         frame.coreg_panel.reset_params = True
         assert_equal(frame.model.grow_hair, 0)
-        assert_false(frame.model.mri.use_high_res_head)
+        assert not frame.data_panel.view_options_panel.head_high_res
 
         # configuration persistence
         assert_true(frame.model.prepare_bem_model)
@@ -202,7 +244,7 @@ def test_coreg_gui():
 
         ui, frame = mne.gui.coregistration(subjects_dir=subjects_dir)
         assert_false(frame.model.prepare_bem_model)
-        assert_false(frame.model.mri.use_high_res_head)
+        assert not frame.data_panel.view_options_panel.head_high_res
         ui.dispose()
         gui.process_events()
     finally:
@@ -212,6 +254,7 @@ def test_coreg_gui():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_coreg_model_with_fsaverage():
     """Test CoregModel with the fsaverage brain data."""
     tempdir = _TempDir()
@@ -221,7 +264,6 @@ def test_coreg_model_with_fsaverage():
                                fs_home=op.join(subjects_dir, '..'))
 
     model = CoregModel()
-    model.mri.use_high_res_head = False
     model.mri.subjects_dir = tempdir
     model.mri.subject = 'fsaverage'
     assert_true(model.mri.fid_ok)
@@ -233,30 +275,33 @@ def test_coreg_model_with_fsaverage():
     avg_point_distance = np.mean(model.point_distance)
 
     # test hsp point omission
+    model.nasion_weight = 1.
     model.trans_y = -0.008
-    model.fit_auricular_points()
+    model.fit_fiducials(0)
     model.omit_hsp_points(0.02)
-    assert_equal(model.hsp.n_omitted, 1)
-    model.omit_hsp_points(reset=True)
-    assert_equal(model.hsp.n_omitted, 0)
-    model.omit_hsp_points(0.02, reset=True)
-    assert_equal(model.hsp.n_omitted, 1)
+    assert model.hsp.n_omitted == 1
+    model.omit_hsp_points(np.inf)
+    assert model.hsp.n_omitted == 0
+    model.omit_hsp_points(0.02)
+    assert model.hsp.n_omitted == 1
+    model.omit_hsp_points(0.01)
+    assert model.hsp.n_omitted == 4
+    model.omit_hsp_points(0.005)
+    assert model.hsp.n_omitted == 40
+    model.omit_hsp_points(0.01)
+    assert model.hsp.n_omitted == 4
+    model.omit_hsp_points(0.02)
+    assert model.hsp.n_omitted == 1
 
     # scale with 1 parameter
     model.n_scale_params = 1
-
-    model.fit_scale_auricular_points()
-    old_x = lpa_distance ** 2 + rpa_distance ** 2
-    new_x = model.lpa_distance ** 2 + model.rpa_distance ** 2
-    assert_true(new_x < old_x)
-
-    model.fit_scale_fiducials()
+    model.fit_fiducials(1)
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
     new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2 +
              model.nasion_distance ** 2)
     assert_true(new_x < old_x)
 
-    model.fit_scale_hsp_points()
+    model.fit_icp(1)
     avg_point_distance_1param = np.mean(model.point_distance)
     assert_true(avg_point_distance_1param < avg_point_distance)
 
@@ -266,7 +311,7 @@ def test_coreg_model_with_fsaverage():
     assert_equal(sdir, tempdir)
     assert_equal(sfrom, 'fsaverage')
     assert_equal(sto, 'scaled')
-    assert_equal(scale, model.scale)
+    assert_allclose(scale, model.parameters[6:9])
     assert_equal(set(bemsol), set(('inner_skull-bem',)))
     model.prepare_bem_model = False
     sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
@@ -275,7 +320,7 @@ def test_coreg_model_with_fsaverage():
 
     # scale with 3 parameters
     model.n_scale_params = 3
-    model.fit_scale_hsp_points()
+    model.fit_icp(3)
     assert_true(np.mean(model.point_distance) < avg_point_distance_1param)
 
     # test switching raw disables point omission

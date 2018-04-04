@@ -27,6 +27,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_julian, write_float_matrix)
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import _to_const
+from ..transforms import invert_transform
 from ..utils import logger, verbose, warn, object_diff
 from .. import __version__
 from ..externals.six import b, BytesIO, string_types, text_type
@@ -503,21 +504,25 @@ class Info(dict):
 
 def _simplify_info(info):
     """Return a simplified info structure to speed up picking."""
-    chs = [{key: ch[key] for key in ('ch_name', 'kind', 'unit', 'coil_type',
-                                     'loc')}
+    chs = [{key: ch[key]
+            for key in ('ch_name', 'kind', 'unit', 'coil_type', 'loc')}
            for ch in info['chs']]
     sub_info = Info(chs=chs, bads=info['bads'], comps=info['comps'])
     sub_info._update_redundant()
     return sub_info
 
 
-def read_fiducials(fname):
+@verbose
+def read_fiducials(fname, verbose=None):
     """Read fiducials from a fiff file.
 
     Parameters
     ----------
     fname : str
         The filename to read.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -550,7 +555,9 @@ def read_fiducials(fname):
     return pts, coord_frame
 
 
-def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN):
+@verbose
+def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                    verbose=None):
     """Write fiducials to a fiff file.
 
     Parameters
@@ -563,6 +570,9 @@ def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN):
     coord_frame : int
         The coordinate frame of the points (one of
         mne.io.constants.FIFF.FIFFV_COORD_...).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     write_dig(fname, pts, coord_frame)
 
@@ -916,10 +926,12 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             chs.append(tag.data)
         elif kind == FIFF.FIFF_LOWPASS:
             tag = read_tag(fid, pos)
-            lowpass = float(tag.data)
+            if not np.isnan(tag.data):
+                lowpass = float(tag.data)
         elif kind == FIFF.FIFF_HIGHPASS:
             tag = read_tag(fid, pos)
-            highpass = float(tag.data)
+            if not np.isnan(tag.data):
+                highpass = float(tag.data)
         elif kind == FIFF.FIFF_MEAS_DATE:
             tag = read_tag(fid, pos)
             meas_date = tag.data
@@ -930,6 +942,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             if cand['from'] == FIFF.FIFFV_COORD_DEVICE and \
                     cand['to'] == FIFF.FIFFV_COORD_HEAD:
                 dev_head_t = cand
+            elif cand['from'] == FIFF.FIFFV_COORD_HEAD and \
+                    cand['to'] == FIFF.FIFFV_COORD_DEVICE:
+                # this reversal can happen with BabyMEG data
+                dev_head_t = invert_transform(cand)
             elif cand['from'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD and \
                     cand['to'] == FIFF.FIFFV_COORD_HEAD:
                 ctf_head_t = cand
@@ -1742,7 +1758,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
             raise KeyError('kind must be one of %s, not %s'
                            % (list(_kind_dict.keys()), kind))
         kind = _kind_dict[kind]
-        chan_info = dict(loc=np.zeros(12), unit_mul=0, range=1., cal=1.,
+        chan_info = dict(loc=np.full(12, np.nan), unit_mul=0, range=1., cal=1.,
                          kind=kind[0], coil_type=kind[1],
                          unit=kind[2], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                          ch_name=name, scanno=ci + 1, logno=ci + 1)

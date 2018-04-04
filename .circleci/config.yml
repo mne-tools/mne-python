@@ -1,0 +1,207 @@
+version: 2
+jobs:
+    build:
+      docker:
+        - image: circleci/python:3.6-stretch
+      steps:
+        # Get our data and merge with upstream
+        - checkout
+        - run: echo $(git log -1 --pretty=%B) | tee gitlog.txt
+        - run: echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
+        - run:
+           command: |
+             if [[ $(cat merge.txt) != "" ]]; then
+               echo "Merging $(cat merge.txt)";
+               git pull --ff-only origin "refs/pull/$(cat merge.txt)/merge";
+             fi
+
+        # Load our data
+        - restore_cache:
+            keys:
+              - data-cache
+
+        # Get latest Anaconda running
+        - run: echo "export DISPLAY=:99" >> $BASH_ENV
+        - run: echo "export PATH=~/miniconda/envs/mne/bin:~/miniconda/bin:$PATH" >> $BASH_ENV
+        - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+        - run:
+            command: |
+              wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O ~/miniconda.sh;
+              chmod +x ~/miniconda.sh;
+              ~/miniconda.sh -b -p ~/miniconda;
+        - run:
+            command: |
+              conda update --yes --quiet conda;
+              conda env create --quiet -f environment.yml;
+              pip uninstall --yes mne;
+        # This is a CircleCI-specific fix -- for some reason 5.9.2 is problematic
+        # here but not on Travis, we get:
+        #
+        #     libgcc_s.so.1 must be installed for pthread_cancel to work
+        #     Aborted
+        #
+        - run: pip install --upgrade --no-deps pyqt5>=5.10
+        # Look at what we have and fail early if there is some library conflict
+        - run: python -c "import mne; mne.sys_info()"
+        - run: python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
+
+        # Figure out if we should run a full, pattern, or noplot version
+        - run: python setup.py develop
+        - run: if ! git remote -v | grep upstream ; then git remote add upstream git://github.com/mne-tools/mne-python.git; fi
+        - run: git fetch upstream
+        - run: git branch -a
+        - run: mkdir -p ~/mne_data
+        - run:
+            command: |
+              if [[ $(cat gitlog.txt) == *"[circle front]"* ]]; then
+                PATTERN="plot_mne_dspm_source_localization.py\|plot_receptive_field.py\|plot_mne_inverse_label_connectivity.py\|plot_sensors_decoding.py\|plot_stats_cluster_spatio_temporal.py\|plot_visualize_evoked.py\|";
+              else
+                PATTERN="";
+              fi;
+              if [ "$CIRCLE_BRANCH" == "master" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]]; then
+                echo html_dev > build.txt;
+              elif [ "$CIRCLE_BRANCH" == "maint/0.15" ]; then
+                echo html_stable > build.txt;
+              else
+                FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH upstream/master));
+                echo FNAMES="$FNAMES";
+                for FNAME in $FNAMES; do
+                  if [[ `expr match $FNAME "\(tutorials\|examples\)/.*plot_.*\.py"` ]] ; then
+                    echo "Checking example $FNAME ...";
+                    PATTERN=`basename $FNAME`"\\|"$PATTERN;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*spm_face.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.spm_face.data_path(update_path=True))";
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*somato.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.somato.data_path(update_path=True))";
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*eegbci.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.eegbci.load_data(1, [6, 10, 14], update_path=True))";
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*hf_sef.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.hf_sef.data_path(update_path=True))";
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_auditory.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.brainstorm.bst_auditory.data_path(update_path=True))" --accept-brainstorm-license;
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_raw.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.brainstorm.bst_raw.data_path(update_path=True))" --accept-brainstorm-license;
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_phantom_ctf.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_ctf.data_path(update_path=True))" --accept-brainstorm-license;
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_phantom_elekta.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_elekta.data_path(update_path=True))" --accept-brainstorm-license;
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*megsim.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.megsim.load_data(condition='visual', data_format='single-trial', data_type='simulation', update_path=True))";
+                      python -c "import mne; print(mne.datasets.megsim.load_data(condition='visual', data_format='raw', data_type='experimental', update_path=True))";
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*hcp_mmp_parcellation.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
+                      SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation())" --accept-hcpmmp-license;
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*misc.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.misc.data_path(update_path=True))";
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*testing.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.testing.data_path(update_path=True))";
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*kiloword.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.kiloword.data_path(update_path=True))";
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*mtrf.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.mtrf.data_path(update_path=True))";
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*fieldtrip_cmc.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.fieldtrip_cmc.data_path(update_path=True))";
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*multimodal.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.multimodal.data_path(update_path=True))";
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*phantom_4dbti.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.phantom_4dbti.data_path(update_path=True))";
+                    fi;
+                  fi;
+                done;
+                echo PATTERN="$PATTERN";
+                echo NEED_SAMPLE="$NEED_SAMPLE";
+                if [[ $PATTERN ]]; then
+                  PATTERN="\(${PATTERN::-2}\)";
+                  echo html_dev-pattern > build.txt;
+                else
+                  echo html_dev-noplot > build.txt;
+                fi;
+              fi;
+              echo "$PATTERN" > pattern.txt;
+        - run: echo BUILD="$(cat build.txt)"
+        - run: ls -al ~/mne_data;
+        - run:
+            command: |
+              if [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
+                SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects python -c "import mne; mne.datasets._download_all_example_data()";
+              fi;
+        - run: if [ ! -d ~/mne-tools.github.io ]; then git clone https://github.com/mne-tools/mne-tools.github.io.git ~/mne-tools.github.io --depth=1; fi;
+        - run:
+            command: |
+              if [[ $(cat build.txt) == "html_dev-noplot" ]]; then
+                cd doc;
+                make html_dev-noplot;
+              elif [[ $(cat build.txt) == "html_dev-pattern" ]]; then
+                cd doc;
+                PATTERN=$(cat ../pattern.txt) make html_dev-pattern;
+              else
+                make test-doc;
+                cd doc;
+                make $(cat ../build.txt);
+              fi;
+
+        - store_artifacts:
+            path: doc/_build/html/
+            destination: html
+
+        # Keep these separate, maybe better in terms of size limitations (?)
+        - save_cache:
+            key: data-cache
+            paths:
+              - ~/.mne
+              - ~/mne_data/HF_SEF
+              - ~/mne_data/MEGSIM
+              - ~/mne_data/MNE-brainstorm-data
+              - ~/mne_data/MNE-eegbci-data
+              - ~/mne_data/MNE-fieldtrip_cmc-data
+              - ~/mne_data/MNE-kiloword-data
+              - ~/mne_data/MNE-misc-data
+              - ~/mne_data/MNE-multimodal-data
+              - ~/mne_data/MNE-phantom-4DBTi
+              - ~/mne_data/MNE-sample-data
+              - ~/mne_data/MNE-somato-data
+              - ~/mne_data/MNE-spm-face
+              - ~/mne_data/MNE-testing-data
+              - ~/mne_data/MNE-visual_92_categories-data
+              - ~/mne_data/mTRF_1.5
+              - ~/mne-tools.github.io
+
+        - deploy:
+            name: Triage deployment
+            command: |
+              if [ "${CIRCLE_BRANCH}" == "master" ]; then
+                echo "Deploying dev docs.";
+                git config --global user.email "circle@mne.com";
+                git config --global user.name "Circle Ci";
+                pushd ~/mne-tools.github.io && git checkout master && git pull origin master && popd;
+                pushd doc/_build && rm -Rf ~/mne-tools.github.io/dev && cp -a html ~/mne-tools.github.io/dev && popd;
+                pushd ~/mne-tools.github.io && git add -A && git commit -m "CircleCI update of dev docs (${CIRCLE_BUILD_NUM})." && git push origin master && popd;
+              elif [ "${CIRCLE_BRANCH}" == "maint/0.15" ]; then
+                echo "Deploying stable docs.";
+                git config --global user.email "circle@mne.com";
+                git config --global user.name "Circle Ci";
+                pushd ~/mne-tools.github.io && git checkout master && git pull origin master && popd;
+                pushd doc/_build && rm -Rf ~/mne-tools.github.io/stable cp -a html_stable ~/mne-tools.github.io/stable && popd;
+                pushd ~/mne-tools.github.io && git add -A && git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM})." && git push origin master && popd;
+              else
+                echo "No deployment (build: ${CIRCLE_BRANCH}).";
+              fi

@@ -8,8 +8,8 @@ Frequency and time-frequency sensors analysis
 The objective is to show you how to explore the spectral content
 of your data (frequency and time-frequency). Here we'll work on Epochs.
 
-We will use the somatosensory dataset that contains so
-called event related synchronizations (ERS) / desynchronizations (ERD) in
+We will use the somatosensory dataset that contains so-called
+event related synchronizations (ERS) / desynchronizations (ERD) in
 the beta band.
 """
 
@@ -115,14 +115,24 @@ mne.viz.tight_layout()
 plt.show()
 
 ###############################################################################
+# Joint Plot
+# ----------
+# You can also create a joint plot showing both the aggregated TFR
+# across channels and topomaps at specific times and frequencies to obtain
+# a quick overview regarding oscillatory effects across time and space.
+
+power.plot_joint(baseline=(-0.5, 0), mode='mean', tmin=-.5, tmax=2,
+                 timefreqs=[(.5, 10), (1.3, 8)])
+
+###############################################################################
 # Inspect ITC
 # -----------
 itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
 
 ###############################################################################
 # .. note::
-#     Baseline correction can be applied to power or done in plots
-#     To illustrate the baseline correction in plots the next line is
+#     Baseline correction can be applied to power or done in plots.
+#     To illustrate the baseline correction in plots, the next line is
 #     commented power.apply_baseline(baseline=(-0.5, 0), mode='logratio')
 
 ###############################################################################

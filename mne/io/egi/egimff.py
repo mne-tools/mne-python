@@ -466,6 +466,7 @@ class RawMff(BaseRaw):
                 pns_idx = idx[pns_chans] - n_eeg_channels
         else:
             eeg_idx = idx
+            pns_idx = []
 
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # Go to starting block
@@ -516,8 +517,8 @@ class RawMff(BaseRaw):
                 samples_to_read = samples_to_read - samples_read
                 current_data_sample = current_data_sample + samples_read
 
-        if 'pns_names' in egi_info:
-            # PNS Data is present
+        if 'pns_names' in egi_info and len(pns_chans) > 0:
+            # PNS Data is present and should be read:
             pns_filepath = egi_info['pns_filepath']
             n_pns_channels = egi_info['n_pns_channels']
             pns_info = egi_info['pns_sample_blocks']

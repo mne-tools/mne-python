@@ -253,7 +253,11 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
             node_colors = cycle(node_colors)
     else:
         # assign colors using colormap
-        node_colors = [plt.cm.spectral(i / float(n_nodes))
+        try:
+            spectral = plt.cm.spectral
+        except AttributeError:
+            spectral = plt.cm.Spectral
+        node_colors = [spectral(i / float(n_nodes))
                        for i in range(n_nodes)]
 
     # handle 1D and 2D connectivity information

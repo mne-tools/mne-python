@@ -13,7 +13,7 @@ References
 .. [1] Gramfort A., Kowalski M. and Hamalainen, M.
    "Mixed-norm estimates for the M/EEG inverse problem using accelerated
    gradient methods", Physics in Medicine and Biology, 2012.
-   http://dx.doi.org/10.1088/0031-9155/57/7/1937.
+   https://doi.org/10.1088/0031-9155/57/7/1937.
 
 .. [2] Strohmeier D., Haueisen J., and Gramfort A.
    "Improved MEG/EEG source localization with reweighted mixed-norms",
@@ -102,8 +102,9 @@ stc = make_stc_from_dipoles(dipoles, forward['src'])
 
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
+solver = "MxNE" if n_mxne_iter == 1 else "irMxNE"
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
-                             fig_name="MxNE (cond %s)" % condition,
+                             fig_name="%s (cond %s)" % (solver, condition),
                              opacity=0.1)
 
 ###############################################################################
@@ -114,5 +115,5 @@ src_fsaverage_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
 src_fsaverage = mne.read_source_spaces(src_fsaverage_fname)
 
 plot_sparse_source_estimates(src_fsaverage, stc_fsaverage, bgcolor=(1, 1, 1),
-                             fig_name="Morphed MxNE (cond %s)" % condition,
-                             opacity=0.1)
+                             fig_name="Morphed %s (cond %s)" % (solver,
+                             condition), opacity=0.1)

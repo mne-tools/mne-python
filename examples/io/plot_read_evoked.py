@@ -24,7 +24,7 @@ evoked = read_evokeds(fname, condition=condition, baseline=(None, 0),
                       proj=True)
 
 ###############################################################################
-# Show result as a butteryfly plot:
+# Show result as a butterfly plot:
 # By using exclude=[] bad channels are not excluded and are shown in red
 evoked.plot(exclude=[])
 

@@ -17,7 +17,7 @@ from .utils import (tight_layout, _prepare_trellis, _select_bads,
                     _helper_raw_resize, _plot_raw_onkey, plt_show)
 from .topomap import (_prepare_topo_plot, plot_topomap, _hide_frame,
                       _plot_ica_topomap)
-from .raw import _prepare_mne_browse_raw, _plot_raw_traces
+from .raw import _prepare_mne_browse_raw, _plot_raw_traces, _convert_psds
 from .epochs import _prepare_mne_browse_epochs, plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from ..utils import warn
@@ -258,9 +258,9 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
             fig, axes = _create_properties_layout(figsize=figsize)
 
         # spectrum
-        this_psd = psds[:, idx, :]
-        if dB:
-            this_psd = 10 * np.log10(this_psd)
+        this_psd = psds[:, idx, :].copy()
+        psd_ylabel = _convert_psds(this_psd, dB, estimate='auto', scaling=1.,
+                                   unit='AU', ch_names=ica.ch_names)
         psds_mean = this_psd.mean(axis=0)
         diffs = this_psd - psds_mean
         # the distribution of power for each frequency bin is highly
@@ -301,10 +301,10 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         # ----------
         axes[0].set_title(ica._ica_names[pick])
 
-        set_title_and_labels(axes[1], 'epochs image and ERP/ERF', [], 'Epochs')
+        set_title_and_labels(axes[1], 'Epochs image and ERP/ERF', [], 'Epochs')
 
         # erp
-        set_title_and_labels(axes[2], [], 'time', 'AU\n')
+        set_title_and_labels(axes[2], [], 'Time (s)', 'AU\n')
         axes[2].spines["right"].set_color('k')
         axes[2].set_xlim(epochs_src.times[[0, -1]])
         # remove half of yticks if more than 5
@@ -320,8 +320,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         axes[1].set_ylim([-0.5, ica_data.shape[1] + 0.5])
 
         # spectrum
-        ylabel = 'dB' if dB else 'power'
-        set_title_and_labels(axes[3], 'spectrum', 'frequency', ylabel)
+        set_title_and_labels(axes[3], 'Spectrum', 'Frequency (Hz)', psd_ylabel)
         axes[3].yaxis.labelpad = 0
         axes[3].set_xlim(freqs[[0, -1]])
         ylim = axes[3].get_ylim()
@@ -330,7 +329,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         axes[1].axhline(0, color='k', linewidth=.5)
 
         # epoch variance
-        set_title_and_labels(axes[4], 'epochs variance', 'epoch', 'AU')
+        set_title_and_labels(axes[4], 'Epochs variance', 'Epoch (index)', 'AU')
 
         all_fig.append(fig)
 
@@ -418,10 +417,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
             lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
                                  color='k', zorder=1))
 
-    ax.set_title(title)
-    ax.set_xlim(times[[0, -1]])
-    ax.set_xlabel('Time (ms)')
-    ax.set_ylabel('(NA)')
+    ax.set(title=title, xlim=times[[0, -1]], xlabel='Time (ms)', ylabel='(NA)')
     if len(exclude) > 0:
         plt.legend(loc='best')
     tight_layout(fig=fig)
@@ -525,7 +521,7 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
         if len(my_range) != len(this_scores):
             raise ValueError('The length of `scores` must equal the '
                              'number of ICA components.')
-        ax.bar(my_range, this_scores, color='w', edgecolor='k')
+        ax.bar(my_range, this_scores, color='gray', edgecolor='k')
         for excl in exclude:
             ax.bar(my_range[excl], this_scores[excl], color='r', edgecolor='k')
         if axhline is not None:
@@ -613,7 +609,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
                             start=start, stop=stop)
         data_cln, _ = raw_cln[picks, start_compare:stop_compare]
         fig = _plot_ica_overlay_raw(data=data, data_cln=data_cln,
-                                    times=times * 1e3, title=title,
+                                    times=times, title=title,
                                     ch_types_used=ch_types_used, show=show)
     elif isinstance(inst, Evoked):
         if start is not None and stop is not None:
@@ -652,10 +648,7 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
     plt.suptitle(title)
     ax1.plot(times, data.T, color='r')
     ax1.plot(times, data_cln.T, color='k')
-    ax1.set_xlabel('time (s)')
-    ax1.set_xlim(times[0], times[-1])
-    ax1.set_xlim(times[0], times[-1])
-    ax1.set_title('Raw data')
+    ax1.set(xlabel='Time (s)', xlim=times[[0, -1]], title='Raw data')
 
     _ch_types = {'mag': 'Magnetometers',
                  'grad': 'Gradiometers',
@@ -664,9 +657,7 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
     ax2.set_title('Average across channels ({0})'.format(ch_types))
     ax2.plot(times, data.mean(0), color='r')
     ax2.plot(times, data_cln.mean(0), color='k')
-    ax2.set_xlim(100, 106)
-    ax2.set_xlabel('time (ms)')
-    ax2.set_xlim(times[0], times[-1])
+    ax2.set(xlabel='Time (s)', xlim=times[[0, -1]])
     tight_layout(fig=fig)
 
     fig.subplots_adjust(top=0.90)
@@ -775,7 +766,8 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
                   ch_start=0, t_start=start, info=info, duration=duration,
                   ica=ica, n_channels=n_channels, times=times, types=types,
                   n_times=raw.n_times, bad_color=bad_color, picks=picks,
-                  first_time=first_time, data_picks=[], decim=1)
+                  first_time=first_time, data_picks=[], decim=1,
+                  noise_cov=None, whitened_ch_names=())
     _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0
@@ -872,15 +864,11 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
     n_epochs = stop - start
     if n_epochs <= 0:
         raise RuntimeError('Stop must be larger than start.')
-    params = {'ica': ica,
-              'epochs': epochs,
-              'info': info,
-              'orig_data': data,
-              'bads': list(),
-              'bad_color': (1., 0., 0.),
-              't_start': start * len(epochs.times),
-              'data_picks': [],
-              'decim': 1}
+    params = dict(ica=ica, epochs=epochs, info=info, orig_data=data,
+                  bads=list(), bad_color=(1., 0., 0.),
+                  t_start=start * len(epochs.times),
+                  data_picks=list(), decim=1, whitened_ch_names=(),
+                  noise_cov=None)
     params['label_click_fun'] = partial(_label_clicked, params=params)
     _prepare_mne_browse_epochs(params, projs=list(), n_channels=20,
                                n_epochs=n_epochs, scalings=scalings,
@@ -926,7 +914,7 @@ def _label_clicked(pos, params):
     if line_idx >= len(params['picks']):
         return
     ic_idx = [params['picks'][line_idx]]
-    if params['types'][ic_idx[0]] != 'misc':
+    if params['types'][line_idx] != 'misc':
         warn('Can only plot ICA components.')
         return
     types = list()
@@ -962,6 +950,6 @@ def _label_clicked(pos, params):
             plot_topomap(data_.flatten(), pos, axes=ax, show=False)
             _hide_frame(ax)
     tight_layout(fig=fig)
-    fig.subplots_adjust(top=0.95)
+    fig.subplots_adjust(top=0.88, bottom=0.)
     fig.canvas.draw()
     plt_show(True)

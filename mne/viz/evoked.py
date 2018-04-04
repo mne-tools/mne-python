@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Functions to plot evoked M/EEG data (besides topographies)."""
 from __future__ import print_function
 
@@ -16,21 +17,22 @@ from numbers import Integral
 
 import numpy as np
 
-from ..io.pick import (channel_type, pick_types, _picks_by_type,
-                       _pick_data_channels, _VALID_CHANNEL_TYPES,
-                       channel_indices_by_type)
+from ..io.pick import (channel_type, _pick_data_channels,
+                       _VALID_CHANNEL_TYPES, channel_indices_by_type,
+                       _DATA_CH_TYPES_SPLIT, _pick_inst, _get_channel_types,
+                       _PICK_TYPES_DATA_DICT)
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
-                    _setup_vmin_vmax, _grad_pair_pick_and_name,
-                    _validate_if_list_of_axes)
+                    _setup_vmin_vmax, _grad_pair_pick_and_name, _check_cov,
+                    _validate_if_list_of_axes, _triage_rank_sss,
+                    _connection_line, COLORS, _setup_ax_spines,
+                    _setup_plot_projector, _prepare_joint_axes,
+                    _set_title_multiple_electrodes)
 from ..utils import logger, _clean_names, warn, _pl, verbose
-from ..io.pick import pick_info, _DATA_CH_TYPES_SPLIT
-from ..io.proc_history import _get_rank_sss
 
 from .topo import _plot_evoked_topo
-from .utils import COLORS, _setup_ax_spines
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
                       _draw_outlines, _prepare_topomap, _topomap_animation,
                       _set_contour_locator)
@@ -165,23 +167,27 @@ def _rgb(x, y, z):
 def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
     """Plot (possibly colorized) channel legends for evoked plots."""
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    axis.get_figure().canvas.draw()
     bbox = axis.get_window_extent()  # Determine the correct size.
     ratio = bbox.width / bbox.height
     ax = inset_axes(axis, width=str(size / ratio) + '%',
                     height=str(size) + '%', loc=loc)
+    ax.set_adjustable("box")
     pos_x, pos_y = _prepare_topomap(pos, ax, check_nonzero=False)
     ax.scatter(pos_x, pos_y, color=colors, s=size * .8, marker='.', zorder=1)
     if bads:
         bads = np.array(bads)
-        ax.scatter(pos_x[bads], pos_y[bads], s=size / 6, marker='.', color='w',
-                   zorder=1)
+        ax.scatter(pos_x[bads], pos_y[bads], s=size / 6, marker='.',
+                   color='w', zorder=1)
     _draw_outlines(ax, outlines)
 
 
 def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  units, scalings, titles, axes, plot_type, cmap=None,
                  gfp=False, window_title=None, spatial_colors=False,
-                 set_tight_layout=True, selectable=True, zorder='unsorted'):
+                 set_tight_layout=True, selectable=True, zorder='unsorted',
+                 noise_cov=None, colorbar=True, mask=None, mask_style=None,
+                 mask_cmap=None, mask_alpha=.25):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -207,6 +213,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 
     if picks is None:
         picks = list(range(info['nchan']))
+    if len(picks) != len(set(picks)):
+        raise ValueError("`picks` are not unique. Please remove duplicates.")
 
     bad_ch_idx = [info['ch_names'].index(ch) for ch in info['bads']
                   if ch in info['ch_names']]
@@ -217,10 +225,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
               all(isinstance(ch, string_types) for ch in exclude)):
             exclude = [info['ch_names'].index(ch) for ch in exclude]
         else:
-            raise ValueError('exclude has to be a list of channel names or '
-                             '"bads"')
+            raise ValueError(
+                'exclude has to be a list of channel names or "bads"')
 
-        picks = list(set(picks).difference(exclude))
+        picks = [pick for pick in picks if pick not in exclude]
     picks = np.array(picks)
 
     types = np.array([channel_type(info, idx) for idx in picks])
@@ -252,26 +260,29 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         raise ValueError('Number of axes (%g) must match number of channel '
                          'types (%d: %s)' % (len(axes), len(ch_types_used),
                                              sorted(ch_types_used)))
-
-    # instead of projecting during each iteration let's use the mixin here.
-    if proj is True and evoked.proj is not True:
-        evoked = evoked.copy()
-        evoked.apply_proj()
-
+    noise_cov = _check_cov(noise_cov, info)
+    projector, whitened_ch_names = _setup_plot_projector(
+        info, noise_cov, proj=proj is True, nave=evoked.nave)
+    evoked = evoked.copy()
+    if len(whitened_ch_names) > 0:
+        unit = False
+    if projector is not None:
+        evoked.data[:] = np.dot(projector, evoked.data)
     if plot_type == 'butterfly':
         times = evoked.times * 1e3  # time in milliseconds
         _plot_lines(evoked.data, info, picks, fig, axes, spatial_colors, unit,
                     units, scalings, hline, gfp, types, zorder, xlim, ylim,
                     times, bad_ch_idx, titles, ch_types_used, selectable,
                     False, line_alpha=1.)
-        for ax in axes:
-            ax.set_xlabel('time (ms)')
+        plt.setp(axes, xlabel='Time (ms)')
 
     elif plot_type == 'image':
         for ax, this_type in zip(axes, ch_types_used):
             this_picks = list(picks[types == this_type])
             _plot_image(evoked.data, ax, this_type, this_picks, cmap, unit,
-                        units, scalings, evoked.times, xlim, ylim, titles)
+                        units, scalings, evoked.times, xlim, ylim, titles,
+                        colorbar=colorbar, mask=mask, mask_style=mask_style,
+                        mask_cmap=mask_cmap, mask_alpha=mask_alpha)
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=info['projs'], axes=axes,
@@ -281,8 +292,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                       plot_type=plot_type)
         _draw_proj_checkbox(None, params)
 
-    for ax in fig.axes[:len(ch_types_used) - 1]:
-        ax.set_xlabel('')
+    plt.setp(fig.axes[:len(ch_types_used) - 1], xlabel='')
     fig.canvas.draw()  # for axes plots update axes.
     if set_tight_layout:
         tight_layout(fig=fig)
@@ -328,11 +338,12 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                        params=params))
     for ax, this_type in zip(axes, ch_types_used):
         line_list = list()  # 'line_list' contains the lines for this axes
-        ch_unit = units[this_type]
-        this_scaling = 1. if scalings is None else scalings[this_type]
         if unit is False:
             this_scaling = 1.0
             ch_unit = 'NA'  # no unit
+        else:
+            this_scaling = 1. if scalings is None else scalings[this_type]
+            ch_unit = units[this_type]
         idx = list(picks[types == this_type])
         idxs.append(idx)
 
@@ -464,35 +475,98 @@ def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
 
 
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
-                xlim, ylim, titles):
+                xlim, ylim, titles, colorbar=True, mask=None, mask_cmap=None,
+                mask_style=None, mask_alpha=.25):
     """Plot images."""
     import matplotlib.pyplot as plt
+
+    if mask_style is None and mask is not None:
+        mask_style = "both"  # default
+    draw_mask = mask_style in {"both", "mask"}
+    draw_contour = mask_style in {"both", "contour"}
+
     cmap = _setup_cmap(cmap)
+    mask_cmap = cmap if mask_cmap is None else _setup_cmap(mask_cmap)
+
     ch_unit = units[this_type]
     this_scaling = scalings[this_type]
     if unit is False:
         this_scaling = 1.0
         ch_unit = 'NA'  # no unit
 
+    # mask param check and preparation
+    if draw_mask is None:
+        if mask is not None:
+            draw_mask = True
+        else:
+            draw_mask = False
+    if draw_contour is None:
+        if mask is not None:
+            draw_contour = True
+        else:
+            draw_contour = False
+    if mask is None:
+        if draw_mask:
+            warn("`mask` is None, not masking the plot ...")
+            draw_mask = False
+        if draw_contour:
+            warn("`mask` is None, not adding contour to the plot ...")
+            draw_contour = False
+
+    if draw_mask:
+        if mask.shape != data.shape:
+            raise ValueError("The mask must have the same shape as the data, "
+                             "i.e., %s, not %s" % (data.shape, mask.shape))
+        if picks is not None:
+            mask = mask[picks, :]
+
+    # Show the image
     # Set amplitude scaling
     data = this_scaling * data[picks, :]
-    im = ax.imshow(data, interpolation='nearest', origin='lower',
-                   extent=[times[0], times[-1], 0, data.shape[0]],
-                   aspect='auto', cmap=cmap[0])
+    if ylim is None or this_type not in ylim:
+        vmax = np.abs(data).max()
+        vmin = -vmax
+    else:
+        vmin, vmax = ylim[this_type]
+    extent = [times[0], times[-1], 0, len(data)]
+    im_args = dict(interpolation='nearest', origin='lower',
+                   extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
+
+    if draw_mask:
+        ax.imshow(data, alpha=mask_alpha, cmap=mask_cmap[0], **im_args)
+        im = ax.imshow(
+            np.ma.masked_where(~mask, data), cmap=cmap[0], **im_args)
+    else:
+        im = ax.imshow(data, cmap=cmap[0], **im_args)
+    if draw_contour and np.unique(mask).size == 2:
+        big_mask = np.kron(mask, np.ones((10, 10)))
+        ax.contour(big_mask, colors=["k"], extent=extent, linewidths=[.75],
+                   corner_mask=False, antialiased=False, levels=[.5])
+
     if xlim is not None:
         if xlim == 'tight':
             xlim = (times[0], times[-1])
         ax.set_xlim(xlim)
-        if ylim is not None and this_type in ylim:
-            im.set_clim(ylim[this_type])
-    cbar = plt.colorbar(im, ax=ax)
-    cbar.ax.set_title(ch_unit)
-    if cmap[1]:
-        ax.CB = DraggableColorbar(cbar, im)
-    ax.set_ylabel('channels (index)')
-    ax.set_title(titles[this_type] + ' (%d channel%s)' % (
-                 len(data), _pl(data)))
-    ax.set_xlabel('time (ms)')
+
+    if colorbar:
+        cbar = plt.colorbar(im, ax=ax)
+        cbar.ax.set_title(ch_unit)
+        if cmap[1]:
+            ax.CB = DraggableColorbar(cbar, im)
+
+    ax.set(ylabel='Channel (index)', xlabel='Time (ms)')
+
+    if (draw_mask or draw_contour) and mask is not None:
+        if mask.all():
+            t_end = ", all points masked)"
+        else:
+            fraction = 1. - np.mean(mask)
+            percent = np.floor(fraction * 100).astype(int)
+            t_end = ", " + str(percent) + "% of points masked)"
+    else:
+        t_end = ")"
+    ax.set_title(
+        titles[this_type] + ' (%d channel%s' % (len(data), _pl(data)) + t_end)
 
 
 @verbose
@@ -500,8 +574,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
                 window_title=None, spatial_colors=False, zorder='unsorted',
-                selectable=True, verbose=None):
-    """Plot evoked data using butteryfly plots.
+                selectable=True, noise_cov=None, verbose=None):
+    """Plot evoked data using butterfly plots.
 
     Left click to a line shows the channel name. Selecting an area by clicking
     and holding left mouse button plots a topographic map of the painted area.
@@ -579,6 +653,17 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
         .. versionadded:: 0.13.0
 
+    noise_cov : instance of Covariance | str | None
+        Noise covariance used to whiten the data while plotting.
+        Whitened data channel names are shown in italic.
+        Can be a string to load a covariance from disk.
+        See also :meth:`mne.Evoked.plot_white` for additional inspection
+        of noise covariance properties when whitening evoked data.
+        For data processed with SSS, the effective dependence between
+        magnetometers and gradiometers may introduce differences in scaling,
+        consider using :meth:`mne.Evoked.plot_white`.
+
+        .. versionadded:: 0.16.0
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -587,21 +672,25 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     -------
     fig : instance of matplotlib.figure.Figure
         Figure containing the butterfly plots.
+
+    See Also
+    --------
+    mne.viz.plot_evoked_white
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=ylim, proj=proj, xlim=xlim,
                         hline=hline, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="butterfly",
                         gfp=gfp, window_title=window_title,
-                        spatial_colors=spatial_colors, zorder=zorder,
-                        selectable=selectable)
+                        spatial_colors=spatial_colors, selectable=selectable,
+                        zorder=zorder, noise_cov=noise_cov)
 
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      border='none', ylim=None, scalings=None, title=None,
                      proj=False, vline=[0.0], fig_background=None,
                      merge_grads=False, legend=True, axes=None,
-                     background_color='w', show=True):
+                     background_color='w', noise_cov=None, show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -661,6 +750,12 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Background color. Typically 'k' (black) or 'w' (white; default).
 
         .. versionadded:: 0.15.0
+    noise_cov : instance of Covariance | str | None
+        Noise covariance used to whiten the data while plotting.
+        Whitened data channel names are shown in italic.
+        Can be a string to load a covariance from disk.
+
+        .. versionadded:: 0.16.0
     show : bool
         Show figure if True.
 
@@ -701,7 +796,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              fig_background=fig_background,
                              axis_facecolor=axis_facecolor,
                              font_color=font_color, merge_grads=merge_grads,
-                             legend=legend, axes=axes, show=show)
+                             legend=legend, axes=axes, show=show,
+                             noise_cov=noise_cov)
 
 
 def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
@@ -752,9 +848,11 @@ def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
                               blit=blit, show=show)
 
 
-def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
-                      clim=None, xlim='tight', proj=False, units=None,
-                      scalings=None, titles=None, axes=None, cmap='RdBu_r'):
+def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
+                      show=True, clim=None, xlim='tight', proj=False,
+                      units=None, scalings=None, titles=None, axes=None,
+                      cmap='RdBu_r', colorbar=True, mask=None,
+                      mask_style=None, mask_cmap="Greys", mask_alpha=.25):
     """Plot evoked data as images.
 
     Parameters
@@ -803,6 +901,37 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         resets the scale. Up and down arrows can be used to change the
         colormap. If 'interactive', translates to ``('RdBu_r', True)``.
         Defaults to ``'RdBu_r'``.
+    colorbar : bool
+        If True, plot a colorbar. Defaults to True.
+
+        .. versionadded:: 0.16
+    mask : ndarray | None
+        An array of booleans of the same shape as the data. Entries of the
+        data that correspond to ```False`` in the mask are masked (see
+        `do_mask` below). Useful for, e.g., masking for statistical
+        significance.
+
+        .. versionadded:: 0.16
+    mask_style: None | 'both' | 'contour' | 'mask'
+        If `mask` is not None: if 'contour', a contour line is drawn around
+        the masked areas (``True`` in `mask`). If 'mask', entries not
+        ``True`` in `mask` are shown transparently. If 'both', both a contour
+        and transparency are used.
+        If ``None``, defaults to 'both' if `mask` is not None, and is ignored
+        otherwise.
+
+         .. versionadded:: 0.16
+    mask_cmap : matplotlib colormap | (colormap, bool) | 'interactive'
+        The colormap chosen for masked parts of the image (see below), if
+        `mask` is not ``None``. If None, `cmap` is reused. Defaults to
+        ``Greys``. Not interactive. Otherwise, as `cmap`.
+    mask_alpha : float
+        A float between 0 and 1. If `mask` is not None, this sets the
+        alpha level (degree of transparency) for the masked-out segments.
+        I.e., if 0, masked-out segments are not visible at all.
+        Defaults to .25.
+
+        .. versionadded:: 0.16
 
     Returns
     -------
@@ -810,10 +939,11 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         Figure containing the images.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
-                        show=show, ylim=clim, proj=proj, xlim=xlim,
-                        hline=None, units=units, scalings=scalings,
-                        titles=titles, axes=axes, plot_type="image",
-                        cmap=cmap)
+                        show=show, ylim=clim, proj=proj, xlim=xlim, hline=None,
+                        units=units, scalings=scalings, titles=titles,
+                        axes=axes, plot_type="image", cmap=cmap,
+                        colorbar=colorbar, mask=mask, mask_style=mask_style,
+                        mask_cmap=mask_cmap, mask_alpha=mask_alpha)
 
 
 def _plot_update_evoked(params, bools):
@@ -839,26 +969,21 @@ def _plot_update_evoked(params, bools):
     params['fig'].canvas.draw()
 
 
-def plot_evoked_white(evoked, noise_cov, show=True, rank=None):
-    """Plot whitened evoked response.
+@verbose
+def plot_evoked_white(evoked, noise_cov, show=True, rank=None, verbose=None):
+    u"""Plot whitened evoked response.
 
     Plots the whitened evoked response and the whitened GFP as described in
-    [1]_. If one single covariance object is passed, the GFP panel (bottom)
-    will depict different sensor types. If multiple covariance objects are
-    passed as a list, the left column will display the whitened evoked
-    responses for each channel based on the whitener from the noise covariance
-    that has the highest log-likelihood. The left column will depict the
-    whitened GFPs based on each estimator separately for each sensor type.
-    Instead of numbers of channels the GFP display shows the estimated rank.
-    Note. The rank estimation will be printed by the logger for each noise
-    covariance estimator that is passed.
+    [1]_. This function is especially useful for investigating noise
+    covariance properties to determine if data are properly whitened (e.g.,
+    achieving expected values in line with model assumptions, see Notes below).
 
     Parameters
     ----------
     evoked : instance of mne.Evoked
         The evoked response.
     noise_cov : list | instance of Covariance | str
-        The noise covariance as computed by ``mne.cov.compute_covariance``.
+        The noise covariance. Can be a string to load a covariance from disk.
     show : bool
         Show figure if True.
     rank : dict of int | None
@@ -869,11 +994,35 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None):
         specified separately. If only one is specified, the other one gets
         estimated. Note. The rank estimation will be printed by the logger for
         each noise covariance estimator that is passed.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     fig : instance of matplotlib.figure.Figure
         The figure object containing the plot.
+
+    See Also
+    --------
+    mne.Evoked.plot
+
+    Notes
+    -----
+    If baseline signals match the assumption of Gaussian white noise,
+    values should be centered at 0, and be within 2 standard deviations
+    (±1.96) for 95% of the time points. For the global field power (GFP),
+    we expect it to fluctuate around a value of 1.
+
+    If one single covariance object is passed, the GFP panel (bottom)
+    will depict different sensor types. If multiple covariance objects are
+    passed as a list, the left column will display the whitened evoked
+    responses for each channel based on the whitener from the noise covariance
+    that has the highest log-likelihood. The left column will depict the
+    whitened GFPs based on each estimator separately for each sensor type.
+    Instead of numbers of channels the GFP display shows the estimated rank.
+    Note. The rank estimation will be printed by the logger
+    (if ``verbose=True``) for each noise covariance estimator that is passed.
 
     References
     ----------
@@ -883,35 +1032,6 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None):
     """
     return _plot_evoked_white(evoked=evoked, noise_cov=noise_cov,
                               scalings=None, rank=rank, show=show)
-
-
-def _match_proj_type(proj, ch_names):
-    """See if proj should be counted."""
-    proj_ch_names = proj['data']['col_names']
-    select = any(kk in ch_names for kk in proj_ch_names)
-    return select
-
-
-def _check_estimated_rank(this_estimated_rank, this_picks, this_info, evoked,
-                          cov, ch_type, has_meg, has_sss):
-    """Compare estimated against expected rank."""
-    expected_rank = len(this_picks)
-    expected_rank_reduction = 0
-    if has_meg and has_sss and ch_type == 'meg':
-        sss_rank = _get_rank_sss(evoked)
-        expected_rank_reduction += (expected_rank - sss_rank)
-    n_ssp = sum(_match_proj_type(pp, this_info['ch_names'])
-                for pp in cov['projs'])
-    expected_rank_reduction += n_ssp
-    expected_rank -= expected_rank_reduction
-    if this_estimated_rank != expected_rank:
-        logger.debug(
-            'For (%s) the expected and estimated rank diverge '
-            '(%i VS %i). \nThis may lead to surprising reults. '
-            '\nPlease consider using the `rank` parameter to '
-            'manually specify the spatial degrees of freedom.' % (
-                ch_type, expected_rank, this_estimated_rank
-            ))
 
 
 def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
@@ -931,40 +1051,13 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
     """
     from ..cov import whiten_evoked, read_cov  # recursive import
-    from ..cov import _estimate_rank_meeg_cov
     import matplotlib.pyplot as plt
-    if scalings is None:
-        scalings = dict(mag=1e12, grad=1e11, eeg=1e5)
-    if rank is None:
-        rank = {}
-    ch_used = [ch for ch in ['eeg', 'grad', 'mag'] if ch in evoked]
-    has_meg = 'mag' in ch_used and 'grad' in ch_used
 
     if isinstance(noise_cov, string_types):
         noise_cov = read_cov(noise_cov)
     if not isinstance(noise_cov, (list, tuple)):
         noise_cov = [noise_cov]
 
-    if 'meg' in rank and ('grad' in rank or 'mag' in rank):
-        raise ValueError('Either pass rank for mag and/or grad or for meg')
-
-    has_sss = False
-    if len(evoked.info['proc_history']) > 0:
-        # if SSSed, mags and grad are not longer independent
-        # for correct display of the whitening we will drop the cross-terms
-        # (the gradiometer * magnetometer covariance)
-        has_sss = (evoked.info['proc_history'][0].get('max_info') is not
-                   None and has_meg)
-    if has_sss:
-        logger.info('SSS has been applied to data. Showing mag and grad '
-                    'whitening jointly.')
-        if 'mag' in rank or 'grad' in rank:
-            raise ValueError('When using SSS separate rank values for mag or '
-                             'grad are meaningless.')
-    else:
-        if 'meg' in rank:
-            raise ValueError('When not using SSS separate rank values for mag '
-                             'or grad must be passed separately.')
     evoked = evoked.copy()  # handle ref meg
     passive_idx = [idx for idx, proj in enumerate(evoked.info['projs'])
                    if not proj['active']]
@@ -972,61 +1065,17 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     for idx in passive_idx[::-1]:  # reverse order so idx does not change
         evoked.del_proj(idx)
 
-    picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
-                       exclude='bads')
-    evoked.pick_channels([evoked.ch_names[k] for k in picks])
-    # important to re-pick. will otherwise crash on systems with ref channels
-    # as first sensor block
-    picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
-                       exclude='bads')
-
-    picks_list = _picks_by_type(evoked.info, meg_combined=has_sss)
-    if has_meg and has_sss:
-        # reduce ch_used to combined mag grad
-        ch_used = list(zip(*picks_list))[0]
-    # order pick list by ch_used (required for compat with plot_evoked)
-    picks_list = [x for x, y in sorted(zip(picks_list, ch_used))]
-    n_ch_used = len(ch_used)
-
-    # make sure we use the same rank estimates for GFP and whitening
-
-    picks_list2 = [k for k in picks_list]
-    # add meg picks if needed.
-    if 'grad' in evoked and 'mag' in evoked:
-        # append ("meg", picks_meg)
-        picks_list2 += _picks_by_type(evoked.info, meg_combined=True)
-
-    rank_list = []  # rank dict for each cov
-    for cov in noise_cov:
-        this_rank = {}
-        C = cov['data'].copy()
-        # assemble rank dict for this cov, such that we have meg
-        for ch_type, this_picks in picks_list2:
-            # if we have already estimates / values for mag/grad but not
-            # a value for meg, combine grad and mag.
-            if ('mag' in this_rank and 'grad' in this_rank and
-                    'meg' not in rank):
-                this_rank['meg'] = this_rank['mag'] + this_rank['grad']
-                # and we're done here
-                break
-
-            if rank.get(ch_type) is None:
-                this_info = pick_info(evoked.info, this_picks)
-                idx = np.ix_(this_picks, this_picks)
-                this_estimated_rank = _estimate_rank_meeg_cov(
-                    C[idx], this_info, scalings)
-                _check_estimated_rank(
-                    this_estimated_rank, this_picks, this_info, evoked,
-                    cov, ch_type, has_meg, has_sss)
-                this_rank[ch_type] = this_estimated_rank
-            elif rank.get(ch_type) is not None:
-                this_rank[ch_type] = rank[ch_type]
-
-        rank_list.append(this_rank)
+    evoked.pick_types(ref_meg=False, exclude='bads', **_PICK_TYPES_DATA_DICT)
+    n_ch_used, rank_list, picks_list, has_sss = _triage_rank_sss(
+        evoked.info, noise_cov, rank, scalings)
+    del rank, scalings
+    if has_sss:
+        logger.info('SSS has been applied to data. Showing mag and grad '
+                    'whitening jointly.')
 
     # get one whitened evoked per cov
-    evokeds_white = [whiten_evoked(evoked, n, picks, rank=r)
-                     for n, r in zip(noise_cov, rank_list)]
+    evokeds_white = [whiten_evoked(evoked, cov, picks=None, rank=r)
+                     for cov, r in zip(noise_cov, rank_list)]
 
     def whitened_gfp(x, rank=None):
         """Whitened Global Field Power.
@@ -1071,8 +1120,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         titles_['meg'] = 'MEG (combined)'
 
     colors = [plt.cm.Set1(i) for i in np.linspace(0, 0.5, len(noise_cov))]
-    ch_colors = {'eeg': 'black', 'mag': 'blue', 'grad': 'cyan',
-                 'meg': 'steelblue'}
+    ch_colors = _handle_default('color', None)
     iter_gfp = zip(evokeds_white, noise_cov, rank_list, colors)
 
     # the first is by law the best noise cov, on the left we plot that one.
@@ -1081,9 +1129,12 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                               hline=[-1.96, 1.96], show=False)
     else:
         for ((ch_type, picks), ax) in zip(picks_list, axes_evoked):
-            ax.plot(times, evokeds_white[0].data[picks].T, color='k')
+            ax.plot(times, evokeds_white[0].data[picks].T, color='k',
+                    lw=0.5)
             for hline in [-1.96, 1.96]:
-                ax.axhline(hline, color='red', linestyle='--')
+                ax.axhline(hline, color='red', linestyle='--', lw=2)
+            ax.set(title='{0} ({1} channels)'.format(titles_[ch_type],
+                                                     len(picks)))
 
     # Now plot the GFP for all covs if indicated.
     for evoked_white, noise_cov, rank_, color in iter_gfp:
@@ -1098,19 +1149,19 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
             ax = ax_gfp[i]
             ax.set_title(title if n_columns > 1 else
-                         'whitened global field power (GFP),'
-                         ' method = "%s"' % label)
+                         'Whitened GFP, method = "%s"' % label)
 
             data = evoked_white.data[sub_picks]
             gfp = whitened_gfp(data, rank=this_rank)
+            # Wrap SSS-processed data (MEG) to the mag color
+            color_ch = 'mag' if ch == 'meg' else ch
             ax.plot(times, gfp,
                     label=label if n_columns > 1 else title,
-                    color=color if n_columns > 1 else ch_colors[ch])
-            ax.set_xlabel('times [ms]')
-            ax.set_ylabel('GFP [chi^2]')
-            ax.set_xlim(times[0], times[-1])
-            ax.set_ylim(0, 10)
-            ax.axhline(1, color='red', linestyle='--')
+                    color=color if n_columns > 1 else ch_colors[color_ch],
+                    lw=0.5)
+            ax.set(xlabel='Time (ms)', ylabel='GFP ($\chi^2$)',
+                   xlim=[times[0], times[-1]], ylim=(0, 10))
+            ax.axhline(1, color='red', linestyle='--', lw=2.)
             if n_columns > 1:
                 i += 1
 
@@ -1163,28 +1214,12 @@ def plot_snr_estimate(evoked, inv, show=True):
     #  http://bconnelly.net/2013/10/creating-colorblind-friendly-figures/
     ax.plot(evoked.times, snr_est, color=[0.0, 0.6, 0.5])
     ax.plot(evoked.times, snr, color=[0.8, 0.4, 0.0])
-    ax.set_xlim(lims[:2])
-    ax.set_ylim(lims[2:])
-    ax.set_ylabel('SNR')
-    ax.set_xlabel('Time (sec)')
+    ax.set(xlim=lims[:2], ylim=lims[2:], ylabel='SNR', xlabel='Time (s)')
     if evoked.comment is not None:
         ax.set_title(evoked.comment)
     plt.draw()
     plt_show(show)
     return fig
-
-
-def _connection_line(x, fig, sourceax, targetax):
-    """Connect time series and topolots."""
-    from matplotlib.lines import Line2D
-    transFigure = fig.transFigure.inverted()
-    tf = fig.transFigure
-
-    (xt, yt) = transFigure.transform(targetax.transAxes.transform([.5, .25]))
-    (xs, _) = transFigure.transform(sourceax.transData.transform([x, 0]))
-    (_, ys) = transFigure.transform(sourceax.transAxes.transform([0, 1]))
-    return Line2D((xt, xs), (yt, ys), transform=tf, color='grey',
-                  linestyle='-', linewidth=1.5, alpha=.66, zorder=0)
 
 
 def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
@@ -1251,24 +1286,9 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
     # channel selection
     # simply create a new evoked object with the desired channel selection
-    evoked = evoked.copy()
-
-    if picks is not None:
-        pick_names = [evoked.info['ch_names'][pick] for pick in picks]
-    else:  # only pick channels that are plotted
-        picks = _pick_data_channels(evoked.info, exclude=[])
-        pick_names = [evoked.info['ch_names'][pick] for pick in picks]
-    evoked.pick_channels(pick_names)
-
-    if exclude == 'bads':
-        exclude = [ch for ch in evoked.info['bads']
-                   if ch in evoked.info['ch_names']]
-    if exclude is not None:
-        evoked.drop_channels(exclude)
-
+    evoked = _pick_inst(evoked, picks, exclude, copy=True)
     info = evoked.info
-    data_types = {'eeg', 'grad', 'mag', 'seeg', 'ecog', 'hbo', 'hbr'}
-    ch_types = set(ch_type for ch_type in data_types if ch_type in evoked)
+    ch_types = _get_channel_types(info)
 
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
@@ -1277,9 +1297,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
             ev_ = evoked.copy().pick_channels(
                 [info['ch_names'][idx] for idx in range(info['nchan'])
                  if channel_type(info, idx) == this_type])
-            if len(set([channel_type(ev_.info, idx)
-                        for idx in range(ev_.info['nchan'])
-                        if channel_type(ev_.info, idx) in data_types])) > 1:
+            if len(_get_channel_types(ev_.info)) > 1:
                 raise RuntimeError('Possibly infinite loop due to channel '
                                    'selection problem. This should never '
                                    'happen! Please check your channel types.')
@@ -1289,10 +1307,12 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                     exclude=list(), topomap_args=topomap_args))
         return figs
 
-    fig = plt.figure(figsize=(8.0, 4.2))
-
     # set up time points to show topomaps for
     times = _process_times(evoked, times, few=True)
+
+    # prepare axes for topomap
+    fig, ts_ax, map_ax, cbar_ax = _prepare_joint_axes(len(times),
+                                                      figsize=(8.0, 4.2))
 
     # butterfly/time series plot
     # most of this code is about passing defaults on demand
@@ -1317,12 +1337,6 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                       horizontalalignment='center',
                       verticalalignment='center')
         title_ax.axis('off')
-
-    # prepare axes for topomap
-    # slightly convoluted due to colorbar placement and for vertical alignment
-    ts = len(times) + 2
-    map_ax = [plt.subplot(4, ts, x + 2 + ts) for x in range(ts - 2)]
-    cbar_ax = plt.subplot(4, 3 * (ts + 1), 6 * (ts + 1))
 
     # topomap
     contours = topomap_args.get('contours', 6)
@@ -1431,14 +1445,18 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
             ymin_bound = round(ymin_bound / precision) * precision
         if ymin is None:
             ymax_bound = round(ymax_bound / precision) * precision
-    else:
-        ticks = axes.get_yticks()
-        ymin_bound, ymax_bound = ticks[[1, -2]]
-        if ymin_bound > 0:
-            ymin_bound = 0
-        ymin_bound = ymin if ymin is not None else ymin_bound
-        ymax_bound = ymax if ymax is not None else ymax_bound
-    axes.spines['left'].set_bounds(ymin_bound, ymax_bound)
+        axes.spines['left'].set_bounds(ymin_bound, ymax_bound)
+    else:  # code stolen from seaborn
+        yticks = axes.get_yticks()
+        firsttick = np.compress(yticks >= min(axes.get_ylim()),
+                                yticks)[0]
+        lasttick = np.compress(yticks <= max(axes.get_ylim()),
+                               yticks)[-1]
+        axes.spines['left'].set_bounds(firsttick, lasttick)
+        newticks = yticks.compress(yticks <= lasttick)
+        newticks = newticks.compress(newticks >= firsttick)
+        axes.set_yticks(newticks)
+        ymin_bound, ymax_bound = newticks[[0, -1]]
     return ymin_bound, ymax_bound
 
 
@@ -1459,13 +1477,15 @@ def _combine_grad(evoked, picks):
     return evoked
 
 
-def _check_loc_legal(loc, what='your choice'):
+def _check_loc_legal(loc, what='your choice', default=1):
     """Check if loc is a legal location for MPL subordinate axes."""
-    true_default = {"show_legend": 3, "show_sensors": 4}.get(what, 1)
+    true_default = {"show_legend": 3, "show_sensors": 4}.get(what, default)
+    if isinstance(loc, bool) and loc:
+        loc = true_default
     loc_dict = {'upper right': 1, 'upper left': 2, 'lower left': 3,
                 'lower right': 4, 'right': 5, 'center left': 6,
                 'center right': 7, 'lower center': 8, 'upper center': 9,
-                'center': 10, True: true_default}
+                'center': 10}
     loc_ = loc_dict.get(loc, loc)
     if loc_ not in range(11):
         raise ValueError(str(loc) + " is not a legal MPL loc, please supply"
@@ -1787,7 +1807,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     one_evoked = evokeds[conditions[0]][0]
     times = one_evoked.times
     info = one_evoked.info
-    ch_names = one_evoked.ch_names
     tmin, tmax = times[0], times[-1]
 
     if vlines == "auto" and (tmin < 0 and tmax > 0):
@@ -1842,15 +1861,15 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     if len(ch_types) > 1:
         logger.info("Multiple channel types selected, returning one figure "
                     "per type.")
-        figs = []
+        figs = list()
         for ii, t in enumerate(ch_types):
             picks_ = picks_by_types[t]
             title_ = "GFP, " + t if (title is None and gfp is True) else title
             figs.append(plot_compare_evokeds(
                 evokeds, picks=picks_, gfp=gfp, colors=colors,
                 linestyles=linestyles, styles=styles, vlines=vlines, ci=ci,
-                truncate_yaxis=truncate_yaxis, ylim=ylim,
-                invert_y=invert_y, axes=axes[ii], title=title_, show=show))
+                truncate_yaxis=truncate_yaxis, ylim=ylim, invert_y=invert_y,
+                axes=axes[ii], title=title_, show=show))
         return figs
 
     # From now on there is only 1 channel type
@@ -1978,7 +1997,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     for condition in conditions:
         # plot the actual data ('d') as a line
         d = data_dict[condition].T
-        ax.plot(times, d, zorder=1000, label=condition, **styles[condition])
+        ax.plot(times, d, zorder=1000, label=condition, clip_on=False,
+                **styles[condition])
         if np.any(d > 0) or all_positive:
             any_positive = True
         if np.any(d < 0):
@@ -1988,7 +2008,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         if _ci_fun is not None:
             ci_ = ci_dict[condition]
             ax.fill_between(times, ci_[0].flatten(), ci_[1].flatten(),
-                            zorder=9, color=styles[condition]['c'], alpha=.3)
+                            zorder=9, color=styles[condition]['c'], alpha=.3,
+                            clip_on=False)
 
     # truncate the y axis
     orig_ymin, orig_ymax = ax.get_ylim()
@@ -2011,10 +2032,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             warn("ymin is all-positive, not truncating yaxis")
         ymax_bound = ax.get_ylim()[-1]
 
-    title = ", ".join(ch_names[:6]) if title is None else title
-    if len(ch_names) > 6 and gfp is False:
-        warn("More than 6 channels, truncating title ...")
-        title += ", ..."
+    title = _set_title_multiple_electrodes(
+        title, "average" if gfp is False else "gfp", ch_names)
     ax.set_title(title)
 
     current_ymin = ax.get_ylim()[0]
@@ -2033,6 +2052,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     # and now for 3 "legends" ..
     # a head plot showing the sensors that are being plotted
     if show_sensors:
+        if show_sensors is True:
+            ymin, ymax = np.abs(ax.get_ylim())
+            show_sensors = "lower right" if ymin > ymax else "upper right"
         try:
             pos = _auto_topomap_coords(one_evoked.info, pos_picks,
                                        ignore_overlap=True, to_sphere=True)
@@ -2047,8 +2069,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                 raise TypeError("show_sensors must be numeric, str or bool, "
                                 "not " + str(type(show_sensors)))
             show_sensors = _check_loc_legal(show_sensors, "show_sensors")
-            _plot_legend(pos, ["k" for pick in picks], ax, list(), outlines,
-                         show_sensors, size=20)
+            _plot_legend(pos, ["k" for _ in picks], ax, list(), outlines,
+                         show_sensors, size=25)
 
     # the condition legend
     if len(conditions) > 1 and show_legend is not False:
@@ -2078,8 +2100,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             ax_cb.set_yticks(np.arange(len(the_colors)))
             ax_cb.set_yticklabels(np.array(color_conds)[color_order])
         ax_cb.yaxis.tick_right()
-        ax_cb.set_xticks(())
-        ax_cb.set_ylabel(cmap_label)
+        ax_cb.set(xticks=(), ylabel=cmap_label)
 
     plt_show(show)
     return ax.figure

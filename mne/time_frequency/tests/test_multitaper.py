@@ -2,7 +2,7 @@ from distutils.version import LooseVersion
 import warnings
 
 import numpy as np
-from nose.tools import assert_raises
+import pytest
 from numpy.testing import assert_array_almost_equal
 
 from mne.time_frequency import psd_multitaper
@@ -46,7 +46,7 @@ def test_multitaper_psd():
         sfreq = 500
         info = create_info(n_channels, sfreq, 'eeg')
         raw = RawArray(data, info)
-        assert_raises(ValueError, psd_multitaper, raw, sfreq,
+        pytest.raises(ValueError, psd_multitaper, raw, sfreq,
                       normalization='foo')
         ni_5 = (LooseVersion(ni.__version__) >= LooseVersion('0.5'))
         norm = 'full' if ni_5 else 'length'
@@ -62,3 +62,5 @@ def test_multitaper_psd():
                 # nitime's frequency definitions must be incorrect,
                 # they give the same values for 100 and 101 samples
                 assert_array_almost_equal(freqs, freqs_ni)
+        with pytest.raises(ValueError, match='use a value of at least'):
+            psd_multitaper(raw, bandwidth=4.9)

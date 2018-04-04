@@ -3,20 +3,26 @@
 #
 # License: BSD (3-clause)
 
+from copy import deepcopy
+from distutils.version import LooseVersion
 import os.path as op
 import shutil
+from unittest import SkipTest
 
 import warnings
 from nose.tools import assert_raises, assert_equal, assert_true
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
+from scipy import io
 
 from mne import write_events, read_epochs_eeglab, Epochs, find_events
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.eeglab.eeglab import read_events_eeglab
+from mne.io.eeglab import read_annotations_eeglab
 from mne.datasets import testing
-from mne.utils import _TempDir, run_tests_if_main, requires_version
+from mne.utils import _TempDir, run_tests_if_main
+
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 raw_fname = op.join(base_dir, 'test_raw.set')
@@ -28,11 +34,9 @@ montage = op.join(base_dir, 'test_chans.locs')
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
-@requires_version('scipy', '0.12')
 @testing.requires_testing_data
 def test_io_set():
     """Test importing EEGLAB .set files."""
-    from scipy import io
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         # main tests, and test missing event_id
@@ -116,10 +120,28 @@ def test_io_set():
                 'epoch': eeg.epoch, 'event': eeg.event[0],
                 'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
-                    op.join(temp_dir, 'test_one_event.fdt'))
+                    one_event_fname.replace('.set', '.fdt'))
     event_id = {eeg.event[0].type: 1}
-    read_raw_eeglab(input_fname=one_event_fname, montage=montage,
-                    event_id=event_id, preload=True)
+    test_raw = read_raw_eeglab(input_fname=one_event_fname, montage=montage,
+                               event_id=event_id, preload=True)
+
+    # test that sample indices are read python-wise (zero-based)
+    assert find_events(test_raw)[0, 0] == round(eeg.event[0].latency) - 1
+
+    # test negative event latencies
+    negative_latency_fname = op.join(temp_dir, 'test_negative_latency.set')
+    evnts = deepcopy(eeg.event[0])
+    evnts.latency = 0
+    io.savemat(negative_latency_fname, {'EEG':
+               {'trials': eeg.trials, 'srate': eeg.srate,
+                'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
+                'epoch': eeg.epoch, 'event': evnts,
+                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
+    shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
+                    negative_latency_fname.replace('.set', '.fdt'))
+    event_id = {eeg.event[0].type: 1}
+    assert_raises(ValueError, read_raw_eeglab, montage=montage, preload=True,
+                  event_id=event_id, input_fname=negative_latency_fname)
 
     # test overlapping events
     overlap_fname = op.join(temp_dir, 'test_overlap_event.set')
@@ -129,7 +151,7 @@ def test_io_set():
                 'epoch': eeg.epoch, 'event': [eeg.event[0], eeg.event[0]],
                 'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
-                    op.join(temp_dir, 'test_overlap_event.fdt'))
+                    overlap_fname.replace('.set', '.fdt'))
     event_id = {'rt': 1, 'square': 2}
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -167,6 +189,11 @@ def test_io_set():
         for fld in range(4):
             chanlocs[ind][dt[fld][0]] = vals[fld]
 
+    if LooseVersion(np.__version__) == '1.14.0':
+        # There is a bug in 1.14.0 (or maybe with SciPy 1.0.0?) that causes
+        # this write to fail!
+        raise SkipTest('Need to fix bug in NumPy 1.14.0!')
+
     # save set file
     one_chanpos_fname = op.join(temp_dir, 'test_chanpos.set')
     io.savemat(one_chanpos_fname, {'EEG':
@@ -187,7 +214,7 @@ def test_io_set():
                                      chanlocs[i]['X'],
                                      chanlocs[i]['Z']]))
     # position of the last channel should be zero
-    assert_array_equal(raw.info['chs'][-1]['loc'][:3], np.array([0., 0., 0.]))
+    assert_array_equal(raw.info['chs'][-1]['loc'][:3], [np.nan] * 3)
 
     # test reading channel names from set and positions from montage
     with warnings.catch_warnings(record=True) as w:
@@ -198,7 +225,7 @@ def test_io_set():
     assert_equal(len(w), 1)
 
     # when montage was passed - channel positions should be taken from there
-    correct_pos = [[-0.56705965, 0.67706631, 0.46906776], [0., 0., 0.],
+    correct_pos = [[-0.56705965, 0.67706631, 0.46906776], [np.nan] * 3,
                    [0., 0.99977915, -0.02101571]]
     for ch_ind in range(3):
         assert_array_almost_equal(raw.info['chs'][ch_ind]['loc'][:3],
@@ -221,9 +248,14 @@ def test_io_set():
     for i in range(3):
         assert_equal(raw.info['chs'][i]['ch_name'], ch_names[i])
         assert_array_equal(raw.info['chs'][i]['loc'][:3],
-                           np.array([0., 0., 0.]))
+                           np.array([np.nan, np.nan, np.nan]))
 
+
+@testing.requires_testing_data
+def test_degenerate():
+    """Test some degenerate conditions."""
     # test if .dat file raises an error
+    temp_dir = _TempDir()
     eeg = io.loadmat(epochs_fname, struct_as_record=False,
                      squeeze_me=True)['EEG']
     eeg.data = 'epochs_fname.dat'
@@ -240,5 +272,15 @@ def test_io_set():
         assert_raises(NotImplementedError, read_epochs_eeglab,
                       bad_epochs_fname)
     assert_equal(len(w), 1)
+
+
+@testing.requires_testing_data
+def test_eeglab_annotations():
+    """Test reading annotations in EEGLAB files"""
+    for fname in [raw_fname_onefile, raw_fname]:
+        annotations = read_annotations_eeglab(fname)
+        assert len(annotations) == 154
+        assert set(annotations.description) == set(['rt', 'square'])
+        assert np.all(annotations.duration == 0.)
 
 run_tests_if_main()

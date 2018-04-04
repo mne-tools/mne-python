@@ -4,6 +4,7 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #          Mads Jensen <mje.mads@gmail.com>
+#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -20,7 +21,7 @@ from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
-from .viz.evoked import (_plot_evoked_white, plot_evoked_joint,
+from .viz.evoked import (plot_evoked_white, plot_evoked_joint,
                          _animate_evoked_topomap)
 
 from .externals.six import string_types
@@ -170,7 +171,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Parameters
         ----------
         fname : string
-            Name of the file where to save the data.
+            The name of the file, which should end with -ave.fif or
+            -ave.fif.gz.
 
         Notes
         -----
@@ -180,11 +182,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         write_evokeds(fname, self)
 
     def __repr__(self):  # noqa: D105
-        s = "comment : '%s'" % self.comment
-        s += ', kind : %s' % self.kind
-        s += ", time : [%f, %f]" % (self.times[0], self.times[-1])
-        s += ", n_epochs : %d" % self.nave
-        s += ", n_channels x n_times : %s x %s" % self.data.shape
+        _kind_swap = dict(average='mean', standard_error='SEM')
+        s = "'%s' (%s, N=%s)" % (self.comment, _kind_swap[self.kind],
+                                 self.nave)
+        s += ", [%0.5g, %0.5g] sec" % (self.times[0], self.times[-1])
+        s += ", %s ch" % self.data.shape[0]
         s += ", ~%s" % (sizeof_fmt(self._size),)
         return "<Evoked  |  %s>" % s
 
@@ -296,29 +298,34 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
              spatial_colors=False, zorder='unsorted', selectable=True,
-             verbose=None):
+             noise_cov=None, verbose=None):
         return plot_evoked(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
             scalings=scalings, titles=titles, axes=axes, gfp=gfp,
             window_title=window_title, spatial_colors=spatial_colors,
-            zorder=zorder, selectable=selectable, verbose=verbose)
+            zorder=zorder, selectable=selectable, noise_cov=noise_cov,
+            verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_image)
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
                    clim=None, xlim='tight', proj=False, units=None,
-                   scalings=None, titles=None, axes=None, cmap='RdBu_r'):
+                   scalings=None, titles=None, axes=None, cmap='RdBu_r',
+                   colorbar=True, mask=None, mask_style=None,
+                   mask_cmap='Greys', mask_alpha=.25):
         return plot_evoked_image(self, picks=picks, exclude=exclude, unit=unit,
-                                 show=show, clim=clim, proj=proj, xlim=xlim,
-                                 units=units, scalings=scalings,
-                                 titles=titles, axes=axes, cmap=cmap)
+                                 show=show, clim=clim, xlim=xlim, proj=proj,
+                                 units=units, scalings=scalings, titles=titles,
+                                 axes=axes, cmap=cmap, colorbar=colorbar,
+                                 mask=mask, mask_style=mask_style,
+                                 mask_cmap=mask_cmap, mask_alpha=mask_alpha)
 
     @copy_function_doc_to_method_doc(plot_evoked_topo)
     def plot_topo(self, layout=None, layout_scale=0.945, color=None,
                   border='none', ylim=None, scalings=None, title=None,
                   proj=False, vline=[0.0], fig_background=None,
                   merge_grads=False, legend=True, axes=None,
-                  background_color='w', show=True):
+                  background_color='w', noise_cov=None, show=True):
         """
 
         Notes
@@ -330,7 +337,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             border=border, ylim=ylim, scalings=scalings, title=title,
             proj=proj, vline=vline, fig_background=fig_background,
             merge_grads=merge_grads, legend=legend, axes=axes,
-            background_color=background_color, show=show)
+            background_color=background_color, noise_cov=noise_cov, show=show)
 
     @copy_function_doc_to_method_doc(plot_evoked_topomap)
     def plot_topomap(self, times="auto", ch_type=None, layout=None, vmin=None,
@@ -357,53 +364,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return plot_evoked_field(self, surf_maps, time=time,
                                  time_label=time_label, n_jobs=n_jobs)
 
-    def plot_white(self, noise_cov, show=True, rank=None):
-        """Plot whitened evoked response.
-
-        Plots the whitened evoked response and the whitened GFP as described in
-        [1]_. If one single covariance object is passed, the GFP panel (bottom)
-        will depict different sensor types. If multiple covariance objects are
-        passed as a list, the left column will display the whitened evoked
-        responses for each channel based on the whitener from the noise
-        covariance that has the highest log-likelihood. The left column will
-        depict the whitened GFPs based on each estimator separately for each
-        sensor type. Instead of numbers of channels the GFP display shows the
-        estimated rank. The rank estimation will be printed by the logger for
-        each noise covariance estimator that is passed.
-
-
-        Parameters
-        ----------
-        noise_cov : list | instance of Covariance | str
-            The noise covariance as computed by ``mne.cov.compute_covariance``.
-        show : bool
-            Whether to show the figure or not. Defaults to True.
-        rank : dict of int | None
-            Dict of ints where keys are 'eeg', 'meg', mag' or 'grad'. If None,
-            the rank is detected automatically. Defaults to None. 'mag' or
-            'grad' cannot be specified jointly with 'meg'. For SSS'd data,
-            only 'meg' is valid. For non-SSS'd data, 'mag' and/or 'grad' must
-            be specified separately. If only one is specified, the other one
-            gets estimated. Note. The rank estimation will be printed by the
-            logger for each noise covariance estimator that is passed.
-
-        Returns
-        -------
-        fig : instance of matplotlib.figure.Figure
-            The figure object containing the plot.
-
-        References
-        ----------
-        .. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
-               covariance estimation and spatial whitening of MEG and EEG
-               signals, vol. 108, 328-342, NeuroImage.
-
-        Notes
-        -----
-        .. versionadded:: 0.9.0
-        """
-        return _plot_evoked_white(self, noise_cov=noise_cov, scalings=None,
-                                  rank=rank, show=show)
+    @copy_function_doc_to_method_doc(plot_evoked_white)
+    def plot_white(self, noise_cov, show=True, rank=None, verbose=None):
+        return plot_evoked_white(self, noise_cov=noise_cov,
+                                 rank=rank, show=show, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_joint)
     def plot_joint(self, times="peaks", title='', picks=None,
@@ -566,7 +530,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             If True, return also the amplitude at the maximum response.
 
             .. versionadded:: 0.16
-            
+
         Returns
         -------
         ch_name : str
@@ -577,7 +541,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         amplitude : float
             The amplitude of the maximum response. Only returned if
             return_amplitude is True.
-        
+
             .. versionadded:: 0.16
         """
         supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'hbo',

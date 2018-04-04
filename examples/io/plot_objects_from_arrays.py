@@ -137,7 +137,7 @@ epochs.plot(scalings='auto', block=True)
 # The example here uses the ExampleIO object for creating fake data.
 # For actual data and different file formats, consult the NEO documentation.
 reader = neo.io.ExampleIO('fakedata.nof')
-bl = reader.read(cascade=True, lazy=False)[0]
+bl = reader.read(lazy=False)[0]
 
 # Get data from first (and only) segment
 seg = bl.segments[0]

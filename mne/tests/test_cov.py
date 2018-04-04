@@ -24,11 +24,12 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_covariance,
                  compute_covariance, read_evokeds, compute_proj_raw,
                  pick_channels_cov, pick_types, pick_info, make_ad_hoc_cov)
+from mne.fixes import _get_args
 from mne.io import read_raw_fif, RawArray, read_info
 from mne.tests.common import assert_naming, assert_snr
 from mne.utils import _TempDir, requires_version, run_tests_if_main
 from mne.io.proc_history import _get_sss_rank
-from mne.io.pick import channel_type, _picks_by_type
+from mne.io.pick import channel_type, _picks_by_type, _DATA_CH_TYPES_SPLIT
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -128,6 +129,12 @@ def test_ad_hoc_cov():
     out_fname = op.join(tempdir, 'test-cov.fif')
     evoked = read_evokeds(ave_fname)[0]
     cov = make_ad_hoc_cov(evoked.info)
+    cov.save(out_fname)
+    assert_true('Covariance' in repr(cov))
+    cov2 = read_cov(out_fname)
+    assert_array_almost_equal(cov['data'], cov2['data'])
+    std = dict(grad=2e-13, mag=10e-15, eeg=0.1e-6)
+    cov = make_ad_hoc_cov(evoked.info, std)
     cov.save(out_fname)
     assert_true('Covariance' in repr(cov))
     cov2 = read_cov(out_fname)
@@ -347,9 +354,11 @@ def test_regularize_cov():
     reg_noise_cov = regularize(noise_cov, raw.info,
                                mag=0.1, grad=0.1, eeg=0.1, proj=True,
                                exclude='bads')
-    assert_true(noise_cov['dim'] == reg_noise_cov['dim'])
-    assert_true(noise_cov['data'].shape == reg_noise_cov['data'].shape)
-    assert_true(np.mean(noise_cov['data'] < reg_noise_cov['data']) < 0.08)
+    assert noise_cov['dim'] == reg_noise_cov['dim']
+    assert noise_cov['data'].shape == reg_noise_cov['data'].shape
+    assert np.mean(noise_cov['data'] < reg_noise_cov['data']) < 0.08
+    # make sure all args are represented
+    assert set(_DATA_CH_TYPES_SPLIT) - set(_get_args(regularize)) == set()
 
 
 def test_whiten_evoked():
@@ -605,16 +614,27 @@ def test_compute_covariance_auto_reg():
     logliks = [c['loglik'] for c in covs]
     assert_true(np.diff(logliks).max() <= 0)  # descending order
 
-    methods = ['empirical',
-               'factor_analysis',
-               'ledoit_wolf',
-               'pca']
+    methods = ['empirical', 'factor_analysis', 'ledoit_wolf', 'oas', 'pca',
+               'shrunk', 'shrinkage']
     cov3 = compute_covariance(epochs, method=methods,
                               method_params=method_params, projs=None,
                               return_estimators=True)
+    method_names = [cov['method'] for cov in cov3]
+    for method in ['factor_analysis', 'ledoit_wolf', 'oas', 'pca',
+                   'shrinkage']:
+        this_lik = cov3[method_names.index(method)]['loglik']
+        assert -55 < this_lik < -45
+    this_lik = cov3[method_names.index('empirical')]['loglik']
+    assert -110 < this_lik < -100
+    this_lik = cov3[method_names.index('shrunk')]['loglik']
+    assert -45 < this_lik < -35
 
-    assert_equal(set([c['method'] for c in cov3]),
-                 set(methods))
+    assert_equal(set([c['method'] for c in cov3]), set(methods))
+
+    cov4 = compute_covariance(epochs, method=methods,
+                              method_params=method_params, projs=None,
+                              return_estimators=False)
+    assert cov3[0]['method'] == cov4['method']  # ordering
 
     # invalid prespecified method
     assert_raises(ValueError, compute_covariance, epochs, method='pizza')

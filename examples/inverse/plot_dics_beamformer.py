@@ -13,7 +13,7 @@ References
        interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
 """
 # Author: Roman Goj <roman.goj@gmail.com>
-#
+#         Marijn van Vliet <w.m.vanvliet@gmail.com>
 # License: BSD (3-clause)
 
 import mne
@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from mne.datasets import sample
-from mne.time_frequency import csd_epochs
+from mne.time_frequency import csd_multitaper
 from mne.beamformer import dics
 
 print(__doc__)
@@ -55,13 +55,15 @@ evoked = epochs.average()
 # Read forward operator
 forward = mne.read_forward_solution(fname_fwd)
 
-# Computing the data and noise cross-spectral density matrices
-# The time-frequency window was chosen on the basis of spectrograms from
-# example time_frequency/plot_time_frequency.py
-data_csd = csd_epochs(epochs, mode='multitaper', tmin=0.04, tmax=0.15,
-                      fmin=6, fmax=10)
-noise_csd = csd_epochs(epochs, mode='multitaper', tmin=-0.11, tmax=0.0,
-                       fmin=6, fmax=10)
+# Computing the data and noise cross-spectral density matrices using
+# multitapers. The time-frequency window was chosen on the basis of
+# spectrograms from example time_frequency/plot_time_frequency.py
+data_csd = csd_multitaper(epochs, tmin=0.04, tmax=0.15, fmin=6, fmax=10)
+noise_csd = csd_multitaper(epochs, tmin=-0.11, tmax=0.0, fmin=6, fmax=10)
+
+# Average the CSDs across the frequencies
+data_csd = data_csd.mean()
+noise_csd = noise_csd.mean()
 
 evoked = epochs.average()
 

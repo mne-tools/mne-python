@@ -16,6 +16,7 @@ from mne import create_info, Epochs, read_annotations
 from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_fif, RawArray, concatenate_raws
 from mne.annotations import Annotations, _sync_onset
+from mne.annotations import read_brainstorm_annotations
 from mne.datasets import testing
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
@@ -27,7 +28,7 @@ def test_annotations():
     """Test annotation class."""
     raw = read_raw_fif(fif_fname)
     assert raw.annotations is None
-    assert_raises(ValueError, read_annotations, fif_fname)
+    assert_raises(IOError, read_annotations, fif_fname)
     onset = np.array(range(10))
     duration = np.ones(10)
     description = np.repeat('test', 10)
@@ -109,6 +110,39 @@ def test_annotations():
         assert_allclose(getattr(annot_read, attr),
                         getattr(raw.annotations, attr))
     assert_array_equal(annot_read.description, raw.annotations.description)
+    annot = Annotations((), (), ())
+    annot.save(fname)
+    assert_raises(IOError, read_annotations, fif_fname)  # none in old raw
+    annot = read_annotations(fname)
+    assert isinstance(annot, Annotations)
+    assert len(annot) == 0
+    # Test that empty annotations can be saved with an object
+    fname = op.join(tempdir, 'test_raw.fif')
+    raw.annotations = annot
+    raw.save(fname)
+    raw_read = read_raw_fif(fname)
+    assert isinstance(raw_read.annotations, Annotations)
+    assert len(raw_read.annotations) == 0
+    raw.annotations = None
+    raw.save(fname, overwrite=True)
+    raw_read = read_raw_fif(fname)
+    assert raw_read.annotations is None
+
+
+@testing.requires_testing_data
+def test_read_brainstorm_annotations():
+    """Test reading for Brainstorm events file"""
+    fname = op.join(data_dir, 'events_sample_audvis_raw_bst.mat')
+    annot = read_brainstorm_annotations(fname)
+    assert len(annot) == 238
+    assert annot.onset.min() > 40  # takes into account first_samp
+    assert np.unique(annot.description).size == 5
+
+    # Now test with orig_time
+    orig_time = np.array([1038942070, 720100], dtype=np.int32)
+    annot = read_brainstorm_annotations(fname, orig_time=orig_time)
+    orig_time_as_scalar = orig_time[0] + orig_time[1] / 1000000.
+    assert annot.orig_time == orig_time_as_scalar
 
 
 @testing.requires_testing_data

@@ -27,6 +27,18 @@ For analysis talk, join the `MNE mailing list`_. File specific feature
 requests or bug reports `on GitHub <https://github.com/mne-tools/mne-python/issues/>`_.
 You can also chat with developers `on Gitter <https://gitter.im/mne-tools/mne-python>`_.
 
+I can't get Mayavi/3D plotting to work under Windows.
+-----------------------------------------------------
+If Mayavi plotting in Jupyter Notebooks doesn't work
+well, using the IPython magic ``%gui qt`` after importing MNE/Mayavi/PySurfer 
+should `help <https://github.com/ipython/ipython/issues/10384>`_.
+   
+.. code:: ipython
+   
+   from mayavi import mlab
+   %gui qt
+
+
 .. _cite:
 
 How do I cite MNE?
@@ -34,11 +46,11 @@ How do I cite MNE?
 If you use the implementations provided by the MNE software in your research,
 you should cite:
 
-    - A. Gramfort, M. Luessi, E. Larson, D. Engemann, D. Strohmeier, C. Brodbeck, L. Parkkonen, M. Hämäläinen, `MNE software for processing MEG and EEG data <http://www.ncbi.nlm.nih.gov/pubmed/24161808>`_, NeuroImage, Volume 86, 1 February 2014, Pages 446-460, ISSN 1053-8119, `[DOI] <http://dx.doi.org/10.1016/j.neuroimage.2013.10.027>`__
+    - A. Gramfort, M. Luessi, E. Larson, D. Engemann, D. Strohmeier, C. Brodbeck, L. Parkkonen, M. Hämäläinen, `MNE software for processing MEG and EEG data <http://www.ncbi.nlm.nih.gov/pubmed/24161808>`_, NeuroImage, Volume 86, 1 February 2014, Pages 446-460, ISSN 1053-8119, `[DOI] <https://doi.org/10.1016/j.neuroimage.2013.10.027>`__
 
 If you use the Python code you should cite as well:
 
-    - A. Gramfort, M. Luessi, E. Larson, D. Engemann, D. Strohmeier, C. Brodbeck, R. Goj, M. Jas, T. Brooks, L. Parkkonen, M. Hämäläinen, `MEG and EEG data analysis with MNE-Python <http://journal.frontiersin.org/article/10.3389/fnins.2013.00267/abstract>`_, Frontiers in Neuroscience, Volume 7, 2013, ISSN 1662-453X, `[DOI] <http://dx.doi.org/10.3389/fnins.2013.00267>`__
+    - A. Gramfort, M. Luessi, E. Larson, D. Engemann, D. Strohmeier, C. Brodbeck, R. Goj, M. Jas, T. Brooks, L. Parkkonen, M. Hämäläinen, `MEG and EEG data analysis with MNE-Python <http://journal.frontiersin.org/article/10.3389/fnins.2013.00267/abstract>`_, Frontiers in Neuroscience, Volume 7, 2013, ISSN 1662-453X, `[DOI] <https://doi.org/10.3389/fnins.2013.00267>`__
 
 To cite specific versions of the software, you can use the DOIs provided by
 `Zenodo <https://zenodo.org/search?ln=en&p=mne-python>`_.
