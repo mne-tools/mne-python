@@ -15,11 +15,12 @@ from numpy.testing import assert_raises, assert_array_equal
 from nose.tools import assert_true, assert_equal
 import pytest
 
-from mne import read_evokeds, read_proj
+from mne import read_evokeds, read_proj, make_fixed_length_events, Epochs
 from mne.io.proj import make_eeg_average_ref_proj
 from mne.io import read_raw_fif, read_info
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
+from mne.io.compensator import get_current_comp
 from mne.channels import read_layout, make_eeg_layout
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
@@ -47,6 +48,7 @@ base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
+ctf_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
 layout = read_layout('Vectorview-all')
 
 
@@ -357,5 +359,16 @@ def test_plot_tfr_topomap():
     bands = [(4, 8, 'Theta')]
     psd = np.random.rand(len(info['ch_names']), freqs.shape[0])
     plot_psds_topomap(psd, freqs, info, bands=bands, axes=[axes])
+
+
+def test_ctf_plotting():
+    """Test CTF topomap plotting."""
+    raw = read_raw_fif(ctf_fname, preload=True)
+    events = make_fixed_length_events(raw, duration=0.01)
+    assert len(events) > 10
+    evoked = Epochs(raw, events, tmin=0, tmax=0.01, baseline=None).average()
+    assert get_current_comp(evoked.info) == 3
+    evoked.plot_topomap()  # smoke test that compensation does not matter
+
 
 run_tests_if_main()
