@@ -171,7 +171,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Parameters
         ----------
         fname : string
-            Name of the file where to save the data.
+            The name of the file, which should end with -ave.fif or
+            -ave.fif.gz.
 
         Notes
         -----
