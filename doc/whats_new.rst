@@ -177,6 +177,8 @@ API
 
 - Channels with unknown locations are now assigned position ``[np.nan, np.nan, np.nan]`` instead of ``[0., 0., 0.]``, by `Eric Larson`_
 
+- :meth:`mne.Evoked.plot` will now append the number of epochs averaged for the evoked data in the first plot title, by `Eric Larson`_
+
 - Changed the line width in :func:`mne.viz.plot_bem` from 2.0 to 1.0 for better visibility of underlying structures, by `Eric Larson`_
 
 - Changed the behavior of :meth:`mne.io.Raw.pick_channels` and similar methods to be consistent with :func:`mne.pick_channels` to treat channel list as a set (ignoring order) -- if reordering is necessary use ``inst.reorder_channels``, by `Eric Larson`_

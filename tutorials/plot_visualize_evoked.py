@@ -5,7 +5,7 @@
 Visualize Evoked data
 =====================
 
-In this tutorial we focus on plotting functions of :class:`mne.Evoked`.
+In this tutorial we focus on the plotting functions of :class:`mne.Evoked`.
 """
 import os.path as op
 import numpy as np

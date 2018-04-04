@@ -208,6 +208,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         raise ValueError('gfp must be boolean or "only". Got %s' % gfp)
 
     scalings = _handle_default('scalings', scalings)
+    if titles is None:
+        append_first_title = ' $N_{ave}$=%d' % (evoked.nave,)
+    else:
+        append_first_title = ''
     titles = _handle_default('titles', titles)
     units = _handle_default('units', units)
 
@@ -273,7 +277,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         _plot_lines(evoked.data, info, picks, fig, axes, spatial_colors, unit,
                     units, scalings, hline, gfp, types, zorder, xlim, ylim,
                     times, bad_ch_idx, titles, ch_types_used, selectable,
-                    False, line_alpha=1.)
+                    False, line_alpha=1.,
+                    append_first_title=append_first_title)
         plt.setp(axes, xlabel='Time (ms)')
 
     elif plot_type == 'image':
@@ -303,7 +308,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 scalings, hline, gfp, types, zorder, xlim, ylim, times,
                 bad_ch_idx, titles, ch_types_used, selectable, psd,
-                line_alpha):
+                line_alpha, append_first_title=''):
     """Plot data as butterfly plot."""
     from matplotlib import patheffects
     from matplotlib.widgets import SpanSelector
@@ -336,7 +341,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
         fig.canvas.mpl_connect('button_press_event',
                                partial(_butterfly_on_button_press,
                                        params=params))
-    for ax, this_type in zip(axes, ch_types_used):
+    for ai, (ax, this_type) in enumerate(zip(axes, ch_types_used)):
         line_list = list()  # 'line_list' contains the lines for this axes
         if unit is False:
             this_scaling = 1.0
@@ -433,8 +438,9 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 ax.set_xlim(xlim)
             if ylim is not None and this_type in ylim:
                 ax.set_ylim(ylim[this_type])
-            ax.set_title(titles[this_type] + ' (%d channel%s)' % (len(D),
-                                                                  _pl(D)))
+            ax.set_title('%s (%d channel%s)%s'
+                         % (titles[this_type], len(D), _pl(D),
+                            append_first_title if ai == 0 else ''))
 
             if hline is not None:
                 for h in hline:
