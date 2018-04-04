@@ -5,9 +5,8 @@ Brainstorm auditory tutorial dataset
 ====================================
 
 Here we compute the evoked from raw for the auditory Brainstorm
-tutorial dataset. For comparison, see [1]_ and:
-
-    http://neuroimage.usc.edu/brainstorm/Tutorials/Auditory
+tutorial dataset. For comparison, see [1]_ and the associated
+`brainstorm site <http://neuroimage.usc.edu/brainstorm/Tutorials/Auditory>`_.
 
 Experiment:
 

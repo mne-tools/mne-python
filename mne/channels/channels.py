@@ -683,8 +683,7 @@ class UpdateChannelsMixin(object):
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
             ecog=ecog, fnirs=fnirs, include=include, exclude=exclude,
             selection=selection)
-        self._pick_drop_channels(idx)
-        return self
+        return self._pick_drop_channels(idx)
 
     def pick_channels(self, ch_names):
         """Pick some channels.
@@ -713,9 +712,8 @@ class UpdateChannelsMixin(object):
 
         .. versionadded:: 0.9.0
         """
-        self._pick_drop_channels(
+        return self._pick_drop_channels(
             pick_channels(self.info['ch_names'], ch_names))
-        return self
 
     def reorder_channels(self, ch_names):
         """Reorder channels.
@@ -750,8 +748,7 @@ class UpdateChannelsMixin(object):
             if ii in idx:
                 raise ValueError('Channel name repeated: %s' % (ch_name,))
             idx.append(ii)
-        self._pick_drop_channels(idx)
-        return self
+        return self._pick_drop_channels(idx)
 
     def drop_channels(self, ch_names):
         """Drop some channels.
@@ -794,11 +791,9 @@ class UpdateChannelsMixin(object):
         bad_idx = [self.ch_names.index(ch_name) for ch_name in ch_names
                    if ch_name in self.ch_names]
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
-        self._pick_drop_channels(idx)
+        return self._pick_drop_channels(idx)
 
-        return self
-
-    def _pick_drop_channels(self, idx):
+    def _pick_drop_channels(self, idx, check_comps=True):
         # avoid circular imports
         from ..time_frequency import AverageTFR, EpochsTFR
 
@@ -810,7 +805,7 @@ class UpdateChannelsMixin(object):
         if hasattr(self, '_cals'):
             self._cals = self._cals[idx]
 
-        if len(self.info['comps']) > 0:
+        if check_comps and len(self.info['comps']) > 0:
             current_comp = get_current_comp(self.info)
             # Check and possibly remove comps
             comp_names = sorted(set(
@@ -843,6 +838,7 @@ class UpdateChannelsMixin(object):
         # All others (Evoked, Epochs, Raw) have chs axis=-2
         axis = -3 if isinstance(self, (AverageTFR, EpochsTFR)) else -2
         self._data = self._data.take(idx, axis=axis)
+        return self
 
     def add_channels(self, add_list, force_update_info=False):
         """Append new channels to the instance.

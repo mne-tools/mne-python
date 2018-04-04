@@ -1431,8 +1431,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     else:
         data = evoked.data
 
-    evoked = evoked.copy().pick_channels(
-        [evoked.ch_names[pick] for pick in picks])
+    # Skip comps check here by using private function
+    evoked = evoked.copy()._pick_drop_channels(picks, check_comps=False)
 
     with warnings.catch_warnings(record=True):  # elementwise comparison
         interactive = times == 'interactive'
