@@ -209,7 +209,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 
     scalings = _handle_default('scalings', scalings)
     if titles is None:
-        append_first_title = ' $N_{ave}$=%d' % (evoked.nave,)
+        append_first_title = ' N$_{ave}$=%d' % (evoked.nave,)
     else:
         append_first_title = ''
     titles = _handle_default('titles', titles)
@@ -438,10 +438,13 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 ax.set_xlim(xlim)
             if ylim is not None and this_type in ylim:
                 ax.set_ylim(ylim[this_type])
-            ax.set_title('%s (%d channel%s)%s'
-                         % (titles[this_type], len(D), _pl(D),
-                            append_first_title if ai == 0 else ''))
-
+            ax.set_title('%s (%d channel%s)'
+                         % (titles[this_type], len(D), _pl(D)))
+            if ai == 0:
+                ax.annotate(
+                    append_first_title, xy=(1, 1), xycoords='axes fraction',
+                    xytext=(0, 5), textcoords='offset pixels',
+                    horizontalalignment='right', verticalalignment='bottom')
             if hline is not None:
                 for h in hline:
                     c = ('grey' if spatial_colors is True else 'r')
