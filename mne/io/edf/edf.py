@@ -618,7 +618,7 @@ def _read_edf_header(fname, annot, annotmap, exclude):
         nchan = int(fid.read(4).decode())
         channels = list(range(nchan))
         ch_names = [fid.read(16).strip().decode() for ch in channels]
-        exclude = [ch_names.index(idx) for idx in exclude]
+        exclude = _find_exclude_idx(ch_names, exclude)
         for ch in channels:
             fid.read(80)  # transducer
         units = [fid.read(8).strip().decode() for ch in channels]
@@ -758,7 +758,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
             units = [fid.read(8).decode('latin-1').strip(' \x00')
                      for ch in channels]
 
-            exclude = [ch_names.index(idx) for idx in exclude]
+            exclude = _find_exclude_idx(ch_names, exclude)
             include = list()
             for i, unit in enumerate(units):
                 if unit[:2] == 'uV':
@@ -938,7 +938,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
             channels = list(range(nchan))
             ch_names = [fid.read(16).decode().strip(' \x00')
                         for ch in channels]
-            exclude = [ch_names.index(idx) for idx in exclude]
+            exclude = _find_exclude_idx(ch_names, exclude)
 
             fid.seek(80 * len(channels), 1)  # reserved space
             fid.seek(6 * len(channels), 1)  # phys_dim, obsolete
@@ -1156,6 +1156,15 @@ def _check_stim_channel(stim_channel, ch_names, include):
                              .format(stim_channel, len(ch_names)))
 
     return stim_channel
+
+
+def _find_exclude_idx(ch_names, exclude):
+    """Find the index of all channels to exclude.
+
+    If there are several channels called "A" and we want to exclude "A",
+    then add (the index of) all "A" channels to the exclusion list.
+    """
+    return [idx for idx, ch in enumerate(ch_names) if ch in exclude]
 
 
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
