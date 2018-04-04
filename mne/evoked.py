@@ -377,7 +377,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  exclude=exclude, show=show, ts_args=ts_args,
                                  topomap_args=topomap_args)
 
-    def animate_topomap(self, ch_type='mag', times=None, frame_rate=None,
+    def animate_topomap(self, ch_type=None, times=None, frame_rate=None,
                         butterfly=False, blit=True, show=True):
         """Make animation of evoked data as topomap timeseries.
 
