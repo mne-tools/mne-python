@@ -615,7 +615,7 @@ def _read_edf_header(fname, annot, annotmap, exclude):
         subtype = os.path.splitext(fname)[1][1:].lower()
 
         n_records = int(fid.read(8).decode())
-        record_length = fid.read(8).strip('\x00').strip()
+        record_length = fid.read(8).decode().strip('\x00').strip()
         record_length = np.array([float(record_length), 1.])  # in seconds
         if record_length[0] == 0:
             record_length = record_length[0] = 1.
