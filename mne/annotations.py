@@ -174,36 +174,27 @@ class Annotations(object):
             _write_annotations(fid, self)
 
 
-def _combine_annotations(annotations, last_samps, first_samps, sfreq,
+def _combine_annotations(first, second, last_samps, first_samps, sfreq,
                          meas_date):
     """Combine a tuple of annotations."""
-    if not any(annotations):
+    if first is None and second is None:
         return None
-    elif annotations[1] is None:
-        return annotations[0]
-    elif annotations[0] is None:
-        old_onset = list()
-        old_duration = list()
-        old_description = list()
-        old_orig_time = None
-    else:
-        old_onset = annotations[0].onset
-        old_duration = annotations[0].duration
-        old_description = annotations[0].description
-        old_orig_time = annotations[0].orig_time
+    elif second is None:
+        return first
+    elif first is None:
+        first = Annotations([], [], [], None)
 
-    extra_samps = len(first_samps)  # Account for sample 0
-    if old_orig_time is not None and annotations[1].orig_time is None:
+    offset = ((last_samps - first_samps).sum() + len(first_samps)) / sfreq
+    if first.orig_time is not None and second.orig_time is None:
         meas_date = _handle_meas_date(meas_date)
-        extra_samps += sfreq * (meas_date - old_orig_time) + first_samps[0]
+        offset += meas_date - first.orig_time + first_samps[0] / sfreq
 
-    onset = annotations[1].onset + (np.sum(last_samps) + extra_samps -
-                                    np.sum(first_samps)) / sfreq
+    second_onset = second.onset + offset
 
-    onset = np.concatenate([old_onset, onset])
-    duration = np.concatenate([old_duration, annotations[1].duration])
-    description = np.concatenate([old_description, annotations[1].description])
-    return Annotations(onset, duration, description, old_orig_time)
+    onset = np.concatenate([first.onset, second_onset])
+    duration = np.concatenate([first.duration, second.duration])
+    description = np.concatenate([first.description, second.description])
+    return Annotations(onset, duration, description, first.orig_time)
 
 
 def _handle_meas_date(meas_date):

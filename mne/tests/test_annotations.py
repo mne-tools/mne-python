@@ -6,7 +6,7 @@ from datetime import datetime
 import os.path as op
 import warnings
 
-from nose.tools import assert_raises, assert_true
+import pytest
 from numpy.testing import (assert_equal, assert_array_equal,
                            assert_array_almost_equal, assert_allclose)
 
@@ -21,15 +21,15 @@ from mne.annotations import read_brainstorm_annotations
 from mne.datasets import testing
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
-fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
+fif_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
+                    'test_raw.fif')
 
 
-@testing.requires_testing_data
-def test_annotations():
+def test_basics():
     """Test annotation class."""
     raw = read_raw_fif(fif_fname)
     assert raw.annotations is None
-    assert_raises(IOError, read_annotations, fif_fname)
+    pytest.raises(ValueError, read_annotations, fif_fname)
     onset = np.array(range(10))
     duration = np.ones(10)
     description = np.repeat('test', 10)
@@ -39,22 +39,24 @@ def test_annotations():
     for orig_time in [None, dt, meas_date[0], meas_date]:
         annot = Annotations(onset, duration, description, orig_time)
 
-    assert_raises(ValueError, Annotations, onset, duration, description[:9])
-    assert_raises(ValueError, Annotations, [onset, 1], duration, description)
-    assert_raises(ValueError, Annotations, onset, [duration, 1], description)
+    pytest.raises(ValueError, Annotations, onset, duration, description[:9])
+    pytest.raises(ValueError, Annotations, [onset, 1], duration, description)
+    pytest.raises(ValueError, Annotations, onset, [duration, 1], description)
 
     # Test combining annotations with concatenate_raws
     raw2 = raw.copy()
-    orig_time = (meas_date[0] + meas_date[1] * 0.000001 +
+    delta = raw.times[-1] + 1. / raw.info['sfreq']
+    orig_time = (meas_date[0] + meas_date[1] * 1e-6 +
                  raw2.first_samp / raw2.info['sfreq'])
     annot = Annotations(onset, duration, description, orig_time)
-    assert_true(' segments' in repr(annot))
+    assert ' segments' in repr(annot)
     raw2.annotations = annot
     assert_array_equal(raw2.annotations.onset, onset)
     concatenate_raws([raw, raw2])
     raw.annotations.delete(-1)  # remove boundary annotations
     raw.annotations.delete(-1)
-    assert_array_almost_equal(onset + 20., raw.annotations.onset, decimal=2)
+
+    assert_allclose(onset + delta, raw.annotations.onset, rtol=1e-5)
     assert_array_equal(annot.duration, raw.annotations.duration)
     assert_array_equal(raw.annotations.description, np.repeat('test', 10))
 
@@ -65,7 +67,7 @@ def test_annotations():
                        sfreq=sfreq)
     info['meas_date'] = 0
     raws = []
-    for i, fs in enumerate([12300, 100, 12]):
+    for fs in [12300, 100, 12]:
         raw = RawArray(data.copy(), info, first_samp=fs)
         ants = Annotations([1., 2.], [.5, .5], 'x', fs / sfreq)
         raw.annotations = ants
@@ -73,12 +75,14 @@ def test_annotations():
     raw = RawArray(data.copy(), info)
     raw.annotations = Annotations([1.], [.5], 'x', None)
     raws.append(raw)
-    raw = concatenate_raws(raws)
+    from mne.utils import use_log_level
+    with use_log_level('debug'):
+        raw = concatenate_raws(raws)
     boundary_idx = np.where(raw.annotations.description == 'BAD boundary')[0]
-    assert_equal(len(boundary_idx), 3)
+    assert len(boundary_idx) == 3
     raw.annotations.delete(boundary_idx)
     boundary_idx = np.where(raw.annotations.description == 'EDGE boundary')[0]
-    assert_equal(len(boundary_idx), 3)
+    assert len(boundary_idx) == 3
     raw.annotations.delete(boundary_idx)
     assert_array_equal(raw.annotations.onset, [1., 2., 11., 12., 21., 22.,
                                                31.])
@@ -90,17 +94,19 @@ def test_annotations():
     assert_array_equal(raw.annotations.description, ['x', 'x', 'x', 'x', 'x',
                                                      'x', 'y'])
 
-    # Test cropping with annotations
+
+def test_crop():
+    """Test cropping with annotations."""
     raw = read_raw_fif(fif_fname)
     events = mne.find_events(raw)
     onset = events[events[:, 2] == 1, 0] / raw.info['sfreq']
-    duration = np.ones_like(onset)  # 1s
+    duration = np.full_like(onset, 0.5)
     description = ['bad %d' % k for k in range(len(onset))]
     raw.annotations = mne.Annotations(onset, duration, description,
                                       orig_time=raw.info['meas_date'])
 
     split_time = raw.times[-1] / 2. + 2.
-    split_idx = len(onset) // 2
+    split_idx = len(onset) // 2 + 1
     raw_cropped_left = raw.copy().crop(0., split_time - 1. / raw.info['sfreq'])
     assert_array_equal(raw_cropped_left.annotations.description,
                        raw.annotations.description[:split_idx])
@@ -119,8 +125,8 @@ def test_annotations():
     assert_allclose(raw_concat.times, raw.times)
     assert_allclose(raw_concat[:][0], raw[:][0], atol=1e-20)
     # Get rid of the boundary events
-    raw_concat.annotations.delete(len(onset) // 2)
-    raw_concat.annotations.delete(len(onset) // 2)
+    raw_concat.annotations.delete(split_idx)
+    raw_concat.annotations.delete(split_idx)
     # Ensure we annotations survive round-trip crop->concat
     for attr in ('description', 'onset', 'duration'):
         assert_array_equal(getattr(raw_concat.annotations, attr),
@@ -184,7 +190,6 @@ def test_read_brainstorm_annotations():
     assert annot.orig_time == orig_time_as_scalar
 
 
-@testing.requires_testing_data
 def test_raw_reject():
     """Test raw data getter with annotation reject."""
     sfreq = 100.
@@ -202,19 +207,27 @@ def test_raw_reject():
 
     # with orig_time and complete overlap
     raw = read_raw_fif(fif_fname)
-    raw.annotations = Annotations([44, 47, 48], [1, 3, 1], 'BAD',
-                                  raw.info['meas_date'])
-    data, times = raw.get_data(range(10), 0, 6000, 'omit', True)
-    assert_array_equal(data.shape, (10, 4799))
-    assert_equal(times[-1], raw.times[5999])
-    assert_array_equal(data[:, -100:], raw[:10, 5900:6000][0])
+    t_0 = raw.first_samp / raw.info['sfreq']
+    raw.annotations = Annotations([t_0 + 1, t_0 + 4, t_0 + 5], [1, 3, 1],
+                                  'BAD', raw.info['meas_date'])
+    t_stop = 18.
+    assert raw.times[-1] > t_stop
+    n_stop = int(round(t_stop * raw.info['sfreq']))
+    n_drop = int(round(4 * raw.info['sfreq']))
+    assert len(raw.times) >= n_stop
+    data, times = raw.get_data(range(10), 0, n_stop, 'omit', True)
+    assert data.shape == (10, n_stop - n_drop)
+    assert times[-1] == raw.times[n_stop - 1]
+    assert_array_equal(data[:, -100:], raw[:10, n_stop - 100:n_stop][0])
 
-    data, times = raw.get_data(range(10), 0, 6000, 'NaN', True)
-    assert_array_equal(data.shape, (10, 6000))
-    assert_equal(times[-1], raw.times[5999])
-    assert_true(np.isnan(data[:, 314:613]).all())  # 1s -2s
-    assert_true(not np.isnan(data[:, 614].any()))
-    assert_array_equal(data[:, -100:], raw[:10, 5900:6000][0])
+    data, times = raw.get_data(range(10), 0, n_stop, 'NaN', True)
+    assert_array_equal(data.shape, (10, n_stop))
+    assert times[-1] == raw.times[n_stop - 1]
+    t_1, t_2 = raw.time_as_index([1, 2], use_rounding=True)
+    assert np.isnan(data[:, t_1:t_2]).all()  # 1s -2s
+    assert not np.isnan(data[:, :t_1].any())
+    assert not np.isnan(data[:, t_2:].any())
+    assert_array_equal(data[:, -100:], raw[:10, n_stop - 100:n_stop][0])
     assert_array_equal(raw.get_data(), raw[:][0])
 
     # Test _sync_onset
@@ -311,7 +324,7 @@ def test_annotation_omit():
                                        reject_by_annotation='omit')
                           for start, stop in ((0, 1000), (1000, 2000))], -1)
     assert_allclose(got, expected)
-    assert_raises(ValueError, raw.get_data, reject_by_annotation='foo')
+    pytest.raises(ValueError, raw.get_data, reject_by_annotation='foo')
 
 
 def test_annotation_epoching():
