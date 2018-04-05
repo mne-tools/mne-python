@@ -65,19 +65,17 @@ def test_basics():
     sfreq = 100.
     info = create_info(ch_names=['MEG1', 'MEG2'], ch_types=['grad'] * 2,
                        sfreq=sfreq)
-    info['meas_date'] = 0
+    info['meas_date'] = np.pi
     raws = []
-    for fs in [12300, 100, 12]:
-        raw = RawArray(data.copy(), info, first_samp=fs)
-        ants = Annotations([1., 2.], [.5, .5], 'x', fs / sfreq)
+    for first_samp in [12300, 100, 12]:
+        raw = RawArray(data.copy(), info, first_samp=first_samp)
+        ants = Annotations([1., 2.], [.5, .5], 'x', np.pi + first_samp / sfreq)
         raw.annotations = ants
         raws.append(raw)
     raw = RawArray(data.copy(), info)
     raw.annotations = Annotations([1.], [.5], 'x', None)
     raws.append(raw)
-    from mne.utils import use_log_level
-    with use_log_level('debug'):
-        raw = concatenate_raws(raws)
+    raw = concatenate_raws(raws, verbose='debug')
     boundary_idx = np.where(raw.annotations.description == 'BAD boundary')[0]
     assert len(boundary_idx) == 3
     raw.annotations.delete(boundary_idx)
@@ -121,17 +119,20 @@ def test_crop():
                     raw.annotations.duration[split_idx:])
     assert_allclose(raw_cropped_right.annotations.onset,
                     raw.annotations.onset[split_idx:])
-    raw_concat = mne.concatenate_raws([raw_cropped_left, raw_cropped_right])
+    raw_concat = mne.concatenate_raws([raw_cropped_left, raw_cropped_right],
+                                      verbose='debug')
     assert_allclose(raw_concat.times, raw.times)
     assert_allclose(raw_concat[:][0], raw[:][0], atol=1e-20)
     # Get rid of the boundary events
-    raw_concat.annotations.delete(split_idx)
-    raw_concat.annotations.delete(split_idx)
+    raw_concat.annotations.delete(-1)
+    raw_concat.annotations.delete(-1)
     # Ensure we annotations survive round-trip crop->concat
-    for attr in ('description', 'onset', 'duration'):
-        assert_array_equal(getattr(raw_concat.annotations, attr),
-                           getattr(raw.annotations, attr),
-                           err_msg='Failed for %s:' % (attr,))
+    assert_array_equal(raw_concat.annotations.description,
+                       raw.annotations.description)
+    for attr in ('onset', 'duration'):
+        assert_allclose(getattr(raw_concat.annotations, attr),
+                        getattr(raw.annotations, attr),
+                        err_msg='Failed for %s:' % (attr,))
 
     raw.annotations = None  # undo
 

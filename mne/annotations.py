@@ -174,27 +174,33 @@ class Annotations(object):
             _write_annotations(fid, self)
 
 
-def _combine_annotations(first, second, last_samps, first_samps, sfreq,
-                         meas_date):
+def _combine_annotations(one, two, one_n_samples, one_first_samp,
+                         two_first_samp, sfreq, meas_date):
     """Combine a tuple of annotations."""
-    if first is None and second is None:
+    if one is None and two is None:
         return None
-    elif second is None:
-        return first
-    elif first is None:
-        first = Annotations([], [], [], None)
+    elif two is None:
+        return one
+    elif one is None:
+        one = Annotations([], [], [], None)
 
-    offset = ((last_samps - first_samps).sum() + len(first_samps)) / sfreq
-    if first.orig_time is not None and second.orig_time is None:
-        meas_date = _handle_meas_date(meas_date)
-        offset += meas_date - first.orig_time + first_samps[0] / sfreq
+    # Compute the shift necessary for alignment:
+    # 1. The shift (in time) due to concatenation
+    shift = one_n_samples / sfreq
+    meas_date = _handle_meas_date(meas_date)
+    # 2. Shift by the difference in meas_date and one.orig_time
+    if one.orig_time is not None:
+        shift += one_first_samp / sfreq
+        shift += meas_date - one.orig_time
+    # 3. Shift by the difference in meas_date and two.orig_time
+    if two.orig_time is not None:
+        shift -= two_first_samp / sfreq
+        shift -= meas_date - two.orig_time
 
-    second_onset = second.onset + offset
-
-    onset = np.concatenate([first.onset, second_onset])
-    duration = np.concatenate([first.duration, second.duration])
-    description = np.concatenate([first.description, second.description])
-    return Annotations(onset, duration, description, first.orig_time)
+    onset = np.concatenate([one.onset, two.onset + shift])
+    duration = np.concatenate([one.duration, two.duration])
+    description = np.concatenate([one.description, two.description])
+    return Annotations(onset, duration, description, one.orig_time)
 
 
 def _handle_meas_date(meas_date):

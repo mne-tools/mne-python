@@ -106,15 +106,14 @@ class Raw(BaseRaw):
         # combine annotations
         BaseRaw.annotations.fset(self, raws[0].annotations, False)
         if any([r.annotations for r in raws[1:]]):
-            first_samps = self._first_samps
-            last_samps = self._last_samps
+            n_samples = np.sum(self._last_samps - self._first_samps + 1)
             for r in raws:
                 annotations = _combine_annotations(
-                    self.annotations, r.annotations, last_samps, first_samps,
+                    self.annotations, r.annotations,
+                    n_samples, self.first_samp, r.first_samp,
                     r.info['sfreq'], self.info['meas_date'])
                 BaseRaw.annotations.fset(self, annotations, False)
-                first_samps = np.r_[first_samps, r.first_samp]
-                last_samps = np.r_[last_samps, r.last_samp]
+                n_samples += r.last_samp - r.first_samp + 1
 
         # Add annotations for in-data skips
         offsets = [0] + self._raw_lengths[:-1]
