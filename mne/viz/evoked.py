@@ -273,16 +273,18 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         _plot_lines(evoked.data, info, picks, fig, axes, spatial_colors, unit,
                     units, scalings, hline, gfp, types, zorder, xlim, ylim,
                     times, bad_ch_idx, titles, ch_types_used, selectable,
-                    False, line_alpha=1.)
+                    False, line_alpha=1., nave=evoked.nave)
         plt.setp(axes, xlabel='Time (ms)')
 
     elif plot_type == 'image':
-        for ax, this_type in zip(axes, ch_types_used):
+        for ai, (ax, this_type) in enumerate(zip(axes, ch_types_used)):
+            use_nave = evoked.nave if ai == 0 else None
             this_picks = list(picks[types == this_type])
             _plot_image(evoked.data, ax, this_type, this_picks, cmap, unit,
                         units, scalings, evoked.times, xlim, ylim, titles,
                         colorbar=colorbar, mask=mask, mask_style=mask_style,
-                        mask_cmap=mask_cmap, mask_alpha=mask_alpha)
+                        mask_cmap=mask_cmap, mask_alpha=mask_alpha,
+                        nave=use_nave)
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=info['projs'], axes=axes,
@@ -303,9 +305,9 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 scalings, hline, gfp, types, zorder, xlim, ylim, times,
                 bad_ch_idx, titles, ch_types_used, selectable, psd,
-                line_alpha):
+                line_alpha, nave):
     """Plot data as butterfly plot."""
-    from matplotlib import patheffects
+    from matplotlib import patheffects, pyplot as plt
     from matplotlib.widgets import SpanSelector
     assert len(axes) == len(ch_types_used)
     texts = list()
@@ -337,7 +339,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
         fig.canvas.mpl_connect('button_press_event',
                                partial(_butterfly_on_button_press,
                                        params=params))
-    for ax, this_type in zip(axes, ch_types_used):
+    for ai, (ax, this_type) in enumerate(zip(axes, ch_types_used)):
         line_list = list()  # 'line_list' contains the lines for this axes
         if unit is False:
             this_scaling = 1.0
@@ -434,16 +436,16 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 ax.set_xlim(xlim)
             if ylim is not None and this_type in ylim:
                 ax.set_ylim(ylim[this_type])
-            ax.set_title(titles[this_type] + ' (%d channel%s)' % (len(D),
-                                                                  _pl(D)))
-
+            ax.set(title=r'%s (%d channel%s)'
+                   % (titles[this_type], len(D), _pl(len(D))))
+            if ai == 0:
+                _add_nave(ax, nave)
             if hline is not None:
                 for h in hline:
                     c = ('grey' if spatial_colors is True else 'r')
                     ax.axhline(h, linestyle='--', linewidth=2, color=c)
         lines.append(line_list)
     if selectable:
-        import matplotlib.pyplot as plt
         for ax in np.array(axes)[selectables]:
             if len(ax.lines) == 1:
                 continue
@@ -462,6 +464,15 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 useblit=blit, rectprops=dict(alpha=0.5, facecolor='red'))
 
 
+def _add_nave(ax, nave):
+    """Add nave to axes."""
+    if nave is not None:
+        ax.annotate(
+            r'N$_{\mathrm{ave}}$=%d' % nave, ha='left', va='bottom',
+            xy=(0, 1), xycoords='axes fraction',
+            xytext=(0, 5), textcoords='offset pixels')
+
+
 def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
     """Set up spatial colors."""
     used_nm = np.array(_clean_names(info['ch_names']))[idx]
@@ -477,7 +488,7 @@ def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
 
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
                 xlim, ylim, titles, colorbar=True, mask=None, mask_cmap=None,
-                mask_style=None, mask_alpha=.25):
+                mask_style=None, mask_alpha=.25, nave=None):
     """Plot images."""
     import matplotlib.pyplot as plt
 
@@ -566,8 +577,9 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
             t_end = ", " + str(percent) + "% of points masked)"
     else:
         t_end = ")"
-    ax.set_title(
-        titles[this_type] + ' (%d channel%s' % (len(data), _pl(data)) + t_end)
+    ax.set(title='%s (%d channel%s%s'
+           % (titles[this_type], len(data), _pl(len(data)), t_end))
+    _add_nave(ax, nave)
 
 
 @verbose
@@ -1134,8 +1146,8 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                     lw=0.5)
             for hline in [-1.96, 1.96]:
                 ax.axhline(hline, color='red', linestyle='--', lw=2)
-            ax.set(title='{0} ({1} channels)'.format(titles_[ch_type],
-                                                     len(picks)))
+            ax.set(title='%s (%d channel%s)'
+                   % (titles_[ch_type], len(picks), _pl(len(picks))))
 
     # Now plot the GFP for all covs if indicated.
     for evoked_white, noise_cov, rank_, color in iter_gfp:

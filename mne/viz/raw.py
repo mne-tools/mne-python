@@ -836,7 +836,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                     types=types, zorder='std', xlim=(freqs[0], freqs[-1]),
                     ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
                     ch_types_used=ch_types_used, selectable=True, psd=True,
-                    line_alpha=line_alpha)
+                    line_alpha=line_alpha, nave=None)
     for ax in ax_list:
         ax.grid(True, linestyle=':')
         if xscale == 'log':
