@@ -175,6 +175,41 @@ def test_crop():
     assert raw_read.annotations is None
 
 
+def test_crop_more():
+    """Test more cropping."""
+    raw = mne.io.read_raw_fif(fif_fname).crop(0, 11).load_data()
+    raw._data[:] = np.random.RandomState(0).randn(*raw._data.shape)
+    onset = np.array([0.47058824, 2.49773765, 6.67873287, 9.15837097])
+    duration = np.array([0.89592767, 1.13574672, 1.09954739, 0.48868752])
+    annotations = mne.Annotations(onset, duration, 'BAD')
+    raw.annotations = annotations
+    assert len(raw.annotations) == 4
+    delta = 1. / raw.info['sfreq']
+    raw_concat = mne.concatenate_raws(
+        [raw.copy().crop(0, 4 - delta),
+         raw.copy().crop(4, 8 - delta),
+         raw.copy().crop(8, None)])
+    assert_allclose(raw_concat.times, raw.times)
+    assert_allclose(raw_concat[:][0], raw[:][0])
+    assert raw_concat.first_samp == raw.first_samp
+    boundary_idx = np.where(
+        raw_concat.annotations.description == 'BAD boundary')[0]
+    assert len(boundary_idx) == 2
+    raw_concat.annotations.delete(boundary_idx)
+    boundary_idx = np.where(
+        raw_concat.annotations.description == 'EDGE boundary')[0]
+    assert len(boundary_idx) == 2
+    raw_concat.annotations.delete(boundary_idx)
+    assert len(raw_concat.annotations) == 4
+    assert_array_equal(raw_concat.annotations.description,
+                       raw.annotations.description)
+    assert_allclose(raw.annotations.duration, duration)
+    assert_allclose(raw_concat.annotations.duration, duration)
+    assert_allclose(raw.annotations.onset, onset)
+    assert_allclose(raw_concat.annotations.onset, onset,
+                    atol=1. / raw.info['sfreq'])
+
+
 @testing.requires_testing_data
 def test_read_brainstorm_annotations():
     """Test reading for Brainstorm events file"""

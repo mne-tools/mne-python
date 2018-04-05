@@ -219,12 +219,10 @@ def _sync_onset(raw, onset, inverse=False):
     """Adjust onsets in relation to raw data."""
     meas_date = _handle_meas_date(raw.info['meas_date'])
     if raw.annotations.orig_time is None:
-        orig_time = meas_date
+        annot_start = onset
     else:
         offset = -raw._first_time if inverse else raw._first_time
-        orig_time = raw.annotations.orig_time - offset
-
-    annot_start = orig_time - meas_date + onset
+        annot_start = (raw.annotations.orig_time - meas_date) - offset + onset
     return annot_start
 
 
