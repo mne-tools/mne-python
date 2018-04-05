@@ -30,7 +30,7 @@ deprecation_text = ('This function will be removed in 0.17, please use the '
 
 @verbose
 def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
-              mode='vector', weight_norm=None, normalize_fwd=True,
+              inversion='single', weight_norm=None, normalize_fwd=True,
               real_filter=False, reduce_rank=False, verbose=None):
     """Compute a Dynamic Imaging of Coherent Sources (DICS) spatial filter.
 
@@ -41,6 +41,22 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     operating on a covariance matrix, the CSD matrix is used. When applying
     these filters to a CSD matrix (see :func:`apply_dics_csd`), the source
     power can be estimated for each source point.
+
+    The DICS beamformer is very similar to the LCMV (:func:`make_lcmv`)
+    beamformer and many of the parameters are shared. However,
+    :func:`make_dics` and :func:`make_lcmv` currently have different defaults
+    for these parameters, which were settled on separately through extensive
+    practical use case testing (but not necessarily exhaustive parameter space
+    searching), and it remains to be seen how functionally interchangeable they
+    could be.
+
+    The default setting reproduce the DICS beamformer as described in [4]_::
+
+        inversion='single', weight_norm=None, normalize_fwd=True
+
+    To use the :func:`make_lcmv` defaults, use::
+
+        inversion='matrix', weight_norm='unit-gain', normalize_fwd=False
 
     Parameters
     ----------
@@ -53,7 +69,8 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         performed for each frequency or frequency-bin defined in the CSD
         object.
     reg : float
-        The regularization for the cross-spectral density.
+        The regularization to apply to the cross-spectral density before
+        computing the inverse.
     label : Label | None
         Restricts the solution to a given label.
     pick_ori : None | 'normal' | 'max-power'
@@ -68,14 +85,16 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                 filters are computer for the orientation that maximizes
                 spectral power.
 
-    mode : 'vector' | 'scalar'
-        Whether to compute a scalar or vector beamformer. This determines how
-        the filter deals with source spaces in "free" orientation. Such source
-        spaces define three orthogonal dipoles at each source point. A vector
-        beamformer considers each dipole individually and computes the filter
-        with a regular division. A scalar beamformer considers these dipoles
-        simultaneously and computes the filter with a matrix inverse.
-        Defaults to 'vector'.
+    inversion : 'single' | 'matrix'
+        This determines how the beamformer deals with source spaces in "free"
+        orientation. Such source spaces define three orthogonal dipoles at each
+        source point. When ``inversion='single'``, each dipole is considered
+        as an individual source and the corresponding spatial filter is
+        computed for each dipole separately. When ``inversion='matrix'``, all
+        three dipoles at a source vertex are considered as a group and the
+        spatial filters are computed jointly using a matrix inversion. While
+        ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
+        precise. See section 5 of [4]_.  Defaults to 'single'.
     weight_norm : None | 'unit-noise-gain'
         How to normalize the beamformer weights. None means no normalization is
         performed. If 'unit-noise-gain', the unit-noise gain minimum variance
@@ -83,15 +102,16 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         Defaults to ``None''.
     normalize_fwd : bool
         Whether to normalize the forward solution. Defaults to ``True``. Note
-        that this normalization is not required is weight normalization
+        that this normalization is not required when weight normalization
         (``weight_norm``) is used.
     real_filter : bool
         If ``True``, take only the real part of the cross-spectral-density
         matrices to compute real filters. Defaults to ``False``.
     reduce_rank : bool
-        If True, the rank of the leadfield will be reduced by 1 for each
-        spatial location. Setting reduce_rank to True is typically necessary
-        if you use a single sphere model for MEG.
+        If ``True``, the rank of the forward operator will be reduced by 1 for
+        each spatial location, prior to inversion. This may be necessary when
+        you use a single sphere model for MEG and ``mode='vertex'``.
+        Defaults to ``False``.
     verbose : bool | str | int | None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -113,8 +133,10 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                 Projections used to compute the beamformer.
             'vertices' : list of ndarray
                 Vertices for which the filter weights were computed.
-            'mode' : 'scalar' | 'vector'
-                Whether the filters represent a scalar or vector beamformer.
+            'inversion' : 'single' | 'matrix'
+                Whether the spatial filters were computed for each dipole
+                separately or jointly for all dipoles at each vertex using a
+                matrix inversion.
             'weight_norm' : None | 'unit-noise-gain'
                 The normalization of the weights.
             'normalize_fwd' : bool
@@ -132,14 +154,6 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     -----
     The original reference is [1]_. See [4]_ for a tutorial style paper on the
     topic.
-
-    The DICS beamformer is very similar to the LCMV (:func:`make_lcmv`)
-    beamformer and many of the parameters are shared. However,
-    :func:`make_dics` and :func:`make_lcmv` currently have different defaults
-    for these parameters, which were settled on separately through extensive
-    practical use case testing (but not necessarily exhaustive parameter space
-    searching), and it remains to be seen how functionally interchangeable they
-    could be.
 
     For more information about ``real_filter``, see the
     `supplemental information <http://www.cell.com/cms/attachment/616681/4982593/mmc1.pdf>`_
@@ -166,12 +180,17 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         raise ValueError('"pick_ori" should be one of %s.' % allowed_ori)
 
     # Leadfield rank and optional rank reduction
-    if reduce_rank and not (pick_ori == 'max-power' and mode == 'scalar'):
+    if reduce_rank and not (pick_ori == 'max-power' and inversion == 'matrix'):
         raise NotImplementedError(
             'The computation of spatial filters with rank reduction using '
-            'reduce_rank parameter is only implemented with '
-            'pick_ori=="max-power" and mode="scalar".'
+            'reduce_rank=True is only implemented with pick_ori=="max-power" '
+            'and inversion="matrix".'
         )
+
+    # Inversion mode
+    if inversion not in ['single', 'matrix']:
+        raise ValueError("The inversion parameter should be either 'single' "
+                         "or 'matrix'.")
 
     frequencies = [np.mean(freq_bin) for freq_bin in csd.frequencies]
     n_freqs = len(frequencies)
@@ -179,17 +198,17 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
 
     # Determine how to normalize the leadfield
     if normalize_fwd:
-        if mode == 'scalar':
-            leadfield_norm = 'point'
-        elif mode == 'vector':
-            leadfield_norm = 'dipole'
+        if inversion == 'single':
+            fwd_norm = 'dipole'
+        else:
+            fwd_norm = 'vertex'
     else:
-        leadfield_norm = None  # No normalization
+        fwd_norm = None  # No normalization
 
     picks = _setup_picks(info=info, forward=forward)
     _, ch_names, proj, vertices, G = _prepare_beamformer_input(
         info, forward, label, picks=picks, pick_ori=pick_ori,
-        leadfield_norm=leadfield_norm,
+        fwd_norm=fwd_norm,
     )
     csd_picks = [csd.ch_names.index(ch) for ch in ch_names]
 
@@ -216,7 +235,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         Cm_inv, _ = _reg_pinv(Cm, reg, rcond='auto')
 
         if (pick_ori == 'max-power' and weight_norm == 'unit-noise-gain' and
-                mode == 'scalar'):
+                inversion == 'matrix'):
             Cm_inv_sq = Cm_inv.dot(Cm_inv)
 
         # Compute spatial filters
@@ -232,11 +251,12 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
             # Normalize the spatial filters
             if Wk.ndim == 2 and len(Wk) > 1:
                 # Free source orientation
-                if mode == 'vector':
-                    # Invert each dipole separately
+                if inversion == 'single':
+                    # Invert for each dipole separately using plain division
                     Wk /= np.diag(Ck)[:, np.newaxis]
-                elif mode == 'scalar':
-                    # Invert all dipoles simultaneously
+                elif inversion == 'matrix':
+                    # Invert for all dipoles simultaneously using matrix
+                    # inversion.
                     Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
             else:
                 # Fixed source orientation
@@ -245,29 +265,31 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
             if pick_ori == 'max-power':
                 # Compute spectral power, so we can pick the orientation that
                 # maximizes this power.
-                if mode == 'scalar' and weight_norm == 'unit-noise-gain':
+                if inversion == 'matrix' and weight_norm == 'unit-noise-gain':
                     # Use Eq. 4.47 from [2]_
-                    tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
+                    norm_inv = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
                     if reduce_rank:
                         # Use pseudo inverse computation setting smallest
                         # component to zero if the leadfield is not full rank
-                        tmp_inv = _eig_inv(tmp, tmp.shape[0] - 1)
+                        norm = _eig_inv(norm_inv, norm_inv.shape[0] - 1)
                     else:
                         # Use straight inverse with full rank leadfield
                         try:
-                            tmp_inv = linalg.inv(tmp)
+                            norm = linalg.inv(norm_inv)
                         except np.linalg.linalg.LinAlgError:
                             raise ValueError(
                                 'Singular matrix detected when estimating '
                                 'DICS filters. Consider reducing the rank '
-                                'of the leadfield by using reduce_rank=True.'
+                                'of the forward operator by using '
+                                'reduce_rank=True.'
                             )
-                    power = np.dot(tmp_inv, np.dot(Wk, Gk))
+                    power = np.dot(norm, np.dot(Wk, Gk))
 
-                elif mode == 'vector' and weight_norm == 'unit-noise-gain':
+                elif (inversion == 'single' and
+                      weight_norm == 'unit-noise-gain'):
                     # First make the filters unit gain, then apply them to the
                     # CSD matrix to compute power.
-                    norm = np.sqrt(np.sum(Wk ** 2, axis=1))
+                    norm = 1 / np.sqrt(np.sum(Wk ** 2, axis=1))
                     Wk_norm = Wk / norm[:, np.newaxis]
                     power = Wk_norm.dot(Cm).dot(Wk_norm.T)
                 else:
@@ -307,7 +329,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     subject = _subject_from_forward(forward)
     filters = dict(weights=Ws, csd=csd, ch_names=ch_names, proj=proj,
                    vertices=vertices, subject=subject,
-                   pick_ori=pick_ori, mode=mode,
+                   pick_ori=pick_ori, inversion=inversion,
                    weight_norm=weight_norm,
                    normalize_fwd=normalize_fwd, n_orient=n_orient
                    if pick_ori is None else 1)
@@ -944,7 +966,7 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
             noise_csds=None, n_ffts=None, mt_bandwidths=None,
             mt_adaptive=False, mt_low_bias=True, cwt_n_cycles=7, decim=1,
             subtract_evoked=False, reg=0.05, label=None, pick_ori=None,
-            beamformer_mode='vector', weight_norm=None, normalize_fwd=True,
+            inversion='single', weight_norm=None, normalize_fwd=True,
             real_filter=False, reduce_rank=False, verbose=None):
     """5D time-frequency beamforming based on DICS.
 
@@ -1033,8 +1055,16 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
                 spectral power.
 
         Defaults to ``None``.
-    beamformer_mode : 'vector' | 'scalar'
-        Whether to compute a scalar or vector beamformer. Defaults to 'vector'.
+    inversion : 'single' | 'matrix'
+        This determines how the beamformer deals with source spaces in "free"
+        orientation. Such source spaces define three orthogonal dipoles at each
+        source point. When ``inversion='single'``, each dipole is considered
+        as an individual source and the corresponding spatial filter is
+        computed for each dipole separately. When ``inversion='matrix'``, all
+        three dipoles at a source vertex are considered as a group and the
+        spatial filters are computed jointly using a matrix inversion. While
+        ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
+        precise. See section 5 of [4]_.  Defaults to 'single'.
     weight_norm : None | 'unit-noise-gain'
         How to normalize the beamformer weights. None means no normalization is
         performed.  If 'unit-noise-gain', the unit-noise gain minimum variance
@@ -1042,15 +1072,16 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
         Defaults to ``None``.
     normalize_fwd : bool
         Whether to normalize the forward solution. Defaults to ``True``. Note
-        that this normalization is not required is weight normalization
+        that this normalization is not required when weight normalization
         (``weight_norm``) is used.
     real_filter : bool
         If ``True``, take only the real part of the cross-spectral-density
         matrices to compute real filters. Defaults to ``False``.
     reduce_rank : bool
-        If True, the rank of the leadfield will be reduced by 1 for each
-        spatial location. Setting reduce_rank to True is typically necessary
-        if you use a single sphere model for MEG.
+        If ``True``, the rank of the forward operator will be reduced by 1 for
+        each spatial location, prior to inversion. This may be necessary when
+        you use a single sphere model for MEG and ``mode='vertex'``.
+        Defaults to ``False``.
     verbose : bool | str | int | None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1198,7 +1229,7 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
 
                 filters = make_dics(epochs.info, forward, csd, reg=reg,
                                     label=label, pick_ori=pick_ori,
-                                    mode=beamformer_mode,
+                                    inversion=inversion,
                                     weight_norm=weight_norm,
                                     normalize_fwd=normalize_fwd,
                                     reduce_rank=reduce_rank,

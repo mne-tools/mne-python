@@ -266,10 +266,10 @@ csd_signal = csd_morlet(epochs['signal'], frequencies=[10])
 # Compute the spatial filters for each vertex, using two approaches.
 filters_approach1 = make_dics(
     info, fwd, csd_signal, reg=0.05, pick_ori='max-power', normalize_fwd=True,
-    mode='vector')
+    inversion='single', weight_norm=None)
 filters_approach2 = make_dics(
     info, fwd, csd_signal, reg=0.05, pick_ori='max-power', normalize_fwd=False,
-    mode='scalar', weight_norm='unit-noise-gain')
+    inversion='matrix', weight_norm='unit-noise-gain')
 
 # Compute the DICS power map by applying the spatial filters to the CSD matrix.
 power_approach1, f = apply_dics_csd(csd_signal, filters_approach1)

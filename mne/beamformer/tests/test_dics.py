@@ -141,7 +141,7 @@ def test_make_dics():
     raises(NotImplementedError, make_dics, epochs.info, fwd_free, csd,
            reduce_rank=True, pick_ori=None)
     raises(NotImplementedError, make_dics, epochs.info, fwd_free, csd,
-           reduce_rank=True, pick_ori='max-power', mode='vector')
+           reduce_rank=True, pick_ori='max-power', inversion='single')
 
     # Sanity checks on the returned filters
     n_freq = len(csd.frequencies)
@@ -163,7 +163,7 @@ def test_make_dics():
     assert filters['subject'] == fwd_free['src'][0]['subject_his_id']
     assert filters['pick_ori'] is None
     assert filters['n_orient'] == n_orient
-    assert filters['mode'] == 'vector'
+    assert filters['inversion'] == 'single'
     assert filters['normalize_fwd']
     assert filters['weight_norm'] == 'unit-noise-gain'
     _test_weight_norm(filters)
@@ -189,15 +189,14 @@ def test_make_dics():
                         pick_ori='normal', real_filter=True)
     assert not np.iscomplexobj(filters['weights'])
 
-    # Test forward normalization. In 'vector' mode, the power of a
+    # Test forward normalization. When inversion='single', the power of a
     # unit-noise CSD should be 1, even without weight normalization.
     csd_noise = csd.copy()
     inds = np.triu_indices(csd.n_channels)
     # Using [:, :] syntax for in-place broadcasting
     csd_noise._data[:, :] = np.eye(csd.n_channels)[inds][:, np.newaxis]
     filters = make_dics(epochs.info, fwd_surf, csd_noise, label=label,
-                        mode='vector', weight_norm=None,
-                        normalize_fwd=True)
+                        weight_norm=None, normalize_fwd=True)
     w = filters['weights'][0][:3]
     assert_allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-6, atol=0)
 
@@ -228,7 +227,7 @@ def test_apply_dics_csd():
     # Try different types of forward models
     for fwd in [fwd_free, fwd_surf, fwd_fixed]:
         filters = make_dics(epochs.info, fwd, csd, label=label, reg=reg,
-                            mode='vector')
+                            inversion='single')
         power, f = apply_dics_csd(csd, filters)
         assert f == [10, 20]
 
@@ -238,17 +237,19 @@ def test_apply_dics_csd():
         # Is the signal stronger at 20 Hz than 10?
         assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
-    # Try picking different orientations and modes
+    # Try picking different orientations and inversion modes
     for pick_ori in [None, 'normal', 'max-power']:
-        for mode in ['vector', 'scalar']:
-            # Scalar mode needs more regularization for this toy dataset
-            if mode == 'scalar':
+        for inversion in ['single', 'matrix']:
+            # Matrix inversion mode needs more regularization for this toy
+            # dataset.
+            if inversion == 'matrix':
                 reg_ = 5
             else:
                 reg_ = reg
 
             filters = make_dics(epochs.info, fwd_surf, csd, label=label,
-                                reg=reg_, pick_ori=pick_ori, mode=mode,
+                                reg=reg_, pick_ori=pick_ori,
+                                inversion=inversion,
                                 weight_norm='unit-noise-gain')
             power, f = apply_dics_csd(csd, filters)
             assert f == [10, 20]
@@ -262,8 +263,9 @@ def test_apply_dics_csd():
             # Test filter with forward normalization instead of weight
             # normalization
             filters = make_dics(epochs.info, fwd_surf, csd, label=label,
-                                reg=reg_, pick_ori=pick_ori, mode=mode,
-                                weight_norm=None, normalize_fwd=True)
+                                reg=reg_, pick_ori=pick_ori,
+                                inversion=inversion, weight_norm=None,
+                                normalize_fwd=True)
             power, f = apply_dics_csd(csd, filters)
             assert f == [10, 20]
             assert np.argmax(power.data[:, 1]) == source_ind
@@ -279,7 +281,7 @@ def test_apply_dics_csd():
 
     # Test rank reduction
     filters_real = make_dics(epochs.info, fwd_surf, csd, label=label, reg=5,
-                             pick_ori='max-power', mode='scalar',
+                             pick_ori='max-power', inversion='matrix',
                              reduce_rank=True)
     power, f = apply_dics_csd(csd, filters_real)
     assert f == [10, 20]
