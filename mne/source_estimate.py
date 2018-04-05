@@ -866,8 +866,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         Applying transforms can be significantly faster if the
         SourceEstimate object was created using "(kernel, sens_data)", for
         the "data" parameter as the transform is applied in sensor space.
-        Inverse methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" do
-        this automatically (if possible).
+        Inverse methods, e.g., "apply_inverse_epochs", or "apply_lcmv_epochs"
+        do this automatically (if possible).
         """
         if idx is None:
             # use all time courses by default
@@ -951,8 +951,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         Applying transforms can be significantly faster if the
         SourceEstimate object was created using "(kernel, sens_data)", for
         the "data" parameter as the transform is applied in sensor space.
-        Inverse methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" do
-        this automatically (if possible).
+        Inverse methods, e.g., "apply_inverse_epochs", or "apply_lcmv_epochs"
+        do this automatically (if possible).
         """
         # min and max data indices to include
         times = 1000. * self.times
