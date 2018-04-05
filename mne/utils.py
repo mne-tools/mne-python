@@ -158,7 +158,7 @@ def object_hash(x, h=None):
     elif isinstance(x, (string_types, float, int, type(None))):
         h.update(str(type(x)).encode('utf-8'))
         h.update(str(x).encode('utf-8'))
-    elif isinstance(x, np.ndarray):
+    elif isinstance(x, (np.ndarray, np.number, np.bool_)):
         x = np.asarray(x)
         h.update(str(x.shape).encode('utf-8'))
         h.update(str(x.dtype).encode('utf-8'))

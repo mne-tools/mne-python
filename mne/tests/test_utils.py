@@ -273,6 +273,10 @@ def test_hash():
     y = 0
     assert_true('type mismatch' in object_diff(x, y))
 
+    # smoke test for gh-4796
+    assert object_hash(np.int64(1)) != 0
+    assert object_hash(np.bool_(True)) != 0
+
 
 def test_md5sum():
     """Test md5sum calculation."""
