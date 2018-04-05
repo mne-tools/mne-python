@@ -389,6 +389,15 @@ def test_logging():
     assert_equal(new_lines, old_lines)
 
 
+@testing.requires_testing_data
+def test_datasets():
+    """Test dataset config."""
+    # gh-4192
+    data_path = testing.data_path(download=False)
+    os.environ['MNE_DATASETS_TESTING_PATH'] = op.dirname(data_path)
+    assert testing.data_path(download=False) == data_path
+
+
 def test_config():
     """Test mne-python config file support."""
     tempdir = _TempDir()
