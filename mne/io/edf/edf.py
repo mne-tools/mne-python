@@ -543,7 +543,7 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
             hp = highpass[0]
             try:
                 hp = float(hp)
-            except:
+            except Exception:
                 hp = 0.
             info['highpass'] = hp
     else:
