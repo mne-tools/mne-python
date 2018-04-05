@@ -307,6 +307,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
     """Plot data as butterfly plot."""
     from matplotlib import patheffects
     from matplotlib.widgets import SpanSelector
+    assert len(axes) == len(ch_types_used)
     texts = list()
     idxs = list()
     lines = list()
@@ -2069,7 +2070,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                 raise TypeError("show_sensors must be numeric, str or bool, "
                                 "not " + str(type(show_sensors)))
             show_sensors = _check_loc_legal(show_sensors, "show_sensors")
-            _plot_legend(pos, ["k" for _ in picks], ax, list(), outlines,
+            _plot_legend(pos, ["k"] * len(picks), ax, list(), outlines,
                          show_sensors, size=25)
 
     # the condition legend

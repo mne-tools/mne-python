@@ -290,6 +290,13 @@ def test_plot_raw_psd():
     raw.plot_psd(reject_by_annotation=True)
     raw.plot_psd(reject_by_annotation=False)
 
+    # gh-5046
+    raw = read_raw_fif(raw_fname, preload=True).crop(0, 1)
+    picks = pick_types(raw.info)
+    raw.plot_psd(picks=picks, average=False)
+    raw.plot_psd(picks=picks, average=True)
+    plt.close('all')
+
 
 def test_plot_sensors():
     """Test plotting of sensor array."""
