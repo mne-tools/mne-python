@@ -463,6 +463,7 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     for idx, ch_info in enumerate(zip(ch_names, physical_ranges, cals)):
         ch_name, physical_range, cal = ch_info
         chan_info = {}
+        logger.debug('  %s: range=%s cal=%s' % (ch_name, physical_range, cal))
         chan_info['cal'] = cal
         chan_info['logno'] = idx + 1
         chan_info['scanno'] = idx + 1
@@ -539,7 +540,12 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         elif highpass[0] == 'DC':
             info['highpass'] = 0.
         else:
-            info['highpass'] = float(highpass[0])
+            hp = highpass[0]
+            try:
+                hp = float(hp)
+            except Exception:
+                hp = 0.
+            info['highpass'] = hp
     else:
         info['highpass'] = float(np.max(highpass))
         warn('Channels contain different highpass filters. Highest filter '
@@ -609,7 +615,8 @@ def _read_edf_header(fname, annot, annotmap, exclude):
         subtype = os.path.splitext(fname)[1][1:].lower()
 
         n_records = int(fid.read(8).decode())
-        record_length = np.array([float(fid.read(8)), 1.])  # in seconds
+        record_length = fid.read(8).decode().strip('\x00').strip()
+        record_length = np.array([float(record_length), 1.])  # in seconds
         if record_length[0] == 0:
             record_length = record_length[0] = 1.
             warn('Header information is incorrect for record length. Default '
