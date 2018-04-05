@@ -24,8 +24,8 @@ from .. import Epochs
 from ..externals import six
 from ..channels.channels import _contains_ch_type
 
-depr_message = ("This function will be deprecated in 0.17, please use "
-                "`make_lcmv` and `%s` instead.")
+depr_message = ("This function is deprecated and will be removed in 0.17, "
+                "please use `make_lcmv` and `%s` instead.")
 
 
 def _reg_pinv(x, reg):
