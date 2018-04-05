@@ -85,10 +85,7 @@ filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
                     noise_cov=noise_cov, pick_ori='max-power',
                     weight_norm='nai')
 
-# Apply this spatial filter to the evoked data. The output of these two steps
-# is equivalent to calling lcmv() and enables the application of the spatial
-# filter to separate data sets, e.g. when using a common spatial filter to
-# compare conditions.
+# Apply this spatial filter to the evoked data.
 stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 
 ###############################################################################

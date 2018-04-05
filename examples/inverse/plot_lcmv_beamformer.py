@@ -18,7 +18,7 @@ import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.beamformer import lcmv
+from mne.beamformer import make_lcmv, apply_lcmv
 
 print(__doc__)
 
@@ -77,9 +77,11 @@ max_voxs = list()
 for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
     # compute unit-noise-gain beamformer with whitening of the leadfield and
     # data (enabled by passing a noise covariance matrix)
-    stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.05,
-               pick_ori=pick_ori, weight_norm='unit-noise-gain',
-               max_ori_out='signed')
+    filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
+                        noise_cov=noise_cov, pick_ori=pick_ori,
+                        weight_norm='unit-noise-gain')
+    # apply this spatial filter to source-reconstruct the evoked data
+    stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 
     # View activation time-series in maximum voxel at 100 ms:
     time_idx = stc.time_as_index(0.1)
