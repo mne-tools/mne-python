@@ -28,7 +28,8 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_complex64, write_complex128, write_int,
                     write_id, write_string, _get_split_size)
 
-from ..annotations import _annotations_starts_stops, _write_annotations
+from ..annotations import (_annotations_starts_stops, _write_annotations,
+                           _handle_meas_date)
 from ..filter import (filter_data, notch_filter, resample, next_fast_len,
                       _resample_stim_channels, _filt_check_picks,
                       _filt_update_info)
@@ -676,12 +677,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if not isinstance(annotations, Annotations):
                 raise ValueError('Annotations must be an instance of '
                                  'mne.Annotations. Got %s.' % annotations)
-            meas_date = self.info['meas_date']
-            if meas_date is None:
-                meas_date = 0
-            elif not np.isscalar(meas_date):
-                if len(meas_date) > 1:
-                    meas_date = meas_date[0] + meas_date[1] / 1000000.
+            meas_date = _handle_meas_date(self.info['meas_date'])
             if annotations.orig_time is not None:
                 offset = (annotations.orig_time - meas_date -
                           self.first_samp / self.info['sfreq'])
@@ -694,10 +690,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 if onset > self.times[-1]:
                     omitted += 1
                     omit_ind.append(ind)
+                    logger.debug('Omitting %d @ %s > %s'
+                                 % (ind, onset, self.times[-1]))
                 elif onset < self.times[0]:
                     if onset + annotations.duration[ind] < self.times[0]:
                         omitted += 1
                         omit_ind.append(ind)
+                        logger.debug('Omitting %d @ %s < %s'
+                                     % (ind, onset, self.times[0]))
                     else:
                         limited += 1
                         duration = annotations.duration[ind] + onset
@@ -1607,7 +1607,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if self.annotations is not None:
             annotations = self.annotations
-            annotations.onset -= tmin
+            # XXX there might be a cleaner way to do this someday
+            if self.annotations.orig_time is None:
+                self.annotations.onset -= tmin
             BaseRaw.annotations.fset(self, annotations, emit_warning=False)
 
         return self
@@ -2015,18 +2017,17 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         annotations = self.annotations
         edge_samps = list()
         for ri, r in enumerate(raws):
-            annotations = _combine_annotations((annotations, r.annotations),
-                                               self._last_samps,
-                                               self._first_samps,
-                                               self.info['sfreq'],
-                                               self.info['meas_date'])
+            n_samples = self.last_samp - self.first_samp + 1
+            annotations = _combine_annotations(
+                annotations, r.annotations, n_samples,
+                self.first_samp, r.first_samp,
+                self.info['sfreq'], self.info['meas_date'])
             edge_samps.append(sum(self._last_samps) -
                               sum(self._first_samps) + (ri + 1))
             self._first_samps = np.r_[self._first_samps, r._first_samps]
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._raw_extras += r._raw_extras
             self._filenames += r._filenames
-
         self._update_times()
         if annotations is None:
             annotations = Annotations([], [], [])
@@ -2459,7 +2460,8 @@ def _check_raw_compatibility(raw):
         raw[0].orig_format = 'unknown'
 
 
-def concatenate_raws(raws, preload=None, events_list=None):
+@verbose
+def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
     """Concatenate raw instances as if they were continuous.
 
     .. note:: ``raws[0]`` is modified in-place to achieve the concatenation.
@@ -2478,6 +2480,9 @@ def concatenate_raws(raws, preload=None, events_list=None):
         have or not have data preloaded.
     events_list : None | list
         The events to concatenate. Defaults to None.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

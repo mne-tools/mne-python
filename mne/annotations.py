@@ -174,36 +174,33 @@ class Annotations(object):
             _write_annotations(fid, self)
 
 
-def _combine_annotations(annotations, last_samps, first_samps, sfreq,
-                         meas_date):
+def _combine_annotations(one, two, one_n_samples, one_first_samp,
+                         two_first_samp, sfreq, meas_date):
     """Combine a tuple of annotations."""
-    if not any(annotations):
+    if one is None and two is None:
         return None
-    elif annotations[1] is None:
-        return annotations[0]
-    elif annotations[0] is None:
-        old_onset = list()
-        old_duration = list()
-        old_description = list()
-        old_orig_time = None
-    else:
-        old_onset = annotations[0].onset
-        old_duration = annotations[0].duration
-        old_description = annotations[0].description
-        old_orig_time = annotations[0].orig_time
+    elif two is None:
+        return one
+    elif one is None:
+        one = Annotations([], [], [], None)
 
-    extra_samps = len(first_samps)  # Account for sample 0
-    if old_orig_time is not None and annotations[1].orig_time is None:
-        meas_date = _handle_meas_date(meas_date)
-        extra_samps += sfreq * (meas_date - old_orig_time) + first_samps[0]
+    # Compute the shift necessary for alignment:
+    # 1. The shift (in time) due to concatenation
+    shift = one_n_samples / sfreq
+    meas_date = _handle_meas_date(meas_date)
+    # 2. Shift by the difference in meas_date and one.orig_time
+    if one.orig_time is not None:
+        shift += one_first_samp / sfreq
+        shift += meas_date - one.orig_time
+    # 3. Shift by the difference in meas_date and two.orig_time
+    if two.orig_time is not None:
+        shift -= two_first_samp / sfreq
+        shift -= meas_date - two.orig_time
 
-    onset = annotations[1].onset + (np.sum(last_samps) + extra_samps -
-                                    np.sum(first_samps)) / sfreq
-
-    onset = np.concatenate([old_onset, onset])
-    duration = np.concatenate([old_duration, annotations[1].duration])
-    description = np.concatenate([old_description, annotations[1].description])
-    return Annotations(onset, duration, description, old_orig_time)
+    onset = np.concatenate([one.onset, two.onset + shift])
+    duration = np.concatenate([one.duration, two.duration])
+    description = np.concatenate([one.description, two.description])
+    return Annotations(onset, duration, description, one.orig_time)
 
 
 def _handle_meas_date(meas_date):
@@ -222,12 +219,10 @@ def _sync_onset(raw, onset, inverse=False):
     """Adjust onsets in relation to raw data."""
     meas_date = _handle_meas_date(raw.info['meas_date'])
     if raw.annotations.orig_time is None:
-        orig_time = meas_date
+        annot_start = onset
     else:
         offset = -raw._first_time if inverse else raw._first_time
-        orig_time = raw.annotations.orig_time - offset
-
-    annot_start = orig_time - meas_date + onset
+        annot_start = (raw.annotations.orig_time - meas_date) - offset + onset
     return annot_start
 
 
