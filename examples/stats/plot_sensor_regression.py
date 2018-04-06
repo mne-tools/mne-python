@@ -67,7 +67,8 @@ plot_compare_evokeds(evokeds, colors=colors, split_legend=True,
 names = ["Intercept", name]
 res = linear_regression(epochs, epochs.metadata[names], names=names)
 for cond in names:
-    res[cond].beta.plot_joint(title=cond)
+    res[cond].beta.plot_joint(title=cond, ts_args=dict(time_unit='s'),
+                              topomap_args=dict(time_unit='s'))
 
 ##############################################################################
 # Because the `linear_regression` function also estimates p values, we can --

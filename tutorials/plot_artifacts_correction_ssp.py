@@ -62,12 +62,12 @@ event_id = {'auditory/left': 1}
 
 epochs_no_proj = mne.Epochs(raw, events, event_id, tmin=-0.2, tmax=0.5,
                             proj=False, baseline=(None, 0), reject=reject)
-epochs_no_proj.average().plot(spatial_colors=True)
+epochs_no_proj.average().plot(spatial_colors=True, time_unit='s')
 
 
 epochs_proj = mne.Epochs(raw, events, event_id, tmin=-0.2, tmax=0.5, proj=True,
                          baseline=(None, 0), reject=reject)
-epochs_proj.average().plot(spatial_colors=True)
+epochs_proj.average().plot(spatial_colors=True, time_unit='s')
 
 ##############################################################################
 # Looks cool right? It is however often not clear how many components you
@@ -81,7 +81,7 @@ evoked = mne.Epochs(raw, events, event_id, tmin=-0.2, tmax=0.5,
 # set time instants in seconds (from 50 to 150ms in a step of 10ms)
 times = np.arange(0.05, 0.15, 0.01)
 
-fig = evoked.plot_topomap(times, proj='interactive')
+fig = evoked.plot_topomap(times, proj='interactive', time_unit='s')
 
 ##############################################################################
 # now you should see checkboxes. Remove a few SSP and see how the auditory

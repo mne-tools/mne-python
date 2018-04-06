@@ -56,10 +56,11 @@ fig_cov, fig_spectra = mne.viz.plot_cov(noise_cov, raw.info)
 
 evoked = epochs.average()
 evoked.plot(time_unit='s')
-evoked.plot_topomap(times=np.linspace(0.05, 0.15, 5), ch_type='mag')
+evoked.plot_topomap(times=np.linspace(0.05, 0.15, 5), ch_type='mag',
+                    time_unit='s')
 
 # Show whitening
-evoked.plot_white(noise_cov)
+evoked.plot_white(noise_cov, time_unit='s')
 
 ###############################################################################
 # Inverse modeling: MNE/dSPM on evoked and raw data

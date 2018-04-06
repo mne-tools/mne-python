@@ -446,8 +446,9 @@ def plot_signal(x, offset):
     mask = freqs >= 0
     X = X[mask]
     freqs = freqs[mask]
-    axes[1].plot(freqs, 20 * np.log10(np.abs(X)))
+    axes[1].plot(freqs, 20 * np.log10(np.maximum(np.abs(X), 1e-16)))
     axes[1].set(xlim=flim)
+
 
 yticks = np.arange(7) / -30.
 yticklabels = ['Original', 'Noisy', 'FIR-firwin (0.16)', 'FIR-firwin2 (0.14)',

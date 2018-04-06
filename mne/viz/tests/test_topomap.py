@@ -148,7 +148,7 @@ def test_plot_topomap():
 
     # Test animation
     _, anim = evoked.animate_topomap(ch_type='grad', times=[0, 0.1],
-                                     butterfly=False)
+                                     butterfly=False, time_unit='s')
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     plt.close('all')
 
@@ -428,7 +428,8 @@ def test_ctf_plotting():
     assert len(events) > 10
     evoked = Epochs(raw, events, tmin=0, tmax=0.01, baseline=None).average()
     assert get_current_comp(evoked.info) == 3
-    evoked.plot_topomap()  # smoke test that compensation does not matter
+    # smoke test that compensation does not matter
+    evoked.plot_topomap(time_unit='s')
 
 
 run_tests_if_main()

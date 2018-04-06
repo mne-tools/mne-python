@@ -2172,7 +2172,10 @@ def _animate(frame, ax, ax_line, params):
         frame = params['frame']
     time_idx = params['frames'][frame]
 
-    title = '%6.0f ms' % (params['times'][frame] * 1e3)
+    if params['time_unit'] == 'ms':
+        title = '%6.0f ms' % (params['times'][frame] * 1e3,)
+    else:
+        title = '%6.3f s' % (params['times'][frame],)
     if params['blit']:
         text = params['text']
     else:
@@ -2233,7 +2236,7 @@ def _key_press(event, params):
 
 
 def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
-                       butterfly=False, blit=True, show=True):
+                       butterfly=False, blit=True, show=True, time_unit=None):
     """Make animation of evoked data as topomap timeseries.
 
     Animation can be paused/resumed with left mouse button.
@@ -2264,6 +2267,9 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
         disabled. Defaults to True.
     show : bool
         Whether to show the animation. Defaults to True.
+    time_unit : str
+        The units for the time axis, can be "ms" (default in 0.16)
+        or "s" (will become the default in 0.17).
 
     Returns
     -------
@@ -2282,6 +2288,7 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
     if ch_type not in ('mag', 'grad', 'eeg'):
         raise ValueError("Channel type not supported. Supported channel "
                          "types include 'mag', 'grad' and 'eeg'.")
+    time_unit, _ = _check_time_unit(time_unit, evoked.times, allow_none=True)
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
     times = np.array(times)
@@ -2312,9 +2319,9 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
     ax_cbar = plt.axes([0.85, 0.1, 0.05, 0.8])
     ax_cbar.set_title(_handle_default('units')[ch_type], fontsize=10)
 
-    params = {'data': data, 'pos': pos, 'all_times': evoked.times, 'frame': 0,
-              'frames': frames, 'butterfly': butterfly, 'blit': blit,
-              'pause': False, 'times': times}
+    params = dict(data=data, pos=pos, all_times=evoked.times, frame=0,
+                  frames=frames, butterfly=butterfly, blit=blit,
+                  pause=False, times=times, time_unit=time_unit)
     init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
                         params=params, merge_grads=merge_grads)
     animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)

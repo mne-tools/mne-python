@@ -21,8 +21,8 @@ from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
-from .viz.evoked import (plot_evoked_white, plot_evoked_joint,
-                         _animate_evoked_topomap)
+from .viz.evoked import plot_evoked_white, plot_evoked_joint
+from .viz.topomap import _topomap_animation
 
 from .externals.six import string_types
 
@@ -382,7 +382,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  topomap_args=topomap_args)
 
     def animate_topomap(self, ch_type=None, times=None, frame_rate=None,
-                        butterfly=False, blit=True, show=True):
+                        butterfly=False, blit=True, show=True, time_unit=None):
         """Make animation of evoked data as topomap timeseries.
 
         The animation can be paused/resumed with left mouse button.
@@ -411,6 +411,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Defaults to True.
         show : bool
             Whether to show the animation. Defaults to True.
+        time_unit : str
+            The units for the time axis, can be "ms" (default in 0.16)
+            or "s" (will become the default in 0.17).
+
+            .. versionadded:: 0.16
 
         Returns
         -------
@@ -423,10 +428,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         .. versionadded:: 0.12.0
         """
-        return _animate_evoked_topomap(self, ch_type=ch_type, times=times,
-                                       frame_rate=frame_rate,
-                                       butterfly=butterfly, blit=blit,
-                                       show=show)
+        return _topomap_animation(
+            self, ch_type=ch_type, times=times, frame_rate=frame_rate,
+            butterfly=butterfly, blit=blit, show=show, time_unit=time_unit)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields.

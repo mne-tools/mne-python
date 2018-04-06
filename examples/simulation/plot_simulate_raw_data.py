@@ -80,4 +80,4 @@ epochs = Epochs(raw_sim, events, 1, -0.2, epoch_duration)
 cov = compute_covariance(epochs, tmax=0., method='empirical',
                          verbose='error')  # quick calc
 evoked = epochs.average()
-evoked.plot_white(cov)
+evoked.plot_white(cov, time_unit='s')

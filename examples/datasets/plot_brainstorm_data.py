@@ -72,4 +72,5 @@ evoked.shift_time(-0.004)
 evoked.plot(time_unit='s')
 
 # show topomaps
-evoked.plot_topomap(times=np.array([0.016, 0.030, 0.060, 0.070]))
+evoked.plot_topomap(times=np.array([0.016, 0.030, 0.060, 0.070]),
+                    time_unit='s')

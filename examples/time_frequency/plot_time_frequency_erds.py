@@ -99,7 +99,8 @@ n_cycles = freqs  # use constant t/f resolution
 vmin, vmax = -1, 1.5  # set min and max ERDS values in plot
 baseline = [-1, 0]  # baseline interval (in s)
 cmap = center_cmap(plt.cm.RdBu, vmin, vmax)  # zero maps to white
-kwargs = dict(n_permutations=100, step_down_p=0.05, seed=1)  # for cluster test
+kwargs = dict(n_permutations=100, step_down_p=0.05, seed=1,
+              buffer_size=None)  # for cluster test
 
 for event in event_ids:
     tfr = tfr_multitaper(epochs[event], freqs=freqs, n_cycles=n_cycles,

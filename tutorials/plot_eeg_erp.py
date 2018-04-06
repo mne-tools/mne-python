@@ -155,7 +155,9 @@ print(epochs)
 left, right = epochs["left"].average(), epochs["right"].average()
 
 # create and plot difference ERP
-mne.combine_evoked([left, -right], weights='equal').plot_joint()
+joint_kwargs = dict(ts_args=dict(time_unit='s'),
+                    topomap_args=dict(time_unit='s'))
+mne.combine_evoked([left, -right], weights='equal').plot_joint(**joint_kwargs)
 
 ###############################################################################
 # This is an equal-weighting difference. If you have imbalanced trial numbers,
@@ -179,8 +181,8 @@ print(all_evokeds)
 
 # Then, we construct and plot an unweighted average of left vs. right trials
 # this way, too:
-mne.combine_evoked(all_evokeds,
-                   weights=(0.25, -0.25, 0.25, -0.25)).plot_joint()
+mne.combine_evoked(
+    all_evokeds, weights=(0.25, -0.25, 0.25, -0.25)).plot_joint(**joint_kwargs)
 
 ###############################################################################
 # Often, it makes sense to store Evoked objects in a dictionary or a list -
@@ -197,4 +199,4 @@ print(all_evokeds['left/auditory'])
 
 # Besides for explicit access, this can be used for example to set titles.
 for cond in all_evokeds:
-    all_evokeds[cond].plot_joint(title=cond)
+    all_evokeds[cond].plot_joint(title=cond, **joint_kwargs)
