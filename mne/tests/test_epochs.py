@@ -838,6 +838,27 @@ def test_read_write_epochs():
         assert_equal(epochs.get_data().shape[-1], 1)
 
 
+def test_split_saving():
+    """Test saving split epochs."""
+    # See gh-5102
+    tempdir = _TempDir()
+    raw = mne.io.RawArray(np.random.RandomState(0).randn(100, 10000),
+                          mne.create_info(100, 1000.))
+    events = mne.make_fixed_length_events(raw, 1)
+    epochs = mne.Epochs(raw, events)
+    epochs_data = epochs.get_data()
+    fname = op.join(tempdir, 'test-epo.fif')
+    epochs.save(fname, split_size='1MB')
+    assert op.isfile(fname)
+    assert op.isfile(fname[:-4] + '-1.fif')
+    assert op.isfile(fname[:-4] + '-2.fif')
+    assert not op.isfile(fname[:-4] + '-3.fif')
+    for preload in (True, False):
+        epochs2 = mne.read_epochs(fname, preload=preload)
+        assert_allclose(epochs2.get_data(), epochs_data)
+        assert_array_equal(epochs.events, epochs2.events)
+
+
 def test_epochs_proj():
     """Test handling projection (apply proj in Raw or in Epochs)."""
     tempdir = _TempDir()

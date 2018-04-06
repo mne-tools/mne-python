@@ -2590,7 +2590,7 @@ class EpochsFIF(BaseEpochs):
 
         (info, data, events, event_id, tmin, tmax, metadata, baseline,
          selection, drop_log, _) = \
-            _concatenate_epochs(ep_list, with_data=preload)
+            _concatenate_epochs(ep_list, with_data=preload, add_offset=False)
         # we need this uniqueness for non-preloaded data to work properly
         if len(np.unique(events[:, 0])) != len(events):
             raise RuntimeError('Event time samples were not unique')
@@ -2777,7 +2777,7 @@ def _compare_epochs_infos(info1, info2, ind):
                          'runs to a common head position.' % ind)
 
 
-def _concatenate_epochs(epochs_list, with_data=True):
+def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
     """Auxiliary function for concatenating epochs."""
     if not isinstance(epochs_list, (list, tuple)):
         raise TypeError('epochs_list must be a list or tuple, got %s'
@@ -2821,7 +2821,8 @@ def _concatenate_epochs(epochs_list, with_data=True):
             data.append(epochs.get_data())
         evs = epochs.events.copy()
         # add offset
-        evs[:, 0] += events_offset
+        if add_offset:
+            evs[:, 0] += events_offset
         # Update offset for the next iteration.
         # offset is the last epoch + tmax + 10 second
         events_offset += (np.max(evs[:, 0]) +
