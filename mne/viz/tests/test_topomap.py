@@ -15,7 +15,8 @@ from numpy.testing import assert_raises, assert_array_equal
 from nose.tools import assert_true, assert_equal
 import pytest
 
-from mne import read_evokeds, read_proj, make_fixed_length_events, Epochs
+from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
+                 compute_proj_evoked)
 from mne.io.proj import make_eeg_average_ref_proj
 from mne.io import read_raw_fif, read_info
 from mne.io.constants import FIFF
@@ -50,6 +51,60 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 ctf_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
 layout = read_layout('Vectorview-all')
+
+
+def test_plot_topomap_interactive():
+    """Test interactive topomap projection plotting."""
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+    from matplotlib.figure import Figure
+    evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
+    evoked.pick_types(meg='mag')
+    evoked.info['projs'] = []
+    assert not evoked.proj
+    evoked.add_proj(compute_proj_evoked(evoked, n_mag=1))
+
+    plt.close('all')
+    fig = Figure()
+    canvas = FigureCanvas(fig)
+    ax = fig.gca()
+
+    kwargs = dict(vmin=-240, vmax=240, times=[0.1], colorbar=False, axes=ax,
+                  res=8)
+    evoked.copy().plot_topomap(proj=False, **kwargs)
+    canvas.draw()
+    image_noproj = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+    assert len(plt.get_fignums()) == 1
+
+    ax.clear()
+    evoked.copy().plot_topomap(proj=True, **kwargs)
+    canvas.draw()
+    image_proj = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+    assert not np.array_equal(image_noproj, image_proj)
+    assert len(plt.get_fignums()) == 1
+
+    ax.clear()
+    evoked.copy().plot_topomap(proj='interactive', **kwargs)
+    canvas.draw()
+    image_interactive = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+    assert_array_equal(image_noproj, image_interactive)
+    assert not np.array_equal(image_proj, image_interactive)
+    assert len(plt.get_fignums()) == 2
+
+    proj_fig = plt.figure(plt.get_fignums()[-1])
+    _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='data')
+    canvas.draw()
+    image_interactive_click = np.frombuffer(
+        canvas.tostring_rgb(), dtype='uint8')
+    assert_array_equal(image_proj, image_interactive_click)
+    assert not np.array_equal(image_noproj, image_interactive_click)
+
+    _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='data')
+    canvas.draw()
+    image_interactive_click = np.frombuffer(
+        canvas.tostring_rgb(), dtype='uint8')
+    assert_array_equal(image_noproj, image_interactive_click)
+    assert not np.array_equal(image_proj, image_interactive_click)
 
 
 @testing.requires_testing_data

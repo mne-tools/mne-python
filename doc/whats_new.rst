@@ -170,6 +170,8 @@ Bug
 
 - Fix bug in ``mne coreg`` where sphere surfaces were scaled by `Eric Larson`_
 
+- Fix bug in :meth:`mne.Evoked.plot_topomap` when using ``proj='interactive'`` mode by `Eric Larson`_
+
 - Fix bug when passing ``show_sensors=1`` to :func:`mne.viz.plot_compare_evokeds` resulted in sensors legend placed in lower right of the figure (position 4 in matplotlib), not upper right by `Mikołaj Magnuski`_
 
 - Fix handling of annotations when cropping and concatenating raw data by `Alex Gramfort`_ and `Eric Larson`_
