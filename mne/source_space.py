@@ -33,7 +33,8 @@ from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
-                         _coord_frame_name, Transform, _str_to_frame)
+                         _coord_frame_name, Transform, _str_to_frame,
+                         _ensure_trans)
 from .externals.six import string_types
 
 
@@ -1187,18 +1188,18 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
 
 
 @verbose
-def aseg_vertex_to_mni(vertices, subject, mri_head_t, subjects_dir=None,
+def aseg_vertex_to_mni(pos, subject, mri_head_t, subjects_dir=None,
                        verbose=None):
-    """Convert the array of vertices for a hemisphere to MNI coordinates.
+    """Convert pos from head coordinate system to MNI ones.
 
     Parameters
     ----------
-    vertices : n_vertices x 3 array of float
-        The  coordinates (in m) of the vertices in head coo system
+    pos : n_pos x 3 array of float
+        The  coordinates (in m) in head coordinate system
     subject : string
-        Name of the subject to load surfaces from.
-    mri_head_t: Transform
-        mri head tranformation
+        Name of the subject.
+    mri_head_t: trans
+        MRI<->Head coordinate transformation
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
@@ -1207,23 +1208,20 @@ def aseg_vertex_to_mni(vertices, subject, mri_head_t, subjects_dir=None,
 
     Returns
     -------
-    coordinates : n_vertices x 3 array of float
-        The MNI coordinates (in mm) of the vertices
+    coordinates : n_pos x 3 array of float
+        The MNI coordinates (in mm) of pos
 
     Notes
     -----
     This function requires either nibabel (in Python) or Freesurfer
     (with utility "mri_info") to be correctly installed.
     """
-    if not has_freesurfer() and not has_nibabel():
-        raise RuntimeError('NiBabel (Python) or Freesurfer (Unix) must be '
-                           'correctly installed and accessible from Python')
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     # before we go from head to MRI (surface RAS)
-    head_mri_t = invert_transform(mri_head_t)
-    coo_MRI_RAS = apply_trans(head_mri_t, vertices)
+    head_mri_t = _ensure_trans(mri_head_t, 'head', 'mri')
+    coo_MRI_RAS = apply_trans(head_mri_t, pos)
 
     # convert to MNI coordinates
     xfm = _read_talxfm(subject, subjects_dir)
