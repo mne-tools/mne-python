@@ -55,7 +55,7 @@ fig_cov, fig_spectra = mne.viz.plot_cov(noise_cov, raw.info)
 # ---------------------------
 
 evoked = epochs.average()
-evoked.plot()
+evoked.plot(time_unit='s')
 evoked.plot_topomap(times=np.linspace(0.05, 0.15, 5), ch_type='mag')
 
 # Show whitening

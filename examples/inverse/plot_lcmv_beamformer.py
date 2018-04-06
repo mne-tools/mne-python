@@ -61,7 +61,7 @@ forward = mne.convert_forward_solution(forward, surf_ori=True)
 noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk')
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
                                   method='shrunk')
-evoked.plot()
+evoked.plot(time_unit='s')
 
 ###############################################################################
 # Run beamformers and look at maximum outputs

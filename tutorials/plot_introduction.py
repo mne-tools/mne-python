@@ -256,7 +256,7 @@ saved_epochs = mne.read_epochs('sample-epo.fif')
 
 evoked = epochs['aud_l'].average()
 print(evoked)
-evoked.plot()
+evoked.plot(time_unit='s')
 
 ##############################################################################
 # .. topic:: Exercise

@@ -41,4 +41,4 @@ for r, kind in zip((raw, raw_sss), ('Raw data', 'Maxwell filtered data')):
                         baseline=(None, 0), reject=dict(eog=150e-6))
     evoked = epochs.average()
     evoked.plot(window_title=kind, ylim=dict(grad=(-200, 250),
-                                             mag=(-600, 700)))
+                                             mag=(-600, 700)), time_unit='s')

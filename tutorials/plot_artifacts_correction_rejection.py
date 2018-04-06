@@ -82,7 +82,7 @@ evoked = mne.read_evokeds(fname, condition='Left Auditory',
 evoked.pick_types(meg=True, eeg=True, exclude=[])
 
 # plot with bads
-evoked.plot(exclude=[])
+evoked.plot(exclude=[], time_unit='s')
 
 print(evoked.info['bads'])
 
@@ -92,7 +92,7 @@ evoked.interpolate_bads(reset_bads=False, verbose=False)
 
 ###############################################################################
 # Let's plot the cleaned data
-evoked.plot(exclude=[])
+evoked.plot(exclude=[], time_unit='s')
 
 ###############################################################################
 # .. note::

@@ -57,5 +57,5 @@ for ii, ev in enumerate(rt_epochs.iter_evoked()):
     else:
         evoked = mne.combine_evoked([evoked, ev], weights='nave')
     plt.clf()  # clear canvas
-    evoked.plot(axes=plt.gca())  # plot on current figure
+    evoked.plot(axes=plt.gca(), time_unit='s')  # plot on current figure
     plt.pause(0.05)

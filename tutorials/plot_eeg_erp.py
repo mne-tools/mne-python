@@ -105,8 +105,8 @@ evoked_no_ref = mne.Epochs(raw_no_ref, **epochs_params).average()
 del raw_no_ref  # save memory
 
 title = 'EEG Original reference'
-evoked_no_ref.plot(titles=dict(eeg=title))
-evoked_no_ref.plot_topomap(times=[0.1], size=3., title=title)
+evoked_no_ref.plot(titles=dict(eeg=title), time_unit='s')
+evoked_no_ref.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 
 ###############################################################################
 # **Average reference**: This is normally added by default, but can also
@@ -117,8 +117,8 @@ evoked_car = mne.Epochs(raw_car, **epochs_params).average()
 del raw_car  # save memory
 
 title = 'EEG Average reference'
-evoked_car.plot(titles=dict(eeg=title))
-evoked_car.plot_topomap(times=[0.1], size=3., title=title)
+evoked_car.plot(titles=dict(eeg=title), time_unit='s')
+evoked_car.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 
 ###############################################################################
 # **Custom reference**: Use the mean of channels EEG 001 and EEG 002 as
@@ -128,8 +128,8 @@ evoked_custom = mne.Epochs(raw_custom, **epochs_params).average()
 del raw_custom  # save memory
 
 title = 'EEG Custom reference'
-evoked_custom.plot(titles=dict(eeg=title))
-evoked_custom.plot_topomap(times=[0.1], size=3., title=title)
+evoked_custom.plot(titles=dict(eeg=title), time_unit='s')
+evoked_custom.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 
 ###############################################################################
 # Evoked arithmetics

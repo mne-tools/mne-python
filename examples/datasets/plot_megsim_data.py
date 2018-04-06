@@ -45,8 +45,8 @@ event_id, tmin, tmax = 9, -0.2, 0.5
 epochs = Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0),
                 picks=picks, reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
 evoked = epochs.average()  # average epochs and get an Evoked dataset.
-evoked.plot()
+evoked.plot(time_unit='s')
 
 # Compare to the simulated data (use verbose='error' b/c of naming)
 evoked_sim = read_evokeds(evoked_fnames[0], condition=0, verbose='error')
-evoked_sim.plot()
+evoked_sim.plot(time_unit='s')

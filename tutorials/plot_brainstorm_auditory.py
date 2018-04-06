@@ -263,8 +263,8 @@ for evoked in (evoked_std, evoked_dev):
 # is visible in deviant condition only (decision making in preparation of the
 # button press). You can view the topographies from a certain time span by
 # painting an area with clicking and holding the left mouse button.
-evoked_std.plot(window_title='Standard', gfp=True)
-evoked_dev.plot(window_title='Deviant', gfp=True)
+evoked_std.plot(window_title='Standard', gfp=True, time_unit='s')
+evoked_dev.plot(window_title='Deviant', gfp=True, time_unit='s')
 
 
 ###############################################################################

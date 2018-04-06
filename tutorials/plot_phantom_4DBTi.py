@@ -42,7 +42,7 @@ for ii in range(4):
     epochs = mne.Epochs(raw, events=events, event_id=8192, tmin=-0.2, tmax=0.4,
                         preload=True)
     evoked = epochs.average()
-    evoked.plot()
+    evoked.plot(time_unit='s')
     cov = mne.compute_covariance(epochs, tmax=0.)
     dip = mne.fit_dipole(evoked.copy().crop(t0, t0), cov, sphere)[0]
     pos[ii] = dip.pos[0]

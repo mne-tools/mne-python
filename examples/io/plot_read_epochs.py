@@ -45,4 +45,4 @@ evoked = epochs.average()  # average epochs to get the evoked response
 
 ###############################################################################
 # Show result
-evoked.plot()
+evoked.plot(time_unit='s')

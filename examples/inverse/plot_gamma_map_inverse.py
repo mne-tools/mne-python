@@ -73,11 +73,11 @@ plot_dipole_locations(dipoles[idx], forward['mri_head_t'], 'sample',
 ylim = dict(grad=[-120, 120])
 evoked.pick_types(meg='grad', exclude='bads')
 evoked.plot(titles=dict(grad='Evoked Response Gradiometers'), ylim=ylim,
-            proj=True)
+            proj=True, time_unit='s')
 
 residual.pick_types(meg='grad', exclude='bads')
 residual.plot(titles=dict(grad='Residuals Gradiometers'), ylim=ylim,
-              proj=True)
+              proj=True, time_unit='s')
 
 ###############################################################################
 # Generate stc from dipoles
