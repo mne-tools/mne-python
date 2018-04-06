@@ -4,8 +4,7 @@ Compute source power using DICS beamfomer
 =========================================
 
 Compute a Dynamic Imaging of Coherent Sources (DICS) [1]_ filter from
-single-trial activity to estimate source power for two frequencies of
-interest.
+single-trial activity to estimate source power across a frequency band.
 
 References
 ----------
@@ -32,7 +31,7 @@ fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 subjects_dir = data_path + '/subjects'
 
 ###############################################################################
-# Read raw data
+# Reading the data data:
 raw = mne.io.read_raw_fif(raw_fname)
 raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 
@@ -51,11 +50,10 @@ evoked = epochs.average()
 # Read forward operator
 forward = mne.read_forward_solution(fname_fwd)
 
-# Computing the cross-spectral density matrix at 6-10 Hz.
-# The frequency was chosen on the basis of spectrograms from
-# example time_frequency/plot_time_frequency.py.
-# We use a decim value of 20 to speed up the computation in this example at the
-# loss of accuracy.
+###############################################################################
+# Computing the cross-spectral density matrix at 4 evenly spaced frequencies
+# from 6 to 10 Hz. We use a decim value of 20 to speed up the computation in
+# this example at the loss of accuracy.
 csd = csd_morlet(epochs, tmin=0, tmax=0.5, decim=20,
                  frequencies=np.linspace(6, 10, 4))
 
@@ -63,6 +61,6 @@ csd = csd_morlet(epochs, tmin=0, tmax=0.5, decim=20,
 filters = make_dics(epochs.info, forward, csd, reg=0.5)
 stc, freqs = apply_dics_csd(csd, filters)
 
-message = 'DICS source power in the 6-10 Hz frequency band'
+message = 'DICS source power in the 8-12 Hz frequency band'
 brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
                  time_label=message)

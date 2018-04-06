@@ -42,22 +42,6 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     these filters to a CSD matrix (see :func:`apply_dics_csd`), the source
     power can be estimated for each source point.
 
-    The DICS beamformer is very similar to the LCMV (:func:`make_lcmv`)
-    beamformer and many of the parameters are shared. However,
-    :func:`make_dics` and :func:`make_lcmv` currently have different defaults
-    for these parameters, which were settled on separately through extensive
-    practical use case testing (but not necessarily exhaustive parameter space
-    searching), and it remains to be seen how functionally interchangeable they
-    could be.
-
-    The default setting reproduce the DICS beamformer as described in [4]_::
-
-        inversion='single', weight_norm=None, normalize_fwd=True
-
-    To use the :func:`make_lcmv` defaults, use::
-
-        inversion='matrix', weight_norm='unit-gain', normalize_fwd=False
-
     Parameters
     ----------
     info : dict
@@ -154,6 +138,22 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     -----
     The original reference is [1]_. See [4]_ for a tutorial style paper on the
     topic.
+
+    The DICS beamformer is very similar to the LCMV (:func:`make_lcmv`)
+    beamformer and many of the parameters are shared. However,
+    :func:`make_dics` and :func:`make_lcmv` currently have different defaults
+    for these parameters, which were settled on separately through extensive
+    practical use case testing (but not necessarily exhaustive parameter space
+    searching), and it remains to be seen how functionally interchangeable they
+    could be.
+
+    The default setting reproduce the DICS beamformer as described in [4]_::
+
+        inversion='single', weight_norm=None, normalize_fwd=True
+
+    To use the :func:`make_lcmv` defaults, use::
+
+        inversion='matrix', weight_norm='unit-gain', normalize_fwd=False
 
     For more information about ``real_filter``, see the
     `supplemental information <http://www.cell.com/cms/attachment/616681/4982593/mmc1.pdf>`_
@@ -391,7 +391,7 @@ def apply_dics(evoked, filters, verbose=None):
                  you are interested in estimating source time courses, use an
                  LCMV beamformer (:func:`make_lcmv`, :func:`apply_lcmv`)
                  instead. If you are interested in estimating spectral power at
-                 the source level, use :func:`dics_source_power`.
+                 the source level, use :func:`apply_dics_csd`.
     .. warning:: This implementation has not been heavily tested so please
                  report any issues or suggestions.
 
@@ -408,7 +408,7 @@ def apply_dics(evoked, filters, verbose=None):
 
     Returns
     -------
-    stc : SourceEstimate | VolSourceEstimate | list of (SourceEstimate | VolSourceEstimate)
+    stc : SourceEstimate | VolSourceEstimate | list
         Source time courses. If the DICS beamformer has been computed for more
         than one frequency, a list is returned containing for each frequency
         the corresponding time courses.
@@ -444,7 +444,7 @@ def apply_dics_epochs(epochs, filters, return_generator=False, verbose=None):
                  you are interested in estimating source time courses, use an
                  LCMV beamformer (:func:`make_lcmv`, :func:`apply_lcmv`)
                  instead. If you are interested in estimating spectral power at
-                 the source level, use :func:`dics_source_power`.
+                 the source level, use :func:`apply_dics_csd`.
     .. warning:: This implementation has not been heavily tested so please
                  report any issue or suggestions.
 
