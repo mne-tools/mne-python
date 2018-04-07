@@ -1188,8 +1188,8 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
 
 
 @verbose
-def aseg_vertex_to_mni(pos, subject, mri_head_t, subjects_dir=None,
-                       verbose=None):
+def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
+                verbose=None):
     """Convert pos from head coordinate system to MNI ones.
 
     Parameters
@@ -2534,7 +2534,7 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
         roi_str = src[nr]['seg_name']
         try:
             ind = all_labels_aseg[0].index(roi_str)
-            color = tuple(np.array(all_labels_aseg[1][ind]) / 255.)
+            color = np.array(all_labels_aseg[1][ind]) / 255
         except ValueError:
             pass
 

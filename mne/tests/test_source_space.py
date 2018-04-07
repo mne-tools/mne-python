@@ -14,7 +14,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
                  add_source_space_distances, read_bem_surfaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
-                 aseg_vertex_to_mni, read_trans)
+                 head_to_mni, read_trans)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
                        requires_mne, requires_version, run_tests_if_main)
@@ -452,7 +452,7 @@ def test_vertex_to_mni():
 
 @testing.requires_testing_data
 @requires_fs_or_nibabel
-def test_aseg_vertex_to_mni():
+def test_head_to_mni():
     """Test conversion of aseg vertices to MNI coordinates."""
     # obtained using freeview
     coords = np.array([[22.52, 11.24, 17.72], [22.52, 5.46, 21.58],
@@ -469,8 +469,8 @@ def test_aseg_vertex_to_mni():
                                    [0.01014125,  0.02496262,  0.04233755],
                                    [0.01713642,  0.02505193,  0.04258181],
                                    [0.01720631,  0.03073877,  0.03850075]])
-    coords_MNI_2 = aseg_vertex_to_mni(coo_right_amygdala, 'sample', mri_head_t,
-                                      subjects_dir)
+    coords_MNI_2 = head_to_mni(coo_right_amygdala, 'sample', mri_head_t,
+                               subjects_dir)
     # less than 1mm error
     assert_allclose(coords_MNI, coords_MNI_2, atol=10.0)
 
