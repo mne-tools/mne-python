@@ -6,7 +6,7 @@
 import os.path as op
 
 import numpy as np
-from ._hdf5_eeglab import _get_hdf_eeg_data
+from ._h5 import _get_hdf_eeg_data
 from ..utils import (_read_segments_file, _find_channels,
                      _synthesize_stim_channel)
 from ..constants import FIFF
