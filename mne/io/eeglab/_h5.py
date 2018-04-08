@@ -1,3 +1,7 @@
+# Authors: Steven Gutstein <s.m.gutstein@gmail.com>
+#
+# License: BSD (3-clause)
+
 import os.path as op
 
 import numpy as np
@@ -124,7 +128,7 @@ def _get_hdf_eeg_data(input_fname):
                            'requires h5py, which could not',
                            'be imported')
 
-    logger.info("Attempting to read Matlab style hdf file")
+    logger.info("Attempting to read v7.3 Matlab file in hdf5 format.")
     with h5py.File(input_fname) as f:
         eeg_dict = hdf_2_dict(f, f['EEG'], parent=None)
     eeg = _bunchify(eeg_dict)
