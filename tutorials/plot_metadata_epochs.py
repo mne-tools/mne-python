@@ -52,8 +52,10 @@ print(epochs.metadata.head(10))
 av1 = epochs['Concreteness < 5 and WordFrequency < 2'].average()
 av2 = epochs['Concreteness > 5 and WordFrequency > 2'].average()
 
-av1.plot_joint(show=False)
-av2.plot_joint(show=False)
+joint_kwargs = dict(ts_args=dict(time_unit='s'),
+                    topomap_args=dict(time_unit='s'))
+av1.plot_joint(show=False, **joint_kwargs)
+av2.plot_joint(show=False, **joint_kwargs)
 
 ###############################################################################
 # Next we'll choose a subset of words to keep.
@@ -63,7 +65,7 @@ epochs['WORD in {}'.format(words)].plot_image(show=False)
 ###############################################################################
 # Note that traditional epochs sub-selection still works. The traditional
 # MNE methods for selecting epochs will supersede the rich metadata querying.
-epochs['cent'].average().plot(show=False)
+epochs['cent'].average().plot(show=False, time_unit='s')
 
 ###############################################################################
 # Below we'll show a more involved example that leverages the metadata

@@ -82,7 +82,8 @@ with FieldTripClient(host='localhost', port=1972,
         plot_events(rt_epochs.events[-5:], sfreq=ev.info['sfreq'],
                     first_samp=-rt_client.tmin_samp, axes=ax[0])
 
-        evoked.plot(axes=ax[1], selectable=False)  # plot on second subplot
+        # plot on second subplot
+        evoked.plot(axes=ax[1], selectable=False, time_unit='s')
         ax[1].set_title('Evoked response for gradiometer channels'
                         '(event_id = %d)' % event_id)
 

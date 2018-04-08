@@ -263,22 +263,22 @@ for evoked in (evoked_std, evoked_dev):
 # is visible in deviant condition only (decision making in preparation of the
 # button press). You can view the topographies from a certain time span by
 # painting an area with clicking and holding the left mouse button.
-evoked_std.plot(window_title='Standard', gfp=True)
-evoked_dev.plot(window_title='Deviant', gfp=True)
+evoked_std.plot(window_title='Standard', gfp=True, time_unit='s')
+evoked_dev.plot(window_title='Deviant', gfp=True, time_unit='s')
 
 
 ###############################################################################
 # Show activations as topography figures.
 times = np.arange(0.05, 0.301, 0.025)
-evoked_std.plot_topomap(times=times, title='Standard')
-evoked_dev.plot_topomap(times=times, title='Deviant')
+evoked_std.plot_topomap(times=times, title='Standard', time_unit='s')
+evoked_dev.plot_topomap(times=times, title='Deviant', time_unit='s')
 
 ###############################################################################
 # We can see the MMN effect more clearly by looking at the difference between
 # the two conditions. P50 and N100 are no longer visible, but MMN/P200 and
 # P300 are emphasised.
 evoked_difference = combine_evoked([evoked_dev, -evoked_std], weights='equal')
-evoked_difference.plot(window_title='Difference', gfp=True)
+evoked_difference.plot(window_title='Difference', gfp=True, time_unit='s')
 
 ###############################################################################
 # Source estimation.

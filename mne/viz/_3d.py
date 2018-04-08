@@ -41,7 +41,7 @@ from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      _import_mlab, SilenceStdout, has_nibabel, check_version,
                      _ensure_int)
 from .utils import (mne_analyze_colormap, _prepare_trellis, COLORS, plt_show,
-                    tight_layout, figure_nobar)
+                    tight_layout, figure_nobar, _check_time_unit)
 from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
                    read_bem_surfaces)
 
@@ -1317,14 +1317,7 @@ def _handle_time(time_label, time_unit, times):
             time_label = 'time=%0.3fs'
         elif time_unit == 'ms':
             time_label = 'time=%0.1fms'
-    if time_unit == 's':
-        times = times
-    elif time_unit == 'ms':
-        times = 1e3 * times
-    else:
-        raise ValueError("time_unit needs to be 's' or 'ms', got %r" %
-                         (time_unit,))
-
+    _, times = _check_time_unit(time_unit, times)
     return time_label, times
 
 

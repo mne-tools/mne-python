@@ -69,7 +69,7 @@ print(data[10])
 # the data and some info about the evoked data. For more information, see
 # :ref:`tut_creating_data_structures`.
 evoked = mne.EvokedArray(data, evoked.info, tmin=evoked.times[0])
-evoked.plot()
+evoked.plot(time_unit='s')
 
 ###############################################################################
 # To write an evoked dataset to a file, use the :meth:`mne.Evoked.save` method.

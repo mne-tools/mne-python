@@ -1912,7 +1912,7 @@ def _chunk_write(chunk, local_file, progress):
 
 @verbose
 def _fetch_file(url, file_name, print_destination=True, resume=True,
-                hash_=None, timeout=10., verbose=None):
+                hash_=None, timeout=30., verbose=None):
     """Load requested file, downloading it if needed or requested.
 
     Parameters

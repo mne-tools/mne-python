@@ -50,18 +50,21 @@ fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, sharex=True)
 raw.set_eeg_reference([])
 evoked_no_ref = mne.Epochs(raw, **epochs_params).average()
 
-evoked_no_ref.plot(axes=ax1, titles=dict(eeg='Original reference'), show=False)
+evoked_no_ref.plot(axes=ax1, titles=dict(eeg='Original reference'), show=False,
+                   time_unit='s')
 
 # Average reference. This is normally added by default, but can also be added
 # explicitly.
 raw.set_eeg_reference('average', projection=True)
 evoked_car = mne.Epochs(raw, **epochs_params).average()
 
-evoked_car.plot(axes=ax2, titles=dict(eeg='Average reference'), show=False)
+evoked_car.plot(axes=ax2, titles=dict(eeg='Average reference'), show=False,
+                time_unit='s')
 
 # Re-reference from an average reference to the mean of channels EEG 001 and
 # EEG 002.
 raw.set_eeg_reference(['EEG 001', 'EEG 002'])
 evoked_custom = mne.Epochs(raw, **epochs_params).average()
 
-evoked_custom.plot(axes=ax3, titles=dict(eeg='Custom reference'))
+evoked_custom.plot(axes=ax3, titles=dict(eeg='Custom reference'),
+                   time_unit='s')

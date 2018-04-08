@@ -52,7 +52,7 @@ for ev in events:
 
 # Here's a helper function we'll use later
 def plot_query_results(query):
-    fig = epochs[query].average().plot(show=False)
+    fig = epochs[query].average().plot(show=False, time_unit='s')
     title = fig.axes[0].get_title()
     add = 'Query: {}\nNum Epochs: {}'.format(query, len(epochs[query]))
     fig.axes[0].set(title='\n'.join([add, title]))

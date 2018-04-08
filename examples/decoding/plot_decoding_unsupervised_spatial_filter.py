@@ -53,7 +53,7 @@ pca_data = pca.fit_transform(X)
 ev = mne.EvokedArray(np.mean(pca_data, axis=0),
                      mne.create_info(30, epochs.info['sfreq'],
                                      ch_types='eeg'), tmin=tmin)
-ev.plot(show=False, window_title="PCA")
+ev.plot(show=False, window_title="PCA", time_unit='s')
 
 ##############################################################################
 # Transform data with ICA computed on the raw epochs (no averaging)
@@ -62,6 +62,6 @@ ica_data = ica.fit_transform(X)
 ev1 = mne.EvokedArray(np.mean(ica_data, axis=0),
                       mne.create_info(30, epochs.info['sfreq'],
                                       ch_types='eeg'), tmin=tmin)
-ev1.plot(show=False, window_title='ICA')
+ev1.plot(show=False, window_title='ICA', time_unit='s')
 
 plt.show()

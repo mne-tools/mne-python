@@ -39,7 +39,7 @@ evoked_r_vis = evoked[3]
 # set the ``exclude`` parameter to show the bad channels in red. All plotting
 # functions of MNE-python return a handle to the figure instance. When we have
 # the handle, we can customise the plots to our liking.
-fig = evoked_l_aud.plot(exclude=())
+fig = evoked_l_aud.plot(exclude=(), time_unit='s')
 
 ###############################################################################
 # All plotting functions of MNE-python return a handle to the figure instance.
@@ -57,7 +57,7 @@ fig.tight_layout()
 # to show the sensor positions - specifically, the x, y, and z locations of
 # the sensors are transformed into R, G and B values.
 picks = mne.pick_types(evoked_l_aud.info, meg=True, eeg=False, eog=False)
-evoked_l_aud.plot(spatial_colors=True, gfp=True, picks=picks)
+evoked_l_aud.plot(spatial_colors=True, gfp=True, picks=picks, time_unit='s')
 
 ###############################################################################
 # Notice the legend on the left. The colors would suggest that there may be two
@@ -65,17 +65,17 @@ evoked_l_aud.plot(spatial_colors=True, gfp=True, picks=picks)
 # Try painting the slopes with left mouse button. It should open a new window
 # with topomaps (scalp plots) of the average over the painted area. There is
 # also a function for drawing topomaps separately.
-evoked_l_aud.plot_topomap()
+evoked_l_aud.plot_topomap(time_unit='s')
 
 ###############################################################################
 # By default the topomaps are drawn from evenly spread out points of time over
 # the evoked data. We can also define the times ourselves.
 times = np.arange(0.05, 0.151, 0.05)
-evoked_r_aud.plot_topomap(times=times, ch_type='mag')
+evoked_r_aud.plot_topomap(times=times, ch_type='mag', time_unit='s')
 
 ###############################################################################
 # Or we can automatically select the peaks.
-evoked_r_aud.plot_topomap(times='peaks', ch_type='mag')
+evoked_r_aud.plot_topomap(times='peaks', ch_type='mag', time_unit='s')
 
 ###############################################################################
 # You can take a look at the documentation of :func:`mne.Evoked.plot_topomap`
@@ -86,7 +86,7 @@ evoked_r_aud.plot_topomap(times='peaks', ch_type='mag')
 # axes in a single figure and plot all of our evoked categories next to each
 # other.
 fig, ax = plt.subplots(1, 5, figsize=(8, 2))
-kwargs = dict(times=0.1, show=False, vmin=-300, vmax=300)
+kwargs = dict(times=0.1, show=False, vmin=-300, vmax=300, time_unit='s')
 evoked_l_aud.plot_topomap(axes=ax[0], colorbar=True, **kwargs)
 evoked_r_aud.plot_topomap(axes=ax[1], colorbar=False, **kwargs)
 evoked_l_vis.plot_topomap(axes=ax[2], colorbar=False, **kwargs)
@@ -118,8 +118,8 @@ plt.show()
 # ``ts_args`` arguments, here, topomaps at specific time points
 # (90 and 200 ms) are shown, sensors are not plotted (via an argument
 # forwarded to `plot_topomap`), and the Global Field Power is shown:
-ts_args = dict(gfp=True)
-topomap_args = dict(sensors=False)
+ts_args = dict(gfp=True, time_unit='s')
+topomap_args = dict(sensors=False, time_unit='s')
 evoked_r_aud.plot_joint(title='right auditory', times=[.09, .20],
                         ts_args=ts_args, topomap_args=topomap_args)
 
@@ -160,7 +160,7 @@ mne.viz.plot_compare_evokeds(evoked_dict, picks=pick, colors=colors,
 # the amplitudes from negative to positive translates to shift from blue to
 # red. White means zero amplitude. You can use the ``cmap`` parameter to define
 # the color map yourself. The accepted values include all matplotlib colormaps.
-evoked_r_aud.plot_image(picks=picks)
+evoked_r_aud.plot_image(picks=picks, time_unit='s')
 
 ###############################################################################
 # Finally we plot the sensor data as a topographical view. In the simple case

@@ -90,7 +90,7 @@ for name, coef in (('patterns', model.patterns_), ('filters', model.filters_)):
 
     # Plot
     evoked = EvokedArray(coef, meg_epochs.info, tmin=epochs.tmin)
-    evoked.plot_topomap(title='MEG %s' % name)
+    evoked.plot_topomap(title='MEG %s' % name, time_unit='s')
 
 ###############################################################################
 # Let's do the same on EEG data using a scikit-learn pipeline
@@ -111,4 +111,4 @@ for name in ('patterns_', 'filters_'):
     # contained in the pipeline, in reverse order.
     coef = get_coef(clf, name, inverse_transform=True)
     evoked = EvokedArray(coef, epochs.info, tmin=epochs.tmin)
-    evoked.plot_topomap(title='EEG %s' % name[:-1])
+    evoked.plot_topomap(title='EEG %s' % name[:-1], time_unit='s')

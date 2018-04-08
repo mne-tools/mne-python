@@ -163,5 +163,5 @@ evoked_left = epochs['Left/Auditory'].average(picks=picks)
 #   information.
 #
 # Finally, let's plot the evoked responses.
-evoked_left.plot()
-evoked_right.plot()
+evoked_left.plot(time_unit='s')
+evoked_right.plot(time_unit='s')

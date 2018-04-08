@@ -60,7 +60,8 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
 evoked = epochs.average()
 
 # Visualize sensor space data
-evoked.plot_joint()
+evoked.plot_joint(ts_args=dict(time_unit='s'),
+                  topomap_args=dict(time_unit='s'))
 
 ###############################################################################
 # Compute covariance matrices, fit and apply  spatial filter.

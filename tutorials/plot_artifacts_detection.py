@@ -107,7 +107,9 @@ raw.plot_psd(tmax=np.inf, fmax=250)
 
 average_ecg = create_ecg_epochs(raw).average()
 print('We found %i ECG events' % average_ecg.nave)
-average_ecg.plot_joint()
+joint_kwargs = dict(ts_args=dict(time_unit='s'),
+                    topomap_args=dict(time_unit='s'))
+average_ecg.plot_joint(**joint_kwargs)
 
 ###############################################################################
 # we can see typical time courses and non dipolar topographies
@@ -120,7 +122,7 @@ average_ecg.plot_joint()
 
 average_eog = create_eog_epochs(raw).average()
 print('We found %i EOG events' % average_eog.nave)
-average_eog.plot_joint()
+average_eog.plot_joint(**joint_kwargs)
 
 ###############################################################################
 # Knowing these artifact patterns is of paramount importance when

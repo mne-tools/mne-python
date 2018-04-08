@@ -425,7 +425,7 @@ class CSP(TransformerMixin, BaseEstimator):
             times=components, ch_type=ch_type, layout=layout,
             vmin=vmin, vmax=vmax, cmap=cmap, colorbar=colorbar, res=res,
             cbar_fmt=cbar_fmt, sensors=sensors,
-            scalings=scalings, units=units, scaling_time=1,
+            scalings=scalings, units=units, time_unit='s',
             time_format=name_format, size=size, show_names=show_names,
             title=title, mask_params=mask_params, mask=mask, outlines=outlines,
             contours=contours, image_interp=image_interp, show=show,

@@ -33,4 +33,4 @@ evokeds = [read_evokeds(f, verbose='error')[0] for f in epochs_fnames]
 mean_evoked = combine_evoked(evokeds, weights='nave')
 
 # Visualize the average
-mean_evoked.plot()
+mean_evoked.plot(time_unit='s')

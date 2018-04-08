@@ -13,7 +13,7 @@ import numpy as np
 from numpy.testing import assert_raises, assert_equal
 from nose.tools import assert_true
 
-from mne import read_events, Epochs, pick_channels_evoked
+from mne import read_events, Epochs, pick_channels_evoked, read_cov
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFR
@@ -82,13 +82,17 @@ def test_plot_topo():
     # should auto-find layout
     plot_evoked_topo([evoked, evoked], merge_grads=True, background_color='w')
     # Test jointplot
-    evoked.plot_joint()
+    evoked.plot_joint(ts_args=dict(time_unit='s'),
+                      topomap_args=dict(time_unit='s'))
 
     def return_inds(d):  # to test function kwarg to zorder arg of evoked.plot
         return list(range(d.shape[0]))
-    evoked.plot_joint(title='test', topomap_args=dict(contours=0, res=8),
-                      ts_args=dict(spatial_colors=True, zorder=return_inds))
-    assert_raises(ValueError, evoked.plot_joint, ts_args=dict(axes=True))
+    evoked.plot_joint(title='test', topomap_args=dict(contours=0, res=8,
+                                                      time_unit='ms'),
+                      ts_args=dict(spatial_colors=True, zorder=return_inds,
+                                   time_unit='s'))
+    assert_raises(ValueError, evoked.plot_joint, ts_args=dict(axes=True,
+                                                              time_unit='s'))
 
     warnings.simplefilter('always', UserWarning)
     picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])
@@ -132,7 +136,9 @@ def test_plot_topo():
         # test status bar message
         assert_true(evoked.ch_names[idx] in ax.format_coord(.5, .5))
     plt.close('all')
-    evoked.plot_topo(noise_cov=cov_fname)
+    cov = read_cov(cov_fname)
+    cov['projs'] = []
+    evoked.pick_types(meg=True).plot_topo(noise_cov=cov)
     plt.close('all')
 
 

@@ -132,8 +132,8 @@ ev_right = epochs['Auditory/Right'].average()
 
 f, axs = plt.subplots(3, 2, figsize=(10, 5))
 _ = f.suptitle('Left / Right auditory', fontsize=20)
-_ = ev_left.plot(axes=axs[:, 0], show=False)
-_ = ev_right.plot(axes=axs[:, 1], show=False)
+_ = ev_left.plot(axes=axs[:, 0], show=False, time_unit='s')
+_ = ev_right.plot(axes=axs[:, 1], show=False, time_unit='s')
 plt.tight_layout()
 
 ###############################################################################
