@@ -32,10 +32,10 @@ raw_fname_onefile_mat = op.join(base_dir, 'test_raw_onefile.set')
 epochs_fname_mat = op.join(base_dir, 'test_epochs.set')
 epochs_fname_onefile_mat = op.join(base_dir, 'test_epochs_onefile.set')
 
-raw_fname_h5 = op.join(base_dir, 'test_raw.set')
-raw_fname_onefile_h5 = op.join(base_dir, 'test_raw_onefile.set')
-epochs_fname_h5 = op.join(base_dir, 'test_epochs.set')
-epochs_fname_onefile_h5 = op.join(base_dir, 'test_epochs_onefile.set')
+raw_fname_h5 = op.join(base_dir, 'test_raw_h5.set')
+raw_fname_onefile_h5 = op.join(base_dir, 'test_raw_onefile_h5.set')
+epochs_fname_h5 = op.join(base_dir, 'test_epochs_h5.set')
+epochs_fname_onefile_h5 = op.join(base_dir, 'test_epochs_onefile_h5.set')
 
 montage = op.join(base_dir, 'test_chans.locs')
 
@@ -55,7 +55,7 @@ def test_io_set():
 def _test_io_set(use_hdf=True):
     """Test importing EEGLAB .set files."""
 
-    if use_hdf:
+    if not use_hdf:
         raw_fname = raw_fname_mat
         raw_fname_onefile = raw_fname_onefile_mat
         epochs_fname = epochs_fname_mat
