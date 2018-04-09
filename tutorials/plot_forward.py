@@ -70,7 +70,7 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 # mne_analyze (Unix tools), mne.gui.coregistration (in Python) or mrilab
 # if you're using a Neuromag system.
 #
-# For the Python version see func:`mne.gui.coregistration`
+# For the Python version see :func:`mne.gui.coregistration`
 #
 # Here we assume the coregistration is done, so we just visually check the
 # alignment with the following code.
