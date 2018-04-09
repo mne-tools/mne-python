@@ -336,6 +336,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
             continue
         Ck = np.dot(Wk, Gk)
 
+        # XXX This should be de-duplicated with DICS
+
         # Compute scalar beamformer by finding the source orientation which
         # maximizes output source power
         if pick_ori == 'max-power':
@@ -566,9 +568,9 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
     proj = proj[np.ix_(picks_forward, picks_forward)]
 
     # Normalize the leadfield if requested
-    if fwd_norm == 'dipole':
+    if fwd_norm == 'dipole':  # each orientation separately
         G /= np.linalg.norm(G, axis=0)
-    elif fwd_norm == 'vertex':
+    elif fwd_norm == 'vertex':  # all three orientations per loc jointly
         depth_prior = np.sum(G ** 2, axis=0)
         if is_free_ori:
             depth_prior = depth_prior.reshape(-1, 3).sum(axis=1)

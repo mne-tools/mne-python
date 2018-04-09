@@ -180,6 +180,10 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         raise ValueError('"pick_ori" should be one of %s.' % allowed_ori)
 
     # Leadfield rank and optional rank reduction
+    # (to deal with problems with complex eigenvalues within the computation
+    # of the optimal orientation when using pinv if the leadfield was only
+    # rank 2 (e.g., with the spherical headmodel of the phantom data),
+    # see gh-4568 and gh-4628.
     if reduce_rank and not (pick_ori == 'max-power' and inversion == 'matrix'):
         raise NotImplementedError(
             'The computation of spatial filters with rank reduction using '
@@ -247,6 +251,8 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
 
             # Compute power at the source
             Ck = np.dot(Wk, Gk)
+
+            # XXX This should be de-duplicated with LCMV
 
             # Normalize the spatial filters
             if Wk.ndim == 2 and len(Wk) > 1:
