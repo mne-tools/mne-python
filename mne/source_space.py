@@ -1194,7 +1194,7 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
 
     Parameters
     ----------
-    pos : n_pos x 3 array of float
+    pos : array, shape (n_pos, 3)
         The  coordinates (in m) in head coordinate system
     subject : string
         Name of the subject.
@@ -1208,7 +1208,7 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
 
     Returns
     -------
-    coordinates : n_pos x 3 array of float
+    coordinates : array, shape (n_pos, 3)
         The MNI coordinates (in mm) of pos
 
     Notes
