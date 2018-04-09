@@ -961,13 +961,13 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
 
 
 @verbose
-def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
-            csd_mode='fourier', freq_bins=None, frequencies=None,
-            noise_csds=None, n_ffts=None, mt_bandwidths=None,
+def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
+            subtract_evoked=False, mode='fourier', freq_bins=None,
+            frequencies=None, n_ffts=None, mt_bandwidths=None,
             mt_adaptive=False, mt_low_bias=True, cwt_n_cycles=7, decim=1,
-            subtract_evoked=False, reg=0.05, label=None, pick_ori=None,
-            inversion='single', weight_norm=None, normalize_fwd=True,
-            real_filter=False, reduce_rank=False, verbose=None):
+            reg=0.05, label=None, pick_ori=None, inversion='single',
+            weight_norm=None, normalize_fwd=True, real_filter=False,
+            reduce_rank=False, verbose=None):
     """5D time-frequency beamforming based on DICS.
 
     Calculate source power in time-frequency windows using a spatial filter
@@ -982,6 +982,12 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
         Single trial epochs.
     forward : dict
         Forward operator.
+    noise_csds : list of instances of CrossSpectralDensity | None
+        Noise cross-spectral density for each frequency bin. If these are
+        specified, the DICS filters will be applied to both the signal and
+        noise CSDs. The source power estimates for each frequency bin will be
+        scaled by the estimated noise power (signal / noise).
+        Specifying ``None`` will disable performing noise normalization.
     tmin : float
         Minimum time instant to consider.
     tmax : float
@@ -992,7 +998,10 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
     win_lengths : list of float
         Time window lengths in seconds. One time window length should be
         provided for each frequency bin.
-    csd_mode : 'fourier' | 'multitaper' | 'cwt_morlet'
+    subtract_evoked : bool
+        If True, subtract the averaged evoked response prior to computing the
+        tf source grid. Defaults to False.
+    mode : 'fourier' | 'multitaper' | 'cwt_morlet'
         Spectrum estimation mode. Defaults to 'fourier'.
     freq_bins : list of tuples of float
         Start and end point of frequency bins of interest.
@@ -1004,11 +1013,6 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
         lists: each list containing the frequencies for the corresponding bin.
         Only used in 'cwt_morlet' mode. In other modes, use the ``freq_bins``
         parameter instead.
-    noise_csds : list of instances of CrossSpectralDensity | None
-        Noise cross-spectral density for each frequency bin. If these are
-        specified, the DICS filters will be applied to both the signal and
-        noise CSDs. The source power estimates for each frequency bin will be
-        scaled by the estimated noise power (signal / noise).
     n_ffts : list | None
         Length of the FFT for each frequency bin. If ``None`` (the default),
         the exact number of samples between ``tmin`` and ``tmax`` will be used.
@@ -1034,9 +1038,6 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
 
         If `int`, uses tfr[..., ::decim].
         If `slice`, uses tfr[..., decim].
-    subtract_evoked : bool
-        If True, subtract the averaged evoked response prior to computing the
-        tf source grid. Defaults to False.
     reg : float
         Regularization to use for the DICS beamformer computation.
         Defaults to 0.05.
@@ -1097,6 +1098,10 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
     Dalal et al. [1]_ used a synthetic aperture magnetometry beamformer (SAM)
     in each time-frequency window instead of DICS.
 
+    An alternative to using noise CSDs is to normalize the forward solution
+    (``normalize_fwd``) or the beamformer weights (``weight_norm``). In
+    this case, ``noise_csds`` may be set to ``None``.
+
     References
     ----------
     .. [1] Dalal et al. Five-dimensional neuroimaging: Localization of the
@@ -1107,12 +1112,12 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
     """
     _check_reference(epochs)
 
-    if csd_mode == 'cwt_morlet' and frequencies is None:
+    if mode == 'cwt_morlet' and frequencies is None:
         raise ValueError('In "cwt_morlet" mode, the "frequencies" parameter '
                          'should be used.')
-    elif csd_mode != 'cwt_morlet' and freq_bins is None:
+    elif mode != 'cwt_morlet' and freq_bins is None:
         raise ValueError('In "%s" mode, the "freq_bins" parameter should be '
-                         'used.' % csd_mode)
+                         'used.' % mode)
 
     if frequencies is not None:
         # Make sure frequencies are always in the form of a list of frequency
@@ -1159,7 +1164,7 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
             noise_csd = noise_csds[i_freq].copy()
             noise_csd._data /= noise_csd.n_fft
 
-        if csd_mode == 'cwt_morlet':
+        if mode == 'cwt_morlet':
             freq_bin = frequencies[i_freq]
             fmin = np.min(freq_bin)
             fmax = np.max(freq_bin)
@@ -1203,16 +1208,16 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
                 win_tmax = win_tmax
 
                 # Calculating data CSD in current time window
-                if csd_mode == 'fourier':
+                if mode == 'fourier':
                     csd = csd_fourier(
                         epochs, fmin=fmin, fmax=fmax, tmin=win_tmin,
                         tmax=win_tmax, n_fft=n_fft, verbose=False)
-                elif csd_mode == 'multitaper':
+                elif mode == 'multitaper':
                     csd = csd_multitaper(
                         epochs, fmin=fmin, fmax=fmax, tmin=win_tmin,
                         tmax=win_tmax, n_fft=n_fft, bandwidth=mt_bandwidth,
                         low_bias=mt_low_bias, verbose=False)
-                elif csd_mode == 'cwt_morlet':
+                elif mode == 'cwt_morlet':
                     csd = csd_morlet(
                         epochs, frequencies=freq_bin, tmin=win_tmin,
                         tmax=win_tmax, n_cycles=cwt_n_cycles, decim=decim,

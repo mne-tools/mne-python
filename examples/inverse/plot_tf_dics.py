@@ -112,10 +112,9 @@ for freq_bin, win_length, n_fft in zip(freq_bins, win_lengths, n_ffts):
 
 # Computing DICS solutions for time-frequency windows in a label in source
 # space for faster computation, use label=None for full solution
-stcs = tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
-               freq_bins=freq_bins, noise_csds=noise_csds,
-               subtract_evoked=subtract_evoked, n_ffts=n_ffts, reg=0.05,
-               label=label, inversion='matrix')
+stcs = tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
+               freq_bins=freq_bins, subtract_evoked=subtract_evoked,
+               n_ffts=n_ffts, reg=0.05, label=label, inversion='matrix')
 
 # Plotting source spectrogram for source with maximum activity
 # Note that tmin and tmax are set to display a time range that is smaller than

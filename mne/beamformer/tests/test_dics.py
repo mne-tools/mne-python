@@ -393,9 +393,9 @@ def test_tf_dics():
 
     # Compute DICS for two time windows and two frequencies
     for mode in ['fourier', 'multitaper', 'cwt_morlet']:
-        stcs = tf_dics(epochs, fwd_surf, tmin, tmax, tstep, win_lengths,
-                       csd_mode=mode, freq_bins=freq_bins,
-                       frequencies=frequencies, decim=10, reg=reg, label=label)
+        stcs = tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
+                       mode=mode, freq_bins=freq_bins, frequencies=frequencies,
+                       decim=10, reg=reg, label=label)
 
         # Did we find the true source at 20 Hz?
         assert np.argmax(stcs[1].data[:, 0]) == source_ind
@@ -425,8 +425,8 @@ def test_tf_dics():
     # Test using noise csds. We're going to use identity matrices. That way,
     # since we're using unit-noise-gain weight normalization, there should be
     # no effect.
-    stcs = tf_dics(epochs, fwd_surf, tmin, tmax, tstep, win_lengths,
-                   csd_mode='cwt_morlet', frequencies=frequencies, decim=10,
+    stcs = tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
+                   mode='cwt_morlet', frequencies=frequencies, decim=10,
                    reg=reg, label=label, normalize_fwd=False,
                    weight_norm='unit-noise-gain')
     noise_csd = csd.copy()
@@ -435,45 +435,46 @@ def test_tf_dics():
     noise_csd._data[:, :] = 2 * np.eye(csd.n_channels)[inds][:, np.newaxis]
     noise_csd.n_fft = 2  # Dividing by n_fft should yield an identity CSD
     noise_csds = [noise_csd, noise_csd]  # Two frequency bins
-    stcs_norm = tf_dics(epochs, fwd_surf, tmin, tmax, tstep, win_lengths,
-                        csd_mode='cwt_morlet', frequencies=frequencies,
-                        noise_csds=noise_csds, decim=10, reg=reg, label=label,
-                        normalize_fwd=False, weight_norm='unit-noise-gain')
+    stcs_norm = tf_dics(epochs, fwd_surf, noise_csds, tmin, tmax, tstep,
+                        win_lengths, mode='cwt_morlet',
+                        frequencies=frequencies, decim=10, reg=reg,
+                        label=label, normalize_fwd=False,
+                        weight_norm='unit-noise-gain')
     assert_allclose(stcs_norm[0].data, stcs[0].data, atol=0)
     assert_allclose(stcs_norm[1].data, stcs[1].data, atol=0)
 
     # Test invalid parameter combinations
-    raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep,
-           win_lengths, csd_mode='fourier', freq_bins=None)
-    raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep,
-           win_lengths, csd_mode='cwt_morlet', frequencies=None)
+    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep,
+           win_lengths, mode='fourier', freq_bins=None)
+    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep,
+           win_lengths, mode='cwt_morlet', frequencies=None)
 
     # Test if incorrect number of noise CSDs is detected
-    raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep,
-           win_lengths, freq_bins=freq_bins, noise_csds=[noise_csds[0]])
+    raises(ValueError, tf_dics, epochs, fwd_surf, [noise_csds[0]], tmin, tmax,
+           tstep, win_lengths, freq_bins=freq_bins)
 
     # Test if freq_bins and win_lengths incompatibility is detected
-    raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep,
+    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep,
            win_lengths=[0, 1, 2], freq_bins=freq_bins)
 
     # Test if time step exceeding window lengths is detected
-    raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep=0.15,
+    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep=0.15,
            win_lengths=[0.2, 0.1], freq_bins=freq_bins)
 
     # Test if incorrent number of n_ffts is detected
-    raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep,
+    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep,
            win_lengths, freq_bins=freq_bins, n_ffts=[1])
 
     # Test if incorrect number of mt_bandwidths is detected
-    raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep,
-           win_lengths=win_lengths, freq_bins=freq_bins, csd_mode='multitaper',
+    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep,
+           win_lengths=win_lengths, freq_bins=freq_bins, mode='multitaper',
            mt_bandwidths=[20])
 
     # Test if subtracting evoked responses yields NaN's, since we only have one
     # epoch. Suppress division warnings.
     with warnings.catch_warnings(record=True):
-        stcs = tf_dics(epochs, fwd_surf, tmin, tmax, tstep, win_lengths,
-                       csd_mode='cwt_morlet', frequencies=frequencies,
+        stcs = tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
+                       mode='cwt_morlet', frequencies=frequencies,
                        subtract_evoked=True, reg=reg, label=label, decim=20)
     assert np.all(np.isnan(stcs[0].data))
 
