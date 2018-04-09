@@ -1198,7 +1198,7 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
         The  coordinates (in m) in head coordinate system
     subject : string
         Name of the subject.
-    mri_head_t: trans
+    mri_head_t: instance of Transform
         MRI<->Head coordinate transformation
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
