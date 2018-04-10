@@ -120,7 +120,7 @@ def test_lcmv_vector():
     stc = mne.SourceEstimate(amplitude * np.eye(n_vertices), vertices,
                              0, 1. / info['sfreq'])
     forward_sim = mne.convert_forward_solution(forward, force_fixed=True,
-                                               use_cps=True)
+                                               use_cps=True, copy=True)
     forward_sim = mne.forward.restrict_forward_to_stc(forward_sim, stc)
     noise_cov = mne.make_ad_hoc_cov(info)
     noise_cov.update(data=np.diag(noise_cov['data']), diag=False)
@@ -143,7 +143,7 @@ def test_lcmv_vector():
     mne_ori = stc_vector_mne.data[mapping, :, np.arange(n_vertices)]
     mne_ori /= np.linalg.norm(mne_ori, axis=-1, keepdims=True)
     mne_angles = np.rad2deg(np.arccos(np.sum(mne_ori * source_nn, axis=-1)))
-    assert np.mean(mne_angles) < 35
+    assert np.mean(mne_angles) < 40
 
     #
     # Now let's do LCMV
@@ -151,8 +151,7 @@ def test_lcmv_vector():
     data_cov = mne.make_ad_hoc_cov(info)  # just a stub for later
     with pytest.raises(ValueError, match='pick_ori must be one of'):
         make_lcmv(info, forward, data_cov, 0.05, noise_cov, pick_ori='bad')
-    lcmv_angles = list()
-
+    lcmv_ori = list()
     for ti in range(n_vertices):
         this_evoked = evoked.copy().crop(evoked.times[ti], evoked.times[ti])
         data_cov['data'] = (np.outer(this_evoked.data, this_evoked.data) +
@@ -168,11 +167,10 @@ def test_lcmv_vector():
         assert isinstance(stc_vector, mne.VectorSourceEstimate)
         assert_allclose(stc.data, stc_vector.magnitude().data)
         # Check the orientation
-        lcmv_ori = stc_vector.data[mapping][ti, :, 0]
-        lcmv_ori /= np.linalg.norm(lcmv_ori)
-        lcmv_angles.append(np.rad2deg(np.arccos(np.dot(
-            lcmv_ori, source_nn[ti]))))
+        lcmv_ori.append(stc_vector.data[mapping[ti], :, 0])
+        lcmv_ori[-1] /= np.linalg.norm(lcmv_ori[-1])
 
+    lcmv_angles = np.rad2deg(np.arccos(np.sum(lcmv_ori * source_nn, axis=-1)))
     assert np.mean(lcmv_angles) < 55
 
 
