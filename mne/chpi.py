@@ -452,7 +452,7 @@ def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts):
         (quat_to_rot(best_quat[:3]),
          best_quat[3:][:, np.newaxis]), axis=1)
     dev_head_t = np.concatenate((dev_head_t, [[0, 0, 0, 1.]]))
-    return dev_head_t, best_order
+    return dev_head_t, best_order, best_g
 
 
 @verbose
@@ -672,7 +672,7 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
             if on > 0]
 
     coil_dev_rrs = np.array([o[0] for o in outs])
-    coil_g = np.array([o[0] for o in outs])
+    coil_g = np.array([o[1] for o in outs])
 
     return coil_dev_rrs, coil_g
 
