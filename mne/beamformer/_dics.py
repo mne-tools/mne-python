@@ -44,9 +44,9 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
 
     Parameters
     ----------
-    info : dict
+    info : instance of Info
         Measurement info, e.g. ``epochs.info``.
-    forward : dict
+    forward : instance of Forward
         Forward operator.
     csd : instance of CrossSpectralDensity
         The data cross-spectral density (CSD) matrices. A source estimate is
@@ -837,9 +837,9 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
 
     Parameters
     ----------
-    info : dict
-        Measurement info, e.g. epochs.info.
-    forward : dict
+    info : instance of Info
+        Measurement info, e.g. ``epochs.info``.
+    forward : instance of Forward
         Forward operator.
     noise_csds : CrossSpectralDensity
         The noise cross-spectral density matrices for a single frequency or
