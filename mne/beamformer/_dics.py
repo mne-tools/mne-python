@@ -96,7 +96,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         each spatial location, prior to inversion. This may be necessary when
         you use a single sphere model for MEG and ``mode='vertex'``.
         Defaults to ``False``.
-    verbose : bool | str | int | None
+    verbose : bool, str, int, None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
@@ -408,7 +408,7 @@ def apply_dics(evoked, filters, verbose=None):
     filters : dict
         DICS spatial filter (beamformer weights)
         Filter weights returned from :func:`make_dics`.
-    verbose : bool | str | int | None
+    verbose : bool, str, int, None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
@@ -465,7 +465,7 @@ def apply_dics_epochs(epochs, filters, return_generator=False, verbose=None):
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
-    verbose : bool | str | int | None
+    verbose : bool, str, int, None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
@@ -520,7 +520,7 @@ def apply_dics_csd(csd, filters, verbose=None):
     filters : dict
         DICS spatial filter (beamformer weights)
         Filter weights returned from `make_dics`.
-    verbose : bool | str | int | None
+    verbose : bool, str, int, None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
@@ -703,7 +703,7 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.05, label=None,
     real_filter : bool
         If True, take only the real part of the cross-spectral-density matrices
         to compute real filters as in [2]_. Default is False.
-    verbose : bool | str | int | None
+    verbose : bool, str, int, None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
@@ -784,7 +784,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
     real_filter : bool
         If True, take only the real part of the cross-spectral-density matrices
         to compute real filters as in [1]_. Default is False.
-    verbose : bool | str | int | None
+    verbose : bool, str, int, None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
@@ -857,7 +857,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
     real_filter : bool
         If True, take only the real part of the cross-spectral-density matrices
         to compute real filters.
-    verbose : bool | str | int | None
+    verbose : bool, str, int, None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
@@ -1089,7 +1089,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         each spatial location, prior to inversion. This may be necessary when
         you use a single sphere model for MEG and ``mode='vertex'``.
         Defaults to ``False``.
-    verbose : bool | str | int | None
+    verbose : bool, str, int, None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
@@ -1126,10 +1126,8 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                          'used.' % mode)
 
     if frequencies is not None:
-        # Make sure frequencies are always in the form of a list of frequency
-        # bins
-        frequencies = [[f] if isinstance(f, numbers.Number) else f
-                       for f in frequencies]
+        # Make sure frequencies are always in the form of a list of lists
+        frequencies = [np.atleast_1d(f) for f in frequencies]
         n_freq_bins = len(frequencies)
     else:
         n_freq_bins = len(freq_bins)

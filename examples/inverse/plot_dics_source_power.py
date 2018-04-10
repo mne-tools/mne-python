@@ -31,7 +31,7 @@ fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 subjects_dir = data_path + '/subjects'
 
 ###############################################################################
-# Reading the data data:
+# Reading the raw data:
 raw = mne.io.read_raw_fif(raw_fname)
 raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 
