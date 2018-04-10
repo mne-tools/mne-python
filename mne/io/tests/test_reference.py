@@ -193,17 +193,19 @@ def test_set_eeg_reference():
     # Test moving from average to custom reference
     reref, ref_data = set_eeg_reference(raw, projection=True)
     reref, _ = set_eeg_reference(reref, ['EEG 001', 'EEG 002'])
-    assert_true(not _has_eeg_average_ref_proj(reref.info['projs']))
+    assert not _has_eeg_average_ref_proj(reref.info['projs'])
+    assert len(reref.info['projs']) == 0
     assert_equal(reref.info['custom_ref_applied'], True)
 
-    # Test that disabling the reference does not change anything
+    # Test that disabling the reference does not change the data
+    assert _has_eeg_average_ref_proj(raw.info['projs'])
     reref, _ = set_eeg_reference(raw, [])
     assert_array_equal(raw._data, reref._data)
+    assert not _has_eeg_average_ref_proj(reref.info['projs'])
 
     # make sure ref_channels=[] removes average reference projectors
-    reref, _ = set_eeg_reference(raw, 'average', projection=True)
-    assert_true(_has_eeg_average_ref_proj(reref.info['projs']))
-    reref, _ = set_eeg_reference(reref, [])
+    assert _has_eeg_average_ref_proj(raw.info['projs'])
+    reref, _ = set_eeg_reference(raw, [])
     assert_true(not _has_eeg_average_ref_proj(reref.info['projs']))
 
     # Test that average reference gives identical results when calculated

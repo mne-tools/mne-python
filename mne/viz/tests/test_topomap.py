@@ -70,7 +70,7 @@ def test_plot_topomap_interactive():
     ax = fig.gca()
 
     kwargs = dict(vmin=-240, vmax=240, times=[0.1], colorbar=False, axes=ax,
-                  res=8)
+                  res=8, time_unit='s')
     evoked.copy().plot_topomap(proj=False, **kwargs)
     canvas.draw()
     image_noproj = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')

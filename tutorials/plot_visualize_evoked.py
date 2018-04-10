@@ -1,6 +1,4 @@
 """
-.. _tut_viz_evoked:
-
 =====================
 Visualize Evoked data
 =====================

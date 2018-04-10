@@ -379,7 +379,7 @@ def test_ica_additional(method):
     # test retrieval of component maps as arrays
     components = ica.get_components()
     template = components[:, 0]
-    EvokedArray(components, ica.info, tmin=0.).plot_topomap([0])
+    EvokedArray(components, ica.info, tmin=0.).plot_topomap([0], time_unit='s')
 
     corrmap([ica, ica3], template, threshold='auto', label='blinks', plot=True,
             ch_type="mag")
@@ -632,10 +632,10 @@ def test_ica_additional(method):
         assert_true(ncomps_ == expected)
 
     ica = ICA(method=method)
-    ica.fit(raw, picks=picks[:5])
-    with warnings.catch_warnings(record=True):  # filter length
+    with warnings.catch_warnings(record=True) as w:  # convergence and filter
+        ica.fit(raw, picks=picks[:5])
         ica.find_bads_ecg(raw)
-    ica.find_bads_eog(epochs, ch_name='MEG 0121')
+        ica.find_bads_eog(epochs, ch_name='MEG 0121')
     assert_array_equal(raw_data, raw[:][0])
 
     raw.drop_channels(['MEG 0122'])

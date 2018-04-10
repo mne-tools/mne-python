@@ -31,6 +31,10 @@ def _run_buffer(kill_signal, neuromag2ft_fname):
     # Let measurement continue for the entire duration
     kill_signal.get(timeout=10.0)
     process.terminate()
+    with warnings.catch_warnings(record=True):  # still running
+        process.stderr.close()
+        process.stdout.close()
+        del process
 
 
 @requires_neuromag2ft
