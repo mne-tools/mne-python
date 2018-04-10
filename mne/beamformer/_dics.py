@@ -7,8 +7,6 @@
 #
 # License: BSD (3-clause)
 
-import numbers
-
 import numpy as np
 from scipy import linalg
 
