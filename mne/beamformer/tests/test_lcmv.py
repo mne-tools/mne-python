@@ -5,6 +5,7 @@ import pytest
 from nose.tools import assert_true, assert_raises
 import numpy as np
 from scipy import linalg
+from scipy.spatial.distance import cdist
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_almost_equal, assert_allclose)
 import warnings
@@ -143,7 +144,7 @@ def test_lcmv_vector():
     mne_ori = stc_vector_mne.data[mapping, :, np.arange(n_vertices)]
     mne_ori /= np.linalg.norm(mne_ori, axis=-1, keepdims=True)
     mne_angles = np.rad2deg(np.arccos(np.sum(mne_ori * source_nn, axis=-1)))
-    assert np.mean(mne_angles) < 40
+    assert np.mean(mne_angles) < 35
 
     #
     # Now let's do LCMV
@@ -166,8 +167,10 @@ def test_lcmv_vector():
         stc_vector = apply_lcmv(this_evoked, filters_vector)
         assert isinstance(stc_vector, mne.VectorSourceEstimate)
         assert_allclose(stc.data, stc_vector.magnitude().data)
-        # Check the orientation
-        lcmv_ori.append(stc_vector.data[mapping[ti], :, 0])
+        # Check the orientation by pooling across some neighbors, as LCMV can
+        # have some "holes" at the points of interest
+        idx = np.where(cdist(forward['source_rr'], source_rr[[ti]]) < 0.02)[0]
+        lcmv_ori.append(np.mean(stc_vector.data[idx, :, 0], axis=0))
         lcmv_ori[-1] /= np.linalg.norm(lcmv_ori[-1])
 
     lcmv_angles = np.rad2deg(np.arccos(np.sum(lcmv_ori * source_nn, axis=-1)))
