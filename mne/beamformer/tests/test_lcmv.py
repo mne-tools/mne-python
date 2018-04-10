@@ -142,7 +142,7 @@ def test_lcmv_vector():
     inv = make_inverse_operator(info, forward, noise_cov, loose=1.)
     stc_vector_mne = apply_inverse(evoked, inv, pick_ori='vector')
     mne_ori = stc_vector_mne.data[mapping, :, np.arange(n_vertices)]
-    mne_ori /= np.linalg.norm(mne_ori, axis=-1, keepdims=True)
+    mne_ori /= np.linalg.norm(mne_ori, axis=-1)[:, np.newaxis]
     mne_angles = np.rad2deg(np.arccos(np.sum(mne_ori * source_nn, axis=-1)))
     assert np.mean(mne_angles) < 35
 
