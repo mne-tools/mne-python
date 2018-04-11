@@ -297,10 +297,10 @@ def test_ica_core(method):
                       include=[1, 2])
 
     # test for bug with whitener updating
-    _pre_whitener = ica._pre_whitener.copy()
+    _pre_whitener = ica.pre_whitener_.copy()
     epochs._data[:, 0, 10:15] *= 1e12
     ica.apply(epochs.copy())
-    assert_array_equal(_pre_whitener, ica._pre_whitener)
+    assert_array_equal(_pre_whitener, ica.pre_whitener_)
 
     # test expl. var threshold leading to empty sel
     ica.n_components = 0.1

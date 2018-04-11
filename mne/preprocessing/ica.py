@@ -120,29 +120,28 @@ def _check_for_unsupported_ica_channels(picks, info):
 class ICA(ContainsMixin):
     """M/EEG signal decomposition using Independent Component Analysis (ICA).
 
-    This object can be used to estimate ICA components and then
-    remove some from Raw or Epochs for data exploration or artifact
-    correction.
+    This object can be used to estimate ICA components and then remove some
+    from Raw or Epochs for data exploration or artifact correction.
 
-    Caveat! If supplying a noise covariance keep track of the projections
+    Caveat! If supplying a noise covariance, keep track of the projections
     available in the cov or in the raw object. For example, if you are
     interested in EOG or ECG artifacts, EOG and ECG projections should be
-    temporally removed before fitting the ICA. You can say::
+    temporally removed before fitting ICA, for example::
 
         >> projs, raw.info['projs'] = raw.info['projs'], []
         >> ica.fit(raw)
         >> raw.info['projs'] = projs
 
-    .. note:: Methods implemented are FastICA (default), Infomax,
-              Extended-Infomax, and Picard. Infomax can be quite sensitive to
-              differences in floating point arithmetic. Extended-Infomax seems
+    .. note:: Methods currently implemented are FastICA (default), Infomax,
+              Extended Infomax, and Picard. Infomax can be quite sensitive to
+              differences in floating point arithmetic. Extended Infomax seems
               to be more stable in this respect enhancing reproducibility and
-              stability of results.
-              The stopping criteria of FastICA, Infomax, Extended
-              Infomax and Picard differ, making it hard to compare different
-              tolerance levels, but a rule of thumb is
-              `tol_fastica = tol_picard ** 2`. Reducing the tolerance speeds up
-              estimation but the consistency of the obtained results decreases.
+              stability of results. The stopping criteria of FastICA, Infomax,
+              Extended Infomax and Picard differ, making it hard to compare
+              different tolerance levels, but a rule of thumb is
+              ``tol_fastica = tol_picard**2``. Reducing the tolerance speeds up
+              estimation, but the consistency of the obtained results generally
+              decreases.
 
     .. warning:: ICA is sensitive to low-frequency drifts and therefore
                  requires the data to be high-pass filtered prior to fitting.
@@ -435,7 +434,7 @@ class ICA(ContainsMixin):
 
     def _reset(self):
         """Aux method."""
-        del self._pre_whitener
+        del self.pre_whitener_
         del self.unmixing_matrix_
         del self.mixing_matrix_
         del self.n_components_
@@ -485,7 +484,7 @@ class ICA(ContainsMixin):
 
         self.n_samples_ = data.shape[1]
         # this may operate inplace or make a copy
-        data, self._pre_whitener = self._pre_whiten(data, raw.info, picks)
+        data, self.pre_whitener_ = self._pre_whiten(data, raw.info, picks)
 
         self._fit(data, self.max_pca_components, 'raw')
 
@@ -522,7 +521,7 @@ class ICA(ContainsMixin):
 
         # This will make at least one copy (one from hstack, maybe one
         # more from _pre_whiten)
-        data, self._pre_whitener = \
+        data, self.pre_whitener_ = \
             self._pre_whiten(np.hstack(data), epochs.info, picks)
 
         self._fit(data, self.max_pca_components, 'epochs')
@@ -562,11 +561,11 @@ class ICA(ContainsMixin):
             assert data.shape[0] == pre_whitener.shape[1]
             data = np.dot(pre_whitener, data)
         elif has_pre_whitener and self.noise_cov is None:
-            data /= self._pre_whitener
-            pre_whitener = self._pre_whitener
+            data /= self.pre_whitener_
+            pre_whitener = self.pre_whitener_
         else:
-            data = np.dot(self._pre_whitener, data)
-            pre_whitener = self._pre_whitener
+            data = np.dot(self.pre_whitener_, data)
+            pre_whitener = self.pre_whitener_
 
         return data, pre_whitener
 
@@ -1385,9 +1384,9 @@ class ICA(ContainsMixin):
 
         # restore scaling
         if self.noise_cov is None:  # revert standardization
-            data *= self._pre_whitener
+            data *= self.pre_whitener_
         else:
-            data = np.dot(linalg.pinv(self._pre_whitener, cond=1e-14), data)
+            data = np.dot(linalg.pinv(self.pre_whitener_, cond=1e-14), data)
 
         return data
 
@@ -1992,7 +1991,7 @@ def read_ica(fname, verbose=None):
     ica = ICA(**ica_init)
     ica.current_fit = current_fit
     ica.ch_names = ch_names.split(':')
-    ica._pre_whitener = f(pre_whitener)
+    ica.pre_whitener_ = f(pre_whitener)
     ica.pca_mean_ = f(pca_mean)
     ica.pca_components_ = f(pca_components)
     ica.n_components_ = unmixing_matrix.shape[0]
