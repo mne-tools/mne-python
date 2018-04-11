@@ -6,9 +6,10 @@ import os.path as op
 import warnings
 import numpy as np
 
-from numpy.testing import assert_equal, assert_allclose
+from numpy.testing import assert_equal, assert_allclose, assert_array_equal
 import pytest
 from nose.tools import assert_true, assert_raises
+from scipy import sparse
 
 from mne import compute_raw_covariance, pick_types
 from mne.chpi import read_head_pos, filter_chpi
@@ -218,7 +219,10 @@ def test_other_systems():
     raw_kit = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
     with warnings.catch_warnings(record=True):  # head fit
         assert_raises(RuntimeError, maxwell_filter, raw_kit)
-    raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04), ignore_ref=True)
+    with catch_logging() as log:
+        raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
+                                 ignore_ref=True, verbose=True)
+    assert '12/15 out' in log.getvalue()  # homogeneous fields removed
     _assert_n_free(raw_sss, 65, 65)
     raw_sss_auto = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
                                   ignore_ref=True, mag_scale='auto')
@@ -226,33 +230,35 @@ def test_other_systems():
     # XXX this KIT origin fit is terrible! Eventually we should get a
     # corrected HSP file with proper coverage
     with warnings.catch_warnings(record=True):
-        with catch_logging() as log_file:
+        with catch_logging() as log:
             assert_raises(RuntimeError, maxwell_filter, raw_kit,
                           ignore_ref=True, regularize=None)  # bad condition
             raw_sss = maxwell_filter(raw_kit, origin='auto',
                                      ignore_ref=True, bad_condition='warning',
                                      verbose='warning')
-    log_file = log_file.getvalue()
-    assert_true('badly conditioned' in log_file)
-    assert_true('more than 20 mm from' in log_file)
+    log = log.getvalue()
+    assert 'badly conditioned' in log
+    assert 'more than 20 mm from' in log
     # fits can differ slightly based on scipy version, so be lenient here
     _assert_n_free(raw_sss, 28, 34)  # bad origin == brutal reg
     # Let's set the origin
     with warnings.catch_warnings(record=True):
-        with catch_logging() as log_file:
+        with catch_logging() as log:
             raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
                                      ignore_ref=True, bad_condition='warning',
-                                     regularize=None, verbose='warning')
-    log_file = log_file.getvalue()
-    assert_true('badly conditioned' in log_file)
+                                     regularize=None, verbose=True)
+    log = log.getvalue()
+    assert 'badly conditioned' in log
+    assert '80/80 in, 12/15 out' in log
     _assert_n_free(raw_sss, 80)
     # Now with reg
     with warnings.catch_warnings(record=True):
-        with catch_logging() as log_file:
+        with catch_logging() as log:
             raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
                                      ignore_ref=True, verbose=True)
-    log_file = log_file.getvalue()
-    assert_true('badly conditioned' not in log_file)
+    log = log.getvalue()
+    assert 'badly conditioned' not in log
+    assert '12/15 out' in log
     _assert_n_free(raw_sss, 65)
 
     # BTi
@@ -279,12 +285,19 @@ def test_other_systems():
     raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04))
     _assert_n_free(raw_sss, 68)
     _assert_shielding(raw_sss, raw_ctf, 1.8)
-    raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04), ignore_ref=True)
+    with catch_logging() as log:
+        raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04),
+                                 ignore_ref=True, verbose=True)
+    assert ', 12/15 out' in log.getvalue()  # homogeneous fields removed
     _assert_n_free(raw_sss, 70)
     _assert_shielding(raw_sss, raw_ctf, 12)
     raw_sss_auto = maxwell_filter(raw_ctf, origin=(0., 0., 0.04),
                                   ignore_ref=True, mag_scale='auto')
     assert_allclose(raw_sss._data, raw_sss_auto._data)
+    with catch_logging() as log:
+        maxwell_filter(raw_ctf, origin=(0., 0., 0.04), regularize=None,
+                       ignore_ref=True, verbose=True)
+    assert '80/80 in, 12/15 out' in log.getvalue()  # homogeneous fields
 
 
 def test_spherical_conversions():
@@ -413,6 +426,14 @@ def test_basic():
         vals = [x.info['proc_history'][0]['max_info']['sss_info'][key]
                 for x in [raw_sss, sss_erm_std]]
         assert_equal(vals[0], vals[1])
+
+    # Two equivalent things: at device origin in device coords (0., 0., 0.)
+    # and at device origin at head coords info['dev_head_t'][:3, 3]
+    raw_sss_meg = maxwell_filter(
+        raw, coord_frame='meg', origin=(0., 0., 0.))
+    raw_sss_head = maxwell_filter(
+        raw, origin=raw.info['dev_head_t']['trans'][:3, 3])
+    assert_meg_snr(raw_sss_meg, raw_sss_head, 100., 900.)
 
     # Check against SSS functions from proc_history
     sss_info = raw_sss.info['proc_history'][0]['max_info']
@@ -698,6 +719,19 @@ def test_cross_talk():
     assert_raises(ValueError, maxwell_filter, raw, cross_talk=raw_fname)
     mf_ctc = sss_ctc.info['proc_history'][0]['max_info']['sss_ctc']
     del mf_ctc['block_id']  # we don't write this
+    assert isinstance(py_ctc['decoupler'], sparse.csc_matrix)
+    assert isinstance(mf_ctc['decoupler'], sparse.csc_matrix)
+    assert_array_equal(py_ctc['decoupler'].toarray(),
+                       mf_ctc['decoupler'].toarray())
+    # I/O roundtrip
+    tempdir = _TempDir()
+    fname = op.join(tempdir, 'test_sss_raw.fif')
+    sss_ctc.save(fname)
+    sss_ctc_read = read_raw_fif(fname)
+    mf_ctc_read = sss_ctc_read.info['proc_history'][0]['max_info']['sss_ctc']
+    assert isinstance(mf_ctc_read['decoupler'], sparse.csc_matrix)
+    assert_array_equal(mf_ctc_read['decoupler'].toarray(),
+                       mf_ctc['decoupler'].toarray())
     assert_equal(object_diff(py_ctc, mf_ctc), '')
     raw_ctf = read_crop(fname_ctf_raw).apply_gradient_compensation(0)
     assert_raises(ValueError, maxwell_filter, raw_ctf)  # cannot fit headshape

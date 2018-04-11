@@ -1,7 +1,4 @@
 """
-
-.. _tut_artifacts_correct_ica:
-
 Artifact Correction with ICA
 ============================
 
@@ -33,15 +30,15 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
-# 1Hz high pass is often helpful for fitting ICA
-raw.filter(1., 40., n_jobs=2, fir_design='firwin')
+# 1Hz high pass is often helpful for fitting ICA (already lowpassed @ 40 Hz)
+raw.filter(1., None, n_jobs=1, fir_design='firwin')
 
 picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
                            stim=False, exclude='bads')
 
 ###############################################################################
 # Before applying artifact correction please learn about your actual artifacts
-# by reading :ref:`tut_artifacts_detect`.
+# by reading :ref:`sphx_glr_auto_tutorials_plot_artifacts_detection.py`.
 #
 # .. warning:: ICA is sensitive to low-frequency drifts and therefore
 #              requires the data to be high-pass filtered prior to fitting.
@@ -56,14 +53,24 @@ picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
 #              explicitly set ``fir_design='firwin'`` to use this method. This
 #              is the recommended filter method for ICA preprocessing.
 
+
 ###############################################################################
 # Fit ICA
 # -------
 #
-# ICA parameters:
+# First, choose the ICA method. There are currently four possible choices:
+# `fastica`, `picard`, `infomax` and `extended-infomax`.
+#
+# .. note:: The default method in MNE is FastICA, which along with Infomax is
+#           one of the most widely used ICA algorithms. Picard is a
+#           new algorithm that is expected to converge faster than FastICA and
+#           Infomax, especially when the aim is to recover accurate maps with
+#           a low tolerance parameter, see [1]_ for more information.
 
+method = 'fastica'
+
+# Choose other parameters
 n_components = 25  # if float, select n_components by explained variance of PCA
-method = 'fastica'  # for comparison with EEGLAB try "extended-infomax" here
 decim = 3  # we need sufficient statistics, not all time points -> saves time
 
 # we will also set state of the random number generator - ICA is a
@@ -108,19 +115,20 @@ ica.plot_properties(raw, picks=[1, 2], psd_args={'fmax': 35.})
 
 ###############################################################################
 # Instead of opening individual figures with component properties, we can
-# also pass an instance of Raw or Epochs in ``inst`` arument to
+# also pass an instance of Raw or Epochs in ``inst`` argument to
 # ``ica.plot_components``. This would allow us to open component properties
 # interactively by clicking on individual component topomaps. In the notebook
-# this woks only when running matplotlib in interactive mode (``%matplotlib``).
+# this works only when running matplotlib in interactive mode
+# (``%matplotlib``).
 
-# uncomment the code below to test the inteactive mode of plot_components:
+# uncomment the code below to test the interactive mode of plot_components:
 # ica.plot_components(picks=range(10), inst=raw)
 
 ###############################################################################
 # Advanced artifact detection
 # ---------------------------
 #
-# Let's use a more efficient way to find artefacts
+# Let's use a more efficient way to find artifacts
 
 eog_average = create_eog_epochs(raw, reject=dict(mag=5e-12, grad=4000e-13),
                                 picks=picks_meg).average()
@@ -288,4 +296,11 @@ eog_component = reference_ica.get_components()[:, eog_inds[0]]
 # You can also use SSP to correct for artifacts. It is a bit simpler and
 # faster but also less precise than ICA and requires that you know the event
 # timing of your artifact.
-# See :ref:`tut_artifacts_correct_ssp`.
+# See :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_ssp.py`.
+
+###############################################################################
+# References
+# ----------
+# .. [1] Ablin, P., Cardoso, J.F., Gramfort, A., 2017. Faster Independent
+#        Component Analysis by preconditioning with Hessian approximations.
+#        arXiv:1706.08171

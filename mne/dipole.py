@@ -423,6 +423,20 @@ class DipoleFixed(object):
         s += ", tmax : %s" % np.max(self.times)
         return "<DipoleFixed  |  %s>" % s
 
+    def copy(self):
+        """Copy the DipoleFixed object.
+
+        Returns
+        -------
+        inst : instance of DipoleFixed
+            The copy.
+
+        Notes
+        -----
+        .. versionadded:: 0.16
+        """
+        return deepcopy(self)
+
     @property
     def ch_names(self):
         """Channel names."""
@@ -447,13 +461,18 @@ class DipoleFixed(object):
                     ('.fif', '.fif.gz'))
         _write_evokeds(fname, self, check=False)
 
-    def plot(self, show=True):
+    def plot(self, show=True, time_unit=None):
         """Plot dipole data.
 
         Parameters
         ----------
         show : bool
             Call pyplot.show() at the end or not.
+        time_unit : str
+            The units for the time axis, can be "ms" (default in 0.16)
+            or "s" (will become the default in 0.17).
+
+            .. versionadded:: 0.16
 
         Returns
         -------
@@ -464,7 +483,8 @@ class DipoleFixed(object):
                             ylim=None, xlim='tight', proj=False, hline=None,
                             units=None, scalings=None, titles=None, axes=None,
                             gfp=False, window_title=None, spatial_colors=False,
-                            plot_type="butterfly", selectable=False)
+                            plot_type="butterfly", selectable=False,
+                            time_unit=time_unit)
 
 
 # #############################################################################
@@ -597,6 +617,7 @@ def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
     """Compute the forward solution and do other nice stuff."""
     B = _compute_forwards_meeg(rr, fwd_data, n_jobs, verbose=False)
     B = np.concatenate(B, axis=1)
+    assert np.isfinite(B).all()
     B_orig = B.copy()
 
     # Apply projection and whiten (cov has projections already)
@@ -1275,7 +1296,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
                  coord_frame=FIFF.FIFFV_COORD_UNKNOWN, unit=FIFF.FIFF_UNIT_AM,
                  coil_type=FIFF.FIFFV_COIL_DIPOLE,
                  unit_mul=0, range=1, cal=1., scanno=1, logno=1),
-            dict(ch_name='goodness', loc=np.zeros(12),
+            dict(ch_name='goodness', loc=np.full(12, np.nan),
                  kind=FIFF.FIFFV_GOODNESS_FIT, unit=FIFF.FIFF_UNIT_AM,
                  coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                  coil_type=FIFF.FIFFV_COIL_NONE,
@@ -1286,6 +1307,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
                     'experimenter', 'hpi_subsystem', 'proj_id', 'proj_name',
                     'subject_info']:
             out_info[key] = None
+        out_info['bads'] = []
         out_info._update_redundant()
         out_info._check_consistency()
         dipoles = DipoleFixed(out_info, data, times, evoked.nave,

@@ -13,7 +13,7 @@ from ..fixes import _get_args
 from ..parallel import parallel_func
 from ..source_estimate import _BaseSourceEstimate
 from ..epochs import BaseEpochs
-from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
+from ..time_frequency.multitaper import (_mt_spectra, _compute_mt_params,
                                          _psd_from_mt, _csd_from_mt,
                                          _psd_from_mt_adaptive)
 from ..time_frequency.tfr import morlet, cwt
@@ -754,8 +754,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     if fmin is None:
         fmin = -np.inf  # set it to -inf, so we can adjust it later
 
-    fmin = np.asarray((fmin,)).ravel()
-    fmax = np.asarray((fmax,)).ravel()
+    fmin = np.array((fmin,), dtype=float).ravel()
+    fmax = np.array((fmax,), dtype=float).ravel()
     if len(fmin) != len(fmax):
         raise ValueError('fmin and fmax must have the same length')
     if np.any(fmin > fmax):
@@ -991,14 +991,18 @@ def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
         raise ValueError('mode has an invalid value')
 
     # check that fmin corresponds to at least 5 cycles
-    five_cycle_freq = 5. * sfreq / float(n_times)
+    dur = float(n_times) / sfreq
+    five_cycle_freq = 5. / dur
     if len(fmin) == 1 and fmin[0] == -np.inf:
         # we use the 5 cycle freq. as default
-        fmin = [five_cycle_freq]
+        fmin = np.array([five_cycle_freq])
     else:
-        if any(fmin < five_cycle_freq):
-            warn('fmin corresponds to less than 5 cycles, '
-                 'spectrum estimate will be unreliable')
+        if np.any(fmin < five_cycle_freq):
+            warn('fmin=%0.3f Hz corresponds to %0.3f < 5 cycles '
+                 'based on the epoch length %0.3f sec, need at least %0.3f '
+                 'sec epochs or fmin=%0.3f. Spectrum estimate will be '
+                 'unreliable.' % (np.min(fmin), dur * np.min(fmin), dur,
+                                  5. / np.min(fmin), five_cycle_freq))
 
     # create a frequency mask for all bands
     freq_mask = np.zeros(len(freqs_all), dtype=np.bool)
@@ -1054,26 +1058,9 @@ def _assemble_spectral_params(mode, n_times, mt_adaptive, mt_bandwidth, sfreq,
     n_tapers = None
     n_times_spectrum = 0
     if mode == 'multitaper':
-        # compute standardized half-bandwidth
-        if mt_bandwidth is not None:
-            half_nbw = float(mt_bandwidth) * n_times / (2 * sfreq)
-        else:
-            half_nbw = 4
-
-        # compute dpss windows
-        n_tapers_max = int(2 * half_nbw)
-        window_fun, eigvals = dpss_windows(n_times, half_nbw,
-                                           n_tapers_max,
-                                           low_bias=mt_low_bias)
+        window_fun, eigvals, mt_adaptive = _compute_mt_params(
+            n_times, sfreq, mt_bandwidth, mt_low_bias, mt_adaptive)
         spectral_params.update(window_fun=window_fun, eigvals=eigvals)
-        n_tapers = len(eigvals)
-        logger.info('    using multitaper spectrum estimation with '
-                    '%d DPSS windows' % n_tapers)
-
-        if mt_adaptive and len(eigvals) < 3:
-            warn('Not adaptively combining the spectral estimators '
-                 'due to a low number of tapers.')
-            mt_adaptive = False
     elif mode == 'fourier':
         logger.info('    using FFT with a Hanning window to estimate '
                     'spectra')
@@ -1084,7 +1071,7 @@ def _assemble_spectral_params(mode, n_times, mt_adaptive, mt_bandwidth, sfreq,
 
         # reformat cwt_n_cycles if we have removed some frequencies
         # using fmin, fmax, fskip
-        cwt_n_cycles = np.asarray((cwt_n_cycles,)).ravel()
+        cwt_n_cycles = np.array((cwt_n_cycles,), dtype=float).ravel()
         if len(cwt_n_cycles) > 1:
             if len(cwt_n_cycles) != len(cwt_freqs):
                 raise ValueError('cwt_n_cycles must be float or an '

@@ -57,6 +57,7 @@ Reading raw data
   anonymize_info
   find_edf_events
   read_events_eeglab
+  read_annotations_eeglab
   read_raw_artemis123
   read_raw_bti
   read_raw_cnt
@@ -68,6 +69,7 @@ Reading raw data
   read_raw_brainvision
   read_raw_egi
   read_raw_fif
+  read_raw_eximia
 
 Base class:
 
@@ -204,6 +206,7 @@ Datasets
    somato.data_path
    spm_face.data_path
    visual_92_categories.data_path
+   phantom_4dbti.data_path
 
 
 Visualization
@@ -234,6 +237,7 @@ Visualization
    plot_bem
    plot_connectivity_circle
    plot_cov
+   plot_csd
    plot_dipole_amplitudes
    plot_dipole_locations
    plot_drop_log
@@ -360,6 +364,7 @@ Projections:
    ica_find_eog_events
    infomax
    maxwell_filter
+   oversampled_temporal_projection
    read_ica
    run_ica
    corrmap
@@ -456,6 +461,7 @@ Events
    merge_events
    parse_config
    pick_events
+   read_annotations
    read_events
    write_events
    concatenate_epochs
@@ -771,6 +777,7 @@ Source Space Data
    label_sign_flip
    morph_data
    morph_data_precomputed
+   random_parcellation
    read_labels_from_annot
    read_dipole
    read_label
@@ -801,6 +808,7 @@ Time-Frequency
 
    AverageTFR
    EpochsTFR
+   CrossSpectralDensity
 
 Functions that operate on mne-python objects:
 
@@ -808,16 +816,17 @@ Functions that operate on mne-python objects:
    :toctree: generated/
    :template: function.rst
 
-   csd_epochs
+   csd_fourier
+   csd_multitaper
+   csd_morlet
+   pick_channels_csd
+   read_csd
+   fit_iir_model_raw
    psd_welch
    psd_multitaper
-   fit_iir_model_raw
    tfr_morlet
    tfr_multitaper
    tfr_stockwell
-   tfr_array_morlet
-   tfr_array_multitaper
-   tfr_array_stockwell
    read_tfrs
    write_tfrs
 
@@ -827,7 +836,9 @@ Functions that operate on ``np.ndarray`` objects:
    :toctree: generated/
    :template: function.rst
 
-   csd_array
+   csd_array_fourier
+   csd_array_multitaper
+   csd_array_morlet
    dpss_windows
    morlet
    stft
@@ -835,6 +846,9 @@ Functions that operate on ``np.ndarray`` objects:
    stftfreq
    psd_array_multitaper
    psd_array_welch
+   tfr_array_morlet
+   tfr_array_multitaper
+   tfr_array_stockwell
 
 
 :py:mod:`mne.time_frequency.tfr`:
@@ -873,6 +887,8 @@ Connectivity Estimation
    phase_slope_index
 
 
+.. _api_reference_statistics:
+
 Statistics
 ==========
 
@@ -884,26 +900,43 @@ Statistics
 
 .. currentmodule:: mne.stats
 
+Parametric statistics (see :mod:`scipy.stats` and :mod:`statsmodels` for more
+options):
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   ttest_1samp_no_p
+   f_oneway
+   f_mway_rm
+   f_threshold_mway_rm
+   linear_regression
+   linear_regression_raw
+
+Mass-univariate multiple comparison correction:
+
 .. autosummary::
    :toctree: generated/
    :template: function.rst
 
    bonferroni_correction
    fdr_correction
+
+Non-parametric (clustering) resampling methods:
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
    permutation_cluster_test
    permutation_cluster_1samp_test
    permutation_t_test
    spatio_temporal_cluster_test
    spatio_temporal_cluster_1samp_test
-   ttest_1samp_no_p
-   linear_regression
-   linear_regression_raw
-   f_oneway
-   f_mway_rm
-   f_threshold_mway_rm
    summarize_clusters_stc
 
-Functions to compute neighbor/adjacency matrices for cluster-level statistics:
+Compute ``connectivity`` matrices for cluster-level statistics:
 
 .. currentmodule:: mne
 
@@ -911,6 +944,8 @@ Functions to compute neighbor/adjacency matrices for cluster-level statistics:
    :toctree: generated/
    :template: function.rst
 
+   channels.find_ch_connectivity
+   channels.read_ch_connectivity
    spatial_dist_connectivity
    spatial_src_connectivity
    spatial_tris_connectivity

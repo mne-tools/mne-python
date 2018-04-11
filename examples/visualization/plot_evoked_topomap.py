@@ -30,19 +30,21 @@ times = np.arange(0.05, 0.15, 0.01)
 # If times is set to None only 10 regularly spaced topographies will be shown
 
 # plot magnetometer data as topomaps
-evoked.plot_topomap(times, ch_type='mag')
+evoked.plot_topomap(times, ch_type='mag', time_unit='s')
 
 # compute a 50 ms bin to stabilize topographies
-evoked.plot_topomap(times, ch_type='mag', average=0.05)
+evoked.plot_topomap(times, ch_type='mag', average=0.05, time_unit='s')
 
 # plot gradiometer data (plots the RMS for each pair of gradiometers)
-evoked.plot_topomap(times, ch_type='grad')
+evoked.plot_topomap(times, ch_type='grad', time_unit='s')
 
 # plot magnetometer data as an animation
-evoked.animate_topomap(ch_type='mag', times=times, frame_rate=10)
+evoked.animate_topomap(ch_type='mag', times=times, frame_rate=10,
+                       time_unit='s')
 
 # plot magnetometer data as topomap at 1 time point : 100 ms
 # and add channel labels and title
 evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
-                    size=6, res=128, title='Auditory response')
+                    size=6, res=128, title='Auditory response',
+                    time_unit='s')
 plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)

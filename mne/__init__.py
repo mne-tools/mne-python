@@ -67,13 +67,13 @@ from .source_space import (read_source_spaces, vertex_to_mni,
                            add_source_space_distances, morph_source_spaces,
                            get_volume_labels_from_aseg,
                            get_volume_labels_from_src)
-from .annotations import Annotations
+from .annotations import Annotations, read_annotations
 from .epochs import (BaseEpochs, Epochs, EpochsArray, read_epochs,
                      concatenate_epochs)
 from .evoked import Evoked, EvokedArray, read_evokeds, write_evokeds, combine_evoked
 from .label import (read_label, label_sign_flip,
                     write_label, stc_to_label, grow_labels, Label, split_label,
-                    BiHemiLabel, read_labels_from_annot, write_labels_to_annot)
+                    BiHemiLabel, read_labels_from_annot, write_labels_to_annot, random_parcellation)
 from .misc import parse_config, read_reject_parameters
 from .coreg import (create_default_subject, scale_bem, scale_mri, scale_labels,
                     scale_source_space)

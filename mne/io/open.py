@@ -10,7 +10,7 @@ from gzip import GzipFile
 
 import numpy as np
 
-from .tag import read_tag_info, read_tag, read_big, Tag
+from .tag import read_tag_info, read_tag, read_big, Tag, _call_dict_names
 from .tree import make_dir_tree, dir_tree_find
 from .constants import FIFF
 from ..utils import logger, verbose
@@ -222,11 +222,13 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
 
     if tree['directory'] is not None:
         kinds = [ent.kind for ent in tree['directory']] + [-1]
+        types = [ent.type for ent in tree['directory']]
         sizes = [ent.size for ent in tree['directory']]
         poss = [ent.pos for ent in tree['directory']]
         counter = 0
         good = True
-        for k, kn, size, pos in zip(kinds[:-1], kinds[1:], sizes, poss):
+        for k, kn, size, pos, type_ in zip(kinds[:-1], kinds[1:], sizes, poss,
+                                           types):
             if not tag_found and k != tag_id:
                 continue
             tag = Tag(k, size, 0, pos)
@@ -263,8 +265,10 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
                     else:
                         postpend += ' ... type=' + str(type(tag.data))
                 postpend = '>' * 20 + 'BAD' if not good else postpend
+                type_ = _call_dict_names.get(type_, '?%s?' % (type_,))
                 out += [next_idt + prepend + str(k) + ' = ' +
-                        '/'.join(this_type) + ' (' + str(size) + ')' +
+                        '/'.join(this_type) +
+                        ' (' + str(size) + 'b %s)' % type_ +
                         postpend]
                 out[-1] = out[-1].replace('\n', u'¶')
                 counter = 0

@@ -14,7 +14,7 @@ from ..event import _get_stim_channel
 from ..filter import _Interp2
 from ..io.pick import pick_types, pick_info, pick_channels
 from ..source_estimate import VolSourceEstimate
-from ..cov import make_ad_hoc_cov, read_cov
+from ..cov import make_ad_hoc_cov, read_cov, Covariance
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
 from ..io import RawArray, BaseRaw
 from ..chpi import (read_head_pos, head_pos_to_trans_rot_t, _get_hpi_info,
@@ -25,11 +25,30 @@ from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _prepare_for_forward, _transform_orig_meg_coils,
                        _compute_forwards, _to_forward_dict)
 from ..transforms import _get_trans, transform_surface_to
-from ..source_space import _ensure_src, _points_outside_surface
+from ..source_space import (_ensure_src, _points_outside_surface,
+                            _adjust_patch_info)
 from ..source_estimate import _BaseSourceEstimate
 from ..utils import logger, verbose, check_random_state, warn, _pl
 from ..parallel import check_n_jobs
 from ..externals.six import string_types
+
+
+def _check_cov(info, cov):
+    """Check that the user provided a valid covariance matrix for the noise."""
+    if isinstance(cov, Covariance) or cov is None:
+        pass
+    elif isinstance(cov, dict):
+        cov = make_ad_hoc_cov(info, cov, verbose=False)
+    elif isinstance(cov, string_types):
+        if cov == 'simple':
+            cov = make_ad_hoc_cov(info, None, verbose=False)
+        else:
+            cov = read_cov(cov, verbose=False)
+    else:
+        raise TypeError('Covariance matrix type not recognized. Valid input '
+                        'types are: instance of Covariance, dict, str, None. '
+                        ', got %s' % (cov,))
+    return cov
 
 
 def _log_ch(start, info, ch):
@@ -45,7 +64,7 @@ def _log_ch(start, info, ch):
 def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                  blink=False, ecg=False, chpi=False, head_pos=None,
                  mindist=1.0, interp='cos2', iir_filter=None, n_jobs=1,
-                 random_state=None, use_cps=None, verbose=None):
+                 random_state=None, use_cps=True, verbose=None):
     u"""Simulate raw data.
 
     Head movements can optionally be simulated using the ``head_pos``
@@ -73,11 +92,12 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     bem : str | dict
         BEM solution  corresponding to the stc. If string, should be a BEM
         solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
-    cov : instance of Covariance | str | None
-        The sensor covariance matrix used to generate noise. If None,
-        no noise will be added. If 'simple', a basic (diagonal) ad-hoc
-        noise covariance will be used. If a string, then the covariance
-        will be loaded.
+    cov : instance of Covariance | str | dict of float | None
+        The sensor covariance matrix used to generate noise. If string, should
+        be a filename or 'simple'. If 'simple', an ad hoc covariance matrix
+        will be generated with default values. If dict, an ad hoc covariance
+        matrix will be generated with the values specified by the dict entries.
+        If None, no noise will be added.
     blink : bool
         If true, add simulated blink artifacts. See Notes for details.
     ecg : bool
@@ -109,7 +129,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     random_state : None | int | np.random.RandomState
         The random generator state used for blink, ECG, and sensor
         noise randomization.
-    use_cps : None | bool (default None)
+    use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations. Only used when surf_ori and/or force_fixed are True.
     verbose : bool, str, int, or None
@@ -238,11 +258,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     src = _ensure_src(src, verbose=False)
     if isinstance(bem, string_types):
         bem = read_bem_solution(bem, verbose=False)
-    if isinstance(cov, string_types):
-        if cov == 'simple':
-            cov = make_ad_hoc_cov(info, verbose=False)
-        else:
-            cov = read_cov(cov, verbose=False)
+    cov = _check_cov(info, cov)
     approx_events = int((len(times) / info['sfreq']) /
                         (stc.times[-1] - stc.times[0]))
     logger.info('Provided parameters will provide approximately %s event%s'
@@ -365,7 +381,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         # XXX eventually we could speed this up by allowing the forward
         # solution code to only compute the normal direction
         fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
-                                       verbose=False, use_cps=use_cps)
+                                       use_cps=use_cps, verbose=False)
         if blink:
             fwd_blink = fwd_blink['sol']['data']
             for ii in range(len(blink_rrs)):
@@ -479,8 +495,9 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
         idx = np.where(np.array([s['id'] for s in bem['surfs']]) ==
                        FIFF.FIFFV_BEM_SURF_ID_BRAIN)[0]
         assert len(idx) == 1
+        # make a copy so it isn't mangled in use
         bem_surf = transform_surface_to(bem['surfs'][idx[0]], coord_frame,
-                                        mri_head_t)
+                                        mri_head_t, copy=True)
     for ti, dev_head_t in enumerate(dev_head_ts):
         # Could be *slightly* more efficient not to do this N times,
         # but the cost here is tiny compared to actual fwd calculation
@@ -538,7 +555,9 @@ def _restrict_source_space_to(src, vertices):
         s['nuse'] = len(v)
         s['vertno'] = v
         s['inuse'][s['vertno']] = 1
-        for key in ('pinfo', 'nuse_tri', 'use_tris', 'patch_inds'):
+        for key in ('nuse_tri', 'use_tris'):
             if key in s:
                 del s[key]
+        # This will fix 'patch_info' and 'pinfo'
+        _adjust_patch_info(s, verbose=False)
     return src

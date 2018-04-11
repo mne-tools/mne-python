@@ -5,8 +5,10 @@ import os.path as op
 from nose.tools import assert_false, assert_equal, assert_raises, assert_true
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
+from scipy import sparse
 
-from mne import Epochs, read_events
+from mne import Epochs, read_events, pick_info, pick_types
+from mne.datasets import testing
 from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
                     _loc_to_coil_trans, read_raw_fif, read_info, write_info,
                     anonymize_info)
@@ -27,6 +29,11 @@ event_name = op.join(base_dir, 'test-eve.fif')
 kit_data_dir = op.join(op.dirname(__file__), '..', 'kit', 'tests', 'data')
 hsp_fname = op.join(kit_data_dir, 'test_hsp.txt')
 elp_fname = op.join(kit_data_dir, 'test_elp.txt')
+
+data_path = testing.data_path(download=False)
+sss_path = op.join(data_path, 'SSS')
+pre = op.join(sss_path, 'test_move_anon_')
+sss_ctc_fname = pre + 'crossTalk_raw_sss.fif'
 
 
 def test_coil_trans():
@@ -183,11 +190,21 @@ def test_read_write_info():
     info['proc_history'][0]['creator'] = creator
     info['hpi_meas'][0]['creator'] = creator
     info['subject_info']['his_id'] = creator
+    info['subject_info']['weight'] = 11.1
+    info['subject_info']['height'] = 2.3
+
+    if info['gantry_angle'] is None:  # future testing data may include it
+        info['gantry_angle'] = 0.  # Elekta supine position
+    gantry_angle = info['gantry_angle']
+
     write_info(temp_file, info)
     info = read_info(temp_file)
     assert_equal(info['proc_history'][0]['creator'], creator)
     assert_equal(info['hpi_meas'][0]['creator'], creator)
     assert_equal(info['subject_info']['his_id'], creator)
+    assert_equal(info['gantry_angle'], gantry_angle)
+    assert info['subject_info']['height'] == 2.3
+    assert info['subject_info']['weight'] == 11.1
 
 
 def test_io_dig_points():
@@ -390,6 +407,35 @@ def test_anonymize():
     info = raw.info.copy()
     info.pop('file_id')
     anonymize_info(info)
+
+
+@testing.requires_testing_data
+def test_csr_csc():
+    """Test CSR and CSC."""
+    info = read_info(sss_ctc_fname)
+    info = pick_info(info, pick_types(info, meg=True, exclude=[]))
+    sss_ctc = info['proc_history'][0]['max_info']['sss_ctc']
+    ct = sss_ctc['decoupler'].copy()
+    # CSC
+    assert isinstance(ct, sparse.csc_matrix)
+    tempdir = _TempDir()
+    fname = op.join(tempdir, 'test.fif')
+    write_info(fname, info)
+    info_read = read_info(fname)
+    ct_read = info_read['proc_history'][0]['max_info']['sss_ctc']['decoupler']
+    assert isinstance(ct_read, sparse.csc_matrix)
+    assert_array_equal(ct_read.toarray(), ct.toarray())
+    # Now CSR
+    csr = ct.tocsr()
+    assert isinstance(csr, sparse.csr_matrix)
+    assert_array_equal(csr.toarray(), ct.toarray())
+    info['proc_history'][0]['max_info']['sss_ctc']['decoupler'] = csr
+    fname = op.join(tempdir, 'test1.fif')
+    write_info(fname, info)
+    info_read = read_info(fname)
+    ct_read = info_read['proc_history'][0]['max_info']['sss_ctc']['decoupler']
+    assert isinstance(ct_read, sparse.csc_matrix)  # this gets cast to CSC
+    assert_array_equal(ct_read.toarray(), ct.toarray())
 
 
 run_tests_if_main()

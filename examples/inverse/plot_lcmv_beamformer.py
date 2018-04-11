@@ -11,12 +11,14 @@ visualisation.
 #
 # License: BSD (3-clause)
 
+# sphinx_gallery_thumbnail_number = 3
+
 import matplotlib.pyplot as plt
 import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.beamformer import lcmv
+from mne.beamformer import make_lcmv, apply_lcmv
 
 print(__doc__)
 
@@ -59,8 +61,10 @@ forward = mne.convert_forward_solution(forward, surf_ori=True)
 noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk')
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
                                   method='shrunk')
+evoked.plot(time_unit='s')
 
-plt.close('all')
+###############################################################################
+# Run beamformers and look at maximum outputs
 
 pick_oris = [None, 'normal', 'max-power']
 names = ['free', 'normal', 'max-power']
@@ -68,31 +72,39 @@ descriptions = ['Free orientation, voxel: %i', 'Normal orientation, voxel: %i',
                 'Max-power orientation, voxel: %i']
 colors = ['b', 'k', 'r']
 
+fig, ax = plt.subplots(1)
+max_voxs = list()
 for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
     # compute unit-noise-gain beamformer with whitening of the leadfield and
     # data (enabled by passing a noise covariance matrix)
-    stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.05,
-               pick_ori=pick_ori, weight_norm='unit-noise-gain',
-               max_ori_out='signed')
+    filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
+                        noise_cov=noise_cov, pick_ori=pick_ori,
+                        weight_norm='unit-noise-gain')
+    # apply this spatial filter to source-reconstruct the evoked data
+    stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 
     # View activation time-series in maximum voxel at 100 ms:
     time_idx = stc.time_as_index(0.1)
-    max_vox = np.argmax(stc.data[:, time_idx])
-    plt.plot(stc.times, stc.data[max_vox, :], color, hold=True,
-             label=desc % max_vox)
+    max_idx = np.argmax(stc.data[:, time_idx])
+    # we know these are all left hemi, so we can just use vertices[0]
+    max_voxs.append(stc.vertices[0][max_idx])
+    ax.plot(stc.times, stc.data[max_idx, :], color, label=desc % max_idx)
 
-plt.xlabel('Time (ms)')
-plt.ylabel('LCMV value')
-plt.ylim(-0.8, 2.2)
-plt.title('LCMV in maximum voxel')
-plt.legend()
-plt.show()
+ax.set(xlabel='Time (ms)', ylabel='LCMV value', ylim=(-0.8, 2.2),
+       title='LCMV in maximum voxel')
+ax.legend()
+mne.viz.utils.plt_show()
 
+###############################################################################
+# We can also look at the spatial distribution
 
 # take absolute value for plotting
-stc.data[:, :] = np.abs(stc.data)
+np.abs(stc.data, out=stc.data)
 
 # Plot last stc in the brain in 3D with PySurfer if available
 brain = stc.plot(hemi='lh', subjects_dir=subjects_dir,
                  initial_time=0.1, time_unit='s')
 brain.show_view('lateral')
+for color, vertex in zip(colors, max_voxs):
+    brain.add_foci([vertex], coords_as_verts=True, scale_factor=0.5,
+                   hemi='lh', color=color)

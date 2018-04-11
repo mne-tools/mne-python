@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ==========================================
-Brainstorm Elekta phantom tutorial dataset
+Brainstorm Elekta phantom dataset tutorial
 ==========================================
 
 Here we compute the evoked from raw for the Brainstorm Elekta phantom
@@ -81,7 +81,7 @@ tmin, tmax = -0.1, 0.1
 event_id = list(range(1, 33))
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=(None, -0.01),
                     decim=3, preload=True)
-epochs['1'].average().plot()
+epochs['1'].average().plot(time_unit='s')
 
 ###############################################################################
 # Let's use a sphere head geometry model and let's see the coordinate

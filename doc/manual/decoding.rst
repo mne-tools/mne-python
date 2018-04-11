@@ -152,7 +152,7 @@ conditions and therefore figure out when the effect of interest happens.
 When working with linear models as estimators, this approach boils
 down to estimating a discriminative spatial filter for each time instant.
 
-.. image:: ../../_images/sphx_glr_plot_decoding_sensors_001.png
+.. image:: ../../_images/sphx_glr_plot_sensors_decoding_001.png
    :align: center
    :width: 400px
 
@@ -177,7 +177,7 @@ dimension as the one to be used for generalization testing. For convenience,
 here, we refer to it different tasks. If :math:`X` corresponds to epochs data
 then the last dimension is time.
 
-.. image:: ../../_images/sphx_glr_plot_decoding_time_generalization_001.png
+.. image:: ../../_images/sphx_glr_plot_sensors_decoding_004.png
    :align: center
    :width: 400px
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
@@ -9,6 +10,7 @@ import os.path as op
 import shutil
 import warnings
 
+import numpy as np
 from nose.tools import assert_true, assert_equal, assert_raises
 import pytest
 
@@ -17,7 +19,7 @@ from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
-                       requires_PIL, run_tests_if_main)
+                       run_tests_if_main, traits_test)
 from mne.viz import plot_alignment
 
 import matplotlib
@@ -27,6 +29,7 @@ data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
 report_dir = op.join(data_dir, 'MEG', 'sample')
 raw_fname = op.join(report_dir, 'sample_audvis_trunc_raw.fif')
+ms_fname = op.join(data_dir, 'SSS', 'test_move_anon_raw.fif')
 event_fname = op.join(report_dir, 'sample_audvis_trunc_raw-eve.fif')
 cov_fname = op.join(report_dir, 'sample_audvis_trunc-cov.fif')
 fwd_fname = op.join(report_dir, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
@@ -46,16 +49,17 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_PIL
 def test_render_report():
     """Test rendering -*.fif files for mne report."""
     tempdir = _TempDir()
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
+    ms_fname_new = op.join(tempdir, 'temp_ms_raw.fif')
     event_fname_new = op.join(tempdir, 'temp_raw-eve.fif')
     cov_fname_new = op.join(tempdir, 'temp_raw-cov.fif')
     fwd_fname_new = op.join(tempdir, 'temp_raw-fwd.fif')
     inv_fname_new = op.join(tempdir, 'temp_raw-inv.fif')
     for a, b in [[raw_fname, raw_fname_new],
+                 [ms_fname, ms_fname_new],
                  [event_fname, event_fname_new],
                  [cov_fname, cov_fname_new],
                  [fwd_fname, fwd_fname_new],
@@ -95,8 +99,12 @@ def test_render_report():
 
     # Check saving functionality
     report.data_path = tempdir
-    report.save(fname=op.join(tempdir, 'report.html'), open_browser=False)
-    assert_true(op.isfile(op.join(tempdir, 'report.html')))
+    fname = op.join(tempdir, 'report.html')
+    report.save(fname=fname, open_browser=False)
+    assert_true(op.isfile(fname))
+    with open(fname, 'rb') as fid:
+        html = fid.read().decode('utf-8')
+    assert '(MaxShield on)' in html
 
     assert_equal(len(report.html), len(fnames))
     assert_equal(len(report.html), len(report.fnames))
@@ -135,13 +143,15 @@ def test_render_report():
         warnings.simplefilter('always')
         report.parse_folder(data_path=tempdir, on_error='raise')
 
+    # ndarray support smoke test
+    report.add_figs_to_section(np.zeros((2, 3, 3)), 'caption', 'section')
+
 
 @testing.requires_testing_data
 @requires_mayavi
-@requires_PIL
+@traits_test
 def test_render_add_sections():
     """Test adding figures/images to section."""
-    from PIL import Image
     tempdir = _TempDir()
     import matplotlib.pyplot as plt
     report = Report(subjects_dir=subjects_dir)
@@ -159,15 +169,12 @@ def test_render_add_sections():
     # need to recreate because calls above change size
     fig = plt.plot([1, 2], [1, 2])[0].figure
 
-    # Check add_images_to_section with png and then gif
+    # Check add_images_to_section with png
     img_fname = op.join(tempdir, 'testimage.png')
     fig.savefig(img_fname)
     report.add_images_to_section(fnames=[img_fname],
                                  captions=['evoked response'])
 
-    im = Image.open(img_fname)
-    op.join(tempdir, 'testimage.gif')
-    im.save(img_fname)  # matplotlib does not support gif
     report.add_images_to_section(fnames=[img_fname],
                                  captions=['evoked response'])
 
@@ -190,6 +197,7 @@ def test_render_add_sections():
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 @requires_nibabel()
 def test_render_mri():
     """Test rendering MRI for mne report."""
@@ -260,6 +268,14 @@ def test_add_slider_to_section():
                   [figs, figs])
     assert_raises(ValueError, report.add_slider_to_section, figs, ['wug'])
     assert_raises(TypeError, report.add_slider_to_section, figs, 'wug')
+    # need at least 2
+    assert_raises(ValueError, report.add_slider_to_section, figs[:1], 'wug')
+
+    # Smoke test that SVG w/unicode can be added
+    report = Report()
+    fig, ax = plt.subplots()
+    ax.set_xlabel(u'μ')
+    report.add_slider_to_section([fig] * 2, image_format='svg')
 
 
 def test_validate_input():

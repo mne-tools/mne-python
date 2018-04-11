@@ -20,6 +20,7 @@ text_type = str if PY3 else unicode  # noqa
 string_types = str if PY3 else basestring  # noqa
 
 special_chars = {'{FWDSLASH}': '/'}
+tab_str = '----'
 
 
 ##############################################################################
@@ -150,14 +151,15 @@ def _triage_write(key, value, root, comp_kw, where,
         else:  # isinstance(value, float):
             title = 'float'
         _create_titled_dataset(root, key, title, np.atleast_1d(value))
-    elif isinstance(value, np.bool_):
-        _create_titled_dataset(root, key, 'np_bool_', np.atleast_1d(value))
+    elif isinstance(value, (np.integer, np.floating, np.bool_)):
+        title = 'np_{0}'.format(value.__class__.__name__)
+        _create_titled_dataset(root, key, title, np.atleast_1d(value))
     elif isinstance(value, string_types):
         if isinstance(value, text_type):  # unicode
-            value = np.fromstring(value.encode('utf-8'), np.uint8)
+            value = np.frombuffer(value.encode('utf-8'), np.uint8)
             title = 'unicode'
         else:
-            value = np.fromstring(value.encode('ASCII'), np.uint8)
+            value = np.frombuffer(value.encode('ASCII'), np.uint8)
             title = 'ascii'
         _create_titled_dataset(root, key, title, value, comp_kw)
     elif isinstance(value, np.ndarray):
@@ -289,10 +291,11 @@ def _triage_read(node, slash='ignore'):
                                                    slash=slash)),
                                      shape=_triage_read(node['shape']))
         elif type_str in ['pd_dataframe', 'pd_series']:
-            from pandas import read_hdf
+            from pandas import read_hdf, HDFStore
             rootname = node.name
             filename = node.file.filename
-            data = read_hdf(filename, rootname, mode='r')
+            with HDFStore(filename, 'r') as tmpf:
+                data = read_hdf(tmpf, rootname)
         else:
             raise NotImplementedError('Unknown group type: {0}'
                                       ''.format(type_str))
@@ -301,8 +304,10 @@ def _triage_read(node, slash='ignore'):
     elif type_str in ('int', 'float'):
         cast = int if type_str == 'int' else float
         data = cast(np.array(node)[0])
-    elif type_str == 'np_bool_':
-        data = np.bool_(np.array(node)[0])
+    elif type_str.startswith('np_'):
+        np_type = type_str.split('_')[1]
+        cast = getattr(np, np_type)
+        data = cast(np.array(node)[0])
     elif type_str in ('unicode', 'ascii', 'str'):  # 'str' for backward compat
         decoder = 'utf-8' if type_str == 'unicode' else 'ASCII'
         cast = text_type if type_str == 'unicode' else str
@@ -423,3 +428,62 @@ class _TempDir(str):
 
     def __del__(self):
         rmtree(self._path, ignore_errors=True)
+
+
+def _list_file_contents(h5file):
+    if 'h5io' not in h5file.keys():
+        raise ValueError('h5file must contain h5io data')
+
+    # Set up useful variables for later
+    h5file = h5file['h5io']
+    root_title = h5file.attrs['TITLE']
+    n_space = np.max([(len(key), len(val.attrs['TITLE']))
+                      for key, val in h5file.items()]) + 2
+
+    # Create print strings
+    strs = ['Root type: %s | Items: %s\n' % (root_title, len(h5file))]
+    for key, data in h5file.items():
+        type_str = data.attrs['TITLE']
+        str_format = '%%-%ss' % n_space
+        if type_str == 'ndarray':
+            desc = 'Shape: %s'
+            desc_val = data.shape
+        elif type_str in ['pd_dataframe', 'pd_series']:
+            desc = 'Shape: %s'
+            desc_val = data['values'].shape
+        elif type_str in ('unicode', 'ascii', 'str'):
+            desc = 'Text: %s'
+            decoder = 'utf-8' if type_str == 'unicode' else 'ASCII'
+            cast = text_type if type_str == 'unicode' else str
+            data = cast(np.array(data).tostring().decode(decoder))
+            desc_val = data[:10] + '...' if len(data) > 10 else data
+        else:
+            desc = 'Items: %s'
+            desc_val = len(data)
+        this_str = ('%%s Key: %s | Type: %s | ' + desc) % (
+            str_format, str_format, str_format)
+        this_str = this_str % (tab_str, key, type_str, desc_val)
+        strs.append(this_str)
+    out_str = '\n'.join(strs)
+    print(out_str)
+
+
+def list_file_contents(h5file):
+    """List the contents of an h5io file.
+
+    This will list the root and one-level-deep contents of the file.
+
+    Parameters
+    ----------
+    h5file : str
+        The path to an h5io hdf5 file.
+    """
+    h5py = _check_h5py()
+    err = 'h5file must be an h5py File object, not {0}'
+    if isinstance(h5file, str):
+        with h5py.File(h5file, 'r') as f:
+            _list_file_contents(f)
+    else:
+        if not isinstance(h5file, h5py.File):
+            raise TypeError(err.format(type(h5file)))
+        _list_file_contents(h5file)

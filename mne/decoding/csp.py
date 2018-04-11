@@ -31,12 +31,13 @@ class CSP(TransformerMixin, BaseEstimator):
     n_components : int, defaults to 4
         The number of components to decompose M/EEG signals.
         This number should be set by cross-validation.
-    reg : float | str | None, defaults to None
-        if not None, allow regularization for covariance estimation
-        if float, shrinkage covariance is used (0 <= shrinkage <= 1).
-        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
-        or Oracle Approximating Shrinkage ('oas').
-    log : None | bool, defaults to None
+    reg : float | str | None (default None)
+        If not None (same as ``'empirical'``, default), allow
+        regularization for covariance estimation.
+        If float, shrinkage is used (0 <= shrinkage <= 1).
+        For str options, ``reg`` will be passed to ``method`` to
+        :func:`mne.compute_covariance`.
+    log : None | bool (default None)
         If transform_into == 'average_power' and log is None or True, then
         applies a log transform to standardize the features, else the features
         are z-scored. If transform_into == 'csp_space', then log must be None.
@@ -55,6 +56,10 @@ class CSP(TransformerMixin, BaseEstimator):
         magnitude variations in the EEG between individuals. It is not applied
         in more recent work [2]_, [3]_ and can have a negative impact on
         patterns ordering.
+    cov_method_params : dict | None
+        Parameters to pass to :func:`mne.compute_covariance`.
+
+        .. versionadded:: 0.16
 
     Attributes
     ----------
@@ -86,22 +91,14 @@ class CSP(TransformerMixin, BaseEstimator):
     """
 
     def __init__(self, n_components=4, reg=None, log=None, cov_est="concat",
-                 transform_into='average_power', norm_trace=False):
+                 transform_into='average_power', norm_trace=False,
+                 cov_method_params=None):
         """Init of CSP."""
         # Init default CSP
         if not isinstance(n_components, int):
             raise ValueError('n_components must be an integer.')
         self.n_components = n_components
 
-        # Init default regularization
-        if (
-            (reg is not None) and
-            (reg not in ['oas', 'ledoit_wolf']) and
-            ((not isinstance(reg, (float, int))) or
-             (not ((reg <= 1.) and (reg >= 0.))))
-        ):
-            raise ValueError('reg must be None, "oas", "ledoit_wolf" or a '
-                             'float in between 0. and 1.')
         self.reg = reg
 
         # Init default cov_est
@@ -129,6 +126,7 @@ class CSP(TransformerMixin, BaseEstimator):
         if not isinstance(norm_trace, bool):
             raise ValueError('norm_trace must be a bool.')
         self.norm_trace = norm_trace
+        self.cov_method_params = cov_method_params
 
     def _check_Xy(self, X, y=None):
         """Aux. function to check input data."""
@@ -170,13 +168,16 @@ class CSP(TransformerMixin, BaseEstimator):
             if self.cov_est == "concat":  # concatenate epochs
                 class_ = np.transpose(X[y == this_class], [1, 0, 2])
                 class_ = class_.reshape(n_channels, -1)
-                cov = _regularized_covariance(class_, reg=self.reg)
+                cov = _regularized_covariance(
+                    class_, reg=self.reg, method_params=self.cov_method_params)
                 weight = sum(y == this_class)
             elif self.cov_est == "epoch":
                 class_ = X[y == this_class]
                 cov = np.zeros((n_channels, n_channels))
                 for this_X in class_:
-                    cov += _regularized_covariance(this_X, reg=self.reg)
+                    cov += _regularized_covariance(
+                        this_X, reg=self.reg,
+                        method_params=self.cov_method_params)
                 cov /= len(class_)
                 weight = len(class_)
 
@@ -232,7 +233,7 @@ class CSP(TransformerMixin, BaseEstimator):
         eigen_vectors = eigen_vectors[:, ix]
 
         self.filters_ = eigen_vectors.T
-        self.patterns_ = linalg.pinv(eigen_vectors)
+        self.patterns_ = linalg.pinv2(eigen_vectors)
 
         pick_filters = self.filters_[:self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
@@ -424,7 +425,7 @@ class CSP(TransformerMixin, BaseEstimator):
             times=components, ch_type=ch_type, layout=layout,
             vmin=vmin, vmax=vmax, cmap=cmap, colorbar=colorbar, res=res,
             cbar_fmt=cbar_fmt, sensors=sensors,
-            scalings=scalings, units=units, scaling_time=1,
+            scalings=scalings, units=units, time_unit='s',
             time_format=name_format, size=size, show_names=show_names,
             title=title, mask_params=mask_params, mask=mask, outlines=outlines,
             contours=contours, image_interp=image_interp, show=show,
@@ -572,7 +573,7 @@ class CSP(TransformerMixin, BaseEstimator):
             times=components, ch_type=ch_type, layout=layout, vmin=vmin,
             vmax=vmax, cmap=cmap, colorbar=colorbar, res=res,
             cbar_fmt=cbar_fmt, sensors=sensors, scalings=scalings, units=units,
-            scaling_time=1, time_format=name_format, size=size,
+            time_unit='s', time_format=name_format, size=size,
             show_names=show_names, title=title, mask_params=mask_params,
             mask=mask, outlines=outlines, contours=contours,
             image_interp=image_interp, show=show, average=average,
@@ -680,12 +681,13 @@ class SPoC(CSP):
     ----------
     n_components : int
         The number of components to decompose M/EEG signals.
-    reg : float | str | None, defaults to None
-        if not None, allow regularization for covariance estimation
-        if float, shrinkage covariance is used (0 <= shrinkage <= 1).
-        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
-        or Oracle Approximating Shrinkage ('oas').
-    log : None | bool, defaults to None
+    reg : float | str | None (default None)
+        If not None (same as ``'empirical'``, default), allow
+        regularization for covariance estimation.
+        If float, shrinkage is used (0 <= shrinkage <= 1).
+        For str options, ``reg`` will be passed to ``method`` to
+        :func:`mne.compute_covariance`.
+    log : None | bool (default None)
         If transform_into == 'average_power' and log is None or True, then
         applies a log transform to standardize the features, else the features
         are z-scored. If transform_into == 'csp_space', then log must be None.
@@ -693,6 +695,10 @@ class SPoC(CSP):
         If 'average_power' then self.transform will return the average power of
         each spatial filter. If 'csp_space' self.transform will return the data
         in CSP space. Defaults to 'average_power'.
+    cov_method_params : dict | None
+        Parameters to pass to :func:`mne.compute_covariance`.
+
+        .. versionadded:: 0.16
 
     Attributes
     ----------
@@ -718,11 +724,12 @@ class SPoC(CSP):
     """
 
     def __init__(self, n_components=4, reg=None, log=None,
-                 transform_into='average_power'):
+                 transform_into='average_power', cov_method_params=None):
         """Init of SPoC."""
         super(SPoC, self).__init__(n_components=n_components, reg=reg, log=log,
                                    cov_est="epoch", norm_trace=False,
-                                   transform_into=transform_into)
+                                   transform_into=transform_into,
+                                   cov_method_params=cov_method_params)
         # Covariance estimation have to be done on the single epoch level,
         # unlike CSP where covariance estimation can also be achieved through
         # concatenation of all epochs from the same class.
@@ -764,7 +771,8 @@ class SPoC(CSP):
         # Estimate single trial covariance
         covs = np.empty((n_epochs, n_channels, n_channels))
         for ii, epoch in enumerate(X):
-            covs[ii] = _regularized_covariance(epoch, reg=self.reg)
+            covs[ii] = _regularized_covariance(
+                epoch, reg=self.reg, method_params=self.cov_method_params)
 
         C = covs.mean(0)
         Cz = np.mean(covs * target[:, np.newaxis, np.newaxis], axis=0)

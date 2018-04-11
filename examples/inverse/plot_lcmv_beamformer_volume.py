@@ -23,27 +23,32 @@ from nilearn.image import index_img
 
 print(__doc__)
 
+# sphinx_gallery_thumbnail_number = 3
+
+
+###############################################################################
+# Data preprocessing:
+
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
 
-###############################################################################
 # Get epochs
-event_id, tmin, tmax = 1, -0.2, 0.5
+event_id, tmin, tmax = [1, 2], -0.2, 0.5
 
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 events = mne.read_events(event_fname)
 
-# Set up pick list: EEG + MEG - bad channels (modify to your needs)
-left_temporal_channels = mne.read_selection('Left-temporal')
+# Set up pick list: gradiometers and magnetometers, excluding bad channels
 picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
-                       exclude='bads', selection=left_temporal_channels)
+                       exclude='bads')
 
 # Pick the channels of interest
 raw.pick_channels([raw.ch_names[pick] for pick in picks])
+
 # Re-normalize our empty-room projectors, so they are fine after subselection
 raw.info.normalize_proj()
 
@@ -54,12 +59,20 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                     reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
 evoked = epochs.average()
 
-forward = mne.read_forward_solution(fname_fwd)
+# Visualize sensor space data
+evoked.plot_joint(ts_args=dict(time_unit='s'),
+                  topomap_args=dict(time_unit='s'))
+
+###############################################################################
+# Compute covariance matrices, fit and apply  spatial filter.
 
 # Read regularized noise covariance and compute regularized data covariance
 noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk')
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
                                   method='shrunk')
+
+# Read forward model
+forward = mne.read_forward_solution(fname_fwd)
 
 # Compute weights of free orientation (vector) beamformer with weight
 # normalization (neural activity index, NAI). Providing a noise covariance
@@ -73,11 +86,11 @@ filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
                     noise_cov=noise_cov, pick_ori='max-power',
                     weight_norm='nai')
 
-# Apply this spatial filter to the evoked data. The output of these two steps
-# is equivalent to calling lcmv() and enables the application of the spatial
-# filter to separate data sets, e.g. when using a common spatial filter to
-# compare conditions.
+# Apply this spatial filter to the evoked data.
 stc = apply_lcmv(evoked, filters, max_ori_out='signed')
+
+###############################################################################
+# Plot source space activity:
 
 # take absolute values for plotting
 stc.data[:, :] = np.abs(stc.data)
@@ -94,12 +107,16 @@ img = mne.save_stc_as_volume('lcmv_inverse.nii.gz', stc,
 t1_fname = data_path + '/subjects/sample/mri/T1.mgz'
 
 # Plotting with nilearn ######################################################
-plot_stat_map(index_img(img, 61), t1_fname, threshold=1.35,
-              title='LCMV (t=%.1f s.)' % stc.times[61])
+# Based on the visualization of the sensor space data (gradiometers), plot
+# activity at 88 ms
+idx = stc.time_as_index(0.088)
+plot_stat_map(index_img(img, idx), t1_fname, threshold=0.45,
+              title='LCMV (t=%.3f s.)' % stc.times[idx])
 
-# plot source time courses with the maximum peak amplitudes
+# plot source time courses with the maximum peak amplitudes at 88 ms
 plt.figure()
-plt.plot(stc.times, stc.data[np.argsort(np.max(stc.data, axis=1))[-40:]].T)
+plt.plot(stc.times, stc.data[np.argsort(np.max(stc.data[:, idx],
+                                               axis=1))[-40:]].T)
 plt.xlabel('Time (ms)')
 plt.ylabel('LCMV value')
 plt.show()

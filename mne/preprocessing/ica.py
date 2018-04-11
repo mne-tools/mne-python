@@ -8,6 +8,7 @@ from inspect import isfunction
 from collections import namedtuple
 from copy import deepcopy
 from numbers import Integral
+from time import time
 
 import os
 import json
@@ -47,7 +48,8 @@ from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
                      compute_corr, _get_inst_data, _ensure_int,
-                     copy_function_doc_to_method_doc, _pl, warn)
+                     copy_function_doc_to_method_doc, _pl, warn,
+                     _check_preload)
 
 from ..fixes import _get_args
 from ..filter import filter_data
@@ -131,11 +133,16 @@ class ICA(ContainsMixin):
         >> ica.fit(raw)
         >> raw.info['projs'] = projs
 
-    .. note:: Methods implemented are FastICA (default), Infomax and
-              Extended-Infomax. Infomax can be quite sensitive to differences
-              in floating point arithmetic due to exponential non-linearity.
-              Extended-Infomax seems to be more stable in this respect
-              enhancing reproducibility and stability of results.
+    .. note:: Methods implemented are FastICA (default), Infomax,
+              Extended-Infomax, and Picard. Infomax can be quite sensitive to
+              differences in floating point arithmetic. Extended-Infomax seems
+              to be more stable in this respect enhancing reproducibility and
+              stability of results.
+              The stopping criteria of FastICA, Infomax, Extended
+              Infomax and Picard differ, making it hard to compare different
+              tolerance levels, but a rule of thumb is
+              `tol_fastica = tol_picard ** 2`. Reducing the tolerance speeds up
+              estimation but the consistency of the obtained results decreases.
 
     .. warning:: ICA is sensitive to low-frequency drifts and therefore
                  requires the data to be high-pass filtered prior to fitting.
@@ -174,14 +181,15 @@ class ICA(ContainsMixin):
         components with a cumulative explained variance below
         `n_pca_components`.
     noise_cov : None | instance of mne.cov.Covariance
-        Noise covariance used for whitening. If None, channels are just
-        z-scored.
+        Noise covariance used for pre-whitening. If None, channels are scaled
+        to unit variance prior to whitening.
     random_state : None | int | instance of np.random.RandomState
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
         fix the seed to have reproducible results. Defaults to None.
-    method : {'fastica', 'infomax', 'extended-infomax'}
-        The ICA method to use. Defaults to 'fastica'.
+    method : {'fastica', 'infomax', 'extended-infomax', 'picard'}
+        The ICA method to use. Defaults to 'fastica'. For reference, see [1]_,
+        [2]_, [3]_ and [4]_.
     fit_params : dict | None.
         Additional parameters passed to the ICA estimator chosen by `method`.
     max_iter : int, optional
@@ -232,6 +240,25 @@ class ICA(ContainsMixin):
         A dictionary of independent component indices, grouped by types of
         independent components. This attribute is set by some of the artifact
         detection functions.
+
+    References
+    ----------
+    .. [1] Hyvarinen, A., 1999. Fast and robust fixed-point algorithms for
+           independent component analysis. IEEE transactions on Neural
+           Networks, 10(3), pp.626-634.
+
+    .. [2] Bell, A.J., Sejnowski, T.J., 1995. An information-maximization
+           approach to blind separation and blind deconvolution. Neural
+           computation, 7(6), pp.1129-1159.
+
+    .. [3] Lee, T.W., Girolami, M., Sejnowski, T.J., 1999. Independent
+           component analysis using an extended infomax algorithm for mixed
+           subgaussian and supergaussian sources. Neural computation, 11(2),
+           pp.417-441.
+
+    .. [4] Ablin, P., Cardoso, J.F., Gramfort, A., 2017. Faster Independent
+           Component Analysis by preconditioning with Hessian approximations.
+           arXiv:1706.08171
     """
 
     @verbose
@@ -239,12 +266,12 @@ class ICA(ContainsMixin):
                  n_pca_components=None, noise_cov=None, random_state=None,
                  method='fastica', fit_params=None, max_iter=200,
                  verbose=None):  # noqa: D102
-        methods = ('fastica', 'infomax', 'extended-infomax')
+        methods = ('fastica', 'infomax', 'extended-infomax', 'picard')
         if method not in methods:
             raise ValueError('`method` must be "%s". You passed: "%s"' %
                              ('" or "'.join(methods), method))
-        if not check_version('sklearn', '0.12'):
-            raise RuntimeError('the scikit-learn package (version >= 0.12)'
+        if not check_version('sklearn', '0.15'):
+            raise RuntimeError('the scikit-learn package (version >= 0.15) '
                                'is required for ICA')
 
         self.noise_cov = noise_cov
@@ -283,6 +310,10 @@ class ICA(ContainsMixin):
             fit_params.update({'extended': False})
         elif method == 'extended-infomax':
             fit_params.update({'extended': True})
+        elif method == 'picard':
+            update = {'ortho': True, 'fun': 'tanh', 'tol': 1e-5}
+            fit_params.update(dict((k, v) for k, v in update.items() if k
+                              not in fit_params))
         if 'max_iter' not in fit_params:
             fit_params['max_iter'] = max_iter
         self.max_iter = max_iter
@@ -385,6 +416,7 @@ class ICA(ContainsMixin):
         """
         if isinstance(inst, (BaseRaw, BaseEpochs)):
             _check_for_unsupported_ica_channels(picks, inst.info)
+            t_start = time()
             if isinstance(inst, BaseRaw):
                 self._fit_raw(inst, picks, start, stop, decim, reject, flat,
                               tstep, reject_by_annotation, verbose)
@@ -397,7 +429,8 @@ class ICA(ContainsMixin):
         var = _ica_explained_variance(self, inst)
         var_ord = var.argsort()[::-1]
         _sort_components(self, var_ord, copy=False)
-
+        t_stop = time()
+        logger.info("Fitting ICA took {:.1f}s.".format(t_stop - t_start))
         return self
 
     def _reset(self):
@@ -423,12 +456,12 @@ class ICA(ContainsMixin):
             picks = _pick_data_channels(raw.info, exclude='bads',
                                         with_ref_meg=False)
 
-        logger.info('Fitting ICA to data using %i channels. \n'
-                    'Please be patient, this may take some time' % len(picks))
+        logger.info('Fitting ICA to data using %i channels '
+                    '(please be patient, this may take a while)' % len(picks))
 
         if self.max_pca_components is None:
             self.max_pca_components = len(picks)
-            logger.info('Inferring max_pca_components from picks.')
+            logger.info('Inferring max_pca_components from picks')
 
         self.info = pick_info(raw.info, picks)
         if self.info['comps']:
@@ -466,8 +499,8 @@ class ICA(ContainsMixin):
         if picks is None:
             picks = _pick_data_channels(epochs.info, exclude='bads',
                                         with_ref_meg=False)
-        logger.info('Fitting ICA to data using %i channels. \n'
-                    'Please be patient, this may take some time' % len(picks))
+        logger.info('Fitting ICA to data using %i channels '
+                    '(please be patient, this may take a while)' % len(picks))
 
         # filter out all the channels the raw wouldn't have initialized
         self.info = pick_info(epochs.info, picks)
@@ -477,7 +510,7 @@ class ICA(ContainsMixin):
 
         if self.max_pca_components is None:
             self.max_pca_components = len(picks)
-            logger.info('Inferring max_pca_components from picks.')
+            logger.info('Inferring max_pca_components from picks')
 
         # this should be a copy (picks a list of int)
         data = epochs.get_data()[:, picks]
@@ -541,32 +574,17 @@ class ICA(ContainsMixin):
         """Aux function."""
         random_state = check_random_state(self.random_state)
 
+        from sklearn.decomposition import PCA
         if not check_version('sklearn', '0.18'):
-            from sklearn.decomposition import RandomizedPCA
-            # XXX fix copy==True later. Bug in sklearn, see PR #2273
-            pca = RandomizedPCA(n_components=max_pca_components, whiten=True,
-                                copy=True, random_state=random_state)
-
+            pca = PCA(n_components=max_pca_components, whiten=True, copy=True)
         else:
-            from sklearn.decomposition import PCA
-            pca = PCA(n_components=max_pca_components, copy=True, whiten=True,
-                      svd_solver='randomized', random_state=random_state)
-
-        if isinstance(self.n_components, float):
-            # compute full feature variance before doing PCA
-            full_var = np.var(data, axis=1).sum()
+            pca = PCA(n_components=max_pca_components, whiten=True, copy=True,
+                      svd_solver='full')
 
         data = pca.fit_transform(data.T)
 
         if isinstance(self.n_components, float):
-            # compute eplained variance manually, cf. sklearn bug
-            # fixed in #2664
-            if check_version('sklearn', '0.19'):
-                explained_variance_ratio_ = pca.explained_variance_ratio_
-            else:
-                explained_variance_ratio_ = pca.explained_variance_ / full_var
-            del full_var
-            n_components_ = np.sum(explained_variance_ratio_.cumsum() <=
+            n_components_ = np.sum(pca.explained_variance_ratio_.cumsum() <=
                                    self.n_components)
             if n_components_ < 1:
                 raise RuntimeError('One PCA component captures most of the '
@@ -590,10 +608,9 @@ class ICA(ContainsMixin):
         self.pca_mean_ = pca.mean_
         self.pca_components_ = pca.components_
         self.pca_explained_variance_ = exp_var = pca.explained_variance_
-        if not check_version('sklearn', '0.18'):
-            # unwhiten pca components and put scaling in unmixing matrix later.
-            # RandomizedPCA applies the whitening to the components
-            # but not the new PCA class.
+        if not check_version('sklearn', '0.16'):
+            # sklearn < 0.16 did not apply whitening to the components, so we
+            # need to do this manually
             self.pca_components_ *= np.sqrt(exp_var[:, None])
         del pca
         # update number of components
@@ -603,19 +620,23 @@ class ICA(ContainsMixin):
             if self.n_pca_components > len(self.pca_components_):
                 self.n_pca_components = len(self.pca_components_)
 
-        # Take care of ICA
+        # take care of ICA
         if self.method == 'fastica':
-            from sklearn.decomposition import FastICA  # to avoid strong dep.
-            ica = FastICA(whiten=False,
-                          random_state=random_state, **self.fit_params)
+            from sklearn.decomposition import FastICA
+            ica = FastICA(whiten=False, random_state=random_state,
+                          **self.fit_params)
             ica.fit(data[:, sel])
-            # get unmixing and add scaling
-            self.unmixing_matrix_ = getattr(ica, 'components_',
-                                            'unmixing_matrix_')
+            self.unmixing_matrix_ = ica.components_
         elif self.method in ('infomax', 'extended-infomax'):
             self.unmixing_matrix_ = infomax(data[:, sel],
                                             random_state=random_state,
                                             **self.fit_params)
+        elif self.method == 'picard':
+            from picard import picard
+            _, W, _ = picard(data[:, sel].T, whiten=False,
+                             random_state=random_state, **self.fit_params)
+            del _
+            self.unmixing_matrix_ = W
         self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
         self.current_fit = fit_type
@@ -660,7 +681,7 @@ class ICA(ContainsMixin):
     def _transform_epochs(self, epochs, concatenate):
         """Aux method."""
         if not hasattr(self, 'mixing_matrix_'):
-            raise RuntimeError('No fit available. Please fit ICA')
+            raise RuntimeError('No fit available. Please fit ICA.')
 
         picks = pick_types(epochs.info, include=self.ch_names, exclude='bads',
                            meg=False, ref_meg=False)
@@ -685,7 +706,7 @@ class ICA(ContainsMixin):
     def _transform_evoked(self, evoked):
         """Aux method."""
         if not hasattr(self, 'mixing_matrix_'):
-            raise RuntimeError('No fit available. Please first fit ICA')
+            raise RuntimeError('No fit available. Please fit ICA.')
 
         picks = pick_types(evoked.info, include=self.ch_names, exclude='bads',
                            meg=False, ref_meg=False)
@@ -1234,8 +1255,7 @@ class ICA(ContainsMixin):
 
     def _apply_raw(self, raw, include, exclude, n_pca_components, start, stop):
         """Aux method."""
-        if not raw.preload:
-            raise ValueError('Raw data must be preloaded to apply ICA')
+        _check_preload(raw, "ica.apply")
 
         if exclude is None:
             exclude = list(set(self.exclude))
@@ -1260,8 +1280,7 @@ class ICA(ContainsMixin):
 
     def _apply_epochs(self, epochs, include, exclude, n_pca_components):
         """Aux method."""
-        if not epochs.preload:
-            raise ValueError('Epochs must be preloaded to apply ICA')
+        _check_preload(epochs, "ica.apply")
 
         picks = pick_types(epochs.info, meg=False, ref_meg=False,
                            include=self.ch_names,
@@ -1387,7 +1406,7 @@ class ICA(ContainsMixin):
 
         check_fname(fname, 'ICA', ('-ica.fif', '-ica.fif.gz'))
 
-        logger.info('Writing ica solution to %s...' % fname)
+        logger.info('Writing ICA solution to %s...' % fname)
         fid = start_file(fname)
 
         try:
@@ -1551,7 +1570,7 @@ class ICA(ContainsMixin):
         Returns
         -------
         self : instance of ICA
-            The ica object with the detected artifact indices marked for
+            The ICA object with the detected artifact indices marked for
             exclusion
         """
         logger.info('    Searching for artifacts...')
@@ -1885,7 +1904,7 @@ def _write_ica(fid, ica):
 
 
 @verbose
-def read_ica(fname):
+def read_ica(fname, verbose=None):
     """Restore ICA solution from fif file.
 
     Parameters
@@ -1893,6 +1912,9 @@ def read_ica(fname):
     fname : str
         Absolute path to fif file containing ICA matrices.
         The file name should end with -ica.fif or -ica.fif.gz.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2050,12 +2072,13 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
 
 @verbose
 def run_ica(raw, n_components, max_pca_components=100,
-            n_pca_components=64, noise_cov=None, random_state=None,
-            picks=None, start=None, stop=None, start_find=None,
-            stop_find=None, ecg_ch=None, ecg_score_func='pearsonr',
-            ecg_criterion=0.1, eog_ch=None, eog_score_func='pearsonr',
-            eog_criterion=0.1, skew_criterion=-1, kurt_criterion=-1,
-            var_criterion=0, add_nodes=None, verbose=None):
+            n_pca_components=64, noise_cov=None,
+            random_state=None, picks=None, start=None, stop=None,
+            start_find=None, stop_find=None, ecg_ch=None,
+            ecg_score_func='pearsonr', ecg_criterion=0.1, eog_ch=None,
+            eog_score_func='pearsonr', eog_criterion=0.1, skew_criterion=-1,
+            kurt_criterion=-1, var_criterion=0, add_nodes=None, verbose=None,
+            method='fastica'):
     """Run ICA decomposition on raw data and identify artifact sources.
 
     This function implements an automated artifact removal work flow.
@@ -2180,15 +2203,17 @@ def run_ica(raw, n_components, max_pca_components=100,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+    method : {'fastica', 'picard'}
+        The ICA method to use. Defaults to 'fastica'.
 
     Returns
     -------
     ica : instance of ICA
-        The ica object with detected artifact sources marked for exclusion
+        The ICA object with detected artifact sources marked for exclusion.
     """
     ica = ICA(n_components=n_components, max_pca_components=max_pca_components,
-              n_pca_components=n_pca_components, noise_cov=noise_cov,
-              random_state=random_state, verbose=verbose)
+              n_pca_components=n_pca_components, method=method,
+              noise_cov=noise_cov, random_state=random_state, verbose=verbose)
 
     ica.fit(raw, start=start, stop=stop, picks=picks)
     logger.info('%s' % ica)

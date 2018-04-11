@@ -11,7 +11,7 @@ References
 .. [1] J.C. Mosher and R.M. Leahy. 1999. Source localization using recursively
        applied and projected (RAP) MUSIC. Trans. Sig. Proc. 47, 2
        (February 1999), 332-340.
-       DOI=10.1109/78.740118 http://dx.doi.org/10.1109/78.740118
+       DOI=10.1109/78.740118 https://doi.org/10.1109/78.740118
 """
 
 # Author: Yousra Bekhti <yousra.bekhti@gmail.com>
@@ -53,5 +53,7 @@ plot_dipole_locations(dipoles, trans, 'sample', subjects_dir=subjects_dir)
 plot_dipole_amplitudes(dipoles)
 
 # Plot the evoked data and the residual.
-evoked.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]))
-residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]))
+evoked.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]),
+            time_unit='s')
+residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]),
+              time_unit='s')

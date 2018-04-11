@@ -28,6 +28,7 @@ ctf_fname_continuous = op.join(ctf_dir, 'testdata_ctf.ds')
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
+cov_fname = op.join(base_dir, 'test-cov.fif')
 
 
 def _get_raw():
@@ -86,7 +87,7 @@ def _annotation_helper(raw):
     assert_equal(len(raw.annotations.onset), n_anns + 1)
     assert_equal(len(raw.annotations.duration), n_anns + 1)
     assert_equal(len(raw.annotations.description), n_anns + 1)
-    assert_equal(raw.annotations.description[n_anns], 'BAD test')
+    assert_equal(raw.annotations.description[n_anns], 'BAD_ test')
 
     # draw another annotation merging the two
     _fake_click(fig, data_ax, [5.5, 1.], xform='data', button=1, kind='press')
@@ -196,6 +197,15 @@ def test_plot_raw():
 
 
 @testing.requires_testing_data
+def test_plot_raw_white():
+    """Test plotting whitened raw data."""
+    import matplotlib.pyplot as plt
+    raw = read_raw_fif(raw_fname).crop(0, 1).load_data()
+    raw.plot(noise_cov=cov_fname)
+    plt.close('all')
+
+
+@testing.requires_testing_data
 def test_plot_ref_meg():
     """Test plotting ref_meg."""
     import matplotlib.pyplot as plt
@@ -274,6 +284,18 @@ def test_plot_raw_psd():
                                               ('power', 'amplitude')):
             raw.plot_psd(average=True, dB=dB, estimate=estimate)
     assert_equal(len(w), 4)
+    # test reject_by_annotation
+    raw = _get_raw()
+    raw.annotations = Annotations([1, 5], [3, 3], ['test', 'test'])
+    raw.plot_psd(reject_by_annotation=True)
+    raw.plot_psd(reject_by_annotation=False)
+
+    # gh-5046
+    raw = read_raw_fif(raw_fname, preload=True).crop(0, 1)
+    picks = pick_types(raw.info)
+    raw.plot_psd(picks=picks, average=False)
+    raw.plot_psd(picks=picks, average=True)
+    plt.close('all')
 
 
 def test_plot_sensors():

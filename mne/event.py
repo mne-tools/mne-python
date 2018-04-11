@@ -243,14 +243,14 @@ def read_events(filename, include=None, exclude=None, mask=None,
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         fid, tree, _ = fiff_open(filename)
-        try:
-            event_list, _ = _read_events_fif(fid, tree)
-        finally:
-            fid.close()
+        with fid as f:
+            event_list, _ = _read_events_fif(f, tree)
+        # hack fix for windows to avoid bincount problems
+        event_list = event_list.astype(int)
     else:
         #  Have to read this in as float64 then convert because old style
         #  eve/lst files had a second float column that will raise errors
-        lines = np.loadtxt(filename, dtype=np.float64).astype(np.uint32)
+        lines = np.loadtxt(filename, dtype=np.float64).astype(int)
         if len(lines) == 0:
             raise ValueError('No text lines found')
 
@@ -420,9 +420,10 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
                             pad_stop=pad_stop, merge=merge)
 
 
+@verbose
 def _find_events(data, first_samp, verbose=None, output='onset',
                  consecutive='increasing', min_samples=0, mask=None,
-                 uint_cast=False, mask_type='and'):
+                 uint_cast=False, mask_type='and', initial_event=False):
     """Help find events."""
     assert data.shape[0] == 1  # data should be only a row vector
 
@@ -444,6 +445,15 @@ def _find_events(data, first_samp, verbose=None, output='onset',
         data = np.abs(data)  # make sure trig channel is positive
 
     events = _find_stim_steps(data, first_samp, pad_stop=0, merge=merge)
+    initial_value = data[0, 0]
+    if initial_value != 0:
+        if initial_event:
+            events = np.insert(events, 0, [0, 0, initial_value], axis=0)
+        else:
+            logger.info('Trigger channel has a non-zero initial value of {} '
+                        '(consider using initial_event=True to detect this '
+                        'event)'.format(initial_value))
+
     events = _mask_trigs(events, mask, mask_type)
 
     # Determine event onsets and offsets
@@ -488,7 +498,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
         raise ValueError("Invalid output parameter %r" % output)
 
     logger.info("%s events found" % len(events))
-    logger.info("Events id: %s" % np.unique(events[:, 2]))
+    logger.info("Event IDs: %s" % np.unique(events[:, 2]))
 
     return events
 
@@ -509,7 +519,7 @@ def _find_unique_events(events):
 def find_events(raw, stim_channel=None, output='onset',
                 consecutive='increasing', min_duration=0,
                 shortest_event=2, mask=None, uint_cast=False,
-                mask_type='and', verbose=None):
+                mask_type='and', initial_event=False, verbose=None):
     """Find events from raw file.
 
     See :ref:`tut_epoching_and_averaging` as well as :ref:`ex_read_events`
@@ -559,6 +569,12 @@ def find_events(raw, stim_channel=None, output='onset',
         Choose 'and' (default) for MNE-C masking behavior.
 
         .. versionadded:: 0.13
+    initial_event : bool
+        If True (default False), an event is created if the stim channel has a
+        value different from 0 as its first sample. This is useful if an event
+        at t=0s is present.
+
+        .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -675,7 +691,7 @@ def find_events(raw, stim_channel=None, output='onset',
                               verbose=verbose, output=output,
                               consecutive=consecutive, min_samples=min_samples,
                               mask=mask, uint_cast=uint_cast,
-                              mask_type=mask_type)
+                              mask_type=mask_type, initial_event=initial_event)
         # add safety check for spurious events (for ex. from neuromag syst.) by
         # checking the number of low sample events
         n_short_events = np.sum(np.diff(events[:, 0]) < shortest_event)
@@ -808,7 +824,7 @@ def shift_time_events(events, ids, tshift, sfreq):
     return events
 
 
-def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
+def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
                              first_samp=True):
     """Make a set of events separated by a fixed duration.
 
@@ -817,7 +833,7 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
     raw : instance of Raw
         A raw object to use the data from.
     id : int
-        The id to use.
+        The id to use (default 1).
     start : float
         Time of first event.
     stop : float | None
@@ -846,9 +862,9 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
     if not isinstance(duration, (int, float)):
         raise ValueError('duration must be an integer of a float, '
                          'got %s instead.' % (type(duration)))
-    start = raw.time_as_index(start)[0]
+    start = raw.time_as_index(start, use_rounding=True)[0]
     if stop is not None:
-        stop = raw.time_as_index(stop)[0]
+        stop = raw.time_as_index(stop, use_rounding=True)[0]
     else:
         stop = raw.last_samp + 1
     if first_samp:
@@ -857,7 +873,7 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
     else:
         stop = min([stop, len(raw.times)])
     # Make sure we don't go out the end of the file:
-    stop -= int(np.ceil(raw.info['sfreq'] * duration))
+    stop -= int(np.round(raw.info['sfreq'] * duration))
     # This should be inclusive due to how we generally use start and stop...
     ts = np.arange(start, stop + 1, raw.info['sfreq'] * duration).astype(int)
     n_events = len(ts)

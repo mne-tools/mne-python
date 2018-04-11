@@ -21,7 +21,8 @@ from ..base import (BaseRaw, _RawShell, _check_raw_compatibility,
                     _check_maxshield)
 from ..utils import _mult_cal_one
 
-from ...annotations import Annotations, _combine_annotations, _sync_onset
+from ...annotations import (Annotations, _combine_annotations, _sync_onset,
+                            _read_annotations)
 
 from ...event import AcqParserFIF
 from ...utils import check_fname, logger, verbose, warn
@@ -61,10 +62,15 @@ class Raw(BaseRaw):
         List of channels' names.
     n_times : int
         Total number of time points in the raw file.
+    times :  ndarray
+        Time vector in seconds. Starts from 0, independently of `first_samp`
+        value. Time interval between consecutive time samples is equal to the
+        inverse of the sampling frequency.
     preload : bool
         Indicates whether raw data are in memory.
     verbose : bool, str, int, or None
         See above.
+
     """
 
     @verbose
@@ -100,17 +106,14 @@ class Raw(BaseRaw):
         # combine annotations
         BaseRaw.annotations.fset(self, raws[0].annotations, False)
         if any([r.annotations for r in raws[1:]]):
-            first_samps = self._first_samps
-            last_samps = self._last_samps
+            n_samples = np.sum(self._last_samps - self._first_samps + 1)
             for r in raws:
-                annotations = _combine_annotations((self.annotations,
-                                                    r.annotations),
-                                                   last_samps, first_samps,
-                                                   r.info['sfreq'],
-                                                   self.info['meas_date'])
+                annotations = _combine_annotations(
+                    self.annotations, r.annotations,
+                    n_samples, self.first_samp, r.first_samp,
+                    r.info['sfreq'], self.info['meas_date'])
                 BaseRaw.annotations.fset(self, annotations, False)
-                first_samps = np.r_[first_samps, r.first_samp]
-                last_samps = np.r_[last_samps, r.last_samp]
+                n_samples += r.last_samp - r.first_samp + 1
 
         # Add annotations for in-data skips
         offsets = [0] + self._raw_lengths[:-1]
@@ -121,10 +124,11 @@ class Raw(BaseRaw):
                     if self.annotations is None:
                         self.annotations = Annotations((), (), ())
                     start = skip['first'] - first_samp + offset
-                    stop = skip['last'] - first_samp - 1 + offset
+                    stop = skip['last'] - first_samp + offset
                     self.annotations.append(
                         _sync_onset(self, start / self.info['sfreq']),
-                        (stop - start) / self.info['sfreq'], 'BAD_ACQ_SKIP')
+                        (stop - start + 1) / self.info['sfreq'],
+                        'BAD_ACQ_SKIP')
         if preload:
             self._preload_data(preload)
         else:
@@ -149,31 +153,7 @@ class Raw(BaseRaw):
             #   Read the measurement info
 
             info, meas = read_meas_info(fid, tree, clean_bads=True)
-
-            annotations = None
-            annot_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ANNOTATIONS)
-            if len(annot_data) > 0:
-                annot_data = annot_data[0]
-                for k in range(annot_data['nent']):
-                    kind = annot_data['directory'][k].kind
-                    pos = annot_data['directory'][k].pos
-                    orig_time = None
-                    tag = read_tag(fid, pos)
-                    if kind == FIFF.FIFF_MNE_BASELINE_MIN:
-                        onset = tag.data
-                        if onset is None:
-                            break  # bug in 0.14 wrote empty annotations
-                    elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
-                        duration = tag.data - onset
-                    elif kind == FIFF.FIFF_COMMENT:
-                        description = tag.data.split(':')
-                        description = [d.replace(';', ':') for d in
-                                       description]
-                    elif kind == FIFF.FIFF_MEAS_DATE:
-                        orig_time = float(tag.data)
-                if onset is not None:
-                    annotations = Annotations(onset, duration, description,
-                                              orig_time)
+            annotations = _read_annotations(fid, tree)
 
             #   Locate the data of interest
             raw_node = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)

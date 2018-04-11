@@ -8,7 +8,7 @@ import warnings
 from nose.tools import assert_raises, assert_true
 import pytest
 import numpy as np
-from numpy.testing import (assert_equal, assert_allclose)
+from numpy.testing import assert_equal, assert_allclose, assert_array_equal
 
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_kit, read_raw_bti, read_info
@@ -191,6 +191,7 @@ def test_make_forward_solution_kit():
 
     # CTF with compensation changed in python
     ctf_raw = read_raw_fif(fname_ctf_raw)
+    ctf_raw.info['bads'] = ['MRO24-2908']  # test that it works with some bads
     ctf_raw.apply_gradient_compensation(2)
 
     fwd_py = make_forward_solution(ctf_raw.info, fname_trans, src,
@@ -243,6 +244,17 @@ def test_make_forward_solution_sphere():
         assert_allclose(np.corrcoef(fwd_['sol']['data'].ravel(),
                                     fwd_py_['sol']['data'].ravel())[0, 1],
                         1.0, rtol=1e-3)
+    # Number of layers in the sphere model doesn't matter for MEG
+    # (as long as no sources are omitted due to distance)
+    assert len(sphere['layers']) == 4
+    fwd = make_forward_solution(fname_raw, fname_trans, src, sphere,
+                                meg=True, eeg=False)
+    sphere_1 = make_sphere_model(head_radius=None)
+    assert len(sphere_1['layers']) == 0
+    assert_array_equal(sphere['r0'], sphere_1['r0'])
+    fwd_1 = make_forward_solution(fname_raw, fname_trans, src, sphere,
+                                  meg=True, eeg=False)
+    _compare_forwards(fwd, fwd_1, 306, 108, meg_rtol=1e-12, meg_atol=1e-12)
 
 
 @pytest.mark.slowtest

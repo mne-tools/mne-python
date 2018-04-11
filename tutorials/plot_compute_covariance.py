@@ -1,10 +1,10 @@
 """
 .. _tut_compute_covariance:
 
-Computing covariance matrix
-===========================
+Computing a covariance matrix
+=============================
 
-Many methods in MNE, including e.g. source estimation and some classification
+Many methods in MNE, including source estimation and some classification
 algorithms, require covariance estimations from the recordings.
 In this tutorial we cover the basics of sensor covariance computations and
 construct a noise covariance matrix that can be used when computing the
@@ -70,7 +70,8 @@ noise_cov = mne.compute_raw_covariance(
 # just to be sure, we define it here manually.
 events = mne.find_events(raw)
 epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.5,
-                    baseline=(-0.2, 0.0), decim=3)  # we'll decimate for speed
+                    baseline=(-0.2, 0.0), decim=3,  # we'll decimate for speed
+                    verbose='error')  # and ignore the warning about aliasing
 
 ###############################################################################
 # Note that this method also attenuates any activity in your
@@ -101,8 +102,7 @@ noise_cov_baseline.plot(epochs.info, proj=True)
 # described in [1]_. For this the 'auto' option can be used. With this
 # option cross-validation will be used to learn the optimal regularization:
 
-noise_cov_reg = mne.compute_covariance(epochs, tmax=0.,
-                                       method='auto')
+noise_cov_reg = mne.compute_covariance(epochs, tmax=0., method='auto')
 
 ###############################################################################
 # This procedure evaluates the noise covariance quantitatively by how well it
@@ -119,8 +119,7 @@ noise_cov_reg = mne.compute_covariance(epochs, tmax=0.,
 # of freedom, e.g. ``ddof=3`` with 2 active SSP vectors):
 
 evoked = epochs.average()
-evoked.plot_white(noise_cov_reg)
-
+evoked.plot_white(noise_cov_reg, time_unit='s')
 
 ###############################################################################
 # This plot displays both, the whitened evoked signals for each channels and
@@ -141,12 +140,13 @@ evoked.plot_white(noise_cov_reg)
 # introductory materials can be found `here <https://goo.gl/ElWrxe>`_.
 #
 # For expert use cases or debugging the alternative estimators can also be
-# compared:
+# compared (see
+# :ref:`sphx_glr_auto_examples_visualization_plot_evoked_whitening.py`) and
+# :ref:`sphx_glr_auto_examples_inverse_plot_covariance_whitening_dspm.py`):
 
 noise_covs = mne.compute_covariance(
     epochs, tmax=0., method=('empirical', 'shrunk'), return_estimators=True)
-evoked = epochs.average()
-evoked.plot_white(noise_covs)
+evoked.plot_white(noise_covs, time_unit='s')
 
 
 ##############################################################################
@@ -158,12 +158,12 @@ evoked.plot_white(noise_covs)
 # Finally, let's have a look at the difference between empty room and
 # event related covariance.
 
-evoked_meg = evoked.pick_types(meg=True, eeg=False)
+evoked_meg = evoked.copy().pick_types(meg=True, eeg=False)
 noise_cov_meg = mne.pick_channels_cov(noise_cov_baseline, evoked_meg.ch_names)
 noise_cov['method'] = 'empty_room'
 noise_cov_meg['method'] = 'baseline'
 
-evoked_meg.plot_white([noise_cov_meg, noise_cov])
+evoked_meg.plot_white([noise_cov_meg, noise_cov], time_unit='s')
 
 
 ##############################################################################

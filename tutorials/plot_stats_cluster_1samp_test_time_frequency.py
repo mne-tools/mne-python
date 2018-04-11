@@ -121,5 +121,5 @@ plt.ylabel('Frequency (Hz)')
 plt.title('Induced power (%s)' % ch_name)
 
 ax2 = plt.subplot(2, 1, 2)
-evoked.plot(axes=[ax2])
+evoked.plot(axes=[ax2], time_unit='s')
 plt.show()

@@ -27,6 +27,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_julian, write_float_matrix)
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import _to_const
+from ..transforms import invert_transform
 from ..utils import logger, verbose, warn, object_diff
 from .. import __version__
 from ..externals.six import b, BytesIO, string_types, text_type
@@ -142,6 +143,8 @@ class Info(dict):
         See Notes for details.
     line_freq : float | None
         Frequency of the power line in Hertz.
+    gantry_angle : float | None
+        Tilt angle of the gantry in degrees.
     lowpass : float | None
         Lowpass corner frequency in Hertz.
     meas_date : list of int
@@ -501,21 +504,25 @@ class Info(dict):
 
 def _simplify_info(info):
     """Return a simplified info structure to speed up picking."""
-    chs = [{key: ch[key] for key in ('ch_name', 'kind', 'unit', 'coil_type',
-                                     'loc')}
+    chs = [{key: ch[key]
+            for key in ('ch_name', 'kind', 'unit', 'coil_type', 'loc')}
            for ch in info['chs']]
     sub_info = Info(chs=chs, bads=info['bads'], comps=info['comps'])
     sub_info._update_redundant()
     return sub_info
 
 
-def read_fiducials(fname):
+@verbose
+def read_fiducials(fname, verbose=None):
     """Read fiducials from a fiff file.
 
     Parameters
     ----------
     fname : str
         The filename to read.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -548,7 +555,9 @@ def read_fiducials(fname):
     return pts, coord_frame
 
 
-def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN):
+@verbose
+def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                    verbose=None):
     """Write fiducials to a fiff file.
 
     Parameters
@@ -561,6 +570,9 @@ def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN):
     coord_frame : int
         The coordinate frame of the points (one of
         mne.io.constants.FIFF.FIFFV_COORD_...).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     write_dig(fname, pts, coord_frame)
 
@@ -896,6 +908,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     proj_id = None
     proj_name = None
     line_freq = None
+    gantry_angle = None
     custom_ref_applied = False
     xplotter_layout = None
     kit_system_id = None
@@ -913,10 +926,12 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             chs.append(tag.data)
         elif kind == FIFF.FIFF_LOWPASS:
             tag = read_tag(fid, pos)
-            lowpass = float(tag.data)
+            if not np.isnan(tag.data):
+                lowpass = float(tag.data)
         elif kind == FIFF.FIFF_HIGHPASS:
             tag = read_tag(fid, pos)
-            highpass = float(tag.data)
+            if not np.isnan(tag.data):
+                highpass = float(tag.data)
         elif kind == FIFF.FIFF_MEAS_DATE:
             tag = read_tag(fid, pos)
             meas_date = tag.data
@@ -927,6 +942,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             if cand['from'] == FIFF.FIFFV_COORD_DEVICE and \
                     cand['to'] == FIFF.FIFFV_COORD_HEAD:
                 dev_head_t = cand
+            elif cand['from'] == FIFF.FIFFV_COORD_HEAD and \
+                    cand['to'] == FIFF.FIFFV_COORD_DEVICE:
+                # this reversal can happen with BabyMEG data
+                dev_head_t = invert_transform(cand)
             elif cand['from'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD and \
                     cand['to'] == FIFF.FIFFV_COORD_HEAD:
                 ctf_head_t = cand
@@ -948,6 +967,9 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         elif kind == FIFF.FIFF_LINE_FREQ:
             tag = read_tag(fid, pos)
             line_freq = float(tag.data)
+        elif kind == FIFF.FIFF_GANTRY_ANGLE:
+            tag = read_tag(fid, pos)
+            gantry_angle = float(tag.data)
         elif kind in [FIFF.FIFF_MNE_CUSTOM_REF, 236]:  # 236 used before v0.11
             tag = read_tag(fid, pos)
             custom_ref_applied = bool(tag.data)
@@ -1147,6 +1169,12 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             elif kind == FIFF.FIFF_SUBJ_HAND:
                 tag = read_tag(fid, pos)
                 si['hand'] = int(tag.data)
+            elif kind == FIFF.FIFF_SUBJ_WEIGHT:
+                tag = read_tag(fid, pos)
+                si['weight'] = tag.data
+            elif kind == FIFF.FIFF_SUBJ_HEIGHT:
+                tag = read_tag(fid, pos)
+                si['height'] = tag.data
     info['subject_info'] = si
 
     hpi_subsystem = dir_tree_find(meas_info, FIFF.FIFFB_HPI_SUBSYSTEM)
@@ -1208,6 +1236,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['highpass'] = highpass if highpass is not None else 0.
     info['lowpass'] = lowpass if lowpass is not None else info['sfreq'] / 2.0
     info['line_freq'] = line_freq
+    info['gantry_angle'] = gantry_angle
 
     #   Add the channel information and make a list of channel names
     #   for convenience
@@ -1388,6 +1417,8 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_float(fid, FIFF.FIFF_HIGHPASS, info['highpass'])
     if info.get('line_freq') is not None:
         write_float(fid, FIFF.FIFF_LINE_FREQ, info['line_freq'])
+    if info.get('gantry_angle') is not None:
+        write_float(fid, FIFF.FIFF_GANTRY_ANGLE, info['gantry_angle'])
     if data_type is not None:
         write_int(fid, FIFF.FIFF_DATA_PACK, data_type)
     if info.get('custom_ref_applied'):
@@ -1425,6 +1456,10 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
             write_int(fid, FIFF.FIFF_SUBJ_SEX, si['sex'])
         if si.get('hand') is not None:
             write_int(fid, FIFF.FIFF_SUBJ_HAND, si['hand'])
+        if si.get('weight') is not None:
+            write_float(fid, FIFF.FIFF_SUBJ_WEIGHT, si['weight'])
+        if si.get('height') is not None:
+            write_float(fid, FIFF.FIFF_SUBJ_HEIGHT, si['height'])
         end_block(fid, FIFF.FIFFB_SUBJECT)
 
     if info.get('hpi_subsystem') is not None:
@@ -1638,7 +1673,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
                     'experimenter', 'file_id', 'highpass',
                     'hpi_results', 'hpi_meas', 'hpi_subsystem', 'events',
                     'line_freq', 'lowpass', 'meas_date', 'meas_id',
-                    'proj_id', 'proj_name', 'projs', 'sfreq',
+                    'proj_id', 'proj_name', 'projs', 'sfreq', 'gantry_angle',
                     'subject_info', 'sfreq', 'xplotter_layout', 'proc_history']
     for k in other_fields:
         info[k] = _merge_dict_values(infos, k)
@@ -1655,7 +1690,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
     ----------
     ch_names : list of str | int
         Channel names. If an int, a list of channel names will be created
-        from :func:`range(ch_names) <range>`.
+        from ``range(ch_names)``.
     sfreq : float
         Sample rate of the data.
     ch_types : list of str | str
@@ -1714,7 +1749,6 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
                          '(%s != %s)' % (len(ch_types), nchan))
     info = _empty_info(sfreq)
     info['meas_date'] = np.array([0, 0], np.int32)
-    loc = np.concatenate((np.zeros(3), np.eye(3).ravel())).astype(np.float32)
     for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
         if not isinstance(name, string_types):
             raise TypeError('each entry in ch_names must be a string')
@@ -1724,7 +1758,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
             raise KeyError('kind must be one of %s, not %s'
                            % (list(_kind_dict.keys()), kind))
         kind = _kind_dict[kind]
-        chan_info = dict(loc=loc.copy(), unit_mul=0, range=1., cal=1.,
+        chan_info = dict(loc=np.full(12, np.nan), unit_mul=0, range=1., cal=1.,
                          kind=kind[0], coil_type=kind[1],
                          unit=kind[2], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                          ch_name=name, scanno=ci + 1, logno=ci + 1)
@@ -1756,7 +1790,7 @@ RAW_INFO_FIELDS = (
     'file_id', 'highpass', 'hpi_meas', 'hpi_results',
     'hpi_subsystem', 'kit_system_id', 'line_freq', 'lowpass', 'meas_date',
     'meas_id', 'nchan', 'proj_id', 'proj_name', 'projs', 'sfreq',
-    'subject_info', 'xplotter_layout', 'proc_history',
+    'subject_info', 'xplotter_layout', 'proc_history', 'gantry_angle',
 )
 
 
@@ -1768,7 +1802,7 @@ def _empty_info(sfreq):
         'dev_ctf_t', 'dig', 'experimenter',
         'file_id', 'highpass', 'hpi_subsystem', 'kit_system_id',
         'line_freq', 'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',
-        'subject_info', 'xplotter_layout',
+        'subject_info', 'xplotter_layout', 'gantry_angle',
     )
     _list_keys = ('bads', 'chs', 'comps', 'events', 'hpi_meas', 'hpi_results',
                   'projs', 'proc_history')

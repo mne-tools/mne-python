@@ -23,8 +23,6 @@ from numpy.random import randn
 from scipy import stats as stats
 
 import mne
-from mne import (io, spatial_tris_connectivity, compute_morph_matrix,
-                 grade_to_tris)
 from mne.epochs import equalize_epoch_counts
 from mne.stats import (spatio_temporal_cluster_1samp_test,
                        summarize_clusters_stc)
@@ -40,12 +38,13 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 subjects_dir = data_path + '/subjects'
+src_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
 
 tmin = -0.2
 tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
 
 #   Setup for reading the raw data
-raw = io.read_raw_fif(raw_fname)
+raw = mne.io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
 ###############################################################################
@@ -121,9 +120,12 @@ X[:, :, :, 1] += condition2.data[:, :, np.newaxis]
 # each subject's data separately (and you might want to use morph_data
 # instead), but here since all estimates are on 'sample' we can use one
 # morph matrix for all the heavy lifting.
-fsave_vertices = [np.arange(10242), np.arange(10242)]
-morph_mat = compute_morph_matrix('sample', 'fsaverage', sample_vertices,
-                                 fsave_vertices, 20, subjects_dir)
+
+# Read the source space we are morphing to
+src = mne.read_source_spaces(src_fname)
+fsave_vertices = [s['vertno'] for s in src]
+morph_mat = mne.compute_morph_matrix('sample', 'fsaverage', sample_vertices,
+                                     fsave_vertices, 20, subjects_dir)
 n_vertices_fsave = morph_mat.shape[0]
 
 #    We have to change the shape for the dot() to work properly
@@ -147,7 +149,7 @@ X = X[:, :, :, 0] - X[:, :, :, 1]  # make paired contrast
 # To use an algorithm optimized for spatio-temporal clustering, we
 # just pass the spatial connectivity matrix (instead of spatio-temporal)
 print('Computing connectivity.')
-connectivity = spatial_tris_connectivity(grade_to_tris(5))
+connectivity = mne.spatial_src_connectivity(src)
 
 #    Note that X needs to be a multi-dimensional array of shape
 #    samples (subjects) x time x space, so we permute dimensions
@@ -160,7 +162,7 @@ t_threshold = -stats.distributions.t.ppf(p_threshold / 2., n_subjects - 1)
 print('Clustering.')
 T_obs, clusters, cluster_p_values, H0 = clu = \
     spatio_temporal_cluster_1samp_test(X, connectivity=connectivity, n_jobs=1,
-                                       threshold=t_threshold)
+                                       threshold=t_threshold, buffer_size=None)
 #    Now select the clusters that are sig. at p < 0.05 (note that this value
 #    is multiple-comparisons corrected).
 good_cluster_inds = np.where(cluster_p_values < 0.05)[0]

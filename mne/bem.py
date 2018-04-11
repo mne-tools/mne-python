@@ -28,6 +28,7 @@ from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
                       _fast_cross_nd_sum, _get_solids)
 from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn, _pl
+from .fixes import einsum
 from .externals.six import string_types
 
 
@@ -97,9 +98,9 @@ def _lin_pot_coeff(fros, tri_rr, tri_nn, tri_area):
     l2 = np.linalg.norm(v2, axis=1)
     l3 = np.linalg.norm(v3, axis=1)
     ss = l1 * l2 * l3
-    ss += np.einsum('ij,ij,i->i', v1, v2, l3)
-    ss += np.einsum('ij,ij,i->i', v1, v3, l2)
-    ss += np.einsum('ij,ij,i->i', v2, v3, l1)
+    ss += einsum('ij,ij,i->i', v1, v2, l3)
+    ss += einsum('ij,ij,i->i', v1, v3, l2)
+    ss += einsum('ij,ij,i->i', v2, v3, l1)
     solids = np.arctan2(triples, ss)
 
     # We *could* subselect the good points from v1, v2, v3, triples, solids,
@@ -334,10 +335,10 @@ def make_bem_solution(surfs, verbose=None):
 
 def _ico_downsample(surf, dest_grade):
     """Downsample the surface if isomorphic to a subdivided icosahedron."""
-    n_tri = surf['ntri']
+    n_tri = len(surf['tris'])
     found = -1
     bad_msg = ("A surface with %d triangles cannot be isomorphic with a "
-               "subdivided icosahedron." % surf['ntri'])
+               "subdivided icosahedron." % n_tri)
     if n_tri % 20 != 0:
         raise RuntimeError(bad_msg)
     n_tri = n_tri // 20
@@ -360,8 +361,8 @@ def _ico_downsample(surf, dest_grade):
         raise RuntimeError('The source surface has a matching number of '
                            'triangles but ordering is wrong')
     logger.info('Going from %dth to %dth subdivision of an icosahedron '
-                '(n_tri: %d -> %d)' % (found, dest_grade, surf['ntri'],
-                                       dest['ntri']))
+                '(n_tri: %d -> %d)' % (found, dest_grade, len(surf['tris']),
+                                       len(dest['tris'])))
     # Find the mapping
     dest['rr'] = surf['rr'][_get_ico_map(source, dest)]
     return dest
@@ -393,7 +394,7 @@ def _order_surfaces(surfs):
     return surfs
 
 
-def _assert_complete_surface(surf):
+def _assert_complete_surface(surf, incomplete='raise'):
     """Check the sum of solid angles as seen from inside."""
     # from surface_checks.c
     tot_angle = 0.
@@ -403,10 +404,15 @@ def _assert_complete_surface(surf):
                 (_surf_name[surf['id']],
                  1000 * cm[0], 1000 * cm[1], 1000 * cm[2]))
     tot_angle = _get_solids(surf['rr'][surf['tris']], cm[np.newaxis, :])[0]
-    if np.abs(tot_angle / (2 * np.pi) - 1.0) > 1e-5:
-        raise RuntimeError('Surface %s is not complete (sum of solid angles '
-                           '= %g * 4*PI instead).' %
-                           (_surf_name[surf['id']], tot_angle))
+    prop = tot_angle / (2 * np.pi)
+    if np.abs(prop - 1.0) > 1e-5:
+        msg = ('Surface %s is not complete (sum of solid angles '
+               'yielded %g, should be 1.)'
+               % (_surf_name[surf['id']], prop))
+        if incomplete == 'raise':
+            raise RuntimeError(msg)
+        else:
+            warn(msg)
 
 
 _surf_name = {
@@ -426,10 +432,10 @@ def _assert_inside(fro, to):
                            % (_surf_name[fro['id']], _surf_name[to['id']]))
 
 
-def _check_surfaces(surfs):
+def _check_surfaces(surfs, incomplete='raise'):
     """Check that the surfaces are complete and non-intersecting."""
     for surf in surfs:
-        _assert_complete_surface(surf)
+        _assert_complete_surface(surf, incomplete=incomplete)
     # Then check the topology
     for surf_1, surf_2 in zip(surfs[:-1], surfs[1:]):
         logger.info('Checking that %s surface is inside %s surface...' %
@@ -461,7 +467,8 @@ def _check_thicknesses(surfs):
                      1000 * min_dist))
 
 
-def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True):
+def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
+                     incomplete='raise'):
     """Convert surfaces to a BEM."""
     # equivalent of mne_surf2bem
     # surfs can be strings (filenames) or surface dicts
@@ -492,7 +499,7 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True):
     surfs = _order_surfaces(surfs)
 
     # Check topology as best we can
-    _check_surfaces(surfs)
+    _check_surfaces(surfs, incomplete=incomplete)
     for surf in surfs:
         _check_surface_size(surf)
     _check_thicknesses(surfs)
@@ -753,9 +760,9 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
         raise ValueError('relative_radii length (%s) must match that of '
                          'sigmas (%s)' % (len(relative_radii),
                                           len(sigmas)))
-    if len(sigmas) == 0 and head_radius is not None:
-            raise ValueError('sigmas must be supplied if head_radius is not '
-                             'None')
+    if len(sigmas) <= 1 and head_radius is not None:
+        raise ValueError('at least 2 sigmas must be supplied if '
+                         'head_radius is not None, got %s' % (len(sigmas),))
     if (isinstance(r0, string_types) and r0 == 'auto') or \
        (isinstance(head_radius, string_types) and head_radius == 'auto'):
         if info is None:
@@ -1017,8 +1024,13 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
         raise ValueError('origin must be a 3-element array')
     if disp:
         origin_str = ', '.join(['%0.1f' % (o * 1000) for o in origin])
-        logger.info('    Using origin %s mm in the %s frame'
-                    % (origin_str, coord_frame))
+        msg = ('    Using origin %s mm in the %s frame'
+               % (origin_str, coord_frame))
+        if coord_frame == 'meg' and info['dev_head_t'] is not None:
+            o_dev = apply_trans(info['dev_head_t'], origin)
+            origin_str = ', '.join('%0.1f' % (o * 1000,) for o in o_dev)
+            msg += ' (%s mm in the head frame)' % (origin_str,)
+        logger.info(msg)
     return origin
 
 
@@ -1310,7 +1322,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     if tag is None:
         res['nn'] = None
     else:
-        res['nn'] = tag.data
+        res['nn'] = tag.data.copy()
         if res['nn'].shape[0] != res['np']:
             raise ValueError('Vertex normal information is incorrect')
 

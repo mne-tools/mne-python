@@ -8,7 +8,7 @@
 import warnings
 
 import numpy as np
-from scipy import sparse, linalg
+from scipy import linalg
 
 from .base import BaseEstimator
 from ..filter import next_fast_len
@@ -132,6 +132,7 @@ def _compute_corrs(X, y, smin, smax):
 def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method='direct',
                            normed=False):
     """Compute regularization parameter from neighbors."""
+    from scipy.sparse.csgraph import laplacian
     known_types = ('ridge', 'laplacian')
     if isinstance(reg_type, string_types):
         reg_type = (reg_type,) * 2
@@ -179,7 +180,7 @@ def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method='direct',
         # Use csgraph. Note that our -1's above are really the neighbors!
         # If we ever want to allow arbitrary adjacency matrices, this is how
         # we'd want to do it.
-        reg = sparse.csgraph.laplacian(-reg, normed=normed)
+        reg = laplacian(-reg, normed=normed)
     return reg
 
 

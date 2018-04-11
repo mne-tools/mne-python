@@ -15,7 +15,6 @@ Coherence example of fieldtrip
 
 References
 ----------
-
 .. [1] Dahne, S., et al (2014). SPoC: a novel framework for relating the
        amplitude of neuronal oscillations to behaviorally relevant parameters.
        NeuroImage, 86, 111-122.

@@ -17,6 +17,7 @@ from ...channels.montage import Montage
 from ...epochs import BaseEpochs
 from ...event import read_events
 from ...externals.six import string_types
+from ...annotations import Annotations
 
 # just fix the scaling for now, EEGLAB doesn't seem to provide this info
 CAL = 1e-6
@@ -105,8 +106,9 @@ def _get_info(eeg, montage, eog=()):
     if montage is None:
         info = create_info(ch_names, eeg.srate, ch_types='eeg')
     else:
-        _check_update_montage(info, montage, path=path,
-                              update_ch_names=update_ch_names)
+        _check_update_montage(
+            info, montage, path=path, update_ch_names=update_ch_names,
+            raise_missing=False)
 
     info['buffer_size_sec'] = 1.  # reasonable default
     # update the info dict
@@ -342,7 +344,7 @@ class RawEEGLAB(BaseRaw):
         stim_chan = dict(ch_name='STI 014', coil_type=FIFF.FIFFV_COIL_NONE,
                          kind=FIFF.FIFFV_STIM_CH, logno=len(info["chs"]) + 1,
                          scanno=len(info["chs"]) + 1, cal=1., range=1.,
-                         loc=np.zeros(12), unit=FIFF.FIFF_UNIT_NONE,
+                         loc=np.full(12, np.nan), unit=FIFF.FIFF_UNIT_NONE,
                          unit_mul=0., coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
         info['chs'].append(stim_chan)
         info._update_redundant()
@@ -655,13 +657,10 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
         eeg = io.loadmat(eeg, struct_as_record=False, squeeze_me=True,
                          uint16_codec=uint16_codec)['EEG']
 
-    if isinstance(eeg.event, np.ndarray):
-        types = [str(event.type) for event in eeg.event]
-        latencies = [event.latency for event in eeg.event]
-    else:
-        # only one event - TypeError: 'mat_struct' object is not iterable
-        types = [str(eeg.event.type)]
-        latencies = [eeg.event.latency]
+    annotations = _read_annotations_eeglab(eeg)
+    types = annotations.description
+    latencies = annotations.onset
+
     if "boundary" in types and "boundary" not in event_id:
         warn("The data contains 'boundary' events, indicating data "
              "discontinuities. Be cautious of filtering and epoching around "
@@ -670,6 +669,10 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
     if len(types) < 1:  # if there are 0 events, we can exit here
         logger.info('No events found, returning empty stim channel ...')
         return np.zeros((0, 3))
+
+    if (latencies < 0).any():
+        raise ValueError('At least one event sample index is negative. Please'
+                         ' check if EEG.event.sample values are correct.')
 
     not_in_event_id = set(x for x in types if x not in event_id)
     not_purely_numeric = set(x for x in not_in_event_id if not x.isdigit())
@@ -709,6 +712,56 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
             return np.zeros((0, 3))
 
     return np.asarray(events)
+
+
+def _read_annotations_eeglab(eeg):
+    if not hasattr(eeg, 'event'):
+        onset = []
+        duration = []
+        description = []
+    elif isinstance(eeg.event, np.ndarray):
+        description = [str(event.type) for event in eeg.event]
+        onset = [event.latency - 1 for event in eeg.event]
+        if (len(onset) > 0) and hasattr(eeg.event[0], 'duration'):
+            duration = [event.duration for event in eeg.event]
+        else:
+            duration = np.zeros(len(onset))
+    else:
+        # only one event - TypeError: 'mat_struct' object is not iterable
+        description = [str(eeg.event.type)]
+        onset = [eeg.event.latency - 1]
+        duration = getattr(eeg.event, 'duration', np.zeros(1))
+
+    return Annotations(onset=onset, duration=duration, description=description)
+
+
+def read_annotations_eeglab(fname, uint16_codec=None):
+    r"""Create Annotations from EEGLAB file.
+
+    This function reads the event attribute from the EEGLAB
+    structure and makes an :class:`mne.Annotations` object.
+
+    Parameters
+    ----------
+    fname : str | object
+        The path to the (EEGLAB) .set file.
+    uint16_codec : str | None
+        If your \*.set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
+
+    Returns
+    -------
+    annotations : instance of Annotations
+        The annotations present in the file.
+    """
+    from scipy import io
+    eeg = io.loadmat(fname, struct_as_record=False, squeeze_me=True,
+                     uint16_codec=uint16_codec)['EEG']
+
+    return _read_annotations_eeglab(eeg)
 
 
 def _strip_to_integer(trigger):

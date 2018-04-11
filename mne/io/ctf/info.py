@@ -153,14 +153,12 @@ def _convert_channel_info(res4, t, use_eeg_pos):
     this_comp = None
     for k, cch in enumerate(res4['chs']):
         cal = float(1. / (cch['proper_gain'] * cch['qgain']))
-        ch = dict(scanno=k + 1, range=1., cal=cal, loc=np.zeros(12),
+        ch = dict(scanno=k + 1, range=1., cal=cal, loc=np.full(12, np.nan),
                   unit_mul=FIFF.FIFF_UNITM_NONE, ch_name=cch['ch_name'][:15],
                   coil_type=FIFF.FIFFV_COIL_NONE)
         del k
         chs.append(ch)
         # Create the channel position information
-        pos = dict(r0=ch['loc'][:3], ex=ch['loc'][3:6], ey=ch['loc'][6:9],
-                   ez=ch['loc'][9:12])
         if cch['sensor_type_index'] in (CTF.CTFV_REF_MAG_CH,
                                         CTF.CTFV_REF_GRAD_CH,
                                         CTF.CTFV_MEG_CH):
@@ -179,12 +177,12 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                 continue
             ch['unit'] = FIFF.FIFF_UNIT_T
             # Set up the local coordinate frame
-            pos['r0'][:] = cch['coil']['pos'][0]
-            pos['ez'][:] = cch['coil']['norm'][0]
+            r0 = cch['coil']['pos'][0].copy()
+            ez = cch['coil']['norm'][0].copy()
             # It turns out that positive proper_gain requires swapping
             # of the normal direction
             if cch['proper_gain'] > 0.0:
-                pos['ez'] *= -1
+                ez *= -1
             # Check how the other vectors should be defined
             off_diag = False
             # Default: ex and ey are arbitrary in the plane normal to ez
@@ -198,21 +196,23 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                 if size > 0.:
                     diff /= size
                 # Is ez normal to the line joining the coils?
-                if np.abs(np.dot(diff, pos['ez'])) < 1e-3:
+                if np.abs(np.dot(diff, ez)) < 1e-3:
                     off_diag = True
                     # Handle the off-diagonal gradiometer coordinate system
-                    pos['r0'] -= size * diff / 2.0
-                    pos['ex'][:] = diff
-                    pos['ey'][:] = np.cross(pos['ez'], pos['ex'])
+                    r0 -= size * diff / 2.0
+                    ex = diff
+                    ey = np.cross(ez, ex)
                 else:
-                    pos['ex'][:], pos['ey'][:] = _get_plane_vectors(pos['ez'])
+                    ex, ey = _get_plane_vectors(ez)
             else:
-                pos['ex'][:], pos['ey'][:] = _get_plane_vectors(pos['ez'])
+                ex, ey = _get_plane_vectors(ez)
             # Transform into a Neuromag-like device coordinate system
-            pos['r0'][:] = apply_trans(t['t_ctf_dev_dev'], pos['r0'])
-            for key in ('ex', 'ey', 'ez'):
-                pos[key][:] = apply_trans(t['t_ctf_dev_dev'], pos[key],
-                                          move=False)
+            ch['loc'] = np.concatenate([
+                apply_trans(t['t_ctf_dev_dev'], r0),
+                apply_trans(t['t_ctf_dev_dev'], ex, move=False),
+                apply_trans(t['t_ctf_dev_dev'], ey, move=False),
+                apply_trans(t['t_ctf_dev_dev'], ez, move=False)])
+            del r0, ex, ey, ez
             # Set the coil type
             if cch['sensor_type_index'] == CTF.CTFV_REF_MAG_CH:
                 ch['kind'] = FIFF.FIFFV_REF_MEG_CH
@@ -244,16 +244,16 @@ def _convert_channel_info(res4, t, use_eeg_pos):
             if use_eeg_pos:
                 # EEG electrode coordinates may be present but in the
                 # CTF head frame
-                pos['r0'][:] = cch['coil']['pos'][0]
-                if not _at_origin(pos['r0']):
+                ch['loc'][:3] = cch['coil']['pos'][0]
+                if not _at_origin(ch['loc'][:3]):
                     if t['t_ctf_head_head'] is None:
                         warn('EEG electrode (%s) location omitted because of '
                              'missing HPI information' % ch['ch_name'])
-                        pos['r0'][:] = np.zeros(3)
+                        ch['loc'].fill(np.nan)
                         coord_frame = FIFF.FIFFV_COORD_CTF_HEAD
                     else:
-                        pos['r0'][:] = apply_trans(t['t_ctf_head_head'],
-                                                   pos['r0'])
+                        ch['loc'][:3] = apply_trans(
+                            t['t_ctf_head_head'], ch['loc'][:3])
             neeg += 1
             ch.update(logno=neeg, kind=FIFF.FIFFV_EEG_CH,
                       unit=FIFF.FIFF_UNIT_V, coord_frame=coord_frame)

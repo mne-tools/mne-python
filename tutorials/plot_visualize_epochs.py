@@ -5,6 +5,8 @@ Visualize Epochs data
 =====================
 
 """
+# sphinx_gallery_thumbnail_number = 7
+
 import os.path as op
 
 import mne
@@ -90,4 +92,5 @@ epochs.plot_image(combine='gfp', group_by='type', sigma=2., cmap="YlGnBu_r")
 # shape of the channel array. The image plotting uses automatic scaling by
 # default, but noisy channels and different channel types can cause the scaling
 # to be a bit off. Here we define the limits by hand.
-epochs.plot_topo_image(vmin=-250, vmax=250, title='ERF images', sigma=2.)
+epochs.plot_topo_image(vmin=-250, vmax=250, title='ERF images', sigma=2.,
+                       fig_facecolor='w', font_color='k')

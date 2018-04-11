@@ -6,8 +6,8 @@ Visualize channel over epochs as an image
 This will produce what is sometimes called an event related
 potential / field (ERP/ERF) image.
 
-2 images are produced. One with a good channel and one with a channel
-that does not see any evoked field.
+Two images are produced, one with a good channel and one with a channel
+that does not show any evoked field.
 
 It is also demonstrated how to reorder the epochs using a 1D spectral
 embedding as described in:

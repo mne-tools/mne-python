@@ -110,4 +110,4 @@ for idx in range(4):
     mne.viz.plot_topomap(data[idx], evoked.info, axes=axes[idx], show=False)
 fig.suptitle('CSP patterns')
 fig.tight_layout()
-fig.show()
+mne.viz.utils.plt_show()

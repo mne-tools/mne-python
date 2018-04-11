@@ -44,11 +44,10 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     peak_finder(x)
     """
     x0 = np.asanyarray(x0)
-
-    if x0.ndim >= 2:
-        raise ValueError('The input data must be a 1D vector')
-
     s = x0.size
+
+    if x0.ndim >= 2 or s == 0:
+        raise ValueError('The input data must be a non empty 1D vector')
 
     if thresh is None:
         thresh = (np.max(x0) - np.min(x0)) / 4
@@ -160,6 +159,13 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     if extrema < 0:
         peak_mags *= -1.0
         x0 = -x0
+
+    # ensure output type array
+    if not isinstance(peak_inds, np.ndarray):
+        peak_inds = np.atleast_1d(peak_inds).astype('int64')
+
+    if not isinstance(peak_mags, np.ndarray):
+        peak_mags = np.atleast_1d(peak_mags).astype('float64')
 
     # Plot if no output desired
     if len(peak_inds) == 0:

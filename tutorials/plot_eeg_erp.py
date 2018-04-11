@@ -22,8 +22,8 @@ from mne.datasets import sample
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+# these data already have an EEG average reference
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
-raw.set_eeg_reference('average', projection=True)  # set EEG average reference
 
 ###############################################################################
 # Let's restrict the data to the EEG channels
@@ -105,19 +105,20 @@ evoked_no_ref = mne.Epochs(raw_no_ref, **epochs_params).average()
 del raw_no_ref  # save memory
 
 title = 'EEG Original reference'
-evoked_no_ref.plot(titles=dict(eeg=title))
-evoked_no_ref.plot_topomap(times=[0.1], size=3., title=title)
+evoked_no_ref.plot(titles=dict(eeg=title), time_unit='s')
+evoked_no_ref.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 
 ###############################################################################
 # **Average reference**: This is normally added by default, but can also
 # be added explicitly.
+raw.del_proj()
 raw_car, _ = mne.set_eeg_reference(raw, 'average', projection=True)
 evoked_car = mne.Epochs(raw_car, **epochs_params).average()
 del raw_car  # save memory
 
 title = 'EEG Average reference'
-evoked_car.plot(titles=dict(eeg=title))
-evoked_car.plot_topomap(times=[0.1], size=3., title=title)
+evoked_car.plot(titles=dict(eeg=title), time_unit='s')
+evoked_car.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 
 ###############################################################################
 # **Custom reference**: Use the mean of channels EEG 001 and EEG 002 as
@@ -127,8 +128,8 @@ evoked_custom = mne.Epochs(raw_custom, **epochs_params).average()
 del raw_custom  # save memory
 
 title = 'EEG Custom reference'
-evoked_custom.plot(titles=dict(eeg=title))
-evoked_custom.plot_topomap(times=[0.1], size=3., title=title)
+evoked_custom.plot(titles=dict(eeg=title), time_unit='s')
+evoked_custom.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 
 ###############################################################################
 # Evoked arithmetics
@@ -154,7 +155,9 @@ print(epochs)
 left, right = epochs["left"].average(), epochs["right"].average()
 
 # create and plot difference ERP
-mne.combine_evoked([left, -right], weights='equal').plot_joint()
+joint_kwargs = dict(ts_args=dict(time_unit='s'),
+                    topomap_args=dict(time_unit='s'))
+mne.combine_evoked([left, -right], weights='equal').plot_joint(**joint_kwargs)
 
 ###############################################################################
 # This is an equal-weighting difference. If you have imbalanced trial numbers,
@@ -178,8 +181,8 @@ print(all_evokeds)
 
 # Then, we construct and plot an unweighted average of left vs. right trials
 # this way, too:
-mne.combine_evoked(all_evokeds,
-                   weights=(0.25, -0.25, 0.25, -0.25)).plot_joint()
+mne.combine_evoked(
+    all_evokeds, weights=(0.25, -0.25, 0.25, -0.25)).plot_joint(**joint_kwargs)
 
 ###############################################################################
 # Often, it makes sense to store Evoked objects in a dictionary or a list -
@@ -196,4 +199,4 @@ print(all_evokeds['left/auditory'])
 
 # Besides for explicit access, this can be used for example to set titles.
 for cond in all_evokeds:
-    all_evokeds[cond].plot_joint(title=cond)
+    all_evokeds[cond].plot_joint(title=cond, **joint_kwargs)

@@ -32,6 +32,7 @@ bem_fname = (data_path +
 
 # Load real data as the template
 raw = mne.io.read_raw_fif(raw_fname)
+raw.set_eeg_reference(projection=True)
 raw = raw.crop(0., 30.)  # 30 sec is enough
 
 ##############################################################################
@@ -54,6 +55,7 @@ def data_fun(times):
     data *= window
     return data
 
+
 times = raw.times[:int(raw.info['sfreq'] * epoch_duration)]
 src = read_source_spaces(src_fname)
 stc = simulate_sparse_stc(src, n_dipoles=n_dipoles, times=times,
@@ -62,7 +64,7 @@ stc = simulate_sparse_stc(src, n_dipoles=n_dipoles, times=times,
 fig, ax = plt.subplots(1)
 ax.plot(times, 1e9 * stc.data.T)
 ax.set(ylabel='Amplitude (nAm)', xlabel='Time (sec)')
-fig.show()
+mne.viz.utils.plt_show()
 
 ##############################################################################
 # Simulate raw data
@@ -75,6 +77,7 @@ raw_sim.plot()
 # Plot evoked data
 events = find_events(raw_sim)  # only 1 pos, so event number == 1
 epochs = Epochs(raw_sim, events, 1, -0.2, epoch_duration)
-cov = compute_covariance(epochs, tmax=0., method='empirical')  # quick calc
+cov = compute_covariance(epochs, tmax=0., method='empirical',
+                         verbose='error')  # quick calc
 evoked = epochs.average()
-evoked.plot_white(cov)
+evoked.plot_white(cov, time_unit='s')

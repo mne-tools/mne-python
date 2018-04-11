@@ -18,7 +18,7 @@ from ..bem import _check_origin
 from ..chpi import quat_to_rot, rot_to_quat
 from ..transforms import (_str_to_frame, _get_trans, Transform, apply_trans,
                           _find_vector_rotation, _cart_to_sph, _get_n_moments,
-                          _sph_to_cart_partials, _deg_ord_idx,
+                          _sph_to_cart_partials, _deg_ord_idx, _average_quats,
                           _sh_complex_to_real, _sh_real_to_complex, _sh_negate)
 from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
 from ..surface import _normalize_vectors
@@ -29,7 +29,7 @@ from ..io.write import _generate_meas_id, _date_now
 from ..io import _loc_to_coil_trans, BaseRaw
 from ..io.pick import pick_types, pick_info
 from ..utils import verbose, logger, _clean_names, warn, _time_mask, _pl
-from ..fixes import _get_args, _safe_svd, _get_sph_harm
+from ..fixes import _get_args, _safe_svd, _get_sph_harm, einsum
 from ..externals.six import string_types
 from ..channels.channels import _get_T1T2_mag_inds
 
@@ -336,7 +336,14 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     # Determine/check the origin of the expansion
     origin = _check_origin(origin, info, coord_frame, disp=True)
-    origin.setflags(write=False)
+    # Convert to the head frame
+    if coord_frame == 'meg' and info['dev_head_t'] is not None:
+        origin_head = apply_trans(info['dev_head_t'], origin)
+    else:
+        origin_head = origin
+    orig_origin, orig_coord_frame = origin, coord_frame
+    del origin, coord_frame
+    origin_head.setflags(write=False)
     n_in, n_out = _get_n_moments([int_order, ext_order])
 
     #
@@ -369,7 +376,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     #
     # Translate to destination frame (always use non-fine-cal bases)
     #
-    exp = dict(origin=origin, int_order=int_order, ext_order=0)
+    exp = dict(origin=origin_head, int_order=int_order, ext_order=0)
     all_coils = _prep_mf_coils(info, ignore_ref)
     S_recon = _trans_sss_basis(exp, all_coils, recon_trans, coil_scale)
     exp['ext_order'] = ext_order
@@ -542,9 +549,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # Update info
     if not st_only:
         info['dev_head_t'] = recon_trans  # set the reconstruction transform
-    _update_sss_info(raw_sss, origin, int_order, ext_order, len(good_picks),
-                     coord_frame, sss_ctc, sss_cal, max_st, reg_moments_0,
-                     st_only)
+    _update_sss_info(raw_sss, orig_origin, int_order, ext_order,
+                     len(good_picks), orig_coord_frame, sss_ctc, sss_cal,
+                     max_st, reg_moments_0, st_only)
     logger.info('[done]')
     return raw_sss
 
@@ -658,10 +665,7 @@ def _trans_starts_stops_quats(pos, start, stop, this_pos_data):
     rel_starts = list()
     rel_stops = list()
     quats = list()
-    if this_pos_data is None:
-        avg_trans = None
-    else:
-        avg_trans = np.zeros(6)
+    weights = list()
     for ti in range(-1, len(pos_idx)):
         # first iteration for this block of data
         if ti < 0:
@@ -688,15 +692,19 @@ def _trans_starts_stops_quats(pos, start, stop, this_pos_data):
         used[rel_start:rel_stop] = True
         rel_starts.append(rel_start)
         rel_stops.append(rel_stop)
-        if this_pos_data is not None:
-            avg_trans += quats[-1][:6] * (rel_stop - rel_start)
+        weights.append(rel_stop - rel_start)
     assert used.all()
     # Use weighted average for average trans over the window
-    if avg_trans is not None:
-        avg_trans /= (stop - start)
+    if this_pos_data is None:
+        avg_trans = None
+    else:
+        weights = np.array(weights)
+        quats = np.array(quats)
+        weights = weights / weights.sum().astype(float)  # int -> float
+        avg_quat = _average_quats(quats[:, :3], weights)
+        avg_t = np.dot(weights, quats[:, 3:6])
         avg_trans = np.vstack([
-            np.hstack([quat_to_rot(avg_trans[:3]),
-                       avg_trans[3:][:, np.newaxis]]),
+            np.hstack([quat_to_rot(avg_quat), avg_t[:, np.newaxis]]),
             [[0., 0., 0., 1.]]])
     return trans, rel_starts, rel_stops, quats, avg_trans
 
@@ -848,7 +856,7 @@ def _regularize(regularize, exp, S_decomp, mag_or_fine, t, verbose=None):
     """Regularize a decomposition matrix."""
     # ALWAYS regularize the out components according to norm, since
     # gradiometer-only setups (e.g., KIT) can have zero first-order
-    # components
+    # (homogeneous field) components
     int_order, ext_order = exp['int_order'], exp['ext_order']
     n_in, n_out = _get_n_moments([int_order, ext_order])
     t_str = '%8.3f' % t
@@ -908,8 +916,13 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False):
     # KIT gradiometers are marked as having units T, not T/M (argh)
     # We need a separate variable for this because KIT grads should be
     # treated mostly like magnetometers (e.g., scaled by 100) for reg
-    mag_or_fine[np.array([ch['coil_type'] & 0xFFFF == FIFF.FIFFV_COIL_KIT_GRAD
-                          for ch in meg_info['chs']], bool)] = False
+    coil_types = np.array([ch['coil_type'] for ch in meg_info['chs']])
+    mag_or_fine[(coil_types & 0xFFFF) == FIFF.FIFFV_COIL_KIT_GRAD] = False
+    # The same thing goes for CTF gradiometers...
+    ctf_grads = [FIFF.FIFFV_COIL_CTF_GRAD,
+                 FIFF.FIFFV_COIL_CTF_REF_GRAD,
+                 FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD]
+    mag_or_fine[np.in1d(coil_types, ctf_grads)] = False
     msg = ('    Processing %s gradiometers and %s magnetometers'
            % (len(grad_picks), len(mag_picks)))
     n_kit = len(mag_picks) - mag_or_fine.sum()
@@ -945,8 +958,7 @@ def _col_norm_pinv(x):
     """
     norm = np.sqrt(np.sum(x * x, axis=0))
     x /= norm
-    u, s, v = linalg.svd(x, full_matrices=False, overwrite_a=True,
-                         **check_disable)
+    u, s, v = _safe_svd(x, full_matrices=False, **check_disable)
     v /= norm
     return np.dot(v.T * 1. / s, u.T), s
 
@@ -1073,11 +1085,11 @@ def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
                         orders_pos_neg.append(-order)
                     for gr, oo in zip(grads_pos_neg, orders_pos_neg):
                         # Gradients dotted w/integration point weighted normals
-                        gr = np.einsum('ij,ij->i', gr, cosmags)
+                        gr = einsum('ij,ij->i', gr, cosmags)
                         vals = np.bincount(bins, gr, len(coils))
                         spc[:, _deg_ord_idx(degree, oo)] = -vals
                 else:
-                    grads = np.einsum('ij,ij->i', grads, ezs)
+                    grads = einsum('ij,ij->i', grads, ezs)
                     v = (np.bincount(bins, grads.real, len(coils)) +
                          1j * np.bincount(bins, grads.imag, len(coils)))
                     spc[:, _deg_ord_idx(degree, order)] = -v
@@ -1244,7 +1256,7 @@ def _integrate_points(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol,
                       cosmags, bins, n_coils):
     """Integrate points in spherical coords."""
     grads = _sp_to_cart(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol).T
-    grads = np.einsum('ij,ij->i', grads, cosmags)
+    grads = einsum('ij,ij->i', grads, cosmags)
     return np.bincount(bins, grads, n_coils)
 
 
@@ -1688,8 +1700,7 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine):
     noise_lev *= noise_lev  # effectively what would happen by earlier multiply
     for ii in range(n_in):
         this_S = S_decomp.take(in_keepers + out_keepers, axis=1)
-        u, s, v = linalg.svd(this_S, full_matrices=False, overwrite_a=True,
-                             **check_disable)
+        u, s, v = _safe_svd(this_S, full_matrices=False, **check_disable)
         del this_S
         eigs[ii] = s[[0, -1]]
         v = v.T[:len(in_keepers)]

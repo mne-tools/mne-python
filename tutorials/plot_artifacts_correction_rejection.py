@@ -1,10 +1,9 @@
 """
-.. _tut_artifacts_reject:
-
 Rejecting bad data (channels and segments)
 ==========================================
 
 """
+# sphinx_gallery_thumbnail_number = 3
 
 import numpy as np
 import mne
@@ -12,8 +11,7 @@ from mne.datasets import sample
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-raw = mne.io.read_raw_fif(raw_fname)
-raw.set_eeg_reference('average', projection=True)
+raw = mne.io.read_raw_fif(raw_fname)  # already has an EEG ref
 
 ###############################################################################
 # .. _marking_bad_channels:
@@ -84,17 +82,17 @@ evoked = mne.read_evokeds(fname, condition='Left Auditory',
 evoked.pick_types(meg=True, eeg=True, exclude=[])
 
 # plot with bads
-evoked.plot(exclude=[])
+evoked.plot(exclude=[], time_unit='s')
 
 print(evoked.info['bads'])
 
 ###############################################################################
 # Let's now interpolate the bad channels (displayed in red above)
-evoked.interpolate_bads(reset_bads=False)
+evoked.interpolate_bads(reset_bads=False, verbose=False)
 
 ###############################################################################
 # Let's plot the cleaned data
-evoked.plot(exclude=[])
+evoked.plot(exclude=[], time_unit='s')
 
 ###############################################################################
 # .. note::
@@ -135,7 +133,8 @@ raw.plot(events=eog_events)  # To see the annotated segments.
 
 ###############################################################################
 # It is also possible to draw bad segments interactively using
-# :meth:`raw.plot <mne.io.Raw.plot>` (see :ref:`tut_viz_raw`).
+# :meth:`raw.plot <mne.io.Raw.plot>` (see
+# :ref:`sphx_glr_auto_tutorials_plot_visualize_raw.py`).
 #
 # As the data is epoched, all the epochs overlapping with segments whose
 # description starts with 'bad' are rejected by default. To turn rejection off,

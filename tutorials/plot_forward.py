@@ -18,7 +18,7 @@ data_path = sample.data_path()
 
 # the raw file containing the channel location + types
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-# The paths to freesurfer reconstructions
+# The paths to Freesurfer reconstructions
 subjects_dir = data_path + '/subjects'
 subject = 'sample'
 
@@ -70,7 +70,7 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 # mne_analyze (Unix tools), mne.gui.coregistration (in Python) or mrilab
 # if you're using a Neuromag system.
 #
-# For the Python version see func:`mne.gui.coregistration`
+# For the Python version see :func:`mne.gui.coregistration`
 #
 # Here we assume the coregistration is done, so we just visually check the
 # alignment with the following code.
@@ -79,8 +79,11 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 trans = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
 
 info = mne.io.read_info(raw_fname)
+# Here we look at the dense head, which isn't used for BEM computations but
+# is useful for coregistration.
 mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
-                       meg=['helmet', 'sensors'], subjects_dir=subjects_dir)
+                       meg=['helmet', 'sensors'], subjects_dir=subjects_dir,
+                       surfaces='head-dense')
 
 ###############################################################################
 # Compute Source Space

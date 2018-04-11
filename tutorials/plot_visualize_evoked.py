@@ -1,11 +1,9 @@
 """
-.. _tut_viz_evoked:
-
 =====================
 Visualize Evoked data
 =====================
 
-In this tutorial we focus on plotting functions of :class:`mne.Evoked`.
+In this tutorial we focus on the plotting functions of :class:`mne.Evoked`.
 """
 import os.path as op
 import numpy as np
@@ -39,7 +37,7 @@ evoked_r_vis = evoked[3]
 # set the ``exclude`` parameter to show the bad channels in red. All plotting
 # functions of MNE-python return a handle to the figure instance. When we have
 # the handle, we can customise the plots to our liking.
-fig = evoked_l_aud.plot(exclude=())
+fig = evoked_l_aud.plot(exclude=(), time_unit='s')
 
 ###############################################################################
 # All plotting functions of MNE-python return a handle to the figure instance.
@@ -48,7 +46,7 @@ fig = evoked_l_aud.plot(exclude=())
 fig.tight_layout()
 
 ###############################################################################
-# Now let's make it a bit fancier and only use MEG channels. Many of the
+# Now we will make it a bit fancier and only use MEG channels. Many of the
 # MNE-functions include a ``picks`` parameter to include a selection of
 # channels. ``picks`` is simply a list of channel indices that you can easily
 # construct with :func:`mne.pick_types`. See also :func:`mne.pick_channels` and
@@ -57,7 +55,7 @@ fig.tight_layout()
 # to show the sensor positions - specifically, the x, y, and z locations of
 # the sensors are transformed into R, G and B values.
 picks = mne.pick_types(evoked_l_aud.info, meg=True, eeg=False, eog=False)
-evoked_l_aud.plot(spatial_colors=True, gfp=True, picks=picks)
+evoked_l_aud.plot(spatial_colors=True, gfp=True, picks=picks, time_unit='s')
 
 ###############################################################################
 # Notice the legend on the left. The colors would suggest that there may be two
@@ -65,17 +63,17 @@ evoked_l_aud.plot(spatial_colors=True, gfp=True, picks=picks)
 # Try painting the slopes with left mouse button. It should open a new window
 # with topomaps (scalp plots) of the average over the painted area. There is
 # also a function for drawing topomaps separately.
-evoked_l_aud.plot_topomap()
+evoked_l_aud.plot_topomap(time_unit='s')
 
 ###############################################################################
 # By default the topomaps are drawn from evenly spread out points of time over
 # the evoked data. We can also define the times ourselves.
 times = np.arange(0.05, 0.151, 0.05)
-evoked_r_aud.plot_topomap(times=times, ch_type='mag')
+evoked_r_aud.plot_topomap(times=times, ch_type='mag', time_unit='s')
 
 ###############################################################################
 # Or we can automatically select the peaks.
-evoked_r_aud.plot_topomap(times='peaks', ch_type='mag')
+evoked_r_aud.plot_topomap(times='peaks', ch_type='mag', time_unit='s')
 
 ###############################################################################
 # You can take a look at the documentation of :func:`mne.Evoked.plot_topomap`
@@ -86,7 +84,7 @@ evoked_r_aud.plot_topomap(times='peaks', ch_type='mag')
 # axes in a single figure and plot all of our evoked categories next to each
 # other.
 fig, ax = plt.subplots(1, 5, figsize=(8, 2))
-kwargs = dict(times=0.1, show=False, vmin=-300, vmax=300)
+kwargs = dict(times=0.1, show=False, vmin=-300, vmax=300, time_unit='s')
 evoked_l_aud.plot_topomap(axes=ax[0], colorbar=True, **kwargs)
 evoked_r_aud.plot_topomap(axes=ax[1], colorbar=False, **kwargs)
 evoked_l_vis.plot_topomap(axes=ax[2], colorbar=False, **kwargs)
@@ -118,8 +116,8 @@ plt.show()
 # ``ts_args`` arguments, here, topomaps at specific time points
 # (90 and 200 ms) are shown, sensors are not plotted (via an argument
 # forwarded to `plot_topomap`), and the Global Field Power is shown:
-ts_args = dict(gfp=True)
-topomap_args = dict(sensors=False)
+ts_args = dict(gfp=True, time_unit='s')
+topomap_args = dict(sensors=False, time_unit='s')
 evoked_r_aud.plot_joint(title='right auditory', times=[.09, .20],
                         ts_args=ts_args, topomap_args=topomap_args)
 
@@ -135,8 +133,11 @@ evoked_r_aud.plot_joint(title='right auditory', times=[.09, .20],
 # First, we load in the evoked objects into a dictionary, setting the keys to
 # '/'-separated tags (as we can do with event_ids for epochs). Then, we plot
 # with :func:`mne.viz.plot_compare_evokeds`.
-# The plot is styled with dictionary arguments, again using "/"-separated tags.
+# The plot is styled with dict arguments, again using "/"-separated tags.
 # We plot a MEG channel with a strong auditory response.
+#
+# For move advanced plotting using :func:`mne.viz.plot_compare_evokeds`.
+# See also :ref:`sphx_glr_auto_tutorials_plot_metadata_epochs.py`.
 conditions = ["Left Auditory", "Right Auditory", "Left visual", "Right visual"]
 evoked_dict = dict()
 for condition in conditions:
@@ -149,7 +150,7 @@ linestyles = dict(Auditory='-', visual='--')
 pick = evoked_dict["Left/Auditory"].ch_names.index('MEG 1811')
 
 mne.viz.plot_compare_evokeds(evoked_dict, picks=pick, colors=colors,
-                             linestyles=linestyles)
+                             linestyles=linestyles, split_legend=True)
 
 ###############################################################################
 # We can also plot the activations as images. The time runs along the x-axis
@@ -157,7 +158,7 @@ mne.viz.plot_compare_evokeds(evoked_dict, picks=pick, colors=colors,
 # the amplitudes from negative to positive translates to shift from blue to
 # red. White means zero amplitude. You can use the ``cmap`` parameter to define
 # the color map yourself. The accepted values include all matplotlib colormaps.
-evoked_r_aud.plot_image(picks=picks)
+evoked_r_aud.plot_image(picks=picks, time_unit='s')
 
 ###############################################################################
 # Finally we plot the sensor data as a topographical view. In the simple case
@@ -175,10 +176,8 @@ mne.viz.plot_evoked_topo(evoked, title=title % 'Left/Right Auditory/Visual',
 # We now compute the field maps to project MEG and EEG data to MEG helmet
 # and scalp surface.
 #
-# To do this we'll need coregistration information. See
-# :ref:`tut_forward` for more details.
-#
-# Here we just illustrate usage.
+# To do this, we need coregistration information. See
+# :ref:`tut_forward` for more details. Here we just illustrate usage.
 
 subjects_dir = data_path + '/subjects'
 trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
@@ -186,7 +185,7 @@ trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
 maps = mne.make_field_map(evoked_l_aud, trans=trans_fname, subject='sample',
                           subjects_dir=subjects_dir, n_jobs=1)
 
-# explore several points in time
+# Finally, explore several points in time
 field_map = evoked_l_aud.plot_field(maps, time=.1)
 
 ###############################################################################

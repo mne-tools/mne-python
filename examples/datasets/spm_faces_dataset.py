@@ -1,4 +1,3 @@
-# doc:slow-example
 """
 ==========================================
 From raw data to dSPM on SPM Faces dataset

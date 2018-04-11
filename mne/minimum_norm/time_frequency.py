@@ -9,14 +9,14 @@ from scipy import linalg, fftpack
 from ..io.constants import FIFF
 from ..source_estimate import _make_stc
 from ..time_frequency.tfr import cwt, morlet
-from ..time_frequency.multitaper import (dpss_windows, _psd_from_mt,
+from ..time_frequency.multitaper import (_psd_from_mt, _compute_mt_params,
                                          _psd_from_mt_adaptive, _mt_spectra)
 from ..baseline import rescale, _log_rescale
 from .inverse import (combine_xyz, prepare_inverse_operator, _assemble_kernel,
                       _pick_channels_inverse_operator, _check_method,
                       _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose
 from ..externals import six
 
 
@@ -96,20 +96,21 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         If a is None the beginning of the data is used and if b is None then b
         is set to the end of the interval. If baseline is equal to (None, None)
         all the time interval is used.
-    baseline_mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+    baseline_mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
         Perform baseline correction by
 
-          - subtracting the mean baseline power ('mean')
-          - dividing by the mean baseline power ('ratio')
-          - dividing by the mean baseline power and taking the log ('logratio')
-          - subtracting the mean baseline power followed by dividing by the
-            mean baseline power ('percent')
-          - subtracting the mean baseline power and dividing by the standard
-            deviation of the baseline power ('zscore')
-          - dividing by the mean baseline power, taking the log, and dividing
-            by the standard deviation of the baseline power ('zlogratio')
+        - subtracting the mean of baseline values ('mean')
+        - dividing by the mean of baseline values ('ratio')
+        - dividing by the mean of baseline values and taking the log
+          ('logratio')
+        - subtracting the mean of baseline values followed by dividing by
+          the mean of baseline values ('percent')
+        - subtracting the mean of baseline values and dividing by the
+          standard deviation of baseline values ('zscore')
+        - dividing by the mean of baseline values, taking the log, and
+          dividing by the standard deviation of log baseline values
+          ('zlogratio')
 
-        If None no baseline correction is applied.
     pca : bool
         If True, the true dimension of data is estimated before running
         the time-frequency transforms. It reduces the computation times
@@ -344,20 +345,21 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
-    baseline_mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+    baseline_mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
         Perform baseline correction by
 
-          - subtracting the mean baseline power ('mean')
-          - dividing by the mean baseline power ('ratio')
-          - dividing by the mean baseline power and taking the log ('logratio')
-          - subtracting the mean baseline power followed by dividing by the
-            mean baseline power ('percent')
-          - subtracting the mean baseline power and dividing by the standard
-            deviation of the baseline power ('zscore')
-          - dividing by the mean baseline power, taking the log, and dividing
-            by the standard deviation of the baseline power ('zlogratio')
+        - subtracting the mean of baseline values ('mean')
+        - dividing by the mean of baseline values ('ratio')
+        - dividing by the mean of baseline values and taking the log
+          ('logratio')
+        - subtracting the mean of baseline values followed by dividing by
+          the mean of baseline values ('percent')
+        - subtracting the mean of baseline values and dividing by the
+          standard deviation of baseline values ('zscore')
+        - dividing by the mean of baseline values, taking the log, and
+          dividing by the standard deviation of log baseline values
+          ('zlogratio')
 
-        If None no baseline correction is applied.
     pca : bool
         If True, the true dimension of data is estimated before running
         the time-frequency transforms. It reduces the computation times
@@ -530,24 +532,12 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     n_times = len(epochs.times)
     sfreq = epochs.info['sfreq']
 
-    # compute standardized half-bandwidth
-    half_nbw = float(bandwidth) * n_times / (2 * sfreq)
-    if half_nbw < 0.5:
-        warn('Bandwidth too small, using minimum (normalized 0.5)')
-        half_nbw = 0.5
-    n_tapers_max = int(2 * half_nbw)
+    dpss, eigvals, adaptive = _compute_mt_params(
+        n_times, sfreq, bandwidth, low_bias, adaptive, verbose=False)
 
-    dpss, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
-                                 low_bias=low_bias)
     n_tapers = len(dpss)
-
     logger.info('Using %d tapers with bandwidth %0.1fHz'
                 % (n_tapers, bandwidth))
-
-    if adaptive and len(eigvals) < 3:
-        warn('Not adaptively combining the spectral estimators '
-             'due to a low number of tapers.')
-        adaptive = False
 
     if adaptive:
         parallel, my_psd_from_mt_adaptive, n_jobs = \

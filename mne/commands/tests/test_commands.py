@@ -18,9 +18,9 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_show_info)
 from mne.datasets import testing, sample
 from mne.io import read_raw_fif
-from mne.utils import (run_tests_if_main, _TempDir, requires_mne, requires_PIL,
+from mne.utils import (run_tests_if_main, _TempDir, requires_mne,
                        requires_mayavi, requires_tvtk, requires_freesurfer,
-                       ArgvSetter)
+                       traits_test, ArgvSetter)
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -46,6 +46,8 @@ def check_usage(module, force_help=False):
 def test_browse_raw():
     """Test mne browse_raw."""
     check_usage(mne_browse_raw)
+    with ArgvSetter(('--raw', raw_fname)):
+        mne_browse_raw.run()
 
 
 def test_bti2fiff():
@@ -181,7 +183,7 @@ def test_maxfilter():
 
 @pytest.mark.slowtest
 @requires_mayavi
-@requires_PIL
+@traits_test
 @testing.requires_testing_data
 def test_report():
     """Test mne report."""

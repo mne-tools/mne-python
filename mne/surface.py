@@ -7,6 +7,7 @@
 from copy import deepcopy
 from distutils.version import LooseVersion
 from glob import glob
+from functools import partial
 import os
 from os import path as op
 import sys
@@ -25,7 +26,7 @@ from .channels.channels import _get_meg_system
 from .transforms import transform_surface_to
 from .utils import logger, verbose, get_subjects_dir, warn
 from .externals.six import string_types
-from .fixes import _serialize_volume_info, _get_read_geometry
+from .fixes import _serialize_volume_info, _get_read_geometry, einsum
 
 
 ###############################################################################
@@ -254,25 +255,35 @@ def _triangle_coords(r, geom, best):
     return x, y, z
 
 
-def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False):
+def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False,
+                          method='accurate'):
     """Project points onto (scalp) surface."""
     surf_geom = _get_tri_supp_geom(surf)
     coords = np.empty((len(rrs), 3))
     tri_idx = np.empty((len(rrs),), int)
-    for ri, rr in enumerate(rrs):
-        # Get index of closest tri on scalp BEM to electrode position
-        tri_idx[ri] = _find_nearest_tri_pt(rr, surf_geom)[2]
-        # Calculate a linear interpolation between the vertex values to
-        # get coords of pt projected onto closest triangle
-        coords[ri] = _triangle_coords(rr, surf_geom, tri_idx[ri])
-    weights = np.array([1. - coords[:, 0] - coords[:, 1], coords[:, 0],
-                       coords[:, 1]])
-    out = (weights, tri_idx)
-    if project_rrs:  #
-        out += (np.einsum('ij,jik->jk', weights,
-                          surf['rr'][surf['tris'][tri_idx]]),)
-    if return_nn:
-        out += (surf_geom['nn'][tri_idx],)
+    if method == 'accurate':
+        for ri, rr in enumerate(rrs):
+            # Get index of closest tri on scalp BEM to electrode position
+            tri_idx[ri] = _find_nearest_tri_pt(rr, surf_geom)[2]
+            # Calculate a linear interpolation between the vertex values to
+            # get coords of pt projected onto closest triangle
+            coords[ri] = _triangle_coords(rr, surf_geom, tri_idx[ri])
+        weights = np.array([1. - coords[:, 0] - coords[:, 1], coords[:, 0],
+                           coords[:, 1]])
+        out = (weights, tri_idx)
+        if project_rrs:  #
+            out += (einsum('ij,jik->jk', weights,
+                           surf['rr'][surf['tris'][tri_idx]]),)
+        if return_nn:
+            out += (surf_geom['nn'][tri_idx],)
+    else:  # nearest neighbor
+        assert project_rrs
+        idx = _compute_nearest(surf['rr'], rrs)
+        out = (None, None, surf['rr'][idx])
+        if return_nn:
+            nn = _accumulate_normals(surf['tris'], surf_geom['nn'],
+                                     len(surf['rr']))
+            out += (nn[idx],)
     return out
 
 
@@ -369,11 +380,26 @@ def _normalize_vectors(rr):
     return size
 
 
-def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
-    """Find nearest neighbors.
+class _CDist(object):
+    """Wrapper for cdist that uses a Tree-like pattern."""
 
-    Note: The rows in xhs and rr must all be unit-length vectors, otherwise
-    the result will be incorrect.
+    def __init__(self, xhs):
+        self._xhs = xhs
+
+    def query(self, rr):
+        from scipy.spatial.distance import cdist
+        nearest = list()
+        dists = list()
+        for r in rr:
+            d = cdist(r[np.newaxis, :], self._xhs)
+            idx = np.argmin(d)
+            nearest.append(idx)
+            dists.append(d[0, idx])
+        return np.array(dists), np.array(nearest)
+
+
+def _compute_nearest(xhs, rr, method='BallTree', return_dists=False):
+    """Find nearest neighbors.
 
     Parameters
     ----------
@@ -381,9 +407,9 @@ def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
         Points of data set.
     rr : array, shape=(n_query, n_dim)
         Points to find nearest neighbors for.
-    use_balltree : bool
-        Use fast BallTree based search from scikit-learn. If scikit-learn
-        is not installed it will fall back to the slow brute force search.
+    method : str
+        The query method. If scikit-learn and scipy<1.0 are installed,
+        it will fall back to the slow brute-force search.
     return_dists : bool
         If True, return associated distances.
 
@@ -394,41 +420,57 @@ def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
     distances : array, shape=(n_query,)
         The distances. Only returned if return_dists is True.
     """
-    if use_balltree:
-        try:
-            from sklearn.neighbors import BallTree
-        except ImportError:
-            logger.info('Nearest-neighbor searches will be significantly '
-                        'faster if scikit-learn is installed.')
-            use_balltree = False
-
     if xhs.size == 0 or rr.size == 0:
         if return_dists:
             return np.array([], int), np.array([])
         return np.array([], int)
-    if use_balltree is True:
-        ball_tree = BallTree(xhs)
-        if return_dists:
-            out = ball_tree.query(rr, k=1, return_distance=True)
-            return out[1][:, 0], out[0][:, 0]
-        else:
-            nearest = ball_tree.query(rr, k=1, return_distance=False)[:, 0]
-            return nearest
-    else:
-        from scipy.spatial.distance import cdist
-        if return_dists:
-            nearest = list()
-            dists = list()
-            for r in rr:
-                d = cdist(r[np.newaxis, :], xhs)
-                idx = np.argmin(d)
-                nearest.append(idx)
-                dists.append(d[0, idx])
-            return (np.array(nearest), np.array(dists))
-        else:
-            nearest = np.array([np.argmin(cdist(r[np.newaxis, :], xhs))
-                                for r in rr])
-            return nearest
+    tree = _DistanceQuery(xhs, method=method)
+    out = tree.query(rr)
+    return out[::-1] if return_dists else out[1]
+
+
+def _safe_query(rr, func, reduce=False, **kwargs):
+    if len(rr) == 0:
+        return np.array([]), np.array([], int)
+    out = func(rr)
+    out = [out[0][:, 0], out[1][:, 0]] if reduce else out
+    return out
+
+
+class _DistanceQuery(object):
+    """Wrapper for fast distance queries."""
+
+    def __init__(self, xhs, method='BallTree', allow_kdtree=False):
+        assert method in ('BallTree', 'cKDTree', 'cdist')
+
+        # Fastest for our problems: balltree
+        if method == 'BallTree':
+            try:
+                from sklearn.neighbors import BallTree
+            except ImportError:
+                logger.info('Nearest-neighbor searches will be significantly '
+                            'faster if scikit-learn is installed.')
+                method = 'cKDTree'
+            else:
+                self.query = partial(_safe_query, func=BallTree(xhs).query,
+                                     reduce=True, return_distance=True)
+
+        # Then cKDTree
+        if method == 'cKDTree':
+            try:
+                from scipy.spatial import cKDTree
+            except ImportError:
+                method = 'cdist'
+            else:
+                self.query = cKDTree(xhs).query
+
+        # KDTree is really only faster for huge (~100k) sets,
+        # (e.g., with leafsize=2048), and it's slower for small (~5k)
+        # sets. We can add it later if we think it will help.
+
+        # Then the worst: cdist
+        if method == 'cdist':
+            self.query = _CDist(xhs).query
 
 
 ###############################################################################
@@ -789,12 +831,12 @@ def _decimate_surface(points, triangles, reduction):
 def decimate_surface(points, triangles, n_triangles):
     """Decimate surface data.
 
-    Note. Requires TVTK to be installed for this to function.
+    .. note:: Requires TVTK to be installed for this to function.
 
-    Note. If an if an odd target number was requested,
-    the ``quadric decimation`` algorithm used results in the
-    next even number of triangles. For example a reduction request to 30001
-    triangles will result in 30000 triangles.
+    .. note:: If an if an odd target number was requested,
+              the ``'decimation'`` algorithm used results in the
+              next even number of triangles. For example a reduction request
+              to 30001 triangles may result in 30000 triangles.
 
     Parameters
     ----------
@@ -976,11 +1018,13 @@ def _get_tri_supp_geom(surf):
     r12 = surf['rr'][surf['tris'][:, 1], :] - r1
     r13 = surf['rr'][surf['tris'][:, 2], :] - r1
     r1213 = np.array([r12, r13]).swapaxes(0, 1)
-    a = np.einsum('ij,ij->i', r12, r12)
-    b = np.einsum('ij,ij->i', r13, r13)
-    c = np.einsum('ij,ij->i', r12, r13)
+    a = einsum('ij,ij->i', r12, r12)
+    b = einsum('ij,ij->i', r13, r13)
+    c = einsum('ij,ij->i', r12, r13)
     mat = np.rollaxis(np.array([[b, -c], [-c, a]]), 2)
-    mat /= (a * b - c * c)[:, np.newaxis, np.newaxis]
+    norm = (a * b - c * c)
+    norm[norm == 0] = 1.  # avoid divide by zero
+    mat /= norm[:, np.newaxis, np.newaxis]
     nn = fast_cross_3d(r12, r13)
     _normalize_vectors(nn)
     return dict(r1=r1, r12=r12, r13=r13, r1213=r1213,
@@ -1077,11 +1121,11 @@ def _find_nearest_tri_pt(rr, tri_geom, pt_tris=None, run_all=True):
         pt_tris = slice(len(tri_geom['r1']))
     rrs = rr - tri_geom['r1'][pt_tris]
     tri_nn = tri_geom['nn'][pt_tris]
-    vect = np.einsum('ijk,ik->ij', tri_geom['r1213'][pt_tris], rrs)
+    vect = einsum('ijk,ik->ij', tri_geom['r1213'][pt_tris], rrs)
     mats = tri_geom['mat'][pt_tris]
     # This einsum is equivalent to doing:
     # pqs = np.array([np.dot(m, v) for m, v in zip(mats, vect)]).T
-    pqs = np.einsum('ijk,ik->ji', mats, vect)
+    pqs = einsum('ijk,ik->ji', mats, vect)
     found = False
     dists = np.sum(rrs * tri_nn, axis=1)
 
@@ -1290,19 +1334,20 @@ def _get_solids(tri_rrs, fros):
         triples = _fast_cross_nd_sum(vs[0], vs[1], vs[2])
         ls = np.linalg.norm(vs, axis=3)
         ss = np.prod(ls, axis=0)
-        ss += np.einsum('ijk,ijk,ij->ij', vs[0], vs[1], ls[2])
-        ss += np.einsum('ijk,ijk,ij->ij', vs[0], vs[2], ls[1])
-        ss += np.einsum('ijk,ijk,ij->ij', vs[1], vs[2], ls[0])
+        ss += einsum('ijk,ijk,ij->ij', vs[0], vs[1], ls[2])
+        ss += einsum('ijk,ijk,ij->ij', vs[0], vs[2], ls[1])
+        ss += einsum('ijk,ijk,ij->ij', vs[1], vs[2], ls[0])
         tot_angle[i1:i2] = -np.sum(np.arctan2(triples, ss), axis=0)
     return tot_angle
 
 
-def _complete_sphere_surf(sphere, idx, level):
+def _complete_sphere_surf(sphere, idx, level, complete=True):
     """Convert sphere conductor model to surface."""
     rad = sphere['layers'][idx]['rad']
     r0 = sphere['r0']
     surf = _tessellate_sphere_surf(level, rad=rad)
     surf['rr'] += r0
-    complete_surface_info(surf)
+    if complete:
+        complete_surface_info(surf, copy=False)
     surf['coord_frame'] = sphere['coord_frame']
     return surf

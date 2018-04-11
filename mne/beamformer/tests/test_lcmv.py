@@ -11,8 +11,8 @@ import warnings
 import mne
 from mne import compute_covariance
 from mne.datasets import testing
-from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_raw, lcmv,
-                            lcmv_epochs, lcmv_raw, tf_lcmv)
+from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
+                            apply_lcmv_raw, tf_lcmv)
 from mne.beamformer._lcmv import _lcmv_source_power, _reg_pinv, _eig_inv
 from mne.externals.six import advance_iterator
 from mne.utils import run_tests_if_main
@@ -107,8 +107,9 @@ def test_lcmv():
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
 
     for fwd in [forward, forward_vol]:
-        stc = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01,
-                   max_ori_out='signed')
+        filters = make_lcmv(evoked.info, fwd, data_cov, reg=0.01,
+                            noise_cov=noise_cov)
+        stc = apply_lcmv(evoked, filters, max_ori_out='signed')
         stc.crop(0.02, None)
 
         stc_pow = np.sum(np.abs(stc.data), axis=1)
@@ -121,9 +122,10 @@ def test_lcmv():
 
         if fwd is forward:
             # Test picking normal orientation (surface source space only)
-            stc_normal = lcmv(evoked, forward_surf_ori, noise_cov,
-                              data_cov, reg=0.01, pick_ori="normal",
-                              max_ori_out='signed')
+            filters = make_lcmv(evoked.info, forward_surf_ori, data_cov,
+                                reg=0.01, noise_cov=noise_cov,
+                                pick_ori='normal')
+            stc_normal = apply_lcmv(evoked, filters, max_ori_out='signed')
             stc_normal.crop(0.02, None)
 
             stc_pow = np.sum(np.abs(stc_normal.data), axis=1)
@@ -139,8 +141,9 @@ def test_lcmv():
             assert_true((np.abs(stc_normal.data) <= stc.data).all())
 
         # Test picking source orientation maximizing output source power
-        stc_max_power = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01,
-                             pick_ori="max-power", max_ori_out='signed')
+        filters = make_lcmv(evoked.info, fwd, data_cov, reg=0.01,
+                            noise_cov=noise_cov, pick_ori='max-power')
+        stc_max_power = apply_lcmv(evoked, filters, max_ori_out='signed')
         stc_max_power.crop(0.02, None)
         stc_pow = np.sum(np.abs(stc_max_power.data), axis=1)
         idx = np.argmax(stc_pow)
@@ -165,9 +168,10 @@ def test_lcmv():
             assert_true((np.abs(mean_stc - mean_stc_max_pow) < 0.5).all())
 
         # Test NAI weight normalization:
-        stc_nai = lcmv(evoked, fwd, noise_cov=noise_cov, data_cov=data_cov,
-                       reg=0.01, pick_ori='max-power', weight_norm='nai',
-                       max_ori_out='signed')
+        filters = make_lcmv(evoked.info, fwd, data_cov, reg=0.01,
+                            noise_cov=noise_cov, pick_ori='max-power',
+                            weight_norm='nai')
+        stc_nai = apply_lcmv(evoked, filters, max_ori_out='signed')
         stc_nai.crop(0.02, None)
 
         # Test whether unit-noise-gain solution is a scaled version of NAI
@@ -185,15 +189,16 @@ def test_lcmv():
     fwd_sphere = mne.make_forward_solution(evoked.info, trans=None, src=src,
                                            bem=sphere, eeg=False, meg=True)
 
-    # Test that we get an error is not reducing rank
-    assert_raises(ValueError, lcmv, evoked, fwd_sphere, noise_cov, data_cov,
-                  reg=0.1, weight_norm='unit-noise-gain', pick_ori="max-power",
-                  reduce_rank=False)
+    # Test that we get an error if not reducing rank
+    assert_raises(ValueError, make_lcmv, evoked.info, fwd_sphere, data_cov,
+                  reg=0.1, noise_cov=noise_cov, weight_norm='unit-noise-gain',
+                  pick_ori='max-power', reduce_rank=False)
 
     # Now let's reduce it
-    stc_sphere = lcmv(evoked, fwd_sphere, noise_cov, data_cov, reg=0.1,
-                      weight_norm='unit-noise-gain', pick_ori="max-power",
-                      reduce_rank=True, max_ori_out='signed')
+    filters = make_lcmv(evoked.info, fwd_sphere, data_cov, reg=0.1,
+                        noise_cov=noise_cov, weight_norm='unit-noise-gain',
+                        pick_ori='max-power', reduce_rank=True)
+    stc_sphere = apply_lcmv(evoked, filters, max_ori_out='signed')
     stc_sphere = np.abs(stc_sphere)
     stc_sphere.crop(0.02, None)
 
@@ -207,45 +212,41 @@ def test_lcmv():
 
     # Test if fixed forward operator is detected when picking normal or
     # max-power orientation
-    assert_raises(ValueError, lcmv, evoked, forward_fixed, noise_cov, data_cov,
-                  reg=0.01, pick_ori="normal")
-    assert_raises(ValueError, lcmv, evoked, forward_fixed, noise_cov, data_cov,
-                  reg=0.01, pick_ori="max-power", max_ori_out='signed')
+    assert_raises(ValueError, make_lcmv, evoked.info, forward_fixed, data_cov,
+                  reg=0.01, noise_cov=noise_cov, pick_ori='normal')
+    assert_raises(ValueError, make_lcmv, evoked.info, forward_fixed, data_cov,
+                  reg=0.01, noise_cov=noise_cov, pick_ori='max-power')
 
     # Test if non-surface oriented forward operator is detected when picking
     # normal orientation
-    assert_raises(ValueError, lcmv, evoked, forward, noise_cov, data_cov,
-                  reg=0.01, pick_ori="normal")
+    assert_raises(ValueError, make_lcmv, evoked.info, forward, data_cov,
+                  reg=0.01, noise_cov=noise_cov, pick_ori='normal')
 
     # Test if volume forward operator is detected when picking normal
     # orientation
-    assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov, data_cov,
-                  reg=0.01, pick_ori="normal")
-
-    # Test if missing of data covariance matrix is detected
-    assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov=noise_cov,
-                  data_cov=None, reg=0.01, pick_ori="max-power",
-                  max_ori_out='signed')
+    assert_raises(ValueError, make_lcmv, evoked.info, forward_vol, data_cov,
+                  reg=0.01, noise_cov=noise_cov, pick_ori='normal')
 
     # Test if missing of noise covariance matrix is detected when more than
     # one channel type is present in the data
-    assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov=None,
-                  data_cov=data_cov, reg=0.01, pick_ori="max-power",
-                  max_ori_out='signed')
+    assert_raises(ValueError, make_lcmv, evoked.info, forward_vol,
+                  data_cov=data_cov, reg=0.01, noise_cov=None,
+                  pick_ori='max-power')
 
     # Test if not-yet-implemented orientation selections raise error with
     # neural activity index
-    assert_raises(NotImplementedError, lcmv, evoked, forward_surf_ori,
-                  noise_cov, data_cov, reg=0.01, pick_ori="normal",
+    assert_raises(NotImplementedError, make_lcmv, evoked.info,
+                  forward_surf_ori, data_cov, reg=0.01, noise_cov=noise_cov,
+                  pick_ori='normal', weight_norm='nai')
+    assert_raises(NotImplementedError, make_lcmv, evoked.info, forward_vol,
+                  data_cov, reg=0.01, noise_cov=noise_cov, pick_ori=None,
                   weight_norm='nai')
-    assert_raises(NotImplementedError, lcmv, evoked, forward_vol, noise_cov,
-                  data_cov, reg=0.01, pick_ori=None, weight_norm='nai')
 
-    # Test if no weight-normalization and max-power source orientation throw
+    # Test if no weight-normalization and max-power source orientation throws
     # an error
-    assert_raises(NotImplementedError, lcmv, evoked, forward_vol, noise_cov,
-                  data_cov, reg=0.01, pick_ori="max-power", weight_norm=None,
-                  max_ori_out='signed')
+    assert_raises(NotImplementedError, make_lcmv, evoked.info, forward_vol,
+                  data_cov, reg=0.01, noise_cov=noise_cov,
+                  pick_ori='max-power', weight_norm=None)
 
     # Test if wrong channel selection is detected in application of filter
     evoked_ch = deepcopy(evoked)
@@ -276,20 +277,20 @@ def test_lcmv():
 
     # Test if setting reduce_rank to True returns a NotImplementedError
     # when no orientation selection is done or pick_ori='normal'
-    assert_raises(NotImplementedError, lcmv, evoked, forward_vol, noise_cov,
-                  data_cov, pick_ori=None, weight_norm='nai', reduce_rank=True,
-                  max_ori_out='signed')
-    assert_raises(NotImplementedError, lcmv, evoked, forward_surf_ori,
-                  noise_cov, data_cov, pick_ori='normal', weight_norm='nai',
-                  reduce_rank=True, max_ori_out='signed')
+    assert_raises(NotImplementedError, make_lcmv, evoked.info, forward_vol,
+                  data_cov, noise_cov=noise_cov, pick_ori=None,
+                  weight_norm='nai', reduce_rank=True)
+    assert_raises(NotImplementedError, make_lcmv, evoked.info,
+                  forward_surf_ori, data_cov, noise_cov=noise_cov,
+                  pick_ori='normal', weight_norm='nai', reduce_rank=True)
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
-    stcs = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov,
-                       reg=0.01, max_ori_out='signed')
-    stcs_ = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov,
-                        reg=0.01, return_generator=True,
-                        max_ori_out='signed')
+    filters = make_lcmv(epochs.info, forward_fixed, data_cov, reg=0.01,
+                        noise_cov=noise_cov)
+    stcs = apply_lcmv_epochs(epochs, filters, max_ori_out='signed')
+    stcs_ = apply_lcmv_epochs(epochs, filters, return_generator=True,
+                              max_ori_out='signed')
     assert_array_equal(stcs[0].data, advance_iterator(stcs_).data)
 
     epochs.drop_bad()
@@ -302,14 +303,16 @@ def test_lcmv():
     stc_avg /= len(stcs)
 
     # compare it to the solution using evoked with fixed orientation
-    stc_fixed = lcmv(evoked, forward_fixed, noise_cov, data_cov, reg=0.01,
-                     max_ori_out='signed')
+    filters = make_lcmv(evoked.info, forward_fixed, data_cov, reg=0.01,
+                        noise_cov=noise_cov)
+    stc_fixed = apply_lcmv(evoked, filters, max_ori_out='signed')
     assert_array_almost_equal(stc_avg, stc_fixed.data)
 
     # use a label so we have few source vertices and delayed computation is
     # not used
-    stcs_label = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov,
-                             reg=0.01, label=label, max_ori_out='signed')
+    filters = make_lcmv(epochs.info, forward_fixed, data_cov, reg=0.01,
+                        noise_cov=noise_cov, label=label)
+    stcs_label = apply_lcmv_epochs(epochs, filters, max_ori_out='signed')
 
     assert_array_almost_equal(stcs_label[0].data, stcs[0].in_label(label).data)
 
@@ -325,9 +328,10 @@ def test_lcmv_raw():
 
     # use only the left-temporal MEG channels for LCMV
     data_cov = mne.compute_raw_covariance(raw, tmin=tmin, tmax=tmax)
-    stc = lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01,
-                   label=label, start=start, stop=stop,
-                   max_ori_out='signed')
+    filters = make_lcmv(raw.info, forward, data_cov, reg=0.01,
+                        noise_cov=noise_cov, label=label)
+    stc = apply_lcmv_raw(raw, filters, start=start, stop=stop,
+                         max_ori_out='signed')
 
     assert_array_almost_equal(np.array([tmin, tmax]),
                               np.array([stc.times[0], stc.times[-1]]),

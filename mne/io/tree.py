@@ -143,11 +143,8 @@ def copy_tree(fidin, in_id, nodes, fidout):
 
                 #   Read and write tags, pass data through transparently
                 fidin.seek(d.pos, 0)
-
-                s = fidin.read(4 * 4)
-                tag = Tag(*np.fromstring(s, dtype=('>i4,>I4,>i4,>i4'))[0])
-                tag.data = np.fromstring(fidin.read(tag.size), dtype='>B')
-
+                tag = Tag(*np.fromfile(fidin, ('>i4,>I4,>i4,>i4'), 1)[0])
+                tag.data = np.fromfile(fidin, '>B', tag.size)
                 _write(fidout, tag.data, tag.kind, 1, tag.type, '>B')
 
         for child in node['children']:

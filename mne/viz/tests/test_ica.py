@@ -72,24 +72,37 @@ def test_plot_ica_components():
         for components in [0, [0], [0, 1], [0, 1] * 2, None]:
             ica.plot_components(components, image_interp='bilinear',
                                 colorbar=True, **fast_test)
+        plt.close('all')
 
         # test interactive mode (passing 'inst' arg)
-        plt.close('all')
         ica.plot_components([0, 1], image_interp='bilinear', inst=raw, res=16)
-
         fig = plt.gcf()
-        ax = [a for a in fig.get_children() if isinstance(a, plt.Axes)]
-        lbl = ax[1].get_label()
-        _fake_click(fig, ax[1], (0., 0.), xform='data')
+
+        # test title click
+        # ----------------
+        lbl = fig.axes[1].get_label()
+        ica_idx = int(lbl[-3:])
+        titles = [ax.title for ax in fig.axes]
+        title_pos_midpoint = (titles[1].get_window_extent().extents
+                              .reshape((2, 2)).mean(axis=0))
+        # first click adds to exclude
+        _fake_click(fig, fig.axes[1], title_pos_midpoint, xform='pix')
+        assert ica_idx in ica.exclude
+        # clicking again removes from exclude
+        _fake_click(fig, fig.axes[1], title_pos_midpoint, xform='pix')
+        assert ica_idx not in ica.exclude
+
+        # test topo click
+        # ---------------
+        _fake_click(fig, fig.axes[1], (0., 0.), xform='data')
 
         c_fig = plt.gcf()
-        ax = [a for a in c_fig.get_children() if isinstance(a, plt.Axes)]
-        labels = [a.get_label() for a in ax]
+        labels = [ax.get_label() for ax in c_fig.axes]
 
         for l in ['topomap', 'image', 'erp', 'spectrum', 'variance']:
             assert_true(l in labels)
 
-        topomap_ax = ax[labels.index('topomap')]
+        topomap_ax = c_fig.axes[labels.index('topomap')]
         title = topomap_ax.get_title()
         assert_true(lbl == title)
 
@@ -178,6 +191,11 @@ def test_plot_ica_sources():
     fig.canvas.key_press_event('escape')
     # Sadly close_event isn't called on Agg backend and the test always passes.
     assert_array_equal(ica.exclude, [1])
+
+    fig = ica.plot_sources(raw, [1])
+    # test mouse clicks
+    data_ax = fig.axes[0]
+    _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
 
     raw.info['bads'] = ['MEG 0113']
     assert_raises(RuntimeError, ica.plot_sources, inst=raw)
@@ -273,7 +291,9 @@ def test_plot_instance_components():
         fig.canvas.key_press_event(key)
     ax = fig.get_axes()[0]
     line = ax.lines[0]
-    _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], 'data')
+    with warnings.catch_warnings(record=True):  # Can only plot ICA components
+        _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]],
+                    'data')
     _fake_click(fig, ax, [-0.1, 0.9])  # click on y-label
     fig.canvas.key_press_event('escape')
     plt.close('all')

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Mayavi/traits GUI for setting MRI fiducials."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
@@ -14,7 +15,7 @@ from pyface.api import confirm, error, FileDialog, OK, YES
 from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         cached_property, DelegatesTo, Event, Instance,
                         Property, Array, Bool, Button, Enum)
-from traitsui.api import HGroup, Item, VGroup, View, ArrayEditor
+from traitsui.api import HGroup, Item, VGroup, View, Handler, ArrayEditor
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
@@ -22,22 +23,22 @@ from ..coreg import fid_fname, _find_fiducials_files, _find_head_bem
 from ..defaults import DEFAULTS
 from ..io import write_fiducials
 from ..io.constants import FIFF
-from ..utils import get_subjects_dir, logger
+from ..surface import complete_surface_info, decimate_surface
+from ..utils import get_subjects_dir, logger, warn
 from ..viz._3d import _toggle_mlab_render
 from ._file_traits import (SurfaceSource, fid_wildcard, FiducialsSource,
-                           MRISubjectSource, SubjectSelectorPanel)
+                           MRISubjectSource, SubjectSelectorPanel,
+                           Surf)
 from ._viewer import (HeadViewController, PointObject, SurfaceObject,
-                      headview_borders)
+                      headview_borders, _BUTTON_WIDTH,
+                      _MRI_FIDUCIALS_WIDTH, _MM_WIDTH,
+                      _RESET_LABEL, _RESET_WIDTH, _mm_fmt)
+
 defaults = DEFAULTS['coreg']
 
 
-def _mm_fmt(x):
-    """Format mm data."""
-    return '%0.5f' % x
-
-
 class MRIHeadWithFiducialsModel(HasPrivateTraits):
-    """Represent an MRI head shape with fiducials.
+    """Represent an MRI head shape (high and low res) with fiducials.
 
     Attributes
     ----------
@@ -54,7 +55,8 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
     """
 
     subject_source = Instance(MRISubjectSource, ())
-    bem = Instance(SurfaceSource, ())
+    bem_low_res = Instance(SurfaceSource, ())
+    bem_high_res = Instance(SurfaceSource, ())
     fid = Instance(FiducialsSource, ())
 
     fid_file = DelegatesTo('fid', 'file')
@@ -63,10 +65,6 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
     subjects_dir = DelegatesTo('subject_source')
     subject = DelegatesTo('subject_source')
     subject_has_bem = DelegatesTo('subject_source')
-    use_high_res_head = DelegatesTo('subject_source')
-    points = DelegatesTo('bem')
-    norms = DelegatesTo('bem')
-    tris = DelegatesTo('bem')
     lpa = Array(float, (1, 3))
     nasion = Array(float, (1, 3))
     rpa = Array(float, (1, 3))
@@ -166,31 +164,40 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
 
     # if subject changed because of a change of subjects_dir this was not
     # triggered
-    @on_trait_change('subjects_dir,subject,use_high_res_head')
+    @on_trait_change('subjects_dir,subject')
     def _subject_changed(self):
         subject = self.subject
         subjects_dir = self.subjects_dir
         if not subjects_dir or not subject:
             return
 
-        # find head model
-        if self.use_high_res_head:
-            path = _find_head_bem(subject, subjects_dir, high_res=True)
-            if not path:
-                error(None, "No high resolution head model was found for "
-                      "subject {0}, using standard head instead. In order to "
-                      "generate a high resolution head model, run:\n\n"
-                      "    $ mne make_scalp_surfaces -s {0}"
-                      "\n\n".format(subject), "No High Resolution Head")
-                path = _find_head_bem(subject, subjects_dir)
+        # find high-res head model (if possible)
+        high_res_path = _find_head_bem(subject, subjects_dir, high_res=True)
+        low_res_path = _find_head_bem(subject, subjects_dir, high_res=False)
+        if high_res_path is None and low_res_path is None:
+            msg = 'No standard head model was found for subject %s' % subject
+            error(None, msg, "No head surfaces found")
+            raise RuntimeError(msg)
+        if high_res_path is not None:
+            self.bem_high_res.file = high_res_path
         else:
-            path = _find_head_bem(subject, subjects_dir)
-            if not path:
-                error(None, "No standard head model was found for subject "
-                      "{0}, using high resolution head model instead."
-                      .format(subject), "No Standard Resolution Head")
-                path = _find_head_bem(subject, subjects_dir, high_res=True)
-        self.bem.file = path
+            self.bem_high_res.file = low_res_path
+        if low_res_path is None:
+            # This should be very rare!
+            warn('No low-resolution head found, decimating high resolution '
+                 'mesh (%d vertices): %s' % (len(self.bem_high_res.surf.rr),
+                                             high_res_path,))
+            # Create one from the high res one, which we know we have
+            rr, tris = decimate_surface(self.bem_high_res.surf.rr,
+                                        self.bem_high_res.surf.tris,
+                                        n_triangles=5120)
+            surf = complete_surface_info(dict(rr=rr, tris=tris),
+                                         copy=False, verbose=False)
+            # directly set the attributes of bem_low_res
+            self.bem_low_res.surf = Surf(tris=surf['tris'], rr=surf['rr'],
+                                         nn=surf['nn'])
+        else:
+            self.bem_low_res.file = low_res_path
 
         # find fiducials file
         fid_files = _find_fiducials_files(subject, subjects_dir)
@@ -204,6 +211,39 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
 
         # does not seem to happen by itself ... so hard code it:
         self.reset_fiducials()
+
+
+class SetHandler(Handler):
+    """Handler to change style when setting MRI fiducials."""
+
+    def object_set_changed(self, info):  # noqa: D102
+        return self.object_locked_changed(info)
+
+    def object_locked_changed(self, info):  # noqa: D102
+        if info.object.locked:
+            ss = ''
+        else:
+            ss = 'border-style: solid; border-color: red; border-width: 2px;'
+        # This will only work for Qt, but hopefully that's most users!
+        try:
+            _color_children(info.ui.info.ui.control, ss)
+        except AttributeError:  # safeguard for wxpython
+            pass
+
+
+def _color_children(obj, ss):
+    """Qt helper."""
+    for child in obj.children():
+        if 'QRadioButton' in repr(child):
+            child.setStyleSheet(ss if child.isChecked() else '')
+        elif 'QLineEdit' in repr(child):
+            child.setStyleSheet(ss)
+        elif 'QWidget' in repr(child):  # on Linux it's nested
+            _color_children(child, ss)
+
+
+_SET_TOOLTIP = ('Click on the MRI image to set the position, '
+                'or enter values below')
 
 
 class FiducialsPanel(HasPrivateTraits):
@@ -223,11 +263,11 @@ class FiducialsPanel(HasPrivateTraits):
     locked = DelegatesTo('model', 'lock_fiducials')
 
     set = Enum('LPA', 'Nasion', 'RPA')
-    current_pos = Array(float, (1, 3), editor=ArrayEditor(width=50))
+    current_pos_mm = Array(float, (1, 3))
 
-    save_as = Button(label='Save As...')
+    save_as = Button(label='Save as...')
     save = Button(label='Save')
-    reset_fid = Button(label="Reset to File")
+    reset_fid = Button(label=_RESET_LABEL)
 
     headview = Instance(HeadViewController)
     hsp_obj = Instance(SurfaceObject)
@@ -235,27 +275,49 @@ class FiducialsPanel(HasPrivateTraits):
     picker = Instance(object)
 
     # the layout of the dialog created
-    view = View(VGroup(Item('fid_file', label='File'),
-                       Item('fid_fname', show_label=False, style='readonly'),
-                       Item('set', style='custom', width=50,
-                            format_func=lambda x: x),
-                       Item('current_pos', label='Pos', width=50,
-                            format_func=_mm_fmt),
-                       HGroup(Item('save', enabled_when='can_save',
-                                   tooltip="If a filename is currently "
-                                   "specified, save to that file, otherwise "
-                                   "save to the default file name",
-                                   width=10),
-                              Item('save_as', enabled_when='can_save_as',
-                                   width=10),
-                              Item('reset_fid', enabled_when='can_reset',
-                                   width=10),
-                              show_labels=False),
-                       enabled_when="locked==False"))
+    view = View(VGroup(
+        HGroup(Item('fid_file', width=_MRI_FIDUCIALS_WIDTH,
+                    tooltip='MRI fiducials file'), show_labels=False),
+        HGroup(Item('set', width=_MRI_FIDUCIALS_WIDTH,
+                    format_func=lambda x: x, style='custom',
+                    tooltip=_SET_TOOLTIP), show_labels=False),
+        HGroup(Item('current_pos_mm',
+                    editor=ArrayEditor(width=_MM_WIDTH, format_func=_mm_fmt),
+                    tooltip='MRI fiducial position (mm)'), show_labels=False),
+        HGroup(Item('save', enabled_when='can_save',
+                    tooltip="If a filename is currently specified, save to "
+                    "that file, otherwise save to the default file name",
+                    width=_BUTTON_WIDTH),
+               Item('save_as', enabled_when='can_save_as',
+                    width=_BUTTON_WIDTH),
+               Item('reset_fid', enabled_when='can_reset', width=_RESET_WIDTH,
+                    tooltip='Reset to file values (if available)'),
+               show_labels=False),
+        enabled_when="locked==False", show_labels=False), handler=SetHandler())
 
     def __init__(self, *args, **kwargs):  # noqa: D102
         super(FiducialsPanel, self).__init__(*args, **kwargs)
-        self.sync_trait('lpa', self, 'current_pos', mutual=True)
+
+    @on_trait_change('current_pos_mm')
+    def _update_pos(self):
+        attr = self.set.lower()
+        if not np.allclose(getattr(self, attr), self.current_pos_mm * 1e-3):
+            setattr(self, attr, self.current_pos_mm * 1e-3)
+
+    @on_trait_change('model:lpa')
+    def _update_lpa(self, name):
+        if self.set == 'LPA':
+            self.current_pos_mm = self.lpa * 1000
+
+    @on_trait_change('model:nasion')
+    def _update_nasion(self, name):
+        if self.set.lower() == 'Nasion':
+            self.current_pos_mm = self.nasion * 1000
+
+    @on_trait_change('model:rpa')
+    def _update_rpa(self, name):
+        if self.set.lower() == 'RPA':
+            self.current_pos_mm = self.rpa * 1000
 
     def _reset_fid_fired(self):
         self.model.reset = True
@@ -341,14 +403,14 @@ class FiducialsPanel(HasPrivateTraits):
 
     @on_trait_change('set')
     def _on_set_change(self, obj, name, old, new):
-        self.sync_trait(old.lower(), self, 'current_pos', mutual=True,
-                        remove=True)
-        self.sync_trait(new.lower(), self, 'current_pos', mutual=True)
         if new == 'Nasion':
+            self.current_pos_mm = self.nasion * 1000
             self.headview.front = True
         elif new == 'LPA':
+            self.current_pos_mm = self.lpa * 1000
             self.headview.left = True
         elif new == 'RPA':
+            self.current_pos_mm = self.rpa * 1000
             self.headview.right = True
 
 
@@ -443,17 +505,20 @@ class FiducialsFrame(HasTraits):
 
         # fiducials
         self.lpa_obj = PointObject(scene=self.scene, color=lpa_color,
+                                   has_norm=True,
                                    point_scale=self.point_scale)
         self.panel.sync_trait('lpa', self.lpa_obj, 'points', mutual=False)
         self.sync_trait('point_scale', self.lpa_obj, mutual=False)
 
         self.nasion_obj = PointObject(scene=self.scene, color=nasion_color,
+                                      has_norm=True,
                                       point_scale=self.point_scale)
         self.panel.sync_trait('nasion', self.nasion_obj, 'points',
                               mutual=False)
         self.sync_trait('point_scale', self.nasion_obj, mutual=False)
 
         self.rpa_obj = PointObject(scene=self.scene, color=rpa_color,
+                                   has_norm=True,
                                    point_scale=self.point_scale)
         self.panel.sync_trait('rpa', self.rpa_obj, 'points', mutual=False)
         self.sync_trait('point_scale', self.rpa_obj, mutual=False)

@@ -37,8 +37,8 @@ ecg_events, _, _ = mne.preprocessing.find_ecg_events(raw, event_id,
 picks = mne.pick_types(raw.info, meg=False, eeg=False, stim=False, eog=False,
                        include=['MEG 1531'], exclude='bads')
 tmin, tmax = -0.1, 0.1
-epochs = mne.Epochs(raw, ecg_events, event_id, tmin, tmax, picks=picks,
-                    proj=False)
+raw.del_proj()
+epochs = mne.Epochs(raw, ecg_events, event_id, tmin, tmax, picks=picks)
 data = epochs.get_data()
 
 print("Number of detected ECG artifacts : %d" % len(data))

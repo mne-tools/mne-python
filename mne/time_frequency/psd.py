@@ -52,7 +52,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
     sfreq = inst.info['sfreq']
     if isinstance(inst, BaseRaw):
         start, stop = np.where(time_mask)[0][[0, -1]]
-        rba = 'NaN' if reject_by_annotation else reject_by_annotation
+        rba = 'NaN' if reject_by_annotation else None
         data = inst.get_data(picks, start, stop + 1, reject_by_annotation=rba)
     elif isinstance(inst, BaseEpochs):
         data = inst.get_data()[:, picks][:, :, time_mask]
@@ -129,7 +129,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     # Combining, reducing windows and reshaping to original data shape
     psds = np.concatenate([np.nanmean(f_s, axis=-1)
                            for f_s in f_spectrogram], axis=0)
-    psds.shape = np.hstack([dshape, -1])
+    psds.shape = dshape + (-1,)
     return psds, freqs
 
 
@@ -194,8 +194,10 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
 
     See Also
     --------
-    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_multitaper,
-    csd_epochs, psd_array_welch
+    mne.io.Raw.plot_psd
+    mne.Epochs.plot_psd
+    psd_multitaper
+    psd_array_welch
 
     Notes
     -----
@@ -277,8 +279,11 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
     See Also
     --------
-    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_welch, csd_epochs,
+    mne.io.Raw.plot_psd
+    mne.Epochs.plot_psd
     psd_array_multitaper
+    psd_welch
+    csd_multitaper
 
     Notes
     -----

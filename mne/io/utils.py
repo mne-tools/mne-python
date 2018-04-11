@@ -9,6 +9,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
+import os
 
 from ..externals.six import b
 from .constants import FIFF
@@ -140,12 +141,19 @@ def _blk_read_lims(start, stop, buf_len):
     return block_start_idx, r_lims, d_lims
 
 
+def _file_size(fname):
+    """Get the file size in bytes."""
+    with open(fname, 'rb') as f:
+        f.seek(0, os.SEEK_END)
+        return f.tell()
+
+
 def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
                         dtype='<i2', n_channels=None, offset=0,
                         trigger_ch=None):
     """Read a chunk of raw data."""
-    if n_channels is None:
-        n_channels = raw.info['nchan']
+    n_channels = raw.info['nchan'] if n_channels is None else n_channels
+
     n_bytes = np.dtype(dtype).itemsize
     # data_offset and data_left count data samples (channels x time points),
     # not bytes.
@@ -161,6 +169,10 @@ def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
         for sample_start in np.arange(0, data_left, block_size) // n_channels:
             count = min(block_size, data_left - sample_start * n_channels)
             block = np.fromfile(fid, dtype, count)
+            if block.size != count:
+                raise RuntimeError('Incorrect number of samples (%s != %s), '
+                                   'please report this error to MNE-Python '
+                                   'developers' % (block.size, count))
             block = block.reshape(n_channels, -1, order='F')
             n_samples = block.shape[1]  # = count // n_channels
             sample_stop = sample_start + n_samples
@@ -175,7 +187,7 @@ def read_str(fid, count=1):
     """Read string from a binary file in a python version compatible way."""
     dtype = np.dtype('>S%i' % count)
     string = fid.read(dtype.itemsize)
-    data = np.fromstring(string, dtype=dtype)[0]
+    data = np.frombuffer(string, dtype=dtype)[0]
     bytestr = b('').join([data[0:data.index(b('\x00')) if
                           b('\x00') in data else count]])
 

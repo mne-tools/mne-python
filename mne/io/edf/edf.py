@@ -152,15 +152,15 @@ class RawEDF(BaseRaw):
     def __init__(self, input_fname, montage, eog=None, misc=None,
                  stim_channel='auto', annot=None, annotmap=None, exclude=(),
                  preload=False, verbose=None):  # noqa: D102
-        logger.info('Extracting edf Parameters from %s...' % input_fname)
+        logger.info('Extracting EDF parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         info, edf_info = _get_info(input_fname, stim_channel, annot,
                                    annotmap, eog, misc, exclude, preload)
-        logger.info('Created Raw.info structure...')
+        logger.info('Creating raw.info structure...')
         _check_update_montage(info, montage)
 
         if bool(annot) != bool(annotmap):
-            warn("Stimulus Channel will not be annotated. Both 'annot' and "
+            warn("Stimulus channel will not be annotated. Both 'annot' and "
                  "'annotmap' must be specified.")
 
         # Raw attributes
@@ -168,8 +168,6 @@ class RawEDF(BaseRaw):
         super(RawEDF, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[edf_info],
             last_samps=last_samps, orig_format='int', verbose=verbose)
-
-        logger.info('Ready.')
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -318,6 +316,12 @@ class RawEDF(BaseRaw):
                     if any(stim[n_start:n_stop]):
                         warn('EDF+ with overlapping events'
                              ' are not fully supported')
+                    if n_start >= read_size:  # event out of bounds
+                        warn('Event "{}" (event ID {} with onset {}) is out of'
+                             ' bounds, it cannot be added to the stim channel.'
+                             ' Use find_edf_events to get a list of all EDF '
+                             'events as stored in the '
+                             'file.'.format(annotation, evid, n_start))
                     stim[n_start:n_stop] += evid
                 data[stim_channel_idx, :] = stim[start:stop]
             elif stim_data is not None:  # GDF events
@@ -335,7 +339,7 @@ class RawEDF(BaseRaw):
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     """Read a number of samples for a single channel."""
     # BDF
-    if subtype in ('24BIT', 'bdf'):
+    if subtype == 'bdf':
         ch_data = np.fromfile(fid, dtype=dtype, count=samp * dtype_byte)
         ch_data = ch_data.reshape(-1, 3).astype(np.int32)
         ch_data = ((ch_data[:, 0]) +
@@ -427,10 +431,6 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         cals[idx] = 1
     if 'stim_data' in edf_info and stim_channel == 'auto':  # For GDF events.
         cals = np.append(cals, 1)
-    # Check that stimulus channel exists in dataset
-    if not ('stim_data' in edf_info or
-            'EDF Annotations' in ch_names) and stim_channel == 'auto':
-        stim_channel = None
     if stim_channel is not None:
         stim_channel = _check_stim_channel(stim_channel, ch_names, include)
 
@@ -438,6 +438,8 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     tal_ch_name = 'EDF Annotations'
     tal_chs = np.where(np.array(ch_names) == tal_ch_name)[0]
     if len(tal_chs) > 0:
+        logger.info('EDF annotations detected (consider using '
+                    'raw.find_edf_events() to extract them)')
         if len(tal_chs) > 1:
             warn('Channel names are not unique, found duplicates for: %s. '
                  'Adding running numbers to duplicate channel names.'
@@ -461,6 +463,7 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     for idx, ch_info in enumerate(zip(ch_names, physical_ranges, cals)):
         ch_name, physical_range, cal = ch_info
         chan_info = {}
+        logger.debug('  %s: range=%s cal=%s' % (ch_name, physical_range, cal))
         chan_info['cal'] = cal
         chan_info['logno'] = idx + 1
         chan_info['scanno'] = idx + 1
@@ -499,7 +502,7 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
             chan_info['cal'] = 1
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
-            chan_info['kind'] = FIFF.FIFFV_MISC_CH
+            chan_info['kind'] = FIFF.FIFFV_STIM_CH
             pick_mask[idx] = False
         chs.append(chan_info)
     edf_info['stim_channel'] = stim_channel
@@ -537,7 +540,12 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         elif highpass[0] == 'DC':
             info['highpass'] = 0.
         else:
-            info['highpass'] = float(highpass[0])
+            hp = highpass[0]
+            try:
+                hp = float(hp)
+            except Exception:
+                hp = 0.
+            info['highpass'] = hp
     else:
         info['highpass'] = float(np.max(highpass))
         warn('Channels contain different highpass filters. Highest filter '
@@ -598,12 +606,17 @@ def _read_edf_header(fname, annot, annotmap, exclude):
 
         header_nbytes = int(fid.read(8).decode())
 
-        subtype = fid.read(44).strip().decode()[:5]
-        if len(subtype) == 0:
-            subtype = os.path.splitext(fname)[1][1:].lower()
+        # The following 44 bytes sometimes identify the file type, but this is
+        # not guaranteed. Therefore, we skip this field and use the file
+        # extension to determine the subtype (EDF or BDF, which differ in the
+        # number of bytes they use for the data records; EDF uses 2 bytes
+        # whereas BDF uses 3 bytes).
+        fid.read(44)
+        subtype = os.path.splitext(fname)[1][1:].lower()
 
         n_records = int(fid.read(8).decode())
-        record_length = np.array([float(fid.read(8)), 1.])  # in seconds
+        record_length = fid.read(8).decode().strip('\x00').strip()
+        record_length = np.array([float(record_length), 1.])  # in seconds
         if record_length[0] == 0:
             record_length = record_length[0] = 1.
             warn('Header information is incorrect for record length. Default '
@@ -612,7 +625,7 @@ def _read_edf_header(fname, annot, annotmap, exclude):
         nchan = int(fid.read(4).decode())
         channels = list(range(nchan))
         ch_names = [fid.read(16).strip().decode() for ch in channels]
-        exclude = [ch_names.index(idx) for idx in exclude]
+        exclude = _find_exclude_idx(ch_names, exclude)
         for ch in channels:
             fid.read(80)  # transducer
         units = [fid.read(8).strip().decode() for ch in channels]
@@ -664,7 +677,7 @@ def _read_edf_header(fname, annot, annotmap, exclude):
         fid.seek(0, 2)
         n_bytes = fid.tell()
         n_data_bytes = n_bytes - header_nbytes
-        total_samps = (n_data_bytes // 3 if subtype == '24BIT'
+        total_samps = (n_data_bytes // 3 if subtype == 'bdf'
                        else n_data_bytes // 2)
         read_records = total_samps // np.sum(n_samps)
         if n_records != read_records:
@@ -673,7 +686,7 @@ def _read_edf_header(fname, annot, annotmap, exclude):
                  ' Inferring from the file size.')
             edf_info['n_records'] = n_records = read_records
 
-        if subtype in ('24BIT', 'bdf'):
+        if subtype == 'bdf':
             edf_info['dtype_byte'] = 3  # 24-bit (3 byte) integers
             edf_info['dtype_np'] = np.uint8
         else:
@@ -704,11 +717,11 @@ def _read_gdf_header(fname, stim_channel, exclude):
         edf_info['number'] = float(version[4:])
 
         # GDF 1.x
-        # ----------------------------------------------------------------------
+        # ---------------------------------------------------------------------
         if edf_info['number'] < 1.9:
 
             # patient ID
-            pid = fid.read(80).decode()
+            pid = fid.read(80).decode('latin-1')
             pid = pid.split(' ', 2)
             patient = {}
             if len(pid) >= 2:
@@ -746,12 +759,13 @@ def _read_gdf_header(fname, stim_channel, exclude):
                      'Default record length set to 1.')
             nchan = np.fromfile(fid, np.uint32, 1)[0]
             channels = list(range(nchan))
-            ch_names = [fid.read(16).decode().strip(' \x00')
+            ch_names = [fid.read(16).decode('latin-1').strip(' \x00')
                         for ch in channels]
             fid.seek(80 * len(channels), 1)  # transducer
-            units = [fid.read(8).decode().strip(' \x00') for ch in channels]
+            units = [fid.read(8).decode('latin-1').strip(' \x00')
+                     for ch in channels]
 
-            exclude = [ch_names.index(idx) for idx in exclude]
+            exclude = _find_exclude_idx(ch_names, exclude)
             include = list()
             for i, unit in enumerate(units):
                 if unit[:2] == 'uV':
@@ -800,7 +814,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
             assert fid.tell() == header_nbytes
 
             # Event table
-            # ------------------------------------------------------------------
+            # -----------------------------------------------------------------
             etp = header_nbytes + n_records * edf_info['bytes_tot']
             # skip data to go to event table
             fid.seek(etp)
@@ -824,7 +838,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 events = [n_events, pos, typ, chn, dur]
 
         # GDF 2.x
-        # ----------------------------------------------------------------------
+        # ---------------------------------------------------------------------
         else:
             # FIXED HEADER
             handedness = ('Unknown', 'Right', 'Left', 'Equal')
@@ -931,7 +945,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
             channels = list(range(nchan))
             ch_names = [fid.read(16).decode().strip(' \x00')
                         for ch in channels]
-            exclude = [ch_names.index(idx) for idx in exclude]
+            exclude = _find_exclude_idx(ch_names, exclude)
 
             fid.seek(80 * len(channels), 1)  # reserved space
             fid.seek(6 * len(channels), 1)  # phys_dim, obsolete
@@ -1020,7 +1034,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 record_length=record_length, ref=ref, units=units)
 
             # EVENT TABLE
-            # ------------------------------------------------------------------
+            # -----------------------------------------------------------------
             etp = edf_info['data_offset'] + edf_info['n_records'] * \
                 edf_info['bytes_tot']
             fid.seek(etp)  # skip data to go to event table
@@ -1151,8 +1165,17 @@ def _check_stim_channel(stim_channel, ch_names, include):
     return stim_channel
 
 
+def _find_exclude_idx(ch_names, exclude):
+    """Find the index of all channels to exclude.
+
+    If there are several channels called "A" and we want to exclude "A",
+    then add (the index of) all "A" channels to the exclusion list.
+    """
+    return [idx for idx, ch in enumerate(ch_names) if ch in exclude]
+
+
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
-                 stim_channel=True, annot=None, annotmap=None, exclude=(),
+                 stim_channel='auto', annot=None, annotmap=None, exclude=(),
                  preload=False, verbose=None):
     """Reader function for EDF+, BDF, GDF conversion to FIF.
 
@@ -1172,10 +1195,12 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
-    stim_channel : str | int | None
-        The channel name or channel index (starting at 0).
-        -1 corresponds to the last channel (default).
-        If None, there will be no stim channel added.
+    stim_channel : str | int | 'auto' | None
+        The channel name or channel index (starting at 0). -1 corresponds to
+        the last channel. If None, there will be no stim channel added. If
+        'auto' (default), the stim channel will be added as the last channel if
+        the header contains ``'EDF Annotations'`` or GDF events (otherwise stim
+        channel will not be added).
     annot : str | None
         Path to annotation file.
         If None, no derived stim channel will be added (for files requiring

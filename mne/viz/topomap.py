@@ -13,7 +13,6 @@ import copy
 from functools import partial
 import itertools
 from numbers import Integral
-import warnings
 
 import numpy as np
 
@@ -25,7 +24,7 @@ from ..utils import _clean_names, _time_mask, verbose, logger, warn
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
-                    _validate_if_list_of_axes, _setup_cmap)
+                    _validate_if_list_of_axes, _setup_cmap, _check_time_unit)
 from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
@@ -46,6 +45,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
     clean_ch_names = _clean_names(info['ch_names'])
     for ii, this_ch in enumerate(info['chs']):
         this_ch['ch_name'] = clean_ch_names[ii]
+    info['bads'] = _clean_names(info['bads'])
     info._update_redundant()
     info._check_consistency()
 
@@ -106,23 +106,46 @@ def _plot_update_evoked_topomap(params, bools):
     data = new_evoked.data[:, params['time_idx']] * params['scale']
     if params['merge_grads']:
         data = _merge_grad_data(data)
-    image_off = ~params['image_mask']
 
-    pos = np.asarray(params['pos'])[:, :2]
-    pos_x, pos_y = pos.T
-    interp = _GridData(pos)
-
-    xi = np.linspace(pos_x.min(), pos_x.max(), params['res'])
-    yi = np.linspace(pos_y.min(), pos_y.max(), params['res'])
-    Xi, Yi = np.meshgrid(xi, yi)
-    for ii, im in enumerate(params['images']):
-        Zi = interp.set_values(data[:, ii])(Xi, Yi)
-        Zi[image_off] = np.nan
+    interp = params['interp']
+    new_contours = list()
+    for cont, ax, im, d in zip(params['contours_'], params['axes'],
+                               params['images'], data.T):
+        Zi = interp.set_values(d)()
         im.set_data(Zi)
-    for cont in params['contours']:
-        cont.set_array(np.c_[Xi, Yi, Zi])
+        # must be removed and re-added
+        if len(cont.collections) > 0:
+            tp = cont.collections[0]
+            visible = tp.get_visible()
+            patch_ = tp.get_clip_path()
+            color = tp.get_color()
+            lw = tp.get_linewidth()
+        for tp in cont.collections:
+            tp.remove()
+        cont = ax.contour(interp.Xi, interp.Yi, Zi, params['contours'],
+                          colors=color, linewidths=lw)
+        for tp in cont.collections:
+            tp.set_visible(visible)
+            tp.set_clip_path(patch_)
+        new_contours.append(cont)
+    params['contours_'] = new_contours
 
     params['fig'].canvas.draw()
+
+
+def _add_colorbar(ax, im, cmap, side="right", pad=.05, title=None,
+                  format=None, size="5%"):
+    """Add a colorbar to an axis."""
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa: F401
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes(side, size=size, pad=pad)
+    cbar = plt.colorbar(im, cax=cax, cmap=cmap, format=format)
+    if cmap[1]:
+        ax.CB = DraggableColorbar(cbar, im)
+    if title is not None:
+        cax.set_title(title, y=1.05, fontsize=10)
+    return cbar, cax
 
 
 def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
@@ -200,7 +223,6 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     .. versionadded:: 0.9.0
     """
     import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
     from ..channels.layout import (_pair_grad_sensors_from_ch_names, Layout,
                                    _merge_grad_data)
     from ..channels import _get_ch_type
@@ -284,12 +306,10 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                           sensors=sensors, res=res, axes=axes[proj_idx],
                           outlines=outlines, contours=contours,
                           image_interp=image_interp, show=False)[0]
+
         if colorbar:
-            divider = make_axes_locatable(axes[proj_idx])
-            cax = divider.append_axes("right", size="5%", pad=0.05)
-            cbar = plt.colorbar(im, cax=cax, cmap=cmap)
-            if cmap[1]:
-                axes[proj_idx].CB = DraggableColorbar(cbar, im)
+            _add_colorbar(axes[proj_idx], im, cmap)
+
     tight_layout(fig=axes[0].get_figure())
     plt_show(show)
     return axes[0].get_figure()
@@ -432,8 +452,16 @@ class _GridData(object):
         self.interpolator = CloughTocher2DInterpolator(self.tri, v)
         return self
 
+    def set_locations(self, Xi, Yi):
+        """Set locations for easier (delayed) calling."""
+        self.Xi = Xi
+        self.Yi = Yi
+        return self
+
     def __call__(self, *args):
         """Evaluate the interpolator."""
+        if len(args) == 0:
+            args = [self.Xi, self.Yi]
         return self.interpolator(*args)
 
 
@@ -542,6 +570,17 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     cn : matplotlib.contour.ContourSet
         The fieldlines.
     """
+    return _plot_topomap(data, pos, vmin, vmax, cmap, sensors, res, axes,
+                         names, show_names, mask, mask_params, outlines,
+                         image_mask, contours, image_interp, show,
+                         head_pos, onselect)[:2]
+
+
+def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
+                  res=64, axes=None, names=None, show_names=False, mask=None,
+                  mask_params=None, outlines='head', image_mask=None,
+                  contours=6, image_interp='bilinear', show=True,
+                  head_pos=None, onselect=None):
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
@@ -555,7 +594,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         ch_type = set(channel_type(pos, idx)
                       for idx, _ in enumerate(pos["chs"]))
         info_help = ("Pick Info with e.g. mne.pick_info and "
-                     "mne.channels.channel_indices_by_type.")
+                     "mne.io.pick.channel_indices_by_type.")
         if len(ch_type) > 1:
             raise ValueError("Multiple channel types in Info structure. " +
                              info_help)
@@ -628,7 +667,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     xi = np.linspace(xmin, xmax, res)
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
-    Zi = _GridData(np.array((pos_x, pos_y)).T).set_values(data)(Xi, Yi)
+    interp = _GridData(np.array((pos_x, pos_y)).T).set_values(data)
+    Zi = interp.set_locations(Xi, Yi)()
 
     if outlines is None:
         _is_default_outlines = False
@@ -669,7 +709,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         cont = None  # can't make contours for constant-valued functions
     else:
         cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
-                          linewidths=linewidth)
+                          linewidths=linewidth / 2.)
     if no_contours and cont is not None:
         for col in cont.collections:
             col.set_visible(False)
@@ -723,7 +763,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     if onselect is not None:
         ax.RS = RectangleSelector(ax, onselect=onselect)
     plt_show(show)
-    return im, cont
+    return im, cont, interp
 
 
 def _make_image_mask(outlines, pos, res):
@@ -813,14 +853,10 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                       sensors=sensors, image_interp=image_interp,
                       show=show)[0]
     if colorbar:
-        import matplotlib.pyplot as plt
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
-        divider = make_axes_locatable(axes)
-        cax = divider.append_axes("right", size="5%", pad=0.05)
-        cbar = plt.colorbar(im, cax=cax, format='%3.2f', cmap=cmap)
+        cbar, cax = _add_colorbar(axes, im, cmap, pad=.05, title="AU",
+                                  format='%3.2f')
         cbar.ax.tick_params(labelsize=12)
         cbar.set_ticks((vmin_, vmax_))
-        cbar.ax.set_title('AU', fontsize=10)
     _hide_frame(axes)
 
 
@@ -830,7 +866,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         show=True, outlines='head', contours=6,
                         image_interp='bilinear', head_pos=None,
                         inst=None):
-    """Project unmixing matrix on interpolated sensor topogrpahy.
+    """Project unmixing matrix on interpolated sensor topography.
 
     Parameters
     ----------
@@ -916,11 +952,18 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     -------
     fig : instance of matplotlib.pyplot.Figure or list
         The figure object(s).
+
+    Notes
+    -----
+    When run in interactive mode, ``plot_ica_components`` allows to reject
+    components by clicking on their title label. The state of each component
+    is indicated by its label color (gray: rejected; black: retained). It is
+    also possible to open component properties by clicking on the component
+    topomap (this option is only available when the ``inst`` argument is
+    supplied).
     """
     from ..io import BaseRaw
     from ..epochs import BaseEpochs
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
     from ..channels import _get_ch_type
 
     if picks is None:  # plot components by sets of 20
@@ -971,9 +1014,10 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
 
     if merge_grads:
         from ..channels.layout import _merge_grad_data
+    titles = list()
     for ii, data_, ax in zip(picks, data, axes):
         kwargs = dict(color='gray') if ii in ica.exclude else dict()
-        ax.set_title(ica._ica_names[ii], fontsize=12, **kwargs)
+        titles.append(ax.set_title(ica._ica_names[ii], fontsize=12, **kwargs))
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, vmin, vmax)
         im = plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
@@ -983,26 +1027,47 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                           sensors=sensors)[0]
         im.axes.set_label(ica._ica_names[ii])
         if colorbar:
-            divider = make_axes_locatable(ax)
-            cax = divider.append_axes("right", size="5%", pad=0.05)
-            cbar = plt.colorbar(im, cax=cax, format='%3.2f', cmap=cmap)
+            cbar, cax = _add_colorbar(ax, im, cmap, title="AU",
+                                      side="right", pad=.05, format='%3.2f')
             cbar.ax.tick_params(labelsize=12)
             cbar.set_ticks((vmin_, vmax_))
-            cbar.ax.set_title('AU', fontsize=10)
-            if cmap[1]:
-                ax.CB = DraggableColorbar(cbar, im)
         _hide_frame(ax)
     tight_layout(fig=fig)
-    fig.subplots_adjust(top=0.95)
+    fig.subplots_adjust(top=0.88, bottom=0.)
     fig.canvas.draw()
+
+    # add title selection interactivity
+    def onclick_title(event, ica=ica, titles=titles):
+        # check if any title was pressed
+        title_pressed = None
+        for title in titles:
+            if title.contains(event)[0]:
+                title_pressed = title
+                break
+        # title was pressed -> identify the IC
+        if title_pressed is not None:
+            label = title_pressed.get_text()
+            ic = int(label[-3:])
+            # add or remove IC from exclude depending on current state
+            if ic in ica.exclude:
+                ica.exclude.remove(ic)
+                title_pressed.set_color('k')
+            else:
+                ica.exclude.append(ic)
+                title_pressed.set_color('gray')
+            fig.canvas.draw()
+    fig.canvas.mpl_connect('button_press_event', onclick_title)
+
+    # add plot_properties interactivity only if inst was passed
     if isinstance(inst, (BaseRaw, BaseEpochs)):
-        def onclick(event, ica=ica, inst=inst):
+        def onclick_topo(event, ica=ica, inst=inst):
             # check which component to plot
-            label = event.inaxes.get_label()
-            if label.startswith('ICA'):
-                ic = int(label[-3:])
-                ica.plot_properties(inst, picks=ic, show=True)
-        fig.canvas.mpl_connect('button_press_event', onclick)
+            if event.inaxes is not None:
+                label = event.inaxes.get_label()
+                if label.startswith('ICA'):
+                    ic = int(label[-3:])
+                    ica.plot_properties(inst, picks=ic, show=True)
+        fig.canvas.mpl_connect('button_press_event', onclick_topo)
 
     plt_show(show)
     return fig
@@ -1139,7 +1204,6 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     from ..channels import _get_ch_type
     ch_type = _get_ch_type(tfr, ch_type)
     import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
 
     picks, pos, merge_grads, names, _ = _prepare_topo_plot(tfr, ch_type,
                                                            layout)
@@ -1197,6 +1261,9 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                                  ifmax=ifmax, cmap=cmap[0], fig=fig_wrapper,
                                  layout=layout)
 
+    if not isinstance(contours, (list, np.ndarray)):
+        _, contours = _set_contour_locator(vmin, vmax, contours)
+
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
                          axes=ax, cmap=cmap[0], image_interp='bilinear',
                          contours=contours, names=names, show_names=show_names,
@@ -1206,18 +1273,13 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     if colorbar:
         from matplotlib import ticker
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.05)
-        cbar = plt.colorbar(im, cax=cax, format=cbar_fmt, cmap=cmap[0])
+        unit = _handle_default('units', unit)['misc']
+        cbar, cax = _add_colorbar(ax, im, cmap, title=unit, format=cbar_fmt)
         if locator is None:
             locator = ticker.MaxNLocator(nbins=5)
         cbar.locator = locator
         cbar.update_ticks()
         cbar.ax.tick_params(labelsize=12)
-        unit = _handle_default('units', unit)['misc']
-        cbar.ax.set_title(unit)
-        if cmap[1]:
-            ax.CB = DraggableColorbar(cbar, im)
 
     plt_show(show)
     return fig
@@ -1225,10 +1287,10 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
 def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         vmin=None, vmax=None, cmap=None, sensors=True,
-                        colorbar=None, scalings=None, scaling_time=1e3,
+                        colorbar=None, scalings=None, scaling_time=None,
                         units=None, res=64, size=1, cbar_fmt='%3.1f',
-                        time_format='%01d ms', proj=False, show=True,
-                        show_names=False, title=None, mask=None,
+                        time_unit=None, time_format=None, proj=False,
+                        show=True, show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
                         image_interp='bilinear', average=None, head_pos=None,
                         axes=None):
@@ -1292,7 +1354,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         The scalings of the channel types to be applied for plotting.
         If None, defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
     scaling_time : float | None
-        Scale the time labels. Defaults to 1e3 (ms).
+        Deprecated and will be removed in 0.17. Use time_unit instead.
     units : dict | str | None
         The unit of the channel type used for colorbar label. If
         scale is None the unit is automatically determined.
@@ -1302,8 +1364,15 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         Side length per topomap in inches.
     cbar_fmt : str
         String format for colorbar values.
-    time_format : str
-        String format for topomap values. Defaults to "%01d ms"
+    time_unit : str
+        The units for the time axis, can be "ms" (default in 0.16)
+        or "s" (will become the default in 0.17).
+
+        .. versionadded:: 0.16
+    time_format : str | None
+        String format for topomap values. Defaults (None) to "%01d ms" if
+        ``scaling_time=1e3``, "%0.3f s" if ``scaling_time=1.``, and
+        "%g" otherwise.
     proj : bool | 'interactive'
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
@@ -1373,11 +1442,27 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     """
     from ..channels import _get_ch_type
     from ..channels.layout import _merge_grad_data
-    ch_type = _get_ch_type(evoked, ch_type)
     import matplotlib.pyplot as plt
     from matplotlib import gridspec
     from matplotlib.widgets import Slider
-    from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa: F401
+    ch_type = _get_ch_type(evoked, ch_type)
+
+    if scaling_time is not None:
+        warn('scaling_time is deprecated and will be removed in 0.17, use '
+             'time_unit instead', DeprecationWarning)
+        scaling_time = float(scaling_time)
+        if scaling_time == 1e3:
+            time_unit = 'ms'
+        elif scaling_time == 1:
+            time_unit = 's'
+        else:
+            raise ValueError('scaling_time can only be 1. or 1e3, got %s'
+                             % (scaling_time,))
+    time_unit, _ = _check_time_unit(time_unit, evoked.times, allow_none=True)
+    scaling_time = 1. if time_unit == 's' else 1e3
+    if time_format is None:
+        time_format = '%0.3f s' if time_unit == 's' else '%01d ms'
+    del time_unit
 
     if colorbar is None:
         colorbar = True
@@ -1397,11 +1482,10 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     else:
         data = evoked.data
 
-    evoked = evoked.copy().pick_channels(
-        [evoked.ch_names[pick] for pick in picks])
+    # Skip comps check here by using private function
+    evoked = evoked.copy()._pick_drop_channels(picks, check_comps=False)
 
-    with warnings.catch_warnings(record=True):  # elementwise comparison
-        interactive = times == 'interactive'
+    interactive = isinstance(times, string_types) and times == 'interactive'
     if axes is not None:
         if isinstance(axes, plt.Axes):
             axes = [axes]
@@ -1515,9 +1599,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                   outlines=outlines, image_mask=image_mask, contours=contours,
                   image_interp=image_interp, show=False)
     for idx, time in enumerate(times):
-        tp, cn = plot_topomap(data[:, idx], pos, axes=axes[idx],
-                              mask=mask_[:, idx] if mask is not None else None,
-                              **kwargs)
+        tp, cn, interp = _plot_topomap(
+            data[:, idx], pos, axes=axes[idx],
+            mask=mask_[:, idx] if mask is not None else None, **kwargs)
 
         images.append(tp)
         if cn is not None:
@@ -1560,12 +1644,12 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
 
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
-        params = dict(evoked=evoked, fig=fig, projs=evoked.info['projs'],
-                      picks=picks, images=images, contours=contours_,
-                      time_idx=time_idx, merge_grads=merge_grads,
-                      res=res, pos=pos, image_mask=image_mask,
-                      plot_update_proj_callback=_plot_update_evoked_topomap,
-                      scale=scaling)
+        params = dict(
+            evoked=evoked, fig=fig, projs=evoked.info['projs'], picks=picks,
+            images=images, contours_=contours_, pos=pos, time_idx=time_idx,
+            res=res, plot_update_proj_callback=_plot_update_evoked_topomap,
+            merge_grads=merge_grads, scale=scaling, axes=axes,
+            contours=contours, interp=interp)
         _draw_proj_checkbox(None, params)
 
     plt_show(show)
@@ -1601,9 +1685,6 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
                              vmax=None, cmap=None, outlines='head',
                              colorbar=False, cbar_fmt='%3.3f'):
     """Plot topomap multi cbar."""
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
-
     _hide_frame(ax)
     vmin = np.min(data) if vmin is None else vmin
     vmax = np.max(data) if vmax is None else vmax
@@ -1616,15 +1697,12 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
                          outlines=outlines, show=False)
 
     if colorbar is True:
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="10%", pad=0.25)
-        cbar = plt.colorbar(im, cax=cax, format=cbar_fmt)
+        cbar, cax = _add_colorbar(ax, im, cmap, pad=.25, title=None,
+                                  size="10%", format=cbar_fmt)
         cbar.set_ticks((vmin, vmax))
         if unit is not None:
             cbar.ax.set_title(unit, fontsize=8)
         cbar.ax.tick_params(labelsize=8)
-        if cmap[1]:
-            ax.CB = DraggableColorbar(cbar, im)
 
 
 @verbose
@@ -2094,7 +2172,10 @@ def _animate(frame, ax, ax_line, params):
         frame = params['frame']
     time_idx = params['frames'][frame]
 
-    title = '%6.0f ms' % (params['times'][frame] * 1e3)
+    if params['time_unit'] == 'ms':
+        title = '%6.0f ms' % (params['times'][frame] * 1e3,)
+    else:
+        title = '%6.3f s' % (params['times'][frame],)
     if params['blit']:
         text = params['text']
     else:
@@ -2155,7 +2236,7 @@ def _key_press(event, params):
 
 
 def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
-                       butterfly=False, blit=True, show=True):
+                       butterfly=False, blit=True, show=True, time_unit=None):
     """Make animation of evoked data as topomap timeseries.
 
     Animation can be paused/resumed with left mouse button.
@@ -2186,6 +2267,9 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
         disabled. Defaults to True.
     show : bool
         Whether to show the animation. Defaults to True.
+    time_unit : str
+        The units for the time axis, can be "ms" (default in 0.16)
+        or "s" (will become the default in 0.17).
 
     Returns
     -------
@@ -2204,6 +2288,7 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
     if ch_type not in ('mag', 'grad', 'eeg'):
         raise ValueError("Channel type not supported. Supported channel "
                          "types include 'mag', 'grad' and 'eeg'.")
+    time_unit, _ = _check_time_unit(time_unit, evoked.times, allow_none=True)
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
     times = np.array(times)
@@ -2234,9 +2319,9 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
     ax_cbar = plt.axes([0.85, 0.1, 0.05, 0.8])
     ax_cbar.set_title(_handle_default('units')[ch_type], fontsize=10)
 
-    params = {'data': data, 'pos': pos, 'all_times': evoked.times, 'frame': 0,
-              'frames': frames, 'butterfly': butterfly, 'blit': blit,
-              'pause': False, 'times': times}
+    params = dict(data=data, pos=pos, all_times=evoked.times, frame=0,
+                  frames=frames, butterfly=butterfly, blit=blit,
+                  pause=False, times=times, time_unit=time_unit)
     init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
                         params=params, merge_grads=merge_grads)
     animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)

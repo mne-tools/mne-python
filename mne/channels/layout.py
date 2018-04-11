@@ -650,7 +650,8 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
     locs3d = np.array([ch['loc'][:3] for ch in chs])
 
     # If electrode locations are not available, use digization points
-    if len(locs3d) == 0 or np.allclose(locs3d, 0):
+    if len(locs3d) == 0 or (~np.isfinite(locs3d)).all() or \
+            np.allclose(locs3d, 0.):
         logging.warning('Did not find any electrode locations the info, '
                         'will attempt to use digitization points instead. '
                         'However, if digitization points do not correspond to '
@@ -705,9 +706,9 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
             for elec_i in squareform(dist < 1e-10).any(axis=0).nonzero()[0]
         ]
 
-        raise ValueError('The following electrodes have overlapping positions:'
-                         '\n    ' + str(problematic_electrodes) + '\nThis '
-                         'causes problems during visualization.')
+        raise ValueError('The following electrodes have overlapping positions,'
+                         ' which causes problems during visualization:\n' +
+                         ', '.join(problematic_electrodes))
 
     if to_sphere:
         # use spherical (theta, pol) as (r, theta) for polar->cartesian
@@ -913,8 +914,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
     -----
     .. versionadded:: 0.9.0
     """
-    from scipy.ndimage import imread
-
+    import matplotlib.pyplot as plt
     if ch_indices is None:
         ch_indices = np.arange(xy.shape[0])
     if ch_names is None:
@@ -930,10 +930,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
     # Normalize xy to 0-1
     if bg_image is not None:
         # Normalize by image dimensions
-        if isinstance(bg_image, str):
-            img = imread(bg_image)
-        else:
-            img = bg_image
+        img = plt.imread(bg_image) if isinstance(bg_image, str) else bg_image
         x /= img.shape[1]
         y /= img.shape[0]
     elif normalize:

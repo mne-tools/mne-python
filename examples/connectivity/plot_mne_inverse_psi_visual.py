@@ -40,12 +40,12 @@ fname_raw = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 fname_event = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 fname_label = data_path + '/MEG/sample/labels/Vis-lh.label'
 
-event_id, tmin, tmax = 4, -0.2, 0.3
+event_id, tmin, tmax = 4, -0.2, 0.5
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 
 # Load data
 inverse_operator = read_inverse_operator(fname_inv)
-raw = mne.io.read_raw_fif(fname_raw)
+raw = mne.io.read_raw_fif(fname_raw, preload=True)
 events = mne.read_events(fname_event)
 
 # pick MEG channels
@@ -88,12 +88,12 @@ n_signals_tot = 1 + len(vertices[0]) + len(vertices[1])
 
 indices = seed_target_indices([0], np.arange(1, n_signals_tot))
 
-# Compute the PSI in the frequency range 8Hz..30Hz. We exclude the baseline
-# period from the connectivity estimation
-fmin = 8.
-fmax = 30.
+# Compute the PSI in the frequency range 10Hz-20Hz. We exclude the baseline
+# period from the connectivity estimation.
+fmin = 10.
+fmax = 20.
 tmin_con = 0.
-sfreq = raw.info['sfreq']  # the sampling frequency
+sfreq = epochs.info['sfreq']  # the sampling frequency
 
 psi, freqs, times, n_epochs, _ = phase_slope_index(
     comb_ts, mode='multitaper', indices=indices, sfreq=sfreq,

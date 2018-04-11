@@ -39,8 +39,9 @@ import numpy as np
 from scipy import linalg
 import itertools
 
-from .io.pick import pick_types, pick_channels
+from .io.pick import pick_types, pick_channels, pick_channels_regexp
 from .io.constants import FIFF
+from .io.ctf.trans import _make_ctf_coord_trans_set
 from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
                       _concatenate_coils, _read_coil_defs)
 from .cov import make_ad_hoc_cov, compute_whitener
@@ -149,39 +150,153 @@ def head_pos_to_trans_rot_t(quats):
     return translation, rotation, t
 
 
+def _apply_quat(quat, pts, move=True):
+    """Apply MaxFilter-formatted head position parameters to points."""
+    trans = np.concatenate(
+        (quat_to_rot(quat[:3]),
+         quat[3:][:, np.newaxis]), axis=1)
+
+    return(apply_trans(trans, pts, move=move))
+
+
+def _calculate_head_pos_ctf(raw, gof_limit=0.98):
+    r"""Extract head position parameters from ctf dataset.
+
+    Parameters
+    ----------
+    raw : instance of raw
+        Raw data with cHPI information. HLC00 channels
+    gof_limit : float
+        Minimum goodness of fit to accept.
+
+    Returns
+    -------
+    pos : array, shape (N, 10)
+        The position and quaternion parameters from cHPI fitting.
+
+    Notes
+    -----
+    CTF continuous head monitoring stores the x,y,z location (m) of each chpi
+    coil as separate channels in the dataset.
+    HLC001[123]-\\* - nasion
+    HLC002[123]-\\* - lpa
+    HLC003[123]-\\* - rpa
+    """
+    # Pick channels cooresponding to the cHPI positions
+    hpi_picks = pick_channels_regexp(raw.info['ch_names'],
+                                     'HLC00[123][123]-.*')
+
+    # make sure we get 9 channels
+    if len(hpi_picks) != 9:
+        raise RuntimeError('Could not find all 9 cHPI channels')
+
+    # get indices in alphabetical order
+    sorted_picks = np.array(sorted(hpi_picks,
+                                   key=lambda k: raw.info['ch_names'][k]))
+
+    # make picks to match order of dig cardinial ident codes.
+    # LPA (HPIC002[123]-*), NAS(HPIC001[123]-*), RPA(HPIC003[123]-*)
+    hpi_picks = sorted_picks[[3, 4, 5, 0, 1, 2, 6, 7, 8]]
+    del sorted_picks
+
+    # process the entire run
+    time_sl = slice(0, len(raw.times))
+    chpi_data = raw[hpi_picks, time_sl][0]
+
+    # grab initial cHPI locations
+    # point sorted in hpi_results are in mne device coords
+    chpi_locs_dev = sorted([d for d in raw.info['hpi_results'][-1]
+                            ['dig_points']], key=lambda x: x['ident'])
+    chpi_locs_dev = np.array([d['r'] for d in chpi_locs_dev])
+
+    # transforms
+    dev_head_t = raw.info['dev_head_t']
+    tmp_trans = _make_ctf_coord_trans_set(None, None)
+    ctf_dev_dev_t = tmp_trans['t_ctf_dev_dev']
+    del tmp_trans
+
+    # move to head coords
+    chpi_locs_head = apply_trans(dev_head_t, chpi_locs_dev)
+
+    # find indices where chpi locations change
+    indices = [0]
+    indices.extend(np.where(np.all(chpi_data[:, :-1] != chpi_data[:, 1:],
+                            axis=0))[0] + 1)
+
+    # initialized quaternion
+    last_quat = np.concatenate([rot_to_quat(dev_head_t['trans'][:3, :3]),
+                                dev_head_t['trans'][:3, 3]])
+
+    quats = []
+    for idx in indices:
+        # data in channels are in ctf device coordinates (cm)
+        this_ctf_dev = chpi_data[:, idx].reshape(3, 3)  # m
+
+        # map to mne device coords
+        this_dev = apply_trans(ctf_dev_dev_t, this_ctf_dev)
+
+        # fit quaternion
+        this_quat, g = _fit_chpi_quat(this_dev, chpi_locs_head, last_quat)
+        if g < gof_limit:
+            raise RuntimeError('Bad coil fit! (g=%7.3f)' % (g,))
+
+        if (idx > 0):
+            dt = float(raw.times[idx] - raw.times[idx - 1])
+        else:
+            dt = 0.001
+
+        this_locs_head = _apply_quat(this_quat, this_dev, move=True)
+        errs = 1000. * np.sqrt(((chpi_locs_head -
+                                 this_locs_head) ** 2).sum(axis=-1))
+        e = errs.mean() / 1000.  # mm -> m
+        d = 100 * np.sqrt(np.sum(last_quat[3:] - this_quat[3:]) ** 2)  # cm
+        v = d / dt  # cm/sec
+
+        quats.append(np.concatenate(([raw.times[idx]], this_quat, [g],
+                                     [e * 100], [v])))  # e in centimeters
+        last_quat = this_quat
+
+    quats = np.array(quats, np.float64)
+    quats = np.zeros((0, 10)) if quats.size == 0 else quats
+    return quats
+
+
+# ############################################################################
+# Estimate positions from data
 @verbose
 def _get_hpi_info(info, verbose=None):
     """Get HPI information from raw."""
     if len(info['hpi_meas']) == 0 or \
             ('coil_freq' not in info['hpi_meas'][0]['hpi_coils'][0]):
         raise RuntimeError('Appropriate cHPI information not found in'
-                           'raw.info["hpi_meas"], cannot process cHPI')
+                           'info["hpi_meas"] and info["hpi_subsystem"], '
+                           'cannot process cHPI')
     hpi_coils = sorted(info['hpi_meas'][-1]['hpi_coils'],
                        key=lambda x: x['number'])  # ascending (info) order
-
-    # how cHPI active is indicated in the FIF file
-    hpi_sub = info['hpi_subsystem']
-    if 'event_channel' in hpi_sub:
-        hpi_pick = pick_channels(info['ch_names'],
-                                 [hpi_sub['event_channel']])
-        hpi_pick = hpi_pick[0] if len(hpi_pick) > 0 else None
-    else:
-        hpi_pick = None  # there is no pick!
-
-    # grab codes indicating a coil is active
-    hpi_on = [coil['event_bits'][0] for coil in hpi_sub['hpi_coils']]
-    # not all HPI coils will actually be used
-    hpi_on = np.array([hpi_on[hc['number'] - 1] for hc in hpi_coils])
 
     # get frequencies
     hpi_freqs = np.array([float(x['coil_freq']) for x in hpi_coils])
     logger.info('Using %s HPI coils: %s Hz'
                 % (len(hpi_freqs), ' '.join(str(int(s)) for s in hpi_freqs)))
 
-    # mask for coils that may be active
-    hpi_mask = np.array([event_bit != 0 for event_bit in hpi_on])
-    hpi_on = hpi_on[hpi_mask]
-    hpi_freqs = hpi_freqs[hpi_mask]
+    # how cHPI active is indicated in the FIF file
+    hpi_sub = info['hpi_subsystem']
+    hpi_pick = None  # there is no pick!
+    if hpi_sub is not None:
+        if 'event_channel' in hpi_sub:
+            hpi_pick = pick_channels(info['ch_names'],
+                                     [hpi_sub['event_channel']])
+            hpi_pick = hpi_pick[0] if len(hpi_pick) > 0 else None
+        # grab codes indicating a coil is active
+        hpi_on = [coil['event_bits'][0] for coil in hpi_sub['hpi_coils']]
+        # not all HPI coils will actually be used
+        hpi_on = np.array([hpi_on[hc['number'] - 1] for hc in hpi_coils])
+        # mask for coils that may be active
+        hpi_mask = np.array([event_bit != 0 for event_bit in hpi_on])
+        hpi_on = hpi_on[hpi_mask]
+        hpi_freqs = hpi_freqs[hpi_mask]
+    else:
+        hpi_on = np.zeros(len(hpi_freqs))
 
     return hpi_freqs, hpi_pick, hpi_on
 
@@ -431,14 +546,10 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
         The sin amplitudes matching each cHPI frequency
             or None if this time window should be skipped
     """
+    # No need to detrend the data because our model has a DC term
     with use_log_level(False):
         # loads good channels
-        meg_chpi_data = raw[hpi['meg_picks'], time_sl][0]
-
-    mchpi_data = np.tile(np.mean(meg_chpi_data, axis=1, keepdims=True),
-                         (1, meg_chpi_data.shape[1]))
-    mchpi_data = mchpi_data.reshape(meg_chpi_data.shape)
-    this_data = meg_chpi_data - mchpi_data
+        this_data = raw[hpi['meg_picks'], time_sl][0]
 
     # which HPI coils to use
     # other then erroring I don't see this getting used elsewhere?
@@ -473,18 +584,27 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
                                  full_matrices=False)
         # the first component holds the predominant phase direction
         # (so ignore the second, effectively doing s[1] = 0):
-        X[[fi, fi + n_freqs], :] = np.outer(u[:, 0] * s[0], vt[0])
         sin_fit[fi, :] = vt[0]
+        # Do not modify X, however, because it will break the signal
+        # reconstruction step.
 
-    data_diff = np.dot(model, X).T - this_data
+    data_diff_sq = np.dot(model, X).T - this_data
+    data_diff_sq *= data_diff_sq
+    data_diff_sq = np.sum(data_diff_sq, axis=-1)
 
-    # compute amplitude correlation (For logging)
-    g_sin = 1 - np.sqrt((data_diff**2).sum() / (this_data**2).sum())
-    g_chan = 1 - np.sqrt((data_diff**2).sum(axis=1) /
-                         (this_data**2).sum(axis=1))
+    # compute amplitude correlation (for logging), protect against zero
+    norm = this_data
+    del this_data
+    norm *= norm
+    norm = np.sum(norm, axis=-1)
+    norm_sum = norm.sum()
+    norm_sum = np.inf if norm_sum == 0 else norm_sum
+    norm[norm == 0] = np.inf
+    g_sin = 1 - data_diff_sq.sum() / norm_sum
+    g_chan = 1 - data_diff_sq / norm
     logger.debug('    HPI amplitude correlation %0.3f: %0.3f '
-                 '(%s chnls > 0.90)' % (fit_time, g_sin,
-                                        (g_chan > 0.90).sum()))
+                 '(%s chnls > 0.95)' % (fit_time, g_sin,
+                                        (g_chan > 0.95).sum()))
 
     return sin_fit
 
@@ -646,6 +766,9 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
 
         # check if data has sufficiently changed
         if last['sin_fit'] is not None:  # first iteration
+            # The sign of our fits is arbitrary
+            flips = np.sign((sin_fit * last['sin_fit']).sum(-1, keepdims=True))
+            sin_fit *= flips
             corr = np.corrcoef(sin_fit.ravel(), last['sin_fit'].ravel())[0, 1]
             # check to see if we need to continue
             if fit_time - last['fit_time'] <= t_step_max - 1e-7 and \

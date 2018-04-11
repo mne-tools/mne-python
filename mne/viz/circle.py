@@ -134,9 +134,6 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                              node_linewidth=2., show=True):
     """Visualize connectivity as a circular graph.
 
-    Note: This code is based on the circle graph example by Nicolas P. Rougier
-    http://www.labri.fr/perso/nrougier/coding/.
-
     Parameters
     ----------
     con : array
@@ -212,6 +209,20 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         The figure handle.
     axes : instance of matplotlib.axes.PolarAxesSubplot
         The subplot handle.
+
+    Notes
+    -----
+    This code is based on the circle graph example by Nicolas P. Rougier
+    http://www.labri.fr/perso/nrougier/coding/.
+
+    By default, :func:`matplotlib.pyplot.savefig` does not take ``facecolor``
+    into account when saving, even if set when a figure is generated. This
+    can be addressed via, e.g.::
+
+    >>> fig.savefig(fname_fig, facecolor='black') # doctest:+SKIP
+
+    If ``facecolor`` is not set via :func:`matplotlib.pyplot.savefig`, the
+    figure labels, title, and legend may be cut off in the output figure.
     """
     import matplotlib.pyplot as plt
     import matplotlib.path as m_path
@@ -242,7 +253,11 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
             node_colors = cycle(node_colors)
     else:
         # assign colors using colormap
-        node_colors = [plt.cm.spectral(i / float(n_nodes))
+        try:
+            spectral = plt.cm.spectral
+        except AttributeError:
+            spectral = plt.cm.Spectral
+        node_colors = [spectral(i / float(n_nodes))
                        for i in range(n_nodes)]
 
     # handle 1D and 2D connectivity information

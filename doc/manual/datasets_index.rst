@@ -79,7 +79,7 @@ The `SPM faces dataset`_ contains EEG, MEG and fMRI recordings on face perceptio
 
 .. topic:: Examples
 
-    * :ref:`sphx_glr_auto_examples_datasets_plot_spm_faces_dataset.py` Full pipeline including artifact removal, epochs averaging, forward model computation and source reconstruction using dSPM on the contrast: "faces - scrambled".
+    * :ref:`sphx_glr_auto_examples_datasets_spm_faces_dataset.py` Full pipeline including artifact removal, epochs averaging, forward model computation and source reconstruction using dSPM on the contrast: "faces - scrambled".
 
 EEGBCI motor imagery
 ====================
@@ -172,7 +172,7 @@ More details and a description of the package can be found in [5]_.
 
 .. topic:: Examples
 
-    * :ref:`Receptive Field Estimation and Prediction <sphx_glr_auto_examples_decoding_plot_receptive_field.py>`: Partially replicates the results from Crosse et al. (2016).
+    * :ref:`Receptive Field Estimation and Prediction <sphx_glr_auto_examples_decoding_plot_receptive_field_mtrf.py>`: Partially replicates the results from Crosse et al. (2016).
 
 Miscellaneous Datasets
 ======================
@@ -203,6 +203,14 @@ Kiloword dataset
 This dataset consists of averaged EEG data from 75 subjects performing a lexical decision
 task on 960 English words [6]_. The words are richly annotated, and can be used for e.g.
 multiple regression estimation of EEG correlates of printed word processing.
+
+
+4D Neuroimaging / BTi dataset
+=============================
+:func:`mne.datasets.phantom_4dbti.data_path`.
+
+This dataset was obtained with a phantom on a 4D Neuroimaging / BTi system at the MEG
+center in La Timone hospital in Marseille.
 
 References
 ==========

@@ -16,14 +16,14 @@ import copy
 import numpy as np
 
 from ..utils import verbose, get_config, set_config, logger, warn
-from ..io.pick import pick_types, channel_type
-from ..io.proj import setup_proj
+from ..io.pick import pick_types, channel_type, _get_channel_types
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
-                    _plot_raw_onscroll, _onclick_help, plt_show,
+                    _plot_raw_onscroll, _onclick_help, plt_show, _check_cov,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
-                    _grad_pair_pick_and_name, _handle_decim)
+                    _grad_pair_pick_and_name, _handle_decim,
+                    _setup_plot_projector, _set_ax_label_style)
 from .misc import _handle_event_colors
 from ..defaults import _handle_default
 from ..externals.six import string_types
@@ -160,10 +160,15 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         group_by = "type"
         combine = "gfp"
 
+    if combine is not None:
+        ts_args["show_sensors"] = False
+
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
         if group_by is None:
+            logger.info("No picks and no groupby, showing the first five "
+                        "channels ...")
             picks = picks[:5]  # take 5 picks to prevent spawning many figs
     else:
         picks = np.atleast_1d(picks)
@@ -181,11 +186,10 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     if set(units.keys()) != set(scalings.keys()):
         raise ValueError('Scalings and units must have the same keys.')
 
-    ch_types = [channel_type(epochs.info, idx) for idx in picks]
+    ch_types = _get_channel_types(epochs.info, picks=picks, unique=False)
     if len(set(ch_types)) > 1 and group_by is None and combine is not None:
-        warn("Combining over multiple channel types. "
-             "Please use ``group_by``.")
-    for ch_type in ch_types:
+        warn("Combining over multiple channel types. Please use `group_by`.")
+    for ch_type in set(ch_types):
         if ch_type not in scalings:
             # We know it's not in either scalings or units since keys match
             raise KeyError('%s type not in scalings and units' % ch_type)
@@ -217,8 +221,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     # be length 1 if combine is None, else of length > 1.
 
     # combine/construct list for plotting
-    groups = _pick_and_combine(
-        epochs, combine, all_picks, all_ch_types, scalings, names)
+    groups = _pick_and_combine(epochs, combine, all_picks, all_ch_types, names)
     # each entry of groups is: (data, ch_type, evoked, name)
 
     # prepare the image - required for uniform vlims
@@ -265,16 +268,19 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         for group, axes_dict in zip(groups, axes_list):
             ch_type = group[1]
             ax = axes_dict["evoked"]
+            this_ymin, this_ymax = these_ylims = ylims[ch_type]
+            ax.set_ylim(these_ylims)
+            yticks = np.array(ax.get_yticks())
+            max_height = yticks[yticks < this_ymax][-1]
             if not manual_ylims:
-                ax.set_ylim(ylims[ch_type])
+                ax.spines["left"].set_bounds(this_ymin, max_height)
             if len(vlines) > 0:
-                upper_v, lower_v = ylims[ch_type]
                 if overlay_times is not None:
                     overlay = {overlay_times.mean(), np.median(overlay_times)}
                 else:
                     overlay = {}
                 for line in vlines:
-                    ax.vlines(line, upper_v, lower_v, colors='k',
+                    ax.vlines(line, this_ymin, max_height, colors='k',
                               linestyles='-' if line in overlay else "--",
                               linewidth=2. if line in overlay else 1.)
 
@@ -319,8 +325,7 @@ def _get_picks_and_types(picks, ch_types, group_by, combine):
     return all_picks, all_ch_types, names  # all_picks is a list of lists
 
 
-def _pick_and_combine(epochs, combine, all_picks, all_ch_types, scalings,
-                      names):
+def _pick_and_combine(epochs, combine, all_picks, all_ch_types, names):
     """Pick and combine epochs image. Helper for plot_epochs_image."""
     to_plot_list = list()
     tmin = epochs.times[0]
@@ -374,9 +379,8 @@ def _pick_and_combine(epochs, combine, all_picks, all_ch_types, scalings,
             this_data = combine(
                 data[:, picks_, :])[:, np.newaxis, :]
         info = pick_info(epochs.info, [picks_[0]], copy=True)
+        info['projs'] = []
         these_epochs = EpochsArray(this_data.copy(), info, tmin=tmin)
-        d = these_epochs.get_data()  # Why is this necessary?
-        d[:] = this_data  # Without this, the data is all-zeros!
         to_plot_list.append([these_epochs, ch_type, name,
                              type2name.get(name, name) + combine_title])
 
@@ -441,6 +445,22 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
             ts_args_]
 
 
+def _make_epochs_image_axis_grid(axes_dict=dict(), colorbar=False,
+                                 evoked=False):
+    """Create axes for image plotting. Helper for plot_epochs_image."""
+    import matplotlib.pyplot as plt
+    axes_dict["image"] = axes_dict.get("image", plt.subplot2grid(
+        (3, 10), (0, 0), colspan=9 if colorbar else 10,
+        rowspan=2 if evoked else 3))
+    if evoked:
+        axes_dict["evoked"] = plt.subplot2grid(
+            (3, 10), (2, 0), colspan=9 if colorbar else 10, rowspan=1)
+    if colorbar:
+        axes_dict["colorbar"] = plt.subplot2grid(
+            (3, 10), (0, 9), colspan=1, rowspan=2 if evoked else 3)
+    return axes_dict
+
+
 def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
     """Prepare axes for image plotting. Helper for plot_epochs_image."""
     import matplotlib.pyplot as plt
@@ -450,15 +470,8 @@ def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
         if fig is None:
             fig = plt.figure()
         plt.figure(fig.number)
-        axes_dict["image"] = plt.subplot2grid(
-            (3, 10), (0, 0), colspan=9 if colorbar else 10,
-            rowspan=2 if evoked else 3)
-        if evoked:
-            axes_dict["evoked"] = plt.subplot2grid(
-                (3, 10), (2, 0), colspan=9 if colorbar else 10, rowspan=1)
-        if colorbar:
-            axes_dict["colorbar"] = plt.subplot2grid((3, 10), (0, 9),
-                                                     colspan=1, rowspan=3)
+        axes_dict = _make_epochs_image_axis_grid(
+            axes_dict, colorbar, evoked)
     else:
         if fig is not None:
             raise ValueError('Both figure and axes were passed, please'
@@ -683,7 +696,7 @@ def _epochs_axes_onclick(event, params):
 
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_colors=None, show=True,
-                block=False, decim='auto'):
+                block=False, decim='auto', noise_cov=None):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -706,7 +719,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         a subset of epochs up to 100mb will be loaded. If None, defaults to::
 
             dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
-                 emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)
+                 emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4,
+                 whitened=10.)
 
     n_epochs : int
         The number of epochs per view. Defaults to 20.
@@ -747,7 +761,19 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         larger than ``info['lowpass']`` (e.g., a 40 Hz lowpass will result in
         at least a 120 Hz displayed sample rate).
 
-        .. versionadded:: 0.15
+        .. versionadded:: 0.15.0
+    noise_cov : instance of Covariance | str | None
+        Noise covariance used to whiten the data while plotting.
+        Whitened data channels are scaled by ``scalings['whitened']``,
+        and their channel names are shown in italic.
+        Can be a string to load a covariance from disk.
+        See also :meth:`mne.Evoked.plot_white` for additional inspection
+        of noise covariance properties when whitening evoked data.
+        For data processed with SSS, the effective dependence between
+        magnetometers and gradiometers may introduce differences in scaling,
+        consider using :meth:`mne.Evoked.plot_white`.
+
+        .. versionadded:: 0.16.0
 
     Returns
     -------
@@ -775,14 +801,12 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     scalings = _handle_default('scalings_plot_raw', scalings)
     decim, data_picks = _handle_decim(epochs.info.copy(), decim, None)
     projs = epochs.info['projs']
+    noise_cov = _check_cov(noise_cov, epochs.info)
 
-    params = {'epochs': epochs,
-              'info': copy.deepcopy(epochs.info),
-              'bad_color': (0.8, 0.8, 0.8),
-              't_start': 0,
-              'histogram': None,
-              'decim': decim,
-              'data_picks': data_picks}
+    params = dict(epochs=epochs, info=epochs.info.copy(), t_start=0.,
+                  bad_color=(0.8, 0.8, 0.8), histogram=None, decim=decim,
+                  data_picks=data_picks, noise_cov=noise_cov,
+                  use_noise_cov=noise_cov is not None)
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=events,
@@ -899,10 +923,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                             color=color, alpha=area_alpha)
         if make_label:
             if ii == len(picks_list) - 1:
-                ax.set_xlabel('Freq (Hz)')
-            ax.set_ylabel(ylabel)
-            ax.set_title(title)
-            ax.set_xlim(freqs[0], freqs[-1])
+                ax.set_xlabel('Frequency (Hz)')
+            ax.set(ylabel=ylabel, title=title, xlim=(freqs[0], freqs[-1]))
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
     plt_show(show)
@@ -1267,47 +1289,53 @@ def _plot_traces(params):
                            params['times'][0] + params['duration'], False)
     if butterfly:
         factor = -1. / params['butterfly_scale']
-        labels = np.empty(20, dtype='S15')
-        labels.fill('')
+        labels = [''] * 20
         ticks = ax.get_yticks()
         idx_offset = 1
+        # XXX eventually these scale factors should use "scalings"
+        # of some sort
         if 'grad' in params['types']:
-            labels[idx_offset + 1] = '0.00'
+            labels[idx_offset + 1] = 0.
             for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[0]) *
-                                               params['scalings']['grad'] *
-                                               1e13 * factor)
+                labels[idx] = ((ticks[idx] - offsets[0]) *
+                               params['scalings']['grad'] *
+                               1e13 * factor)
             idx_offset += 4
         if 'mag' in params['types']:
-            labels[idx_offset + 1] = '0.00'
+            labels[idx_offset + 1] = 0.
             for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[1]) *
-                                               params['scalings']['mag'] *
-                                               1e15 * factor)
+                labels[idx] = ((ticks[idx] - offsets[1]) *
+                               params['scalings']['mag'] *
+                               1e15 * factor)
             idx_offset += 4
         if 'eeg' in params['types']:
-            labels[idx_offset + 1] = '0.00'
+            labels[idx_offset + 1] = 0.
             for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[2]) *
-                                               params['scalings']['eeg'] *
-                                               1e6 * factor)
+                labels[idx] = ((ticks[idx] - offsets[2]) *
+                               params['scalings']['eeg'] *
+                               1e6 * factor)
             idx_offset += 4
         if 'eog' in params['types']:
-            labels[idx_offset + 1] = '0.00'
+            labels[idx_offset + 1] = 0.
             for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[3]) *
-                                               params['scalings']['eog'] *
-                                               1e6 * factor)
+                labels[idx] = ((ticks[idx] - offsets[3]) *
+                               params['scalings']['eog'] *
+                               1e6 * factor)
             idx_offset += 4
         if 'ecg' in params['types']:
-            labels[idx_offset + 1] = '0.00'
+            labels[idx_offset + 1] = 0.
             for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[4]) *
-                                               params['scalings']['ecg'] *
-                                               1e6 * factor)
+                labels[idx] = ((ticks[idx] - offsets[4]) *
+                               params['scalings']['ecg'] *
+                               1e6 * factor)
+        # Heuristic to turn floats to ints where possible (e.g. -500.0 to -500)
+        for li, label in enumerate(labels):
+            if isinstance(label, float) and float(str(label)) == round(label):
+                labels[li] = int(round(label))
         ax.set_yticklabels(labels, fontsize=12, color='black')
     else:
         ax.set_yticklabels(tick_list, fontsize=12)
+        _set_ax_label_style(ax, params)
 
     if params['events'] is not None:  # vertical lines for events.
         _draw_event_lines(params)
@@ -1330,8 +1358,8 @@ def _plot_update_epochs_proj(params, bools=None):
         params['proj_bools'] = bools
     epochs = params['epochs']
     n_epochs = params['n_epochs']
-    params['projector'], _ = setup_proj(params['info'], add_eeg_ref=False,
-                                        verbose=False)
+    params['projector'], params['whitened_ch_names'] = _setup_plot_projector(
+        params['info'], params['noise_cov'], True, params['use_noise_cov'])
     start = int(params['t_start'] / len(epochs.times))
     end = start + n_epochs
     if epochs.preload:
@@ -1344,7 +1372,13 @@ def _plot_update_epochs_proj(params, bools=None):
         data = np.dot(params['projector'], data)
     types = params['types']
     for pick, ind in enumerate(params['inds']):
-        params['data'][pick] = data[ind] / params['scalings'][types[pick]]
+        ch_name = params['info']['ch_names'][ind]
+        if ch_name in params['whitened_ch_names'] and \
+                ch_name not in params['info']['bads']:
+            norm = params['scalings']['whitened']
+        else:
+            norm = params['scalings'][types[pick]]
+        params['data'][pick] = data[ind] / norm
     params['plot_fun']()
 
 
@@ -1646,6 +1680,10 @@ def _plot_onkey(event, params):
             params['fig_options'] = None
         _prepare_butterfly(params)
         _plot_traces(params)
+    elif event.key == 'w':
+        params['use_noise_cov'] = not params['use_noise_cov']
+        _plot_update_epochs_proj(params)
+        _plot_traces(params)
     elif event.key == 'o':
         if not params['butterfly']:
             _open_options(params)
@@ -1915,7 +1953,7 @@ def _plot_histogram(params):
     for idx in range(len(types)):
         ax = plt.subplot(len(types), 1, idx + 1)
         plt.xlabel(units[types[idx]])
-        plt.ylabel('count')
+        plt.ylabel('Count')
         color = colors[types[idx]]
         rej = None
         if epochs.reject is not None and types[idx] in epochs.reject.keys():

@@ -26,9 +26,10 @@ from .compensator import set_current_comp, make_compensator
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
                     write_complex64, write_complex128, write_int,
-                    write_id, write_string, write_name_list, _get_split_size)
+                    write_id, write_string, _get_split_size)
 
-from ..annotations import _annotations_starts_stops
+from ..annotations import (_annotations_starts_stops, _write_annotations,
+                           _handle_meas_date)
 from ..filter import (filter_data, notch_filter, resample, next_fast_len,
                       _resample_stim_channels, _filt_check_picks,
                       _filt_update_info)
@@ -676,12 +677,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if not isinstance(annotations, Annotations):
                 raise ValueError('Annotations must be an instance of '
                                  'mne.Annotations. Got %s.' % annotations)
-            meas_date = self.info['meas_date']
-            if meas_date is None:
-                meas_date = 0
-            elif not np.isscalar(meas_date):
-                if len(meas_date) > 1:
-                    meas_date = meas_date[0] + meas_date[1] / 1000000.
+            meas_date = _handle_meas_date(self.info['meas_date'])
             if annotations.orig_time is not None:
                 offset = (annotations.orig_time - meas_date -
                           self.first_samp / self.info['sfreq'])
@@ -694,18 +690,28 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 if onset > self.times[-1]:
                     omitted += 1
                     omit_ind.append(ind)
+                    logger.debug('Omitting %d @ %s > %s'
+                                 % (ind, onset, self.times[-1]))
                 elif onset < self.times[0]:
                     if onset + annotations.duration[ind] < self.times[0]:
                         omitted += 1
                         omit_ind.append(ind)
+                        logger.debug('Omitting %d @ %s < %s'
+                                     % (ind, onset, self.times[0]))
                     else:
                         limited += 1
                         duration = annotations.duration[ind] + onset
                         annotations.duration[ind] = duration
                         annotations.onset[ind] = self.times[0] - offset
-                elif onset + annotations.duration[ind] > self.times[-1]:
+                elif (onset + annotations.duration[ind] >
+                      self.times[-1] + 1.1 / self.info['sfreq']):
+                    # We have to permit onset+duration to appear to go one past
+                    # the last sample in order to actually include the last
+                    # sample...
                     limited += 1
-                    annotations.duration[ind] = self.times[-1] - onset
+                    annotations.duration[ind] = (self.times[-1] +
+                                                 1. / self.info['sfreq'] -
+                                                 onset)
             annotations.onset = np.delete(annotations.onset, omit_ind)
             annotations.duration = np.delete(annotations.duration, omit_ind)
             annotations.description = np.delete(annotations.description,
@@ -760,6 +766,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 if start < 0:
                     raise ValueError('start must be >= -%s' % nchan)
             stop = item[0].stop if item[0].stop is not None else nchan
+            if stop < 0:
+                stop += nchan
+                if stop < 0:
+                    raise ValueError('stop must be >= -%s' % nchan)
             step = item[0].step if item[0].step is not None else 1
             sel = list(range(start, stop, step))
         else:
@@ -1093,7 +1103,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
                method='fir', iir_params=None, phase='zero',
                fir_window='hamming', fir_design='firwin',
-               skip_by_annotation='edge', pad='reflect_limited', verbose=None):
+               skip_by_annotation=('edge', 'bad_acq_skip'),
+               pad='reflect_limited', verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -1195,9 +1206,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             with the given string will not be included in filtering, and
             segments on either side of the given excluded annotated segment
             will be filtered separately (i.e., as independent signals).
-            The default (``'edge'``) will separately filter any
-            segments that were concatenated by :func:`mne.concatenate_raws`
-            or :meth:`mne.io.Raw.append`. To disable, provide an empty list.
+            The default (``('edge', 'bad_acq_skip')`` will separately filter
+            any segments that were concatenated by :func:`mne.concatenate_raws`
+            or :meth:`mne.io.Raw.append`, or separated during acquisition.
+            To disable, provide an empty list.
 
             .. versionadded:: 0.16.
         pad : str
@@ -1228,22 +1240,18 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Notes
         -----
-        For more information, see the tutorials :ref:`tut_background_filtering`
-        and :ref:`tut_artifacts_filter`.
+        For more information, see the tutorials
+        :ref:`sphx_glr_auto_tutorials_plot_background_filtering.py`
+        and
+        :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_filtering.py`.
         """
         _check_preload(self, 'raw.filter')
         update_info, picks = _filt_check_picks(self.info, picks,
                                                l_freq, h_freq)
         # Deal with annotations
-        onsets, ends = _annotations_starts_stops(self, skip_by_annotation,
-                                                 'skip_by_annotation')
-        if len(onsets) == 0 or onsets[0] != 0:
-            onsets = np.concatenate([[0], onsets])
-            ends = np.concatenate([[0], ends])
-        if len(ends) == 1 or ends[-1] != len(self.times):
-            onsets = np.concatenate([onsets, [len(self.times)]])
-            ends = np.concatenate([ends, [len(self.times)]])
-        for start, stop in zip(ends[:-1], onsets[1:]):
+        onsets, ends = _annotations_starts_stops(
+            self, skip_by_annotation, 'skip_by_annotation', invert=True)
+        for start, stop in zip(onsets, ends):
             filter_data(
                 self._data[:, start:stop], self.info['sfreq'], l_freq, h_freq,
                 picks, filter_length, l_trans_bandwidth, h_trans_bandwidth,
@@ -1402,7 +1410,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                      but instead epoch and then downsample, as epoching
                      downsampled data jitters triggers.
                      For more, see
-                     `this illustrative gist <https://gist.github.com/Eric89GXL/01642cb3789992fbca59>`_.
+                     `this illustrative gist <https://gist.github.com/larsoner/01642cb3789992fbca59>`_.
 
                      If resampling the continuous data is desired, it is
                      recommended to construct events using the original data.
@@ -1548,6 +1556,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         functions (e.g., time_as_index, or Epochs). New first_samp and
         last_samp are set accordingly.
 
+        Thus function operates in-place on the instance.
+        Use :meth:`mne.Raw.copy` if operation on a copy is desired.
+
         Parameters
         ----------
         tmin : float
@@ -1558,7 +1569,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Returns
         -------
         raw : instance of Raw
-            The cropped raw object.
+            The cropped raw object, modified in-place.
         """
         max_time = (self.n_times - 1) / self.info['sfreq']
         if tmax is None:
@@ -1596,7 +1607,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if self.annotations is not None:
             annotations = self.annotations
-            annotations.onset -= tmin
+            # XXX there might be a cleaner way to do this someday
+            if self.annotations.orig_time is None:
+                self.annotations.onset -= tmin
             BaseRaw.annotations.fset(self, annotations, emit_warning=False)
 
         return self
@@ -1647,6 +1660,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         overwrite : bool
             If True, the destination file (if it exists) will be overwritten.
             If False (default), an error will be raised if the file exists.
+            To overwrite original file (the same one that was loaded),
+            data must be preloaded upon reading.
         split_size : string | int
             Large raw files are automatically split into multiple pieces. This
             parameter specifies the maximum size of each piece. If the
@@ -1740,12 +1755,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
              show_first_samp=False, proj=True, group_by='type',
-             butterfly=False, decim='auto'):
+             butterfly=False, decim='auto', noise_cov=None, event_id=None):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
                         lowpass, filtorder, clipping, show_first_samp, proj,
-                        group_by, butterfly, decim)
+                        group_by, butterfly, decim, noise_cov=noise_cov,
+                        event_id=event_id)
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
@@ -2001,18 +2017,17 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         annotations = self.annotations
         edge_samps = list()
         for ri, r in enumerate(raws):
-            annotations = _combine_annotations((annotations, r.annotations),
-                                               self._last_samps,
-                                               self._first_samps,
-                                               self.info['sfreq'],
-                                               self.info['meas_date'])
+            n_samples = self.last_samp - self.first_samp + 1
+            annotations = _combine_annotations(
+                annotations, r.annotations, n_samples,
+                self.first_samp, r.first_samp,
+                self.info['sfreq'], self.info['meas_date'])
             edge_samps.append(sum(self._last_samps) -
                               sum(self._first_samps) + (ri + 1))
             self._first_samps = np.r_[self._first_samps, r._first_samps]
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._raw_extras += r._raw_extras
             self._filenames += r._filenames
-
         self._update_times()
         if annotations is None:
             annotations = Annotations([], [], [])
@@ -2186,9 +2201,38 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                          'value for split size: %s plus enough bytes for '
                          'the chosen buffer_size' % pos_prev)
     next_file_buffer = 2 ** 20  # extra cushion for last few post-data tags
-    for first in range(start, stop, buffer_size):
-        # Write blocks <= buffer_size in size
-        last = min(first + buffer_size, stop)
+
+    # Check to see if this has acquisition skips and, if so, if we can
+    # write out empty buffers instead of zeroes
+    firsts = list(range(start, stop, buffer_size))
+    lasts = np.array(firsts) + buffer_size
+    if lasts[-1] > stop:
+        lasts[-1] = stop
+    sk_onsets, sk_ends = _annotations_starts_stops(raw, 'bad_acq_skip')
+    do_skips = False
+    if len(sk_onsets) > 0:
+        if np.in1d(sk_onsets, firsts).all() and np.in1d(sk_ends, lasts).all():
+            do_skips = True
+        else:
+            if part_idx == 0:
+                warn('Acquisition skips detected but did not fit evenly into '
+                     'output buffer_size, will be written as zeroes.')
+
+    n_current_skip = 0
+    for first, last in zip(firsts, lasts):
+        if do_skips:
+            if ((first >= sk_onsets) & (last <= sk_ends)).any():
+                # Track how many we have
+                n_current_skip += 1
+                continue
+            elif n_current_skip > 0:
+                # Write out an empty buffer instead of data
+                write_int(fid, FIFF.FIFF_DATA_SKIP, n_current_skip)
+                # These two NOPs appear to be optional (MaxFilter does not do
+                # it, but some acquisition machines do) so let's not bother.
+                # write_nop(fid)
+                # write_nop(fid)
+                n_current_skip = 0
         data, times = raw[use_picks, first:last]
         assert len(times) == last - first
 
@@ -2305,17 +2349,8 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     #
     # Annotations
     #
-    if annotations is not None and len(annotations.onset) > 0:
-        start_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
-        write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, annotations.onset)
-        write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX,
-                    annotations.duration + annotations.onset)
-        # To allow : in description, they need to be replaced for serialization
-        write_name_list(fid, FIFF.FIFF_COMMENT, [d.replace(':', ';') for d in
-                                                 annotations.description])
-        if annotations.orig_time is not None:
-            write_double(fid, FIFF.FIFF_MEAS_DATE, annotations.orig_time)
-        end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
+    if annotations is not None:  # allow saving empty annotations
+        _write_annotations(fid, annotations)
 
     #
     # Start the raw data
@@ -2425,7 +2460,8 @@ def _check_raw_compatibility(raw):
         raw[0].orig_format = 'unknown'
 
 
-def concatenate_raws(raws, preload=None, events_list=None):
+@verbose
+def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
     """Concatenate raw instances as if they were continuous.
 
     .. note:: ``raws[0]`` is modified in-place to achieve the concatenation.
@@ -2444,6 +2480,9 @@ def concatenate_raws(raws, preload=None, events_list=None):
         have or not have data preloaded.
     events_list : None | list
         The events to concatenate. Defaults to None.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2466,7 +2505,8 @@ def concatenate_raws(raws, preload=None, events_list=None):
         return raws[0], events
 
 
-def _check_update_montage(info, montage, path=None, update_ch_names=False):
+def _check_update_montage(info, montage, path=None, update_ch_names=False,
+                          raise_missing=True):
     """Help eeg readers to add montage."""
     if montage is not None:
         if not isinstance(montage, (string_types, Montage)):
@@ -2483,11 +2523,11 @@ def _check_update_montage(info, montage, path=None, update_ch_names=False):
                        FIFF.FIFFV_STIM_CH)
             for ch in info['chs']:
                 if not ch['kind'] in exclude:
-                    if np.unique(ch['loc']).size == 1:
+                    if not np.isfinite(ch['loc'][:3]).all():
                         missing_positions.append(ch['ch_name'])
 
             # raise error if positions are missing
-            if missing_positions:
+            if missing_positions and raise_missing:
                 raise KeyError(
                     "The following positions are missing from the montage "
                     "definitions: %s. If those channels lack positions "

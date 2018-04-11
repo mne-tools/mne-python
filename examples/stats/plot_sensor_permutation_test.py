@@ -60,11 +60,12 @@ print("Sensors names : %s" % significant_sensors_names)
 evoked = mne.EvokedArray(-np.log10(p_values)[:, np.newaxis],
                          epochs.info, tmin=0.)
 
-# Extract mask and indices of active sensors in layout
+# Extract mask and indices of active sensors in the layout
 stats_picks = mne.pick_channels(evoked.ch_names, significant_sensors_names)
 mask = p_values[:, np.newaxis] <= 0.05
 
 evoked.plot_topomap(ch_type='grad', times=[0], scalings=1,
                     time_format=None, cmap='Reds', vmin=0., vmax=np.max,
                     units='-log10(p)', cbar_fmt='-%0.1f', mask=mask,
-                    size=3, show_names=lambda x: x[4:] + ' ' * 20)
+                    size=3, show_names=lambda x: x[4:] + ' ' * 20,
+                    time_unit='s')

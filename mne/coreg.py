@@ -13,7 +13,6 @@ import stat
 import sys
 import re
 import shutil
-from warnings import warn
 from functools import reduce
 
 import numpy as np
@@ -27,10 +26,9 @@ from .source_space import (add_source_space_distances, read_source_spaces,
 from .surface import read_surface, write_surface, _normalize_vectors
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import rotation, rotation3d, scaling, translation, Transform
-from .utils import get_config, get_subjects_dir, logger, pformat
+from .utils import get_config, get_subjects_dir, logger, pformat, verbose
 from .viz._3d import _fiducial_coords
 from .externals.six.moves import zip
-
 
 # some path templates
 trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
@@ -42,7 +40,8 @@ head_bem_fname = pformat(bem_fname, name='head')
 fid_fname = pformat(bem_fname, name='fiducials')
 fid_fname_general = os.path.join(bem_dirname, "{head}-fiducials.fif")
 src_fname = os.path.join(bem_dirname, '{subject}-{spacing}-src.fif')
-_head_fnames = (head_bem_fname, pformat(bem_fname, name='head-medium'))
+_head_fnames = (os.path.join(bem_dirname, 'outer_skin.surf'),
+                head_bem_fname)
 _high_res_head_fnames = (os.path.join(bem_dirname, '{subject}-head-dense.fif'),
                          os.path.join(surf_dirname, 'lh.seghead'),
                          os.path.join(surf_dirname, 'lh.smseghead'))
@@ -106,8 +105,9 @@ def coregister_fiducials(info, fiducials, tol=0.01):
     return Transform(coord_frame_from, coord_frame_to, trans)
 
 
-def create_default_subject(fs_home=None, update=False,
-                           subjects_dir=None):
+@verbose
+def create_default_subject(fs_home=None, update=False, subjects_dir=None,
+                           verbose=None):
     """Create an average brain subject for subjects without structural MRI.
 
     Create a copy of fsaverage from the Freesurfer directory in subjects_dir
@@ -125,6 +125,9 @@ def create_default_subject(fs_home=None, update=False,
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable
         (os.environ['SUBJECTS_DIR']) as destination for the new subject.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
@@ -285,7 +288,8 @@ def _trans_from_params(param_info, params):
 
 
 def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
-                       scale=False, tol=None, x0=None, out='trans'):
+                       scale=False, tol=None, x0=None, out='trans',
+                       weights=None):
     """Find a transform between matched sets of points.
 
     This minimizes the squared distance between two matching sets of points.
@@ -318,24 +322,29 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
         the fit parameters; 'trans' returns a transformation matrix of shape
         (4, 4).
 
-
     Returns
     -------
-    One of the following, depending on the ``out`` parameter:
-
-    trans : array, shape = (4, 4)
+    trans : array, shape (4, 4)
         Transformation that, if applied to src_pts, minimizes the squared
-        distance to tgt_pts.
-    params : array, shape = (n_params, )
-        A single tuple containing the translation, rotation and scaling
-        parameters in that order.
+        distance to tgt_pts. Only returned if out=='trans'.
+    params : array, shape (n_params, )
+        A single tuple containing the rotation, translation, and scaling
+        parameters in that order (as applicable).
     """
+    # XXX eventually this should be refactored with the cHPI fitting code,
+    # which use fmin_cobyla with constraints
     from scipy.optimize import leastsq
     src_pts = np.atleast_2d(src_pts)
     tgt_pts = np.atleast_2d(tgt_pts)
     if src_pts.shape != tgt_pts.shape:
         raise ValueError("src_pts and tgt_pts must have same shape (got "
                          "{0}, {1})".format(src_pts.shape, tgt_pts.shape))
+    if weights is not None:
+        weights = np.array(weights, float)
+        if weights.ndim != 1 or weights.size not in (src_pts.shape[0], 1):
+            raise ValueError("weights (shape=%s) must be None or have shape "
+                             "(%s,)" % (weights.shape, src_pts.shape[0],))
+        weights = weights[:, np.newaxis]
 
     rotate = bool(rotate)
     translate = bool(translate)
@@ -349,23 +358,21 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
             rx, ry, rz = x
             trans = rotation3d(rx, ry, rz)
             est = dot(src_pts, trans.T)
-            return (tgt_pts - est).ravel()
+            d = tgt_pts - est
+            if weights is not None:
+                d *= weights
+            return d.ravel()
         if x0 is None:
             x0 = (0, 0, 0)
-    elif param_info == (True, False, 1):
-        def error(x):
-            rx, ry, rz, s = x
-            trans = rotation3d(rx, ry, rz) * s
-            est = dot(src_pts, trans.T)
-            return (tgt_pts - est).ravel()
-        if x0 is None:
-            x0 = (0, 0, 0, 1)
     elif param_info == (True, True, 0):
         def error(x):
             rx, ry, rz, tx, ty, tz = x
             trans = dot(translation(tx, ty, tz), rotation(rx, ry, rz))
-            est = dot(src_pts, trans.T)
-            return (tgt_pts - est[:, :3]).ravel()
+            est = dot(src_pts, trans.T)[:, :3]
+            d = tgt_pts - est
+            if weights is not None:
+                d *= weights
+            return d.ravel()
         if x0 is None:
             x0 = (0, 0, 0, 0, 0, 0)
     elif param_info == (True, True, 1):
@@ -373,10 +380,25 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
             rx, ry, rz, tx, ty, tz, s = x
             trans = reduce(dot, (translation(tx, ty, tz), rotation(rx, ry, rz),
                                  scaling(s, s, s)))
-            est = dot(src_pts, trans.T)
-            return (tgt_pts - est[:, :3]).ravel()
+            est = dot(src_pts, trans.T)[:, :3]
+            d = tgt_pts - est
+            if weights is not None:
+                d *= weights
+            return d.ravel()
         if x0 is None:
             x0 = (0, 0, 0, 0, 0, 0, 1)
+    elif param_info == (True, True, 3):
+        def error(x):
+            rx, ry, rz, tx, ty, tz, sx, sy, sz = x
+            trans = reduce(dot, (translation(tx, ty, tz), rotation(rx, ry, rz),
+                                 scaling(sx, sy, sz)))
+            est = dot(src_pts, trans.T)[:, :3]
+            d = tgt_pts - est
+            if weights is not None:
+                d *= weights
+            return d.ravel()
+        if x0 is None:
+            x0 = (0, 0, 0, 0, 0, 0, 1, 1, 1)
     else:
         raise NotImplementedError(
             "The specified parameter combination is not implemented: "
@@ -401,172 +423,6 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
         return x
     elif out == 'trans':
         return trans
-    else:
-        raise ValueError("Invalid out parameter: %r. Needs to be 'params' or "
-                         "'trans'." % out)
-
-
-def _point_cloud_error(src_pts, tgt_pts):
-    """Find the distance from each source point to its closest target point.
-
-    Parameters
-    ----------
-    src_pts : array, shape = (n, 3)
-        Source points.
-    tgt_pts : array, shape = (m, 3)
-        Target points.
-
-    Returns
-    -------
-    dist : array, shape = (n, )
-        For each point in ``src_pts``, the distance to the closest point in
-        ``tgt_pts``.
-    """
-    from scipy.spatial.distance import cdist
-    Y = cdist(src_pts, tgt_pts, 'euclidean')
-    dist = Y.min(axis=1)
-    return dist
-
-
-def _point_cloud_error_balltree(src_pts, tgt_tree):
-    """Find the distance from each source point to its closest target point.
-
-    Uses sklearn.neighbors.BallTree for greater efficiency
-
-    Parameters
-    ----------
-    src_pts : array, shape = (n, 3)
-        Source points.
-    tgt_tree : sklearn.neighbors.BallTree
-        BallTree of the target points.
-
-    Returns
-    -------
-    dist : array, shape = (n, )
-        For each point in ``src_pts``, the distance to the closest point in
-        ``tgt_pts``.
-    """
-    dist, _ = tgt_tree.query(src_pts)
-    return dist.ravel()
-
-
-def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
-                    scale=0, x0=None, leastsq_args={}, out='params'):
-    """Find a transform between unmatched sets of points.
-
-    This minimizes the squared distance from each source point to its closest
-    target point, using :func:`scipy.optimize.leastsq` to find a
-    transformation using rotation, translation, and scaling (in that order).
-
-    Parameters
-    ----------
-    src_pts : array, shape = (n, 3)
-        Points to which the transform should be applied.
-    tgt_pts : array, shape = (m, 3)
-        Points to which src_pts should be fitted. Each point in tgt_pts should
-        correspond to the point in src_pts with the same index.
-    rotate : bool
-        Allow rotation of the ``src_pts``.
-    translate : bool
-        Allow translation of the ``src_pts``.
-    scale : 0 | 1 | 3
-        Number of scaling parameters. With 0, points are not scaled. With 1,
-        points are scaled by the same factor along all axes. With 3, points are
-        scaled by a separate factor along each axis.
-    x0 : None | tuple
-        Initial values for the fit parameters.
-    leastsq_args : dict
-        Additional parameters to submit to :func:`scipy.optimize.leastsq`.
-    out : 'params' | 'trans'
-        In what format to return the estimate: 'params' returns a tuple with
-        the fit parameters; 'trans' returns a transformation matrix of shape
-        (4, 4).
-
-    Returns
-    -------
-    x : array, shape = (n_params, )
-        Estimated parameters for the transformation.
-
-    Notes
-    -----
-    Assumes that the target points form a dense enough point cloud so that
-    the distance of each src_pt to the closest tgt_pt can be used as an
-    estimate of the distance of src_pt to tgt_pts.
-    """
-    from scipy.optimize import leastsq
-    kwargs = {'epsfcn': 0.01}
-    kwargs.update(leastsq_args)
-
-    # assert correct argument types
-    src_pts = np.atleast_2d(src_pts)
-    tgt_pts = np.atleast_2d(tgt_pts)
-    translate = bool(translate)
-    rotate = bool(rotate)
-    scale = int(scale)
-
-    if translate:
-        src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
-
-    try:
-        from sklearn.neighbors import BallTree
-        tgt_pts = BallTree(tgt_pts)
-        errfunc = _point_cloud_error_balltree
-    except ImportError:
-        warn("Sklearn could not be imported. Fitting points will be slower. "
-             "To improve performance, install the sklearn module.")
-        errfunc = _point_cloud_error
-
-    # for efficiency, define parameter specific error function
-    param_info = (rotate, translate, scale)
-    if param_info == (True, False, 0):
-        x0 = x0 or (0, 0, 0)
-
-        def error(x):
-            rx, ry, rz = x
-            trans = rotation3d(rx, ry, rz)
-            est = dot(src_pts, trans.T)
-            err = errfunc(est, tgt_pts)
-            return err
-    elif param_info == (True, False, 1):
-        x0 = x0 or (0, 0, 0, 1)
-
-        def error(x):
-            rx, ry, rz, s = x
-            trans = rotation3d(rx, ry, rz) * s
-            est = dot(src_pts, trans.T)
-            err = errfunc(est, tgt_pts)
-            return err
-    elif param_info == (True, False, 3):
-        x0 = x0 or (0, 0, 0, 1, 1, 1)
-
-        def error(x):
-            rx, ry, rz, sx, sy, sz = x
-            trans = rotation3d(rx, ry, rz) * [sx, sy, sz]
-            est = dot(src_pts, trans.T)
-            err = errfunc(est, tgt_pts)
-            return err
-    elif param_info == (True, True, 0):
-        x0 = x0 or (0, 0, 0, 0, 0, 0)
-
-        def error(x):
-            rx, ry, rz, tx, ty, tz = x
-            trans = dot(translation(tx, ty, tz), rotation(rx, ry, rz))
-            est = dot(src_pts, trans.T)
-            err = errfunc(est[:, :3], tgt_pts)
-            return err
-    else:
-        raise NotImplementedError(
-            "The specified parameter combination is not implemented: "
-            "rotate=%r, translate=%r, scale=%r" % param_info)
-
-    est, _, info, msg, _ = leastsq(error, x0, full_output=True, **kwargs)
-    logger.debug("fit_point_cloud leastsq (%i calls) info: %s", info['nfev'],
-                 msg)
-
-    if out == 'params':
-        return est
-    elif out == 'trans':
-        return _trans_from_params(param_info, est)
     else:
         raise ValueError("Invalid out parameter: %r. Needs to be 'params' or "
                          "'trans'." % out)
@@ -638,9 +494,9 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     # surf/ files
     paths['surf'] = surf = []
     surf_fname = os.path.join(surf_dirname, '{name}')
-    surf_names = ('inflated', 'sphere', 'sphere.reg', 'white', 'orig',
-                  'orig_avg', 'inflated_avg', 'inflated_pre', 'pial',
-                  'pial_avg', 'smoothwm', 'white_avg', 'sphere.reg.avg')
+    surf_names = ('inflated', 'white', 'orig', 'orig_avg', 'inflated_avg',
+                  'inflated_pre', 'pial', 'pial_avg', 'smoothwm', 'white_avg',
+                  'seghead', 'smseghead')
     if os.getenv('_MNE_FEW_SURFACES', '') == 'true':  # for testing
         surf_names = surf_names[:4]
     for surf_name in surf_names:
@@ -650,6 +506,14 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
                                      subject=subject, name=name)
             if os.path.exists(path):
                 surf.append(pformat(surf_fname, name=name))
+    surf_fname = os.path.join(bem_dirname, '{name}')
+    surf_names = ('inner_skull.surf', 'outer_skull.surf', 'outer_skin.surf')
+    for surf_name in surf_names:
+        path = surf_fname.format(subjects_dir=subjects_dir,
+                                 subject=subject, name=surf_name)
+        if os.path.exists(path):
+            surf.append(pformat(surf_fname, name=surf_name))
+    del surf_names, surf_name, path, surf, hemi
 
     # BEM files
     paths['bem'] = bem = []
@@ -664,6 +528,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
         match = re.match(re_pattern, path)
         name = match.group(1)
         bem.append(name)
+    del bem, path, bem_pattern, re_pattern
 
     # fiducials
     if skip_fiducials:
@@ -678,12 +543,23 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
                           "order to scale an MRI without fiducials set "
                           "skip_fiducials=True." % subject)
 
-    # duplicate curvature files
+    # duplicate files (curvature and some surfaces)
     paths['duplicate'] = dup = []
     path = os.path.join(surf_dirname, '{name}')
+    surf_fname = os.path.join(surf_dirname, '{name}')
     for name in ['lh.curv', 'rh.curv']:
         fname = pformat(path, name=name)
         dup.append(fname)
+    del path, name, fname
+    surf_dup_names = ('sphere', 'sphere.reg', 'sphere.reg.avg')
+    for surf_dup_name in surf_dup_names:
+        for hemi in ('lh.', 'rh.'):
+            name = hemi + surf_dup_name
+            path = surf_fname.format(subjects_dir=subjects_dir,
+                                     subject=subject, name=name)
+            if os.path.exists(path):
+                dup.append(pformat(surf_fname, name=name))
+    del surf_dup_name, name, path, dup, hemi
 
     # check presence of required files
     for ftype in ['surf', 'duplicate']:
@@ -875,10 +751,8 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
     scale : array
         Scaling factor, either shape=() for uniform scaling or shape=(3,) for
         non-uniform scaling.
-    nn_scale : None | array
-        Scaling factor for surface normal. If scaling is uniform, normals are
-        unchanged and nn_scale is None. If scaling is non-uniform nn_scale is
-        an array of shape (3,).
+    uniform : bool
+        Whether scaling is uniform.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if (subject_from is None) != (scale is None):
@@ -889,6 +763,7 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
         cfg = read_mri_cfg(subject_to, subjects_dir)
         subject_from = cfg['subject_from']
         n_params = cfg['n_params']
+        assert n_params in (1, 3)
         scale = cfg['scale']
     else:
         scale = np.asarray(scale)
@@ -900,19 +775,12 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
             raise ValueError("Invalid shape for scale parameer. Need scalar "
                              "or array of length 3. Got %s." % str(scale))
 
-    # prepare scaling parameter for normals
-    if n_params == 1:
-        nn_scale = None
-    elif n_params == 3:
-        nn_scale = 1. / scale
-    else:
-        raise RuntimeError("Invalid n_params value: %s" % repr(n_params))
-
-    return subjects_dir, subject_from, scale, nn_scale
+    return subjects_dir, subject_from, scale, n_params == 1
 
 
+@verbose
 def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
-              subjects_dir=None):
+              subjects_dir=None, verbose=None):
     """Scale a bem file.
 
     Parameters
@@ -931,8 +799,11 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
         otherwise it is read from subject_to's config file.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
-    subjects_dir, subject_from, scale, nn_scale = \
+    subjects_dir, subject_from, scale, uniform = \
         _scale_params(subject_to, subject_from, scale, subjects_dir)
 
     src = bem_fname.format(subjects_dir=subjects_dir, subject=subject_from,
@@ -946,9 +817,9 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
     surfs = read_bem_surfaces(src)
     for surf in surfs:
         surf['rr'] *= scale
-        if nn_scale is not None:
+        if not uniform:
             assert len(surf['nn']) > 0
-            surf['nn'] *= nn_scale
+            surf['nn'] /= scale
             _normalize_vectors(surf['nn'])
     write_bem_surfaces(dst, surfs)
 
@@ -1013,9 +884,10 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
         l_new.save(dst)
 
 
+@verbose
 def scale_mri(subject_from, subject_to, scale, overwrite=False,
               subjects_dir=None, skip_fiducials=False, labels=True,
-              annot=False):
+              annot=False, verbose=None):
     """Create a scaled copy of an MRI subject.
 
     Parameters
@@ -1037,6 +909,9 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         Also scale all labels (default True).
     annot : bool
         Copy ``*.annot`` files to the new location (default False).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -1045,7 +920,13 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     paths = _find_mri_paths(subject_from, skip_fiducials, subjects_dir)
-    scale = np.asarray(scale)
+    scale = np.atleast_1d(scale)
+    if scale.shape == (3,):
+        if np.isclose(scale[1], scale[0]) and np.isclose(scale[2], scale[0]):
+            scale = scale[0]  # speed up scaling conditionals using a singleton
+    elif scale.shape != (1,):
+        raise ValueError('scale must have shape (3,) or (1,), got %s'
+                         % (scale.shape,))
 
     # make sure we have an empty target directory
     dest = subject_dirname.format(subject=subject_to,
@@ -1057,16 +938,16 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
             raise IOError("Subject directory for %s already exists: %r"
                           % (subject_to, dest))
 
-    # create empty directory structure
+    logger.debug('create empty directory structure')
     for dirname in paths['dirs']:
         dir_ = dirname.format(subject=subject_to, subjects_dir=subjects_dir)
         os.makedirs(dir_)
 
-    # save MRI scaling parameters
+    logger.debug('save MRI scaling parameters')
     fname = os.path.join(dest, 'MRI scaling parameters.cfg')
     _write_mri_config(fname, subject_from, subject_to, scale)
 
-    # surf files [in mm]
+    logger.debug('surf files [in mm]')
     for fname in paths['surf']:
         src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
         src = os.path.realpath(src)
@@ -1074,39 +955,41 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         pts, tri = read_surface(src)
         write_surface(dest, pts * scale, tri)
 
-    # BEM files [in m]
+    logger.debug('BEM files [in m]')
     for bem_name in paths['bem']:
-        scale_bem(subject_to, bem_name, subject_from, scale, subjects_dir)
+        scale_bem(subject_to, bem_name, subject_from, scale, subjects_dir,
+                  verbose=False)
 
-    # fiducials [in m]
+    logger.debug('fiducials [in m]')
     for fname in paths['fid']:
         src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
         src = os.path.realpath(src)
-        pts, cframe = read_fiducials(src)
+        pts, cframe = read_fiducials(src, verbose=False)
         for pt in pts:
             pt['r'] = pt['r'] * scale
         dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
-        write_fiducials(dest, pts, cframe)
+        write_fiducials(dest, pts, cframe, verbose=False)
 
-    # duplicate files
+    logger.debug('duplicate files')
     for fname in paths['duplicate']:
         src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
         dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
         shutil.copyfile(src, dest)
 
-    # source spaces
+    logger.debug('source spaces')
     for fname in paths['src']:
         src_name = os.path.basename(fname)
         scale_source_space(subject_to, src_name, subject_from, scale,
-                           subjects_dir)
+                           subjects_dir, verbose=False)
 
-    # labels [in m]
+    logger.debug('labels [in m]')
     os.mkdir(os.path.join(subjects_dir, subject_to, 'label'))
     if labels:
         scale_labels(subject_to, subject_from=subject_from, scale=scale,
                      subjects_dir=subjects_dir)
 
-    # copy *.annot files (they don't contain scale-dependent information)
+    logger.debug('copy *.annot files')
+    # they don't contain scale-dependent information
     if annot:
         src_pattern = os.path.join(subjects_dir, subject_from, 'label',
                                    '*.annot')
@@ -1115,8 +998,9 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
             shutil.copy(src_file, dst_dir)
 
 
+@verbose
 def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
-                       subjects_dir=None, n_jobs=1):
+                       subjects_dir=None, n_jobs=1, verbose=None):
     """Scale a source space for an mri created with scale_mri().
 
     Parameters
@@ -1141,16 +1025,27 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         Number of jobs to run in parallel if recomputing distances (only
         applies if scale is an array of length 3, and will not use more cores
         than there are source spaces).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Notes
+    -----
+    When scaling volume source spaces, the source (vertex) locations are
+    scaled, but the reference to the MRI volume is left unchanged. Transforms
+    are updated so that source estimates can be plotted on the original MRI
+    volume.
     """
-    subjects_dir, subject_from, scale, nn_scale = \
+    subjects_dir, subject_from, scale, uniform = \
         _scale_params(subject_to, subject_from, scale, subjects_dir)
+    # if n_params==1 scale is a scalar; if n_params==3 scale is a (3,) array
 
     # find the source space file names
     if src_name.isdigit():
         spacing = src_name  # spacing in mm
         src_pattern = src_fname
     else:
-        match = re.match(r"(oct|ico)-?(\d+)$", src_name)
+        match = re.match(r"(oct|ico|vol)-?(\d+)$", src_name)
         if match:
             spacing = '-'.join(match.groups())
             src_pattern = src_fname
@@ -1172,22 +1067,27 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
     for ss in sss:
         ss['subject_his_id'] = subject_to
         ss['rr'] *= scale
-
+        # additional tags for volume source spaces
+        if 'vox_mri_t' in ss:
+            # maintain transform to original MRI volume ss['mri_volume_name']
+            ss['vox_mri_t']['trans'][:3, :3] /= scale
+            ss['src_mri_t']['trans'][:3, :3] /= scale
         # distances and patch info
-        if nn_scale is None:  # i.e. uniform scaling
+        if uniform:
             if ss['dist'] is not None:
                 ss['dist'] *= scale
-                ss['nearest_dist'] *= scale
-                ss['dist_limit'] *= scale
+                # Sometimes this is read-only due to how it's read
+                ss['nearest_dist'] = ss['nearest_dist'] * scale
+                ss['dist_limit'] = ss['dist_limit'] * scale
         else:  # non-uniform scaling
-            ss['nn'] *= nn_scale
+            ss['nn'] /= scale
             _normalize_vectors(ss['nn'])
             if ss['dist'] is not None:
                 add_dist = True
 
     if add_dist:
         logger.info("Recomputing distances, this might take a while")
-        dist_limit = np.asscalar(sss[0]['dist_limit'])
+        dist_limit = np.asscalar(np.abs(sss[0]['dist_limit']))
         add_source_space_distances(sss, dist_limit, n_jobs)
 
     write_source_spaces(dst, sss)

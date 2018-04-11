@@ -19,18 +19,187 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add possibility to pass dict of floats as argument to :func:`mne.make_ad_hoc_cov` by `Nathalie Gayraud`_
+
 - Add support for metadata in :class:`mne.Epochs` by `Chris Holdgraf`_, `Alex Gramfort`_, `Jona Sassenhagen`_, and `Eric Larson`_
+
+- Add support for plotting a dense head in :func:`mne.viz.plot_alignment` by `Eric Larson`_
+
+- Allow plotting in user-created mayavi Scene in :func:`mne.viz.plot_alignment` by `Daniel McCloy`_
+
+- Reduce memory consumption and do not require data to be loaded in :meth:`mne.Epochs.apply_baseline` by `Eric Larson`_
+
+- Add option ``render_bem`` to :meth:`mne.report.Report.parse_folder` by `Eric Larson`_
+
+- Add to :func:`mne.viz.plot_alignment` plotting of coordinate frame axes via ``show_axes`` and terrain-style interaction via ``interaction``, by `Eric Larson`_
+
+- Add option ``initial_event`` to :func:`mne.find_events` by `Clemens Brunner`_
+
+- Left and right arrow keys now scroll by 25% of the visible data, whereas Shift+left/right scroll by a whole page in :meth:`mne.io.Raw.plot` by `Clemens Brunner`_
+
+- Add support for gantry tilt angle determination from Elekta FIF file header by `Chris Bailey`_
+
+- Add possibility to concatenate `mne.Annotations` objects with ``+`` or ``+=`` operators by `Clemens Brunner`_
+
+- Add support for MaxShield raw files in :class:`mne.report.Report` by `Eric Larson`_
+
+- Add ability to plot whitened data in :meth:`mne.io.Raw.plot`, :meth:`mne.Epochs.plot`, :meth:`mne.Evoked.plot`, and :meth:`mne.Evoked.plot_topo` by `Eric Larson`_
+
+- Workaround for reading EGI MFF files with physiological signals that also present a bug from the EGI system in :func:`mne.io.read_raw_egi` by `Federico Raimondo`_
+
+- Add support for reading subject height and weight in ``info['subject_info']`` by `Eric Larson`_
+
+- Improve online filtering of raw data when plotting with :meth:`mne.io.Raw.plot` to filter in segments in accordance with the default ``skip_by_annotation=('edge', 'bad_acq_skip')`` of :meth:`mne.io.Raw.filter` to avoid edge ringing by `Eric Larson`_
+
+- Add support for multiple head position files, plotting of sensors, and control of plotting color and axes in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
+
+- Add ability to read and write :class:`Annotations` separate from :class:`mne.io.Raw` instances via :meth:`Annotations.save` and :func:`read_annotations` by `Eric Larson`_
+
+- Add option to unset a montage by passing `None` to :meth:`mne.io.Raw.set_montage` by `Clemens Brunner`_
+
+- Add sensor denoising via :func:`mne.preprocessing.oversampled_temporal_projection` by `Eric Larson`_
+
+- Add ``mne.io.pick.get_channel_types`` which returns all available channel types in MNE by `Clemens Brunner`_
+
+- Use standard PCA instead of randomized PCA whitening prior to ICA to increase reproducibility by `Clemens Brunner`_
+
+- Plot sEEG electrodes in :func:`mne.viz.plot_alignment` by `Alex Gramfort`_
+
+- Add support for any data type like sEEG or ECoG in covariance related functions (estimation, whitening and plotting) by `Alex Gramfort`_ and `Eric Larson`_
+
+- Add function :func:`mne.io.read_annotations_eeglab` to allow loading annotations from EEGLAB files, by `Alex Gramfort`_
+
+- :meth:`mne.io.Raw.set_montage` now accepts a string as its ``montage`` argument; this will set a builtin montage, by `Clemens Brunner`_
+
+- Add 4D BTi phantom dataset :func:`mne.datasets.phantom_4dbti.data_path`, by `Alex Gramfort`_
+
+- Changed the background color to grey in :func:`mne.viz.plot_alignment` to make helmet more visible, by `Alex Gramfort`_
+
+- Add :meth:`mne.io.Raw.reorder_channels`, :meth:`mne.Evoked.reorder_channels`, etc. to reorder channels, by `Eric Larson`_
+
+- Add to ``mne coreg`` and :func:`mne.gui.coregistration` by `Eric Larson`_:
+
+  - Improved visibility of points inside the head
+  - Projection of EEG electrodes
+  - Orientation of extra points toward the surface
+  - Scaling points by distance to the head surface
+  - Display of HPI points
+  - ICP fitting with convergence criteria
+  - Faster display updates
+
+- Add ability to exclude components interactively by clicking on their labels in :meth:`mne.preprocessing.ICA.plot_components` by `Mikołaj Magnuski`_
+
+- Add reader for manual annotations of raw data produced by Brainstorm by `Anne-Sophie Dubarry`_
+
+- Tighter duality gap computation in ``mne.inverse_sparse.tf_mxne_optim`` and new parametrization with ``alpha`` and  ``l1_ratio`` instead of ``alpha_space`` and ``alpha_time`` by `Mathurin Massias`_ and `Daniel Strohmeier`_
+
+- Add ``dgap_freq`` parameter in ``mne.inverse_sparse.mxne_optim`` solvers to control the frequency of duality gap computation by `Mathurin Massias`_ and `Daniel Strohmeier`_
+
+- Add support for reading Eximia files by `Eric Larson`_ and `Federico Raimondo`_
+
+- Add the Picard algorithm to perform ICA for :class:`mne.preprocessing.ICA`, by `Pierre Ablin`_ and `Alex Gramfort`_
+
+- Add ability to supply a mask to the plot in :func:`mne.viz.plot_evoked_image` by `Jona Sassenhagen`_
+
+- Add :func:`mne.time_frequency.csd_morlet` and :func:`mne.time_frequency.csd_array_morlet` to estimate cross-spectral density using Morlet wavelets, by `Marijn van Vliet`_
+
+- Add multidictionary time-frequency support to :func:`mne.inverse_sparse.tf_mixed_norm` by `Mathurin Massias`_ and `Daniel Strohmeier`_
 
 Bug
 ~~~
 
-- Nothing yet
+- Fix bug in EEG interpolation code to do nothing if there is no channel to interpolate by `Mainak Jas`_
+
+- Fix bug in ``mne.preprocessing.peak_finder`` to output datatype consistently and added input check for empty vectors by `Tommy Clausner`_
+
+- Fix bug in :func:`mne.io.read_raw_brainvision` to use the correct conversion for filters from time constant to frequency by `Stefan Appelhoff`_
+
+- Fix bug with events when saving split files using :meth:`mne.Epochs.save` by `Eric Larson`_
+
+- Fix bug in :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` to allow :func:`mne.decoding.cross_val_multiscore` to automatically detect whether the `base_estimator` is a classifier and use a `StratifiedKFold` instead of a `KFold` when `cv` is not specified, by `Jean-Remi King`_
+
+- Fix bug in :func:`mne.set_eeg_reference` to remove an average reference projector when setting the reference to ``[]`` (i.e. do not change the existing reference) by `Clemens Brunner`_
+
+- Fix bug in threshold-free cluster enhancement parameter validation (:func:`mne.stats.permutation_cluster_1samp_test` and :func:`mne.stats.permutation_cluster_test`) by `Clemens Brunner`_
+
+- Fix bug in :meth:`mne.io.Raw.plot` to correctly display event types when annotations are present by `Clemens Brunner`_
+
+- Fix bug in :func:`mne.stats.spatio_temporal_cluster_test` default value for ``threshold`` is now calculated based on the array sizes in ``X``, by `Eric Larson`_
+
+- Fix bug in :func:`mne.simulation.simulate_raw` with ``use_cps=True`` where CPS was not actually used by `Eric Larson`_
+
+- Fix bug in :func:`mne.simulation.simulate_raw` where 1- and 3-layer BEMs were not properly transformed using ``trans`` by `Eric Larson`_
+
+- Fix bug in :func:`mne.viz.plot_alignment` where the head surface file ``-head.fif`` was not used even though present by `Chris Bailey`_
+
+- Fix bug when writing compressed sparse column matrices (e.g., Maxwell filtering cross-talk matrices) by `Marijn van Vliet`_ and `Eric Larson`_
+
+- Fix bug in :meth:`mne.io.Raw.plot_psd` to correctly deal with ``reject_by_annotation=False`` by `Clemens Brunner`_
+
+- Fix bug in :func:`mne.make_fixed_length_events` when hitting corner case problems rounding to sample numbers by `Eric Larson`_
+
+- Fix bug in :class:`mne.Epochs` when passing events as list with ``event_id=None``  by `Alex Gramfort`_
+
+- Fix bug in :meth:`mne.report.Report.add_figs_to_section` when passing :class:`numpy.ndarray` by `Eric Larson`_
+
+- Fix bug in CSS class setting in `mne.report.Report` BEM section by `Eric Larson`_
+
+- Fix bug in :class:`Annotations` where annotations that extend to the end of a recording were not extended properly by `Eric Larson`_
+
+- Fix bug in :meth:`mne.io.Raw.filter` to properly raw data with acquisition skips in separate segments by `Eric Larson`_
+
+- Fix bug in :func:`mne.preprocessing.maxwell_filter` where homogeneous fields were not removed for CTF systems by `Eric Larson`_
+
+- Fix computation of average quaternions in :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
+
+- Fix bug in writing ``raw.annotations`` where empty annotations could not be written to disk, by `Eric Larson`_
+
+- Fix support for writing FIF files with acquisition skips by using empty buffers rather than writing zeros by `Eric Larson`_
+
+- Fix bug in the ``mne make_scalp_surfaces`` command where ``--force`` (to bypass topology check failures) was ignored by `Eric Larson`_
+
+- Fix bug in :func:`mne.preprocessing.maxwell_filter` when providing ``origin`` in ``'meg'`` coordinate frame for recordings with a MEG to head transform (i.e., non empty-room recordings) by `Eric Larson`_
+
+- Fix bug in :func:`mne.viz.plot_cov` that ignored ``colorbar`` argument by `Nathalie Gayraud`_
+
+- Fix bug when picking CTF channels that could cause data saved to disk to be unreadable by `Eric Larson`_
+
+- Fix bug when reading event latencies (in samples) from eeglab files didn't translate indices to 0-based python indexing by `Mikołaj Magnuski`_
+
+- Fix consistency between :class:`mne.Epochs` and :func:`mne.stats.linear_regression_raw` in converting between samples and times (:func:`mne.stats.linear_regression_raw` now rounds, instead of truncating) by `Phillip Alday`_
+
+- Fix bug in ``mne coreg`` where sphere surfaces were scaled by `Eric Larson`_
+
+- Fix bug in :meth:`mne.Evoked.plot_topomap` when using ``proj='interactive'`` mode by `Eric Larson`_
+
+- Fix bug when passing ``show_sensors=1`` to :func:`mne.viz.plot_compare_evokeds` resulted in sensors legend placed in lower right of the figure (position 4 in matplotlib), not upper right by `Mikołaj Magnuski`_
+
+- Fix handling of annotations when cropping and concatenating raw data by `Alex Gramfort`_ and `Eric Larson`_
+
+- Fix bug in :meth:`mne.io.Raw.plot_psd` when ``picks is not None`` and ``picks`` spans more than one channel type by `Eric Larson`_
+
+- Fix bug in :class:`mne.make_forward_solution` when passing data with compensation channels (e.g. CTF) that contain bad channels by `Alex Gramfort`_
 
 API
 ~~~
 
-- Nothing yet
+- Channels with unknown locations are now assigned position ``[np.nan, np.nan, np.nan]`` instead of ``[0., 0., 0.]``, by `Eric Larson`_
 
+- :meth:`mne.Evoked.plot` will now append the number of epochs averaged for the evoked data in the first plot title, by `Eric Larson`_
+
+- Changed the line width in :func:`mne.viz.plot_bem` from 2.0 to 1.0 for better visibility of underlying structures, by `Eric Larson`_
+
+- Changed the behavior of :meth:`mne.io.Raw.pick_channels` and similar methods to be consistent with :func:`mne.pick_channels` to treat channel list as a set (ignoring order) -- if reordering is necessary use ``inst.reorder_channels``, by `Eric Larson`_
+
+- Changed the labeling of some plotting functions to use more standard capitalization and units, e.g. "Time (s)" instead of "time [sec]" by `Eric Larson`_
+
+- ``mne.time_frequency.csd_epochs`` has been refactored into :func:`mne.time_frequency.csd_fourier` and :func:`mne.time_frequency.csd_multitaper`, by `Marijn van Vliet`_
+
+- ``mne.time_frequency.csd_array`` has been refactored into :func:`mne.time_frequency.csd_array_fourier` and :func:`mne.time_frequency.csd_array_multitaper`, by `Marijn van Vliet`_
+
+- Added ``clean_names=False`` parameter to :func:`mne.io.read_raw_ctf` for control over cleaning of main channel names and compensation channel names from CTF suffixes by `Oleh Kozynets`_
+
+- The functions ``lcmv``, ``lcmv_epochs``, and ``lcmv_raw`` are now deprecated in favor of :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.apply_lcmv`, :func:`mne.beamformer.apply_lcmv_epochs`, and :func:`mne.beamformer.apply_lcmv_raw`, by `Britta Westner`_  
 
 .. _changes_0_15:
 
@@ -302,6 +471,10 @@ API
 - Zero-channel-value in PSD calculation in :func:`mne.viz.plot_raw_psd` has been relaxed from error to warning by `Alejandro Weinstein`_
 
 - Expose "rank" parameter in :func:`mne.viz.plot_evoked_white` to correct rank estimates on the spot during visualization by `Denis Engemann`_, `Eric Larson`_, `Alex Gramfort`_.
+
+- Show channel name under mouse cursor on topography plots by `Jussi Nurminen`_
+
+- Return maximum response amplitude from :meth:`mne.Evoked.get_peak`
 
 Authors
 ~~~~~~~
@@ -620,7 +793,7 @@ Changelog
 
 - Adds faster ``n_fft='auto'`` option to :meth:`mne.io.Raw.apply_hilbert` by `Eric Larson`_
 
-- Adds new function :func:`mne.time_frequency.csd_array` to compute the cross-spectral density of multivariate signals stored in an array, by `Nick Foti`_
+- Adds new function ``mne.time_frequency.csd_array`` to compute the cross-spectral density of multivariate signals stored in an array, by `Nick Foti`_
 
 - Add order params 'selection' and 'position' for :func:`mne.viz.plot_raw` to allow plotting of specific brain regions by `Jaakko Leppakangas`_
 
@@ -762,7 +935,7 @@ API
 
 - When CTF gradient compensation is applied to raw data, it is no longer reverted on save of :meth:`mne.io.Raw.save` by `Eric Larson`_
 
-- Adds :func:`mne.time_frequency.csd_epochs` to replace ``mne.time_frequency.csd_compute_epochs`` for naming consistency. ``mne.time_frequency.csd_compute_epochs`` is now deprecated and will be removed in mne 0.14, by `Nick Foti`_
+- Adds ``mne.time_frequency.csd_epochs`` to replace ``mne.time_frequency.csd_compute_epochs`` for naming consistency. ``mne.time_frequency.csd_compute_epochs`` is now deprecated and will be removed in mne 0.14, by `Nick Foti`_
 
 - Weighted addition and subtraction of :class:`Evoked` as ``ev1 + ev2`` and ``ev1 - ev2`` have been deprecated, use explicit :func:`mne.combine_evoked(..., weights='nave') <mne.combine_evoked>` instead by `Eric Larson`_
 
@@ -2414,7 +2587,7 @@ of commits):
 
 .. _Chris Mullins: http://crmullins.com
 
-.. _Phillip Alday: http://palday.bitbucket.org
+.. _Phillip Alday: https://palday.bitbucket.io
 
 .. _Andreas Hojlund: https://github.com/ahoejlund
 
@@ -2467,3 +2640,15 @@ of commits):
 .. _Alejandro Weinstein: http://ocam.cl
 
 .. _Emily Stephen: http://github.com/emilyps14
+
+.. _Nathalie Gayraud: https://github.com/ngayraud
+
+.. _Anne-Sophie Dubarry: https://github.com/annesodub
+
+.. _Stefan Appelhoff: http://stefanappelhoff.com
+
+.. _Tommy Clausner: https://github.com/TommyClausner
+
+.. _Pierre Ablin: https://pierreablin.com
+
+.. _Oleh Kozynets: https://github.com/OlehKSS

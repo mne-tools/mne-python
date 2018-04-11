@@ -16,6 +16,7 @@ from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..utils import _create_chs
 from ...utils import verbose, logger, warn
+from ...annotations import Annotations, _sync_onset
 
 
 def _read_mff_header(filepath):
@@ -465,6 +466,7 @@ class RawMff(BaseRaw):
                 pns_idx = idx[pns_chans] - n_eeg_channels
         else:
             eeg_idx = idx
+            pns_idx = []
 
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # Go to starting block
@@ -531,6 +533,10 @@ class RawMff(BaseRaw):
 
             samples_to_read = stop - start
             with open(pns_filepath, 'rb', buffering=0) as fid:
+                # Check file size
+                fid.seek(0, 2)
+                file_size = fid.tell()
+                fid.seek(0)
                 # Go to starting block
                 current_block = 0
                 current_block_info = None
@@ -544,6 +550,19 @@ class RawMff(BaseRaw):
 
                 # Start reading samples
                 while samples_to_read > 0:
+                    if samples_to_read == 1 and fid.tell() == file_size:
+                        # We are in the presence of the EEG bug
+                        # fill with zeros and break the loop
+                        data_view = data[n_data1_channels:, -1] = 0
+                        warn('This file has the EGI PSG sample bug')
+                        if self.annotations is None:
+                            self.annotations = Annotations((), (), ())
+                        an_start = current_data_sample
+                        self.annotations.append(
+                            _sync_onset(self, an_start / self.info['sfreq']),
+                            1 / self.info['sfreq'], 'BAD_EGI_PSG')
+                        break
+
                     this_block_info = _block_r(fid)
                     if this_block_info is not None:
                         current_block_info = this_block_info

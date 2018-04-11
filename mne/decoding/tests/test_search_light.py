@@ -29,13 +29,16 @@ def test_search_light():
     from sklearn.pipeline import make_pipeline
     from sklearn.metrics import roc_auc_score, make_scorer
     from sklearn.ensemble import BaggingClassifier
+    from sklearn.base import is_classifier
 
     X, y = make_data()
     n_epochs, _, n_time = X.shape
     # init
     assert_raises(ValueError, SlidingEstimator, 'foo')
     sl = SlidingEstimator(Ridge())
+    assert_true(not is_classifier(sl))
     sl = SlidingEstimator(LogisticRegression())
+    assert_true(is_classifier(sl))
     # fit
     assert_equal(sl.__repr__()[:18], '<SlidingEstimator(')
     sl.fit(X, y)

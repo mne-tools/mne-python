@@ -5,12 +5,14 @@
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#          Phillip Alday <phillip.alday@unisa.edu.au>
+#          Phillip Alday <phillip.alday@mpi.nl>
 #          Okba Bekhelifi <okba.bekhelifi@gmail.com>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
 import os
+import os.path as op
 import re
 import time
 
@@ -28,7 +30,7 @@ from ...externals.six.moves import configparser
 
 
 class RawBrainVision(BaseRaw):
-    """Raw object from Brain Vision EEG file.
+    """Raw object from a Brain Vision EEG file.
 
     Parameters
     ----------
@@ -73,16 +75,17 @@ class RawBrainVision(BaseRaw):
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
+
     """
 
     @verbose
     def __init__(self, vhdr_fname, montage=None,
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                  scale=1., preload=False, response_trig_shift=0,
-                 event_id=None, verbose=None):  # noqa: D102
+                 event_id=None, verbose=None):  # noqa: D107
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
-        vhdr_fname = os.path.abspath(vhdr_fname)
+        vhdr_fname = op.abspath(vhdr_fname)
         info, data_filename, fmt, order, mrk_fname, montage, n_samples = \
             _get_vhdr_info(vhdr_fname, eog, misc, scale, montage)
         self._order = order
@@ -140,6 +143,7 @@ class RawBrainVision(BaseRaw):
         events : array, shape (n_events, 3)
             Events, each row consisting of an (onset, duration, trigger)
             sequence.
+
         """
         return self._events.copy()
 
@@ -151,6 +155,7 @@ class RawBrainVision(BaseRaw):
         events : array, shape (n_events, 3)
             Events, each row consisting of an (onset, duration, trigger)
             sequence.
+
         """
         self._create_event_ch(events)
 
@@ -210,6 +215,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     events : array, shape (n_events, 3)
         An array containing the whole recording's events, each row representing
         an event as (onset, duration, trigger) sequence.
+
     """
     if event_id is None:
         event_id = dict()
@@ -256,7 +262,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     # extract Marker Infos block
     m = re.search(r"\[Marker Infos\]", txt)
     if not m:
-        return np.zeros(0)
+        return np.zeros((0, 3))
     mk_txt = txt[m.end():]
     m = re.search(r"\[.*\]", mk_txt)
     if m:
@@ -371,9 +377,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         A dict containing Brain Vision specific parameters.
     events : array, shape (n_events, 3)
         Events from the corresponding vmrk file.
+
     """
     scale = float(scale)
-    ext = os.path.splitext(vhdr_fname)[-1]
+    ext = op.splitext(vhdr_fname)[-1]
     if ext != '.vhdr':
         raise IOError("The header file must be given to read the data, "
                       "not a file with extension '%s'." % ext)
@@ -440,8 +447,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                    for key in cfg.options('ASCII Infos'))
 
     # locate EEG and marker files
-    path = os.path.dirname(vhdr_fname)
-    data_filename = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
+    path = op.dirname(vhdr_fname)
+    data_filename = op.join(path, cfg.get('Common Infos', 'DataFile'))
     info['meas_date'] = int(time.time())
     info['buffer_size_sec'] = 1.  # reasonable default
 
@@ -566,10 +573,15 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         else:
             shift = 0
 
-        # extract filter units and convert s to Hz if necessary
+        # Extract filter units and convert from seconds to Hz if necessary.
         # this cannot be done as post-processing as the inverse t-f
         # relationship means that the min/max comparisons don't make sense
-        # unless we know the units
+        # unless we know the units.
+        #
+        # For reasoning about the s to Hz conversion, see this reference:
+        # `Ebersole, J. S., & Pedley, T. A. (Eds.). (2003).
+        # Current practice of clinical electroencephalography.
+        # Lippincott Williams & Wilkins.`, page 40-41
         header = re.split(r'\s\s+', settings[idx])
         hp_s = '[s]' in header[hp_col]
         lp_s = '[s]' in header[lp_col]
@@ -595,7 +607,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             else:
                 info['highpass'] = float(highpass[0])
                 if hp_s:
-                    info['highpass'] = 1. / info['highpass']
+                    # filter time constant t [secs] to Hz conversion: 1/2*pi*t
+                    info['highpass'] = 1. / (2 * np.pi * info['highpass'])
+
         else:
             heterogeneous_hp_filter = True
             if hp_s:
@@ -606,7 +620,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 info['highpass'] = np.max(np.array(highpass, dtype=np.float))
                 # Coveniently enough 1 / np.Inf = 0.0, so this works for
                 # DC / no highpass filter
-                info['highpass'] = 1. / info['highpass']
+                # filter time constant t [secs] to Hz conversion: 1/2*pi*t
+                info['highpass'] = 1. / (2 * np.pi * info['highpass'])
 
                 # not exactly the cleanest use of FP, but this makes us
                 # more conservative in *not* warning.
@@ -636,7 +651,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             else:
                 info['lowpass'] = float(lowpass[0])
                 if lp_s:
-                    info['lowpass'] = 1. / info['lowpass']
+                    # filter time constant t [secs] to Hz conversion: 1/2*pi*t
+                    info['lowpass'] = 1. / (2 * np.pi * info['lowpass'])
+
         else:
             heterogeneous_lp_filter = True
             if lp_s:
@@ -646,7 +663,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                            else 0.0 for filt in lowpass]
                 info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
                 try:
-                    info['lowpass'] = 1. / info['lowpass']
+                    # filter time constant t [secs] to Hz conversion: 1/2*pi*t
+                    info['lowpass'] = 1. / (2 * np.pi * info['lowpass'])
+
                 except ZeroDivisionError:
                     if len(set(lowpass)) == 1:
                         # No lowpass actually set for the weakest setting
@@ -713,12 +732,13 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             unit = FIFF.FIFF_UNIT_V
         info['chs'].append(dict(
             ch_name=ch_name, coil_type=coil_type, kind=kind, logno=idx + 1,
-            scanno=idx + 1, cal=cals[idx], range=ranges[idx], loc=np.zeros(12),
+            scanno=idx + 1, cal=cals[idx], range=ranges[idx],
+            loc=np.full(12, np.nan),
             unit=unit, unit_mul=0.,  # always zero- mne manual pg. 273
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
     # for stim channel
-    mrk_fname = os.path.join(path, cfg.get('Common Infos', 'MarkerFile'))
+    mrk_fname = op.join(path, cfg.get('Common Infos', 'MarkerFile'))
     info._update_redundant()
     info._check_consistency()
     return info, data_filename, fmt, order, mrk_fname, montage, n_samples
@@ -777,6 +797,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
+
     """
     return RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
                           misc=misc, scale=scale, preload=preload,

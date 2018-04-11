@@ -5,9 +5,9 @@ Whitening evoked data with a noise covariance
 
 Evoked data are loaded and then whitened using a given noise covariance
 matrix. It's an excellent quality check to see if baseline signals match
-the assumption of Gaussian white noise from which we expect values around
-0 with less than 2 standard deviations. Covariance estimation and diagnostic
-plots are based on [1]_.
+the assumption of Gaussian white noise during the baseline period.
+
+Covariance estimation and diagnostic plots are based on [1]_.
 
 References
 ----------
@@ -66,15 +66,19 @@ for c in noise_covs:
     print("%s : %s" % (c['method'], c['loglik']))
 
 ###############################################################################
-# Show whitening
+# Show the evoked data:
 
 evoked = epochs.average()
 
-evoked.plot()  # plot evoked response
+evoked.plot(time_unit='s')  # plot evoked response
 
-# plot the whitened evoked data for to see if baseline signals match the
-# assumption of Gaussian white noise from which we expect values around
-# 0 with less than 2 standard deviations. For the Global field power we expect
-# a value of 1.
+###############################################################################
+# We can then show whitening for our various noise covariance estimates.
+#
+# Here we should look to see if baseline signals match the
+# assumption of Gaussian white noise. we expect values centered at
+# 0 within 2 standard deviations for 95% of the time points.
+#
+# For the Global field power we expect a value of 1.
 
-evoked.plot_white(noise_covs)
+evoked.plot_white(noise_covs, time_unit='s')

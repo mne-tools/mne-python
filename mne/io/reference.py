@@ -361,6 +361,9 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         raise ValueError('Setting a reference is only supported for instances '
                          'of Raw, Epochs or Evoked.')
 
+    if ref_channels is None:
+        ref_channels = 'average'
+
     if ref_channels != 'average' and projection:
         raise ValueError('Setting projection=True is only supported for '
                          'ref_channels="average".')
@@ -395,17 +398,16 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         logger.info('Applying average reference.')
         eeg_idx = pick_types(inst.info, eeg=True, meg=False, ref_meg=False)
         ref_from = [inst.ch_names[i] for i in eeg_idx]
-        return _apply_reference(inst, ref_from)
+        ref_channels = ref_from
 
     if ref_channels == []:
         logger.info('EEG data marked as already having the desired reference. '
                     'Preventing automatic future re-referencing to an average '
                     'reference.')
-        inst.info['custom_ref_applied'] = True
-        return inst, None
     else:
         logger.info('Applying a custom EEG reference.')
-        return _apply_reference(inst, ref_channels)
+
+    return _apply_reference(inst, ref_channels)
 
 
 @verbose

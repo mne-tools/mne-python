@@ -12,11 +12,12 @@ import warnings
 
 from nose.tools import assert_true
 import numpy as np
-from numpy.testing import assert_raises, assert_equal
+from numpy.testing import assert_raises
+import pytest
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
-                 make_sphere_model)
+                 make_sphere_model, setup_volume_source_space)
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
@@ -25,7 +26,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        _import_mlab, _TempDir, requires_nibabel, check_version,
-                       requires_version)
+                       requires_version, traits_test)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.bem import read_bem_solution, read_bem_surfaces
@@ -59,21 +60,31 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 def test_plot_head_positions():
     """Test plotting of head positions."""
     import matplotlib.pyplot as plt
+    info = read_info(evoked_fname)
     pos = np.random.RandomState(0).randn(4, 10)
     pos[:, 0] = np.arange(len(pos))
+    destination = (0., 0., 0.04)
     with warnings.catch_warnings(record=True):  # old MPL will cause a warning
         plot_head_positions(pos)
         if check_version('matplotlib', '1.4'):
-            plot_head_positions(pos, mode='field')
+            plot_head_positions(pos, mode='field', info=info,
+                                destination=destination)
         else:
-            assert_raises(RuntimeError, plot_head_positions, pos, mode='field')
+            assert_raises(RuntimeError, plot_head_positions, pos, mode='field',
+                          info=info, destination=destination)
+        plot_head_positions([pos, pos])  # list support
+        assert_raises(ValueError, plot_head_positions, ['pos'])
+        assert_raises(ValueError, plot_head_positions, pos[:, :9])
     assert_raises(ValueError, plot_head_positions, pos, 'foo')
+    with pytest.raises(ValueError, match='shape'):
+        plot_head_positions(pos, axes=1.)
     plt.close('all')
 
 
 @testing.requires_testing_data
 @requires_pysurfer
 @requires_mayavi
+@traits_test
 def test_plot_sparse_source_estimates():
     """Test plotting of (sparse) source estimates."""
     sample_src = read_source_spaces(src_fname)
@@ -112,6 +123,7 @@ def test_plot_sparse_source_estimates():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_plot_evoked_field():
     """Test plotting evoked field."""
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
@@ -127,6 +139,7 @@ def test_plot_evoked_field():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_plot_alignment():
     """Test plotting of -trans.fif files and MEG sensor layouts."""
     # generate fiducials file for testing
@@ -175,6 +188,8 @@ def test_plot_alignment():
     # no-head version
     mlab.close(all=True)
     # all coord frames
+    assert_raises(ValueError, plot_alignment, info)
+    plot_alignment(info, surfaces=[])
     for coord_frame in ('meg', 'head', 'mri'):
         plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
                        coord_frame=coord_frame, trans=trans_fname,
@@ -182,15 +197,16 @@ def test_plot_alignment():
                        subjects_dir=subjects_dir, src=sample_src)
         mlab.close(all=True)
     # EEG only with strange options
-    evoked_eeg_ecog = evoked.copy().pick_types(meg=False, eeg=True)
-    evoked_eeg_ecog.info['projs'] = []  # "remove" avg proj
-    evoked_eeg_ecog.set_channel_types({'EEG 001': 'ecog'})
+    evoked_eeg_ecog_seeg = evoked.copy().pick_types(meg=False, eeg=True)
+    evoked_eeg_ecog_seeg.info['projs'] = []  # "remove" avg proj
+    evoked_eeg_ecog_seeg.set_channel_types({'EEG 001': 'ecog',
+                                            'EEG 002': 'seeg'})
     with warnings.catch_warnings(record=True) as w:
-        plot_alignment(evoked_eeg_ecog.info, subject='sample',
+        plot_alignment(evoked_eeg_ecog_seeg.info, subject='sample',
                        trans=trans_fname, subjects_dir=subjects_dir,
                        surfaces=['white', 'outer_skin', 'outer_skull'],
                        meg=['helmet', 'sensors'],
-                       eeg=['original', 'projected'], ecog=True)
+                       eeg=['original', 'projected'], ecog=True, seeg=True)
     mlab.close(all=True)
     assert_true(['Cannot plot MEG' in str(ww.message) for ww in w])
 
@@ -200,20 +216,29 @@ def test_plot_alignment():
     bem_surfs = read_bem_surfaces(op.join(subjects_dir, 'sample', 'bem',
                                           'sample-1280-1280-1280-bem.fif'))
     sample_src[0]['coord_frame'] = 4  # hack for coverage
+    plot_alignment(info, subject='sample', eeg='projected',
+                   meg='helmet', bem=sphere, dig=True,
+                   surfaces=['brain', 'inner_skull', 'outer_skull',
+                             'outer_skin'])
     plot_alignment(info, trans_fname, subject='sample', meg='helmet',
                    subjects_dir=subjects_dir, eeg='projected', bem=sphere,
-                   surfaces=['head', 'brain', 'inner_skull', 'outer_skull'],
-                   src=sample_src)
+                   surfaces=['head', 'brain'], src=sample_src)
     plot_alignment(info, trans_fname, subject='sample', meg=[],
                    subjects_dir=subjects_dir, bem=bem_sol, eeg=True,
                    surfaces=['head', 'inflated', 'outer_skull', 'inner_skull'])
     plot_alignment(info, trans_fname, subject='sample',
                    meg=True, subjects_dir=subjects_dir,
                    surfaces=['head', 'inner_skull'], bem=bem_surfs)
+    sphere = make_sphere_model('auto', 'auto', evoked.info)
+    src = setup_volume_source_space(sphere=sphere)
+    plot_alignment(info, eeg='projected', meg='helmet', bem=sphere,
+                   src=src, dig=True, surfaces=['brain', 'inner_skull',
+                                                'outer_skull', 'outer_skin'])
     sphere = make_sphere_model('auto', None, evoked.info)  # one layer
     plot_alignment(info, trans_fname, subject='sample', meg=False,
                    coord_frame='mri', subjects_dir=subjects_dir,
-                   surfaces=['brain'], bem=sphere)
+                   surfaces=['brain'], bem=sphere, show_axes=True)
+
     # one layer bem with skull surfaces:
     assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
@@ -228,11 +253,19 @@ def test_plot_alignment():
     assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   surfaces=['white', 'pial'])
+    assert_raises(TypeError, plot_alignment, info=info, trans=trans_fname,
+                  subject='sample', subjects_dir=subjects_dir,
+                  surfaces=[1])
+    assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
+                  subject='sample', subjects_dir=subjects_dir,
+                  surfaces=['foo'])
+    mlab.close(all=True)
 
 
 @testing.requires_testing_data
 @requires_pysurfer
 @requires_mayavi
+@traits_test
 def test_limits_to_control_points():
     """Test functionality for determing control points."""
     sample_src = read_source_spaces(src_fname)
@@ -280,7 +313,7 @@ def test_limits_to_control_points():
         # thresholded maps
         stc._data.fill(0.)
         plot_source_estimates(stc, **kwargs)
-        assert_equal(len(w), 1)
+        assert any('All data were zero' in str(ww.message) for ww in w)
     mlab.close(all=True)
 
 
@@ -339,7 +372,9 @@ def test_plot_dipole_mri_orthoview():
     plt.close('all')
 
 
+@testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_snapshot_brain_montage():
     """Test snapshot brain montage."""
     info = read_info(evoked_fname)
@@ -365,6 +400,7 @@ def test_snapshot_brain_montage():
 @testing.requires_testing_data
 @requires_version('surfer', '0.8')
 @requires_mayavi
+@traits_test
 def test_plot_vec_source_estimates():
     """Test plotting of vector source estimates."""
     sample_src = read_source_spaces(src_fname)

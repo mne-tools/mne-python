@@ -10,7 +10,7 @@ import time
 import uuid
 
 import numpy as np
-from scipy import linalg
+from scipy import linalg, sparse
 
 from .constants import FIFF
 from ..utils import logger
@@ -45,6 +45,15 @@ def _get_split_size(split_size):
     if split_size > 2147483648:
         raise ValueError('split_size cannot be larger than 2GB')
     return split_size
+
+
+def write_nop(fid, last=False):
+    """Write a FIFF_NOP."""
+    fid.write(np.array(FIFF.FIFF_NOP, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFFT_VOID, dtype='>i4').tostring())
+    fid.write(np.array(0, dtype='>i4').tostring())
+    next_ = FIFF.FIFFV_NEXT_NONE if last else FIFF.FIFFV_NEXT_SEQ
+    fid.write(np.array(next_, dtype='>i4').tostring())
 
 
 def write_int(fid, kind, data):
@@ -193,7 +202,7 @@ def get_machid():
     # Convert to integer in reverse-order (for some reason)
     from codecs import encode
     mac = b''.join([encode(h, 'hex_codec') for h in mac[::-1]])
-    ids = np.flipud(np.fromstring(mac, np.int32, count=2))
+    ids = np.flipud(np.frombuffer(mac, np.int32, count=2))
     return ids
 
 
@@ -275,11 +284,7 @@ def check_fiff_length(fid, close=True):
 
 def end_file(fid):
     """Write the closing tags to a fif file and closes the file."""
-    data_size = 0
-    fid.write(np.array(FIFF.FIFF_NOP, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFT_VOID, dtype='>i4').tostring())
-    fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFV_NEXT_NONE, dtype='>i4').tostring())
+    write_nop(fid, last=True)
     check_fiff_length(fid)
     fid.close()
 
@@ -358,8 +363,29 @@ def write_dig_points(fid, dig, block=False, coord_frame=None):
 
 
 def write_float_sparse_rcs(fid, kind, mat):
-    """Write a single-precision floating-point matrix tag."""
-    FIFFT_MATRIX = 16416 << 16
+    """Write a single-precision sparse compressed row matrix tag."""
+    return write_float_sparse(fid, kind, mat, fmt='csr')
+
+
+def write_float_sparse_ccs(fid, kind, mat):
+    """Write a single-precision sparse compressed column matrix tag."""
+    return write_float_sparse(fid, kind, mat, fmt='csc')
+
+
+def write_float_sparse(fid, kind, mat, fmt='auto'):
+    """Write a single-precision floating-point sparse matrix tag."""
+    from .tag import _matrix_coding_CCS, _matrix_coding_RCS
+    if fmt == 'auto':
+        fmt = 'csr' if isinstance(mat, sparse.csr_matrix) else 'csc'
+    if fmt == 'csr':
+        need = sparse.csr_matrix
+        bits = _matrix_coding_RCS
+    else:
+        need = sparse.csc_matrix
+        bits = _matrix_coding_CCS
+    if not isinstance(mat, need):
+        raise TypeError('Must write %s, got %s' % (fmt.upper(), type(mat),))
+    FIFFT_MATRIX = bits << 16
     FIFFT_MATRIX_FLOAT_RCS = FIFF.FIFFT_FLOAT | FIFFT_MATRIX
 
     nnzm = mat.nnz

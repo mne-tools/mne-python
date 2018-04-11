@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 =======================================
-Brainstorm CTF phantom tutorial dataset
+Brainstorm CTF phantom dataset tutorial
 =======================================
 
 Here we compute the evoked from raw for the Brainstorm CTF phantom
@@ -84,7 +84,7 @@ tmax = -tmin
 epochs = mne.Epochs(raw, events, event_id=1, tmin=tmin, tmax=tmax,
                     baseline=(None, None))
 evoked = epochs.average()
-evoked.plot()
+evoked.plot(time_unit='s')
 evoked.crop(0., 0.)
 
 ###############################################################################

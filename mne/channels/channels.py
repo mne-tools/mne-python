@@ -20,7 +20,7 @@ from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _PICK_TYPES_KEYS,
-                       channel_indices_by_type)
+                       channel_indices_by_type, pick_channels)
 
 
 def _get_meg_system(info):
@@ -134,7 +134,7 @@ def equalize_channels(candidates, verbose=None):
 
     chan_max_idx = np.argmax([c.info['nchan'] for c in candidates])
     chan_template = candidates[chan_max_idx].ch_names
-    logger.info('Identiying common channels ...')
+    logger.info('Identifying common channels ...')
     channels = [set(c.ch_names) for c in candidates]
     common_channels = set(chan_template).intersection(*channels)
     dropped = list()
@@ -480,8 +480,8 @@ class SetChannelsMixin(object):
 
         Parameters
         ----------
-        montage : instance of Montage or DigMontage
-            The montage to use.
+        montage : instance of Montage | instance of DigMontage | str | None
+            The montage to use (None removes any location information).
         set_dig : bool
             If True, update the digitization information (``info['dig']``)
             in addition to the channel positions (``info['chs'][idx]['loc']``).
@@ -594,11 +594,13 @@ class SetChannelsMixin(object):
 class UpdateChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs, AverageTFR."""
 
+    @verbose
     def pick_types(self, meg=True, eeg=False, stim=False, eog=False,
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False, ecog=False,
-                   fnirs=False, include=(), exclude='bads', selection=None):
+                   fnirs=False, include=(), exclude='bads', selection=None,
+                   verbose=None):
         """Pick some channels by type and names.
 
         Parameters
@@ -657,11 +659,19 @@ class UpdateChannelsMixin(object):
             in ``info['bads']``.
         selection : list of string
             Restrict sensor channels (MEG, EEG) to this list of channel names.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
         inst : instance of Raw, Epochs, or Evoked
             The modified instance.
+
+        See Also
+        --------
+        pick_channels
 
         Notes
         -----
@@ -673,8 +683,7 @@ class UpdateChannelsMixin(object):
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
             ecog=ecog, fnirs=fnirs, include=include, exclude=exclude,
             selection=selection)
-        self._pick_drop_channels(idx)
-        return self
+        return self._pick_drop_channels(idx)
 
     def pick_channels(self, ch_names):
         """Pick some channels.
@@ -692,15 +701,54 @@ class UpdateChannelsMixin(object):
         See Also
         --------
         drop_channels
+        pick_types
+        reorder_channels
 
         Notes
         -----
+        The channel names given are assumed to be a set, i.e. the order
+        does not matter. The original order of the channels is preserved.
+        You can use ``reorder_channels`` to set channel order if necessary.
+
         .. versionadded:: 0.9.0
         """
+        return self._pick_drop_channels(
+            pick_channels(self.info['ch_names'], ch_names))
+
+    def reorder_channels(self, ch_names):
+        """Reorder channels.
+
+        Parameters
+        ----------
+        ch_names : list
+            The desired channel order.
+
+        Returns
+        -------
+        inst : instance of Raw, Epochs, or Evoked
+            The modified instance.
+
+        See Also
+        --------
+        drop_channels
+        pick_types
+        pick_channels
+
+        Notes
+        -----
+        Channel names must be unique. Channels that are not in ``ch_names``
+        are dropped.
+
+        .. versionadded:: 0.16.0
+        """
         _check_excludes_includes(ch_names)
-        idx = [self.ch_names.index(c) for c in ch_names if c in self.ch_names]
-        self._pick_drop_channels(idx)
-        return self
+        idx = list()
+        for ch_name in ch_names:
+            ii = self.ch_names.index(ch_name)
+            if ii in idx:
+                raise ValueError('Channel name repeated: %s' % (ch_name,))
+            idx.append(ii)
+        return self._pick_drop_channels(idx)
 
     def drop_channels(self, ch_names):
         """Drop some channels.
@@ -717,7 +765,9 @@ class UpdateChannelsMixin(object):
 
         See Also
         --------
+        reorder_channels
         pick_channels
+        pick_types
 
         Notes
         -----
@@ -741,15 +791,13 @@ class UpdateChannelsMixin(object):
         bad_idx = [self.ch_names.index(ch_name) for ch_name in ch_names
                    if ch_name in self.ch_names]
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
-        self._pick_drop_channels(idx)
+        return self._pick_drop_channels(idx)
 
-        return self
-
-    def _pick_drop_channels(self, idx):
+    def _pick_drop_channels(self, idx, check_comps=True):
         # avoid circular imports
         from ..time_frequency import AverageTFR, EpochsTFR
 
-        _check_preload(self, 'adding or dropping channels')
+        _check_preload(self, 'adding, dropping, or reordering channels')
 
         if getattr(self, 'picks', None) is not None:
             self.picks = self.picks[idx]
@@ -757,15 +805,40 @@ class UpdateChannelsMixin(object):
         if hasattr(self, '_cals'):
             self._cals = self._cals[idx]
 
+        if check_comps and len(self.info['comps']) > 0:
+            current_comp = get_current_comp(self.info)
+            # Check and possibly remove comps
+            comp_names = sorted(set(
+                comp_name for comp in self.info['comps']
+                for comp_name in comp['data']['col_names']))
+            comp_picks = pick_channels(self.ch_names, comp_names)
+            assert len(comp_picks) == len(comp_names)
+            missing = [comp_names[ii]
+                       for ii in np.where(~np.in1d(comp_picks, idx))[0]]
+            if len(missing) > 0:
+                names = ', '.join(missing)
+                names = names[:20] + '...' if len(names) > 20 else names
+                if current_comp != 0:
+                    raise RuntimeError(
+                        'Compensation grade %d has been applied, but '
+                        'compensation channels are missing: %s\n'
+                        'Either remove compensation or pick compensation '
+                        'channels' % (current_comp, names))
+                else:
+                    logger.info('Removing %d compensators from info because '
+                                'not all compensation channels were picked'
+                                % (len(self.info['comps']),))
+                    self.info['comps'] = []
+
         pick_info(self.info, idx, copy=False)
 
         if getattr(self, '_projector', None) is not None:
             self._projector = self._projector[idx][:, idx]
 
-        if self.preload:
-            # All others (Evoked, Epochs, Raw) have chs axis=-2
-            axis = -3 if isinstance(self, (AverageTFR, EpochsTFR)) else -2
-            self._data = self._data.take(idx, axis=axis)
+        # All others (Evoked, Epochs, Raw) have chs axis=-2
+        axis = -3 if isinstance(self, (AverageTFR, EpochsTFR)) else -2
+        self._data = self._data.take(idx, axis=axis)
+        return self
 
     def add_channels(self, add_list, force_update_info=False):
         """Append new channels to the instance.
@@ -786,6 +859,10 @@ class UpdateChannelsMixin(object):
         -------
         inst : instance of Raw, Epochs, or Evoked
             The modified instance.
+
+        See Also
+        --------
+        drop_channels
         """
         # avoid circular imports
         from ..io import BaseRaw, _merge_info
@@ -866,6 +943,10 @@ class InterpolationMixin(object):
 
         if getattr(self, 'preload', None) is False:
             raise ValueError('Data must be preloaded.')
+
+        if len(self.info['bads']) == 0:
+            warn('No bad channels to interpolate. Doing nothing...')
+            return self
 
         _interpolate_bads_eeg(self)
         _interpolate_bads_meg(self, mode=mode)

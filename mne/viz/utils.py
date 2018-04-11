@@ -25,8 +25,12 @@ from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
 from ..io import show_fiff, Info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
-                       _pick_data_channels)
-from ..utils import verbose, set_config, warn
+                       _pick_data_channels, _DATA_CH_TYPES_SPLIT,
+                       pick_info, _picks_by_type)
+from ..io.proc_history import _get_rank_sss
+from ..io.proj import setup_proj
+from ..utils import logger, verbose, set_config, warn
+
 from ..externals.six import string_types
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
@@ -384,7 +388,8 @@ def _prepare_trellis(n_cells, max_col):
     else:
         nrow, ncol = int(math.ceil(n_cells / float(max_col))), max_col
 
-    fig, axes = plt.subplots(nrow, ncol, figsize=(7.4, 1.5 * nrow + 1))
+    fig, axes = plt.subplots(nrow, ncol, figsize=(1.3 * ncol + 1,
+                                                  1.5 * nrow + 1))
     axes = [axes] if ncol == nrow == 1 else axes.flatten()
     for ax in axes[n_cells:]:  # hide unused axes
         # XXX: Previously done by ax.set_visible(False), but because of mpl
@@ -619,7 +624,7 @@ def _radio_clicked(label, params):
     channels = params['selections'][label]
     ax_topo = params['fig_selection'].get_axes()[1]
     types = np.array([], dtype=int)
-    for this_type in ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr'):
+    for this_type in _DATA_CH_TYPES_SPLIT:
         if this_type in params['types']:
             types = np.concatenate(
                 [types, np.where(np.array(params['types']) == this_type)[0]])
@@ -726,11 +731,21 @@ def _plot_raw_onkey(event, params):
         params['ch_start'] -= params['n_channels']
         _channels_changed(params, len(params['inds']))
     elif event.key == 'right':
+        value = params['t_start'] + params['duration'] / 4
+        _plot_raw_time(value, params)
+        params['update_fun']()
+        params['plot_fun']()
+    elif event.key == 'shift+right':
         value = params['t_start'] + params['duration']
         _plot_raw_time(value, params)
         params['update_fun']()
         params['plot_fun']()
     elif event.key == 'left':
+        value = params['t_start'] - params['duration'] / 4
+        _plot_raw_time(value, params)
+        params['update_fun']()
+        params['plot_fun']()
+    elif event.key == 'shift+left':
         value = params['t_start'] - params['duration']
         _plot_raw_time(value, params)
         params['update_fun']()
@@ -784,6 +799,9 @@ def _plot_raw_onkey(event, params):
             params['fig_annotation'].canvas.close_event()
     elif event.key == 'b':
         _setup_butterfly(params)
+    elif event.key == 'w':
+        params['use_noise_cov'] = not params['use_noise_cov']
+        params['plot_update_proj_callback'](params, None)
 
 
 def _setup_annotation_fig(params):
@@ -800,7 +818,8 @@ def _setup_annotation_fig(params):
     labels = np.union1d(labels, params['added_label'])
     fig = figure_nobar(figsize=(4.5, 2.75 + len(labels) * 0.75))
     fig.patch.set_facecolor('white')
-    ax = plt.subplot2grid((len(labels) + 2, 2), (0, 0), rowspan=len(labels),
+    ax = plt.subplot2grid((len(labels) + 2, 2), (0, 0),
+                          rowspan=max(len(labels), 1),
                           colspan=2, frameon=False)
     ax.set_title('Labels')
     ax.set_aspect('equal')
@@ -834,7 +853,7 @@ def _setup_annotation_fig(params):
     fig.canvas.mpl_connect('key_press_event', partial(
         _change_annotation_description, params=params))
     fig.button = Button(button_ax, 'Add label')
-    fig.label = label_ax.text(0.5, 0.5, 'BAD_', va='center', ha='center')
+    fig.label = label_ax.text(0.5, 0.5, '"BAD_"', va='center', ha='center')
     fig.button.on_clicked(partial(_onclick_new_label, params=params))
     plt_show(fig=fig)
     params['fig_annotation'] = fig
@@ -862,7 +881,7 @@ def _setup_annotation_fig(params):
 
 def _onclick_new_label(event, params):
     """Add new description on button press."""
-    text = params['fig_annotation'].label.get_text()[:-1]
+    text = params['fig_annotation'].label.get_text()[1:-1]
     params['added_label'].append(text)
     _setup_annotation_colors(params)
     _setup_annotation_fig(params)
@@ -920,9 +939,9 @@ def _mouse_click(event, params):
 
 def _handle_topomap_bads(ch_name, params):
     """Color channels in selection topomap when selecting bads."""
-    for type in ('mag', 'grad', 'eeg', 'seeg', 'hbo', 'hbr'):
-        if type in params['types']:
-            types = np.where(np.array(params['types']) == type)[0]
+    for t in _DATA_CH_TYPES_SPLIT:
+        if t in params['types']:
+            types = np.where(np.array(params['types']) == t)[0]
             break
     color_ind = np.where(np.array(
         params['info']['ch_names'])[types] == ch_name)[0]
@@ -1154,6 +1173,8 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
         x, y = ax.transAxes.transform_point(point)
     elif xform == 'data':
         x, y = ax.transData.transform_point(point)
+    elif xform == 'pix':
+        x, y = point
     else:
         raise ValueError('unknown transform')
     if kind == 'press':
@@ -1351,7 +1372,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info not %s' % type(info))
     ch_indices = channel_indices_by_type(info)
-    allowed_types = ['mag', 'grad', 'eeg', 'seeg', 'ecog']
+    allowed_types = _DATA_CH_TYPES_SPLIT
     if ch_type is None:
         for this_type in allowed_types:
             if _contains_ch_type(info, this_type):
@@ -1613,6 +1634,40 @@ def _setup_cmap(cmap, n_axes=1, norm=False):
     return cmap
 
 
+def _prepare_joint_axes(n_maps, figsize=None):
+    """Prepare axes for topomaps and colorbar in joint plot figure.
+
+    Parameters
+    ----------
+    n_maps: int
+        Number of topomaps to include in the figure
+    figsize: tuple
+        Figure size, see plt.figsize
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        Figure with initialized axes
+    main_ax: matplotlib.axes._subplots.AxesSubplot
+        Axes in which to put the main plot
+    map_ax: list
+        List of axes for each topomap
+    cbar_ax: matplotlib.axes._subplots.AxesSubplot
+        Axes for colorbar next to topomaps
+    """
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=figsize)
+    main_ax = fig.add_subplot(212)
+    ts = n_maps + 2
+    map_ax = [plt.subplot(4, ts, x + 2 + ts) for x in range(n_maps)]
+    # Position topomap subplots on the second row, starting on the
+    # second column
+    cbar_ax = plt.subplot(4, 5 * (ts + 1), 10 * (ts + 1))
+    # Position colorbar at the very end of a more finely divided
+    # second row of subplots
+    return fig, main_ax, map_ax, cbar_ax
+
+
 class DraggableColorbar(object):
     """Enable interactive colorbar.
 
@@ -1829,7 +1884,6 @@ def _plot_annotations(raw, params):
 
     while len(params['ax_hscroll'].collections) > 0:
         params['ax_hscroll'].collections.pop()
-
     segments = list()
     # sort the segments by start time
     ann_order = raw.annotations.onset.argsort(axis=0)
@@ -1844,7 +1898,8 @@ def _plot_annotations(raw, params):
         params['ax_hscroll'].fill_betweenx(
             (0., 1.), annot_start, annot_end, alpha=0.3,
             color=params['segment_colors'][dscr])
-    params['segments'] = np.array(segments)
+    # Adjust half a sample backward to make it clear what is included
+    params['segments'] = np.array(segments) - 0.5 / raw.info['sfreq']
     params['annot_description'] = descriptions
 
 
@@ -1877,8 +1932,9 @@ def _annotations_closed(event, params):
     import matplotlib as mpl
     import matplotlib.pyplot as plt
     plt.close(params['fig_annotation'])
-    params['ax'].selector.disconnect_events()
-    params['ax'].selector = None
+    if params['ax'].selector is not None:
+        params['ax'].selector.disconnect_events()
+        params['ax'].selector = None
     params['fig_annotation'] = None
     if params['segment_line'] is not None:
         params['segment_line'].remove()
@@ -1977,11 +2033,9 @@ def _change_annotation_description(event, params):
     """Handle keys in annotation dialog."""
     import matplotlib.pyplot as plt
     fig = event.canvas.figure
-    text = fig.label.get_text()
+    text = fig.label.get_text()[1:-1]
     if event.key == 'backspace':
-        if len(text) == 1:
-            return
-        text = text[:-2]
+        text = text[:-1]
     elif event.key == 'escape':
         plt.close(fig)
         return
@@ -1990,8 +2044,8 @@ def _change_annotation_description(event, params):
     elif len(event.key) > 1 or event.key == ';':  # ignore modifier keys
         return
     else:
-        text = text[:-1] + event.key
-    fig.label.set_text(text + '_')
+        text = text + event.key
+    fig.label.set_text('"' + text + '"')
     fig.canvas.draw()
 
 
@@ -2015,8 +2069,7 @@ def _setup_butterfly(params):
         types = np.array(params['types'])[params['orig_inds']]
         if params['group_by'] in ['type', 'original']:
             inds = params['inds']
-            eeg = 'seeg' if 'seeg' in types else 'eeg'
-            labels = [t for t in ['grad', 'mag', eeg, 'eog', 'ecg']
+            labels = [t for t in _DATA_CH_TYPES_SPLIT + ['eog', 'ecg']
                       if t in types] + ['misc']
             ticks = np.arange(5, 5 * (len(labels) + 1), 5)
             offs = {l: t for (l, t) in zip(labels, ticks)}
@@ -2072,9 +2125,32 @@ def _setup_butterfly(params):
             radio = params['fig_selection'].radio
             active_idx = _get_active_radiobutton(radio)
             _radio_clicked(radio.labels[active_idx]._text, params)
-
+    # For now, italics only work in non-grouped mode
+    _set_ax_label_style(ax, params, italicize=not butterfly)
     params['ax_vscroll'].set_visible(not butterfly)
     params['plot_fun']()
+
+
+def _connection_line(x, fig, sourceax, targetax, y=1.,
+                     y_source_transform="transAxes"):
+    """Connect source and target plots with a line.
+
+    Connect source and target plots with a line, such as time series
+    (source) and topolots (target). Primarily used for plot_joint
+    functions.
+    """
+    from matplotlib.lines import Line2D
+    trans_fig = fig.transFigure
+    trans_fig_inv = fig.transFigure.inverted()
+
+    xt, yt = trans_fig_inv.transform(targetax.transAxes.transform([.5, 0.]))
+    xs, _ = trans_fig_inv.transform(sourceax.transData.transform([x, 0.]))
+    _, ys = trans_fig_inv.transform(getattr(sourceax, y_source_transform
+                                            ).transform([0., y]))
+
+    return Line2D((xt, xs), (yt, ys), transform=trans_fig, color='grey',
+                  linestyle='-', linewidth=1.5, alpha=.66, zorder=1,
+                  clip_on=False)
 
 
 class DraggableLine:
@@ -2162,7 +2238,7 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
         axes.spines['top'].set_bounds(tmin, tmax)
 
     axes.tick_params(direction='out')
-    axes.tick_params(right="off")
+    axes.tick_params(right=False)
 
     current_ymin = axes.get_ylim()[0]
 
@@ -2181,7 +2257,6 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
 
     xticks = sorted(list(set([x for x in axes.get_xticks()] + vlines)))
     axes.set_xticks(xticks)
-    axes.set_xticklabels(xticks)
     x_extrema = [t for t in xticks if tmax >= t >= tmin]
     if truncate_xaxis is True:
         axes.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
@@ -2232,3 +2307,224 @@ def _grad_pair_pick_and_name(info, picks):
     picks = list(sorted(set(picked_chans)))
     ch_names = [info["ch_names"][pick] for pick in picks]
     return picks, ch_names
+
+
+def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True,
+                          nave=1):
+    from ..cov import compute_whitener
+    projector = np.eye(len(info['ch_names']))
+    whitened_ch_names = []
+    if noise_cov is not None and use_noise_cov:
+        # any channels in noise_cov['bads'] but not in info['bads'] get
+        # set to nan, which means that they are not plotted.
+        data_picks = _pick_data_channels(info, with_ref_meg=False, exclude=())
+        data_names = set(info['ch_names'][pick] for pick in data_picks)
+        # these can be toggled by the user
+        bad_names = set(info['bads'])
+        # these can't in standard pipelines be enabled (we always take the
+        # union), so pretend they're not in cov at all
+        cov_names = ((set(noise_cov['names']) & set(info['ch_names'])) -
+                     set(noise_cov['bads']))
+        # Actually compute the whitener only using the difference
+        whiten_names = cov_names - bad_names
+        whiten_picks = pick_channels(info['ch_names'], whiten_names)
+        whiten_info = pick_info(info, whiten_picks)
+        rank = _triage_rank_sss(whiten_info, [noise_cov])[1][0]
+        whitener, whitened_ch_names = compute_whitener(
+            noise_cov, whiten_info, rank=rank, verbose=False)
+        whitener *= np.sqrt(nave)  # proper scaling for Evoked data
+        assert set(whitened_ch_names) == whiten_names
+        projector[whiten_picks, whiten_picks[:, np.newaxis]] = whitener
+        # Now we need to change the set of "whitened" channels to include
+        # all data channel names so that they are properly italicized.
+        whitened_ch_names = data_names
+        # We would need to set "bad_picks" to identity to show the traces
+        # (but in gray), but here we don't need to because "projector"
+        # starts out as identity. So all that is left to do is take any
+        # *good* data channels that are not in the noise cov to be NaN
+        nan_names = data_names - (bad_names | cov_names)
+        # XXX conditional necessary because of annoying behavior of
+        # pick_channels where an empty list means "all"!
+        if len(nan_names) > 0:
+            nan_picks = pick_channels(info['ch_names'], nan_names)
+            projector[nan_picks] = np.nan
+    elif proj:
+        projector, _ = setup_proj(info, add_eeg_ref=False, verbose=False)
+    return projector, whitened_ch_names
+
+
+def _set_ax_label_style(ax, params, italicize=True):
+    import matplotlib.text
+    for tick in params['ax'].get_yaxis().get_major_ticks():
+        for text in tick.get_children():
+            if isinstance(text, matplotlib.text.Text):
+                whitened = text.get_text() in params['whitened_ch_names']
+                whitened = whitened and italicize
+                text.set_style('italic' if whitened else 'normal')
+
+
+def _check_sss(info):
+    """Check SSS history in info."""
+    ch_used = [ch for ch in _DATA_CH_TYPES_SPLIT
+               if _contains_ch_type(info, ch)]
+    has_meg = 'mag' in ch_used and 'grad' in ch_used
+    has_sss = (has_meg and len(info['proc_history']) > 0 and
+               info['proc_history'][0].get('max_info') is not None)
+    return ch_used, has_meg, has_sss
+
+
+def _triage_rank_sss(info, covs, rank=None, scalings=None):
+    from ..cov import _estimate_rank_meeg_cov
+    rank = dict() if rank is None else rank
+    scalings = _handle_default('scalings_cov_rank', scalings)
+
+    # Only look at good channels
+    picks = _pick_data_channels(info, with_ref_meg=False, exclude='bads')
+    info = pick_info(info, picks)
+    ch_used, has_meg, has_sss = _check_sss(info)
+    if has_sss:
+        if 'mag' in rank or 'grad' in rank:
+            raise ValueError('When using SSS, pass "meg" to set the rank '
+                             '(separate rank values for "mag" or "grad" are '
+                             'meaningless).')
+    elif 'meg' in rank:
+        raise ValueError('When not using SSS, pass separate rank values '
+                         'for "mag" and "grad" (do not use "meg").')
+
+    picks_list = _picks_by_type(info, meg_combined=has_sss)
+    if has_sss:
+        # reduce ch_used to combined mag grad
+        ch_used = list(zip(*picks_list))[0]
+    # order pick list by ch_used (required for compat with plot_evoked)
+    picks_list = [x for x, y in sorted(zip(picks_list, ch_used))]
+    n_ch_used = len(ch_used)
+
+    # make sure we use the same rank estimates for GFP and whitening
+
+    picks_list2 = [k for k in picks_list]
+    # add meg picks if needed.
+    if has_meg:
+        # append ("meg", picks_meg)
+        picks_list2 += _picks_by_type(info, meg_combined=True)
+
+    rank_list = []  # rank dict for each cov
+    for cov in covs:
+        # We need to add the covariance projectors, compute the projector,
+        # and apply it, just like we will do in prepare_noise_cov, otherwise
+        # we risk the rank estimates being incorrect (i.e., if the projectors
+        # do not match).
+        info_proj = info.copy()
+        info_proj['projs'] += cov['projs']
+        this_rank = {}
+        C = cov['data'].copy()
+        # assemble rank dict for this cov, such that we have meg
+        for ch_type, this_picks in picks_list2:
+            # if we have already estimates / values for mag/grad but not
+            # a value for meg, combine grad and mag.
+            if ('mag' in this_rank and 'grad' in this_rank and
+                    'meg' not in rank):
+                this_rank['meg'] = this_rank['mag'] + this_rank['grad']
+                # and we're done here
+                break
+
+            if rank.get(ch_type) is None:
+                this_info = pick_info(info_proj, this_picks)
+                idx = np.ix_(this_picks, this_picks)
+                projector = setup_proj(this_info, add_eeg_ref=False)[0]
+                this_C = C[idx]
+                if projector is not None:
+                    this_C = np.dot(np.dot(projector, this_C), projector.T)
+                this_estimated_rank = _estimate_rank_meeg_cov(
+                    this_C, this_info, scalings)
+                _check_estimated_rank(
+                    this_estimated_rank, this_picks, this_info, info,
+                    cov, ch_type, has_meg, has_sss)
+                this_rank[ch_type] = this_estimated_rank
+            elif rank.get(ch_type) is not None:
+                this_rank[ch_type] = rank[ch_type]
+
+        rank_list.append(this_rank)
+    return n_ch_used, rank_list, picks_list, has_sss
+
+
+def _check_estimated_rank(this_estimated_rank, this_picks, this_info, info,
+                          cov, ch_type, has_meg, has_sss):
+    """Compare estimated against expected rank."""
+    expected_rank = len(this_picks)
+    expected_rank_reduction = 0
+    if has_meg and has_sss and ch_type == 'meg':
+        sss_rank = _get_rank_sss(info)
+        expected_rank_reduction += (expected_rank - sss_rank)
+    n_ssp = sum(_match_proj_type(pp, this_info['ch_names'])
+                for pp in cov['projs'])
+    expected_rank_reduction += n_ssp
+    expected_rank -= expected_rank_reduction
+    if this_estimated_rank != expected_rank:
+        logger.debug(
+            'For (%s) the expected and estimated rank diverge '
+            '(%i VS %i). \nThis may lead to surprising reults. '
+            '\nPlease consider using the `rank` parameter to '
+            'manually specify the spatial degrees of freedom.' % (
+                ch_type, expected_rank, this_estimated_rank
+            ))
+
+
+def _match_proj_type(proj, ch_names):
+    """See if proj should be counted."""
+    proj_ch_names = proj['data']['col_names']
+    select = any(kk in ch_names for kk in proj_ch_names)
+    return select
+
+
+def _check_cov(noise_cov, info):
+    """Check the noise_cov for whitening and issue an SSS warning."""
+    from ..cov import read_cov, Covariance
+    if noise_cov is None:
+        return None
+    if isinstance(noise_cov, string_types):
+        noise_cov = read_cov(noise_cov)
+    if not isinstance(noise_cov, Covariance):
+        raise TypeError('noise_cov must be a str or Covariance, got %s'
+                        % (type(noise_cov),))
+    if _check_sss(info)[2]:  # has_sss
+        warn('Data have been processed with SSS, which changes the relative '
+             'scaling of magnetometers and gradiometers when viewing data '
+             'whitened by a noise covariance')
+    return noise_cov
+
+
+def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
+                                   all=False, ch_type=None, ):
+    """Prepare a title string for multiple electrodes."""
+    if title is None:
+        title = ", ".join(ch_names[:max_chans])
+        if ch_type is not None:
+            ch_type = " " + ch_type[0].upper() + ch_type[1:]
+        if all is True and isinstance(combine, string_types):
+            combine = combine[0].upper() + combine[1:]
+            title = "{} of {}{} sensors".format(
+                combine, len(ch_names), ch_type)
+        elif len(ch_names) > max_chans and combine is not "gfp":
+            warn("More than {} channels, truncating title ...".format(
+                max_chans))
+            title += ", ...\n({} of {}{} sensors)".format(
+                combine, len(ch_names), ch_type,)
+    return title
+
+
+def _check_time_unit(time_unit, times, allow_none=False):
+    if not (isinstance(time_unit, string_types) or
+            (time_unit is None and allow_none)):
+        raise TypeError('time_unit must be str, got %s' % (type(time_unit),))
+    if time_unit is None:
+        warn('time_unit defaults to "ms" in 0.16 but will change to "s" in '
+             '0.17, set it explicitly to avoid this warning',
+             DeprecationWarning)
+        time_unit = 'ms'
+    if time_unit == 's':
+        times = times
+    elif time_unit == 'ms':
+        times = 1e3 * times
+    else:
+        raise ValueError("time_unit must be 's' or 'ms', got %r" % time_unit)
+    return time_unit, times

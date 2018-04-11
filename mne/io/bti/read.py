@@ -11,7 +11,7 @@ def _unpack_matrix(fid, rows, cols, dtype, out_dtype):
     dtype = np.dtype(dtype)
 
     string = fid.read(int(dtype.itemsize * rows * cols))
-    out = np.fromstring(string, dtype=dtype).reshape(
+    out = np.frombuffer(string, dtype=dtype).reshape(
         rows, cols).astype(out_dtype)
     return out
 
@@ -20,7 +20,7 @@ def _unpack_simple(fid, dtype, out_dtype):
     """Unpack a NumPy type."""
     dtype = np.dtype(dtype)
     string = fid.read(dtype.itemsize)
-    out = np.fromstring(string, dtype=dtype).astype(out_dtype)
+    out = np.frombuffer(string, dtype=dtype).astype(out_dtype)
 
     if len(out) > 0:
         out = out[0]

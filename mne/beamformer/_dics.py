@@ -7,13 +7,12 @@
 from copy import deepcopy
 
 import numpy as np
-from scipy import linalg
 
 from ..utils import logger, verbose, warn
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc
-from ..time_frequency import CrossSpectralDensity, csd_epochs
+from ..time_frequency import csd_fourier, csd_multitaper
 from ._lcmv import _prepare_beamformer_input, _setup_picks, _reg_pinv
 from ..externals import six
 
@@ -23,10 +22,17 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
                 label=None, picks=None, pick_ori=None, real_filter=False,
                 verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS)."""
+    from scipy import linalg  # Local import to keep 'import mne' fast
+
+    if len(noise_csd.frequencies) > 1 or len(data_csd.frequencies) > 1:
+        raise ValueError('CSD matrix object should only contain one '
+                         'frequency.')
+
     is_free_ori, _, proj, vertno, G =\
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
-    Cm = data_csd.data.copy()
+    Cm = data_csd.get_data(index=0)
+    Cm_noise = noise_csd.get_data(index=0)
 
     # Take real part of Cm to compute real filters
     if real_filter:
@@ -48,10 +54,6 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
         Gk = G[:, n_orient * k: n_orient * k + n_orient]
         Ck = np.dot(Wk, Gk)
 
-        # TODO: max-power is not implemented yet, however DICS does employ
-        # orientation picking when one eigen value is much larger than the
-        # other
-
         if is_free_ori:
             # Free source orientation
             Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
@@ -60,7 +62,7 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
             Wk /= Ck
 
         # Noise normalization
-        noise_norm = np.dot(np.dot(Wk.conj(), noise_csd.data), Wk.T)
+        noise_norm = np.dot(np.dot(Wk.conj(), Cm_noise), Wk.T)
         noise_norm = np.abs(noise_norm).trace()
         Wk /= np.sqrt(noise_norm)
 
@@ -276,12 +278,12 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
         Measurement info, e.g. epochs.info.
     forward : dict
         Forward operator.
-    noise_csds : instance or list of instances of CrossSpectralDensity
-        The noise cross-spectral density matrix for a single frequency or a
-        list of matrices for multiple frequencies.
-    data_csds : instance or list of instances of CrossSpectralDensity
-        The data cross-spectral density matrix for a single frequency or a list
-        of matrices for multiple frequencies.
+    noise_csds : CrossSpectralDensity
+        The noise cross-spectral density matrices for a single frequency or
+        multiple frequencies.
+    data_csds : CrossSpectralDensity
+        The data cross-spectral density matrix for a frequency or multiple
+        frequencies.
     reg : float
         The regularization for the cross-spectral density.
     label : Label | None
@@ -307,44 +309,28 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
     Gross et al. Dynamic imaging of coherent sources: Studying neural
     interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
     """
-    if isinstance(data_csds, CrossSpectralDensity):
-        data_csds = [data_csds]
-
-    if isinstance(noise_csds, CrossSpectralDensity):
-        noise_csds = [noise_csds]
-
-    def csd_shapes(x):
-        return tuple(c.data.shape for c in x)
-
-    if (csd_shapes(data_csds) != csd_shapes(noise_csds) or
-       any(len(set(csd_shapes(c))) > 1 for c in [data_csds, noise_csds])):
+    from scipy import linalg
+    if data_csds.n_channels != noise_csds.n_channels:
         raise ValueError('One noise CSD matrix should be provided for each '
                          'data CSD matrix and vice versa. All CSD matrices '
                          'should have identical shape.')
 
-    frequencies = []
-    for data_csd, noise_csd in zip(data_csds, noise_csds):
-        if not np.allclose(data_csd.freqs, noise_csd.freqs):
-            raise ValueError('Data and noise CSDs should be calculated at '
-                             'identical frequencies')
+    if not np.allclose(data_csds.frequencies, noise_csds.frequencies):
+        raise ValueError('Data and noise CSDs should be calculated at '
+                         'identical frequencies')
 
-        # If CSD is summed over multiple frequencies, take the average
-        # frequency
-        if(len(data_csd.freqs) > 1):
-            frequencies.append(np.mean(data_csd.freqs))
-        else:
-            frequencies.append(data_csd.freqs[0])
+    # If CSD is summed over multiple frequencies, take the average frequency
+    frequencies = [np.mean(dfreq) for dfreq in data_csds.frequencies]
+    n_freqs = len(frequencies)
     fmin = frequencies[0]
 
-    if len(frequencies) > 2:
-        fstep = []
-        for i in range(len(frequencies) - 1):
-            fstep.append(frequencies[i + 1] - frequencies[i])
-        if not np.allclose(fstep, np.mean(fstep), 1e-5):
+    if n_freqs > 2:
+        fstep = np.diff(frequencies)
+        if np.var(fstep) > 1e-5:
             warn('Uneven frequency spacing in CSD object, frequencies in the '
                  'resulting stc file will be inaccurate.')
         fstep = fstep[0]
-    elif len(frequencies) > 1:
+    elif n_freqs > 1:
         fstep = frequencies[1] - frequencies[0]
     else:
         fstep = 1  # dummy value
@@ -357,16 +343,15 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
 
     n_orient = 3 if is_free_ori else 1
     n_sources = G.shape[1] // n_orient
-    source_power = np.zeros((n_sources, len(data_csds)))
-    n_csds = len(data_csds)
+    source_power = np.zeros((n_sources, n_freqs))
 
     logger.info('Computing DICS source power...')
-    for i, (data_csd, noise_csd) in enumerate(zip(data_csds, noise_csds)):
-        if n_csds > 1:
+    for i in range(n_freqs):
+        if n_freqs > 1:
             logger.info('    computing DICS spatial filter %d out of %d' %
-                        (i + 1, n_csds))
+                        (i + 1, n_freqs))
 
-        Cm = data_csd.data.copy()
+        Cm = data_csds.get_data(index=i)
 
         # Take real part of Cm to compute real filters
         if real_filter:
@@ -380,6 +365,12 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
 
         # Compute spatial filters
         W = np.dot(G.T, Cm_inv)
+
+        # Make new copies of the CSDs that are not converted to real values
+        data_Cm = data_csds.get_data(index=i)
+        noise_Cm = noise_csds.get_data(index=i)
+
+        # Apply spatial filters to CSDs
         for k in range(n_sources):
             Wk = W[n_orient * k: n_orient * k + n_orient]
             Gk = G[:, n_orient * k: n_orient * k + n_orient]
@@ -393,11 +384,11 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
                 Wk /= Ck
 
             # Noise normalization
-            noise_norm = np.dot(np.dot(Wk.conj(), noise_csd.data), Wk.T)
+            noise_norm = np.dot(np.dot(Wk.conj(), noise_Cm), Wk.T)
             noise_norm = np.abs(noise_norm).trace()
 
             # Calculating source power
-            sp_temp = np.dot(np.dot(Wk.conj(), data_csd.data), Wk.T)
+            sp_temp = np.dot(np.dot(Wk.conj(), data_Cm), Wk.T)
             sp_temp /= max(noise_norm, 1e-40)  # Avoid division by 0
 
             if pick_ori == 'normal':
@@ -534,7 +525,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
 
         # Scale noise CSD to allow data and noise CSDs to have different length
         noise_csd = deepcopy(noise_csd)
-        noise_csd.data /= noise_csd.n_fft
+        noise_csd._data /= noise_csd.n_fft
 
         sol_single = []
         sol_overlap = []
@@ -545,8 +536,8 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
             # If in the last step the last time point was not covered in
             # previous steps and will not be covered now, a solution needs to
             # be calculated for an additional time window
-            if i_time == n_time_steps - 1 and win_tmax - tstep < tmax and\
-               win_tmax >= tmax + (epochs.times[-1] - epochs.times[-2]):
+            if i_time == n_time_steps - 1 and win_tmax - tstep < tmax and \
+                    win_tmax >= tmax + (epochs.times[-1] - epochs.times[-2]):
                 warn('Adding a time window to cover last time points')
                 win_tmin = tmax - win_length
                 win_tmax = tmax
@@ -564,14 +555,24 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                 win_tmax = win_tmax + 1e-10
 
                 # Calculating data CSD in current time window
-                data_csd = csd_epochs(
-                    epochs, mode=mode, fmin=freq_bin[0], fmax=freq_bin[1],
-                    fsum=True, tmin=win_tmin, tmax=win_tmax, n_fft=n_fft,
-                    mt_bandwidth=mt_bandwidth, mt_low_bias=mt_low_bias)
+                if mode == 'fourier':
+                    data_csd = csd_fourier(
+                        epochs, fmin=freq_bin[0], fmax=freq_bin[1],
+                        tmin=win_tmin, tmax=win_tmax, n_fft=n_fft)
+                elif mode == 'multitaper':
+                    data_csd = csd_multitaper(
+                        epochs, fmin=freq_bin[0], fmax=freq_bin[1],
+                        tmin=win_tmin, tmax=win_tmax, n_fft=n_fft,
+                        mt_bandwidth=mt_bandwidth, mt_low_bias=mt_low_bias)
+                else:
+                    raise ValueError('Invalid mode, choose either '
+                                     "'fourier' or 'multitaper'")
+
+                data_csd = data_csd.sum()
 
                 # Scale data CSD to allow data and noise CSDs to have different
                 # length
-                data_csd.data /= data_csd.n_fft
+                data_csd._data /= data_csd.n_fft
 
                 stc = dics_source_power(
                     epochs.info, forward, noise_csd, data_csd, reg=reg,

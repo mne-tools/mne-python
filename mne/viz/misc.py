@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Functions to make simple plots with M/EEG data."""
 
 from __future__ import print_function
@@ -16,16 +17,19 @@ from glob import glob
 from itertools import cycle
 import os.path as op
 import warnings
+from collections import defaultdict
 
 import numpy as np
 from scipy import linalg
 
+from ..defaults import DEFAULTS
 from ..surface import read_surface
 from ..externals.six import string_types
 from ..io.proj import make_projector
+from ..io.pick import _DATA_CH_TYPES_SPLIT, pick_types
 from ..source_space import read_source_spaces, SourceSpaces
 from ..utils import logger, verbose, get_subjects_dir, warn
-from ..io.pick import pick_types
+from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
 from .utils import tight_layout, COLORS, _prepare_trellis, plt_show
 
@@ -66,28 +70,26 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     """
     if exclude == 'bads':
         exclude = info['bads']
+    picks_list = \
+        _picks_by_type(info, meg_combined=False, ref_meg=False,
+                       exclude=exclude)
+    picks_by_type = dict(picks_list)
+
     ch_names = [n for n in cov.ch_names if n not in exclude]
     ch_idx = [cov.ch_names.index(n) for n in ch_names]
+
     info_ch_names = info['ch_names']
-    sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                         exclude=exclude)
-    sel_mag = pick_types(info, meg='mag', eeg=False, ref_meg=False,
-                         exclude=exclude)
-    sel_grad = pick_types(info, meg='grad', eeg=False, ref_meg=False,
-                          exclude=exclude)
-    idx_eeg = [ch_names.index(info_ch_names[c])
-               for c in sel_eeg if info_ch_names[c] in ch_names]
-    idx_mag = [ch_names.index(info_ch_names[c])
-               for c in sel_mag if info_ch_names[c] in ch_names]
-    idx_grad = [ch_names.index(info_ch_names[c])
-                for c in sel_grad if info_ch_names[c] in ch_names]
+    idx_by_type = defaultdict(list)
+    for ch_type, sel in picks_by_type.items():
+        idx_by_type[ch_type] = [ch_names.index(info_ch_names[c])
+                                for c in sel if info_ch_names[c] in ch_names]
 
-    idx_names = [(idx_eeg, 'EEG covariance', 'uV', 1e6),
-                 (idx_grad, 'Gradiometers', 'fT/cm', 1e13),
-                 (idx_mag, 'Magnetometers', 'fT', 1e15)]
-    idx_names = [(idx, name, unit, scaling)
-                 for idx, name, unit, scaling in idx_names if len(idx) > 0]
-
+    idx_names = [(idx_by_type[key],
+                  '%s covariance' % DEFAULTS['titles'][key],
+                  DEFAULTS['units'][key],
+                  DEFAULTS['scalings'][key])
+                 for key in _DATA_CH_TYPES_SPLIT
+                 if len(idx_by_type[key]) > 0]
     C = cov.data[ch_idx][:, ch_idx]
 
     if proj:
@@ -107,30 +109,42 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
                         'channels.')
 
     import matplotlib.pyplot as plt
+    from matplotlib.colors import Normalize
 
     fig_cov, axes = plt.subplots(1, len(idx_names), squeeze=False,
-                                 figsize=(2.5 * len(idx_names), 2.7))
+                                 figsize=(3.8 * len(idx_names), 3.7))
     for k, (idx, name, _, _) in enumerate(idx_names):
-        axes[0, k].imshow(C[idx][:, idx], interpolation="nearest",
-                          cmap='RdBu_r')
+        vlim = np.max(np.abs(C[idx][:, idx]))
+        im = axes[0, k].imshow(C[idx][:, idx], interpolation="nearest",
+                               norm=Normalize(vmin=-vlim, vmax=vlim),
+                               cmap='RdBu_r')
         axes[0, k].set(title=name)
+
+        if colorbar:
+            from mpl_toolkits.axes_grid1 import make_axes_locatable
+            divider = make_axes_locatable(axes[0, k])
+            cax = divider.append_axes("right", size="5.5%", pad=0.05)
+            plt.colorbar(im, cax=cax, format='%.0e')
+
     fig_cov.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
     tight_layout(fig=fig_cov)
 
     fig_svd = None
     if show_svd:
-        fig_svd, axes = plt.subplots(1, len(idx_names), squeeze=False)
+        fig_svd, axes = plt.subplots(1, len(idx_names), squeeze=False,
+                                     figsize=(3.8 * len(idx_names), 3.7))
         for k, (idx, name, unit, scaling) in enumerate(idx_names):
             s = linalg.svd(C[idx][:, idx], compute_uv=False)
             # Protect against true zero singular values
             s[s <= 0] = 1e-10 * s[s > 0].min()
             s = np.sqrt(s) * scaling
             axes[0, k].plot(s)
-            axes[0, k].set(ylabel='Noise std (%s)' % unit, yscale='log',
+            axes[0, k].set(ylabel=u'Noise σ (%s)' % unit, yscale='log',
                            xlabel='Eigenvalue index', title=name)
         tight_layout(fig=fig_svd)
 
     plt_show(show)
+
     return fig_cov, fig_svd
 
 
@@ -212,9 +226,7 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
                cmap='Reds')
     ax = plt.gca()
 
-    plt.title('Time-frequency source power')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Frequency (Hz)')
+    ax.set(title='Source power', xlabel='Time (s)', ylabel='Frequency (Hz)')
 
     time_tick_labels = [str(np.round(t, 2)) for t in time_bounds]
     n_skip = 1 + len(time_bounds) // 10
@@ -246,29 +258,7 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
 
 def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
                        slices=None, show=True):
-    """Plot BEM contours on anatomical slices.
-
-    Parameters
-    ----------
-    mri_fname : str
-        The name of the file containing anatomical data.
-    surfaces : list of (str, str) tuples
-        A list containing the BEM surfaces to plot as (filename, color) tuples.
-        Colors should be matplotlib-compatible.
-    src : None | SourceSpaces
-        SourceSpaces object for plotting individual sources.
-    orientation : str
-        'coronal' or 'axial' or 'sagittal'
-    slices : list of int
-        Slice indices.
-    show : bool
-        Show figure if True.
-
-    Returns
-    -------
-    fig : Instance of matplotlib.figure.Figure
-        The figure.
-    """
+    """Plot BEM contours on anatomical slices."""
     import matplotlib.pyplot as plt
     import nibabel as nib
 
@@ -341,10 +331,11 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
 
         # and then plot the contours on top
         for surf, color in surfs:
-            ax.tricontour(surf['rr'][:, x], surf['rr'][:, y],
-                          surf['tris'], surf['rr'][:, z],
-                          levels=[sl], colors=color, linewidths=2.0,
-                          zorder=1)
+            with warnings.catch_warnings(record=True):  # ignore contour warn
+                ax.tricontour(surf['rr'][:, x], surf['rr'][:, y],
+                              surf['tris'], surf['rr'][:, z],
+                              levels=[sl], colors=color, linewidths=1.0,
+                              zorder=1)
 
         for sources in src_points:
             in_slice = np.logical_and(sources[:, z] > sl - 0.5,
@@ -491,7 +482,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     """
     if sfreq is None:
         sfreq = 1.0
-        xlabel = 'samples'
+        xlabel = 'Samples'
     else:
         xlabel = 'Time (s)'
 
@@ -552,10 +543,9 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     else:
         ax.set_ylim([min_event - 1, max_event + 1])
 
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel('Events id')
+    ax.set(xlabel=xlabel, ylabel='Events id')
 
-    ax.grid('on')
+    ax.grid(True)
 
     fig = fig if fig is not None else plt.gcf()
     if event_id is not None:
@@ -609,9 +599,7 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
         ax.plot(dip.times, dip.amplitude * 1e9, color=color, linewidth=1.5)
         xlim[0] = min(xlim[0], dip.times[0])
         xlim[1] = max(xlim[1], dip.times[-1])
-    ax.set_xlim(xlim)
-    ax.set_xlabel('Time (sec)')
-    ax.set_ylabel('Amplitude (nAm)')
+    ax.set(xlim=xlim, xlabel='Time (s)', ylabel='Amplitude (nAm)')
     if show:
         fig.show(warn=False)
     return fig
@@ -765,31 +753,32 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
             gd = group_delay((h, [1.]), omega)[1]
         title = 'FIR filter' if title is None else title
     gd /= sfreq
-    fig, axes = plt.subplots(3)  # eventually axes could be a parameter
+    # eventually axes could be a parameter
+    fig, (ax_time, ax_freq, ax_delay) = plt.subplots(3)
     t = np.arange(len(h)) / sfreq
     f = omega * sfreq / (2 * np.pi)
-    axes[0].plot(t, h, color=color)
-    axes[0].set(xlim=t[[0, -1]], xlabel='Time (sec)',
-                ylabel='Amplitude h(n)', title=title)
+    ax_time.plot(t, h, color=color)
+    ax_time.set(xlim=t[[0, -1]], xlabel='Time (s)',
+                ylabel='Amplitude', title=title)
     mag = 10 * np.log10(np.maximum((H * H.conj()).real, 1e-20))
-    axes[1].plot(f, mag, color=color, linewidth=2, zorder=4)
+    ax_freq.plot(f, mag, color=color, linewidth=2, zorder=4)
     if freq is not None and gain is not None:
-        plot_ideal_filter(freq, gain, axes[1], fscale=fscale,
+        plot_ideal_filter(freq, gain, ax_freq, fscale=fscale,
                           title=None, show=False)
-    axes[1].set(ylabel='Magnitude (dB)', xlabel='', xscale=fscale)
+    ax_freq.set(ylabel='Magnitude (dB)', xlabel='', xscale=fscale)
     sl = slice(0 if fscale == 'linear' else 1, None, None)
-    axes[2].plot(f[sl], gd[sl], color=color, linewidth=2, zorder=4)
-    axes[2].set(xlim=flim, ylabel='Group delay (sec)', xlabel='Frequency (Hz)',
-                xscale=fscale)
+    ax_delay.plot(f[sl], gd[sl], color=color, linewidth=2, zorder=4)
+    ax_delay.set(xlim=flim, ylabel='Group delay (s)', xlabel='Frequency (Hz)',
+                 xscale=fscale)
     xticks, xticklabels = _filter_ticks(flim, fscale)
     dlim = [0, 1.05 * gd[1:].max()]
-    for ax, ylim, ylabel in zip(axes[1:], (alim, dlim),
-                                ('Amplitude (dB)', 'Delay (sec)')):
+    for ax, ylim, ylabel in ((ax_freq, alim, 'Amplitude (dB)'),
+                             (ax_delay, dlim, 'Delay (s)')):
         if xticks is not None:
             ax.set(xticks=xticks)
             ax.set(xticklabels=xticklabels)
         ax.set(xlim=flim, ylim=ylim, xlabel='Frequency (Hz)', ylabel=ylabel)
-    adjust_axes(axes)
+    adjust_axes([ax_time, ax_freq, ax_delay])
     tight_layout()
     plt_show(show)
     return fig
@@ -847,7 +836,7 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
         >>> freq = [0, 1, 40, 50]
         >>> gain = [0, 1, 1, 0]
         >>> plot_ideal_filter(freq, gain, flim=(0.1, 100))  #doctest: +ELLIPSIS
-        <matplotlib.figure.Figure object at ...>
+        <...Figure...>
 
     """
     import matplotlib.pyplot as plt
@@ -916,3 +905,122 @@ def _handle_event_colors(unique_events, color, unique_events_id):
                 warn('Color is not available for event %d. Default colors '
                      'will be used.' % this_event)
     return color
+
+
+def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
+             n_cols=None, show=True):
+    """Plot CSD matrices.
+
+    A sub-plot is created for each frequency. If an info object is passed to
+    the function, different channel types are plotted in different figures.
+
+    Parameters
+    ----------
+    csd : instance of CrossSpectralDensity
+        The CSD matrix to plot.
+    info: instance of Info | None
+        To split the figure by channel-type, provide the measurement info.
+        By default, the CSD matrix is plotted as a whole.
+    mode : 'csd' | 'coh'
+        Whether to plot the cross-spectral density ('csd', the default), or
+        the coherence ('coh') between the channels.
+    colorbar : bool
+        Whether to show a colorbar. Defaults to ``True``.
+    cmap : str | None
+        The matplotlib colormap to use. Defaults to None, which means the
+        colormap will default to matplotlib's default.
+    n_cols : int | None
+        CSD matrices are plotted in a grid. This parameter controls how
+        many matrix to plot side by side before starting a new row. By
+        default, a number will be chosen to make the grid as square as
+        possible.
+    show : bool
+        Whether to show the figure. Defaults to ``True``.
+
+    Returns
+    -------
+    fig : list of matplotlib figures
+        The figures created by this function.
+    """
+    import matplotlib.pyplot as plt
+
+    if mode not in ['csd', 'coh']:
+        raise ValueError('"mode" should be either "csd" or "coh".')
+
+    if info is not None:
+        info_ch_names = info['ch_names']
+        sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                             exclude=[])
+        sel_mag = pick_types(info, meg='mag', eeg=False, ref_meg=False,
+                             exclude=[])
+        sel_grad = pick_types(info, meg='grad', eeg=False, ref_meg=False,
+                              exclude=[])
+        idx_eeg = [csd.ch_names.index(info_ch_names[c])
+                   for c in sel_eeg if info_ch_names[c] in csd.ch_names]
+        idx_mag = [csd.ch_names.index(info_ch_names[c])
+                   for c in sel_mag if info_ch_names[c] in csd.ch_names]
+        idx_grad = [csd.ch_names.index(info_ch_names[c])
+                    for c in sel_grad if info_ch_names[c] in csd.ch_names]
+        indices = [idx_eeg, idx_mag, idx_grad]
+        titles = ['EEG', 'Magnetometers', 'Gradiometers']
+    else:
+        indices = [np.arange(len(csd.ch_names))]
+        if mode == 'csd':
+            titles = ['Cross-spectral density']
+        elif mode == 'coh':
+            titles = ['Coherence']
+
+    n_freqs = len(csd.frequencies)
+
+    if n_cols is None:
+        n_cols = int(np.ceil(np.sqrt(n_freqs)))
+    n_rows = int(np.ceil(n_freqs / float(n_cols)))
+
+    figs = []
+    for ind, title in zip(indices, titles):
+        if len(indices) == 0:
+            continue
+
+        fig = plt.figure(figsize=(2 * n_cols + 1, 2.2 * n_rows))
+
+        csd_mats = []
+        for i in range(len(csd.frequencies)):
+            cm = csd.get_data(index=i)[ind][:, ind]
+            if mode == 'csd':
+                cm = np.abs(cm)
+            elif mode == 'coh':
+                # Compute coherence from the CSD matrix
+                psd = np.diag(cm).real
+                cm = np.abs(cm) ** 2 / psd[np.newaxis, :] / psd[:, np.newaxis]
+            csd_mats.append(cm)
+
+        vmax = np.max(csd_mats)
+
+        axes = []
+        for i, (freq, mat) in enumerate(zip(csd.frequencies, csd_mats)):
+            ax = plt.subplot(n_rows, n_cols, i + 1)
+            im = ax.imshow(mat, interpolation='nearest', cmap=cmap, vmin=0,
+                           vmax=vmax)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            if csd._is_sum:
+                ax.set_title('%.1f-%.1f Hz.' % (np.min(freq),
+                                                np.max(freq)))
+            else:
+                ax.set_title('%.1f Hz.' % freq)
+            axes.append(ax)
+
+        plt.suptitle(title)
+        plt.subplots_adjust(top=0.8)
+
+        if colorbar:
+            cb = plt.colorbar(im, ax=axes)
+            if mode == 'csd':
+                cb.set_label('Cross-spectral density')
+            elif mode == 'coh':
+                cb.set_label('Coherence')
+
+        figs.append(fig)
+
+    plt_show(show)
+    return figs

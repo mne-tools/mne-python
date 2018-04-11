@@ -142,6 +142,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_modifying_data_inplace.rst
     auto_tutorials/plot_ecog.rst
     manual/memory.rst
+    manual/migrating.rst
 
 .. raw:: html
 
@@ -172,10 +173,11 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_brainstorm_auditory.rst
     auto_tutorials/plot_brainstorm_phantom_ctf.rst
     auto_tutorials/plot_brainstorm_phantom_elekta.rst
+    auto_tutorials/plot_phantom_4DBTi.rst
     auto_examples/datasets/plot_brainstorm_data.rst
     auto_examples/datasets/plot_megsim_data.rst
     auto_examples/datasets/plot_megsim_data_single_trial.rst
-    auto_examples/datasets/plot_spm_faces_dataset.rst
+    auto_examples/datasets/spm_faces_dataset.rst
 
 .. raw:: html
 
@@ -230,6 +232,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/preprocessing/plot_find_ecg_artifacts.rst
     auto_examples/preprocessing/plot_find_eog_artifacts.rst
     auto_examples/preprocessing/plot_head_positions.rst
+    auto_examples/preprocessing/plot_ica_comparison.rst
     auto_examples/preprocessing/plot_interpolate_bad_channels.rst
     auto_examples/preprocessing/plot_movement_compensation.rst
     auto_examples/preprocessing/plot_rereference_eeg.rst
@@ -266,6 +269,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_visualize_raw.rst
     auto_tutorials/plot_visualize_epochs.rst
     auto_tutorials/plot_visualize_evoked.rst
+    auto_tutorials/plot_whitened.rst
     tutorials/report.rst
 
 .. raw:: html
@@ -337,6 +341,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/time_frequency/plot_temporal_whitening.rst
     auto_examples/time_frequency/plot_time_frequency_global_field_power.rst
     auto_examples/time_frequency/plot_time_frequency_simulated.rst
+    auto_examples/time_frequency/plot_compute_csd.rst
 
 .. raw:: html
 
@@ -464,7 +469,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse_statistics">Statistics in sensor- and source-space</a>
+            <a data-toggle="collapse" href="#collapse_statistics">Statistics</a>
           </h4>
         </div>
         <div id="collapse_statistics" class="panel-collapse collapse">
@@ -476,14 +481,13 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    manual/statistics.rst
+    auto_tutorials/plot_background_statistics.rst
 
 **Sensor Space**
 
 .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_stats_cluster_methods.rst
     auto_tutorials/plot_stats_spatio_temporal_cluster_sensors.rst
     auto_tutorials/plot_stats_cluster_1samp_test_time_frequency.rst
     auto_tutorials/plot_stats_cluster_time_frequency.rst
@@ -580,7 +584,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    auto_examples/decoding/plot_receptive_field.rst
+    auto_examples/decoding/plot_receptive_field_mtrf.rst
 
 .. raw:: html
 
@@ -670,6 +674,9 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     manual/gui/browse.rst
     manual/appendix/bem_model.rst
     manual/appendix/c_misc.rst
+    manual/appendix/c_release_notes.rst
+    manual/appendix/c_EULA.rst
+    manual/appendix/martinos.rst
 
 **MNE-MATLAB**
 

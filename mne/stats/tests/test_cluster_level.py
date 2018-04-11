@@ -152,6 +152,15 @@ def test_cluster_permutation_test():
                                      n_jobs=2, buffer_size=buffer_size)
         assert_array_equal(cluster_p_values, cluster_p_values_buff)
 
+    def stat_fun(X, Y):
+        return stats.f_oneway(X, Y)[0]
+
+    with warnings.catch_warnings(record=True) as w:
+        permutation_cluster_test([condition1, condition2], n_permutations=1,
+                                 stat_fun=stat_fun)
+    assert_equal(len(w), 1)
+    assert 'is only valid' in str(w[0].message)
+
 
 def test_cluster_permutation_t_test():
     """Test cluster level permutations T-test."""
@@ -514,6 +523,22 @@ def test_permutation_test_H0():
         assert_true(isinstance(clust[0], np.ndarray))  # bool mask
         # same as "128 if tail else 64"
         assert_equal(len(h0), 2 ** (7 - (tail == 0)))  # exact test
+
+
+def test_tfce_thresholds():
+    rng = np.random.RandomState(0)
+    data = rng.randn(7, 10, 1) - 0.5
+
+    # if tail==-1, step must also be negative
+    assert_raises(ValueError, permutation_cluster_1samp_test, data, tail=-1,
+                  threshold=dict(start=0, step=0.1))
+    # this works (smoke test)
+    permutation_cluster_1samp_test(data, tail=-1,
+                                   threshold=dict(start=0, step=-0.1))
+
+    # thresholds must be monotonically increasing
+    assert_raises(ValueError, permutation_cluster_1samp_test, data, tail=1,
+                  threshold=dict(start=1, step=-0.5))
 
 
 run_tests_if_main()

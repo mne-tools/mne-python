@@ -496,7 +496,9 @@ def test_fif_dig_montage():
             # C actually says it's unknown, but it's not (?):
             # assert_equal(ch_py['coord_frame'], ch_c['coord_frame'])
             assert_equal(ch_py['coord_frame'], FIFF.FIFFV_COORD_HEAD)
-            assert_allclose(ch_py['loc'], ch_c['loc'], atol=1e-7)
+            c_loc = ch_c['loc'].copy()
+            c_loc[c_loc == 0] = np.nan
+            assert_allclose(ch_py['loc'], c_loc, atol=1e-7)
         assert_dig_allclose(raw_bv.info, evoked.info)
 
     # Roundtrip of non-FIF start
@@ -543,10 +545,9 @@ def test_egi_dig_montage():
 def test_set_montage():
     """Test setting a montage."""
     raw = read_raw_fif(fif_fname)
-    mon = read_montage('mgh60')
     orig_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
                          if ch['ch_name'].startswith('EEG')])
-    raw.set_montage(mon)
+    raw.set_montage('mgh60')  # test loading with string argument
     new_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
                         if ch['ch_name'].startswith('EEG')])
     assert_true((orig_pos != new_pos).all())

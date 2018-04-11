@@ -80,6 +80,7 @@ def test_scaler():
         assert_array_almost_equal(epochs_data, Xi)
 
     # Test init exception
+    assert_raises(ValueError, Scaler, None, None)
     assert_raises(ValueError, scaler.fit, epochs, y)
     assert_raises(ValueError, scaler.transform, epochs)
     epochs_bad = Epochs(raw, events, event_id, 0, 0.01,
@@ -177,7 +178,7 @@ def test_vectorizer():
                   np.random.rand(102, 12, 12))
 
 
-@requires_version('sklearn', '0.15')
+@requires_version('sklearn', '0.16')
 def test_unsupervised_spatial_filter():
     """Test unsupervised spatial filter."""
     from sklearn.decomposition import PCA

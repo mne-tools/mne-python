@@ -18,9 +18,8 @@ import base64
 import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
-from .io import Raw, read_info, _stamp_to_dt
-from .utils import (_TempDir, logger, verbose, get_subjects_dir, warn,
-                    _import_mlab)
+from .io import read_raw_fif, read_info, _stamp_to_dt
+from .utils import logger, verbose, get_subjects_dir, warn, _import_mlab
 from .viz import plot_events, plot_alignment, plot_cov
 from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
@@ -40,17 +39,33 @@ VALID_EXTENSIONS = ['raw.fif', 'raw.fif.gz', 'sss.fif', 'sss.fif.gz',
 SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
                  'mri', 'forward', 'inverse']
 
+
 ###############################################################################
 # PLOTTING FUNCTIONS
 
+def _ndarray_to_fig(img):
+    """Convert to MPL figure, adapted from matplotlib.image.imsave."""
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    figsize = np.array(img.shape[:2][::-1]) / 100.
+    fig = Figure(dpi=100, figsize=figsize, frameon=False)
+    FigureCanvasAgg(fig)
+    fig.figimage(img)
+    return fig
 
-def _fig_to_img(function=None, fig=None, image_format='png',
-                scale=None, **kwargs):
+
+def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
     """Plot figure and create a binary image."""
+    # fig can be ndarray, mpl Figure, Mayavi Figure, or callable that produces
+    # a mpl Figure
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
-    if not isinstance(fig, Figure) and function is None:
-        from scipy.misc import imread
+    if isinstance(fig, np.ndarray):
+        fig = _ndarray_to_fig(fig)
+    elif callable(fig):
+        plt.close('all')
+        fig = fig(**kwargs)
+    elif not isinstance(fig, Figure):
         mlab = None
         try:
             mlab = _import_mlab()
@@ -59,34 +74,24 @@ def _fig_to_img(function=None, fig=None, image_format='png',
             warn('Could not import mayavi (%r). Trying to render'
                  '`mayavi.core.scene.Scene` figure instances'
                  ' will throw an error.' % (e,))
-        tempdir = _TempDir()
-        temp_fname = op.join(tempdir, 'test')
         if fig.scene is not None:
-            fig.scene.save_png(temp_fname)
-            img = imread(temp_fname)
-            os.remove(temp_fname)
+            img = mlab.screenshot(figure=fig)
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
 
         mlab.close(fig)
-        fig = plt.figure()
-        plt.imshow(img)
-        plt.axis('off')
+        fig = _ndarray_to_fig(img)
 
-    if function is not None:
-        plt.close('all')
-        fig = function(**kwargs)
     output = BytesIO()
     if scale is not None:
         _scale_mpl_figure(fig, scale)
     logger.debug('Saving figure %s with dpi %s'
                  % (fig.get_size_inches(), fig.get_dpi()))
-    # We don't use bbox_inches='tight' here because it can break
-    # newer matplotlib, and should only save a little bit of space
-    fig.savefig(output, format=image_format, dpi=fig.get_dpi())
+    fig.savefig(output, format=image_format, dpi=fig.get_dpi(),
+                bbox_to_inches='tight')
     plt.close(fig)
     output = output.getvalue()
-    return (output if image_format == 'svg' else
+    return (output.decode('utf-8') if image_format == 'svg' else
             base64.b64encode(output).decode('ascii'))
 
 
@@ -131,30 +136,25 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
 
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
-    from scipy.misc import imread
     import matplotlib.pyplot as plt
-    import mayavi
+    from mayavi import mlab, core
     fig = function(**kwargs)
 
-    assert isinstance(fig, mayavi.core.scene.Scene)
+    assert isinstance(fig, core.scene.Scene)
 
     views = [(90, 90), (0, 90), (0, -90)]
     fig2, axes = plt.subplots(1, len(views))
     for view, ax in zip(views, axes):
-        mayavi.mlab.view(view[0], view[1])
-        # XXX: save_bmp / save_png / ...
-        tempdir = _TempDir()
-        temp_fname = op.join(tempdir, 'test.png')
+        mlab.view(view[0], view[1])
         if fig.scene is not None:
-            fig.scene.save_png(temp_fname)
-            im = imread(temp_fname)
+            im = mlab.screenshot(figure=fig)
         else:  # Testing mode
             im = np.zeros((2, 2, 3))
         ax.imshow(im)
         ax.axis('off')
 
-    mayavi.mlab.close(fig)
-    img = _fig_to_img(fig=fig2, image_format='png')
+    mlab.close(fig)
+    img = _fig_to_img(fig2, image_format='png')
     return img
 
 ###############################################################################
@@ -428,7 +428,7 @@ slider_full_template = Template(u"""
         <div class="row">
             <div class="col-md-6 col-md-offset-3">
                 <div id="{{slider_id}}"></div>
-                <ul class="thumbnails">
+                <ul class="thumbnail">
                     {{image_html}}
                 </ul>
                 {{html}}
@@ -902,8 +902,7 @@ class Report(object):
             div_klass = self._sectionvars[section]
             img_klass = self._sectionvars[section]
 
-            img = _fig_to_img(fig=fig, scale=scale,
-                              image_format=image_format)
+            img = _fig_to_img(fig, image_format, scale)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
@@ -923,8 +922,8 @@ class Report(object):
         ----------
         figs : list of figures.
             Each figure in the list can be an instance of
-            matplotlib.pyplot.Figure, mayavi.core.scene.Scene,
-            or np.ndarray (images read in using scipy.imread).
+            :class:`matplotlib.figure.Figure`,
+            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
         captions : list of str
             A list of captions to the figures.
         section : str
@@ -1082,8 +1081,9 @@ class Report(object):
         ----------
         figs : list of figures.
             Each figure in the list can be an instance of
-            matplotlib.pyplot.Figure, mayavi.core.scene.Scene,
-            or np.ndarray (images read in using scipy.imread).
+            :class:`matplotlib.figure.Figure`,
+            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
+            Must have at least 2 elements.
         captions : list of str | list of float | None
             A list of captions to the figures. If float, a str will be
             constructed as `%f s`. If None, it will default to
@@ -1110,12 +1110,15 @@ class Report(object):
         """
         _check_scale(scale)
         image_format = _check_image_format(self, image_format)
-        if not isinstance(figs[0], list):
-            figs = [figs]
-        else:
+        if isinstance(figs[0], list):
             raise NotImplementedError('`add_slider_to_section` '
                                       'can only add one slider at a time.')
+        if len(figs) < 2:
+            raise ValueError('figs must be at least length 2, got %s'
+                             % (len(figs),))
+        figs = [figs]
         figs, _, _ = self._validate_input(figs, section, section)
+        figs = figs[0]
 
         sectionvar = self._sectionvars[section]
         self._sectionlabels.append(sectionvar)
@@ -1127,8 +1130,6 @@ class Report(object):
         slides_klass = '%s-%s' % (name, global_id)
         div_klass = 'span12 %s' % slides_klass
 
-        if isinstance(figs[0], list):
-            figs = figs[0]
         sl = np.arange(0, len(figs))
         slices = []
         img_klass = 'slideimg-%s' % name
@@ -1145,7 +1146,7 @@ class Report(object):
             raise TypeError('Captions must be None or an iterable of '
                             'float, int, str, Got %s' % type(captions))
         for ii, (fig, caption) in enumerate(zip(figs, captions)):
-            img = _fig_to_img(fig=fig, scale=scale, image_format=image_format)
+            img = _fig_to_img(fig, image_format, scale)
             slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
             first = True if ii == 0 else False
             slices.append(_build_html_image(img, slice_id, div_klass,
@@ -1188,7 +1189,7 @@ class Report(object):
         # Render the slider
         slider_id = 'select-%s-%s' % (name, global_id)
         html.append(u'<div id="%s"></div>' % slider_id)
-        html.append(u'<ul class="thumbnails">')
+        html.append(u'<ul class="thumbnail">')
         # Render the slices
         html.append(u'\n'.join(slices))
         html.append(u'</ul>')
@@ -1223,7 +1224,7 @@ class Report(object):
     @verbose
     def parse_folder(self, data_path, pattern='*.fif', n_jobs=1, mri_decim=2,
                      sort_sections=True, on_error='warn', image_format=None,
-                     verbose=None):
+                     render_bem=True, verbose=None):
         r"""Render all the files in the folder.
 
         Parameters
@@ -1252,6 +1253,10 @@ class Report(object):
             class construction.
 
             .. versionadded:: 0.15
+        render_bem : bool
+            If True (default), try to render the BEM.
+
+            .. versionadded:: 0.16
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1276,10 +1281,10 @@ class Report(object):
         # iterate through the possible patterns
         fnames = list()
         for p in pattern:
-            fnames.extend(_recursive_search(self.data_path, p))
+            fnames.extend(sorted(_recursive_search(self.data_path, p)))
 
         if self.info_fname is not None:
-            info = read_info(self.info_fname)
+            info = read_info(self.info_fname, verbose=False)
             sfreq = info['sfreq']
         else:
             warn('`info_fname` not provided. Cannot render -cov.fif(.gz) and '
@@ -1314,15 +1319,16 @@ class Report(object):
         self._sectionvars = dict(zip(self.sections, self.sections))
 
         # render mri
-        if self.subjects_dir is not None and self.subject is not None:
-            logger.info('Rendering BEM')
-            self.html.append(self._render_bem(self.subject, self.subjects_dir,
-                                              mri_decim, n_jobs))
-            self.fnames.append('bem')
-            self._sectionlabels.append('mri')
-        else:
-            warn('`subjects_dir` and `subject` not provided. Cannot render '
-                 'MRI and -trans.fif(.gz) files.')
+        if render_bem:
+            if self.subjects_dir is not None and self.subject is not None:
+                logger.info('Rendering BEM')
+                self.html.append(self._render_bem(
+                    self.subject, self.subjects_dir, mri_decim, n_jobs))
+                self.fnames.append('bem')
+                self._sectionlabels.append('mri')
+            else:
+                warn('`subjects_dir` and `subject` not provided. Cannot '
+                     'render MRI and -trans.fif(.gz) files.')
 
     def save(self, fname=None, open_browser=True, overwrite=False):
         """Save html report and open it in browser.
@@ -1458,7 +1464,7 @@ class Report(object):
                       limits=None, n_jobs=1):
         """Render mri without bem contours (only PNG)."""
         html = []
-        html.append(u'<div class="row">')
+        html.append(u'<div class="thumbnail">')
         # Axial
         limits = limits or {}
         axial_limit = limits.get('axial')
@@ -1472,8 +1478,6 @@ class Report(object):
         html.append(
             self._render_one_axis(sagittal_slices_gen, 'sagittal',
                                   global_id, cmap, array.shape[1], n_jobs))
-        html.append(u'</div>')
-        html.append(u'<div class="row">')
         # Coronal
         coronal_limit = limits.get('coronal')
         coronal_slices_gen = _iterate_coronal_slices(array, coronal_limit)
@@ -1515,7 +1519,7 @@ class Report(object):
         # Render the slider
         slider_id = 'select-%s-%s' % (name, global_id)
         html.append(u'<div id="%s"></div>' % slider_id)
-        html.append(u'<ul class="thumbnails">')
+        html.append(u'<ul class="thumbnail">')
         # Render the slices
         html.append(u'\n'.join(slices))
         html.append(u'</ul>')
@@ -1541,7 +1545,7 @@ class Report(object):
                   'coronal': range(0, shape[2], 2)}
         name = op.basename(image)
         html = u'<li class="mri" id="%d">\n' % global_id
-        html += u'<h2>%s</h2>\n' % name
+        html += u'<h4>%s</h4>\n' % name
         html += self._render_array(data, global_id=global_id,
                                    cmap=cmap, limits=limits, n_jobs=n_jobs)
         html += u'</li>\n'
@@ -1550,9 +1554,10 @@ class Report(object):
     def _render_raw(self, raw_fname):
         """Render raw (only text)."""
         global_id = self._get_id()
-        caption = u'Raw : %s' % raw_fname
 
-        raw = Raw(raw_fname)
+        raw = read_raw_fif(raw_fname, allow_maxshield='yes')
+        extra = ' (MaxShield on)' if raw.info.get('maxshield', False) else ''
+        caption = u'Raw : %s%s' % (raw_fname, extra)
 
         n_eeg = len(pick_types(raw.info, meg=False, eeg=True))
         n_grad = len(pick_types(raw.info, meg='grad'))
@@ -1616,8 +1621,7 @@ class Report(object):
             kwargs = dict(show=False)
             logger.debug('Evoked: Plotting instance %s/%s'
                          % (ei + 1, len(evokeds)))
-            img = _fig_to_img(ev.plot, image_format=image_format,
-                              **kwargs)
+            img = _fig_to_img(ev.plot, image_format, **kwargs)
             caption = u'Evoked : %s (%s)' % (evoked_fname, ev.comment)
             html.append(image_template.substitute(
                 img=img, id=global_id, div_klass='evoked',
@@ -1632,9 +1636,8 @@ class Report(object):
                 has_types.append('mag')
             for ch_type in has_types:
                 logger.debug('    Topomap type %s' % ch_type)
-                img = _fig_to_img(ev.plot_topomap, ch_type=ch_type,
-                                  image_format=image_format,
-                                  **kwargs)
+                img = _fig_to_img(ev.plot_topomap, image_format,
+                                  ch_type=ch_type, **kwargs)
                 caption = u'Topomap (ch_type = %s)' % ch_type
                 html.append(image_template.substitute(
                     img=img, div_klass='evoked', img_klass='evoked',
@@ -1647,8 +1650,7 @@ class Report(object):
         global_id = self._get_id()
         events = read_events(eve_fname)
         kwargs = dict(events=events, sfreq=sfreq, show=False)
-        img = _fig_to_img(plot_events, image_format=image_format,
-                          **kwargs)
+        img = _fig_to_img(plot_events, image_format, **kwargs)
         caption = 'Events : ' + eve_fname
         html = image_template.substitute(
             img=img, id=global_id, div_klass='events', img_klass='events',
@@ -1660,8 +1662,7 @@ class Report(object):
         global_id = self._get_id()
         epochs = read_epochs(epo_fname)
         kwargs = dict(subject=self.subject, show=False)
-        img = _fig_to_img(epochs.plot_drop_log, image_format=image_format,
-                          **kwargs)
+        img = _fig_to_img(epochs.plot_drop_log, image_format, **kwargs)
         caption = 'Epochs : ' + epo_fname
         show = True
         html = image_template.substitute(
@@ -1674,7 +1675,7 @@ class Report(object):
         global_id = self._get_id()
         cov = read_cov(cov_fname)
         fig, _ = plot_cov(cov, info_fname, show=False)
-        img = _fig_to_img(fig=fig, image_format=image_format)
+        img = _fig_to_img(fig, image_format)
         caption = 'Covariance : %s (n_samples: %s)' % (cov_fname, cov.nfree)
         show = True
         html = image_template.substitute(
@@ -1693,8 +1694,7 @@ class Report(object):
                               verbose=False)
             global_id = self._get_id()
             kwargs = dict(noise_cov=noise_cov, show=False)
-            img = _fig_to_img(ev.plot_white, image_format=image_format,
-                              **kwargs)
+            img = _fig_to_img(ev.plot_white, image_format, **kwargs)
 
             caption = u'Whitened evoked : %s (%s)' % (evoked_fname, ev.comment)
             show = True
@@ -1752,7 +1752,8 @@ class Report(object):
                 continue
         if len(surf_fnames) == 0:
             warn('No surfaces found at all, rendering empty MRI')
-            return self._render_image_png(mri_fname, cmap='gray')
+            return self._render_image_png(mri_fname, cmap='gray',
+                                          n_jobs=n_jobs)
         # XXX : find a better way to get max range of slices
         nim = nib.load(mri_fname)
         data = nim.get_data()
@@ -1770,16 +1771,13 @@ class Report(object):
         name = caption
 
         html += u'<li class="mri" id="%d">\n' % global_id
-        html += u'<h2>%s</h2>\n' % name
-        html += u'<div class="row">'
+        html += u'<h4>%s</h4>\n' % name  # all other captions are h4
         html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
                                           shape, 'axial', decim, n_jobs)
         html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
                                           shape, 'sagittal', decim, n_jobs)
-        html += u'</div><div class="row">'
         html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
                                           shape, 'coronal', decim, n_jobs)
-        html += u'</div>'
         html += u'</li>\n'
         return ''.join(html)
 

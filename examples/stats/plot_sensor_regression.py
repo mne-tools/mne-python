@@ -1,77 +1,84 @@
 """
-=====================================
-Sensor space least squares regression
-=====================================
+============================================================================
+Analysing continuous features with binning and regression in sensor space
+============================================================================
 
 Predict single trial activity from a continuous variable.
 A single-trial regression is performed in each sensor and timepoint
-individually, resulting in an Evoked object which contains the
-regression coefficient (beta value) for each combination of sensor
-and timepoint. Example also shows the T statistics and the associated
-p-values.
+individually, resulting in an :class:`mne.Evoked` object which contains the
+regression coefficient (beta value) for each combination of sensor and
+timepoint. Example shows the regression coefficient; the t and p values are
+also calculated automatically.
 
-Note that this example is for educational purposes and that the data used
-here do not contain any significant effect.
+Here, we repeat a few of the analyses from [1]_ by accessing the metadata
+object, which contains word-level information about various
+psycholinguistically relevant features of the words for which we have EEG
+activity.
 
-(See Hauk et al. (2006). The time course of visual word recognition as
-revealed by linear regression analysis of ERP data. Neuroimage.)
+For the general methodology, see e.g. [2]_
+
+
+References
+----------
+.. [1]  Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand
+   words are worth a picture: Snapshots of printed-word processing in an
+   event-related potential megastudy. Psychological Science, 2015
+.. [2]  Hauk et al. The time course of visual word recognition as revealed by
+   linear regression analysis of ERP data. Neuroimage, 2006
 """
 # Authors: Tal Linzen <linzen@nyu.edu>
 #          Denis A. Engemann <denis.engemann@gmail.com>
+#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
 # License: BSD (3-clause)
 
-import numpy as np
-
+import pandas as pd
 import mne
-from mne.datasets import sample
-from mne.stats.regression import linear_regression
+from mne.stats import linear_regression, fdr_correction
+from mne.viz import plot_compare_evokeds
+from mne.datasets import kiloword
 
-print(__doc__)
+# Load the data
+path = kiloword.data_path() + '/kword_metadata-epo.fif'
+epochs = mne.read_epochs(path)
+print(epochs.metadata.head())
 
-data_path = sample.data_path()
+##############################################################################
+# Psycholinguistically relevant word characteristics are continuous. I.e.,
+# concreteness or imaginability is a graded property. In the metadata,
+# we have concreteness ratings on a 5-point scale. We can show the dependence
+# of the EEG on concreteness by dividing the data into bins and plotting the
+# mean activity per bin, color coded.
+name = "Concreteness"
+df = epochs.metadata
+df[name] = pd.cut(df[name], 11, labels=False) / 10
+colors = {str(val): val for val in df[name].unique()}
+epochs.metadata = df.assign(Intercept=1)  # Add an intercept for later
+evokeds = {val: epochs[name + " == " + val].average() for val in colors}
+plot_compare_evokeds(evokeds, colors=colors, split_legend=True,
+                     cmap=(name + " Percentile", "viridis"))
 
-###############################################################################
-# Set parameters and read data
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-tmin, tmax = -0.2, 0.5
-event_id = dict(aud_l=1, aud_r=2)
+##############################################################################
+# We observe that there appears to be a monotonic dependence of EEG on
+# concreteness. We can also conduct a continuous analysis: single-trial level
+# regression with concreteness as a continuous (although here, binned)
+# feature. We can plot the resulting regression coefficient just like an
+# Event-related Potential.
+names = ["Intercept", name]
+res = linear_regression(epochs, epochs.metadata[names], names=names)
+for cond in names:
+    res[cond].beta.plot_joint(title=cond, ts_args=dict(time_unit='s'),
+                              topomap_args=dict(time_unit='s'))
 
-# Setup for reading the raw data
-raw = mne.io.read_raw_fif(raw_fname)
-events = mne.read_events(event_fname)
-
-picks = mne.pick_types(raw.info, meg='mag', eeg=False, stim=False,
-                       eog=False, exclude='bads')
-
-# Reject some epochs based on amplitude
-reject = dict(mag=5e-12)
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks, baseline=(None, 0), preload=True,
-                    reject=reject)
-
-###############################################################################
-# Run regression
-
-names = ['intercept', 'trial-count']
-
-intercept = np.ones((len(epochs),), dtype=np.float)
-design_matrix = np.column_stack([intercept,  # intercept
-                                 np.linspace(0, 1, len(intercept))])
-
-# also accepts source estimates
-lm = linear_regression(epochs, design_matrix, names)
-
-
-def plot_topomap(x, units):
-    x.plot_topomap(ch_type='mag', scalings=1., size=1.5, vmax=np.max,
-                   units=units, times=np.linspace(0.1, 0.2, 5))
-
-
-trial_count = lm['trial-count']
-
-plot_topomap(trial_count.beta, units='z (beta)')
-plot_topomap(trial_count.t_val, units='t')
-plot_topomap(trial_count.mlog10_p_val, units='-log10 p')
-plot_topomap(trial_count.stderr, units='z (error)')
+##############################################################################
+# Because the `linear_regression` function also estimates p values, we can --
+# after applying FDR correction for multiple comparisons -- also visualise the
+# statistical significance of the regression of word concreteness.
+# The :func:`mne.viz.plot_evoked_image` function takes a `mask` parameter.
+# If we supply it with a boolean mask of the positions where we can reject
+# the null hypothesis, points that are not significant will be shown
+# transparently, and if desired, in a different colour palette and surrounded
+# by dark contour lines.
+reject_H0, fdr_pvals = fdr_correction(res["Concreteness"].p_val.data)
+evoked = res["Concreteness"].beta
+evoked.plot_image(mask=reject_H0, time_unit='s')

@@ -13,7 +13,7 @@ import numpy as np
 from numpy.testing import assert_raises, assert_equal
 from nose.tools import assert_true
 
-from mne import read_events, Epochs, pick_channels_evoked
+from mne import read_events, Epochs, pick_channels_evoked, read_cov
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFR
@@ -36,6 +36,7 @@ base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
+cov_fname = op.join(base_dir, 'test-cov.fif')
 event_id, tmin, tmax = 1, -0.2, 0.2
 layout = read_layout('Vectorview-all')
 
@@ -81,13 +82,17 @@ def test_plot_topo():
     # should auto-find layout
     plot_evoked_topo([evoked, evoked], merge_grads=True, background_color='w')
     # Test jointplot
-    evoked.plot_joint()
+    evoked.plot_joint(ts_args=dict(time_unit='s'),
+                      topomap_args=dict(time_unit='s'))
 
     def return_inds(d):  # to test function kwarg to zorder arg of evoked.plot
         return list(range(d.shape[0]))
-    evoked.plot_joint(title='test', topomap_args=dict(contours=0, res=8),
-                      ts_args=dict(spatial_colors=True, zorder=return_inds))
-    assert_raises(ValueError, evoked.plot_joint, ts_args=dict(axes=True))
+    evoked.plot_joint(title='test', topomap_args=dict(contours=0, res=8,
+                                                      time_unit='ms'),
+                      ts_args=dict(spatial_colors=True, zorder=return_inds,
+                                   time_unit='s'))
+    assert_raises(ValueError, evoked.plot_joint, ts_args=dict(axes=True,
+                                                              time_unit='s'))
 
     warnings.simplefilter('always', UserWarning)
     picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])
@@ -128,6 +133,12 @@ def test_plot_topo():
     plt.close('all')
     for ax, idx in iter_topography(evoked.info):
         ax.plot(evoked.data[idx], color='red')
+        # test status bar message
+        assert_true(evoked.ch_names[idx] in ax.format_coord(.5, .5))
+    plt.close('all')
+    cov = read_cov(cov_fname)
+    cov['projs'] = []
+    evoked.pick_types(meg=True).plot_topo(noise_cov=cov)
     plt.close('all')
 
 
@@ -136,6 +147,9 @@ def test_plot_topo_single_ch():
     import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     fig = plot_evoked_topo(evoked, background_color='w')
+    # test status bar message
+    ax = plt.gca()
+    assert_true('MEG 0113' in ax.format_coord(.065, .63))
     num_figures_before = len(plt.get_fignums())
     _fake_click(fig, fig.axes[0], (0.08, 0.65))
     assert_equal(num_figures_before + 1, len(plt.get_fignums()))

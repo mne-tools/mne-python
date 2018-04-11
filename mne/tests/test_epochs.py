@@ -7,6 +7,7 @@
 import os.path as op
 from copy import deepcopy
 from distutils.version import LooseVersion
+from functools import partial
 
 import pytest
 from nose.tools import (assert_true, assert_equal, assert_raises,
@@ -29,7 +30,8 @@ from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements)
 from mne.utils import (_TempDir, requires_pandas, run_tests_if_main,
-                       requires_version, _check_pandas_installed)
+                       requires_version, _check_pandas_installed,
+                       catch_logging)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
 from mne.io import RawArray, read_raw_fif
@@ -513,6 +515,51 @@ def test_event_ordering():
                  1)
 
 
+def test_rescale():
+    """Test rescale."""
+    data = np.array([2, 3, 4, 5], float)
+    times = np.array([0, 1, 2, 3], float)
+    baseline = (0, 2)
+    tester = partial(rescale, data=data, times=times, baseline=baseline)
+    assert_allclose(tester(mode='mean'), [-1, 0, 1, 2])
+    assert_allclose(tester(mode='ratio'), data / 3.)
+    assert_allclose(tester(mode='logratio'), np.log10(data / 3.))
+    assert_allclose(tester(mode='percent'), (data - 3) / 3.)
+    assert_allclose(tester(mode='zscore'), (data - 3) / np.std([2, 3, 4]))
+    x = data / 3.
+    x = np.log10(x)
+    s = np.std(x[:3])
+    assert_allclose(tester(mode='zlogratio'), x / s)
+
+
+def test_epochs_baseline():
+    """Test baseline and rescaling modes with and without preloading."""
+    data = np.array([[2, 3], [2, 3]], float)
+    info = create_info(2, 1000., ('eeg', 'misc'))
+    raw = RawArray(data, info)
+    events = np.array([[0, 0, 1]])
+    for preload in (False, True):
+        epochs = mne.Epochs(raw, events, None, 0, 1e-3, baseline=None,
+                            preload=preload)
+        epochs.drop_bad()
+        epochs_data = epochs.get_data()
+        assert epochs_data.shape == (1, 2, 2)
+        expected = data.copy()
+        assert_array_equal(epochs_data[0], expected)
+        # the baseline period (1 sample here)
+        epochs.apply_baseline((None, 0))
+        expected[0] = [0, 1]
+        if preload:
+            assert_allclose(epochs_data[0][0], expected[0])
+        else:
+            assert_allclose(epochs_data[0][0], expected[1])
+        assert_allclose(epochs.get_data()[0], expected, atol=1e-7)
+        # entire interval
+        epochs.apply_baseline((None, None))
+        expected[0] = [-0.5, 0.5]
+        assert_allclose(epochs.get_data()[0], expected)
+
+
 def test_epochs_bad_baseline():
     """Test Epochs initialization with bad baseline parameters."""
     raw, events = _get_data()[:2]
@@ -522,7 +569,6 @@ def test_epochs_bad_baseline():
     assert_raises(ValueError, Epochs, raw, events, None, 0.1, 0.3, (None, 0))
     assert_raises(ValueError, Epochs, raw, events, None, -0.3, -0.1, (0, None))
     epochs = Epochs(raw, events, None, 0.1, 0.3, baseline=None)
-    assert_raises(RuntimeError, epochs.apply_baseline, (0.1, 0.2))
     epochs.load_data()
     assert_raises(ValueError, epochs.apply_baseline, (None, 0))
     assert_raises(ValueError, epochs.apply_baseline, (0, None))
@@ -790,6 +836,27 @@ def test_read_write_epochs():
         epochs_read = read_epochs(temp_fname, preload=preload)
         assert_equal(len(epochs_read.times), 1)
         assert_equal(epochs.get_data().shape[-1], 1)
+
+
+def test_split_saving():
+    """Test saving split epochs."""
+    # See gh-5102
+    tempdir = _TempDir()
+    raw = mne.io.RawArray(np.random.RandomState(0).randn(100, 10000),
+                          mne.create_info(100, 1000.))
+    events = mne.make_fixed_length_events(raw, 1)
+    epochs = mne.Epochs(raw, events)
+    epochs_data = epochs.get_data()
+    fname = op.join(tempdir, 'test-epo.fif')
+    epochs.save(fname, split_size='1MB')
+    assert op.isfile(fname)
+    assert op.isfile(fname[:-4] + '-1.fif')
+    assert op.isfile(fname[:-4] + '-2.fif')
+    assert not op.isfile(fname[:-4] + '-3.fif')
+    for preload in (True, False):
+        epochs2 = mne.read_epochs(fname, preload=preload)
+        assert_allclose(epochs2.get_data(), epochs_data)
+        assert_array_equal(epochs.events, epochs2.events)
 
 
 def test_epochs_proj():
@@ -1397,7 +1464,7 @@ def test_epoch_eq():
     assert_equal(new_shapes[0] + new_shapes[1], new_shapes[2] + new_shapes[3])
     assert_raises(ValueError, combine_event_ids, epochs, ['a', 'b'], {'ab': 1})
 
-    combine_event_ids(epochs, ['a', 'b'], {'ab': 12}, copy=False)
+    combine_event_ids(epochs, ['a', 'b'], {'ab': np.int32(12)}, copy=False)
     caught = 0
     for key in ['a', 'b']:
         try:
@@ -1688,7 +1755,7 @@ def test_drop_epochs():
 
     # Bound checks
     assert_raises(IndexError, epochs.drop, [len(epochs.events)])
-    assert_raises(IndexError, epochs.drop, [-1])
+    assert_raises(IndexError, epochs.drop, [-len(epochs.events) - 1])
     assert_raises(ValueError, epochs.drop, [[1, 2], [3, 4]])
 
     # Test selection attribute
@@ -1967,6 +2034,10 @@ def test_array_epochs():
                   event_id)
     assert_raises(ValueError, EpochsArray, data, info, events, tmin,
                   dict(a=1))
+    assert_raises(ValueError, EpochsArray, data, info, events, tmin,
+                  selection=[1])
+    # should be fine
+    EpochsArray(data, info, events, tmin, selection=np.arange(len(events)) + 5)
 
     # saving
     temp_fname = op.join(tempdir, 'test-epo.fif')
@@ -2181,8 +2252,11 @@ def test_metadata():
     event_id = {'zero': 0, 'one': 1}
     epochs = EpochsArray(data, info, metadata=meta,
                          events=events, event_id=event_id)
+    indices = np.arange(len(epochs))  # expected indices
+    assert_array_equal(epochs.metadata.index, indices)
 
     assert len(epochs[[1, 2]].events) == len(epochs[[1, 2]].metadata)
+    assert_array_equal(epochs[[1, 2]].metadata.index, indices[[1, 2]])
     assert len(epochs['one']) == 5
 
     # Construction
@@ -2216,17 +2290,29 @@ def test_metadata():
     with pytest.raises(KeyError):
         epochs['blah == "yo"']
 
+    assert_array_equal(epochs.selection, indices)
+    epochs.drop(0)
+    assert_array_equal(epochs.selection, indices[1:])
+    assert_array_equal(epochs.metadata.index, indices[1:])
+    epochs.drop([0, -1])
+    assert_array_equal(epochs.selection, indices[2:-1])
+    assert_array_equal(epochs.metadata.index, indices[2:-1])
+    assert_array_equal(len(epochs), 7)  # originally 10
+
     # I/O
     # Make sure values don't change with I/O
     tempdir = _TempDir()
     temp_fname = op.join(tempdir, 'tmp-epo.fif')
     temp_one_fname = op.join(tempdir, 'tmp-one-epo.fif')
-    epochs.save(temp_fname)
+    with catch_logging() as log:
+        epochs.save(temp_fname, verbose=True)
+    assert log.getvalue() == ''  # assert no junk from metadata setting
     epochs_read = read_epochs(temp_fname, preload=True)
     assert_metadata_equal(epochs.metadata, epochs_read.metadata)
     epochs_arr = EpochsArray(epochs._data, epochs.info, epochs.events,
                              tmin=0, event_id=epochs.event_id,
-                             metadata=epochs.metadata)
+                             metadata=epochs.metadata,
+                             selection=epochs.selection)
     assert_metadata_equal(epochs.metadata, epochs_arr.metadata)
 
     with pytest.raises(TypeError):  # Needs to be a dataframe
@@ -2277,6 +2363,28 @@ def test_metadata():
     assert_metadata_equal(epochs_one_nopandas_read.metadata,
                           epochs_one.metadata)
 
+    # gh-4820
+    raw_data = np.random.randn(10, 1000)
+    info = mne.create_info(10, 1000.)
+    raw = mne.io.RawArray(raw_data, info)
+    events = [[0, 0, 1], [100, 0, 1], [200, 0, 1], [300, 0, 1]]
+    metadata = DataFrame([dict(idx=idx) for idx in range(len(events))])
+    epochs = mne.Epochs(raw, events=events, tmin=-.050, tmax=.100,
+                        metadata=metadata)
+    epochs.drop_bad()
+    assert len(epochs) == len(epochs.metadata)
+
+    # gh-4821
+    epochs.metadata['new_key'] = 1
+    assert_array_equal(epochs['new_key == 1'].get_data(),
+                       epochs.get_data())
+    # ensure bad user changes break things
+    epochs.metadata.drop(epochs.metadata.index[2], inplace=True)
+    assert len(epochs.metadata) == len(epochs) - 1
+    with pytest.raises(ValueError,
+                       match='metadata must have the same number of rows .*'):
+        epochs['new_key == 1']
+
 
 def assert_metadata_equal(got, exp):
     """Assert metadata are equal."""
@@ -2300,5 +2408,13 @@ def assert_metadata_equal(got, exp):
         check = (got == exp)
         assert check.all().all()
 
+
+def test_events_list():
+    """Test that events can be a list."""
+    events = [[100, 0, 1], [200, 0, 1], [300, 0, 1]]
+    epochs = mne.Epochs(mne.io.RawArray(np.random.randn(10, 1000),
+                                        mne.create_info(10, 1000.)),
+                        events=events)
+    assert_array_equal(epochs.events, np.array(events))
 
 run_tests_if_main()

@@ -367,5 +367,4 @@ ax3.set_title('Best Laplacian STRF')
 plt.setp([iax.get_xticklabels() for iax in [ax1, ax2, ax3]], rotation=45)
 plt.autoscale(tight=True)
 mne.viz.tight_layout()
-
 plt.show()

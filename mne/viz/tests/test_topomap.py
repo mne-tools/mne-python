@@ -15,11 +15,13 @@ from numpy.testing import assert_raises, assert_array_equal
 from nose.tools import assert_true, assert_equal
 import pytest
 
-from mne import read_evokeds, read_proj
+from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
+                 compute_proj_evoked)
 from mne.io.proj import make_eeg_average_ref_proj
 from mne.io import read_raw_fif, read_info
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
+from mne.io.compensator import get_current_comp
 from mne.channels import read_layout, make_eeg_layout
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
@@ -47,7 +49,62 @@ base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
+ctf_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
 layout = read_layout('Vectorview-all')
+
+
+def test_plot_topomap_interactive():
+    """Test interactive topomap projection plotting."""
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+    from matplotlib.figure import Figure
+    evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
+    evoked.pick_types(meg='mag')
+    evoked.info['projs'] = []
+    assert not evoked.proj
+    evoked.add_proj(compute_proj_evoked(evoked, n_mag=1))
+
+    plt.close('all')
+    fig = Figure()
+    canvas = FigureCanvas(fig)
+    ax = fig.gca()
+
+    kwargs = dict(vmin=-240, vmax=240, times=[0.1], colorbar=False, axes=ax,
+                  res=8, time_unit='s')
+    evoked.copy().plot_topomap(proj=False, **kwargs)
+    canvas.draw()
+    image_noproj = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+    assert len(plt.get_fignums()) == 1
+
+    ax.clear()
+    evoked.copy().plot_topomap(proj=True, **kwargs)
+    canvas.draw()
+    image_proj = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+    assert not np.array_equal(image_noproj, image_proj)
+    assert len(plt.get_fignums()) == 1
+
+    ax.clear()
+    evoked.copy().plot_topomap(proj='interactive', **kwargs)
+    canvas.draw()
+    image_interactive = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+    assert_array_equal(image_noproj, image_interactive)
+    assert not np.array_equal(image_proj, image_interactive)
+    assert len(plt.get_fignums()) == 2
+
+    proj_fig = plt.figure(plt.get_fignums()[-1])
+    _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='data')
+    canvas.draw()
+    image_interactive_click = np.frombuffer(
+        canvas.tostring_rgb(), dtype='uint8')
+    assert_array_equal(image_proj, image_interactive_click)
+    assert not np.array_equal(image_noproj, image_interactive_click)
+
+    _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='data')
+    canvas.draw()
+    image_interactive_click = np.frombuffer(
+        canvas.tostring_rgb(), dtype='uint8')
+    assert_array_equal(image_noproj, image_interactive_click)
+    assert not np.array_equal(image_proj, image_interactive_click)
 
 
 @testing.requires_testing_data
@@ -84,13 +141,14 @@ def test_plot_topomap():
     # evoked
     warnings.simplefilter('always')
     res = 8
-    fast_test = {"res": res, "contours": 0, "sensors": False}
+    fast_test = dict(res=res, contours=0, sensors=False, time_unit='s')
+    fast_test_noscale = dict(res=res, contours=0, sensors=False)
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
 
     # Test animation
     _, anim = evoked.animate_topomap(ch_type='grad', times=[0, 0.1],
-                                     butterfly=False)
+                                     butterfly=False, time_unit='s')
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     plt.close('all')
 
@@ -106,7 +164,7 @@ def test_plot_topomap():
     assert_raises(ValueError, plt_topomap, times=[[0]])  # bad time
 
     evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
-                        contours=[-100, 0, 100])
+                        contours=[-100, 0, 100], time_unit='ms')
     plt_topomap = partial(evoked.plot_topomap, **fast_test)
     plt_topomap(0.1, layout=layout, scalings=dict(mag=0.1))
     plt.close('all')
@@ -152,7 +210,7 @@ def test_plot_topomap():
     # Plot array
     for ch_type in ('mag', 'grad'):
         evoked_ = evoked.copy().pick_types(eeg=False, meg=ch_type)
-        plot_topomap(evoked_.data[:, 0], evoked_.info, **fast_test)
+        plot_topomap(evoked_.data[:, 0], evoked_.info, **fast_test_noscale)
     # fail with multiple channel types
     assert_raises(ValueError, plot_topomap, evoked.data[0, :], evoked.info)
 
@@ -173,8 +231,9 @@ def test_plot_topomap():
     with warnings.catch_warnings(record=True):  # can't show
         warnings.simplefilter('always')
         plt_topomap(times, ch_type='mag', layout=None)
+    # projs have already been applied
     assert_raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
-                  proj='interactive')  # projs have already been applied
+                  proj='interactive', time_unit='s')
 
     # change to no-proj mode
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
@@ -191,8 +250,11 @@ def test_plot_topomap():
     assert_true(np.max(fig1.axes[0].images[0]._A) != data_max)
 
     assert_raises(RuntimeError, plot_evoked_topomap, evoked,
-                  np.repeat(.1, 50))
-    assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6])
+                  np.repeat(.1, 50), time_unit='s')
+    assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6],
+                  time_unit='s')
+    with warnings.catch_warnings(record=True):  # deprecated param
+        assert_raises(ValueError, plot_evoked_topomap, evoked, scaling_time=20)
 
     for ch in evoked.info['chs']:
         if ch['coil_type'] == FIFF.FIFFV_COIL_EEG:
@@ -266,7 +328,7 @@ def test_plot_topomap():
     # Remove digitization points. Now topomap should fail
     evoked.info['dig'] = None
     assert_raises(RuntimeError, plot_evoked_topomap, evoked,
-                  times, ch_type='eeg')
+                  times, ch_type='eeg', time_unit='s')
     plt.close('all')
 
     # Error for missing names
@@ -305,6 +367,13 @@ def test_plot_topomap():
     evoked.data[2][95] = 2
     assert_array_equal(_find_peaks(evoked, 10), evoked.times[[1, 95]])
     assert_array_equal(_find_peaks(evoked, 1), evoked.times[95])
+
+    # Test excluding bads channels
+    evoked_grad.info['bads'] += [evoked_grad.info['ch_names'][0]]
+    orig_bads = evoked_grad.info['bads']
+    evoked_grad.plot_topomap(ch_type='grad', times=[0], time_unit='ms')
+    assert_array_equal(evoked_grad.info['bads'], orig_bads)
+    plt.close('all')
 
 
 def test_plot_tfr_topomap():
@@ -350,5 +419,17 @@ def test_plot_tfr_topomap():
     bands = [(4, 8, 'Theta')]
     psd = np.random.rand(len(info['ch_names']), freqs.shape[0])
     plot_psds_topomap(psd, freqs, info, bands=bands, axes=[axes])
+
+
+def test_ctf_plotting():
+    """Test CTF topomap plotting."""
+    raw = read_raw_fif(ctf_fname, preload=True)
+    events = make_fixed_length_events(raw, duration=0.01)
+    assert len(events) > 10
+    evoked = Epochs(raw, events, tmin=0, tmax=0.01, baseline=None).average()
+    assert get_current_comp(evoked.info) == 3
+    # smoke test that compensation does not matter
+    evoked.plot_topomap(time_unit='s')
+
 
 run_tests_if_main()
