@@ -213,6 +213,9 @@ class ICA(ContainsMixin):
         The number of components used for PCA dimensionality reduction.
     verbose : bool, str, int, or None
         See above.
+    pre_whitener_ : ndarray
+        Matrix used to pre-whiten the data prior to PCA; by default, this
+        scales all channels to unit variance.
     pca_components_ : ndarray
         If fit, the PCA components
     pca_mean_ : ndarray
@@ -636,7 +639,7 @@ class ICA(ContainsMixin):
                              random_state=random_state, **self.fit_params)
             del _
             self.unmixing_matrix_ = W
-        self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
+        self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]  # whitening
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
         self.current_fit = fit_type
 
