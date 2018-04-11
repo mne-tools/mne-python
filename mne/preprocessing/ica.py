@@ -245,7 +245,7 @@ class ICA(ContainsMixin):
 
     References
     ----------
-    .. [1] Hyvarinen, A., 1999. Fast and robust fixed-point algorithms for
+    .. [1] Hyvärinen, A., 1999. Fast and robust fixed-point algorithms for
            independent component analysis. IEEE transactions on Neural
            Networks, 10(3), pp.626-634.
 
@@ -533,7 +533,7 @@ class ICA(ContainsMixin):
 
     def _pre_whiten(self, data, info, picks):
         """Aux function."""
-        has_pre_whitener = hasattr(self, '_pre_whitener')
+        has_pre_whitener = hasattr(self, 'pre_whitener_')
         if not has_pre_whitener and self.noise_cov is None:
             # use standardization as whitener
             # Scale (z-score) the data by channel type
@@ -1881,7 +1881,7 @@ def _write_ica(fid, ica):
                  _serialize(ica_misc))
 
     #   Whitener
-    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_WHITENER, ica._pre_whitener)
+    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_WHITENER, ica.pre_whitener_)
 
     #   PCA components_
     write_double_matrix(fid, FIFF.FIFF_MNE_ICA_PCA_COMPONENTS,
