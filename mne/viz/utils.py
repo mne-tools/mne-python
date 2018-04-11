@@ -1867,12 +1867,9 @@ def _annotate_select(vmin, vmax, params):
     active_idx = _get_active_radiobutton(params['fig_annotation'].radio)
     description = params['fig_annotation'].radio.labels[active_idx].get_text()
     if raw.annotations is None:
-        annot = Annotations([onset], [duration], [description])
-        raw.annotations = annot
-    else:
-        _merge_annotations(onset, onset + duration, description,
-                           raw.annotations)
-
+        raw.annotations = Annotations([], [], [])
+    _merge_annotations(onset, onset + duration, description,
+                       raw.annotations)
     _plot_annotations(params['raw'], params)
     params['plot_fun']()
 
@@ -1898,8 +1895,9 @@ def _plot_annotations(raw, params):
         params['ax_hscroll'].fill_betweenx(
             (0., 1.), annot_start, annot_end, alpha=0.3,
             color=params['segment_colors'][dscr])
-    # Adjust half a sample backward to make it clear what is included
-    params['segments'] = np.array(segments) - 0.5 / raw.info['sfreq']
+    # Do not adjust half a sample backward (even though this would make it
+    # clearer what is included) because this breaks click-drag functionality
+    params['segments'] = np.array(segments)
     params['annot_description'] = descriptions
 
 
@@ -1960,11 +1958,15 @@ def _on_hover(event, params):
             if params['segment_line'] is None:
                 modify_callback = partial(_annotation_modify, params=params)
                 line = params['ax'].plot([x, x], ylim, color='r',
-                                         linewidth=3, picker=5.)[0]
+                                         linewidth=1.5, picker=5.)[0]
                 dl = DraggableLine(line, modify_callback)
                 params['segment_line'] = dl
             else:
                 params['segment_line'].set_x(x)
+            line = params['segment_line'].line
+            from matplotlib.patheffects import Stroke, Normal
+            pe = [Stroke(linewidth=4, foreground='r', alpha=0.33), Normal()]
+            line.set_path_effects(pe if line.contains(event)[0] else pe[1:])
             params['vertline_t'].set_text('%.3f' % x)
             params['ax_vertline'].set_data(0,
                                            np.array(params['ax'].get_ylim()))
@@ -2153,7 +2155,7 @@ def _connection_line(x, fig, sourceax, targetax, y=1.,
                   clip_on=False)
 
 
-class DraggableLine:
+class DraggableLine(object):
     """Custom matplotlib line for moving around by drag and drop.
 
     Parameters
