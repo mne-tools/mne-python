@@ -108,6 +108,8 @@ def _get_blocks(filepath):
     if any([f != sfreq[0] for f in sfreq]):
         raise RuntimeError("All the blocks don't have the same sampling "
                            "frequency.")
+    if len(samples_block) < 1:
+        raise RuntimeError("There seems to be no data")
     samples_block = np.array(samples_block)
     signal_blocks = dict(n_channels=n_channels[0], sfreq=sfreq[0],
                          n_blocks=n_blocks, samples_block=samples_block,
