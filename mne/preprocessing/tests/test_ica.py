@@ -184,7 +184,7 @@ def test_ica_reset(method):
                        eog=False, exclude='bads')[:10]
 
     run_time_attrs = (
-        '_pre_whitener',
+        'pre_whitener_',
         'unmixing_matrix_',
         'mixing_matrix_',
         'n_components_',
@@ -476,7 +476,7 @@ def test_ica_additional(method):
 
         # check type consistency
         attrs = ('mixing_matrix_ unmixing_matrix_ pca_components_ '
-                 'pca_explained_variance_ _pre_whitener')
+                 'pca_explained_variance_ pre_whitener_')
 
         def f(x, y):
             return getattr(x, y).dtype
@@ -492,7 +492,7 @@ def test_ica_additional(method):
         ica_read = read_ica(test_ica_fname)
         for attr in ['mixing_matrix_', 'unmixing_matrix_', 'pca_components_',
                      'pca_mean_', 'pca_explained_variance_',
-                     '_pre_whitener']:
+                     'pre_whitener_']:
             assert_array_almost_equal(getattr(ica, attr),
                                       getattr(ica_read, attr))
 
