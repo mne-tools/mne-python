@@ -1945,27 +1945,37 @@ def _annotations_closed(event, params):
 
 def _on_hover(event, params):
     """Handle hover event."""
+    from matplotlib.patheffects import Stroke, Normal
     if (event.button is not None or
             event.inaxes != params['ax'] or event.xdata is None):
         return
     for coll in params['ax'].collections:
         if coll.contains(event)[0]:
-            path = coll.get_paths()[-1]
-            mn = min(path.vertices[:, 0])
-            mx = max(path.vertices[:, 0])
+            path = coll.get_paths()
+            assert len(path) == 1
+            path = path[0]
+            color = coll.get_edgecolors()[0]
+            mn = path.vertices[:, 0].min()
+            mx = path.vertices[:, 0].max()
+            # left/right line
             x = mn if abs(event.xdata - mn) < abs(event.xdata - mx) else mx
+            mask = path.vertices[:, 0] == x
             ylim = params['ax'].get_ylim()
+
+            def drag_callback(x0):
+                path.vertices[mask, 0] = x0
+
             if params['segment_line'] is None:
                 modify_callback = partial(_annotation_modify, params=params)
-                line = params['ax'].plot([x, x], ylim, color='r',
-                                         linewidth=1.5, picker=5.)[0]
-                dl = DraggableLine(line, modify_callback)
+                line = params['ax'].plot([x, x], ylim, color=color,
+                                         linewidth=2., picker=5.)[0]
+                dl = DraggableLine(line, modify_callback, drag_callback)
                 params['segment_line'] = dl
             else:
                 params['segment_line'].set_x(x)
+                params['segment_line'].drag_callback = drag_callback
             line = params['segment_line'].line
-            from matplotlib.patheffects import Stroke, Normal
-            pe = [Stroke(linewidth=4, foreground='r', alpha=0.33), Normal()]
+            pe = [Stroke(linewidth=4, foreground=color, alpha=0.5), Normal()]
             line.set_path_effects(pe if line.contains(event)[0] else pe[1:])
             params['vertline_t'].set_text('%.3f' % x)
             params['ax_vertline'].set_data(0,
@@ -2166,11 +2176,12 @@ class DraggableLine(object):
         Callback to call when line is released.
     """
 
-    def __init__(self, line, callback):  # noqa: D102
+    def __init__(self, line, modify_callback, drag_callback):  # noqa: D102
         self.line = line
         self.press = None
         self.x0 = line.get_xdata()[0]
-        self.callback = callback
+        self.modify_callback = modify_callback
+        self.drag_callback = drag_callback
         self.cidpress = self.line.figure.canvas.mpl_connect(
             'button_press_event', self.on_press)
         self.cidrelease = self.line.figure.canvas.mpl_connect(
@@ -2200,6 +2211,7 @@ class DraggableLine(object):
         x0, y0, xpress, ypress = self.press
         dx = event.xdata - xpress
         self.line.set_xdata(x0 + dx)
+        self.drag_callback((x0 + dx)[0])
         self.line.figure.canvas.draw()
 
     def on_release(self, event):
@@ -2208,7 +2220,7 @@ class DraggableLine(object):
             return
         self.press = None
         self.line.figure.canvas.draw()
-        self.callback(self.x0, event.xdata)
+        self.modify_callback(self.x0, event.xdata)
         self.x0 = event.xdata
 
     def remove(self):
