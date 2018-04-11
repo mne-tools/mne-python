@@ -107,7 +107,9 @@ def test_interpolation():
     raw_few.del_proj()
     raw_few.info['bads'] = [raw_few.ch_names[-1]]
     orig_data = raw_few[1][0]
-    raw_few.interpolate_bads(reset_bads=False)
+    with warnings.catch_warnings(record=True) as w:
+        raw_few.interpolate_bads(reset_bads=False)
+    assert len(w) == 0
     new_data = raw_few[1][0]
     assert_true((new_data == 0).mean() < 0.5)
     assert_true(np.corrcoef(new_data, orig_data)[0, 1] > 0.1)

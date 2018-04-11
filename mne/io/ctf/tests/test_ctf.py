@@ -222,9 +222,11 @@ def test_read_ctf():
 def test_rawctf_clean_names():
     """Test RawCTF _clean_names method."""
     # read test data
-    raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_catch))
-    raw_cleaned = read_raw_ctf(op.join(ctf_dir, ctf_fname_catch),
-                               clean_names=True)
+    with warnings.catch_warnings(record=True) as w:
+        raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_catch))
+        raw_cleaned = read_raw_ctf(op.join(ctf_dir, ctf_fname_catch),
+                                   clean_names=True)
+    assert any('MEG ref channel RMSP did not' in str(ww.message) for ww in w)
     test_channel_names = _clean_names(raw.ch_names)
     test_info_comps = copy.deepcopy(raw.info['comps'])
 

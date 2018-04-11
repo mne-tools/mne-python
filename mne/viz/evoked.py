@@ -1310,7 +1310,6 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
     # butterfly/time series plot
     # most of this code is about passing defaults on demand
-    ts_ax = fig.add_subplot(212)
     ts_args_def = dict(picks=None, unit=True, ylim=None, xlim='tight',
                        proj=False, hline=None, units=None, scalings=None,
                        titles=None, gfp=False, window_title=None,

@@ -1049,7 +1049,7 @@ def test_resample():
 
     # decimation of multiple stim channels
     raw = RawArray(2 * [stim], create_info(2, len(stim), 2 * ['stim']))
-    assert_allclose(raw.resample(8., npad='auto')._data,
+    assert_allclose(raw.resample(8., npad='auto', verbose='error')._data,
                     [[1, 1, 0, 0, 1, 1, 0, 0],
                      [1, 1, 0, 0, 1, 1, 0, 0]])
 

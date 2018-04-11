@@ -22,15 +22,17 @@ def test_dpss_windows():
     Kmax = int(2 * half_nbw)
 
     dpss, eigs = dpss_windows(N, half_nbw, Kmax, low_bias=False)
-    dpss_ni, eigs_ni = ni.algorithms.dpss_windows(N, half_nbw, Kmax)
+    with warnings.catch_warnings(record=True):  # conversions
+        dpss_ni, eigs_ni = ni.algorithms.dpss_windows(N, half_nbw, Kmax)
 
     assert_array_almost_equal(dpss, dpss_ni)
     assert_array_almost_equal(eigs, eigs_ni)
 
     dpss, eigs = dpss_windows(N, half_nbw, Kmax, interp_from=200,
                               low_bias=False)
-    dpss_ni, eigs_ni = ni.algorithms.dpss_windows(N, half_nbw, Kmax,
-                                                  interp_from=200)
+    with warnings.catch_warnings(record=True):  # conversions
+        dpss_ni, eigs_ni = ni.algorithms.dpss_windows(N, half_nbw, Kmax,
+                                                      interp_from=200)
 
     assert_array_almost_equal(dpss, dpss_ni)
     assert_array_almost_equal(eigs, eigs_ni)

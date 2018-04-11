@@ -944,6 +944,10 @@ class InterpolationMixin(object):
         if getattr(self, 'preload', None) is False:
             raise ValueError('Data must be preloaded.')
 
+        if len(self.info['bads']) == 0:
+            warn('No bad channels to interpolate. Doing nothing...')
+            return self
+
         _interpolate_bads_eeg(self)
         _interpolate_bads_meg(self, mode=mode)
 
