@@ -6,6 +6,7 @@ import numpy as np
 import os.path as op
 import warnings
 import itertools
+from distutils.version import LooseVersion
 
 from numpy.testing import assert_raises, assert_allclose
 
@@ -50,6 +51,8 @@ def _get_events():
 def _annotation_helper(raw, events=False):
     """Helper for testing interactive annotations."""
     import matplotlib.pyplot as plt
+    # Some of our checks here require modern mpl to work properly
+    mpl_good_enough = LooseVersion(matplotlib.__version__) >= '2.0'
     n_anns = 0 if raw.annotations is None else len(raw.annotations.onset)
     plt.close('all')
 
@@ -99,15 +102,17 @@ def _annotation_helper(raw, events=False):
     _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1, kind='motion')
     _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1,
                 kind='release')
-    assert raw.annotations.onset[n_anns] == onset
-    assert_allclose(raw.annotations.duration[n_anns], 1.5)
+    if mpl_good_enough:
+        assert raw.annotations.onset[n_anns] == onset
+        assert_allclose(raw.annotations.duration[n_anns], 1.5)
     # modify annotation from beginning
     _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
     _fake_click(fig, data_ax, [0.5, 1.], xform='data', button=1, kind='motion')
     _fake_click(fig, data_ax, [0.5, 1.], xform='data', button=1,
                 kind='release')
-    assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
-    assert_allclose(raw.annotations.duration[n_anns], 2.0)
+    if mpl_good_enough:
+        assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
+        assert_allclose(raw.annotations.duration[n_anns], 2.0)
     assert len(raw.annotations.onset) == n_anns + 1
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
@@ -126,8 +131,9 @@ def _annotation_helper(raw, events=False):
     assert len(raw.annotations.onset) == n_anns + 1
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
-    assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
-    assert_allclose(raw.annotations.duration[n_anns], 5.0)
+    if mpl_good_enough:
+        assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
+        assert_allclose(raw.annotations.duration[n_anns], 5.0)
     assert len(fig.axes[0].texts) == n_anns + 1 + n_events
     # Delete
     _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3, kind='press')
