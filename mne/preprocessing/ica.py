@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+#
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Juergen Dammers <j.dammers@fz-juelich.de>
