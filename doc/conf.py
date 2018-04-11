@@ -158,6 +158,7 @@ html_theme_options = {
         ("Examples", "auto_examples/index"),
         ("Contribute", "contributing"),
     ],
+    'nosidebar': True,  # fix col-md-9 vs col-md-12
     }
 
 # Add any paths that contain custom themes here, relative to this directory.
