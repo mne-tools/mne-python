@@ -364,15 +364,15 @@ class Xdawn(_XdawnTransformer):
 
     Attributes
     ----------
-    ``filters_`` : dict of ndarray
+    filters_ : dict of ndarray
         If fit, the Xdawn components used to decompose the data for each event
         type, else empty.
-    ``patterns_`` : dict of ndarray
+    patterns_ : dict of ndarray
         If fit, the Xdawn patterns used to restore the signals for each event
         type, else empty.
-    ``evokeds_`` : dict of evoked instance
+    evokeds_ : dict of evoked instance
         If fit, the evoked response for each event type.
-    ``event_id_`` : dict of event id
+    event_id_ : dict of event id
         The event id.
     ``correct_overlap_``: bool
         Whether overlap correction was applied.

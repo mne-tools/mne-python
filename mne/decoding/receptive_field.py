@@ -55,16 +55,16 @@ class ReceptiveField(BaseEstimator):
 
     Attributes
     ----------
-    ``coef_`` : array, shape ([n_outputs, ]n_features, n_delays)
+    coef_ : array, shape ([n_outputs, ]n_features, n_delays)
         The coefficients from the model fit, reshaped for easy visualization.
         During :meth:`mne.decoding.ReceptiveField.fit`, if ``y`` has one
         dimension (time), the ``n_outputs`` dimension here is omitted.
-    ``patterns_`` : array, shape ([n_outputs, ]n_features, n_delays)
+    patterns_ : array, shape ([n_outputs, ]n_features, n_delays)
         If fit, the inverted coefficients from the model.
-    ``delays_``: array, shape (n_delays,), dtype int
+    delays_: array, shape (n_delays,), dtype int
         The delays used to fit the model, in indices. To return the delays
         in seconds, use ``self.delays_ / self.sfreq``
-    ``valid_samples_`` : slice
+    valid_samples_ : slice
         The rows to keep during model fitting after removing rows with
         missing values due to time delaying. This can be used to get an
         output equivalent to using :func:`numpy.convolve` or

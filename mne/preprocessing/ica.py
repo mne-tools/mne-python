@@ -206,7 +206,7 @@ class ICA(ContainsMixin):
     ch_names : list-like
         Channel names resulting from initial picking.
         The number of components used for ICA decomposition.
-    ``n_components_`` : int
+    n_components_ : int
         If fit, the actual number of components used for ICA decomposition.
     n_pca_components : int
         See above.
@@ -214,15 +214,15 @@ class ICA(ContainsMixin):
         The number of components used for PCA dimensionality reduction.
     verbose : bool, str, int, or None
         See above.
-    ``pca_components_`` : ndarray
+    pca_components_ : ndarray
         If fit, the PCA components
-    ``pca_mean_`` : ndarray
+    pca_mean_ : ndarray
         If fit, the mean vector used to center the data before doing the PCA.
-    ``pca_explained_variance_`` : ndarray
+    pca_explained_variance_ : ndarray
         If fit, the variance explained by each PCA component
-    ``mixing_matrix_`` : ndarray
+    mixing_matrix_ : ndarray
         If fit, the mixing matrix to restore observed data, else None.
-    ``unmixing_matrix_`` : ndarray
+    unmixing_matrix_ : ndarray
         If fit, the matrix to unmix observed data, else None.
     exclude : list
         List of sources indices to exclude, i.e. artifact components identified
@@ -234,9 +234,9 @@ class ICA(ContainsMixin):
         again. To dump this 'artifact memory' say: ica.exclude = []
     info : None | instance of Info
         The measurement info copied from the object fitted.
-    ``n_samples_`` : int
+    n_samples_ : int
         the number of samples used on fit.
-    ``labels_`` : dict
+    labels_ : dict
         A dictionary of independent component indices, grouped by types of
         independent components. This attribute is set by some of the artifact
         detection functions.
