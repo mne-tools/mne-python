@@ -105,6 +105,8 @@ Changelog
 
 - Add multidictionary time-frequency support to :func:`mne.inverse_sparse.tf_mixed_norm` by `Mathurin Massias`_ and `Daniel Strohmeier`_
 
+- Add new DICS implementation as :func:`mne.beamformer.make_dics`, :func:`mne.beamformer.apply_dics`, :func:`mne.beamformer.apply_dics_csd` and :func:`mne.beamformer.apply_dics_epochs`, by `Marijn van Vliet`_ and `Susanna Aro`_
+
 Bug
 ~~~
 
@@ -200,6 +202,8 @@ API
 - Added ``clean_names=False`` parameter to :func:`mne.io.read_raw_ctf` for control over cleaning of main channel names and compensation channel names from CTF suffixes by `Oleh Kozynets`_
 
 - The functions ``lcmv``, ``lcmv_epochs``, and ``lcmv_raw`` are now deprecated in favor of :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.apply_lcmv`, :func:`mne.beamformer.apply_lcmv_epochs`, and :func:`mne.beamformer.apply_lcmv_raw`, by `Britta Westner`_  
+
+- The functions ``mne.beamformer.dics``, ``mne.beamformer.dics_epochs`` and ``mne.beamformer.dics_source_power`` are now deprecated in favor of :func:`mne.beamformer.make_dics`, :func:`mne.beamformer.apply_dics`, and :func:`mne.beamformer.apply_dics_csd`, by `Marijn van Vliet`_
 
 .. _changes_0_15:
 
@@ -2652,3 +2656,5 @@ of commits):
 .. _Pierre Ablin: https://pierreablin.com
 
 .. _Oleh Kozynets: https://github.com/OlehKSS
+
+.. _Susanna Aro: https://www.linkedin.com/in/susanna-aro
