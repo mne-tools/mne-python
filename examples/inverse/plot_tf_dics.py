@@ -13,7 +13,7 @@ References
        NeuroImage (2008) vol. 40 (4) pp. 1686-1700
 """
 # Author: Roman Goj <roman.goj@gmail.com>
-#         Marijn van Vliet <w.m.vanvliet@gmail.com>
+#
 # License: BSD (3-clause)
 
 import mne
@@ -108,15 +108,13 @@ noise_csds = []
 for freq_bin, win_length, n_fft in zip(freq_bins, win_lengths, n_ffts):
     noise_csd = csd_fourier(epochs_noise, fmin=freq_bin[0], fmax=freq_bin[1],
                             tmin=-win_length, tmax=0, n_fft=n_fft)
-    # Sum the noise CSD across the frequencies in the bin
-    noise_csd = noise_csd.sum()
-    noise_csds.append(noise_csd)
+    noise_csds.append(noise_csd.sum())
 
 # Computing DICS solutions for time-frequency windows in a label in source
 # space for faster computation, use label=None for full solution
 stcs = tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                freq_bins=freq_bins, subtract_evoked=subtract_evoked,
-               n_ffts=n_ffts, reg=0.001, label=label)
+               n_ffts=n_ffts, reg=0.05, label=label, inversion='matrix')
 
 # Plotting source spectrogram for source with maximum activity
 # Note that tmin and tmax are set to display a time range that is smaller than
