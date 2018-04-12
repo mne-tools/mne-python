@@ -25,7 +25,7 @@ from ..externals import six
 from ..channels.channels import _contains_ch_type
 
 depr_message = ("This function is deprecated and will be removed in 0.17, "
-                "please use `make_lcmv` and `%s` instead.")
+                "please use :func:`make_lcmv` and :func:`%s` instead.")
 
 
 def _reg_pinv(x, reg):
@@ -520,7 +520,7 @@ def apply_lcmv(evoked, filters, max_ori_out='signed', verbose=None):
 
     See Also
     --------
-    apply_lcmv_raw, apply_lcmv_epochs
+    make_lcmv, apply_lcmv_raw, apply_lcmv_epochs
     """
     _check_reference(evoked)
 
@@ -569,7 +569,7 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='signed',
 
     See Also
     --------
-    apply_lcmv_raw, apply_lcmv
+    make_lcmv, apply_lcmv_raw, apply_lcmv
     """
     _check_reference(epochs)
 
@@ -622,7 +622,7 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
 
     See Also
     --------
-    apply_lcmv_epochs, apply_lcmv
+    make_lcmv, apply_lcmv_epochs, apply_lcmv
     """
     _check_reference(raw)
 

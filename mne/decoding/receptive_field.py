@@ -61,7 +61,7 @@ class ReceptiveField(BaseEstimator):
         dimension (time), the ``n_outputs`` dimension here is omitted.
     patterns_ : array, shape ([n_outputs, ]n_features, n_delays)
         If fit, the inverted coefficients from the model.
-    delays_: array, shape (n_delays,), dtype int
+    delays_ : array, shape (n_delays,), dtype int
         The delays used to fit the model, in indices. To return the delays
         in seconds, use ``self.delays_ / self.sfreq``
     valid_samples_ : slice
@@ -292,9 +292,9 @@ class ReceptiveField(BaseEstimator):
     def score(self, X, y):
         """Score predictions generated with a receptive field.
 
-        This calls `self.predict`, then masks the output of this
-        and `y` with `self.mask_prediction_`. Finally, it passes
-        this to a `sklearn` scorer.
+        This calls ``self.predict``, then masks the output of this
+        and ``y` with ``self.mask_prediction_``. Finally, it passes
+        this to a :mod:`sklearn.metrics` scorer.
 
         Parameters
         ----------

@@ -374,7 +374,7 @@ class Xdawn(_XdawnTransformer):
         If fit, the evoked response for each event type.
     event_id_ : dict of event id
         The event id.
-    ``correct_overlap_``: bool
+    correct_overlap_ : bool
         Whether overlap correction was applied.
 
     Notes
