@@ -13,12 +13,14 @@ from mne.datasets import testing
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
                  add_source_space_distances, read_bem_surfaces,
-                 morph_source_spaces, SourceEstimate, make_sphere_model)
+                 morph_source_spaces, SourceEstimate, make_sphere_model,
+                 head_to_mni, read_trans)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
                        requires_mne, requires_version, run_tests_if_main)
 from mne.surface import _accumulate_normals, _triangle_neighbors
-from mne.source_space import _get_mri_header, _get_mgz_header
+from mne.source_space import _get_mri_header, _get_mgz_header, _read_talxfm
+from mne.transforms import apply_trans, invert_transform
 from mne.externals.six.moves import zip
 from mne.source_space import (get_volume_labels_from_aseg, SourceSpaces,
                               get_volume_labels_from_src,
@@ -39,6 +41,8 @@ fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
 fname_fs = op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif')
 fname_morph = op.join(subjects_dir, 'sample', 'bem',
                       'sample-fsaverage-ico-5-src.fif')
+trans_fname = op.join(data_path, 'MEG', 'sample',
+                      'sample_audvis_trunc-trans.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname_small = op.join(base_dir, 'small-src.fif.gz')
@@ -444,6 +448,31 @@ def test_vertex_to_mni():
     coords_2 = vertex_to_mni(vertices, hemis, 'sample', subjects_dir)
     # less than 1mm error
     assert_allclose(coords, coords_2, atol=1.0)
+
+
+@testing.requires_testing_data
+@requires_fs_or_nibabel
+def test_head_to_mni():
+    """Test conversion of aseg vertices to MNI coordinates."""
+    # obtained using freeview
+    coords = np.array([[22.52, 11.24, 17.72], [22.52, 5.46, 21.58],
+                       [16.10, 5.46, 22.23], [21.24, 8.36, 22.23]])
+
+    xfm = _read_talxfm('sample', subjects_dir)
+    coords_MNI = apply_trans(xfm['trans'], coords)
+
+    trans = read_trans(trans_fname)  # head->MRI (surface RAS)
+    mri_head_t = invert_transform(trans)  # MRI (surface RAS)->head matrix
+
+    # obtained from sample_audvis-meg-oct-6-mixed-fwd.fif
+    coo_right_amygdala = np.array([[0.01745682,  0.02665809,  0.03281873],
+                                   [0.01014125,  0.02496262,  0.04233755],
+                                   [0.01713642,  0.02505193,  0.04258181],
+                                   [0.01720631,  0.03073877,  0.03850075]])
+    coords_MNI_2 = head_to_mni(coo_right_amygdala, 'sample', mri_head_t,
+                               subjects_dir)
+    # less than 1mm error
+    assert_allclose(coords_MNI, coords_MNI_2, atol=10.0)
 
 
 @testing.requires_testing_data

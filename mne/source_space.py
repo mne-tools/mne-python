@@ -33,7 +33,8 @@ from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
-                         _coord_frame_name, Transform, _str_to_frame)
+                         _coord_frame_name, Transform, _str_to_frame,
+                         _ensure_trans)
 from .externals.six import string_types
 
 
@@ -1180,6 +1181,49 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
     xfm = _read_talxfm(subject, subjects_dir, mode)
     data = np.array([rr[h][v, :] for h, v in zip(hemis, vertices)])
     return apply_trans(xfm['trans'], data)
+
+
+##############################################################################
+# Volume to MNI conversion
+
+@verbose
+def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
+                verbose=None):
+    """Convert pos from head coordinate system to MNI ones.
+
+    Parameters
+    ----------
+    pos : array, shape (n_pos, 3)
+        The  coordinates (in m) in head coordinate system
+    subject : string
+        Name of the subject.
+    mri_head_t: instance of Transform
+        MRI<->Head coordinate transformation
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    coordinates : array, shape (n_pos, 3)
+        The MNI coordinates (in mm) of pos
+
+    Notes
+    -----
+    This function requires either nibabel (in Python) or Freesurfer
+    (with utility "mri_info") to be correctly installed.
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+
+    # before we go from head to MRI (surface RAS)
+    head_mri_t = _ensure_trans(mri_head_t, 'head', 'mri')
+    coo_MRI_RAS = apply_trans(head_mri_t, pos)
+
+    # convert to MNI coordinates
+    xfm = _read_talxfm(subject, subjects_dir)
+    return apply_trans(xfm['trans'], coo_MRI_RAS * 1000)
 
 
 @verbose
