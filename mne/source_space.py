@@ -1186,7 +1186,6 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
 ##############################################################################
 # Volume to MNI conversion
 
-
 @verbose
 def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
                 verbose=None):
@@ -1216,7 +1215,6 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
     This function requires either nibabel (in Python) or Freesurfer
     (with utility "mri_info") to be correctly installed.
     """
-
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     # before we go from head to MRI (surface RAS)
