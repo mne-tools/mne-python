@@ -1362,18 +1362,22 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def __repr__(self):
         """Build string representation."""
-        s = 'n_events : %s ' % len(self.events)
+        s = ' %s events ' % len(self.events)
         s += '(all good)' if self._bad_dropped else '(good & bad)'
-        s += ', tmin : %s (s)' % self.tmin
-        s += ', tmax : %s (s)' % self.tmax
-        s += ', baseline : %s' % str(self.baseline)
+        s += ', %g - %g sec' % (self.tmin, self.tmax)
+        s += ', baseline '
+        if self.baseline is None:
+            s += 'off'
+        else:
+            s += '[%s, %s]' % tuple(['None' if b is None else ('%g' % b)
+                                     for b in self.baseline])
         s += ', ~%s' % (sizeof_fmt(self._size),)
         s += ', data%s loaded' % ('' if self.preload else ' not')
-        s += ' with metadata' if self.metadata is not None else ''
-        if len(self.event_id) > 1:
-            counts = ['%r: %i' % (k, sum(self.events[:, 2] == v))
-                      for k, v in sorted(self.event_id.items())]
-            s += ',\n %s' % ', '.join(counts)
+        s += ', with metadata' if self.metadata is not None else ''
+        counts = ['%r: %i' % (k, sum(self.events[:, 2] == v))
+                  for k, v in sorted(self.event_id.items())]
+        if len(self.event_id) > 0:
+            s += ',' + '\n '.join([''] + counts)
         class_name = self.__class__.__name__
         class_name = 'Epochs' if class_name == 'BaseEpochs' else class_name
         return '<%s  |  %s>' % (class_name, s)
