@@ -1867,12 +1867,9 @@ def _annotate_select(vmin, vmax, params):
     active_idx = _get_active_radiobutton(params['fig_annotation'].radio)
     description = params['fig_annotation'].radio.labels[active_idx].get_text()
     if raw.annotations is None:
-        annot = Annotations([onset], [duration], [description])
-        raw.annotations = annot
-    else:
-        _merge_annotations(onset, onset + duration, description,
-                           raw.annotations)
-
+        raw.annotations = Annotations([], [], [])
+    _merge_annotations(onset, onset + duration, description,
+                       raw.annotations)
     _plot_annotations(params['raw'], params)
     params['plot_fun']()
 
@@ -1898,8 +1895,9 @@ def _plot_annotations(raw, params):
         params['ax_hscroll'].fill_betweenx(
             (0., 1.), annot_start, annot_end, alpha=0.3,
             color=params['segment_colors'][dscr])
-    # Adjust half a sample backward to make it clear what is included
-    params['segments'] = np.array(segments) - 0.5 / raw.info['sfreq']
+    # Do not adjust half a sample backward (even though this would make it
+    # clearer what is included) because this breaks click-drag functionality
+    params['segments'] = np.array(segments)
     params['annot_description'] = descriptions
 
 
@@ -1914,14 +1912,16 @@ def _setup_annotation_colors(params):
     else:
         descriptions = list()
     color_keys = np.union1d(descriptions, params['added_label'])
-    color_cycle = cycle(np.delete(COLORS, 2))  # no red
-    for _ in np.intersect1d(list(color_keys), list(segment_colors.keys())):
-        next(color_cycle)
+    color_cycle = cycle(np.delete(COLORS, COLORS.index('r')))  # no red
+    for key, color in segment_colors.items():
+        assert color in COLORS
+        if color != 'r' and key in color_keys:
+            next(color_cycle)
     for idx, key in enumerate(color_keys):
         if key in segment_colors:
             continue
         elif key.lower().startswith('bad') or key.lower().startswith('edge'):
-            segment_colors[key] = 'red'
+            segment_colors[key] = 'r'
         else:
             segment_colors[key] = next(color_cycle)
     params['segment_colors'] = segment_colors
@@ -1947,24 +1947,38 @@ def _annotations_closed(event, params):
 
 def _on_hover(event, params):
     """Handle hover event."""
+    from matplotlib.patheffects import Stroke, Normal
     if (event.button is not None or
             event.inaxes != params['ax'] or event.xdata is None):
         return
     for coll in params['ax'].collections:
         if coll.contains(event)[0]:
-            path = coll.get_paths()[-1]
-            mn = min(path.vertices[:, 0])
-            mx = max(path.vertices[:, 0])
+            path = coll.get_paths()
+            assert len(path) == 1
+            path = path[0]
+            color = coll.get_edgecolors()[0]
+            mn = path.vertices[:, 0].min()
+            mx = path.vertices[:, 0].max()
+            # left/right line
             x = mn if abs(event.xdata - mn) < abs(event.xdata - mx) else mx
+            mask = path.vertices[:, 0] == x
             ylim = params['ax'].get_ylim()
+
+            def drag_callback(x0):
+                path.vertices[mask, 0] = x0
+
             if params['segment_line'] is None:
                 modify_callback = partial(_annotation_modify, params=params)
-                line = params['ax'].plot([x, x], ylim, color='r',
-                                         linewidth=3, picker=5.)[0]
-                dl = DraggableLine(line, modify_callback)
+                line = params['ax'].plot([x, x], ylim, color=color,
+                                         linewidth=2., picker=5.)[0]
+                dl = DraggableLine(line, modify_callback, drag_callback)
                 params['segment_line'] = dl
             else:
                 params['segment_line'].set_x(x)
+                params['segment_line'].drag_callback = drag_callback
+            line = params['segment_line'].line
+            pe = [Stroke(linewidth=4, foreground=color, alpha=0.5), Normal()]
+            line.set_path_effects(pe if line.contains(event)[0] else pe[1:])
             params['vertline_t'].set_text('%.3f' % x)
             params['ax_vertline'].set_data(0,
                                            np.array(params['ax'].get_ylim()))
@@ -2153,7 +2167,7 @@ def _connection_line(x, fig, sourceax, targetax, y=1.,
                   clip_on=False)
 
 
-class DraggableLine:
+class DraggableLine(object):
     """Custom matplotlib line for moving around by drag and drop.
 
     Parameters
@@ -2164,11 +2178,12 @@ class DraggableLine:
         Callback to call when line is released.
     """
 
-    def __init__(self, line, callback):  # noqa: D102
+    def __init__(self, line, modify_callback, drag_callback):  # noqa: D102
         self.line = line
         self.press = None
         self.x0 = line.get_xdata()[0]
-        self.callback = callback
+        self.modify_callback = modify_callback
+        self.drag_callback = drag_callback
         self.cidpress = self.line.figure.canvas.mpl_connect(
             'button_press_event', self.on_press)
         self.cidrelease = self.line.figure.canvas.mpl_connect(
@@ -2198,6 +2213,7 @@ class DraggableLine:
         x0, y0, xpress, ypress = self.press
         dx = event.xdata - xpress
         self.line.set_xdata(x0 + dx)
+        self.drag_callback((x0 + dx)[0])
         self.line.figure.canvas.draw()
 
     def on_release(self, event):
@@ -2206,7 +2222,7 @@ class DraggableLine:
             return
         self.press = None
         self.line.figure.canvas.draw()
-        self.callback(self.x0, event.xdata)
+        self.modify_callback(self.x0, event.xdata)
         self.x0 = event.xdata
 
     def remove(self):

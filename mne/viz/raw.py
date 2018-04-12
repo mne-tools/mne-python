@@ -1019,6 +1019,9 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             # "remove" lines
             lines[ii].set_xdata([])
             lines[ii].set_ydata([])
+
+    params['ax'].texts = []   # delete event and annotation texts
+
     # deal with event lines
     if params['event_times'] is not None:
         # find events in the time window
@@ -1050,7 +1053,6 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                 line.set_xdata([])
                 line.set_ydata([])
 
-        params['ax'].texts = []   # delete event and annotation texts
         # don't add event numbers for more than 50 visible events
         if len(event_times) <= 50:
             for ev_time, ev_num in zip(event_times, event_nums):
