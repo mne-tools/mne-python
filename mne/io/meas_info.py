@@ -24,7 +24,7 @@ from .ctf_comp import read_ctf_comp, write_ctf_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_points, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
-                    write_julian, write_float_matrix)
+                    write_julian, write_float_matrix, DATE_NONE)
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import _to_const
 from ..transforms import invert_transform
@@ -1228,7 +1228,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['proj_name'] = proj_name
     if meas_date is None:
         meas_date = [info['meas_id']['secs'], info['meas_id']['usecs']]
-    if np.sum(meas_date) == 0:
+    if np.array_equal(meas_date, DATE_NONE):
         meas_date = None
     info['meas_date'] = meas_date
 
@@ -1748,7 +1748,6 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         raise ValueError('ch_types and ch_names must be the same length '
                          '(%s != %s)' % (len(ch_types), nchan))
     info = _empty_info(sfreq)
-    info['meas_date'] = np.array([0, 0], np.int32)
     for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
         if not isinstance(name, string_types):
             raise TypeError('each entry in ch_names must be a string')
@@ -1874,13 +1873,11 @@ def anonymize_info(info):
         raise ValueError('self must be an Info instance.')
     if info.get('subject_info') is not None:
         del info['subject_info']
-    info['meas_date'] = [0, 0]
-    for key_1 in ('file_id', 'meas_id'):
-        key = info.get(key_1)
-        if key is None:
-            continue
-        for key_2 in ('secs', 'msecs', 'usecs'):
-            if key_2 not in key:
-                continue
-            info[key_1][key_2] = 0
+    info['meas_date'] = None
+    for key in ('file_id', 'meas_id'):
+        value = info.get(key)
+        if value is not None:
+            assert 'msecs' not in value
+            value['secs'] = DATE_NONE[0]
+            value['usecs'] = DATE_NONE[1]
     return info
