@@ -157,14 +157,21 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         gradiometers with magnetometers or EEG with MEG.
     label : Label
         Restricts the LCMV solution to a given label.
-    pick_ori : None | 'normal' | 'max-power'
-        If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'max-power', the source
-        orientation that maximizes output source power is chosen.
-        If None, the solution depends on the forward model: if the orientation
-        is fixed, a scalar beamformer is computed. If the forward model has
-        free orientation, a vector beamformer is computed, combining the output
-        for all source orientations.
+    pick_ori : None | 'normal' | 'max-power' | 'vector'
+        For forward solutions with fixed orientation, None (default) must be
+        used and a scalar beamformer is computed. For free-orientation forward
+        solutions, a vector beamformer is computed and:
+
+            None
+                Pools the orientations by taking the norm.
+            'normal'
+                Keeps only the radial component.
+            'max-power'
+                Selects orientations that maximize output source power at
+                each location.
+            'vector'
+                Keeps the currents for each direction separate
+
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
@@ -362,7 +369,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
                    whitener=whitener, weight_norm=weight_norm,
                    pick_ori=pick_ori, ch_names=ch_names, proj=proj,
                    is_ssp=is_ssp, vertices=vertno, is_free_ori=is_free_ori,
-                   nsource=forward['nsource'], src=deepcopy(forward['src']))
+                   nsource=forward['nsource'], src=deepcopy(forward['src']),
+                   source_nn=forward['source_nn'].copy())
 
     return filters
 
@@ -414,11 +422,14 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
             M = np.dot(filters['whitener'], M)
 
         # project to source space using beamformer weights
+        vector = False
         if filters['is_free_ori']:
             sol = np.dot(W, M)
-            logger.info('combining the current components...')
-            sol = combine_xyz(sol)
-
+            if filters['pick_ori'] == 'vector':
+                vector = True
+            else:
+                logger.info('combining the current components...')
+                sol = combine_xyz(sol)
         else:
             # Linear inverse: do computation here or delayed
             if (M.shape[0] < W.shape[0] and
@@ -431,7 +442,8 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
 
         tstep = 1.0 / info['sfreq']
         yield _make_stc(sol, vertices=filters['vertices'], tmin=tmin,
-                        tstep=tstep, subject=subject)
+                        tstep=tstep, subject=subject, vector=vector,
+                        source_nn=filters['source_nn'])
 
     logger.info('[done]')
 
@@ -444,10 +456,14 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
     """
     is_free_ori = forward['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
 
-    if pick_ori in ['normal', 'max-power'] and not is_free_ori:
-        raise ValueError('Normal or max-power orientation can only be picked '
-                         'when a forward operator with free orientation is '
-                         'used.')
+    if pick_ori in ['normal', 'max-power', 'vector']:
+        if not is_free_ori:
+            raise ValueError(
+                'Normal or max-power orientation can only be picked '
+                'when a forward operator with free orientation is used.')
+    elif pick_ori is not None:
+        raise ValueError('pick_ori must be one of "normal", "max-power", '
+                         '"vector", or None, got %s' % (pick_ori,))
     if pick_ori == 'normal' and not forward['surf_ori']:
         # XXX eventually this could just call convert_forward_solution
         raise ValueError('Normal orientation can only be picked when a '
@@ -515,7 +531,7 @@ def apply_lcmv(evoked, filters, max_ori_out='signed', verbose=None):
 
     Returns
     -------
-    stc : SourceEstimate | VolSourceEstimate
+    stc : SourceEstimate | VolSourceEstimate | VectorSourceEstimate
         Source time courses.
 
     See Also
@@ -1111,8 +1127,8 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     _check_reference(epochs)
 
     if pick_ori not in [None, 'normal']:
-        raise ValueError('Unrecognized orientation option in pick_ori, '
-                         'available choices are None and normal')
+        raise ValueError('pick_ori must be one of "normal" and None, '
+                         'got %s' % (pick_ori,))
     if noise_covs is not None and len(noise_covs) != len(freq_bins):
         raise ValueError('One noise covariance object expected per frequency '
                          'bin')

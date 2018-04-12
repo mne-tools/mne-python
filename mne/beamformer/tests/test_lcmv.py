@@ -4,17 +4,20 @@ import os.path as op
 import pytest
 from nose.tools import assert_true, assert_raises
 import numpy as np
+from scipy import linalg
+from scipy.spatial.distance import cdist
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_almost_equal)
+                           assert_almost_equal, assert_allclose)
 import warnings
 
 import mne
-from mne import compute_covariance
 from mne.datasets import testing
 from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
                             apply_lcmv_raw, tf_lcmv)
 from mne.beamformer._lcmv import _lcmv_source_power, _reg_pinv, _eig_inv
+from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.externals.six import advance_iterator
+from mne.simulation import simulate_evoked
 from mne.utils import run_tests_if_main
 
 
@@ -23,6 +26,8 @@ fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
+                    'sample-1280-1280-1280-bem-sol.fif')
 fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
                         'sample_audvis_trunc-meg-vol-7-fwd.fif')
 fname_event = op.join(data_path, 'MEG', 'sample',
@@ -97,6 +102,79 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
 
     return raw, epochs, evoked, data_cov, noise_cov, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol
+
+
+@testing.requires_testing_data
+def test_lcmv_vector():
+    """Test vector LCMV solutions."""
+    info = mne.io.read_raw_fif(fname_raw).info
+    # For speed and for rank-deficiency calculation simplicity,
+    # just use grads:
+    info = mne.pick_info(info, mne.pick_types(info, meg='grad', exclude=()))
+    info.update(bads=[], projs=[])
+    forward = mne.read_forward_solution(fname_fwd)
+    forward = mne.pick_channels_forward(forward, info['ch_names'])
+    vertices = [s['vertno'][::100] for s in forward['src']]
+    n_vertices = sum(len(v) for v in vertices)
+    assert 5 < n_vertices < 20
+    amplitude = 100e-9
+    stc = mne.SourceEstimate(amplitude * np.eye(n_vertices), vertices,
+                             0, 1. / info['sfreq'])
+    forward_sim = mne.convert_forward_solution(forward, force_fixed=True,
+                                               use_cps=True, copy=True)
+    forward_sim = mne.forward.restrict_forward_to_stc(forward_sim, stc)
+    noise_cov = mne.make_ad_hoc_cov(info)
+    noise_cov.update(data=np.diag(noise_cov['data']), diag=False)
+    evoked = simulate_evoked(forward_sim, stc, info, noise_cov, nave=1)
+    source_nn = forward_sim['source_nn']
+    source_rr = forward_sim['source_rr']
+    # Figure out our indices
+    mask = np.concatenate([np.in1d(s['vertno'], v)
+                           for s, v in zip(forward['src'], vertices)])
+    mapping = np.where(mask)[0]
+    assert_array_equal(source_rr, forward['source_rr'][mapping])
+    # Don't check NN because we didn't rotate to surf ori
+    del forward_sim
+
+    #
+    # Let's do minimum norm as a sanity check (dipole_fit is slower)
+    #
+    inv = make_inverse_operator(info, forward, noise_cov, loose=1.)
+    stc_vector_mne = apply_inverse(evoked, inv, pick_ori='vector')
+    mne_ori = stc_vector_mne.data[mapping, :, np.arange(n_vertices)]
+    mne_ori /= np.linalg.norm(mne_ori, axis=-1)[:, np.newaxis]
+    mne_angles = np.rad2deg(np.arccos(np.sum(mne_ori * source_nn, axis=-1)))
+    assert np.mean(mne_angles) < 35
+
+    #
+    # Now let's do LCMV
+    #
+    data_cov = mne.make_ad_hoc_cov(info)  # just a stub for later
+    with pytest.raises(ValueError, match='pick_ori must be one of'):
+        make_lcmv(info, forward, data_cov, 0.05, noise_cov, pick_ori='bad')
+    lcmv_ori = list()
+    for ti in range(n_vertices):
+        this_evoked = evoked.copy().crop(evoked.times[ti], evoked.times[ti])
+        data_cov['data'] = (np.outer(this_evoked.data, this_evoked.data) +
+                            noise_cov['data'])
+        vals = linalg.svdvals(data_cov['data'])
+        assert vals[0] / vals[-1] < 1e5  # not rank deficient
+        filters = make_lcmv(info, forward, data_cov, 0.05, noise_cov)
+        filters_vector = make_lcmv(info, forward, data_cov, 0.05, noise_cov,
+                                   pick_ori='vector')
+        stc = apply_lcmv(this_evoked, filters)
+        assert isinstance(stc, mne.SourceEstimate)
+        stc_vector = apply_lcmv(this_evoked, filters_vector)
+        assert isinstance(stc_vector, mne.VectorSourceEstimate)
+        assert_allclose(stc.data, stc_vector.magnitude().data)
+        # Check the orientation by pooling across some neighbors, as LCMV can
+        # have some "holes" at the points of interest
+        idx = np.where(cdist(forward['source_rr'], source_rr[[ti]]) < 0.02)[0]
+        lcmv_ori.append(np.mean(stc_vector.data[idx, :, 0], axis=0))
+        lcmv_ori[-1] /= np.linalg.norm(lcmv_ori[-1])
+
+    lcmv_angles = np.rad2deg(np.arccos(np.sum(lcmv_ori * source_nn, axis=-1)))
+    assert np.mean(lcmv_angles) < 55
 
 
 @pytest.mark.slowtest
@@ -430,8 +508,8 @@ def test_tf_lcmv():
             raw_band, epochs.events, epochs.event_id, tmin=tmin, tmax=tmax,
             baseline=None, proj=True)
         with warnings.catch_warnings(record=True):  # not enough samples
-            noise_cov = compute_covariance(epochs_band, tmin=tmin, tmax=tmin +
-                                           win_length)
+            noise_cov = mne.compute_covariance(
+                epochs_band, tmin=tmin, tmax=tmin + win_length)
         noise_cov = mne.cov.regularize(
             noise_cov, epochs_band.info, mag=reg, grad=reg, eeg=reg,
             proj=True)
@@ -443,9 +521,8 @@ def test_tf_lcmv():
         if (l_freq, h_freq) == freq_bins[0]:
             for time_window in time_windows:
                 with warnings.catch_warnings(record=True):  # bad samples
-                    data_cov = compute_covariance(epochs_band,
-                                                  tmin=time_window[0],
-                                                  tmax=time_window[1])
+                    data_cov = mne.compute_covariance(
+                        epochs_band, tmin=time_window[0], tmax=time_window[1])
                 with warnings.catch_warnings(record=True):  # bad proj
                     stc_source_power = _lcmv_source_power(
                         epochs.info, forward, noise_cov, data_cov,
@@ -497,6 +574,10 @@ def test_tf_lcmv():
     assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
                   tstep, win_lengths, freq_bins, weight_norm='nai')
 
+    # Test unsupported pick_ori (vector not supported here)
+    with pytest.raises(ValueError, match='pick_ori must be one of'):
+        tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
+                freq_bins, pick_ori='vector')
     # Test correct detection of preloaded epochs objects that do not contain
     # the underlying raw object
     epochs_preloaded = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
