@@ -671,7 +671,7 @@ class deprecated(object):
         if self.extra:
             newdoc = "%s: %s" % (newdoc, self.extra)
         if olddoc:
-            newdoc = "%s\n\n%s" % (newdoc, olddoc)
+            newdoc = "%s\n\n    %s" % (newdoc, olddoc)
         return newdoc
 
 

@@ -1557,7 +1557,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         last_samp are set accordingly.
 
         Thus function operates in-place on the instance.
-        Use :meth:`mne.Raw.copy` if operation on a copy is desired.
+        Use :meth:`mne.io.Raw.copy` if operation on a copy is desired.
 
         Parameters
         ----------
