@@ -183,8 +183,14 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
             _safe_del_key(flat, 'eog')
 
     # exclude bad channels from projection
-    picks = pick_types(my_info, meg=True, eeg=True, eog=True, ref_meg=False,
-                       exclude='bads')
+    if len(my_info['comps']) > 0:
+        # Keep reference channels if compensation channels are present
+        picks = pick_types(my_info, meg=True, eeg=True, eog=True, ref_meg=True,
+                           exclude='bads')
+    else:
+        picks = pick_types(my_info, meg=True, eeg=True, eog=True, ref_meg=False,
+                           exclude='bads')
+
     raw.filter(l_freq, h_freq, picks=picks, filter_length=filter_length,
                n_jobs=n_jobs, method=filter_method, iir_params=iir_params,
                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
