@@ -1912,14 +1912,16 @@ def _setup_annotation_colors(params):
     else:
         descriptions = list()
     color_keys = np.union1d(descriptions, params['added_label'])
-    color_cycle = cycle(np.delete(COLORS, 2))  # no red
-    for _ in np.intersect1d(list(color_keys), list(segment_colors.keys())):
-        next(color_cycle)
+    color_cycle = cycle(np.delete(COLORS, COLORS.index('r')))  # no red
+    for key, color in segment_colors.items():
+        assert color in COLORS
+        if color != 'r' and key in color_keys:
+            next(color_cycle)
     for idx, key in enumerate(color_keys):
         if key in segment_colors:
             continue
         elif key.lower().startswith('bad') or key.lower().startswith('edge'):
-            segment_colors[key] = 'red'
+            segment_colors[key] = 'r'
         else:
             segment_colors[key] = next(color_cycle)
     params['segment_colors'] = segment_colors
