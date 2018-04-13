@@ -1286,3 +1286,47 @@ def _average_quats(quats, weights=None):
     if avg_quat[-1] != 0:
         avg_quat *= np.sign(avg_quat[-1])
     return avg_quat
+
+
+def _read_fs_xfm(fname):
+    """Read a Freesurfer transform from a .xfm file."""
+    assert fname.endswith('.xfm')
+    with open(fname, 'r') as fid:
+        logger.debug('Reading FreeSurfer talairach.xfm file:\n%s' % fname)
+
+        # read lines until we get the string 'Linear_Transform', which precedes
+        # the data transformation matrix
+        comp = 'Linear_Transform'
+        for li, line in enumerate(fid):
+            if li == 0:
+                kind = line.strip()
+            if line[:len(comp)] == comp:
+                # we have the right line, so don't read any more
+                break
+        else:
+            raise ValueError('Failed to find "Linear_Transform" string in '
+                             'xfm file:\n%s' % fname)
+
+        xfm = list()
+        # read the transformation matrix (3x4)
+        for ii, line in enumerate(fid):
+            digs = [float(s) for s in line.strip('\n;').split()]
+            xfm.append(digs)
+            if ii == 2:
+                break
+        else:
+            raise ValueError('Could not find enough linear transform lines')
+    xfm.append([0., 0., 0., 1.])
+    xfm = np.array(xfm, dtype=float)
+    return xfm, kind
+
+
+def _write_fs_xfm(fname, xfm, kind):
+    """Write a Freesurfer transform to a .xfm file."""
+    with open(fname, 'wb') as fid:
+        fid.write((kind + '\n\nTtransform_Type = Linear;\n').encode('ascii'))
+        fid.write(u'Linear_Transform =\n'.encode('ascii'))
+        for li, line in enumerate(xfm[:-1]):
+            line = ' '.join(['%g' % l for l in line])
+            line += '\n' if li < 2 else ';\n'
+            fid.write(line.encode('ascii'))

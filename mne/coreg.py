@@ -9,6 +9,7 @@ from .externals.six import string_types
 import fnmatch
 from glob import glob, iglob
 import os
+import os.path as op
 import stat
 import sys
 import re
@@ -25,8 +26,10 @@ from .source_space import (add_source_space_distances, read_source_spaces,
                            write_source_spaces)
 from .surface import read_surface, write_surface, _normalize_vectors
 from .bem import read_bem_surfaces, write_bem_surfaces
-from .transforms import rotation, rotation3d, scaling, translation, Transform
-from .utils import get_config, get_subjects_dir, logger, pformat, verbose
+from .transforms import (rotation, rotation3d, scaling, translation, Transform,
+                         _read_fs_xfm, _write_fs_xfm)
+from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
+                    warn, has_nibabel)
 from .viz._3d import _fiducial_coords
 from .externals.six.moves import zip
 
@@ -34,6 +37,8 @@ from .externals.six.moves import zip
 trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
 subject_dirname = os.path.join('{subjects_dir}', '{subject}')
 bem_dirname = os.path.join(subject_dirname, 'bem')
+mri_dirname = os.path.join(subject_dirname, 'mri')
+mri_transforms_dirname = os.path.join(subject_dirname, 'mri', 'transforms')
 surf_dirname = os.path.join(subject_dirname, 'surf')
 bem_fname = os.path.join(bem_dirname, "{subject}-{name}.fif")
 head_bem_fname = pformat(bem_fname, name='head')
@@ -561,6 +566,14 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
                 dup.append(pformat(surf_fname, name=name))
     del surf_dup_name, name, path, dup, hemi
 
+    # transform files (talairach)
+    paths['transforms'] = []
+    transform_fname = os.path.join(mri_transforms_dirname, 'talairach.xfm')
+    path = transform_fname.format(subjects_dir=subjects_dir, subject=subject)
+    if os.path.exists(path):
+        paths['transforms'].append(transform_fname)
+    del transform_fname, path
+
     # check presence of required files
     for ftype in ['surf', 'duplicate']:
         for fname in paths[ftype]:
@@ -579,6 +592,11 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
             fname = "{subject}-%s" % fname[len(prefix):]
         path = os.path.join(bem_dirname, fname)
         src.append(path)
+
+    # find MRIs
+    mri_dir = mri_dirname.format(subjects_dir=subjects_dir, subject=subject)
+    fnames = fnmatch.filter(os.listdir(mri_dir), '*.mgz')
+    paths['mri'] = [os.path.join(mri_dir, f) for f in fnames]
 
     return paths
 
@@ -849,13 +867,8 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     """
-    # read parameters from cfg
-    if scale is None or subject_from is None:
-        cfg = read_mri_cfg(subject_to, subjects_dir)
-        if subject_from is None:
-            subject_from = cfg['subject_from']
-        if scale is None:
-            scale = cfg['scale']
+    scale, subject_from = _get_sf(
+        subject_to, subject_from, scale, subjects_dir)
 
     # find labels
     paths = _find_label_paths(subject_from, pattern, subjects_dir)
@@ -932,11 +945,10 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
     dest = subject_dirname.format(subject=subject_to,
                                   subjects_dir=subjects_dir)
     if os.path.exists(dest):
-        if overwrite:
-            shutil.rmtree(dest)
-        else:
+        if not overwrite:
             raise IOError("Subject directory for %s already exists: %r"
                           % (subject_to, dest))
+        shutil.rmtree(dest)
 
     logger.debug('create empty directory structure')
     for dirname in paths['dirs']:
@@ -969,6 +981,20 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
             pt['r'] = pt['r'] * scale
         dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
         write_fiducials(dest, pts, cframe, verbose=False)
+
+    logger.debug('MRIs [nibabel]')
+    os.mkdir(mri_dirname.format(subjects_dir=subjects_dir,
+                                subject=subject_to))
+    for fname in paths['mri']:
+        mri_name = os.path.basename(fname)
+        _scale_mri(subject_to, mri_name, subject_from, scale, subjects_dir)
+
+    logger.debug('Transforms')
+    os.mkdir(mri_transforms_dirname.format(subjects_dir=subjects_dir,
+                                           subject=subject_to))
+    for fname in paths['transforms']:
+        xfm_name = os.path.basename(fname)
+        _scale_xfm(subject_to, xfm_name, subject_from, scale, subjects_dir)
 
     logger.debug('duplicate files')
     for fname in paths['duplicate']:
@@ -1091,3 +1117,66 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         add_source_space_distances(sss, dist_limit, n_jobs)
 
     write_source_spaces(dst, sss)
+
+
+def _scale_mri(subject_to, mri_fname, subject_from, scale, subjects_dir):
+    """Scale an MRI by setting its affine."""
+    scale, subject_from = _get_sf(
+        subject_to, subject_from, scale, subjects_dir)
+
+    if not has_nibabel():
+        warn('Skipping MRI scaling for %s, please install nibabel')
+        return
+
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+
+    import nibabel
+    fname_from = op.join(mri_dirname.format(
+        subjects_dir=subjects_dir, subject=subject_from), mri_fname)
+    fname_to = op.join(mri_dirname.format(
+        subjects_dir=subjects_dir, subject=subject_to), mri_fname)
+    img = nibabel.load(fname_from)
+    zooms = scale * np.array(img.header.get_zooms())
+    img.header.set_zooms(zooms)
+    nibabel.save(img, fname_to)
+    # XXX Pending: https://github.com/nipy/nibabel/issues/619
+    # affine = img.header.get_affine()
+    # img2 = nibabel.load(fname_to)
+    # np.testing.assert_allclose(img2.header.get_affine(), affine, atol=1e-10)
+    # np.testing.assert_allclose(img2.header.get_zooms(), zooms)
+
+
+def _scale_xfm(subject_to, xfm_fname, subject_from, scale, subjects_dir):
+    """Scale a transform."""
+    scale, subject_from = _get_sf(
+        subject_to, subject_from, scale, subjects_dir)
+
+    if not has_nibabel():
+        warn('Skipping MRI scaling for %s, please install nibabel')
+        return
+
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    fname_from = os.path.join(
+        mri_transforms_dirname.format(
+            subjects_dir=subjects_dir, subject=subject_from), xfm_fname)
+    fname_to = op.join(
+        mri_transforms_dirname.format(
+            subjects_dir=subjects_dir, subject=subject_to), xfm_fname)
+    assert op.isfile(fname_from)
+    assert op.isdir(op.dirname(fname_to))
+    xfm, kind = _read_fs_xfm(fname_from)
+    assert len(scale) == 3
+    xfm = np.dot(xfm, scaling(*(1. / scale)))
+    _write_fs_xfm(fname_to, xfm, kind)
+
+
+def _get_sf(subject_to, subject_from, scale, subjects_dir):
+    """Get the scale and subject_from."""
+    # read parameters from cfg
+    if scale is None or subject_from is None:
+        cfg = read_mri_cfg(subject_to, subjects_dir)
+        if subject_from is None:
+            subject_from = cfg['subject_from']
+        if scale is None:
+            scale = cfg['scale']
+    return scale, subject_from

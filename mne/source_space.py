@@ -34,7 +34,7 @@ from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
                          _coord_frame_name, Transform, _str_to_frame,
-                         _ensure_trans)
+                         _ensure_trans, _read_fs_xfm)
 from .externals.six import string_types
 
 
@@ -1237,39 +1237,15 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
         raise ValueError('mode must be "nibabel" or "freesurfer"')
     fname = op.join(subjects_dir, subject, 'mri', 'transforms',
                     'talairach.xfm')
-    # read the RAS to MNI transform from talairach.xfm
-    with open(fname, 'r') as fid:
-        logger.debug('Reading FreeSurfer talairach.xfm file:\n%s' % fname)
-
-        # read lines until we get the string 'Linear_Transform', which precedes
-        # the data transformation matrix
-        got_it = False
-        comp = 'Linear_Transform'
-        for line in fid:
-            if line[:len(comp)] == comp:
-                # we have the right line, so don't read any more
-                got_it = True
-                break
-
-        if got_it:
-            xfm = list()
-            # read the transformation matrix (3x4)
-            for ii, line in enumerate(fid):
-                digs = [float(s) for s in line.strip('\n;').split()]
-                xfm.append(digs)
-                if ii == 2:
-                    break
-            xfm.append([0., 0., 0., 1.])
-            xfm = np.array(xfm, dtype=float)
-        else:
-            raise ValueError('failed to find \'Linear_Transform\' string in '
-                             'xfm file:\n%s' % fname)
 
     # Setup the RAS to MNI transform
-    ras_mni_t = {'from': FIFF.FIFFV_MNE_COORD_RAS,
-                 'to': FIFF.FIFFV_MNE_COORD_MNI_TAL, 'trans': xfm}
+    ras_mni_t = Transform('ras', 'mni_tal', _read_fs_xfm(fname)[0])
 
-    # now get Norig and Torig
+    # We want to get from Freesurfer surface RAS ('mri') to MNI ('mni_tal').
+    # This file only gives us RAS (non-zero origin) ('ras') to MNI ('mni_tal').
+    # Se we need to get the ras->mri transform from the MRI headers.
+
+    # To do this, we get Norig and Torig
     # (i.e. vox_ras_t and vox_mri_t, respectively)
     path = op.join(subjects_dir, subject, 'mri', 'orig.mgz')
     if not op.isfile(path):
@@ -1299,7 +1275,6 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
                            [0, 0, ds[2], -ns[2]],
                            [0, -ds[1], 0, ns[1]],
                            [0, 0, 0, 1]], dtype=float)
-        nt_orig = [n_orig, t_orig]
     else:
         nt_orig = list()
         for conv in ['--vox2ras', '--vox2ras-tkr']:
@@ -1308,21 +1283,16 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
             if not stdout.size == 16:
                 raise ValueError('Could not parse Freesurfer mri_info output')
             nt_orig.append(stdout.reshape(4, 4))
-    # extract the MRI_VOXEL to RAS transform
-    n_orig = nt_orig[0]
-    vox_ras_t = {'from': FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
-                 'to': FIFF.FIFFV_MNE_COORD_RAS,
-                 'trans': n_orig}
+        n_orig, t_orig = nt_orig
+    # extract the MRI_VOXEL to RAS (non-zero origin) transform
+    vox_ras_t = Transform('mri_voxel', 'ras', n_orig)
 
     # extract the MRI_VOXEL to MRI transform
-    t_orig = nt_orig[1]
     vox_mri_t = Transform('mri_voxel', 'mri', t_orig)
 
-    # invert MRI_VOXEL to MRI to get the MRI to MRI_VOXEL transform
-    mri_vox_t = invert_transform(vox_mri_t)
-
-    # construct an MRI to RAS transform
-    mri_ras_t = combine_transforms(mri_vox_t, vox_ras_t, 'mri', 'ras')
+    # construct the MRI to RAS (non-zero origin) transform
+    mri_ras_t = combine_transforms(
+        invert_transform(vox_mri_t), vox_ras_t, 'mri', 'ras')
 
     # construct the MRI to MNI transform
     mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t, 'mri', 'mni_tal')

@@ -1,11 +1,13 @@
+from functools import reduce
 from glob import glob
 import os
 import os.path as op
-from shutil import copyfile
+from shutil import copyfile, copytree
 
-from nose.tools import assert_raises
+import pytest
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import (assert_array_almost_equal, assert_allclose,
+                           assert_array_equal)
 
 import mne
 from mne.datasets import testing
@@ -15,9 +17,8 @@ from mne.coreg import (fit_matched_points, create_default_subject, scale_mri,
                        _is_mri_subject, scale_labels, scale_source_space,
                        coregister_fiducials)
 from mne.io.constants import FIFF
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import _TempDir, run_tests_if_main, requires_nibabel
 from mne.source_space import write_source_spaces
-from functools import reduce
 
 
 def test_coregister_fiducials():
@@ -117,6 +118,76 @@ def test_scale_mri():
     assert ssrc[0]['dist'] is not None
 
 
+@testing.requires_testing_data
+@requires_nibabel()
+def test_scale_mri_xfm():
+    """Test scale_mri transforms and MRI scaling."""
+    # scale fsaverage
+    tempdir = _TempDir()
+    os.environ['_MNE_FEW_SURFACES'] = 'true'
+    fake_home = testing.data_path()
+    scale = np.array([1, .2, .8])
+    # add fsaverage
+    create_default_subject(subjects_dir=tempdir, fs_home=fake_home,
+                           verbose=True)
+    # add sample (with few files)
+    sample_dir = op.join(tempdir, 'sample')
+    os.mkdir(sample_dir)
+    os.mkdir(op.join(sample_dir, 'bem'))
+    for dirname in ('mri', 'surf'):
+        copytree(op.join(fake_home, 'subjects', 'sample', dirname),
+                 op.join(sample_dir, dirname))
+    subject_to = 'flachkopf'
+    spacing = 'oct2'
+    for subject_from in ('fsaverage', 'sample'):
+        src_from_fname = op.join(tempdir, subject_from, 'bem',
+                                 '%s-%s-src.fif' % (subject_from, spacing))
+        src_from = mne.setup_source_space(
+            subject_from, spacing, subjects_dir=tempdir, add_dist=False)
+        write_source_spaces(src_from_fname, src_from)
+        print(src_from_fname)
+        vertices_from = np.concatenate([s['vertno'] for s in src_from])
+        assert len(vertices_from) == 36
+        hemis = ([0] * len(src_from[0]['vertno']) +
+                 [1] * len(src_from[0]['vertno']))
+        mni_from = mne.vertex_to_mni(vertices_from, hemis, subject_from,
+                                     subjects_dir=tempdir)
+        if subject_from == 'fsaverage':  # identity transform
+            source_rr = np.concatenate([s['rr'][s['vertno']]
+                                        for s in src_from]) * 1e3
+            assert_allclose(mni_from, source_rr)
+        if subject_from == 'fsaverage':
+            overwrite = skip_fiducials = False
+        else:
+            with pytest.raises(IOError, match='No fiducials file'):
+                scale_mri(subject_from, subject_to,  scale,
+                          subjects_dir=tempdir)
+            skip_fiducials = True
+            with pytest.raises(IOError, match='already exists'):
+                scale_mri(subject_from, subject_to,  scale,
+                          subjects_dir=tempdir, skip_fiducials=skip_fiducials)
+            overwrite = True
+        scale_mri(subject_from, subject_to, scale, subjects_dir=tempdir,
+                  verbose='debug', overwrite=overwrite,
+                  skip_fiducials=skip_fiducials)
+        if subject_from == 'fsaverage':
+            assert _is_mri_subject(subject_to, tempdir), "Scaling failed"
+        src_to_fname = op.join(tempdir, subject_to, 'bem',
+                               '%s-%s-src.fif' % (subject_to, spacing))
+        assert op.exists(src_to_fname), "Source space was not scaled"
+        # Check MRI scaling
+        fname_mri = op.join(tempdir, subject_to, 'mri', 'T1.mgz')
+        assert op.exists(fname_mri), "MRI was not scaled"
+        # Check MNI transform
+        src = mne.read_source_spaces(src_to_fname)
+        vertices = np.concatenate([s['vertno'] for s in src])
+        assert_array_equal(vertices, vertices_from)
+        mni = mne.vertex_to_mni(vertices, hemis, subject_to,
+                                subjects_dir=tempdir)
+        assert_allclose(mni, mni_from)
+    del os.environ['_MNE_FEW_SURFACES']
+
+
 def test_fit_matched_points():
     """Test fit_matched_points: fitting two matching sets of points"""
     tgt_pts = np.random.RandomState(42).uniform(size=(6, 3))
@@ -149,7 +220,7 @@ def test_fit_matched_points():
 
     # test exceeding tolerance
     tgt_pts[0, :] += 20
-    assert_raises(RuntimeError, fit_matched_points, tgt_pts, src_pts, tol=10)
+    pytest.raises(RuntimeError, fit_matched_points, tgt_pts, src_pts, tol=10)
 
 
 run_tests_if_main()

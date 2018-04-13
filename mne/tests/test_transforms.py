@@ -2,8 +2,8 @@ import os
 import os.path as op
 import warnings
 
+import pytest
 import numpy as np
-from nose.tools import assert_true, assert_raises
 from numpy.testing import assert_array_equal, assert_equal, assert_allclose
 
 from mne.datasets import testing
@@ -19,7 +19,8 @@ from mne.transforms import (invert_transform, _get_trans,
                             _find_vector_rotation, _sph_to_cart, _cart_to_sph,
                             _topo_to_sph, _average_quats,
                             _SphericalSurfaceWarp as SphericalSurfaceWarp,
-                            rotation3d_align_z_axis)
+                            rotation3d_align_z_axis, _read_fs_xfm,
+                            _write_fs_xfm)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -48,9 +49,9 @@ def test_tps():
     destination[:, 0] += 1
     # fit with 100 points
     warp = SphericalSurfaceWarp()
-    assert_true('no ' in repr(warp))
+    assert 'no ' in repr(warp)
     warp.fit(source[::3], destination[::2])
-    assert_true('oct5' in repr(warp))
+    assert 'oct5' in repr(warp)
     destination_est = warp.transform(source)
     assert_allclose(destination_est, destination, atol=1e-3)
 
@@ -69,18 +70,18 @@ def test_io_trans():
     """Test reading and writing of trans files."""
     tempdir = _TempDir()
     os.mkdir(op.join(tempdir, 'sample'))
-    assert_raises(RuntimeError, _find_trans, 'sample', subjects_dir=tempdir)
+    pytest.raises(RuntimeError, _find_trans, 'sample', subjects_dir=tempdir)
     trans0 = read_trans(fname)
     fname1 = op.join(tempdir, 'sample', 'test-trans.fif')
     trans0.save(fname1)
-    assert_true(fname1 == _find_trans('sample', subjects_dir=tempdir))
+    assert fname1 == _find_trans('sample', subjects_dir=tempdir)
     trans1 = read_trans(fname1)
 
     # check all properties
     assert trans0 == trans1
 
     # check reading non -trans.fif files
-    assert_raises(IOError, read_trans, fname_eve)
+    pytest.raises(IOError, read_trans, fname_eve)
 
     # check warning on bad filenames
     with warnings.catch_warnings(record=True) as w:
@@ -263,11 +264,11 @@ def test_combine():
     trans = read_trans(fname)
     inv = invert_transform(trans)
     combine_transforms(trans, inv, trans['from'], trans['from'])
-    assert_raises(RuntimeError, combine_transforms, trans, inv,
+    pytest.raises(RuntimeError, combine_transforms, trans, inv,
                   trans['to'], trans['from'])
-    assert_raises(RuntimeError, combine_transforms, trans, inv,
+    pytest.raises(RuntimeError, combine_transforms, trans, inv,
                   trans['from'], trans['to'])
-    assert_raises(RuntimeError, combine_transforms, trans, trans,
+    pytest.raises(RuntimeError, combine_transforms, trans, trans,
                   trans['from'], trans['to'])
 
 
@@ -346,6 +347,38 @@ def test_average_quats():
     assert_allclose(rot_0, rot_1, atol=1e-7)
     for lim, ex in enumerate(expected):
         assert_allclose(_average_quats(quats[:lim + 1]), ex, atol=1e-7)
+
+
+@testing.requires_testing_data
+def test_fs_xfm():
+    """Test reading and writing of Freesurfer transforms."""
+    for subject in ('fsaverage', 'sample'):
+        fname = op.join(data_path, 'subjects', subject, 'mri', 'transforms',
+                        'talairach.xfm')
+        xfm, kind = _read_fs_xfm(fname)
+        if subject == 'fsaverage':
+            assert_allclose(xfm, np.eye(4), atol=1e-5)  # fsaverage is in MNI
+        assert kind == 'MNI Transform File'
+        tempdir = _TempDir()
+        fname_out = op.join(tempdir, 'out.xfm')
+        _write_fs_xfm(fname_out, xfm, kind)
+        xfm_read, kind_read = _read_fs_xfm(fname_out)
+        assert kind_read == kind
+        assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
+        # Some wacky one
+        xfm[:3] = np.random.RandomState(0).randn(3, 4)
+        _write_fs_xfm(fname_out, xfm, 'foo')
+        xfm_read, kind_read = _read_fs_xfm(fname_out)
+        assert kind_read == 'foo'
+        assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
+        # degenerate conditions
+        with open(fname_out, 'w') as fid:
+            fid.write('foo')
+        with pytest.raises(ValueError, match='Failed to find'):
+            _read_fs_xfm(fname_out)
+        _write_fs_xfm(fname_out, xfm[:2], 'foo')
+        with pytest.raises(ValueError, match='Could not find'):
+            _read_fs_xfm(fname_out)
 
 
 run_tests_if_main()
