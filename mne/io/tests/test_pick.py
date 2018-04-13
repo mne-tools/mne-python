@@ -77,11 +77,29 @@ def test_pick_refs():
                                                    picks_ref_grad])))
         assert_array_equal(picks_meg_ref, np.sort(np.concatenate(
             [picks_grad, picks_mag, picks_ref_grad, picks_ref_mag])))
+
         for pick in (picks_meg_ref, picks_meg, picks_ref,
                      picks_grad, picks_ref_grad, picks_meg_ref_grad,
                      picks_mag, picks_ref_mag, picks_meg_ref_mag):
             if len(pick) > 0:
-                pick_info(info, pick)
+                pick_info(info, pick, check_comps=False)
+
+    # test CTF expected failures directly
+    info = raw_ctf.info
+    info['bads'] = []
+    picks_meg_ref = pick_types(info, meg=True, ref_meg=True)
+    picks_meg = pick_types(info, meg=True, ref_meg=False)
+    picks_ref = pick_types(info, meg=False, ref_meg=True)
+    picks_mag = pick_types(info, meg='mag', ref_meg=False)
+    picks_ref_mag = pick_types(info, meg=False, ref_meg='mag')
+    picks_meg_ref_mag = pick_types(info, meg='mag', ref_meg='mag')
+    for pick in (picks_meg_ref, picks_ref, picks_ref_mag, picks_meg_ref_mag):
+        if len(pick) > 0:
+            pick_info(info, pick, check_comps=True)
+
+    for pick in (picks_meg, picks_mag):
+        if len(pick) > 0:
+            assert_raises(RuntimeError, pick_info, info, pick, check_comps=True)
 
 
 def test_pick_channels_regexp():

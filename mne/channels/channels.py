@@ -830,7 +830,7 @@ class UpdateChannelsMixin(object):
                                 % (len(self.info['comps']),))
                     self.info['comps'] = []
 
-        pick_info(self.info, idx, copy=False)
+        pick_info(self.info, idx, copy=False, check_comps=check_comps)
 
         if getattr(self, '_projector', None) is not None:
             self._projector = self._projector[idx][:, idx]

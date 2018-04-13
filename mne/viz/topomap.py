@@ -36,6 +36,8 @@ def _prepare_topo_plot(inst, ch_type, layout):
     """Prepare topo plot."""
     info = copy.deepcopy(inst if isinstance(inst, Info) else inst.info)
 
+    print("post info HAS comps - %d" % len(info['comps']))
+
     if layout is None and ch_type is not 'eeg':
         from ..channels import find_layout
         layout = find_layout(info)
@@ -46,6 +48,9 @@ def _prepare_topo_plot(inst, ch_type, layout):
     for ii, this_ch in enumerate(info['chs']):
         this_ch['ch_name'] = clean_ch_names[ii]
     info['bads'] = _clean_names(info['bads'])
+    for comp in info['comps']:
+        comp['data']['col_names'] = _clean_names(comp['data']['col_names'])
+
     info._update_redundant()
     info._check_consistency()
 
