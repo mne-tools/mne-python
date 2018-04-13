@@ -126,8 +126,9 @@ def test_compute_proj_parallel():
     assert_array_almost_equal(projs, projs_2, 10)
 
 
+@testing.requires_testing_data
 def test_compute_proj_ctf():
-    """Trivial Test to show that projector code completes on CTF data"""
+    """Test to show that projector code completes on CTF data"""
     raw = read_raw_ctf(ctf_fname)
     raw.load_data()
 
@@ -140,7 +141,7 @@ def test_compute_proj_ctf():
                                          l_freq=None, h_freq=None,
                                          reject=None, tmax=dur_use,
                                          filter_length=6000)
-        assert_true(len(projs) == (5 + n_projs_init))
+        assert len(projs) == (5 + n_projs_init)
 
         projs, events = compute_proj_ecg(raw, n_mag=1, n_grad=1, n_eeg=2,
                                          average=average,
@@ -149,7 +150,7 @@ def test_compute_proj_ctf():
                                          l_freq=None, h_freq=None,
                                          reject=None, tmax=dur_use,
                                          filter_length=6000)
-        assert_true(len(projs) == (4 + n_projs_init))
+        assert len(projs) == (4 + n_projs_init)
 
 
 run_tests_if_main()
