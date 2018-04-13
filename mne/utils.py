@@ -1686,15 +1686,22 @@ class ProgressBar(object):
         value, defaults to 0.
     mesg : str
         Message to include at end of progress bar.
-    max_chars : int
-        Number of characters to use for progress bar (be sure to save some room
-        for the message and % complete as well).
+    max_chars : int | str
+        Number of characters to use for progress bar itself.
+        This does not include characters used for the message or percent
+        complete. Can be "auto" (default) to try to set a sane value based
+        on the terminal width.
     progress_character : char
         Character in the progress bar that indicates the portion completed.
     spinner : bool
         Show a spinner.  Useful for long-running processes that may not
         increment the progress bar very often.  This provides the user with
         feedback that the progress has not stalled.
+    max_total_width : int | str
+        Maximum total message width. Can use "auto" (default) to try to set
+        a sane value based on the current terminal width.
+    verbose_bool : bool
+        If True, show progress.
 
     Example
     -------
@@ -1712,11 +1719,11 @@ class ProgressBar(object):
     """
 
     spinner_symbols = ['|', '/', '-', '\\']
-    template = '\r[{0}{1}] {2:.05f} {3} {4}   '
+    template = '\r[{0}{1}] {2:.02f}% {4} {3}   '
 
-    def __init__(self, max_value, initial_value=0, mesg='', max_chars=40,
+    def __init__(self, max_value, initial_value=0, mesg='', max_chars='auto',
                  progress_character='.', spinner=False,
-                 verbose_bool=True):  # noqa: D102
+                 max_total_width='auto', verbose_bool=True):  # noqa: D102
         self.cur_value = initial_value
         if isinstance(max_value, Iterable):
             self.max_value = len(max_value)
@@ -1725,13 +1732,18 @@ class ProgressBar(object):
             self.max_value = float(max_value)
             self.iterable = None
         self.mesg = mesg
-        self.max_chars = max_chars
         self.progress_character = progress_character
         self.spinner = spinner
         self.spinner_index = 0
         self.n_spinner = len(self.spinner_symbols)
         self._do_print = verbose_bool
         self.cur_time = time.time()
+        if max_total_width == 'auto':
+            max_total_width = _get_terminal_width()
+        self.max_total_width = int(max_total_width)
+        if max_chars == 'auto':
+            max_chars = min(max(max_total_width - 40, 10), 60)
+        self.max_chars = int(max_chars)
         self.cur_rate = 0
 
     def update(self, cur_value, mesg=None):
@@ -1751,7 +1763,8 @@ class ProgressBar(object):
         cur_time = time.time()
         cur_rate = ((cur_value - self.cur_value) /
                     max(float(cur_time - self.cur_time), 1e-6))
-        # cur_rate += 0.9 * self.cur_rate
+        # Smooth the estimate a bit
+        cur_rate = 0.1 * cur_rate + 0.9 * self.cur_rate
         # Ensure floating-point division so we can get fractions of a percent
         # for the progressbar.
         self.cur_time = cur_time
@@ -1764,9 +1777,8 @@ class ProgressBar(object):
         # Update the message
         if mesg is not None:
             if mesg == 'file_sizes':
-                mesg = '(%s / %s, %s/s)' % (
+                mesg = '(%s, %s/s)' % (
                     sizeof_fmt(self.cur_value).rjust(8),
-                    sizeof_fmt(self.max_value).rjust(8),
                     sizeof_fmt(cur_rate).rjust(8))
             self.mesg = mesg
 
@@ -1778,6 +1790,7 @@ class ProgressBar(object):
                                    progress * 100,
                                    self.spinner_symbols[self.spinner_index],
                                    self.mesg)
+        bar = bar[:self.max_total_width]
         # Force a flush because sometimes when using bash scripts and pipes,
         # the output is not printed until after the program exits.
         if self._do_print:
@@ -1812,6 +1825,14 @@ class ProgressBar(object):
             self.update_with_increment_value(1)
 
 
+def _get_terminal_width():
+    """Get the terminal width."""
+    if sys.version[0] == '2':
+        return 80
+    else:
+        return shutil.get_terminal_size((80, 20)).columns
+
+
 def _get_ftp(url, temp_file_name, initial_size, file_size, timeout,
              verbose_bool):
     """Safely (resume a) download to a file from FTP."""
@@ -1836,7 +1857,7 @@ def _get_ftp(url, temp_file_name, initial_size, file_size, timeout,
     down_cmd = "RETR " + file_name
     assert file_size == data.size(file_name)
     progress = ProgressBar(file_size, initial_value=initial_size,
-                           max_chars=40, spinner=True, mesg='file_sizes',
+                           spinner=True, mesg='file_sizes',
                            verbose_bool=verbose_bool)
 
     # Callback lambda function that will be passed the downloaded data
@@ -1882,7 +1903,7 @@ def _get_http(url, temp_file_name, initial_size, file_size, timeout,
                            % (total_size, file_size))
     mode = 'ab' if initial_size > 0 else 'wb'
     progress = ProgressBar(total_size, initial_value=initial_size,
-                           max_chars=40, spinner=True, mesg='file_sizes',
+                           spinner=True, mesg='file_sizes',
                            verbose_bool=verbose_bool)
     chunk_size = 8192  # 2 ** 13
     with open(temp_file_name, mode) as local_file:
