@@ -17,7 +17,7 @@ from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
 from ..utils import _check_preload
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
-from ..io.meas_info import anonymize_info, Info
+from ..io.meas_info import anonymize_info, Info, _bad_chans_comp
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _PICK_TYPES_KEYS,
                        channel_indices_by_type, pick_channels)
@@ -793,7 +793,7 @@ class UpdateChannelsMixin(object):
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
         return self._pick_drop_channels(idx)
 
-    def _pick_drop_channels(self, idx, check_comps=True):
+    def _pick_drop_channels(self, idx):
         # avoid circular imports
         from ..time_frequency import AverageTFR, EpochsTFR
 
@@ -805,19 +805,10 @@ class UpdateChannelsMixin(object):
         if hasattr(self, '_cals'):
             self._cals = self._cals[idx]
 
-        if check_comps and len(self.info['comps']) > 0:
+        if len(self.info['comps']) > 0:
+            _, comps_missing = _bad_chans_comp(self.info, self.info['ch_names'])
             current_comp = get_current_comp(self.info)
-            # Check and possibly remove comps
-            comp_names = sorted(set(
-                comp_name for comp in self.info['comps']
-                for comp_name in comp['data']['col_names']))
-            comp_picks = pick_channels(self.ch_names, comp_names)
-            assert len(comp_picks) == len(comp_names)
-            missing = [comp_names[ii]
-                       for ii in np.where(~np.in1d(comp_picks, idx))[0]]
-            if len(missing) > 0:
-                names = ', '.join(missing)
-                names = names[:20] + '...' if len(names) > 20 else names
+            if len(comps_missing) > 0:
                 if current_comp != 0:
                     raise RuntimeError(
                         'Compensation grade %d has been applied, but '
@@ -830,7 +821,7 @@ class UpdateChannelsMixin(object):
                                 % (len(self.info['comps']),))
                     self.info['comps'] = []
 
-        pick_info(self.info, idx, copy=False, check_comps=check_comps)
+        pick_info(self.info, idx, copy=False)
 
         if getattr(self, '_projector', None) is not None:
             self._projector = self._projector[idx][:, idx]

@@ -441,7 +441,7 @@ class Info(dict):
         st %= non_empty
         return st
 
-    def _check_consistency(self, check_comps=True):
+    def _check_consistency(self):
         """Do some self-consistency checks and datatype tweaks."""
         missing = [bad for bad in self['bads'] if bad not in self['ch_names']]
         if len(missing) > 0:
@@ -482,11 +482,10 @@ class Info(dict):
                     self['chs'][ch_idx]['ch_name'] = ch_name
 
         # make sure required the compensation channels are present
-        if check_comps:
-            comps_bad, comps_missing = _bad_chans_comp(self, self['ch_names'])
-            if comps_bad:
-                msg = 'Compensation channel(s) %s do not exist in info'
-                raise RuntimeError(msg % (comps_missing,))
+        comps_bad, comps_missing = _bad_chans_comp(self, self['ch_names'])
+        if comps_bad:
+            msg = 'Compensation channel(s) %s do not exist in info'
+            raise RuntimeError(msg % (comps_missing,))
 
         if 'filename' in self:
             warn('the "filename" key is misleading\

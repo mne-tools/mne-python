@@ -1456,8 +1456,11 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     else:
         data = evoked.data
 
-    # Skip comps check here by using private function
-    evoked = evoked.copy()._pick_drop_channels(picks, check_comps=False)
+    # because we are only plotting we can safely remove compensation matrices
+    # regardless of compensation status.
+    evoked = evoked.copy()
+    evoked.info['comps'] = []
+    evoked = evoked_pick_drop_channels(picks)
 
     interactive = isinstance(times, string_types) and times == 'interactive'
     if axes is not None:

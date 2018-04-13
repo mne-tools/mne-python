@@ -369,7 +369,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     return sel
 
 
-def pick_info(info, sel=(), copy=True, check_comps=True):
+def pick_info(info, sel=(), copy=True):
     """Restrict an info structure to a selection of channels.
 
     Parameters
@@ -389,7 +389,7 @@ def pick_info(info, sel=(), copy=True, check_comps=True):
     # avoid circular imports
     from .meas_info import _bad_chans_comp
 
-    info._check_consistency(check_comps=check_comps)
+    info._check_consistency()
     info = info.copy() if copy else info
     if sel is None:
         return info
@@ -397,12 +397,11 @@ def pick_info(info, sel=(), copy=True, check_comps=True):
         raise ValueError('No channels match the selection.')
 
     # make sure required the compensation channels are present
-    if check_comps:
-        ch_names = [info['ch_names'][idx] for idx in sel]
-        comps_bad, comps_missing = _bad_chans_comp(info, ch_names)
-        if comps_bad:
-            raise RuntimeError('Compensation channel(s) %s do not exist in info'
-                                % (comps_missing,))
+    ch_names = [info['ch_names'][idx] for idx in sel]
+    comps_bad, comps_missing = _bad_chans_comp(info, ch_names)
+    if comps_bad:
+        raise RuntimeError('Compensation channel(s) %s do not exist in info'
+                            % (comps_missing,))
 
     info['chs'] = [info['chs'][k] for k in sel]
     info._update_redundant()
@@ -420,7 +419,7 @@ def pick_info(info, sel=(), copy=True, check_comps=True):
             c['data']['row_names'] = row_names
             c['data']['data'] = c['data']['data'][row_idx]
         info['comps'] = comps
-    info._check_consistency(check_comps=check_comps)
+    info._check_consistency()
     return info
 
 
