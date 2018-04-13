@@ -187,7 +187,7 @@ API
 
 - Channels with unknown locations are now assigned position ``[np.nan, np.nan, np.nan]`` instead of ``[0., 0., 0.]``, by `Eric Larson`_
 
-- Unknown measurement dates are now stored as ``info['meas_date'] = None`` rather than ``[0, 0]``. ``None`` is also now used when anonymizing data and when setting the machine ID for writing files, by `Mainak Jas`_ and `Eric Larson`_
+- Unknown measurement dates are now stored as ``info['meas_date'] = None`` rather than using the current date. ``None`` is also now used when anonymizing data and when determining the machine ID for writing files, by `Mainak Jas`_ and `Eric Larson`_
 
 - :meth:`mne.Evoked.plot` will now append the number of epochs averaged for the evoked data in the first plot title, by `Eric Larson`_
 
