@@ -14,7 +14,7 @@ import re
 import numpy as np
 from scipy import linalg
 
-from .pick import channel_type, pick_channels
+from .pick import channel_type
 from .constants import FIFF
 from .open import fiff_open
 from .tree import dir_tree_find
