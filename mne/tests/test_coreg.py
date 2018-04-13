@@ -126,7 +126,6 @@ def test_scale_mri_xfm():
     tempdir = _TempDir()
     os.environ['_MNE_FEW_SURFACES'] = 'true'
     fake_home = testing.data_path()
-    scale = np.array([1, .2, .8])
     # add fsaverage
     create_default_subject(subjects_dir=tempdir, fs_home=fake_home,
                            verbose=True)
@@ -140,6 +139,10 @@ def test_scale_mri_xfm():
     subject_to = 'flachkopf'
     spacing = 'oct2'
     for subject_from in ('fsaverage', 'sample'):
+        if subject_from == 'fsaverage':
+            scale = 1.  # single dim
+        else:
+            scale = [0.9, 2, .8]  # separate
         src_from_fname = op.join(tempdir, subject_from, 'bem',
                                  '%s-%s-src.fif' % (subject_from, spacing))
         src_from = mne.setup_source_space(
@@ -184,7 +187,7 @@ def test_scale_mri_xfm():
         assert_array_equal(vertices, vertices_from)
         mni = mne.vertex_to_mni(vertices, hemis, subject_to,
                                 subjects_dir=tempdir)
-        assert_allclose(mni, mni_from)
+        assert_allclose(mni, mni_from, atol=1e-3)  # 0.001 mm
     del os.environ['_MNE_FEW_SURFACES']
 
 

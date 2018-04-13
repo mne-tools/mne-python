@@ -1327,6 +1327,6 @@ def _write_fs_xfm(fname, xfm, kind):
         fid.write((kind + '\n\nTtransform_Type = Linear;\n').encode('ascii'))
         fid.write(u'Linear_Transform =\n'.encode('ascii'))
         for li, line in enumerate(xfm[:-1]):
-            line = ' '.join(['%g' % l for l in line])
+            line = ' '.join(['%0.6f' % l for l in line])
             line += '\n' if li < 2 else ';\n'
             fid.write(line.encode('ascii'))

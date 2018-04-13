@@ -1266,15 +1266,8 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
         use_nibabel = False
     if use_nibabel:
         hdr = _get_mri_header(path)
-        # read the MRI_VOXEL to RAS transform
         n_orig = hdr.get_vox2ras()
-        # read the MRI_VOXEL to MRI transform
-        ds = np.array(hdr.get_zooms())
-        ns = (np.array(hdr.get_data_shape()[:3]) * ds) / 2.0
-        t_orig = np.array([[-ds[0], 0, 0, ns[0]],
-                           [0, 0, ds[2], -ns[2]],
-                           [0, -ds[1], 0, ns[1]],
-                           [0, 0, 0, 1]], dtype=float)
+        t_orig = hdr.get_vox2ras_tkr()
     else:
         nt_orig = list()
         for conv in ['--vox2ras', '--vox2ras-tkr']:
