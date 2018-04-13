@@ -187,6 +187,8 @@ API
 
 - Channels with unknown locations are now assigned position ``[np.nan, np.nan, np.nan]`` instead of ``[0., 0., 0.]``, by `Eric Larson`_
 
+- Unknown measurement dates are now stored as ``info['meas_date'] = None`` rather than using the current date. ``None`` is also now used when anonymizing data and when determining the machine ID for writing files, by `Mainak Jas`_ and `Eric Larson`_
+
 - :meth:`mne.Evoked.plot` will now append the number of epochs averaged for the evoked data in the first plot title, by `Eric Larson`_
 
 - Changed the line width in :func:`mne.viz.plot_bem` from 2.0 to 1.0 for better visibility of underlying structures, by `Eric Larson`_
@@ -201,7 +203,7 @@ API
 
 - Added ``clean_names=False`` parameter to :func:`mne.io.read_raw_ctf` for control over cleaning of main channel names and compensation channel names from CTF suffixes by `Oleh Kozynets`_
 
-- The functions ``lcmv``, ``lcmv_epochs``, and ``lcmv_raw`` are now deprecated in favor of :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.apply_lcmv`, :func:`mne.beamformer.apply_lcmv_epochs`, and :func:`mne.beamformer.apply_lcmv_raw`, by `Britta Westner`_  
+- The functions ``lcmv``, ``lcmv_epochs``, and ``lcmv_raw`` are now deprecated in favor of :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.apply_lcmv`, :func:`mne.beamformer.apply_lcmv_epochs`, and :func:`mne.beamformer.apply_lcmv_raw`, by `Britta Westner`_
 
 - The functions ``mne.beamformer.dics``, ``mne.beamformer.dics_epochs`` and ``mne.beamformer.dics_source_power`` are now deprecated in favor of :func:`mne.beamformer.make_dics`, :func:`mne.beamformer.apply_dics`, and :func:`mne.beamformer.apply_dics_csd`, by `Marijn van Vliet`_
 

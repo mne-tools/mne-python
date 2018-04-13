@@ -18,6 +18,13 @@ from ..externals.jdcal import jcal2jd
 from ..externals.six import string_types, b
 
 
+# We choose a "magic" date to store (because meas_date is obligatory)
+# to treat as meas_date=None. This one should be impossible for systems
+# to write -- the second field is microseconds, so anything >= 1e6
+# should be moved into the first field (seconds).
+DATE_NONE = (0, 2 ** 31 - 1)
+
+
 def _write(fid, data, kind, data_size, FIFFT_TYPE, dtype):
     """Write data."""
     if isinstance(data, np.ndarray):
@@ -411,16 +418,5 @@ def _generate_meas_id():
     id_ = dict()
     id_['version'] = FIFF.FIFFC_VERSION
     id_['machid'] = get_machid()
-    id_['secs'], id_['usecs'] = _date_now()
+    id_['secs'], id_['usecs'] = DATE_NONE
     return id_
-
-
-def _date_now():
-    """Get date in secs, usecs."""
-    now = time.time()
-    # Get date in secs/usecs (as in `fill_measurement_info` in
-    # mne/forward/forward.py)
-    date_arr = np.array([np.floor(now), 1e6 * (now - np.floor(now))],
-                        dtype='int32')
-
-    return date_arr
