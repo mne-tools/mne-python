@@ -120,7 +120,7 @@ def _check_for_unsupported_ica_channels(picks, info):
 
 
 class ICA(ContainsMixin):
-    """M/EEG signal decomposition using Independent Component Analysis (ICA).
+    u"""M/EEG signal decomposition using Independent Component Analysis (ICA).
 
     This object can be used to estimate ICA components and then remove some
     from Raw or Epochs for data exploration or artifact correction.
