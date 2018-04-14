@@ -18,7 +18,7 @@ from ..source_estimate import _make_stc, SourceEstimate
 from ..utils import logger, verbose, warn, estimate_rank, deprecated
 from .. import Epochs
 from ..externals import six
-from _compute_beamformer import (
+from ._compute_beamformer import (
     _reg_pinv, _eig_inv, _setup_picks, _pick_channels_spatial_filter,
     _check_proj_match, _prepare_beamformer_input, _check_one_ch_type,
     _check_cov_matrix)
