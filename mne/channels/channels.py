@@ -805,22 +805,6 @@ class UpdateChannelsMixin(object):
         if hasattr(self, '_cals'):
             self._cals = self._cals[idx]
 
-        if len(self.info['comps']) > 0:
-            _, comps_missing = _bad_chans_comp(self.info, self.info['ch_names'])
-            current_comp = get_current_comp(self.info)
-            if len(comps_missing) > 0:
-                if current_comp != 0:
-                    raise RuntimeError(
-                        'Compensation grade %d has been applied, but '
-                        'compensation channels are missing: %s\n'
-                        'Either remove compensation or pick compensation '
-                        'channels' % (current_comp, names))
-                else:
-                    logger.info('Removing %d compensators from info because '
-                                'not all compensation channels were picked'
-                                % (len(self.info['comps']),))
-                    self.info['comps'] = []
-
         pick_info(self.info, idx, copy=False)
 
         if getattr(self, '_projector', None) is not None:

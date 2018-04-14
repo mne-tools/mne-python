@@ -1460,7 +1460,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     # regardless of compensation status.
     evoked = evoked.copy()
     evoked.info['comps'] = []
-    evoked = evoked_pick_drop_channels(picks)
+    evoked = evoked._pick_drop_channels(picks)
 
     interactive = isinstance(times, string_types) and times == 'interactive'
     if axes is not None:

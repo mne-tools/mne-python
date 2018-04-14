@@ -12,6 +12,7 @@ import numpy as np
 from .constants import FIFF
 from ..utils import logger, verbose
 from ..externals.six import string_types
+from .compensator import get_current_comp
 
 
 def get_channel_types():
@@ -397,11 +398,22 @@ def pick_info(info, sel=(), copy=True):
         raise ValueError('No channels match the selection.')
 
     # make sure required the compensation channels are present
-    ch_names = [info['ch_names'][idx] for idx in sel]
-    comps_bad, comps_missing = _bad_chans_comp(info, ch_names)
-    if comps_bad:
-        raise RuntimeError('Compensation channel(s) %s do not exist in info'
-                            % (comps_missing,))
+    if len(info['comps']) > 0:
+        ch_names = [info['ch_names'][idx] for idx in sel]
+        _, comps_missing = _bad_chans_comp(info, ch_names)
+        current_comp = get_current_comp(info)
+        if len(comps_missing) > 0:
+            if current_comp != 0:
+                raise RuntimeError(
+                    'Compensation grade %d has been applied, but '
+                    'compensation channels are missing: %s\n'
+                    'Either remove compensation or pick compensation '
+                    'channels' % (current_comp, comps_missing))
+            else:
+                logger.info('Removing %d compensators from info because '
+                            'not all compensation channels were picked'
+                            % (len(info['comps']),))
+                info['comps'] = []
 
     info['chs'] = [info['chs'][k] for k in sel]
     info._update_redundant()
