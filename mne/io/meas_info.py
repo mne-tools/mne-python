@@ -1920,7 +1920,7 @@ def _bad_chans_comp(info, ch_names):
         # should this be thought of as a bug?
         return False, []
 
-    # only include compensation channels that would effect selected channels
+    # only include compensation channels that would affect selected channels
     ch_names_s = set(ch_names)
     comp_names = []
     for comp in info['comps']:
@@ -1928,7 +1928,7 @@ def _bad_chans_comp(info, ch_names):
             comp_names.extend(comp['data']['col_names'])
     comp_names = sorted(set(comp_names))
 
-    missing_ch_names = list(set(comp_names).difference(ch_names))
+    missing_ch_names = sorted(set(comp_names).difference(ch_names))
 
     if get_current_comp(info) != 0 and len(missing_ch_names) > 0:
         return True, missing_ch_names

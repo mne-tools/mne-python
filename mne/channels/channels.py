@@ -17,7 +17,7 @@ from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
 from ..utils import _check_preload
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
-from ..io.meas_info import anonymize_info, Info, _bad_chans_comp
+from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _PICK_TYPES_KEYS,
                        channel_indices_by_type, pick_channels)

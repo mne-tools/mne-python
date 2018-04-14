@@ -48,7 +48,6 @@ def test_pick_refs():
     fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
     raw_ctf = read_raw_fif(fname_ctf_raw)
     raw_ctf.apply_gradient_compensation(2)
-    # infos.append(raw_ctf.info)
     for info in infos:
         info['bads'] = []
         assert_raises(ValueError, pick_types, info, meg='foo')
