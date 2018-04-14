@@ -14,7 +14,8 @@ import mne
 from mne.datasets import testing
 from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
                             apply_lcmv_raw, tf_lcmv)
-from mne.beamformer._lcmv import _lcmv_source_power, _reg_pinv, _eig_inv
+from mne.beamformer._lcmv import _lcmv_source_power
+from mne.beamformer._compute_beamformer import _reg_pinv, _eig_inv
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.externals.six import advance_iterator
 from mne.simulation import simulate_evoked
