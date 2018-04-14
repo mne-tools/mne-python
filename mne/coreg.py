@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Coregistration between different coordinate frames."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
@@ -1123,14 +1124,13 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
 
 def _scale_mri(subject_to, mri_fname, subject_from, scale, subjects_dir):
     """Scale an MRI by setting its affine."""
-    scale, subject_from = _get_sf(
-        subject_to, subject_from, scale, subjects_dir)
-
     if not has_nibabel():
         warn('Skipping MRI scaling for %s, please install nibabel')
         return
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    scale, subject_from = _get_sf(
+        subject_to, subject_from, scale, subjects_dir)
 
     import nibabel
     fname_from = op.join(mri_dirname.format(
@@ -1149,14 +1149,16 @@ def _scale_mri(subject_to, mri_fname, subject_from, scale, subjects_dir):
 def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
                subjects_dir):
     """Scale a transform."""
-    scale, subject_from = _get_sf(
-        subject_to, subject_from, scale, subjects_dir)
-
+    # The nibabel warning should already be there in MRI step, if applicable,
+    # as we only get here if T1.mgz is present (and thus a scaling was
+    # attempted) so we can silently return here.
     if not has_nibabel():
-        warn('Skipping MRI scaling for %s, please install nibabel')
         return
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    scale, subject_from = _get_sf(
+        subject_to, subject_from, scale, subjects_dir)
+
     fname_from = os.path.join(
         mri_transforms_dirname.format(
             subjects_dir=subjects_dir, subject=subject_from), xfm_fname)
@@ -1166,18 +1168,25 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
     assert op.isfile(fname_from), fname_from
     assert op.isdir(op.dirname(fname_to)), op.dirname(fname_to)
     # The "talairach.xfm" file stores the ras_mni transform.
-    # We require (for "from" subj F, "to" subj T, scaling S, and pos x):
     #
-    #            T_mri_mni @ S @ x = F_mri_mni @ x
+    # For "from" subj F, "to" subj T, F->T scaling S, some equivalent vertex
+    # positions F_x and T_x in MRI (Freesurfer RAS) coords, knowing that
+    # we have T_x = S @ F_x, we want to have the same MNI coords computed
+    # for these vertices:
     #
-    # And we want to find the correct T_ras_mni that does this. So we derive:
+    #              T_mri_mni @ T_x = F_mri_mni @ F_x
     #
+    # We need to find the correct T_ras_mni (talaraich.xfm file) that yields
+    # this. So we derive (where † indicates inversion):
+    #
+    #          T_mri_mni @ S @ F_x = F_mri_mni @ F_x
     #                T_mri_mni @ S = F_mri_mni
     #    T_ras_mni @ T_mri_ras @ S = F_ras_mni @ F_mri_ras
-    #        T_ras_mni @ T_mri_ras = F_ras_mni @ F_mri_ras @ Sinv
-    #                    T_ras_mni = F_ras_mni @ F_mri_ras @ Sinv @ T_ras_mri
+    #        T_ras_mni @ T_mri_ras = F_ras_mni @ F_mri_ras @ S⁻¹
+    #                    T_ras_mni = F_ras_mni @ F_mri_ras @ S⁻¹ @ T_ras_mri
     #
 
+    # prepare the scale (S) transform
     scale = np.atleast_1d(scale)
     scale = np.tile(scale, 3) if len(scale) == 1 else scale
     S = Transform('mri', 'mri', scaling(*scale))  # F_mri->T_mri
@@ -1207,14 +1216,18 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
         invert_transform(T_vox_ras), T_vox_mri, 'ras', 'mri')
     del mri_name, hdr, T_vox_ras, T_vox_mri
 
-    # Finally we construct:
+    # Finally we construct as above:
     #
-    #    T_ras_mni = F_ras_mni @ F_mri_ras @ Sinv @ T_ras_mri
+    #    T_ras_mni = F_ras_mni @ F_mri_ras @ S⁻¹ @ T_ras_mri
     #
-    # By moving right to left.
-    temp = combine_transforms(T_ras_mri, invert_transform(S), 'ras', 'mri')
-    temp = combine_transforms(temp, F_mri_ras, 'ras', 'ras')
-    T_ras_mni = combine_transforms(temp, F_ras_mni, 'ras', 'mni_tal')
+    # By moving right to left through the equation.
+    T_ras_mni = \
+        combine_transforms(
+            combine_transforms(
+                combine_transforms(
+                    T_ras_mri, invert_transform(S), 'ras', 'mri'),
+                F_mri_ras, 'ras', 'ras'),
+            F_ras_mni, 'ras', 'mni_tal')
     _write_fs_xfm(fname_to, T_ras_mni['trans'], kind)
 
 
