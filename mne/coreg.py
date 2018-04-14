@@ -1199,7 +1199,7 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
     # Get the necessary transforms of the "to" subject
     #
     mri_name = op.join(mri_dirname.format(
-         subjects_dir=subjects_dir, subject=subject_to), op.basename(mri_name))
+        subjects_dir=subjects_dir, subject=subject_to), op.basename(mri_name))
     hdr = _get_mri_header(mri_name)
     T_vox_ras = Transform('mri_voxel', 'ras', hdr.get_vox2ras())
     T_vox_mri = Transform('mri_voxel', 'mri', hdr.get_vox2ras_tkr())
