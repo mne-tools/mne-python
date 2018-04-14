@@ -1,4 +1,4 @@
-"""Compute beamformer."""
+"""Functions shared between different beamformer types."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Roman Goj <roman.goj@gmail.com>
