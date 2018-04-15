@@ -15,8 +15,9 @@ from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc
 from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
-from ._lcmv import (_prepare_beamformer_input, _setup_picks, _reg_pinv,
-                    _eig_inv, _check_proj_match, _pick_channels_spatial_filter)
+from ._compute_beamformer import (_reg_pinv, _eig_inv, _setup_picks,
+                                  _pick_channels_spatial_filter,
+                                  _check_proj_match, _prepare_beamformer_input)
 from ..externals import six
 
 

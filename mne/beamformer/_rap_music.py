@@ -12,7 +12,7 @@ from ..io.pick import pick_channels_evoked
 from ..cov import compute_whitener
 from ..utils import logger, verbose
 from ..dipole import Dipole
-from ._lcmv import _prepare_beamformer_input, _setup_picks
+from ._compute_beamformer import _prepare_beamformer_input, _setup_picks
 
 
 def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
