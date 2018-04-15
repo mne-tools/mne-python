@@ -150,11 +150,6 @@ def _check_cov_matrix(data_cov):
                          'a data covariance matrix.')
 
 
-def _subject_from_filter(filters):
-    """Get subject id from inverse operator."""
-    return filters['src'][0].get('subject_his_id', None)
-
-
 def _check_proj_match(info, filters):
     """Check whether SSP projections in data and spatial filter match."""
     proj_data, _, _ = make_projector(info['projs'],
