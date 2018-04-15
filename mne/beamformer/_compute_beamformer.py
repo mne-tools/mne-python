@@ -139,9 +139,8 @@ def _pick_channels_spatial_filter(ch_names, filters):
                              'compute a new spatial filter restricted to the '
                              'good data channels.' % ch_name)
     # then compare list of channels and get selection based on data:
-    for ii, ch_name in enumerate(ch_names):
-        if ch_name in filters['ch_names']:
-            sel.append(ii)
+    sel = [ii for ii, ch_name in enumerate(ch_names)
+           if ch_name in filters['ch_names']]
     return sel
 
 
