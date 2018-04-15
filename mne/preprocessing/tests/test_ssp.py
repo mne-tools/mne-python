@@ -18,7 +18,8 @@ raw_fname = op.join(data_path, 'test_raw.fif')
 dur_use = 5.0
 eog_times = np.array([0.5, 2.3, 3.6, 14.5])
 
-ctf_fname = op.join(testing.data_path(download=False), 'CTF', 'testdata_ctf.ds')
+ctf_fname = op.join(testing.data_path(download=False), 'CTF',
+                    'testdata_ctf.ds')
 
 
 def test_compute_proj_ecg():
