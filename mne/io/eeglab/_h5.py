@@ -138,6 +138,16 @@ def _get_hdf_eeg_data(input_fname):
     else:
         eeg.data = eeg.data.transpose()
 
+    str_conversion_fields = ('datfile', 'filename', 'filepath',
+                             'history', 'ref', 'saved', 'setname')
+    for curr_field in str_conversion_fields:
+        temp = eeg[curr_field]
+        c1 = isinstance(temp, np.ndarray)
+        c2 = c1 and np.issubdtype(temp.dtype, np.integer)
+        c3 = c2 and (min(temp) >= 0)
+        if c3:
+            eeg[curr_field] = ''.join([chr(y) for y in temp])
+
     return eeg
 
 

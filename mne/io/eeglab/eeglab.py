@@ -102,49 +102,43 @@ def _get_info(eeg, montage, eog=()):
     if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
             eeg.chanlocs = [eeg.chanlocs]
 
-    if len(eeg.chanlocs) > 0:
+    # If there is no chanlocs data, hdf file records chanlocs as
+    # an array of uint64, without expected fields. By checking for
+    # 'label' attribute, we avoid treating eeg.chanlocs as non-empty
+    if (len(eeg.chanlocs) > 0 and
+            hasattr(eeg.chanlocs[0], 'labels')):
         pos_fields = ['X', 'Y', 'Z']
 
-        # Assume data did not come from an hdf file unless proven so
-        hdf5_flag = False
+        if (isinstance(eeg.chanlocs, np.ndarray) and
+            not isinstance(eeg.chanlocs[0],
+                           io.matlab.mio5_params.mat_struct)):
 
-        if (isinstance(eeg.chanlocs, np.ndarray) and not isinstance(
-                eeg.chanlocs[0], io.matlab.mio5_params.mat_struct)):
-            try:
-                has_pos = all(fld in eeg.chanlocs[0].dtype.names
-                              for fld in pos_fields)
-            except TypeError:
-                # when stored as hdf, empty eeg.chanlocs is
-                # array([0, 0], dtype=uint64)
-                # which raises a Type Error, but we still need
-                # default chan names
-                ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
-                hdf5_flag = True
+            has_pos = all(fld in eeg.chanlocs[0].dtype.names
+                          for fld in pos_fields)
+
         else:
             has_pos = all(hasattr(eeg.chanlocs[0], fld)
                           for fld in pos_fields)
-        if not hdf5_flag:
-            # If type error thrown by, presumably, hdf5 file, skip the rest
-            # of the if len(eeg.chanlocs) > 0 block
-            get_pos = has_pos and montage is None
-            pos_ch_names, ch_names, pos = list(), list(), list()
-            kind = 'user_defined'
-            update_ch_names = False
-            for chanloc in eeg.chanlocs:
-                ch_names.append(chanloc.labels)
-                if get_pos:
-                    loc_x = _to_loc(chanloc.X)
-                    loc_y = _to_loc(chanloc.Y)
-                    loc_z = _to_loc(chanloc.Z)
-                    locs = np.r_[-loc_y, loc_x, loc_z]
-                    if not np.any(np.isnan(locs)):
-                        pos_ch_names.append(chanloc.labels)
-                        pos.append(locs)
-            n_channels_with_pos = len(pos_ch_names)
-            info = create_info(ch_names, eeg.srate, ch_types='eeg')
-            if n_channels_with_pos > 0:
-                selection = np.arange(n_channels_with_pos)
-                montage = Montage(np.array(pos), pos_ch_names, kind, selection)
+
+        get_pos = has_pos and montage is None
+        pos_ch_names, ch_names, pos = list(), list(), list()
+        kind = 'user_defined'
+        update_ch_names = False
+        for chanloc in eeg.chanlocs:
+            ch_names.append(chanloc.labels)
+            if get_pos:
+                loc_x = _to_loc(chanloc.X)
+                loc_y = _to_loc(chanloc.Y)
+                loc_z = _to_loc(chanloc.Z)
+                locs = np.r_[-loc_y, loc_x, loc_z]
+                if not np.any(np.isnan(locs)):
+                    pos_ch_names.append(chanloc.labels)
+                    pos.append(locs)
+        n_channels_with_pos = len(pos_ch_names)
+        info = create_info(ch_names, eeg.srate, ch_types='eeg')
+        if n_channels_with_pos > 0:
+            selection = np.arange(n_channels_with_pos)
+            montage = Montage(np.array(pos), pos_ch_names, kind, selection)
     elif isinstance(montage, string_types):
         path = op.dirname(montage)
     else:  # if eeg.chanlocs is empty, we still need default chan names
@@ -320,15 +314,6 @@ def _get_eeg_data(input_fname, uint16_codec=None):
         # Note: Now eeg will be returned as a Bunch object,
         # instead of an io.matlab.mio5_params.mat_struct object.
         eeg = _get_hdf_eeg_data(input_fname)
-        str_conversion_fields = ('datfile', 'filename', 'filepath',
-                                 'history', 'ref', 'saved', 'setname')
-        for curr_field in str_conversion_fields:
-            temp = eeg[curr_field]
-            c1 = isinstance(temp, np.ndarray)
-            c2 = c1 and np.issubdtype(temp.dtype, np.integer)
-            c3 = c2 and (min(temp) >= 0)
-            if c3:
-                eeg[curr_field] = ''.join([chr(y) for y in temp])
 
     return eeg
 
