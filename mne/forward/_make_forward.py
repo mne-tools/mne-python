@@ -318,9 +318,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         picks = pick_types(info, meg=False, ref_meg=True, exclude=exclude)
         ncomp = len(picks)
         if (ncomp > 0):
-            comp_info = info.copy()
-            comp_info['comps'] = []
-            compchs = pick_info(comp_info, picks)['chs']
+            compchs = pick_info(info, picks)['chs']
             logger.info('Read %3d MEG compensation channels from %s'
                         % (ncomp, info_extra))
             # We need to check to make sure these are NOT KIT refs
