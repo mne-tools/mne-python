@@ -525,7 +525,11 @@ def test_cuda():
                 a2 = resample(a, fro, to, n_jobs='cuda', npad='auto',
                               window=window, method='fft')
                 assert_allclose(a1, a2, rtol=1e-7, atol=1e-14)
-    with pytest.warns(RuntimeWarning, match='cannot be used for'):
+    if LooseVersion(scipy.__version__) >= '0.18':
+        context = pytest.warns(RuntimeWarning, match='cannot be used for')
+    else:
+        context = pytest.raises(ValueError, match='is required to use')
+    with context:
         resample(a, fro, to, n_jobs='cuda', method='poly')
     assert_allclose(a1, a2, atol=1e-14)
     assert_array_equal(resample([0, 0], 2, 1, n_jobs='cuda', method='fft'),
