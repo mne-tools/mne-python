@@ -261,6 +261,9 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
         Cm_inv, _ = _reg_pinv(Cm, reg, rcond='auto')
 
     if weight_norm is not None and inversion is not 'single':
+        # Compute square of Cm_inv used for weight normalization
+        Cm_inv_sq = np.dot(Cm_inv, Cm_inv)
+
         if weight_norm is 'nai':
             # estimate noise level based on covariance matrix, taking the
             # smallest eigenvalue that is not zero
@@ -275,14 +278,10 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
                 # use either noise floor or regularization parameter d
                 noise = max(noise, d)
 
-        # Compute square of Cm_inv used for weight normalization
-        Cm_inv_sq = np.dot(Cm_inv, Cm_inv)
-
     # compute spatial filter
     W = np.dot(G.T, Cm_inv)
     n_orient = 3 if is_free_ori else 1
     n_sources = G.shape[1] // n_orient
-
     for k in range(n_sources):
         Wk = W[n_orient * k: n_orient * k + n_orient]
         Gk = G[:, n_orient * k: n_orient * k + n_orient]
@@ -291,7 +290,7 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
         Ck = np.dot(Wk, Gk)
 
         if beamformer is 'dics':
-            # normalize weights before anything else is done for DICS:
+            # Normalize the spatial filters:
             if Wk.ndim == 2 and len(Wk) > 1:
                 # Free source orientation
                 if inversion == 'single':
