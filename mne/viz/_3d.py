@@ -2290,7 +2290,7 @@ def _get_view_to_display_matrix(scene):
 
     It's assumed that the view should take up the entire window and that the
     origin of the window is in the upper left corner.
-    """
+    """  # noqa: E501
     from mayavi.core.ui.mayavi_scene import MayaviScene
     from tvtk.pyface.tvtk_scene import TVTKScene
 

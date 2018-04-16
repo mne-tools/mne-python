@@ -18,7 +18,7 @@ from mne.utils import requires_sklearn, run_tests_if_main, check_version
 
 
 def center_and_norm(x, axis=-1):
-    """ Centers and norms x **in place**
+    """Centers and norms x **in place**.
 
     Parameters
     -----------
@@ -35,8 +35,7 @@ def center_and_norm(x, axis=-1):
 
 @requires_sklearn
 def test_infomax_blowup():
-    """ Test the infomax algorithm blowup condition
-    """
+    """Test the infomax algorithm blowup condition."""
 
     # scipy.stats uses the global RNG:
     np.random.seed(0)
@@ -76,8 +75,7 @@ def test_infomax_blowup():
 
 @requires_sklearn
 def test_infomax_simple():
-    """ Test the infomax algorithm on very simple data.
-    """
+    """Test the infomax algorithm on very simple data."""
     rng = np.random.RandomState(0)
     # scipy.stats uses the global RNG:
     np.random.seed(0)
@@ -124,9 +122,7 @@ def test_infomax_simple():
 
 
 def test_infomax_weights_ini():
-    """ Test the infomax algorithm when user provides an initial weights matrix.
-    """
-
+    """Test the infomax algorithm w/initial weights matrix."""
     X = np.random.random((3, 100))
     weights = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.float64)
 
@@ -139,8 +135,7 @@ def test_infomax_weights_ini():
 
 @requires_sklearn
 def test_non_square_infomax():
-    """ Test non-square infomax
-    """
+    """Test non-square infomax."""
     rng = np.random.RandomState(0)
 
     n_samples = 200

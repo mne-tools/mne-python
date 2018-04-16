@@ -1147,7 +1147,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True,
                     label=label if n_columns > 1 else title,
                     color=color if n_columns > 1 else ch_colors[color_ch],
                     lw=0.5)
-            ax.set(xlabel='Time (%s)' % (time_unit,), ylabel='GFP ($\chi^2$)',
+            ax.set(xlabel='Time (%s)' % (time_unit,), ylabel=r'GFP ($\chi^2$)',
                    xlim=[times[0], times[-1]], ylim=(0, 10))
             ax.axhline(1, color='red', linestyle='--', lw=2.)
             if n_columns > 1:
