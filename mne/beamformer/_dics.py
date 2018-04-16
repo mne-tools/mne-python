@@ -1,7 +1,7 @@
 """Dynamic Imaging of Coherent Sources (DICS)."""
 
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Britta Westner
+#          Britta Westner <britta.wstnr@gmail.com>
 #          Susanna Aro <susanna.aro@aalto.fi>
 #          Roman Goj <roman.goj@gmail.com>
 #

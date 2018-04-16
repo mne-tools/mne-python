@@ -247,3 +247,136 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
                          'values are: "dipole", "vertex" or None.')
 
     return is_free_ori, ch_names, proj, vertno, G
+
+
+def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
+                        pick_ori, inversion, reduce_rank):
+    """Compute a spatial filter (LCMV or DICS)."""
+
+    # Tikhonov regularization using reg parameter d to control for
+    # trade-off between spatial resolution and noise sensitivity
+    if beamformer is 'lcmv':
+        Cm_inv, d = _reg_pinv(Cm.copy(), reg)
+    elif beamformer is 'dics':
+        Cm_inv, _ = _reg_pinv(Cm, reg, rcond='auto')
+
+    if weight_norm is not None and inversion is not 'single':
+        if weight_norm is 'nai':
+            # estimate noise level based on covariance matrix, taking the
+            # smallest eigenvalue that is not zero
+            noise, _ = linalg.eigh(Cm)
+            if rank is not None:
+                rank_Cm = rank
+            else:
+                rank_Cm = estimate_rank(Cm, tol='auto', norm=False,
+                                        return_singular=False)
+                noise = noise[len(noise) - rank_Cm]
+
+                # use either noise floor or regularization parameter d
+                noise = max(noise, d)
+
+        # Compute square of Cm_inv used for weight normalization
+        Cm_inv_sq = np.dot(Cm_inv, Cm_inv)
+
+    # compute spatial filter
+    W = np.dot(G.T, Cm_inv)
+    n_orient = 3 if is_free_ori else 1
+    n_sources = G.shape[1] // n_orient
+
+    # Loop over sources
+    for k in range(n_sources):
+        Wk = W[n_orient * k: n_orient * k + n_orient]
+        Gk = G[:, n_orient * k: n_orient * k + n_orient]
+        if np.all(Gk == 0.):
+            continue
+        Ck = np.dot(Wk, Gk)
+
+    for k in range(n_sources):
+        Wk = W[n_orient * k: n_orient * k + n_orient]
+        Gk = G[:, n_orient * k: n_orient * k + n_orient]
+        if beamformer is 'lcmv' and np.all(Gk == 0.):
+            continue
+        Ck = np.dot(Wk, Gk)
+
+        # Compute scalar beamformer by finding the source orientation
+        # which maximizes output source power
+        if pick_ori == 'max-power':
+            if weight_norm is not None and inversion is not 'single':
+                # finding optimal orientation for NAI and unit-noise-gain
+                # based on [2]_, Eq. 4.47
+                tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
+
+                if reduce_rank:
+                    # use pseudo inverse computation setting smallest component
+                    # to zero if the leadfield is not full rank
+                    tmp_inv = _eig_inv(tmp, tmp.shape[0] - 1)
+                else:
+                    # use straight inverse with full rank leadfield
+                    try:
+                        tmp_inv = linalg.inv(tmp)
+                    except np.linalg.linalg.LinAlgError:
+                        raise ValueError('Singular matrix detected when '
+                                         'estimating spatial filters. '
+                                         'Consider reducing the rank of the '
+                                         'leadfield by using  '
+                                         'reduce_rank=True.')
+
+                power = np.dot(tmp_inv, np.dot(Wk, Gk))
+
+            elif weight_norm is not None and inversion is 'single':
+                # First make the filters unit gain, then apply them to the
+                # CSD matrix to compute power.
+                norm = 1 / np.sqrt(np.sum(Wk ** 2, axis=1))
+                Wk_norm = Wk / norm[:, np.newaxis]
+                power = Wk_norm.dot(Cm).dot(Wk_norm.T)
+
+            else:
+                if beamformer is 'dics':
+                    # Compute spectral power by applying the spatial filters to
+                    # the CSD matrix.
+                    power = Wk.dot(Cm).dot(Wk.T)
+                elif beamformer is 'lcmv':
+                    # no weight-normalization and max-power is not implemented
+                    # yet for lcmv beamformer:
+                    raise NotImplementedError('The max-power orientation '
+                                              'selection is not yet '
+                                              'implemented with weight_norm '
+                                              'set to None.')
+
+            # compute the orientation:
+            if beamformer is 'lcmv':
+                eig_vals, eig_vecs = linalg.eig(power)
+
+                if np.iscomplex(eig_vecs).any():
+                    raise ValueError('The eigenspectrum of the leadfield '
+                                     'at this voxel is complex. Consider '
+                                     'reducing the rank of the leadfield '
+                                     'by using reduce_rank=True.')
+
+                idx_max = eig_vals.argmax()
+                max_ori = eig_vecs[:, idx_max]
+                Wk[:] = np.dot(max_ori, Wk)
+                Gk = np.dot(Gk, max_ori)
+
+             elif beamformer is 'dics':
+                # Compute the direction of max power
+                u, s, _ = np.linalg.svd(power.real)
+                max_ori = u[:, 0]
+
+                Wk[:] = np.dot(max_ori, Wk)
+
+
+
+
+
+
+
+
+                               # compute spatial filter for NAI or unit-noise-gain
+                tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
+                denom = np.sqrt(tmp)
+                Wk /= denom
+                if weight_norm == 'nai':
+                    Wk /= np.sqrt(noise)
+
+                is_free_ori = False
