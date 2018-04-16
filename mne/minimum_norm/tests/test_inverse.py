@@ -328,6 +328,8 @@ def test_localization_bias():
                                  ('eLORETA', 50, 55)):
         inv_op = apply_inverse(evoked, inv_fixed, lambda2, method).data
         loc = np.abs(np.dot(inv_op, fwd))
+        # Compute the percentage of sources for which there is no localization
+        # bias:
         perc = (want == np.argmax(loc, axis=0)).mean() * 100
         assert lower <= perc <= upper, method
 
@@ -339,7 +341,6 @@ def test_localization_bias():
                                      depth=0.8)
     fwd = fwd['sol']['data']
     want = np.arange(fwd.shape[1]) // 3
-
     for method, lower, upper in (('MNE', 25, 35),
                                  ('dSPM', 25, 35),
                                  ('sLORETA', 35, 40),
@@ -347,17 +348,19 @@ def test_localization_bias():
         inv_op = apply_inverse(evoked, inv_free, lambda2, method,
                                pick_ori='vector').data
         loc = np.linalg.norm(np.einsum('vos,sx->vxo', inv_op, fwd), axis=-1)
+        # Compute the percentage of sources for which there is no localization
+        # bias:
         perc = (want == np.argmax(loc, axis=0)).mean() * 100
         assert lower <= perc <= upper, method
 
     #
     # Free orientation
+    #
     fwd = fwd_orig.copy()
     inv_free = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1.,
                                      depth=0.8)
     fwd = fwd['sol']['data']
     want = np.arange(fwd.shape[1]) // 3
-
     force_kwargs = dict(method_params=dict(force_equal=True))
     for method, lower, upper, kwargs in (('MNE', 45, 55, {}),
                                          ('dSPM', 40, 45, {}),
@@ -368,6 +371,8 @@ def test_localization_bias():
         inv_op = apply_inverse(evoked, inv_free, lambda2, method,
                                pick_ori='vector', **kwargs).data
         loc = np.linalg.norm(np.einsum('vos,sx->vxo', inv_op, fwd), axis=-1)
+        # Compute the percentage of sources for which there is no localization
+        # bias:
         perc = (want == np.argmax(loc, axis=0)).mean() * 100
         assert lower <= perc <= upper, method
 

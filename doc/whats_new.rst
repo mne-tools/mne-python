@@ -91,7 +91,7 @@ Changelog
 
 - Add reader for manual annotations of raw data produced by Brainstorm by `Anne-Sophie Dubarry`_
 
-- Add exact low resolution brain electromagnetic tomography (eLORETA) noise normalization for minimum-norm solvers by `Eric Larson`_
+- Add eLORETA noise normalization for minimum-norm solvers by `Eric Larson`_
 
 - Tighter duality gap computation in ``mne.inverse_sparse.tf_mxne_optim`` and new parametrization with ``alpha`` and  ``l1_ratio`` instead of ``alpha_space`` and ``alpha_time`` by `Mathurin Massias`_ and `Daniel Strohmeier`_
 

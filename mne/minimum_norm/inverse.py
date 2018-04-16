@@ -53,7 +53,7 @@ class InverseOperator(dict):
         entr += ' | ' + 'EEG channels: %d' % nchan
 
         entr += (' | Source space: %s with %d sources'
-                 % (self['src'].kind,  self['nsource']))
+                 % (self['src'].kind, self['nsource']))
         source_ori = {FIFF.FIFFV_MNE_UNKNOWN_ORI: 'Unknown',
                       FIFF.FIFFV_MNE_FIXED_ORI: 'Fixed',
                       FIFF.FIFFV_MNE_FREE_ORI: 'Free'}
@@ -815,7 +815,8 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
-        Use mininum norm, dSPM (default), sLORETA, or eLORETA.
+        Use mininum norm [1]_, dSPM (default) [2]_, sLORETA [3]_, or
+        eLORETA [4]_.
     pick_ori : None | "normal" | "vector"
         If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
@@ -866,7 +867,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
             loose-orientation inverses and ``False`` for free- and
             fixed-orientation inverses. See below.
 
-    The eLORETA paper [1]_ defines how to compute inverses for fixed- and
+    The eLORETA paper [4]_ defines how to compute inverses for fixed- and
     free-orientation inverses. In the free orientation case, the X/Y/Z
     orientation triplet for each location is effectively multiplied by a
     3x3 weight matrix. This is the behavior obtained with
@@ -887,7 +888,16 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     References
     ----------
-    .. [1] Pascual-Marqui RD (2007). Discrete, 3D distributed, linear imaging
+    .. [1] Hamalainen M S and Ilmoniemi R. Interpreting magnetic fields of
+           the brain: minimum norm estimates. Medical & Biological Engineering
+           & Computing, 32(1):35–42, 1994.
+    .. [2] Dale A, Liu A, Fischl B, Buckner R. (2000) Dynamic statistical
+           parametric mapping: combining fMRI and MEG for high-resolution
+           imaging of cortical activity. Neuron, 26:55–67.
+    .. [3] Pascual-Marqui RD (2002), Standardized low resolution brain
+           electromagnetic tomography (sLORETA): technical details. Methods
+           Find. Exp. Clin. Phar- macology, 24(D):5–12.
+    .. [4] Pascual-Marqui RD (2007). Discrete, 3D distributed, linear imaging
            methods of electric neuronal activity. Part 1: exact, zero error
            localization. arXiv:0710.3341
     """

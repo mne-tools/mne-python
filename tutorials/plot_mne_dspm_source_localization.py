@@ -44,7 +44,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
 noise_cov = mne.compute_covariance(
     epochs, tmax=0., method=['shrunk', 'empirical'])
 
-# fig_cov, fig_spectra = mne.viz.plot_cov(noise_cov, raw.info)
+fig_cov, fig_spectra = mne.viz.plot_cov(noise_cov, raw.info)
 
 ###############################################################################
 # Compute the evoked response
@@ -77,6 +77,7 @@ del fwd
 
 # You can write it to disk with::
 #
+#     >>> from mne.minimum_norm import write_inverse_operator
 #     >>> write_inverse_operator('sample_audvis-meg-oct-6-inv.fif',
 #                                inverse_operator)
 
