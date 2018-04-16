@@ -260,6 +260,21 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
     elif beamformer is 'dics':
         Cm_inv, _ = _reg_pinv(Cm, reg, rcond='auto')
 
+    if beamformer is 'dics':
+        # normalize weights before anything else is done in the case of DICS:
+        if Wk.ndim == 2 and len(Wk) > 1:
+            # Free source orientation
+            if inversion == 'single':
+                # Invert for each dipole separately using plain division
+                Wk /= np.diag(Ck)[:, np.newaxis]
+            elif inversion == 'matrix':
+                # Invert for all dipoles simultaneously using matrix
+                # inversion.
+                Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
+        else:
+            # Fixed source orientation
+            Wk /= Ck
+
     if weight_norm is not None and inversion is not 'single':
         if weight_norm is 'nai':
             # estimate noise level based on covariance matrix, taking the
@@ -298,7 +313,7 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
             continue
         Ck = np.dot(Wk, Gk)
 
-        # Compute scalar beamformer by finding the source orientation
+        # compute scalar beamformer by finding the source orientation
         # which maximizes output source power
         if pick_ori == 'max-power':
             if weight_norm is not None and inversion is not 'single':
@@ -358,21 +373,7 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
                 Wk[:] = np.dot(max_ori, Wk)
                 Gk = np.dot(Gk, max_ori)
 
-             elif beamformer is 'dics':
-                # Compute the direction of max power
-                u, s, _ = np.linalg.svd(power.real)
-                max_ori = u[:, 0]
-
-                Wk[:] = np.dot(max_ori, Wk)
-
-
-
-
-
-
-
-
-                               # compute spatial filter for NAI or unit-noise-gain
+                # compute spatial filter for NAI or unit-noise-gain
                 tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
                 denom = np.sqrt(tmp)
                 Wk /= denom
@@ -380,3 +381,59 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
                     Wk /= np.sqrt(noise)
 
                 is_free_ori = False
+
+            elif beamformer is 'dics':
+                # Compute the direction of max power
+                u, s, _ = np.linalg.svd(power.real)
+                max_ori = u[:, 0]
+
+                Wk[:] = np.dot(max_ori, Wk)
+
+        else:  # do vector beamformer
+            if beamformer is 'lcmv':
+                # compute the filters:
+                if is_free_ori:
+                    # Free source orientation
+                    Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
+                else:
+                    # Fixed source orientation
+                    Wk /= Ck
+
+                # handle noise normalization with free/normal source
+                # orientation:
+                if weight_norm is 'nai':
+                    raise NotImplementedError('Weight normalization with '
+                                              'neural activity index is not '
+                                              'implemented yet with free or '
+                                              'fixed orientation.')
+
+                elif weight_norm is 'unit-noise-gain':
+                    noise_norm = np.sum(Wk ** 2, axis=1)
+                    if is_free_ori:
+                        noise_norm = np.sum(noise_norm)
+                    noise_norm = np.sqrt(noise_norm)
+                    if noise_norm == 0.:
+                        noise_norm_inv = 0  # avoid division by 0
+                    else:
+                        noise_norm_inv = 1. / noise_norm
+                    Wk[:] *= noise_norm_inv
+
+        if pick_ori == 'max-power':
+            W = W[0::3]
+        elif pick_ori == 'normal':
+            W = W[2::3]
+            is_free_ori = False
+
+        if beamformer is 'dics':
+            if weight_norm == 'unit-noise-gain':
+                # Scale weights so that W @ I @ W.T == I
+                if pick_ori is None and n_orient > 1:
+                    # Compute the norm for each set of 3 dipoles
+                    W = W.reshape(-1, 3, W.shape[1])
+                    norm = np.sqrt(np.sum(W ** 2, axis=(1, 2)))
+                    W /= norm[:, np.newaxis, np.newaxis]
+                    W = W.reshape(-1, W.shape[2])
+                else:
+                    # Compute the norm for each dipole
+                    norm = np.sqrt(np.sum(W ** 2, axis=1))
+                    W /= norm[:, np.newaxis]
