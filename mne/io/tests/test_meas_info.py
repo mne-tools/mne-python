@@ -485,7 +485,8 @@ def test_check_compensation_consistency():
         if comp != 0:
             with pytest.raises(RuntimeError,
                                match='Compensation grade 1 has been applied'):
-                Epochs(raw, events, None, -0.2, 0.2, preload=False, picks=picks)
+                Epochs(raw, events, None, -0.2, 0.2, preload=False,
+                       picks=picks)
         else:
             Epochs(raw, events, None, -0.2, 0.2, preload=False, picks=picks)
 
