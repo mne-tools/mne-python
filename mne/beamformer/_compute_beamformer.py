@@ -260,21 +260,6 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
     elif beamformer is 'dics':
         Cm_inv, _ = _reg_pinv(Cm, reg, rcond='auto')
 
-    if beamformer is 'dics':
-        # normalize weights before anything else is done in the case of DICS:
-        if Wk.ndim == 2 and len(Wk) > 1:
-            # Free source orientation
-            if inversion == 'single':
-                # Invert for each dipole separately using plain division
-                Wk /= np.diag(Ck)[:, np.newaxis]
-            elif inversion == 'matrix':
-                # Invert for all dipoles simultaneously using matrix
-                # inversion.
-                Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
-        else:
-            # Fixed source orientation
-            Wk /= Ck
-
     if weight_norm is not None and inversion is not 'single':
         if weight_norm is 'nai':
             # estimate noise level based on covariance matrix, taking the
@@ -298,20 +283,27 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
     n_orient = 3 if is_free_ori else 1
     n_sources = G.shape[1] // n_orient
 
-    # Loop over sources
-    for k in range(n_sources):
-        Wk = W[n_orient * k: n_orient * k + n_orient]
-        Gk = G[:, n_orient * k: n_orient * k + n_orient]
-        if np.all(Gk == 0.):
-            continue
-        Ck = np.dot(Wk, Gk)
-
     for k in range(n_sources):
         Wk = W[n_orient * k: n_orient * k + n_orient]
         Gk = G[:, n_orient * k: n_orient * k + n_orient]
         if beamformer is 'lcmv' and np.all(Gk == 0.):
             continue
         Ck = np.dot(Wk, Gk)
+
+        if beamformer is 'dics':
+            # normalize weights before anything else is done for DICS:
+            if Wk.ndim == 2 and len(Wk) > 1:
+                # Free source orientation
+                if inversion == 'single':
+                    # Invert for each dipole separately using plain division
+                    Wk /= np.diag(Ck)[:, np.newaxis]
+                elif inversion == 'matrix':
+                    # Invert for all dipoles simultaneously using matrix
+                    # inversion.
+                    Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
+            else:
+                # Fixed source orientation
+                Wk /= Ck
 
         # compute scalar beamformer by finding the source orientation
         # which maximizes output source power
