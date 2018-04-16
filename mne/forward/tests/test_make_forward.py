@@ -13,11 +13,11 @@ from numpy.testing import assert_equal, assert_allclose, assert_array_equal
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_kit, read_raw_bti, read_info
 from mne.io.constants import FIFF
-from mne import (read_forward_solution, make_forward_solution,
-                 convert_forward_solution, setup_volume_source_space,
-                 read_source_spaces, make_sphere_model,
-                 pick_types_forward, pick_info, pick_types, Transform,
-                 read_evokeds, read_cov, read_dipole)
+from mne import (read_forward_solution, write_forward_solution,
+                 make_forward_solution, convert_forward_solution,
+                 setup_volume_source_space, read_source_spaces,
+                 make_sphere_model, pick_types_forward, pick_info, pick_types,
+                 Transform, read_evokeds, read_cov, read_dipole)
 from mne.utils import (requires_mne, requires_nibabel, _TempDir,
                        run_tests_if_main, run_subprocess)
 from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
@@ -202,6 +202,13 @@ def test_make_forward_solution_kit():
                                    eeg=False, meg=True,
                                    subjects_dir=subjects_dir)
     _compare_forwards(fwd, fwd_py, 274, n_src)
+
+    temp_dir = _TempDir()
+    fname_temp = op.join(temp_dir, 'test-ctf-fwd.fif')
+    write_forward_solution(fname_temp, fwd_py)
+    fwd_py2 = read_forward_solution(fname_temp)
+    _compare_forwards(fwd_py, fwd_py2, 274, n_src)
+    print (fwd_py)  # __repr__ also calls _check_consistency
 
 
 @pytest.mark.slowtest
