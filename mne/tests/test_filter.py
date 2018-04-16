@@ -1,11 +1,13 @@
+from distutils.version import LooseVersion
 import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
-                           assert_array_equal, assert_allclose)
+from numpy.testing import (assert_almost_equal, assert_array_equal,
+                           assert_allclose)
 from nose.tools import assert_equal, assert_true, assert_raises
 import pytest
+import scipy
 from scipy.signal import resample as sp_resample, butter
 from scipy.fftpack import fft, fftfreq
 
@@ -21,7 +23,6 @@ from mne.utils import (sum_squared, run_tests_if_main,
                        requires_mne, run_subprocess)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
-rng = np.random.RandomState(0)
 
 
 @requires_mne
@@ -76,6 +77,7 @@ def test_estimate_ringing():
 def test_1d_filter():
     """Test our private overlap-add filtering function."""
     # make some random signals and filters
+    rng = np.random.RandomState(0)
     for n_signal in (1, 2, 3, 5, 10, 20, 40):
         x = rng.randn(n_signal)
         for n_filter in (1, 2, 3, 5, 10, 11, 20, 21, 40, 41, 100, 101):
@@ -199,6 +201,7 @@ def test_iir_stability():
 def test_notch_filters():
     """Test notch filters."""
     # let's use an ugly, prime sfreq for fun
+    rng = np.random.RandomState(0)
     sfreq = 487.0
     sig_len_secs = 20
     t = np.arange(0, int(sig_len_secs * sfreq)) / sfreq
@@ -227,28 +230,35 @@ def test_notch_filters():
             if len(out) != 2 and len(out) != 3:  # force_serial: len(out) == 3
                 raise ValueError('Detected frequencies not logged properly')
             out = np.fromstring(out[-1], sep=', ')
-            assert_array_almost_equal(out, freqs)
+            assert_allclose(out, freqs)
         new_power = np.sqrt(sum_squared(b) / b.size)
         assert_almost_equal(new_power, orig_power, tol)
 
 
-def test_resample():
+@pytest.mark.parametrize('method', ('fft', 'poly'))
+def test_resample(method):
     """Test resampling."""
+    rng = np.random.RandomState(0)
     x = rng.normal(0, 1, (10, 10, 10))
-    x_rs = resample(x, 1, 2, 10)
+    if LooseVersion(scipy.__version__) < '0.18' and method == 'poly':
+        with pytest.raises(ValueError, match='SciPy >= 0.18'):
+            resample(x, 1, 2, 10, method=method)
+        return
+
+    x_rs = resample(x, 1, 2, 10, method=method)
     assert_equal(x.shape, (10, 10, 10))
     assert_equal(x_rs.shape, (10, 10, 5))
 
     x_2 = x.swapaxes(0, 1)
-    x_2_rs = resample(x_2, 1, 2, 10)
+    x_2_rs = resample(x_2, 1, 2, 10, method=method)
     assert_array_equal(x_2_rs.swapaxes(0, 1), x_rs)
 
     x_3 = x.swapaxes(0, 2)
-    x_3_rs = resample(x_3, 1, 2, 10, 0)
+    x_3_rs = resample(x_3, 1, 2, 10, 0, method=method)
     assert_array_equal(x_3_rs.swapaxes(0, 2), x_rs)
 
     # make sure we cast to array if necessary
-    assert_array_equal(resample([0, 0], 2, 1), [0., 0., 0., 0.])
+    assert_array_equal(resample([0, 0], 2, 1, method=method), [0., 0., 0., 0.])
 
 
 def test_resample_stim_channel():
@@ -279,10 +289,11 @@ def test_resample_stim_channel():
         assert_equal(new_data.shape[1], new_data_len)
 
 
-@requires_version('scipy', '0.16')
+@requires_version('scipy', '0.18')
 @pytest.mark.slowtest
 def test_filters():
     """Test low-, band-, high-pass, and band-stop filters plus resampling."""
+    rng = np.random.RandomState(0)
     sfreq = 100
     sig_len_secs = 15
 
@@ -329,7 +340,7 @@ def test_filters():
         lp = filter_data(a, sfreq, None, 8, None, fl, 10, 1.0, n_jobs=2,
                          **kwargs)
         hp = filter_data(lp, sfreq, 4, None, None, fl, 1.0, 10, **kwargs)
-        assert_allclose(hp, bp, rtol=1e-3, atol=1e-3)
+        assert_allclose(hp, bp, rtol=1e-3, atol=1e-2)
         assert_allclose(bp + bs, a, rtol=1e-3, atol=1e-3)
         # Sanity check ttenuation
         mask = (freqs > 5.5) & (freqs < 6.5)
@@ -349,28 +360,37 @@ def test_filters():
 
     # and since these are low-passed, downsampling/upsampling should be close
     n_resamp_ignore = 10
-    bp_up_dn = resample(resample(bp, 2, 1, n_jobs=2), 1, 2, n_jobs=2)
-    assert_array_almost_equal(bp[n_resamp_ignore:-n_resamp_ignore],
-                              bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
-    # note that on systems without CUDA, this line serves as a test for a
-    # graceful fallback to n_jobs=1
-    bp_up_dn = resample(resample(bp, 2, 1, n_jobs='cuda'), 1, 2, n_jobs='cuda')
-    assert_array_almost_equal(bp[n_resamp_ignore:-n_resamp_ignore],
-                              bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
-    # test to make sure our resamling matches scipy's
-    bp_up_dn = sp_resample(sp_resample(bp, 2 * bp.shape[-1], axis=-1,
-                                       window='boxcar'),
-                           bp.shape[-1], window='boxcar', axis=-1)
-    assert_array_almost_equal(bp[n_resamp_ignore:-n_resamp_ignore],
-                              bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
+    bp_up_dn = sp_resample(sp_resample(bp, 2 * bp.shape[-1], axis=-1),
+                           bp.shape[-1], axis=-1)
+    assert_allclose(bp[n_resamp_ignore:-n_resamp_ignore],
+                    bp_up_dn[n_resamp_ignore:-n_resamp_ignore], atol=1e-2)
+    for method in ('fft', 'poly'):
+        for window in (None, 'hanning'):
+            kwargs = dict(method=method, window=window)
+            bp_up_dn = resample(resample(bp, 2, 1, n_jobs=2, **kwargs),
+                                1, 2, n_jobs=2, **kwargs)
+            assert_allclose(bp[n_resamp_ignore:-n_resamp_ignore],
+                            bp_up_dn[n_resamp_ignore:-n_resamp_ignore],
+                            atol=1e-2)
+            # note that on systems without CUDA, this line serves as a test for
+            # a graceful fallback to n_jobs=1
+            with warnings.catch_warnings(record=True):  # poly + CUDA
+                bp_up_dn = resample(resample(bp, 2, 1, n_jobs='cuda',
+                                             **kwargs),
+                                    1, 2, n_jobs='cuda', **kwargs)
+            assert_allclose(bp[n_resamp_ignore:-n_resamp_ignore],
+                            bp_up_dn[n_resamp_ignore:-n_resamp_ignore],
+                            atol=1e-2)
 
     # make sure we don't alias
     t = np.array(list(range(sfreq * sig_len_secs))) / float(sfreq)
     # make sinusoid close to the Nyquist frequency
     sig = np.sin(2 * np.pi * sfreq / 2.2 * t)
     # signal should disappear with 2x downsampling
-    sig_gone = resample(sig, 1, 2)[n_resamp_ignore:-n_resamp_ignore]
-    assert_array_almost_equal(np.zeros_like(sig_gone), sig_gone, 2)
+    for method in ('fft', 'poly'):
+        sig_gone = resample(sig, 1, 2, method=method)
+        sig_gone = sig_gone[n_resamp_ignore:-n_resamp_ignore]
+        assert_allclose(np.zeros_like(sig_gone), sig_gone, atol=1e-2)
 
     # let's construct some filters
     iir_params = dict(ftype='cheby1', gpass=1, gstop=20, output='ba')
@@ -459,6 +479,7 @@ def test_cuda():
     # some warnings about clean-up failing
     # Also, using `n_jobs='cuda'` on a non-CUDA system should be fine,
     # as it should fall back to using n_jobs=1.
+    rng = np.random.RandomState(0)
     sfreq = 500
     sig_len_secs = 20
     a = rng.randn(sig_len_secs * sfreq)
@@ -469,22 +490,22 @@ def test_cuda():
             args = [a, sfreq, 4, 8, None, fl, 1.0, 1.0]
             bp = filter_data(*args, **kwargs)
             bp_c = filter_data(*args, n_jobs='cuda', verbose='info', **kwargs)
-            assert_array_almost_equal(bp, bp_c, 12)
+            assert_allclose(bp, bp_c, atol=1e-12)
 
             args = [a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0]
             bs = filter_data(*args, **kwargs)
             bs_c = filter_data(*args, n_jobs='cuda', verbose='info', **kwargs)
-            assert_array_almost_equal(bs, bs_c, 12)
+            assert_allclose(bs, bs_c, atol=1e-12)
 
             args = [a, sfreq, None, 8, None, fl, 1.0]
             lp = filter_data(*args, **kwargs)
             lp_c = filter_data(*args, n_jobs='cuda', verbose='info', **kwargs)
-            assert_array_almost_equal(lp, lp_c, 12)
+            assert_allclose(lp, lp_c, atol=1e-12)
 
             args = [lp, sfreq, 4, None, None, fl, 1.0]
             hp = filter_data(*args, **kwargs)
             hp_c = filter_data(*args, n_jobs='cuda', verbose='info', **kwargs)
-            assert_array_almost_equal(hp, hp_c, 12)
+            assert_allclose(hp, hp_c, atol=1e-12)
 
     # check to make sure we actually used CUDA
     out = log_file.getvalue().split('\n')[:-1]
@@ -500,22 +521,25 @@ def test_cuda():
             a = rng.randn(2, N)
             for fro, to in ((1, 2), (2, 1), (1, 3), (3, 1)):
                 a1 = resample(a, fro, to, n_jobs=1, npad='auto',
-                              window=window)
+                              window=window, method='fft')
                 a2 = resample(a, fro, to, n_jobs='cuda', npad='auto',
-                              window=window)
+                              window=window, method='fft')
                 assert_allclose(a1, a2, rtol=1e-7, atol=1e-14)
-    assert_array_almost_equal(a1, a2, 14)
-    assert_array_equal(resample([0, 0], 2, 1, n_jobs='cuda'), [0., 0., 0., 0.])
-    assert_array_equal(resample(np.zeros(2, np.float32), 2, 1, n_jobs='cuda'),
+    with pytest.warns(RuntimeWarning, match='cannot be used for'):
+        resample(a, fro, to, n_jobs='cuda', method='poly')
+    assert_allclose(a1, a2, atol=1e-14)
+    assert_array_equal(resample([0, 0], 2, 1, n_jobs='cuda', method='fft'),
                        [0., 0., 0., 0.])
+    assert_array_equal(resample(np.zeros(2, np.float32), 2, 1, n_jobs='cuda',
+                                method='fft'), [0., 0., 0., 0.])
 
 
 def test_detrend():
     """Test zeroth and first order detrending."""
     x = np.arange(10)
-    assert_array_almost_equal(detrend(x, 1), np.zeros_like(x))
+    assert_allclose(detrend(x, 1), np.zeros_like(x), atol=1e-12)
     x = np.ones(10)
-    assert_array_almost_equal(detrend(x, 0), np.zeros_like(x))
+    assert_allclose(detrend(x, 0), np.zeros_like(x), atol=1e-12)
 
 
 def test_interp2():

@@ -64,14 +64,14 @@ def init_cuda(ignore_config=False):
     # Triage possible errors for informative messaging
     _cuda_capable = False
     try:
-        from pycuda import gpuarray, driver  # noqa: F401
+        from pycuda import gpuarray, driver  # noqa: F401, analysis:ignore
         from pycuda.elementwise import ElementwiseKernel
     except ImportError:
         warn('module pycuda not found, CUDA not enabled')
         return
     try:
         # Initialize CUDA; happens with importing autoinit
-        import pycuda.autoinit  # noqa: F401
+        import pycuda.autoinit  # noqa: F401, analysis:ignore
     except ImportError:
         warn('pycuda.autoinit could not be imported, likely a hardware error, '
              'CUDA not enabled%s' % _explain_exception())
@@ -218,7 +218,7 @@ def fft_multiply_repeated(h_fft, x, cuda_dict=dict(use_cuda=False)):
 ###############################################################################
 # FFT Resampling
 
-def setup_cuda_fft_resample(n_jobs, W, new_len):
+def setup_cuda_fft_resample(n_jobs, W, new_len, method='fft'):
     """Set up CUDA FFT resampling.
 
     Parameters
@@ -226,13 +226,16 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
     n_jobs : int | str
         If n_jobs == 'cuda', the function will attempt to set up for CUDA
         FFT resampling.
-    W : array
+    W : array | str
         The filtering function to be used during resampling.
         If n_jobs='cuda', this function will be shortened (since CUDA
         assumes FFTs of real signals are half the length of the signal)
-        and turned into a gpuarray.
+        and turned into a gpuarray. Can be a string if ``method='poly'``.
     new_len : int
         The size of the array following resampling.
+    method : str
+        The resampling method to be used. Currently only "fft" can be
+        used with ``n_jobs='cuda'``.
 
     Returns
     -------
@@ -269,7 +272,10 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
     if n_jobs == 'cuda':
         n_jobs = 1
         init_cuda()
-        if _cuda_capable:
+        if method == 'poly':
+            warn('CUDA cannot be used for resampling method="poly", '
+                 'falling back to n_jobs=1')
+        elif _cuda_capable:
             # try setting up for float64
             from pycuda import gpuarray
             cudafft = _get_cudafft()
@@ -297,14 +303,14 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
 
 
 def fft_resample(x, W, new_len, npads, to_removes, cuda_dict=None,
-                 pad='reflect_limited'):
+                 pad='reflect_limited', method='fft'):
     """Do FFT resampling with a filter function (possibly using CUDA).
 
     Parameters
     ----------
     x : 1-d array
         The array to resample. Will be converted to float64 if necessary.
-    W : 1-d array or gpuarray
+    W : ndarray | gpuarray | str
         The filtering function to apply.
     new_len : int
         The size of the output array (before removing padding).
@@ -322,6 +328,8 @@ def fft_resample(x, W, new_len, npads, to_removes, cuda_dict=None,
         of the vector, followed by zeros.
 
         .. versionadded:: 0.15
+    method : str
+        The resampling method. Can be "fft" or "poly".
 
     Returns
     -------
@@ -336,25 +344,31 @@ def fft_resample(x, W, new_len, npads, to_removes, cuda_dict=None,
     old_len = len(x)
     shorter = new_len < old_len
     if not cuda_dict['use_cuda']:
-        N = int(min(new_len, old_len))
-        # The below is equivalent to this, but faster
-        # sl_1 = slice((N + 1) // 2)
-        # y_fft = np.zeros(new_len, np.complex128)
-        # x_fft = fft(x).ravel() * W
-        # y_fft[sl_1] = x_fft[sl_1]
-        # sl_2 = slice(-(N - 1) // 2, None)
-        # y_fft[sl_2] = x_fft[sl_2]
-        # y = np.real(ifft(y_fft, overwrite_x=True)).ravel()
-        x_fft = rfft(x).ravel()
-        x_fft *= W[np.arange(1, len(x) + 1) // 2].real
-        y_fft = np.zeros(new_len, np.float64)
-        sl_1 = slice(N)
-        y_fft[sl_1] = x_fft[sl_1]
-        if min(new_len, old_len) % 2 == 0:
-            if new_len > old_len:
-                y_fft[N - 1] /= 2.
-        y = irfft(y_fft, overwrite_x=True).ravel()
+        if method == 'fft':
+            N = int(min(new_len, old_len))
+            # The below is equivalent to this, but faster
+            # sl_1 = slice((N + 1) // 2)
+            # y_fft = np.zeros(new_len, np.complex128)
+            # x_fft = fft(x).ravel() * W
+            # y_fft[sl_1] = x_fft[sl_1]
+            # sl_2 = slice(-(N - 1) // 2, None)
+            # y_fft[sl_2] = x_fft[sl_2]
+            # y = np.real(ifft(y_fft, overwrite_x=True)).ravel()
+            x_fft = rfft(x).ravel()
+            x_fft *= W[np.arange(1, len(x) + 1) // 2].real
+            y_fft = np.zeros(new_len, np.float64)
+            sl_1 = slice(N)
+            y_fft[sl_1] = x_fft[sl_1]
+            if min(new_len, old_len) % 2 == 0:
+                if new_len > old_len:
+                    y_fft[N - 1] /= 2.
+            y = irfft(y_fft, overwrite_x=True).ravel()
+        else:
+            assert method == 'poly'
+            from scipy.signal import resample_poly
+            y = resample_poly(x, new_len, x.size, window=W)
     else:
+        assert method == 'fft'  # previous checks should ensure this
         cudafft = _get_cudafft()
         cuda_dict['x'].set(np.concatenate((x, np.zeros(max(new_len - old_len,
                                                            0), x.dtype))))

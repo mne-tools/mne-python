@@ -173,12 +173,6 @@ if not use_precomputed:
     raw.plot_psd(tmax=np.inf, picks=meg_picks)
 
 ###############################################################################
-# We also lowpass filter the data at 100 Hz to remove the hf components.
-if not use_precomputed:
-    raw.filter(None, 100., h_trans_bandwidth=0.5, filter_length='10s',
-               phase='zero-double', fir_design='firwin2')
-
-###############################################################################
 # Epoching and averaging.
 # First some parameters are defined and events extracted from the stimulus
 # channel (UPPT001). The rejection thresholds are defined as peak-to-peak
@@ -234,9 +228,9 @@ epochs.drop_bad()
 epochs_standard = mne.concatenate_epochs([epochs['standard'][range(40)],
                                           epochs['standard'][182:222]])
 epochs_standard.load_data()  # Resampling to save memory.
-epochs_standard.resample(600, npad='auto')
+epochs_standard.resample(600, method='poly')
 epochs_deviant = epochs['deviant'].load_data()
-epochs_deviant.resample(600, npad='auto')
+epochs_deviant.resample(600, method='poly')
 del epochs, picks
 
 ###############################################################################

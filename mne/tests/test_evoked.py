@@ -225,35 +225,40 @@ def test_shift_time_evoked():
     assert_equal(ave_absolute.first, int(-0.3 * ave.info['sfreq']))
 
 
-def test_evoked_resample():
+@requires_version('scipy', '0.18')
+@pytest.mark.parametrize('method', ('fft', 'poly'))
+def test_evoked_resample(method):
     """Test resampling evoked data."""
     tempdir = _TempDir()
     # upsample, write it out, read it in
-    ave = read_evokeds(fname, 0)
+    ave = read_evokeds(fname, 0, baseline=(None, 0))
+    ave.pick_channels(ave.ch_names[:2])
     sfreq_normal = ave.info['sfreq']
-    ave.resample(2 * sfreq_normal, npad=100)
+    ave.resample(2 * sfreq_normal, npad=100, method=method)
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
     ave_up = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
+    ave_up.pick_channels(ave.ch_names)
 
     # compare it to the original
-    ave_normal = read_evokeds(fname, 0)
+    ave_normal = read_evokeds(fname, 0, baseline=(None, 0))
+    ave_normal.pick_channels(ave.ch_names)
 
     # and compare the original to the downsampled upsampled version
     ave_new = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
-    ave_new.resample(sfreq_normal, npad=100)
+    ave_new.resample(sfreq_normal, npad=100, method=method)
 
-    assert_array_almost_equal(ave_normal.data, ave_new.data, 2)
-    assert_array_almost_equal(ave_normal.times, ave_new.times)
-    assert_equal(ave_normal.nave, ave_new.nave)
-    assert_equal(ave_normal._aspect_kind, ave_new._aspect_kind)
-    assert_equal(ave_normal.kind, ave_new.kind)
-    assert_equal(ave_normal.last, ave_new.last)
-    assert_equal(ave_normal.first, ave_new.first)
+    assert_allclose(ave_normal.data, ave_new.data, rtol=1e-1, atol=1e-13)
+    assert_allclose(ave_normal.times, ave_new.times, atol=1e-7)
+    assert ave_normal.nave == ave_new.nave
+    assert ave_normal._aspect_kind == ave_new._aspect_kind
+    assert ave_normal.kind == ave_new.kind
+    assert ave_normal.last == ave_new.last
+    assert ave_normal.first == ave_new.first
 
     # for the above to work, the upsampling just about had to, but
     # we'll add a couple extra checks anyway
-    assert_true(len(ave_up.times) == 2 * len(ave_normal.times))
-    assert_true(ave_up.data.shape[1] == 2 * ave_normal.data.shape[1])
+    assert len(ave_up.times) == 2 * len(ave_normal.times)
+    assert ave_up.data.shape[1] == 2 * ave_normal.data.shape[1]
 
 
 def test_evoked_filter():

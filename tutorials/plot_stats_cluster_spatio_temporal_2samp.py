@@ -35,7 +35,7 @@ src_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
 
 # Load stc to in common cortical space (fsaverage)
 stc = mne.read_source_estimate(stc_fname)
-stc.resample(50, npad='auto')
+stc.resample(50, method='fft')
 
 # Read the source space we are morphing to
 src = mne.read_source_spaces(src_fname)

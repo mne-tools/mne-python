@@ -82,7 +82,7 @@ sample_vertices = [inverse_operator['src'][0]['vertno'], np.array([], int)]
 conditions = []
 for cond in ['l_aud', 'r_aud', 'l_vis', 'r_vis']:  # order is important
     evoked = epochs[cond].average()
-    evoked.resample(50, npad='auto')
+    evoked.resample(50, method='fft')
     condition = apply_inverse(evoked, inverse_operator, lambda2, method)
     #    Let's only deal with t > 0, cropping to reduce multiple comparisons
     condition.crop(0, None)

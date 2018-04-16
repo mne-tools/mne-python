@@ -140,6 +140,8 @@ Changelog
 
 - Add :func:`mne.time_frequency.csd_morlet` and :func:`mne.time_frequency.csd_array_morlet` to estimate cross-spectral density using Morlet wavelets, by `Marijn van Vliet`_
 
+- Add polyphase resampling to :func:`mne.filter.resample` and related methods (e.g., :meth:`mne.io.Raw.resample`) which should be better for integer-ratio changes in sample rate, by `Eric Larson`_
+
 - Add multidictionary time-frequency support to :func:`mne.inverse_sparse.tf_mixed_norm` by `Mathurin Massias`_ and `Daniel Strohmeier`_
 
 - Add new DICS implementation as :func:`mne.beamformer.make_dics`, :func:`mne.beamformer.apply_dics`, :func:`mne.beamformer.apply_dics_csd` and :func:`mne.beamformer.apply_dics_epochs`, by `Marijn van Vliet`_ and `Susanna Aro`_

@@ -111,8 +111,13 @@ raw.filter(1, 50., fir_design='firwin')
 #           :func:`scipy.signal.resample_poly` for examples.
 #
 # Data resampling can be done with *resample* methods.
+# Here we don't resample to exactly 100 Hz but merely close to it because the
+# original data are sampled at an uncommon frequency (600.614990234375 Hz).
+# If we want exactly 100 Hz we can choose this, but then the ``method='fft'``
+# will be much faster.
 
-raw.resample(100, npad="auto")  # set sampling frequency to 100Hz
+new_sfreq = raw.info['sfreq'] / 6.  # to ~100 Hz (not exact)
+raw.resample(new_sfreq, method='poly')
 raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
 
 ###############################################################################
