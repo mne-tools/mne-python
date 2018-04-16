@@ -255,16 +255,16 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
 
     # Tikhonov regularization using reg parameter d to control for
     # trade-off between spatial resolution and noise sensitivity
-    if beamformer is 'lcmv':
+    if beamformer == 'lcmv':
         Cm_inv, d = _reg_pinv(Cm.copy(), reg)
-    elif beamformer is 'dics':
+    elif beamformer == 'dics':
         Cm_inv, _ = _reg_pinv(Cm, reg, rcond='auto')
 
     if weight_norm is not None and inversion is not 'single':
         # Compute square of Cm_inv used for weight normalization
         Cm_inv_sq = np.dot(Cm_inv, Cm_inv)
 
-        if weight_norm is 'nai':
+        if weight_norm == 'nai':
             # estimate noise level based on covariance matrix, taking the
             # smallest eigenvalue that is not zero
             noise, _ = linalg.eigh(Cm)
@@ -289,7 +289,7 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
             continue
         Ck = np.dot(Wk, Gk)
 
-        if beamformer is 'dics':
+        if beamformer == 'dics':
             # Normalize the spatial filters:
             if Wk.ndim == 2 and len(Wk) > 1:
                 # Free source orientation
@@ -329,7 +329,7 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
 
                 power = np.dot(tmp_inv, np.dot(Wk, Gk))
 
-            elif weight_norm is not None and inversion is 'single':
+            elif weight_norm is not None and inversion == 'single':
                 # First make the filters unit gain, then apply them to the
                 # CSD matrix to compute power.
                 norm = 1 / np.sqrt(np.sum(Wk ** 2, axis=1))
@@ -337,11 +337,11 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
                 power = Wk_norm.dot(Cm).dot(Wk_norm.T)
 
             else:
-                if beamformer is 'dics':
+                if beamformer == 'dics':
                     # Compute spectral power by applying the spatial filters to
                     # the CSD matrix.
                     power = Wk.dot(Cm).dot(Wk.T)
-                elif beamformer is 'lcmv':
+                elif beamformer == 'lcmv':
                     # no weight-normalization and max-power is not implemented
                     # yet for lcmv beamformer:
                     raise NotImplementedError('The max-power orientation '
@@ -350,7 +350,7 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
                                               'set to None.')
 
             # compute the orientation:
-            if beamformer is 'lcmv':
+            if beamformer == 'lcmv':
                 eig_vals, eig_vecs = linalg.eig(power)
 
                 if np.iscomplex(eig_vecs).any():
@@ -373,7 +373,7 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
 
                 is_free_ori = False
 
-            elif beamformer is 'dics':
+            elif beamformer == 'dics':
                 # Compute the direction of max power
                 u, s, _ = np.linalg.svd(power.real)
                 max_ori = u[:, 0]
@@ -381,7 +381,7 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
                 Wk[:] = np.dot(max_ori, Wk)
 
         else:  # do vector beamformer
-            if beamformer is 'lcmv':
+            if beamformer == 'lcmv':
                 # compute the filters:
                 if is_free_ori:
                     # Free source orientation
@@ -392,13 +392,13 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
 
                 # handle noise normalization with free/normal source
                 # orientation:
-                if weight_norm is 'nai':
+                if weight_norm == 'nai':
                     raise NotImplementedError('Weight normalization with '
                                               'neural activity index is not '
                                               'implemented yet with free or '
                                               'fixed orientation.')
 
-                elif weight_norm is 'unit-noise-gain':
+                elif weight_norm == 'unit-noise-gain':
                     noise_norm = np.sum(Wk ** 2, axis=1)
                     if is_free_ori:
                         noise_norm = np.sum(noise_norm)
@@ -415,7 +415,7 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
             W = W[2::3]
             is_free_ori = False
 
-        if beamformer is 'dics':
+        if beamformer == 'dics':
             if weight_norm == 'unit-noise-gain':
                 # Scale weights so that W @ I @ W.T == I
                 if pick_ori is None and n_orient > 1:
