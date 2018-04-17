@@ -963,10 +963,18 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
                     for c in sel_grad if info_ch_names[c] in csd.ch_names]
         indices = [idx_eeg, idx_mag, idx_grad]
         titles = ['EEG', 'Magnetometers', 'Gradiometers']
+
+        if mode == 'csd':
+            # The units in which to plot the CSD
+            units = dict(eeg=u'μV²', grad=u'fT²/cm²', mag=u'fT²')
+            scalings = dict(eeg=1e12, grad=1e26, mag=1e30)
     else:
         indices = [np.arange(len(csd.ch_names))]
         if mode == 'csd':
             titles = ['Cross-spectral density']
+            # Units and scaling unknown
+            units = dict()
+            scalings = dict()
         elif mode == 'coh':
             titles = ['Coherence']
 
@@ -977,17 +985,18 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
     n_rows = int(np.ceil(n_freqs / float(n_cols)))
 
     figs = []
-    for ind, title in zip(indices, titles):
-        if len(indices) == 0:
+    for ind, title, ch_type in zip(indices, titles, ['eeg', 'mag', 'grad']):
+        if len(ind) == 0:
             continue
 
-        fig = plt.figure(figsize=(2 * n_cols + 1, 2.2 * n_rows))
+        fig, axes = plt.subplots(n_rows, n_cols, squeeze=False,
+                                 figsize=(2 * n_cols + 1, 2.2 * n_rows))
 
         csd_mats = []
         for i in range(len(csd.frequencies)):
             cm = csd.get_data(index=i)[ind][:, ind]
             if mode == 'csd':
-                cm = np.abs(cm)
+                cm = np.abs(cm) * scalings.get(ch_type, 1)
             elif mode == 'coh':
                 # Compute coherence from the CSD matrix
                 psd = np.diag(cm).real
@@ -996,9 +1005,8 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
 
         vmax = np.max(csd_mats)
 
-        axes = []
         for i, (freq, mat) in enumerate(zip(csd.frequencies, csd_mats)):
-            ax = plt.subplot(n_rows, n_cols, i + 1)
+            ax = axes[i // n_cols][i % n_cols]
             im = ax.imshow(mat, interpolation='nearest', cmap=cmap, vmin=0,
                            vmax=vmax)
             ax.set_xticks([])
@@ -1008,15 +1016,17 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
                                                 np.max(freq)))
             else:
                 ax.set_title('%.1f Hz.' % freq)
-            axes.append(ax)
 
         plt.suptitle(title)
         plt.subplots_adjust(top=0.8)
 
         if colorbar:
-            cb = plt.colorbar(im, ax=axes)
+            cb = plt.colorbar(im, ax=[a for ax in axes for a in ax])
             if mode == 'csd':
-                cb.set_label('Cross-spectral density')
+                label = u'Cross-spectral density'
+                if ch_type in units:
+                    label += u' (%s)' % units[ch_type]
+                cb.set_label(label)
             elif mode == 'coh':
                 cb.set_label('Coherence')
 
