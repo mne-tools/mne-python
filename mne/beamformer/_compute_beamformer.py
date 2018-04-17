@@ -253,7 +253,6 @@ def _compute_beamformer(beamformer, G, Cm, reg, n_orient, weight_norm,
                         pick_ori, reduce_rank, rank, is_free_ori,
                         inversion=None):
     """Compute a spatial filter (LCMV or DICS)."""
-
     # Tikhonov regularization using reg parameter d to control for
     # trade-off between spatial resolution and noise sensitivity
     if beamformer == 'lcmv':
