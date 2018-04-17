@@ -56,15 +56,16 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
         solution will not be used in PSF computation.
     labels : list of Label
         Labels for which PSFs shall be computed.
-    method : 'MNE' | 'dSPM' | 'sLORETA'
-        Inverse method for which PSFs shall be computed (for apply_inverse).
+    method : 'MNE' | 'dSPM' | 'sLORETA' | eLORETA
+        Inverse method for which PSFs shall be computed
+        (for :func:`apply_inverse`).
     lambda2 : float
-        The regularization parameter (for apply_inverse).
+        The regularization parameter (for :func:`apply_inverse`).
     pick_ori : None | "normal"
         If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
-        when working with loose orientations (for apply_inverse).
-    mode : 'mean' | 'sum' | 'svd' |
+        when working with loose orientations (for :func:`apply_inverse`).
+    mode : 'mean' | 'sum' | 'svd'
         PSFs can be computed for different summary measures with labels:
         'sum' or 'mean': sum or means of sub-leadfields for labels
         This corresponds to situations where labels can be assumed to be
@@ -205,41 +206,6 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
     For loose orientation constraint, the CTFs are computed for the radial
     component (pick_ori='normal').
 
-    Parameters
-    ----------
-    inverse_operator : instance of InverseOperator
-        The inverse operator.
-    forward : dict
-        The forward operator.
-    method : 'MNE' | 'dSPM' | 'sLORETA'
-        Inverse methods (for apply_inverse).
-    labels : list of Label | None
-        Labels for which CTFs shall be computed. If None, inverse matrix for
-        all vertices will be returned.
-    lambda2 : float
-        The regularization parameter (for apply_inverse).
-    pick_ori : None | "normal"
-        pick_ori : None | "normal"
-        If "normal", rather than pooling the orientations by taking the norm,
-        only the radial component is kept. This is only implemented
-        when working with loose orientations (for apply_inverse).
-        Determines whether whole inverse matrix G will have one or three rows
-        per vertex. This will also affect summary measures for labels.
-    mode : 'mean' | 'sum' | 'svd'
-        CTFs can be computed for different summary measures with labels:
-        'sum' or 'mean': sum or means of sub-inverse for labels
-        This corresponds to situations where labels can be assumed to be
-        homogeneously activated.
-        'svd': SVD components of sub-inverse for labels
-        This is better suited for situations where activation patterns are
-        assumed to be more variable.
-        "sub-inverse" is the part of the inverse matrix that belongs to
-        vertices within invidual labels.
-    n_svd_comp : int
-        Number of SVD components for which CTFs will be computed and output
-        (irrelevant for 'sum' and 'mean'). Explained variances within
-        sub-inverses are shown in screen output.
-
     Returns
     -------
     invmat : ndarray
@@ -378,7 +344,7 @@ def cross_talk_function(inverse_operator, forward, labels,
         solution will not be used in CTF computation.
     labels : list of Label
         Labels for which CTFs shall be computed.
-    method : 'MNE' | 'dSPM' | 'sLORETA'
+    method : 'MNE' | 'dSPM' | 'sLORETA' | 'eLORETA'
         Inverse method for which CTFs shall be computed.
     lambda2 : float
         The regularization parameter.

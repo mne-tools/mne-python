@@ -61,6 +61,7 @@ DEFAULTS = dict(
         rpa_color=(0., 0., 1.),
     ),
     noise_std=dict(grad=5e-13, mag=20e-15, eeg=0.2e-6),
+    eloreta_options=dict(eps=1e-6, max_iter=20, force_equal=None),
 )
 
 

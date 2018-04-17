@@ -1,6 +1,4 @@
 """
-.. _tut_stats_cluster_sensor_1samp_tfr:
-
 ===============================================================
 Non-parametric 1 sample cluster statistic on single trial power
 ===============================================================

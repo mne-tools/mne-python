@@ -1,6 +1,4 @@
 """
-.. _tut_stats_cluster_source_1samp:
-
 =================================================================
 Permutation t-test on source data with spatio-temporal clustering
 =================================================================
@@ -72,7 +70,7 @@ equalize_epoch_counts([epochs1, epochs2])
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
+method = "dSPM"  # use dSPM method (could also be MNE, sLORETA, or eLORETA)
 inverse_operator = read_inverse_operator(fname_inv)
 sample_vertices = [s['vertno'] for s in inverse_operator['src']]
 
