@@ -285,7 +285,7 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
     for k in range(n_sources):
         Wk = W[n_orient * k: n_orient * k + n_orient]
         Gk = G[:, n_orient * k: n_orient * k + n_orient]
-        if beamformer is 'lcmv' and np.all(Gk == 0.):
+        if beamformer == 'lcmv' and np.all(Gk == 0.):
             continue
         Ck = np.dot(Wk, Gk)
 
@@ -428,3 +428,5 @@ def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
                     # Compute the norm for each dipole
                     norm = np.sqrt(np.sum(W ** 2, axis=1))
                     W /= norm[:, np.newaxis]
+
+    return W, is_free_ori
