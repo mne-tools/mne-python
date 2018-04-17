@@ -226,9 +226,9 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         Cm = Cm[csd_picks, :][:, csd_picks]
 
         # compute spatial filter
-        W, _ = _compute_beamformer('dics', G, Cm, reg, weight_norm, pick_ori,
-                                   reduce_rank, rank=None, is_free_ori=None,
-                                   inversion=inversion)
+        W, _ = _compute_beamformer('dics', G, Cm, reg, n_orient, weight_norm,
+                                   pick_ori, reduce_rank, rank=None,
+                                   is_free_ori=None, inversion=inversion)
         Ws.append(W)
 
     Ws = np.array(Ws)

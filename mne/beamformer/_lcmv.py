@@ -161,9 +161,10 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         _validate_type(reduce_rank, bool, "reduce_rank", "a boolean")
 
     # compute spatial filter
-    W, is_free_ori = _compute_beamformer('lcmv', G, Cm, reg, weight_norm,
-                                         pick_ori, reduce_rank, rank,
-                                         is_free_ori)
+    n_orient = 3 if is_free_ori else 1
+    W, is_free_ori = _compute_beamformer('lcmv', G, Cm, reg, n_orient,
+                                         weight_norm, pick_ori, reduce_rank,
+                                         rank, is_free_ori)
 
     # get src type to store with filters for _make_stc
     src_type = _get_src_type(forward['src'], vertno)

@@ -249,8 +249,9 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
     return is_free_ori, ch_names, proj, vertno, G
 
 
-def _compute_beamformer(beamformer, G, Cm, reg, weight_norm, pick_ori,
-                        reduce_rank, rank, is_free_ori, inversion=None):
+def _compute_beamformer(beamformer, G, Cm, reg, n_orient, weight_norm,
+                        pick_ori, reduce_rank, rank, is_free_ori,
+                        inversion=None):
     """Compute a spatial filter (LCMV or DICS)."""
 
     # Tikhonov regularization using reg parameter d to control for
@@ -280,8 +281,8 @@ def _compute_beamformer(beamformer, G, Cm, reg, weight_norm, pick_ori,
 
     # compute spatial filter
     W = np.dot(G.T, Cm_inv)
-    n_orient = 3 if is_free_ori else 1
     n_sources = G.shape[1] // n_orient
+
     for k in range(n_sources):
         Wk = W[n_orient * k: n_orient * k + n_orient]
         Gk = G[:, n_orient * k: n_orient * k + n_orient]
