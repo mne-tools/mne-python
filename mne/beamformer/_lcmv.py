@@ -13,13 +13,13 @@ from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate, _get_src_type
-from ..utils import logger, verbose, warn, estimate_rank, _validate_type
+from ..utils import logger, verbose, warn, _validate_type
 from .. import Epochs
 from ..externals import six
 from ._compute_beamformer import (
-    _reg_pinv, _eig_inv, _setup_picks, _pick_channels_spatial_filter,
+    _reg_pinv, _setup_picks, _pick_channels_spatial_filter,
     _check_proj_match, _prepare_beamformer_input, _check_one_ch_type,
-    _check_src_type)
+    _compute_beamformer, _check_src_type)
 
 
 @verbose
@@ -151,29 +151,6 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     else:
         whitener = None
 
-    # Tikhonov regularization using reg parameter d to control for
-    # trade-off between spatial resolution and noise sensitivity
-    Cm_inv, d = _reg_pinv(Cm.copy(), reg)
-
-    if weight_norm is not None:
-        # estimate noise level based on covariance matrix, taking the
-        # smallest eigenvalue that is not zero
-        noise, _ = linalg.eigh(Cm)
-        if rank is not None:
-            rank_Cm = rank
-        else:
-            rank_Cm = estimate_rank(Cm, tol='auto', norm=False,
-                                    return_singular=False)
-        noise = noise[len(noise) - rank_Cm]
-
-        # use either noise floor or regularization parameter d
-        noise = max(noise, d)
-
-        # Compute square of Cm_inv used for weight normalization
-        Cm_inv_sq = np.dot(Cm_inv, Cm_inv)
-
-    del Cm
-
     # leadfield rank and optional rank reduction
     if reduce_rank:
         if not pick_ori == 'max-power':
@@ -183,104 +160,9 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
                                       'pick_ori=="max-power".')
         _validate_type(reduce_rank, bool, "reduce_rank", "a boolean")
 
-    # Compute spatial filters
-    W = np.dot(G.T, Cm_inv)
-    n_orient = 3 if is_free_ori else 1
-    n_sources = G.shape[1] // n_orient
-    for k in range(n_sources):
-        Wk = W[n_orient * k: n_orient * k + n_orient]
-        Gk = G[:, n_orient * k: n_orient * k + n_orient]
-        if np.all(Gk == 0.):
-            continue
-        Ck = np.dot(Wk, Gk)
-
-        # XXX This should be de-duplicated with DICS
-
-        # Compute scalar beamformer by finding the source orientation which
-        # maximizes output source power
-        if pick_ori == 'max-power':
-            # weight normalization and orientation selection:
-            if weight_norm is not None and pick_ori == 'max-power':
-                # finding optimal orientation for NAI and unit-noise-gain
-                # based on [2]_, Eq. 4.47
-                tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
-
-                if reduce_rank:
-                    # use pseudo inverse computation setting smallest component
-                    # to zero if the leadfield is not full rank
-                    tmp_inv = _eig_inv(tmp, tmp.shape[0] - 1)
-                else:
-                    # use straight inverse with full rank leadfield
-                    try:
-                        tmp_inv = linalg.inv(tmp)
-                    except np.linalg.linalg.LinAlgError:
-                        raise ValueError('Singular matrix detected when '
-                                         'estimating LCMV filters. Consider '
-                                         'reducing the rank of the leadfield '
-                                         'by using reduce_rank=True.')
-
-                eig_vals, eig_vecs = linalg.eig(np.dot(tmp_inv,
-                                                       np.dot(Wk, Gk)))
-
-                if np.iscomplex(eig_vecs).any():
-                    raise ValueError('The eigenspectrum of the leadfield at '
-                                     'this voxel is complex. Consider '
-                                     'reducing the rank of the leadfield by '
-                                     'using reduce_rank=True.')
-
-                idx_max = eig_vals.argmax()
-                max_ori = eig_vecs[:, idx_max]
-                Wk[:] = np.dot(max_ori, Wk)
-                Gk = np.dot(Gk, max_ori)
-
-                # compute spatial filter for NAI or unit-noise-gain
-                tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
-                denom = np.sqrt(tmp)
-                Wk /= denom
-                if weight_norm == 'nai':
-                    Wk /= np.sqrt(noise)
-
-                is_free_ori = False
-
-            # no weight-normalization and max-power is not implemented yet:
-            else:
-                raise NotImplementedError('The max-power orientation '
-                                          'selection is not yet implemented '
-                                          'with weight_norm set to None.')
-
-        else:  # do vector beamformer
-            # compute the filters:
-            if is_free_ori:
-                # Free source orientation
-                Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
-            else:
-                # Fixed source orientation
-                Wk /= Ck
-
-            # handle noise normalization with free/normal source orientation:
-            if weight_norm == 'nai':
-                raise NotImplementedError('Weight normalization with neural '
-                                          'activity index is not implemented '
-                                          'yet with free or fixed '
-                                          'orientation.')
-
-            if weight_norm == 'unit-noise-gain':
-                noise_norm = np.sum(Wk ** 2, axis=1)
-                if is_free_ori:
-                    noise_norm = np.sum(noise_norm)
-                noise_norm = np.sqrt(noise_norm)
-                if noise_norm == 0.:
-                    noise_norm_inv = 0  # avoid division by 0
-                else:
-                    noise_norm_inv = 1. / noise_norm
-                Wk[:] *= noise_norm_inv
-
-    # Pick source orientation maximizing output source power
-    if pick_ori == 'max-power':
-        W = W[0::3]
-    elif pick_ori == 'normal':
-        W = W[2::3]
-        is_free_ori = False
+    W, is_free_ori = _compute_beamformer('lcmv', G, Cm, reg, rank, is_free_ori,
+                                         weight_norm, pick_ori, reduce_rank,
+                                         inversion=None)
 
     # get src type to store with filters for _make_stc
     src_type = _get_src_type(forward['src'], vertno)
