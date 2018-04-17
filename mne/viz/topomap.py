@@ -476,7 +476,7 @@ def _plot_sensors(pos_x, pos_y, sensors, ax):
 
 def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  res=64, axes=None, names=None, show_names=False, mask=None,
-                 mask_params=None, outlines='head', image_mask=None,
+                 mask_params=None, outlines='head',
                  contours=6, image_interp='bilinear', show=True,
                  head_pos=None, onselect=None):
     """Plot a topographic map as image.
@@ -540,9 +540,6 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         masking options, either directly or as a function that returns patches
         (required for multi-axes plots). If None, nothing will be drawn.
         Defaults to 'head'.
-    image_mask : ndarray of bool, shape (res, res) | None
-        The image mask to cover the interpolated surface. If None, it will be
-        computed from the outline.
     contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
         If an array, the values represent the levels for the contours. The
@@ -572,13 +569,13 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     """
     return _plot_topomap(data, pos, vmin, vmax, cmap, sensors, res, axes,
                          names, show_names, mask, mask_params, outlines,
-                         image_mask, contours, image_interp, show,
+                         contours, image_interp, show,
                          head_pos, onselect)[:2]
 
 
 def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   res=64, axes=None, names=None, show_names=False, mask=None,
-                  mask_params=None, outlines='head', image_mask=None,
+                  mask_params=None, outlines='head',
                   contours=6, image_interp='bilinear', show=True,
                   head_pos=None, onselect=None):
     import matplotlib.pyplot as plt
@@ -648,20 +645,17 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         cmap = 'Reds' if norm else 'RdBu_r'
 
     pos, outlines = _check_outlines(pos, outlines, head_pos)
+    assert isinstance(outlines, dict)
 
     ax = axes if axes else plt.gca()
     pos_x, pos_y = _prepare_topomap(pos, ax)
-    if outlines is None:
-        xmin, xmax = pos_x.min(), pos_x.max()
-        ymin, ymax = pos_y.min(), pos_y.max()
-    else:
-        xlim = np.inf, -np.inf,
-        ylim = np.inf, -np.inf,
-        mask_ = np.c_[outlines['mask_pos']]
-        xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0]]),
-                      np.max(np.r_[xlim[1], mask_[:, 0]]))
-        ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
-                      np.max(np.r_[ylim[1], mask_[:, 1]]))
+    xlim = np.inf, -np.inf,
+    ylim = np.inf, -np.inf,
+    mask_ = np.c_[outlines['mask_pos']]
+    xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0]]),
+                  np.max(np.r_[xlim[1], mask_[:, 0]]))
+    ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
+                  np.max(np.r_[ylim[1], mask_[:, 1]]))
 
     # interpolate data
     xi = np.linspace(xmin, xmax, res)
@@ -670,27 +664,30 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     interp = _GridData(np.array((pos_x, pos_y)).T).set_values(data)
     Zi = interp.set_locations(Xi, Yi)()
 
-    if outlines is None:
-        _is_default_outlines = False
-    elif isinstance(outlines, dict):
-        _is_default_outlines = any(k.startswith('head') for k in outlines)
+    _use_default_outlines = any(k.startswith('head') for k in outlines)
 
-    if _is_default_outlines and image_mask is None:
+    if _use_default_outlines:
         # prepare masking
-        image_mask, pos = _make_image_mask(outlines, pos, res)
+        pos = _autoshrink(outlines, pos, res)
 
     mask_params = _handle_default('mask_params', mask_params)
 
     # plot outline
-    linewidth = mask_params['markeredgewidth']
-    patch = None
+    patch_ = None
     if 'patch' in outlines:
-        patch = outlines['patch']
-        patch_ = patch() if callable(patch) else patch
+        patch_ = outlines['patch']
+        patch_ = patch_() if callable(patch_) else patch_
         patch_.set_clip_on(False)
         ax.add_patch(patch_)
         ax.set_transform(ax.transAxes)
         ax.set_clip_path(patch_)
+    if _use_default_outlines:
+        from matplotlib import patches
+        patch_ = patches.Ellipse((0, 0),
+                                 2 * outlines['clip_radius'][0],
+                                 2 * outlines['clip_radius'][1],
+                                 clip_on=True,
+                                 transform=ax.transData)
 
     # plot map and countour
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
@@ -700,6 +697,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     # This tackles an incomprehensible matplotlib bug if no contours are
     # drawn. To avoid rescalings, we will always draw contours.
     # But if no contours are desired we only draw one and make it invisible .
+    linewidth = mask_params['markeredgewidth']
     no_contours = False
     if isinstance(contours, (np.ndarray, list)):
         pass  # contours precomputed
@@ -714,14 +712,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         for col in cont.collections:
             col.set_visible(False)
 
-    if _is_default_outlines:
-        from matplotlib import patches
-        patch_ = patches.Ellipse((0, 0),
-                                 2 * outlines['clip_radius'][0],
-                                 2 * outlines['clip_radius'][1],
-                                 clip_on=True,
-                                 transform=ax.transData)
-    if _is_default_outlines or patch is not None:
+    if patch_ is not None:
         im.set_clip_path(patch_)
         if cont is not None:
             for col in cont.collections:
@@ -766,15 +757,10 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     return im, cont, interp
 
 
-def _make_image_mask(outlines, pos, res):
+def _autoshrink(outlines, pos, res):
     """Make an image mask."""
-    mask_ = np.c_[outlines['mask_pos']]
-    xmin, xmax = (np.min(np.r_[np.inf, mask_[:, 0]]),
-                  np.max(np.r_[-np.inf, mask_[:, 0]]))
-    ymin, ymax = (np.min(np.r_[np.inf, mask_[:, 1]]),
-                  np.max(np.r_[-np.inf, mask_[:, 1]]))
-
-    if outlines.get('autoshrink', False) is not False:
+    if outlines.get('autoshrink', False):
+        mask_ = np.c_[outlines['mask_pos']]
         inside = _inside_contour(pos, mask_)
         outside = np.invert(inside)
         outlier_points = pos[outside]
@@ -783,17 +769,7 @@ def _make_image_mask(outlines, pos, res):
             inside = _inside_contour(pos, mask_)
             outside = np.invert(inside)
             outlier_points = pos[outside]
-
-    image_mask = np.zeros((res, res), dtype=bool)
-    xi_mask = np.linspace(xmin, xmax, res)
-    yi_mask = np.linspace(ymin, ymax, res)
-    Xi_mask, Yi_mask = np.meshgrid(xi_mask, yi_mask)
-
-    pos_ = np.c_[Xi_mask.flatten(), Yi_mask.flatten()]
-    inds = _inside_contour(pos_, mask_)
-    image_mask[inds.reshape(image_mask.shape)] = True
-
-    return image_mask, pos
+    return pos
 
 
 def _inside_contour(pos, contour):
@@ -835,10 +811,9 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
     data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
         ica, ch_type, layout)
     pos, outlines = _check_outlines(pos, outlines, head_pos)
-    if outlines not in (None, 'head'):
-        image_mask, pos = _make_image_mask(outlines, pos, res)
-    else:
-        image_mask = None
+    assert outlines is not None
+    if outlines != 'head':
+        pos = _autoshrink(outlines, pos, res)
 
     data = data[data_picks]
 
@@ -847,11 +822,10 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
         data = _merge_grad_data(data)
     axes.set_title(ica._ica_names[idx], fontsize=12)
     vmin_, vmax_ = _setup_vmin_vmax(data, vmin, vmax)
-    im = plot_topomap(data.ravel(), pos, vmin=vmin_, vmax=vmax_,
-                      res=res, axes=axes, cmap=cmap, outlines=outlines,
-                      image_mask=image_mask, contours=contours,
-                      sensors=sensors, image_interp=image_interp,
-                      show=show)[0]
+    im = plot_topomap(
+        data.ravel(), pos, vmin=vmin_, vmax=vmax_, res=res, axes=axes,
+        cmap=cmap, outlines=outlines, contours=contours, sensors=sensors,
+        image_interp=image_interp, show=show)[0]
     if colorbar:
         cbar, cax = _add_colorbar(axes, im, cmap, pad=.05, title="AU",
                                   format='%3.2f')
@@ -998,10 +972,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(ica, ch_type,
                                                                 layout)
     pos, outlines = _check_outlines(pos, outlines, head_pos)
-    if outlines not in (None, 'head'):
-        image_mask, pos = _make_image_mask(outlines, pos, res)
-    else:
-        image_mask = None
+    if outlines == 'head':
+        pos = _autoshrink(outlines, pos, res)
 
     data = np.atleast_2d(data)
     data = data[:, data_picks]
@@ -1020,11 +992,10 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         titles.append(ax.set_title(ica._ica_names[ii], fontsize=12, **kwargs))
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, vmin, vmax)
-        im = plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
-                          res=res, axes=ax, cmap=cmap[0], outlines=outlines,
-                          image_mask=image_mask, contours=contours,
-                          image_interp=image_interp, show=False,
-                          sensors=sensors)[0]
+        im = plot_topomap(
+            data_.flatten(), pos, vmin=vmin_, vmax=vmax_, res=res, axes=ax,
+            cmap=cmap[0], outlines=outlines, contours=contours,
+            image_interp=image_interp, show=False, sensors=sensors)[0]
         im.axes.set_label(ica._ica_names[ii])
         if colorbar:
             cbar, cax = _add_colorbar(ax, im, cmap, title="AU",
@@ -1580,10 +1551,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
             mask_ = mask[np.ix_(picks, time_idx)]
 
     pos, outlines = _check_outlines(pos, outlines, head_pos)
-    if outlines is not None:
-        image_mask, pos = _make_image_mask(outlines, pos, res)
-    else:
-        image_mask = None
+    assert outlines is not None
+    pos = _autoshrink(outlines, pos, res)
 
     vlims = [_setup_vmin_vmax(data[:, i], vmin, vmax, norm=merge_grads)
              for i in range(len(times))]
@@ -1596,7 +1565,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
 
     kwargs = dict(vmin=vmin, vmax=vmax, sensors=sensors, res=res, names=names,
                   show_names=show_names, cmap=cmap[0], mask_params=mask_params,
-                  outlines=outlines, image_mask=image_mask, contours=contours,
+                  outlines=outlines, contours=contours,
                   image_interp=image_interp, show=False)
     for idx, time in enumerate(times):
         tp, cn, interp = _plot_topomap(
@@ -2135,7 +2104,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads):
     zi_min = np.min(params['Zis'])
     zi_max = np.max(params['Zis'])
     cont_lims = np.linspace(zi_min, zi_max, 7, endpoint=False)[1:]
-    _, pos = _make_image_mask(outlines, pos, res)
+    pos = _autoshrink(outlines, pos, res)
     params.update({'vmin': vmin, 'vmax': vmax, 'Xi': Xi, 'Yi': Yi, 'Zi': Zi,
                    'extent': (xmin, xmax, ymin, ymax), 'cmap': cmap,
                    'cont_lims': cont_lims})

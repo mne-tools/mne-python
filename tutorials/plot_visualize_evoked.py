@@ -173,7 +173,7 @@ mne.viz.plot_evoked_topo(evoked, title=title % 'Left/Right Auditory/Visual',
 ###############################################################################
 # Visualizing field lines in 3D
 # -----------------------------
-# We now compute the field maps to project MEG and EEG data to MEG helmet
+# We now compute the field maps to project MEG and EEG data to the MEG helmet
 # and scalp surface.
 #
 # To do this, we need coregistration information. See
