@@ -404,29 +404,30 @@ def _compute_beamformer(beamformer, G, Cm, reg, weight_norm, pick_ori,
                         noise_norm = np.sum(noise_norm)
                     noise_norm = np.sqrt(noise_norm)
                     if noise_norm == 0.:
-                        noise_norm_inv = 0  # avoid division by 0
+                        noise_norm_inv = 0.  # avoid division by 0
                     else:
                         noise_norm_inv = 1. / noise_norm
                     Wk[:] *= noise_norm_inv
 
-        if pick_ori == 'max-power':
-            W = W[0::3]
-        elif pick_ori == 'normal':
-            W = W[2::3]
-            is_free_ori = False
+    # picking source orientation maximizing output source power
+    if pick_ori == 'max-power':
+        W = W[0::3]
+    elif pick_ori == 'normal':
+        W = W[2::3]
+        is_free_ori = False
 
-        if beamformer == 'dics':
-            if weight_norm == 'unit-noise-gain':
-                # Scale weights so that W @ I @ W.T == I
-                if pick_ori is None and n_orient > 1:
-                    # Compute the norm for each set of 3 dipoles
-                    W = W.reshape(-1, 3, W.shape[1])
-                    norm = np.sqrt(np.sum(W ** 2, axis=(1, 2)))
-                    W /= norm[:, np.newaxis, np.newaxis]
-                    W = W.reshape(-1, W.shape[2])
-                else:
-                    # Compute the norm for each dipole
-                    norm = np.sqrt(np.sum(W ** 2, axis=1))
-                    W /= norm[:, np.newaxis]
+    if beamformer == 'dics':
+        if weight_norm == 'unit-noise-gain':
+            # Scale weights so that W @ I @ W.T == I
+            if pick_ori is None and n_orient > 1:
+                # Compute the norm for each set of 3 dipoles
+                W = W.reshape(-1, 3, W.shape[1])
+                norm = np.sqrt(np.sum(W ** 2, axis=(1, 2)))
+                W /= norm[:, np.newaxis, np.newaxis]
+                W = W.reshape(-1, W.shape[2])
+            else:
+                # Compute the norm for each dipole
+                norm = np.sqrt(np.sum(W ** 2, axis=1))
+                W /= norm[:, np.newaxis]
 
     return W, is_free_ori
