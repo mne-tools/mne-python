@@ -249,8 +249,8 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
     return is_free_ori, ch_names, proj, vertno, G
 
 
-def _compute_beamformer(beamformer, G, Cm, reg, rank, is_free_ori, weight_norm,
-                        pick_ori, reduce_rank, inversion):
+def _compute_beamformer(beamformer, G, Cm, reg, weight_norm, pick_ori,
+                        reduce_rank, rank, is_free_ori, inversion=None):
     """Compute a spatial filter (LCMV or DICS)."""
 
     # Tikhonov regularization using reg parameter d to control for
