@@ -1023,7 +1023,7 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
         if colorbar:
             cb = plt.colorbar(im, ax=[a for ax in axes for a in ax])
             if mode == 'csd':
-                label = u'Cross-spectral density'
+                label = u'CSD'
                 if ch_type in units:
                     label += u' (%s)' % units[ch_type]
                 cb.set_label(label)
