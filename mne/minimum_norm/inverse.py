@@ -890,13 +890,13 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     ----------
     .. [1] Hamalainen M S and Ilmoniemi R. Interpreting magnetic fields of
            the brain: minimum norm estimates. Medical & Biological Engineering
-           & Computing, 32(1):35–42, 1994.
+           & Computing, 32(1):35-42, 1994.
     .. [2] Dale A, Liu A, Fischl B, Buckner R. (2000) Dynamic statistical
            parametric mapping: combining fMRI and MEG for high-resolution
-           imaging of cortical activity. Neuron, 26:55–67.
+           imaging of cortical activity. Neuron, 26:55-67.
     .. [3] Pascual-Marqui RD (2002), Standardized low resolution brain
            electromagnetic tomography (sLORETA): technical details. Methods
-           Find. Exp. Clin. Phar- macology, 24(D):5–12.
+           Find. Exp. Clin. Pharmacology, 24(D):5-12.
     .. [4] Pascual-Marqui RD (2007). Discrete, 3D distributed, linear imaging
            methods of electric neuronal activity. Part 1: exact, zero error
            localization. arXiv:0710.3341
