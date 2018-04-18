@@ -9,10 +9,9 @@ import mne
 import numpy as np
 import os.path
 
-test_data_folder = 'mne/io/tests/data/fieldtrip'
-
 
 def test_whole_process():
+    test_data_folder = os.path.join(mne.datasets.testing.data_path(), 'fieldtrip')
     all_versions = ['v7', 'v73']
     for version in all_versions:
         f_name_raw = os.path.join(test_data_folder, 'raw_%s.mat' % (version, ))
