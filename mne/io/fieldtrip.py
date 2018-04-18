@@ -104,8 +104,8 @@ def read_epochs_fieldtrip(ft_structure_path, data_name='data',
         Omit trialinfo columns that look like an index of the trials, i.e. in
         which every row is the row before + 1.
     omit_non_unique_trialinfo_index: bool
-        Omit trialinfo columns that contain a different value for each row. T
-        ese are most likely additional data like reaction times that cannot
+        Omit trialinfo columns that contain a different value for each row.
+        These are most likely additional data like reaction times that cannot
         be represented in MNE.
 
 
