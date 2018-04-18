@@ -4,4 +4,3 @@ from . import h5io
 from . import jdcal
 from . import six
 from . import tempita
-from . import pymatreader
