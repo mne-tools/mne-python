@@ -7,8 +7,15 @@
 
 import mne
 import numpy as np
-from ..externals import pymatreader
 
+def _check_pymatreader():
+    """Helper to check if pymatreader and h5py are installed"""
+    try:
+        from ..externals import pymatreader
+    except ImportError:
+        raise ImportError('The h5py module is required to use the FieldTrip '
+                          'import functions.')
+    return pymatreader
 
 def read_raw_fieldtrip(ft_structure_path, data_name='data'):
     """Load continuous (i.e. raw) data from a FieldTrip preprocessing structure.
@@ -31,6 +38,8 @@ def read_raw_fieldtrip(ft_structure_path, data_name='data'):
         info
 
     """
+    pymatreader = _check_pymatreader()
+
     ft_struct = pymatreader.read_mat(ft_structure_path,
                                      ignore_fields=['previous'],
                                      variable_names=[data_name])
@@ -107,6 +116,8 @@ def read_epochs_fieldtrip(ft_structure_path, data_name='data',
     >>>         'audio/non_attend': np.array([0, 0]), # doctest: +SKIP
     >>>         'visual/non_attend': np.array([1, 0])}) # doctest: +SKIP
     """
+    pymatreader = _check_pymatreader()
+
     ft_struct = pymatreader.read_mat(ft_structure_path,
                                      ignore_fields=['previous'],
                                      variable_names=[data_name])
@@ -149,6 +160,8 @@ def read_evoked_fieldtrip(ft_structure_path, comment='', data_name='data'):
          comment and measurement info.
 
     """
+    pymatreader = _check_pymatreader()
+
     ft_struct = pymatreader.read_mat(ft_structure_path,
                                      ignore_fields=['previous'],
                                      variable_names=[data_name])
