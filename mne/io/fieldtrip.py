@@ -8,6 +8,7 @@
 import mne
 import numpy as np
 
+
 def _check_pymatreader():
     """Helper to check if pymatreader and h5py are installed"""
     try:
@@ -16,6 +17,7 @@ def _check_pymatreader():
         raise ImportError('The h5py module is required to use the FieldTrip '
                           'import functions.')
     return pymatreader
+
 
 def read_raw_fieldtrip(ft_structure_path, data_name='data'):
     """Load continuous (i.e. raw) data from a FieldTrip preprocessing structure.
@@ -55,9 +57,9 @@ def read_raw_fieldtrip(ft_structure_path, data_name='data'):
 
 
 def read_epochs_fieldtrip(ft_structure_path, data_name='data',
-                         trialinfo_map=None,
-                   omit_trialinfo_index=True,
-                   omit_non_unique_trialinfo_index=True):
+                          trialinfo_map=None,
+                          omit_trialinfo_index=True,
+                          omit_non_unique_trialinfo_index=True):
     """Load epoched data from a FieldTrip preprocessing structure.
 
     This function expects to find epoched data in the structure data_name is
