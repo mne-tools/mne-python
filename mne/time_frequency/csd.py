@@ -990,7 +990,7 @@ def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
 
 
 @verbose
-def csd_morlet(epochs, frequencies=None, tmin=None, tmax=None, picks=None,
+def csd_morlet(epochs, frequencies, tmin=None, tmax=None, picks=None,
                n_cycles=7, use_fft=True, decim=1, projs=None, n_jobs=1,
                verbose=None):
     """Estimate cross-spectral density from epochs using Morlet wavelets.
@@ -999,7 +999,7 @@ def csd_morlet(epochs, frequencies=None, tmin=None, tmax=None, picks=None,
     ----------
     epochs : instance of Epochs
         The epochs to compute the CSD for.
-    frequencies : list of float | None
+    frequencies : list of float
         The frequencies of interest, in Hertz.
     tmin : float | None
         Minimum time instant to consider, in seconds. If ``None`` start at
@@ -1048,14 +1048,14 @@ def csd_morlet(epochs, frequencies=None, tmin=None, tmax=None, picks=None,
     """
     epochs, projs = _prepare_csd(epochs, tmin, tmax, picks, projs)
     return csd_array_morlet(epochs.get_data(), sfreq=epochs.info['sfreq'],
-                            t0=epochs.tmin, frequencies=frequencies, tmin=tmin,
+                            frequencies=frequencies, t0=epochs.tmin, tmin=tmin,
                             tmax=tmax, ch_names=epochs.ch_names,
                             n_cycles=n_cycles, use_fft=use_fft, decim=decim,
                             projs=projs, n_jobs=n_jobs, verbose=verbose)
 
 
 @verbose
-def csd_array_morlet(X, sfreq, t0=0, frequencies=None, tmin=None, tmax=None,
+def csd_array_morlet(X, sfreq, frequencies, t0=0, tmin=None, tmax=None,
                      ch_names=None, n_cycles=7, use_fft=True, decim=1,
                      projs=None, n_jobs=1, verbose=None):
     """Estimate cross-spectral density from an array using Morlet wavelets.
@@ -1067,11 +1067,11 @@ def csd_array_morlet(X, sfreq, t0=0, frequencies=None, tmin=None, tmax=None,
         of signals with n_channels time-series of length n_times.
     sfreq : float
         Sampling frequency of observations.
+    frequencies : list of float
+        The frequencies of interest, in Hertz.
     t0 : float
         Time of the first sample relative to the onset of the epoch, in
         seconds. Defaults to 0.
-    frequencies : list of float | None
-        The frequencies of interest, in Hertz.
     tmin : float | None
         Minimum time instant to consider, in seconds. If ``None`` start at
         first sample.

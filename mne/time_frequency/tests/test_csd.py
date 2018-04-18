@@ -503,9 +503,9 @@ def test_csd_morlet():
     parameters = product(times, as_arrays)
     for (tmin, tmax), as_array in parameters:
         if as_array:
-            csd = csd_array_morlet(epochs.get_data(), sfreq,
-                                   epochs.tmin, frequencies=freqs,
-                                   n_cycles=n_cycles, tmin=tmin, tmax=tmax,
+            csd = csd_array_morlet(epochs.get_data(), sfreq, freqs,
+                                   t0=epochs.tmin, n_cycles=n_cycles,
+                                   tmin=tmin, tmax=tmax,
                                    ch_names=epochs.ch_names)
         else:
             csd = csd_morlet(epochs, frequencies=freqs, n_cycles=n_cycles,
