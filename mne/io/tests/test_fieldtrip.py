@@ -13,7 +13,7 @@ from mne.datasets import testing
 
 @testing.requires_testing_data
 def test_whole_process():
-    """Test the reader functions for FieldTrip data"""
+    """Test the reader functions for FieldTrip data."""
     test_data_folder = os.path.join(mne.datasets.testing.data_path(),
                                     'fieldtrip')
     all_versions = ['v7', 'v73']
