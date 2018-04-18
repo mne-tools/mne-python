@@ -180,6 +180,8 @@ Bug
 
 - Fix handling of annotations when cropping and concatenating raw data by `Alex Gramfort`_ and `Eric Larson`_
 
+- Fix bug in :func:`mne.preprocessing.create_ecg_epochs` where ``keep_ecg=False`` was ignored by `Eric Larson`_
+
 - Fix bug in :meth:`mne.io.Raw.plot_psd` when ``picks is not None`` and ``picks`` spans more than one channel type by `Eric Larson`_
 
 - Fix bug in :class:`mne.make_forward_solution` when passing data with compensation channels (e.g. CTF) that contain bad channels by `Alex Gramfort`_
