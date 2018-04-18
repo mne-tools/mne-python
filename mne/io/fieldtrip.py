@@ -9,37 +9,24 @@ import mne
 import numpy as np
 from mne.externals import pymatreader
 
-"""
-Purpose of this module is to read MEG or EEG data, created in MATLABs 'FieldTrip' toolbox and saved in .mat files,
-into equivalent data structures of the MNE python module.
-"""
-
 
 def read_raw_ft(ft_structure_path, data_name='data'):
-    """This function extracts FieldTrip single trial raw data structures (FT_DATATYPE_RAW) 
+    """Extracts FieldTrip single trial raw data structures (FT_DATATYPE_RAW)
     from .mat files and converts them to MNE RawArrays.
     
     Parameters
     ----------
     ft_structure_path: str
         Path and filename of the .mat file containing the data.
-    data_name: str, optional
+    data_name: str
         Name of heading dict/ variable name under which the data was originally saved
-        in MATLAB. Default is 'data'.
+        in MATLAB.
         
     Returns
     -------
     mne.io.RawArray
         A MNE RawArray structure consisting of the raw array and measurement info
-    
-    Examples
-    --------
-    >>> read_raw("/home/usr/Documents/FieldTripRawFile.mat")
-    <RawArray  |  None, n_channels x n_times : 402 x 60001 (60.0 sec), ~185.0 MB, data loaded>
 
-    >>> read_raw("FieldTripRawFile2.mat", data_name="rawdata")
-    <RawArray  |  None, n_channels x n_times : 323 x 35001 (35.0 sec), ~117.0 MB, data loaded>
-    
     """
 
     ft_struct = pymatreader.read_mat(ft_structure_path, ignore_fields=['previous'], variable_names=[data_name])
@@ -53,7 +40,7 @@ def read_raw_ft(ft_structure_path, data_name='data'):
 
 
 def read_epochs_ft(ft_structure_path, data_name='data', trialinfo_map=None, omit_trialinfo_index=True, omit_non_unique_trialinfo_index=True):
-    """This function extracts FieldTrip multiple trial raw data structures (FT_DATATYPE_RAW) 
+    """Extracts FieldTrip multiple trial raw data structures (FT_DATATYPE_RAW)
     from .mat files and converts them to MNE EpochsArrays.
 
     .. warning:: Only epochs with the same amount of channels and samples are supported!
@@ -71,15 +58,15 @@ def read_epochs_ft(ft_structure_path, data_name='data', trialinfo_map=None, omit
     ----------
     ft_structure_path: str
         Path and filename of the .mat file containing the data.
-    data_name: str, optional
+    data_name: str
         Name of heading dict/ variable name under which the data was originally saved
-        in MATLAB. Default is 'data'.
-    trialinfo_map: dict, optional
+        in MATLAB.
+    trialinfo_map: dict
         A dictionary mapping condition strings (MNE's event_ids) to the trialinfo column. The values should be 1D numpy arrays.
         See examples for details.
-    omit_trialinfo_index: bool, optional
+    omit_trialinfo_index: bool
         Omit trialinfo columns that look like an index of the trials, i.e. in which every row is the row before + 1.
-    omit_non_unique_trialinfo_index: bool, optional
+    omit_non_unique_trialinfo_index: bool
         Omit trialinfo columns that contain a different value for each row. These are most likely additional data
         like reaction times that cannot be represented in MNE.
 
@@ -92,14 +79,6 @@ def read_epochs_ft(ft_structure_path, data_name='data', trialinfo_map=None, omit
     
     Examples
     --------
-    >>> read_epoched("/home/usr/Documents/FieldTripEpochsFile.mat")
-    <EpochsArray  |  n_events : 123 (all good), tmin : -1.0 (s), tmax : 2.99 (s), baseline : None, ~115.7 MB, data loaded,
-    '1': 21, '2': 9, '3': 12, '4': 22, '5': 20, '6': 7, '7': 9, '8': 23>
-
-    >>> read_epoched("FieldTripEpochsFile2.mat", data_name="epoched")
-    <EpochsArray  |  n_events : 10 (all good), tmin : -0.1 (s), tmax : 0.5 (s), baseline : None, ~87.5 MB, data loaded,
-    '1': 5, '2': 5>
-
     >>> read_epoched('FieldTripEpochsFile', trialinfo_map={
     >>>    'audio/attend': np.array([0, 1]),
     >>>    'visual/attend': np.array([1, 1]),
@@ -120,37 +99,24 @@ def read_epochs_ft(ft_structure_path, data_name='data', trialinfo_map=None, omit
 
 
 def read_evoked_ft(ft_structure_path, comment='', data_name='data'):
-    """This function extracts FieldTrip timelock data structures (FT_DATATYPE_TIMELOCK) 
+    """Extracts FieldTrip timelock data structures (FT_DATATYPE_TIMELOCK)
     from .mat files and converts them to MNE EvokedArrays.
     
     Parameters
     ----------
     ft_structure_path: str
         Path and filename of the .mat file containing the data.
-    comment: str, optional
-        Comment on dataset. Can be the condition. Default is ''
-    data_name: str, optional
+    comment: str
+        Comment on dataset. Can be the condition.
+    data_name: str
         Name of heading dict/ variable name under which the data was originally saved
-        in MATLAB. Default is 'data'.
+        in MATLAB.
         
     Returns
     -------
     mne.EvokedArray
         A MNE EvokedArray structure consisting of the averaged data array,
          comment and measurement info.
-    
-    Examples
-    --------
-    >>> read_avg("/home/usr/Documents/FieldTripTimelockFile.mat")
-    <Evoked  |  comment : '', kind : average, time : [0.000000, 3.990000], n_epochs : 1, n_channels x n_times : 306 x 400, ~1.7 MB>
-
-
-    >>> read_avg("FieldTripTimelockFile2.mat", data_name="evoked")
-    <Evoked  |  comment : '', kind : average, time : [0.000000, 2.490000], n_epochs : 1, n_channels x n_times : 306 x 250, ~1.1 MB>
-
-    
-    >>> read_avg("FieldTripTimelockFile.mat", comment= "visual stimulus")
-    <Evoked  |  comment : 'visual stimulus', kind : average, time : [0.000000, 3.990000], n_epochs : 1, n_channels x n_times : 306 x 400, ~1.7 MB>
 
     """
 
