@@ -5,14 +5,14 @@
 # License: BSD (3-clause)
 
 import numpy as np
-import copy as cp
 from scipy import linalg
+
 from .. import EvokedArray, Evoked
 from ..cov import Covariance, _regularized_covariance
 from ..decoding import TransformerMixin, BaseEstimator
-from ..epochs import BaseEpochs, EpochsArray
+from ..epochs import BaseEpochs
 from ..io import BaseRaw
-from ..io.pick import _pick_data_channels
+from ..io.pick import _pick_data_channels, pick_info
 from ..utils import logger
 from ..externals.six import iteritems, itervalues
 
@@ -426,8 +426,9 @@ class Xdawn(_XdawnTransformer):
         # Check data
         if not isinstance(epochs, BaseEpochs):
             raise ValueError('epochs must be an Epochs object.')
-        X = epochs.get_data()
-        X = X[:, _pick_data_channels(epochs.info), :]
+        picks = _pick_data_channels(epochs.info)
+        use_info = pick_info(epochs.info, picks)
+        X = epochs.get_data()[:, picks, :]
         y = epochs.events[:, 2] if y is None else y
         self.event_id_ = epochs.event_id
 
@@ -459,7 +460,7 @@ class Xdawn(_XdawnTransformer):
         filters, patterns, evokeds = _fit_xdawn(
             X, y, n_components=n_components, reg=self.reg,
             signal_cov=self.signal_cov, events=events, tmin=tmin, sfreq=sfreq,
-            method_params=self.method_params, info=epochs.info)
+            method_params=self.method_params, info=use_info)
 
         # Re-order filters and patterns according to event_id
         filters = filters.reshape(-1, n_components, filters.shape[-1])
@@ -471,7 +472,7 @@ class Xdawn(_XdawnTransformer):
             self.filters_[eid] = this_filter.T
             self.patterns_[eid] = this_pattern.T
             n_events = len(epochs[eid])
-            evoked = EvokedArray(this_evo, epochs.info, tmin=epochs.tmin,
+            evoked = EvokedArray(this_evo, use_info, tmin=epochs.tmin,
                                  comment=eid, nave=n_events)
             self.evokeds_[eid] = evoked
         return self
@@ -593,11 +594,8 @@ class Xdawn(_XdawnTransformer):
 
             data_r = self._pick_sources(data, include, exclude, eid)
             data_r = np.array(np.split(data_r, len(epochs.events), 1))
-            info_r = cp.deepcopy(epochs.info)
-            epochs_r = EpochsArray(data=data_r, info=info_r,
-                                   events=epochs.events, tmin=epochs.tmin,
-                                   event_id=epochs.event_id, verbose=False)
-            epochs_r.preload = True
+            epochs_r = epochs.copy().load_data()
+            epochs_r._data[:, picks, :] = data_r
             epochs_dict[eid] = epochs_r
 
         return epochs_dict

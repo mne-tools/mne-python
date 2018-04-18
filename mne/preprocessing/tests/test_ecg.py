@@ -1,11 +1,9 @@
 import os.path as op
-import warnings
 
-from nose.tools import assert_true, assert_equal
-
+import pytest
 from mne.io import read_raw_fif
 from mne import pick_types
-from mne.preprocessing.ecg import find_ecg_events, create_ecg_epochs
+from mne.preprocessing import find_ecg_events, create_ecg_epochs
 from mne.utils import run_tests_if_main
 
 data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -24,10 +22,10 @@ def test_find_ecg():
     for ch_name in ['MEG 1531', None]:
         events, ch_ECG, average_pulse, ecg = find_ecg_events(
             raw, event_id=999, ch_name=ch_name, return_ecg=True)
-        assert_equal(raw.n_times, ecg.shape[-1])
+        assert raw.n_times == ecg.shape[-1]
         n_events = len(events)
         _, times = raw[0, :]
-        assert_true(55 < average_pulse < 60)
+        assert 55 < average_pulse < 60
 
     picks = pick_types(
         raw.info, meg='grad', eeg=False, stim=False,
@@ -36,28 +34,33 @@ def test_find_ecg():
 
     # There should be no ECG channels, or else preloading will not be
     # tested
-    assert_true('ecg' not in raw)
+    assert 'ecg' not in raw
 
     ecg_epochs = create_ecg_epochs(raw, picks=picks, keep_ecg=True)
-    assert_equal(len(ecg_epochs.events), n_events)
-    assert_true('ECG-SYN' not in raw.ch_names)
-    assert_true('ECG-SYN' in ecg_epochs.ch_names)
+    assert len(ecg_epochs.events) == n_events
+    assert 'ECG-SYN' not in raw.ch_names
+    assert 'ECG-SYN' in ecg_epochs.ch_names
 
     picks = pick_types(
         ecg_epochs.info, meg=False, eeg=False, stim=False,
         eog=False, ecg=True, emg=False, ref_meg=False,
         exclude='bads')
-    assert_true(len(picks) == 1)
+    assert len(picks) == 1
 
     ecg_epochs = create_ecg_epochs(raw, ch_name='MEG 2641')
-    assert_true('MEG 2641' in ecg_epochs.ch_names)
+    assert 'MEG 2641' in ecg_epochs.ch_names
 
     # test with user provided ecg channel
     raw.info['projs'] = list()
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='unit for channel'):
         raw.set_channel_types({'MEG 2641': 'ecg'})
-    assert_true(len(w) == 1 and 'unit for channel' in str(w[0].message))
     create_ecg_epochs(raw)
+
+    raw.pick_types()  # remove ECG
+    ecg_epochs = create_ecg_epochs(raw, keep_ecg=False)
+    assert len(ecg_epochs.events) == n_events
+    assert 'ECG-SYN' not in raw.ch_names
+    assert 'ECG-SYN' not in ecg_epochs.ch_names
 
 
 run_tests_if_main()
