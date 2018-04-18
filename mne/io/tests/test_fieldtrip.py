@@ -27,7 +27,7 @@ def test_whole_process():
         # load everything
         data_raw = mne.io.read_raw_fieldtrip(f_name_raw, data_name='data')
         data_epoched = mne.io.read_epochs_fieldtrip(f_name_epoched,
-                                             data_name='data_epoched')
+                                                    data_name='data_epoched')
         data_avg = mne.io.read_evoked_fieldtrip(f_name_avg,
                                                 data_name='data_avg')
         events = mne.read_events(f_name_events)
