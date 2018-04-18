@@ -71,7 +71,7 @@ Reading raw data
   read_raw_egi
   read_raw_fif
   read_raw_eximia
-  read_raw_ft
+  read_raw_fieldtrip
 
 Base class:
 
@@ -118,10 +118,10 @@ File I/O
    read_epochs
    read_epochs_kit
    read_epochs_eeglab
-   read_epochs_ft
+   read_epochs_fieldtrip
    read_events
    read_evokeds
-   read_evoked_ft
+   read_evoked_fieldtrip
    read_forward_solution
    read_label
    read_morph_map
