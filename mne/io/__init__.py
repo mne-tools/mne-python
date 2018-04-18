@@ -43,7 +43,8 @@ from .artemis123 import read_raw_artemis123
 from .eeglab import read_raw_eeglab, read_epochs_eeglab, read_events_eeglab
 from .eeglab import read_annotations_eeglab
 from .eximia import read_raw_eximia
-from .fieldtrip import read_raw_ft, read_epochs_ft, read_evoked_ft
+from .fieldtrip import (read_raw_fieldtrip,read_epochs_fieldtrip,
+                        read_evoked_fieldtrip)
 
 # for backward compatibility
 from .fiff import Raw

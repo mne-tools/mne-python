@@ -10,9 +10,11 @@ import numpy as np
 from ..externals import pymatreader
 
 
-def read_raw_ft(ft_structure_path, data_name='data'):
-    """Extracts FieldTrip single trial raw data structures (FT_DATATYPE_RAW)
-    from .mat files and converts them to MNE RawArrays.
+def read_raw_fieldtrip(ft_structure_path, data_name='data'):
+    """Load continuous (i.e. raw) data from a FieldTrip preprocessing structure.
+
+    This function expects to find single trial raw data (FT_DATATYPE_RAW) in
+    the structure data_name is pointing at.
 
     Parameters
     ----------
@@ -29,7 +31,6 @@ def read_raw_ft(ft_structure_path, data_name='data'):
         info
 
     """
-
     ft_struct = pymatreader.read_mat(ft_structure_path,
                                      ignore_fields=['previous'],
                                      variable_names=[data_name])
@@ -44,11 +45,14 @@ def read_raw_ft(ft_structure_path, data_name='data'):
     return custom_raw
 
 
-def read_epochs_ft(ft_structure_path, data_name='data', trialinfo_map=None,
+def read_epochs_fieldtrip(ft_structure_path, data_name='data',
+                         trialinfo_map=None,
                    omit_trialinfo_index=True,
                    omit_non_unique_trialinfo_index=True):
-    """Extracts FieldTrip multiple trial raw data structures (FT_DATATYPE_RAW)
-    from .mat files and converts them to MNE EpochsArrays.
+    """Load epoched data from a FieldTrip preprocessing structure.
+
+    This function expects to find epoched data in the structure data_name is
+    pointing at.
 
     .. warning:: Only epochs with the same amount of channels and samples are
                  supported!
@@ -95,14 +99,14 @@ def read_epochs_ft(ft_structure_path, data_name='data', trialinfo_map=None,
         measurement info.
 
     Examples
-    --------
-    >>> read_epochs_ft('FieldTripEpochsFile', trialinfo_map={ # doctest: +SKIP
-    >>>    'audio/attend': np.array([0, 1]), # doctest: +SKIP
-    >>>    'visual/attend': np.array([1, 1]), # doctest: +SKIP
-    >>>    'audio/non_attend': np.array([0, 0]), # doctest: +SKIP
-    >>>    'visual/non_attend': np.array([1, 0])}) # doctest: +SKIP
+    -------
+    >>> read_epochs_fieldtrip('FieldTripEpochsFile', # doctest: +SKIP
+    >>>     trialinfo_map={ # doctest: +SKIP
+    >>>         'audio/attend': np.array([0, 1]), # doctest: +SKIP
+    >>>         'visual/attend': np.array([1, 1]), # doctest: +SKIP
+    >>>         'audio/non_attend': np.array([0, 0]), # doctest: +SKIP
+    >>>         'visual/non_attend': np.array([1, 0])}) # doctest: +SKIP
     """
-
     ft_struct = pymatreader.read_mat(ft_structure_path,
                                      ignore_fields=['previous'],
                                      variable_names=[data_name])
@@ -122,9 +126,11 @@ def read_epochs_ft(ft_structure_path, data_name='data', trialinfo_map=None,
     return custom_epochs
 
 
-def read_evoked_ft(ft_structure_path, comment='', data_name='data'):
-    """Extracts FieldTrip timelock data structures (FT_DATATYPE_TIMELOCK)
-    from .mat files and converts them to MNE EvokedArrays.
+def read_evoked_fieldtrip(ft_structure_path, comment='', data_name='data'):
+    """Load evoked data from a FieldTrip timelocked structure.
+
+    This function expects to find timelocked data in the structure data_name is
+    pointing at.
 
     Parameters
     ----------
@@ -143,7 +149,6 @@ def read_evoked_ft(ft_structure_path, comment='', data_name='data'):
          comment and measurement info.
 
     """
-
     ft_struct = pymatreader.read_mat(ft_structure_path,
                                      ignore_fields=['previous'],
                                      variable_names=[data_name])
@@ -157,9 +162,7 @@ def read_evoked_ft(ft_structure_path, comment='', data_name='data'):
 
 
 def _create_info(ft_struct):
-    """private function which creates an MNE info structure from a
-    preloaded FieldTrip file"""
-
+    """Create MNE info structure from a FieldTrip structure."""
     ch_names = list(ft_struct['label'])
     sfreq = _set_sfreq(ft_struct)
     ch_types = _set_ch_types(ft_struct)
@@ -170,8 +173,7 @@ def _create_info(ft_struct):
 
 
 def _convert_ch_types(ch_type_array):
-    """private function which converts the channel type names from
-    iledtrip style (e.g. megmag) to mne style (e.g. mag)"""
+    """Convert channel type names from FieldTrip style to mne style."""
     for index, name in enumerate(ch_type_array):
         if name in ('megplanar', 'meggrad'):
             ch_type_array[index] = 'grad'
@@ -200,7 +202,7 @@ def _convert_ch_types(ch_type_array):
 
 
 def _set_ch_types(ft_struct):
-    """private function which finds the channel types for every channel"""
+    """Find the channel types for every channel."""
     if 'hdr' in ft_struct and 'chantype' in ft_struct['hdr']:
         available_channels = np.where(np.in1d(ft_struct['hdr']['label'],
                                               ft_struct['label']))
@@ -225,8 +227,7 @@ def _set_ch_types(ft_struct):
 
 
 def _create_montage(ft_struct):
-    """private function which creates a montage from the FieldTrip data"""
-
+    """Create a montage from the FieldTrip data."""
     # try to create a montage
     montage_pos, montage_ch_names = list(), list()
 
@@ -258,7 +259,7 @@ def _create_montage(ft_struct):
 
 
 def _set_sfreq(ft_struct):
-    """private function which sets the sample frequency"""
+    """Set the sample frequency."""
     try:
         sfreq = ft_struct['fsample']
     except KeyError:
@@ -273,8 +274,7 @@ def _set_sfreq(ft_struct):
 
 
 def _set_tmin(ft_struct):
-    """private function which sets the start time before the event in evoked
-    data if possible"""
+    """Set the start time before the event in evoked data if possible."""
     times = ft_struct['time']
     time_check = all(times[i][0] == times[i - 1][0]
                      for i, x in enumerate(times))
@@ -287,9 +287,7 @@ def _set_tmin(ft_struct):
 
 def _create_events(ft_struct, trialinfo_map, omit_trialinfo_index,
                    omit_non_unique_trialinfo_index):
-    """private function which creates an event matrix from the
-    FildTrip structure"""
-
+    """Create an event matrix from the FieldTrip structure."""
     # sanitize trialinfo_map
     if trialinfo_map:
         for (key, value) in trialinfo_map.items():
