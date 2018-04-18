@@ -25,10 +25,11 @@ def test_whole_process():
         f_name_events = os.path.join(test_data_folder, 'events.eve')
 
         # load everything
-        data_raw = mne.io.read_raw_ft(f_name_raw, data_name='data')
-        data_epoched = mne.io.read_epochs_ft(f_name_epoched,
+        data_raw = mne.io.read_raw_fieldtrip(f_name_raw, data_name='data')
+        data_epoched = mne.io.read_epochs_fieldtrip(f_name_epoched,
                                              data_name='data_epoched')
-        data_avg = mne.io.read_evoked_ft(f_name_avg, data_name='data_avg')
+        data_avg = mne.io.read_evoked_fieldtrip(f_name_avg,
+                                                data_name='data_avg')
         events = mne.read_events(f_name_events)
 
         mne_epoched = mne.Epochs(data_raw, events, tmin=-0.05, tmax=0.05,
