@@ -5,12 +5,17 @@
 #
 # License: BSD (3-clause)
 
-import mne
 import numpy as np
+
+from . import RawArray
+from ..epochs import EpochsArray
+from ..evoked import EvokedArray
+from .meas_info import create_info
+from ..channels import DigMontage
 
 
 def _check_pymatreader():
-    """Helper to check if pymatreader and h5py are installed"""
+    """Helper to check if pymatreader and h5py are installed."""
     try:
         from ..externals import pymatreader
     except ImportError:
@@ -52,7 +57,7 @@ def read_raw_fieldtrip(ft_structure_path, data_name='data'):
     data = np.array(ft_struct['trial'])  # create the main data array
     info = _create_info(ft_struct)  # create info structure
 
-    custom_raw = mne.io.RawArray(data, info)  # create an MNE RawArray
+    custom_raw = RawArray(data, info)  # create an MNE RawArray
     return custom_raw
 
 
@@ -68,19 +73,21 @@ def read_epochs_fieldtrip(ft_structure_path, data_name='data',
     .. warning:: Only epochs with the same amount of channels and samples are
                  supported!
 
-    The data is read as it is. Events however are represented entirely
-    different in FieldTrip compared to MNE.
+    Notes
+    -----
+        The data is read as it is. Events however are represented entirely
+        different in FieldTrip compared to MNE.
 
-    In FieldTrip, each epoch corresponds to one row in the trialinfo field.
-    This field can have one or more columns. The function first removes
-    columns according to the two omit parameters.
+        In FieldTrip, each epoch corresponds to one row in the trialinfo field.
+        This field can have one or more columns. The function first removes
+        columns according to the two omit parameters.
 
-    - If only one column remains, its values are used as event values in the
-      MNE Epoch.
-    - If two or more columns remain, each unique combination of
-      these values receives a new event value. These event values are created
-      automatically. In order to match these to conditions, you can use the
-      trialinfo_map parameter.
+        - If only one column remains, its values are used as event values in
+          the MNE Epoch.
+        - If two or more columns remain, each unique combination of
+          these values receives a new event value. These event values are
+          created automatically. In order to match these to conditions, you can
+          use the trialinfo_map parameter.
 
     Parameters
     ----------
@@ -110,8 +117,8 @@ def read_epochs_fieldtrip(ft_structure_path, data_name='data',
         measurement info.
 
     Examples
-    -------
-    >>> read_epochs_fieldtrip('FieldTripEpochsFile', # doctest: +SKIP
+    --------
+    >>> read_epochs_fieldtrip('FieldTripEpochsFile.mat', # doctest: +SKIP
     >>>     trialinfo_map={ # doctest: +SKIP
     >>>         'audio/attend': np.array([0, 1]), # doctest: +SKIP
     >>>         'visual/attend': np.array([1, 1]), # doctest: +SKIP
@@ -134,8 +141,8 @@ def read_epochs_fieldtrip(ft_structure_path, data_name='data',
     tmin = _set_tmin(ft_struct)  # create start time
     info = _create_info(ft_struct)  # create info structure
 
-    custom_epochs = mne.EpochsArray(data=data, info=info, tmin=tmin,
-                                    events=events, event_id=event_id)
+    custom_epochs = EpochsArray(data=data, info=info, tmin=tmin,
+                                events=events, event_id=event_id)
     return custom_epochs
 
 
@@ -172,7 +179,7 @@ def read_evoked_fieldtrip(ft_structure_path, comment=None, data_name='data'):
     data_evoked = ft_struct['avg']  # create evoked data
     info = _create_info(ft_struct)  # create info structure
 
-    evoked_array = mne.EvokedArray(data_evoked, info, comment=comment)
+    evoked_array = EvokedArray(data_evoked, info, comment=comment)
     return evoked_array
 
 
@@ -183,7 +190,7 @@ def _create_info(ft_struct):
     ch_types = _set_ch_types(ft_struct)
     montage = _create_montage(ft_struct)
 
-    info = mne.create_info(ch_names, sfreq, ch_types, montage)
+    info = create_info(ch_names, sfreq, ch_types, montage)
     return info
 
 
@@ -268,7 +275,7 @@ def _create_montage(ft_struct):
 
     if (len(montage_ch_names) > 0 and len(montage_pos) > 0 and
             len(montage_ch_names) == len(montage_pos)):
-        montage = mne.channels.DigMontage(
+        montage = DigMontage(
             dig_ch_pos=dict(zip(montage_ch_names, montage_pos)))
     return montage
 
