@@ -8,8 +8,9 @@
 import mne
 import numpy as np
 import os.path
+from mne.datasets import testing
 
-
+@testing.requires_testing_data
 def test_whole_process():
     test_data_folder = os.path.join(mne.datasets.testing.data_path(), 'fieldtrip')
     all_versions = ['v7', 'v73']
