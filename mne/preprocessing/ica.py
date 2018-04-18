@@ -194,15 +194,15 @@ class ICA(ContainsMixin):
         If fit, the actual number of components used for ICA decomposition.
     pre_whitener_ : ndarray, shape (n_channels, 1)
         If fit, array used to pre-whiten the data prior to PCA.
-    pca_components_ : ndarray, shape (n_components\_, n_channels)
+    pca_components_ : ndarray, shape (`n_components_`, n_channels)
         If fit, the PCA components.
     pca_mean_ : ndarray, shape (n_channels,)
         If fit, the mean vector used to center the data before doing the PCA.
-    pca_explained_variance_ : ndarray, shape (n_components\_,)
+    pca_explained_variance_ : ndarray, shape (`n_components_`,)
         If fit, the variance explained by each PCA component
-    mixing_matrix_ : ndarray, shape (n_components\_, n_components\_)
+    mixing_matrix_ : ndarray, shape (`n_components_`, `n_components_`)
         If fit, the mixing matrix to restore observed data.
-    unmixing_matrix_ : ndarray, shape (n_components\_, n_components\_)
+    unmixing_matrix_ : ndarray, shape (`n_components_`, `n_components_`)
         If fit, the matrix to unmix observed data.
     exclude : list
         List of sources indices to exclude, i.e. artifact components identified
