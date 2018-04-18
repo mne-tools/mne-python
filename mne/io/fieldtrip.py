@@ -7,7 +7,7 @@
 
 import mne
 import numpy as np
-from mne.externals import pymatreader
+from ..externals import pymatreader
 
 
 def read_raw_ft(ft_structure_path, data_name='data'):
