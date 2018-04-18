@@ -30,16 +30,17 @@ def read_raw_ft(ft_structure_path, data_name='data'):
     """
 
     ft_struct = pymatreader.read_mat(ft_structure_path, ignore_fields=['previous'], variable_names=[data_name])
-    ft_struct = ft_struct[data_name]  #:load data and set ft_struct to the heading dictionary
+    ft_struct = ft_struct[data_name]  # load data and set ft_struct to the heading dictionary
 
-    data = np.array(ft_struct["trial"])  #:create the main data array
-    info = _create_info(ft_struct)  #: create info structure
+    data = np.array(ft_struct["trial"])  # create the main data array
+    info = _create_info(ft_struct)  # create info structure
 
-    custom_raw = mne.io.RawArray(data, info)  #: create an MNE RawArray
+    custom_raw = mne.io.RawArray(data, info)  # create an MNE RawArray
     return custom_raw
 
 
-def read_epochs_ft(ft_structure_path, data_name='data', trialinfo_map=None, omit_trialinfo_index=True, omit_non_unique_trialinfo_index=True):
+def read_epochs_ft(ft_structure_path, data_name='data', trialinfo_map=None, omit_trialinfo_index=True,
+                   omit_non_unique_trialinfo_index=True):
     """Extracts FieldTrip multiple trial raw data structures (FT_DATATYPE_RAW)
     from .mat files and converts them to MNE EpochsArrays.
 
@@ -87,14 +88,16 @@ def read_epochs_ft(ft_structure_path, data_name='data', trialinfo_map=None, omit
     """
 
     ft_struct = pymatreader.read_mat(ft_structure_path, ignore_fields=['previous'], variable_names=[data_name])
-    ft_struct = ft_struct[data_name]  #:load data and set ft_struct to the heading dictionary
+    ft_struct = ft_struct[data_name]  # load data and set ft_struct to the heading dictionary
 
-    data = np.array(ft_struct["trial"])  #:create the epochs data array
-    (events, event_id) = _create_events(ft_struct, trialinfo_map, omit_trialinfo_index, omit_non_unique_trialinfo_index)  #: create the events matrix
-    tmin = _set_tmin(ft_struct)  #: create start time
-    info = _create_info(ft_struct)  #: create info structure
+    data = np.array(ft_struct["trial"])  # create the epochs data array
+    (events, event_id) = _create_events(ft_struct, trialinfo_map, omit_trialinfo_index,
+                                        omit_non_unique_trialinfo_index)  # create the events matrix
+    tmin = _set_tmin(ft_struct)  # create start time
+    info = _create_info(ft_struct)  # create info structure
 
-    custom_epochs = mne.EpochsArray(data=data, info=info, tmin=tmin, events=events, event_id=event_id)  # create an MNE EpochsArray
+    custom_epochs = mne.EpochsArray(data=data, info=info, tmin=tmin, events=events,
+                                    event_id=event_id)  # create an MNE EpochsArray
     return custom_epochs
 
 
@@ -121,12 +124,12 @@ def read_evoked_ft(ft_structure_path, comment='', data_name='data'):
     """
 
     ft_struct = pymatreader.read_mat(ft_structure_path, ignore_fields=['previous'], variable_names=[data_name])
-    ft_struct = ft_struct[data_name]  #:load data and set ft_struct to the heading dictionary
+    ft_struct = ft_struct[data_name]  # load data and set ft_struct to the heading dictionary
 
-    data_evoked = ft_struct["avg"]  #:create evoked data
-    info = _create_info(ft_struct)  #: create info structure
+    data_evoked = ft_struct["avg"]  # create evoked data
+    info = _create_info(ft_struct)  # create info structure
 
-    evoked_array = mne.EvokedArray(data_evoked, info, comment=comment)  #:create MNE EvokedArray
+    evoked_array = mne.EvokedArray(data_evoked, info, comment=comment)  # create MNE EvokedArray
     return evoked_array
 
 
@@ -239,7 +242,7 @@ def _set_tmin(ft_struct):
     """private function which sets the start time before the event in evoked data if possible"""
     times = ft_struct["time"]
     time_check = all(times[i][0] == times[i - 1][0] for i, x in enumerate(times))
-    if time_check == True:
+    if time_check:
         tmin = times[0][0]
     else:
         tmin = None
@@ -285,4 +288,4 @@ def _create_events(ft_struct, trialinfo_map, omit_trialinfo_index, omit_non_uniq
         event_index = np.where(np.all(unique_events == cur_trialinfo_mat, axis=1))[0][0] + 1
         event_id[cur_event_id] = event_index
 
-    return (events, event_id)
+    return events, event_id
