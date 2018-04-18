@@ -6,7 +6,7 @@
 # License: BSD (3-clause)
 
 import mne
-import numpy
+import numpy as np
 from mne.externals import pymatreader
 
 """
@@ -45,7 +45,7 @@ def read_raw_ft(ft_structure_path, data_name='data'):
     ft_struct = pymatreader.read_mat(ft_structure_path, ignore_fields=['previous'], variable_names=[data_name])
     ft_struct = ft_struct[data_name]  #:load data and set ft_struct to the heading dictionary
 
-    data = numpy.array(ft_struct["trial"])  #:create the main data array
+    data = np.array(ft_struct["trial"])  #:create the main data array
     info = _create_info(ft_struct)  #: create info structure
 
     custom_raw = mne.io.RawArray(data, info)  #: create an MNE RawArray
@@ -101,16 +101,16 @@ def read_epochs_ft(ft_structure_path, data_name='data', trialinfo_map=None, omit
     '1': 5, '2': 5>
 
     >>> read_epoched('FieldTripEpochsFile', trialinfo_map={
-    >>>    'audio/attend': numpy.array([0, 1]),
-    >>>    'visual/attend': numpy.array([1, 1]),
-    >>>    'audio/non_attend': numpy.array([0, 0]),
-    >>>    'visual/non_attend': numpy.array([1, 0])})
+    >>>    'audio/attend': np.array([0, 1]),
+    >>>    'visual/attend': np.array([1, 1]),
+    >>>    'audio/non_attend': np.array([0, 0]),
+    >>>    'visual/non_attend': np.array([1, 0])})
     """
 
     ft_struct = pymatreader.read_mat(ft_structure_path, ignore_fields=['previous'], variable_names=[data_name])
     ft_struct = ft_struct[data_name]  #:load data and set ft_struct to the heading dictionary
 
-    data = numpy.array(ft_struct["trial"])  #:create the epochs data array
+    data = np.array(ft_struct["trial"])  #:create the epochs data array
     (events, event_id) = _create_events(ft_struct, trialinfo_map, omit_trialinfo_index, omit_non_unique_trialinfo_index)  #: create the events matrix
     tmin = _set_tmin(ft_struct)  #: create start time
     info = _create_info(ft_struct)  #: create info structure
@@ -209,13 +209,13 @@ def _convert_ch_types(ch_type_array):
 def _set_ch_types(ft_struct):
     """private function which finds the channel types for every channel"""
     if 'hdr' in ft_struct and 'chantype' in ft_struct['hdr']:
-        available_channels = numpy.where(numpy.in1d(ft_struct["hdr"]['label'], ft_struct['label']))
+        available_channels = np.where(np.in1d(ft_struct["hdr"]['label'], ft_struct['label']))
         ch_types = _convert_ch_types(ft_struct["hdr"]["chantype"][available_channels])
     elif 'grad' in ft_struct and 'chantype' in ft_struct['grad']:
-        available_channels = numpy.where(numpy.in1d(ft_struct["grad"]['label'], ft_struct['label']))
+        available_channels = np.where(np.in1d(ft_struct["grad"]['label'], ft_struct['label']))
         ch_types = _convert_ch_types(ft_struct["grad"]["chantype"][available_channels])
     elif 'elec' in ft_struct and 'chantype' in ft_struct['grad']:
-        available_channels = numpy.where(numpy.in1d(ft_struct["elec"]['label'], ft_struct['label']))
+        available_channels = np.where(np.in1d(ft_struct["elec"]['label'], ft_struct['label']))
         ch_types = _convert_ch_types(ft_struct["elec"]["chantype"][available_channels])
     elif 'label' in ft_struct:
         ch_types = _convert_ch_types(ft_struct['label'])
@@ -233,7 +233,7 @@ def _create_montage(ft_struct):
 
     # see if there is a grad field in the structure
     try:
-        available_channels = numpy.where(numpy.in1d(ft_struct["grad"]['label'], ft_struct['label']))
+        available_channels = np.where(np.in1d(ft_struct["grad"]['label'], ft_struct['label']))
         montage_ch_names.extend(ft_struct['grad']['label'][available_channels])
         montage_pos.extend(ft_struct['grad']['chanpos'][available_channels])
     except KeyError:
@@ -241,7 +241,7 @@ def _create_montage(ft_struct):
 
     # see if there is a elec field in the structure
     try:
-        available_channels = numpy.where(numpy.in1d(ft_struct["elec"]['label'], ft_struct['label']))
+        available_channels = np.where(np.in1d(ft_struct["elec"]['label'], ft_struct['label']))
         montage_ch_names.extend(ft_struct['elec']['label'][available_channels])
         montage_pos.extend(ft_struct['elec']['chanpos'][available_channels])
     except KeyError:
@@ -286,28 +286,28 @@ def _create_events(ft_struct, trialinfo_map, omit_trialinfo_index, omit_non_uniq
     # sanitize trialinfo_map
     if trialinfo_map:
         for (key, value) in trialinfo_map.items():
-            trialinfo_map[key] = numpy.array(value)
+            trialinfo_map[key] = np.array(value)
 
     event_type = ft_struct["trialinfo"]
     event_number = range(len(event_type))
     # event_trans_val: This is only a dummy row of zeros, used until a way to implement this is found
-    event_trans_val = numpy.zeros(len(event_type))
+    event_trans_val = np.zeros(len(event_type))
     if omit_trialinfo_index:
-        index_columns = numpy.all(numpy.diff(event_type, axis=0) == 1, axis=0)
-        event_type = event_type[:, numpy.logical_not(index_columns)]
+        index_columns = np.all(np.diff(event_type, axis=0) == 1, axis=0)
+        event_type = event_type[:, np.logical_not(index_columns)]
 
     if omit_non_unique_trialinfo_index:
-        unique_columns = numpy.any(numpy.diff(numpy.sort(event_type, axis=0), axis=0) == 0, axis=0)
+        unique_columns = np.any(np.diff(np.sort(event_type, axis=0), axis=0) == 0, axis=0)
         event_type = event_type[:, unique_columns]
 
-    (unique_events, unique_events_index) = numpy.unique(event_type, axis=0, return_inverse=True)
+    (unique_events, unique_events_index) = np.unique(event_type, axis=0, return_inverse=True)
 
     if event_type.ndim == 1:
         final_event_types = event_type
     else:
         final_event_types = unique_events_index + 1
 
-    events = numpy.vstack([numpy.array(event_number), event_trans_val, final_event_types]).astype('int').T
+    events = np.vstack([np.array(event_number), event_trans_val, final_event_types]).astype('int').T
 
     event_id = dict()
     if not trialinfo_map:
@@ -316,7 +316,7 @@ def _create_events(ft_struct, trialinfo_map, omit_trialinfo_index, omit_non_uniq
             trialinfo_map['trialinfo {}'.format(cur_unique_event)] = cur_unique_event
 
     for (cur_event_id, cur_trialinfo_mat) in trialinfo_map.items():
-        event_index = numpy.where(numpy.all(unique_events == cur_trialinfo_mat, axis=1))[0][0] + 1
+        event_index = np.where(np.all(unique_events == cur_trialinfo_mat, axis=1))[0][0] + 1
         event_id[cur_event_id] = event_index
 
     return (events, event_id)
