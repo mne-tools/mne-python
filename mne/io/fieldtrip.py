@@ -80,11 +80,11 @@ def read_epochs_ft(ft_structure_path, data_name='data', trialinfo_map=None, omit
     
     Examples
     --------
-    >>> read_epoched('FieldTripEpochsFile', trialinfo_map={
-    >>>    'audio/attend': np.array([0, 1]),
-    >>>    'visual/attend': np.array([1, 1]),
-    >>>    'audio/non_attend': np.array([0, 0]),
-    >>>    'visual/non_attend': np.array([1, 0])})
+    >>> read_epochs_ft('FieldTripEpochsFile', trialinfo_map={ # doctest: +SKIP
+    >>>    'audio/attend': np.array([0, 1]), # doctest: +SKIP
+    >>>    'visual/attend': np.array([1, 1]), # doctest: +SKIP
+    >>>    'audio/non_attend': np.array([0, 0]), # doctest: +SKIP
+    >>>    'visual/non_attend': np.array([1, 0])}) # doctest: +SKIP
     """
 
     ft_struct = pymatreader.read_mat(ft_structure_path, ignore_fields=['previous'], variable_names=[data_name])
