@@ -153,8 +153,8 @@ class ICA(ContainsMixin):
         cumulative percentage of explained variance.
     max_pca_components : int | None
         The number of components used for PCA decomposition. If None, no
-        dimension reduction will be applied and `max_pca_components` will equal
-        the number of channels supplied for decomposing data.
+        dimensionality reduction will be applied and `max_pca_components` will
+        equal the number of channels supplied for decomposing data.
     n_pca_components : int | float
         The number of PCA components used after ICA recomposition. The ensuing
         attribute `n_components_` allows to balance noise reduction against
