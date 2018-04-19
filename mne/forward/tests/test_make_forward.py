@@ -208,7 +208,7 @@ def test_make_forward_solution_kit():
     write_forward_solution(fname_temp, fwd_py)
     fwd_py2 = read_forward_solution(fname_temp)
     _compare_forwards(fwd_py, fwd_py2, 274, n_src)
-    print (fwd_py)  # __repr__ also calls _check_consistency
+    fwd_py.__repr__()  # __repr__ also calls _check_consistency
 
 
 @pytest.mark.slowtest
