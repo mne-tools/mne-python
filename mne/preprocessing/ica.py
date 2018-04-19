@@ -161,10 +161,8 @@ class ICA(ContainsMixin):
         potential loss of information due to dimensionality reduction. If
         greater than `n_components_`, the next `n_pca_components` minus
         `n_components_` PCA components will be added before restoring the
-        sensor space data. The attribute gets updated each time the according
-        parameter in .pick_sources_raw or .pick_sources_epochs is changed. If
-        float, the number of components selected matches the number of
-        components with a cumulative explained variance below
+        sensor space data. If float, the number of components selected matches
+        the number of components with a cumulative explained variance below
         `n_pca_components`.
     noise_cov : None | instance of mne.cov.Covariance
         Noise covariance used for pre-whitening. If None, channels are scaled
@@ -206,12 +204,8 @@ class ICA(ContainsMixin):
         If fit, the matrix to unmix observed data.
     exclude : list
         List of sources indices to exclude, i.e. artifact components identified
-        throughout the ICA solution. Indices added to this list will be
-        dispatched to the .pick_sources methods. Source indices passed to
-        the .pick_sources method via the `exclude` argument are added to the
-        `exclude` attribute. When saving the ICA object, components marked for
-        exclusion are also stored. To scrap all marked components, you can set
-        this attribute to an empty list.
+        throughout the ICA solution. To scrap all marked components, you can
+        set this attribute to an empty list.
     info : None | instance of Info
         The measurement info copied from the object fitted.
     n_samples_ : int
@@ -220,6 +214,13 @@ class ICA(ContainsMixin):
         A dictionary of independent component indices, grouped by types of
         independent components. This attribute is set by some of the artifact
         detection functions.
+
+    Notes
+    -----
+    Reducing the tolerance speeds up estimation at the cost of consistency of
+    the obtained results. It is difficult to directly compare tolerance levels
+    between Infomax and Picard, but for Picard and FastICA a good rule of thumb
+    is ``tol_fastica = tol_picard ** 2``.
 
     References
     ----------
