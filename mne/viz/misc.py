@@ -1021,7 +1021,7 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
         plt.subplots_adjust(top=0.8)
 
         if colorbar:
-            cb = plt.colorbar(im, ax=[a for ax in axes for a in ax])
+            cb = plt.colorbar(im, ax=[a for ax_ in axes for a in ax_])
             if mode == 'csd':
                 label = u'CSD'
                 if ch_type in units:

@@ -308,6 +308,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
 
     # Load raw data so that add_channels works
     raw.load_data()
+    picks = np.arange(len(raw.ch_names)) if picks is None else picks
 
     if not has_ecg:
         ecg_raw = RawArray(
