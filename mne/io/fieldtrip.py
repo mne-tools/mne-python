@@ -15,7 +15,10 @@ from ..channels import DigMontage
 
 
 def _check_pymatreader():
-    """Helper to check if pymatreader and h5py are installed."""
+    """Check if pymatreader and h5py are installed.
+
+    Returns the pymatreader module on success.
+    """
     try:
         from ..externals import pymatreader
     except ImportError:
