@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+#
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Juergen Dammers <j.dammers@fz-juelich.de>
@@ -115,132 +117,111 @@ def _check_for_unsupported_ica_channels(picks, info):
 
 
 class ICA(ContainsMixin):
-    """M/EEG signal decomposition using Independent Component Analysis (ICA).
+    u"""M/EEG signal decomposition using Independent Component Analysis (ICA).
 
-    This object can be used to estimate ICA components and then
-    remove some from Raw or Epochs for data exploration or artifact
-    correction.
+    This object can be used to estimate ICA components and then remove some
+    from Raw or Epochs for data exploration or artifact correction.
 
-    Caveat! If supplying a noise covariance keep track of the projections
+    Caveat! If supplying a noise covariance, keep track of the projections
     available in the cov or in the raw object. For example, if you are
     interested in EOG or ECG artifacts, EOG and ECG projections should be
-    temporally removed before fitting the ICA. You can say::
+    temporally removed before fitting ICA, for example::
 
         >> projs, raw.info['projs'] = raw.info['projs'], []
         >> ica.fit(raw)
         >> raw.info['projs'] = projs
 
-    .. note:: Methods implemented are FastICA (default), Infomax,
-              Extended-Infomax, and Picard. Infomax can be quite sensitive to
-              differences in floating point arithmetic. Extended-Infomax seems
+    .. note:: Methods currently implemented are FastICA (default), Infomax,
+              Extended Infomax, and Picard. Infomax can be quite sensitive to
+              differences in floating point arithmetic. Extended Infomax seems
               to be more stable in this respect enhancing reproducibility and
               stability of results.
-              The stopping criteria of FastICA, Infomax, Extended
-              Infomax and Picard differ, making it hard to compare different
-              tolerance levels, but a rule of thumb is
-              `tol_fastica = tol_picard ** 2`. Reducing the tolerance speeds up
-              estimation but the consistency of the obtained results decreases.
 
     .. warning:: ICA is sensitive to low-frequency drifts and therefore
                  requires the data to be high-pass filtered prior to fitting.
-                 Typically, a cutoff frequency of 1 Hz is recommended. Note
-                 that FIR filters prior to MNE 0.15 used the ``'firwin2'``
-                 design method, which generally produces rather shallow filters
-                 that might not work for ICA processing. Therefore, it is
-                 recommended to use IIR filters for MNE up to 0.14. In MNE
-                 0.15, FIR filters can be designed with the ``'firwin'``
-                 method, which generally produces much steeper filters. This
-                 method will be the default FIR design method in MNE 0.16. In
-                 MNE 0.15, you need to explicitly set ``fir_design='firwin'``
-                 to use this method. This is the recommended filter method for
-                 ICA preprocessing.
+                 Typically, a cutoff frequency of 1 Hz is recommended.
 
     Parameters
     ----------
     n_components : int | float | None
         The number of components used for ICA decomposition. If int, it must be
-        smaller then max_pca_components. If None, all PCA components will be
-        used. If float between 0 and 1 components will be selected by the
+        smaller than `max_pca_components`. If None, all PCA components will
+        be used. If float between 0 and 1, components will be selected by the
         cumulative percentage of explained variance.
     max_pca_components : int | None
         The number of components used for PCA decomposition. If None, no
-        dimension reduction will be applied and max_pca_components will equal
-        the number of channels supplied on decomposing data. Defaults to None.
+        dimensionality reduction will be applied and `max_pca_components` will
+        equal the number of channels supplied for decomposing data.
     n_pca_components : int | float
         The number of PCA components used after ICA recomposition. The ensuing
-        attribute allows to balance noise reduction against potential loss of
-        features due to dimensionality reduction. If greater than
-        ``self.n_components_``, the next ``n_pca_components`` minus
-        ``n_components_`` PCA components will be added before restoring the
-        sensor space data. The attribute gets updated each time the according
-        parameter for in .pick_sources_raw or .pick_sources_epochs is changed.
-        If float, the number of components selected matches the number of
-        components with a cumulative explained variance below
+        attribute `n_components_` allows to balance noise reduction against
+        potential loss of information due to dimensionality reduction. If
+        greater than `n_components_`, the next `n_pca_components` minus
+        `n_components_` PCA components will be added before restoring the
+        sensor space data. If float, the number of components selected matches
+        the number of components with a cumulative explained variance below
         `n_pca_components`.
     noise_cov : None | instance of mne.cov.Covariance
         Noise covariance used for pre-whitening. If None, channels are scaled
         to unit variance prior to whitening.
     random_state : None | int | instance of np.random.RandomState
-        np.random.RandomState to initialize the FastICA estimation.
-        As the estimation is non-deterministic it can be useful to
-        fix the seed to have reproducible results. Defaults to None.
+        Random state to initialize ICA estimation for reproducible results.
     method : {'fastica', 'infomax', 'extended-infomax', 'picard'}
         The ICA method to use. Defaults to 'fastica'. For reference, see [1]_,
         [2]_, [3]_ and [4]_.
-    fit_params : dict | None.
-        Additional parameters passed to the ICA estimator chosen by `method`.
-    max_iter : int, optional
+    fit_params : dict | None
+        Additional parameters passed to the ICA estimator as specified by
+        `method`.
+    max_iter : int
         Maximum number of iterations during fit.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    verbose : bool | str | int | None
+        If not None, override default verbosity level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>`).
 
     Attributes
     ----------
     current_fit : str
-        Flag informing about which data type (raw or epochs) was used for
-        the fit.
+        Flag informing about which data type (raw or epochs) was used for the
+        fit.
     ch_names : list-like
         Channel names resulting from initial picking.
-        The number of components used for ICA decomposition.
     n_components_ : int
         If fit, the actual number of components used for ICA decomposition.
-    n_pca_components : int
-        See above.
-    max_pca_components : int
-        The number of components used for PCA dimensionality reduction.
-    verbose : bool, str, int, or None
-        See above.
-    pca_components_ : ndarray
-        If fit, the PCA components
-    pca_mean_ : ndarray
+    pre_whitener_ : ndarray, shape (n_channels, 1)
+        If fit, array used to pre-whiten the data prior to PCA.
+    pca_components_ : ndarray, shape (`n_components_`, n_channels)
+        If fit, the PCA components.
+    pca_mean_ : ndarray, shape (n_channels,)
         If fit, the mean vector used to center the data before doing the PCA.
-    pca_explained_variance_ : ndarray
+    pca_explained_variance_ : ndarray, shape (`n_components_`,)
         If fit, the variance explained by each PCA component
-    mixing_matrix_ : ndarray
-        If fit, the mixing matrix to restore observed data, else None.
-    unmixing_matrix_ : ndarray
-        If fit, the matrix to unmix observed data, else None.
+    mixing_matrix_ : ndarray, shape (`n_components_`, `n_components_`)
+        If fit, the mixing matrix to restore observed data.
+    unmixing_matrix_ : ndarray, shape (`n_components_`, `n_components_`)
+        If fit, the matrix to unmix observed data.
     exclude : list
         List of sources indices to exclude, i.e. artifact components identified
-        throughout the ICA solution. Indices added to this list, will be
-        dispatched to the .pick_sources methods. Source indices passed to
-        the .pick_sources method via the 'exclude' argument are added to the
-        .exclude attribute. When saving the ICA also the indices are restored.
-        Hence, artifact components once identified don't have to be added
-        again. To dump this 'artifact memory' say: ica.exclude = []
+        throughout the ICA solution. To scrap all marked components, you can
+        set this attribute to an empty list.
     info : None | instance of Info
         The measurement info copied from the object fitted.
     n_samples_ : int
-        the number of samples used on fit.
+        The number of samples used on fit.
     labels_ : dict
         A dictionary of independent component indices, grouped by types of
         independent components. This attribute is set by some of the artifact
         detection functions.
 
+    Notes
+    -----
+    Reducing the tolerance speeds up estimation at the cost of consistency of
+    the obtained results. It is difficult to directly compare tolerance levels
+    between Infomax and Picard, but for Picard and FastICA a good rule of thumb
+    is ``tol_fastica = tol_picard ** 2``.
+
     References
     ----------
-    .. [1] Hyvarinen, A., 1999. Fast and robust fixed-point algorithms for
+    .. [1] Hyvärinen, A., 1999. Fast and robust fixed-point algorithms for
            independent component analysis. IEEE transactions on Neural
            Networks, 10(3), pp.626-634.
 
@@ -432,7 +413,7 @@ class ICA(ContainsMixin):
 
     def _reset(self):
         """Aux method."""
-        del self._pre_whitener
+        del self.pre_whitener_
         del self.unmixing_matrix_
         del self.mixing_matrix_
         del self.n_components_
@@ -482,7 +463,7 @@ class ICA(ContainsMixin):
 
         self.n_samples_ = data.shape[1]
         # this may operate inplace or make a copy
-        data, self._pre_whitener = self._pre_whiten(data, raw.info, picks)
+        data, self.pre_whitener_ = self._pre_whiten(data, raw.info, picks)
 
         self._fit(data, self.max_pca_components, 'raw')
 
@@ -519,7 +500,7 @@ class ICA(ContainsMixin):
 
         # This will make at least one copy (one from hstack, maybe one
         # more from _pre_whiten)
-        data, self._pre_whitener = \
+        data, self.pre_whitener_ = \
             self._pre_whiten(np.hstack(data), epochs.info, picks)
 
         self._fit(data, self.max_pca_components, 'epochs')
@@ -528,7 +509,7 @@ class ICA(ContainsMixin):
 
     def _pre_whiten(self, data, info, picks):
         """Aux function."""
-        has_pre_whitener = hasattr(self, '_pre_whitener')
+        has_pre_whitener = hasattr(self, 'pre_whitener_')
         if not has_pre_whitener and self.noise_cov is None:
             # use standardization as whitener
             # Scale (z-score) the data by channel type
@@ -559,11 +540,11 @@ class ICA(ContainsMixin):
             assert data.shape[0] == pre_whitener.shape[1]
             data = np.dot(pre_whitener, data)
         elif has_pre_whitener and self.noise_cov is None:
-            data /= self._pre_whitener
-            pre_whitener = self._pre_whitener
+            data /= self.pre_whitener_
+            pre_whitener = self.pre_whitener_
         else:
-            data = np.dot(self._pre_whitener, data)
-            pre_whitener = self._pre_whitener
+            data = np.dot(self.pre_whitener_, data)
+            pre_whitener = self.pre_whitener_
 
         return data, pre_whitener
 
@@ -634,7 +615,7 @@ class ICA(ContainsMixin):
                              random_state=random_state, **self.fit_params)
             del _
             self.unmixing_matrix_ = W
-        self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
+        self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]  # whitening
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
         self.current_fit = fit_type
 
@@ -1382,9 +1363,9 @@ class ICA(ContainsMixin):
 
         # restore scaling
         if self.noise_cov is None:  # revert standardization
-            data *= self._pre_whitener
+            data *= self.pre_whitener_
         else:
-            data = np.dot(linalg.pinv(self._pre_whitener, cond=1e-14), data)
+            data = np.dot(linalg.pinv(self.pre_whitener_, cond=1e-14), data)
 
         return data
 
@@ -1876,7 +1857,7 @@ def _write_ica(fid, ica):
                  _serialize(ica_misc))
 
     #   Whitener
-    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_WHITENER, ica._pre_whitener)
+    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_WHITENER, ica.pre_whitener_)
 
     #   PCA components_
     write_double_matrix(fid, FIFF.FIFF_MNE_ICA_PCA_COMPONENTS,
@@ -1989,7 +1970,7 @@ def read_ica(fname, verbose=None):
     ica = ICA(**ica_init)
     ica.current_fit = current_fit
     ica.ch_names = ch_names.split(':')
-    ica._pre_whitener = f(pre_whitener)
+    ica.pre_whitener_ = f(pre_whitener)
     ica.pca_mean_ = f(pca_mean)
     ica.pca_components_ = f(pca_components)
     ica.n_components_ = unmixing_matrix.shape[0]

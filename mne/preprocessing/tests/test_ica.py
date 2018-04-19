@@ -184,7 +184,7 @@ def test_ica_reset(method):
                        eog=False, exclude='bads')[:10]
 
     run_time_attrs = (
-        '_pre_whitener',
+        'pre_whitener_',
         'unmixing_matrix_',
         'mixing_matrix_',
         'n_components_',
@@ -297,10 +297,10 @@ def test_ica_core(method):
                       include=[1, 2])
 
     # test for bug with whitener updating
-    _pre_whitener = ica._pre_whitener.copy()
+    _pre_whitener = ica.pre_whitener_.copy()
     epochs._data[:, 0, 10:15] *= 1e12
     ica.apply(epochs.copy())
-    assert_array_equal(_pre_whitener, ica._pre_whitener)
+    assert_array_equal(_pre_whitener, ica.pre_whitener_)
 
     # test expl. var threshold leading to empty sel
     ica.n_components = 0.1
@@ -476,7 +476,7 @@ def test_ica_additional(method):
 
         # check type consistency
         attrs = ('mixing_matrix_ unmixing_matrix_ pca_components_ '
-                 'pca_explained_variance_ _pre_whitener')
+                 'pca_explained_variance_ pre_whitener_')
 
         def f(x, y):
             return getattr(x, y).dtype
@@ -492,7 +492,7 @@ def test_ica_additional(method):
         ica_read = read_ica(test_ica_fname)
         for attr in ['mixing_matrix_', 'unmixing_matrix_', 'pca_components_',
                      'pca_mean_', 'pca_explained_variance_',
-                     '_pre_whitener']:
+                     'pre_whitener_']:
             assert_array_almost_equal(getattr(ica, attr),
                                       getattr(ica_read, attr))
 
