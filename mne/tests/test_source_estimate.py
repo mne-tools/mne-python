@@ -822,24 +822,29 @@ def test_get_peak():
     data = rng.randn(n_vert, n_times)
     stc_surf = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
                               subject='sample')
-
     stc_vol = VolSourceEstimate(data, vertices=vertices[0], tmin=0, tstep=1,
                                 subject='sample')
 
-    for ii, stc in enumerate([stc_surf, stc_vol]):
+    # Versions with only one time point
+    stc_surf_1 = SourceEstimate(data[:, :1], vertices=vertices, tmin=0,
+                                tstep=1, subject='sample')
+    stc_vol_1 = VolSourceEstimate(data[:, :1], vertices=vertices[0], tmin=0,
+                                  tstep=1, subject='sample')
+
+    for ii, stc in enumerate([stc_surf, stc_vol, stc_surf_1, stc_vol_1]):
         assert_raises(ValueError, stc.get_peak, tmin=-100)
         assert_raises(ValueError, stc.get_peak, tmax=90)
         assert_raises(ValueError, stc.get_peak, tmin=0.002, tmax=0.001)
 
         vert_idx, time_idx = stc.get_peak()
-        vertno = np.concatenate(stc.vertices) if ii == 0 else stc.vertices
+        vertno = np.concatenate(stc.vertices) if ii in [0, 2] else stc.vertices
         assert_true(vert_idx in vertno)
         assert_true(time_idx in stc.times)
 
-        ch_idx, time_idx = stc.get_peak(vert_as_index=True,
-                                        time_as_index=True)
-        assert_true(vert_idx < stc.data.shape[0])
-        assert_true(time_idx < len(stc.times))
+        data_idx, time_idx = stc.get_peak(vert_as_index=True,
+                                          time_as_index=True)
+        assert_equal(data_idx, np.argmax(np.abs(stc.data[:, time_idx])))
+        assert_equal(time_idx, np.argmax(np.abs(stc.data[data_idx, :])))
 
 
 @testing.requires_testing_data

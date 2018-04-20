@@ -1263,10 +1263,10 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
         raise ValueError('The tmin value is out of bounds. It must be '
                          'within {0} and {1}'.format(times.min(), times.max()))
     if tmax > times.max():
-        raise ValueError('The tmin value is out of bounds. It must be '
+        raise ValueError('The tmax value is out of bounds. It must be '
                          'within {0} and {1}'.format(times.min(), times.max()))
-    if tmin >= tmax:
-        raise ValueError('The tmin must be smaller than tmax')
+    if tmin > tmax:
+        raise ValueError('The tmin must be smaller or equal to tmax')
 
     time_win = (times >= tmin) & (times <= tmax)
     mask = np.ones_like(data).astype(np.bool)
