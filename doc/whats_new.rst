@@ -184,7 +184,7 @@ Bug
 
 - Fix bug in :class:`mne.make_forward_solution` when passing data with compensation channels (e.g. CTF) that contain bad channels by `Alex Gramfort`_
 
-- Fix bug in :meth:`mne.SourceEstimate.get_peak` and :meth:`mne.VolumeSourceEstimate.get_peak` when there is only a single time point by `Marijn van Vliet`_
+- Fix bug in :meth:`mne.SourceEstimate.get_peak` and :meth:`mne.VolSourceEstimate.get_peak` when there is only a single time point by `Marijn van Vliet`_
 
 API
 ~~~
