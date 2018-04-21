@@ -2516,6 +2516,8 @@ def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
         title = ", ".join(ch_names[:max_chans])
         if ch_type is not None:
             ch_type = " " + ch_type[0].upper() + ch_type[1:]
+        else:
+            ch_type = ""
         if all is True and isinstance(combine, string_types):
             combine = combine[0].upper() + combine[1:]
             title = "{} of {}{} sensors".format(

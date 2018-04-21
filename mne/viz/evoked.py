@@ -1610,7 +1610,7 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
 
 def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                          linestyles=['-'], styles=None, cmap=None,
-                         vlines="auto", ci=0.95, truncate_yaxis=False,
+                         vlines="auto", ci=0.95, truncate_yaxis="max_ticks",
                          truncate_xaxis=True, ylim=dict(), invert_y=False,
                          show_sensors=None, show_legend=True,
                          split_legend=False, axes=None, title=None, show=True):
@@ -2025,7 +2025,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         ymax_bound = ax.get_ylim()[-1]
 
     title = _set_title_multiple_electrodes(
-        title, "average" if gfp is False else "gfp", ch_names)
+        title, "average" if gfp is False else "gfp", ch_names,
+        ch_type=ch_type.upper())
     ax.set_title(title)
 
     current_ymin = ax.get_ylim()[0]
