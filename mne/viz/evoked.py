@@ -1707,12 +1707,12 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         it must take as its single argument an array (observations x times) and
         return the upper and lower confidence bands.
         If None or False, no confidence band is plotted.
-        If True, the 95% confidence interval is drawn.
+        If True, a 95% bootstrapped confidence interval is drawn.
     truncate_yaxis : bool | str
-        If True, the left y axis spine is truncated to reduce visual clutter.
-        If 'max_ticks', the spine is truncated at the minimum and maximum
-        ticks. Else, it is truncated to half the max absolute value, rounded to
-        .25. Defaults to False.
+        If not False, the left y axis spine is truncated to reduce visual
+        clutter. If 'max_ticks', the spine is truncated at the minimum and
+        maximum ticks. Else, it is truncated to half the max absolute value,
+        rounded to .25. Defaults to "max_ticks".
     truncate_xaxis : bool
         If True, the x axis is truncated to span from the first to the last.
         xtick. Defaults to True.
@@ -2025,8 +2025,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         ymax_bound = ax.get_ylim()[-1]
 
     title = _set_title_multiple_electrodes(
-        title, "average" if gfp is False else "gfp", ch_names,
-        ch_type=ch_type.upper())
+        title, "average" if gfp is False else "gfp", ch_names, ch_type=ch_type)
     ax.set_title(title)
 
     current_ymin = ax.get_ylim()[0]
