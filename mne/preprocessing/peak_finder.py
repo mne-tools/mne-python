@@ -37,9 +37,12 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
 
     Example
     -------
+    import numpy as np
+    from mne.preprocessing.peak_finder import peak_finder
+
     t = np.arange(0, 3, 0.01)
     x = np.sin(np.pi*t) - np.sin(0.5*np.pi*t)
-    peak_locs, peak_mags = mne.preprocessing.peak_finder.peak_finder(x)
+    peak_locs, peak_mags = peak_finder(x)
 
     """
     x0 = np.asanyarray(x0)
@@ -96,7 +99,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
                 length -= 1
 
         # Preallocate max number of maxima
-        maxPeaks = int(np.ceil(length / 2.0))
+        maxPeaks = np.ceil(length / 2.0)
         peak_loc = np.zeros(maxPeaks, dtype=np.int)
         peak_mag = np.zeros(maxPeaks)
         c_ind = 0
