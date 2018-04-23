@@ -44,7 +44,7 @@ _channel_type_prettyprint = {'eeg': "EEG channel",  'grad': "Gradiometer",
                              'mag': "Magnetometer", 'seeg': "sEEG channel",
                              'eog': "EOG channel", 'ecg': "ECG sensor",
                              'emg': "EMG sensor", 'ecog': "ECoG channel",
-                             'misc': "misc. sensor"}
+                             'misc': "miscellaneous sensor"}
 
 
 def _setup_vmin_vmax(data, vmin, vmax, norm=False):
