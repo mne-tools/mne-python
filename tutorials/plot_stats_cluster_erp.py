@@ -42,7 +42,7 @@ median_value = str(epochs.metadata[name].median())
 long = epochs[name + " > " + median_value]
 short = epochs[name + " < " + median_value]
 
-##############################################################################
+#############################################################################
 # If we have a specific point in space and time we wish to test, it can be
 # convenient to convert the data into Pandas Dataframe format. In this case,
 # the :class:`mne.Epochs` object has a convenient
@@ -54,7 +54,7 @@ short = epochs[name + " < " + median_value]
 time_windows = ((200, 250), (350, 450))
 elecs = ["Fz", "Cz", "Pz"]
 
-# display the EEG data in Pandas format
+# display the EEG data in Pandas format (first 5 rows)
 print(epochs.to_data_frame()[elecs].head())
 
 report = "{elec}, time: {tmin}-{tmax} msec; t({df})={t_val:.3f}, p={p:.3f}"
@@ -105,8 +105,8 @@ print(str(significant_points.sum()) + " points selected by TFCE ...")
 # effects on the head.
 
 # We need an evoked object to plot the image to be masked
-evoked = mne.combine_evoked([long.average(), short.average()],
-                            weights=(.5, -.5))  # calculate difference wave
+evoked = mne.combine_evoked([long.average(), -short.average()],
+                            weights='equal')  # calculate difference wave
 evoked.plot_joint(title="Long vs. short words")  # show difference wave
 
 # Create ROIs by checking channel labels
@@ -124,15 +124,15 @@ rois = {roi: np.array(picks)[pos[picks, 1].argsort()]
         for roi, picks in rois.items()}
 
 # Visualize the results
-fig, axes = plt.subplots(nrgows=3, figsize=(8, 8))
+fig, axes = plt.subplots(nrows=3, figsize=(8, 8))
 vmax = np.abs(evoked.data).max() * 1e6
 
 # Iterate over ROIs and axes
 axes = axes.ravel().tolist()
 for roi_name, ax in zip(sorted(rois.keys()), axes):
     picks = rois[roi_name]
-    evoked.plot_image(picks=picks, axes=ax, mask=significant_points,
-                      clim=dict(eeg=(-vmax, vmax)), colorbar=False, show=False)
+    evoked.plot_image(picks=picks, axes=ax, colorbar=False, show=False,
+                      clim=dict(eeg=(-vmax, vmax)), mask=significant_points)
     ax.set_yticks((np.arange(len(picks))) + .5)
     ax.set_yticklabels([evoked.ch_names[idx] for idx in picks])
     if not ax.is_last_row():  # remove xticklabels for all but bottom axis
