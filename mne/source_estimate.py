@@ -534,7 +534,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         return self  # return self for chaining methods
 
     @verbose
-    def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=1,
+    def resample(self, sfreq, npad='auto', window=None, n_jobs=1,
                  pad='reflect_limited', method='fft', verbose=None):
         """Resample data.
 
@@ -546,10 +546,10 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             Amount to pad the start and end of the data.
             Can also be "auto" to use a padding that will result in
             a power-of-two size (can be much faster).
-        window : str | tuple
+        window : str | tuple | None
             Frequency-domain window when ``method='fft'`` and
-            time-domain FIR filter when ``method='poly``; can be None (default)
-            to use ``'boxcar'`` and ``('kaiser', 5.0)`` respectively.
+            time-domain FIR filter when ``method='poly'``; can be None
+            (default) to use ``'boxcar'`` and ``('kaiser', 5.0)`` respectively.
         n_jobs : int
             Number of jobs to run in parallel.
         pad : str
@@ -562,7 +562,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             .. versionadded:: 0.16
         method : str
             Can be "fft" (default) to use `scipy.signal.resample` or
-            "poly" to use `scipy.signal.resample_poly`.
+            "poly" to use `scipy.signal.resample_poly`, see
+            :func:`mne.filter.resample` for details.
 
             .. versionadded:: 0.16
         verbose : bool, str, int, or None

@@ -1524,10 +1524,10 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window=None, n_jobs=1,
         Can be "auto" to pad to the next highest power of 2.
     axis : int
         Axis along which to resample (default is the last axis).
-    window : str | tuple
+    window : str | tuple | None
         Frequency-domain window when ``method='fft'`` and
-        time-domain FIR filter when ``method='poly``; can be None (default)
-        to use ``'boxcar'`` and ``('kaiser', 5.0)`` respectively.
+        time-domain FIR filter when ``method='poly'``; can be None
+        (default) to use ``'boxcar'`` and ``('kaiser', 5.0)`` respectively.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly and CUDA is initialized.
@@ -1540,7 +1540,10 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window=None, n_jobs=1,
         .. versionadded:: 0.15
     method : str
         Can be "fft" (default) to use `scipy.signal.resample` or
-        "poly" to use `scipy.signal.resample_poly`.
+        "poly" to use `scipy.signal.resample_poly`. "poly" can be faster
+        for integer changes of sample rate, especially when the number of
+        samples cannot easily be fixed (e.g., when using a fixed pad size
+        and the total number of samples is prime).
 
         .. versionadded:: 0.16
     verbose : bool, str, int, or None
@@ -1554,16 +1557,18 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window=None, n_jobs=1,
 
     Notes
     -----
-    This uses (hopefully) intelligent edge padding and frequency-domain
-    windowing improve scipy.signal.resample's resampling method, which
-    we have adapted for our use here. Choices of npad and window have
+    The default ``method='fft'`` selects edge padding and frequency-domain
+    windowing to optimize the :func:`scipy.signal.resample` FFT-based
+    resampling method for speed. Choices of `pad` and `window` can have
     important consequences, and the default choices should work well
     for most natural signals.
 
-    Resampling arguments are broken into "up" and "down" components for future
-    compatibility in case we decide to use an upfirdn implementation. The
-    current implementation is functionally equivalent to passing
-    up=up/down and down=1.
+    Using ``method="poly"`` uses :func:`scipy.signal.resample_poly`, which
+    can be faster for some signals, such as when the total
+    number of samples (including padding) results in a number that is not
+    5-smooth (i.e., a number that does not factor into the prime
+    factors 2, 3, 4, and 5 that form the FFT radix of the
+    :mod:`scipy.fftpack` functions; see :func:`scipy.fftpack.next_fast_len`).
     """
     # check explicitly for backwards compatibility
     if not isinstance(axis, int):
@@ -2090,10 +2095,10 @@ class FilterMixin(object):
             Amount to pad the start and end of the data.
             Can also be "auto" to use a padding that will result in
             a power-of-two size (can be much faster).
-        window : str | tuple
+        window : str | tuple | None
             Frequency-domain window when ``method='fft'`` and
-            time-domain FIR filter when ``method='poly``; can be None (default)
-            to use ``'boxcar'`` and ``('kaiser', 5.0)`` respectively.
+            time-domain FIR filter when ``method='poly'``; can be None
+            (default) to use ``'boxcar'`` and ``('kaiser', 5.0)`` respectively.
         n_jobs : int
             Number of jobs to run in parallel.
         pad : str
@@ -2106,7 +2111,8 @@ class FilterMixin(object):
             .. versionadded:: 0.15
         method : str
             Can be "fft" (default) to use `scipy.signal.resample` or
-            "poly" to use `scipy.signal.resample_poly`.
+            "poly" to use `scipy.signal.resample_poly`, see
+            :func:`mne.filter.resample` for details.
 
             .. versionadded:: 0.16
         verbose : bool, str, int, or None
@@ -2122,6 +2128,7 @@ class FilterMixin(object):
         See Also
         --------
         mne.io.Raw.resample
+        mne.filter.resample
 
         Notes
         -----

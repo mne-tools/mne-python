@@ -1430,8 +1430,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             a power-of-two size (can be much faster).
         window : str | tuple
             Frequency-domain window when ``method='fft'`` and
-            time-domain FIR filter when ``method='poly``; can be None (default)
-            to use ``'boxcar'`` and ``('kaiser', 5.0)`` respectively.
+            time-domain FIR filter when ``method='poly'``; can be None
+            (default) to use ``'boxcar'`` and ``('kaiser', 5.0)`` respectively.
         stim_picks : array of int | None
             Stim channels. These channels are simply subsampled or
             supersampled (without applying any filtering). This reduces
@@ -1454,7 +1454,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             .. versionadded:: 0.15
         method : str
             Can be "fft" (default) to use `scipy.signal.resample` or
-            "poly" to use `scipy.signal.resample_poly`.
+            "poly" to use `scipy.signal.resample_poly`, see
+            :func:`mne.filter.resample` for details.
 
             .. versionadded:: 0.16
         verbose : bool, str, int, or None
@@ -1473,6 +1474,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         --------
         mne.io.Raw.filter
         mne.Epochs.resample
+        mne.filter.resample
 
         Notes
         -----

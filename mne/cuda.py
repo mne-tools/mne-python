@@ -342,52 +342,16 @@ def fft_resample(x, W, new_len, npads, to_removes, cuda_dict=None,
         x = x.astype(np.float64)
     x = _smart_pad(x, npads, pad)
     old_len = len(x)
-    shorter = new_len < old_len
     if not cuda_dict['use_cuda']:
         if method == 'fft':
-            N = int(min(new_len, old_len))
-            # The below is equivalent to this, but faster
-            # sl_1 = slice((N + 1) // 2)
-            # y_fft = np.zeros(new_len, np.complex128)
-            # x_fft = fft(x).ravel() * W
-            # y_fft[sl_1] = x_fft[sl_1]
-            # sl_2 = slice(-(N - 1) // 2, None)
-            # y_fft[sl_2] = x_fft[sl_2]
-            # y = np.real(ifft(y_fft, overwrite_x=True)).ravel()
-            x_fft = rfft(x).ravel()
-            x_fft *= W[np.arange(1, len(x) + 1) // 2].real
-            y_fft = np.zeros(new_len, np.float64)
-            sl_1 = slice(N)
-            y_fft[sl_1] = x_fft[sl_1]
-            if min(new_len, old_len) % 2 == 0:
-                if new_len > old_len:
-                    y_fft[N - 1] /= 2.
-            y = irfft(y_fft, overwrite_x=True).ravel()
+            y = _resample_fft(x, new_len, old_len, W)
         else:
             assert method == 'poly'
             from scipy.signal import resample_poly
-            y = resample_poly(x, new_len, x.size, window=W)
+            y = resample_poly(x, new_len, old_len, window=W)
     else:
         assert method == 'fft'  # previous checks should ensure this
-        cudafft = _get_cudafft()
-        cuda_dict['x'].set(np.concatenate((x, np.zeros(max(new_len - old_len,
-                                                           0), x.dtype))))
-        # do the fourier-domain operations, results put in second param
-        cudafft.fft(cuda_dict['x'], cuda_dict['x_fft'], cuda_dict['fft_plan'])
-        _multiply_inplace_c128(W, cuda_dict['x_fft'])
-        # This is not straightforward, but because x_fft and y_fft share
-        # the same data (and only one half of the full DFT is stored), we
-        # don't have to transfer the slice like we do in scipy. All we
-        # need to worry about is the Nyquist component, either halving it
-        # or taking just the real component...
-        use_len = new_len if shorter else old_len
-        func = _real_c128 if shorter else _halve_c128
-        if use_len % 2 == 0:
-            nyq = int((use_len - (use_len % 2)) // 2)
-            func(cuda_dict['x_fft'], slice=slice(nyq, nyq + 1))
-        cudafft.ifft(cuda_dict['x_fft'], cuda_dict['x'],
-                     cuda_dict['ifft_plan'], scale=False)
-        y = cuda_dict['x'].get()[:new_len if shorter else None]
+        y = _resample_fft_cuda(x, new_len, old_len, W, cuda_dict)
 
     # now let's trim it back to the correct size (if there was padding)
     if (to_removes > 0).any():
@@ -396,6 +360,52 @@ def fft_resample(x, W, new_len, npads, to_removes, cuda_dict=None,
         keep[-to_removes[1]:] = False
         y = np.compress(keep, y)
 
+    return y
+
+
+def _resample_fft(x, new_len, old_len, W):
+    N = int(min(new_len, old_len))
+    # The below is equivalent to this, but faster
+    # sl_1 = slice((N + 1) // 2)
+    # y_fft = np.zeros(new_len, np.complex128)
+    # x_fft = fft(x).ravel() * W
+    # y_fft[sl_1] = x_fft[sl_1]
+    # sl_2 = slice(-(N - 1) // 2, None)
+    # y_fft[sl_2] = x_fft[sl_2]
+    # y = np.real(ifft(y_fft, overwrite_x=True)).ravel()
+    x_fft = rfft(x).ravel()
+    x_fft *= W[np.arange(1, len(x) + 1) // 2].real
+    y_fft = np.zeros(new_len, np.float64)
+    sl_1 = slice(N)
+    y_fft[sl_1] = x_fft[sl_1]
+    if min(new_len, old_len) % 2 == 0:
+        if new_len > old_len:
+            y_fft[N - 1] /= 2.
+    y = irfft(y_fft, overwrite_x=True).ravel()
+    return y
+
+
+def _resample_fft_cuda(x, new_len, old_len, W, cuda_dict):
+    cudafft = _get_cudafft()
+    shorter = new_len < old_len
+    cuda_dict['x'].set(np.concatenate((x, np.zeros(max(new_len - old_len,
+                                                       0), x.dtype))))
+    # do the fourier-domain operations, results put in second param
+    cudafft.fft(cuda_dict['x'], cuda_dict['x_fft'], cuda_dict['fft_plan'])
+    _multiply_inplace_c128(W, cuda_dict['x_fft'])
+    # This is not straightforward, but because x_fft and y_fft share
+    # the same data (and only one half of the full DFT is stored), we
+    # don't have to transfer the slice like we do in scipy. All we
+    # need to worry about is the Nyquist component, either halving it
+    # or taking just the real component...
+    use_len = new_len if shorter else old_len
+    func = _real_c128 if shorter else _halve_c128
+    if use_len % 2 == 0:
+        nyq = int((use_len - (use_len % 2)) // 2)
+        func(cuda_dict['x_fft'], slice=slice(nyq, nyq + 1))
+    cudafft.ifft(cuda_dict['x_fft'], cuda_dict['x'],
+                 cuda_dict['ifft_plan'], scale=False)
+    y = cuda_dict['x'].get()[:new_len if shorter else None]
     return y
 
 
