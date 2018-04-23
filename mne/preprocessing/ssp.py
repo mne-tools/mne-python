@@ -25,6 +25,14 @@ def _safe_del_key(dict_, key):
     if key in dict_:
         del dict_[key]
 
+def _deprecate_average(_average):
+    average = False if _average is None else _average
+    if _average is None:
+         warn('The default parameter `average=False` is deprecated'
+              ' and will be replaced by `average=True` in 0.18.',
+              DeprecationWarning)
+    return average
+
 
 @verbose
 def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
@@ -220,7 +228,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 @verbose
 def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
-                     average=False, filter_length='10s', n_jobs=1,
+                     average=None, filter_length='10s', n_jobs=1,
                      ch_name=None, reject=dict(grad=2000e-13, mag=3000e-15,
                                                eeg=50e-6, eog=250e-6),
                      flat=None, bads=[], avg_ref=False,
@@ -253,7 +261,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
     h_freq : float | None
         Filter high cut-off frequency in Hz.
     average : bool
-        Compute SSP after averaging.
+        Compute SSP after averaging. Default False.
     filter_length : str | int | None
         Number of taps to use for filtering.
     n_jobs : int
@@ -308,9 +316,10 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         The drop log, if requested.
     """
     raw = raw.copy() if copy else raw
+    new_average = _deprecate_average(average)
     return _compute_exg_proj(
         'ECG', raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg,
-        l_freq, h_freq, average, filter_length, n_jobs, ch_name, reject, flat,
+        l_freq, h_freq, new_average, filter_length, n_jobs, ch_name, reject, flat,
         bads, avg_ref, no_proj, event_id, ecg_l_freq, ecg_h_freq, tstart,
         qrs_threshold, filter_method, iir_params, return_drop_log)
 
@@ -318,7 +327,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
 @verbose
 def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
-                     average=False, filter_length='10s', n_jobs=1,
+                     average=None, filter_length='10s', n_jobs=1,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=500e-6,
                                  eog=np.inf), flat=None, bads=[],
                      avg_ref=False, no_proj=False, event_id=998, eog_l_freq=1,
@@ -350,7 +359,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
     h_freq : float | None
         Filter high cut-off frequency in Hz.
     average : bool
-        Compute SSP after averaging.
+        Compute SSP after averaging. Default False.
     filter_length : str | int | None
         Number of taps to use for filtering.
     n_jobs : int
@@ -401,9 +410,10 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         The drop log, if requested.
     """
     raw = raw.copy() if copy else raw
+    new_average = _deprecate_average(average)
     return _compute_exg_proj(
         'EOG', raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg,
-        l_freq, h_freq, average, filter_length, n_jobs, ch_name, reject, flat,
+        l_freq, h_freq, new_average, filter_length, n_jobs, ch_name, reject, flat,
         bads, avg_ref, no_proj, event_id, eog_l_freq, eog_h_freq, tstart,
         qrs_threshold='auto', filter_method=filter_method,
         iir_params=iir_params, return_drop_log=return_drop_log)
