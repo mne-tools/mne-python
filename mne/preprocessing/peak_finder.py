@@ -43,7 +43,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     >>> x = np.sin(np.pi*t) - np.sin(0.5*np.pi*t)
     >>> peak_locs, peak_mags = peak_finder(x)
     >>> peak_locs
-    array([ 36, 260])
+    array([ 36, 260], dtype=int64)
     >>> peak_mags
     array([0.36900026, 1.76007351])
 
