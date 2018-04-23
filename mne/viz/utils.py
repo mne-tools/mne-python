@@ -40,6 +40,12 @@ from ..annotations import Annotations, _sync_onset
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
 
+_channel_type_prettyprint = {'eeg': "EEG channel",  'grad': "Gradiometer",
+                             'mag': "Magnetometer", 'seeg': "sEEG channel",
+                             'eog': "EOG channel", 'ecg': "ECG sensor",
+                             'emg': "EMG sensor", 'ecog': "ECoG channel",
+                             'misc': "miscellaneous sensor"}
+
 
 def _setup_vmin_vmax(data, vmin, vmax, norm=False):
     """Handle vmin and vmax parameters."""
@@ -2510,20 +2516,23 @@ def _check_cov(noise_cov, info):
 
 
 def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
-                                   all=False, ch_type=None, ):
+                                   all=False, ch_type=None):
     """Prepare a title string for multiple electrodes."""
     if title is None:
         title = ", ".join(ch_names[:max_chans])
-        if ch_type is not None:
-            ch_type = " " + ch_type[0].upper() + ch_type[1:]
+        ch_type = _channel_type_prettyprint.get(ch_type, ch_type)
+        if ch_type is None:
+            ch_type = "sensor"
+        if len(ch_names) > 1:
+            ch_type += "s"
         if all is True and isinstance(combine, string_types):
             combine = combine[0].upper() + combine[1:]
-            title = "{} of {}{} sensors".format(
+            title = "{} of {} {}".format(
                 combine, len(ch_names), ch_type)
         elif len(ch_names) > max_chans and combine is not "gfp":
             warn("More than {} channels, truncating title ...".format(
                 max_chans))
-            title += ", ...\n({} of {}{} sensors)".format(
+            title += ", ...\n({} of {} {})".format(
                 combine, len(ch_names), ch_type,)
     return title
 
