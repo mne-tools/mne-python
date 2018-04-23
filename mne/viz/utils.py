@@ -44,7 +44,7 @@ _channel_type_prettyprint = {'eeg': "EEG channel",  'grad': "Gradiometer",
                              'mag': "Magnetometer", 'seeg': "sEEG channel",
                              'eog': "EOG channel", 'ecg': "ECG sensor",
                              'emg': "EMG sensor", 'ecog': "ECoG channel",
-                             'misc': "misc. sensors"}
+                             'misc': "misc. sensor"}
 
 
 def _setup_vmin_vmax(data, vmin, vmax, norm=False):
@@ -2522,8 +2522,8 @@ def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
         title = ", ".join(ch_names[:max_chans])
         ch_type = _channel_type_prettyprint.get(ch_type, ch_type)
         if ch_type is None:
-            ch_type = ""
-        elif len(ch_names) > 1:
+            ch_type = "sensor"
+        if len(ch_names) > 1:
             ch_type += "s"
         if all is True and isinstance(combine, string_types):
             combine = combine[0].upper() + combine[1:]
