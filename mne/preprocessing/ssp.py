@@ -28,9 +28,9 @@ def _safe_del_key(dict_, key):
 def _deprecate_average(_average):
     average = False if _average is None else _average
     if _average is None:
-         warn('The default parameter `average=False` is deprecated'
-              ' and will be replaced by `average=True` in 0.18.',
-              DeprecationWarning)
+        warn('The default parameter `average=False` is deprecated'
+             ' and will be replaced by `average=True` in 0.18.',
+             DeprecationWarning)
     return average
 
 
@@ -319,8 +319,8 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
     new_average = _deprecate_average(average)
     return _compute_exg_proj(
         'ECG', raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg,
-        l_freq, h_freq, new_average, filter_length, n_jobs, ch_name, reject, flat,
-        bads, avg_ref, no_proj, event_id, ecg_l_freq, ecg_h_freq, tstart,
+        l_freq, h_freq, new_average, filter_length, n_jobs, ch_name, reject,
+        flat, bads, avg_ref, no_proj, event_id, ecg_l_freq, ecg_h_freq, tstart,
         qrs_threshold, filter_method, iir_params, return_drop_log)
 
 
@@ -413,7 +413,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
     new_average = _deprecate_average(average)
     return _compute_exg_proj(
         'EOG', raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg,
-        l_freq, h_freq, new_average, filter_length, n_jobs, ch_name, reject, flat,
-        bads, avg_ref, no_proj, event_id, eog_l_freq, eog_h_freq, tstart,
+        l_freq, h_freq, new_average, filter_length, n_jobs, ch_name, reject,
+        flat, bads, avg_ref, no_proj, event_id, eog_l_freq, eog_h_freq, tstart,
         qrs_threshold='auto', filter_method=filter_method,
         iir_params=iir_params, return_drop_log=return_drop_log)
