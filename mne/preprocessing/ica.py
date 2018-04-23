@@ -1047,6 +1047,15 @@ class ICA(ContainsMixin):
             if threshold is None:
                 threshold = 0.25
             if isinstance(inst, BaseRaw):
+                reject_by_annotation = 'omit' if reject_by_annotation else None
+                start, stop = _check_start_stop(inst, start, stop)
+
+                # update the instance with new data
+                _data = inst.get_data(picks=None, start=start, stop=stop,
+                                      reject_by_annotation=reject_by_annotation)
+                inst._data = _data  # Could be done directly?
+
+                # create ECG epochs
                 sources = self.get_sources(create_ecg_epochs(
                     inst, ch_name, keep_ecg=False,
                     reject_by_annotation=reject_by_annotation)).get_data()
