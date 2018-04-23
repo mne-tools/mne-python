@@ -12,8 +12,8 @@ from .. import Epochs, compute_proj_evoked, compute_proj_epochs
 from ..utils import logger, verbose, warn
 from .. import pick_types
 from ..io import make_eeg_average_ref_proj
-from .ecg import find_ecg_events
-from .eog import find_eog_events
+from .ecg import create_ecg_epochs, find_ecg_events
+from .eog import create_eog_epochs, find_eog_events
 
 
 def _safe_del_key(dict_, key):
@@ -201,13 +201,27 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
                phase='zero-double', fir_design='firwin2')
 
-    epochs = Epochs(raw, events, None, tmin, tmax, baseline=None, preload=True,
-                    picks=picks, reject=reject, flat=flat, proj=True)
+
+    # find_ecg_events(tstart=tstart, qrs_threshold=qrs_threshold, filter_length=filter_length)
+    # Epochs(raw, events, baseline=None, preload=True, proj=True)
+    # epochs = Epochs(raw, events, None, tmin, tmax, baseline=None, preload=True,
+    #                 picks=picks, reject=reject, flat=flat, proj=True)
+    if mode == 'ECG':
+        epochs = create_ecg_epochs(raw, ch_name=ch_name, event_id=event_id, picks=picks, tmin=tmin,
+                                   tmax=tmax, l_freq=exg_l_freq, h_freq=exg_h_freq, reject=reject, flat=flat,
+                                   baseline=None, preload=True)
+    elif mode == 'EOG':
+        epochs = create_eog_epochs(raw, ch_name=ch_name, event_id=event_id, picks=picks, tmin=tmin,
+                                   tmax=tmax, l_freq=exg_l_freq, h_freq=exg_h_freq, reject=reject, flat=flat,
+                                   baseline=None, preload=True)
+    else:
+        raise ValueError("mode must be 'ECG' or 'EOG'")
 
     drop_log = epochs.drop_log
     if epochs.events.shape[0] < 1:
         warn('No good epochs found, returning None for projs')
         return (None, events) + ((drop_log,) if return_drop_log else ())
+        # raise RuntimeError('I dont know what to do here !! ')
 
     if average:
         evoked = epochs.average()
@@ -222,6 +236,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 
     projs.extend(ev_projs)
     logger.info('Done.')
+    # raise RuntimeError('I dont know what to do here !! ')
     return (projs, events) + ((drop_log,) if return_drop_log else ())
 
 
