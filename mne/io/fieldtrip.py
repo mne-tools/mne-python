@@ -65,9 +65,7 @@ def read_raw_fieldtrip(ft_structure_path, data_name='data'):
 
 
 def read_epochs_fieldtrip(ft_structure_path, data_name='data',
-                          trialinfo_map=None,
-                          omit_trialinfo_index=True,
-                          omit_non_unique_trialinfo_index=True):
+                          trialinfo_column=0):
     """Load epoched data from a FieldTrip preprocessing structure.
 
     This function expects to find epoched data in the structure data_name is
@@ -76,22 +74,6 @@ def read_epochs_fieldtrip(ft_structure_path, data_name='data',
     .. warning:: Only epochs with the same amount of channels and samples are
                  supported!
 
-    Notes
-    -----
-        The data is read as it is. Events however are represented entirely
-        different in FieldTrip compared to MNE.
-
-        In FieldTrip, each epoch corresponds to one row in the trialinfo field.
-        This field can have one or more columns. The function first removes
-        columns according to the two omit parameters.
-
-        - If only one column remains, its values are used as event values in
-          the MNE Epoch.
-        - If two or more columns remain, each unique combination of
-          these values receives a new event value. These event values are
-          created automatically. In order to match these to conditions, you can
-          use the trialinfo_map parameter.
-
     Parameters
     ----------
     ft_structure_path: str
@@ -99,17 +81,8 @@ def read_epochs_fieldtrip(ft_structure_path, data_name='data',
     data_name: str
         Name of heading dict/ variable name under which the data was originally
         saved in MATLAB.
-    trialinfo_map: dict
-        A dictionary mapping condition strings (MNE's event_ids) to the
-        trialinfo column. The values should be 1D numpy arrays. See examples
-        for details.
-    omit_trialinfo_index: bool
-        Omit trialinfo columns that look like an index of the trials, i.e. in
-        which every row is the row before + 1.
-    omit_non_unique_trialinfo_index: bool
-        Omit trialinfo columns that contain a different value for each row.
-        These are most likely additional data like reaction times that cannot
-        be represented in MNE.
+    trialinfo_column: int
+        Column of the trialinfo matrix to use for the event codes
 
 
     Returns
@@ -119,14 +92,7 @@ def read_epochs_fieldtrip(ft_structure_path, data_name='data',
         matrix, start time before event (if possible, else defaults to 0) and
         measurement info.
 
-    Examples
-    --------
-    >>> read_epochs_fieldtrip('FieldTripEpochsFile.mat', # doctest: +SKIP
-    >>>     trialinfo_map={ # doctest: +SKIP
-    >>>         'audio/attend': np.array([0, 1]), # doctest: +SKIP
-    >>>         'visual/attend': np.array([1, 1]), # doctest: +SKIP
-    >>>         'audio/non_attend': np.array([0, 0]), # doctest: +SKIP
-    >>>         'visual/non_attend': np.array([1, 0])}) # doctest: +SKIP
+
     """
     pymatreader = _check_pymatreader()
 
@@ -138,14 +104,12 @@ def read_epochs_fieldtrip(ft_structure_path, data_name='data',
     ft_struct = ft_struct[data_name]
 
     data = np.array(ft_struct['trial'])  # create the epochs data array
-    (events, event_id) = _create_events(ft_struct, trialinfo_map,
-                                        omit_trialinfo_index,
-                                        omit_non_unique_trialinfo_index)
+    events = _create_events(ft_struct, trialinfo_column)
     tmin = _set_tmin(ft_struct)  # create start time
     info = _create_info(ft_struct)  # create info structure
 
     custom_epochs = EpochsArray(data=data, info=info, tmin=tmin,
-                                events=events, event_id=event_id)
+                                events=events)
     return custom_epochs
 
 
@@ -310,48 +274,27 @@ def _set_tmin(ft_struct):
     return tmin
 
 
-def _create_events(ft_struct, trialinfo_map, omit_trialinfo_index,
-                   omit_non_unique_trialinfo_index):
+def _create_events(ft_struct, trialinfo_column):
     """Create an event matrix from the FieldTrip structure."""
-    # sanitize trialinfo_map
-    if trialinfo_map:
-        for (key, value) in trialinfo_map.items():
-            trialinfo_map[key] = np.array(value)
 
     event_type = ft_struct['trialinfo']
     event_number = range(len(event_type))
 
-    event_trans_val = np.zeros(len(event_type))
-    if omit_trialinfo_index:
-        index_columns = np.all(np.diff(event_type, axis=0) == 1, axis=0)
-        event_type = event_type[:, np.logical_not(index_columns)]
+    if trialinfo_column < 0:
+        raise ValueError('trialinfo_column must be positive')
 
-    if omit_non_unique_trialinfo_index:
-        unique_columns = np.any(
-            np.diff(np.sort(event_type, axis=0), axis=0) == 0, axis=0)
-        event_type = event_type[:, unique_columns]
+    if trialinfo_column > (event_type.shape[0]+1):
+        raise ValueError('trialinfo_column is higher than the amount of'
+                         'columns in trialinfo.')
 
     (unique_events, unique_events_index) = np.unique(event_type, axis=0,
                                                      return_inverse=True)
 
-    if event_type.ndim == 1:
-        final_event_types = event_type
-    else:
-        final_event_types = unique_events_index + 1
+    event_trans_val = np.zeros(len(event_type))
+
+    final_event_types = event_type[:, trialinfo_column]
 
     events = np.vstack([np.array(event_number), event_trans_val,
                         final_event_types]).astype('int').T
 
-    event_id = dict()
-    if not trialinfo_map:
-        trialinfo_map = dict()
-        for cur_unique_event in unique_events:
-            trialinfo_map['trialinfo {}'.format(
-                cur_unique_event)] = cur_unique_event
-
-    for (cur_event_id, cur_trialinfo_mat) in trialinfo_map.items():
-        event_index = np.where(
-            np.all(unique_events == cur_trialinfo_mat, axis=1))[0][0] + 1
-        event_id[cur_event_id] = event_index
-
-    return events, event_id
+    return events
