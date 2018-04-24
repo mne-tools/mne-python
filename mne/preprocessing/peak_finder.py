@@ -42,10 +42,10 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     >>> t = np.arange(0, 3, 0.01)
     >>> x = np.sin(np.pi*t) - np.sin(0.5*np.pi*t)
     >>> peak_locs, peak_mags = peak_finder(x)
-    >>> peak_locs
-    array([36, 260])
-    >>> peak_mags
-    array([0.36900026, 1.76007351])
+    >>> peak_locs.tolist()
+    [36, 260]
+    >>> peak_mags.tolist()
+    [0.36900026, 1.76007351]
 
     """
     x0 = np.asanyarray(x0)
