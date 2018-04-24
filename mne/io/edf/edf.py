@@ -421,6 +421,7 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         cals = np.append(cals, 1)
     if stim_channel is not None:
         stim_channel = _check_stim_channel(stim_channel, ch_names, sel)
+        physical_ranges[stim_channel] = cals[stim_channel]
 
     # Annotations
     tal_ch_name = 'EDF Annotations'
