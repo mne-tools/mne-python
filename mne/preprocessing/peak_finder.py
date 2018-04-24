@@ -43,9 +43,9 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     >>> x = np.sin(np.pi*t) - np.sin(0.5*np.pi*t)
     >>> peak_locs, peak_mags = peak_finder(x)
     >>> peak_locs
-    array([36, 260])  # doctest: +NORMALIZE_WHITESPACE
+    array([36, 260])  # doctest: +SKIP
     >>> peak_mags
-    array([0.36900026, 1.76007351])  # doctest: +NORMALIZE_WHITESPACE
+    array([0.36900026, 1.76007351])  # doctest: +SKIP
 
     """
     x0 = np.asanyarray(x0)
