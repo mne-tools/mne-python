@@ -464,7 +464,7 @@ class ICA(ContainsMixin):
 
         self.n_samples_ = data.shape[1]
         # this may operate inplace or make a copy
-        data, self._pre_whitener = self._pre_whiten(data, info, picks)
+        data, self.pre_whitener_ = self._pre_whiten(data, info, picks)
 
         self._fit(data, self.max_pca_components, 'raw')
 
@@ -502,7 +502,7 @@ class ICA(ContainsMixin):
 
         # This will make at least one copy (one from hstack, maybe one
         # more from _pre_whiten)
-        data, self._pre_whitener = \
+        data, self.pre_whitener_ = \
             self._pre_whiten(np.hstack(data), info, picks)
 
         self._fit(data, self.max_pca_components, 'epochs')
@@ -655,7 +655,14 @@ class ICA(ContainsMixin):
             data = raw.get_data(picks, start, stop, 'omit')
         else:
             data = raw[picks, start:stop][0]
-        data, _ = self._pre_whiten(data, raw.info, picks)
+
+        # remove comp matrices
+        assert(raw.compensation_grade == self.compensation_grade)
+        info = raw.info.copy()
+        if info['comps']:
+            info['comps'] = []
+
+        data, _ = self._pre_whiten(data, info, picks)
         return self._transform(data)
 
     def _transform_epochs(self, epochs, concatenate):
@@ -672,9 +679,14 @@ class ICA(ContainsMixin):
                                'provide Epochs compatible with '
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
+        # remove comp matrices
+        assert(epochs.compensation_grade == self.compensation_grade)
+        info = epochs.info.copy()
+        if info['comps']:
+            info['comps'] = []
 
         data = np.hstack(epochs.get_data()[:, picks])
-        data, _ = self._pre_whiten(data, epochs.info, picks)
+        data, _ = self._pre_whiten(data, info, picks)
         sources = self._transform(data)
 
         if not concatenate:
@@ -698,7 +710,13 @@ class ICA(ContainsMixin):
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
 
-        data, _ = self._pre_whiten(evoked.data[picks], evoked.info, picks)
+        # remove comp matrices
+        assert(evoked.compensation_grade == self.compensation_grade)
+        info = evoked.info.copy()
+        if info['comps']:
+            info['comps'] = []
+
+        data, _ = self._pre_whiten(evoked.data[picks], info, picks)
         sources = self._transform(data)
 
         return sources
@@ -743,15 +761,25 @@ class ICA(ContainsMixin):
         sources : instance of Raw, Epochs or Evoked
             The ICA sources time series.
         """
+        # error check
+        if not isinstance(inst, (BaseRaw, BaseEpochs, Evoked)):
+            raise ValueError('Data input must be of Raw, Epochs or Evoked '
+                             'type')
+
+        # confirm ica.compensation_grade == inst.compensation_Grade
+        if (self.info is not None) and \
+                (self.compensation_grade != inst.compensation_grade):
+            msg = ('Compensation grade of ICA (%d) and data object (%d) ' +
+                   'don\'t match')
+            raise RuntimeError(msg % (self.compensation_grade,
+                                      inst.compensation_grade))
+
         if isinstance(inst, BaseRaw):
             sources = self._sources_as_raw(inst, add_channels, start, stop)
         elif isinstance(inst, BaseEpochs):
             sources = self._sources_as_epochs(inst, add_channels, False)
         elif isinstance(inst, Evoked):
             sources = self._sources_as_evoked(inst, add_channels)
-        else:
-            raise ValueError('Data input must be of Raw, Epochs or Evoked '
-                             'type')
 
         return sources
 
@@ -904,6 +932,19 @@ class ICA(ContainsMixin):
         scores : ndarray
             scores for each source as returned from score_func
         """
+        # error check
+        if not isinstance(inst, (BaseRaw, BaseEpochs, Evoked)):
+            raise ValueError('Data input must be of Raw, Epochs or Evoked '
+                             'type')
+
+        # confirm ica.compensation_grade == inst.compensation_Grade
+        if (self.info is not None) and \
+                (self.compensation_grade != inst.compensation_grade):
+            msg = ('Compensation grade of ICA (%d) and data object (%d) ' +
+                   'don\'t match')
+            raise RuntimeError(msg % (self.compensation_grade,
+                                      inst.compensation_grade))
+
         if isinstance(inst, BaseRaw):
             sources = self._transform_raw(inst, start, stop,
                                           reject_by_annotation)
@@ -911,8 +952,6 @@ class ICA(ContainsMixin):
             sources = self._transform_epochs(inst, concatenate=True)
         elif isinstance(inst, Evoked):
             sources = self._transform_evoked(inst)
-        else:
-            raise ValueError('Input must be of Raw, Epochs or Evoked type')
 
         if target is not None:  # we can have univariate metrics without target
             target = self._check_target(target, inst, start, stop,
@@ -1215,6 +1254,20 @@ class ICA(ContainsMixin):
         out : instance of Raw, Epochs or Evoked
             The processed data.
         """
+        # error check
+        if not (isinstance(inst, BaseRaw) or isinstance(inst, BaseEpochs) or
+                isinstance(inst, Evoked)):
+            raise ValueError('Data input must be of Raw, Epochs or Evoked '
+                             'type')
+
+        # confirm ica.compensation_grade == inst.compensation_Grade
+        if (self.info is not None) and \
+                (self.compensation_grade != inst.compensation_grade):
+            msg = ('Compensation grade of ICA (%d) and data object (%d) ' +
+                   'don\'t match')
+            raise RuntimeError(msg % (self.compensation_grade,
+                                      inst.compensation_grade))
+
         if isinstance(inst, BaseRaw):
             out = self._apply_raw(raw=inst, include=include,
                                   exclude=exclude,
@@ -1228,9 +1281,6 @@ class ICA(ContainsMixin):
             out = self._apply_evoked(evoked=inst, include=include,
                                      exclude=exclude,
                                      n_pca_components=n_pca_components)
-        else:
-            raise ValueError('Data input must be of Raw, Epochs or Evoked '
-                             'type')
         return out
 
     def _apply_raw(self, raw, include, exclude, n_pca_components, start, stop):

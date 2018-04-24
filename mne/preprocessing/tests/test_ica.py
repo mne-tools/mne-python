@@ -876,17 +876,37 @@ def test_n_components_and_max_pca_components_none(method):
 def test_ica_ctf():
     """Test run ICA computation on ctf data with/without compensation."""
     method = 'fastica'
-    raw = read_raw_ctf(ctf_fname)
+    raw = read_raw_ctf(ctf_fname, preload=True)
     events = make_fixed_length_events(raw, 99999)
     for comp in [0, 1]:
         raw.apply_gradient_compensation(comp)
-        ica = ICA(n_components=2, random_state=0, method=method)
-        with warnings.catch_warnings(record=True):  # convergence
-            ica.fit(raw)
-        epochs = Epochs(raw, events, None, -0.2, 0.2, preload=False)
-        ica = ICA(n_components=2, random_state=0, method=method)
-        with warnings.catch_warnings(record=True):  # convergence
-            ica.fit(epochs)
+        epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
+        evoked = epochs.average()
+
+        # test fit
+        for inst in [raw, epochs]:
+            ica = ICA(n_components=2, random_state=0, method=method)
+            with warnings.catch_warnings(record=True):  # convergence
+                ica.fit(raw)
+
+        # test apply and get_sources
+        for inst in [raw, epochs, evoked]:
+            ica.apply(inst)
+            ica.get_sources(inst)
+
+    # test mixed compensation case
+    raw.apply_gradient_compensation(0)
+    ica = ICA(n_components=2, random_state=0, method=method)
+    with warnings.catch_warnings(record=True):  # convergence
+        ica.fit(raw)
+    raw.apply_gradient_compensation(1)
+    epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
+    evoked = epochs.average()
+    for inst in [raw, epochs, evoked]:
+        with pytest.raises(RuntimeError, match='Compensation grade of ICA'):
+            ica.apply(inst)
+        with pytest.raises(RuntimeError, match='Compensation grade of ICA'):
+            ica.get_sources(inst)
 
 
 run_tests_if_main()
