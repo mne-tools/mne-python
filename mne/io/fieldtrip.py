@@ -276,19 +276,15 @@ def _set_tmin(ft_struct):
 
 def _create_events(ft_struct, trialinfo_column):
     """Create an event matrix from the FieldTrip structure."""
-
     event_type = ft_struct['trialinfo']
     event_number = range(len(event_type))
 
     if trialinfo_column < 0:
         raise ValueError('trialinfo_column must be positive')
 
-    if trialinfo_column > (event_type.shape[0]+1):
+    if trialinfo_column > (event_type.shape[0] + 1):
         raise ValueError('trialinfo_column is higher than the amount of'
                          'columns in trialinfo.')
-
-    (unique_events, unique_events_index) = np.unique(event_type, axis=0,
-                                                     return_inverse=True)
 
     event_trans_val = np.zeros(len(event_type))
 
