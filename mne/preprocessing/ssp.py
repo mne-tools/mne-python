@@ -192,34 +192,27 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     picks = pick_types(my_info, meg=True, eeg=True, eog=True, ref_meg=ref_meg,
                        exclude='bads')
 
-    if mode == 'EOG':
-        raw.filter(l_freq, h_freq, picks=picks, filter_length=filter_length,
-                n_jobs=n_jobs, method=filter_method, iir_params=iir_params,
-                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-                phase='zero-double', fir_design='firwin2')
-
-
-        epochs = Epochs(raw, events, None, tmin, tmax, baseline=None, preload=True,
-                        picks=picks, reject=reject, flat=flat, proj=True)
-
-    # # find_ecg_events(tstart=tstart, qrs_threshold=qrs_threshold, filter_length=filter_length)
-    # # Epochs(raw, events, baseline=None, preload=True, proj=True)
-    # # epochs = Epochs(raw, events, None, tmin, tmax, baseline=None, preload=True,
-    # #                 picks=picks, reject=reject, flat=flat, proj=True)
     if mode == 'ECG':
         epochs = create_ecg_epochs(raw, ch_name=ch_name, event_id=event_id,
                                    picks=picks, tmin=tmin, tmax=tmax,
                                    l_freq=exg_l_freq, h_freq=exg_h_freq,
                                    reject=reject, flat=flat,
                                    qrs_threshold=qrs_threshold, filter_length=filter_length,
-                                   tstart=tstart,
+                                   tstart=tstart,  proj=True,
                                    baseline=None, preload=True)
-    # elif mode == 'EOG':
-    #     epochs = create_eog_epochs(raw, ch_name=ch_name, event_id=event_id, picks=picks, tmin=tmin,
-    #                                tmax=tmax, l_freq=exg_l_freq, h_freq=exg_h_freq, reject=reject, flat=flat,
-    #                                baseline=None, preload=True)
-    # else:
-    #     raise ValueError("mode must be 'ECG' or 'EOG'")
+    elif mode == 'EOG':
+        # Keep the old computation for the EOG case for now.
+
+        raw.filter(l_freq, h_freq, picks=picks, filter_length=filter_length,
+                n_jobs=n_jobs, method=filter_method, iir_params=iir_params,
+                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
+                phase='zero-double', fir_design='firwin2')
+
+        epochs = Epochs(raw, events, None, tmin, tmax, baseline=None, preload=True,
+                        picks=picks, reject=reject, flat=flat, proj=True)
+
+    else:
+        raise ValueError("mode must be 'ECG' or 'EOG'")
 
     drop_log = epochs.drop_log
     if epochs.events.shape[0] < 1:

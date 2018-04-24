@@ -229,7 +229,7 @@ def _get_ecg_channel_index(ch_name, inst):
 def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
                       tmax=0.5, l_freq=8, h_freq=16, reject=None, flat=None,
                       baseline=None, preload=True, keep_ecg=False,
-                      tstart=0.0,
+                      tstart=0.0, proj=False,
                       reject_by_annotation=True, qrs_threshold='auto',
                       filter_length='10s', verbose=None):
     """Conveniently generate epochs around ECG artifact events.
@@ -344,7 +344,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
             picks = np.append(picks, raw.ch_names.index('ECG-SYN'))
     # create epochs around ECG events and baseline (important)
     ecg_epochs = Epochs(raw, events=events, event_id=event_id,
-                        tmin=tmin, tmax=tmax, proj=False, flat=flat,
+                        tmin=tmin, tmax=tmax, proj=proj, flat=flat,
                         picks=picks, reject=reject, baseline=baseline,
                         reject_by_annotation=reject_by_annotation,
                         verbose=verbose, preload=preload)
