@@ -27,9 +27,9 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
     event_id : int
         The index to assign to found events.
     l_freq : float
-        Low cut-off frequency in Hz.
+        Low cut-off frequency to apply to the EOG channel in Hz.
     h_freq : float
-        High cut-off frequency in Hz.
+        High cut-off frequency to apply to the EOG channel in Hz.
     filter_length : str | int | None
         Number of taps to use for filtering.
     ch_name: str | None
@@ -46,6 +46,11 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
     -------
     eog_events : array
         Events.
+
+    See Also
+    --------
+    create_eog_epochs
+    compute_proj_eog
     """
     # Getting EOG Channel
     eog_inds = _get_eog_channel_index(ch_name, raw)
@@ -172,9 +177,9 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
     tmax : float
         End time after event.
     l_freq : float
-        Low pass frequency.
+        Low pass frequency to apply to the EOG channel while finding events.
     h_freq : float
-        High pass frequency.
+        High pass frequency to apply to the EOG channel while finding events.
     reject : dict | None
         Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
@@ -217,6 +222,17 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
     -------
     eog_epochs : instance of Epochs
         Data epoched around EOG events.
+
+    See Also
+    --------
+    find_eog_events
+    compute_proj_eog
+
+    Notes
+    -----
+    Filtering is only applied to the EOG channel while finding events.
+    The resulting ``eog_epochs`` will have no filtering applied (i.e., have
+    the same filter properties as the input ``raw`` instance).
     """
     events = find_eog_events(raw, ch_name=ch_name, event_id=event_id,
                              l_freq=l_freq, h_freq=h_freq,

@@ -883,15 +883,20 @@ class UpdateChannelsMixin(object):
         else:
             con_axis = 0
             comp_class = type(self)
-        if not all(isinstance(inst, comp_class) for inst in add_list):
-            raise AssertionError('All input data must be of same type')
+        for inst in add_list:
+            if not isinstance(inst, comp_class):
+                raise ValueError('All input data must be of same type, got '
+                                 '%s and %s' % (comp_class, type(inst)))
         data = [inst._data for inst in [self] + add_list]
 
         # Make sure that all dimensions other than channel axis are the same
         compare_axes = [i for i in range(data[0].ndim) if i != con_axis]
         shapes = np.array([dat.shape for dat in data])[:, compare_axes]
-        if not ((shapes[0] - shapes) == 0).all():
-            raise AssertionError('All dimensions except channels must match')
+        for shape in shapes:
+            if not ((shapes[0] - shape) == 0).all():
+                raise ValueError('All data dimensions except channels '
+                                 'must match, got %s != %s'
+                                 % (shapes[0], shape))
 
         # Create final data / info objects
         data = np.concatenate(data, axis=con_axis)
