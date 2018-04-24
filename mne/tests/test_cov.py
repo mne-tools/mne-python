@@ -25,11 +25,13 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  compute_covariance, read_evokeds, compute_proj_raw,
                  pick_channels_cov, pick_types, pick_info, make_ad_hoc_cov)
 from mne.fixes import _get_args
-from mne.io import read_raw_fif, RawArray, read_info
+from mne.io import read_raw_fif, RawArray, read_info, read_raw_ctf
 from mne.tests.common import assert_naming, assert_snr
 from mne.utils import _TempDir, requires_version, run_tests_if_main
 from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import channel_type, _picks_by_type, _DATA_CH_TYPES_SPLIT
+from mne.datasets import testing
+from mne.event import make_fixed_length_events
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -41,6 +43,9 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 ave_fname = op.join(base_dir, 'test-ave.fif')
 erm_cov_fname = op.join(base_dir, 'test_erm-cov.fif')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
+
+ctf_fname = op.join(testing.data_path(download=False), 'CTF',
+                    'testdata_ctf.ds')
 
 
 def test_cov_mismatch():
@@ -642,6 +647,17 @@ def test_compute_covariance_auto_reg():
     # invalid scalings
     assert_raises(ValueError, compute_covariance, epochs, method='shrunk',
                   scalings=dict(misc=123))
+
+
+@testing.requires_testing_data
+def test_cov_ctf():
+    """Test basic cov computation on ctf data with/without compensation."""
+    raw = read_raw_ctf(ctf_fname, preload=True)
+    events = make_fixed_length_events(raw, 99999)
+    for comp in [0, 1]:
+        raw.apply_gradient_compensation(comp)
+        epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
+        noise_cov = compute_covariance(epochs, tmax=0., method=['shrunk'])
 
 
 run_tests_if_main()

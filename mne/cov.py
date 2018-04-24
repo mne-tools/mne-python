@@ -801,6 +801,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         data_mean = [1.0 / n_epoch * np.dot(mean, mean.T) for n_epoch, mean
                      in zip(n_epochs, data_mean)]
 
+    if info['comps']:
+        info['comps'] = []
     info = pick_info(info, picks_meeg)
     tslice = _get_tslice(epochs[0], tmin, tmax)
     epochs = [ee.get_data()[:, picks_meeg, tslice] for ee in epochs]
