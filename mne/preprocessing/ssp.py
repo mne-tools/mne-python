@@ -12,8 +12,8 @@ from .. import Epochs, compute_proj_evoked, compute_proj_epochs
 from ..utils import logger, verbose, warn
 from .. import pick_types
 from ..io import make_eeg_average_ref_proj
-from .ecg import create_ecg_epochs, find_ecg_events
-from .eog import create_eog_epochs, find_eog_events
+from .ecg import find_ecg_events
+from .eog import find_eog_events
 
 
 def _safe_del_key(dict_, key):
@@ -138,7 +138,11 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 
     if mode == 'ECG':
         logger.info('Running ECG SSP computation')
-        # Do nothing
+        events, _, _ = find_ecg_events(raw_event, ch_name=ch_name,
+                                       event_id=event_id, l_freq=exg_l_freq,
+                                       h_freq=exg_h_freq, tstart=tstart,
+                                       qrs_threshold=qrs_threshold,
+                                       filter_length=filter_length)
     elif mode == 'EOG':
         logger.info('Running EOG SSP computation')
         events = find_eog_events(raw_event, event_id=event_id,
@@ -148,11 +152,10 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     else:
         raise ValueError("mode must be 'ECG' or 'EOG'")
 
-    if mode == 'EOG':
-        # Check to make sure we actually got at least one useable event
-        if events.shape[0] < 1:
-            warn('No %s events found, returning None for projs' % mode)
-            return None, events
+    # Check to make sure we actually got at least one useable event
+    if events.shape[0] < 1:
+        warn('No %s events found, returning None for projs' % mode)
+        return None, events
 
     logger.info('Computing projector')
     my_info = cp.deepcopy(raw.info)
@@ -192,33 +195,18 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     picks = pick_types(my_info, meg=True, eeg=True, eog=True, ref_meg=ref_meg,
                        exclude='bads')
 
-    if mode == 'ECG':
-        epochs = create_ecg_epochs(raw, ch_name=ch_name, event_id=event_id,
-                                   picks=picks, tmin=tmin, tmax=tmax,
-                                   l_freq=exg_l_freq, h_freq=exg_h_freq,
-                                   reject=reject, flat=flat,
-                                   qrs_threshold=qrs_threshold, filter_length=filter_length,
-                                   tstart=tstart,  proj=True,
-                                   baseline=None, preload=True)
-    elif mode == 'EOG':
-        # Keep the old computation for the EOG case for now.
+    raw.filter(l_freq, h_freq, picks=picks, filter_length=filter_length,
+               n_jobs=n_jobs, method=filter_method, iir_params=iir_params,
+               l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
+               phase='zero-double', fir_design='firwin2')
 
-        raw.filter(l_freq, h_freq, picks=picks, filter_length=filter_length,
-                n_jobs=n_jobs, method=filter_method, iir_params=iir_params,
-                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-                phase='zero-double', fir_design='firwin2')
-
-        epochs = Epochs(raw, events, None, tmin, tmax, baseline=None, preload=True,
-                        picks=picks, reject=reject, flat=flat, proj=True)
-
-    else:
-        raise ValueError("mode must be 'ECG' or 'EOG'")
+    epochs = Epochs(raw, events, None, tmin, tmax, baseline=None, preload=True,
+                    picks=picks, reject=reject, flat=flat, proj=True)
 
     drop_log = epochs.drop_log
     if epochs.events.shape[0] < 1:
         warn('No good epochs found, returning None for projs')
-        return (None, epochs.events) + ((drop_log,) if return_drop_log else ())
-        # raise RuntimeError('I dont know what to do here !! ')
+        return (None, events) + ((drop_log,) if return_drop_log else ())
 
     if average:
         evoked = epochs.average()
@@ -233,8 +221,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 
     projs.extend(ev_projs)
     logger.info('Done.')
-    # raise RuntimeError('I dont know what to do here !! ')
-    return (projs, epochs.events) + ((drop_log,) if return_drop_log else ())
+    return (projs, events) + ((drop_log,) if return_drop_log else ())
 
 
 @verbose
@@ -425,7 +412,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
     average = _deprecate_average(average)
     return _compute_exg_proj(
         'EOG', raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg,
-        l_freq, h_freq, average, filter_length, n_jobs, ch_name, reject, flat,
+        l_freq, h_freq, new_average, filter_length, n_jobs, ch_name, reject, flat,
         bads, avg_ref, no_proj, event_id, eog_l_freq, eog_h_freq, tstart,
         qrs_threshold='auto', filter_method=filter_method,
         iir_params=iir_params, return_drop_log=return_drop_log)

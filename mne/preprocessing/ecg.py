@@ -229,9 +229,7 @@ def _get_ecg_channel_index(ch_name, inst):
 def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
                       tmax=0.5, l_freq=8, h_freq=16, reject=None, flat=None,
                       baseline=None, preload=True, keep_ecg=False,
-                      tstart=0.0, proj=False,
-                      reject_by_annotation=True, qrs_threshold='auto',
-                      filter_length='10s', verbose=None):
+                      reject_by_annotation=True, verbose=None):
     """Conveniently generate epochs around ECG artifact events.
 
     Parameters
@@ -293,18 +291,6 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
 
         .. versionadded:: 0.14.0
 
-    qrs_threshold : float | str
-        Between 0 and 1. qrs detection threshold. Can also be "auto" to
-        automatically choose the threshold that generates a reasonable
-        number of heartbeats (40-160 beats / min).
-
-    filter_length : str | int | None
-        Number of taps to use for filtering.
-
-    tstart : float
-        Start detection after tstart seconds. Useful when beginning
-        of run is noisy.
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -318,7 +304,6 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
 
     events, _, _, ecg = find_ecg_events(
         raw, ch_name=ch_name, event_id=event_id, l_freq=l_freq, h_freq=h_freq,
-        qrs_threshold=qrs_threshold, filter_length=filter_length,
         return_ecg=True, verbose=verbose)
 
     # Load raw data so that add_channels works
@@ -344,7 +329,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
             picks = np.append(picks, raw.ch_names.index('ECG-SYN'))
     # create epochs around ECG events and baseline (important)
     ecg_epochs = Epochs(raw, events=events, event_id=event_id,
-                        tmin=tmin, tmax=tmax, proj=proj, flat=flat,
+                        tmin=tmin, tmax=tmax, proj=False, flat=flat,
                         picks=picks, reject=reject, baseline=baseline,
                         reject_by_annotation=reject_by_annotation,
                         verbose=verbose, preload=preload)
