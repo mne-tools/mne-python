@@ -201,20 +201,22 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                phase='zero-double', fir_design='firwin2')
 
 
-    # find_ecg_events(tstart=tstart, qrs_threshold=qrs_threshold, filter_length=filter_length)
-    # Epochs(raw, events, baseline=None, preload=True, proj=True)
-    # epochs = Epochs(raw, events, None, tmin, tmax, baseline=None, preload=True,
-    #                 picks=picks, reject=reject, flat=flat, proj=True)
-    if mode == 'ECG':
-        epochs = create_ecg_epochs(raw, ch_name=ch_name, event_id=event_id, picks=picks, tmin=tmin,
-                                   tmax=tmax, l_freq=exg_l_freq, h_freq=exg_h_freq, reject=reject, flat=flat,
-                                   baseline=None, preload=True)
-    elif mode == 'EOG':
-        epochs = create_eog_epochs(raw, ch_name=ch_name, event_id=event_id, picks=picks, tmin=tmin,
-                                   tmax=tmax, l_freq=exg_l_freq, h_freq=exg_h_freq, reject=reject, flat=flat,
-                                   baseline=None, preload=True)
-    else:
-        raise ValueError("mode must be 'ECG' or 'EOG'")
+    epochs = Epochs(raw, events, None, tmin, tmax, baseline=None, preload=True,
+                    picks=picks, reject=reject, flat=flat, proj=True)
+    # # find_ecg_events(tstart=tstart, qrs_threshold=qrs_threshold, filter_length=filter_length)
+    # # Epochs(raw, events, baseline=None, preload=True, proj=True)
+    # # epochs = Epochs(raw, events, None, tmin, tmax, baseline=None, preload=True,
+    # #                 picks=picks, reject=reject, flat=flat, proj=True)
+    # if mode == 'ECG':
+    #     epochs = create_ecg_epochs(raw, ch_name=ch_name, event_id=event_id, picks=picks, tmin=tmin,
+    #                                tmax=tmax, l_freq=exg_l_freq, h_freq=exg_h_freq, reject=reject, flat=flat,
+    #                                baseline=None, preload=True)
+    # elif mode == 'EOG':
+    #     epochs = create_eog_epochs(raw, ch_name=ch_name, event_id=event_id, picks=picks, tmin=tmin,
+    #                                tmax=tmax, l_freq=exg_l_freq, h_freq=exg_h_freq, reject=reject, flat=flat,
+    #                                baseline=None, preload=True)
+    # else:
+    #     raise ValueError("mode must be 'ECG' or 'EOG'")
 
     drop_log = epochs.drop_log
     if epochs.events.shape[0] < 1:
