@@ -315,8 +315,11 @@ class RawEDF(BaseRaw):
             elif stim_data is not None:  # GDF events
                 data[stim_channel_idx, :] = stim_data[start:stop]
             else:
-                stim = np.bitwise_and(data[stim_channel_idx].astype(int),
-                                      2**17 - 1)
+                stim = data[stim_channel_idx]
+                diff = stim.max() - stim.min()
+                if diff < 1:
+                    stim /= 10**np.floor(np.log10(diff))
+                stim = np.bitwise_and(stim.astype(int), 2**17 - 1)
                 data[stim_channel_idx, :] = stim
 
     @copy_function_doc_to_method_doc(find_edf_events)
@@ -421,7 +424,6 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         cals = np.append(cals, 1)
     if stim_channel is not None:
         stim_channel = _check_stim_channel(stim_channel, ch_names, sel)
-        physical_ranges[stim_channel] = cals[stim_channel]
 
     # Annotations
     tal_ch_name = 'EDF Annotations'
