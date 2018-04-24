@@ -200,6 +200,9 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                                    qrs_threshold=qrs_threshold, filter_length=filter_length,
                                    tstart=tstart,  proj=True,
                                    baseline=None, preload=True)
+        my_epochs_events = epochs.events
+        my_epochs_droplog = epochs.drop_log
+        assert len(my_epochs_events) == len(my_epochs_droplog)
     elif mode == 'EOG':
         # Keep the old computation for the EOG case for now.
 
