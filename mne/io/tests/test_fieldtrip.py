@@ -1,5 +1,4 @@
 # -*- coding: UTF-8 -*-
-# Copyright (c) 2018, Thomas Hartmann & Dirk Gütlin
 # Authors: Thomas Hartmann <thomas.hartmann@th-ht.de>
 #          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #
