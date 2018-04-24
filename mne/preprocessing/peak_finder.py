@@ -45,7 +45,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     >>> peak_locs.tolist()
     [36, 260]
     >>> peak_mags.tolist()
-    [0.36900026, 1.76007351]
+    [0.3690002574870229, 1.760073510670101]
 
     """
     x0 = np.asanyarray(x0)
