@@ -272,10 +272,6 @@ class RawEDF(BaseRaw):
                     assert ch_data.shape == (len(ch_data), buf_len)
                     data[ii, d_sidx:d_eidx] = ch_data.ravel()[r_sidx:r_eidx]
 
-        data *= cal.T[idx]  # scale
-        data += offsets[idx]  # offset
-        data *= gains.T[idx]  # apply units gain last
-
         # only try to read the stim channel if it's not None and it's
         # actually one of the requested channels
         idx = np.arange(self.info['nchan'])[idx]  # slice -> ints
@@ -315,12 +311,15 @@ class RawEDF(BaseRaw):
             elif stim_data is not None:  # GDF events
                 data[stim_channel_idx, :] = stim_data[start:stop]
             else:
-                stim = data[stim_channel_idx]
-                diff = stim.max() - stim.min()
-                if diff < 1:
-                    stim /= 10**np.floor(np.log10(diff))
-                stim = np.bitwise_and(stim.astype(int), 2**17 - 1)
+                stim = np.bitwise_and(data[stim_channel_idx].astype(int),
+                                      2**17 - 1)
                 data[stim_channel_idx, :] = stim
+
+            # only transform channel data, don't touch stim channel
+            data_idx = ~np.in1d(idx, stim_channel_idx)
+            data[data_idx] *= cal.T[idx[idx != stim_channel_idx]]  # scale
+            data[data_idx] += offsets[idx[idx != stim_channel_idx]]  # offset
+            data[data_idx] *= gains.T[idx[idx != stim_channel_idx]]  # gains
 
     @copy_function_doc_to_method_doc(find_edf_events)
     def find_edf_events(self):
