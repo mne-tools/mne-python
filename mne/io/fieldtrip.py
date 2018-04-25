@@ -11,6 +11,21 @@ from ..epochs import EpochsArray
 from ..evoked import EvokedArray
 from .meas_info import create_info
 from ..channels import DigMontage
+from ..utils import warn
+from .constants import FIFF
+from .. import transforms
+
+_unit_dict = {'m': 1,
+              'cm': 1e-2,
+              'mm': 1e-3,
+              'V': 1,
+              'mV': 1e-3,
+              'uV': 1e-6,
+              'T': 1,
+              'T/m': 1,
+              'T/cm': 1e2}
+
+_supported_megs = ['neuromag306']
 
 
 def _check_pymatreader():
@@ -151,12 +166,15 @@ def read_evoked_fieldtrip(ft_structure_path, comment=None, data_name='data'):
 
 def _create_info(ft_struct):
     """Create MNE info structure from a FieldTrip structure."""
-    ch_names = list(ft_struct['label'])
     sfreq = _set_sfreq(ft_struct)
-    ch_types = _set_ch_types(ft_struct)
     montage = _create_montage(ft_struct)
+    chs = _create_info_chs(ft_struct)
+    ch_names = [ch['ch_name'] for ch in chs]
 
-    info = create_info(ch_names, sfreq, ch_types, montage)
+    info = create_info(ch_names, sfreq, montage=montage)
+    info['chs'] = chs
+    info._update_redundant()
+
     return info
 
 
@@ -187,6 +205,107 @@ def _convert_ch_types(ch_type_array):
         else:
             ch_type_array[index] = 'misc'
     return ch_type_array
+
+
+def _create_info_chs(ft_struct):
+    """Create the chs info field from the FieldTrip structure"""
+    all_channels = ft_struct['label']
+    ch_defaults = dict(coord_frame=FIFF.FIFFV_COORD_HEAD,
+                       cal=1.0,
+                       range=1.0,
+                       unit_mul=FIFF.FIFF_UNITM_NONE,
+                       loc=np.array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+                       unit=FIFF.FIFF_UNIT_V)
+    try:
+        elec = ft_struct['elec']
+    except KeyError:
+        elec = None
+
+    try:
+        grad = ft_struct['grad']
+    except KeyError:
+        grad = None
+
+    if elec is None and grad is None:
+        warn('The supplied FieldTrip structure does not have an elec or grad '
+             'field. No channel locations will extracted and the kind of '
+             'channel might be inaccurate.')
+
+    if grad['type'] not in _supported_megs:
+        warn('Unsupported MEG type %s. Values for the kind of coils '
+             'are guessed with best effort. Please verify those. '
+             'Please also verify whether the channel locations '
+             'and orientations match!' % (grad['type'], ))
+
+    chs = list()
+    for idx_chan, cur_channel in enumerate(all_channels):
+        cur_ch = ch_defaults.copy()
+        cur_ch['ch_name'] = cur_channel
+        cur_ch['logno'] = idx_chan + 1
+        cur_ch['scanno'] = idx_chan + 1
+        if cur_channel in elec['label']:
+            chan_idx_in_elec = np.where(elec['label'] == cur_channel)
+            position = np.squeeze(elec['chanpos'][chan_idx_in_elec, :])
+            chantype = elec['chantype'][chan_idx_in_elec]
+            chanunit = elec['chanunit'][chan_idx_in_elec]
+            position_unit = elec['unit']
+
+            if chantype != 'eeg':
+                raise RuntimeError('The current channel is contained in '
+                                   'the "elec" sub-structure. This should '
+                                   'be an EEG channel. However, the channel '
+                                   'type is: %s.' % (chantype, ))
+
+            position = position * _unit_dict[position_unit]
+            cur_ch['loc'] = np.hstack((position, np.zeros((9,))))
+            cur_ch['unit'] = FIFF.FIFF_UNIT_V
+            cur_ch['unit_mul'] = np.log10(_unit_dict[chanunit[0]])
+            cur_ch['kind'] = FIFF.FIFFV_EEG_CH
+            cur_ch['coil_type'] = FIFF.FIFFV_COIL_EEG
+
+        elif cur_channel in grad['label']:
+            chan_idx_in_grad = np.where(grad['label'] == cur_channel)
+            position = np.squeeze(grad['chanpos'][chan_idx_in_grad, :])
+            orientation = transforms.rotation3d(
+                *np.squeeze(grad['chanori'][chan_idx_in_grad, :]).tolist())
+            orientation = orientation.flatten()
+            chantype = grad['chantype'][chan_idx_in_grad]
+            chanunit = grad['chanunit'][chan_idx_in_grad]
+            position = position * _unit_dict[position_unit]
+            gradtype = grad['type']
+
+            cur_ch['loc'] = np.hstack((position, orientation))
+            cur_ch['kind'] = FIFF.FIFFV_MEG_CH
+            if gradtype == 'neuromag306':
+                if chantype == 'megmag':
+                    cur_ch['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T1
+                    cur_ch['unit'] = FIFF.FIFF_UNIT_T
+                elif chantype == 'megplanar':
+                    cur_ch['coil_type'] = FIFF.FIFFV_COIL_VV_PLANAR_T1
+                    cur_ch['unit'] = FIFF.FIFF_UNIT_T_M
+                else:
+                    raise RuntimeError('Unexpected coil type: %s.' % (
+                        chantype, ))
+            else:
+                raise NotImplemented('This needs to be implemented!')
+
+            cur_ch['unit_mul'] = np.log10(_unit_dict[chanunit[0]])
+        else:
+            if cur_channel.startswith('EOG'):
+                cur_ch['kind'] = FIFF.FIFFV_EOG_CH
+                cur_ch['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
+            elif cur_channel.startswith('ECG'):
+                cur_ch['kind'] = FIFF.FIFFV_ECG_CH
+                cur_ch['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
+            else:
+                warn('Cannot guess the correct type of channel %s. Making '
+                     'it a MISC channel.' % (cur_channel, ))
+                cur_ch['kind'] = FIFF.FIFFV_MISC_CH
+                cur_ch['coil_type'] = FIFF.FIFFV_COIL_NONE
+
+        chs.append(cur_ch)
+
+    return chs
 
 
 def _set_ch_types(ft_struct):
