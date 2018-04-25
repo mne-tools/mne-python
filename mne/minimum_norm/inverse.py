@@ -1307,7 +1307,8 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
     # dict, so fwd['sol']['row_names'] becomes obsolete and is NOT re-ordered
 
     # remove comps if needed.
-    assert('comps' not in forward['info'] or len(forward['info']['comps']) == 0)
+    assert('comps' not in forward['info'] or
+           len(forward['info']['comps']) == 0)
     if info['comps']:
         info['comps'] = []
 
