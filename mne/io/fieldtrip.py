@@ -178,37 +178,8 @@ def _create_info(ft_struct):
     return info
 
 
-def _convert_ch_types(ch_type_array):
-    """Convert channel type names from FieldTrip style to mne style."""
-    for index, name in enumerate(ch_type_array):
-        if name in ('megplanar', 'meggrad'):
-            ch_type_array[index] = 'grad'
-        elif name == 'megmag':
-            ch_type_array[index] = 'mag'
-        elif name == 'eeg':
-            ch_type_array[index] = 'eeg'
-        elif name in ('refmag', 'refgrad'):
-            ch_type_array[index] = 'ref_meg'
-        elif name in ('unknown', 'clock'):
-            ch_type_array[index] = 'misc'
-        elif name in ('analog trigger', 'digital trigger', 'trigger'):
-            ch_type_array[index] = 'stim'
-        elif name.startswith('MEG'):
-            if name.endswith(('2', '3')):
-                ch_type_array[index] = 'grad'
-            elif name.endswith('1'):
-                ch_type_array[index] = 'mag'
-            else:
-                raise ValueError('Unknown MEG channel')
-        elif name.startswith('EEG'):
-            ch_type_array[index] = 'eeg'
-        else:
-            ch_type_array[index] = 'misc'
-    return ch_type_array
-
-
 def _create_info_chs(ft_struct):
-    """Create the chs info field from the FieldTrip structure"""
+    """Create the chs info field from the FieldTrip structure."""
     all_channels = ft_struct['label']
     ch_defaults = dict(coord_frame=FIFF.FIFFV_COORD_HEAD,
                        cal=1.0,
@@ -306,31 +277,6 @@ def _create_info_chs(ft_struct):
         chs.append(cur_ch)
 
     return chs
-
-
-def _set_ch_types(ft_struct):
-    """Find the channel types for every channel."""
-    if 'hdr' in ft_struct and 'chantype' in ft_struct['hdr']:
-        available_channels = np.where(np.in1d(ft_struct['hdr']['label'],
-                                              ft_struct['label']))
-        ch_types = _convert_ch_types(
-            ft_struct['hdr']['chantype'][available_channels])
-    elif 'grad' in ft_struct and 'chantype' in ft_struct['grad']:
-        available_channels = np.where(np.in1d(ft_struct['grad']['label'],
-                                              ft_struct['label']))
-        ch_types = _convert_ch_types(
-            ft_struct['grad']['chantype'][available_channels])
-    elif 'elec' in ft_struct and 'chantype' in ft_struct['grad']:
-        available_channels = np.where(np.in1d(ft_struct['elec']['label'],
-                                              ft_struct['label']))
-        ch_types = _convert_ch_types(
-            ft_struct['elec']['chantype'][available_channels])
-    elif 'label' in ft_struct:
-        ch_types = _convert_ch_types(ft_struct['label'])
-    else:
-        raise ValueError('Cannot find channel types')
-
-    return ch_types
 
 
 def _create_montage(ft_struct):
