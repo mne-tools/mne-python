@@ -1,6 +1,6 @@
 """
 ===========================================================================
-Calculating and visualising statistical significance thresholds on EEG data
+Visualising statistical significance thresholds on EEG data
 ===========================================================================
 
 MNE-Python provides a range of tools for statistical hypothesis testing
@@ -46,7 +46,7 @@ short = epochs[name + " < " + median_value]
 # If we have a specific point in space and time we wish to test, it can be
 # convenient to convert the data into Pandas Dataframe format. In this case,
 # the :class:`mne.Epochs` object has a convenient
-# :function:`mne.Epochs.to_data_frame` method, which returns a dataframe.
+# :meth:`mne.Epochs.to_data_frame` method, which returns a dataframe.
 # This dataframe can then be queried for specific time windows and sensors.
 # The extracted data can be submitted to standard statistical tests. Here,
 # we conduct t-tests on the difference between long and short words.
@@ -107,7 +107,9 @@ print(str(significant_points.sum()) + " points selected by TFCE ...")
 # We need an evoked object to plot the image to be masked
 evoked = mne.combine_evoked([long.average(), -short.average()],
                             weights='equal')  # calculate difference wave
-evoked.plot_joint(title="Long vs. short words")  # show difference wave
+style_dict = dict(time_unit="s")
+evoked.plot_joint(title="Long vs. short words", ts_args=style_dict,
+                  topomap_args=style_dict)  # show difference wave
 
 # Create ROIs by checking channel labels
 pos = find_layout(epochs.info).pos
