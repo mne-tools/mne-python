@@ -499,6 +499,14 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
         #
         fwd['info'] = _read_forward_meas_info(tree, fid)
 
+        # remove comp matrcies.
+        if fwd['info']['comps']:
+            fwd['info']['comps'] = []
+            warn('Removing compensation matrices found in measurement info of '
+                 'forward operator. This should not affect application of the '
+                 'forward model but it will change the model if it\'s written '
+                 'back to disk', UserWarning)
+
         # MNE environment
         parent_env = dir_tree_find(tree, FIFF.FIFFB_MNE_ENV)
         if len(parent_env) > 0:

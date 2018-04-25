@@ -885,7 +885,8 @@ def test_ica_ctf():
 
         # test fit
         for inst in [raw, epochs]:
-            ica = ICA(n_components=2, random_state=0, method=method)
+            ica = ICA(n_components=2, random_state=0, max_iter=2,
+                      method=method)
             with warnings.catch_warnings(record=True):  # convergence
                 ica.fit(raw)
 
@@ -896,7 +897,7 @@ def test_ica_ctf():
 
     # test mixed compensation case
     raw.apply_gradient_compensation(0)
-    ica = ICA(n_components=2, random_state=0, method=method)
+    ica = ICA(n_components=2, random_state=0, max_iter=2, method=method)
     with warnings.catch_warnings(record=True):  # convergence
         ica.fit(raw)
     raw.apply_gradient_compensation(1)
