@@ -39,5 +39,6 @@ def test_whole_process():
         np.testing.assert_almost_equal(data_epoched.get_data(),
                                        mne_epoched.get_data()[:, :, :-1])
 
-        mne_avg = mne_epoched.average()
+        mne_avg = mne_epoched.average(
+            picks=np.arange(0, len(mne_epoched.ch_names)))
         np.testing.assert_almost_equal(data_avg.data, mne_avg.data[:, :-1])
