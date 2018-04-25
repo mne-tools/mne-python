@@ -1325,6 +1325,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         A copy of the covariance with the good channels subselected
         and parameters updated.
     """
+    info = info.copy()
     noise_cov_idx = [noise_cov.ch_names.index(c) for c in ch_names]
     n_chan = len(ch_names)
     if not noise_cov['diag']:
@@ -1385,6 +1386,11 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
                 ranks_type[ch_type] = rank.get(ch_type, None)
         else:
             ranks_type['meg'] = int(rank)
+
+    # XXX cov objects don't include compensation_grade
+    # so we can't check that the supplied cov matches info
+    if info['comps']:
+        info['comps'] = []
 
     for ch_type, this_has in has_type.items():
         if not this_has:

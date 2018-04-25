@@ -650,14 +650,32 @@ def test_compute_covariance_auto_reg():
 
 
 @testing.requires_testing_data
+@requires_version('sklearn', '0.15')
 def test_cov_ctf():
     """Test basic cov computation on ctf data with/without compensation."""
     raw = read_raw_ctf(ctf_fname, preload=True)
     events = make_fixed_length_events(raw, 99999)
+    ch_names = [raw.info['ch_names'][pick]
+                for pick in pick_types(raw.info, meg=True, eeg=False,
+                                       ref_meg=False)]
+
     for comp in [0, 1]:
         raw.apply_gradient_compensation(comp)
         epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
         noise_cov = compute_covariance(epochs, tmax=0., method=['shrunk'])
+        prepare_noise_cov(noise_cov, raw.info, ch_names)
+
+    raw.apply_gradient_compensation(0)
+    epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
+    noise_cov = compute_covariance(epochs, tmax=0., method=['shrunk'])
+    raw.apply_gradient_compensation(1)
+
+    # TODO This next call in principle should fail.
+    prepare_noise_cov(noise_cov, raw.info, ch_names)
+
+    # make sure comps matrices was not removed from raw
+    if not raw.info['comps']:
+        raise RuntimeError('Comps matrices removed')
 
 
 run_tests_if_main()
