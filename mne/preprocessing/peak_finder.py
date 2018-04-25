@@ -1,5 +1,4 @@
 import numpy as np
-from math import ceil
 
 from .. utils import logger, verbose
 
@@ -36,12 +35,18 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     Conversion from initial Matlab code from:
     Nathanael C. Yoder (ncyoder@purdue.edu)
 
-    Example
-    -------
-    t = 0:.0001:10;
-    x = 12*sin(10*2*pi*t)-3*sin(.1*2*pi*t)+randn(1,numel(t));
-    x(1250:1255) = max(x);
-    peak_finder(x)
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from mne.preprocessing.peak_finder import peak_finder
+    >>> t = np.arange(0, 3, 0.01)
+    >>> x = np.sin(np.pi*t) - np.sin(0.5*np.pi*t)
+    >>> peak_locs, peak_mags = peak_finder(x)
+    >>> peak_locs # doctest: +SKIP
+    array([36, 260]) # doctest: +SKIP
+    >>> peak_mags # doctest: +SKIP
+    array([0.36900026, 1.76007351]) # doctest: +SKIP
+
     """
     x0 = np.asanyarray(x0)
     s = x0.size
@@ -97,7 +102,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
                 length -= 1
 
         # Preallocate max number of maxima
-        maxPeaks = int(ceil(length / 2.0))
+        maxPeaks = int(np.ceil(length / 2.0))
         peak_loc = np.zeros(maxPeaks, dtype=np.int)
         peak_mag = np.zeros(maxPeaks)
         c_ind = 0
