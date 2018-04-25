@@ -27,9 +27,13 @@ def _safe_del_key(dict_, key):
 
 
 def _deprecate_average(average):
+    # XXX: When deprecation cycle is done, default average option should be
+    #      changed in:
+    #      - mne/commands/mne_compute_proj_ecg.py
+    #      - mne/commands/mne_compute_proj_eog.py
     if average is None:
         warn('The default parameter `average=False` is deprecated'
-             ' and will be replaced by `average=True` in 0.18.',
+             ' and will be replaced by `average=True` in 0.17.',
              DeprecationWarning)
     return False if average is None else average
 
