@@ -64,7 +64,7 @@ def run():
                       "save memory)", default=True)
     parser.add_option("-a", "--average", dest="average", action="store_true",
                       help="Compute SSP after averaging",
-                      default=False) # XXX: change to default=True in 0.17
+                      default=False)  # XXX: change to default=True in 0.17
     parser.add_option("--proj", dest="proj",
                       help="Use SSP projections from a fif file.",
                       default=None)

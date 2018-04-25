@@ -885,8 +885,8 @@ class UpdateChannelsMixin(object):
             comp_class = type(self)
         for inst in add_list:
             if not isinstance(inst, comp_class):
-                raise AssertionError('All input data must be of same type, got '
-                                     '%s and %s' % (comp_class, type(inst)))
+                raise AssertionError('All input data must be of same type, got'
+                                     ' %s and %s' % (comp_class, type(inst)))
         data = [inst._data for inst in [self] + add_list]
 
         # Make sure that all dimensions other than channel axis are the same
