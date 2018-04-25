@@ -156,7 +156,7 @@ def _prob_kuiper(d, n_eff, dtype='f8'):
     logsumexp = _get_logsumexp()  # increases numerical accuracy
     a = -2. * j2 * l2
     b = 2. * fact
-    pk_norm = -logsumexp(a, b=b, axis=0)/ (2. * n_eff)
+    pk_norm = -logsumexp(a, b=b, axis=0) / (2. * n_eff)
 
     # check for no difference to uniform cdf
     pk_norm = np.where(k_lambda < 0.4, 0.0, pk_norm)
