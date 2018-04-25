@@ -107,9 +107,9 @@ print(str(significant_points.sum()) + " points selected by TFCE ...")
 # We need an evoked object to plot the image to be masked
 evoked = mne.combine_evoked([long.average(), -short.average()],
                             weights='equal')  # calculate difference wave
-style_dict = dict(time_unit="s")
-evoked.plot_joint(title="Long vs. short words", ts_args=style_dict,
-                  topomap_args=style_dict)  # show difference wave
+time_unit = dict(time_unit="s")
+evoked.plot_joint(title="Long vs. short words", ts_args=time_unit,
+                  topomap_args=time_unit)  # show difference wave
 
 # Create ROIs by checking channel labels
 pos = find_layout(epochs.info).pos
@@ -134,7 +134,9 @@ axes = axes.ravel().tolist()
 for roi_name, ax in zip(sorted(rois.keys()), axes):
     picks = rois[roi_name]
     evoked.plot_image(picks=picks, axes=ax, colorbar=False, show=False,
-                      clim=dict(eeg=(-vmax, vmax)), mask=significant_points)
+                      clim=dict(eeg=(-vmax, vmax)), mask=significant_points,
+                      **time_unit)
+    evoked.nave = None
     ax.set_yticks((np.arange(len(picks))) + .5)
     ax.set_yticklabels([evoked.ch_names[idx] for idx in picks])
     if not ax.is_last_row():  # remove xticklabels for all but bottom axis
