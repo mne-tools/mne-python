@@ -553,7 +553,8 @@ def write_trans(fname, trans):
     --------
     read_trans
     """
-    check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz'))
+    check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz',
+                                 '_trans.fif', '_trans.fif.gz'))
     fid = start_file(fname)
     write_coord_trans(fid, trans)
     end_file(fid)

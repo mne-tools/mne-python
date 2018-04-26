@@ -144,7 +144,8 @@ class Covariance(dict):
         fname : str
             Output filename.
         """
-        check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz'))
+        check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz',
+                                          '_cov.fif', '_cov.fif.gz'))
 
         fid = start_file(fname)
 
@@ -255,7 +256,8 @@ def read_cov(fname, verbose=None):
     --------
     write_cov, compute_covariance, compute_raw_covariance
     """
-    check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz'))
+    check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz',
+                                      '_cov.fif', '_cov.fif.gz'))
     f, tree = fiff_open(fname)[:2]
     with f as fid:
         return Covariance(**_read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV,

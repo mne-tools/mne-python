@@ -169,7 +169,8 @@ class Annotations(object):
         fname : str
             The filename to use.
         """
-        check_fname(fname, 'annotations', ('-annot.fif', '-annot.fif.gz'))
+        check_fname(fname, 'annotations', ('-annot.fif', '-annot.fif.gz',
+                                           '_annot.fif', '_annot.fif.gz'))
         with start_file(fname) as fid:
             _write_annotations(fid, self)
 

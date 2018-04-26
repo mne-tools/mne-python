@@ -457,7 +457,8 @@ class DipoleFixed(object):
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
             for more).
         """
-        check_fname(fname, 'DipoleFixed', ('-dip.fif', '-dip.fif.gz'),
+        check_fname(fname, 'DipoleFixed', ('-dip.fif', '-dip.fif.gz',
+                                           '_dip.fif', '_dip.fif.gz',),
                     ('.fif', '.fif.gz'))
         _write_evokeds(fname, self, check=False)
 

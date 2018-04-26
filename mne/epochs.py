@@ -1598,7 +1598,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         Bad epochs will be dropped before saving the epochs to disk.
         """
-        check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
+        check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz',
+                                      '_epo.fif', '_epo.fif.gz'))
         split_size = _get_split_size(split_size)
 
         # to know the length accurately. The get_data() call would drop
@@ -2563,7 +2564,8 @@ class EpochsFIF(BaseEpochs):
     @verbose
     def __init__(self, fname, proj=True, preload=True,
                  verbose=None):  # noqa: D102
-        check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
+        check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz',
+                                      '_epo.fif', '_epo.fif.gz'))
         fnames = [fname]
         ep_list = list()
         raw = list()
