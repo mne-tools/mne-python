@@ -784,14 +784,13 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
         subject_from = cfg['subject_from']
         n_params = cfg['n_params']
         assert n_params in (1, 3)
-        scale = np.atleast_1d(cfg['scale'])
-    else:
-        scale = np.atleast_1d(scale)
-        if scale.ndim != 1 or scale.shape[0] not in (1, 3):
-            raise ValueError("Invalid shape for scale parameer. Need scalar "
-                             "or array of length 3. Got %s." % str(scale))
-        n_params = len(scale)
-
+        scale = cfg['scale']
+    scale = np.atleast_1d(scale)
+    if scale.ndim != 1 or scale.shape[0] not in (1, 3):
+        raise ValueError("Invalid shape for scale parameer. Need scalar "
+                         "or array of length 3. Got shape %s."
+                         % (scale.shape,))
+    n_params = len(scale)
     return subjects_dir, subject_from, scale, n_params == 1
 
 
@@ -866,7 +865,7 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     """
-    scale, subject_from = _get_sf(
+    subjects_dir, subject_from, scale, _ = _scale_params(
         subject_to, subject_from, scale, subjects_dir)
 
     # find labels
@@ -1124,13 +1123,12 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
 
 def _scale_mri(subject_to, mri_fname, subject_from, scale, subjects_dir):
     """Scale an MRI by setting its affine."""
+    subjects_dir, subject_from, scale, _ = _scale_params(
+        subject_to, subject_from, scale, subjects_dir)
+
     if not has_nibabel():
         warn('Skipping MRI scaling for %s, please install nibabel')
         return
-
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    scale, subject_from = _get_sf(
-        subject_to, subject_from, scale, subjects_dir)
 
     import nibabel
     fname_from = op.join(mri_dirname.format(
@@ -1138,26 +1136,26 @@ def _scale_mri(subject_to, mri_fname, subject_from, scale, subjects_dir):
     fname_to = op.join(mri_dirname.format(
         subjects_dir=subjects_dir, subject=subject_to), mri_fname)
     img = nibabel.load(fname_from)
-    zooms = scale * np.array(img.header.get_zooms())
+    zooms = np.array(img.header.get_zooms())
+    zooms[[0, 2, 1]] *= scale
     img.header.set_zooms(zooms)
     # Hack to fix nibabel problems, see
     # https://github.com/nipy/nibabel/issues/619
-    img._affine = None
+    img._affine = img.header.get_affine()  # or could use None
     nibabel.save(img, fname_to)
 
 
 def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
                subjects_dir):
     """Scale a transform."""
+    subjects_dir, subject_from, scale, _ = _scale_params(
+        subject_to, subject_from, scale, subjects_dir)
+
     # The nibabel warning should already be there in MRI step, if applicable,
     # as we only get here if T1.mgz is present (and thus a scaling was
     # attempted) so we can silently return here.
     if not has_nibabel():
         return
-
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    scale, subject_from = _get_sf(
-        subject_to, subject_from, scale, subjects_dir)
 
     fname_from = os.path.join(
         mri_transforms_dirname.format(
@@ -1229,15 +1227,3 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
                 F_mri_ras, 'ras', 'ras'),
             F_ras_mni, 'ras', 'mni_tal')
     _write_fs_xfm(fname_to, T_ras_mni['trans'], kind)
-
-
-def _get_sf(subject_to, subject_from, scale, subjects_dir):
-    """Get the scale and subject_from."""
-    # read parameters from cfg
-    if scale is None or subject_from is None:
-        cfg = read_mri_cfg(subject_to, subjects_dir)
-        if subject_from is None:
-            subject_from = cfg['subject_from']
-        if scale is None:
-            scale = cfg['scale']
-    return scale, subject_from
