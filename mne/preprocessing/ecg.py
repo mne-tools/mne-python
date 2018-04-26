@@ -233,7 +233,7 @@ def _get_ecg_channel_index(ch_name, inst):
 @verbose
 def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
                       tmax=0.5, l_freq=8, h_freq=16, reject=None, flat=None,
-                      baseline=None, keep_ecg=False, preload=True,
+                      baseline=None,  preload=True, keep_ecg=False,
                       reject_by_annotation=True, verbose=None):
     """Conveniently generate epochs around ECG artifact events.
 
@@ -283,13 +283,13 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used. If None, no correction is applied.
+    preload : bool
+        Preload epochs or not (default True). Must be True if
+        keep_ecg is True.
     keep_ecg : bool
         When ECG is synthetically created (after picking), should it be added
         to the epochs? Must be False when synthetic channel is not used.
         Defaults to False.
-    preload : bool
-        Preload epochs or not (default True). Must be True if
-        keep_ecg is True.
     reject_by_annotation : bool
         Whether to reject based on annotations. If True (default), epochs
         overlapping with segments whose description begins with ``'bad'`` are
