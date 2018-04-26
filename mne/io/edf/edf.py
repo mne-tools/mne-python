@@ -277,6 +277,18 @@ class RawEDF(BaseRaw):
         idx = np.arange(self.info['nchan'])[idx]  # slice -> ints
         read_size = len(r_lims) * buf_len
         stim_channel_idx = np.where(idx == stim_channel)[0]
+
+        if subtype == 'bdf':
+            # only scale channel data, don't scale stim channel
+            data_idx = ~np.in1d(idx, stim_channel_idx)
+            data[data_idx] *= cal.T[idx[idx != stim_channel_idx]]
+            data[data_idx] += offsets[idx[idx != stim_channel_idx]]
+            data[data_idx] *= gains.T[idx[idx != stim_channel_idx]]
+        else:
+            data *= cal.T[idx]
+            data += offsets[idx]
+            data *= gains.T[idx]
+
         if stim_channel is not None and len(stim_channel_idx) > 0:
             if annot and annotmap:
                 evts = _read_annot(annot, annotmap, sfreq,
@@ -314,17 +326,6 @@ class RawEDF(BaseRaw):
                 stim = np.bitwise_and(data[stim_channel_idx].astype(int),
                                       2**17 - 1)
                 data[stim_channel_idx, :] = stim
-
-            if subtype == 'bdf':
-                # only scale channel data, don't scale stim channel
-                data_idx = ~np.in1d(idx, stim_channel_idx)
-                data[data_idx] *= cal.T[idx[idx != stim_channel_idx]]
-                data[data_idx] += offsets[idx[idx != stim_channel_idx]]
-                data[data_idx] *= gains.T[idx[idx != stim_channel_idx]]
-            else:
-                data *= cal.T[idx]
-                data += offsets[idx]
-                data *= gains.T[idx]
 
     @copy_function_doc_to_method_doc(find_edf_events)
     def find_edf_events(self):
