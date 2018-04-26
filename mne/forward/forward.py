@@ -420,7 +420,8 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
     surface-based, fixed orienation cannot be reverted after loading the
     forward solution with :func:`read_forward_solution`.
     """
-    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
+    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz',
+                                   '_fwd.fif', '_fwd.fif.gz'))
 
     #   Open the file, create directory
     logger.info('Reading forward solution from %s...' % fname)
@@ -759,7 +760,8 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     surface-based, fixed orienation cannot be reverted after loading the
     forward solution with :func:`read_forward_solution`.
     """
-    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
+    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz',
+                                   '_fwd.fif', '_fwd.fif.gz'))
 
     # check for file existence
     _check_fname(fname, overwrite)

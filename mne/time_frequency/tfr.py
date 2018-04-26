@@ -2228,7 +2228,7 @@ def read_tfrs(fname, condition=None):
     -----
     .. versionadded:: 0.9.0
     """
-    check_fname(fname, 'tfr', ('-tfr.h5',))
+    check_fname(fname, 'tfr', ('-tfr.h5', '_tfr.h5'))
 
     logger.info('Reading %s ...' % fname)
     tfr_data = read_hdf5(fname, title='mnepython')

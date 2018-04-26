@@ -951,7 +951,8 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
     --------
     write_evokeds
     """
-    check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
+    check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz',
+                                  '_ave.fif', '_ave.fif.gz'))
     logger.info('Reading %s ...' % fname)
     return_list = True
     if condition is None:
@@ -1164,7 +1165,8 @@ def write_evokeds(fname, evoked):
 def _write_evokeds(fname, evoked, check=True):
     """Write evoked data."""
     if check:
-        check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
+        check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz',
+                                      '_ave.fif', '_ave.fif.gz'))
 
     if not isinstance(evoked, list):
         evoked = [evoked]
