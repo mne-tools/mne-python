@@ -315,11 +315,16 @@ class RawEDF(BaseRaw):
                                       2**17 - 1)
                 data[stim_channel_idx, :] = stim
 
-            # only transform channel data, don't touch stim channel
-            data_idx = ~np.in1d(idx, stim_channel_idx)
-            data[data_idx] *= cal.T[idx[idx != stim_channel_idx]]  # scale
-            data[data_idx] += offsets[idx[idx != stim_channel_idx]]  # offset
-            data[data_idx] *= gains.T[idx[idx != stim_channel_idx]]  # gains
+            if subtype == 'bdf':
+                # only scale channel data, don't scale stim channel
+                data_idx = ~np.in1d(idx, stim_channel_idx)
+                data[data_idx] *= cal.T[idx[idx != stim_channel_idx]]
+                data[data_idx] += offsets[idx[idx != stim_channel_idx]]
+                data[data_idx] *= gains.T[idx[idx != stim_channel_idx]]
+            else:
+                data *= cal.T[idx]
+                data += offsets[idx]
+                data *= gains.T[idx]
 
     @copy_function_doc_to_method_doc(find_edf_events)
     def find_edf_events(self):
