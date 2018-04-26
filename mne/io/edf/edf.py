@@ -281,9 +281,9 @@ class RawEDF(BaseRaw):
         if subtype == 'bdf':
             # only scale channel data, don't scale stim channel
             data_idx = ~np.in1d(idx, stim_channel_idx)
-            data[data_idx] *= cal.T[idx[idx != stim_channel_idx]]
-            data[data_idx] += offsets[idx[idx != stim_channel_idx]]
-            data[data_idx] *= gains.T[idx[idx != stim_channel_idx]]
+            data[data_idx] *= cal.T[idx[data_idx]]
+            data[data_idx] += offsets[idx[data_idx]]
+            data[data_idx] *= gains.T[idx[data_idx]]
         else:
             data *= cal.T[idx]
             data += offsets[idx]
