@@ -6,7 +6,7 @@
 import os.path as op
 
 import numpy as np
-
+from ._h5 import _get_hdf_eeg_data
 from ..utils import (_read_segments_file, _find_channels,
                      _synthesize_stim_channel)
 from ..constants import FIFF
@@ -40,8 +40,25 @@ def _check_mat_struct(fname):
         raise RuntimeError('scipy >= 0.12 must be installed for reading EEGLAB'
                            ' files.')
     from scipy import io
-    mat = io.whosmat(fname, struct_as_record=False,
-                     squeeze_me=True)
+    try:
+        # Try to read old style Matlab file
+        with open(fname, 'rb') as fhandle:
+            mat = io.whosmat(fhandle, struct_as_record=False, squeeze_me=True)
+    except NotImplementedError:
+        # Try to read new style Matlab file
+        try:
+            import h5py
+        except ImportError:
+            raise RuntimeError('Reading v7+ MATLAB format .set',
+                               'requires h5py, which could not',
+                               'be imported')
+        with h5py.File(fname) as f:
+            mat = list(f.keys())
+        if 'ALLEEG' in mat:
+            mat[0] = u'ALLEEG'
+        elif 'EEG' in mat:
+            mat[0] = u'EEG'
+
     if 'ALLEEG' in mat[0]:
         raise NotImplementedError(
             'Loading an ALLEEG array is not supported. Please contact'
@@ -53,8 +70,23 @@ def _check_mat_struct(fname):
 
 def _to_loc(ll):
     """Check if location exists."""
-    if isinstance(ll, (int, float)) or len(ll) > 0:
+    if isinstance(ll, (int, float)):
+        # Numeric value
         return ll
+
+    elif isinstance(ll, (list, tuple)) and len(ll) > 0:
+        # Non-empty list or tuple
+        # (Should elements be checked to ensure they're numeric?)
+        return ll
+
+    elif hasattr(ll, 'dtype') and \
+        ((np.issubdtype(ll.dtype, np.integer) or
+          np.issubdtype(ll.dtype, np.dtype(float).type))):
+        # Numeric numpy array
+        if isinstance(ll, np.ndarray):
+            return list(ll) if ll.size > 0 else np.nan
+        else:
+            return ll
     else:
         return np.nan
 
@@ -70,15 +102,24 @@ def _get_info(eeg, montage, eog=()):
     if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
             eeg.chanlocs = [eeg.chanlocs]
 
-    if len(eeg.chanlocs) > 0:
+    # If there is no chanlocs data, hdf file records chanlocs as
+    # an array of uint64, without expected fields. By checking for
+    # 'label' attribute, we avoid treating eeg.chanlocs as non-empty
+    if (len(eeg.chanlocs) > 0 and
+            hasattr(eeg.chanlocs[0], 'labels')):
         pos_fields = ['X', 'Y', 'Z']
-        if (isinstance(eeg.chanlocs, np.ndarray) and not isinstance(
-                eeg.chanlocs[0], io.matlab.mio5_params.mat_struct)):
+
+        if (isinstance(eeg.chanlocs, np.ndarray) and
+            not isinstance(eeg.chanlocs[0],
+                           io.matlab.mio5_params.mat_struct)):
+
             has_pos = all(fld in eeg.chanlocs[0].dtype.names
                           for fld in pos_fields)
+
         else:
             has_pos = all(hasattr(eeg.chanlocs[0], fld)
                           for fld in pos_fields)
+
         get_pos = has_pos and montage is None
         pos_ch_names, ch_names, pos = list(), list(), list()
         kind = 'user_defined'
@@ -260,6 +301,23 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     return epochs
 
 
+def _get_eeg_data(input_fname, uint16_codec=None):
+    from scipy import io
+    try:
+        # Try to read old style Matlab file
+        with open(input_fname, 'rb') as fhandle:
+            eeg = io.loadmat(fhandle, struct_as_record=False,
+                             squeeze_me=True,
+                             uint16_codec=uint16_codec)['EEG']
+    except NotImplementedError:
+        # Try to read new style Matlab file (Version 7.3+)
+        # Note: Now eeg will be returned as a Bunch object,
+        # instead of an io.matlab.mio5_params.mat_struct object.
+        eeg = _get_hdf_eeg_data(input_fname)
+
+    return eeg
+
+
 class RawEEGLAB(BaseRaw):
     r"""Raw object from EEGLAB .set file.
 
@@ -328,11 +386,11 @@ class RawEEGLAB(BaseRaw):
     def __init__(self, input_fname, montage, eog=(), event_id=None,
                  event_id_func='strip_to_integer', preload=False,
                  verbose=None, uint16_codec=None):  # noqa: D102
-        from scipy import io
+        """Initialize RawEEGLAB object."""
         basedir = op.dirname(input_fname)
         _check_mat_struct(input_fname)
-        eeg = io.loadmat(input_fname, struct_as_record=False,
-                         squeeze_me=True, uint16_codec=uint16_codec)['EEG']
+        eeg = _get_eeg_data(input_fname, uint16_codec)
+
         if eeg.trials != 1:
             raise TypeError('The number of trials is %d. It must be 1 for raw'
                             ' files. Please use `mne.io.read_epochs_eeglab` if'
@@ -353,7 +411,6 @@ class RawEEGLAB(BaseRaw):
                                     event_id_func=event_id_func)
         self._create_event_ch(events, n_samples=eeg.pnts)
 
-        # read the data
         if isinstance(eeg.data, string_types):
             data_fname = op.join(basedir, eeg.data)
             _check_fname(data_fname)
@@ -369,10 +426,12 @@ class RawEEGLAB(BaseRaw):
                      'the .set file')
             # can't be done in standard way with preload=True because of
             # different reading path (.set file)
+
             if eeg.nbchan == 1 and len(eeg.data.shape) == 1:
                 n_chan, n_times = [1, eeg.data.shape[0]]
             else:
                 n_chan, n_times = eeg.data.shape
+
             data = np.empty((n_chan + 1, n_times), dtype=np.double)
             data[:-1] = eeg.data
             data *= CAL
@@ -493,10 +552,9 @@ class EpochsEEGLAB(BaseEpochs):
                  baseline=None, reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, montage=None, eog=(), verbose=None,
                  uint16_codec=None):  # noqa: D102
-        from scipy import io
+        """Initialize EpochsEEGLAB object."""
         _check_mat_struct(input_fname)
-        eeg = io.loadmat(input_fname, struct_as_record=False,
-                         squeeze_me=True, uint16_codec=uint16_codec)['EEG']
+        eeg = _get_eeg_data(input_fname, uint16_codec)
 
         if not ((events is None and event_id is None) or
                 (events is not None and event_id is not None)):
@@ -508,6 +566,7 @@ class EpochsEEGLAB(BaseEpochs):
             event_name, event_latencies, unique_ev = list(), list(), list()
             ev_idx = 0
             warn_multiple_events = False
+
             for ep in eeg.epoch:
                 if isinstance(ep.eventtype, int):
                     ep.eventtype = str(ep.eventtype)
@@ -560,6 +619,7 @@ class EpochsEEGLAB(BaseEpochs):
                 raise ValueError('No matching events found for %s '
                                  '(event id %i)' % (key, val))
 
+        # Read data
         if isinstance(eeg.data, string_types):
             basedir = op.dirname(input_fname)
             data_fname = op.join(basedir, eeg.data)
@@ -575,6 +635,7 @@ class EpochsEEGLAB(BaseEpochs):
             data = data[np.newaxis, :]
         data = data.transpose((2, 0, 1)).astype('double')
         data *= CAL
+
         assert data.shape == (eeg.trials, eeg.nbchan, eeg.pnts)
         tmin, tmax = eeg.xmin, eeg.xmax
 
@@ -654,8 +715,15 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
 
     if isinstance(eeg, string_types):
         from scipy import io
-        eeg = io.loadmat(eeg, struct_as_record=False, squeeze_me=True,
-                         uint16_codec=uint16_codec)['EEG']
+
+        try:
+            with open(eeg, 'rb') as fhandle:
+                eeg = io.loadmat(fhandle, struct_as_record=False,
+                                 squeeze_me=True,
+                                 uint16_codec=uint16_codec)['EEG']
+        except NotImplementedError:
+            # Try to read new style Matlab file (Version 7.3+)
+            eeg = _get_hdf_eeg_data(eeg)
 
     annotations = _read_annotations_eeglab(eeg)
     types = annotations.description
@@ -757,10 +825,7 @@ def read_annotations_eeglab(fname, uint16_codec=None):
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    from scipy import io
-    eeg = io.loadmat(fname, struct_as_record=False, squeeze_me=True,
-                     uint16_codec=uint16_codec)['EEG']
-
+    eeg = _get_eeg_data(fname, uint16_codec)
     return _read_annotations_eeglab(eeg)
 
 
