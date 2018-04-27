@@ -215,6 +215,8 @@ Bug
 
 - Fix bug in :meth:`mne.SourceEstimate.get_peak` and :meth:`mne.VolSourceEstimate.get_peak` when there is only a single time point by `Marijn van Vliet`_
 
+- Fix bug in :func:`mne.io.read_raw_edf` when reading BDF files stimulus channels are now not scaled anymore by `Clemens Brunner`_
+
 API
 ~~~
 

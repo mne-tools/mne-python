@@ -280,6 +280,7 @@ class RawEDF(BaseRaw):
 
         if subtype == 'bdf':
             # only scale channel data, don't scale stim channel
+            # see gh-5160
             data_idx = ~np.in1d(idx, stim_channel_idx)
             data[data_idx] *= cal.T[idx[data_idx]]
             data[data_idx] += offsets[idx[data_idx]]
