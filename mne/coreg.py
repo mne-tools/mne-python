@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Coregistration between different coordinate frames."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
@@ -9,6 +10,7 @@ from .externals.six import string_types
 import fnmatch
 from glob import glob, iglob
 import os
+import os.path as op
 import stat
 import sys
 import re
@@ -22,11 +24,14 @@ from .io import read_fiducials, write_fiducials, read_info
 from .io.constants import FIFF
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,
-                           write_source_spaces)
+                           write_source_spaces, _get_mri_header)
 from .surface import read_surface, write_surface, _normalize_vectors
 from .bem import read_bem_surfaces, write_bem_surfaces
-from .transforms import rotation, rotation3d, scaling, translation, Transform
-from .utils import get_config, get_subjects_dir, logger, pformat, verbose
+from .transforms import (rotation, rotation3d, scaling, translation, Transform,
+                         _read_fs_xfm, _write_fs_xfm, invert_transform,
+                         combine_transforms)
+from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
+                    warn, has_nibabel)
 from .viz._3d import _fiducial_coords
 from .externals.six.moves import zip
 
@@ -34,6 +39,8 @@ from .externals.six.moves import zip
 trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
 subject_dirname = os.path.join('{subjects_dir}', '{subject}')
 bem_dirname = os.path.join(subject_dirname, 'bem')
+mri_dirname = os.path.join(subject_dirname, 'mri')
+mri_transforms_dirname = os.path.join(subject_dirname, 'mri', 'transforms')
 surf_dirname = os.path.join(subject_dirname, 'surf')
 bem_fname = os.path.join(bem_dirname, "{subject}-{name}.fif")
 head_bem_fname = pformat(bem_fname, name='head')
@@ -561,6 +568,14 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
                 dup.append(pformat(surf_fname, name=name))
     del surf_dup_name, name, path, dup, hemi
 
+    # transform files (talairach)
+    paths['transforms'] = []
+    transform_fname = os.path.join(mri_transforms_dirname, 'talairach.xfm')
+    path = transform_fname.format(subjects_dir=subjects_dir, subject=subject)
+    if os.path.exists(path):
+        paths['transforms'].append(transform_fname)
+    del transform_fname, path
+
     # check presence of required files
     for ftype in ['surf', 'duplicate']:
         for fname in paths[ftype]:
@@ -579,6 +594,11 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
             fname = "{subject}-%s" % fname[len(prefix):]
         path = os.path.join(bem_dirname, fname)
         src.append(path)
+
+    # find MRIs
+    mri_dir = mri_dirname.format(subjects_dir=subjects_dir, subject=subject)
+    fnames = fnmatch.filter(os.listdir(mri_dir), '*.mgz')
+    paths['mri'] = [os.path.join(mri_dir, f) for f in fnames]
 
     return paths
 
@@ -765,16 +785,12 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
         n_params = cfg['n_params']
         assert n_params in (1, 3)
         scale = cfg['scale']
-    else:
-        scale = np.asarray(scale)
-        if scale.ndim == 0:
-            n_params = 1
-        elif scale.shape == (3,):
-            n_params = 3
-        else:
-            raise ValueError("Invalid shape for scale parameer. Need scalar "
-                             "or array of length 3. Got %s." % str(scale))
-
+    scale = np.atleast_1d(scale)
+    if scale.ndim != 1 or scale.shape[0] not in (1, 3):
+        raise ValueError("Invalid shape for scale parameer. Need scalar "
+                         "or array of length 3. Got shape %s."
+                         % (scale.shape,))
+    n_params = len(scale)
     return subjects_dir, subject_from, scale, n_params == 1
 
 
@@ -849,13 +865,8 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     """
-    # read parameters from cfg
-    if scale is None or subject_from is None:
-        cfg = read_mri_cfg(subject_to, subjects_dir)
-        if subject_from is None:
-            subject_from = cfg['subject_from']
-        if scale is None:
-            scale = cfg['scale']
+    subjects_dir, subject_from, scale, _ = _scale_params(
+        subject_to, subject_from, scale, subjects_dir)
 
     # find labels
     paths = _find_label_paths(subject_from, pattern, subjects_dir)
@@ -932,11 +943,10 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
     dest = subject_dirname.format(subject=subject_to,
                                   subjects_dir=subjects_dir)
     if os.path.exists(dest):
-        if overwrite:
-            shutil.rmtree(dest)
-        else:
+        if not overwrite:
             raise IOError("Subject directory for %s already exists: %r"
                           % (subject_to, dest))
+        shutil.rmtree(dest)
 
     logger.debug('create empty directory structure')
     for dirname in paths['dirs']:
@@ -969,6 +979,24 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
             pt['r'] = pt['r'] * scale
         dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
         write_fiducials(dest, pts, cframe, verbose=False)
+
+    logger.debug('MRIs [nibabel]')
+    os.mkdir(mri_dirname.format(subjects_dir=subjects_dir,
+                                subject=subject_to))
+    for fname in paths['mri']:
+        mri_name = os.path.basename(fname)
+        _scale_mri(subject_to, mri_name, subject_from, scale, subjects_dir)
+
+    logger.debug('Transforms')
+    for mri_name in paths['mri']:
+        if mri_name.endswith('T1.mgz'):
+            os.mkdir(mri_transforms_dirname.format(subjects_dir=subjects_dir,
+                                                   subject=subject_to))
+            for fname in paths['transforms']:
+                xfm_name = os.path.basename(fname)
+                _scale_xfm(subject_to, xfm_name, mri_name,
+                           subject_from, scale, subjects_dir)
+            break
 
     logger.debug('duplicate files')
     for fname in paths['duplicate']:
@@ -1091,3 +1119,111 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         add_source_space_distances(sss, dist_limit, n_jobs)
 
     write_source_spaces(dst, sss)
+
+
+def _scale_mri(subject_to, mri_fname, subject_from, scale, subjects_dir):
+    """Scale an MRI by setting its affine."""
+    subjects_dir, subject_from, scale, _ = _scale_params(
+        subject_to, subject_from, scale, subjects_dir)
+
+    if not has_nibabel():
+        warn('Skipping MRI scaling for %s, please install nibabel')
+        return
+
+    import nibabel
+    fname_from = op.join(mri_dirname.format(
+        subjects_dir=subjects_dir, subject=subject_from), mri_fname)
+    fname_to = op.join(mri_dirname.format(
+        subjects_dir=subjects_dir, subject=subject_to), mri_fname)
+    img = nibabel.load(fname_from)
+    zooms = np.array(img.header.get_zooms())
+    zooms[[0, 2, 1]] *= scale
+    img.header.set_zooms(zooms)
+    # Hack to fix nibabel problems, see
+    # https://github.com/nipy/nibabel/issues/619
+    img._affine = img.header.get_affine()  # or could use None
+    nibabel.save(img, fname_to)
+
+
+def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
+               subjects_dir):
+    """Scale a transform."""
+    subjects_dir, subject_from, scale, _ = _scale_params(
+        subject_to, subject_from, scale, subjects_dir)
+
+    # The nibabel warning should already be there in MRI step, if applicable,
+    # as we only get here if T1.mgz is present (and thus a scaling was
+    # attempted) so we can silently return here.
+    if not has_nibabel():
+        return
+
+    fname_from = os.path.join(
+        mri_transforms_dirname.format(
+            subjects_dir=subjects_dir, subject=subject_from), xfm_fname)
+    fname_to = op.join(
+        mri_transforms_dirname.format(
+            subjects_dir=subjects_dir, subject=subject_to), xfm_fname)
+    assert op.isfile(fname_from), fname_from
+    assert op.isdir(op.dirname(fname_to)), op.dirname(fname_to)
+    # The "talairach.xfm" file stores the ras_mni transform.
+    #
+    # For "from" subj F, "to" subj T, F->T scaling S, some equivalent vertex
+    # positions F_x and T_x in MRI (Freesurfer RAS) coords, knowing that
+    # we have T_x = S @ F_x, we want to have the same MNI coords computed
+    # for these vertices:
+    #
+    #              T_mri_mni @ T_x = F_mri_mni @ F_x
+    #
+    # We need to find the correct T_ras_mni (talaraich.xfm file) that yields
+    # this. So we derive (where † indicates inversion):
+    #
+    #          T_mri_mni @ S @ F_x = F_mri_mni @ F_x
+    #                T_mri_mni @ S = F_mri_mni
+    #    T_ras_mni @ T_mri_ras @ S = F_ras_mni @ F_mri_ras
+    #        T_ras_mni @ T_mri_ras = F_ras_mni @ F_mri_ras @ S⁻¹
+    #                    T_ras_mni = F_ras_mni @ F_mri_ras @ S⁻¹ @ T_ras_mri
+    #
+
+    # prepare the scale (S) transform
+    scale = np.atleast_1d(scale)
+    scale = np.tile(scale, 3) if len(scale) == 1 else scale
+    S = Transform('mri', 'mri', scaling(*scale))  # F_mri->T_mri
+
+    #
+    # Get the necessary transforms of the "from" subject
+    #
+    xfm, kind = _read_fs_xfm(fname_from)
+    assert kind == 'MNI Transform File', kind
+    F_ras_mni = Transform('ras', 'mni_tal', xfm)
+    hdr = _get_mri_header(mri_name)
+    F_vox_ras = Transform('mri_voxel', 'ras', hdr.get_vox2ras())
+    F_vox_mri = Transform('mri_voxel', 'mri', hdr.get_vox2ras_tkr())
+    F_mri_ras = combine_transforms(
+        invert_transform(F_vox_mri), F_vox_ras, 'mri', 'ras')
+    del F_vox_ras, F_vox_mri, hdr, xfm
+
+    #
+    # Get the necessary transforms of the "to" subject
+    #
+    mri_name = op.join(mri_dirname.format(
+        subjects_dir=subjects_dir, subject=subject_to), op.basename(mri_name))
+    hdr = _get_mri_header(mri_name)
+    T_vox_ras = Transform('mri_voxel', 'ras', hdr.get_vox2ras())
+    T_vox_mri = Transform('mri_voxel', 'mri', hdr.get_vox2ras_tkr())
+    T_ras_mri = combine_transforms(
+        invert_transform(T_vox_ras), T_vox_mri, 'ras', 'mri')
+    del mri_name, hdr, T_vox_ras, T_vox_mri
+
+    # Finally we construct as above:
+    #
+    #    T_ras_mni = F_ras_mni @ F_mri_ras @ S⁻¹ @ T_ras_mri
+    #
+    # By moving right to left through the equation.
+    T_ras_mni = \
+        combine_transforms(
+            combine_transforms(
+                combine_transforms(
+                    T_ras_mri, invert_transform(S), 'ras', 'mri'),
+                F_mri_ras, 'ras', 'ras'),
+            F_ras_mni, 'ras', 'mni_tal')
+    _write_fs_xfm(fname_to, T_ras_mni['trans'], kind)

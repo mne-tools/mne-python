@@ -86,6 +86,8 @@ Changelog
   - Display of HPI points
   - ICP fitting with convergence criteria
   - Faster display updates
+  - Scaling of ``mri/*.mgz`` files
+  - Scaling of ``mri/trainsforms/talairach.xfm`` files for conversion to MNI space
 
 - Add ability to exclude components interactively by clicking on their labels in :meth:`mne.preprocessing.ICA.plot_components` by `Mikołaj Magnuski`_
 
