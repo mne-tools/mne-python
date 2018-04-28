@@ -56,7 +56,7 @@ def test_find_ecg():
         raw.set_channel_types({'MEG 2641': 'ecg'})
     create_ecg_epochs(raw)
 
-    raw.pick_types()  # remove ECG
+    raw.load_data().pick_types()  # remove ECG
     ecg_epochs = create_ecg_epochs(raw, keep_ecg=False)
     assert len(ecg_epochs.events) == n_events
     assert 'ECG-SYN' not in raw.ch_names

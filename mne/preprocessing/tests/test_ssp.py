@@ -1,5 +1,6 @@
 import os.path as op
 import warnings
+import pytest
 
 from nose.tools import assert_true, assert_equal
 from numpy.testing import assert_array_almost_equal
@@ -34,7 +35,7 @@ def test_compute_proj_ecg():
             bads=['MEG 2443'], average=average, avg_ref=True, no_proj=True,
             l_freq=None, h_freq=None, reject=None, tmax=dur_use,
             qrs_threshold=0.5, filter_length=6000)
-        assert_true(len(projs) == 7)
+        assert len(projs) == 7
         # heart rate at least 0.5 Hz, but less than 3 Hz
         assert_true(events.shape[0] > 0.5 * dur_use and
                     events.shape[0] < 3 * dur_use)
@@ -44,11 +45,11 @@ def test_compute_proj_ecg():
         thresh_eeg, thresh_axial, thresh_planar = .9, .3, .1
         for proj in ssp_ecg:
             if 'planar' in proj['desc']:
-                assert_true(proj['explained_var'] > thresh_planar)
+                assert proj['explained_var'] > thresh_planar
             elif 'axial' in proj['desc']:
-                assert_true(proj['explained_var'] > thresh_axial)
+                assert proj['explained_var'] > thresh_axial
             elif 'eeg' in proj['desc']:
-                assert_true(proj['explained_var'] > thresh_eeg)
+                assert proj['explained_var'] > thresh_eeg
         # XXX: better tests
 
         # without setting a bad channel, this should throw a warning
@@ -58,9 +59,9 @@ def test_compute_proj_ecg():
                 raw, n_mag=2, n_grad=2, n_eeg=2, ch_name='MEG 1531', bads=[],
                 average=average, avg_ref=True, no_proj=True, l_freq=None,
                 h_freq=None, tmax=dur_use, return_drop_log=True)
-        assert_true(len(w) >= 1)
-        assert_equal(projs, None)
-        assert_equal(len(events), len(drop_log))
+        assert len(w) >= 1
+        assert projs is None
+        assert len(events) == len(drop_log)
 
 
 def test_compute_proj_eog():
@@ -101,6 +102,18 @@ def test_compute_proj_eog():
                                              tmax=dur_use)
         assert_true(len(w) >= 1)
         assert_equal(projs, None)
+
+
+def test_compute_proj_ecg_eog_deprecation_warning():
+    raw = read_raw_fif(raw_fname).crop(0, 10)
+    raw.load_data()
+    with pytest.warns(DeprecationWarning, match='average'):
+        _, _ = compute_proj_ecg(raw)
+        _, _ = compute_proj_eog(raw)
+    with pytest.warns(None):
+        for a in (True, False):
+            _, _ = compute_proj_ecg(raw, average=a)
+            _, _ = compute_proj_eog(raw, average=a)
 
 
 def test_compute_proj_parallel():

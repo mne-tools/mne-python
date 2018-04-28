@@ -149,9 +149,9 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         Start detection after tstart seconds. Useful when beginning
         of run is noisy.
     l_freq : float
-        Low pass frequency.
+        Low pass frequency to apply to the ECG channel while finding events.
     h_freq : float
-        High pass frequency.
+        High pass frequency to apply to the ECG channel while finding events.
     qrs_threshold : float | str
         Between 0 and 1. qrs detection threshold. Can also be "auto" to
         automatically choose the threshold that generates a reasonable
@@ -173,6 +173,11 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         Name of channel used.
     average_pulse : float
         Estimated average pulse.
+
+    See Also
+    --------
+    create_ecg_epochs
+    compute_proj_ecg
     """
     idx_ecg = _get_ecg_channel_index(ch_name, raw)
     if idx_ecg is not None:
@@ -241,7 +246,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         If None (default), ECG channel is used if present. If None and no
         ECG channel is present, a synthetic ECG channel is created from
         cross channel average. Synthetic channel can only be created from
-        'meg' channels.
+        MEG channels.
     event_id : int
         The index to assign to found events
     picks : array-like of int | None (default)
@@ -251,9 +256,9 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     tmax : float
         End time after event.
     l_freq : float
-        Low pass frequency.
+        Low pass frequency to apply to the ECG channel while finding events.
     h_freq : float
-        High pass frequency.
+        High pass frequency to apply to the ECG channel while finding events.
     reject : dict | None
         Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
@@ -279,7 +284,8 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         If baseline is equal to (None, None) all the time
         interval is used. If None, no correction is applied.
     preload : bool
-        Preload epochs or not.
+        Preload epochs or not (default True). Must be True if
+        keep_ecg is True.
     keep_ecg : bool
         When ECG is synthetically created (after picking), should it be added
         to the epochs? Must be False when synthetic channel is not used.
@@ -299,34 +305,29 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     -------
     ecg_epochs : instance of Epochs
         Data epoched around ECG r-peaks.
+
+    See Also
+    --------
+    find_ecg_events
+    compute_proj_ecg
+
+    Notes
+    -----
+    Filtering is only applied to the ECG channel while finding events.
+    The resulting ``ecg_epochs`` will have no filtering applied (i.e., have
+    the same filter properties as the input ``raw`` instance).
     """
     has_ecg = 'ecg' in raw or ch_name is not None
+    if keep_ecg and (has_ecg or not preload):
+        raise ValueError('keep_ecg can be True only if the ECG channel is '
+                         'created synthetically and preload=True.')
 
     events, _, _, ecg = find_ecg_events(
         raw, ch_name=ch_name, event_id=event_id, l_freq=l_freq, h_freq=h_freq,
         return_ecg=True, verbose=verbose)
 
-    # Load raw data so that add_channels works
-    raw.load_data()
     picks = np.arange(len(raw.ch_names)) if picks is None else picks
 
-    if not has_ecg:
-        ecg_raw = RawArray(
-            ecg[None],
-            create_info(ch_names=['ECG-SYN'],
-                        sfreq=raw.info['sfreq'], ch_types=['ecg']))
-        ignore = ['ch_names', 'chs', 'nchan', 'bads']
-        for k, v in raw.info.items():
-            if k not in ignore:
-                ecg_raw.info[k] = v
-        raw.add_channels([ecg_raw])
-
-    if keep_ecg:
-        if has_ecg:
-            raise ValueError('keep_ecg can be True only if the ECG channel is '
-                             'created synthetically.')
-        else:
-            picks = np.append(picks, raw.ch_names.index('ECG-SYN'))
     # create epochs around ECG events and baseline (important)
     ecg_epochs = Epochs(raw, events=events, event_id=event_id,
                         tmin=tmin, tmax=tmax, proj=False, flat=flat,
@@ -334,8 +335,22 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
                         reject_by_annotation=reject_by_annotation,
                         verbose=verbose, preload=preload)
 
-    if not has_ecg:
-        raw.drop_channels(['ECG-SYN'])
+    if keep_ecg:
+        # We know we have created a synthetic channel and epochs are preloaded
+        ecg_raw = RawArray(
+            ecg[None],
+            create_info(ch_names=['ECG-SYN'],
+                        sfreq=raw.info['sfreq'], ch_types=['ecg']),
+            first_samp=raw.first_samp)
+        ignore = ['ch_names', 'chs', 'nchan', 'bads']
+        for k, v in raw.info.items():
+            if k not in ignore:
+                ecg_raw.info[k] = v
+        syn_epochs = Epochs(ecg_raw, events=ecg_epochs.events,
+                            event_id=event_id, tmin=tmin, tmax=tmax,
+                            proj=False, picks=[0], baseline=baseline,
+                            verbose=verbose, preload=True)
+        ecg_epochs = ecg_epochs.add_channels([syn_epochs])
 
     return ecg_epochs
 
