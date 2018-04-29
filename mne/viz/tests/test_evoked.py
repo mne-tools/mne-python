@@ -233,11 +233,11 @@ def test_plot_evoked():
               dict(colors=dict(red=10., blue=-2))]
     for param in params:
         assert_raises(ValueError, plot_compare_evokeds, evoked, **param)
-    assert_raises(ValueError, plot_compare_evokeds, evoked, picks='str')
-    assert_raises(ValueError, plot_compare_evokeds, evoked, vlines='x')
+    assert_raises(TypeError, plot_compare_evokeds, evoked, picks='str')
+    assert_raises(TypeError, plot_compare_evokeds, evoked, vlines='x')
     plt.close('all')
     # `evoked` must contain Evokeds
-    assert_raises(ValueError, plot_compare_evokeds, [[1, 2], [3, 4]])
+    assert_raises(TypeError, plot_compare_evokeds, [[1, 2], [3, 4]])
     # `ci` must be float or None
     assert_raises(TypeError, plot_compare_evokeds, contrast, ci='err')
     # test all-positive ylim

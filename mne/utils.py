@@ -2745,5 +2745,5 @@ def open_docs(kind=None, version=None):
 def _validate_type(item_name, item, type_name, types):
     """Validate that `item` is an instance of `types`."""
     if not isinstance(item, types):
-        raise ValueError(item_name, ' must be an instance of ', type_name,
-                         ', got %s instead.' % (type(item),))
+        raise TypeError(item_name, ' must be an instance of ', type_name,
+                        ', got %s instead.' % (type(item),))
