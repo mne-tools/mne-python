@@ -48,7 +48,7 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
                      compute_corr, _get_inst_data, _ensure_int,
                      copy_function_doc_to_method_doc, _pl, warn,
-                     _check_preload)
+                     _check_preload, _check_compensation_grade)
 
 from ..fixes import _get_args
 from ..filter import filter_data
@@ -761,26 +761,18 @@ class ICA(ContainsMixin):
         sources : instance of Raw, Epochs or Evoked
             The ICA sources time series.
         """
-        # error check
-        if not isinstance(inst, (BaseRaw, BaseEpochs, Evoked)):
-            raise ValueError('Data input must be of Raw, Epochs or Evoked '
-                             'type')
-
-        # confirm ica.compensation_grade == inst.compensation_Grade
-        if (self.info is not None) and \
-                (self.compensation_grade != inst.compensation_grade):
-            msg = ('Compensation grade of ICA (%d) and data object (%d) ' +
-                   'don\'t match')
-            raise RuntimeError(msg % (self.compensation_grade,
-                                      inst.compensation_grade))
-
         if isinstance(inst, BaseRaw):
+            _check_compensation_grade(self, inst, 'ICA', 'Raw')
             sources = self._sources_as_raw(inst, add_channels, start, stop)
         elif isinstance(inst, BaseEpochs):
+            _check_compensation_grade(self, inst, 'ICA', 'Epochs')
             sources = self._sources_as_epochs(inst, add_channels, False)
         elif isinstance(inst, Evoked):
+            _check_compensation_grade(self, inst, 'ICA', 'Evoked')
             sources = self._sources_as_evoked(inst, add_channels)
-
+        else:
+            raise ValueError('Data input must be of Raw, Epochs or Evoked '
+                             'type')
         return sources
 
     def _sources_as_raw(self, raw, add_channels, start, stop):
@@ -932,26 +924,19 @@ class ICA(ContainsMixin):
         scores : ndarray
             scores for each source as returned from score_func
         """
-        # error check
-        if not isinstance(inst, (BaseRaw, BaseEpochs, Evoked)):
-            raise ValueError('Data input must be of Raw, Epochs or Evoked '
-                             'type')
-
-        # confirm ica.compensation_grade == inst.compensation_Grade
-        if (self.info is not None) and \
-                (self.compensation_grade != inst.compensation_grade):
-            msg = ('Compensation grade of ICA (%d) and data object (%d) ' +
-                   'don\'t match')
-            raise RuntimeError(msg % (self.compensation_grade,
-                                      inst.compensation_grade))
-
         if isinstance(inst, BaseRaw):
+            _check_compensation_grade(self, inst, 'ICA', 'Raw')
             sources = self._transform_raw(inst, start, stop,
                                           reject_by_annotation)
         elif isinstance(inst, BaseEpochs):
+            _check_compensation_grade(self, inst, 'ICA', 'Epochs')
             sources = self._transform_epochs(inst, concatenate=True)
         elif isinstance(inst, Evoked):
+            _check_compensation_grade(self, inst, 'ICA', 'Evoked')
             sources = self._transform_evoked(inst)
+        else:
+            raise ValueError('Data input must be of Raw, Epochs or Evoked '
+                             'type')
 
         if target is not None:  # we can have univariate metrics without target
             target = self._check_target(target, inst, start, stop,
@@ -1254,33 +1239,25 @@ class ICA(ContainsMixin):
         out : instance of Raw, Epochs or Evoked
             The processed data.
         """
-        # error check
-        if not (isinstance(inst, BaseRaw) or isinstance(inst, BaseEpochs) or
-                isinstance(inst, Evoked)):
-            raise ValueError('Data input must be of Raw, Epochs or Evoked '
-                             'type')
-
-        # confirm ica.compensation_grade == inst.compensation_Grade
-        if (self.info is not None) and \
-                (self.compensation_grade != inst.compensation_grade):
-            msg = ('Compensation grade of ICA (%d) and data object (%d) ' +
-                   'don\'t match')
-            raise RuntimeError(msg % (self.compensation_grade,
-                                      inst.compensation_grade))
-
         if isinstance(inst, BaseRaw):
+            _check_compensation_grade(self, inst, 'ICA', 'Raw')
             out = self._apply_raw(raw=inst, include=include,
                                   exclude=exclude,
                                   n_pca_components=n_pca_components,
                                   start=start, stop=stop)
         elif isinstance(inst, BaseEpochs):
+            _check_compensation_grade(self, inst, 'ICA', 'Epochs')
             out = self._apply_epochs(epochs=inst, include=include,
                                      exclude=exclude,
                                      n_pca_components=n_pca_components)
         elif isinstance(inst, Evoked):
+            _check_compensation_grade(self, inst, 'ICA', 'Evoked')
             out = self._apply_evoked(evoked=inst, include=include,
                                      exclude=exclude,
                                      n_pca_components=n_pca_components)
+        else:
+            raise ValueError('Data input must be of Raw, Epochs or Evoked '
+                             'type')
         return out
 
     def _apply_raw(self, raw, include, exclude, n_pca_components, start, stop):

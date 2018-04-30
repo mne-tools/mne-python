@@ -499,7 +499,7 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
         #
         fwd['info'] = _read_forward_meas_info(tree, fid)
 
-        # remove comp matrcies.
+        # remove compensation matrcies.
         if len(fwd['info'].get('comps', [])) > 0:
             fwd['info']['comps'] = []
             warn('Removing compensation matrices found in measurement info of '
