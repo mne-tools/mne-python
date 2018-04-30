@@ -48,7 +48,7 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
                      compute_corr, _get_inst_data, _ensure_int,
                      copy_function_doc_to_method_doc, _pl, warn,
-                     _check_preload)
+                     _check_preload, _check_compensation_grade)
 
 from ..fixes import _get_args
 from ..filter import filter_data
@@ -441,9 +441,10 @@ class ICA(ContainsMixin):
             self.max_pca_components = len(picks)
             logger.info('Inferring max_pca_components from picks')
 
-        self.info = pick_info(raw.info, picks)
-        if self.info['comps']:
-            self.info['comps'] = []
+        info = raw.info.copy()
+        if info['comps']:
+            info['comps'] = []
+        self.info = pick_info(info, picks)
         self.ch_names = self.info['ch_names']
         start, stop = _check_start_stop(raw, start, stop)
 
@@ -463,7 +464,7 @@ class ICA(ContainsMixin):
 
         self.n_samples_ = data.shape[1]
         # this may operate inplace or make a copy
-        data, self.pre_whitener_ = self._pre_whiten(data, raw.info, picks)
+        data, self.pre_whitener_ = self._pre_whiten(data, info, picks)
 
         self._fit(data, self.max_pca_components, 'raw')
 
@@ -481,9 +482,10 @@ class ICA(ContainsMixin):
                     '(please be patient, this may take a while)' % len(picks))
 
         # filter out all the channels the raw wouldn't have initialized
-        self.info = pick_info(epochs.info, picks)
-        if self.info['comps']:
-            self.info['comps'] = []
+        info = epochs.info.copy()
+        if info['comps']:
+            info['comps'] = []
+        self.info = pick_info(info, picks)
         self.ch_names = self.info['ch_names']
 
         if self.max_pca_components is None:
@@ -501,7 +503,7 @@ class ICA(ContainsMixin):
         # This will make at least one copy (one from hstack, maybe one
         # more from _pre_whiten)
         data, self.pre_whitener_ = \
-            self._pre_whiten(np.hstack(data), epochs.info, picks)
+            self._pre_whiten(np.hstack(data), info, picks)
 
         self._fit(data, self.max_pca_components, 'epochs')
 
@@ -653,7 +655,14 @@ class ICA(ContainsMixin):
             data = raw.get_data(picks, start, stop, 'omit')
         else:
             data = raw[picks, start:stop][0]
-        data, _ = self._pre_whiten(data, raw.info, picks)
+
+        # remove comp matrices
+        assert(raw.compensation_grade == self.compensation_grade)
+        info = raw.info.copy()
+        if info['comps']:
+            info['comps'] = []
+
+        data, _ = self._pre_whiten(data, info, picks)
         return self._transform(data)
 
     def _transform_epochs(self, epochs, concatenate):
@@ -670,9 +679,14 @@ class ICA(ContainsMixin):
                                'provide Epochs compatible with '
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
+        # remove comp matrices
+        assert(epochs.compensation_grade == self.compensation_grade)
+        info = epochs.info.copy()
+        if info['comps']:
+            info['comps'] = []
 
         data = np.hstack(epochs.get_data()[:, picks])
-        data, _ = self._pre_whiten(data, epochs.info, picks)
+        data, _ = self._pre_whiten(data, info, picks)
         sources = self._transform(data)
 
         if not concatenate:
@@ -696,7 +710,13 @@ class ICA(ContainsMixin):
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
 
-        data, _ = self._pre_whiten(evoked.data[picks], evoked.info, picks)
+        # remove comp matrices
+        assert(evoked.compensation_grade == self.compensation_grade)
+        info = evoked.info.copy()
+        if info['comps']:
+            info['comps'] = []
+
+        data, _ = self._pre_whiten(evoked.data[picks], info, picks)
         sources = self._transform(data)
 
         return sources
@@ -742,15 +762,17 @@ class ICA(ContainsMixin):
             The ICA sources time series.
         """
         if isinstance(inst, BaseRaw):
+            _check_compensation_grade(self, inst, 'ICA', 'Raw')
             sources = self._sources_as_raw(inst, add_channels, start, stop)
         elif isinstance(inst, BaseEpochs):
+            _check_compensation_grade(self, inst, 'ICA', 'Epochs')
             sources = self._sources_as_epochs(inst, add_channels, False)
         elif isinstance(inst, Evoked):
+            _check_compensation_grade(self, inst, 'ICA', 'Evoked')
             sources = self._sources_as_evoked(inst, add_channels)
         else:
             raise ValueError('Data input must be of Raw, Epochs or Evoked '
                              'type')
-
         return sources
 
     def _sources_as_raw(self, raw, add_channels, start, stop):
@@ -903,14 +925,18 @@ class ICA(ContainsMixin):
             scores for each source as returned from score_func
         """
         if isinstance(inst, BaseRaw):
+            _check_compensation_grade(self, inst, 'ICA', 'Raw')
             sources = self._transform_raw(inst, start, stop,
                                           reject_by_annotation)
         elif isinstance(inst, BaseEpochs):
+            _check_compensation_grade(self, inst, 'ICA', 'Epochs')
             sources = self._transform_epochs(inst, concatenate=True)
         elif isinstance(inst, Evoked):
+            _check_compensation_grade(self, inst, 'ICA', 'Evoked')
             sources = self._transform_evoked(inst)
         else:
-            raise ValueError('Input must be of Raw, Epochs or Evoked type')
+            raise ValueError('Data input must be of Raw, Epochs or Evoked '
+                             'type')
 
         if target is not None:  # we can have univariate metrics without target
             target = self._check_target(target, inst, start, stop,
@@ -1214,15 +1240,18 @@ class ICA(ContainsMixin):
             The processed data.
         """
         if isinstance(inst, BaseRaw):
+            _check_compensation_grade(self, inst, 'ICA', 'Raw')
             out = self._apply_raw(raw=inst, include=include,
                                   exclude=exclude,
                                   n_pca_components=n_pca_components,
                                   start=start, stop=stop)
         elif isinstance(inst, BaseEpochs):
+            _check_compensation_grade(self, inst, 'ICA', 'Epochs')
             out = self._apply_epochs(epochs=inst, include=include,
                                      exclude=exclude,
                                      n_pca_components=n_pca_components)
         elif isinstance(inst, Evoked):
+            _check_compensation_grade(self, inst, 'ICA', 'Evoked')
             out = self._apply_evoked(evoked=inst, include=include,
                                      exclude=exclude,
                                      n_pca_components=n_pca_components)

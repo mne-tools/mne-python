@@ -9,6 +9,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 from scipy import sparse
 
 from mne import Epochs, read_events, pick_info, pick_types
+from mne.event import make_fixed_length_events
 from mne.datasets import testing
 from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
                     _loc_to_coil_trans, read_raw_fif, read_info, write_info,
@@ -17,7 +18,9 @@ from mne.io.constants import FIFF
 from mne.io.write import DATE_NONE
 from mne.io.meas_info import (Info, create_info, _write_dig_points,
                               _read_dig_points, _make_dig_points, _merge_info,
-                              _force_update_info, RAW_INFO_FIELDS)
+                              _force_update_info, RAW_INFO_FIELDS,
+                              _bad_chans_comp)
+from mne.io import read_raw_ctf
 from mne.utils import _TempDir, run_tests_if_main
 from mne.channels.montage import read_montage, read_dig_montage
 
@@ -36,6 +39,7 @@ data_path = testing.data_path(download=False)
 sss_path = op.join(data_path, 'SSS')
 pre = op.join(sss_path, 'test_move_anon_')
 sss_ctc_fname = pre + 'crossTalk_raw_sss.fif'
+ctf_fname = op.join(data_path, 'CTF', 'testdata_ctf.ds')
 
 
 def test_coil_trans():
@@ -454,6 +458,37 @@ def test_csr_csc():
     ct_read = info_read['proc_history'][0]['max_info']['sss_ctc']['decoupler']
     assert isinstance(ct_read, sparse.csc_matrix)  # this gets cast to CSC
     assert_array_equal(ct_read.toarray(), ct.toarray())
+
+
+@testing.requires_testing_data
+def test_check_compensation_consistency():
+    """Test check picks compensation."""
+    raw = read_raw_ctf(ctf_fname, preload=False)
+    events = make_fixed_length_events(raw, 99999)
+    picks = pick_types(raw.info, meg=True, exclude=[], ref_meg=True)
+    pick_ch_names = [raw.info['ch_names'][idx] for idx in picks]
+    for (comp, expected_result) in zip([0, 1], [False, False]):
+        raw.apply_gradient_compensation(comp)
+        ret, missing = _bad_chans_comp(raw.info, pick_ch_names)
+        assert ret == expected_result
+        assert len(missing) == 0
+        Epochs(raw, events, None, -0.2, 0.2, preload=False, picks=picks)
+
+    picks = pick_types(raw.info, meg=True, exclude=[], ref_meg=False)
+    pick_ch_names = [raw.info['ch_names'][idx] for idx in picks]
+
+    for (comp, expected_result) in zip([0, 1], [False, True]):
+        raw.apply_gradient_compensation(comp)
+        ret, missing = _bad_chans_comp(raw.info, pick_ch_names)
+        assert ret == expected_result
+        assert len(missing) == 17
+        if comp != 0:
+            with pytest.raises(RuntimeError,
+                               match='Compensation grade 1 has been applied'):
+                Epochs(raw, events, None, -0.2, 0.2, preload=False,
+                       picks=picks)
+        else:
+            Epochs(raw, events, None, -0.2, 0.2, preload=False, picks=picks)
 
 
 run_tests_if_main()

@@ -803,6 +803,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         data_mean = [1.0 / n_epoch * np.dot(mean, mean.T) for n_epoch, mean
                      in zip(n_epochs, data_mean)]
 
+    if info['comps']:
+        info['comps'] = []
     info = pick_info(info, picks_meeg)
     tslice = _get_tslice(epochs[0], tmin, tmax)
     epochs = [ee.get_data()[:, picks_meeg, tslice] for ee in epochs]
@@ -1325,6 +1327,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         A copy of the covariance with the good channels subselected
         and parameters updated.
     """
+    info = info.copy()
     noise_cov_idx = [noise_cov.ch_names.index(c) for c in ch_names]
     n_chan = len(ch_names)
     if not noise_cov['diag']:
@@ -1385,6 +1388,11 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
                 ranks_type[ch_type] = rank.get(ch_type, None)
         else:
             ranks_type['meg'] = int(rank)
+
+    # XXX cov objects don't include compensation_grade
+    # so we can't check that the supplied cov matches info
+    if info['comps']:
+        info['comps'] = []
 
     for ch_type, this_has in has_type.items():
         if not this_has:

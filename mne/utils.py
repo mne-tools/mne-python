@@ -2204,6 +2204,15 @@ def _check_preload(inst, msg):
             '%s.load_data().' % (name, name))
 
 
+def _check_compensation_grade(inst, inst2, name, name2):
+    """Ensure that objects have same compenstation_grade."""
+    if (None not in [inst.info, inst2.info]) and (inst.compensation_grade !=
+                                                  inst2.compensation_grade):
+            msg = ('Compensation grade of %s (%d) and %s (%d) don\'t match')
+            raise RuntimeError(msg % (name, inst.compensation_grade,
+                                      name2, inst2.compensation_grade))
+
+
 def _check_pandas_installed(strict=True):
     """Aux function."""
     try:

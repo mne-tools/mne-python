@@ -31,6 +31,7 @@ from ..transforms import invert_transform
 from ..utils import logger, verbose, warn, object_diff
 from .. import __version__
 from ..externals.six import b, BytesIO, string_types, text_type
+from .compensator import get_current_comp
 
 
 _kind_dict = dict(
@@ -479,6 +480,12 @@ class Info(dict):
                     assert ch_name not in self['ch_names']
                     self['ch_names'][ch_idx] = ch_name
                     self['chs'][ch_idx]['ch_name'] = ch_name
+
+        # make sure required the compensation channels are present
+        comps_bad, comps_missing = _bad_chans_comp(self, self['ch_names'])
+        if comps_bad:
+            msg = 'Compensation channel(s) %s do not exist in info'
+            raise RuntimeError(msg % (comps_missing,))
 
         if 'filename' in self:
             warn('the "filename" key is misleading\
@@ -1881,3 +1888,49 @@ def anonymize_info(info):
             value['secs'] = DATE_NONE[0]
             value['usecs'] = DATE_NONE[1]
     return info
+
+
+def _bad_chans_comp(info, ch_names):
+    """Check if channel names are consistent with current compensation status.
+
+    Parameters
+    ----------
+    info : dict, instance of Info
+        Measurement information for the dataset.
+
+    ch_names : list of str
+        The channel names to check.
+
+    Returns
+    -------
+    status : bool
+        True if compensation is *currently* in use but some compensation
+            channels are not included in picks
+
+        False if compensation is *currently* not being used
+            or if compensation is being used and all compensation channels
+            in info and included in picks.
+
+    missing_ch_names: array-like of str, shape (n_missing,)
+        The names of compensation channels not included in picks.
+        Returns [] if no channels are missing.
+
+    """
+    if 'comps' not in info:
+        # should this be thought of as a bug?
+        return False, []
+
+    # only include compensation channels that would affect selected channels
+    ch_names_s = set(ch_names)
+    comp_names = []
+    for comp in info['comps']:
+        if len(ch_names_s.intersection(comp['data']['row_names'])) > 0:
+            comp_names.extend(comp['data']['col_names'])
+    comp_names = sorted(set(comp_names))
+
+    missing_ch_names = sorted(set(comp_names).difference(ch_names))
+
+    if get_current_comp(info) != 0 and len(missing_ch_names) > 0:
+        return True, missing_ch_names
+
+    return False, missing_ch_names

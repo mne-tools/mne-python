@@ -46,6 +46,9 @@ def _prepare_topo_plot(inst, ch_type, layout):
     for ii, this_ch in enumerate(info['chs']):
         this_ch['ch_name'] = clean_ch_names[ii]
     info['bads'] = _clean_names(info['bads'])
+    for comp in info['comps']:
+        comp['data']['col_names'] = _clean_names(comp['data']['col_names'])
+
     info._update_redundant()
     info._check_consistency()
 
@@ -1453,8 +1456,11 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     else:
         data = evoked.data
 
-    # Skip comps check here by using private function
-    evoked = evoked.copy()._pick_drop_channels(picks, check_comps=False)
+    # because we are only plotting we can safely remove compensation matrices
+    # regardless of compensation status.
+    evoked = evoked.copy()
+    evoked.info['comps'] = []
+    evoked = evoked._pick_drop_channels(picks)
 
     interactive = isinstance(times, string_types) and times == 'interactive'
     if axes is not None:

@@ -442,6 +442,7 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
                 n_jobs, verbose]
     cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
+
     info = Info(chs=info['chs'], comps=info['comps'],
                 dev_head_t=info['dev_head_t'], mri_file=trans, mri_id=mri_id,
                 meas_file=info_extra, meas_id=None, working_dir=os.getcwd(),
@@ -465,6 +466,7 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
         raise RuntimeError('No MEG or EEG channels found.')
 
     # pick out final info
+    info['comps'] = []
     info = pick_info(info, pick_types(info, meg=meg, eeg=eeg, ref_meg=False,
                                       exclude=[]))
 

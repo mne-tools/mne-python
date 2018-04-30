@@ -26,12 +26,14 @@ from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
 from mne.preprocessing.ica import (get_score_funcs, corrmap, _sort_components,
                                    _ica_explained_variance)
-from mne.io import read_raw_fif, Info, RawArray
+from mne.io import read_raw_fif, Info, RawArray, read_raw_ctf
 from mne.io.meas_info import _kind_dict
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.tests.common import assert_naming
 from mne.utils import (catch_logging, _TempDir, requires_sklearn,
                        run_tests_if_main)
+from mne.datasets import testing
+from mne.event import make_fixed_length_events
 
 # Set our plotters to test mode
 import matplotlib
@@ -43,6 +45,9 @@ data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
 test_cov_name = op.join(data_dir, 'test-cov.fif')
+
+ctf_fname = op.join(testing.data_path(download=False), 'CTF',
+                    'testdata_ctf.ds')
 
 event_id, tmin, tmax = 1, -0.2, 0.2
 # if stop is too small pca may fail in some cases, but we're okay on this file
@@ -864,6 +869,45 @@ def test_n_components_and_max_pca_components_none(method):
     # with the appropriate integer value.
     assert_equal(ica.max_pca_components, epochs.info['nchan'])
     assert_is_none(ica.n_components)
+
+
+@requires_sklearn
+@testing.requires_testing_data
+def test_ica_ctf():
+    """Test run ICA computation on ctf data with/without compensation."""
+    method = 'fastica'
+    raw = read_raw_ctf(ctf_fname, preload=True)
+    events = make_fixed_length_events(raw, 99999)
+    for comp in [0, 1]:
+        raw.apply_gradient_compensation(comp)
+        epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
+        evoked = epochs.average()
+
+        # test fit
+        for inst in [raw, epochs]:
+            ica = ICA(n_components=2, random_state=0, max_iter=2,
+                      method=method)
+            with warnings.catch_warnings(record=True):  # convergence
+                ica.fit(raw)
+
+        # test apply and get_sources
+        for inst in [raw, epochs, evoked]:
+            ica.apply(inst)
+            ica.get_sources(inst)
+
+    # test mixed compensation case
+    raw.apply_gradient_compensation(0)
+    ica = ICA(n_components=2, random_state=0, max_iter=2, method=method)
+    with warnings.catch_warnings(record=True):  # convergence
+        ica.fit(raw)
+    raw.apply_gradient_compensation(1)
+    epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
+    evoked = epochs.average()
+    for inst in [raw, epochs, evoked]:
+        with pytest.raises(RuntimeError, match='Compensation grade of ICA'):
+            ica.apply(inst)
+        with pytest.raises(RuntimeError, match='Compensation grade of ICA'):
+            ica.get_sources(inst)
 
 
 run_tests_if_main()
