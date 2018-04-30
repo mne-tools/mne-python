@@ -506,14 +506,8 @@ class SurfaceObject(Object):
         normals = _create_mesh_surf(surf, fig=fig)
         self.src = normals.parent
         rep = 'wireframe' if self.rep == 'Wireframe' else 'surface'
-        surf = pipeline.surface(
-            normals, figure=fig, color=self.color, representation=rep,
-            line_width=1)
-        surf.actor.property.backface_culling = True
-        self.surf = surf
-        self.sync_trait('visible', self.surf, 'visible')
-        self.sync_trait('color', self.surf.actor.property, mutual=False)
-        self.sync_trait('opacity', self.surf.actor.property)
+        # Add the opaque "inside" first to avoid the translucent "outside"
+        # from being occluded (gh-5152)
         if self._block_behind:
             surf_rear = pipeline.surface(
                 normals, figure=fig, color=self.color, representation=rep,
@@ -524,6 +518,14 @@ class SurfaceObject(Object):
                             mutual=False)
             self.sync_trait('visible', self.surf_rear, 'visible')
             self.surf_rear.actor.property.opacity = 1.
+        surf = pipeline.surface(
+            normals, figure=fig, color=self.color, representation=rep,
+            line_width=1)
+        surf.actor.property.backface_culling = True
+        self.surf = surf
+        self.sync_trait('visible', self.surf, 'visible')
+        self.sync_trait('color', self.surf.actor.property, mutual=False)
+        self.sync_trait('opacity', self.surf.actor.property)
 
         self.scene.camera.parallel_scale = _scale
 
