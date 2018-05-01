@@ -4,10 +4,8 @@
 # License: Simplified BSD
 
 import os.path as op
-import warnings
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_allclose
-from nose.tools import assert_true, assert_equal, assert_raises
 import pytest
 
 import mne
@@ -95,16 +93,16 @@ def test_mxne_inverse():
     assert_allclose(stc_prox.data, stc_cd.data, rtol=1e-3, atol=0.0)
     assert_allclose(stc_prox.data, stc_bcd.data, rtol=1e-3, atol=0.0)
     assert_allclose(stc_cd.data, stc_bcd.data, rtol=1e-3, atol=0.0)
-    assert_true(stc_prox.vertices[1][0] in label.vertices)
-    assert_true(stc_cd.vertices[1][0] in label.vertices)
-    assert_true(stc_bcd.vertices[1][0] in label.vertices)
+    assert stc_prox.vertices[1][0] in label.vertices
+    assert stc_cd.vertices[1][0] in label.vertices
+    assert stc_bcd.vertices[1][0] in label.vertices
 
     dips = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                       depth=depth, maxit=300, tol=1e-8, active_set_size=10,
                       weights=stc_dspm, weights_min=weights_min,
                       solver='cd', return_as_dipoles=True)
     stc_dip = make_stc_from_dipoles(dips, forward['src'])
-    assert_true(isinstance(dips[0], Dipole))
+    assert isinstance(dips[0], Dipole)
     _check_stcs(stc_cd, stc_dip)
 
     stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
@@ -112,7 +110,7 @@ def test_mxne_inverse():
                         active_set_size=10, return_residual=True,
                         solver='cd')
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
-    assert_true(stc.vertices[1][0] in label.vertices)
+    assert stc.vertices[1][0] in label.vertices
 
     # irMxNE tests
     stc = mixed_norm(evoked_l21, forward, cov, alpha,
@@ -120,31 +118,24 @@ def test_mxne_inverse():
                      maxit=300, tol=1e-8, active_set_size=10,
                      solver='cd')
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
-    assert_true(stc.vertices[1][0] in label.vertices)
-    assert_equal(stc.vertices, [[63152], [79017]])
+    assert stc.vertices[1][0] in label.vertices
+    assert stc.vertices == [[63152], [79017]]
 
     # Do with TF-MxNE for test memory savings
     alpha = 60.  # overall regularization parameter
     l1_ratio = 0.01  # temporal regularization proportion
 
-    stc, _ = tf_mixed_norm(evoked, forward, cov, None, None,
+    stc, _ = tf_mixed_norm(evoked, forward, cov,
                            loose=loose, depth=depth, maxit=100, tol=1e-4,
                            tstep=4, wsize=16, window=0.1, weights=stc_dspm,
                            weights_min=weights_min, return_residual=True,
                            alpha=alpha, l1_ratio=l1_ratio)
     assert_array_almost_equal(stc.times, evoked.times, 5)
-    assert_true(stc.vertices[1][0] in label.vertices)
+    assert stc.vertices[1][0] in label.vertices
 
-    with warnings.catch_warnings(record=True) as w:
-        assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov,
-                      101., 3.)
-        assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov,
-                      50, 101.)
-        assert_true(len(w) == 2)
-
-    assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov, None, None,
+    pytest.raises(ValueError, tf_mixed_norm, evoked, forward, cov,
                   alpha=101, l1_ratio=0.03)
-    assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov, None, None,
+    pytest.raises(ValueError, tf_mixed_norm, evoked, forward, cov,
                   alpha=50., l1_ratio=1.01)
 
 
@@ -169,11 +160,11 @@ def test_mxne_vol_sphere():
                                     bem=sphere, eeg=False, meg=True)
 
     alpha = 80.
-    assert_raises(ValueError, mixed_norm, evoked, fwd, cov, alpha,
+    pytest.raises(ValueError, mixed_norm, evoked, fwd, cov, alpha,
                   loose=0.0, return_residual=False,
                   maxit=3, tol=1e-8, active_set_size=10)
 
-    assert_raises(ValueError, mixed_norm, evoked, fwd, cov, alpha,
+    pytest.raises(ValueError, mixed_norm, evoked, fwd, cov, alpha,
                   loose=0.2, return_residual=False,
                   maxit=3, tol=1e-8, active_set_size=10)
 
@@ -181,7 +172,7 @@ def test_mxne_vol_sphere():
     stc = mixed_norm(evoked_l21, fwd, cov, alpha,
                      n_mxne_iter=1, maxit=30, tol=1e-8,
                      active_set_size=10)
-    assert_true(isinstance(stc, VolSourceEstimate))
+    assert isinstance(stc, VolSourceEstimate)
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
 
     # Compare orientation obtained using fit_dipole and gamma_map
@@ -199,10 +190,10 @@ def test_mxne_vol_sphere():
 
     amp_max = [np.max(d.amplitude) for d in dip_mxne]
     dip_mxne = dip_mxne[np.argmax(amp_max)]
-    assert_true(dip_mxne.pos[0] in src[0]['rr'][stc.vertices])
+    assert dip_mxne.pos[0] in src[0]['rr'][stc.vertices]
 
     dip_fit = mne.fit_dipole(evoked_dip, cov, sphere)[0]
-    assert_true(np.abs(np.dot(dip_fit.ori[0], dip_mxne.ori[0])) > 0.99)
+    assert np.abs(np.dot(dip_fit.ori[0], dip_mxne.ori[0])) > 0.99
 
     # Do with TF-MxNE for test memory savings
     alpha = 60.  # overall regularization parameter
@@ -211,7 +202,8 @@ def test_mxne_vol_sphere():
     stc, _ = tf_mixed_norm(evoked, fwd, cov, maxit=3, tol=1e-4,
                            tstep=16, wsize=32, window=0.1, alpha=alpha,
                            l1_ratio=l1_ratio, return_residual=True)
-    assert_true(isinstance(stc, VolSourceEstimate))
+    assert isinstance(stc, VolSourceEstimate)
     assert_array_almost_equal(stc.times, evoked.times, 5)
+
 
 run_tests_if_main()
