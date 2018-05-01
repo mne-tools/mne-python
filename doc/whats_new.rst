@@ -694,7 +694,7 @@ Changelog
 
 - Add plotting of head positions as a function of time in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
 
-- Add ``real_filter`` option to :func:`mne.beamformer.dics`, :func:`mne.beamformer.dics_source_power`, :func:`mne.beamformer.tf_dics` and :func:`mne.beamformer.dics_epochs` by `Eric Larson`_, `Alex Gramfort`_ and `Andrea Brovelli`_.
+- Add ``real_filter`` option to ``mne.beamformer.dics``, ``mne.beamformer.dics_source_power``, ``mne.beamformer.tf_dics`` and ``mne.beamformer.dics_epochs`` by `Eric Larson`_, `Alex Gramfort`_ and `Andrea Brovelli`_.
 
 - Add a demo script showing how to use a custom inverse solver with MNE by `Alex Gramfort`_
 
@@ -709,7 +709,7 @@ Changelog
 BUG
 ~~~
 
-- Fix bug with DICS and LCMV (e.g., :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.dics`) where regularization was done improperly. The default ``reg=0.01`` has been changed to ``reg=0.05``, by `Andrea Brovelli`_, `Alex Gramfort`_, and `Eric Larson`_
+- Fix bug with DICS and LCMV (e.g., :func:`mne.beamformer.lcmv`, ``mne.beamformer.dics``) where regularization was done improperly. The default ``reg=0.01`` has been changed to ``reg=0.05``, by `Andrea Brovelli`_, `Alex Gramfort`_, and `Eric Larson`_
 
 - Fix callback function call in ``mne.viz.topo._plot_topo_onpick`` by `Erkka Heinila`_
 

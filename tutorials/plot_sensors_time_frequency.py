@@ -77,7 +77,7 @@ plt.show()
 
 ###############################################################################
 # Time-frequency analysis: power and inter-trial coherence
-# -------------------------------------------------------
+# --------------------------------------------------------
 #
 # We now compute time-frequency representations (TFRs) from our Epochs.
 # We'll look at power and inter-trial coherence (ITC).

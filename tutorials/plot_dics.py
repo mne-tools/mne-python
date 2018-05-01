@@ -249,7 +249,8 @@ mlab.title('MNE-dSPM inverse (RMS)', height=0.9)
 # pass activity originating from the vertex, while dampening activity from
 # other sources as much as possible.
 #
-# The :func:`make_dics` function has many switches that offer precise control
+# The :func:`mne.beamformer.make_dics` function has many switches that offer
+# precise control
 # over the way the filter weights are computed. Currently, there is no clear
 # consensus regarding the best approach. This is why we will demonstrate two
 # approaches here:
