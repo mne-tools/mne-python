@@ -22,6 +22,8 @@ Changelog
 Bug
 ~~~
 
+- Fix bug with ``mne flash_bem`` when ``flash30`` is not used by `Eric Larson`_
+
 API
 ~~~
 

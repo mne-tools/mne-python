@@ -1709,7 +1709,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
             files = glob.glob("mef05*u.mgz")
         else:
             files = glob.glob("mef05*.mgz")
-        cmd = ['mri_average', '-noconform', files, 'flash5.mgz']
+        cmd = ['mri_average', '-noconform'] + files + ['flash5.mgz']
         run_subprocess(cmd, env=env)
         if op.exists('flash5_reg.mgz'):
             os.remove('flash5_reg.mgz')
