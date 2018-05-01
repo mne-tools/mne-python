@@ -16,7 +16,7 @@ import mne
 from mne.datasets import testing
 from mne.beamformer import (make_dics, apply_dics, apply_dics_epochs,
                             apply_dics_csd, tf_dics)
-from mne.time_frequency import csd_multitaper, csd_morlet
+from mne.time_frequency import csd_morlet
 from mne.utils import run_tests_if_main
 from mne.externals.six import advance_iterator
 from mne.proj import compute_proj_evoked, make_projector
