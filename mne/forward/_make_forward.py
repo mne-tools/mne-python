@@ -218,8 +218,11 @@ def _create_eeg_els(chs):
 
 
 @verbose
-def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
+def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False,
+               verbose=None):
     """Set up a BEM for forward computation, making a copy and modifying."""
+    if allow_none and bem is None:
+        return None
     logger.info('')
     if isinstance(bem, string_types):
         logger.info('Setting up the BEM model using %s...\n' % bem_extra)
@@ -416,7 +419,8 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
 @verbose
 def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
                          bem_extra='', trans='', info_extra='',
-                         meg=True, eeg=True, ignore_ref=False, verbose=None):
+                         meg=True, eeg=True, ignore_ref=False,
+                         allow_bem_none=False, verbose=None):
     """Prepare for forward computation."""
     # Read the source locations
     logger.info('')
@@ -478,10 +482,11 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
                 % _coord_frame_name(s['coord_frame']))
 
     # Prepare the BEM model
-    bem = _setup_bem(bem, bem_extra, len(eegnames), mri_head_t)
+    bem = _setup_bem(bem, bem_extra, len(eegnames), mri_head_t,
+                     allow_none=allow_bem_none)
 
     # Circumvent numerical problems by excluding points too close to the skull
-    if not bem['is_sphere']:
+    if bem is not None and not bem['is_sphere']:
         inner_skull = _bem_find_surface(bem, 'inner_skull')
         _filter_source_spaces(inner_skull, mindist, mri_head_t, src, n_jobs)
         logger.info('')

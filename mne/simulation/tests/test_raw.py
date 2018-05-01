@@ -10,7 +10,6 @@ from copy import deepcopy
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
-from nose.tools import assert_true, assert_raises, assert_equal
 import pytest
 
 from mne import (read_source_spaces, pick_types, read_trans, read_cov,
@@ -85,7 +84,7 @@ def test_simulate_raw_sphere():
     """Test simulation of raw data with sphere model."""
     seed = 42
     raw, src, stc, trans, sphere = _get_data()
-    assert_true(len(pick_types(raw.info, meg=False, ecg=True)) == 1)
+    assert len(pick_types(raw.info, meg=False, ecg=True)) == 1
 
     # head pos
     head_pos_sim = dict()
@@ -119,11 +118,14 @@ def test_simulate_raw_sphere():
                              cov=std, head_pos=head_pos_sim, blink=True,
                              ecg=True, random_state=seed, use_cps=True)
     assert_array_equal(raw_sim_2[:][0], raw_sim[:][0])
-    raw_sim = simulate_raw(raw, stc, trans, src, sphere,
+    sphere_norad = make_sphere_model('auto', None, raw.info)
+    raw_meg = raw.copy().pick_types()
+    raw_sim = simulate_raw(raw_meg, stc, trans, src, sphere_norad,
                            make_ad_hoc_cov(raw.info, std=None),
                            head_pos=head_pos_sim, blink=True, ecg=True,
                            random_state=seed, use_cps=True)
-    raw_sim_2 = simulate_raw(raw, stc, trans_fname, src_fname, sphere,
+    raw_sim_2 = simulate_raw(raw_meg, stc, trans_fname, src_fname,
+                             sphere_norad,
                              cov='simple', head_pos=head_pos_sim, blink=True,
                              ecg=True, random_state=seed, use_cps=True)
     assert_array_equal(raw_sim_2[:][0], raw_sim[:][0])
@@ -151,10 +153,10 @@ def test_simulate_raw_sphere():
         these_picks = np.setdiff1d(picks, diff_picks)
         close = np.isclose(raw_sim_3[these_picks][0],
                            raw_sim_4[these_picks][0], atol=1e-20)
-        assert_true(np.mean(close) > 0.7)
+        assert np.mean(close) > 0.7
         far = ~np.isclose(raw_sim_3[diff_picks][0],
                           raw_sim_4[diff_picks][0], atol=1e-20)
-        assert_true(np.mean(far) > 0.99)
+        assert np.mean(far) > 0.99
     del raw_sim_3, raw_sim_4
 
     # make sure it works with EEG-only and MEG-only
@@ -187,40 +189,40 @@ def test_simulate_raw_sphere():
     # Make impossible transform (translate up into helmet) and ensure failure
     head_pos_sim_err = deepcopy(head_pos_sim)
     head_pos_sim_err[1.][2, 3] -= 0.1  # z trans upward 10cm
-    assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
+    pytest.raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
                   ecg=False, blink=False, head_pos=head_pos_sim_err,
                   use_cps=True)
-    assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src,
+    pytest.raises(RuntimeError, simulate_raw, raw, stc, trans, src,
                   bem_fname, ecg=False, blink=False,
                   head_pos=head_pos_sim_err, use_cps=True)
     # other degenerate conditions
-    assert_raises(TypeError, simulate_raw, 'foo', stc, trans, src, sphere,
+    pytest.raises(TypeError, simulate_raw, 'foo', stc, trans, src, sphere,
                   use_cps=True)
-    assert_raises(TypeError, simulate_raw, raw, 'foo', trans, src, sphere,
+    pytest.raises(TypeError, simulate_raw, raw, 'foo', trans, src, sphere,
                   use_cps=True)
-    assert_raises(ValueError, simulate_raw, raw, stc.copy().crop(0, 0),
+    pytest.raises(ValueError, simulate_raw, raw, stc.copy().crop(0, 0),
                   trans, src, sphere, use_cps=True)
     stc_bad = stc.copy()
     stc_bad.tstep += 0.1
-    assert_raises(ValueError, simulate_raw, raw, stc_bad, trans, src, sphere,
+    pytest.raises(ValueError, simulate_raw, raw, stc_bad, trans, src, sphere,
                   use_cps=True)
-    assert_raises(TypeError, simulate_raw, raw, stc, trans, src, sphere,
+    pytest.raises(TypeError, simulate_raw, raw, stc, trans, src, sphere,
                   cov=0, use_cps=True)  # wrong covariance type
-    assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
+    pytest.raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
                   chpi=True, use_cps=True)  # no cHPI info
-    assert_raises(ValueError, simulate_raw, raw, stc, trans, src, sphere,
+    pytest.raises(ValueError, simulate_raw, raw, stc, trans, src, sphere,
                   interp='foo', use_cps=True)
-    assert_raises(TypeError, simulate_raw, raw, stc, trans, src, sphere,
+    pytest.raises(TypeError, simulate_raw, raw, stc, trans, src, sphere,
                   head_pos=1., use_cps=True)
-    assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
+    pytest.raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
                   head_pos=pos_fname, use_cps=True)  # ends up with t>t_end
     head_pos_sim_err = deepcopy(head_pos_sim)
     head_pos_sim_err[-1.] = head_pos_sim_err[1.]  # negative time
-    assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
+    pytest.raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
                   head_pos=head_pos_sim_err, use_cps=True)
     raw_bad = raw.copy()
     raw_bad.info['dig'] = None
-    assert_raises(RuntimeError, simulate_raw, raw_bad, stc, trans, src, sphere,
+    pytest.raises(RuntimeError, simulate_raw, raw_bad, stc, trans, src, sphere,
                   blink=True, use_cps=True)
 
 
@@ -251,7 +253,7 @@ def test_simulate_raw_bem():
     corr = np.corrcoef(raw_sim_sph[picks][0], raw_sim_bem[picks][0])
     assert_array_equal(corr.shape, (2 * n_ch, 2 * n_ch))
     med_corr = np.median(np.diag(corr[:n_ch, -n_ch:]))
-    assert_true(med_corr > 0.65, msg=med_corr)
+    assert med_corr > 0.65
     # do some round-trip localization
     for s in src:
         transform_surface_to(s, 'head', trans)
@@ -263,13 +265,13 @@ def test_simulate_raw_bem():
     for use_raw, bem, tol in ((raw_sim_sph, sphere, 2),
                               (raw_sim_bem, bem_fname, 31)):
         events = find_events(use_raw, 'STI 014')
-        assert_equal(len(locs), 6)
+        assert len(locs) == 6
         evoked = Epochs(use_raw, events, 1, 0, tmax, baseline=None).average()
-        assert_equal(len(evoked.times), len(locs))
+        assert len(evoked.times) == len(locs)
         fits = fit_dipole(evoked, cov, bem, trans, min_dist=1.)[0].pos
         diffs = np.sqrt(np.sum((locs - fits) ** 2, axis=-1)) * 1000
         med_diff = np.median(diffs)
-        assert_true(med_diff < tol, msg='%s: %s' % (bem, med_diff))
+        assert med_diff < tol, '%s: %s' % (bem, med_diff)
 
 
 @testing.requires_testing_data
@@ -296,18 +298,28 @@ def test_simulate_round_trip():
     raw.crop(0, (len(data) - 1) / raw.info['sfreq'])
     stc = SourceEstimate(data, [s['vertno'] for s in fwd['src']],
                          0, 1. / raw.info['sfreq'])
-    for use_cps in (False, True):
-        this_raw = simulate_raw(raw, stc, trans, src, bem, cov=None,
-                                use_cps=use_cps)
-        this_raw.pick_types(meg=True, eeg=True)
-        assert (old_bem['surfs'][0]['coord_frame'] ==
-                bem['surfs'][0]['coord_frame'])
-        assert trans == old_trans
-        _compare_source_spaces(src, old_src)
-        this_fwd = convert_forward_solution(fwd, force_fixed=True,
-                                            use_cps=use_cps)
-        assert_allclose(this_raw[:][0], this_fwd['sol']['data'],
-                        atol=1e-12, rtol=1e-6)
+    for use_fwd in (None, fwd):
+        if use_fwd is None:
+            use_trans, use_src, use_bem = trans, src, bem
+        else:
+            use_trans = use_src = use_bem = None
+        for use_cps in (False, True):
+            this_raw = simulate_raw(raw, stc, use_trans, use_src, use_bem,
+                                    cov=None, use_cps=use_cps, forward=use_fwd)
+            this_raw.pick_types(meg=True, eeg=True)
+            assert (old_bem['surfs'][0]['coord_frame'] ==
+                    bem['surfs'][0]['coord_frame'])
+            assert trans == old_trans
+            _compare_source_spaces(src, old_src)
+            this_fwd = convert_forward_solution(fwd, force_fixed=True,
+                                                use_cps=use_cps)
+            assert_allclose(this_raw[:][0], this_fwd['sol']['data'],
+                            atol=1e-12, rtol=1e-6)
+    with pytest.raises(ValueError, match='If forward is not None then'):
+        simulate_raw(raw, stc, trans, src, bem, forward=fwd)
+    fwd['info']['dev_head_t']['trans'][0, 0] = 1.
+    with pytest.raises(ValueError, match='dev_head_t.*does not match'):
+        simulate_raw(raw, stc, None, None, None, forward=fwd)
 
 
 @pytest.mark.slowtest
@@ -347,8 +359,8 @@ def test_simulate_raw_chpi():
         freq_idx = np.sort([np.argmin(np.abs(freqs_sim - f))
                            for f in hpi_freqs])
         if picks is picks_meg:
-            assert_true((psd_chpi[:, freq_idx] >
-                         100 * psd_sim[:, freq_idx]).all())
+            assert (psd_chpi[:, freq_idx] >
+                    100 * psd_sim[:, freq_idx]).all()
         else:
             assert_allclose(psd_sim, psd_chpi, atol=1e-20)
 
