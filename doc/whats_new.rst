@@ -11,10 +11,10 @@ What's new
 
 .. currentmodule:: mne
 
-.. _current:
+.. _changes_0_16:
 
-Current
--------
+Version 0.16
+------------
 
 Changelog
 ~~~~~~~~~
@@ -218,6 +218,55 @@ API
 - The functions ``lcmv``, ``lcmv_epochs``, and ``lcmv_raw`` are now deprecated in favor of :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.apply_lcmv`, :func:`mne.beamformer.apply_lcmv_epochs`, and :func:`mne.beamformer.apply_lcmv_raw`, by `Britta Westner`_
 
 - The functions ``mne.beamformer.dics``, ``mne.beamformer.dics_epochs`` and ``mne.beamformer.dics_source_power`` are now deprecated in favor of :func:`mne.beamformer.make_dics`, :func:`mne.beamformer.apply_dics`, and :func:`mne.beamformer.apply_dics_csd`, by `Marijn van Vliet`_
+
+
+Authors
+~~~~~~~
+
+People who contributed to this release  (in alphabetical order):
+
+* Alejandro Weinstein
+* Alexandre Gramfort
+* Annalisa Pascarella
+* Anne-Sophie Dubarry
+* Britta Westner
+* Chris Bailey
+* Chris Holdgraf
+* Christian Brodbeck
+* Claire Braboszcz
+* Clemens Brunner
+* Daniel McCloy
+* Denis A. Engemann
+* Desislava Petkova
+* Dominik Krzemiński
+* Eric Larson
+* Erik Hornberger
+* Fede Raimondo
+* Henrich Kolkhorst
+* Jean-Remi King
+* Jen Evans
+* Joan Massich
+* Jon Houck
+* Jona Sassenhagen
+* Juergen Dammers
+* Jussi Nurminen
+* Kambiz Tavabi
+* Katrin Leinweber
+* Kostiantyn Maksymenko
+* Larry Eisenman
+* Luke Bloy
+* Mainak Jas
+* Marijn van Vliet
+* Mathurin Massias
+* Mikolaj Magnuski
+* Nathalie Gayraud
+* Oleh Kozynets
+* Phillip Alday
+* Pierre Ablin
+* Stefan Appelhoff
+* Stefan Repplinger
+* Tommy Clausner
+* Yaroslav Halchenko
 
 .. _changes_0_15:
 
