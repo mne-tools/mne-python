@@ -1261,9 +1261,9 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
 def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         vmin=None, vmax=None, cmap=None, sensors=True,
-                        colorbar=None, scalings=None, scaling_time=None,
+                        colorbar=None, scalings=None,
                         units=None, res=64, size=1, cbar_fmt='%3.1f',
-                        time_unit=None, time_format=None, proj=False,
+                        time_unit='s', time_format=None, proj=False,
                         show=True, show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
                         image_interp='bilinear', average=None, head_pos=None,
@@ -1327,8 +1327,6 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     scalings : dict | float | None
         The scalings of the channel types to be applied for plotting.
         If None, defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
-    scaling_time : float | None
-        Deprecated and will be removed in 0.17. Use time_unit instead.
     units : dict | str | None
         The unit of the channel type used for colorbar label. If
         scale is None the unit is automatically determined.
@@ -1339,13 +1337,12 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     cbar_fmt : str
         String format for colorbar values.
     time_unit : str
-        The units for the time axis, can be "ms" (default in 0.16)
-        or "s" (will become the default in 0.17).
+        The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
     time_format : str | None
         String format for topomap values. Defaults (None) to "%01d ms" if
-        ``scaling_time=1e3``, "%0.3f s" if ``scaling_time=1.``, and
+        ``time_unit='ms'``, "%0.3f s" if ``time_unit='s'``, and
         "%g" otherwise.
     proj : bool | 'interactive'
         If true SSP projections are applied before display. If 'interactive',
@@ -1421,18 +1418,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     from matplotlib.widgets import Slider
     ch_type = _get_ch_type(evoked, ch_type)
 
-    if scaling_time is not None:
-        warn('scaling_time is deprecated and will be removed in 0.17, use '
-             'time_unit instead', DeprecationWarning)
-        scaling_time = float(scaling_time)
-        if scaling_time == 1e3:
-            time_unit = 'ms'
-        elif scaling_time == 1:
-            time_unit = 's'
-        else:
-            raise ValueError('scaling_time can only be 1. or 1e3, got %s'
-                             % (scaling_time,))
-    time_unit, _ = _check_time_unit(time_unit, evoked.times, allow_none=True)
+    time_unit, _ = _check_time_unit(time_unit, evoked.times)
     scaling_time = 1. if time_unit == 's' else 1e3
     if time_format is None:
         time_format = '%0.3f s' if time_unit == 's' else '%01d ms'
@@ -2211,7 +2197,7 @@ def _key_press(event, params):
 
 
 def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
-                       butterfly=False, blit=True, show=True, time_unit=None):
+                       butterfly=False, blit=True, show=True, time_unit='s'):
     """Make animation of evoked data as topomap timeseries.
 
     Animation can be paused/resumed with left mouse button.
@@ -2243,8 +2229,7 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
     show : bool
         Whether to show the animation. Defaults to True.
     time_unit : str
-        The units for the time axis, can be "ms" (default in 0.16)
-        or "s" (will become the default in 0.17).
+        The units for the time axis, can be "ms" or "s" (default).
 
     Returns
     -------
@@ -2263,7 +2248,7 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
     if ch_type not in ('mag', 'grad', 'eeg'):
         raise ValueError("Channel type not supported. Supported channel "
                          "types include 'mag', 'grad' and 'eeg'.")
-    time_unit, _ = _check_time_unit(time_unit, evoked.times, allow_none=True)
+    time_unit, _ = _check_time_unit(time_unit, evoked.times)
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
     times = np.array(times)

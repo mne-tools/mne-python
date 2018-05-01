@@ -379,9 +379,8 @@ def test_plot_dipole_mri_orthoview():
 def test_snapshot_brain_montage():
     """Test snapshot brain montage."""
     info = read_info(evoked_fname)
-    with warnings.catch_warnings(record=True):  # deprecated
-        fig = plot_alignment(
-            info, trans=None, subject='sample', subjects_dir=subjects_dir)
+    fig = plot_alignment(
+        info, trans=None, subject='sample', subjects_dir=subjects_dir)
 
     xyz = np.vstack([ich['loc'][:3] for ich in info['chs']])
     ch_names = [ich['ch_name'] for ich in info['chs']]

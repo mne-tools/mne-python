@@ -462,7 +462,7 @@ class DipoleFixed(object):
                     ('.fif', '.fif.gz'))
         _write_evokeds(fname, self, check=False)
 
-    def plot(self, show=True, time_unit=None):
+    def plot(self, show=True, time_unit='s'):
         """Plot dipole data.
 
         Parameters
@@ -470,8 +470,7 @@ class DipoleFixed(object):
         show : bool
             Call pyplot.show() at the end or not.
         time_unit : str
-            The units for the time axis, can be "ms" (default in 0.16)
-            or "s" (will become the default in 0.17).
+            The units for the time axis, can be "ms" or "s" (default).
 
             .. versionadded:: 0.16
 

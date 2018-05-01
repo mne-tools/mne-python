@@ -186,6 +186,7 @@ def test_tabs():
 
 documented_ignored_mods = (
     'mne.cuda',
+    'mne.fixes',
     'mne.io.write',
     'mne.utils',
     'mne.viz.utils',
@@ -197,15 +198,11 @@ CrossSpectralDensity
 FilterMixin
 GeneralizationAcrossTime
 RawFIF
-TimeDecoding
 TimeMixin
 ToDataFrameMixin
 TransformerMixin
 UpdateChannelsMixin
 adjust_axes
-apply_lcmv
-apply_lcmv_epochs
-apply_lcmv_raw
 apply_maxfilter
 apply_trans
 channel_type
@@ -216,14 +213,12 @@ combine_transforms
 design_mne_c_filter
 detrend
 dir_tree_find
-einsum
 fast_cross_3d
 fiff_open
 find_outliers
 find_source_space_hemi
 find_tag
 get_score_funcs
-get_sosfiltfilt
 get_version
 invert_transform
 is_power2
@@ -231,14 +226,11 @@ iter_topography
 kit2fiff
 label_src_vertno_sel
 make_eeg_average_ref_proj
-make_lcmv
 make_projector
 mesh_dist
 mesh_edges
-minimum_phase
 next_fast_len
 parallel_func
-permutation_t_test
 pick_channels_evoked
 plot_epochs_psd
 plot_epochs_psd_topomap

@@ -1,6 +1,5 @@
 import os.path as op
 import warnings
-import pytest
 
 from nose.tools import assert_true, assert_equal
 from numpy.testing import assert_array_almost_equal
@@ -102,18 +101,6 @@ def test_compute_proj_eog():
                                              tmax=dur_use)
         assert_true(len(w) >= 1)
         assert_equal(projs, None)
-
-
-def test_compute_proj_ecg_eog_deprecation_warning():
-    raw = read_raw_fif(raw_fname).crop(0, 10)
-    raw.load_data()
-    with pytest.warns(DeprecationWarning, match='average'):
-        _, _ = compute_proj_ecg(raw)
-        _, _ = compute_proj_eog(raw)
-    with pytest.warns(None):
-        for a in (True, False):
-            _, _ = compute_proj_ecg(raw, average=a)
-            _, _ = compute_proj_eog(raw, average=a)
 
 
 def test_compute_proj_parallel():

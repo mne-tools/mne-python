@@ -2537,15 +2537,9 @@ def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
     return title
 
 
-def _check_time_unit(time_unit, times, allow_none=False):
-    if not (isinstance(time_unit, string_types) or
-            (time_unit is None and allow_none)):
+def _check_time_unit(time_unit, times):
+    if not isinstance(time_unit, string_types):
         raise TypeError('time_unit must be str, got %s' % (type(time_unit),))
-    if time_unit is None:
-        warn('time_unit defaults to "ms" in 0.16 but will change to "s" in '
-             '0.17, set it explicitly to avoid this warning',
-             DeprecationWarning)
-        time_unit = 'ms'
     if time_unit == 's':
         times = times
     elif time_unit == 'ms':
