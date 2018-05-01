@@ -23,21 +23,20 @@
 .. |MNE| image:: https://martinos.org/mne/stable/_static/mne_logo.png
 .. _MNE: https://martinos.org/mne
 
-`MNE-Python <https://martinos.org/mne>`_
-========================================
+MNE-Python
+==========
 
-MNE-Python is an open-source Python package for exploring, visualizing, and
-analyzing human neurophysiological data such as MEG, EEG, sEEG, ECoG, and more.
-It includes modules for data input/output, preprocessing, visualization, source
-estimation, time-frequency analysis, connectivity analysis, machine learning,
-and statistics.
+`MNE-Python software`_ is an open-source Python package for exploring,
+visualizing, and analyzing human neurophysiological data such as MEG, EEG, sEEG,
+ECoG, and more. It includes modules for data input/output, preprocessing,
+visualization, source estimation, time-frequency analysis, connectivity analysis,
+machine learning, and statistics.
 
 
 Documentation
 ^^^^^^^^^^^^^
 
-Documentation for MNE-Python is available at the
-`MNE homepage <https://martinos.org/mne>`_.
+`MNE documentation`_ for MNE-Python is available online.
 
 
 Get the latest code
@@ -54,7 +53,7 @@ Alternatively, you can also download a
 
 
 Installing MNE-Python
-^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 
 To install the latest stable version of MNE-Python, you can use `pip <https://pip.pypa.io/en/stable/>`_ in a terminal:
 
@@ -63,8 +62,7 @@ To install the latest stable version of MNE-Python, you can use `pip <https://pi
     pip install -U mne
 
 For more complete instructions and more advanced installation methods (e.g. for
-the latest development version), see the
-`getting started page <https://martinos.org/mne/getting_started.html>`_.
+the latest development version), see the `getting started page`_.
 
 
 Dependencies
@@ -86,13 +84,12 @@ For full functionality, some functions require:
 
 To use `NVIDIA CUDA <https://developer.nvidia.com/cuda-zone>`_ for resampling
 and FFT FIR filtering, you will also need to install the NVIDIA CUDA SDK,
-pycuda, and scikit-cuda (see the
-`getting started page <https://martinos.org/mne/getting_started.html>`_
+pycuda, and scikit-cuda (see the `getting started page`_
 for more information).
 
 
 Contributing to MNE-Python
-^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Please see the documentation on the MNE-Python homepage:
 
@@ -142,3 +139,8 @@ MNE-Python is **BSD-licenced** (3 clause):
     (including negligence or otherwise) arising in any way out of the use
     of this software, even if advised of the possibility of such
     damage.**
+
+
+.. _MNE-Python software: https://martinos.org/mne
+.. _MNE documentation: http://martinos.org/mne/documentation.html
+.. _getting started page: https://martinos.org/mne/getting_started.html
