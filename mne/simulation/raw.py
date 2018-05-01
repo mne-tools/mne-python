@@ -501,7 +501,7 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
         eegfwd = _to_forward_dict(eegfwd, eegnames)
     else:
         if len(eegnames) > 0:
-            eegfwd = pick_channels_forward(forward, eegnames)
+            eegfwd = pick_channels_forward(forward, eegnames, verbose=False)
         else:
             eegfwd = None
 
@@ -560,7 +560,7 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
                                        verbose=False)[0]
             megfwd = _to_forward_dict(megfwd, megnames)
         else:
-            megfwd = pick_channels_forward(forward, megnames)
+            megfwd = pick_channels_forward(forward, megnames, verbose=False)
         fwd = _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=False)
         fwd.update(**update_kwargs)
 
