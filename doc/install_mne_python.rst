@@ -39,11 +39,11 @@ Here we provide guidance for the simplest, most well tested solution.
       $ conda env create -f environment.yml
       $ source activate mne
 
-.. note:: If you are on OSX, for now you also will need to do:
+  .. note:: If you are on OSX, for now you also will need to do:
 
-          .. code-block:: console
+            .. code-block:: console
 
-             $ pip install --upgrade --no-deps pyqt5>=5.10
+               $ pip install --upgrade --no-deps pyqt5>=5.10
 
 .. raw:: html
 
