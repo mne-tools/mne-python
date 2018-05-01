@@ -11,7 +11,7 @@ Here we provide guidance for the simplest, most well tested solution.
 1. Get a Python interpreter
 ###########################
 
-* **We recommend the Anaconda Python 3+ distribution**.
+* We recommend the Anaconda Python 3+ distribution.
   Follow `their installation instructions <http://docs.continuum.io/anaconda/install>`_.
   When you are done, you should see some variant of this in a terminal:
 
