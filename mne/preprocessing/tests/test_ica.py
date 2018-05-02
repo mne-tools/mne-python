@@ -684,6 +684,14 @@ def test_ica_reject_buffer(method):
     assert_equal(len(log), 1)
 
 
+@pytest.mark.parametrize("exclude", [np.array([0, 1]), [0, 1]])
+def test_ica_exclude_attribute(exclude):
+    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
+    ica = ICA(n_components=0.95).fit(raw)
+    ica.exclude = exclude
+    ica.apply(raw)
+
+
 @requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
 def test_ica_twice(method):
