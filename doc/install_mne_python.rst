@@ -11,12 +11,9 @@ Here we provide guidance for the simplest, most well tested solution.
 1. Get a Python interpreter
 ###########################
 
-* **We recommend the
-  Anaconda Python 3+ distribution**. Follow the installation instructions
-  for your operating system
-  `here <http://docs.continuum.io/anaconda/install>`_.
-
-* Check the installation, which should look like a variant of this:
+* We recommend the Anaconda Python 3+ distribution.
+  Follow `their installation instructions <http://docs.continuum.io/anaconda/install>`_.
+  When you are done, you should see some variant of this in a terminal:
 
   .. code-block:: console
 
@@ -24,14 +21,14 @@ Here we provide guidance for the simplest, most well tested solution.
       conda 4.4.10
       Python 3.6.4 :: Continuum Analytics, Inc.
 
-  If it doesn't, **something went wrong**.
+  If it doesn't, something went wrong.
   Look through the Anaconda documentation and Google Anaconda install
   tips (StackExchange results are often helpful).
 
 2. Get MNE and its dependencies
 ###############################
 
-* From the command line, install the MNE dependencies to a dedicated ``mne`` Anaconda environment:
+* From the command line, install the MNE dependencies to a dedicated ``mne`` Anaconda environment.
 
   .. code-block:: console
 
@@ -39,10 +36,25 @@ Here we provide guidance for the simplest, most well tested solution.
       $ conda env create -f environment.yml
       $ source activate mne
 
+  Use any web browser to download ``environment.yml`` if you do not have ``curl``
+
 .. raw:: html
 
-    <div class="row container">
-      <div class="col-sm-7 container">
+  <ul><li><p class="first"><b><i class="fa fa-apple"></i> macOS users only</b></p>
+
+Manually update PyQt5. This step is not needed on Linux, and breaks things on Windows.
+
+.. code-block:: console
+
+    $ pip install --upgrade pyqt5>=5.10
+
+.. raw:: html
+
+  </li></ul>
+
+
+3. Check that everything works
+##############################
 
 * To check that everything worked, do:
 
@@ -56,31 +68,23 @@ Here we provide guidance for the simplest, most well tested solution.
 
   If you get a new prompt with no error messages, you should be good to go!
 
-.. raw:: html
-
-      </div>
-      <div class="col-sm-4 container">
-
-.. note::
-
-   .. raw:: html
-
-     <i class="fa fa-windows"></i><b>Windows users:</b>
-
-   If 3D plotting in Jupyter Notebooks doesn't work
-   well, using the IPython magic ``%gui qt`` after importing
-   MNE, Mayavi, or PySurfer should
-   `help <https://github.com/ipython/ipython/issues/10384>`_, e.g.:
-
-   .. code:: ipython
-
-      from mayavi import mlab
-      %gui qt
 
 .. raw:: html
 
-      </div>
-    </div>
+  <ul><li><p class="first"><b><i class="fa fa-windows"></i> Windows users only</b></p>
+
+In IPython, using the magic ``%gui qt`` after importing MNE, Mayavi, or PySurfer might be
+`necessary <https://github.com/ipython/ipython/issues/10384>`_, e.g.:
+
+.. code-block:: ipython
+
+   In [1]: from mayavi import mlab
+   In [2]: %gui qt
+
+.. raw:: html
+
+  </li></ul>
+
 
 * For advanced topics like how to get :ref:`CUDA` support or if you're
   having trouble, visit :ref:`advanced_setup`.

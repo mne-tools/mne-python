@@ -28,7 +28,3 @@ The following functions are based on minimum norm estimates (MNE).
   frequency band, based on Morlet-Wavelets.
 
 - :func:`mne.minimum_norm.source_induced_power` returns power and inter-trial-coherence (ITC) as raw numpy arrays, based on Morlet-Wavelets.
-
-Alternatively, the source power spectral density can also be estimated using the DICS beamformer,
-see :func:`mne.beamformer.dics_source_power`.
- 

@@ -22,9 +22,9 @@ from ..externals import six
 
 
 deprecation_text = ('This function will be removed in 0.17, please use the '
-                    '`make_dics` and `apply_dics_*` functions instead. These '
-                    'functions use a new implementation of DICS that has been '
-                    'more thoroughly tested.')
+                    '``make_dics`` and ``apply_dics_*`` functions instead. '
+                    'These functions use a new implementation of DICS that '
+                    'has been more thoroughly tested.')
 
 
 @verbose
@@ -82,7 +82,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         How to normalize the beamformer weights. None means no normalization is
         performed. If 'unit-noise-gain', the unit-noise gain minimum variance
         beamformer will be computed (Borgiotti-Kaplan beamformer) [2]_.
-        Defaults to ``None''.
+        Defaults to ``None``.
     normalize_fwd : bool
         Whether to normalize the forward solution. Defaults to ``True``. Note
         that this normalization is not required when weight normalization
@@ -1070,7 +1070,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         three dipoles at a source vertex are considered as a group and the
         spatial filters are computed jointly using a matrix inversion. While
         ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
-        precise. See section 5 of [4]_.  Defaults to 'single'.
+        precise. See Notes of :func:`make_dics`.  Defaults to 'single'.
     weight_norm : None | 'unit-noise-gain'
         How to normalize the beamformer weights. None means no normalization is
         performed.  If 'unit-noise-gain', the unit-noise gain minimum variance
