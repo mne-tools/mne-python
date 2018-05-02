@@ -200,7 +200,7 @@ jobs:
                 git config --global user.email "circle@mne.com";
                 git config --global user.name "Circle Ci";
                 pushd ~/mne-tools.github.io && git checkout master && git pull origin master && popd;
-                pushd doc/_build && rm -Rf ~/mne-tools.github.io/stable cp -a html_stable ~/mne-tools.github.io/stable && popd;
+                pushd doc/_build && rm -Rf ~/mne-tools.github.io/stable && cp -a html_stable ~/mne-tools.github.io/stable && popd;
                 pushd ~/mne-tools.github.io && git add -A && git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM})." && git push origin master && popd;
               else
                 echo "No deployment (build: ${CIRCLE_BRANCH}).";
