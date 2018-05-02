@@ -1290,6 +1290,7 @@ class ICA(ContainsMixin):
     def _apply_epochs(self, epochs, include, exclude, n_pca_components):
         """Aux method."""
         _check_preload(epochs, "ica.apply")
+        exclude = self._check_exclude(exclude)
 
         picks = pick_types(epochs.info, meg=False, ref_meg=False,
                            include=self.ch_names,
