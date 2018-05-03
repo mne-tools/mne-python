@@ -4,7 +4,6 @@
 # License: Simplified BSD
 
 import os.path as op
-import warnings
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_allclose
 from nose.tools import assert_true, assert_equal, assert_raises
@@ -138,7 +137,6 @@ def test_mxne_inverse():
                   101., 0.01)
     assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov,
                   50, 1.01)
-
 
 
 @pytest.mark.slowtest

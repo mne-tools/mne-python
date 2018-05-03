@@ -14,7 +14,7 @@ from ..forward import (compute_orient_prior, is_fixed_orient,
                        convert_forward_solution)
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose
 from ..dipole import Dipole
 from ..externals.six.moves import xrange as range
 
