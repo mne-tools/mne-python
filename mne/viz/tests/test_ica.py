@@ -147,20 +147,20 @@ def test_plot_ica_properties():
                         figsize=[4.5, 4.5])
     plt.close('all')
 
-    assert_raises(ValueError, ica.plot_properties, epochs, dB=list('abc'))
-    assert_raises(ValueError, ica.plot_properties, epochs, plot_std=[])
-    assert_raises(ValueError, ica.plot_properties, ica)
-    assert_raises(ValueError, ica.plot_properties, [0.2])
-    assert_raises(ValueError, plot_ica_properties, epochs, epochs)
-    assert_raises(ValueError, ica.plot_properties, epochs,
+    assert_raises(TypeError, ica.plot_properties, epochs, dB=list('abc'))
+    assert_raises(TypeError, ica.plot_properties, ica)
+    assert_raises(TypeError, ica.plot_properties, [0.2])
+    assert_raises(TypeError, plot_ica_properties, epochs, epochs)
+    assert_raises(TypeError, ica.plot_properties, epochs,
                   psd_args='not dict')
+    assert_raises(ValueError, ica.plot_properties, epochs, plot_std=[])
 
     fig, ax = plt.subplots(2, 3)
     ax = ax.ravel()[:-1]
     ica.plot_properties(epochs, picks=1, axes=ax, **topoargs)
     fig = ica.plot_properties(raw, picks=[0, 1], **topoargs)
     assert_equal(len(fig), 2)
-    assert_raises(ValueError, plot_ica_properties, epochs, ica, picks=[0, 1],
+    assert_raises(TypeError, plot_ica_properties, epochs, ica, picks=[0, 1],
                   axes=ax)
     assert_raises(ValueError, ica.plot_properties, epochs, axes='not axes')
     plt.close('all')
@@ -244,7 +244,7 @@ def test_plot_ica_overlay():
     with warnings.catch_warnings(record=True):  # bad proj
         eog_epochs = create_eog_epochs(raw, picks=picks)
     ica.plot_overlay(eog_epochs.average())
-    assert_raises(ValueError, ica.plot_overlay, raw[:2, :3][0])
+    assert_raises(TypeError, ica.plot_overlay, raw[:2, :3][0])
     ica.plot_overlay(raw)
     plt.close('all')
 

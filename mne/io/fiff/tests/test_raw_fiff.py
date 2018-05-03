@@ -1213,7 +1213,8 @@ def test_add_channels():
     raw_badsf.info['sfreq'] = 3.1415927
     raw_eeg.crop(.5)
 
-    assert_raises(AssertionError, raw_meg.add_channels, [raw_nopre])
+    raw.load_data()
+    assert_raises(RuntimeError, raw_meg.add_channels, [raw_nopre])
     assert_raises(RuntimeError, raw_meg.add_channels, [raw_badsf])
     assert_raises(AssertionError, raw_meg.add_channels, [raw_eeg])
     assert_raises(ValueError, raw_meg.add_channels, [raw_meg])

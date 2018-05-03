@@ -1837,7 +1837,7 @@ def test_contains():
         assert_true(not any(o in epochs for o in others))
 
     assert_raises(ValueError, epochs.__contains__, 'foo')
-    assert_raises(ValueError, epochs.__contains__, 1)
+    assert_raises(TypeError, epochs.__contains__, 1)
 
 
 def test_drop_channels_mixin():
@@ -2190,7 +2190,8 @@ def test_add_channels():
     epoch_badsf.info['sfreq'] = 3.1415927
     epoch_eeg = epoch_eeg.crop(-.1, .1)
 
-    assert_raises(AssertionError, epoch_meg.add_channels, [epoch_nopre])
+    epoch_meg.load_data()
+    assert_raises(RuntimeError, epoch_meg.add_channels, [epoch_nopre])
     assert_raises(RuntimeError, epoch_meg.add_channels, [epoch_badsf])
     assert_raises(AssertionError, epoch_meg.add_channels, [epoch_eeg])
     assert_raises(ValueError, epoch_meg.add_channels, [epoch_meg])

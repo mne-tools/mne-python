@@ -14,7 +14,7 @@ from scipy import sparse
 
 from ..externals.six import string_types
 from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
-from ..utils import _check_preload
+from ..utils import _check_preload, _validate_type
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info
@@ -69,9 +69,7 @@ def _contains_ch_type(info, ch_type):
     has_ch_type : bool
         Whether the channel type is present or not.
     """
-    if not isinstance(ch_type, string_types):
-        raise ValueError('`ch_type` is of class {actual_class}. It must be '
-                         '`str`'.format(actual_class=type(ch_type)))
+    _validate_type("ch_type", ch_type, "str", string_types)
 
     meg_extras = ['mag', 'grad', 'planar1', 'planar2']
     fnirs_extras = ['hbo', 'hbr']
@@ -127,10 +125,10 @@ def equalize_channels(candidates, verbose=None):
     from ..evoked import Evoked
     from ..time_frequency import AverageTFR
 
-    if not all(isinstance(c, (BaseRaw, BaseEpochs, Evoked, AverageTFR))
-               for c in candidates):
-        raise ValueError('candidates must be Raw, Epochs, Evoked, or '
-                         'AverageTFR')
+    for candidate in candidates:
+        _validate_type("Instances to be merked", candidate,
+                       "Raw, Epochs, Evoked or TFR",
+                       (BaseRaw, BaseEpochs, Evoked, AverageTFR))
 
     chan_max_idx = np.argmax([c.info['nchan'] for c in candidates])
     chan_template = candidates[chan_max_idx].ch_names
@@ -847,8 +845,8 @@ class UpdateChannelsMixin(object):
             raise AssertionError('Input must be a list or tuple of objs')
 
         # Object-specific checks
-        if not all([inst.preload for inst in add_list] + [self.preload]):
-            raise AssertionError('All data must be preloaded')
+        for inst in add_list + [self]:
+            _check_preload(inst, "adding channels")
         if isinstance(self, BaseRaw):
             con_axis = 0
             comp_class = BaseRaw
@@ -921,8 +919,7 @@ class InterpolationMixin(object):
         """
         from .interpolation import _interpolate_bads_eeg, _interpolate_bads_meg
 
-        if getattr(self, 'preload', None) is False:
-            raise ValueError('Data must be preloaded.')
+        _check_preload(self, "interpolation")
 
         if len(self.info['bads']) == 0:
             warn('No bad channels to interpolate. Doing nothing...')
