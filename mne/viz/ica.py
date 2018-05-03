@@ -270,7 +270,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
     # input checks and defaults
     # -------------------------
-    _validate_type(inst,(BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
+    _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
     _validate_type(ica, ICA, "ica", "ICA")
     if isinstance(plot_std, bool):
         num_std = 1. if plot_std else 0.

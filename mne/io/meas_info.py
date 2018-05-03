@@ -1741,7 +1741,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
     """
     if isinstance(ch_names, int):
         ch_names = list(np.arange(ch_names).astype(str))
-    _validate_type(ch_names, (list, tuple), "ch_names", ("list, tuple, or int"))
+    _validate_type(ch_names, (list, tuple), "ch_names",
+                   ("list, tuple, or int"))
     sfreq = float(sfreq)
     if sfreq <= 0:
         raise ValueError('sfreq must be positive')

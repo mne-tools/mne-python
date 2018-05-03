@@ -2748,7 +2748,8 @@ def _validate_type(item, types, item_name, type_name=None):
         if types == string_types:
             type_name = "str"
         else:
-            iter_types = [types] if not isinstance(types, (list, tuple)) else types
+            iter_types = ([types] if not isinstance(types, (list, tuple))
+                          else types)
             type_name = ', '.join(cls.__name__ for cls in iter_types)
     if not isinstance(item, types):
         raise TypeError(item_name, ' must be an instance of ', type_name,
