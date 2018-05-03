@@ -127,10 +127,10 @@ def _create_properties_layout(figsize=None):
     return fig, axes
 
 
-def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials, epoch_var,
-                         plot_lowpass_edge, epochs_src, set_title_and_labels,
-                         plot_std, psd_ylabel, spectrum_std, topomap_args, image_args,
-                         fig, axes):
+def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
+                         epoch_var, plot_lowpass_edge, epochs_src,
+                         set_title_and_labels, plot_std, psd_ylabel,
+                         spectrum_std, topomap_args, image_args, fig, axes):
     """Plot ICA properties (helper)."""
     topo_ax, image_ax, erp_ax, spec_ax, var_ax = axes
 
@@ -155,7 +155,7 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials, epoch_var,
 
     # epoch variance
     var_ax.scatter(range(len(epoch_var)), epoch_var, alpha=0.5,
-                    facecolor=[0, 0, 0], lw=0)
+                   facecolor=[0, 0, 0], lw=0)
 
     # aesthetics
     # ----------
