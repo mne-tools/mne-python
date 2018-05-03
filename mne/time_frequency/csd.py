@@ -1140,6 +1140,7 @@ def csd_array_morlet(X, sfreq, frequencies, t0=0, tmin=None, tmax=None,
     csd_tstart = None if tmin is None else np.searchsorted(times, tmin - 1e-10)
     csd_tstop = None if tmax is None else np.searchsorted(times, tmax + 1e-10)
     csd_tslice = slice(csd_tstart, csd_tstop)
+    times = times[csd_tslice]
 
     # Compute the CSD
     return _execute_csd_function(X, times, frequencies, _csd_morlet,
