@@ -1809,8 +1809,10 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         gfp = True
         picks = _pick_data_channels(info)
 
-    _validate_type("picks", picks, "list or np.array of integers",
-                   (list, np.ndarray))
+    _validate_type(picks, (list, np.ndarray), "picks",
+                   "list or np.array of integers")
+    for entry in picks:
+        _validate_type(entry, Integral, "entries of picks", "integers")
 
     if len(picks) == 0:
         raise ValueError("No valid channels were found to plot the GFP. " +
