@@ -84,8 +84,6 @@ def write_hdf5(fname, data, overwrite=False, compression=4,
         keys in data. This does not apply to the top level name (title).
         If 'error', '/' is not allowed in any lower-level keys.
     """
-    from ...utils import _validate_type
-
     h5py = _check_h5py()
     mode = 'w'
     if op.isfile(fname):
@@ -96,7 +94,8 @@ def write_hdf5(fname, data, overwrite=False, compression=4,
         elif not overwrite:
             raise IOError('file "%s" exists, use overwrite=True to overwrite'
                           % fname)
-    _validate_type("title", title, "string", string_types)
+    if not isinstance(title, string_types):
+        raise ValueError('title must be a string')
     comp_kw = dict()
     if compression > 0:
         comp_kw = dict(compression='gzip', compression_opts=compression)

@@ -69,7 +69,7 @@ def _contains_ch_type(info, ch_type):
     has_ch_type : bool
         Whether the channel type is present or not.
     """
-    _validate_type("ch_type", ch_type, "str", string_types)
+    _validate_type(ch_type, string_types, "ch_type")
 
     meg_extras = ['mag', 'grad', 'planar1', 'planar2']
     fnirs_extras = ['hbo', 'hbr']
@@ -126,9 +126,10 @@ def equalize_channels(candidates, verbose=None):
     from ..time_frequency import AverageTFR
 
     for candidate in candidates:
-        _validate_type("Instances to be merked", candidate,
-                       "Raw, Epochs, Evoked or TFR",
-                       (BaseRaw, BaseEpochs, Evoked, AverageTFR))
+        _validate_type(candidate,
+                       (BaseRaw, BaseEpochs, Evoked, AverageTFR),
+                       "Instances to be modified",
+                       "Raw, Epochs, Evoked or TFR")
 
     chan_max_idx = np.argmax([c.info['nchan'] for c in candidates])
     chan_template = candidates[chan_max_idx].ch_names

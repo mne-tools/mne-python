@@ -1741,7 +1741,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
     """
     if isinstance(ch_names, int):
         ch_names = list(np.arange(ch_names).astype(str))
-    _validate_type("ch_names", ch_names, "list, tuple, or int", (list, tuple))
+    _validate_type(ch_names, (list, tuple), "ch_names", ("list, tuple, or int"))
     sfreq = float(sfreq)
     if sfreq <= 0:
         raise ValueError('sfreq must be positive')
@@ -1755,8 +1755,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
                          '(%s != %s)' % (len(ch_types), nchan))
     info = _empty_info(sfreq)
     for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
-        _validate_type("each entry in ch_names", name, "string", string_types)
-        _validate_type("each entry in ch_types", kind, "string", string_types)
+        _validate_type(name, string_types, "each entry in ch_names")
+        _validate_type(kind, string_types, "each entry in ch_types")
         if kind not in _kind_dict:
             raise KeyError('kind must be one of %s, not %s'
                            % (list(_kind_dict.keys()), kind))
@@ -1873,7 +1873,7 @@ def anonymize_info(info):
     -----
     Operates in place.
     """
-    _validate_type("self", info, "Info", Info)
+    _validate_type(info, Info, "self", "Info")
     if info.get('subject_info') is not None:
         del info['subject_info']
     info['meas_date'] = None

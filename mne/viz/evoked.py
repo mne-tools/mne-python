@@ -1502,7 +1502,7 @@ def _format_evokeds_colors(evokeds, cmap, colors):
             raise ValueError('If evokeds is a dict and a cmap is passed, '
                              'you must specify the colors.')
     for cond in evokeds.keys():
-        _validate_type("Conditions", cond, "str", string_types)
+        _validate_type(cond,  string_types, "Conditions")
     # Now make sure all values are list of Evoked objects
     evokeds = {condition: [v] if isinstance(v, Evoked) else v
                for condition, v in evokeds.items()}
@@ -1510,7 +1510,7 @@ def _format_evokeds_colors(evokeds, cmap, colors):
     # Check that all elements are of type evoked
     for this_evoked in evokeds.values():
         for ev in this_evoked:
-            _validate_type("All evokeds entries ", ev, "Evoked", Evoked)
+            _validate_type(ev, Evoked, "All evokeds entries ", "Evoked")
 
     # Check that all evoked objects have the same time axis and channels
     all_evoked = sum(evokeds.values(), [])
@@ -1800,7 +1800,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     if vlines == "auto" and (tmin < 0 and tmax > 0):
         vlines = [0.]
-    _validate_type("vlines", vlines, "list or tuple", (list, tuple))
+    _validate_type(vlines, (list, tuple), "vlines", "list or tuple")
 
     if isinstance(picks, Integral):
         picks = [picks]
@@ -2051,8 +2051,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             head_pos = {'center': (0, 0), 'scale': (0.5, 0.5)}
             pos, outlines = _check_outlines(pos, np.array([1, 1]), head_pos)
 
-            _validate_type("show_sensors", show_sensors,
-                           "numeric, str or bool", (np.int, bool, str))
+            _validate_type(show_sensors, (np.int, bool, str),
+                           "show_sensors", "numeric, str or bool")
             show_sensors = _check_loc_legal(show_sensors, "show_sensors")
             _plot_legend(pos, ["k"] * len(picks), ax, list(), outlines,
                          show_sensors, size=25)

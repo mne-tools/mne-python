@@ -270,8 +270,8 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
     # input checks and defaults
     # -------------------------
-    _validate_type("inst", inst, "Raw or Epochs", (BaseRaw, BaseEpochs))
-    _validate_type("ica", ica, "ICA", ICA)
+    _validate_type(inst,(BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
+    _validate_type(ica, ICA, "ica", "ICA")
     if isinstance(plot_std, bool):
         num_std = 1. if plot_std else 0.
     elif isinstance(plot_std, (float, int)):
@@ -300,9 +300,9 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     for item_name, item in (("psd_args", psd_args),
                             ("topomap_args", topomap_args),
                             ("image_args", image_args)):
-        _validate_type(item_name, item, "dictionary", dict)
+        _validate_type(item, dict, item_name, "dictionary")
     if dB is not None:
-        _validate_type("dB", dB, "bool", bool)
+        _validate_type(dB, bool, "dB", "bool")
 
     # calculations
     # ------------
@@ -610,7 +610,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     from ..evoked import Evoked
     from ..preprocessing.ica import _check_start_stop
 
-    _validate_type("inst", inst, "Raw or Evoked", (BaseRaw, Evoked))
+    _validate_type(inst, (BaseRaw, Evoked), "inst", "Raw or Evoked")
     if title is None:
         title = 'Signals before (red) and after (black) cleaning'
     if picks is None:
