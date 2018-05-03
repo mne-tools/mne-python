@@ -127,25 +127,18 @@ def test_mxne_inverse():
     alpha = 60.  # overall regularization parameter
     l1_ratio = 0.01  # temporal regularization proportion
 
-    stc, _ = tf_mixed_norm(evoked, forward, cov, None, None,
+    stc, _ = tf_mixed_norm(evoked, forward, cov, alpha, l1_ratio,
                            loose=loose, depth=depth, maxit=100, tol=1e-4,
                            tstep=4, wsize=16, window=0.1, weights=stc_dspm,
-                           weights_min=weights_min, return_residual=True,
-                           alpha=alpha, l1_ratio=l1_ratio)
+                           weights_min=weights_min, return_residual=True)
     assert_array_almost_equal(stc.times, evoked.times, 5)
     assert_true(stc.vertices[1][0] in label.vertices)
 
-    with warnings.catch_warnings(record=True) as w:
-        assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov,
-                      101., 3.)
-        assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov,
-                      50, 101.)
-        assert_true(len(w) == 2)
+    assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov,
+                  101., 0.01)
+    assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov,
+                  50, 1.01)
 
-    assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov, None, None,
-                  alpha=101, l1_ratio=0.03)
-    assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov, None, None,
-                  alpha=50., l1_ratio=1.01)
 
 
 @pytest.mark.slowtest
@@ -208,9 +201,9 @@ def test_mxne_vol_sphere():
     alpha = 60.  # overall regularization parameter
     l1_ratio = 0.01  # temporal regularization proportion
 
-    stc, _ = tf_mixed_norm(evoked, fwd, cov, maxit=3, tol=1e-4,
-                           tstep=16, wsize=32, window=0.1, alpha=alpha,
-                           l1_ratio=l1_ratio, return_residual=True)
+    stc, _ = tf_mixed_norm(evoked, fwd, cov, alpha, l1_ratio, maxit=3,
+                           tol=1e-4, tstep=16, wsize=32, window=0.1,
+                           return_residual=True)
     assert_true(isinstance(stc, VolSourceEstimate))
     assert_array_almost_equal(stc.times, evoked.times, 5)
 

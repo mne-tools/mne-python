@@ -1201,9 +1201,9 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
 
 @verbose
 def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
-                         n_orient=1, maxit=200, tol=1e-8, log_objective=None,
-                         active_set_size=None, debias=True, return_gap=False,
-                         dgap_freq=10, verbose=None):
+                         n_orient=1, maxit=200, tol=1e-8, active_set_size=None,
+                         debias=True, return_gap=False, dgap_freq=10,
+                         verbose=None):
     """Solve TF L21+L1 inverse solver with BCD and active set approach.
 
     Parameters
@@ -1235,11 +1235,6 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     tol : float
         If absolute difference between estimates at 2 successive iterations
         is lower than tol, the convergence is reached.
-    log_objective : bool
-        The value of the minimized objective function is computed
-        and stored at every 10 iteration if log_objective is True.
-        log_objective is deprecated and will be removed in 0.17. Use dgap_freq
-        instead to remove this warning.
     debias : bool
         Debias source estimates.
     return_gap : bool
@@ -1257,8 +1252,8 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     active_set : array
         The mask of active sources.
     E : list
-        The value of the objective function every dgap_freq iteration. If
-        log_objective is False or dgap_freq is np.inf, it will be empty.
+        The value of the objective function every dgap_freq iteration.
+        If dgap_freq is np.inf, it will be empty.
     gap : float
         Final duality gap. Returned only if return_gap is True.
 
@@ -1283,16 +1278,6 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
        (PRNI), 2016.
        DOI: 10.1109/PRNI.2016.7552337
     """
-    if log_objective is True:
-        warn('Using log_objective is deprecated and will be '
-             'replaced by the use of dgap_freq in 0.17.',
-             DeprecationWarning)
-        dgap_freq = 10
-    elif log_objective is False:
-        warn('Using log_objective is deprecated and will be '
-             'replaced by the use of dgap_freq in 0.17.',
-             DeprecationWarning)
-        dgap_freq = np.inf
 
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
