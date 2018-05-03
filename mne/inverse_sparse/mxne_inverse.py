@@ -14,7 +14,7 @@ from ..forward import (compute_orient_prior, is_fixed_orient,
                        convert_forward_solution)
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose
 from ..dipole import Dipole
 from ..externals.six.moves import xrange as range
 
@@ -510,12 +510,12 @@ def _window_evoked(evoked, size):
 
 
 @verbose
-def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
-                  alpha_time=None, loose='auto', depth=0.8, maxit=3000,
+def tf_mixed_norm(evoked, forward, noise_cov, alpha, l1_ratio,
+                  loose='auto', depth=0.8, maxit=3000,
                   tol=1e-4, weights=None, weights_min=None, pca=True,
                   debias=True, wsize=64, tstep=4, window=0.02,
                   return_residual=False, return_as_dipoles=False,
-                  alpha=None, l1_ratio=None, dgap_freq=10, verbose=None):
+                  dgap_freq=10, verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
@@ -529,15 +529,16 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
         Forward operator.
     noise_cov : instance of Covariance
         Noise covariance to compute whitener.
-    alpha_space : float in [0, 100]
-        Regularization parameter for spatial sparsity. If larger than 100,
-        then no source will be active. alpha_space is deprecated in favor
-        of alpha and l1_ratio, and will be removed in 0.17.
-    alpha_time : float in [0, 100]
-        Regularization parameter for temporal sparsity. It set to 0,
-        no temporal regularization is applied. It this case, TF-MxNE is
-        equivalent to MxNE with L21 norm. alpha_time is deprecated in favor
-        of alpha and l1_ratio, and will be removed in 0.17.
+    alpha : float in [0, 100) or None
+        Overall regularization parameter.
+        The spatial penalty weight is alpha * alpha_max * (1. - l1_ratio) and
+        the temporal penaly weight is alpha * alpha_max * l1_ratio.
+        0 means no regularization, 100 would give 0 active dipole.
+    l1_ratio : float in [0, 1] or None
+        Proportion of temporal regularization.
+        The spatial penalty weight is alpha * alpha_max * (1. - l1_ratio) and
+        the temporal penaly weight is alpha * alpha_max * l1_ratio.
+        0 means no time regularization aka MxNE.
     loose : float in [0, 1] | 'auto'
         Value that weights the source variances of the dipole components
         that are parallel (tangential) to the cortical surface. If loose
@@ -581,16 +582,6 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
         If True, the residual is returned as an Evoked instance.
     return_as_dipoles : bool
         If True, the sources are returned as a list of Dipole instances.
-    alpha : float in [0, 100) or None
-        Overall regularization parameter.
-        If alpha and l1_ratio are not None, alpha_space and alpha_time are
-        overriden by alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max
-        * l1_ratio. 0 means no regularization, 100 would give 0 active dipole.
-    l1_ratio : float in [0, 1] or None
-        Proportion of temporal regularization.
-        If l1_ratio and alpha are not None, alpha_space and alpha_time are
-        overriden by alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max
-        * l1_ratio. 0 means no time regularization aka MxNE.
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.
     verbose : bool, str, int, or None
@@ -636,31 +627,15 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
     all_ch_names = evoked.ch_names
     info = evoked.info
 
-    if alpha is not None and l1_ratio is not None:
-        old_parametrization = False
+    if not (0. <= alpha < 100.):
+        raise ValueError('alpha must be in [0, 100). '
+                         'Got alpha = %s' % alpha)
 
-        if not (0. <= alpha < 100.):
-            raise ValueError('alpha must be in [0, 100). '
-                             'Got alpha = %s' % alpha)
-
-        if not (0. <= l1_ratio <= 1.):
-            raise ValueError('l1_ratio must be in range [0, 1].'
-                             ' Got l1_ratio = %s' % l1_ratio)
-        alpha_space = alpha * (1. - l1_ratio)
-        alpha_time = alpha * l1_ratio
-    else:
-        old_parametrization = True
-        warn('alpha_space and alpha_time are deprecated and will be replaced'
-             ' by alpha and l1_ratio in 0.17.', DeprecationWarning)
-
-    if (alpha_space < 0.) or (alpha_space > 100.):
-        old_parametrization = True
-        raise ValueError('alpha_space must be in range [0, 100].'
-                         ' Got alpha_space = %s' % alpha_space)
-
-    if (alpha_time < 0.) or (alpha_time > 100.):
-        raise ValueError('alpha_time must be in range [0, 100].'
-                         ' Got alpha_time = %s' % alpha_time)
+    if not (0. <= l1_ratio <= 1.):
+        raise ValueError('l1_ratio must be in range [0, 1].'
+                         ' Got l1_ratio = %s' % l1_ratio)
+    alpha_space = alpha * (1. - l1_ratio)
+    alpha_time = alpha * l1_ratio
 
     if dgap_freq <= 0.:
         raise ValueError('dgap_freq must be a positive integer.'
@@ -702,10 +677,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
     n_coefs = n_steps * n_freqs
     phi = _Phi(wsize, tstep, n_coefs)
 
-    if old_parametrization:
-        alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos)
-    else:
-        alpha_max = norm_epsilon_inf(gain, M, phi, l1_ratio, n_dip_per_pos)
+    alpha_max = norm_epsilon_inf(gain, M, phi, l1_ratio, n_dip_per_pos)
     alpha_max *= 0.01
     gain /= alpha_max
     source_weighting /= alpha_max
