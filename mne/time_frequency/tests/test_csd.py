@@ -412,6 +412,10 @@ def test_csd_fourier():
         else:
             csd = csd_fourier(epochs, fmin=9, fmax=23, tmin=tmin, tmax=tmax)
 
+        if tmin is None and tmax is None:
+            assert csd.tmin == 0 and csd.tmax == 9.98
+        else:
+            assert csd.tmin == tmin and csd.tmax == tmax
         csd = csd.mean([9.9, 14.9, 21.9], [10.1, 15.1, 22.1])
         _test_csd_matrix(csd)
 
@@ -457,6 +461,10 @@ def test_csd_multitaper():
         else:
             csd = csd_multitaper(epochs, adaptive=adaptive, fmin=9, fmax=23,
                                  tmin=tmin, tmax=tmax)
+        if tmin is None and tmax is None:
+            assert csd.tmin == 0 and csd.tmax == 9.98
+        else:
+            assert csd.tmin == tmin and csd.tmax == tmax
         csd = csd.mean([9.9, 14.9, 21.9], [10.1, 15.1, 22.1])
         _test_csd_matrix(csd)
 
@@ -510,6 +518,10 @@ def test_csd_morlet():
         else:
             csd = csd_morlet(epochs, frequencies=freqs, n_cycles=n_cycles,
                              tmin=tmin, tmax=tmax)
+        if tmin is None and tmax is None:
+            assert csd.tmin == 0 and csd.tmax == 9.98
+        else:
+            assert csd.tmin == tmin and csd.tmax == tmax
         _test_csd_matrix(csd)
 
     # CSD diagonals should contain PSD
