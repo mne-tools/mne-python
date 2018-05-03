@@ -11,6 +11,17 @@ What's new
 
 .. currentmodule:: mne
 
+.. _changes_0_16_2:
+
+Version 0.16.2
+--------------
+
+Bug
+~~~
+
+- Fix bug with ``mne flash_bem`` when ``flash30`` is not used by `Eric Larson`_
+
+
 .. _changes_0_16:
 
 Version 0.16
