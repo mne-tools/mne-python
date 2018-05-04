@@ -84,7 +84,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 **More help**
 
 - :ref:`Cite MNE <cite>`
-- `Mailing list <MNE mailing list>`_ for analysis talk
+- `Mailing list <https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis/>`_ for analysis talk
 - `GitHub issues <https://github.com/mne-tools/mne-python/issues/>`_ for
   requests and bug reports
 - `Gitter <https://gitter.im/mne-tools/mne-python>`_ to chat with devs
