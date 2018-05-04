@@ -1749,8 +1749,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
         Name of colormap to use or a custom look up table. If array, must
         be (n x 3) or (n x 4) array for with RGB or RGBA values between
-        0 and 255. If 'auto' (default), either 'hot' or 'mne' will be chosen
-        based on whether 'lims' or 'pos_lims' are specified in ``clim``.
+        0 and 255.
     time_label : str | callable | None
         Format of the time label (a format string, a function that maps
         floating point time values to strings, or None for no label). The
