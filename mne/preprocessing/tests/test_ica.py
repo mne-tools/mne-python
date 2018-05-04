@@ -442,13 +442,14 @@ def test_ica_additional(method):
         assert_true(ica.pca_components_.shape == (4, len(picks)))
         assert_true(sources.shape[1] == ica.n_components_)
 
-        for exclude in [[], [0]]:
+        for exclude in [[], [0], np.array([1, 2, 3])]:
             ica.exclude = exclude
             ica.labels_ = {'foo': [0]}
             ica.save(test_ica_fname)
             ica_read = read_ica(test_ica_fname)
-            assert_true(ica.exclude == ica_read.exclude)
+            assert_true(list(ica.exclude) == ica_read.exclude)
             assert_equal(ica.labels_, ica_read.labels_)
+            ica.apply(raw)
             ica.exclude = []
             ica.apply(raw, exclude=[1])
             assert_true(ica.exclude == [])
@@ -682,15 +683,6 @@ def test_ica_reject_buffer(method):
         assert_true(raw._data[:5, ::2].shape[1] - 4 == ica.n_samples_)
     log = [l for l in drop_log.getvalue().split('\n') if 'detected' in l]
     assert_equal(len(log), 1)
-
-
-@requires_sklearn
-@pytest.mark.parametrize("exclude", [np.array([0, 1]), [0, 1]])
-def test_ica_exclude_attribute(exclude):
-    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
-    ica = ICA(n_components=0.5, max_iter=1).fit(raw)
-    ica.exclude = exclude
-    ica.apply(raw)
 
 
 @requires_sklearn
