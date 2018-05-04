@@ -41,7 +41,7 @@ the files (e.g., by updating to latest ``master``) will be reflected in
 ``mne`` as soon as you restart your Python interpreter. So to update to
 the latest version of the ``master`` development branch, you can do:
 
-   .. code-block:: console
+.. code-block:: console
 
    $ git pull origin master
 
