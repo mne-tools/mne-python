@@ -7,6 +7,7 @@ import numpy as np
 from .mixin import TransformerMixin
 from .base import BaseEstimator, _check_estimator
 from ..parallel import parallel_func
+from ..utils import logger, logging, ProgressBar
 
 
 class SlidingEstimator(BaseEstimator, TransformerMixin):
@@ -304,10 +305,13 @@ def _sl_fit(estimator, X, y, **fit_params):
     """
     from sklearn.base import clone
     estimators_ = list()
+    progress = ProgressBar(X.shape[-1], spinner=True)
     for ii in range(X.shape[-1]):
+        progress.update(ii)
         est = clone(estimator)
         est.fit(X[..., ii], y, **fit_params)
         estimators_.append(est)
+    progress.update(X.shape[-1])
     return estimators_
 
 
