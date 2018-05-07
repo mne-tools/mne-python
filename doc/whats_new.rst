@@ -24,6 +24,8 @@ Bug
 
 - Fix bug with ``mne flash_bem`` when ``flash30`` is not used by `Eric Larson`_
 
+- Fix bug in :func:`mne.preprocessing.ICA.apply` to handle arrays as `exclude` property by `Joan Massich`_
+
 API
 ~~~
 

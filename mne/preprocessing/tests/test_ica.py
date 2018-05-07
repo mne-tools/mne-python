@@ -442,13 +442,14 @@ def test_ica_additional(method):
         assert_true(ica.pca_components_.shape == (4, len(picks)))
         assert_true(sources.shape[1] == ica.n_components_)
 
-        for exclude in [[], [0]]:
+        for exclude in [[], [0], np.array([1, 2, 3])]:
             ica.exclude = exclude
             ica.labels_ = {'foo': [0]}
             ica.save(test_ica_fname)
             ica_read = read_ica(test_ica_fname)
-            assert_true(ica.exclude == ica_read.exclude)
+            assert_true(list(ica.exclude) == ica_read.exclude)
             assert_equal(ica.labels_, ica_read.labels_)
+            ica.apply(raw)
             ica.exclude = []
             ica.apply(raw, exclude=[1])
             assert_true(ica.exclude == [])

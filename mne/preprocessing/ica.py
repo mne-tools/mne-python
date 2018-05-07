@@ -1260,14 +1260,16 @@ class ICA(ContainsMixin):
                              'type')
         return out
 
+    def _check_exclude(self, exclude):
+        if exclude is None:
+            return list(set(self.exclude))
+        else:
+            return list(set(self.exclude + exclude))
+
     def _apply_raw(self, raw, include, exclude, n_pca_components, start, stop):
         """Aux method."""
         _check_preload(raw, "ica.apply")
-
-        if exclude is None:
-            exclude = list(set(self.exclude))
-        else:
-            exclude = list(set(self.exclude + exclude))
+        exclude = self._check_exclude(exclude)
 
         if n_pca_components is not None:
             self.n_pca_components = n_pca_components
@@ -1288,6 +1290,7 @@ class ICA(ContainsMixin):
     def _apply_epochs(self, epochs, include, exclude, n_pca_components):
         """Aux method."""
         _check_preload(epochs, "ica.apply")
+        exclude = self._check_exclude(exclude)
 
         picks = pick_types(epochs.info, meg=False, ref_meg=False,
                            include=self.ch_names,
@@ -1317,6 +1320,7 @@ class ICA(ContainsMixin):
 
     def _apply_evoked(self, evoked, include, exclude, n_pca_components):
         """Aux method."""
+        exclude = self._check_exclude(exclude)
         picks = pick_types(evoked.info, meg=False, ref_meg=False,
                            include=self.ch_names,
                            exclude='bads')
