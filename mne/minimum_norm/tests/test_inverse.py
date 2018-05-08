@@ -322,10 +322,10 @@ def test_localization_bias():
     fwd = convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
     fwd = fwd['sol']['data']
     want = np.arange(fwd.shape[1])
-    for method, lower, upper in (('MNE', 35, 40),
-                                 ('dSPM', 45, 50),
-                                 ('sLORETA', 55, 60),
-                                 ('eLORETA', 50, 55)):
+    for method, lower, upper in (('MNE', 83, 87),
+                                 ('dSPM', 96, 98),
+                                 ('sLORETA', 100, 100),
+                                 ('eLORETA', 100, 100)):
         inv_op = apply_inverse(evoked, inv_fixed, lambda2, method).data
         loc = np.abs(np.dot(inv_op, fwd))
         # Compute the percentage of sources for which there is no localization
