@@ -18,8 +18,7 @@ from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  pick_types_forward, make_forward_solution, EvokedArray,
                  convert_forward_solution, Covariance, combine_evoked,
-                 SourceEstimate, make_sphere_model, write_forward_solution,
-                 make_ad_hoc_cov)
+                 SourceEstimate, make_sphere_model, make_ad_hoc_cov)
 from mne.io import read_raw_fif, Info
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
