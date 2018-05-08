@@ -524,6 +524,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Decimation can be done multiple times. For example,
         ``epochs.decimate(2).decimate(2)`` will be the same as
         ``epochs.decimate(4)``.
+        If `decim` is 1, this method does not copy the underlying data.
 
         .. versionadded:: 0.10.0
         """
@@ -535,8 +536,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         decim_slice = slice(i_start, None, self._decim)
         self.info['sfreq'] = new_sfreq
         if self.preload:
-            self._data = self._data[:, :, decim_slice].copy()
-            self._raw_times = self._raw_times[decim_slice].copy()
+            if decim != 1:
+                self._data = self._data[:, :, decim_slice].copy()
+                self._raw_times = self._raw_times[decim_slice].copy()
+            else:
+                self._data = np.ascontiguousarray(self._data)
             self._decim_slice = slice(None)
             self._decim = 1
             self.times = self._raw_times
