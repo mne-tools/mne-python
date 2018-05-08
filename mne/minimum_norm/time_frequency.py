@@ -456,7 +456,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     stc : SourceEstimate | VolSourceEstimate
         The PSD (in dB) of each of the sources.
     """
-    from scipy.signal import hanning
+    from scipy.signal import hann
     _check_ori(pick_ori, inverse_operator['source_ori'])
 
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
@@ -473,7 +473,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         stop = raw.time_as_index(tmax)[0] + 1
     n_fft = int(n_fft)
     Fs = raw.info['sfreq']
-    window = hanning(n_fft)
+    window = hann(n_fft)
     freqs = fftpack.fftfreq(n_fft, 1. / Fs)
     freqs_mask = (freqs >= 0) & (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freqs_mask]
