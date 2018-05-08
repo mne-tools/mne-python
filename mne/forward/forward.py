@@ -572,7 +572,7 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
 
 @verbose
 def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
-                             copy=True, use_cps=None, verbose=None):
+                             copy=True, use_cps=True, verbose=None):
     """Convert forward solution between different source orientations.
 
     Parameters
@@ -586,7 +586,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         Force fixed source orientation mode?
     copy : bool
         Whether to return a new instance or modify in place.
-    use_cps : None | bool (default None)
+    use_cps : bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations. Only used when surf_ori and/or force_fixed are True.
     verbose : bool, str, int, or None
@@ -598,18 +598,6 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     fwd : Forward
         The modified forward solution.
     """
-    if use_cps is None:
-        if force_fixed:
-            use_cps = False
-            warn('The default settings controlling the application of '
-                 'cortical patch statistics (cps) in the creation of forward '
-                 'operators with fixed orientation will be modified in 0.16. '
-                 'The cps (if available) will then be applied by default. '
-                 'To avoid this warning, set use_cps explicitly to False (the '
-                 'current default) or True (the new default).', FutureWarning)
-        else:
-            use_cps = True
-
     fwd = fwd.copy() if copy else fwd
 
     if force_fixed is True:
@@ -623,7 +611,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         force_fixed = False
 
     if surf_ori:
-        if use_cps is True:
+        if use_cps:
             if fwd['src'][0].get('patch_inds') is not None:
                 use_ave_nn = True
                 logger.info('    Average patch normals will be employed in '
@@ -1169,7 +1157,7 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
 
 
 @verbose
-def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=None,
+def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
                   verbose=None):
     """Project source space currents to sensor space using a forward operator.
 
@@ -1195,7 +1183,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=None,
         Index of first time sample (index not time is seconds).
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
-    use_cps : None | bool (default None)
+    use_cps : bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations when converting to fixed orientation (if necessary).
 
