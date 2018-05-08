@@ -18,7 +18,8 @@ from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  pick_types_forward, make_forward_solution, EvokedArray,
                  convert_forward_solution, Covariance, combine_evoked,
-                 SourceEstimate)
+                 SourceEstimate, make_sphere_model, write_forward_solution,
+                 make_ad_hoc_cov)
 from mne.io import read_raw_fif, Info
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
@@ -375,6 +376,34 @@ def test_localization_bias():
         # bias:
         perc = (want == np.argmax(loc, axis=0)).mean() * 100
         assert lower <= perc <= upper, method
+
+
+@testing.requires_testing_data
+def test_apply_inverse_sphere():
+    """Test applying an inverse with a sphere model (rank-deficient)."""
+    evoked = _get_evoked()
+    evoked.pick_channels(evoked.ch_names[:306:8])
+    evoked.info['projs'] = []
+    evoked = EvokedArray(np.eye(len(evoked.data)), evoked.info)
+    cov = make_ad_hoc_cov(evoked.info)
+    sphere = make_sphere_model('auto', 'auto', evoked.info)
+    fwd = read_forward_solution(fname_fwd)
+    vertices = [fwd['src'][0]['vertno'][::5],
+                fwd['src'][1]['vertno'][::5]]
+    stc = SourceEstimate(np.zeros((sum(len(v) for v in vertices), 1)),
+                         vertices, 0., 1.)
+    fwd = restrict_forward_to_stc(fwd, stc)
+    fwd = make_forward_solution(evoked.info, fwd['mri_head_t'], fwd['src'],
+                                sphere, mindist=5.)
+    assert fwd['sol']['nrow'] == 39
+    assert fwd['sol']['ncol'] == 303
+    tempdir = _TempDir()
+    temp_fname = op.join(tempdir, 'temp-inv.fif')
+    inv = make_inverse_operator(evoked.info, fwd, cov, loose=1.)
+    # This forces everything to be float32
+    write_inverse_operator(temp_fname, inv)
+    inv = read_inverse_operator(temp_fname)
+    apply_inverse(evoked, inv, method='eLORETA', method_params=dict(eps=1e-3))
 
 
 @pytest.mark.slowtest
