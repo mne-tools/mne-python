@@ -382,8 +382,12 @@ def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
 
 def _parametric_ci(arr, ci=.95):
     """Calculate the `ci`% parametric confidence interval for `arr`."""
+    mean = arr.mean(0)
+    if len(arr) < 2:  # can't compute standard error
+        sigma = np.full_like(mean, np.nan)
+        return mean, sigma
     from scipy import stats
-    mean, sigma = arr.mean(0), stats.sem(arr, 0)
+    sigma = stats.sem(arr, 0)
     # This is highly convoluted to support 17th century Scipy
     # XXX Fix when Scipy 0.12 support is dropped!
     # then it becomes just:

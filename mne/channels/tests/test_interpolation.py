@@ -52,6 +52,13 @@ def test_interpolation():
     # drops to 0.8
     thresh = 0.80
 
+    # check that interpolation does nothing if no bads are marked
+    epochs_eeg.info['bads'] = []
+    evoked_eeg = epochs_eeg.average()
+    with warnings.catch_warnings(record=True) as w:
+        evoked_eeg.interpolate_bads()
+    assert_true(any('Doing nothing' in str(ww.message) for ww in w))
+
     # create good and bad channels for EEG
     epochs_eeg.info['bads'] = []
     goods_idx = np.ones(len(epochs_eeg.ch_names), dtype=bool)
@@ -77,7 +84,7 @@ def test_interpolation():
 
     # check that interpolation fails when preload is False
     epochs_eeg.preload = False
-    assert_raises(ValueError,  epochs_eeg.interpolate_bads)
+    assert_raises(ValueError, epochs_eeg.interpolate_bads)
     epochs_eeg.preload = True
 
     # check that interpolation changes the data in raw
@@ -100,7 +107,9 @@ def test_interpolation():
     raw_few.del_proj()
     raw_few.info['bads'] = [raw_few.ch_names[-1]]
     orig_data = raw_few[1][0]
-    raw_few.interpolate_bads(reset_bads=False)
+    with warnings.catch_warnings(record=True) as w:
+        raw_few.interpolate_bads(reset_bads=False)
+    assert len(w) == 0
     new_data = raw_few[1][0]
     assert_true((new_data == 0).mean() < 0.5)
     assert_true(np.corrcoef(new_data, orig_data)[0, 1] > 0.1)

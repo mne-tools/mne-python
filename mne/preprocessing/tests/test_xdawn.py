@@ -5,11 +5,12 @@
 
 import numpy as np
 import os.path as op
-from nose.tools import assert_equal, assert_raises, assert_true
+
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 import pytest
 
-from mne import Epochs, read_events, pick_types, compute_raw_covariance
+from mne import (Epochs, read_events, pick_types, compute_raw_covariance,
+                 create_info, EpochsArray)
 from mne.io import read_raw_fif
 from mne.utils import requires_sklearn, run_tests_if_main
 from mne.preprocessing import maxwell_filter
@@ -38,7 +39,20 @@ def test_xdawn():
     # Init xdawn with good parameters
     Xdawn(n_components=2, correct_overlap='auto', signal_cov=None, reg=None)
     # Init xdawn with bad parameters
-    assert_raises(ValueError, Xdawn, correct_overlap=42)
+    pytest.raises(ValueError, Xdawn, correct_overlap=42)
+
+
+def test_xdawn_picks():
+    """Test picking with Xdawn."""
+    data = np.random.RandomState(0).randn(10, 2, 10)
+    info = create_info(2, 1000., ('eeg', 'misc'))
+    epochs = EpochsArray(data, info)
+    xd = Xdawn(correct_overlap=False)
+    xd.fit(epochs)
+    epochs_out = xd.apply(epochs)['1']
+    assert epochs_out.info['ch_names'] == epochs.ch_names
+    assert not (epochs_out.get_data()[:, 0] != data[:, 0]).any()
+    assert_array_equal(epochs_out.get_data()[:, 1], data[:, 1])
 
 
 def test_xdawn_fit():
@@ -52,7 +66,7 @@ def test_xdawn_fit():
     xd = Xdawn(n_components=2, correct_overlap='auto')
     xd.fit(epochs)
     # With these parameters, the overlap correction must be False
-    assert_equal(xd.correct_overlap_, False)
+    assert not xd.correct_overlap_
     # No overlap correction should give averaged evoked
     evoked = epochs['cond2'].average()
     assert_array_equal(evoked.data, xd.evokeds_['cond2'].data)
@@ -72,12 +86,12 @@ def test_xdawn_fit():
     signal_cov = np.eye(len(picks) - 1)
     xd = Xdawn(n_components=2, correct_overlap=False,
                signal_cov=signal_cov)
-    assert_raises(ValueError, xd.fit, epochs)
+    pytest.raises(ValueError, xd.fit, epochs)
     # Provide another type
     signal_cov = 42
     xd = Xdawn(n_components=2, correct_overlap=False,
                signal_cov=signal_cov)
-    assert_raises(ValueError, xd.fit, epochs)
+    pytest.raises(ValueError, xd.fit, epochs)
     # Fit with baseline correction and overlap correction should throw an
     # error
     # XXX This is a buggy test, the epochs here don't overlap
@@ -85,7 +99,7 @@ def test_xdawn_fit():
                     preload=True, baseline=(None, 0), verbose=False)
 
     xd = Xdawn(n_components=2, correct_overlap=True)
-    assert_raises(ValueError, xd.fit, epochs)
+    pytest.raises(ValueError, xd.fit, epochs)
 
 
 def test_xdawn_apply_transform():
@@ -105,7 +119,7 @@ def test_xdawn_apply_transform():
     for inst in [raw, epochs.average(), epochs]:
         denoise = xd.apply(inst)
     # Apply on other thing should raise an error
-    assert_raises(ValueError, xd.apply, 42)
+    pytest.raises(ValueError, xd.apply, 42)
 
     # Transform on Epochs
     xd.transform(epochs)
@@ -115,7 +129,7 @@ def test_xdawn_apply_transform():
     xd.transform(epochs._data)
     xd.transform(epochs._data[0])
     # Transform on someting else
-    assert_raises(ValueError, xd.transform, 42)
+    pytest.raises(ValueError, xd.transform, 42)
 
     # Check numerical results with shuffled epochs
     np.random.seed(0)  # random makes unstable linalg
@@ -152,9 +166,9 @@ def test_xdawn_regularization():
     # Fit and check that overlap was found and applied
     xd = Xdawn(n_components=2, correct_overlap='auto', reg='oas')
     xd.fit(epochs)
-    assert_equal(xd.correct_overlap_, True)
+    assert xd.correct_overlap_
     evoked = epochs['cond2'].average()
-    assert_true(np.sum(np.abs(evoked.data - xd.evokeds_['cond2'].data)))
+    assert np.sum(np.abs(evoked.data - xd.evokeds_['cond2'].data))
 
     # With covariance regularization
     for reg in [.1, 0.1, 'ledoit_wolf', 'oas']:
@@ -191,8 +205,8 @@ def test_XdawnTransformer():
     # Fit
     xdt = _XdawnTransformer()
     xdt.fit(X, y)
-    assert_raises(ValueError, xdt.fit, X, y[1:])
-    assert_raises(ValueError, xdt.fit, 'foo')
+    pytest.raises(ValueError, xdt.fit, X, y[1:])
+    pytest.raises(ValueError, xdt.fit, 'foo')
 
     # Provide covariance object
     signal_cov = compute_raw_covariance(raw, picks=picks)
@@ -205,11 +219,11 @@ def test_XdawnTransformer():
     # Provide ndarray of bad shape
     signal_cov = np.eye(len(picks) - 1)
     xdt = _XdawnTransformer(signal_cov=signal_cov)
-    assert_raises(ValueError, xdt.fit, X, y)
+    pytest.raises(ValueError, xdt.fit, X, y)
     # Provide another type
     signal_cov = 42
     xdt = _XdawnTransformer(signal_cov=signal_cov)
-    assert_raises(ValueError, xdt.fit, X, y)
+    pytest.raises(ValueError, xdt.fit, X, y)
 
     # Fit with y as None
     xdt = _XdawnTransformer()
@@ -227,18 +241,18 @@ def test_XdawnTransformer():
     # Transform testing
     xdt.transform(X[1:, ...])  # different number of epochs
     xdt.transform(X[:, :, 1:])  # different number of time
-    assert_raises(ValueError, xdt.transform, X[:, 1:, :])
+    pytest.raises(ValueError, xdt.transform, X[:, 1:, :])
     Xt = xdt.transform(X)
-    assert_raises(ValueError, xdt.transform, 42)
+    pytest.raises(ValueError, xdt.transform, 42)
 
     # Inverse transform testing
     Xinv = xdt.inverse_transform(Xt)
-    assert_equal(Xinv.shape, X.shape)
+    assert Xinv.shape == X.shape
     xdt.inverse_transform(Xt[1:, ...])
     xdt.inverse_transform(Xt[:, :, 1:])
     # should raise an error if not correct number of components
-    assert_raises(ValueError, xdt.inverse_transform, Xt[:, 1:, :])
-    assert_raises(ValueError, xdt.inverse_transform, 42)
+    pytest.raises(ValueError, xdt.inverse_transform, Xt[:, 1:, :])
+    pytest.raises(ValueError, xdt.inverse_transform, 42)
 
 
 run_tests_if_main()

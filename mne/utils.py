@@ -8,6 +8,7 @@ from __future__ import print_function
 
 import atexit
 from collections import Iterable
+from contextlib import contextmanager
 from distutils.version import LooseVersion
 from functools import wraps
 import ftplib
@@ -157,7 +158,7 @@ def object_hash(x, h=None):
     elif isinstance(x, (string_types, float, int, type(None))):
         h.update(str(type(x)).encode('utf-8'))
         h.update(str(x).encode('utf-8'))
-    elif isinstance(x, np.ndarray):
+    elif isinstance(x, (np.ndarray, np.number, np.bool_)):
         x = np.asarray(x)
         h.update(str(x.shape).encode('utf-8'))
         h.update(str(x.dtype).encode('utf-8'))
@@ -670,7 +671,7 @@ class deprecated(object):
         if self.extra:
             newdoc = "%s: %s" % (newdoc, self.extra)
         if olddoc:
-            newdoc = "%s\n\n%s" % (newdoc, olddoc)
+            newdoc = "%s\n\n    %s" % (newdoc, olddoc)
         return newdoc
 
 
@@ -805,7 +806,7 @@ def buggy_mkl_svd(function):
     return dec
 
 
-def requires_version(library, min_version):
+def requires_version(library, min_version='0.0'):
     """Check for a library version."""
     import pytest
     return pytest.mark.skipif(not check_version(library, min_version),
@@ -815,19 +816,18 @@ def requires_version(library, min_version):
 
 def requires_module(function, name, call=None):
     """Skip a test if package is not available (decorator)."""
+    import pytest
     call = ('import %s' % name) if call is None else call
-
-    @wraps(function)
-    def dec(*args, **kwargs):  # noqa: D102
-        try:
-            exec(call) in globals(), locals()
-        except Exception as exc:
-            msg = 'Test %s skipped, requires %s.' % (function.__name__, name)
-            if len(str(exc)) > 0:
-                msg += ' Got exception (%s)' % (exc,)
-            raise SkipTest(msg)
-        return function(*args, **kwargs)
-    return dec
+    reason = 'Test %s skipped, requires %s.' % (function.__name__, name)
+    try:
+        exec(call) in globals(), locals()
+    except Exception as exc:
+        if len(str(exc)) > 0 and str(exc) != 'No module named %s' % name:
+            reason += ' Got exception (%s)' % (exc,)
+        skip = True
+    else:
+        skip = False
+    return pytest.mark.skipif(skip, reason=reason)(function)
 
 
 def copy_doc(source):
@@ -1142,6 +1142,25 @@ def _import_mlab():
     with warnings.catch_warnings(record=True):
         from mayavi import mlab
     return mlab
+
+
+@contextmanager
+def traits_test_context():
+    """Context to raise errors in trait handlers."""
+    from traits.api import push_exception_handler
+
+    push_exception_handler(reraise_exceptions=True)
+    yield
+    push_exception_handler(reraise_exceptions=False)
+
+
+def traits_test(test_func):
+    """Raise errors in trait handlers (decorator)."""
+    @wraps(test_func)
+    def dec(*args, **kwargs):
+        with traits_test_context():
+            return test_func(*args, **kwargs)
+    return dec
 
 
 @verbose
@@ -1463,14 +1482,16 @@ known_config_types = (
     'MNE_COREG_GUESS_MRI_SUBJECT',
     'MNE_COREG_HEAD_HIGH_RES',
     'MNE_COREG_HEAD_OPACITY',
+    'MNE_COREG_INTERACTION',
     'MNE_COREG_MARK_INSIDE',
     'MNE_COREG_PREPARE_BEM',
     'MNE_COREG_PROJECT_EEG',
     'MNE_COREG_ORIENT_TO_SURFACE',
     'MNE_COREG_SCALE_LABELS',
     'MNE_COREG_SCALE_BY_DISTANCE',
-    'MNE_COREG_SCENE_HEIGHT',
-    'MNE_COREG_SCENE_WIDTH',
+    'MNE_COREG_SCENE_SCALE',
+    'MNE_COREG_WINDOW_HEIGHT',
+    'MNE_COREG_WINDOW_WIDTH',
     'MNE_COREG_SUBJECTS_DIR',
     'MNE_CUDA_IGNORE_PRECISION',
     'MNE_DATA',
@@ -1665,15 +1686,22 @@ class ProgressBar(object):
         value, defaults to 0.
     mesg : str
         Message to include at end of progress bar.
-    max_chars : int
-        Number of characters to use for progress bar (be sure to save some room
-        for the message and % complete as well).
+    max_chars : int | str
+        Number of characters to use for progress bar itself.
+        This does not include characters used for the message or percent
+        complete. Can be "auto" (default) to try to set a sane value based
+        on the terminal width.
     progress_character : char
         Character in the progress bar that indicates the portion completed.
     spinner : bool
         Show a spinner.  Useful for long-running processes that may not
         increment the progress bar very often.  This provides the user with
         feedback that the progress has not stalled.
+    max_total_width : int | str
+        Maximum total message width. Can use "auto" (default) to try to set
+        a sane value based on the current terminal width.
+    verbose_bool : bool
+        If True, show progress.
 
     Example
     -------
@@ -1691,11 +1719,11 @@ class ProgressBar(object):
     """
 
     spinner_symbols = ['|', '/', '-', '\\']
-    template = '\r[{0}{1}] {2:.05f} {3} {4}   '
+    template = '\r[{0}{1}] {2:.02f}% {4} {3}   '
 
-    def __init__(self, max_value, initial_value=0, mesg='', max_chars=40,
+    def __init__(self, max_value, initial_value=0, mesg='', max_chars='auto',
                  progress_character='.', spinner=False,
-                 verbose_bool=True):  # noqa: D102
+                 max_total_width='auto', verbose_bool=True):  # noqa: D102
         self.cur_value = initial_value
         if isinstance(max_value, Iterable):
             self.max_value = len(max_value)
@@ -1704,13 +1732,18 @@ class ProgressBar(object):
             self.max_value = float(max_value)
             self.iterable = None
         self.mesg = mesg
-        self.max_chars = max_chars
         self.progress_character = progress_character
         self.spinner = spinner
         self.spinner_index = 0
         self.n_spinner = len(self.spinner_symbols)
         self._do_print = verbose_bool
         self.cur_time = time.time()
+        if max_total_width == 'auto':
+            max_total_width = _get_terminal_width()
+        self.max_total_width = int(max_total_width)
+        if max_chars == 'auto':
+            max_chars = min(max(max_total_width - 40, 10), 60)
+        self.max_chars = int(max_chars)
         self.cur_rate = 0
 
     def update(self, cur_value, mesg=None):
@@ -1730,7 +1763,8 @@ class ProgressBar(object):
         cur_time = time.time()
         cur_rate = ((cur_value - self.cur_value) /
                     max(float(cur_time - self.cur_time), 1e-6))
-        # cur_rate += 0.9 * self.cur_rate
+        # Smooth the estimate a bit
+        cur_rate = 0.1 * cur_rate + 0.9 * self.cur_rate
         # Ensure floating-point division so we can get fractions of a percent
         # for the progressbar.
         self.cur_time = cur_time
@@ -1743,9 +1777,8 @@ class ProgressBar(object):
         # Update the message
         if mesg is not None:
             if mesg == 'file_sizes':
-                mesg = '(%s / %s, %s/s)' % (
+                mesg = '(%s, %s/s)' % (
                     sizeof_fmt(self.cur_value).rjust(8),
-                    sizeof_fmt(self.max_value).rjust(8),
                     sizeof_fmt(cur_rate).rjust(8))
             self.mesg = mesg
 
@@ -1757,6 +1790,7 @@ class ProgressBar(object):
                                    progress * 100,
                                    self.spinner_symbols[self.spinner_index],
                                    self.mesg)
+        bar = bar[:self.max_total_width]
         # Force a flush because sometimes when using bash scripts and pipes,
         # the output is not printed until after the program exits.
         if self._do_print:
@@ -1791,7 +1825,16 @@ class ProgressBar(object):
             self.update_with_increment_value(1)
 
 
-def _get_ftp(url, temp_file_name, initial_size, file_size, verbose_bool):
+def _get_terminal_width():
+    """Get the terminal width."""
+    if sys.version[0] == '2':
+        return 80
+    else:
+        return shutil.get_terminal_size((80, 20)).columns
+
+
+def _get_ftp(url, temp_file_name, initial_size, file_size, timeout,
+             verbose_bool):
     """Safely (resume a) download to a file from FTP."""
     # Adapted from: https://pypi.python.org/pypi/fileDownloader.py
     # but with changes
@@ -1803,9 +1846,9 @@ def _get_ftp(url, temp_file_name, initial_size, file_size, verbose_bool):
 
     data = ftplib.FTP()
     if parsed_url.port is not None:
-        data.connect(parsed_url.hostname, parsed_url.port)
+        data.connect(parsed_url.hostname, parsed_url.port, timeout=timeout)
     else:
-        data.connect(parsed_url.hostname)
+        data.connect(parsed_url.hostname, timeout=timeout)
     data.login()
     if len(server_path) > 1:
         data.cwd(unquoted_server_path)
@@ -1814,7 +1857,7 @@ def _get_ftp(url, temp_file_name, initial_size, file_size, verbose_bool):
     down_cmd = "RETR " + file_name
     assert file_size == data.size(file_name)
     progress = ProgressBar(file_size, initial_value=initial_size,
-                           max_chars=40, spinner=True, mesg='file_sizes',
+                           spinner=True, mesg='file_sizes',
                            verbose_bool=verbose_bool)
 
     # Callback lambda function that will be passed the downloaded data
@@ -1829,14 +1872,15 @@ def _get_ftp(url, temp_file_name, initial_size, file_size, verbose_bool):
     sys.stdout.flush()
 
 
-def _get_http(url, temp_file_name, initial_size, file_size, verbose_bool):
+def _get_http(url, temp_file_name, initial_size, file_size, timeout,
+              verbose_bool):
     """Safely (resume a) download to a file from http(s)."""
     # Actually do the reading
     req = urllib.request.Request(url)
     if initial_size > 0:
         req.headers['Range'] = 'bytes=%s-' % (initial_size,)
     try:
-        response = urllib.request.urlopen(req)
+        response = urllib.request.urlopen(req, timeout=timeout)
     except Exception:
         # There is a problem that may be due to resuming, some
         # servers may not support the "Range" header. Switch
@@ -1845,7 +1889,7 @@ def _get_http(url, temp_file_name, initial_size, file_size, verbose_bool):
                     'rejected the request). Attempting to '
                     'restart downloading the entire file.')
         del req.headers['Range']
-        response = urllib.request.urlopen(req)
+        response = urllib.request.urlopen(req, timeout=timeout)
     total_size = int(response.headers.get('Content-Length', '1').strip())
     if initial_size > 0 and file_size == total_size:
         logger.info('Resuming download failed (resume file size '
@@ -1859,7 +1903,7 @@ def _get_http(url, temp_file_name, initial_size, file_size, verbose_bool):
                            % (total_size, file_size))
     mode = 'ab' if initial_size > 0 else 'wb'
     progress = ProgressBar(total_size, initial_value=initial_size,
-                           max_chars=40, spinner=True, mesg='file_sizes',
+                           spinner=True, mesg='file_sizes',
                            verbose_bool=verbose_bool)
     chunk_size = 8192  # 2 ** 13
     with open(temp_file_name, mode) as local_file:
@@ -1889,7 +1933,7 @@ def _chunk_write(chunk, local_file, progress):
 
 @verbose
 def _fetch_file(url, file_name, print_destination=True, resume=True,
-                hash_=None, timeout=10., verbose=None):
+                hash_=None, timeout=30., verbose=None):
     """Load requested file, downloading it if needed or requested.
 
     Parameters
@@ -1960,7 +2004,8 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
             # Need to resume or start over
             scheme = urllib.parse.urlparse(url).scheme
             fun = _get_http if scheme in ('http', 'https') else _get_ftp
-            fun(url, temp_file_name, initial_size, file_size, verbose_bool)
+            fun(url, temp_file_name, initial_size, file_size, timeout,
+                verbose_bool)
 
         # check md5sum
         if hash_ is not None:
@@ -2157,6 +2202,15 @@ def _check_preload(inst, msg):
             "conserve ressources. " + msg + ' requires %s data to be loaded. '
             'Use preload=True (or string) in the constructor or '
             '%s.load_data().' % (name, name))
+
+
+def _check_compensation_grade(inst, inst2, name, name2):
+    """Ensure that objects have same compenstation_grade."""
+    if (None not in [inst.info, inst2.info]) and (inst.compensation_grade !=
+                                                  inst2.compensation_grade):
+            msg = ('Compensation grade of %s (%d) and %s (%d) don\'t match')
+            raise RuntimeError(msg % (name, inst.compensation_grade,
+                                      name2, inst2.compensation_grade))
 
 
 def _check_pandas_installed(strict=True):
@@ -2621,6 +2675,9 @@ def sys_info(fid=None, show_paths=False):
         out += ('%s:' % mod_name).ljust(ljust)
         try:
             mod = __import__(mod_name)
+            if mod_name == 'mayavi':
+                # the real test
+                from mayavi import mlab  # noqa, analysis:ignore
         except Exception:
             out += 'Not found\n'
         else:
@@ -2628,6 +2685,14 @@ def sys_info(fid=None, show_paths=False):
             extra = (' (%s)' % op.dirname(mod.__file__)) if show_paths else ''
             if mod_name == 'numpy':
                 extra = ' {%s}%s' % (libs, extra)
+            elif mod_name == 'matplotlib':
+                extra = ' {backend=%s}%s' % (mod.get_backend(), extra)
+            elif mod_name == 'mayavi':
+                try:
+                    from pyface.qt import qt_api
+                except Exception:
+                    qt_api = 'unknown'
+                extra = ' {qt_api=%s}%s' % (qt_api, extra)
             out += '%s%s\n' % (version, extra)
     print(out, end='', file=fid)
 

@@ -24,13 +24,14 @@ from .ctf_comp import read_ctf_comp, write_ctf_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_points, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
-                    write_julian, write_float_matrix)
+                    write_julian, write_float_matrix, DATE_NONE)
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import _to_const
 from ..transforms import invert_transform
 from ..utils import logger, verbose, warn, object_diff
 from .. import __version__
 from ..externals.six import b, BytesIO, string_types, text_type
+from .compensator import get_current_comp
 
 
 _kind_dict = dict(
@@ -480,6 +481,12 @@ class Info(dict):
                     self['ch_names'][ch_idx] = ch_name
                     self['chs'][ch_idx]['ch_name'] = ch_name
 
+        # make sure required the compensation channels are present
+        comps_bad, comps_missing = _bad_chans_comp(self, self['ch_names'])
+        if comps_bad:
+            msg = 'Compensation channel(s) %s do not exist in info'
+            raise RuntimeError(msg % (comps_missing,))
+
         if 'filename' in self:
             warn('the "filename" key is misleading\
                  and info should not have it')
@@ -512,13 +519,17 @@ def _simplify_info(info):
     return sub_info
 
 
-def read_fiducials(fname):
+@verbose
+def read_fiducials(fname, verbose=None):
     """Read fiducials from a fiff file.
 
     Parameters
     ----------
     fname : str
         The filename to read.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -551,7 +562,9 @@ def read_fiducials(fname):
     return pts, coord_frame
 
 
-def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN):
+@verbose
+def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                    verbose=None):
     """Write fiducials to a fiff file.
 
     Parameters
@@ -564,6 +577,9 @@ def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN):
     coord_frame : int
         The coordinate frame of the points (one of
         mne.io.constants.FIFF.FIFFV_COORD_...).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     write_dig(fname, pts, coord_frame)
 
@@ -1213,14 +1229,14 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             info['meas_id'] = meas_info['id']
     else:
         info['meas_id'] = meas_info['parent_id']
-
     info['experimenter'] = experimenter
     info['description'] = description
     info['proj_id'] = proj_id
     info['proj_name'] = proj_name
-
     if meas_date is None:
         meas_date = [info['meas_id']['secs'], info['meas_id']['usecs']]
+    if np.array_equal(meas_date, DATE_NONE):
+        meas_date = None
     info['meas_date'] = meas_date
 
     info['sfreq'] = sfreq
@@ -1739,7 +1755,6 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         raise ValueError('ch_types and ch_names must be the same length '
                          '(%s != %s)' % (len(ch_types), nchan))
     info = _empty_info(sfreq)
-    info['meas_date'] = np.array([0, 0], np.int32)
     for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
         if not isinstance(name, string_types):
             raise TypeError('each entry in ch_names must be a string')
@@ -1865,13 +1880,57 @@ def anonymize_info(info):
         raise ValueError('self must be an Info instance.')
     if info.get('subject_info') is not None:
         del info['subject_info']
-    info['meas_date'] = [0, 0]
-    for key_1 in ('file_id', 'meas_id'):
-        key = info.get(key_1)
-        if key is None:
-            continue
-        for key_2 in ('secs', 'msecs', 'usecs'):
-            if key_2 not in key:
-                continue
-            info[key_1][key_2] = 0
+    info['meas_date'] = None
+    for key in ('file_id', 'meas_id'):
+        value = info.get(key)
+        if value is not None:
+            assert 'msecs' not in value
+            value['secs'] = DATE_NONE[0]
+            value['usecs'] = DATE_NONE[1]
     return info
+
+
+def _bad_chans_comp(info, ch_names):
+    """Check if channel names are consistent with current compensation status.
+
+    Parameters
+    ----------
+    info : dict, instance of Info
+        Measurement information for the dataset.
+
+    ch_names : list of str
+        The channel names to check.
+
+    Returns
+    -------
+    status : bool
+        True if compensation is *currently* in use but some compensation
+            channels are not included in picks
+
+        False if compensation is *currently* not being used
+            or if compensation is being used and all compensation channels
+            in info and included in picks.
+
+    missing_ch_names: array-like of str, shape (n_missing,)
+        The names of compensation channels not included in picks.
+        Returns [] if no channels are missing.
+
+    """
+    if 'comps' not in info:
+        # should this be thought of as a bug?
+        return False, []
+
+    # only include compensation channels that would affect selected channels
+    ch_names_s = set(ch_names)
+    comp_names = []
+    for comp in info['comps']:
+        if len(ch_names_s.intersection(comp['data']['row_names'])) > 0:
+            comp_names.extend(comp['data']['col_names'])
+    comp_names = sorted(set(comp_names))
+
+    missing_ch_names = sorted(set(comp_names).difference(ch_names))
+
+    if get_current_comp(info) != 0 and len(missing_ch_names) > 0:
+        return True, missing_ch_names
+
+    return False, missing_ch_names

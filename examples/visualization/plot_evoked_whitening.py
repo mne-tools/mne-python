@@ -70,7 +70,7 @@ for c in noise_covs:
 
 evoked = epochs.average()
 
-evoked.plot()  # plot evoked response
+evoked.plot(time_unit='s')  # plot evoked response
 
 ###############################################################################
 # We can then show whitening for our various noise covariance estimates.
@@ -81,4 +81,4 @@ evoked.plot()  # plot evoked response
 #
 # For the Global field power we expect a value of 1.
 
-evoked.plot_white(noise_covs)
+evoked.plot_white(noise_covs, time_unit='s')

@@ -19,7 +19,7 @@ References
 import mne
 from mne.event import make_fixed_length_events
 from mne.datasets import sample
-from mne.time_frequency import csd_epochs
+from mne.time_frequency import csd_fourier
 from mne.beamformer import tf_dics
 from mne.viz import plot_source_spectrogram
 
@@ -106,17 +106,15 @@ subtract_evoked = False
 # from the baseline period in the data, change epochs_noise to epochs
 noise_csds = []
 for freq_bin, win_length, n_fft in zip(freq_bins, win_lengths, n_ffts):
-    noise_csd = csd_epochs(epochs_noise, mode='fourier',
-                           fmin=freq_bin[0], fmax=freq_bin[1],
-                           fsum=True, tmin=-win_length, tmax=0,
-                           n_fft=n_fft)
-    noise_csds.append(noise_csd)
+    noise_csd = csd_fourier(epochs_noise, fmin=freq_bin[0], fmax=freq_bin[1],
+                            tmin=-win_length, tmax=0, n_fft=n_fft)
+    noise_csds.append(noise_csd.sum())
 
 # Computing DICS solutions for time-frequency windows in a label in source
 # space for faster computation, use label=None for full solution
 stcs = tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                freq_bins=freq_bins, subtract_evoked=subtract_evoked,
-               n_ffts=n_ffts, reg=0.001, label=label)
+               n_ffts=n_ffts, reg=0.05, label=label, inversion='matrix')
 
 # Plotting source spectrogram for source with maximum activity
 # Note that tmin and tmax are set to display a time range that is smaller than

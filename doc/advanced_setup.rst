@@ -13,8 +13,8 @@ Advanced setup and troubleshooting
 
 .. _installing_master:
 
-Using the development version of MNE
-####################################
+Using the development version of MNE (latest master)
+####################################################
 
 It is possible to update your version of MNE between releases for
 bugfixes or new features.
@@ -41,7 +41,7 @@ the files (e.g., by updating to latest ``master``) will be reflected in
 ``mne`` as soon as you restart your Python interpreter. So to update to
 the latest version of the ``master`` development branch, you can do:
 
-   .. code-block:: console
+.. code-block:: console
 
    $ git pull origin master
 
@@ -53,8 +53,8 @@ If you plan to contribute to MNE, please continue reading how to
 
 .. _CUDA:
 
-CUDA
-####
+CUDA (NVIDIA GPU acceleration)
+##############################
 
 We have developed specialized routines to make use of
 `NVIDIA CUDA GPU processing <http://www.nvidia.com/object/cuda_home_new.html>`_
@@ -126,7 +126,9 @@ functions might not work as expected.
 To take full advantage of MNE-Python's visualization capacities in combination
 with IPython notebooks and inline displaying, please explicitly add the
 following magic method invocation to your notebook or configure your notebook
-runtime accordingly::
+runtime accordingly:
+
+.. code-block:: ipython
 
     In [1]: %matplotlib inline
 
@@ -144,20 +146,6 @@ using mayavi), you can try setting the ``ETS_TOOLKIT`` environment variable::
     >>> os.environ['QT_API'] = 'pyqt'
 
 This will tell Traits that we will use Qt with PyQt bindings.
-
-If you get an error saying::
-
-    ValueError: API 'QDate' has already been set to version 1
-
-you have run into a conflict with Traits. You can work around this by telling
-the interpreter to use QtGui and QtCore from pyface::
-
-    >>> from pyface.qt import QtGui, QtCore
-
-This line should be added before any imports from mne-python.
-
-To avoid Qt conflicts, you can also try using the ``wx`` backend via
-``conda install wxpython`` and ``ETS_TOOLKIT=wx``.
 
 For more information, see
 http://docs.enthought.com/mayavi/mayavi/building_applications.html.

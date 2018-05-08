@@ -278,7 +278,7 @@ trim_doctests_flags = True
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy-dev', None),
+    'numpy': ('http://numpy.org/devdocs', None),
     'scipy': ('https://scipy.github.io/devdocs', None),
     'matplotlib': ('http://matplotlib.org', None),
     'sklearn': ('http://scikit-learn.org/stable', None),

@@ -142,8 +142,7 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
             ax = plt.axes(pos[idx])
             ax.patch.set_facecolor(axis_facecolor)
             plt.setp(list(ax.spines.values()), color=axis_spinecolor)
-            ax.set_xticklabels([])
-            ax.set_yticklabels([])
+            ax.set(xticklabels=[], yticklabels=[])
             plt.setp(ax.get_xticklines(), visible=False)
             plt.setp(ax.get_yticklines(), visible=False)
             ax._mne_ch_name = name
@@ -286,9 +285,10 @@ def _check_vlim(vlim):
 
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 tfr=None, freq=None, x_label=None, y_label=None,
-                colorbar=False, cmap=('RdBu_r', True), yscale='auto'):
+                colorbar=False, cmap=('RdBu_r', True), yscale='auto',
+                mask=None, mask_alpha=0.1, is_jointplot=False):
     """Show time-frequency map as two-dimensional image."""
-    from matplotlib import pyplot as plt, ticker
+    from matplotlib import pyplot as plt, ticker, __version__ as v
     from matplotlib.widgets import RectangleSelector
 
     if yscale not in ['auto', 'linear', 'log']:
@@ -313,6 +313,11 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
         else:
             yscale = 'linear'
 
+    # https://github.com/matplotlib/matplotlib/pull/9477
+    if yscale == "log" and is_jointplot is True and v == "2.1.0":
+        warn("With matplotlib version 2.1.0, lines may not show up in "
+             "`AverageTFR.plot_joint`. Upgrade to a more recent versiom.")
+
     # compute bounds between time samples
     time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]
     time_lims = np.concatenate([[times[0] - time_diff[0]], times[:-1] +
@@ -331,8 +336,15 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     # construct a time-frequency bounds grid
     time_mesh, freq_mesh = np.meshgrid(time_lims, freq_lims)
 
-    img = ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], cmap=cmap,
-                        vmin=vmin, vmax=vmax)
+    if mask is not None:
+        ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], cmap=cmap, vmin=vmin,
+                      vmax=vmax, alpha=mask_alpha)
+        img = ax.pcolormesh(time_mesh, freq_mesh,
+                            np.ma.masked_where(~mask, tfr[ch_idx]), cmap=cmap,
+                            vmin=vmin, vmax=vmax, alpha=1)
+    else:
+        img = ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], cmap=cmap,
+                            vmin=vmin, vmax=vmax)
 
     # limits, yscale and yticks
     ax.set_xlim(time_lims[0], time_lims[-1])
@@ -395,7 +407,7 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
             ax.plot(times, data_[ch_idx], color=color_)
 
     if x_label is not None:
-        plt.xlabel(x_label)
+        ax.set(xlabel=x_label)
 
     if y_label is not None:
         if isinstance(y_label, list):

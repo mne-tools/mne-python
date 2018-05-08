@@ -457,17 +457,23 @@ class DipoleFixed(object):
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
             for more).
         """
-        check_fname(fname, 'DipoleFixed', ('-dip.fif', '-dip.fif.gz'),
+        check_fname(fname, 'DipoleFixed', ('-dip.fif', '-dip.fif.gz',
+                                           '_dip.fif', '_dip.fif.gz',),
                     ('.fif', '.fif.gz'))
         _write_evokeds(fname, self, check=False)
 
-    def plot(self, show=True):
+    def plot(self, show=True, time_unit=None):
         """Plot dipole data.
 
         Parameters
         ----------
         show : bool
             Call pyplot.show() at the end or not.
+        time_unit : str
+            The units for the time axis, can be "ms" (default in 0.16)
+            or "s" (will become the default in 0.17).
+
+            .. versionadded:: 0.16
 
         Returns
         -------
@@ -478,7 +484,8 @@ class DipoleFixed(object):
                             ylim=None, xlim='tight', proj=False, hline=None,
                             units=None, scalings=None, titles=None, axes=None,
                             gfp=False, window_title=None, spatial_colors=False,
-                            plot_type="butterfly", selectable=False)
+                            plot_type="butterfly", selectable=False,
+                            time_unit=time_unit)
 
 
 # #############################################################################

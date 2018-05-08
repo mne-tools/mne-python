@@ -12,11 +12,12 @@ import pytest
 
 from mne import (pick_types, Dipole, make_sphere_model, make_forward_dipole,
                  pick_info)
-from mne.io import read_raw_fif, read_raw_artemis123, read_info, RawArray
+from mne.io import (read_raw_fif, read_raw_artemis123, read_raw_ctf, read_info,
+                    RawArray)
 from mne.io.constants import FIFF
 from mne.chpi import (_calculate_chpi_positions, _calculate_chpi_coil_locs,
-                      head_pos_to_trans_rot_t, read_head_pos,
-                      write_head_pos, filter_chpi,
+                      _calculate_head_pos_ctf, head_pos_to_trans_rot_t,
+                      read_head_pos, write_head_pos, filter_chpi,
                       _get_hpi_info, _get_hpi_initial_fit)
 from mne.fixes import assert_raises_regex
 from mne.transforms import rot_to_quat, _angle_between_quats
@@ -39,6 +40,8 @@ sss_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw_sss.fif')
 sss_hpisubt_fname = op.join(data_path, 'SSS', 'test_move_anon_hpisubt_raw.fif')
 chpi5_fif_fname = op.join(data_path, 'SSS', 'chpi5_raw.fif')
 chpi5_pos_fname = op.join(data_path, 'SSS', 'chpi5_raw_mc.pos')
+ctf_chpi_fname = op.join(data_path, 'CTF', 'testdata_ctf_mc.ds')
+ctf_chpi_pos_fname = op.join(data_path, 'CTF', 'testdata_ctf_mc.pos')
 
 art_fname = op.join(data_path, 'ARTEMIS123', 'Artemis_Data_2017-04-04' +
                     '-15h-44m-22s_Motion_Translation-z.bin')
@@ -413,6 +416,18 @@ def test_chpi_subtraction():
         filter_chpi(raw, verbose=True)
     assert_raises(ValueError, filter_chpi, raw, t_window=-1)
     assert_true('2 cHPI' in log.getvalue())
+
+
+@testing.requires_testing_data
+def test_calculate_head_pos_ctf():
+    """Test extracting of cHPI positions from ctf data."""
+    raw = read_raw_ctf(ctf_chpi_fname)
+    quats = _calculate_head_pos_ctf(raw)
+    mc_quats = read_head_pos(ctf_chpi_pos_fname)
+    _assert_quats(quats, mc_quats, dist_tol=0.004, angle_tol=2.5)
+
+    raw = read_raw_fif(ctf_fname)
+    assert_raises(RuntimeError, _calculate_head_pos_ctf, raw)
 
 
 run_tests_if_main()

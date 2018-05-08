@@ -1,24 +1,24 @@
+from functools import reduce
 from glob import glob
 import os
-from shutil import copyfile
+import os.path as op
+from shutil import copyfile, copytree
 
-from nose.tools import assert_equal, assert_raises, assert_true, assert_is_not
+import pytest
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_less
+from numpy.testing import (assert_array_almost_equal, assert_allclose,
+                           assert_array_equal)
 
 import mne
+from mne.datasets import testing
 from mne.transforms import (Transform, apply_trans, rotation, translation,
                             scaling)
-from mne.coreg import (fit_matched_points, fit_point_cloud,
-                       _point_cloud_error, _decimate_points,
-                       create_default_subject, scale_mri,
+from mne.coreg import (fit_matched_points, create_default_subject, scale_mri,
                        _is_mri_subject, scale_labels, scale_source_space,
                        coregister_fiducials)
 from mne.io.constants import FIFF
-from mne.utils import (requires_freesurfer, _TempDir, run_tests_if_main,
-                       requires_version)
+from mne.utils import _TempDir, run_tests_if_main, requires_nibabel
 from mne.source_space import write_source_spaces
-from functools import reduce
 
 
 def test_coregister_fiducials():
@@ -41,60 +41,66 @@ def test_coregister_fiducials():
 
     # test coregister_fiducials()
     trans_est = coregister_fiducials(info, mri_fiducials)
-    assert_equal(trans_est.from_str, trans.from_str)
-    assert_equal(trans_est.to_str, trans.to_str)
+    assert trans_est.from_str == trans.from_str
+    assert trans_est.to_str == trans.to_str
     assert_array_almost_equal(trans_est['trans'], trans['trans'])
 
 
-@requires_freesurfer
-@requires_version('scipy', '0.11')
+@testing.requires_testing_data
 def test_scale_mri():
-    """Test creating fsaverage and scaling it"""
-    # create fsaverage
+    """Test creating fsaverage and scaling it."""
+    # create fsaverage using the testing "fsaverage" instead of the FreeSurfer
+    # one
     tempdir = _TempDir()
-    create_default_subject(subjects_dir=tempdir)
-    assert_true(_is_mri_subject('fsaverage', tempdir),
-                "Creating fsaverage failed")
+    fake_home = testing.data_path()
+    create_default_subject(subjects_dir=tempdir, fs_home=fake_home,
+                           verbose=True)
+    assert _is_mri_subject('fsaverage', tempdir), "Creating fsaverage failed"
 
-    fid_path = os.path.join(tempdir, 'fsaverage', 'bem',
-                            'fsaverage-fiducials.fif')
+    fid_path = op.join(tempdir, 'fsaverage', 'bem', 'fsaverage-fiducials.fif')
     os.remove(fid_path)
-    create_default_subject(update=True, subjects_dir=tempdir)
-    assert_true(os.path.exists(fid_path), "Updating fsaverage")
+    create_default_subject(update=True, subjects_dir=tempdir,
+                           fs_home=fake_home)
+    assert op.exists(fid_path), "Updating fsaverage"
 
-    # copy MRI file from sample data
-    path = os.path.join('%s', 'fsaverage', 'mri', 'orig.mgz')
-    sample_sdir = os.path.join(mne.datasets.sample.data_path(), 'subjects')
-    copyfile(path % sample_sdir, path % tempdir)
+    # copy MRI file from sample data (shouldn't matter that it's incorrect,
+    # so here choose a small one)
+    path_from = op.join(testing.data_path(), 'subjects', 'sample', 'mri',
+                        'T1.mgz')
+    path_to = op.join(tempdir, 'fsaverage', 'mri', 'orig.mgz')
+    copyfile(path_from, path_to)
 
     # remove redundant label files
-    label_temp = os.path.join(tempdir, 'fsaverage', 'label', '*.label')
+    label_temp = op.join(tempdir, 'fsaverage', 'label', '*.label')
     label_paths = glob(label_temp)
     for label_path in label_paths[1:]:
         os.remove(label_path)
 
     # create source space
-    path = os.path.join(tempdir, 'fsaverage', 'bem', 'fsaverage-%s-src.fif')
+    print('Creating surface source space')
+    path = op.join(tempdir, 'fsaverage', 'bem', 'fsaverage-%s-src.fif')
     src = mne.setup_source_space('fsaverage', 'ico0', subjects_dir=tempdir,
                                  add_dist=False)
     write_source_spaces(path % 'ico-0', src)
-    mri = os.path.join(tempdir, 'fsaverage', 'mri', 'orig.mgz')
-    vsrc = mne.setup_volume_source_space('fsaverage', pos=50, mri=mri,
-                                         subjects_dir=tempdir,
-                                         add_interpolator=False)
+    mri = op.join(tempdir, 'fsaverage', 'mri', 'orig.mgz')
+    print('Creating volume source space')
+    vsrc = mne.setup_volume_source_space(
+        'fsaverage', pos=50, mri=mri, subjects_dir=tempdir,
+        add_interpolator=False)
     write_source_spaces(path % 'vol-50', vsrc)
 
     # scale fsaverage
     os.environ['_MNE_FEW_SURFACES'] = 'true'
     scale = np.array([1, .2, .8])
-    scale_mri('fsaverage', 'flachkopf', scale, True, subjects_dir=tempdir)
+    scale_mri('fsaverage', 'flachkopf', scale, True, subjects_dir=tempdir,
+              verbose='debug')
     del os.environ['_MNE_FEW_SURFACES']
-    assert_true(_is_mri_subject('flachkopf', tempdir),
-                "Scaling fsaverage failed")
-    spath = os.path.join(tempdir, 'flachkopf', 'bem', 'flachkopf-%s-src.fif')
+    assert _is_mri_subject('flachkopf', tempdir), "Scaling fsaverage failed"
+    spath = op.join(tempdir, 'flachkopf', 'bem', 'flachkopf-%s-src.fif')
 
-    assert_true(os.path.exists(spath % 'ico-0'),
-                "Source space ico-0 was not scaled")
+    assert op.exists(spath % 'ico-0'), "Source space ico-0 was not scaled"
+    assert os.path.isfile(os.path.join(tempdir, 'flachkopf', 'surf',
+                                       'lh.sphere.reg'))
     vsrc_s = mne.read_source_spaces(spath % 'vol-50')
     pt = np.array([0.12, 0.41, -0.22])
     assert_array_almost_equal(apply_trans(vsrc_s[0]['src_mri_t'], pt * scale),
@@ -109,7 +115,80 @@ def test_scale_mri():
     os.remove(spath % 'ico-0')
     scale_source_space('flachkopf', 'ico-0', subjects_dir=tempdir)
     ssrc = mne.read_source_spaces(spath % 'ico-0')
-    assert_is_not(ssrc[0]['dist'], None)
+    assert ssrc[0]['dist'] is not None
+
+
+@testing.requires_testing_data
+@requires_nibabel()
+def test_scale_mri_xfm():
+    """Test scale_mri transforms and MRI scaling."""
+    # scale fsaverage
+    tempdir = _TempDir()
+    os.environ['_MNE_FEW_SURFACES'] = 'true'
+    fake_home = testing.data_path()
+    # add fsaverage
+    create_default_subject(subjects_dir=tempdir, fs_home=fake_home,
+                           verbose=True)
+    # add sample (with few files)
+    sample_dir = op.join(tempdir, 'sample')
+    os.mkdir(sample_dir)
+    os.mkdir(op.join(sample_dir, 'bem'))
+    for dirname in ('mri', 'surf'):
+        copytree(op.join(fake_home, 'subjects', 'sample', dirname),
+                 op.join(sample_dir, dirname))
+    subject_to = 'flachkopf'
+    spacing = 'oct2'
+    for subject_from in ('fsaverage', 'sample'):
+        if subject_from == 'fsaverage':
+            scale = 1.  # single dim
+        else:
+            scale = [0.9, 2, .8]  # separate
+        src_from_fname = op.join(tempdir, subject_from, 'bem',
+                                 '%s-%s-src.fif' % (subject_from, spacing))
+        src_from = mne.setup_source_space(
+            subject_from, spacing, subjects_dir=tempdir, add_dist=False)
+        write_source_spaces(src_from_fname, src_from)
+        print(src_from_fname)
+        vertices_from = np.concatenate([s['vertno'] for s in src_from])
+        assert len(vertices_from) == 36
+        hemis = ([0] * len(src_from[0]['vertno']) +
+                 [1] * len(src_from[0]['vertno']))
+        mni_from = mne.vertex_to_mni(vertices_from, hemis, subject_from,
+                                     subjects_dir=tempdir)
+        if subject_from == 'fsaverage':  # identity transform
+            source_rr = np.concatenate([s['rr'][s['vertno']]
+                                        for s in src_from]) * 1e3
+            assert_allclose(mni_from, source_rr)
+        if subject_from == 'fsaverage':
+            overwrite = skip_fiducials = False
+        else:
+            with pytest.raises(IOError, match='No fiducials file'):
+                scale_mri(subject_from, subject_to,  scale,
+                          subjects_dir=tempdir)
+            skip_fiducials = True
+            with pytest.raises(IOError, match='already exists'):
+                scale_mri(subject_from, subject_to,  scale,
+                          subjects_dir=tempdir, skip_fiducials=skip_fiducials)
+            overwrite = True
+        scale_mri(subject_from, subject_to, scale, subjects_dir=tempdir,
+                  verbose='debug', overwrite=overwrite,
+                  skip_fiducials=skip_fiducials)
+        if subject_from == 'fsaverage':
+            assert _is_mri_subject(subject_to, tempdir), "Scaling failed"
+        src_to_fname = op.join(tempdir, subject_to, 'bem',
+                               '%s-%s-src.fif' % (subject_to, spacing))
+        assert op.exists(src_to_fname), "Source space was not scaled"
+        # Check MRI scaling
+        fname_mri = op.join(tempdir, subject_to, 'mri', 'T1.mgz')
+        assert op.exists(fname_mri), "MRI was not scaled"
+        # Check MNI transform
+        src = mne.read_source_spaces(src_to_fname)
+        vertices = np.concatenate([s['vertno'] for s in src])
+        assert_array_equal(vertices, vertices_from)
+        mni = mne.vertex_to_mni(vertices, hemis, subject_to,
+                                subjects_dir=tempdir)
+        assert_allclose(mni, mni_from, atol=1e-3)  # 0.001 mm
+    del os.environ['_MNE_FEW_SURFACES']
 
 
 def test_fit_matched_points():
@@ -124,15 +203,6 @@ def test_fit_matched_points():
     est_pts = apply_trans(trans_est, src_pts)
     assert_array_almost_equal(tgt_pts, est_pts, 2, "fit_matched_points with "
                               "rotation")
-
-    # rotation & scaling
-    trans = np.dot(rotation(2, 6, 3), scaling(.5, .5, .5))
-    src_pts = apply_trans(trans, tgt_pts)
-    trans_est = fit_matched_points(src_pts, tgt_pts, translate=False, scale=1,
-                                   out='trans')
-    est_pts = apply_trans(trans_est, src_pts)
-    assert_array_almost_equal(tgt_pts, est_pts, 2, "fit_matched_points with "
-                              "rotation and scaling.")
 
     # rotation & translation
     trans = np.dot(translation(2, -6, 3), rotation(2, 6, 3))
@@ -153,63 +223,7 @@ def test_fit_matched_points():
 
     # test exceeding tolerance
     tgt_pts[0, :] += 20
-    assert_raises(RuntimeError, fit_matched_points, tgt_pts, src_pts, tol=10)
-
-
-def test_fit_point_cloud():
-    """Test fit_point_cloud: fitting a set of points to a point cloud"""
-    # evenly spaced target points on a sphere
-    u = np.linspace(0, np.pi, 150)
-    v = np.linspace(0, np.pi, 150)
-
-    x = np.outer(np.cos(u), np.sin(v)).reshape((-1, 1))
-    y = np.outer(np.sin(u), np.sin(v)).reshape((-1, 1))
-    z = np.outer(np.ones(np.size(u)), np.cos(v)).reshape((-1, 1)) * 3
-
-    tgt_pts = np.hstack((x, y, z))
-    tgt_pts = _decimate_points(tgt_pts, .05)
-
-    # pick some points to fit
-    some_tgt_pts = tgt_pts[::362]
-
-    # rotation only
-    trans = rotation(1.5, .3, -0.4)
-    src_pts = apply_trans(trans, some_tgt_pts)
-    trans_est = fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=False,
-                                scale=0, out='trans')
-    est_pts = apply_trans(trans_est, src_pts)
-    err = _point_cloud_error(est_pts, tgt_pts)
-    assert_array_less(err, .1, "fit_point_cloud with rotation.")
-
-    # rotation and translation
-    trans = np.dot(rotation(0.5, .3, -0.4), translation(.3, .2, -.2))
-    src_pts = apply_trans(trans, some_tgt_pts)
-    trans_est = fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
-                                scale=0, out='trans')
-    est_pts = apply_trans(trans_est, src_pts)
-    err = _point_cloud_error(est_pts, tgt_pts)
-    assert_array_less(err, .1, "fit_point_cloud with rotation and "
-                      "translation.")
-
-    # rotation and 1 scale parameter
-    trans = np.dot(rotation(0.5, .3, -0.4), scaling(1.5, 1.5, 1.5))
-    src_pts = apply_trans(trans, some_tgt_pts)
-    trans_est = fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=False,
-                                scale=1, out='trans')
-    est_pts = apply_trans(trans_est, src_pts)
-    err = _point_cloud_error(est_pts, tgt_pts)
-    assert_array_less(err, .1, "fit_point_cloud with rotation and 1 scaling "
-                      "parameter.")
-
-    # rotation and 3 scale parameter
-    trans = np.dot(rotation(0.5, .3, -0.4), scaling(1.5, 1.7, 1.1))
-    src_pts = apply_trans(trans, some_tgt_pts)
-    trans_est = fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=False,
-                                scale=3, out='trans')
-    est_pts = apply_trans(trans_est, src_pts)
-    err = _point_cloud_error(est_pts, tgt_pts)
-    assert_array_less(err, .1, "fit_point_cloud with rotation and 3 scaling "
-                      "parameters.")
+    pytest.raises(RuntimeError, fit_matched_points, tgt_pts, src_pts, tol=10)
 
 
 run_tests_if_main()

@@ -24,11 +24,14 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_covariance,
                  compute_covariance, read_evokeds, compute_proj_raw,
                  pick_channels_cov, pick_types, pick_info, make_ad_hoc_cov)
-from mne.io import read_raw_fif, RawArray, read_info
+from mne.fixes import _get_args
+from mne.io import read_raw_fif, RawArray, read_info, read_raw_ctf
 from mne.tests.common import assert_naming, assert_snr
 from mne.utils import _TempDir, requires_version, run_tests_if_main
 from mne.io.proc_history import _get_sss_rank
-from mne.io.pick import channel_type, _picks_by_type
+from mne.io.pick import channel_type, _picks_by_type, _DATA_CH_TYPES_SPLIT
+from mne.datasets import testing
+from mne.event import make_fixed_length_events
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -40,6 +43,9 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 ave_fname = op.join(base_dir, 'test-ave.fif')
 erm_cov_fname = op.join(base_dir, 'test_erm-cov.fif')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
+
+ctf_fname = op.join(testing.data_path(download=False), 'CTF',
+                    'testdata_ctf.ds')
 
 
 def test_cov_mismatch():
@@ -128,6 +134,12 @@ def test_ad_hoc_cov():
     out_fname = op.join(tempdir, 'test-cov.fif')
     evoked = read_evokeds(ave_fname)[0]
     cov = make_ad_hoc_cov(evoked.info)
+    cov.save(out_fname)
+    assert_true('Covariance' in repr(cov))
+    cov2 = read_cov(out_fname)
+    assert_array_almost_equal(cov['data'], cov2['data'])
+    std = dict(grad=2e-13, mag=10e-15, eeg=0.1e-6)
+    cov = make_ad_hoc_cov(evoked.info, std)
     cov.save(out_fname)
     assert_true('Covariance' in repr(cov))
     cov2 = read_cov(out_fname)
@@ -347,9 +359,11 @@ def test_regularize_cov():
     reg_noise_cov = regularize(noise_cov, raw.info,
                                mag=0.1, grad=0.1, eeg=0.1, proj=True,
                                exclude='bads')
-    assert_true(noise_cov['dim'] == reg_noise_cov['dim'])
-    assert_true(noise_cov['data'].shape == reg_noise_cov['data'].shape)
-    assert_true(np.mean(noise_cov['data'] < reg_noise_cov['data']) < 0.08)
+    assert noise_cov['dim'] == reg_noise_cov['dim']
+    assert noise_cov['data'].shape == reg_noise_cov['data'].shape
+    assert np.mean(noise_cov['data'] < reg_noise_cov['data']) < 0.08
+    # make sure all args are represented
+    assert set(_DATA_CH_TYPES_SPLIT) - set(_get_args(regularize)) == set()
 
 
 def test_whiten_evoked():
@@ -633,6 +647,35 @@ def test_compute_covariance_auto_reg():
     # invalid scalings
     assert_raises(ValueError, compute_covariance, epochs, method='shrunk',
                   scalings=dict(misc=123))
+
+
+@testing.requires_testing_data
+@requires_version('sklearn', '0.15')
+def test_cov_ctf():
+    """Test basic cov computation on ctf data with/without compensation."""
+    raw = read_raw_ctf(ctf_fname, preload=True)
+    events = make_fixed_length_events(raw, 99999)
+    ch_names = [raw.info['ch_names'][pick]
+                for pick in pick_types(raw.info, meg=True, eeg=False,
+                                       ref_meg=False)]
+
+    for comp in [0, 1]:
+        raw.apply_gradient_compensation(comp)
+        epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
+        noise_cov = compute_covariance(epochs, tmax=0., method=['shrunk'])
+        prepare_noise_cov(noise_cov, raw.info, ch_names)
+
+    raw.apply_gradient_compensation(0)
+    epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
+    noise_cov = compute_covariance(epochs, tmax=0., method=['shrunk'])
+    raw.apply_gradient_compensation(1)
+
+    # TODO This next call in principle should fail.
+    prepare_noise_cov(noise_cov, raw.info, ch_names)
+
+    # make sure comps matrices was not removed from raw
+    if not raw.info['comps']:
+        raise RuntimeError('Comps matrices removed')
 
 
 run_tests_if_main()

@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 r"""
-.. _tut_background_filtering:
-
 ===================================
 Background information on filtering
 ===================================
@@ -13,7 +11,8 @@ filter design can be found in Parks & Burrus [1]_ and
 Ifeachor and Jervis [2]_, and for filtering in an
 M/EEG context we recommend reading Widmann *et al.* 2015 [7]_.
 To see how to use the default filters in MNE-Python on actual data, see
-the :ref:`tut_artifacts_filter` tutorial.
+the :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_filtering.py`
+tutorial.
 
 .. contents::
     :local:
@@ -447,8 +446,9 @@ def plot_signal(x, offset):
     mask = freqs >= 0
     X = X[mask]
     freqs = freqs[mask]
-    axes[1].plot(freqs, 20 * np.log10(np.abs(X)))
+    axes[1].plot(freqs, 20 * np.log10(np.maximum(np.abs(X), 1e-16)))
     axes[1].set(xlim=flim)
+
 
 yticks = np.arange(7) / -30.
 yticklabels = ['Original', 'Noisy', 'FIR-firwin (0.16)', 'FIR-firwin2 (0.14)',
@@ -732,6 +732,7 @@ def baseline_plot(x):
     plt.suptitle(title)
     plt.show()
 
+
 baseline_plot(x)
 
 ###############################################################################
@@ -853,7 +854,8 @@ baseline_plot(x)
 #
 # For more information on how to use the
 # MNE-Python filtering functions with real data, consult the preprocessing
-# tutorial on :ref:`tut_artifacts_filter`.
+# tutorial on
+# :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_filtering.py`.
 #
 # Defaults in MNE-C
 # -----------------

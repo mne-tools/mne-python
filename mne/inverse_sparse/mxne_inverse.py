@@ -341,7 +341,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     return_as_dipoles : bool
         If True, the sources are returned as a list of Dipole instances.
     dgap_freq : int or np.inf
-        The duality gap is evaluated every dgap_freq iterations.
+        The duality gap is evaluated every dgap_freq iterations. Ignored if
+        solver is 'cd'.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -376,6 +377,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     if n_mxne_iter < 1:
         raise ValueError('MxNE has to be computed at least 1 time. '
                          'Requires n_mxne_iter >= 1, got %d' % n_mxne_iter)
+    if dgap_freq <= 0.:
+        raise ValueError('dgap_freq must be a positive integer.'
+                         ' Got dgap_freq = %s' % dgap_freq)
 
     if not isinstance(evoked, list):
         evoked = [evoked]
@@ -424,12 +428,12 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         X, active_set, E = mixed_norm_solver(
             M, gain, alpha, maxit=maxit, tol=tol,
             active_set_size=active_set_size, n_orient=n_dip_per_pos,
-            debias=debias, solver=solver, verbose=verbose)
+            debias=debias, solver=solver, dgap_freq=dgap_freq, verbose=verbose)
     else:
         X, active_set, E = iterative_mixed_norm_solver(
             M, gain, alpha, n_mxne_iter, maxit=maxit, tol=tol,
             n_orient=n_dip_per_pos, active_set_size=active_set_size,
-            debias=debias, solver=solver, verbose=verbose)
+            debias=debias, solver=solver, dgap_freq=dgap_freq, verbose=verbose)
 
     if time_pca:
         X = np.dot(X, Vh)
@@ -558,11 +562,17 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
         If True the rank of the data is reduced to true dimension.
     debias: bool
         Remove coefficient amplitude bias due to L1 penalty.
-    wsize: int
+    wsize: int or array-like
         Length of the STFT window in samples (must be a multiple of 4).
-    tstep: int
+        If an array is passed, multiple TF dictionaries are used (each having
+        its own wsize and tstep) and each entry of wsize must be a multiple
+        of 4. See [3]_.
+    tstep: int or array-like
         Step between successive windows in samples (must be a multiple of 2,
         a divider of wsize and smaller than wsize/2) (default: wsize/2).
+        If an array is passed, multiple TF dictionaries are used (each having
+        its own wsize and tstep), and each entry of tstep must be a multiple
+        of 2 and divide the corresponding entry of wsize. See [3]_.
     window : float or (float, float)
         Length of time window used to take care of edge artifacts in seconds.
         It can be one float or float if the values are different for left
@@ -614,6 +624,12 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
        Proceedings Information Processing in Medical Imaging
        Lecture Notes in Computer Science, Volume 6801/2011, pp. 600-611, 2011.
        DOI: 10.1007/978-3-642-22092-0_49
+
+    .. [3] Y. Bekhti, D. Strohmeier, M. Jas, R. Badeau, A. Gramfort.
+       "M/EEG source localization with multiscale time-frequency dictionaries",
+       6th International Workshop on Pattern Recognition in Neuroimaging
+       (PRNI), 2016.
+       DOI: 10.1109/PRNI.2016.7552337
     """
     _check_reference(evoked)
 
@@ -646,6 +662,17 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
         raise ValueError('alpha_time must be in range [0, 100].'
                          ' Got alpha_time = %s' % alpha_time)
 
+    if dgap_freq <= 0.:
+        raise ValueError('dgap_freq must be a positive integer.'
+                         ' Got dgap_freq = %s' % dgap_freq)
+
+    tstep = np.atleast_1d(tstep)
+    wsize = np.atleast_1d(wsize)
+    if len(tstep) != len(wsize):
+        raise ValueError('The same number of window sizes and steps must be '
+                         'passed. Got tstep = %s and wsize = %s' %
+                         (tstep, wsize))
+
     loose, forward = _check_loose_forward(loose, forward)
 
     # put the forward solution in fixed orientation if it's not already
@@ -670,10 +697,11 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
     M = np.dot(whitener, M)
 
     # Scaling to make setting of alpha easy
-    n_steps = int(np.ceil(M.shape[1] / float(tstep)))
+    n_steps = np.ceil(M.shape[1] / tstep.astype(float)).astype(int)
     n_freqs = wsize // 2 + 1
     n_coefs = n_steps * n_freqs
     phi = _Phi(wsize, tstep, n_coefs)
+
     if old_parametrization:
         alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos)
     else:

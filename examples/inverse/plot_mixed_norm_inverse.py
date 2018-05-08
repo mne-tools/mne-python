@@ -92,9 +92,9 @@ plot_dipole_locations(dipoles[idx], forward['mri_head_t'], 'sample',
 # Plot residual
 ylim = dict(eeg=[-10, 10], grad=[-400, 400], mag=[-600, 600])
 evoked.pick_types(meg=True, eeg=True, exclude='bads')
-evoked.plot(ylim=ylim, proj=True)
+evoked.plot(ylim=ylim, proj=True, time_unit='s')
 residual.pick_types(meg=True, eeg=True, exclude='bads')
-residual.plot(ylim=ylim, proj=True)
+residual.plot(ylim=ylim, proj=True, time_unit='s')
 
 ###############################################################################
 # Generate stc from dipoles

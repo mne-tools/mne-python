@@ -185,7 +185,7 @@ class RawEGI(BaseRaw):
             logger.info('    Reading events ...')
             egi_events = _read_events(fid, egi_info)  # update info + jump
             if egi_info['value_range'] != 0 and egi_info['bits'] != 0:
-                cal = egi_info['value_range'] / 2 ** egi_info['bits']
+                cal = egi_info['value_range'] / 2. ** egi_info['bits']
             else:
                 cal = 1e-6
 

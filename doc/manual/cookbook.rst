@@ -145,8 +145,8 @@ Rejection using annotations
 The reject keyword of :class:`mne.Epochs` is used for rejecting bad epochs
 based on peak-to-peak thresholds. Bad segments of data can also be rejected
 by marking segments of raw data with annotations. See
-:ref:`tut_artifacts_reject` and :class:`mne.Annotations` for more
-information.
+:ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_rejection.py`
+and :class:`mne.Annotations` for more .
 
 Once the :class:`mne.Epochs` are constructed, they can be averaged to obtain
 :class:`mne.Evoked` data as::

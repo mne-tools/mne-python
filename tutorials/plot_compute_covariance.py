@@ -119,7 +119,7 @@ noise_cov_reg = mne.compute_covariance(epochs, tmax=0., method='auto')
 # of freedom, e.g. ``ddof=3`` with 2 active SSP vectors):
 
 evoked = epochs.average()
-evoked.plot_white(noise_cov_reg)
+evoked.plot_white(noise_cov_reg, time_unit='s')
 
 ###############################################################################
 # This plot displays both, the whitened evoked signals for each channels and
@@ -141,12 +141,12 @@ evoked.plot_white(noise_cov_reg)
 #
 # For expert use cases or debugging the alternative estimators can also be
 # compared (see
-# :ref:`sphx_glr_auto_examples_visualization_plot_evoked_whitening.py`)
-# and :ref:`sphx_glr_auto_examples_visualization_plot_covariance_whitening_dspm.py'):  # noqa
+# :ref:`sphx_glr_auto_examples_visualization_plot_evoked_whitening.py`) and
+# :ref:`sphx_glr_auto_examples_inverse_plot_covariance_whitening_dspm.py`):
 
 noise_covs = mne.compute_covariance(
     epochs, tmax=0., method=('empirical', 'shrunk'), return_estimators=True)
-evoked.plot_white(noise_covs)
+evoked.plot_white(noise_covs, time_unit='s')
 
 
 ##############################################################################
@@ -163,7 +163,7 @@ noise_cov_meg = mne.pick_channels_cov(noise_cov_baseline, evoked_meg.ch_names)
 noise_cov['method'] = 'empty_room'
 noise_cov_meg['method'] = 'baseline'
 
-evoked_meg.plot_white([noise_cov_meg, noise_cov])
+evoked_meg.plot_white([noise_cov_meg, noise_cov], time_unit='s')
 
 
 ##############################################################################

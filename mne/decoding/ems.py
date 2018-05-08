@@ -28,9 +28,9 @@ class EMS(TransformerMixin, EstimatorMixin):
 
     Attributes
     ----------
-    ``filters_`` : ndarray, shape (n_channels, n_times)
+    filters_ : ndarray, shape (n_channels, n_times)
         The set of spatial filters.
-    ``classes_`` : ndarray, shape (n_classes,)
+    classes_ : ndarray, shape (n_classes,)
         The target classes.
 
     References

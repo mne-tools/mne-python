@@ -111,7 +111,7 @@ def test_array_raw():
     epochs.plot_drop_log()
     epochs.plot()
     evoked = epochs.average()
-    evoked.plot()
+    evoked.plot(time_unit='s')
     assert_equal(evoked.nave, len(events) - 1)
     plt.close('all')
 

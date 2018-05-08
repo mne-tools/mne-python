@@ -9,24 +9,25 @@ from scipy import linalg, fftpack
 from ..io.constants import FIFF
 from ..source_estimate import _make_stc
 from ..time_frequency.tfr import cwt, morlet
-from ..time_frequency.multitaper import (dpss_windows, _psd_from_mt,
+from ..time_frequency.multitaper import (_psd_from_mt, _compute_mt_params,
                                          _psd_from_mt_adaptive, _mt_spectra)
 from ..baseline import rescale, _log_rescale
 from .inverse import (combine_xyz, prepare_inverse_operator, _assemble_kernel,
                       _pick_channels_inverse_operator, _check_method,
                       _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose
 from ..externals import six
 
 
 def _prepare_source_params(inst, inverse_operator, label=None,
                            lambda2=1.0 / 9.0, method="dSPM", nave=1,
                            decim=1, pca=True, pick_ori="normal",
-                           prepared=False, verbose=None):
+                           prepared=False, method_params=None, verbose=None):
     """Prepare inverse operator and params for spectral / TFR analysis."""
     if not prepared:
-        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method,
+                                       method_params)
     else:
         inv = inverse_operator
     #
@@ -63,7 +64,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
                               n_cycles=5, df=1, use_fft=False, decim=1,
                               baseline=None, baseline_mode='logratio',
                               pca=True, n_jobs=1, prepared=False,
-                              verbose=None):
+                              method_params=None, verbose=None):
     """Compute source space induced power in given frequency bands.
 
     Parameters
@@ -78,8 +79,8 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         Restricts the source estimates to a given label.
     lambda2 : float
         The regularization parameter of the minimum norm.
-    method : "MNE" | "dSPM" | "sLORETA"
-        Use mininum norm, dSPM or sLORETA.
+    method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
+        Use mininum norm, dSPM (default), sLORETA, or eLORETA.
     nave : int
         The number of averages used to scale the noise covariance matrix.
     n_cycles : float | array of float
@@ -118,7 +119,11 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     n_jobs : int
         Number of jobs to run in parallel.
     prepared : bool
-        If True, do not call `prepare_inverse_operator`.
+        If True, do not call :func:`prepare_inverse_operator`.
+    method_params : dict | None
+        Additional options for eLORETA. See Notes of :func:`apply_inverse`.
+
+        .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -137,7 +142,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         epochs, inverse_operator, freqs, label=label, lambda2=lambda2,
         method=method, nave=nave, n_cycles=n_cycles, decim=decim,
         use_fft=use_fft, pca=pca, n_jobs=n_jobs, with_plv=False,
-        prepared=prepared)
+        prepared=prepared, method_params=method_params)
 
     Fs = epochs.info['sfreq']  # sampling in Hz
     stcs = dict()
@@ -260,13 +265,13 @@ def _source_induced_power(epochs, inverse_operator, freqs, label=None,
                           lambda2=1.0 / 9.0, method="dSPM", nave=1, n_cycles=5,
                           decim=1, use_fft=False, pca=True, pick_ori="normal",
                           n_jobs=1, with_plv=True, zero_mean=False,
-                          prepared=False, verbose=None):
+                          prepared=False, method_params=None, verbose=None):
     """Aux function for source induced power."""
     epochs_data = epochs.get_data()
     K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
         inst=epochs, inverse_operator=inverse_operator, label=label,
         lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
-        prepared=prepared, verbose=verbose)
+        prepared=prepared, method_params=method_params, verbose=verbose)
 
     inv = inverse_operator
     parallel, my_compute_source_tfrs, n_jobs = parallel_func(
@@ -306,7 +311,7 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
                          decim=1, use_fft=False, pick_ori=None,
                          baseline=None, baseline_mode='logratio', pca=True,
                          n_jobs=1, zero_mean=False, prepared=False,
-                         verbose=None):
+                         method_params=None, verbose=None):
     """Compute induced power and phase lock.
 
     Computation can optionaly be restricted in a label.
@@ -323,8 +328,8 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
         Restricts the source estimates to a given label.
     lambda2 : float
         The regularization parameter of the minimum norm.
-    method : "MNE" | "dSPM" | "sLORETA"
-        Use mininum norm, dSPM or sLORETA.
+    method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
+        Use mininum norm, dSPM (default), sLORETA, or eLORETA.
     nave : int
         The number of averages used to scale the noise covariance matrix.
     n_cycles : float | array of float
@@ -369,7 +374,9 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
     zero_mean : bool
         Make sure the wavelets are zero mean.
     prepared : bool
-        If True, do not call `prepare_inverse_operator`.
+        If True, do not call :func:`prepare_inverse_operator`.
+    method_params : dict | None
+        Additional options for eLORETA. See Notes of :func:`apply_inverse`.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -381,7 +388,7 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
         epochs, inverse_operator, freqs, label=label, lambda2=lambda2,
         method=method, nave=nave, n_cycles=n_cycles, decim=decim,
         use_fft=use_fft, pick_ori=pick_ori, pca=pca, n_jobs=n_jobs,
-        prepared=False)
+        prepared=False, method_params=method_params)
 
     # Run baseline correction
     power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
@@ -393,7 +400,8 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
 def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                        tmin=None, tmax=None, fmin=0., fmax=200.,
                        n_fft=2048, overlap=0.5, pick_ori=None, label=None,
-                       nave=1, pca=True, prepared=False, verbose=None):
+                       nave=1, pca=True, prepared=False, method_params=None,
+                       verbose=None):
     """Compute source power spectrum density (PSD).
 
     Parameters
@@ -405,7 +413,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     lambda2: float
         The regularization parameter
     method: "MNE" | "dSPM" | "sLORETA"
-        Use mininum norm, dSPM or sLORETA
+        Use mininum norm, dSPM (default), sLORETA, or eLORETA.
     tmin : float | None
         The beginning of the time interval of interest (in seconds). If None
         start from the beginning of the file.
@@ -434,7 +442,11 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         the time-frequency transforms. It reduces the computation times
         e.g. with a dataset that was maxfiltered (true dim is 64).
     prepared : bool
-        If True, do not call `prepare_inverse_operator`.
+        If True, do not call :func:`prepare_inverse_operator`.
+    method_params : dict | None
+        Additional options for eLORETA. See Notes of :func:`apply_inverse`.
+
+        .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -452,7 +464,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
         inst=raw, inverse_operator=inverse_operator, label=label,
         lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
-        prepared=prepared, verbose=verbose)
+        prepared=prepared, method_params=method_params, verbose=verbose)
 
     start, stop = 0, raw.last_samp + 1 - raw.first_samp
     if tmin is not None:
@@ -513,14 +525,15 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                                pick_ori=None, label=None, nave=1,
                                pca=True, inv_split=None, bandwidth=4.,
                                adaptive=False, low_bias=True, n_jobs=1,
-                               prepared=False, verbose=None):
+                               prepared=False, method_params=None,
+                               verbose=None):
     """Generate compute_source_psd_epochs."""
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
     K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
         inst=epochs, inverse_operator=inverse_operator, label=label,
         lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
-        prepared=prepared, verbose=verbose)
+        prepared=prepared, method_params=method_params, verbose=verbose)
 
     # split the inverse operator
     if inv_split is not None:
@@ -532,24 +545,12 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     n_times = len(epochs.times)
     sfreq = epochs.info['sfreq']
 
-    # compute standardized half-bandwidth
-    half_nbw = float(bandwidth) * n_times / (2 * sfreq)
-    if half_nbw < 0.5:
-        warn('Bandwidth too small, using minimum (normalized 0.5)')
-        half_nbw = 0.5
-    n_tapers_max = int(2 * half_nbw)
+    dpss, eigvals, adaptive = _compute_mt_params(
+        n_times, sfreq, bandwidth, low_bias, adaptive, verbose=False)
 
-    dpss, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
-                                 low_bias=low_bias)
     n_tapers = len(dpss)
-
     logger.info('Using %d tapers with bandwidth %0.1fHz'
                 % (n_tapers, bandwidth))
-
-    if adaptive and len(eigvals) < 3:
-        warn('Not adaptively combining the spectral estimators '
-             'due to a low number of tapers.')
-        adaptive = False
 
     if adaptive:
         parallel, my_psd_from_mt_adaptive, n_jobs = \
@@ -623,7 +624,8 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               pca=True, inv_split=None, bandwidth=4.,
                               adaptive=False, low_bias=True,
                               return_generator=False, n_jobs=1,
-                              prepared=False, verbose=None):
+                              prepared=False, method_params=None,
+                              verbose=None):
     """Compute source power spectrum density (PSD) from Epochs.
 
     This uses the multi-taper method to compute the PSD.
@@ -636,8 +638,8 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         The inverse operator.
     lambda2 : float
         The regularization parameter.
-    method : "MNE" | "dSPM" | "sLORETA"
-        Use mininum norm, dSPM or sLORETA.
+    method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
+        Use mininum norm, dSPM (default), sLORETA, or eLORETA.
     fmin : float
         The lower frequency of interest.
     fmax : float
@@ -670,7 +672,11 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
     prepared : bool
-        If True, do not call `prepare_inverse_operator`.
+        If True, do not call :func:`prepare_inverse_operator`.
+    method_params : dict | None
+        Additional options for eLORETA. See Notes of :func:`apply_inverse`.
+
+        .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -681,16 +687,12 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         The source space PSDs for each epoch.
     """
     # use an auxiliary function so we can either return a generator or a list
-    stcs_gen = _compute_source_psd_epochs(epochs, inverse_operator,
-                                          lambda2=lambda2, method=method,
-                                          fmin=fmin, fmax=fmax,
-                                          pick_ori=pick_ori, label=label,
-                                          nave=nave, pca=pca,
-                                          inv_split=inv_split,
-                                          bandwidth=bandwidth,
-                                          adaptive=adaptive,
-                                          low_bias=low_bias, n_jobs=n_jobs,
-                                          prepared=prepared)
+    stcs_gen = _compute_source_psd_epochs(
+        epochs, inverse_operator, lambda2=lambda2, method=method,
+        fmin=fmin, fmax=fmax, pick_ori=pick_ori, label=label,
+        nave=nave, pca=pca, inv_split=inv_split, bandwidth=bandwidth,
+        adaptive=adaptive, low_bias=low_bias, n_jobs=n_jobs, prepared=prepared,
+        method_params=method_params)
 
     if return_generator:
         # return generator object

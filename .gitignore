@@ -41,6 +41,7 @@ MEGSIM*
 build
 coverage
 .cache/
+.pytest_cache/
 
 dist/
 doc/_build/
@@ -64,3 +65,6 @@ examples/visualization/foobar.html
 
 # sublime
 *-e
+
+# Visual Studio Code
+.vscode

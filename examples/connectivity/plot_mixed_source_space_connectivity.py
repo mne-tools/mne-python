@@ -93,7 +93,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 # Compute inverse solution and for each epoch
 snr = 1.0           # use smaller SNR for raw data
-inv_method = 'dSPM'  # sLORETA, MNE, dSPM
+inv_method = 'dSPM'
 parc = 'aparc'      # the parcellation to use, e.g., 'aparc' 'aparc.a2009s'
 
 lambda2 = 1.0 / snr ** 2

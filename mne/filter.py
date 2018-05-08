@@ -11,7 +11,7 @@ from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
 from .externals.six import string_types, integer_types
 from .fixes import get_sosfiltfilt, minimum_phase
 from .parallel import parallel_func, check_n_jobs
-from .time_frequency.multitaper import dpss_windows, _mt_spectra
+from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, check_version, warn,
                     _check_preload)
 
@@ -625,8 +625,10 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     >>> print((iir_params['b'], iir_params['a'], iir_params['padlen']))  # doctest:+SKIP
     (array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]), [1, 0], 0)
 
-    For more information, see the tutorials :ref:`tut_background_filtering`
-    and :ref:`tut_artifacts_filter`.
+    For more information, see the tutorials
+    :ref:`sphx_glr_auto_tutorials_plot_background_filtering.py`
+    and
+    :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_filtering.py`.
     """  # noqa: E501
     from scipy.signal import iirfilter, iirdesign
     known_filters = ('bessel', 'butter', 'butterworth', 'cauer', 'cheby1',
@@ -851,8 +853,10 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 
     Notes
     -----
-    For more information, see the tutorials :ref:`tut_background_filtering`
-    and :ref:`tut_artifacts_filter`, and :func:`mne.filter.create_filter`.
+    For more information, see the tutorials
+    :ref:`sphx_glr_auto_tutorials_plot_background_filtering.py`
+    and
+    :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_filtering.py`.
     """
     if not isinstance(data, np.ndarray):
         raise ValueError('data must be an array')
@@ -1353,17 +1357,10 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
     dpss_n_times_max = 1000
 
     # figure out what tapers to use
-    if mt_bandwidth is not None:
-        half_nbw = float(mt_bandwidth) * n_times / (2 * sfreq)
-    else:
-        half_nbw = 4
+    window_fun, eigvals, _ = _compute_mt_params(
+        n_times, sfreq, mt_bandwidth, False, False,
+        interp_from=min(n_times, dpss_n_times_max), verbose=False)
 
-    # compute dpss windows
-    n_tapers_max = int(2 * half_nbw)
-    window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
-                                       low_bias=False,
-                                       interp_from=min(n_times,
-                                                       dpss_n_times_max))
     # F-stat of 1-p point
     threshold = stats.f.ppf(1 - p_value / n_times, 2, 2 * len(window_fun) - 2)
 

@@ -398,7 +398,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         logger.info('Applying average reference.')
         eeg_idx = pick_types(inst.info, eeg=True, meg=False, ref_meg=False)
         ref_from = [inst.ch_names[i] for i in eeg_idx]
-        return _apply_reference(inst, ref_from)
+        ref_channels = ref_from
 
     if ref_channels == []:
         logger.info('EEG data marked as already having the desired reference. '

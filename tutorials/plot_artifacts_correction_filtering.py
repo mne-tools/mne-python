@@ -1,6 +1,4 @@
 """
-.. _tut_artifacts_filter:
-
 Filtering and resampling data
 =============================
 
@@ -16,7 +14,8 @@ the power-line frequency, e.g. 100Hz, 150Hz, ... (or 120Hz, 180Hz, ...).
 
 This tutorial covers some basics of how to filter data in MNE-Python.
 For more in-depth information about filter design in general and in
-MNE-Python in particular, check out :ref:`tut_background_filtering`.
+MNE-Python in particular, check out
+:ref:`sphx_glr_auto_tutorials_plot_background_filtering.py`.
 """
 
 import numpy as np

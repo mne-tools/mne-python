@@ -16,7 +16,7 @@ import copy
 import numpy as np
 
 from ..utils import verbose, get_config, set_config, logger, warn
-from ..io.pick import pick_types, channel_type
+from ..io.pick import pick_types, channel_type, _get_channel_types
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
@@ -167,6 +167,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
         if group_by is None:
+            logger.info("No picks and no groupby, showing the first five "
+                        "channels ...")
             picks = picks[:5]  # take 5 picks to prevent spawning many figs
     else:
         picks = np.atleast_1d(picks)
@@ -184,11 +186,10 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     if set(units.keys()) != set(scalings.keys()):
         raise ValueError('Scalings and units must have the same keys.')
 
-    ch_types = [channel_type(epochs.info, idx) for idx in picks]
+    ch_types = _get_channel_types(epochs.info, picks=picks, unique=False)
     if len(set(ch_types)) > 1 and group_by is None and combine is not None:
-        warn("Combining over multiple channel types. "
-             "Please use ``group_by``.")
-    for ch_type in ch_types:
+        warn("Combining over multiple channel types. Please use `group_by`.")
+    for ch_type in set(ch_types):
         if ch_type not in scalings:
             # We know it's not in either scalings or units since keys match
             raise KeyError('%s type not in scalings and units' % ch_type)
@@ -267,16 +268,19 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         for group, axes_dict in zip(groups, axes_list):
             ch_type = group[1]
             ax = axes_dict["evoked"]
+            this_ymin, this_ymax = these_ylims = ylims[ch_type]
+            ax.set_ylim(these_ylims)
+            yticks = np.array(ax.get_yticks())
+            max_height = yticks[yticks < this_ymax][-1]
             if not manual_ylims:
-                ax.set_ylim(ylims[ch_type])
+                ax.spines["left"].set_bounds(this_ymin, max_height)
             if len(vlines) > 0:
-                upper_v, lower_v = ylims[ch_type]
                 if overlay_times is not None:
                     overlay = {overlay_times.mean(), np.median(overlay_times)}
                 else:
                     overlay = {}
                 for line in vlines:
-                    ax.vlines(line, upper_v, lower_v, colors='k',
+                    ax.vlines(line, this_ymin, max_height, colors='k',
                               linestyles='-' if line in overlay else "--",
                               linewidth=2. if line in overlay else 1.)
 
@@ -441,6 +445,22 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
             ts_args_]
 
 
+def _make_epochs_image_axis_grid(axes_dict=dict(), colorbar=False,
+                                 evoked=False):
+    """Create axes for image plotting. Helper for plot_epochs_image."""
+    import matplotlib.pyplot as plt
+    axes_dict["image"] = axes_dict.get("image", plt.subplot2grid(
+        (3, 10), (0, 0), colspan=9 if colorbar else 10,
+        rowspan=2 if evoked else 3))
+    if evoked:
+        axes_dict["evoked"] = plt.subplot2grid(
+            (3, 10), (2, 0), colspan=9 if colorbar else 10, rowspan=1)
+    if colorbar:
+        axes_dict["colorbar"] = plt.subplot2grid(
+            (3, 10), (0, 9), colspan=1, rowspan=2 if evoked else 3)
+    return axes_dict
+
+
 def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
     """Prepare axes for image plotting. Helper for plot_epochs_image."""
     import matplotlib.pyplot as plt
@@ -450,15 +470,8 @@ def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
         if fig is None:
             fig = plt.figure()
         plt.figure(fig.number)
-        axes_dict["image"] = plt.subplot2grid(
-            (3, 10), (0, 0), colspan=9 if colorbar else 10,
-            rowspan=2 if evoked else 3)
-        if evoked:
-            axes_dict["evoked"] = plt.subplot2grid(
-                (3, 10), (2, 0), colspan=9 if colorbar else 10, rowspan=1)
-        if colorbar:
-            axes_dict["colorbar"] = plt.subplot2grid((3, 10), (0, 9),
-                                                     colspan=1, rowspan=3)
+        axes_dict = _make_epochs_image_axis_grid(
+            axes_dict, colorbar, evoked)
     else:
         if fig is not None:
             raise ValueError('Both figure and axes were passed, please'
@@ -910,10 +923,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                             color=color, alpha=area_alpha)
         if make_label:
             if ii == len(picks_list) - 1:
-                ax.set_xlabel('Freq (Hz)')
-            ax.set_ylabel(ylabel)
-            ax.set_title(title)
-            ax.set_xlim(freqs[0], freqs[-1])
+                ax.set_xlabel('Frequency (Hz)')
+            ax.set(ylabel=ylabel, title=title, xlim=(freqs[0], freqs[-1]))
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
     plt_show(show)
@@ -1942,7 +1953,7 @@ def _plot_histogram(params):
     for idx in range(len(types)):
         ax = plt.subplot(len(types), 1, idx + 1)
         plt.xlabel(units[types[idx]])
-        plt.ylabel('count')
+        plt.ylabel('Count')
         color = colors[types[idx]]
         rej = None
         if epochs.reject is not None and types[idx] in epochs.reject.keys():

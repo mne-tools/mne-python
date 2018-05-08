@@ -19,8 +19,8 @@ def check_cola(win, nperseg, noverlap, tol=1e-10):
         raise ValueError('noverlap must be less than nperseg.')
     noverlap = int(noverlap)
     step = nperseg - noverlap
-    binsums = np.sum((win[ii * step:(ii + 1) * step]
-                      for ii in range(nperseg // step)), axis=0)
+    binsums = np.sum([win[ii * step:(ii + 1) * step]
+                      for ii in range(nperseg // step)], axis=0)
     if nperseg % step != 0:
         binsums[:nperseg % step] += win[-(nperseg % step):]
     deviation = binsums - np.median(binsums)

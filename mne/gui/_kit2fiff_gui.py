@@ -23,7 +23,7 @@ from pyface.api import (confirm, error, FileDialog, OK, YES, information,
                         ProgressDialog, warning)
 from traits.api import (HasTraits, HasPrivateTraits, cached_property, Instance,
                         Property, Bool, Button, Enum, File, Float, Int, List,
-                        Str, Array, DelegatesTo)
+                        Str, Array, DelegatesTo, on_trait_change)
 from traits.trait_base import ETSConfig
 from traitsui.api import (View, Item, HGroup, VGroup, spring, TextEditor,
                           CheckListEditor, EnumEditor, Handler)
@@ -576,17 +576,34 @@ class Kit2FiffPanel(HasPrivateTraits):
         # setup mayavi visualization
         self.fid_obj = PointObject(scene=self.scene, color=(0.1, 1., 0.1),
                                    point_scale=5e-3, name='Fiducials')
+        self._update_fid()
         self.elp_obj = PointObject(scene=self.scene,
                                    color=(0.196, 0.196, 0.863),
                                    point_scale=1e-2, opacity=.2, name='ELP')
+        self._update_elp()
         self.hsp_obj = PointObject(scene=self.scene, color=(0.784,) * 3,
                                    point_scale=2e-3, name='HSP')
-        for name in ('fid', 'elp', 'hsp'):
-            obj = getattr(self, name + '_obj')
-            self.model.sync_trait(name, obj, 'points', mutual=False)
-            self.model.sync_trait('head_dev_trans', obj, 'trans', mutual=False)
+        self._update_hsp()
         self.scene.camera.parallel_scale = 0.15
         self.scene.mlab.view(0, 0, .15)
+
+    @on_trait_change('model:fid,model:head_dev_trans')
+    def _update_fid(self):
+        if self.fid_obj is not None:
+            self.fid_obj.points = apply_trans(self.model.head_dev_trans,
+                                              self.model.fid)
+
+    @on_trait_change('model:hsp,model:head_dev_trans')
+    def _update_hsp(self):
+        if self.hsp_obj is not None:
+            self.hsp_obj.points = apply_trans(self.model.head_dev_trans,
+                                              self.model.hsp)
+
+    @on_trait_change('model:elp,model:head_dev_trans')
+    def _update_elp(self):
+        if self.elp_obj is not None:
+            self.elp_obj.points = apply_trans(self.model.head_dev_trans,
+                                              self.model.elp)
 
     def _clear_all_fired(self):
         self.model.clear_all()

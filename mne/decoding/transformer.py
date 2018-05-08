@@ -233,7 +233,7 @@ class Vectorizer(TransformerMixin):
 
     Attributes
     ----------
-    ``features_shape_`` : tuple
+    features_shape_ : tuple
          Stores the original shape of data.
     """
 

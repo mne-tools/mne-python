@@ -11,7 +11,7 @@ to simple visual stimuli - is read in and response times are calculated.
 Regions of Interest are determined by the channel types (in 10/20 channel
 notation, even channels are right, odd are left, and 'z' are central). The
 median and the Global Field Power within each channel group is calculated,
-and the trials are plotted, sorted by response time.
+and the trials are plotted, sorting by response time.
 """
 # Authors: Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
@@ -61,7 +61,7 @@ order = rts.argsort()  # sorting from fast to slow trials
 rois = dict()
 for pick, channel in enumerate(epochs.ch_names):
     last_char = channel[-1]  # for 10/20, last letter codes the hemisphere
-    roi = ("Midline" if last_char == "z" else
+    roi = ("Midline" if last_char in "z12" else
            ("Left" if int(last_char) % 2 else "Right"))
     rois[roi] = rois.get(roi, list()) + [pick]
 

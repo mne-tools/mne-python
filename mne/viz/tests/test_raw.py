@@ -6,14 +6,15 @@ import numpy as np
 import os.path as op
 import warnings
 import itertools
+from distutils.version import LooseVersion
 
-from numpy.testing import assert_raises, assert_equal
+from numpy.testing import assert_raises, assert_allclose
 
 from mne import read_events, pick_types, Annotations
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.utils import requires_version, run_tests_if_main
-from mne.viz.utils import _fake_click, _annotation_radio_clicked
+from mne.viz.utils import _fake_click, _annotation_radio_clicked, _sync_onset
 from mne.viz import plot_raw, plot_sensors
 
 # Set our plotters to test mode
@@ -47,14 +48,27 @@ def _get_events():
     return read_events(event_name)
 
 
-def _annotation_helper(raw):
+def _annotation_helper(raw, events=False):
     """Helper for testing interactive annotations."""
     import matplotlib.pyplot as plt
+    # Some of our checks here require modern mpl to work properly
+    mpl_good_enough = LooseVersion(matplotlib.__version__) >= '2.0'
     n_anns = 0 if raw.annotations is None else len(raw.annotations.onset)
+    plt.close('all')
 
-    fig = raw.plot()
+    if events:
+        events = np.array([[raw.first_samp + 100, 0, 1],
+                           [raw.first_samp + 300, 0, 3]])
+        n_events = len(events)
+    else:
+        events = None
+        n_events = 0
+    fig = raw.plot(events=events)
+    assert len(plt.get_fignums()) == 1
     data_ax = fig.axes[0]
     fig.canvas.key_press_event('a')  # annotation mode
+    assert len(plt.get_fignums()) == 2
+    assert len(fig.axes[0].texts) == n_anns + n_events
     # modify description
     ann_fig = plt.gcf()
     for key in ' test':
@@ -69,6 +83,15 @@ def _annotation_helper(raw):
     _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
     _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='motion')
     _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='release')
+    assert len(raw.annotations.onset) == n_anns + 1
+    assert len(raw.annotations.duration) == n_anns + 1
+    assert len(raw.annotations.description) == n_anns + 1
+    assert raw.annotations.description[n_anns] == 'BAD_ test'
+    assert len(fig.axes[0].texts) == n_anns + 1 + n_events
+    onset = raw.annotations.onset[n_anns]
+    want_onset = _sync_onset(raw, 1., inverse=True)
+    assert_allclose(onset, want_onset)
+    assert_allclose(raw.annotations.duration[n_anns], 4.)
     # hover event
     _fake_click(fig, data_ax, [4.5, 1.], xform='data', button=None,
                 kind='motion')
@@ -79,27 +102,48 @@ def _annotation_helper(raw):
     _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1, kind='motion')
     _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1,
                 kind='release')
+    if mpl_good_enough:
+        assert raw.annotations.onset[n_anns] == onset
+        assert_allclose(raw.annotations.duration[n_anns], 1.5)
     # modify annotation from beginning
     _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
-    _fake_click(fig, data_ax, [1.1, 1.], xform='data', button=1, kind='motion')
-    _fake_click(fig, data_ax, [1.1, 1.], xform='data', button=1,
+    _fake_click(fig, data_ax, [0.5, 1.], xform='data', button=1, kind='motion')
+    _fake_click(fig, data_ax, [0.5, 1.], xform='data', button=1,
                 kind='release')
-    assert_equal(len(raw.annotations.onset), n_anns + 1)
-    assert_equal(len(raw.annotations.duration), n_anns + 1)
-    assert_equal(len(raw.annotations.description), n_anns + 1)
-    assert_equal(raw.annotations.description[n_anns], 'BAD_ test')
+    if mpl_good_enough:
+        assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
+        assert_allclose(raw.annotations.duration[n_anns], 2.0)
+    assert len(raw.annotations.onset) == n_anns + 1
+    assert len(raw.annotations.duration) == n_anns + 1
+    assert len(raw.annotations.description) == n_anns + 1
+    assert raw.annotations.description[n_anns] == 'BAD_ test'
+    assert len(fig.axes[0].texts) == n_anns + 1 + n_events
+    fig.canvas.key_press_event('shift+right')
+    assert len(fig.axes[0].texts) == 0
+    fig.canvas.key_press_event('shift+left')
+    assert len(fig.axes[0].texts) == n_anns + 1 + n_events
 
     # draw another annotation merging the two
     _fake_click(fig, data_ax, [5.5, 1.], xform='data', button=1, kind='press')
     _fake_click(fig, data_ax, [2., 1.], xform='data', button=1, kind='motion')
     _fake_click(fig, data_ax, [2., 1.], xform='data', button=1, kind='release')
     # delete the annotation
+    assert len(raw.annotations.onset) == n_anns + 1
+    assert len(raw.annotations.duration) == n_anns + 1
+    assert len(raw.annotations.description) == n_anns + 1
+    if mpl_good_enough:
+        assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
+        assert_allclose(raw.annotations.duration[n_anns], 5.0)
+    assert len(fig.axes[0].texts) == n_anns + 1 + n_events
+    # Delete
     _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3, kind='press')
     fig.canvas.key_press_event('a')  # exit annotation mode
-
-    assert_equal(len(raw.annotations.onset), n_anns)
-    assert_equal(len(raw.annotations.duration), n_anns)
-    assert_equal(len(raw.annotations.description), n_anns)
+    assert len(raw.annotations.onset) == n_anns
+    assert len(fig.axes[0].texts) == n_anns + n_events
+    fig.canvas.key_press_event('shift+right')
+    assert len(fig.axes[0].texts) == 0
+    fig.canvas.key_press_event('shift+left')
+    assert len(fig.axes[0].texts) == n_anns + n_events
     plt.close('all')
 
 
@@ -219,13 +263,12 @@ def test_plot_annotations():
     """Test annotation mode of the plotter."""
     raw = _get_raw()
     raw.info['lowpass'] = 10.
-    with warnings.catch_warnings(record=True):  # matplotlib
-        _annotation_helper(raw)
+    _annotation_helper(raw)
+    _annotation_helper(raw, events=True)
 
     with warnings.catch_warnings(record=True):  # cut off
         raw.annotations = Annotations([42], [1], 'test', raw.info['meas_date'])
-    with warnings.catch_warnings(record=True):  # matplotlib
-        _annotation_helper(raw)
+    _annotation_helper(raw)
 
 
 @requires_version('scipy', '0.10')
@@ -283,12 +326,19 @@ def test_plot_raw_psd():
         for dB, estimate in itertools.product((True, False),
                                               ('power', 'amplitude')):
             raw.plot_psd(average=True, dB=dB, estimate=estimate)
-    assert_equal(len(w), 4)
+    assert len(w) == 4
     # test reject_by_annotation
     raw = _get_raw()
     raw.annotations = Annotations([1, 5], [3, 3], ['test', 'test'])
     raw.plot_psd(reject_by_annotation=True)
     raw.plot_psd(reject_by_annotation=False)
+
+    # gh-5046
+    raw = read_raw_fif(raw_fname, preload=True).crop(0, 1)
+    picks = pick_types(raw.info)
+    raw.plot_psd(picks=picks, average=False)
+    raw.plot_psd(picks=picks, average=True)
+    plt.close('all')
 
 
 def test_plot_sensors():
@@ -314,7 +364,7 @@ def test_plot_sensors():
     # Click with no sensors
     _fake_click(fig, ax, (0., 0.), xform='data')
     _fake_click(fig, ax, (0, 0.), xform='data', kind='release')
-    assert_equal(len(fig.lasso.selection), 0)
+    assert len(fig.lasso.selection) == 0
 
     # Lasso with 1 sensor
     _fake_click(fig, ax, (-0.5, 0.5), xform='data')
@@ -323,12 +373,12 @@ def test_plot_sensors():
     _fake_click(fig, ax, (0., 0.), xform='data', kind='motion')
     fig.canvas.key_press_event('control')
     _fake_click(fig, ax, (-0.5, 0.), xform='data', kind='release')
-    assert_equal(len(fig.lasso.selection), 1)
+    assert len(fig.lasso.selection) == 1
 
     _fake_click(fig, ax, (-0.09, -0.43), xform='data')  # single selection
-    assert_equal(len(fig.lasso.selection), 2)
+    assert len(fig.lasso.selection) == 2
     _fake_click(fig, ax, (-0.09, -0.43), xform='data')  # deselect
-    assert_equal(len(fig.lasso.selection), 1)
+    assert len(fig.lasso.selection) == 1
     plt.close('all')
 
 

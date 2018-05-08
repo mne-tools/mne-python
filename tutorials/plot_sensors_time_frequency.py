@@ -8,8 +8,8 @@ Frequency and time-frequency sensors analysis
 The objective is to show you how to explore the spectral content
 of your data (frequency and time-frequency). Here we'll work on Epochs.
 
-We will use the somatosensory dataset that contains so
-called event related synchronizations (ERS) / desynchronizations (ERD) in
+We will use the somatosensory dataset that contains so-called
+event related synchronizations (ERS) / desynchronizations (ERD) in
 the beta band.
 """
 
@@ -64,7 +64,7 @@ epochs.plot_psd_topomap(ch_type='grad', normalize=True)
 
 f, ax = plt.subplots()
 psds, freqs = psd_multitaper(epochs, fmin=2, fmax=40, n_jobs=1)
-psds = 10 * np.log10(psds)
+psds = 10. * np.log10(psds)
 psds_mean = psds.mean(0).mean(0)
 psds_std = psds.mean(0).std(0)
 
@@ -76,11 +76,11 @@ ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency',
 plt.show()
 
 ###############################################################################
-# Time-frequency analysis: power and intertrial coherence
-# -------------------------------------------------------
+# Time-frequency analysis: power and inter-trial coherence
+# --------------------------------------------------------
 #
 # We now compute time-frequency representations (TFRs) from our Epochs.
-# We'll look at power and intertrial coherence (ITC).
+# We'll look at power and inter-trial coherence (ITC).
 #
 # To this we'll use the function :func:`mne.time_frequency.tfr_morlet`
 # but you can also use :func:`mne.time_frequency.tfr_multitaper`
@@ -98,7 +98,7 @@ power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=True,
 #
 # .. note::
 #     The generated figures are interactive. In the topo you can click
-#     on an image to visualize the data for one censor.
+#     on an image to visualize the data for one sensor.
 #     You can also select a portion in the time-frequency plane to
 #     obtain a topomap for a certain time-frequency region.
 power.plot_topo(baseline=(-0.5, 0), mode='logratio', title='Average power')
@@ -115,19 +115,29 @@ mne.viz.tight_layout()
 plt.show()
 
 ###############################################################################
+# Joint Plot
+# ----------
+# You can also create a joint plot showing both the aggregated TFR
+# across channels and topomaps at specific times and frequencies to obtain
+# a quick overview regarding oscillatory effects across time and space.
+
+power.plot_joint(baseline=(-0.5, 0), mode='mean', tmin=-.5, tmax=2,
+                 timefreqs=[(.5, 10), (1.3, 8)])
+
+###############################################################################
 # Inspect ITC
 # -----------
 itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
 
 ###############################################################################
 # .. note::
-#     Baseline correction can be applied to power or done in plots
-#     To illustrate the baseline correction in plots the next line is
+#     Baseline correction can be applied to power or done in plots.
+#     To illustrate the baseline correction in plots, the next line is
 #     commented power.apply_baseline(baseline=(-0.5, 0), mode='logratio')
 
 ###############################################################################
 # Exercise
 # --------
 #
-#    - Visualize the intertrial coherence values as topomaps as done with
+#    - Visualize the inter-trial coherence values as topomaps as done with
 #      power.

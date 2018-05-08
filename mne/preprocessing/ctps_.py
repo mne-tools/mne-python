@@ -3,8 +3,8 @@
 #
 # License: Simplified BSD
 import math
-
 import numpy as np
+from ..fixes import _get_logsumexp
 
 
 def _compute_normalized_phase(data):
@@ -151,14 +151,12 @@ def _prob_kuiper(d, n_eff, dtype='f8'):
     j2 = (np.arange(n_points) + 1) ** 2
     j2 = j2.repeat(n_time_slices).reshape(n_points, n_time_slices)
     fact = 4. * j2 * l2 - 1.
-    expo = np.exp(-2. * j2 * l2)
-    term = 2. * fact * expo
-    pk = term.sum(axis=0, dtype=dtype)
 
-    # Normalized pK to range [0,1]
-    pk_norm = np.zeros(n_time_slices)  # init pk_norm
-    pk_norm[pk > 0] = -np.log(pk[pk > 0]) / (2. * n_eff)
-    pk_norm[pk <= 0] = 1
+    # compute normalized pK value in range [0,1]
+    logsumexp = _get_logsumexp()  # increases numerical accuracy
+    a = -2. * j2 * l2
+    b = 2. * fact
+    pk_norm = -logsumexp(a, b=b, axis=0) / (2. * n_eff)
 
     # check for no difference to uniform cdf
     pk_norm = np.where(k_lambda < 0.4, 0.0, pk_norm)

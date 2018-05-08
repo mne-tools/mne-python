@@ -4,14 +4,14 @@ from __future__ import print_function
 #
 # License: Simplified BSD
 
-from math import sqrt, ceil
+from math import sqrt
 
 import numpy as np
 from scipy import linalg
 
 from .mxne_debiasing import compute_bias
 from ..utils import logger, verbose, sum_squared, warn
-from ..time_frequency.stft import stft_norm2, stft, istft
+from ..time_frequency.stft import stft_norm1, stft_norm2, stft, istft
 from ..externals.six.moves import xrange as range
 
 
@@ -733,56 +733,91 @@ class _Phi(object):
     """Have phi stft as callable w/o using a lambda that does not pickle."""
 
     def __init__(self, wsize, tstep, n_coefs):  # noqa: D102
-        self.wsize = wsize
-        self.tstep = tstep
-        self.n_coefs = n_coefs
+        self.wsize = np.atleast_1d(wsize)
+        self.tstep = np.atleast_1d(tstep)
+        self.n_coefs = np.atleast_1d(n_coefs)
+        self.n_dicts = len(tstep)
+        self.n_freqs = wsize // 2 + 1
+        self.n_steps = self.n_coefs // self.n_freqs
 
     def __call__(self, x):  # noqa: D105
-        return stft(x, self.wsize, self.tstep,
-                    verbose=False).reshape(-1, self.n_coefs)
+        if self.n_dicts == 1:
+            return stft(x, self.wsize[0], self.tstep[0],
+                        verbose=False).reshape(-1, self.n_coefs[0])
+        else:
+            return np.hstack(
+                [stft(x, self.wsize[i], self.tstep[i], verbose=False).reshape(
+                 -1, self.n_coefs[i]) for i in range(self.n_dicts)]) / np.sqrt(
+                self.n_dicts)
+
+    def norm(self, z, ord=2):
+        """Squared L2 norm if ord == 2 and L1 norm if order == 1."""
+        if ord not in (1, 2):
+            raise ValueError('Only supported norm order are 1 and 2. '
+                             'Got ord = %s' % ord)
+        stft_norm = stft_norm1 if ord == 1 else stft_norm2
+        norm = 0.
+        if len(self.n_coefs) > 1:
+            z_ = np.array_split(np.atleast_2d(z), np.cumsum(self.n_coefs)[:-1],
+                                axis=1)
+        else:
+            z_ = [np.atleast_2d(z)]
+        for i in range(len(z_)):
+            norm += stft_norm(
+                z_[i].reshape(-1, self.n_freqs[i], self.n_steps[i]))
+        return norm
 
 
 class _PhiT(object):
     """Have phi.T istft as callable w/o using a lambda that does not pickle."""
 
-    def __init__(self, tstep, n_freq, n_step, n_times):  # noqa: D102
+    def __init__(self, tstep, n_freqs, n_steps, n_times):  # noqa: D102
         self.tstep = tstep
-        self.n_freq = n_freq
-        self.n_step = n_step
+        self.n_freqs = n_freqs
+        self.n_steps = n_steps
         self.n_times = n_times
+        self.n_dicts = len(tstep) if isinstance(tstep, np.ndarray) else 1
+        self.n_coefs = self.n_freqs * self.n_steps
 
     def __call__(self, z):  # noqa: D105
-        return istft(z.reshape(-1, self.n_freq, self.n_step), self.tstep,
-                     self.n_times)
+        if self.n_dicts == 1:
+            return istft(z.reshape(-1, self.n_freqs[0], self.n_steps[0]),
+                         self.tstep[0], self.n_times)
+        else:
+            x_out = np.zeros((z.shape[0], self.n_times))
+            z_ = np.array_split(z, np.cumsum(self.n_coefs)[:-1], axis=1)
+            for i in range(self.n_dicts):
+                x_out += istft(z_[i].reshape(-1, self.n_freqs[i],
+                               self.n_steps[i]), self.tstep[i],
+                               self.n_times)
+            return x_out / np.sqrt(self.n_dicts)
 
 
-def norm_l21_tf(Z, shape, n_orient):
+def norm_l21_tf(Z, phi, n_orient):
     """L21 norm for TF."""
     if Z.shape[0]:
-        Z2 = Z.reshape(*shape)
-        l21_norm = np.sqrt(stft_norm2(Z2).reshape(-1, n_orient).sum(axis=1))
+        l21_norm = np.sqrt(phi.norm(Z, ord=2).reshape(-1,
+                           n_orient).sum(axis=1))
         l21_norm = l21_norm.sum()
     else:
         l21_norm = 0.
     return l21_norm
 
 
-def norm_l1_tf(Z, shape, n_orient):
+def norm_l1_tf(Z, phi, n_orient):
     """L1 norm for TF."""
     if Z.shape[0]:
         n_positions = Z.shape[0] // n_orient
         Z_ = np.sqrt(np.sum((np.abs(Z) ** 2.).reshape((n_orient, -1),
                      order='F'), axis=0))
-        Z_ = Z_.reshape((n_positions, -1), order='F').reshape(*shape)
-        l1_norm = (2. * Z_.sum(axis=2).sum(axis=1) - np.sum(Z_[:, 0, :],
-                   axis=1) - np.sum(Z_[:, -1, :], axis=1))
-        l1_norm = l1_norm.sum()
+        Z_ = Z_.reshape((n_positions, -1), order='F')
+        l1_norm = phi.norm(Z_, ord=1).sum()
     else:
         l1_norm = 0.
     return l1_norm
 
 
-def norm_epsilon(Y, l1_ratio, n_steps):
+def norm_epsilon(Y, l1_ratio, phi):
     """Dual norm of (1. - l1_ratio) * L2 norm + l1_ratio * L1 norm, at Y.
 
     This is the unique solution in nu of
@@ -798,8 +833,8 @@ def norm_epsilon(Y, l1_ratio, n_steps):
     l1_ratio : float between 0 and 1
         Tradeoff between L2 and L1 regularization. When it is 0, no temporal
         regularization is applied.
-    n_steps : int
-        The number of TF coefficients per frequency.
+    phi : Instance of _Phi
+        The TF operator.
 
     Returns
     -------
@@ -820,9 +855,7 @@ def norm_epsilon(Y, l1_ratio, n_steps):
         return norm_inf_Y
     elif l1_ratio == 0.:
         # dual norm of L2 is L2
-        # Count all freqs twice except first and last.
-        return np.sqrt(2. * (Y ** 2).sum() - (Y[:n_steps] ** 2).sum() -
-                       (Y[-n_steps:] ** 2).sum())
+        return np.sqrt(phi.norm(Y[None, :], ord=2).sum())
 
     if norm_inf_Y == 0.:
         return 0.
@@ -836,8 +869,10 @@ def norm_epsilon(Y, l1_ratio, n_steps):
     # Add negative freqs: count all freqs twice except first and last:
     weights = np.empty(len(Y), dtype=int)
     weights.fill(2)
-    weights[:n_steps] = 1
-    weights[-n_steps:] = 1
+    for i, w in enumerate(np.array_split(weights,
+                          np.cumsum(phi.n_coefs)[:-1])):
+        w[:phi.n_steps[i]] = 1
+        w[-phi.n_steps[i]:] = 1
 
     # sort both Y and weights at the same time
     idx_sort = np.argsort(Y[idx])[::-1]
@@ -891,8 +926,6 @@ def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient):
         (consecutive rows of phi(np.dot(G.T, R))).
     """
     n_positions = G.shape[1] // n_orient
-    n_times = R.shape[1]
-    n_steps = int(np.ceil(n_times / float(phi.tstep)))
     GTRPhi = np.abs(phi(np.dot(G.T, R))) ** 2
     # norm over orientations:
     GTRPhi = np.sqrt(np.sum(GTRPhi.reshape((n_orient, -1), order='F'),
@@ -900,14 +933,14 @@ def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient):
     nu = 0.
     for idx in range(n_positions):
         GTRPhi_ = GTRPhi[idx]
-        norm_eps = norm_epsilon(GTRPhi_, l1_ratio, n_steps)
+        norm_eps = norm_epsilon(GTRPhi_, l1_ratio, phi)
         if norm_eps > nu:
             nu = norm_eps
 
     return nu
 
 
-def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
+def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT,
                n_orient, highest_d_obj):
     """Duality gap for the time-frequency mixed norm inverse problem.
 
@@ -930,8 +963,6 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
         The TF operator.
     phiT : instance of _PhiT
         The transpose of the TF operator.
-    shape : tuple
-        Shape of TF coefficients matrix.
     n_orient : int
         Number of dipoles per locations (typically 1 or 3).
     highest_d_obj : float
@@ -962,8 +993,8 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
     X = phiT(Z)
     GX = np.dot(G[:, active_set], X)
     R = M - GX
-    penaltyl1 = norm_l1_tf(Z, shape, n_orient)
-    penaltyl21 = norm_l21_tf(Z, shape, n_orient)
+    penaltyl1 = norm_l1_tf(Z, phi, n_orient)
+    penaltyl21 = norm_l21_tf(Z, phi, n_orient)
     nR2 = sum_squared(R)
     p_obj = 0.5 * nR2 + alpha_space * penaltyl21 + alpha_time * penaltyl1
 
@@ -980,9 +1011,8 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
 
 def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                                alpha_time, lipschitz_constant, phi, phiT,
-                               shape, n_orient=1, maxit=200, tol=1e-8,
-                               dgap_freq=10, perc=None, timeit=True,
-                               verbose=None):
+                               n_orient=1, maxit=200, tol=1e-8, dgap_freq=10,
+                               perc=None, timeit=True, verbose=None):
 
     # First make G fortran for faster access to blocks of columns
     G = np.asfortranarray(G)
@@ -1052,8 +1082,7 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
 
                     # l21
                     shape_init = Z_j_new.shape
-                    Z_j_new = Z_j_new.reshape(*shape)
-                    row_norm = np.sqrt(stft_norm2(Z_j_new).sum())
+                    row_norm = np.sqrt(phi.norm(Z_j_new, ord=2).sum())
                     if row_norm <= alpha_space_lc[jj]:
                         Z[jj] = 0.0
                         active_set_j[:] = False
@@ -1071,7 +1100,7 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                            if np.any(Z[pos])])
             gap, p_obj, d_obj, _ = dgap_l21l1(
                 M, Gd, Zd, active_set, alpha_space, alpha_time, phi, phiT,
-                shape, n_orient, d_obj)
+                n_orient, d_obj)
             converged = (gap < tol)
             E.append(p_obj)
             logger.info("\n    Iteration %d :: n_active %d" % (
@@ -1095,9 +1124,10 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
 
 @verbose
 def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
-                                         lipschitz_constant, phi, phiT, shape,
+                                         lipschitz_constant, phi, phiT,
                                          Z_init=None, n_orient=1, maxit=200,
-                                         tol=1e-8, dgap_freq=10, verbose=None):
+                                         tol=1e-8,  dgap_freq=10,
+                                         verbose=None):
 
     n_sensors, n_times = M.shape
     n_sources = G.shape[1]
@@ -1107,7 +1137,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
     active_set = np.zeros(n_sources, dtype=np.bool)
     active = []
     if Z_init is not None:
-        if Z_init.shape != (n_sources, shape[1] * shape[2]):
+        if Z_init.shape != (n_sources, phi.n_coefs.sum()):
             raise Exception('Z_init must be None or an array with shape '
                             '(n_sources, n_coefs).')
         for ii in range(n_positions):
@@ -1119,7 +1149,6 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
                      len(active)))))
 
     E = []
-
     candidates = range(n_positions)
     d_obj = -np.inf
 
@@ -1128,8 +1157,9 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
         Z_init.update(dict(zip(active, Z.values())))
         Z, active_set, E_tmp, _ = _tf_mixed_norm_solver_bcd_(
             M, G, Z_init, active_set, candidates, alpha_space, alpha_time,
-            lipschitz_constant, phi, phiT, shape, n_orient=n_orient,
-            maxit=1, tol=tol, perc=None, verbose=verbose)
+            lipschitz_constant, phi, phiT, n_orient=n_orient, maxit=1, tol=tol,
+            perc=None, verbose=verbose)
+
         E += E_tmp
 
         active = np.where(active_set[::n_orient])[0]
@@ -1139,7 +1169,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
             M, G[:, active_set], Z_init,
             np.ones(len(active) * n_orient, dtype=np.bool),
             candidates_, alpha_space, alpha_time,
-            lipschitz_constant[active_set[::n_orient]], phi, phiT, shape,
+            lipschitz_constant[active_set[::n_orient]], phi, phiT,
             n_orient=n_orient, maxit=maxit, tol=tol,
             dgap_freq=dgap_freq, perc=0.5,
             verbose=verbose)
@@ -1152,7 +1182,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
             Zd = np.vstack([Z[pos] for pos in range(len(Z)) if np.any(Z[pos])])
             gap, p_obj, d_obj, _ = dgap_l21l1(
                 M, G, Zd, active_set, alpha_space, alpha_time,
-                phi, phiT, shape, n_orient, d_obj)
+                phi, phiT, n_orient, d_obj)
             logger.info("\ndgap %.2e :: p_obj %f :: d_obj %f :: n_active %d"
                         % (gap, p_obj, d_obj, np.sum(active_set) / n_orient))
             if gap < tol:
@@ -1163,9 +1193,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
         Z = np.vstack([Z[pos] for pos in range(len(Z)) if np.any(Z[pos])])
         X = phiT(Z)
     else:
-        n_step = shape[2]
-        n_freq = shape[1]
-        Z = np.zeros((0, n_step * n_freq), dtype=np.complex)
+        Z = np.zeros((0, phi.n_coefs.sum()), dtype=np.complex)
         X = np.zeros((0, n_times))
 
     return X, Z, active_set, E, gap
@@ -1189,11 +1217,17 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     alpha_time : float
         The temporal regularization parameter. The higher it is the smoother
         will be the estimated time series.
-    wsize: int
-        length of the STFT window in samples (must be a multiple of 4).
-    tstep: int
-        step between successive windows in samples (must be a multiple of 2,
+    wsize: int or array-like
+        Length of the STFT window in samples (must be a multiple of 4).
+        If an array is passed, multiple TF dictionaries are used (each having
+        its own wsize and tstep) and each entry of wsize must be a multiple
+        of 4.
+    tstep: int or array-like
+        Step between successive windows in samples (must be a multiple of 2,
         a divider of wsize and smaller than wsize/2) (default: wsize/2).
+        If an array is passed, multiple TF dictionaries are used (each having
+        its own wsize and tstep), and each entry of tstep must be a multiple
+        of 2 and divide the corresponding entry of wsize.
     n_orient : int
         The number of orientation (1 : fixed or 3 : free or loose).
     maxit : int
@@ -1242,6 +1276,12 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
        Proceedings Information Processing in Medical Imaging
        Lecture Notes in Computer Science, Volume 6801/2011, pp. 600-611, 2011.
        DOI: 10.1007/978-3-642-22092-0_49
+
+    .. [3] Y. Bekhti, D. Strohmeier, M. Jas, R. Badeau, A. Gramfort.
+       "M/EEG source localization with multiscale time-frequency dictionaries",
+       6th International Workshop on Pattern Recognition in Neuroimaging
+       (PRNI), 2016.
+       DOI: 10.1109/PRNI.2016.7552337
     """
     if log_objective is True:
         warn('Using log_objective is deprecated and will be '
@@ -1258,12 +1298,18 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     n_sensors, n_sources = G.shape
     n_positions = n_sources // n_orient
 
-    n_step = int(ceil(n_times / float(tstep)))
-    n_freq = wsize // 2 + 1
-    n_coefs = n_step * n_freq
-    shape = (-1, n_freq, n_step)
+    tstep = np.atleast_1d(tstep)
+    wsize = np.atleast_1d(wsize)
+    if len(tstep) != len(wsize):
+        raise ValueError('The same number of window sizes and steps must be '
+                         'passed. Got tstep = %s and wsize = %s' %
+                         (tstep, wsize))
+
+    n_steps = np.ceil(M.shape[1] / tstep.astype(float)).astype(int)
+    n_freqs = wsize // 2 + 1
+    n_coefs = n_steps * n_freqs
     phi = _Phi(wsize, tstep, n_coefs)
-    phiT = _PhiT(tstep, n_freq, n_step, n_times)
+    phiT = _PhiT(tstep, n_freqs, n_steps, n_times)
 
     if n_orient == 1:
         lc = np.sum(G * G, axis=0)
@@ -1275,9 +1321,9 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
 
     logger.info("Using block coordinate descent with active set approach")
     X, Z, active_set, E, gap = _tf_mixed_norm_solver_bcd_active_set(
-        M, G, alpha_space, alpha_time, lc, phi, phiT, shape, Z_init=None,
-        n_orient=n_orient, maxit=maxit, tol=tol, dgap_freq=dgap_freq,
-        verbose=None)
+        M, G, alpha_space, alpha_time, lc, phi, phiT,
+        Z_init=None, n_orient=n_orient, maxit=maxit, tol=tol,
+        dgap_freq=dgap_freq, verbose=None)
 
     if np.any(active_set) and debias:
         bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)

@@ -53,5 +53,7 @@ plot_dipole_locations(dipoles, trans, 'sample', subjects_dir=subjects_dir)
 plot_dipole_amplitudes(dipoles)
 
 # Plot the evoked data and the residual.
-evoked.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]))
-residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]))
+evoked.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]),
+            time_unit='s')
+residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]),
+              time_unit='s')

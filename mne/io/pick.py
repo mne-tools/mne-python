@@ -12,6 +12,7 @@ import numpy as np
 from .constants import FIFF
 from ..utils import logger, verbose
 from ..externals.six import string_types
+from .compensator import get_current_comp
 
 
 def get_channel_types():
@@ -386,12 +387,33 @@ def pick_info(info, sel=(), copy=True):
     res : dict
         Info structure restricted to a selection of channels.
     """
+    # avoid circular imports
+    from .meas_info import _bad_chans_comp
+
     info._check_consistency()
     info = info.copy() if copy else info
     if sel is None:
         return info
     elif len(sel) == 0:
         raise ValueError('No channels match the selection.')
+
+    # make sure required the compensation channels are present
+    if len(info['comps']) > 0:
+        ch_names = [info['ch_names'][idx] for idx in sel]
+        _, comps_missing = _bad_chans_comp(info, ch_names)
+        current_comp = get_current_comp(info)
+        if len(comps_missing) > 0:
+            if current_comp != 0:
+                raise RuntimeError(
+                    'Compensation grade %d has been applied, but '
+                    'compensation channels are missing: %s\n'
+                    'Either remove compensation or pick compensation '
+                    'channels' % (current_comp, comps_missing))
+            else:
+                logger.info('Removing %d compensators from info because '
+                            'not all compensation channels were picked'
+                            % (len(info['comps']),))
+                info['comps'] = []
 
     info['chs'] = [info['chs'][k] for k in sel]
     info._update_redundant()
@@ -666,28 +688,31 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False, exclude='bads'):
     """
     from ..channels.channels import _contains_ch_type
     picks_list = []
-    has_mag, has_grad, has_eeg = [_contains_ch_type(info, k)
-                                  for k in ('mag', 'grad', 'eeg')]
-    if has_mag and (meg_combined is not True or not has_grad):
+    has = [_contains_ch_type(info, k) for k in _DATA_CH_TYPES_SPLIT]
+    has = dict(zip(_DATA_CH_TYPES_SPLIT, has))
+    if has['mag'] and (meg_combined is not True or not has['grad']):
         picks_list.append(
             ('mag', pick_types(info, meg='mag', eeg=False, stim=False,
              ref_meg=ref_meg, exclude=exclude))
         )
-    if has_grad and (meg_combined is not True or not has_mag):
+    if has['grad'] and (meg_combined is not True or not has['mag']):
         picks_list.append(
             ('grad', pick_types(info, meg='grad', eeg=False, stim=False,
              ref_meg=ref_meg, exclude=exclude))
         )
-    if has_mag and has_grad and meg_combined is True:
+    if has['mag'] and has['grad'] and meg_combined is True:
         picks_list.append(
             ('meg', pick_types(info, meg=True, eeg=False, stim=False,
              ref_meg=ref_meg, exclude=exclude))
         )
-    if has_eeg:
-        picks_list.append(
-            ('eeg', pick_types(info, meg=False, eeg=True, stim=False,
-             ref_meg=ref_meg, exclude=exclude))
-        )
+    for ch_type in _DATA_CH_TYPES_SPLIT:
+        if ch_type in ['grad', 'mag']:  # exclude just MEG channels
+            continue
+        if has[ch_type]:
+            picks_list.append(
+                (ch_type, pick_types(info, meg=False, stim=False,
+                 ref_meg=ref_meg, exclude=exclude, **{ch_type: True}))
+            )
     return picks_list
 
 
@@ -738,8 +763,8 @@ _VALID_CHANNEL_TYPES = ['eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
 
 def _pick_data_channels(info, exclude='bads', with_ref_meg=True):
     """Pick only data channels."""
-    return pick_types(info, ref_meg=with_ref_meg, include=[], exclude=exclude,
-                      selection=None, **_PICK_TYPES_DATA_DICT)
+    return pick_types(info, ref_meg=with_ref_meg, exclude=exclude,
+                      **_PICK_TYPES_DATA_DICT)
 
 
 def _pick_aux_channels(info, exclude='bads'):
@@ -758,3 +783,34 @@ def _pick_data_or_ica(info):
     else:
         picks = _pick_data_channels(info, exclude=[], with_ref_meg=True)
     return picks
+
+
+def _pick_inst(inst, picks, exclude, copy=True):
+    """Return an instance with picked and excluded channels."""
+    if copy is True:
+        inst = inst.copy()
+    if picks is not None:
+        pick_names = [inst.info['ch_names'][pick] for pick in picks]
+    else:  # only pick channels that are plotted
+        picks = _pick_data_channels(inst.info, exclude=[])
+        pick_names = [inst.info['ch_names'][pick] for pick in picks]
+    inst.pick_channels(pick_names)
+
+    if exclude == 'bads':
+        exclude = [ch for ch in inst.info['bads']
+                   if ch in inst.info['ch_names']]
+    if exclude is not None:
+        inst.drop_channels(exclude)
+    return inst
+
+
+def _get_channel_types(info, picks=None, unique=True,
+                       restrict_data_types=False):
+    """Get the data channel types in an info instance."""
+    picks = range(info['nchan']) if picks is None else picks
+    ch_types = [channel_type(info, idx) for idx in range(info['nchan'])
+                if idx in picks]
+    if restrict_data_types is True:
+        ch_types = [ch_type for ch_type in ch_types
+                    if ch_type not in _DATA_CH_TYPES_SPLIT]
+    return set(ch_types) if unique is True else ch_types

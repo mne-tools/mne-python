@@ -33,7 +33,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
 
     Attributes
     ----------
-    ``estimators_`` : array-like, shape (n_tasks,)
+    estimators_ : array-like, shape (n_tasks,)
         List of fitted scikit-learn estimators (one per task).
     """
 

@@ -15,7 +15,7 @@ from mne.surface import (read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf, read_curvature,
                          get_meg_helmet_surf)
 from mne.utils import (_TempDir, requires_mayavi, requires_tvtk,
-                       run_tests_if_main, object_diff)
+                       run_tests_if_main, object_diff, traits_test)
 from mne.io import read_info
 from mne.transforms import _get_trans
 
@@ -72,19 +72,23 @@ def test_compute_nearest():
     nn_true = rng.permutation(np.arange(500, dtype=np.int))[:20]
     y = x[nn_true]
 
-    nn1 = _compute_nearest(x, y, use_balltree=False)
-    nn2 = _compute_nearest(x, y, use_balltree=True)
+    nn1 = _compute_nearest(x, y, method='BallTree')
+    nn2 = _compute_nearest(x, y, method='cKDTree')
+    nn3 = _compute_nearest(x, y, method='cdist')
     assert_array_equal(nn_true, nn1)
     assert_array_equal(nn_true, nn2)
+    assert_array_equal(nn_true, nn3)
 
     # test distance support
-    nnn1 = _compute_nearest(x, y, use_balltree=False, return_dists=True)
-    nnn2 = _compute_nearest(x, y, use_balltree=True, return_dists=True)
+    nnn1 = _compute_nearest(x, y, method='BallTree', return_dists=True)
+    nnn2 = _compute_nearest(x, y, method='cKDTree', return_dists=True)
+    nnn3 = _compute_nearest(x, y, method='cdist', return_dists=True)
     assert_array_equal(nnn1[0], nn_true)
     assert_array_equal(nnn1[1], np.zeros_like(nn1))  # all dists should be 0
     assert_equal(len(nnn1), len(nnn2))
-    for nn1, nn2 in zip(nnn1, nnn2):
+    for nn1, nn2, nn3 in zip(nnn1, nnn2, nnn3):
         assert_array_equal(nn1, nn2)
+        assert_array_equal(nn1, nn3)
 
 
 @pytest.mark.slowtest
@@ -160,6 +164,7 @@ def test_read_curv():
 
 @requires_tvtk
 @requires_mayavi
+@traits_test
 def test_decimate_surface():
     """Test triangular surface decimation."""
     points = np.array([[-0.00686118, -0.10369860, 0.02615170],

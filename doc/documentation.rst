@@ -84,7 +84,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 **More help**
 
 - :ref:`Cite MNE <cite>`
-- `Mailing list <MNE mailing list>`_ for analysis talk
+- `Mailing list <https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis/>`_ for analysis talk
 - `GitHub issues <https://github.com/mne-tools/mne-python/issues/>`_ for
   requests and bug reports
 - `Gitter <https://gitter.im/mne-tools/mne-python>`_ to chat with devs
@@ -177,7 +177,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/datasets/plot_brainstorm_data.rst
     auto_examples/datasets/plot_megsim_data.rst
     auto_examples/datasets/plot_megsim_data_single_trial.rst
-    auto_examples/datasets/plot_spm_faces_dataset.rst
+    auto_examples/datasets/spm_faces_dataset.rst
 
 .. raw:: html
 
@@ -232,6 +232,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/preprocessing/plot_find_ecg_artifacts.rst
     auto_examples/preprocessing/plot_find_eog_artifacts.rst
     auto_examples/preprocessing/plot_head_positions.rst
+    auto_examples/preprocessing/plot_ica_comparison.rst
     auto_examples/preprocessing/plot_interpolate_bad_channels.rst
     auto_examples/preprocessing/plot_movement_compensation.rst
     auto_examples/preprocessing/plot_rereference_eeg.rst
@@ -340,6 +341,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/time_frequency/plot_temporal_whitening.rst
     auto_examples/time_frequency/plot_time_frequency_global_field_power.rst
     auto_examples/time_frequency/plot_time_frequency_simulated.rst
+    auto_examples/time_frequency/plot_compute_csd.rst
 
 .. raw:: html
 
@@ -380,9 +382,11 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_forward.rst
     auto_tutorials/plot_compute_covariance.rst
     auto_tutorials/plot_mne_dspm_source_localization.rst
+    auto_tutorials/plot_mne_solutions.rst
     auto_tutorials/plot_dipole_fit.rst
     auto_tutorials/plot_point_spread.rst
     auto_tutorials/plot_dipole_orientations.rst
+    auto_tutorials/plot_dics.rst
 
 
 .. raw:: html
@@ -415,7 +419,6 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/inverse/plot_compute_mne_inverse_volume.rst
     auto_examples/inverse/plot_covariance_whitening_dspm.rst
     auto_examples/inverse/plot_custom_inverse_solver.rst
-    auto_examples/inverse/plot_dics_beamformer.rst
     auto_examples/inverse/plot_dics_source_power.rst
     auto_examples/inverse/plot_gamma_map_inverse.rst
     auto_examples/inverse/plot_label_activation_from_stc.rst
@@ -489,6 +492,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_stats_spatio_temporal_cluster_sensors.rst
     auto_tutorials/plot_stats_cluster_1samp_test_time_frequency.rst
     auto_tutorials/plot_stats_cluster_time_frequency.rst
+    auto_tutorials/plot_stats_cluster_erp.rst
 
 .. raw:: html
 

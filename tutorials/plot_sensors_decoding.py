@@ -3,7 +3,7 @@
 Decoding sensor space data (MVPA)
 =================================
 
-Decoding, a.k.a MVPA or supervised machine learning applied to MEG
+Decoding, a.k.a MVPA or supervised machine learning, is applied to MEG
 data in sensor space. Here the classifier is applied to every time
 point.
 """
@@ -92,7 +92,10 @@ time_decod.fit(X, y)
 
 coef = get_coef(time_decod, 'patterns_', inverse_transform=True)
 evoked = mne.EvokedArray(coef, epochs.info, tmin=epochs.times[0])
-evoked.plot_joint(times=np.arange(0., .500, .100), title='patterns')
+joint_kwargs = dict(ts_args=dict(time_unit='s'),
+                    topomap_args=dict(time_unit='s'))
+evoked.plot_joint(times=np.arange(0., .500, .100), title='patterns',
+                  **joint_kwargs)
 
 ###############################################################################
 # Temporal Generalization

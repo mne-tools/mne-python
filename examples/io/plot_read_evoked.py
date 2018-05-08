@@ -26,10 +26,10 @@ evoked = read_evokeds(fname, condition=condition, baseline=(None, 0),
 ###############################################################################
 # Show result as a butterfly plot:
 # By using exclude=[] bad channels are not excluded and are shown in red
-evoked.plot(exclude=[])
+evoked.plot(exclude=[], time_unit='s')
 
 # Show result as a 2D image (x: time, y: channels, color: amplitude)
-evoked.plot_image(exclude=[])
+evoked.plot_image(exclude=[], time_unit='s')
 
 ###############################################################################
 # Use :func:`mne.Evoked.save` or :func:`mne.write_evokeds` to write the evoked

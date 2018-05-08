@@ -150,6 +150,19 @@ def _read_geometry(filepath, read_metadata=False, read_stamp=False):
 
 
 ###############################################################################
+# Backporting logsumexp from scipy which is imported from scipy.special (0.1.0.0)
+# instead of scipy.misc
+
+
+def _get_logsumexp():
+    try:
+        from scipy.special import logsumexp
+    except ImportError:  # old SciPy
+        from scipy.misc import logsumexp
+    return logsumexp
+
+
+###############################################################################
 # Backporting scipy.signal.sosfilt (0.17) and sosfiltfilt (0.18)
 
 

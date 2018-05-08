@@ -139,7 +139,7 @@ Custom plots can be added to the report. Let us first generate a custom plot::
             nave = 55 - aspect type = 100
     Projections have already been applied. Setting proj attribute to True.
     Applying baseline correction (mode: mean)
-    >>> fig = evoked.plot(show=False)
+    >>> fig = evoked.plot(show=False, time_unit='s')
 
 To add the custom plot to the report, do::
 

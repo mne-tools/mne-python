@@ -238,6 +238,7 @@ mesh_edges
 minimum_phase
 next_fast_len
 parallel_func
+permutation_t_test
 pick_channels_evoked
 plot_epochs_psd
 plot_epochs_psd_topomap

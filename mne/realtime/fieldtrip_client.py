@@ -181,6 +181,9 @@ class FieldTripClient(object):
                     this_info['kind'] = FIFF.FIFFV_MISC_CH
                     chs_unknown.append(ch)
 
+                # Set coil_type (does FT supply this information somehow?)
+                this_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+
                 # Fieldtrip already does calibration
                 this_info['range'] = 1.0
                 this_info['cal'] = 1.0

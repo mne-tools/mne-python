@@ -866,8 +866,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         Applying transforms can be significantly faster if the
         SourceEstimate object was created using "(kernel, sens_data)", for
         the "data" parameter as the transform is applied in sensor space.
-        Inverse methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" do
-        this automatically (if possible).
+        Inverse methods, e.g., "apply_inverse_epochs", or "apply_lcmv_epochs"
+        do this automatically (if possible).
         """
         if idx is None:
             # use all time courses by default
@@ -951,8 +951,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         Applying transforms can be significantly faster if the
         SourceEstimate object was created using "(kernel, sens_data)", for
         the "data" parameter as the transform is applied in sensor space.
-        Inverse methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" do
-        this automatically (if possible).
+        Inverse methods, e.g., "apply_inverse_epochs", or "apply_lcmv_epochs"
+        do this automatically (if possible).
         """
         # min and max data indices to include
         times = 1000. * self.times
@@ -1959,7 +1959,7 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
                               self.subject, self.verbose)
 
     @copy_function_doc_to_method_doc(plot_vector_source_estimates)
-    def plot(self, subject=None, hemi='lh', colormap='hot', time_label='auto',
+    def plot(self, subject=None, hemi='lh', colormap='auto', time_label='auto',
              smoothing_steps=10, transparent=None, brain_alpha=0.4,
              overlay_alpha=None, vector_alpha=1.0, scale_factor=None,
              time_viewer=False, subjects_dir=None, figure=None, views='lat',

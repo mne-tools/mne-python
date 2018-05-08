@@ -26,7 +26,7 @@ from ..defaults import _handle_default
 from ..io import show_fiff, Info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT,
-                       pick_types, pick_info, _picks_by_type)
+                       pick_info, _picks_by_type)
 from ..io.proc_history import _get_rank_sss
 from ..io.proj import setup_proj
 from ..utils import logger, verbose, set_config, warn
@@ -39,6 +39,12 @@ from ..annotations import Annotations, _sync_onset
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
+
+_channel_type_prettyprint = {'eeg': "EEG channel",  'grad': "Gradiometer",
+                             'mag': "Magnetometer", 'seeg': "sEEG channel",
+                             'eog': "EOG channel", 'ecg': "ECG sensor",
+                             'emg': "EMG sensor", 'ecog': "ECoG channel",
+                             'misc': "miscellaneous sensor"}
 
 
 def _setup_vmin_vmax(data, vmin, vmax, norm=False):
@@ -1634,6 +1640,40 @@ def _setup_cmap(cmap, n_axes=1, norm=False):
     return cmap
 
 
+def _prepare_joint_axes(n_maps, figsize=None):
+    """Prepare axes for topomaps and colorbar in joint plot figure.
+
+    Parameters
+    ----------
+    n_maps: int
+        Number of topomaps to include in the figure
+    figsize: tuple
+        Figure size, see plt.figsize
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        Figure with initialized axes
+    main_ax: matplotlib.axes._subplots.AxesSubplot
+        Axes in which to put the main plot
+    map_ax: list
+        List of axes for each topomap
+    cbar_ax: matplotlib.axes._subplots.AxesSubplot
+        Axes for colorbar next to topomaps
+    """
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=figsize)
+    main_ax = fig.add_subplot(212)
+    ts = n_maps + 2
+    map_ax = [plt.subplot(4, ts, x + 2 + ts) for x in range(n_maps)]
+    # Position topomap subplots on the second row, starting on the
+    # second column
+    cbar_ax = plt.subplot(4, 5 * (ts + 1), 10 * (ts + 1))
+    # Position colorbar at the very end of a more finely divided
+    # second row of subplots
+    return fig, main_ax, map_ax, cbar_ax
+
+
 class DraggableColorbar(object):
     """Enable interactive colorbar.
 
@@ -1833,12 +1873,9 @@ def _annotate_select(vmin, vmax, params):
     active_idx = _get_active_radiobutton(params['fig_annotation'].radio)
     description = params['fig_annotation'].radio.labels[active_idx].get_text()
     if raw.annotations is None:
-        annot = Annotations([onset], [duration], [description])
-        raw.annotations = annot
-    else:
-        _merge_annotations(onset, onset + duration, description,
-                           raw.annotations)
-
+        raw.annotations = Annotations([], [], [])
+    _merge_annotations(onset, onset + duration, description,
+                       raw.annotations)
     _plot_annotations(params['raw'], params)
     params['plot_fun']()
 
@@ -1864,8 +1901,9 @@ def _plot_annotations(raw, params):
         params['ax_hscroll'].fill_betweenx(
             (0., 1.), annot_start, annot_end, alpha=0.3,
             color=params['segment_colors'][dscr])
-    # Adjust half a sample backward to make it clear what is included
-    params['segments'] = np.array(segments) - 0.5 / raw.info['sfreq']
+    # Do not adjust half a sample backward (even though this would make it
+    # clearer what is included) because this breaks click-drag functionality
+    params['segments'] = np.array(segments)
     params['annot_description'] = descriptions
 
 
@@ -1880,14 +1918,16 @@ def _setup_annotation_colors(params):
     else:
         descriptions = list()
     color_keys = np.union1d(descriptions, params['added_label'])
-    color_cycle = cycle(np.delete(COLORS, 2))  # no red
-    for _ in np.intersect1d(list(color_keys), list(segment_colors.keys())):
-        next(color_cycle)
+    color_cycle = cycle(np.delete(COLORS, COLORS.index('r')))  # no red
+    for key, color in segment_colors.items():
+        assert color in COLORS
+        if color != 'r' and key in color_keys:
+            next(color_cycle)
     for idx, key in enumerate(color_keys):
         if key in segment_colors:
             continue
         elif key.lower().startswith('bad') or key.lower().startswith('edge'):
-            segment_colors[key] = 'red'
+            segment_colors[key] = 'r'
         else:
             segment_colors[key] = next(color_cycle)
     params['segment_colors'] = segment_colors
@@ -1913,24 +1953,38 @@ def _annotations_closed(event, params):
 
 def _on_hover(event, params):
     """Handle hover event."""
+    from matplotlib.patheffects import Stroke, Normal
     if (event.button is not None or
             event.inaxes != params['ax'] or event.xdata is None):
         return
     for coll in params['ax'].collections:
         if coll.contains(event)[0]:
-            path = coll.get_paths()[-1]
-            mn = min(path.vertices[:, 0])
-            mx = max(path.vertices[:, 0])
+            path = coll.get_paths()
+            assert len(path) == 1
+            path = path[0]
+            color = coll.get_edgecolors()[0]
+            mn = path.vertices[:, 0].min()
+            mx = path.vertices[:, 0].max()
+            # left/right line
             x = mn if abs(event.xdata - mn) < abs(event.xdata - mx) else mx
+            mask = path.vertices[:, 0] == x
             ylim = params['ax'].get_ylim()
+
+            def drag_callback(x0):
+                path.vertices[mask, 0] = x0
+
             if params['segment_line'] is None:
                 modify_callback = partial(_annotation_modify, params=params)
-                line = params['ax'].plot([x, x], ylim, color='r',
-                                         linewidth=3, picker=5.)[0]
-                dl = DraggableLine(line, modify_callback)
+                line = params['ax'].plot([x, x], ylim, color=color,
+                                         linewidth=2., picker=5.)[0]
+                dl = DraggableLine(line, modify_callback, drag_callback)
                 params['segment_line'] = dl
             else:
                 params['segment_line'].set_x(x)
+                params['segment_line'].drag_callback = drag_callback
+            line = params['segment_line'].line
+            pe = [Stroke(linewidth=4, foreground=color, alpha=0.5), Normal()]
+            line.set_path_effects(pe if line.contains(event)[0] else pe[1:])
             params['vertline_t'].set_text('%.3f' % x)
             params['ax_vertline'].set_data(0,
                                            np.array(params['ax'].get_ylim()))
@@ -2097,7 +2151,29 @@ def _setup_butterfly(params):
     params['plot_fun']()
 
 
-class DraggableLine:
+def _connection_line(x, fig, sourceax, targetax, y=1.,
+                     y_source_transform="transAxes"):
+    """Connect source and target plots with a line.
+
+    Connect source and target plots with a line, such as time series
+    (source) and topolots (target). Primarily used for plot_joint
+    functions.
+    """
+    from matplotlib.lines import Line2D
+    trans_fig = fig.transFigure
+    trans_fig_inv = fig.transFigure.inverted()
+
+    xt, yt = trans_fig_inv.transform(targetax.transAxes.transform([.5, 0.]))
+    xs, _ = trans_fig_inv.transform(sourceax.transData.transform([x, 0.]))
+    _, ys = trans_fig_inv.transform(getattr(sourceax, y_source_transform
+                                            ).transform([0., y]))
+
+    return Line2D((xt, xs), (yt, ys), transform=trans_fig, color='grey',
+                  linestyle='-', linewidth=1.5, alpha=.66, zorder=1,
+                  clip_on=False)
+
+
+class DraggableLine(object):
     """Custom matplotlib line for moving around by drag and drop.
 
     Parameters
@@ -2108,11 +2184,12 @@ class DraggableLine:
         Callback to call when line is released.
     """
 
-    def __init__(self, line, callback):  # noqa: D102
+    def __init__(self, line, modify_callback, drag_callback):  # noqa: D102
         self.line = line
         self.press = None
         self.x0 = line.get_xdata()[0]
-        self.callback = callback
+        self.modify_callback = modify_callback
+        self.drag_callback = drag_callback
         self.cidpress = self.line.figure.canvas.mpl_connect(
             'button_press_event', self.on_press)
         self.cidrelease = self.line.figure.canvas.mpl_connect(
@@ -2142,6 +2219,7 @@ class DraggableLine:
         x0, y0, xpress, ypress = self.press
         dx = event.xdata - xpress
         self.line.set_xdata(x0 + dx)
+        self.drag_callback((x0 + dx)[0])
         self.line.figure.canvas.draw()
 
     def on_release(self, event):
@@ -2150,7 +2228,7 @@ class DraggableLine:
             return
         self.press = None
         self.line.figure.canvas.draw()
-        self.callback(self.x0, event.xdata)
+        self.modify_callback(self.x0, event.xdata)
         self.x0 = event.xdata
 
     def remove(self):
@@ -2261,10 +2339,7 @@ def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True,
     if noise_cov is not None and use_noise_cov:
         # any channels in noise_cov['bads'] but not in info['bads'] get
         # set to nan, which means that they are not plotted.
-        # XXX This picking call mimics what is done in compute_whitener...
-        # should probably allow for other channel types, too (e.g., ECoG)!
-        data_picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                                exclude=())
+        data_picks = _pick_data_channels(info, with_ref_meg=False, exclude=())
         data_names = set(info['ch_names'][pick] for pick in data_picks)
         # these can be toggled by the user
         bad_names = set(info['bads'])
@@ -2312,7 +2387,7 @@ def _set_ax_label_style(ax, params, italicize=True):
 
 def _check_sss(info):
     """Check SSS history in info."""
-    ch_used = [ch for ch in ['eeg', 'grad', 'mag']
+    ch_used = [ch for ch in _DATA_CH_TYPES_SPLIT
                if _contains_ch_type(info, ch)]
     has_meg = 'mag' in ch_used and 'grad' in ch_used
     has_sss = (has_meg and len(info['proc_history']) > 0 and
@@ -2322,13 +2397,11 @@ def _check_sss(info):
 
 def _triage_rank_sss(info, covs, rank=None, scalings=None):
     from ..cov import _estimate_rank_meeg_cov
-    if rank is None:
-        rank = dict()
-    if scalings is None:
-        scalings = dict(mag=1e12, grad=1e11, eeg=1e5)
+    rank = dict() if rank is None else rank
+    scalings = _handle_default('scalings_cov_rank', scalings)
 
     # Only look at good channels
-    picks = pick_types(info, meg=True, eeg=True, ref_meg=False, exclude='bads')
+    picks = _pick_data_channels(info, with_ref_meg=False, exclude='bads')
     info = pick_info(info, picks)
     ch_used, has_meg, has_sss = _check_sss(info)
     if has_sss:
@@ -2440,3 +2513,43 @@ def _check_cov(noise_cov, info):
              'scaling of magnetometers and gradiometers when viewing data '
              'whitened by a noise covariance')
     return noise_cov
+
+
+def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
+                                   all=False, ch_type=None):
+    """Prepare a title string for multiple electrodes."""
+    if title is None:
+        title = ", ".join(ch_names[:max_chans])
+        ch_type = _channel_type_prettyprint.get(ch_type, ch_type)
+        if ch_type is None:
+            ch_type = "sensor"
+        if len(ch_names) > 1:
+            ch_type += "s"
+        if all is True and isinstance(combine, string_types):
+            combine = combine[0].upper() + combine[1:]
+            title = "{} of {} {}".format(
+                combine, len(ch_names), ch_type)
+        elif len(ch_names) > max_chans and combine is not "gfp":
+            warn("More than {} channels, truncating title ...".format(
+                max_chans))
+            title += ", ...\n({} of {} {})".format(
+                combine, len(ch_names), ch_type,)
+    return title
+
+
+def _check_time_unit(time_unit, times, allow_none=False):
+    if not (isinstance(time_unit, string_types) or
+            (time_unit is None and allow_none)):
+        raise TypeError('time_unit must be str, got %s' % (type(time_unit),))
+    if time_unit is None:
+        warn('time_unit defaults to "ms" in 0.16 but will change to "s" in '
+             '0.17, set it explicitly to avoid this warning',
+             DeprecationWarning)
+        time_unit = 'ms'
+    if time_unit == 's':
+        times = times
+    elif time_unit == 'ms':
+        times = 1e3 * times
+    else:
+        raise ValueError("time_unit must be 's' or 'ms', got %r" % time_unit)
+    return time_unit, times

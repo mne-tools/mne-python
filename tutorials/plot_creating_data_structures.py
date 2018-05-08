@@ -165,7 +165,7 @@ custom_epochs = mne.EpochsArray(data, info, events, tmin, event_id)
 print(custom_epochs)
 
 # We can treat the epochs object as we would any other
-_ = custom_epochs['smiling'].average().plot()
+_ = custom_epochs['smiling'].average().plot(time_unit='s')
 
 ###############################################################################
 # ---------------------------------------------
@@ -189,4 +189,4 @@ comment = "Smiley faces"
 evoked_array = mne.EvokedArray(data_evoked, info, tmin,
                                comment=comment, nave=nave)
 print(evoked_array)
-_ = evoked_array.plot()
+_ = evoked_array.plot(time_unit='s')

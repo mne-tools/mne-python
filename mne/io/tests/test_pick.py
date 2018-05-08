@@ -48,7 +48,6 @@ def test_pick_refs():
     fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
     raw_ctf = read_raw_fif(fname_ctf_raw)
     raw_ctf.apply_gradient_compensation(2)
-    infos.append(raw_ctf.info)
     for info in infos:
         info['bads'] = []
         assert_raises(ValueError, pick_types, info, meg='foo')
@@ -77,11 +76,29 @@ def test_pick_refs():
                                                    picks_ref_grad])))
         assert_array_equal(picks_meg_ref, np.sort(np.concatenate(
             [picks_grad, picks_mag, picks_ref_grad, picks_ref_mag])))
+
         for pick in (picks_meg_ref, picks_meg, picks_ref,
                      picks_grad, picks_ref_grad, picks_meg_ref_grad,
                      picks_mag, picks_ref_mag, picks_meg_ref_mag):
             if len(pick) > 0:
                 pick_info(info, pick)
+
+    # test CTF expected failures directly
+    info = raw_ctf.info
+    info['bads'] = []
+    picks_meg_ref = pick_types(info, meg=True, ref_meg=True)
+    picks_meg = pick_types(info, meg=True, ref_meg=False)
+    picks_ref = pick_types(info, meg=False, ref_meg=True)
+    picks_mag = pick_types(info, meg='mag', ref_meg=False)
+    picks_ref_mag = pick_types(info, meg=False, ref_meg='mag')
+    picks_meg_ref_mag = pick_types(info, meg='mag', ref_meg='mag')
+    for pick in (picks_meg_ref, picks_ref, picks_ref_mag, picks_meg_ref_mag):
+        if len(pick) > 0:
+            pick_info(info, pick)
+
+    for pick in (picks_meg, picks_mag):
+        if len(pick) > 0:
+            assert_raises(RuntimeError, pick_info, info, pick)
 
 
 def test_pick_channels_regexp():

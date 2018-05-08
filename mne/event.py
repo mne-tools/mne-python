@@ -238,7 +238,8 @@ def read_events(filename, include=None, exclude=None, mask=None,
     :func:`mne.find_events`.
     """
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
-                                     '-eve.lst', '-eve.txt'))
+                                     '-eve.lst', '-eve.txt', '_eve.fif',
+                                     '_eve.fif.gz', '_eve.lst', '_eve.txt'))
 
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
@@ -302,7 +303,8 @@ def write_events(filename, event_list):
     read_events
     """
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
-                                     '-eve.lst', '-eve.txt'))
+                                     '-eve.lst', '-eve.txt', '_eve.fif',
+                                     '_eve.fif.gz', '_eve.lst', '_eve.txt'))
 
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':

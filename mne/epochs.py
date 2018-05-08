@@ -1362,18 +1362,22 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def __repr__(self):
         """Build string representation."""
-        s = 'n_events : %s ' % len(self.events)
+        s = ' %s events ' % len(self.events)
         s += '(all good)' if self._bad_dropped else '(good & bad)'
-        s += ', tmin : %s (s)' % self.tmin
-        s += ', tmax : %s (s)' % self.tmax
-        s += ', baseline : %s' % str(self.baseline)
+        s += ', %g - %g sec' % (self.tmin, self.tmax)
+        s += ', baseline '
+        if self.baseline is None:
+            s += 'off'
+        else:
+            s += '[%s, %s]' % tuple(['None' if b is None else ('%g' % b)
+                                     for b in self.baseline])
         s += ', ~%s' % (sizeof_fmt(self._size),)
         s += ', data%s loaded' % ('' if self.preload else ' not')
-        s += ' with metadata' if self.metadata is not None else ''
-        if len(self.event_id) > 1:
-            counts = ['%r: %i' % (k, sum(self.events[:, 2] == v))
-                      for k, v in sorted(self.event_id.items())]
-            s += ',\n %s' % ', '.join(counts)
+        s += ', with metadata' if self.metadata is not None else ''
+        counts = ['%r: %i' % (k, sum(self.events[:, 2] == v))
+                  for k, v in sorted(self.event_id.items())]
+        if len(self.event_id) > 0:
+            s += ',' + '\n '.join([''] + counts)
         class_name = self.__class__.__name__
         class_name = 'Epochs' if class_name == 'BaseEpochs' else class_name
         return '<%s  |  %s>' % (class_name, s)
@@ -1594,7 +1598,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         Bad epochs will be dropped before saving the epochs to disk.
         """
-        check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
+        check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz',
+                                      '_epo.fif', '_epo.fif.gz'))
         split_size = _get_split_size(split_size)
 
         # to know the length accurately. The get_data() call would drop
@@ -2559,7 +2564,8 @@ class EpochsFIF(BaseEpochs):
     @verbose
     def __init__(self, fname, proj=True, preload=True,
                  verbose=None):  # noqa: D102
-        check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
+        check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz',
+                                      '_epo.fif', '_epo.fif.gz'))
         fnames = [fname]
         ep_list = list()
         raw = list()
@@ -2590,7 +2596,7 @@ class EpochsFIF(BaseEpochs):
 
         (info, data, events, event_id, tmin, tmax, metadata, baseline,
          selection, drop_log, _) = \
-            _concatenate_epochs(ep_list, with_data=preload)
+            _concatenate_epochs(ep_list, with_data=preload, add_offset=False)
         # we need this uniqueness for non-preloaded data to work properly
         if len(np.unique(events[:, 0])) != len(events):
             raise RuntimeError('Event time samples were not unique')
@@ -2777,7 +2783,7 @@ def _compare_epochs_infos(info1, info2, ind):
                          'runs to a common head position.' % ind)
 
 
-def _concatenate_epochs(epochs_list, with_data=True):
+def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
     """Auxiliary function for concatenating epochs."""
     if not isinstance(epochs_list, (list, tuple)):
         raise TypeError('epochs_list must be a list or tuple, got %s'
@@ -2821,7 +2827,8 @@ def _concatenate_epochs(epochs_list, with_data=True):
             data.append(epochs.get_data())
         evs = epochs.events.copy()
         # add offset
-        evs[:, 0] += events_offset
+        if add_offset:
+            evs[:, 0] += events_offset
         # Update offset for the next iteration.
         # offset is the last epoch + tmax + 10 second
         events_offset += (np.max(evs[:, 0]) +

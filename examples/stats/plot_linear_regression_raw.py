@@ -53,7 +53,8 @@ evokeds = linear_regression_raw(raw, events=events, event_id=event_id,
 # plot both results, and their difference
 cond = "Aud/L"
 fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
-params = dict(spatial_colors=True, show=False, ylim=dict(grad=(-200, 200)))
+params = dict(spatial_colors=True, show=False, ylim=dict(grad=(-200, 200)),
+              time_unit='s')
 epochs[cond].average().plot(axes=ax1, **params)
 evokeds[cond].plot(axes=ax2, **params)
 contrast = mne.combine_evoked([evokeds[cond], -epochs[cond].average()],

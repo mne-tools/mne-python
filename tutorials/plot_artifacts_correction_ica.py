@@ -1,7 +1,4 @@
 """
-
-.. _tut_artifacts_correct_ica:
-
 Artifact Correction with ICA
 ============================
 
@@ -41,7 +38,7 @@ picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
 
 ###############################################################################
 # Before applying artifact correction please learn about your actual artifacts
-# by reading :ref:`tut_artifacts_detect`.
+# by reading :ref:`sphx_glr_auto_tutorials_plot_artifacts_detection.py`.
 #
 # .. warning:: ICA is sensitive to low-frequency drifts and therefore
 #              requires the data to be high-pass filtered prior to fitting.
@@ -56,14 +53,24 @@ picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
 #              explicitly set ``fir_design='firwin'`` to use this method. This
 #              is the recommended filter method for ICA preprocessing.
 
+
 ###############################################################################
 # Fit ICA
 # -------
 #
-# ICA parameters:
+# First, choose the ICA method. There are currently four possible choices:
+# `fastica`, `picard`, `infomax` and `extended-infomax`.
+#
+# .. note:: The default method in MNE is FastICA, which along with Infomax is
+#           one of the most widely used ICA algorithms. Picard is a
+#           new algorithm that is expected to converge faster than FastICA and
+#           Infomax, especially when the aim is to recover accurate maps with
+#           a low tolerance parameter, see [1]_ for more information.
 
+method = 'fastica'
+
+# Choose other parameters
 n_components = 25  # if float, select n_components by explained variance of PCA
-method = 'fastica'  # for comparison with EEGLAB try "extended-infomax" here
 decim = 3  # we need sufficient statistics, not all time points -> saves time
 
 # we will also set state of the random number generator - ICA is a
@@ -289,4 +296,11 @@ eog_component = reference_ica.get_components()[:, eog_inds[0]]
 # You can also use SSP to correct for artifacts. It is a bit simpler and
 # faster but also less precise than ICA and requires that you know the event
 # timing of your artifact.
-# See :ref:`tut_artifacts_correct_ssp`.
+# See :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_ssp.py`.
+
+###############################################################################
+# References
+# ----------
+# .. [1] Ablin, P., Cardoso, J.F., Gramfort, A., 2017. Faster Independent
+#        Component Analysis by preconditioning with Hessian approximations.
+#        arXiv:1706.08171

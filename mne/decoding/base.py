@@ -31,9 +31,9 @@ class LinearModel(BaseEstimator):
 
     Attributes
     ----------
-    ``filters_`` : ndarray, shape ([n_targets], n_features)
+    filters_ : ndarray, shape ([n_targets], n_features)
         If fit, the filters used to decompose the data.
-    ``patterns_`` : ndarray, shape ([n_targets], n_features)
+    patterns_ : ndarray, shape ([n_targets], n_features)
         If fit, the patterns used to restore M/EEG signals.
 
     Notes

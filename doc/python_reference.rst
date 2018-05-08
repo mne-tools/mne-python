@@ -69,6 +69,7 @@ Reading raw data
   read_raw_brainvision
   read_raw_egi
   read_raw_fif
+  read_raw_eximia
 
 Base class:
 
@@ -236,6 +237,7 @@ Visualization
    plot_bem
    plot_connectivity_circle
    plot_cov
+   plot_csd
    plot_dipole_amplitudes
    plot_dipole_locations
    plot_drop_log
@@ -667,6 +669,7 @@ Inverse Solutions
    compute_rank_inverse
    estimate_snr
    make_inverse_operator
+   prepare_inverse_operator
    read_inverse_operator
    source_band_induced_power
    source_induced_power
@@ -710,9 +713,10 @@ Inverse Solutions
    apply_lcmv
    apply_lcmv_epochs
    apply_lcmv_raw
-   dics
-   dics_epochs
-   dics_source_power
+   make_dics
+   apply_dics
+   apply_dics_csd
+   apply_dics_epochs
    rap_music
    tf_dics
    tf_lcmv
@@ -767,6 +771,7 @@ Source Space Data
    :toctree: generated/
    :template: function.rst
 
+   head_to_mni
    compute_morph_matrix
    extract_label_time_course
    grade_to_tris
@@ -806,6 +811,7 @@ Time-Frequency
 
    AverageTFR
    EpochsTFR
+   CrossSpectralDensity
 
 Functions that operate on mne-python objects:
 
@@ -813,16 +819,17 @@ Functions that operate on mne-python objects:
    :toctree: generated/
    :template: function.rst
 
-   csd_epochs
+   csd_fourier
+   csd_multitaper
+   csd_morlet
+   pick_channels_csd
+   read_csd
+   fit_iir_model_raw
    psd_welch
    psd_multitaper
-   fit_iir_model_raw
    tfr_morlet
    tfr_multitaper
    tfr_stockwell
-   tfr_array_morlet
-   tfr_array_multitaper
-   tfr_array_stockwell
    read_tfrs
    write_tfrs
 
@@ -832,7 +839,9 @@ Functions that operate on ``np.ndarray`` objects:
    :toctree: generated/
    :template: function.rst
 
-   csd_array
+   csd_array_fourier
+   csd_array_multitaper
+   csd_array_morlet
    dpss_windows
    morlet
    stft
@@ -840,6 +849,9 @@ Functions that operate on ``np.ndarray`` objects:
    stftfreq
    psd_array_multitaper
    psd_array_welch
+   tfr_array_morlet
+   tfr_array_multitaper
+   tfr_array_stockwell
 
 
 :py:mod:`mne.time_frequency.tfr`:

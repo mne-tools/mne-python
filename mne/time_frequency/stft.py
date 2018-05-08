@@ -235,3 +235,25 @@ def stft_norm2(X):
     norms2 = (2. * X2.sum(axis=2).sum(axis=1) - np.sum(X2[:, 0, :], axis=1) -
               np.sum(X2[:, -1, :], axis=1))
     return norms2
+
+
+def stft_norm1(X):
+    """Compute L1 norm of STFT transform.
+
+    It takes into account that stft only return positive frequencies.
+
+    Parameters
+    ----------
+    X : 3D complex array
+        The STFT transforms
+
+    Returns
+    -------
+    norms : array
+        The L1 norm of every row of X.
+    """
+    X_abs = np.abs(X)
+    # compute all L1 coefs and remove first and last frequency once.
+    norms = (2. * X_abs.sum(axis=(1, 2)) -
+             np.sum(X_abs[:, 0, :], axis=1) - np.sum(X_abs[:, -1, :], axis=1))
+    return norms

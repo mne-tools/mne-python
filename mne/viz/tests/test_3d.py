@@ -26,7 +26,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        _import_mlab, _TempDir, requires_nibabel, check_version,
-                       requires_version)
+                       requires_version, traits_test)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.bem import read_bem_solution, read_bem_surfaces
@@ -84,6 +84,7 @@ def test_plot_head_positions():
 @testing.requires_testing_data
 @requires_pysurfer
 @requires_mayavi
+@traits_test
 def test_plot_sparse_source_estimates():
     """Test plotting of (sparse) source estimates."""
     sample_src = read_source_spaces(src_fname)
@@ -122,6 +123,7 @@ def test_plot_sparse_source_estimates():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_plot_evoked_field():
     """Test plotting evoked field."""
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
@@ -137,6 +139,7 @@ def test_plot_evoked_field():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_plot_alignment():
     """Test plotting of -trans.fif files and MEG sensor layouts."""
     # generate fiducials file for testing
@@ -262,6 +265,7 @@ def test_plot_alignment():
 @testing.requires_testing_data
 @requires_pysurfer
 @requires_mayavi
+@traits_test
 def test_limits_to_control_points():
     """Test functionality for determing control points."""
     sample_src = read_source_spaces(src_fname)
@@ -333,7 +337,8 @@ def test_stc_mpl():
                  colormap='Reds')
         fig = stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
                        hemi='lh', smoothing_steps=2, subject='sample',
-                       backend='matplotlib', spacing='ico2', time_viewer=True)
+                       backend='matplotlib', spacing='ico2', time_viewer=True,
+                       colormap='mne')
         time_viewer = fig.time_viewer
         _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change t
         time_viewer.canvas.key_press_event('ctrl+right')
@@ -370,6 +375,7 @@ def test_plot_dipole_mri_orthoview():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_snapshot_brain_montage():
     """Test snapshot brain montage."""
     info = read_info(evoked_fname)
@@ -395,6 +401,7 @@ def test_snapshot_brain_montage():
 @testing.requires_testing_data
 @requires_version('surfer', '0.8')
 @requires_mayavi
+@traits_test
 def test_plot_vec_source_estimates():
     """Test plotting of vector source estimates."""
     sample_src = read_source_spaces(src_fname)
@@ -408,6 +415,9 @@ def test_plot_vec_source_estimates():
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
         stc.plot('sample', subjects_dir=subjects_dir)
+        with pytest.raises(ValueError, match='use pos_lims'):
+            stc.plot('sample', subjects_dir=subjects_dir,
+                     clim=dict(pos_lims=[1, 2, 3]))
 
 
 run_tests_if_main()

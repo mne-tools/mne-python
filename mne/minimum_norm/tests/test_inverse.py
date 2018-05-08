@@ -13,10 +13,12 @@ from mne.datasets import testing
 from mne.label import read_label, label_sign_flip
 from mne.event import read_events
 from mne.epochs import Epochs
+from mne.forward import restrict_forward_to_stc
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  pick_types_forward, make_forward_solution, EvokedArray,
-                 convert_forward_solution, Covariance, combine_evoked)
+                 convert_forward_solution, Covariance, combine_evoked,
+                 SourceEstimate)
 from mne.io import read_raw_fif, Info
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
@@ -81,7 +83,8 @@ def read_forward_solution_eeg(fname, **kwargs):
 
 def _get_evoked():
     """Get evoked data."""
-    evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))
+    evoked = read_evokeds(fname_data, condition='Left Auditory',
+                          baseline=(None, 0))
     evoked.crop(0, 0.2)
     return evoked
 
@@ -295,11 +298,91 @@ def test_inverse_operator_channel_ordering():
     assert_allclose(stc_1.data, stc_3.data, rtol=1e-5, atol=1e-5)
 
 
+@testing.requires_testing_data
+def test_localization_bias():
+    """Test inverse localization bias for minimum-norm solvers."""
+    # Identity input
+    evoked = _get_evoked()
+    evoked.pick_types(meg=True, eeg=True, exclude=())
+    evoked = EvokedArray(np.eye(len(evoked.data)), evoked.info)
+    noise_cov = read_cov(fname_cov)
+    # restrict to limited set of verts (small src here) and one hemi for speed
+    fwd_orig = read_forward_solution(fname_fwd)
+    vertices = [fwd_orig['src'][0]['vertno'].copy(), []]
+    stc = SourceEstimate(np.zeros((sum(len(v) for v in vertices), 1)),
+                         vertices, 0., 1.)
+    fwd_orig = restrict_forward_to_stc(fwd_orig, stc)
+
+    #
+    # Fixed orientation (not very different)
+    #
+    fwd = fwd_orig.copy()
+    inv_fixed = make_inverse_operator(evoked.info, fwd, noise_cov, loose=0.,
+                                      depth=0.8)
+    fwd = convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
+    fwd = fwd['sol']['data']
+    want = np.arange(fwd.shape[1])
+    for method, lower, upper in (('MNE', 35, 40),
+                                 ('dSPM', 45, 50),
+                                 ('sLORETA', 55, 60),
+                                 ('eLORETA', 50, 55)):
+        inv_op = apply_inverse(evoked, inv_fixed, lambda2, method).data
+        loc = np.abs(np.dot(inv_op, fwd))
+        # Compute the percentage of sources for which there is no localization
+        # bias:
+        perc = (want == np.argmax(loc, axis=0)).mean() * 100
+        assert lower <= perc <= upper, method
+
+    #
+    # Loose orientation
+    #
+    fwd = fwd_orig.copy()
+    inv_free = make_inverse_operator(evoked.info, fwd, noise_cov, loose=0.2,
+                                     depth=0.8)
+    fwd = fwd['sol']['data']
+    want = np.arange(fwd.shape[1]) // 3
+    for method, lower, upper in (('MNE', 25, 35),
+                                 ('dSPM', 25, 35),
+                                 ('sLORETA', 35, 40),
+                                 ('eLORETA', 40, 45)):
+        inv_op = apply_inverse(evoked, inv_free, lambda2, method,
+                               pick_ori='vector').data
+        loc = np.linalg.norm(np.einsum('vos,sx->vxo', inv_op, fwd), axis=-1)
+        # Compute the percentage of sources for which there is no localization
+        # bias:
+        perc = (want == np.argmax(loc, axis=0)).mean() * 100
+        assert lower <= perc <= upper, method
+
+    #
+    # Free orientation
+    #
+    fwd = fwd_orig.copy()
+    inv_free = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1.,
+                                     depth=0.8)
+    fwd = fwd['sol']['data']
+    want = np.arange(fwd.shape[1]) // 3
+    force_kwargs = dict(method_params=dict(force_equal=True))
+    for method, lower, upper, kwargs in (('MNE', 45, 55, {}),
+                                         ('dSPM', 40, 45, {}),
+                                         ('sLORETA', 90, 95, {}),
+                                         ('eLORETA', 90, 95, force_kwargs),
+                                         ('eLORETA', 100, 100, {}),
+                                         ):
+        inv_op = apply_inverse(evoked, inv_free, lambda2, method,
+                               pick_ori='vector', **kwargs).data
+        loc = np.linalg.norm(np.einsum('vos,sx->vxo', inv_op, fwd), axis=-1)
+        # Compute the percentage of sources for which there is no localization
+        # bias:
+        perc = (want == np.argmax(loc, axis=0)).mean() * 100
+        assert lower <= perc <= upper, method
+
+
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_apply_inverse_operator():
     """Test MNE inverse application."""
-    inverse_operator = read_inverse_operator(fname_full)
+    # use fname_inv as it will be faster than fname_full (fewer verts and chs)
+    inverse_operator = read_inverse_operator(fname_inv)
     evoked = _get_evoked()
 
     # Inverse has 306 channels - 4 proj = 302
@@ -309,10 +392,10 @@ def test_apply_inverse_operator():
     assert_true(compute_rank_inverse(inverse_operator) == 302)
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "MNE")
-    assert_true(stc.subject == 'sample')
-    assert_true(stc.data.min() > 0)
-    assert_true(stc.data.max() < 10e-9)
-    assert_true(stc.data.mean() > 1e-11)
+    assert stc.subject == 'sample'
+    assert stc.data.min() > 0
+    assert stc.data.max() < 13e-9
+    assert stc.data.mean() > 1e-11
 
     # test if using prepared and not prepared inverse operator give the same
     # result
@@ -322,17 +405,24 @@ def test_apply_inverse_operator():
     assert_array_almost_equal(stc.data, stc2.data)
     assert_array_almost_equal(stc.times, stc2.times)
 
+    # This is little more than a smoke test...
     stc = apply_inverse(evoked, inverse_operator, lambda2, "sLORETA")
-    assert_true(stc.subject == 'sample')
-    assert_true(stc.data.min() > 0)
-    assert_true(stc.data.max() < 10.0)
-    assert_true(stc.data.mean() > 0.1)
+    assert stc.subject == 'sample'
+    assert stc.data.min() > 0
+    assert stc.data.max() < 10.0
+    assert stc.data.mean() > 0.1
+
+    stc = apply_inverse(evoked, inverse_operator, lambda2, "eLORETA")
+    assert stc.subject == 'sample'
+    assert stc.data.min() > 0
+    assert stc.data.max() < 3.0
+    assert stc.data.mean() > 0.1
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "dSPM")
-    assert_true(stc.subject == 'sample')
-    assert_true(stc.data.min() > 0)
-    assert_true(stc.data.max() < 35)
-    assert_true(stc.data.mean() > 0.1)
+    assert stc.subject == 'sample'
+    assert stc.data.min() > 0
+    assert stc.data.max() < 35
+    assert stc.data.mean() > 0.1
 
     # test without using a label (so delayed computation is used)
     label = read_label(fname_label % 'Aud-lh')
@@ -341,7 +431,7 @@ def test_apply_inverse_operator():
                               label=label)
     assert_equal(stc_label.subject, 'sample')
     label_stc = stc.in_label(label)
-    assert_true(label_stc.subject == 'sample')
+    assert label_stc.subject == 'sample'
     assert_allclose(stc_label.data, label_stc.data)
 
     # Test that no errors are raised with loose inverse ops and picking normals
@@ -446,6 +536,7 @@ def test_make_inverse_operator_vector():
 
     # Apply the inverse operators and check the result
     for ii, inv in enumerate((inv_1, inv_2, inv_4)):
+        # Don't do eLORETA here as it will be quite slow
         methods = ['MNE', 'dSPM', 'sLORETA'] if ii < 2 else ['MNE']
         for method in methods:
             stc = apply_inverse(evoked, inv, method=method)

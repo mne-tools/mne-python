@@ -22,7 +22,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        _check_type_picks, object_hash, object_diff,
                        requires_good_network, run_tests_if_main, md5sum,
                        ArgvSetter, _memory_usage, check_random_state,
-                       _check_mayavi_version, requires_mayavi,
+                       _check_mayavi_version, requires_mayavi, traits_test,
                        set_memmap_min_size, _get_stim_channel, _check_fname,
                        create_slices, _time_mask, random_permutation,
                        _get_call_line, compute_corr, sys_info, verbose,
@@ -155,6 +155,7 @@ def test_misc():
 
 
 @requires_mayavi
+@traits_test
 def test_check_mayavi():
     """Test mayavi version check."""
     assert_raises(RuntimeError, _check_mayavi_version, '100.0.0')
@@ -272,6 +273,10 @@ def test_hash():
     y = 0
     assert_true('type mismatch' in object_diff(x, y))
 
+    # smoke test for gh-4796
+    assert object_hash(np.int64(1)) != 0
+    assert object_hash(np.bool_(True)) != 0
+
 
 def test_md5sum():
     """Test md5sum calculation."""
@@ -382,6 +387,15 @@ def test_logging():
     with open(test_name, 'r') as new_log_file:
         new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines)
+
+
+@testing.requires_testing_data
+def test_datasets():
+    """Test dataset config."""
+    # gh-4192
+    data_path = testing.data_path(download=False)
+    os.environ['MNE_DATASETS_TESTING_PATH'] = op.dirname(data_path)
+    assert testing.data_path(download=False) == data_path
 
 
 def test_config():

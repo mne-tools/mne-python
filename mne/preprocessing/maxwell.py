@@ -25,7 +25,7 @@ from ..surface import _normalize_vectors
 from ..io.constants import FIFF
 from ..io.meas_info import _simplify_info
 from ..io.proc_history import _read_ctc
-from ..io.write import _generate_meas_id, _date_now
+from ..io.write import _generate_meas_id, DATE_NONE
 from ..io import _loc_to_coil_trans, BaseRaw
 from ..io.pick import pick_types, pick_info
 from ..utils import verbose, logger, _clean_names, warn, _time_mask, _pl
@@ -1445,7 +1445,7 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
         _reset_meg_bads(raw.info)
     block_id = _generate_meas_id()
     raw.info['proc_history'].insert(0, dict(
-        max_info=max_info_dict, block_id=block_id, date=_date_now(),
+        max_info=max_info_dict, block_id=block_id, date=DATE_NONE,
         creator='mne-python v%s' % __version__, experimenter=''))
 
 

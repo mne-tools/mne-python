@@ -1,6 +1,4 @@
 """
-.. _tut_artifacts_reject:
-
 Rejecting bad data (channels and segments)
 ==========================================
 
@@ -84,7 +82,7 @@ evoked = mne.read_evokeds(fname, condition='Left Auditory',
 evoked.pick_types(meg=True, eeg=True, exclude=[])
 
 # plot with bads
-evoked.plot(exclude=[])
+evoked.plot(exclude=[], time_unit='s')
 
 print(evoked.info['bads'])
 
@@ -94,7 +92,7 @@ evoked.interpolate_bads(reset_bads=False, verbose=False)
 
 ###############################################################################
 # Let's plot the cleaned data
-evoked.plot(exclude=[])
+evoked.plot(exclude=[], time_unit='s')
 
 ###############################################################################
 # .. note::
@@ -135,7 +133,8 @@ raw.plot(events=eog_events)  # To see the annotated segments.
 
 ###############################################################################
 # It is also possible to draw bad segments interactively using
-# :meth:`raw.plot <mne.io.Raw.plot>` (see :ref:`tut_viz_raw`).
+# :meth:`raw.plot <mne.io.Raw.plot>` (see
+# :ref:`sphx_glr_auto_tutorials_plot_visualize_raw.py`).
 #
 # As the data is epoched, all the epochs overlapping with segments whose
 # description starts with 'bad' are rejected by default. To turn rejection off,

@@ -28,7 +28,7 @@ What you can do with MNE Python
      creation and solution computation.
    - **Forward modeling**: BEM computation and mesh creation
      (see :ref:`ch_forward`)
-   - **Linear inverse solvers** (dSPM, sLORETA, MNE, LCMV, DICS)
+   - **Linear inverse solvers** (MNE, dSPM, sLORETA, eLORETA, LCMV, DICS)
    - **Sparse inverse solvers** (L1/L2 mixed norm MxNE, Gamma Map,
      Time-Frequency MxNE)
    - **Connectivity estimation** in sensor and source space
@@ -256,7 +256,7 @@ saved_epochs = mne.read_epochs('sample-epo.fif')
 
 evoked = epochs['aud_l'].average()
 print(evoked)
-evoked.plot()
+evoked.plot(time_unit='s')
 
 ##############################################################################
 # .. topic:: Exercise

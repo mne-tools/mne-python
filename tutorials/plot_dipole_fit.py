@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-==========================================
-Source localization with single dipole fit
-==========================================
+============================================================
+Source localization with equivalent current dipole (ECD) fit
+============================================================
 
 This shows how to fit a dipole using mne-python.
 
@@ -10,10 +10,6 @@ For a comparison of fits between MNE-C and mne-python, see:
 
     https://gist.github.com/Eric89GXL/ca55f791200fe1dc3dd2
 
-Note that for 3D graphics you may need to choose a specific IPython
-backend, such as:
-
-`%matplotlib qt` or `%matplotlib wx`
 """
 
 from os import path as op
@@ -66,7 +62,7 @@ vmin, vmax = -400, 400  # make sure each plot has same colour range
 
 # first plot the topography at the time of the best fitting (single) dipole
 plot_params = dict(times=best_time, ch_type='mag', outlines='skirt',
-                   colorbar=False)
+                   colorbar=False, time_unit='s')
 evoked.plot_topomap(time_format='Measured field', axes=axes[0], **plot_params)
 
 # compare this to the predicted field
@@ -85,4 +81,4 @@ plt.suptitle('Comparison of measured and predicted fields '
 # orientation (the one that maximized GOF) over the entire interval
 dip_fixed = mne.fit_dipole(evoked_full, fname_cov, fname_bem, fname_trans,
                            pos=dip.pos[best_idx], ori=dip.ori[best_idx])[0]
-dip_fixed.plot()
+dip_fixed.plot(time_unit='s')

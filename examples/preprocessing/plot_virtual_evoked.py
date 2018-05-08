@@ -28,12 +28,12 @@ evoked = mne.read_evokeds(fname, condition='Left Auditory', baseline=(None, 0))
 
 # go from grad + mag to mag
 virt_evoked = evoked.as_type('mag')
-evoked.plot_topomap(ch_type='mag', title='mag (original)')
-virt_evoked.plot_topomap(ch_type='mag',
+evoked.plot_topomap(ch_type='mag', title='mag (original)', time_unit='s')
+virt_evoked.plot_topomap(ch_type='mag', time_unit='s',
                          title='mag (interpolated from mag + grad)')
 
 # go from grad + mag to grad
 virt_evoked = evoked.as_type('grad')
-evoked.plot_topomap(ch_type='grad', title='grad (original)')
-virt_evoked.plot_topomap(ch_type='grad',
+evoked.plot_topomap(ch_type='grad', title='grad (original)', time_unit='s')
+virt_evoked.plot_topomap(ch_type='grad', time_unit='s',
                          title='grad (interpolated from mag + grad)')

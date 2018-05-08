@@ -80,18 +80,18 @@ def test_plot_evoked_cov():
     evoked = _get_epochs().average()
     cov = read_cov(cov_fname)
     cov['projs'] = []  # avoid warnings
-    evoked.plot(noise_cov=cov)
+    evoked.plot(noise_cov=cov, time_unit='s')
     with pytest.raises(TypeError, match='Covariance'):
-        evoked.plot(noise_cov=1.)
+        evoked.plot(noise_cov=1., time_unit='s')
     with pytest.raises(IOError, match='No such file'):
-        evoked.plot(noise_cov='nonexistent-cov.fif')
+        evoked.plot(noise_cov='nonexistent-cov.fif', time_unit='s')
     raw = read_raw_fif(raw_sss_fname)
     events = make_fixed_length_events(raw)
     epochs = Epochs(raw, events)
     cov = compute_covariance(epochs)
     evoked_sss = epochs.average()
     with warnings.catch_warnings(record=True) as w:
-        evoked_sss.plot(noise_cov=cov)
+        evoked_sss.plot(noise_cov=cov, time_unit='s')
     plt.close('all')
     assert any('relative scal' in str(ww.message) for ww in w)
 
@@ -102,7 +102,8 @@ def test_plot_evoked():
     import matplotlib.pyplot as plt
     rng = np.random.RandomState(0)
     evoked = _get_epochs().average()
-    fig = evoked.plot(proj=True, hline=[1], exclude=[], window_title='foo')
+    fig = evoked.plot(proj=True, hline=[1], exclude=[], window_title='foo',
+                      time_unit='s')
     # Test a click
     ax = fig.get_axes()[0]
     line = ax.lines[0]
@@ -111,31 +112,47 @@ def test_plot_evoked():
     _fake_click(fig, ax,
                 [ax.get_xlim()[0], ax.get_ylim()[1]], 'data')
     # plot with bad channels excluded & spatial_colors & zorder
-    evoked.plot(exclude='bads')
+    evoked.plot(exclude='bads', time_unit='s')
 
     # test selective updating of dict keys is working.
-    evoked.plot(hline=[1], units=dict(mag='femto foo'))
+    evoked.plot(hline=[1], units=dict(mag='femto foo'), time_unit='s')
     evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
-    evoked_delayed_ssp.plot(proj='interactive')
+    evoked_delayed_ssp.plot(proj='interactive', time_unit='s')
     evoked_delayed_ssp.apply_proj()
     assert_raises(RuntimeError, evoked_delayed_ssp.plot,
-                  proj='interactive')
+                  proj='interactive', time_unit='s')
     evoked_delayed_ssp.info['projs'] = []
     assert_raises(RuntimeError, evoked_delayed_ssp.plot,
-                  proj='interactive')
+                  proj='interactive', time_unit='s')
     assert_raises(RuntimeError, evoked_delayed_ssp.plot,
-                  proj='interactive', axes='foo')
+                  proj='interactive', axes='foo', time_unit='s')
     plt.close('all')
 
     # test GFP only
-    evoked.plot(gfp='only')
-    assert_raises(ValueError, evoked.plot, gfp='foo')
+    evoked.plot(gfp='only', time_unit='s')
+    assert_raises(ValueError, evoked.plot, gfp='foo', time_unit='s')
 
-    evoked.plot_image(proj=True)
+    evoked.plot_image(proj=True, time_unit='ms')
+    # test mask
+    evoked.plot_image(picks=[1, 2], mask=evoked.data > 0, time_unit='s')
+    evoked.plot_image(picks=[1, 2], mask_cmap=None, colorbar=False,
+                      mask=np.ones(evoked.data.shape).astype(bool),
+                      time_unit='s')
+
+    with warnings.catch_warnings(record=True) as w:
+        evoked.plot_image(picks=[1, 2], mask=None, mask_style="both",
+                          time_unit='s')
+    assert len(w) == 2
+    assert_raises(ValueError, evoked.plot_image, mask=evoked.data[1:, 1:] > 0,
+                  time_unit='s')
+
     # plot with bad channels excluded
-    evoked.plot_image(exclude='bads', cmap='interactive')
-    evoked.plot_image(exclude=evoked.info['bads'])  # does the same thing
+    evoked.plot_image(exclude='bads', cmap='interactive', time_unit='s')
+    evoked.plot_image(exclude=evoked.info['bads'], time_unit='s')  # same thing
     plt.close('all')
+
+    assert_raises(ValueError, evoked.plot_image, picks=[0, 0],
+                  time_unit='s')  # duplicates
 
     evoked.plot_topo()  # should auto-find layout
     _line_plot_onselect(0, 200, ['mag', 'grad'], evoked.info, evoked.data,
@@ -144,17 +161,18 @@ def test_plot_evoked():
 
     cov = read_cov(cov_fname)
     cov['method'] = 'empirical'
+    cov['projs'] = []  # avoid warnings
     # test rank param.
-    evoked.plot_white(cov, rank={'mag': 101, 'grad': 201})
-    evoked.plot_white(cov, rank={'mag': 101})  # test rank param.
-    evoked.plot_white(cov, rank={'grad': 201})  # test rank param.
+    evoked.plot_white(cov, rank={'mag': 101, 'grad': 201}, time_unit='s')
+    evoked.plot_white(cov, rank={'mag': 101}, time_unit='s')  # test rank param
+    evoked.plot_white(cov, rank={'grad': 201}, time_unit='s')
     assert_raises(
         ValueError, evoked.plot_white, cov,
-        rank={'mag': 101, 'grad': 201, 'meg': 306})
+        rank={'mag': 101, 'grad': 201, 'meg': 306}, time_unit='s')
     assert_raises(
-        ValueError, evoked.plot_white, cov, rank={'meg': 306})
+        ValueError, evoked.plot_white, cov, rank={'meg': 306}, time_unit='s')
 
-    evoked.plot_white([cov, cov])
+    evoked.plot_white([cov, cov], time_unit='s')
 
     # plot_compare_evokeds: test condition contrast, CI, color assignment
     plot_compare_evokeds(evoked.copy().pick_types(meg='mag'))
@@ -263,17 +281,19 @@ def test_plot_evoked():
     evoked_sss = evoked.copy()
     sss = dict(sss_info=dict(in_order=80, components=np.arange(80)))
     evoked_sss.info['proc_history'] = [dict(max_info=sss)]
-    evoked_sss.plot_white(cov, rank={'meg': 64})
+    evoked_sss.plot_white(cov, rank={'meg': 64}, time_unit='s')
     assert_raises(
-        ValueError, evoked_sss.plot_white, cov, rank={'grad': 201})
-    evoked_sss.plot_white(cov_fname)
+        ValueError, evoked_sss.plot_white, cov, rank={'grad': 201},
+        time_unit='s')
+    evoked_sss.plot_white(cov, time_unit='s')
 
     # plot with bad channels excluded, spatial_colors, zorder & pos. layout
     evoked.rename_channels({'MEG 0133': 'MEG 0000'})
     evoked.plot(exclude=evoked.info['bads'], spatial_colors=True, gfp=True,
-                zorder='std')
-    evoked.plot(exclude=[], spatial_colors=True, zorder='unsorted')
-    assert_raises(TypeError, evoked.plot, zorder='asdf')
+                zorder='std', time_unit='s')
+    evoked.plot(exclude=[], spatial_colors=True, zorder='unsorted',
+                time_unit='s')
+    assert_raises(TypeError, evoked.plot, zorder='asdf', time_unit='s')
     plt.close('all')
 
     evoked.plot_sensors()  # Test plot_sensors
@@ -281,7 +301,7 @@ def test_plot_evoked():
 
     evoked.pick_channels(evoked.ch_names[:4])
     with catch_logging() as log_file:
-        evoked.plot(verbose=True)
+        evoked.plot(verbose=True, time_unit='s')
     assert_true('Need more than one' in log_file.getvalue())
 
 

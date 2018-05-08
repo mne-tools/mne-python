@@ -1668,7 +1668,11 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
                     echos_done += 1
     # Step 1b : Run grad_unwarp on converted files
     os.chdir(op.join(mri_dir, "flash"))
-    files = glob.glob("mef*.mgz")
+    template = "mef*.mgz"
+    files = glob.glob(template)
+    if len(files) == 0:
+        raise ValueError('No suitable source files found (%s)'
+                         % op.join(os.getcwd(), template))
     if unwarp:
         logger.info("\n---- Unwarp mgz data sets ----")
         for infile in files:
@@ -1705,11 +1709,12 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     else:
         logger.info("\n---- Averaging flash5 echoes ----")
         os.chdir('parameter_maps')
-        if unwarp:
-            files = glob.glob("mef05*u.mgz")
-        else:
-            files = glob.glob("mef05*.mgz")
-        cmd = ['mri_average', '-noconform', files, 'flash5.mgz']
+        template = "mef05*u.mgz" if unwarp else "mef05*.mgz"
+        files = glob.glob(template)
+        if len(files) == 0:
+            raise ValueError('No suitable source files found (%s)'
+                             % op.join(os.getcwd(), template))
+        cmd = ['mri_average', '-noconform'] + files + ['flash5.mgz']
         run_subprocess(cmd, env=env)
         if op.exists('flash5_reg.mgz'):
             os.remove('flash5_reg.mgz')

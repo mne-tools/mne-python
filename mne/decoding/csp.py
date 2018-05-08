@@ -63,13 +63,13 @@ class CSP(TransformerMixin, BaseEstimator):
 
     Attributes
     ----------
-    ``filters_`` : ndarray, shape (n_components, n_channels)
+    filters_ :  ndarray, shape (n_components, n_channels)
         If fit, the CSP components used to decompose the data, else None.
-    ``patterns_`` : ndarray, shape (n_components, n_channels)
+    patterns_ : ndarray, shape (n_components, n_channels)
         If fit, the CSP patterns used to restore M/EEG signals, else None.
-    ``mean_`` : ndarray, shape (n_components,)
+    mean_ : ndarray, shape (n_components,)
         If fit, the mean squared power for each component.
-    ``std_`` : ndarray, shape (n_components,)
+    std_ : ndarray, shape (n_components,)
         If fit, the std squared power for each component.
 
     See Also
@@ -425,7 +425,7 @@ class CSP(TransformerMixin, BaseEstimator):
             times=components, ch_type=ch_type, layout=layout,
             vmin=vmin, vmax=vmax, cmap=cmap, colorbar=colorbar, res=res,
             cbar_fmt=cbar_fmt, sensors=sensors,
-            scalings=scalings, units=units, scaling_time=1,
+            scalings=scalings, units=units, time_unit='s',
             time_format=name_format, size=size, show_names=show_names,
             title=title, mask_params=mask_params, mask=mask, outlines=outlines,
             contours=contours, image_interp=image_interp, show=show,
@@ -573,7 +573,7 @@ class CSP(TransformerMixin, BaseEstimator):
             times=components, ch_type=ch_type, layout=layout, vmin=vmin,
             vmax=vmax, cmap=cmap, colorbar=colorbar, res=res,
             cbar_fmt=cbar_fmt, sensors=sensors, scalings=scalings, units=units,
-            scaling_time=1, time_format=name_format, size=size,
+            time_unit='s', time_format=name_format, size=size,
             show_names=show_names, title=title, mask_params=mask_params,
             mask=mask, outlines=outlines, contours=contours,
             image_interp=image_interp, show=show, average=average,
@@ -702,13 +702,13 @@ class SPoC(CSP):
 
     Attributes
     ----------
-    ``filters_`` : ndarray, shape (n_components, n_channels)
+    filters_ : ndarray, shape (n_components, n_channels)
         If fit, the SPoC spatial filters, else None.
-    ``patterns_`` : ndarray, shape (n_components, n_channels)
+    patterns_ : ndarray, shape (n_components, n_channels)
         If fit, the SPoC spatial patterns, else None.
-    ``mean_`` : ndarray, shape (n_components,)
+    mean_ : ndarray, shape (n_components,)
         If fit, the mean squared power for each component.
-    ``std_`` : ndarray, shape (n_components,)
+    std_ : ndarray, shape (n_components,)
         If fit, the std squared power for each component.
 
     See Also

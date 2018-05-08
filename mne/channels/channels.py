@@ -594,11 +594,13 @@ class SetChannelsMixin(object):
 class UpdateChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs, AverageTFR."""
 
+    @verbose
     def pick_types(self, meg=True, eeg=False, stim=False, eog=False,
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False, ecog=False,
-                   fnirs=False, include=(), exclude='bads', selection=None):
+                   fnirs=False, include=(), exclude='bads', selection=None,
+                   verbose=None):
         """Pick some channels by type and names.
 
         Parameters
@@ -657,6 +659,10 @@ class UpdateChannelsMixin(object):
             in ``info['bads']``.
         selection : list of string
             Restrict sensor channels (MEG, EEG) to this list of channel names.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -677,8 +683,7 @@ class UpdateChannelsMixin(object):
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
             ecog=ecog, fnirs=fnirs, include=include, exclude=exclude,
             selection=selection)
-        self._pick_drop_channels(idx)
-        return self
+        return self._pick_drop_channels(idx)
 
     def pick_channels(self, ch_names):
         """Pick some channels.
@@ -707,9 +712,8 @@ class UpdateChannelsMixin(object):
 
         .. versionadded:: 0.9.0
         """
-        self._pick_drop_channels(
+        return self._pick_drop_channels(
             pick_channels(self.info['ch_names'], ch_names))
-        return self
 
     def reorder_channels(self, ch_names):
         """Reorder channels.
@@ -744,8 +748,7 @@ class UpdateChannelsMixin(object):
             if ii in idx:
                 raise ValueError('Channel name repeated: %s' % (ch_name,))
             idx.append(ii)
-        self._pick_drop_channels(idx)
-        return self
+        return self._pick_drop_channels(idx)
 
     def drop_channels(self, ch_names):
         """Drop some channels.
@@ -788,9 +791,7 @@ class UpdateChannelsMixin(object):
         bad_idx = [self.ch_names.index(ch_name) for ch_name in ch_names
                    if ch_name in self.ch_names]
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
-        self._pick_drop_channels(idx)
-
-        return self
+        return self._pick_drop_channels(idx)
 
     def _pick_drop_channels(self, idx):
         # avoid circular imports
@@ -812,6 +813,7 @@ class UpdateChannelsMixin(object):
         # All others (Evoked, Epochs, Raw) have chs axis=-2
         axis = -3 if isinstance(self, (AverageTFR, EpochsTFR)) else -2
         self._data = self._data.take(idx, axis=axis)
+        return self
 
     def add_channels(self, add_list, force_update_info=False):
         """Append new channels to the instance.
@@ -856,15 +858,20 @@ class UpdateChannelsMixin(object):
         else:
             con_axis = 0
             comp_class = type(self)
-        if not all(isinstance(inst, comp_class) for inst in add_list):
-            raise AssertionError('All input data must be of same type')
+        for inst in add_list:
+            if not isinstance(inst, comp_class):
+                raise AssertionError('All input data must be of same type, got'
+                                     ' %s and %s' % (comp_class, type(inst)))
         data = [inst._data for inst in [self] + add_list]
 
         # Make sure that all dimensions other than channel axis are the same
         compare_axes = [i for i in range(data[0].ndim) if i != con_axis]
         shapes = np.array([dat.shape for dat in data])[:, compare_axes]
-        if not ((shapes[0] - shapes) == 0).all():
-            raise AssertionError('All dimensions except channels must match')
+        for shape in shapes:
+            if not ((shapes[0] - shape) == 0).all():
+                raise AssertionError('All data dimensions except channels '
+                                     'must match, got %s != %s'
+                                     % (shapes[0], shape))
 
         # Create final data / info objects
         data = np.concatenate(data, axis=con_axis)
@@ -916,6 +923,10 @@ class InterpolationMixin(object):
 
         if getattr(self, 'preload', None) is False:
             raise ValueError('Data must be preloaded.')
+
+        if len(self.info['bads']) == 0:
+            warn('No bad channels to interpolate. Doing nothing...')
+            return self
 
         _interpolate_bads_eeg(self)
         _interpolate_bads_meg(self, mode=mode)

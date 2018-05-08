@@ -420,7 +420,8 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
     surface-based, fixed orienation cannot be reverted after loading the
     forward solution with :func:`read_forward_solution`.
     """
-    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
+    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz',
+                                   '_fwd.fif', '_fwd.fif.gz'))
 
     #   Open the file, create directory
     logger.info('Reading forward solution from %s...' % fname)
@@ -498,6 +499,14 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
         # get parent MEG info
         #
         fwd['info'] = _read_forward_meas_info(tree, fid)
+
+        # remove compensation matrcies.
+        if len(fwd['info'].get('comps', [])) > 0:
+            fwd['info']['comps'] = []
+            warn('Removing compensation matrices found in measurement info of '
+                 'forward operator. This should not affect application of the '
+                 'forward model but it will change the model if it\'s written '
+                 'back to disk', UserWarning)
 
         # MNE environment
         parent_env = dir_tree_find(tree, FIFF.FIFFB_MNE_ENV)
@@ -759,7 +768,8 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     surface-based, fixed orienation cannot be reverted after loading the
     forward solution with :func:`read_forward_solution`.
     """
-    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
+    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz',
+                                   '_fwd.fif', '_fwd.fif.gz'))
 
     # check for file existence
     _check_fname(fname, overwrite)
@@ -1133,8 +1143,9 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
     max_cur = np.max(np.abs(stc.data))
     if max_cur > 1e-7:  # 100 nAm threshold for warning
         warn('The maximum current magnitude is %0.1f nAm, which is very large.'
-             ' Are you trying to apply the forward model to dSPM values? The '
-             'result will only be correct if currents are used.'
+             ' Are you trying to apply the forward model to noise-normalized '
+             '(dSPM, sLORETA, or eLORETA) values? The result will only be '
+             'correct if currents (in units of Am) are used.'
              % (1e9 * max_cur))
 
     src_sel = _stc_src_sel(fwd['src'], stc)
