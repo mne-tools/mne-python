@@ -141,6 +141,12 @@ class RtEpochs(BaseEpochs):
 
         verbose = client.verbose if verbose is None else verbose
 
+        # FIFO queues for received epochs and events
+        # need to be initialized to validate invariants in base constructor
+        self._epoch_queue = list()
+        self._events = list()
+        self._selection = list()
+
         # call BaseEpochs constructor
         super(RtEpochs, self).__init__(
             info, None, None, event_id, tmin, tmax, baseline, picks=picks,
@@ -185,10 +191,6 @@ class RtEpochs(BaseEpochs):
                        self._client_info['chs'][k]['cal'])
         self._cals = cals[:, None]
 
-        # FIFO queues for received epochs and events
-        self._epoch_queue = list()
-        self._events = list()
-
         # variables needed for receiving raw buffers
         self._last_buffer = None
         self._first_samp = 0
@@ -205,8 +207,81 @@ class RtEpochs(BaseEpochs):
 
     @property
     def events(self):
-        """The events associated with the epochs currently in the queue."""
+        """
+        Returns the events associated with the epochs currently in the queue.
+
+        Returns
+        -------
+        array of int, shape (n_events, 3)
+        event array
+        """
+        """"""
         return np.array(self._events)
+
+    @events.setter
+    def events(self, new_events):
+        """
+        Updates the internal event list.
+
+        Parameters
+        ----------
+        new_events : array of int, shape (n_events, 3)
+            new events
+        """
+        self._events = [tuple(new_events[i, :])
+                        for i in range(len(new_events))]
+
+    @property
+    def selection(self):
+        """
+        Returns the current epoch selection.
+        Returns
+        -------
+        array of int
+        the indices of currently selected epochs
+        """
+        return np.asarray(self._selection, dtype=int)
+
+    @selection.setter
+    def selection(self, new_selection):
+        """
+        Update the internal selection list.
+
+        Parameters
+        ----------
+        new_selection : iterable of epoch indices
+
+        """
+        self._selection = list(new_selection)
+
+    def __len__(self):
+        """
+        Return the number of available epochs.
+
+        -------
+        int
+        number of available epochs
+        """
+        # we override this since the check for dropped epochs
+        # doesn't apply here
+        return len(self._events)
+
+    def _getitem(self, item, reason='IGNORED', copy=True, drop_event_id=True,
+                 select_data=True, return_indices=False):
+
+        epochs, select = super(RtEpochs, self)._getitem(
+            item=item, reason=reason, copy=copy, drop_event_id=drop_event_id,
+            select_data=False, return_indices=True)
+
+        # try to be compatible with numpy indexing
+        new_queue = list()
+        for kept_idx in np.arange(len(epochs._epoch_queue), dtype=int)[select]:
+            new_queue.append(epochs._epoch_queue[kept_idx])
+        epochs._epoch_queue = new_queue
+
+        epochs._n_good = len(epochs._epoch_queue)
+
+        return epochs
 
     def start(self):
         """Start receiving epochs.
@@ -262,15 +337,15 @@ class RtEpochs(BaseEpochs):
         first = True
         while True:
             current_time = time.time()
-            if current_time > (self._last_time + self.isi_max):
-                logger.info('Time of %s seconds exceeded.' % self.isi_max)
-                return  # signal the end properly
             if len(self._epoch_queue) > self._current:
                 epoch = self._epoch_queue[self._current]
                 event_id = self._events[self._current][-1]
                 self._current += 1
                 self._last_time = current_time
                 return (epoch, event_id) if return_event_id else epoch
+            if current_time > (self._last_time + self.isi_max):
+                logger.info('Time of %s seconds exceeded.' % self.isi_max)
+                return  # signal the end properly
             if self._started:
                 if first:
                     logger.info('Waiting for epoch %d' % (self._current + 1))
@@ -280,15 +355,38 @@ class RtEpochs(BaseEpochs):
                 raise RuntimeError('Not enough epochs in queue and currently '
                                    'not receiving epochs, cannot get epochs!')
 
-    def _get_data(self):
-        """Return the data for n_epochs epochs."""
-        epochs = list()
-        for epoch in self:
-            epochs.append(epoch)
+    @verbose
+    def _get_data(self, out=True, verbose=None):
+        """
+        Return all data as numpy array.
 
-        data = np.array(epochs)
+        Parameters
+        ----------
+        out : bool
+            Return the data.
+        verbose: bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
-        return data
+        Returns
+        -------
+        np.ndarray or None
+        epochs data
+
+        Notes
+        -----
+        Rejection in RtEpochs already happens at epoch creation,
+        not on data loading.
+        """
+        if out:
+            epochs = list()
+            for epoch in self:
+                epochs.append(epoch)
+
+            data = np.array(epochs)
+
+            return data
 
     def _process_raw_buffer(self, raw_buffer):
         """Process raw buffer (callback from RtClient).
@@ -419,13 +517,17 @@ class RtEpochs(BaseEpochs):
         epoch = self._project_epoch(epoch)
 
         # Decide if this is a good epoch
-        is_good, _ = self._is_good_epoch(epoch, verbose='ERROR')
+        is_good, offending_reasons = self._is_good_epoch(epoch,
+                                                         verbose='ERROR')
 
         if is_good:
             self._epoch_queue.append(epoch)
             self._events.append((event_samp, 0, event_id))
+            self.drop_log.append(list())
+            self._selection.append(len(self.drop_log) - 1)
             self._n_good += 1
         else:
+            self.drop_log.append(offending_reasons)
             self._n_bad += 1
 
     def __repr__(self):  # noqa: D105

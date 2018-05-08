@@ -1,11 +1,11 @@
 import os.path as op
 
 from nose.tools import assert_true
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_allclose
 
 import mne
 from mne import Epochs, read_events, pick_channels
-from mne.utils import run_tests_if_main
+from mne.utils import (run_tests_if_main, _TempDir)
 from mne.realtime import MockRtClient, RtEpochs
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -39,6 +39,16 @@ def test_mockclient():
 
     assert_true(rt_data.shape == data.shape)
     assert_array_equal(rt_data, data)
+    assert_true(len(rt_epochs) == len(epochs))
+
+    tempdir = _TempDir()  # will be removed up when out of scope
+    export_file = str(op.join(tempdir, 'test_rt-epo.fif'))
+    rt_epochs.save(export_file)
+
+    loaded_epochs = mne.read_epochs(export_file)
+    loaded_data = loaded_epochs.get_data()
+    assert_true(rt_data.shape == loaded_data.shape)
+    assert_allclose(loaded_data, rt_data)
 
 
 def test_get_event_data():

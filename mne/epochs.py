@@ -292,7 +292,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self.selection = selection
             if drop_log is None:
                 self.drop_log = [list() if k in self.selection else ['IGNORED']
-                                 for k in range(len(events))]
+                                 for k in range(max(len(events),
+                                                    max(self.selection) + 1))]
             else:
                 self.drop_log = drop_log
             events = events[selected]
@@ -400,6 +401,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             for ii, epoch in enumerate(self._data):
                 self._data[ii] = np.dot(self._projector, epoch)
         self._filename = str(filename) if filename is not None else filename
+        self._check_consistency()
+
+    def _check_consistency(self):
+        """Check invariants of epochs object."""
+        assert len(self.selection) == len(self.events)
+        assert len(self.selection) == sum(
+            (len(dl) == 0 for dl in self.drop_log))
+        assert len(self.drop_log) >= len(self.events)
 
     def _check_metadata(self, metadata=None, reset_index=False):
         """Check metadata consistency."""
@@ -1469,8 +1478,35 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         return self._getitem(item)
 
-    def _getitem(self, item, reason='IGNORED', copy=True, drop_event_id=True):
-        """Wrap __getitem__ with more options."""
+    def _getitem(self, item, reason='IGNORED', copy=True, drop_event_id=True,
+                 select_data=True, return_indices=False):
+        """
+        Select epochs from current object.
+
+        Parameters
+        ----------
+        item: slice, array-like, str, or list
+            see `__getitem__` for details.
+        reason: str
+            entry in `drop_log` for unselected epochs
+        copy: bool
+            return a copy of the current object
+        drop_event_id: bool
+            remove non-existing event-ids after selection
+        select_data: bool
+            apply selection to data
+            (use `select_data=False` if subclasses do not have a
+             valid `_data` field)
+        return_indices: bool
+            return the indices of selected epochs from the original object)
+            in addition to the new `Epochs` objects
+        Returns
+        -------
+        `Epochs` or tuple(Epochs, np.ndarray) if `return_indices` is True
+
+        object with subset of epochs (and optionally array with kept
+        epoch indices)
+        """
         data = self._data
         del self._data
         epochs = self.copy() if copy else self
@@ -1507,7 +1543,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             # will reset the index for us
             BaseEpochs.metadata.fset(epochs, metadata, verbose=False)
-        if epochs.preload:
+        if epochs.preload and select_data:
             # ensure that each Epochs instance owns its own data so we can
             # resize later if necessary
             epochs._data = np.require(epochs._data[select], requirements=['O'])
@@ -1515,7 +1551,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # update event id to reflect new content of epochs
             epochs.event_id = dict((k, v) for k, v in epochs.event_id.items()
                                    if v in epochs.events[:, 2])
-        return epochs
+        if return_indices:
+            return epochs, select
+        else:
+            return epochs
 
     def crop(self, tmin=None, tmax=None):
         """Crop a time interval from epochs object.
@@ -1602,6 +1641,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # to know the length accurately. The get_data() call would drop
         # bad epochs anyway
         self.drop_bad()
+        self._check_consistency()
         total_size = self[0].get_data().nbytes * len(self)
         total_size /= 2  # 64bit data converted to 32bit before writing.
         n_parts = int(np.ceil(total_size / float(split_size)))
