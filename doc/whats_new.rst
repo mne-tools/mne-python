@@ -19,6 +19,10 @@ Version 0.16.2
 Bug
 ~~~
 
+- Fix bug in ``method='eLORETA'`` for :func:`mne.minimum_norm.apply_inverse` when using a sphere model and saved ``inv`` by `Eric Larson`_
+
+- Fix bug in :class:`mne.io.Raw` where warnings were emitted when objects were deleted by `Eric Larson`_
+
 - Fix bug with ``mne flash_bem`` when ``flash30`` is not used by `Eric Larson`_
 
 - Fix bug in :func:`mne.preprocessing.ICA.apply` to handle arrays as `exclude` property by `Joan Massich`_
