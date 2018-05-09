@@ -20,7 +20,7 @@ from .topomap import (_prepare_topo_plot, plot_topomap, _hide_frame,
 from .raw import _prepare_mne_browse_raw, _plot_raw_traces, _convert_psds
 from .epochs import _prepare_mne_browse_epochs, plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
-from ..utils import warn
+from ..utils import warn, _validate_type
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types
@@ -116,13 +116,99 @@ def _create_properties_layout(figsize=None):
     if figsize is None:
         figsize = [7., 6.]
     fig = plt.figure(figsize=figsize, facecolor=[0.95] * 3)
-    ax = list()
-    ax.append(fig.add_axes([0.08, 0.5, 0.3, 0.45], label='topomap'))
-    ax.append(fig.add_axes([0.5, 0.6, 0.45, 0.35], label='image'))
-    ax.append(fig.add_axes([0.5, 0.5, 0.45, 0.1], label='erp'))
-    ax.append(fig.add_axes([0.08, 0.1, 0.32, 0.3], label='spectrum'))
-    ax.append(fig.add_axes([0.5, 0.1, 0.45, 0.25], label='variance'))
-    return fig, ax
+
+    axes_params = {'topomap': [0.08, 0.5, 0.3, 0.45],
+                   'image': [0.5, 0.6, 0.45, 0.35],
+                   'erp': [0.5, 0.5, 0.45, 0.1],
+                   'spectrum': [0.08, 0.1, 0.32, 0.3],
+                   'variance': [0.5, 0.1, 0.45, 0.25]}
+    axes = [fig.add_axes(pos, label=name) for name, pos in axes_params.items()]
+
+    return fig, axes
+
+
+def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
+                         epoch_var, plot_lowpass_edge, epochs_src,
+                         set_title_and_labels, plot_std, psd_ylabel,
+                         spectrum_std, topomap_args, image_args, fig, axes):
+    """Plot ICA properties (helper)."""
+    topo_ax, image_ax, erp_ax, spec_ax, var_ax = axes
+
+    # plotting
+    # --------
+    # component topomap
+    _plot_ica_topomap(ica, pick, show=False, axes=topo_ax, **topomap_args)
+
+    # image and erp
+    plot_epochs_image(epochs_src, picks=pick, axes=[image_ax, erp_ax],
+                      combine=None, colorbar=False, show=False, **image_args)
+
+    # spectrum
+    spec_ax.plot(freqs, psds_mean, color='k')
+    if plot_std:
+        spec_ax.fill_between(freqs, psds_mean - spectrum_std[0],
+                             psds_mean + spectrum_std[1],
+                             color='k', alpha=.2)
+    if plot_lowpass_edge:
+        spec_ax.axvline(inst.info['lowpass'], lw=2, linestyle='--',
+                        color='k', alpha=0.2)
+
+    # epoch variance
+    var_ax.scatter(range(len(epoch_var)), epoch_var, alpha=0.5,
+                   facecolor=[0, 0, 0], lw=0)
+
+    # aesthetics
+    # ----------
+    topo_ax.set_title(ica._ica_names[pick])
+
+    set_title_and_labels(image_ax, 'Epochs image and ERP/ERF', [], 'Epochs')
+
+    # erp
+    set_title_and_labels(erp_ax, [], 'Time (s)', 'AU\n')
+    erp_ax.spines["right"].set_color('k')
+    erp_ax.set_xlim(epochs_src.times[[0, -1]])
+    # remove half of yticks if more than 5
+    yt = erp_ax.get_yticks()
+    if len(yt) > 5:
+        yt = yt[::2]
+        erp_ax.yaxis.set_ticks(yt)
+
+    # remove xticks - erp plot shows xticks for both image and erp plot
+    image_ax.xaxis.set_ticks([])
+    yt = image_ax.get_yticks()
+    image_ax.yaxis.set_ticks(yt[1:])
+    image_ax.set_ylim([-0.5, n_trials + 0.5])
+
+    # spectrum
+    set_title_and_labels(spec_ax, 'Spectrum', 'Frequency (Hz)', psd_ylabel)
+    spec_ax.yaxis.labelpad = 0
+    spec_ax.set_xlim(freqs[[0, -1]])
+    ylim = spec_ax.get_ylim()
+    air = np.diff(ylim)[0] * 0.1
+    spec_ax.set_ylim(ylim[0] - air, ylim[1] + air)
+    image_ax.axhline(0, color='k', linewidth=.5)
+
+    # epoch variance
+    set_title_and_labels(var_ax, 'Epochs variance', 'Epoch (index)', 'AU')
+
+    return fig
+
+
+def _get_psd_label_and_std(this_psd, dB, ica, num_std):
+    """Handle setting up PSD for one component, for plot_ica_properties."""
+    psd_ylabel = _convert_psds(this_psd, dB, estimate='auto', scaling=1.,
+                               unit='AU', ch_names=ica.ch_names)
+    psds_mean = this_psd.mean(axis=0)
+    diffs = this_psd - psds_mean
+    # the distribution of power for each frequency bin is highly
+    # skewed so we calculate std for values below and above average
+    # separately - this is used for fill_between shade
+    spectrum_std = [
+        [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
+        [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
+    spectrum_std = np.array(spectrum_std) * num_std
+
+    return psd_ylabel, psds_mean, spectrum_std
 
 
 def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
@@ -182,12 +268,10 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     from ..epochs import BaseEpochs
     from ..preprocessing import ICA
 
-    if not isinstance(inst, (BaseRaw, BaseEpochs)):
-        raise ValueError('inst should be an instance of Raw or Epochs,'
-                         ' got %s instead.' % type(inst))
-    if not isinstance(ica, ICA):
-        raise ValueError('ica has to be an instance of ICA, '
-                         'got %s instead' % type(ica))
+    # input checks and defaults
+    # -------------------------
+    _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
+    _validate_type(ica, ICA, "ica", "ICA")
     if isinstance(plot_std, bool):
         num_std = 1. if plot_std else 0.
     elif isinstance(plot_std, (float, int)):
@@ -213,13 +297,12 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     topomap_args = dict() if topomap_args is None else topomap_args
     image_args = dict() if image_args is None else image_args
     image_args["ts_args"] = dict(truncate_xaxis=False, show_sensors=False)
-    for d in (psd_args, topomap_args, image_args):
-        if not isinstance(d, dict):
-            raise ValueError('topomap_args, image_args and psd_args have to be'
-                             ' dictionaries, got %s instead.' % type(d))
-    if dB is not None and isinstance(dB, bool) is False:
-        raise ValueError('dB should be bool, got %s instead' %
-                         type(dB))
+    for item_name, item in (("psd_args", psd_args),
+                            ("topomap_args", topomap_args),
+                            ("image_args", image_args)):
+        _validate_type(item, dict, item_name, "dictionary")
+    if dB is not None:
+        _validate_type(dB, bool, "dB", "bool")
 
     # calculations
     # ------------
@@ -234,10 +317,10 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
     # spectrum
     Nyquist = inst.info['sfreq'] / 2.
+    lp = inst.info['lowpass']
     if 'fmax' not in psd_args:
-        psd_args['fmax'] = min(inst.info['lowpass'] * 1.25, Nyquist)
-    plot_lowpass_edge = inst.info['lowpass'] < Nyquist and (
-        psd_args['fmax'] > inst.info['lowpass'])
+        psd_args['fmax'] = min(lp * 1.25, Nyquist)
+    plot_lowpass_edge = lp < Nyquist and (psd_args['fmax'] > lp)
     psds, freqs = psd_multitaper(epochs_src, picks=picks, **psd_args)
 
     def set_title_and_labels(ax, title, xlab, ylab):
@@ -251,86 +334,25 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         ax.tick_params('both', labelsize=8)
         ax.axis('tight')
 
+    # plot
+    # ----
     all_fig = list()
-    # the rest is component-specific
     for idx, pick in enumerate(picks):
+
+        # calculate component-specific spectrum stuff
+        psd_ylabel, psds_mean, spectrum_std = _get_psd_label_and_std(
+            psds[:, idx, :].copy(), dB, ica, num_std)
+
+        # if more than one component, spawn additional figures and axes
         if idx > 0:
             fig, axes = _create_properties_layout(figsize=figsize)
 
-        # spectrum
-        this_psd = psds[:, idx, :].copy()
-        psd_ylabel = _convert_psds(this_psd, dB, estimate='auto', scaling=1.,
-                                   unit='AU', ch_names=ica.ch_names)
-        psds_mean = this_psd.mean(axis=0)
-        diffs = this_psd - psds_mean
-        # the distribution of power for each frequency bin is highly
-        # skewed so we calculate std for values below and above average
-        # separately - this is used for fill_between shade
-        spectrum_std = [
-            [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
-            [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
-        spectrum_std = np.array(spectrum_std) * num_std
-
-        # epoch variance
-        epoch_var = np.var(ica_data[idx], axis=1)
-
-        # plotting
-        # --------
-        # component topomap
-        _plot_ica_topomap(ica, pick, show=False, axes=axes[0], **topomap_args)
-
-        # image and erp
-        plot_epochs_image(epochs_src, picks=pick, axes=axes[1:3], combine=None,
-                          colorbar=False, show=False, **image_args)
-
-        # spectrum
-        axes[3].plot(freqs, psds_mean, color='k')
-        if plot_std:
-            axes[3].fill_between(freqs, psds_mean - spectrum_std[0],
-                                 psds_mean + spectrum_std[1],
-                                 color='k', alpha=.2)
-        if plot_lowpass_edge:
-            axes[3].axvline(inst.info['lowpass'], lw=2, linestyle='--',
-                            color='k', alpha=0.2)
-
-        # epoch variance
-        axes[4].scatter(range(len(epoch_var)), epoch_var, alpha=0.5,
-                        facecolor=[0, 0, 0], lw=0)
-
-        # aesthetics
-        # ----------
-        axes[0].set_title(ica._ica_names[pick])
-
-        set_title_and_labels(axes[1], 'Epochs image and ERP/ERF', [], 'Epochs')
-
-        # erp
-        set_title_and_labels(axes[2], [], 'Time (s)', 'AU\n')
-        axes[2].spines["right"].set_color('k')
-        axes[2].set_xlim(epochs_src.times[[0, -1]])
-        # remove half of yticks if more than 5
-        yt = axes[2].get_yticks()
-        if len(yt) > 5:
-            yt = yt[::2]
-            axes[2].yaxis.set_ticks(yt)
-
-        # remove xticks - erp plot shows xticks for both image and erp plot
-        axes[1].xaxis.set_ticks([])
-        yt = axes[1].get_yticks()
-        axes[1].yaxis.set_ticks(yt[1:])
-        axes[1].set_ylim([-0.5, ica_data.shape[1] + 0.5])
-
-        # spectrum
-        set_title_and_labels(axes[3], 'Spectrum', 'Frequency (Hz)', psd_ylabel)
-        axes[3].yaxis.labelpad = 0
-        axes[3].set_xlim(freqs[[0, -1]])
-        ylim = axes[3].get_ylim()
-        air = np.diff(ylim)[0] * 0.1
-        axes[3].set_ylim(ylim[0] - air, ylim[1] + air)
-        axes[1].axhline(0, color='k', linewidth=.5)
-
-        # epoch variance
-        set_title_and_labels(axes[4], 'Epochs variance', 'Epoch (index)', 'AU')
-
+        # the actual plot
+        fig = _plot_ica_properties(
+            pick, ica, inst, psds_mean, freqs, len(picks),
+            np.var(ica_data[idx], axis=1), plot_lowpass_edge,
+            epochs_src, set_title_and_labels, plot_std, psd_ylabel,
+            spectrum_std, topomap_args, image_args, fig, axes)
         all_fig.append(fig)
 
     plt_show(show)
@@ -588,8 +610,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     from ..evoked import Evoked
     from ..preprocessing.ica import _check_start_stop
 
-    if not isinstance(inst, (BaseRaw, Evoked)):
-        raise ValueError('Data input must be of Raw or Evoked type')
+    _validate_type(inst, (BaseRaw, Evoked), "inst", "Raw or Evoked")
     if title is None:
         title = 'Signals before (red) and after (black) cleaning'
     if picks is None:

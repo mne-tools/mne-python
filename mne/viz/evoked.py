@@ -30,7 +30,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _connection_line, COLORS, _setup_ax_spines,
                     _setup_plot_projector, _prepare_joint_axes,
                     _set_title_multiple_electrodes, _check_time_unit)
-from ..utils import logger, _clean_names, warn, _pl, verbose
+from ..utils import logger, _clean_names, warn, _pl, verbose, _validate_type
 
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
@@ -1497,8 +1497,7 @@ def _format_evokeds_colors(evokeds, cmap, colors):
             raise ValueError('If evokeds is a dict and a cmap is passed, '
                              'you must specify the colors.')
     for cond in evokeds.keys():
-        if not isinstance(cond, string_types):
-            raise TypeError('Conditions must be str, not %s' % (type(cond),))
+        _validate_type(cond,  string_types, "Conditions")
     # Now make sure all values are list of Evoked objects
     evokeds = {condition: [v] if isinstance(v, Evoked) else v
                for condition, v in evokeds.items()}
@@ -1506,9 +1505,7 @@ def _format_evokeds_colors(evokeds, cmap, colors):
     # Check that all elements are of type evoked
     for this_evoked in evokeds.values():
         for ev in this_evoked:
-            if not isinstance(ev, Evoked):
-                raise ValueError("Not all elements are Evoked "
-                                 "object. Got %s" % type(this_evoked))
+            _validate_type(ev, Evoked, "All evokeds entries ", "Evoked")
 
     # Check that all evoked objects have the same time axis and channels
     all_evoked = sum(evokeds.values(), [])
@@ -1798,9 +1795,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     if vlines == "auto" and (tmin < 0 and tmax > 0):
         vlines = [0.]
-    if not isinstance(vlines, (list, tuple)):
-        raise TypeError(
-            "vlines must be a list or tuple, not %s" % type(vlines))
+    _validate_type(vlines, (list, tuple), "vlines", "list or tuple")
 
     if isinstance(picks, Integral):
         picks = [picks]
@@ -1809,9 +1804,10 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         gfp = True
         picks = _pick_data_channels(info)
 
-    if not isinstance(picks, (list, np.ndarray)):
-        raise TypeError("picks should be a list or np.array of integers. "
-                        "Got %s." % type(picks))
+    _validate_type(picks, (list, np.ndarray), "picks",
+                   "list or np.array of integers")
+    for entry in picks:
+        _validate_type(entry, Integral, "entries of picks", "integers")
 
     if len(picks) == 0:
         raise ValueError("No valid channels were found to plot the GFP. " +
@@ -2052,9 +2048,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             head_pos = {'center': (0, 0), 'scale': (0.5, 0.5)}
             pos, outlines = _check_outlines(pos, np.array([1, 1]), head_pos)
 
-            if not isinstance(show_sensors, (np.int, bool, str)):
-                raise TypeError("show_sensors must be numeric, str or bool, "
-                                "not " + str(type(show_sensors)))
+            _validate_type(show_sensors, (np.int, bool, str),
+                           "show_sensors", "numeric, str or bool")
             show_sensors = _check_loc_legal(show_sensors, "show_sensors")
             _plot_legend(pos, ["k"] * len(picks), ax, list(), outlines,
                          show_sensors, size=25)

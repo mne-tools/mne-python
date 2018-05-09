@@ -386,7 +386,7 @@ def test_check_consistency():
 
 def test_anonymize():
     """Test that sensitive information can be anonymized."""
-    pytest.raises(ValueError, anonymize_info, 'foo')
+    pytest.raises(TypeError, anonymize_info, 'foo')
 
     # Fake some subject data
     raw = read_raw_fif(raw_fname)

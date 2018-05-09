@@ -2740,3 +2740,17 @@ def open_docs(kind=None, version=None):
         raise ValueError('version must be one of %s, got %s'
                          % (version, versions))
     webbrowser.open_new_tab('https://martinos.org/mne/%s/%s' % (version, kind))
+
+
+def _validate_type(item, types, item_name, type_name=None):
+    """Validate that `item` is an instance of `types`."""
+    if type_name is None:
+        if types == string_types:
+            type_name = "str"
+        else:
+            iter_types = ([types] if not isinstance(types, (list, tuple))
+                          else types)
+            type_name = ', '.join(cls.__name__ for cls in iter_types)
+    if not isinstance(item, types):
+        raise TypeError(item_name, ' must be an instance of ', type_name,
+                        ', got %s instead.' % (type(item),))

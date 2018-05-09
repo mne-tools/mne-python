@@ -28,7 +28,7 @@ from .write import (start_file, end_file, start_block, end_block,
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import _to_const
 from ..transforms import invert_transform
-from ..utils import logger, verbose, warn, object_diff
+from ..utils import logger, verbose, warn, object_diff, _validate_type
 from .. import __version__
 from ..externals.six import b, BytesIO, string_types, text_type
 from .compensator import get_current_comp
@@ -1741,8 +1741,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
     """
     if isinstance(ch_names, int):
         ch_names = list(np.arange(ch_names).astype(str))
-    if not isinstance(ch_names, (list, tuple)):
-        raise TypeError('ch_names must be a list, tuple, or int')
+    _validate_type(ch_names, (list, tuple), "ch_names",
+                   ("list, tuple, or int"))
     sfreq = float(sfreq)
     if sfreq <= 0:
         raise ValueError('sfreq must be positive')
@@ -1756,10 +1756,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
                          '(%s != %s)' % (len(ch_types), nchan))
     info = _empty_info(sfreq)
     for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
-        if not isinstance(name, string_types):
-            raise TypeError('each entry in ch_names must be a string')
-        if not isinstance(kind, string_types):
-            raise TypeError('each entry in ch_types must be a string')
+        _validate_type(name, string_types, "each entry in ch_names")
+        _validate_type(kind, string_types, "each entry in ch_types")
         if kind not in _kind_dict:
             raise KeyError('kind must be one of %s, not %s'
                            % (list(_kind_dict.keys()), kind))
@@ -1876,8 +1874,7 @@ def anonymize_info(info):
     -----
     Operates in place.
     """
-    if not isinstance(info, Info):
-        raise ValueError('self must be an Info instance.')
+    _validate_type(info, Info, "self", "Info")
     if info.get('subject_info') is not None:
         del info['subject_info']
     info['meas_date'] = None
