@@ -727,7 +727,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def __del__(self):  # noqa: D105
         # remove file for memmap
-        if hasattr(self, '_data') and hasattr(self._data, 'filename'):
+        if hasattr(self, '_data') and \
+                getattr(self._data, 'filename') is not None:
             # First, close the file out; happens automatically on del
             filename = self._data.filename
             del self._data

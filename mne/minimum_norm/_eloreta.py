@@ -138,7 +138,7 @@ def _sqrtm_sym(C):
     """Compute the square root of a symmetric matrix."""
     # Same as linalg.sqrtm(C) but faster, also yields the eigenvalues
     s, u = linalg.eigh(C)
-    mask = np.abs(s) > s.max() * 1e-12
+    mask = s > s.max() * 1e-7
     u = u[:, mask]
     s = np.sqrt(s[mask])
     a = np.dot(s * u, u.T)
