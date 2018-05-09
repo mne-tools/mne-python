@@ -186,7 +186,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  gfp=False, window_title=None, spatial_colors=False,
                  set_tight_layout=True, selectable=True, zorder='unsorted',
                  noise_cov=None, colorbar=True, mask=None, mask_style=None,
-                 mask_cmap=None, mask_alpha=.25, time_unit=None):
+                 mask_cmap=None, mask_alpha=.25, time_unit='s'):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -198,8 +198,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         (x axis: time, y axis: channel). In 'image' mode, the plot is not
         interactive.
     """
-    time_unit, times = _check_time_unit(
-        time_unit, evoked.times, allow_none=True)
+    time_unit, times = _check_time_unit(time_unit, evoked.times)
     import matplotlib.pyplot as plt
     info = evoked.info
     if axes is not None and proj == 'interactive':
@@ -489,7 +488,7 @@ def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
                 xlim, ylim, titles, colorbar=True, mask=None, mask_cmap=None,
                 mask_style=None, mask_alpha=.25, nave=None,
-                time_unit=None):
+                time_unit='s'):
     """Plot images."""
     import matplotlib.pyplot as plt
     assert time_unit is not None
@@ -589,7 +588,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
                 window_title=None, spatial_colors=False, zorder='unsorted',
-                selectable=True, noise_cov=None, time_unit=None, verbose=None):
+                selectable=True, noise_cov=None, time_unit='s', verbose=None):
     """Plot evoked data using butterfly plots.
 
     Left click to a line shows the channel name. Selecting an area by clicking
@@ -680,8 +679,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
         .. versionadded:: 0.16.0
     time_unit : str
-        The units for the time axis, can be "ms" (default in 0.16)
-        or "s" (will become the default in 0.17).
+        The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
     verbose : bool, str, int, or None
@@ -825,7 +823,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
                       units=None, scalings=None, titles=None, axes=None,
                       cmap='RdBu_r', colorbar=True, mask=None,
                       mask_style=None, mask_cmap="Greys", mask_alpha=.25,
-                      time_unit=None):
+                      time_unit='s'):
     """Plot evoked data as images.
 
     Parameters
@@ -906,8 +904,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
 
         .. versionadded:: 0.16
     time_unit : str
-        The units for the time axis, can be "ms" (default in 0.16)
-        or "s" (will become the default in 0.17).
+        The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
 
@@ -948,7 +945,7 @@ def _plot_update_evoked(params, bools):
 
 
 @verbose
-def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit=None,
+def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
                       verbose=None):
     u"""Plot whitened evoked response.
 
@@ -974,8 +971,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit=None,
         estimated. Note. The rank estimation will be printed by the logger for
         each noise covariance estimator that is passed.
     time_unit : str
-        The units for the time axis, can be "ms" (default in 0.16)
-        or "s" (will become the default in 0.17).
+        The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
     verbose : bool, str, int, or None
@@ -1020,7 +1016,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit=None,
 
 
 def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True,
-                       time_unit=None):
+                       time_unit='s'):
     """Help plot_evoked_white.
 
     Additional Parameters
@@ -1038,8 +1034,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True,
     """
     from ..cov import whiten_evoked, read_cov  # recursive import
     import matplotlib.pyplot as plt
-    time_unit, times = _check_time_unit(
-        time_unit, evoked.times, allow_none=True)
+    time_unit, times = _check_time_unit(time_unit, evoked.times)
 
     if isinstance(noise_cov, string_types):
         noise_cov = read_cov(noise_cov)
@@ -1266,7 +1261,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                         % (type(ts_args),))
     ts_args = dict() if ts_args is None else ts_args.copy()
     ts_args['time_unit'], evoked_times = _check_time_unit(
-        ts_args.get('time_unit'), evoked.times, allow_none=True)
+        ts_args.get('time_unit', 's'), evoked.times)
     if topomap_args is None:
         topomap_args = dict()
 

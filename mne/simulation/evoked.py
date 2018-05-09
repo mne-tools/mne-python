@@ -15,7 +15,7 @@ from ..utils import check_random_state, verbose
 
 @verbose
 def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
-                    random_state=None, use_cps=None, verbose=None):
+                    random_state=None, use_cps=True, verbose=None):
     """Generate noisy evoked data.
 
     .. note:: No projections from ``info`` will be present in the
@@ -42,7 +42,7 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
     random_state : None | int | np.random.RandomState
         To specify the random generator state.
-    use_cps : None | bool (default None)
+    use_cps : bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations when converting to fixed orientation (if necessary).
 

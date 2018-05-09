@@ -298,7 +298,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
              spatial_colors=False, zorder='unsorted', selectable=True,
-             noise_cov=None, time_unit=None, verbose=None):
+             noise_cov=None, time_unit='s', verbose=None):
         return plot_evoked(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
@@ -312,7 +312,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                    clim=None, xlim='tight', proj=False, units=None,
                    scalings=None, titles=None, axes=None, cmap='RdBu_r',
                    colorbar=True, mask=None, mask_style=None,
-                   mask_cmap='Greys', mask_alpha=.25, time_unit=None):
+                   mask_cmap='Greys', mask_alpha=.25, time_unit='s'):
         return plot_evoked_image(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             clim=clim, xlim=xlim, proj=proj, units=units, scalings=scalings,
@@ -342,9 +342,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @copy_function_doc_to_method_doc(plot_evoked_topomap)
     def plot_topomap(self, times="auto", ch_type=None, layout=None, vmin=None,
                      vmax=None, cmap=None, sensors=True, colorbar=True,
-                     scalings=None, scaling_time=None, units=None, res=64,
+                     scalings=None, units=None, res=64,
                      size=1, cbar_fmt="%3.1f",
-                     time_unit=None, time_format=None,
+                     time_unit='s', time_format=None,
                      proj=False, show=True, show_names=False, title=None,
                      mask=None, mask_params=None, outlines='head',
                      contours=6, image_interp='bilinear', average=None,
@@ -352,7 +352,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return plot_evoked_topomap(
             self, times=times, ch_type=ch_type, layout=layout, vmin=vmin,
             vmax=vmax, cmap=cmap, sensors=sensors, colorbar=colorbar,
-            scalings=scalings, scaling_time=scaling_time, units=units, res=res,
+            scalings=scalings, units=units, res=res,
             size=size, cbar_fmt=cbar_fmt, time_unit=time_unit,
             time_format=time_format, proj=proj, show=show,
             show_names=show_names, title=title, mask=mask,
@@ -367,7 +367,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  time_label=time_label, n_jobs=n_jobs)
 
     @copy_function_doc_to_method_doc(plot_evoked_white)
-    def plot_white(self, noise_cov, show=True, rank=None, time_unit=None,
+    def plot_white(self, noise_cov, show=True, rank=None, time_unit='s',
                    verbose=None):
         return plot_evoked_white(
             self, noise_cov=noise_cov, rank=rank, show=show,
@@ -382,7 +382,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  topomap_args=topomap_args)
 
     def animate_topomap(self, ch_type=None, times=None, frame_rate=None,
-                        butterfly=False, blit=True, show=True, time_unit=None):
+                        butterfly=False, blit=True, show=True, time_unit='s'):
         """Make animation of evoked data as topomap timeseries.
 
         The animation can be paused/resumed with left mouse button.
