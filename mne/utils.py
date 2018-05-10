@@ -1972,8 +1972,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         finally:
             u.close()
             del u
-        logger.info('Downloading %s (%s)'
-                    % (url, sizeof_fmt(file_size)))
+        logger.info('Downloading %s (%s)' % (url, sizeof_fmt(file_size)))
 
         # Triage resume
         if not os.path.exists(temp_file_name):
@@ -2182,9 +2181,9 @@ def _check_preload(inst, msg):
     """Ensure data are preloaded."""
     from .epochs import BaseEpochs
     from .evoked import Evoked
-    from .time_frequency import AverageTFR, EpochsTFR
+    from .time_frequency import _BaseTFR
 
-    if isinstance(inst, (AverageTFR, EpochsTFR, Evoked)):
+    if isinstance(inst, (_BaseTFR, Evoked)):
         pass
     else:
         name = "epochs" if isinstance(inst, BaseEpochs) else 'raw'
