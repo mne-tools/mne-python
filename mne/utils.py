@@ -2149,8 +2149,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
 
 def _check_fname(fname, overwrite=False, must_exist=False):
     """Check for file existence."""
-    if not isinstance(fname, string_types):
-        raise TypeError('file name is not a string')
+    _validate_type(fname, string_types, 'fname')
     if must_exist and not op.isfile(fname):
         raise IOError('File "%s" does not exist' % fname)
     if op.isfile(fname):
@@ -2168,7 +2167,7 @@ def _check_subject(class_subject, input_subject, raise_error=True):
         return input_subject
     elif class_subject is not None:
         _validate_type(class_subject, string_types,
-                       "either subject input or class subject attribute")
+                       "Either subject input or class subject attribute")
         return class_subject
     else:
         if raise_error is True:
@@ -2264,8 +2263,8 @@ def _check_type_picks(picks):
     if picks is None:
         pass
     elif isinstance(picks, list):
-        if not all(isinstance(i, int) for i in picks):
-            raise ValueError(err_msg)
+        for pick in picks:
+            _validate_type(pick, Integral, 'Each pick')
         picks = np.array(picks)
     elif isinstance(picks, np.ndarray):
         if not picks.dtype.kind == 'i':

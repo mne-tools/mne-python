@@ -355,7 +355,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     set_bipolar_reference : Convenience function for creating bipolar
                             references.
     """
-    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked),  "Instance to be modified")
+    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), "Instance")
 
     if ref_channels is None:
         ref_channels = 'average'
