@@ -853,8 +853,12 @@ def test_filter():
 
     # ... and that inplace changes are inplace
     raw_copy = raw.copy()
+    assert np.may_share_memory(raw._data, raw._data)
+    assert not np.may_share_memory(raw_copy._data, raw._data)
+    # this could be assert_array_equal but we do this to mirror the call below
+    assert (raw._data[0] == raw_copy._data[0]).all()
     raw_copy.filter(None, 20., n_jobs=2, **filter_params)
-    assert_true(raw._data[0, 0] != raw_copy._data[0, 0])
+    assert not (raw._data[0] == raw_copy._data[0]).all()
     assert_equal(raw.copy().filter(None, 20., **filter_params)._data,
                  raw_copy._data)
 
