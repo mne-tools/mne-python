@@ -14,7 +14,7 @@ from .pick import pick_types, pick_channels
 from .base import BaseRaw
 from ..evoked import Evoked
 from ..epochs import BaseEpochs
-from ..utils import logger, warn, verbose
+from ..utils import logger, warn, verbose, _validate_type, _check_preload
 
 
 def _copy_channel(inst, ch_name, new_ch_name):
@@ -91,9 +91,7 @@ def _apply_reference(inst, ref_from, ref_to=None):
                             reference.
     """
     # Check to see that data is preloaded
-    if not inst.preload:
-        raise RuntimeError('Data needs to be preloaded. Use '
-                           'preload=True (or string) in the constructor.')
+    _check_preload(inst, "Applying a reference")
 
     eeg_idx = pick_types(inst.info, eeg=True, meg=False, ref_meg=False)
 
@@ -357,9 +355,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     set_bipolar_reference : Convenience function for creating bipolar
                             references.
     """
-    if not isinstance(inst, (BaseRaw, BaseEpochs, Evoked)):
-        raise ValueError('Setting a reference is only supported for instances '
-                         'of Raw, Epochs or Evoked.')
+    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked),  "Instance to be modified")
 
     if ref_channels is None:
         ref_channels = 'average'

@@ -150,8 +150,8 @@ def test_misc():
     assert_raises(TypeError, _check_fname, 1)
     assert_raises(IOError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
     assert_raises(ValueError, _check_subject, None, None)
-    assert_raises(ValueError, _check_subject, None, 1)
-    assert_raises(ValueError, _check_subject, 1, None)
+    assert_raises(TypeError, _check_subject, None, 1)
+    assert_raises(TypeError, _check_subject, 1, None)
 
 
 @requires_mayavi

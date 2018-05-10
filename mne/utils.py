@@ -546,14 +546,10 @@ def _get_inst_data(inst):
     from . import Evoked
     from .time_frequency.tfr import _BaseTFR
 
-    if isinstance(inst, (BaseRaw, BaseEpochs, Evoked, _BaseTFR)):
-        if not inst.preload:
-            inst.load_data()
-        return inst._data
-    else:
-        raise TypeError('The argument must be an instance of Raw, Epochs, '
-                        'Evoked, EpochsTFR or AverageTFR, got {0}.'.format(
-                            type(inst)))
+    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked, _BaseTFR), "Instance")
+    if not inst.preload:
+        inst.load_data()
+    return inst._data
 
 
 class _FormatDict(dict):
@@ -1577,8 +1573,8 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     --------
     set_config
     """
-    if key is not None and not isinstance(key, string_types):
-        raise TypeError('key must be a string')
+    if key is not None:
+        _validate_type(key, string_types, "key")
 
     # first, check to see if key is in env
     if key is not None and key in os.environ:
@@ -1636,12 +1632,12 @@ def set_config(key, value, home_dir=None, set_env=True):
     """
     if key is None:
         return known_config_types
-    if not isinstance(key, string_types):
-        raise TypeError('key must be a string')
-    # While JSON allow non-string types, we allow users to override config
-    # settings using env, which are strings, so we enforce that here
-    if not isinstance(value, string_types) and value is not None:
-        raise TypeError('value must be a string or None')
+    _validate_type(key, string_types, "key")
+        # While JSON allow non-string types, we allow users to override config
+        # settings using env, which are strings, so we enforce that here
+    _validate_type(value, (string_types, type(None)), "value",
+                   "None or string")
+
     if key not in known_config_types and not \
             any(k in key for k in known_config_wildcards):
         warn('Setting non-standard config type: "%s"' % key)
@@ -2083,9 +2079,7 @@ class SizeMixin(object):
         if isinstance(self, Evoked):
             return object_hash(dict(info=self.info, data=self.data))
         elif isinstance(self, (BaseEpochs, BaseRaw)):
-            if not self.preload:
-                raise RuntimeError('Cannot hash %s unless data are loaded'
-                                   % self.__class__.__name__)
+            _check_preload(self, "Hashing ")
             return object_hash(dict(info=self.info, data=self._data))
         else:
             raise RuntimeError('Hashing unknown object type: %s' % type(self))
@@ -2123,11 +2117,10 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     """
     if stim_channel is not None:
         if not isinstance(stim_channel, list):
-            if not isinstance(stim_channel, string_types):
-                raise TypeError('stim_channel must be a str, list, or None')
+            _validate_type(stim_channel, string_types, "Stim channel")
             stim_channel = [stim_channel]
-        if not all(isinstance(s, string_types) for s in stim_channel):
-            raise TypeError('stim_channel list must contain all strings')
+        for channel in stim_channel:
+            _validate_type(channel, string_types, "Each provided stim channel")
         return stim_channel
 
     stim_channel = list()
@@ -2172,16 +2165,12 @@ def _check_fname(fname, overwrite=False, must_exist=False):
 def _check_subject(class_subject, input_subject, raise_error=True):
     """Get subject name from class."""
     if input_subject is not None:
-        if not isinstance(input_subject, string_types):
-            raise ValueError('subject input must be a string')
-        else:
-            return input_subject
+        _validate_type(input_subject, string_types, "subject input")
+        return input_subject
     elif class_subject is not None:
-        if not isinstance(class_subject, string_types):
-            raise ValueError('Neither subject input nor class subject '
-                             'attribute was a string')
-        else:
-            return class_subject
+        _validate_type(input_subject, string_types,
+                       "either subject input or class subject attributed")
+        return class_subject
     else:
         if raise_error is True:
             raise ValueError('Neither subject input nor class subject '
@@ -2192,16 +2181,19 @@ def _check_subject(class_subject, input_subject, raise_error=True):
 def _check_preload(inst, msg):
     """Ensure data are preloaded."""
     from .epochs import BaseEpochs
+    from .evoked import Evoked
+    from .time_frequency import AverageTFR, EpochsTFR
 
-    name = 'raw'
-    if isinstance(inst, BaseEpochs):
-        name = 'epochs'
-    if not inst.preload:
-        raise RuntimeError(
-            "By default, MNE does not load data into main memory to "
-            "conserve ressources. " + msg + ' requires %s data to be loaded. '
-            'Use preload=True (or string) in the constructor or '
-            '%s.load_data().' % (name, name))
+    if isinstance(inst, (AverageTFR, EpochsTFR, Evoked)):
+        pass
+    else:
+        name = "epochs" if isinstance(inst, BaseEpochs) else 'raw'
+        if not inst.preload:
+            raise RuntimeError(
+                "By default, MNE does not load data into main memory to "
+                "conserve ressources. " + msg + ' requires %s data to be '
+                'loaded. Use preload=True (or string) in the constructor or '
+                '%s.load_data().' % (name, name))
 
 
 def _check_compensation_grade(inst, inst2, name, name2):
@@ -2220,7 +2212,7 @@ def _check_pandas_installed(strict=True):
         return pandas
     except ImportError:
         if strict is True:
-            raise RuntimeError('For this functionality to work the Pandas '
+            raise RuntimeError('For this functionality to work, the Pandas '
                                'library is required.')
         else:
             return False

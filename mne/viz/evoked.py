@@ -1497,7 +1497,7 @@ def _format_evokeds_colors(evokeds, cmap, colors):
             raise ValueError('If evokeds is a dict and a cmap is passed, '
                              'you must specify the colors.')
     for cond in evokeds.keys():
-        _validate_type(cond,  string_types, "Conditions")
+        _validate_type(cond, string_types, "Conditions")
     # Now make sure all values are list of Evoked objects
     evokeds = {condition: [v] if isinstance(v, Evoked) else v
                for condition, v in evokeds.items()}

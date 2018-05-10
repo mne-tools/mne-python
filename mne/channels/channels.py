@@ -123,11 +123,11 @@ def equalize_channels(candidates, verbose=None):
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
-    from ..time_frequency import AverageTFR
+    from ..time_frequency import _BaseTFR
 
     for candidate in candidates:
         _validate_type(candidate,
-                       (BaseRaw, BaseEpochs, Evoked, AverageTFR),
+                       (BaseRaw, BaseEpochs, Evoked, _BaseTFR),
                        "Instances to be modified",
                        "Raw, Epochs, Evoked or TFR")
 
