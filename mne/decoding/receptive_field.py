@@ -13,6 +13,7 @@ from .base import get_coef, BaseEstimator, _check_estimator
 from .time_delaying_ridge import TimeDelayingRidge
 from ..fixes import is_regressor
 from ..externals.six import string_types
+from ..utils import _validate_type
 
 
 class ReceptiveField(BaseEstimator):
@@ -447,13 +448,11 @@ def _delays_to_slice(delays):
 
 def _check_delayer_params(tmin, tmax, sfreq):
     """Check delayer input parameters. For future custom delay support."""
-    if not isinstance(sfreq, (int, float, np.int_)):
-        raise ValueError('`sfreq` must be an integer or float')
+    _validate_type(sfreq, (int, float, np.int_), '`sfreq`')
     sfreq = float(sfreq)
 
-    if not all([isinstance(ii, (int, float, np.int_))
-                for ii in [tmin, tmax]]):
-        raise ValueError('tmin/tmax must be an integer or float')
+    for tlim in (tmin, tmax):
+        _validate_type(tlim, (int, float, np.int_), 'tmin/tmax')
     if not tmin <= tmax:
         raise ValueError('tmin must be <= tmax')
 
