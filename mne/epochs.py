@@ -46,7 +46,7 @@ from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
 from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, warn, _pl, _ensure_int,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
-                    _check_pandas_installed)
+                    _check_pandas_installed, _check_preload)
 from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
 
@@ -1538,10 +1538,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         crop(tmin, tmax) returns the interval tmin <= t <= tmax.
         """
         # XXX this could be made to work on non-preloaded data...
-        if not self.preload:
-            raise RuntimeError('Modifying data of epochs is only supported '
-                               'when preloading is used. Use preload=True '
-                               'in the constructor.')
+        _check_preload(self, 'Modifying data of epochs')
 
         if tmin is None:
             tmin = self.tmin
