@@ -383,7 +383,6 @@ def test_apply_inverse_sphere():
     evoked = _get_evoked()
     evoked.pick_channels(evoked.ch_names[:306:8])
     evoked.info['projs'] = []
-    evoked = EvokedArray(np.eye(len(evoked.data)), evoked.info)
     cov = make_ad_hoc_cov(evoked.info)
     sphere = make_sphere_model('auto', 'auto', evoked.info)
     fwd = read_forward_solution(fname_fwd)
@@ -394,7 +393,9 @@ def test_apply_inverse_sphere():
     fwd = restrict_forward_to_stc(fwd, stc)
     fwd = make_forward_solution(evoked.info, fwd['mri_head_t'], fwd['src'],
                                 sphere, mindist=5.)
+    evoked = EvokedArray(fwd['sol']['data'].copy(), evoked.info)
     assert fwd['sol']['nrow'] == 39
+    assert fwd['nsource'] == 101
     assert fwd['sol']['ncol'] == 303
     tempdir = _TempDir()
     temp_fname = op.join(tempdir, 'temp-inv.fif')
@@ -402,7 +403,11 @@ def test_apply_inverse_sphere():
     # This forces everything to be float32
     write_inverse_operator(temp_fname, inv)
     inv = read_inverse_operator(temp_fname)
-    apply_inverse(evoked, inv, method='eLORETA', method_params=dict(eps=1e-3))
+    stc = apply_inverse(evoked, inv, method='eLORETA',
+                        method_params=dict(eps=1e-3))
+    # assert zero localization bias
+    assert_array_equal(np.argmax(stc.data, axis=0),
+                       np.repeat(np.arange(101), 3))
 
 
 @pytest.mark.slowtest
