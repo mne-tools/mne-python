@@ -52,7 +52,7 @@ def test_rename_channels():
     assert_raises(ValueError, rename_channels, info, mapping)
     # Test improper mapping configuration
     mapping = {'MEG 2641': 1.0}
-    assert_raises(ValueError, rename_channels, info, mapping)
+    assert_raises(TypeError, rename_channels, info, mapping)
     # Test non-unique mapping configuration
     mapping = {'MEG 2641': 'MEG 2642'}
     assert_raises(ValueError, rename_channels, info, mapping)

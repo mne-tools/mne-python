@@ -842,8 +842,7 @@ class UpdateChannelsMixin(object):
         from ..io import BaseRaw, _merge_info
         from ..epochs import BaseEpochs
 
-        if not isinstance(add_list, (list, tuple)):
-            raise AssertionError('Input must be a list or tuple of objs')
+        _validate_type(add_list, 'Input', (list, tuple))
 
         # Object-specific checks
         for inst in add_list + [self]:
@@ -858,9 +857,7 @@ class UpdateChannelsMixin(object):
             con_axis = 0
             comp_class = type(self)
         for inst in add_list:
-            if not isinstance(inst, comp_class):
-                raise AssertionError('All input data must be of same type, got'
-                                     ' %s and %s' % (comp_class, type(inst)))
+            _validate_type(inst, 'All input', comp_class)
         data = [inst._data for inst in [self] + add_list]
 
         # Make sure that all dimensions other than channel axis are the same
@@ -970,9 +967,8 @@ def rename_channels(info, mapping):
                          % (type(mapping),))
 
     # check we got all strings out of the mapping
-    if any(not isinstance(new_name[1], string_types)
-           for new_name in new_names):
-        raise ValueError('New channel mapping must only be to strings')
+    for new_name in new_names:
+        _validate_type(new_name[1], string_types, 'New channel mappings')
 
     bad_new_names = [name for _, name in new_names if len(name) > 15]
     if len(bad_new_names):

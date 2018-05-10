@@ -18,6 +18,7 @@ import inspect
 import json
 import logging
 from math import log, ceil
+from numbers import Integral
 import multiprocessing
 import operator
 import os
@@ -2544,8 +2545,11 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     from .evoked import Evoked
     from .time_frequency import AverageTFR
     from .channels.channels import equalize_channels
-    if not all(isinstance(inst, (Evoked, AverageTFR)) for inst in all_inst):
-        raise ValueError("Not all input elements are Evoked or AverageTFR")
+    assert(len(all_inst > 1))
+    inst_type = type(all_inst[0])
+    _validate_type(all_inst[0], 'All elements',(Evoked, AverageTFR))
+    for inst in all_inst:
+        _validate_type(inst, 'All elements', inst_type, 'of the same type')
 
     # Copy channels to leave the original evoked datasets intact.
     all_inst = [inst.copy() for inst in all_inst]
@@ -2736,13 +2740,16 @@ def open_docs(kind=None, version=None):
 
 def _validate_type(item, types, item_name, type_name=None):
     """Validate that `item` is an instance of `types`."""
-    if type_name is None:
-        if types == string_types:
-            type_name = "str"
-        else:
-            iter_types = ([types] if not isinstance(types, (list, tuple))
-                          else types)
-            type_name = ', '.join(cls.__name__ for cls in iter_types)
-    if not isinstance(item, types):
-        raise TypeError(item_name, ' must be an instance of ', type_name,
-                        ', got %s instead.' % (type(item),))
+    if types == Integral:
+        _ensure_int(item, name=item_name)
+    else:
+        if type_name is None:
+            if types == string_types:
+                type_name = "str"
+            else:
+                iter_types = ([types] if not isinstance(types, (list, tuple))
+                              else types)
+                type_name = ', '.join(cls.__name__ for cls in iter_types)
+        if not isinstance(item, types):
+            raise TypeError(item_name, ' must be an instance of ', type_name,
+                            ', got %s instead.' % (type(item),))
