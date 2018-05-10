@@ -1574,8 +1574,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     --------
     set_config
     """
-    if key is not None:
-        _validate_type(key, string_types, "key")
+    _validate_type(key, (string_types, type(None)), "key", 'string or None')
 
     # first, check to see if key is in env
     if key is not None and key in os.environ:
@@ -1634,8 +1633,8 @@ def set_config(key, value, home_dir=None, set_env=True):
     if key is None:
         return known_config_types
     _validate_type(key, string_types, "key")
-        # While JSON allow non-string types, we allow users to override config
-        # settings using env, which are strings, so we enforce that here
+    # While JSON allow non-string types, we allow users to override config
+    # settings using env, which are strings, so we enforce that here
     _validate_type(value, (string_types, type(None)), "value",
                    "None or string")
 
@@ -2169,8 +2168,8 @@ def _check_subject(class_subject, input_subject, raise_error=True):
         _validate_type(input_subject, string_types, "subject input")
         return input_subject
     elif class_subject is not None:
-        _validate_type(input_subject, string_types,
-                       "either subject input or class subject attributed")
+        _validate_type(class_subject, string_types,
+                       "either subject input or class subject attribute")
         return class_subject
     else:
         if raise_error is True:
@@ -2545,11 +2544,11 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     from .evoked import Evoked
     from .time_frequency import AverageTFR
     from .channels.channels import equalize_channels
-    assert(len(all_inst > 1))
+    assert len(all_inst) > 1
     inst_type = type(all_inst[0])
-    _validate_type(all_inst[0], 'All elements',(Evoked, AverageTFR))
+    _validate_type(all_inst[0], (Evoked, AverageTFR), 'All elements')
     for inst in all_inst:
-        _validate_type(inst, 'All elements', inst_type, 'of the same type')
+        _validate_type(inst, inst_type, 'All elements', 'of the same type')
 
     # Copy channels to leave the original evoked datasets intact.
     all_inst = [inst.copy() for inst in all_inst]

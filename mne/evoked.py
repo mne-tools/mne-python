@@ -18,7 +18,7 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
 from .channels.layout import _merge_grad_data, _pair_grad_sensors
 from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
-                    SizeMixin, copy_function_doc_to_method_doc)
+                    SizeMixin, copy_function_doc_to_method_doc, _validate_type)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -108,8 +108,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def __init__(self, fname, condition=None, proj=True,
                  kind='average', allow_maxshield=False,
                  verbose=None):  # noqa: D102
-        if not isinstance(proj, bool):
-            raise ValueError(r"'proj' must be 'True' or 'False'")
+        _validate_type(proj, bool, "'proj'")
         # Read the requested data
         self.info, self.nave, self._aspect_kind, self.first, self.last, \
             self.comment, self.times, self.data = _read_evoked(
@@ -1010,7 +1009,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
                 _, _, conditions = _get_entries(fid, evoked_node,
                                                 allow_maxshield)
                 raise TypeError("Evoked file has more than one "
-                                "conditions, the condition parameters "
+                                "condition, the condition parameters "
                                 "must be specified from:\n%s" % conditions)
             else:
                 condition = 0

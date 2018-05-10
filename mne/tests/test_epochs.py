@@ -2195,7 +2195,7 @@ def test_add_channels():
     assert_raises(RuntimeError, epoch_meg.add_channels, [epoch_badsf])
     assert_raises(AssertionError, epoch_meg.add_channels, [epoch_eeg])
     assert_raises(ValueError, epoch_meg.add_channels, [epoch_meg])
-    assert_raises(AssertionError, epoch_meg.add_channels, epoch_badsf)
+    assert_raises(TypeError, epoch_meg.add_channels, epoch_badsf)
 
 
 def test_seeg_ecog():

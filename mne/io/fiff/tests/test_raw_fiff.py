@@ -1217,7 +1217,7 @@ def test_add_channels():
     assert_raises(RuntimeError, raw_meg.add_channels, [raw_badsf])
     assert_raises(AssertionError, raw_meg.add_channels, [raw_eeg])
     assert_raises(ValueError, raw_meg.add_channels, [raw_meg])
-    assert_raises(AssertionError, raw_meg.add_channels, raw_badsf)
+    assert_raises(TypeError, raw_meg.add_channels, raw_badsf)
 
 
 @testing.requires_testing_data

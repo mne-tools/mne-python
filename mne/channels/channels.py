@@ -842,7 +842,7 @@ class UpdateChannelsMixin(object):
         from ..io import BaseRaw, _merge_info
         from ..epochs import BaseEpochs
 
-        _validate_type(add_list, 'Input', (list, tuple))
+        _validate_type(add_list, (list, tuple), 'Input')
 
         # Object-specific checks
         for inst in add_list + [self]:
@@ -857,7 +857,7 @@ class UpdateChannelsMixin(object):
             con_axis = 0
             comp_class = type(self)
         for inst in add_list:
-            _validate_type(inst, 'All input', comp_class)
+            _validate_type(inst, comp_class, 'All input')
         data = [inst._data for inst in [self] + add_list]
 
         # Make sure that all dimensions other than channel axis are the same
