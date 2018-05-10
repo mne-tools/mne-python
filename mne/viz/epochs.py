@@ -71,7 +71,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     show : bool
         Show figure if True.
     units : dict | None
-        The units of the channel types used for axes lables. If None,
+        The units of the channel types used for axes labels. If None,
         defaults to `units=dict(eeg='uV', grad='fT/cm', mag='fT')`.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting.

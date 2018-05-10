@@ -623,7 +623,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     hline : list of floats | None
         The values at which to show an horizontal line.
     units : dict | None
-        The units of the channel types used for axes lables. If None,
+        The units of the channel types used for axes labels. If None,
         defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,
@@ -851,7 +851,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         a check box for reversible selection of SSP projection vectors will
         be shown.
     units : dict | None
-        The units of the channel types used for axes lables. If None,
+        The units of the channel types used for axes labels. If None,
         defaults to ``dict(eeg='uV', grad='fT/cm', mag='fT')``.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`

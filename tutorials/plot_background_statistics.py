@@ -307,7 +307,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # exchangeability under the null hypothesis, but this time we take the
 # *maximum statistic across all tests* in each permutation to form the
 # null distribution. The p-value for each voxel from the veridical data
-# is then given by the proportion of null distribtion values
+# is then given by the proportion of null distribution values
 # that were smaller.
 #
 # This method has two important features:

@@ -144,7 +144,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         Node names. The order corresponds to the order in con.
     indices : tuple of arrays | None
         Two arrays with indices of connections for which the connections
-        strenghts are defined in con. Only needed if con is a 1D array.
+        strengths are defined in con. Only needed if con is a 1D array.
     n_lines : int | None
         If not None, only the n_lines strongest connections (strength=abs(con))
         are drawn.

@@ -464,7 +464,7 @@ class SurfaceObject(Object):
     Notes
     -----
     Doesn't automatically update plot because update requires both
-    :attr:`points` and :attr:`tris`. Call :meth:`plot` after updateing both
+    :attr:`points` and :attr:`tris`. Call :meth:`plot` after updating both
     attributes.
     """
 

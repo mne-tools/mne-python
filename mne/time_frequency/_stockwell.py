@@ -41,7 +41,7 @@ def _check_input_st(x_in, n_fft):
 
 
 def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
-    """Precompute stockwell gausian windows (in the freq domain)."""
+    """Precompute stockwell Gaussian windows (in the freq domain)."""
     tw = fftpack.fftfreq(n_samp, 1. / sfreq) / n_samp
     tw = np.r_[tw[:1], tw[1:][::-1]]
 

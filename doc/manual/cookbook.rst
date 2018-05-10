@@ -69,7 +69,7 @@ Recommended ways to identify bad channels are:
 
 - View the on-line averages and check the condition of the channels.
 
-- Compute preliminary off-line averages with artefact rejection,
+- Compute preliminary off-line averages with artifact rejection,
   SSP/ICA, and EEG average electrode reference computation
   off and check the condition of the channels.
 

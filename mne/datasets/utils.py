@@ -403,7 +403,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
 
     # compare the version of the dataset and mne
     data_version = _dataset_version(path, name)
-    # 0.7 < 0.7.git shoud be False, therefore strip
+    # 0.7 < 0.7.git should be False, therefore strip
     if check_version and (LooseVersion(data_version) <
                           LooseVersion(mne_version.strip('.git'))):
         warn('The {name} dataset (version {current}) is older than '

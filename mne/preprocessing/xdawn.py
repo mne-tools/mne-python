@@ -67,7 +67,7 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
     events = events.copy()
     events[:, 0] -= events[0, 0] + int(tmin * sfreq)
 
-    # Contruct raw signal
+    # Construct raw signal
     raw = _construct_signal_from_epochs(epochs_data, events, sfreq, tmin)
 
     # Compute the independent evoked responses per condition, while correcting

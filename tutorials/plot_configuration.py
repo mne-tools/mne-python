@@ -67,7 +67,7 @@ cov = mne.compute_raw_covariance(raw, verbose=True)
 ###############################################################################
 # As you see there is some info about what the function is doing. The logging
 # level can be set to 'DEBUG', 'INFO', 'WARNING', 'ERROR' or 'CRITICAL'. It can
-# also be set to an integer or a boolean value. The correspondance to string
+# also be set to an integer or a boolean value. The correspondence to string
 # values can be seen in the table below. ``verbose=None`` uses the default
 # value from the configuration file.
 #

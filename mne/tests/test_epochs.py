@@ -1212,7 +1212,7 @@ def test_crop():
 
     epochs = Epochs(raw, events[:5], event_id, -1, 1,
                     picks=picks, preload=True, reject=reject, flat=flat)
-    # We include nearest sample, so actually a bit beyound our bounds here
+    # We include nearest sample, so actually a bit beyond our bounds here
     assert_allclose(epochs.tmin, -1.0006410259015925, rtol=1e-12)
     assert_allclose(epochs.tmax, 1.0006410259015925, rtol=1e-12)
     epochs_crop = epochs.copy().crop(-1, 1)
@@ -1377,11 +1377,11 @@ def test_subtract_evoked():
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks)
 
-    # make sure subraction fails if data channels are missing
+    # make sure subtraction fails if data channels are missing
     assert_raises(ValueError, epochs.subtract_evoked,
                   epochs.average(picks[:5]))
 
-    # do the subraction using the default argument
+    # do the subtraction using the default argument
     epochs.subtract_evoked()
 
     # apply SSP now

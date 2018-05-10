@@ -150,7 +150,7 @@ def test_raw():
             assert_true(isinstance(re.info[key], dict))
             this_t = re.info[key]['trans']
             assert_equal(this_t.shape, (4, 4))
-            # cehck that matrix by is not identity
+            # check that matrix by is not identity
             assert_true(not np.allclose(this_t, np.eye(4)))
         os.remove(tmp_raw_fname)
 

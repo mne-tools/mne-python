@@ -692,7 +692,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                                  clip_on=True,
                                  transform=ax.transData)
 
-    # plot map and countour
+    # plot map and contour
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=(xmin, xmax, ymin, ymax),
                    interpolation=image_interp)
@@ -2100,7 +2100,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads):
     params.update({'vmin': vmin, 'vmax': vmax, 'Xi': Xi, 'Yi': Yi, 'Zi': Zi,
                    'extent': (xmin, xmax, ymin, ymax), 'cmap': cmap,
                    'cont_lims': cont_lims})
-    # plot map and countour
+    # plot map and contour
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=(xmin, xmax, ymin, ymax),
                    interpolation='bilinear')

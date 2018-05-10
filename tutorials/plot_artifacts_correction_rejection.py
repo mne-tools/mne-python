@@ -155,7 +155,7 @@ raw.plot(events=eog_events)  # To see the annotated segments.
 #
 # In the following code we build Epochs from Raw object. One of the provided
 # parameter is named *reject*. It is a dictionary where every key is a
-# channel type as a sring and the corresponding values are peak-to-peak
+# channel type as a string and the corresponding values are peak-to-peak
 # rejection parameters (amplitude ranges as floats). Below we define
 # the peak-to-peak rejection values for gradiometers,
 # magnetometers and EOG:

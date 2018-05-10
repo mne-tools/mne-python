@@ -525,7 +525,7 @@ _CON_METHOD_MAP = {'coh': _CohEst, 'cohy': _CohyEst, 'imcoh': _ImCohEst,
 
 
 def _check_estimators(method, mode):
-    """Check constrution of connectivity estimators."""
+    """Check construction of connectivity estimators."""
     n_methods = len(method)
     con_method_types = list()
     for this_method in method:

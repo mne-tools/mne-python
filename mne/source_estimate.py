@@ -211,7 +211,7 @@ def _write_w(filename, vertices, data):
 
 
 def read_source_estimate(fname, subject=None):
-    """Read a soure estimate object.
+    """Read a source estimate object.
 
     Parameters
     ----------
@@ -227,7 +227,7 @@ def read_source_estimate(fname, subject=None):
     Returns
     -------
     stc : SourceEstimate | VectorSourceEstimate | VolSourceEstimate
-        The soure estimate object loaded from file.
+        The source estimate object loaded from file.
 
     Notes
     -----

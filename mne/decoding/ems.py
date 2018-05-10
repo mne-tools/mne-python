@@ -196,7 +196,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
     _, cv_splits = _set_cv(cv, 'classifier', X=y, y=y)
 
     parallel, p_func, _ = parallel_func(_run_ems, n_jobs=n_jobs)
-    # FIXME this parallization should be removed.
+    # FIXME this parallelization should be removed.
     #   1) it's numpy computation so it's already efficient,
     #   2) it duplicates the data in RAM,
     #   3) the computation is already super fast.

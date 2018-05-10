@@ -180,7 +180,7 @@ def test_iir_stability():
     assert_raises(ValueError, filter_data, sig, sfreq, 0.1, None,
                   method='fft', iir_params=dict())
 
-    # should pass because dafault trans_bandwidth is not relevant
+    # should pass because default trans_bandwidth is not relevant
     iir_params = dict(ftype='butter', order=2, output='sos')
     x_sos = filter_data(sig, 250, 0.5, None, method='iir',
                         iir_params=iir_params)

@@ -1710,7 +1710,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         specified, the channel info will be updated with the channel
         positions. Default is None. If DigMontage is specified, the
         digitizer information will be updated. A list of unique montages,
-        can be specifed and applied to the info. See also the documentation of
+        can be specified and applied to the info. See also the documentation of
         :func:`mne.channels.read_montage` for more information.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`

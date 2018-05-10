@@ -706,9 +706,6 @@ Inverse Solutions
    :toctree: generated/
    :template: function.rst
 
-   lcmv
-   lcmv_epochs
-   lcmv_raw
    make_lcmv
    apply_lcmv
    apply_lcmv_epochs
