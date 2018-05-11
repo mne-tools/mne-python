@@ -1,6 +1,8 @@
 import os.path as op
+import time
 
 from nose.tools import assert_true
+import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 
 import mne
@@ -29,25 +31,43 @@ def test_mockclient():
     data = epochs.get_data()
 
     rt_client = MockRtClient(raw)
+    # choose "large" value, should always be longer than execution time of
+    # get_data()
+    isi_max = 0.5
     rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
-                         isi_max=0.5)
+                         isi_max=isi_max)
 
     rt_epochs.start()
     rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10, buffer_size=1000)
 
+    # get_data() should return immediately and not wait for the timeout
+    start_time = time.time()
     rt_data = rt_epochs.get_data()
-
-    assert_true(rt_data.shape == data.shape)
+    retrieval_time = time.time() - start_time
+    assert retrieval_time < isi_max
+    assert rt_data.shape == data.shape
     assert_array_equal(rt_data, data)
-    assert_true(len(rt_epochs) == len(epochs))
+    assert len(rt_epochs) == len(epochs)
 
-    tempdir = _TempDir()  # will be removed up when out of scope
+    # iteration over epochs should block until timeout
+    rt_iter_data = list()
+    start_time = time.time()
+    for cur_epoch in rt_epochs:
+        rt_iter_data.append(cur_epoch)
+    retrieval_time = time.time() - start_time
+    assert retrieval_time >= isi_max
+    rt_iter_data = np.array(rt_iter_data)
+    assert rt_iter_data.shape == data.shape
+    assert_array_equal(rt_iter_data, data)
+    assert len(rt_epochs) == len(epochs)
+
+    tempdir = _TempDir()  # will be removed when out of scope
     export_file = str(op.join(tempdir, 'test_rt-epo.fif'))
     rt_epochs.save(export_file)
 
     loaded_epochs = mne.read_epochs(export_file)
     loaded_data = loaded_epochs.get_data()
-    assert_true(rt_data.shape == loaded_data.shape)
+    assert rt_data.shape == loaded_data.shape
     assert_allclose(loaded_data, rt_data)
 
 
@@ -192,6 +212,61 @@ def test_find_events():
         for ii, ev in enumerate(rt_epochs.iter_evoked()):
             assert_true(ev.comment == str(events[ii]))
         assert_true(ii == 0)
+
+
+def test_rejection():
+    event_id, tmin, tmax = 1, 0.0, 0.5
+    sfreq = 1000
+    ch_names = ['Fz', 'Cz', 'Pz', 'STI 014']
+    raw_tmax = 5
+    info = mne.create_info(ch_names=ch_names, sfreq=sfreq,
+                           ch_types=['eeg', 'eeg', 'eeg', 'stim'])
+    raw_array = np.random.randn(len(ch_names), raw_tmax * sfreq)
+    raw_array[-1, :] = 0
+    epoch_start_samples = np.arange(raw_tmax) * sfreq
+    raw_array[-1, epoch_start_samples] = event_id
+
+    reject_threshold = np.max(raw_array) - np.min(raw_array) + 1
+    reject = {'eeg': reject_threshold}
+    epochs_to_reject = [1, 3]
+    epochs_to_keep = np.setdiff1d(np.arange(len(epoch_start_samples)),
+                                  epochs_to_reject)
+    expected_drop_log = [list() for _ in range(len(epoch_start_samples))]
+    for cur_epoch in epochs_to_reject:
+        raw_array[1, epoch_start_samples[cur_epoch]] = reject_threshold + 1
+        expected_drop_log[cur_epoch] = [ch_names[1]]
+
+    raw = mne.io.RawArray(raw_array, info)
+    events = mne.find_events(raw, shortest_event=1, initial_event=True)
+    picks = mne.pick_types(raw.info, eeg=True)
+    epochs = mne.Epochs(raw, events, event_id=event_id, tmin=tmin, tmax=tmax,
+                        baseline=None, picks=picks, preload=True,
+                        reject=reject)
+    epochs_data = epochs.get_data()
+
+    assert len(epochs) == len(epoch_start_samples) - len(epochs_to_reject)
+    assert_array_equal(epochs_data[:, 1, 0],
+                       raw_array[1, epoch_start_samples[epochs_to_keep]])
+    assert_array_equal(epochs.drop_log, expected_drop_log)
+    assert_array_equal(epochs.selection, epochs_to_keep)
+
+    rt_client = MockRtClient(raw)
+
+    rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
+                         baseline=None, isi_max=0.5,
+                         find_events=dict(initial_event=True),
+                         reject=reject)
+
+    rt_epochs.start()
+    rt_client.send_data(rt_epochs, picks, tmin=0, tmax=raw_tmax,
+                        buffer_size=250)
+
+    assert len(rt_epochs) == len(epochs_to_keep)
+    assert_array_equal(rt_epochs.drop_log, expected_drop_log)
+    assert_array_equal(rt_epochs.selection, epochs_to_keep)
+    rt_data = rt_epochs.get_data()
+    assert rt_data.shape == epochs_data.shape
+    assert_array_equal(rt_data, epochs_data)
 
 
 run_tests_if_main()

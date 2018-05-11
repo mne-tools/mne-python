@@ -97,7 +97,7 @@ class RtEpochs(BaseEpochs):
         shift, or set baseline correction to use the entire time interval
         (will yield equivalent results but be slower).
     isi_max : float
-        The maximmum time in seconds between epochs. If no epoch
+        The maximum time in seconds between epochs. If no epoch
         arrives in the next isi_max seconds the RtEpochs stops.
     find_events : dict
         The arguments to the real-time `find_events` method as a dictionary.
@@ -126,6 +126,14 @@ class RtEpochs(BaseEpochs):
         The events associated with the epochs currently in the queue.
     verbose : bool, str, int, or None
         See above.
+
+    Notes
+    -----
+    Calling `next()` on an `RtEpochs` object (as internally done when iterating
+    over the object) is blocking, i.e., waits for at most `isi_max` seconds
+    for a new epoch to be received.
+    Calling `get_data()` on an `RtEpochs` object immediately returns the epochs
+    received so far (without waiting for new epochs).
     """
 
     @verbose
@@ -207,21 +215,13 @@ class RtEpochs(BaseEpochs):
 
     @property
     def events(self):
-        """
-        Returns the events associated with the epochs currently in the queue.
-
-        Returns
-        -------
-        array of int, shape (n_events, 3)
-        event array
-        """
-        """"""
+        """The events associated with the epochs currently in the queue."""
         return np.array(self._events)
 
     @events.setter
     def events(self, new_events):
         """
-        Updates the internal event list.
+        Update the internal event list.
 
         Parameters
         ----------
@@ -233,13 +233,7 @@ class RtEpochs(BaseEpochs):
 
     @property
     def selection(self):
-        """
-        Returns the current epoch selection.
-        Returns
-        -------
-        array of int
-        the indices of currently selected epochs
-        """
+        """Array of integers of the current selection."""
         return np.asarray(self._selection, dtype=int)
 
     @selection.setter
@@ -381,7 +375,7 @@ class RtEpochs(BaseEpochs):
         """
         if out:
             epochs = list()
-            for epoch in self:
+            for epoch in self._epoch_queue:
                 epochs.append(epoch)
 
             data = np.array(epochs)
@@ -482,14 +476,13 @@ class RtEpochs(BaseEpochs):
         n_buffer = raw_buffer.shape[1]
         if self._last_buffer is None:
             self._last_buffer = raw_buffer
-            self._first_samp = last_samp + 1
         elif self._last_buffer.shape[1] <= n_samp + n_buffer:
             self._last_buffer = np.c_[self._last_buffer, raw_buffer]
         else:
             # do not increase size of _last_buffer any further
-            self._first_samp = self._first_samp + n_buffer
             self._last_buffer[:, :-n_buffer] = self._last_buffer[:, n_buffer:]
             self._last_buffer[:, -n_buffer:] = raw_buffer
+        self._first_samp = self._first_samp + n_buffer
 
     def _append_epoch_to_queue(self, epoch, event_samp, event_id):
         """Append a (raw) epoch to queue.

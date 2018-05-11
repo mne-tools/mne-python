@@ -57,6 +57,7 @@ API
 
 - Calling :meth:`mne.Epochs.decimate` with ``decim=1`` no longer copies the data by `Henrich Kolkhorst`_
 
+- Removed blocking (waiting for new epochs) in :meth:`mne.realtime.RtEpochs.get_data()` by `Henrich Kolkhorst`_
 
 .. _changes_0_16:
 
