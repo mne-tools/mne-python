@@ -2554,6 +2554,8 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
                        mask_style="both", mask_alpha=.25, mask_cmap="Greys",
                        yscale="linear"):
     "Plot a potentially masked (evoked, TFR, ...) 2D image."
+    from matplotlib import ticker, __version__ as v
+
     if mask_style is None and mask is not None:
         mask_style = "both"  # default
     draw_mask = mask_style in {"both", "mask"}
@@ -2592,8 +2594,6 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
         yvals = np.arange(data.shape[0])
     # else, if TFR plot, yvals will be freqs
 
-    from matplotlib import ticker, __version__ as v
-
     # test yscale
     if yscale == 'log' and not yvals[0] > 0:
         raise ValueError('Using log scale for frequency axis requires all your'
@@ -2613,7 +2613,7 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
     # https://github.com/matplotlib/matplotlib/pull/9477
     if yscale == "log" and is_jointplot is True and v == "2.1.0":
         warn("With matplotlib version 2.1.0, lines may not show up in "
-             "`AverageTFR.plot_joint`. Upgrade to a more recent versiom.")
+             "`AverageTFR.plot_joint`. Upgrade to a more recent version.")
 
     if yscale is "log":  # pcolormesh for log scale
         # compute bounds between time samples
@@ -2653,7 +2653,7 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
     else:
         # imshow for linear because the y ticks are nicer
         # and the masked areas look better
-        extent = [times[0], times[-1], yvals[0], yvals[-1]]
+        extent = [times[0], times[-1], yvals[0], yvals[-1] + 1]
         im_args = dict(interpolation='nearest', origin='lower',
                        extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
 
@@ -2670,7 +2670,7 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
                            linewidths=[.75], corner_mask=False,
                            antialiased=False, levels=[.5])
         time_lims = times[[0, -1]]
-        ylim = yvals[[0, -1]]
+        ylim = yvals[0], yvals[-1] + 1
 
     ax.set_xlim(time_lims[0], time_lims[-1])
     ax.set_ylim(ylim)

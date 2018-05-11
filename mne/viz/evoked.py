@@ -534,6 +534,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
     ax.set(ylabel='Channel (index)', xlabel='Time (%s)' % (time_unit,))
     ax.set_title(
         titles[this_type] + ' (%d channel%s' % (len(data), _pl(data)) + t_end)
+    _add_nave(ax, nave)
 
 
 @verbose
