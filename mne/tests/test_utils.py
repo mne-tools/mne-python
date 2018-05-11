@@ -554,9 +554,9 @@ def test_check_type_picks():
     picks = None
     assert_array_equal(None, _check_type_picks(picks))
     picks = ['a', 'b']
-    assert_raises(ValueError, _check_type_picks, picks)
+    assert_raises(TypeError, _check_type_picks, picks)
     picks = 'b'
-    assert_raises(ValueError, _check_type_picks, picks)
+    assert_raises(TypeError, _check_type_picks, picks)
 
 
 def test_compute_corr():

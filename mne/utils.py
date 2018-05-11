@@ -2268,9 +2268,9 @@ def _check_type_picks(picks):
         picks = np.array(picks)
     elif isinstance(picks, np.ndarray):
         if not picks.dtype.kind == 'i':
-            raise ValueError(err_msg)
+            raise TypeError(err_msg)
     else:
-        raise ValueError(err_msg)
+        raise TypeError(err_msg)
     return picks
 
 
