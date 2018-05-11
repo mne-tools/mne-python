@@ -289,7 +289,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 mask=None, mask_style="both", mask_cmap="Greys",
                 mask_alpha=0.1, is_jointplot=False):
     """Show time-frequency map as two-dimensional image."""
-    from matplotlib import pyplot as plt, ticker
+    from matplotlib import pyplot as plt
     from matplotlib.widgets import RectangleSelector
 
     if yscale not in ['auto', 'linear', 'log']:

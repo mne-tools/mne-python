@@ -2553,7 +2553,7 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
                        cmap="RdBu_r", vmin=None, vmax=None, ylim=None,
                        mask_style="both", mask_alpha=.25, mask_cmap="Greys",
                        yscale="linear"):
-    "Plot a potentially masked (evoked, TFR, ...) 2D image."
+    """Plot a potentially masked (evoked, TFR, ...) 2D image."""
     from matplotlib import ticker, __version__ as v
 
     if mask_style is None and mask is not None:
@@ -2632,13 +2632,13 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
             ax.pcolormesh(time_mesh, yval_mesh, data, cmap=mask_cmap,
                           vmin=vmin, vmax=vmax, alpha=mask_alpha)
             im = ax.pcolormesh(time_mesh, yval_mesh,
-                                np.ma.masked_where(~mask, data), cmap=cmap,
-                                vmin=vmin, vmax=vmax, alpha=1)
+                               np.ma.masked_where(~mask, data), cmap=cmap,
+                               vmin=vmin, vmax=vmax, alpha=1)
         else:
             im = ax.pcolormesh(time_mesh, yval_mesh, data, cmap=cmap,
-                                vmin=vmin, vmax=vmax)
+                               vmin=vmin, vmax=vmax)
         if ylim is None:
-            ylim = (yval_lims[0], yval_lims[-1])
+            ylim = yval_lims[[0, -1]]
         if yscale == 'log':
             ax.set_yscale('log')
             ax.get_yaxis().set_major_formatter(ticker.ScalarFormatter())
