@@ -2611,7 +2611,7 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
             yscale = 'linear'
 
     # https://github.com/matplotlib/matplotlib/pull/9477
-    if yscale == "log" and is_jointplot is True and v == "2.1.0":
+    if yscale == "log" and v == "2.1.0":
         warn("With matplotlib version 2.1.0, lines may not show up in "
              "`AverageTFR.plot_joint`. Upgrade to a more recent version.")
 
