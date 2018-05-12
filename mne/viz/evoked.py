@@ -1776,7 +1776,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             show_sensors = False  # don't show sensors for GFP
         ch_names = ['Global Field Power']
         if len(picks) < 2:
-            raise ValueError("A GFP with less than 2 channels doesn't work, "
+            raise ValueError("Cannot compute GFP for less than 2 channels, "
                              "please pick more than %d channels." % len(picks))
     else:
         if show_sensors is None:
