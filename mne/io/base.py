@@ -80,7 +80,7 @@ class ToDataFrameMixin(object):
             are 'epoch', 'time' and 'condition'. If None, all three info
             columns will be included in the table as categorial data.
         scaling_time : float
-            Scaling to be applied to time units.
+            Scaling to be applied to time units. Defaults to 1e3, i.e., msec.
         scalings : dict | None
             Scaling to be applied to the channels picked. If None, defaults to
             ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)``.
@@ -90,11 +90,12 @@ class ToDataFrameMixin(object):
             This defines a starting index for creating the dataframe from a
             slice. The times will be interpolated from the index and the
             sampling rate of the signal.
+            Note that due to the default of scaling_time, this defaults to msec.
         stop : int | None
             This defines a stop index for creating the dataframe from a slice.
             The times will be interpolated from the index and the sampling rate
             of the signal.
-
+            Note that due to the default of scaling_time, this defaults to msec.
         Returns
         -------
         df : instance of pandas.core.DataFrame
@@ -212,15 +213,17 @@ class ToDataFrameMixin(object):
                 if not _is_numeric(start):
                     raise TypeError("start must be numeric, not %s"
                                     % type(start))
-                if start < self.times[0] or start > self.times[-2]:
-                    raise ValueError("start must not exceed time limits")
+                if (start < self.times[0]  * scaling_time or
+                    start > self.times[-2] * scaling_time):
+                        raise ValueError("start must not exceed time limits")
                 query = str(start) + " < " + query
             if stop is not None:
                 if not _is_numeric(stop):
                     raise TypeError("stop must be numeric, not %s"
                                     % type(stop))
-                if stop < self.times[1] or stop > self.times[-1]:
-                    raise ValueError("stop must not exceed time limits")
+                if (stop < self.times[1] * scaling_time or
+                    stop > self.times[-1] * scaling_time):
+                        raise ValueError("stop must not exceed time limits")
                 query += " < " + str(stop)
             if stop is not None and start is not None:
                 if start > stop:

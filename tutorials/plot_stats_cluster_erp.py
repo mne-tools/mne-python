@@ -57,7 +57,7 @@ elecs = ["Fz", "Cz", "Pz"]
 # display the EEG data in Pandas format (first 5 rows)
 print(epochs.to_data_frame()[elecs].head())
 
-report = "{elec}, time: {tmin}-{tmax} msec; t({df})={t_val:.3f}, p={p:.3f}"
+report = "{elec}, time: {tmin}-{tmax} s; t({df})={t_val:.3f}, p={p:.3f}"
 print("\nTargeted statistical test results:")
 for (tmin, tmax) in time_windows:
     A = long.to_data_frame(start=tmin, stop=tmax)
