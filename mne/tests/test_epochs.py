@@ -1600,6 +1600,14 @@ def test_to_data_frame():
     assert_true((df.columns == epochs.ch_names).all())
     assert_array_equal(df.values[:, 0], data[0] * 1e13)
     assert_array_equal(df.values[:, 2], data[2] * 1e15)
+
+    start, stop = epochs.times[[1, -2]]
+    df_startstop = epochs.to_data_frame(start=start, stop=stop)
+    df_startstop2 = df2.query(str(start) + " < time < " + str(stop))
+    assert_array_equal(df_startstop.values, df_startstop2.values)
+    assert_raises(ValueError, epochs.to_data_frame, start=epochs.times[-1] + 1)
+    assert_raises(TypeError, epochs.to_data_frame, stop='a string')
+
     for ind in ['time', ['condition', 'time'], ['condition', 'time', 'epoch']]:
         df = epochs.to_data_frame(picks=[11, 12, 14], index=ind)
         assert_true(df.index.names == ind if isinstance(ind, list) else [ind])

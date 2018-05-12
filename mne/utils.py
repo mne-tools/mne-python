@@ -2754,3 +2754,7 @@ def _validate_type(item, types, item_name, type_name=None):
     if not isinstance(item, types):
         raise TypeError(item_name, ' must be an instance of ', type_name,
                         ', got %s instead.' % (type(item),))
+
+
+def _is_numeric(n):
+    return isinstance(n, (np.integer, np.floating, int, float))
