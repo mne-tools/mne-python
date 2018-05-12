@@ -206,7 +206,6 @@ class ToDataFrameMixin(object):
         if (isinstance(self, (BaseEpochs, Evoked)) and
                 start is not None or stop is not None):
             from ..utils import _is_numeric
-            print("hii9iiiiiii\n\n\n", start, stop, self.times[[0, 1, -2, -1]], "hii9iiiiiii\n\n\n")
 
             query = " time "
             if start is not None:
