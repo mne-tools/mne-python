@@ -51,23 +51,24 @@ short = epochs[name + " < " + median_value]
 # The extracted data can be submitted to standard statistical tests. Here,
 # we conduct t-tests on the difference between long and short words.
 
-time_windows = ((200, 250), (350, 450))
+time_windows = ((.2, .25), (.35, .45))
 elecs = ["Fz", "Cz", "Pz"]
 
 # display the EEG data in Pandas format (first 5 rows)
 print(epochs.to_data_frame()[elecs].head())
 
-report = "{elec}, time: {tmin}-{tmax} msec; t({df})={t_val:.3f}, p={p:.3f}"
+report = "{elec}, time: {tmin}-{tmax} s; t({df})={t_val:.3f}, p={p:.3f}"
 print("\nTargeted statistical test results:")
 for (tmin, tmax) in time_windows:
+    long_df = long.copy().crop(tmin, tmax).to_data_frame()
+    short_df = short.copy().crop(tmin, tmax).to_data_frame()
     for elec in elecs:
         # extract data
-        time_win = "{} < time < {}".format(tmin, tmax)
-        A = long.to_data_frame().query(time_win)[elec].groupby("condition")
-        B = short.to_data_frame().query(time_win)[elec].groupby("condition")
+        A = long_df[elec].groupby("condition").mean()
+        B = short_df[elec].groupby("condition").mean()
 
         # conduct t test
-        t, p = ttest_ind(A.mean(), B.mean())
+        t, p = ttest_ind(A, B)
 
         # display results
         format_dict = dict(elec=elec, tmin=tmin, tmax=tmax,
