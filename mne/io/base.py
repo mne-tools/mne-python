@@ -100,6 +100,7 @@ class ToDataFrameMixin(object):
             for Epochs and Evoked objects, its unit correspond to that of the
             Dataframe that is returned. Note that due to the default of
             scaling_time, this defaults to msec.
+
         Returns
         -------
         df : instance of pandas.core.DataFrame
