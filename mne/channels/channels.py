@@ -69,7 +69,7 @@ def _contains_ch_type(info, ch_type):
     has_ch_type : bool
         Whether the channel type is present or not.
     """
-    _validate_type(ch_type, string_types, "ch_type")
+    _validate_type(ch_type, 'str', '"ch_type")
 
     meg_extras = ['mag', 'grad', 'planar1', 'planar2']
     fnirs_extras = ['hbo', 'hbr']
@@ -968,7 +968,7 @@ def rename_channels(info, mapping):
 
     # check we got all strings out of the mapping
     for new_name in new_names:
-        _validate_type(new_name[1], string_types, 'New channel mappings')
+        _validate_type(new_name[1], 'str', 'New channel mappings')
 
     bad_new_names = [name for _, name in new_names if len(name) > 15]
     if len(bad_new_names):

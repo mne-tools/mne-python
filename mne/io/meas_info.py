@@ -1756,8 +1756,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
                          '(%s != %s)' % (len(ch_types), nchan))
     info = _empty_info(sfreq)
     for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
-        _validate_type(name, string_types, "each entry in ch_names")
-        _validate_type(kind, string_types, "each entry in ch_types")
+        _validate_type(name, 'str', "each entry in ch_names")
+        _validate_type(kind, 'str', "each entry in ch_types")
         if kind not in _kind_dict:
             raise KeyError('kind must be one of %s, not %s'
                            % (list(_kind_dict.keys()), kind))

@@ -238,7 +238,7 @@ def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
         kinds = [kinds]
     else:
         for kind in kinds:
-            _validate_type(kind, string_types, "All entries")
+            _validate_type(kind, 'str', "All entries")
 
     if raw.annotations is None:
         onsets, ends = np.array([], int), np.array([], int)

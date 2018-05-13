@@ -702,7 +702,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
 def _check_method(method, iir_params, extra_types=()):
     """Parse method arguments."""
     allowed_types = ['iir', 'fir', 'fft'] + list(extra_types)
-    _validate_type(method, string_types, 'method')
+    _validate_type(method, 'str', 'method')
     if method not in allowed_types:
         raise ValueError('method must be one of %s, not "%s"'
                          % (allowed_types, method))

@@ -2,7 +2,6 @@
 #
 # License: BSD (3-clause)
 
-from numbers import Integral
 import numpy as np
 
 from .mixin import TransformerMixin
@@ -46,7 +45,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         self.n_jobs = n_jobs
         self.scoring = scoring
 
-        _validate_type(self.n_jobs, Integral, 'n_jobs')
+        _validate_type(self.n_jobs, 'int', 'n_jobs')
 
     def __repr__(self):  # noqa: D105
         repr_str = '<' + super(SlidingEstimator, self).__repr__()

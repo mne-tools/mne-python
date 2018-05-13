@@ -1632,7 +1632,7 @@ def set_config(key, value, home_dir=None, set_env=True):
     """
     if key is None:
         return known_config_types
-    _validate_type(key, string_types, "key")
+    _validate_type(key, 'str', "key")
     # While JSON allow non-string types, we allow users to override config
     # settings using env, which are strings, so we enforce that here
     _validate_type(value, (string_types, type(None)), "value",
@@ -2116,10 +2116,10 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     """
     if stim_channel is not None:
         if not isinstance(stim_channel, list):
-            _validate_type(stim_channel, string_types, "Stim channel")
+            _validate_type(stim_channel, 'str', "Stim channel")
             stim_channel = [stim_channel]
         for channel in stim_channel:
-            _validate_type(channel, string_types, "Each provided stim channel")
+            _validate_type(channel, 'str', "Each provided stim channel")
         return stim_channel
 
     stim_channel = list()
@@ -2149,7 +2149,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
 
 def _check_fname(fname, overwrite=False, must_exist=False):
     """Check for file existence."""
-    _validate_type(fname, string_types, 'fname')
+    _validate_type(fname, 'str', 'fname')
     if must_exist and not op.isfile(fname):
         raise IOError('File "%s" does not exist' % fname)
     if op.isfile(fname):
@@ -2163,10 +2163,10 @@ def _check_fname(fname, overwrite=False, must_exist=False):
 def _check_subject(class_subject, input_subject, raise_error=True):
     """Get subject name from class."""
     if input_subject is not None:
-        _validate_type(input_subject, string_types, "subject input")
+        _validate_type(input_subject, 'str', "subject input")
         return input_subject
     elif class_subject is not None:
-        _validate_type(class_subject, string_types,
+        _validate_type(class_subject, 'str',
                        "Either subject input or class subject attribute")
         return class_subject
     else:
@@ -2264,7 +2264,7 @@ def _check_type_picks(picks):
         pass
     elif isinstance(picks, list):
         for pick in picks:
-            _validate_type(pick, Integral, 'Each pick')
+            _validate_type(pick, 'int', 'Each pick')
         picks = np.array(picks)
     elif isinstance(picks, np.ndarray):
         if not picks.dtype.kind == 'i':
@@ -2735,10 +2735,28 @@ def open_docs(kind=None, version=None):
     webbrowser.open_new_tab('https://martinos.org/mne/%s/%s' % (version, kind))
 
 
-def _validate_type(item, types, item_name, type_name=None):
-    """Validate that `item` is an instance of `types`."""
-    if types == Integral:
-        _ensure_int(item, name=item_name)
+def _is_numeric(n):
+    return isinstance(n, (np.integer, np.floating, int, float))
+
+
+def _validate_type(item, types=None, item_name=None, type_name=None):
+    """Validate that `item` is an instance of `types`.
+
+    Parameters
+    ----------
+    item : obj
+        The thing to be checked.
+    types : type | tuple of types | str
+         The types to be checked against. If str, must be one of 'str', 'int',
+         'numeric'.
+    """
+    if types in ('int', 'str', 'numeric'):
+        if types == "int":
+            _ensure_int(item, name=item_name)
+        elif types == "str":
+            types = string_types
+        elif types == "numeric":
+            types = (np.integer, np.floating, int, float)
     else:
         if type_name is None:
             if types == string_types:
