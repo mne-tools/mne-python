@@ -89,13 +89,17 @@ class ToDataFrameMixin(object):
         start : int | None
             This defines a starting index for creating the dataframe from a
             slice. The times will be interpolated from the index and the
-            sampling rate of the signal.
-            Note that due to the default of scaling_time, this defaults to msec.
+            sampling rate of the signal. For Raw objects, this is in samples;
+            for Epochs and Evoked objects, its unit correspond to that of the
+            Dataframe that is returned. Note that due to the default of
+            scaling_time, this defaults to msec.
         stop : int | None
             This defines a stop index for creating the dataframe from a slice.
             The times will be interpolated from the index and the sampling rate
-            of the signal.
-            Note that due to the default of scaling_time, this defaults to msec.
+            of the signal. For Raw objects, this is in samples;
+            for Epochs and Evoked objects, its unit correspond to that of the
+            Dataframe that is returned. Note that due to the default of
+            scaling_time, this defaults to msec.
         Returns
         -------
         df : instance of pandas.core.DataFrame
