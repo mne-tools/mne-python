@@ -80,20 +80,26 @@ class ToDataFrameMixin(object):
             are 'epoch', 'time' and 'condition'. If None, all three info
             columns will be included in the table as categorial data.
         scaling_time : float
-            Scaling to be applied to time units.
+            Scaling to be applied to time units. Defaults to 1e3, i.e., msec.
         scalings : dict | None
             Scaling to be applied to the channels picked. If None, defaults to
             ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)``.
         copy : bool
             If true, data will be copied. Else data may be modified in place.
         start : int | None
-            If it is a Raw object, this defines a starting index for creating
-            the dataframe from a slice. The times will be interpolated from the
-            index and the sampling rate of the signal.
+            This defines a starting index for creating the dataframe from a
+            slice. The times will be interpolated from the index and the
+            sampling rate of the signal. For Raw objects, this is in samples;
+            for Epochs and Evoked objects, its unit correspond to that of the
+            Dataframe that is returned. Note that due to the default of
+            scaling_time, this defaults to msec.
         stop : int | None
-            If it is a Raw object, this defines a stop index for creating
-            the dataframe from a slice. The times will be interpolated from the
-            index and the sampling rate of the signal.
+            This defines a stop index for creating the dataframe from a slice.
+            The times will be interpolated from the index and the sampling rate
+            of the signal. For Raw objects, this is in samples;
+            for Epochs and Evoked objects, its unit correspond to that of the
+            Dataframe that is returned. Note that due to the default of
+            scaling_time, this defaults to msec.
 
         Returns
         -------
@@ -202,6 +208,33 @@ class ToDataFrameMixin(object):
             df.set_index(index, inplace=True)
         if all(i in default_index for i in index):
             df.columns.name = 'signal'
+
+        if (isinstance(self, (BaseEpochs, Evoked)) and
+                start is not None or stop is not None):
+            from ..utils import _is_numeric
+
+            query = " time "
+            if start is not None:
+                if not _is_numeric(start):
+                    raise TypeError("start must be numeric, not %s"
+                                    % type(start))
+                if (start < self.times[0]  * scaling_time or
+                    start > self.times[-2] * scaling_time):
+                        raise ValueError("start must not exceed time limits")
+                query = str(start) + " < " + query
+            if stop is not None:
+                if not _is_numeric(stop):
+                    raise TypeError("stop must be numeric, not %s"
+                                    % type(stop))
+                if (stop < self.times[1] * scaling_time or
+                    stop > self.times[-1] * scaling_time):
+                        raise ValueError("stop must not exceed time limits")
+                query += " < " + str(stop)
+            if stop is not None and start is not None:
+                if start > stop:
+                    raise ValueError("start must be smaller than stop.")
+            df = df.query(query)
+
         return df
 
 

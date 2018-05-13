@@ -20,7 +20,8 @@ from scipy.fftpack import fft, ifft
 
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _time_mask, check_fname, sizeof_fmt
+from ..utils import (logger, verbose, _time_mask, check_fname, sizeof_fmt,
+                     _is_numeric)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, pick_types, _pick_data_channels,
@@ -2250,10 +2251,6 @@ def read_tfrs(fname, condition=None):
         inst = AverageTFR if is_average else EpochsTFR
         out = [inst(**d) for d in list(zip(*tfr_data))[1]]
     return out
-
-
-def _is_numeric(n):
-    return isinstance(n, (np.integer, np.floating, int, float))
 
 
 def _get_timefreqs(tfr, timefreqs):

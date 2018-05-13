@@ -57,17 +57,15 @@ elecs = ["Fz", "Cz", "Pz"]
 # display the EEG data in Pandas format (first 5 rows)
 print(epochs.to_data_frame()[elecs].head())
 
-report = "{elec}, time: {tmin}-{tmax} msec; t({df})={t_val:.3f}, p={p:.3f}"
+report = "{elec}, time: {tmin}-{tmax} s; t({df})={t_val:.3f}, p={p:.3f}"
 print("\nTargeted statistical test results:")
 for (tmin, tmax) in time_windows:
+    A = long.to_data_frame(start=tmin, stop=tmax)
+    B = short.to_data_frame(start=tmin, stop=tmax)
     for elec in elecs:
-        # extract data
-        time_win = "{} < time < {}".format(tmin, tmax)
-        A = long.to_data_frame().query(time_win)[elec].groupby("condition")
-        B = short.to_data_frame().query(time_win)[elec].groupby("condition")
-
         # conduct t test
-        t, p = ttest_ind(A.mean(), B.mean())
+        t, p = ttest_ind(A[elec].groupby("condition").mean(),
+                         B[elec].groupby("condition").mean())
 
         # display results
         format_dict = dict(elec=elec, tmin=tmin, tmax=tmax,
