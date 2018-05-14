@@ -58,13 +58,17 @@ raw = mne.io.read_raw_fif(raw_fname, preload=True)
 with StimServer(port=4218) as stim_server:
 
     # The channels to be used while decoding
-    picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                           stim=True, exclude=raw.info['bads'])
+    picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=False,
+                           stim=False, exclude=raw.info['bads'])
 
     rt_client = MockRtClient(raw)
 
     # Constructing the pipeline for classification
-    filt = FilterEstimator(raw.info, 1, 40)
+    # don't highpass filter because of short signal length of epochs
+    filt = FilterEstimator(raw.info, None, 40,
+                           # keep all channels that are picked from the
+                           # RtClient
+                           picks=np.arange(len(picks), dtype=int))
     scaler = preprocessing.StandardScaler()
     vectorizer = Vectorizer()
     clf = SVC(C=1, kernel='linear')
@@ -81,7 +85,6 @@ with StimServer(port=4218) as stim_server:
     score_c1, score_c2, score_x = [], [], []
 
     for ii in range(50):
-
         # Tell the stim_client about the next stimuli
         stim_server.add_trigger(ev_list[ii])
 
@@ -132,7 +135,6 @@ with StimServer(port=4218) as stim_server:
 
             # Now plot the accuracy
             plt.plot(score_x[-5:], score_c1[-5:])
-            plt.hold(True)
             plt.plot(score_x[-5:], score_c2[-5:])
             plt.xlabel('Trials')
             plt.ylabel('Classification score (% correct)')
@@ -140,4 +142,6 @@ with StimServer(port=4218) as stim_server:
             plt.ylim([0, 100])
             plt.xticks(score_x[-5:])
             plt.legend(('LV', 'RV'), loc='upper left')
-            plt.show()
+            plt.draw()
+            plt.pause(0.1)
+    plt.draw()  # Final figure

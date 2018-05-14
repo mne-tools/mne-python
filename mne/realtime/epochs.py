@@ -129,11 +129,11 @@ class RtEpochs(BaseEpochs):
 
     Notes
     -----
-    Calling `next()` on an `RtEpochs` object (as internally done when iterating
-    over the object) is blocking, i.e., waits for at most `isi_max` seconds
-    for a new epoch to be received.
-    Calling `get_data()` on an `RtEpochs` object immediately returns the epochs
-    received so far (without waiting for new epochs).
+    - Calling `next()` on an `RtEpochs` object (as internally done when
+      iterating over the object) is blocking, i.e., waits for at most `isi_max`
+      seconds for a new epoch to be received.
+    - Calling `get_data()` on an `RtEpochs` object immediately returns the
+      epochs received so far (without waiting for new epochs).
     """
 
     @verbose
@@ -161,6 +161,7 @@ class RtEpochs(BaseEpochs):
             reject=reject, flat=flat, decim=decim,
             reject_tmin=reject_tmin, reject_tmax=reject_tmax, detrend=detrend,
             verbose=verbose, proj=True)
+        self._bad_dropped = True
 
         self._client = client
 
@@ -248,17 +249,14 @@ class RtEpochs(BaseEpochs):
         """
         self._selection = list(new_selection)
 
-    def __len__(self):
-        """
-        Return the number of available epochs.
-
-        -------
-        int
-        number of available epochs
-        """
-        # we override this since the check for dropped epochs
-        # doesn't apply here
-        return len(self._events)
+    def copy(self):
+        """Return copy of Epochs instance."""
+        client = self._client
+        del self._client
+        new = super(RtEpochs, self).copy()
+        self._client = client
+        new._client = client
+        return new
 
     def _getitem(self, item, reason='IGNORED', copy=True, drop_event_id=True,
                  select_data=True, return_indices=False):
@@ -522,6 +520,54 @@ class RtEpochs(BaseEpochs):
         else:
             self.drop_log.append(offending_reasons)
             self._n_bad += 1
+
+    @verbose
+    def decimate(self, decim, offset=0, verbose=None):
+        """Decimate the epochs.
+
+        .. note:: No filtering is performed. To avoid aliasing, ensure
+                  your data are properly lowpassed.
+
+        Parameters
+        ----------
+        decim : int
+            The amount to decimate data.
+        offset : int
+            Apply an offset to where the decimation starts relative to the
+            sample corresponding to t=0. The offset is in samples at the
+            current sampling rate.
+
+            .. versionadded:: 0.12
+
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The decimated Epochs object.
+
+        See Also
+        --------
+        mne.Evoked.decimate
+        mne.Epochs.resample
+        mne.io.Raw.resample
+
+        Notes
+        -----
+        Decimation can be done multiple times. For example,
+        ``epochs.decimate(2).decimate(2)`` will be the same as
+        ``epochs.decimate(4)``.
+        If `decim` is 1, this method does not copy the underlying data.
+
+        .. versionadded:: 0.10.0
+        """
+        super(RtEpochs, self).decimate(decim, offset, verbose)
+        for i in range(len(self._epoch_queue)):
+            self._epoch_queue[i] = self._epoch_queue[i][:, self._decim_slice]
+        return self
 
     def __repr__(self):  # noqa: D105
         s = 'good / bad epochs received: %d / %d, epochs in queue: %d, '\

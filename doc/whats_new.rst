@@ -48,6 +48,8 @@ Bug
 
 - Fix bug in :meth:`mne.preprocessing.ICA.plot_overlay` and :func:`mne.make_field_map` for CTF data with compensation by `Eric Larson`_
 
+- Fix bug in :class:`mne.realtime.RtEpochs` where events during the buildup of the buffer were not correctly processed when incoming data buffers are smaller than the epochs by `Henrich Kolkhorst`_
+
 API
 ~~~
 
@@ -2771,3 +2773,5 @@ of commits):
 .. _Susanna Aro: https://www.linkedin.com/in/susanna-aro
 
 .. _Joan Massich: https://github.com/massich
+
+.. _Henrich Kolkhorst: https://github.com/hekolk

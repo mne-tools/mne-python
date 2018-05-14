@@ -1,14 +1,21 @@
 import os.path as op
 import time
 
-from nose.tools import assert_true
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
+import pytest
 
-import mne
-from mne import Epochs, read_events, pick_channels
-from mne.utils import (run_tests_if_main, _TempDir)
+
+from mne import (Epochs, read_events, read_epochs, find_events, create_info,
+                 pick_channels, pick_types)
+from mne.io import RawArray, read_raw_fif
+from mne.utils import run_tests_if_main
 from mne.realtime import MockRtClient, RtEpochs
+from mne.datasets import sample
+
+# Set our plotters to test mode
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -17,12 +24,64 @@ event_name = op.join(base_dir, 'test-eve.fif')
 events = read_events(event_name)
 
 
-def test_mockclient():
+def _call_base_epochs_public_api(epochs, tmpdir):
+    """Call all public API methods of an (non-empty) epochs object."""
+    orig_data = epochs.get_data()
+    export_file = tmpdir.join('test_rt-epo.fif')
+    epochs.save(str(export_file))
+    loaded_epochs = read_epochs(str(export_file))
+    loaded_data = loaded_epochs.get_data()
+    assert orig_data.shape == loaded_data.shape
+    assert_allclose(loaded_data, orig_data)
+
+    # decimation
+    epochs_copy = epochs.copy()
+    epochs_copy.decimate(1)
+    assert epochs_copy.get_data().shape == orig_data.shape
+    epochs_copy.decimate(10)
+    assert np.abs(10.0 - orig_data.shape[2] /
+                  epochs_copy.get_data().shape[2]) <= 1
+
+    # check that methods that require preloaded data fail
+    with pytest.raises(RuntimeError):
+        epochs.crop(tmin=epochs.tmin,
+                    tmax=(epochs.tmin + (epochs.tmax - epochs.tmin) / 2))
+    with pytest.raises(RuntimeError):
+        epochs.drop_channels(epochs.ch_names[0:1])
+    with pytest.raises(RuntimeError):
+        epochs.resample(epochs.info['sfreq'] / 10)
+
+    # smoke test
+    epochs.standard_error()
+    avg_evoked = epochs.average()
+    epochs.subtract_evoked(avg_evoked)
+    epochs.metadata
+    epochs.events
+    epochs.ch_names
+    epochs.tmin
+    epochs.tmax
+    epochs.filename
+    repr(epochs)
+    epochs.plot(show=False)
+    # save time by not calling all plot functions
+    # epochs.plot_psd(show=False)
+    # epochs.plot_drop_log(show=False)
+    # epochs.plot_topo_image()
+    # epochs.plot_psd_topomap()
+    # epochs.plot_image()
+    epochs.drop_bad()
+    epochs_copy.apply_baseline()
+    # do not call since we don't want to make assumptions about events
+    # epochs_copy.equalize_event_counts(epochs.event_id.keys())
+    epochs_copy.drop([0])
+
+
+def test_mockclient(tmpdir):
     """Test the RtMockClient."""
 
-    raw = mne.io.read_raw_fif(raw_fname, preload=True, verbose=False)
-    picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                           stim=True, exclude=raw.info['bads'])
+    raw = read_raw_fif(raw_fname, preload=True, verbose=False)
+    picks = pick_types(raw.info, meg='grad', eeg=False, eog=True,
+                       stim=True, exclude=raw.info['bads'])
 
     event_id, tmin, tmax = 1, -0.2, 0.5
 
@@ -61,22 +120,15 @@ def test_mockclient():
     assert_array_equal(rt_iter_data, data)
     assert len(rt_epochs) == len(epochs)
 
-    tempdir = _TempDir()  # will be removed when out of scope
-    export_file = str(op.join(tempdir, 'test_rt-epo.fif'))
-    rt_epochs.save(export_file)
-
-    loaded_epochs = mne.read_epochs(export_file)
-    loaded_data = loaded_epochs.get_data()
-    assert rt_data.shape == loaded_data.shape
-    assert_allclose(loaded_data, rt_data)
+    _call_base_epochs_public_api(rt_epochs, tmpdir)
 
 
 def test_get_event_data():
     """Test emulation of realtime data stream."""
 
-    raw = mne.io.read_raw_fif(raw_fname, preload=True, verbose=False)
-    picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                           stim=True, exclude=raw.info['bads'])
+    raw = read_raw_fif(raw_fname, preload=True, verbose=False)
+    picks = pick_types(raw.info, meg='grad', eeg=False, eog=True,
+                       stim=True, exclude=raw.info['bads'])
 
     event_id, tmin, tmax = 2, -0.1, 0.3
     epochs = Epochs(raw, events, event_id=event_id,
@@ -96,9 +148,9 @@ def test_get_event_data():
 def test_find_events():
     """Test find_events in rt_epochs."""
 
-    raw = mne.io.read_raw_fif(raw_fname, preload=True, verbose=False)
-    picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                           stim=True, exclude=raw.info['bads'])
+    raw = read_raw_fif(raw_fname, preload=True, verbose=False)
+    picks = pick_types(raw.info, meg='grad', eeg=False, eog=True,
+                       stim=True, exclude=raw.info['bads'])
 
     event_id = [0, 5, 6]
     tmin, tmax = -0.2, 0.5
@@ -129,8 +181,8 @@ def test_find_events():
     rt_epochs.start()
     events = [5, 6]
     for ii, ev in enumerate(rt_epochs.iter_evoked()):
-        assert_true(ev.comment == str(events[ii]))
-    assert_true(ii == 1)
+        assert ev.comment == str(events[ii])
+    assert ii == 1
 
     # consecutive=True
     find_events = dict(consecutive=True)
@@ -142,8 +194,8 @@ def test_find_events():
     rt_epochs.start()
     events = [5, 6, 5, 6]
     for ii, ev in enumerate(rt_epochs.iter_evoked()):
-        assert_true(ev.comment == str(events[ii]))
-    assert_true(ii == 3)
+        assert ev.comment == str(events[ii])
+    assert ii == 3
 
     # min_duration=0.002
     find_events = dict(consecutive=False, min_duration=0.002)
@@ -155,8 +207,8 @@ def test_find_events():
     rt_epochs.start()
     events = [5]
     for ii, ev in enumerate(rt_epochs.iter_evoked()):
-        assert_true(ev.comment == str(events[ii]))
-    assert_true(ii == 0)
+        assert ev.comment == str(events[ii])
+    assert ii == 0
 
     # output='step', consecutive=True
     find_events = dict(output='step', consecutive=True)
@@ -168,8 +220,8 @@ def test_find_events():
     rt_epochs.start()
     events = [5, 6, 5, 0, 6, 0]
     for ii, ev in enumerate(rt_epochs.iter_evoked()):
-        assert_true(ev.comment == str(events[ii]))
-    assert_true(ii == 5)
+        assert ev.comment == str(events[ii])
+    assert ii == 5
 
     # Reset some data for ease of comparison
     raw._first_samps[0] = 0
@@ -189,8 +241,8 @@ def test_find_events():
     rt_epochs.start()
     events = [5]
     for ii, ev in enumerate(rt_epochs.iter_evoked()):
-        assert_true(ev.comment == str(events[ii]))
-    assert_true(ii == 0)
+        assert ev.comment == str(events[ii])
+    assert ii == 0
 
     # Reset some data for ease of comparison
     raw._first_samps[0] = 0
@@ -210,17 +262,18 @@ def test_find_events():
         rt_epochs.start()
         events = [5]
         for ii, ev in enumerate(rt_epochs.iter_evoked()):
-            assert_true(ev.comment == str(events[ii]))
-        assert_true(ii == 0)
+            assert ev.comment == str(events[ii])
+        assert ii == 0
 
 
-def test_rejection():
+@pytest.mark.parametrize("buffer_size", [420, 1000, 6000])
+def test_rejection(buffer_size):
     event_id, tmin, tmax = 1, 0.0, 0.5
     sfreq = 1000
     ch_names = ['Fz', 'Cz', 'Pz', 'STI 014']
     raw_tmax = 5
-    info = mne.create_info(ch_names=ch_names, sfreq=sfreq,
-                           ch_types=['eeg', 'eeg', 'eeg', 'stim'])
+    info = create_info(ch_names=ch_names, sfreq=sfreq,
+                       ch_types=['eeg', 'eeg', 'eeg', 'stim'])
     raw_array = np.random.randn(len(ch_names), raw_tmax * sfreq)
     raw_array[-1, :] = 0
     epoch_start_samples = np.arange(raw_tmax) * sfreq
@@ -236,12 +289,12 @@ def test_rejection():
         raw_array[1, epoch_start_samples[cur_epoch]] = reject_threshold + 1
         expected_drop_log[cur_epoch] = [ch_names[1]]
 
-    raw = mne.io.RawArray(raw_array, info)
-    events = mne.find_events(raw, shortest_event=1, initial_event=True)
-    picks = mne.pick_types(raw.info, eeg=True)
-    epochs = mne.Epochs(raw, events, event_id=event_id, tmin=tmin, tmax=tmax,
-                        baseline=None, picks=picks, preload=True,
-                        reject=reject)
+    raw = RawArray(raw_array, info)
+    events = find_events(raw, shortest_event=1, initial_event=True)
+    picks = pick_types(raw.info, eeg=True)
+    epochs = Epochs(raw, events, event_id=event_id, tmin=tmin, tmax=tmax,
+                    baseline=None, picks=picks, preload=True,
+                    reject=reject)
     epochs_data = epochs.get_data()
 
     assert len(epochs) == len(epoch_start_samples) - len(epochs_to_reject)
@@ -259,7 +312,7 @@ def test_rejection():
 
     rt_epochs.start()
     rt_client.send_data(rt_epochs, picks, tmin=0, tmax=raw_tmax,
-                        buffer_size=250)
+                        buffer_size=buffer_size)
 
     assert len(rt_epochs) == len(epochs_to_keep)
     assert_array_equal(rt_epochs.drop_log, expected_drop_log)
@@ -267,6 +320,65 @@ def test_rejection():
     rt_data = rt_epochs.get_data()
     assert rt_data.shape == epochs_data.shape
     assert_array_equal(rt_data, epochs_data)
+
+
+@sample.requires_sample_data
+def test_events_sampledata():
+    """ based on examples/realtime/plot_compute_rt_decoder.py"""
+    data_path = sample.data_path()
+    raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+    raw = read_raw_fif(raw_fname, preload=True)
+    raw_tmin, raw_tmax = 0, 90
+
+    tmin, tmax = -0.2, 0.5
+    event_id = dict(aud_l=1, vis_l=3)
+
+    # select gradiometers
+    picks = pick_types(raw.info, meg='grad', eeg=False, eog=True,
+                       stim=True, exclude=raw.info['bads'])
+
+    # load data with usual Epochs for later verification
+    raw_cropped = raw.copy().crop(raw_tmin, raw_tmax)
+    events_offline = find_events(raw_cropped)
+    epochs_offline = Epochs(raw_cropped, events_offline, event_id=event_id,
+                            tmin=tmin, tmax=tmax, picks=picks, decim=1,
+                            reject=dict(grad=4000e-13, eog=150e-6),
+                            baseline=None)
+    epochs_offline.drop_bad()
+
+    # create the mock-client object
+    rt_client = MockRtClient(raw)
+    rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks, decim=1,
+                         reject=dict(grad=4000e-13, eog=150e-6), baseline=None,
+                         isi_max=1.)
+
+    rt_epochs.start()
+    rt_client.send_data(rt_epochs, picks, tmin=raw_tmin, tmax=raw_tmax,
+                        buffer_size=1000)
+
+    expected_events = epochs_offline.events.copy()
+    expected_events[:, 0] = expected_events[:, 0] - raw_cropped.first_samp
+    assert np.all(expected_events[:, 0] <=
+                  (raw_tmax - tmax) * raw.info['sfreq'])
+    assert_array_equal(rt_epochs.events, expected_events)
+    assert len(rt_epochs) == len(epochs_offline)
+
+    data_picks = pick_types(epochs_offline.info, meg='grad', eeg=False,
+                            eog=True,
+                            stim=False, exclude=raw.info['bads'])
+
+    for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
+        if ev_num == 0:
+            X_rt = ev.data[None, data_picks, :]
+            y_rt = int(ev.comment)  # comment attribute contains the event_id
+        else:
+            X_rt = np.concatenate((X_rt, ev.data[None, data_picks, :]), axis=0)
+            y_rt = np.append(y_rt, int(ev.comment))
+
+    X_offline = epochs_offline.get_data()[:, data_picks, :]
+    y_offline = epochs_offline.events[:, 2]
+    assert_array_equal(X_rt, X_offline)
+    assert_array_equal(y_rt, y_offline)
 
 
 run_tests_if_main()

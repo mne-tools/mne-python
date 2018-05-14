@@ -71,7 +71,7 @@ clf = SVC(C=1, kernel='linear')
 concat_classifier = Pipeline([('filter', filt), ('vector', vectorizer),
                               ('scaler', scaler), ('svm', clf)])
 
-data_picks = mne.pick_types(rt_epochs.info, meg='grad', eeg=False, eog=True,
+data_picks = mne.pick_types(rt_epochs.info, meg='grad', eeg=False, eog=False,
                             stim=False, exclude=raw.info['bads'])
 ax = plt.subplot(111)
 ax.set_xlabel('Trials')

@@ -63,8 +63,12 @@ class MockRtClient(object):
         tmin_samp = int(round(sfreq * tmin))
         tmax_samp = int(round(sfreq * tmax))
 
-        iter_times = zip(list(range(tmin_samp, tmax_samp, buffer_size)),
-                         list(range(buffer_size, tmax_samp, buffer_size)))
+        iter_times = list(zip(
+            list(range(tmin_samp, tmax_samp, buffer_size)),
+            list(range(buffer_size, tmax_samp + 1, buffer_size))))
+        last_iter_sample = iter_times[-1][1] if iter_times else 0
+        if last_iter_sample < tmax_samp:
+            iter_times.append((last_iter_sample, tmax_samp))
 
         for ii, (start, stop) in enumerate(iter_times):
             # channels are picked in _append_epoch_to_queue. No need to pick
