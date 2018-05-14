@@ -18,7 +18,6 @@ import inspect
 import json
 import logging
 from math import log, ceil
-from numbers import Integral
 import multiprocessing
 import operator
 import os
@@ -2755,16 +2754,14 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
             _ensure_int(item, name=item_name)
         elif types == "str":
             types = string_types
+            type_name = "str" if type_name is None else type_name
         elif types == "numeric":
             types = (np.integer, np.floating, int, float)
-    else:
-        if type_name is None:
-            if types == string_types:
-                type_name = "str"
-            else:
-                iter_types = ([types] if not isinstance(types, (list, tuple))
-                              else types)
-                type_name = ', '.join(cls.__name__ for cls in iter_types)
-        if not isinstance(item, types):
-            raise TypeError(item_name, ' must be an instance of ', type_name,
-                            ', got %s instead.' % (type(item),))
+            type_name = "numeric" if type_name is None else type_name
+    if type_name is None:
+        iter_types = ([types] if not isinstance(types, (list, tuple))
+                      else types)
+        type_name = ', '.join(cls.__name__ for cls in iter_types)
+    if not isinstance(item, types):
+        raise TypeError(item_name, ' must be an instance of ', type_name,
+                        ', got %s instead.' % (type(item),))
