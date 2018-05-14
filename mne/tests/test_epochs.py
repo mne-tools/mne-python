@@ -501,8 +501,7 @@ def test_event_ordering():
     for ii, eve in enumerate([events, events2]):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            Epochs(raw, eve, event_id, tmin, tmax,
-                   reject=reject, flat=flat)
+            Epochs(raw, eve, event_id, tmin, tmax, reject=reject, flat=flat)
             assert_equal(len(w), ii)
             if ii > 0:
                 assert_true('chronologically' in '%s' % w[-1].message)
@@ -2195,7 +2194,7 @@ def test_add_channels():
     assert_raises(RuntimeError, epoch_meg.add_channels, [epoch_badsf])
     assert_raises(AssertionError, epoch_meg.add_channels, [epoch_eeg])
     assert_raises(ValueError, epoch_meg.add_channels, [epoch_meg])
-    assert_raises(AssertionError, epoch_meg.add_channels, epoch_badsf)
+    assert_raises(TypeError, epoch_meg.add_channels, epoch_badsf)
 
 
 def test_seeg_ecog():

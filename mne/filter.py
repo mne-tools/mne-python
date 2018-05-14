@@ -13,7 +13,7 @@ from .fixes import get_sosfiltfilt, minimum_phase
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, check_version, warn,
-                    _check_preload)
+                    _check_preload, _validate_type)
 
 # These values from Ifeachor and Jervis.
 _length_factors = dict(hann=3.1, hamming=3.3, blackman=5.0)
@@ -702,8 +702,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
 def _check_method(method, iir_params, extra_types=()):
     """Parse method arguments."""
     allowed_types = ['iir', 'fir', 'fft'] + list(extra_types)
-    if not isinstance(method, string_types):
-        raise TypeError('method must be a string')
+    _validate_type(method, 'str', 'method')
     if method not in allowed_types:
         raise ValueError('method must be one of %s, not "%s"'
                          % (allowed_types, method))

@@ -534,7 +534,7 @@ def test_add_channels():
     assert_raises(RuntimeError, tfr_meg.add_channels, [tfr_badsf])
     assert_raises(AssertionError, tfr_meg.add_channels, [tfr_eeg])
     assert_raises(ValueError, tfr_meg.add_channels, [tfr_meg])
-    assert_raises(AssertionError, tfr_meg.add_channels, tfr_badsf)
+    assert_raises(TypeError, tfr_meg.add_channels, tfr_badsf)
 
 
 def test_compute_tfr():

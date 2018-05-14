@@ -150,8 +150,8 @@ def test_misc():
     assert_raises(TypeError, _check_fname, 1)
     assert_raises(IOError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
     assert_raises(ValueError, _check_subject, None, None)
-    assert_raises(ValueError, _check_subject, None, 1)
-    assert_raises(ValueError, _check_subject, 1, None)
+    assert_raises(TypeError, _check_subject, None, 1)
+    assert_raises(TypeError, _check_subject, 1, None)
 
 
 @requires_mayavi
@@ -554,9 +554,9 @@ def test_check_type_picks():
     picks = None
     assert_array_equal(None, _check_type_picks(picks))
     picks = ['a', 'b']
-    assert_raises(ValueError, _check_type_picks, picks)
+    assert_raises(TypeError, _check_type_picks, picks)
     picks = 'b'
-    assert_raises(ValueError, _check_type_picks, picks)
+    assert_raises(TypeError, _check_type_picks, picks)
 
 
 def test_compute_corr():

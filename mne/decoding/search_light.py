@@ -7,6 +7,7 @@ import numpy as np
 from .mixin import TransformerMixin
 from .base import BaseEstimator, _check_estimator
 from ..parallel import parallel_func
+from ..utils import _validate_type
 
 
 class SlidingEstimator(BaseEstimator, TransformerMixin):
@@ -44,8 +45,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         self.n_jobs = n_jobs
         self.scoring = scoring
 
-        if not isinstance(self.n_jobs, int):
-            raise ValueError('n_jobs must be int, got %s' % n_jobs)
+        _validate_type(self.n_jobs, 'int', 'n_jobs')
 
     def __repr__(self):  # noqa: D105
         repr_str = '<' + super(SlidingEstimator, self).__repr__()

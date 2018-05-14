@@ -1777,8 +1777,8 @@ def _ica_explained_variance(ica, inst, normalize=False):
             (n_chan, n_epochs * n_samp))
 
     n_chan, n_samp = source_data.shape
-    var = np.sum(ica.mixing_matrix_**2, axis=0) * np.sum(
-        source_data**2, axis=1) / (n_chan * n_samp - 1)
+    var = np.sum(ica.mixing_matrix_ ** 2, axis=0) * np.sum(
+        source_data ** 2, axis=1) / (n_chan * n_samp - 1)
     if normalize:
         var /= var.sum()
     return var

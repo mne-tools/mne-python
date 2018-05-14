@@ -1497,7 +1497,7 @@ def _format_evokeds_colors(evokeds, cmap, colors):
             raise ValueError('If evokeds is a dict and a cmap is passed, '
                              'you must specify the colors.')
     for cond in evokeds.keys():
-        _validate_type(cond,  string_types, "Conditions")
+        _validate_type(cond, 'str', "Conditions")
     # Now make sure all values are list of Evoked objects
     evokeds = {condition: [v] if isinstance(v, Evoked) else v
                for condition, v in evokeds.items()}
@@ -1807,7 +1807,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     _validate_type(picks, (list, np.ndarray), "picks",
                    "list or np.array of integers")
     for entry in picks:
-        _validate_type(entry, Integral, "entries of picks", "integers")
+        _validate_type(entry, 'int', "entries of picks", "integers")
 
     if len(picks) == 0:
         raise ValueError("No valid channels were found to plot the GFP. " +

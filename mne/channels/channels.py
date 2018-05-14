@@ -69,7 +69,7 @@ def _contains_ch_type(info, ch_type):
     has_ch_type : bool
         Whether the channel type is present or not.
     """
-    _validate_type(ch_type, string_types, "ch_type")
+    _validate_type(ch_type, 'str', "ch_type")
 
     meg_extras = ['mag', 'grad', 'planar1', 'planar2']
     fnirs_extras = ['hbo', 'hbr']
@@ -123,11 +123,11 @@ def equalize_channels(candidates, verbose=None):
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
-    from ..time_frequency import AverageTFR
+    from ..time_frequency import _BaseTFR
 
     for candidate in candidates:
         _validate_type(candidate,
-                       (BaseRaw, BaseEpochs, Evoked, AverageTFR),
+                       (BaseRaw, BaseEpochs, Evoked, _BaseTFR),
                        "Instances to be modified",
                        "Raw, Epochs, Evoked or TFR")
 
@@ -842,8 +842,7 @@ class UpdateChannelsMixin(object):
         from ..io import BaseRaw, _merge_info
         from ..epochs import BaseEpochs
 
-        if not isinstance(add_list, (list, tuple)):
-            raise AssertionError('Input must be a list or tuple of objs')
+        _validate_type(add_list, (list, tuple), 'Input')
 
         # Object-specific checks
         for inst in add_list + [self]:
@@ -858,9 +857,7 @@ class UpdateChannelsMixin(object):
             con_axis = 0
             comp_class = type(self)
         for inst in add_list:
-            if not isinstance(inst, comp_class):
-                raise AssertionError('All input data must be of same type, got'
-                                     ' %s and %s' % (comp_class, type(inst)))
+            _validate_type(inst, comp_class, 'All input')
         data = [inst._data for inst in [self] + add_list]
 
         # Make sure that all dimensions other than channel axis are the same
@@ -970,9 +967,8 @@ def rename_channels(info, mapping):
                          % (type(mapping),))
 
     # check we got all strings out of the mapping
-    if any(not isinstance(new_name[1], string_types)
-           for new_name in new_names):
-        raise ValueError('New channel mapping must only be to strings')
+    for new_name in new_names:
+        _validate_type(new_name[1], 'str', 'New channel mappings')
 
     bad_new_names = [name for _, name in new_names if len(name) > 15]
     if len(bad_new_names):

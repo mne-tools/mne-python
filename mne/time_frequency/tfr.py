@@ -26,7 +26,7 @@ from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, pick_types, _pick_data_channels,
                        channel_type, _pick_inst, _get_channel_types)
 from ..io.meas_info import Info
-from ..utils import SizeMixin
+from ..utils import SizeMixin, _is_numeric
 from .multitaper import dpss_windows
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
                          _connection_line, _prepare_joint_axes,
@@ -2250,10 +2250,6 @@ def read_tfrs(fname, condition=None):
         inst = AverageTFR if is_average else EpochsTFR
         out = [inst(**d) for d in list(zip(*tfr_data))[1]]
     return out
-
-
-def _is_numeric(n):
-    return isinstance(n, (np.integer, np.floating, int, float))
 
 
 def _get_timefreqs(tfr, timefreqs):

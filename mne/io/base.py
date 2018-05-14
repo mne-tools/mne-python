@@ -2083,8 +2083,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         Data must be preloaded in order to add events.
         """
-        if not self.preload:
-            raise RuntimeError('cannot add events unless data are preloaded')
+        _check_preload(self, 'Adding events')
         events = np.asarray(events)
         if events.ndim != 2 or events.shape[1] != 3:
             raise ValueError('events must be shape (n_events, 3)')
