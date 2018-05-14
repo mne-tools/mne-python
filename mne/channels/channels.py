@@ -69,7 +69,7 @@ def _contains_ch_type(info, ch_type):
     has_ch_type : bool
         Whether the channel type is present or not.
     """
-    _validate_type(ch_type, 'str', '"ch_type")
+    _validate_type(ch_type, 'str', "ch_type")
 
     meg_extras = ['mag', 'grad', 'planar1', 'planar2']
     fnirs_extras = ['hbo', 'hbr']
