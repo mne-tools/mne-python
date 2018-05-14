@@ -2749,15 +2749,16 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
          The types to be checked against. If str, must be one of 'str', 'int',
          'numeric'.
     """
-    if types in ('int', 'str', 'numeric'):
-        if types == "int":
-            _ensure_int(item, name=item_name)
-        elif types == "str":
-            types = string_types
-            type_name = "str" if type_name is None else type_name
-        elif types == "numeric":
-            types = (np.integer, np.floating, int, float)
-            type_name = "numeric" if type_name is None else type_name
+    if types == "int":
+        _ensure_int(item, name=item_name)
+        return  # terminate prematurely
+    elif types == "str":
+        types = string_types
+        type_name = "str" if type_name is None else type_name
+    elif types == "numeric":
+        types = (np.integer, np.floating, int, float)
+        type_name = "numeric" if type_name is None else type_name
+
     if type_name is None:
         iter_types = ([types] if not isinstance(types, (list, tuple))
                       else types)
