@@ -1324,14 +1324,15 @@ class AverageTFR(_BaseTFR):
             Channels names to exclude from being shown. If 'bads', the
             bad channels are excluded. Defaults to an empty list, i.e., `[]`.
         topomap_args : None | dict
-            A dict of `kwargs` that are forwarded to `mne.viz.plot_topomap`
-            to style the topomaps. `axes` and `show` are ignored. If `times`
-            is not in this dict, automatic peak detection is used. Beyond that,
-            if ``None``, no customizable arguments will be passed.
+            A dict of `kwargs` that are forwarded to
+            :func:`mne.viz.plot_topomap` to style the topomaps. `axes` and
+            `show` are ignored. If `times` is not in this dict, automatic
+            peak detection is used. Beyond that, if ``None``, no customizable
+            arguments will be passed.
             Defaults to ``None``.
         image_args : None | dict
-            A dict of `kwargs` that are forwarded to `AverageTFR.plot` to
-            style the image. `axes` and `show` are ignored. Beyond that,
+            A dict of `kwargs` that are forwarded to :meth:`AverageTFR.plot`
+            to style the image. `axes` and `show` are ignored. Beyond that,
             if ``None``, no customizable arguments will be passed.
             Defaults to ``None``.
         verbose : bool, str, int, or None

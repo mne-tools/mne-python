@@ -1184,15 +1184,15 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     show : bool
         Show figure if True. Defaults to True.
     ts_args : None | dict
-        A dict of `kwargs` that are forwarded to `evoked.plot` to
+        A dict of `kwargs` that are forwarded to :meth:`Evoked.plot` to
         style the butterfly plot. If they are not in this dict, the following
         defaults are passed: ``spatial_colors=True``, ``zorder='std'``,
         ``axes``, ``show``, ``exclude`` are illegal.
         If None, no customizable arguments will be passed.
         Defaults to `None`.
     topomap_args : None | dict
-        A dict of `kwargs` that are forwarded to `evoked.plot_topomap` to
-        style the topomaps. If it is not in this dict, ``outlines='skirt'``
+        A dict of `kwargs` that are forwarded to :meth:`Evoked.plot_topomap`
+        to style the topomaps. If it is not in this dict, ``outlines='skirt'``
         will be passed. `axes`, `show`, `times`, `colorbar` are illegal`
         If None, no customizable arguments will be passed.
         Defaults to `None`.
@@ -1776,7 +1776,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             show_sensors = False  # don't show sensors for GFP
         ch_names = ['Global Field Power']
         if len(picks) < 2:
-            raise ValueError("Cannot compute GFP for less than 2 channels, "
+            raise ValueError("Cannot compute GFP for fewer than 2 channels, "
                              "please pick more than %d channels." % len(picks))
     else:
         if show_sensors is None:
