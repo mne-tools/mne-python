@@ -114,7 +114,7 @@ def _compare_ch_names(names1, names2, bads):
     return ch_names
 
 
-def _check_one_ch_type(info, picks, noise_cov):
+def _check_one_ch_type(info, picks, noise_cov, beamformer):
     """Check number of sensor types and presence of noise covariance matrix."""
     # XXX : ugly hack to avoid picking subset of info with applied comps
     comps = info['comps']
@@ -123,10 +123,13 @@ def _check_one_ch_type(info, picks, noise_cov):
     info['comps'] = comps
     ch_types =\
         [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
-    if sum(ch_types) > 1 and noise_cov is None:
+    if beamformer == 'lcmv' and sum(ch_types) > 1 and noise_cov is None:
         raise ValueError('Source reconstruction with several sensor types '
                          'requires a noise covariance matrix to be '
                          'able to apply whitening.')
+    elif beamformer == 'dics' and sum(ch_types) > 1:
+        warn('The use of several sensor types with the DICS beamformer is '
+             'not heavily tested yet.')
 
 
 def _pick_channels_spatial_filter(ch_names, filters):

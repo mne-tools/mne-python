@@ -133,7 +133,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     Cm = data_cov['data']
 
     # check number of sensor types present in the data
-    _check_one_ch_type(info, picks, noise_cov)
+    _check_one_ch_type(info, picks, noise_cov, 'lcmv')
 
     # apply SSPs
     is_ssp = False

@@ -16,7 +16,8 @@ from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
 from ._compute_beamformer import (_reg_pinv, _setup_picks,
                                   _pick_channels_spatial_filter,
                                   _check_proj_match, _prepare_beamformer_input,
-                                  _check_src_type, _compute_beamformer)
+                                  _compute_beamformer, _check_one_ch_type,
+                                  _check_src_type)
 from ..externals import six
 
 
@@ -209,6 +210,8 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         fwd_norm=fwd_norm,
     )
     csd_picks = [csd.ch_names.index(ch) for ch in ch_names]
+
+    _check_one_ch_type(info, picks, None, 'dics')
 
     logger.info('Computing DICS spatial filters...')
     Ws = []
