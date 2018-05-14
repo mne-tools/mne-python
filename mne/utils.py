@@ -2658,9 +2658,8 @@ def sys_info(fid=None, show_paths=False):
                 libs += ['%s=%s' % (key, lib)]
     libs = ', '.join(libs)
     version_texts = dict(pycuda='VERSION_TEXT')
-    for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '',
-                     'sklearn', 'nibabel', 'mayavi', 'pycuda', 'skcuda',
-                     'pandas'):
+    for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
+                     'nibabel', 'mayavi', 'pycuda', 'skcuda', 'pandas'):
         if mod_name == '':
             out += '\n'
             continue
