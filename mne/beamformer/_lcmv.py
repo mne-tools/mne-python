@@ -592,7 +592,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     ch_names = [epochs.ch_names[k] for k in picks]
 
     # check number of sensor types present in the data
-    _check_one_ch_type(epochs.info, picks, noise_covs)
+    _check_one_ch_type(epochs.info, picks, noise_covs, 'lcmv')
 
     # Use picks from epochs for picking channels in the raw object
     raw_picks = [raw.ch_names.index(c) for c in ch_names]
