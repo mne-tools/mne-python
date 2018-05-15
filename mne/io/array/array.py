@@ -63,7 +63,9 @@ class RawArray(BaseRaw):
                     % (dtype.__name__, data.shape[0], data.shape[1]))
 
         if len(data) != len(info['ch_names']):
-            raise ValueError('len(data) does not match len(info["ch_names"])')
+            raise ValueError('len(data) (%s) does not match '
+                             'len(info["ch_names"]) (%s)'
+                             % (len(data), len(info['ch_names'])))
         assert len(info['ch_names']) == info['nchan']
         if info.get('buffer_size_sec', None) is None:
             info['buffer_size_sec'] = 1.  # reasonable default
