@@ -2679,7 +2679,7 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
         if mask.all():
             t_end = ", all points masked)"
         else:
-            fraction = np.float(mask.sum()) / np.float(mask.size)
+            fraction = 1 - (np.float(mask.sum()) / np.float(mask.size))
             t_end = ", %0.3g%% of points masked)" % (fraction * 100,)
     else:
         t_end = ")"
