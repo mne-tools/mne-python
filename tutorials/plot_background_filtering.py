@@ -934,7 +934,7 @@ baseline_plot(x)
 # .. [9] Maess, B., Schröger, E., & Widmann, A. (2016).
 #        High-pass filters and baseline correction in M/EEG analysis.
 #        Commentary on: “How inappropriate high-pass filters can produce
-#        artefacts and incorrect conclusions in ERP studies of language
+#        artifacts and incorrect conclusions in ERP studies of language
 #        and cognition.” Journal of Neuroscience Methods, 266, 164–165.
 # .. [10] Tanner, D., Norton, J. J. S., Morgan-Short, K., & Luck, S. J. (2016).
 #        On high-pass filter artifacts (they’re real) and baseline correction

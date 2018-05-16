@@ -338,7 +338,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         End of time interval in seconds. If None (default), use the end of the
         recording.
     tstep : float (default 0.2)
-        Length of data chunks for artefact rejection in seconds.
+        Length of data chunks for artifact rejection in seconds.
         Can also be None to use a single epoch of (tmax - tmin)
         duration. This can use a lot of memory for large ``Raw``
         instances.
@@ -1968,7 +1968,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
     data : np.ndarray of float, shape(n_channels, n_samples)
         The M/EEG signals.
     info : Info
-        The measurment info.
+        The measurement info.
     scalings : dict | 'norm' | np.ndarray | None
         The rescaling method to be applied. If dict, it will override the
         following default dict:
@@ -2014,7 +2014,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
     data : np.ndarray of float, shape (n_channels, n_channels)
         The M/EEG covariance.
     info : Info
-        The measurment info.
+        The measurement info.
     scalings : dict | 'norm' | np.ndarray | None
         The rescaling method to be applied. If dict, it will override the
         following default dict:

@@ -132,8 +132,8 @@ evoked_custom.plot(titles=dict(eeg=title), time_unit='s')
 evoked_custom.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 
 ###############################################################################
-# Evoked arithmetics
-# ------------------
+# Evoked arithmetic
+# -----------------
 #
 # Trial subsets from Epochs can be selected using 'tags' separated by '/'.
 # Evoked objects support basic arithmetic.

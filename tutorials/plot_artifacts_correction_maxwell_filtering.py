@@ -6,7 +6,7 @@ Artifact correction with Maxwell filter
 This tutorial shows how to clean MEG data with Maxwell filtering.
 
 Maxwell filtering in MNE can be used to suppress sources of external
-intereference and compensate for subject head movements.
+interference and compensate for subject head movements.
 
 See :ref:`maxwell` for more details.
 """

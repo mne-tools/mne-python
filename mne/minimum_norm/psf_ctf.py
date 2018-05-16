@@ -74,7 +74,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
         This is better suited for situations where activation patterns are
         assumed to be more variable.
         "sub-leadfields" are the parts of the forward solutions that belong to
-        vertices within invidual labels.
+        vertices within individual labels.
     n_svd_comp : integer
         Number of SVD components for which PSFs will be computed and output
         (irrelevant for 'sum' and 'mean'). Explained variances within
@@ -359,7 +359,7 @@ def cross_talk_function(inverse_operator, forward, labels,
         'svd': SVD components of sub-inverses for labels
         This is better suited for situations where activation patterns are
         assumed to be more variable. "sub-inverse" is the part of the inverse
-        matrix that belongs to vertices within invidual labels.
+        matrix that belongs to vertices within individual labels.
     n_svd_comp : int
         Number of SVD components for which CTFs will be computed and output
         (irrelevant for 'sum' and 'mean'). Explained variances within

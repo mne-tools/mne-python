@@ -442,7 +442,7 @@ def _vector_to_sym_mat(vec):
     # Fill the upper triangle of the matrix
     mat[np.triu_indices(dim)] = vec
 
-    # Fill out the lower triangle (make conjugate to ensure matix is hermitian)
+    # Fill out the lower tri (make conjugate to ensure matrix is hermitian)
     mat = mat + np.rollaxis(mat, 1).conj()
 
     # We counted the diagonal twice

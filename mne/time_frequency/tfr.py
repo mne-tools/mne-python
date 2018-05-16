@@ -1083,10 +1083,10 @@ class AverageTFR(_BaseTFR):
             The last frequency to display. If None the last frequency
             available is used.
         vmin : float | None
-            The mininum value an the color scale. If vmin is None, the data
+            The minimum value an the color scale. If vmin is None, the data
             minimum value is used.
         vmax : float | None
-            The maxinum value an the color scale. If vmax is None, the data
+            The maximum value an the color scale. If vmax is None, the data
             maximum value is used.
         cmap : matplotlib colormap | 'interactive' | (colormap, bool)
             The colormap to use. If tuple, the first value indicates the
@@ -1288,11 +1288,11 @@ class AverageTFR(_BaseTFR):
             The last frequency to display. If None the last frequency
             available is used.
         vmin : float | None
-            The mininum value of the color scale for the image (for
+            The minimum value of the color scale for the image (for
             topomaps, see `topomap_args`). If vmin is None, the data
             absolute minimum value is used.
         vmax : float | None
-            The maxinum value of the color scale for the image (for
+            The maximum value of the color scale for the image (for
             topomaps, see `topomap_args`). If vmax is None, the data
             absolute maximum value is used.
         cmap : matplotlib colormap
@@ -1637,10 +1637,10 @@ class AverageTFR(_BaseTFR):
             The last frequency to display. If None the last frequency
             available is used.
         vmin : float | None
-            The mininum value of the color scale. If vmin is None, the data
+            The minimum value of the color scale. If vmin is None, the data
             minimum value is used.
         vmax : float | None
-            The maxinum value of the color scale. If vmax is None, the data
+            The maximum value of the color scale. If vmax is None, the data
             maximum value is used.
         layout : Layout | None
             Layout instance specifying sensor positions. If possible, the

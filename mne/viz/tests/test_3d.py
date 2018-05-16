@@ -267,7 +267,7 @@ def test_plot_alignment():
 @requires_mayavi
 @traits_test
 def test_limits_to_control_points():
-    """Test functionality for determing control points."""
+    """Test functionality for determining control points."""
     sample_src = read_source_spaces(src_fname)
     kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1)
 

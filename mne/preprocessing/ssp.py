@@ -67,7 +67,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                                  filter_length=filter_length, ch_name=ch_name,
                                  tstart=tstart)
 
-    # Check to make sure we actually got at least one useable event
+    # Check to make sure we actually got at least one usable event
     if events.shape[0] < 1:
         warn('No %s events found, returning None for projs' % mode)
         return (None, events) + (([],) if return_drop_log else ())

@@ -508,7 +508,7 @@ FIFF.FIFF_MNE_EVENT_LIST             = 3561     # An event list (for STI101 / ST
 FIFF.FIFF_MNE_HEMI                   = 3562     # Hemisphere association for general purposes
 FIFF.FIFF_MNE_DATA_SKIP_NOP          = 3563     # A data skip turned off in the raw data
 FIFF.FIFF_MNE_ORIG_CH_INFO           = 3564     # Channel information before any changes
-FIFF.FIFF_MNE_EVENT_TRIGGER_MASK     = 3565     # Mask applied to the trigger channnel values
+FIFF.FIFF_MNE_EVENT_TRIGGER_MASK     = 3565     # Mask applied to the trigger channel values
 FIFF.FIFF_MNE_EVENT_COMMENTS         = 3566     # Event comments merged into one long string
 FIFF.FIFF_MNE_CUSTOM_REF             = 3567     # Whether a custom reference was applied to the data
 FIFF.FIFF_MNE_BASELINE_MIN           = 3568     # Time of baseline beginning
@@ -735,7 +735,7 @@ FIFF.FIFF_UNIT_MHO = 110  # one per ohm
 FIFF.FIFF_UNIT_WB  = 111  # weber
 FIFF.FIFF_UNIT_T   = 112  # tesla
 FIFF.FIFF_UNIT_H   = 113  # Henry
-FIFF.FIFF_UNIT_CEL = 114  # celcius
+FIFF.FIFF_UNIT_CEL = 114  # celsius
 FIFF.FIFF_UNIT_LM  = 115  # lumen
 FIFF.FIFF_UNIT_LX  = 116  # lux
 #

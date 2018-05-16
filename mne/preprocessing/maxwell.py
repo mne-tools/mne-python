@@ -130,7 +130,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         performed on the output data. The non-tSSS parameters (e.g.,
         ``int_order``, ``calibration``, ``head_pos``, etc.) will still be
         used to form the SSS bases used to calculate temporal projectors,
-        but the ouptut MEG data will *only* have temporal projections
+        but the output MEG data will *only* have temporal projections
         performed. Noise reduction from SSS basis multiplication,
         cross-talk cancellation, movement compensation, and so forth
         will not be applied to the data. This is useful, for example, when

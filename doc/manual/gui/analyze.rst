@@ -2039,7 +2039,7 @@ orientation, and amplitude) are determined using the following algorithm:
   model. Again, the dipole amplitude parameters are not explicitly present
   in the fitting procedure.
 
-- A second optimization interation using the boundary-element
+- A second optimization iteration using the boundary-element
   model (if available) or the sphere model as the forward model is
   conducted. The reason for repeating the optimization even with the
   sphere model is to reduce the likelihood of having been stuck in
@@ -2060,7 +2060,7 @@ Additional notes:
   a diagonal matrix or a full matrix including the correlations.
 
 - Using the SVD of the whitened gain matrix of three dipole
-  componets at a given location, the component producing the weakest
+  components at a given location, the component producing the weakest
   signal amplitude is omitted if the ratio of the smallest and largest
   singular values is less than 0.2.
 
@@ -2341,7 +2341,7 @@ dense tessellation contains the output of mkheadsurf while
 the medium and sparse tessellations comprise 30,000 and 2,500 triangles,
 respectively. You can then make a symbolic link of one of these
 to <*subject*> ``-head.fif`` .
-The medium grade tessellation is an excellent compromize between
+The medium grade tessellation is an excellent compromise between
 geometric accuracy and speed in the coordinate system alignment.
 
 .. note:: While the dense head surface tessellation    may help in coordinate frame alignment, it will slow down the operation    of the viewer window considerably. Furthermore, it cannot be used    in forward modelling due to the huge number of triangles. For the    BEM, the dense tessellation does not provide much benefit because    the potential distributions are quite smooth and widespread on the    scalp.

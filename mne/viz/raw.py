@@ -204,7 +204,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         bad appear with red edges on the topomap. ``'type'`` and ``'original'``
         groups the channels by type in butterfly mode whereas ``'selection'``
         and ``'position'`` use regional grouping. ``'type'`` and ``'original'``
-        modes are overrided with ``order`` keyword.
+        modes are overridden with ``order`` keyword.
     butterfly : bool
         Whether to start in butterfly mode. Defaults to False.
     decim : int | 'auto'

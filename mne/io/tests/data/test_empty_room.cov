@@ -10,7 +10,7 @@ cov {
 #
 #    Rejection limits
 #
-#    stimIgnore is optional to omit a stimulus artefact from
+#    stimIgnore is optional to omit a stimulus artifact from
 #    the rejection
 #
 #    fixSkew

@@ -622,7 +622,7 @@ def _gl_score(estimators, scoring, X, y):
     score : array, shape (n_estimators, n_slices)
         The score for each slice of data.
     """
-    # FIXME: The level parallization may be a bit high, and might be memory
+    # FIXME: The level parallelization may be a bit high, and might be memory
     # consuming. Perhaps need to lower it down to the loop across X slices.
     score_shape = [len(estimators), X.shape[-1]]
     for ii, est in enumerate(estimators):

@@ -330,7 +330,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         is less than weights_min.
     solver : 'prox' | 'cd' | 'bcd' | 'auto'
         The algorithm to use for the optimization. 'prox' stands for
-        proximal interations using the FISTA algorithm, 'cd' uses
+        proximal iterations using the FISTA algorithm, 'cd' uses
         coordinate descent, and 'bcd' applies block coordinate descent.
         'cd' is only available for fixed orientation.
     n_mxne_iter : int
@@ -575,12 +575,12 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     alpha : float in [0, 100) or None
         Overall regularization parameter.
         If alpha and l1_ratio are not None, alpha_space and alpha_time are
-        overriden by alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max
+        overridden by alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max
         * l1_ratio. 0 means no regularization, 100 would give 0 active dipole.
     l1_ratio : float in [0, 1] or None
         Proportion of temporal regularization.
         If l1_ratio and alpha are not None, alpha_space and alpha_time are
-        overriden by alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max
+        overridden by alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max
         * l1_ratio. 0 means no time regularization aka MxNE.
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.

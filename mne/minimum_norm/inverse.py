@@ -489,7 +489,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
     lambda2 : float
         The regularization factor. Recommended to be 1 / SNR**2.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
-        Use mininum norm, dSPM (default), sLORETA, or eLORETA.
+        Use minimum norm, dSPM (default), sLORETA, or eLORETA.
     method_params : dict | None
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
 
@@ -620,7 +620,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
         if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
             #
             #   The three-component case is a little bit more involved
-            #   The variances at three consequtive entries must be squared and
+            #   The variances at three consecutive entries must be squared and
             #   added together
             #
             #   Even in this case return only one noise-normalization factor
@@ -652,7 +652,7 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
         Restricts the source estimates to a given label. If None,
         source estimates will be computed for the entire source space.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
-        Use mininum norm, dSPM, sLORETA, or eLORETA.
+        Use minimum norm, dSPM, sLORETA, or eLORETA.
     pick_ori : None | "normal" | "vector"
         Which orientation to pick (only matters in the case of 'normal').
 
@@ -817,7 +817,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
-        Use mininum norm [1]_, dSPM (default) [2]_, sLORETA [3]_, or
+        Use minimum norm [1]_, dSPM (default) [2]_, sLORETA [3]_, or
         eLORETA [4]_.
     pick_ori : None | "normal" | "vector"
         If "normal", rather than pooling the orientations by taking the norm,
@@ -969,7 +969,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
-        Use mininum norm, dSPM (default), sLORETA, or eLORETA.
+        Use minimum norm, dSPM (default), sLORETA, or eLORETA.
     label : Label | None
         Restricts the source estimates to a given label. If None,
         source estimates will be computed for the entire source space.
@@ -1176,7 +1176,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
-        Use mininum norm, dSPM (default), sLORETA, or eLORETA.
+        Use minimum norm, dSPM (default), sLORETA, or eLORETA.
     label : Label | None
         Restricts the source estimates to a given label. If None,
         source estimates will be computed for the entire source space.
@@ -1230,7 +1230,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 def _xyz2lf(Lf_xyz, normals):
     """Reorient leadfield to one component matching the normal to the cortex
 
-    This program takes a leadfield matix computed for dipole components
+    This program takes a leadfield matrix computed for dipole components
     pointing in the x, y, and z directions, and outputs a new lead field
     matrix for dipole components pointing in the normal direction of the
     cortical surfaces and in the two tangential directions to the cortex

@@ -470,7 +470,7 @@ def estimate_ringing_samples(system, max_try=100000):
         A tuple of (b, a) or ndarray of second-order sections coefficients.
     max_try : int
         Approximate maximum number of samples to try.
-        This will be changed to a multple of 1000.
+        This will be changed to a multiple of 1000.
 
     Returns
     -------
@@ -2309,7 +2309,7 @@ class _Interp2(object):
         for start, stop in zip(self._chunks[:-1], self._chunks[1:]):
             time_sl = slice(start, stop)
             if data_idx is not None:
-                # This is useful e.g. when circularly accessing the same data.
+                # This is useful e.g. when using circular access to the data.
                 # This prevents STC blowups in raw data simulation.
                 data_sl = data[:, data_idx[time_sl]]
             else:

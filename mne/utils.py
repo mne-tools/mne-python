@@ -1551,7 +1551,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     Parameters
     ----------
     key : None | str
-        The preference key to look for. The os evironment is searched first,
+        The preference key to look for. The os environment is searched first,
         then the mne-python config file is parsed.
         If None, all the config parameters present in environment variables or
         the path are returned.
@@ -2188,7 +2188,7 @@ def _check_preload(inst, msg):
         if not inst.preload:
             raise RuntimeError(
                 "By default, MNE does not load data into main memory to "
-                "conserve ressources. " + msg + ' requires %s data to be '
+                "conserve resources. " + msg + ' requires %s data to be '
                 'loaded. Use preload=True (or string) in the constructor or '
                 '%s.load_data().' % (name, name))
 

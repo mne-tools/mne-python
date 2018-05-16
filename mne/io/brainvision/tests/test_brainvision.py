@@ -372,7 +372,7 @@ def test_events():
     """Test reading and modifying events."""
     tempdir = _TempDir()
 
-    # check that events are read and stim channel is synthesized correcly
+    # check that events are read and stim channel is synthesized correctly
     raw = read_raw_brainvision(vhdr_path, eog=eog, event_id=event_id)
     events = raw._get_brainvision_events()
     events = events[events[:, 2] != event_id['Sync On']]
@@ -388,7 +388,7 @@ def test_events():
                                 [6620, 1, 254],
                                 [6630, 1, 255]])
 
-    # check that events are read and stim channel is synthesized correcly and
+    # check that events are read and stim channel is synthesized correctly and
     # response triggers are shifted like they're supposed to be.
     raw = read_raw_brainvision(vhdr_path, eog=eog,
                                response_trig_shift=1000, event_id=event_id)
@@ -406,7 +406,7 @@ def test_events():
                                 [6620, 1, 254],
                                 [6630, 1, 255]])
 
-    # check that events are read and stim channel is synthesized correcly and
+    # check that events are read and stim channel is synthesized correctly and
     # response triggers are ignored.
     with warnings.catch_warnings(record=True):  # ignored events
         raw = read_raw_brainvision(vhdr_path, eog=eog,
