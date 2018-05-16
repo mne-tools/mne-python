@@ -324,6 +324,18 @@ def test_merge_info():
     info_b['kit_system_id'] = 60
     pytest.raises(ValueError, _merge_info, (info_a, info_b))
 
+    # hpi infos
+    info_d = create_info(ch_names=['d', 'e', 'f'], sfreq=1000., ch_types=None) 
+    info_merged = _merge_info([info_a, info_d])
+    assert not info_merged['hpi_meas']
+    assert not info_merged['hpi_results']
+    info_a['hpi_meas'] = [{'f1': 3, 'f2': 4}]
+    assert _merge_info([info_a, info_d])['hpi_meas'] == info_a['hpi_meas']
+    info_d['hpi_meas'] = [{'f1': 3, 'f2': 4}]
+    assert _merge_info([info_a, info_d])['hpi_meas'] == info_d['hpi_meas']
+    # This will break because of inconsistency 
+    info_d['hpi_meas'] = [{'f1': 3, 'f2': 5}]
+    pytest.raises(ValueError, _merge_info, [info_a, info_d])
 
 def test_check_consistency():
     """Test consistency check of Info objects."""
