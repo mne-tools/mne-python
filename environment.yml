@@ -27,6 +27,7 @@ dependencies:
 - spyder
 - numexpr
 - pip:
+  - dipy
   - mne
   - "https://api.github.com/repos/enthought/traits/zipball/a99b3f64d50c5f7f28ffc01bf69419b061f9e976"
   - "https://api.github.com/repos/enthought/pyface/zipball/6a0cac149d56293482bb828a7d98122667c773be"
