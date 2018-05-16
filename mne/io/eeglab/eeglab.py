@@ -10,7 +10,7 @@ import numpy as np
 from ..utils import (_read_segments_file, _find_channels,
                      _synthesize_stim_channel)
 from ..constants import FIFF
-from ..meas_info import _empty_info, create_info
+from ..meas_info import _empty_info, create_info, _kind_dict
 from ..base import BaseRaw, _check_update_montage
 from ...utils import logger, verbose, check_version, warn
 from ...channels.montage import Montage
@@ -81,10 +81,34 @@ def _get_info(eeg, montage, eog=()):
                           for fld in pos_fields)
         get_pos = has_pos and montage is None
         pos_ch_names, ch_names, pos = list(), list(), list()
+        ch_types = list()
         kind = 'user_defined'
         update_ch_names = False
+        err_mesg_shown = False
+        err_ch_set = set()
         for chanloc in eeg.chanlocs:
             ch_names.append(chanloc.labels)
+            if not hasattr(chanloc, 'type'):
+                ch_types.append('eeg')
+            elif not isinstance(chanloc.type, string_types):
+                msg = "'{}' does not use a string variable for its "
+                msg += "channel type. 'eeg' will be assumed, since "
+                msg += "data is sourced from EEGLAB."
+                ch_types.append('eeg')
+            elif chanloc.type in _kind_dict:
+                ch_types.append(chanloc.type)
+            else:
+                if not err_mesg_shown:
+                    msg = "Valid channel types are:\n{}\n"
+                    warn(msg.format(list(_kind_dict.keys())))
+                    err_mesg_shown = True
+                if chanloc.type not in err_ch_set:
+                    msg = "'{}' is not a recognized channel type "
+                    msg += "for {}. It will be replaced with 'misc'"
+                    warn(msg.format(chanloc.type, chanloc.labels))
+                    err_ch_set.add(chanloc.type)
+                ch_types.append('misc')
+
             if get_pos:
                 loc_x = _to_loc(chanloc.X)
                 loc_y = _to_loc(chanloc.Y)
@@ -93,8 +117,9 @@ def _get_info(eeg, montage, eog=()):
                 if not np.any(np.isnan(locs)):
                     pos_ch_names.append(chanloc.labels)
                     pos.append(locs)
+
         n_channels_with_pos = len(pos_ch_names)
-        info = create_info(ch_names, eeg.srate, ch_types='eeg')
+        info = create_info(ch_names, eeg.srate, ch_types=ch_types)
         if n_channels_with_pos > 0:
             selection = np.arange(n_channels_with_pos)
             montage = Montage(np.array(pos), pos_ch_names, kind, selection)
@@ -104,7 +129,7 @@ def _get_info(eeg, montage, eog=()):
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
 
     if montage is None:
-        info = create_info(ch_names, eeg.srate, ch_types='eeg')
+        info = create_info(ch_names, eeg.srate, ch_types=ch_types)
     else:
         _check_update_montage(
             info, montage, path=path, update_ch_names=update_ch_names,
