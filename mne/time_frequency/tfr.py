@@ -1039,7 +1039,8 @@ class AverageTFR(_BaseTFR):
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
              cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
              axes=None, layout=None, yscale='auto', mask=None,
-             mask_alpha=0.1, combine=None, exclude=[], verbose=None):
+             mask_style=None, mask_cmap="Greys", mask_alpha=0.1, combine=None,
+             exclude=[], verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         Parameters
@@ -1134,6 +1135,21 @@ class AverageTFR(_BaseTFR):
             significance.
 
             .. versionadded:: 0.16.0
+        mask_style: None | 'both' | 'contour' | 'mask'
+            If `mask` is not None: if 'contour', a contour line is drawn around
+            the masked areas (``True`` in `mask`). If 'mask', entries not
+            ``True`` in `mask` are shown transparently. If 'both', both a contour
+            and transparency are used.
+            If ``None``, defaults to 'both' if `mask` is not None, and is ignored
+            otherwise.
+    
+             .. versionadded:: 0.17
+        mask_cmap : matplotlib colormap | (colormap, bool) | 'interactive'
+            The colormap chosen for masked parts of the image (see below), if
+            `mask` is not ``None``. If None, `cmap` is reused. Defaults to
+            ``Greys``. Not interactive. Otherwise, as `cmap`.
+
+             .. versionadded:: 0.17
         mask_alpha : float
             A float between 0 and 1. If ``mask`` is not None, this sets the
             alpha level (degree of transparency) for the masked-out segments.
@@ -1161,6 +1177,7 @@ class AverageTFR(_BaseTFR):
                           vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
                           colorbar=colorbar, show=show, title=title,
                           axes=axes, layout=layout, yscale=yscale, mask=mask,
+                          mask_style=mask_style, mask_cmap=mask_cmap,
                           mask_alpha=mask_alpha, combine=combine,
                           exclude=exclude, verbose=verbose)
 
@@ -1169,7 +1186,7 @@ class AverageTFR(_BaseTFR):
               tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
               cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
               axes=None, layout=None, yscale='auto', mask=None,
-              mask_style=None, mask_alpha=.25, mask_cmap="Greys",
+              mask_style=None, mask_cmap="Greys", mask_alpha=.25,
               combine=None, exclude=None, copy=True,
               source_plot_joint=False, topomap_args=dict(), ch_type=None,
               verbose=None):
