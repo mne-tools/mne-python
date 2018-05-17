@@ -127,7 +127,7 @@ for event in event_ids:
         # plot TFR (ERDS map with masking)
         tfr.average().plot([ch], vmin=vmin, vmax=vmax, cmap=(cmap, False),
                            axes=ax, colorbar=False, show=False, mask=mask,
-                           cmask_style="mask")
+                           mask_style="mask")
 
         ax.set_title(epochs.ch_names[ch], fontsize=10)
         ax.axvline(0, linewidth=1, color="black", linestyle=":")  # event
