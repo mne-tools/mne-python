@@ -40,6 +40,7 @@ bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
 edf_uneven_eeglab_path = op.join(data_dir, 'test_uneven_samp.mat')
 edf_stim_channel_path = op.join(data_dir, 'test_edf_stim_channel.edf')
+bdf_stim_channel_path = op.join(data_dir, 'test_bdf_stim_channel.bdf')
 edf_txt_stim_channel_path = op.join(data_dir, 'test_edf_stim_channel.txt')
 
 data_path = testing.data_path(download=False)
@@ -76,9 +77,28 @@ def test_bdf_data():
 
 
 def test_bdf_stim_channel():
-    """Test if last channel is detected as STIM by default."""
+    """Test BDF stim channel."""
+    # test if last channel is detected as STIM by default
     raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path)
     assert_true(channel_type(raw_py.info, raw_py.info["nchan"] - 1) == 'stim')
+
+    # test BDF file with wrong scaling info in header - this should be ignored
+    # for BDF stim channels
+    events = [[ 242,    0,    4],
+              [ 310,    0,    2],
+              [ 952,    0,    1],
+              [1606,    0,    1],
+              [2249,    0,    1],
+              [2900,    0,    1],
+              [3537,    0,    1],
+              [4162,    0,    1],
+              [4790,    0,    1]]
+    raw = read_raw_edf(bdf_stim_channel_path, preload=True)
+    bdf_events = find_events(raw)
+    assert_array_equal(events, bdf_events)
+    raw = read_raw_edf(bdf_stim_channel_path, preload=False)
+    bdf_events = find_events(raw)
+    assert_array_equal(events, bdf_events)
 
 
 @testing.requires_testing_data
