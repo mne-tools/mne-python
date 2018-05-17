@@ -1814,6 +1814,12 @@ class ProgressBar(object):
             yield obj
             self.update_with_increment_value(1)
 
+    def __call__(self, seq):
+        """Call the ProgressBar in a joblib-friendly way."""
+        while True:
+            yield next(seq)
+            self.update_with_increment_value(1)
+
 
 def _get_terminal_width():
     """Get the terminal width."""

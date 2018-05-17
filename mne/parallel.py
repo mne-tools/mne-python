@@ -68,57 +68,61 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto',
         Number of jobs >= 0
     """
     # for a single job, we don't need joblib
+    if n_jobs != 1:
+        Parallel, delayed = _get_parallel()
+        if Parallel is None:
+            warn('joblib not installed. Cannot run in parallel.')
+        n_jobs = 1
     if n_jobs == 1:
         n_jobs = 1
         my_func = func
         parallel = list
-        return parallel, my_func, n_jobs
+    else:
+        # check if joblib is recent enough to support memmaping
+        p_args = _get_args(Parallel.__init__)
+        joblib_mmap = ('temp_folder' in p_args and 'max_nbytes' in p_args)
 
+        cache_dir = get_config('MNE_CACHE_DIR', None)
+        if isinstance(max_nbytes, string_types) and max_nbytes == 'auto':
+            max_nbytes = get_config('MNE_MEMMAP_MIN_SIZE', None)
+
+        if max_nbytes is not None:
+            if not joblib_mmap and cache_dir is not None:
+                warn('"MNE_CACHE_DIR" is set but a newer version of joblib is '
+                     'needed to use the memmapping pool.')
+            if joblib_mmap and cache_dir is None:
+                logger.info(
+                    'joblib supports memapping pool but "MNE_CACHE_DIR" '
+                    'is not set in MNE-Python config. To enable it, use, '
+                    'e.g., mne.set_cache_dir(\'/tmp/shm\'). This will '
+                    'store temporary files under /dev/shm and can result '
+                    'in large memory savings.')
+
+        # create keyword arguments for Parallel
+        kwargs = {'verbose': 5 if logger.level <= logging.INFO else 0}
+        kwargs['pre_dispatch'] = pre_dispatch
+
+        if joblib_mmap:
+            if cache_dir is None:
+                max_nbytes = None  # disable memmaping
+            kwargs['temp_folder'] = cache_dir
+            kwargs['max_nbytes'] = max_nbytes
+
+        n_jobs = check_n_jobs(n_jobs)
+        parallel = Parallel(n_jobs, **kwargs)
+        my_func = delayed(func)
+    return parallel, my_func, n_jobs
+
+
+def _get_parallel():
     try:
         from joblib import Parallel, delayed
     except ImportError:
         try:
             from sklearn.externals.joblib import Parallel, delayed
         except ImportError:
-            warn('joblib not installed. Cannot run in parallel.')
-            n_jobs = 1
-            my_func = func
-            parallel = list
-            return parallel, my_func, n_jobs
-
-    # check if joblib is recent enough to support memmaping
-    p_args = _get_args(Parallel.__init__)
-    joblib_mmap = ('temp_folder' in p_args and 'max_nbytes' in p_args)
-
-    cache_dir = get_config('MNE_CACHE_DIR', None)
-    if isinstance(max_nbytes, string_types) and max_nbytes == 'auto':
-        max_nbytes = get_config('MNE_MEMMAP_MIN_SIZE', None)
-
-    if max_nbytes is not None:
-        if not joblib_mmap and cache_dir is not None:
-            warn('"MNE_CACHE_DIR" is set but a newer version of joblib is '
-                 'needed to use the memmapping pool.')
-        if joblib_mmap and cache_dir is None:
-            logger.info('joblib supports memapping pool but "MNE_CACHE_DIR" '
-                        'is not set in MNE-Python config. To enable it, use, '
-                        'e.g., mne.set_cache_dir(\'/tmp/shm\'). This will '
-                        'store temporary files under /dev/shm and can result '
-                        'in large memory savings.')
-
-    # create keyword arguments for Parallel
-    kwargs = {'verbose': 5 if logger.level <= logging.INFO else 0}
-    kwargs['pre_dispatch'] = pre_dispatch
-
-    if joblib_mmap:
-        if cache_dir is None:
-            max_nbytes = None  # disable memmaping
-        kwargs['temp_folder'] = cache_dir
-        kwargs['max_nbytes'] = max_nbytes
-
-    n_jobs = check_n_jobs(n_jobs)
-    parallel = Parallel(n_jobs, **kwargs)
-    my_func = delayed(func)
-    return parallel, my_func, n_jobs
+            Parallel = delayed = None
+    return Parallel, delayed
 
 
 def check_n_jobs(n_jobs, allow_cuda=False):
