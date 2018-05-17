@@ -4,30 +4,35 @@ Demonstrate morphing subject source volume to fsaverage using dipy
 ==================================================================
 
 This example demonstrates how to morph an individual subject source space to a
-common reference space. For this purpose dipy (http://nipy.org/dipy/) will be
+common reference space. For this purpose `dipy
+<http://nipy.org/dipy>`_ will be
 used in order to perform the necessary transforms to a fsaverage serving as
-reference space. The example uses parts of the MNE example lcmv beamformer
-pipeline (examples/inverse/plot_lcmv_beamformer_volume.py).
+reference space. The example uses parts of the MNE example
+:ref:`LCMV beamformer pipeline
+<sphx_glr_auto_examples_inverse_plot_lcmv_beamformer_volume.py>`.
 The respective result will be morphed based on an affine transformation and a
 nonlinear morph, estimated based on respective transformation from the
 subject's anatomical T1 (brain) to fsaverage T1 (brain). Afterwards the
 transformation will be applied to the beamformer result. Affine transformations
 are computed based on the mutual information and nonlinear transformations
 will be performed as Symmetric Diffeomorphic Registration using the
-cross-correlation metric [1]_
-
-.. warning:: Please do not copy the patterns presented here for your own
-             analysis, this is example is purely illustrative.
+cross-correlation metric [1]_.
 
 .. note:: This example does quite a bit of processing, so even on a
           fast machine it can take a couple of minutes to complete.
 
 References
 ----------
+
 .. [1] Avants, B. B., Epstein, C. L., Grossman, M., & Gee, J. C. (2009).
         Symmetric Diffeomorphic Image Registration with Cross- Correlation:
         Evaluating Automated Labeling of Elderly and Neurodegenerative Brain,
         12(1), 26-41.
+
+.. [2] Mattes, D., Haynor, D. R., Vesselle, H., Lewellen, T. K., &
+        Eubank, W. (2003). PET-CT image registration in the chest using
+        free-form deformations. IEEE transactions on medical imaging, 22(1),
+        120-128.
 
 """
 # Author: Tommy Clausner <tommy.clausner@gmail.com>
@@ -35,7 +40,6 @@ References
 # License: BSD (3-clause)
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
@@ -51,15 +55,14 @@ from dipy.align.imaffine import (transform_centers_of_mass,
                                  AffineRegistration)
 import nibabel as nib
 
-# uncomment the line(s) below if you encounter problems with ssl certification
-# import ssl
-# if hasattr(ssl, '_create_unverified_context'):
-#     ssl._create_default_https_context = ssl._create_unverified_context
+from nilearn.plotting import plot_anat
+from nilearn.image import index_img
 
 print(__doc__)
 
-##############################################################################
-# from examples/inverse/plot_lcmv_beamformer_volume.py
+################################################################################
+# from :ref:`LCMV beamformer inverse example
+# <sphx_glr_auto_examples_inverse_plot_lcmv_beamformer_volume.py>`
 
 # Setup paths
 data_path = sample.data_path()
@@ -72,7 +75,7 @@ event_id, tmin, tmax = [1, 2], -0.2, 0.5
 
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
-raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
+raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bad channels
 events = mne.read_events(event_fname)
 
 # Set up pick list: gradiometers and magnetometers, excluding bad channels
@@ -95,6 +98,7 @@ evoked = epochs.average()
 noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk')
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
                                   method='shrunk')
+################################################################################
 # Read forward model
 forward = mne.read_forward_solution(fname_fwd)
 
@@ -119,51 +123,54 @@ stc.data[:, :] = np.abs(stc.data)
 # Save result in stc files
 stc.save('lcmv-vol')
 
-# stc.crop(0.0, 0.2)
+# select time window (tmin, tmax)
+stc.crop(0.0, 0.0)
+
 # Save result in a 4D nifti file
 mne.save_stc_as_volume('lcmv_inverse.nii.gz', stc,
-                       forward['src'], mri_resolution=True)  # set to true
+                       forward['src'], mri_resolution=True)
 
-###############################################################################
+################################################################################
 # Load nifti data
 
 # load lcmv inverse
-stc = nib.load('lcmv_inverse.nii.gz')
+img_vol = nib.load('lcmv_inverse.nii.gz')
+img_vol_first = index_img(img_vol, 0)  # for plotting
 
 # select first time volume and output ndarray
-stc = stc.dataobj[:, :, :, 1]
-
-# normalize values
-stc = stc / stc.max()
+img = img_vol.dataobj[:, :, :, 0]
 
 # load subject brain (Moving)
 t1_fname = data_path + '/subjects/sample/mri/brain.mgz'
-t1_m = nib.load(t1_fname)
+t1_m_img = nib.load(t1_fname)
 
 # get Moving to world transform
-t1_m_grid2world = t1_m.affine
+t1_m_grid2world = t1_m_img.affine
 
 # output Moving as ndarray
-t1_m = t1_m.dataobj[:, :, :]
+t1_m = t1_m_img.dataobj[:, :, :]
 
 # normalize values
 t1_m = t1_m.astype('float') / t1_m.max()
 
 # load fsaverage brain (Static)
 t1_fname = data_path + '/subjects/fsaverage/mri/brain.mgz'
-t1_s = nib.load(t1_fname)
+t1_s_img = nib.load(t1_fname)
 
 # get Static to world transform
-t1_s_grid2world = t1_s.affine
+t1_s_grid2world = t1_s_img.affine
 
 # output Static as ndarray
-t1_s = t1_s.dataobj[:, :, :]
+t1_s = t1_s_img.dataobj[:, :, :]
 
 # normalize values
 t1_s = t1_s.astype('float') / t1_s.max()
 
-##############################################################################
-# Compute affine transformation using mutual information metric
+################################################################################
+# Compute affine transformation using mutual information metric. This metric
+# relates structural changes in image intensity values. Because different
+# brains expose high structural similarities this method works quite
+# well [2]_.
 
 # compute center of mass
 c_of_mass = transform_centers_of_mass(t1_s, t1_s_grid2world,
@@ -195,7 +202,7 @@ affine = affreg.optimize(t1_s, t1_m, AffineTransform3D(), None,
 # apply affine transformation
 t1_m_affine = affine.transform(t1_m)
 
-##############################################################################
+################################################################################
 # Compute Symmetric Diffeomorphic Registration
 
 # set up Symmetric Diffeomorphic Registration (metric, iterations per level)
@@ -204,28 +211,32 @@ sdr = SymmetricDiffeomorphicRegistration(CCMetric(3), [10, 10, 5])
 # compute mapping
 mapping = sdr.optimize(t1_s, t1_m_affine)
 
-##############################################################################
+################################################################################
 # Apply transformations and plot
 
-# morph stc data
-stc_sdr_affine = mapping.transform(affine.transform(stc))
+# morph img data
+img_sdr_affine = mapping.transform(affine.transform(img))
+
+# make transformed ndarray a nifti
+img_vol_sdr_affine = nib.Nifti1Image(img_sdr_affine, affine=t1_s_grid2world)
+
+# save morphed grid
+nib.save(img_vol_sdr_affine, 'lcmv_inverse_fsavg.nii.gz')
 
 # plot result
-slice_sel = 100
+imgs = [img_vol_first, img_vol_first,
+        nib.load('lcmv_inverse_fsavg.nii.gz')]
+t1_imgs = [t1_m_img, t1_s_img, t1_s_img]
+slices = [range(10, 50, 10), range(10, 50, 10), range(15, 55, 10)]
+titles = ['subject brain', 'fsaverage brian',
+          'fsaverage brian\nmorphed source']
+saveas = ['lcmv_subject.png', 'lcmv_fsaverage.png',
+          'lcmv_fsaverage_morphed.png']
 
-fig = plt.figure()
-plt.subplot(131)
-plt.imshow(t1_m[slice_sel, :, :] + stc[slice_sel, :, :])
-plt.title('subject brain')
-plt.set_cmap('jet')
-plt.axis('off')
-plt.subplot(132)
-plt.imshow(t1_s[slice_sel, :, :] + stc[slice_sel, :, :])
-plt.title('fsaverage brain\nprior transformation')
-plt.axis('off')
-plt.subplot(133)
-plt.title('fsaverage brain\nafter transformation')
-plt.imshow(t1_s[slice_sel, :, :] + stc_sdr_affine[slice_sel, :, :])
-plt.axis('off')
-plt.suptitle('moving individual source data to fsaverage')
-plt.show()
+for img, t1_img, slice, title, fname in zip(imgs, t1_imgs, slices, titles,
+                                            saveas):
+    display = plot_anat(t1_img, display_mode='x', cut_coords=slice,
+                        title=title)
+    display.add_overlay(img)
+    display.savefig(fname)
+    display.close()
