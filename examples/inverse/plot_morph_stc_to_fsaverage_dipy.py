@@ -18,8 +18,9 @@ are computed based on the mutual information and nonlinear transformations
 will be performed as Symmetric Diffeomorphic Registration using the
 cross-correlation metric [1]_.
 
-.. note:: This example does quite a bit of processing, so even on a
-          fast machine it can take a couple of minutes to complete.
+.. note:: This example applies downsampling to all volumes in order to speed up
+        computation. In a real case scenario you might want to reconsider if
+        and to what extend resliceing might be necessary.
 
 References
 ----------
@@ -47,6 +48,7 @@ from mne.beamformer import make_lcmv, apply_lcmv
 
 from dipy.align.imwarp import SymmetricDiffeomorphicRegistration
 from dipy.align.metrics import CCMetric
+from dipy.align.reslice import reslice
 from dipy.align.transforms import (TranslationTransform3D,
                                    RigidTransform3D,
                                    AffineTransform3D)
@@ -56,11 +58,11 @@ from dipy.align.imaffine import (transform_centers_of_mass,
 import nibabel as nib
 
 from nilearn.plotting import plot_anat
-from nilearn.image import index_img
+from nilearn.image import index_img, resample_img
 
 print(__doc__)
 
-################################################################################
+###############################################################################
 # from :ref:`LCMV beamformer inverse example
 # <sphx_glr_auto_examples_inverse_plot_lcmv_beamformer_volume.py>`
 
@@ -98,7 +100,7 @@ evoked = epochs.average()
 noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk')
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
                                   method='shrunk')
-################################################################################
+###############################################################################
 # Read forward model
 forward = mne.read_forward_solution(fname_fwd)
 
@@ -130,11 +132,25 @@ stc.crop(0.0, 0.0)
 mne.save_stc_as_volume('lcmv_inverse.nii.gz', stc,
                        forward['src'], mri_resolution=True)
 
-################################################################################
-# Load nifti data
+###############################################################################
+# Load nifti data and reslice
+
+# isometric voxel size of 3 mm - reconsider for real data
+voxel_size = (3., 3., 3.)
+
+# number of iterations for each optimisation level
+niter_affine = [100, 100, 10]
+niter_sdr = [5, 5, 3]
 
 # load lcmv inverse
 img_vol = nib.load('lcmv_inverse.nii.gz')
+
+# reslice lcmv inverse
+img_vol_res, img_vol_res_affine = reslice(img_vol.get_data(), img_vol.affine,
+                                          img_vol.header.get_zooms()[:3],
+                                          voxel_size)
+img_vol = nib.Nifti1Image(img_vol_res, img_vol_res_affine)
+
 img_vol_first = index_img(img_vol, 0)  # for plotting
 
 # select first time volume and output ndarray
@@ -143,6 +159,13 @@ img = img_vol.dataobj[:, :, :, 0]
 # load subject brain (Moving)
 t1_fname = data_path + '/subjects/sample/mri/brain.mgz'
 t1_m_img = nib.load(t1_fname)
+
+# reslice Moving
+t1_m_img_res, t1_m_img_res_affine = reslice(t1_m_img.get_data(),
+                                            t1_m_img.affine,
+                                            t1_m_img.header.get_zooms()[:3],
+                                            voxel_size)
+t1_m_img = nib.Nifti1Image(t1_m_img_res, t1_m_img_res_affine)
 
 # get Moving to world transform
 t1_m_grid2world = t1_m_img.affine
@@ -157,6 +180,13 @@ t1_m = t1_m.astype('float') / t1_m.max()
 t1_fname = data_path + '/subjects/fsaverage/mri/brain.mgz'
 t1_s_img = nib.load(t1_fname)
 
+# reslice Static
+t1_s_img_res, t1_s_img_res_affine = reslice(t1_s_img.get_data(),
+                                            t1_s_img.affine,
+                                            t1_s_img.header.get_zooms()[:3],
+                                            voxel_size)
+t1_s_img = nib.Nifti1Image(t1_s_img_res, t1_s_img_res_affine)
+
 # get Static to world transform
 t1_s_grid2world = t1_s_img.affine
 
@@ -166,7 +196,7 @@ t1_s = t1_s_img.dataobj[:, :, :]
 # normalize values
 t1_s = t1_s.astype('float') / t1_s.max()
 
-################################################################################
+###############################################################################
 # Compute affine transformation using mutual information metric. This metric
 # relates structural changes in image intensity values. Because different
 # brains expose high structural similarities this method works quite
@@ -180,7 +210,7 @@ nbins = 32
 
 # prepare affine registration
 affreg = AffineRegistration(metric=MutualInformationMetric(nbins, None),
-                            level_iters=[10000, 1000, 100],
+                            level_iters=niter_affine,
                             sigmas=[3.0, 1.0, 0.0],
                             factors=[4, 2, 1])
 
@@ -202,16 +232,16 @@ affine = affreg.optimize(t1_s, t1_m, AffineTransform3D(), None,
 # apply affine transformation
 t1_m_affine = affine.transform(t1_m)
 
-################################################################################
+###############################################################################
 # Compute Symmetric Diffeomorphic Registration
 
 # set up Symmetric Diffeomorphic Registration (metric, iterations per level)
-sdr = SymmetricDiffeomorphicRegistration(CCMetric(3), [10, 10, 5])
+sdr = SymmetricDiffeomorphicRegistration(CCMetric(3), niter_sdr)
 
 # compute mapping
 mapping = sdr.optimize(t1_s, t1_m_affine)
 
-################################################################################
+###############################################################################
 # Apply transformations and plot
 
 # morph img data
@@ -226,16 +256,18 @@ nib.save(img_vol_sdr_affine, 'lcmv_inverse_fsavg.nii.gz')
 # plot result
 imgs = [img_vol_first, img_vol_first,
         nib.load('lcmv_inverse_fsavg.nii.gz')]
+
 t1_imgs = [t1_m_img, t1_s_img, t1_s_img]
-slices = [range(10, 50, 10), range(10, 50, 10), range(15, 55, 10)]
+
 titles = ['subject brain', 'fsaverage brian',
           'fsaverage brian\nmorphed source']
+
 saveas = ['lcmv_subject.png', 'lcmv_fsaverage.png',
           'lcmv_fsaverage_morphed.png']
 
-for img, t1_img, slice, title, fname in zip(imgs, t1_imgs, slices, titles,
-                                            saveas):
-    display = plot_anat(t1_img, display_mode='x', cut_coords=slice,
+for img, t1_img, title, fname in zip(imgs, t1_imgs, titles,
+                                     saveas):
+    display = plot_anat(t1_img, display_mode='x',
                         title=title)
     display.add_overlay(img)
     display.savefig(fname)
