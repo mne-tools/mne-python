@@ -30,6 +30,7 @@ from mne.tests.common import assert_naming, assert_snr
 from mne.utils import _TempDir, requires_version, run_tests_if_main
 from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import channel_type, _picks_by_type, _DATA_CH_TYPES_SPLIT
+from mne.io.proj import _has_eeg_average_ref_proj
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
 
@@ -406,8 +407,10 @@ def test_rank():
 
     # Now do some more comprehensive tests
     raw_sample = read_raw_fif(raw_fname)
+    assert not _has_eeg_average_ref_proj(raw_sample.info['projs'])
 
     raw_sss = read_raw_fif(hp_fif_fname)
+    assert not _has_eeg_average_ref_proj(raw_sss.info['projs'])
     raw_sss.add_proj(compute_proj_raw(raw_sss))
 
     cov_sample = compute_raw_covariance(raw_sample)
@@ -460,10 +463,6 @@ def test_rank():
             n_eeg, n_mag, n_grad = [ch_types.count(k) for k in
                                     ['eeg', 'mag', 'grad']]
             n_meg = n_mag + n_grad
-            if ch_type in ('all', 'eeg'):
-                n_projs_eeg = 1
-            else:
-                n_projs_eeg = 0
 
             # check sss
             if len(this_very_info['proc_history']) > 0:
@@ -473,8 +472,6 @@ def test_rank():
                     n_free = 0
                 # - n_projs XXX clarify
                 expected_rank = n_free + n_eeg
-                if n_projs > 0 and ch_type in ('all', 'eeg'):
-                    expected_rank -= n_projs_eeg
             else:
                 expected_rank = n_meg + n_eeg - n_projs
 

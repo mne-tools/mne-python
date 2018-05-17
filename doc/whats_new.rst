@@ -34,6 +34,8 @@ Bug
 
 - Allow vector data for :class:`mne.VolSourceEstimate` by `Christian Brodbeck`_
 
+- Fix bug in ``inst.apply_proj()`` where an average EEG reference was always added by `Eric Larson`_
+
 API
 ~~~
 
