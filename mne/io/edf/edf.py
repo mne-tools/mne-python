@@ -279,16 +279,14 @@ class RawEDF(BaseRaw):
         stim_channel_idx = np.where(idx == stim_channel)[0]
 
         if subtype == 'bdf':
-            # only scale channel data, don't scale stim channel
-            # see gh-5160
-            data_idx = ~np.in1d(idx, stim_channel_idx)
-            data[data_idx] *= cal.T[idx[data_idx]]
-            data[data_idx] += offsets[idx[data_idx]]
-            data[data_idx] *= gains.T[idx[data_idx]]
-        else:
-            data *= cal.T[idx]
-            data += offsets[idx]
-            data *= gains.T[idx]
+            # do not scale stim channel (see gh-5160)
+            stim_idx = np.where(np.arange(self.info['nchan']) == stim_channel)
+            cal[0, stim_idx[0]] = 1
+            offsets[stim_idx[0], 0] = 0
+            gains[0, stim_idx[0]] = 1
+        data *= cal.T[idx]
+        data += offsets[idx]
+        data *= gains.T[idx]
 
         if stim_channel is not None and len(stim_channel_idx) > 0:
             if annot and annotmap:
