@@ -234,8 +234,8 @@ class ProjMixin(object):
                         'Setting proj attribute to True.')
             return self
 
-        _projector, info = setup_proj(deepcopy(self.info), activate=True,
-                                      verbose=self.verbose)
+        _projector, info = setup_proj(deepcopy(self.info), add_eeg_ref=False,
+                                      activate=True, verbose=self.verbose)
         # let's not raise a RuntimeError here, otherwise interactive plotting
         if _projector is None:  # won't be fun.
             logger.info('The projections don\'t apply to these data.'
@@ -276,8 +276,9 @@ class ProjMixin(object):
         if any(self.info['projs'][ii]['active'] for ii in idx):
             raise ValueError('Cannot remove projectors that have already '
                              'been applied')
-        self.info['projs'] = [p for pi, p in enumerate(self.info['projs'])
-                              if pi not in idx]
+        keep = np.ones(len(self.info['projs']))
+        keep[idx] = False  # works with negative indexing and does checks
+        self.info['projs'] = [p for p, k in zip(self.info['projs'], keep) if k]
         return self
 
     def plot_projs_topomap(self, ch_type=None, layout=None, axes=None):
