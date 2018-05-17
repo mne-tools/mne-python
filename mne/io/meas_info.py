@@ -1674,11 +1674,25 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
     else:
         raise ValueError("Trying to merge channels from different KIT systems")
 
+    # hpi infos and digitization data:
+    fields = ['hpi_results', 'hpi_meas', 'dig']
+    for k in fields:
+        values = [i[k] for i in infos if i[k]]
+        if len(values) == 0:
+            info[k] = []
+        elif len(values) == 1:
+            info[k] = values[0]
+        elif all(object_diff(values[0], v) == '' for v in values[1:]):
+            info[k] = values[0]
+        else:
+            msg = ("Measurement infos are inconsistent for %s" % k)
+            raise ValueError(msg)
+
     # other fields
     other_fields = ['acq_pars', 'acq_stim', 'bads', 'buffer_size_sec',
-                    'comps', 'custom_ref_applied', 'description', 'dig',
+                    'comps', 'custom_ref_applied', 'description',
                     'experimenter', 'file_id', 'highpass',
-                    'hpi_results', 'hpi_meas', 'hpi_subsystem', 'events',
+                    'hpi_subsystem', 'events',
                     'line_freq', 'lowpass', 'meas_date', 'meas_id',
                     'proj_id', 'proj_name', 'projs', 'sfreq', 'gantry_angle',
                     'subject_info', 'sfreq', 'xplotter_layout', 'proc_history']
