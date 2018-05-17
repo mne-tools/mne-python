@@ -736,7 +736,7 @@ def baseline_plot(x):
 baseline_plot(x)
 
 ###############################################################################
-# In respose, Maess *et al.* 2016 [11]_ note that these simulations do not
+# In response, Maess *et al.* 2016 [11]_ note that these simulations do not
 # address cases of pre-stimulus activity that is shared across conditions, as
 # applying baseline correction will effectively copy the topology outside the
 # baseline period. We can see this if we give our signal ``x`` with some
