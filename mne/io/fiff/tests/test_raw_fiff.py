@@ -229,7 +229,7 @@ def test_rank_estimation():
         n_proj = len(raw.info['projs'])
         assert_array_equal(raw.estimate_rank(tstart=0, tstop=3.,
                                              scalings=scalings),
-                           expected_rank - (1 if 'sss' in fname else n_proj))
+                           expected_rank - (0 if 'sss' in fname else n_proj))
 
 
 @testing.requires_testing_data
