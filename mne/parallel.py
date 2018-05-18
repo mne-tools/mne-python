@@ -9,7 +9,7 @@ import logging
 import os
 
 from . import get_config
-from .utils import logger, verbose, warn
+from .utils import logger, verbose, warn, ProgressBar
 from .fixes import _get_args
 
 if 'MNE_FORCE_SERIAL' in os.environ:
@@ -19,8 +19,8 @@ else:
 
 
 @verbose
-def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto',
-                  pre_dispatch='2 * n_jobs'):
+def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
+                  total=None, verbose=None):
     """Return parallel instance with delayed function.
 
     Util function to use joblib only if available
@@ -57,6 +57,9 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto',
 
             - A string, giving an expression as a function of n_jobs,
               as in '2*n_jobs'
+    total : int | None
+        If int, use a progress bar to display the progress.
+        If None (default), do not.
 
     Returns
     -------
@@ -111,7 +114,14 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto',
         n_jobs = check_n_jobs(n_jobs)
         parallel = Parallel(n_jobs, **kwargs)
         my_func = delayed(func)
-    return parallel, my_func, n_jobs
+
+    if total is not None:
+        def parallel_progress(op_iter):
+            return parallel(ProgressBar(total)(op_iter))
+        parallel_out = parallel_progress
+    else:
+        parallel_out = parallel
+    return parallel_out, my_func, n_jobs
 
 
 def _get_parallel():
