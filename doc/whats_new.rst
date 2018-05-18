@@ -16,6 +16,8 @@ What's new
 Current
 -------
 
+- Add progress bar support to :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` by `Eric Larson`_
+
 Changelog
 ~~~~~~~~~
 
