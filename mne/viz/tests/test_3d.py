@@ -412,12 +412,15 @@ def test_plot_vec_source_estimates():
     data = np.random.RandomState(0).rand(n_verts, 3, n_time)
     stc = VectorSourceEstimate(data, vertices, 1, 1)
 
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         stc.plot('sample', subjects_dir=subjects_dir)
+        assert len(w) == 0  # not using deprecated params
+
         with pytest.raises(ValueError, match='use pos_lims'):
             stc.plot('sample', subjects_dir=subjects_dir,
                      clim=dict(pos_lims=[1, 2, 3]))
+        assert len(w) == 0
 
 
 run_tests_if_main()

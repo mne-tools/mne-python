@@ -7,7 +7,7 @@ from copy import deepcopy
 import math
 import numpy as np
 from scipy import fftpack
-# XXX explore cuda optimazation at some point.
+# XXX explore cuda optimization at some point.
 
 from ..io.pick import pick_types, pick_info
 from ..utils import verbose, warn

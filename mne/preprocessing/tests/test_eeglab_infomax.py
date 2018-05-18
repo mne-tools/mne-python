@@ -145,7 +145,7 @@ def test_mne_python_vs_eeglab():
 
             w_change_eeglab = 1e-7 if N > 32 else 1e-6
 
-            # Call mne_python infomax version using the following sintax
+            # Call mne_python infomax version using the following syntax
             # to obtain the same result than eeglab version
             unmixing = infomax(
                 Y.T, extended=use_extended, random_state=random_state,

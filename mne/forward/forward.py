@@ -410,14 +410,14 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
     Forward solutions, which are derived from an original forward solution with
     free orientation, are always stored on disk as forward solution with free
     orientation in X/Y/Z RAS coordinates. To apply any transformation to the
-    forward operator (surface orientation, fixed orienation) please apply
+    forward operator (surface orientation, fixed orientation) please apply
     :func:`convert_forward_solution` after reading the forward solution with
     :func:`read_forward_solution`.
 
     Forward solutions, which are derived from an original forward solution with
     fixed orientation, are stored on disk as forward solution with fixed
     surface-based orientations. Please note that the transformation to
-    surface-based, fixed orienation cannot be reverted after loading the
+    surface-based, fixed orientation cannot be reverted after loading the
     forward solution with :func:`read_forward_solution`.
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz',
@@ -758,14 +758,14 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     Forward solutions, which are derived from an original forward solution with
     free orientation, are always stored on disk as forward solution with free
     orientation in X/Y/Z RAS coordinates. Transformations (surface orientation,
-    fixed orienation) will be reverted. To reapply any transformation to the
+    fixed orientation) will be reverted. To reapply any transformation to the
     forward operator please apply :func:`convert_forward_solution` after
     reading the forward solution with :func:`read_forward_solution`.
 
     Forward solutions, which are derived from an original forward solution with
     fixed orientation, are stored on disk as forward solution with fixed
     surface-based orientations. Please note that the transformation to
-    surface-based, fixed orienation cannot be reverted after loading the
+    surface-based, fixed orientation cannot be reverted after loading the
     forward solution with :func:`read_forward_solution`.
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz',
