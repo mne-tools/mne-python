@@ -42,21 +42,7 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
         Use None to disable memmaping of large arrays. Use 'auto' to
         use the value set using mne.set_memmap_min_size.
     pre_dispatch : int, or string, optional
-        Controls the number of jobs that get dispatched during parallel
-        execution. Reducing this number can be useful to avoid an
-        explosion of memory consumption when more jobs get dispatched
-        than CPUs can process. This parameter can be:
-
-            - None, in which case all the jobs are immediately
-              created and spawned. Use this for lightweight and
-              fast-running jobs, to avoid delays due to on-demand
-              spawning of the jobs
-
-            - An int, giving the exact number of total jobs that are
-              spawned
-
-            - A string, giving an expression as a function of n_jobs,
-              as in '2*n_jobs'
+        See :class:`joblib.Parallel`.
     total : int | None
         If int, use a progress bar to display the progress.
         If None (default), do not.
@@ -75,7 +61,7 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
         Parallel, delayed = _get_parallel()
         if Parallel is None:
             warn('joblib not installed. Cannot run in parallel.')
-        n_jobs = 1
+            n_jobs = 1
     if n_jobs == 1:
         n_jobs = 1
         my_func = func

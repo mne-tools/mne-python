@@ -851,7 +851,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     del rng
     total = len(orders) if logger.level <= logging.INFO else None
     parallel, my_do_perm_func, _ = parallel_func(
-        do_perm_func, n_jobs, pre_dispatch=n_jobs, total=total)
+        do_perm_func, n_jobs, total=total, verbose=False)
 
     if len(clusters) == 0:
         warn('No clusters found, returning empty H0, clusters, and cluster_pv')
