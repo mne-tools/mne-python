@@ -296,13 +296,23 @@ def check_random_state(seed):
                      ' instance' % seed)
 
 
-def split_list(l, n):
-    """Split list in n (approx) equal pieces."""
+def split_list(l, n, idx=False):
+    """Split list in n (approx) equal pieces, possibly giving indices."""
     n = int(n)
-    sz = len(l) // n
+    tot = len(l)
+    sz = tot // n
+    start = stop = 0
     for i in range(n - 1):
-        yield l[i * sz:(i + 1) * sz]
-    yield l[(n - 1) * sz:]
+        stop += sz
+        yield (np.arange(start, stop), l[start:stop]) if idx else l[start:stop]
+        start += sz
+    yield (np.arange(start, tot), l[start:]) if idx else l[start]
+
+
+def array_split_idx(ary, indices_or_sections, axis=0):
+    """Do what numpy.array_split does, but add indices."""
+    return zip(np.array_split(np.arange(ary.shape[axis]), indices_or_sections),
+               np.array_split(ary, indices_or_sections, axis=axis))
 
 
 def create_chunks(sequence, size):
@@ -1719,13 +1729,15 @@ class ProgressBar(object):
             self.max_value = len(max_value)
             self.iterable = max_value
         else:
-            self.max_value = float(max_value)
+            self.max_value = max_value
             self.iterable = None
         self.mesg = mesg
         self.progress_character = progress_character
         self.spinner = spinner
         self.spinner_index = 0
         self.n_spinner = len(self.spinner_symbols)
+        if verbose_bool == 'auto':
+            verbose_bool = True if logger.level <= logging.INFO else False
         self._do_print = verbose_bool
         self.cur_time = time.time()
         if max_total_width == 'auto':
@@ -1735,6 +1747,13 @@ class ProgressBar(object):
             max_chars = min(max(max_total_width - 40, 10), 60)
         self.max_chars = int(max_chars)
         self.cur_rate = 0
+        if 'buffering' in _get_args(tempfile.NamedTemporaryFile):
+            kwargs = dict(buffering=0)
+        else:
+            kwargs = dict(bufsize=0)
+        self._mmap_fname = tempfile.NamedTemporaryFile(
+            'wb', prefix='tmp_mne_progress', **kwargs).name
+        self._mmap = None
 
     def update(self, cur_value, mesg=None):
         """Update progressbar with current value of process.
@@ -1760,7 +1779,7 @@ class ProgressBar(object):
         self.cur_time = cur_time
         self.cur_value = cur_value
         self.cur_rate = cur_rate
-        progress = min(float(self.cur_value) / self.max_value, 1.)
+        progress = min(float(self.cur_value) / float(self.max_value), 1.)
         num_chars = int(progress * self.max_chars)
         num_left = self.max_chars - num_chars
 
@@ -1823,6 +1842,25 @@ class ProgressBar(object):
                 return
             else:
                 self.update_with_increment_value(1)
+
+    def __setitem__(self, idx, val):
+        """Use alterative, mmap-based incrementing (max_value must be int)."""
+        if not self._do_print:
+            return
+        assert val is True
+        if self._mmap is None:
+            self._mmap = np.memmap(self._mmap_fname, bool, 'w+',
+                                   shape=self.max_value)
+        self._mmap[idx] = True
+        self.update(self._mmap.sum())
+
+    def cleanup(self):
+        """Clean up memmapped file."""
+        # we can't put this in __del__ b/c then each worker will delete the
+        # file, which is not so good
+        if self._mmap is not None:
+            self._mmap = None
+            os.remove(self._mmap_fname)
 
 
 def _get_terminal_width():

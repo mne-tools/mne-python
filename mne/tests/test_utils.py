@@ -14,6 +14,7 @@ from mne.datasets import testing
 from mne.externals.six.moves import StringIO
 from mne.io import show_fiff, read_raw_fif
 from mne.epochs import _segment_raw
+from mne.parallel import parallel_func
 from mne.time_frequency import tfr_morlet
 from mne.utils import (set_log_level, set_log_file, _TempDir,
                        get_config, set_config, deprecated, _fetch_file,
@@ -29,7 +30,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        check_fname, get_config_path,
                        object_size, buggy_mkl_svd, _get_inst_data,
                        copy_doc, copy_function_doc_to_method_doc, ProgressBar,
-                       linkcode_resolve)
+                       linkcode_resolve, array_split_idx)
 
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -771,6 +772,44 @@ def test_progressbar():
 def myfun(x):
     """Check url."""
     assert 'martinos' in x
+
+
+def identity(x):
+    return x
+
+
+def test_progressbar_parallel_basic(capsys):
+    """Test ProgressBar with parallel computing, basic version."""
+    assert capsys.readouterr().out == ''
+    parallel, p_fun, _ = parallel_func(identity, total=10, n_jobs=2)
+    out = parallel(p_fun(x) for x in range(10))
+    assert out == list(range(10))
+    assert '100.00%' in capsys.readouterr().out
+
+
+def identity_block(x, pb, pb_idx):
+    for ii in range(len(x)):
+        pb[pb_idx[ii]] = True
+    return x
+
+
+def test_progressbar_parallel_advanced(capsys):
+    """Test ProgressBar with parallel computing, advanced version."""
+    assert capsys.readouterr().out == ''
+    # This must be "1" because "capsys" won't get stdout properly otherwise
+    parallel, p_fun, _ = parallel_func(identity_block, n_jobs=1, verbose=False)
+    arr = np.arange(10)
+    pb = ProgressBar(len(arr), verbose_bool=True)
+    out = parallel(p_fun(x, pb, pb_idx)
+                   for pb_idx, x in array_split_idx(arr, 2))
+    assert op.isfile(pb._mmap_fname)
+    sum_ = np.memmap(pb._mmap_fname, dtype='bool', mode='r', shape=10).sum()
+    assert sum_ == 10
+    pb.cleanup()
+    assert not op.isfile(pb._mmap_fname)
+    out = np.concatenate(out)
+    assert_array_equal(out, arr)
+    assert '100.00%' in capsys.readouterr().out
 
 
 def test_open_docs():

@@ -7,7 +7,8 @@ import numpy as np
 from .mixin import TransformerMixin
 from .base import BaseEstimator, _check_estimator
 from ..parallel import parallel_func
-from ..utils import _validate_type
+from ..utils import (_validate_type, array_split_idx, ProgressBar,
+                     verbose)
 
 
 class SlidingEstimator(BaseEstimator, TransformerMixin):
@@ -31,6 +32,10 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
     n_jobs : int, optional (default=1)
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see
+        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+        for more).
 
     Attributes
     ----------
@@ -38,12 +43,14 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         List of fitted scikit-learn estimators (one per task).
     """
 
-    def __init__(self, base_estimator, scoring=None, n_jobs=1):  # noqa: D102
+    def __init__(self, base_estimator, scoring=None, n_jobs=1,
+                 verbose=None):  # noqa: D102
         _check_estimator(base_estimator)
         self._estimator_type = getattr(base_estimator, "_estimator_type", None)
         self.base_estimator = base_estimator
         self.n_jobs = n_jobs
         self.scoring = scoring
+        self.verbose = verbose
 
         _validate_type(self.n_jobs, 'int', 'n_jobs')
 
@@ -54,6 +61,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             repr_str += ', fitted with %i estimators' % len(self.estimators_)
         return repr_str + '>'
 
+    @verbose
     def fit(self, X, y, **fit_params):
         """Fit a series of independent estimators to the dataset.
 
@@ -78,11 +86,14 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         self.estimators_ = list()
         self.fit_params = fit_params
         # For fitting, the parallelization is across estimators.
-        parallel, p_func, n_jobs = parallel_func(_sl_fit, self.n_jobs)
+        parallel, p_func, n_jobs = parallel_func(_sl_fit, self.n_jobs,
+                                                 verbose=False)
         n_jobs = min(n_jobs, X.shape[-1])
+        pb = ProgressBar(X.shape[-1], verbose_bool='auto', mesg='Fitting')
         estimators = parallel(
-            p_func(self.base_estimator, split, y, **fit_params)
-            for split in np.array_split(X, n_jobs, axis=-1))
+            p_func(self.base_estimator, split, y, pb, pb_idx, **fit_params)
+            for pb_idx, split in array_split_idx(X, n_jobs, axis=-1))
+        pb.cleanup()
 
         # Each parallel job can have a different number of training estimators
         # We can't directly concatenate them because of sklearn's Bagging API
@@ -288,7 +299,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         return self.estimators_[0].classes_
 
 
-def _sl_fit(estimator, X, y, **fit_params):
+def _sl_fit(estimator, X, y, pb, pb_idx, **fit_params):
     """Aux. function to fit SlidingEstimator in parallel.
 
     Fit a clone estimator to each slice of data.
@@ -316,6 +327,7 @@ def _sl_fit(estimator, X, y, **fit_params):
         est = clone(estimator)
         est.fit(X[..., ii], y, **fit_params)
         estimators_.append(est)
+        pb[pb_idx[ii]] = True
     return estimators_
 
 
@@ -433,11 +445,13 @@ class GeneralizingEstimator(SlidingEstimator):
         """Aux. function to make parallel predictions/transformation."""
         self._check_Xy(X)
         method = _check_method(self.base_estimator, method)
-        parallel, p_func, n_jobs = parallel_func(_gl_transform, self.n_jobs)
+        pb = ProgressBar(X.shape[-1], verbose_bool='auto', mesg='Transforming')
+        parallel, p_func, n_jobs = parallel_func(_gl_transform, self.n_jobs,
+                                                 verbose=False)
         n_jobs = min(n_jobs, X.shape[-1])
         y_pred = parallel(
-            p_func(self.estimators_, x_split, method)
-            for x_split in np.array_split(X, n_jobs, axis=-1))
+            p_func(self.estimators_, x_split, method, pb, pb_idx)
+            for pb_idx, x_split in array_split_idx(X, n_jobs, axis=-1))
 
         y_pred = np.concatenate(y_pred, axis=2)
         return y_pred
@@ -558,7 +572,7 @@ class GeneralizingEstimator(SlidingEstimator):
         return score
 
 
-def _gl_transform(estimators, X, method):
+def _gl_transform(estimators, X, method, pb, pb_idx):
     """Transform the dataset.
 
     This will apply each estimator to all slices of the data.
@@ -592,6 +606,7 @@ def _gl_transform(estimators, X, method):
         if ii == 0:
             y_pred = _gl_init_pred(_y_pred, X, len(estimators))
         y_pred[:, ii, ...] = _y_pred
+        pb[pb_idx[ii]] = True
     return y_pred
 
 

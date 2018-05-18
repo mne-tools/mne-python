@@ -44,8 +44,10 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
     pre_dispatch : int, or string, optional
         See :class:`joblib.Parallel`.
     total : int | None
-        If int, use a progress bar to display the progress.
-        If None (default), do not.
+        If int, use a progress bar to display the progress of dispatched
+        jobs. This should only be used when directly iterating, not when
+        using ``split_list`` or :func:`np.array_split`.
+        If None (default), do not add a progress bar.
 
     Returns
     -------

@@ -17,7 +17,8 @@ from scipy import sparse
 
 from .parametric import f_oneway, ttest_1samp_no_p
 from ..parallel import parallel_func, check_n_jobs
-from ..utils import split_list, logger, verbose, warn, _pl, check_random_state
+from ..utils import (split_list, logger, verbose, ProgressBar, warn, _pl,
+                     check_random_state)
 from ..source_estimate import SourceEstimate
 from ..externals.six import string_types
 
@@ -525,7 +526,7 @@ def _setup_connectivity(connectivity, n_vertices, n_times):
 
 def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
                      max_step, include, partitions, t_power, orders,
-                     sample_shape, buffer_size):
+                     sample_shape, buffer_size, progress_bar, pb_idx):
     n_samp, n_vars = X_full.shape
 
     if buffer_size is not None and n_vars <= buffer_size:
@@ -539,7 +540,7 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
         X_buffer = [np.empty((len(X_full[s]), buffer_size), dtype=X_full.dtype)
                     for s in slices]
 
-    for seed_idx, order in enumerate(orders):
+    for oi, order in enumerate(orders):
         # shuffle sample indices
         assert order is not None
         idx_shuffle_list = [order[s] for s in slices]
@@ -577,16 +578,19 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
         perm_clusters_sums = out[1]
 
         if len(perm_clusters_sums) > 0:
-            max_cluster_sums[seed_idx] = np.max(perm_clusters_sums)
+            max_cluster_sums[oi] = np.max(perm_clusters_sums)
         else:
-            max_cluster_sums[seed_idx] = 0
+            max_cluster_sums[oi] = 0
+
+        if progress_bar is not None:
+            progress_bar[pb_idx[oi]] = True
 
     return max_cluster_sums
 
 
 def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
                            max_step, include, partitions, t_power, orders,
-                           sample_shape, buffer_size):
+                           sample_shape, buffer_size, progress_bar, pb_idx):
     n_samp, n_vars = X.shape
     assert slices is None  # should be None for the 1 sample case
 
@@ -600,7 +604,7 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
         # allocate a buffer so we don't need to allocate memory in loop
         X_flip_buffer = np.empty((n_samp, buffer_size), dtype=X.dtype)
 
-    for seed_idx, order in enumerate(orders):
+    for oi, order in enumerate(orders):
         assert isinstance(order, np.ndarray)
         # new surrogate data with specified sign flip
         assert order.size == n_samp  # should be guaranteed by parent
@@ -646,9 +650,12 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
         if len(perm_clusters_sums) > 0:
             # get max with sign info
             idx_max = np.argmax(np.abs(perm_clusters_sums))
-            max_cluster_sums[seed_idx] = perm_clusters_sums[idx_max]
+            max_cluster_sums[oi] = perm_clusters_sums[idx_max]
         else:
-            max_cluster_sums[seed_idx] = 0
+            max_cluster_sums[oi] = 0
+
+        if progress_bar is not None:
+            progress_bar[pb_idx[oi]] = True
 
     return max_cluster_sums
 
@@ -849,9 +856,8 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         orders = [rng.permutation(len(X_full))
                   for _ in range(n_permutations - 1)]
     del rng
-    total = len(orders) if logger.level <= logging.INFO else None
     parallel, my_do_perm_func, _ = parallel_func(
-        do_perm_func, n_jobs, total=total, verbose=False)
+        do_perm_func, n_jobs, verbose=False)
 
     if len(clusters) == 0:
         warn('No clusters found, returning empty H0, clusters, and cluster_pv')
@@ -859,7 +865,6 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
 
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
-
     # Step 3: repeat permutations for step-down-in-jumps procedure
     n_removed = 1  # number of new clusters added
     total_removed = 0
@@ -867,6 +872,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     n_step_downs = 0
 
     while n_removed > 0:
+        pb = ProgressBar(len(orders)) if logger.level <= logging.INFO else None
         # actually do the clustering for each partition
         if include is not None:
             if step_down_include is not None:
@@ -878,8 +884,9 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         logger.info('Permuting %d times%s...' % (len(orders), extra))
         H0 = parallel(my_do_perm_func(X_full, slices, threshold, tail,
                       connectivity, stat_fun, max_step, this_include,
-                      partitions, t_power, [order], sample_shape, buffer_size)
-                      for order in orders)
+                      partitions, t_power, order, sample_shape, buffer_size,
+                      pb, idx)
+                      for idx, order in split_list(orders, n_jobs, idx=True))
         # include original (true) ordering
         if tail == -1:  # up tail
             orig = cluster_stats.min()
@@ -908,6 +915,8 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                         'cluster%s to exclude from subsequent iterations'
                         % (n_step_downs, n_removed, a_text,
                            _pl(n_removed)))
+        if pb is not None:
+            pb.cleanup()
     logger.info('Done.')
     # The clusters should have the same shape as the samples
     clusters = _reshape_clusters(clusters, sample_shape)
