@@ -1662,7 +1662,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
     with warnings.catch_warnings(record=True):  # traits warnings
-        brain = Brain(subject, hemi=hemi, surf=surface, curv=True,
+        brain = Brain(subject, hemi=hemi, surf=surface,
                       title=title, cortex=cortex, size=size,
                       background=background, foreground=foreground,
                       figure=figure, subjects_dir=subjects_dir,
@@ -1861,7 +1861,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='auto',
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
     with warnings.catch_warnings(record=True):  # traits warnings
-        brain = Brain(subject, hemi=hemi, surf='white', curv=True,
+        brain = Brain(subject, hemi=hemi, surf='white',
                       title=title, cortex=cortex, size=size,
                       background=background, foreground=foreground,
                       figure=figure, subjects_dir=subjects_dir,
@@ -2398,15 +2398,15 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
         colors[idx] = 'r'
         size = np.repeat(5, len(points))
         size[idx] = 20
-        visibles = range(len(points))
+        visible = np.arange(len(points))
     else:
         colors = 'r'
         size = 20
-        visibles = idx
+        visible = idx
 
     offset = np.min(gridx)
-    ax.scatter(xs=xyz[visibles, 0], ys=xyz[visibles, 1],
-               zs=xyz[visibles, 2], zorder=2, s=size, facecolor=colors)
+    ax.scatter(xs=xyz[visible, 0], ys=xyz[visible, 1],
+               zs=xyz[visible, 2], zorder=2, s=size, facecolor=colors)
     xx = np.linspace(offset, xyz[idx, 0], xidx)
     yy = np.linspace(offset, xyz[idx, 1], yidx)
     zz = np.linspace(offset, xyz[idx, 2], zidx)
