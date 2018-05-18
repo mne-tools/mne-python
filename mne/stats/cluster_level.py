@@ -10,8 +10,6 @@
 #
 # License: Simplified BSD
 
-import logging
-
 import numpy as np
 from scipy import sparse
 
@@ -526,7 +524,7 @@ def _setup_connectivity(connectivity, n_vertices, n_times):
 
 def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
                      max_step, include, partitions, t_power, orders,
-                     sample_shape, buffer_size, progress_bar, pb_idx):
+                     sample_shape, buffer_size, pb, pb_idx):
     n_samp, n_vars = X_full.shape
 
     if buffer_size is not None and n_vars <= buffer_size:
@@ -582,15 +580,14 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
         else:
             max_cluster_sums[oi] = 0
 
-        if progress_bar is not None:
-            progress_bar[pb_idx[oi]] = True
+        pb[pb_idx[oi]] = True
 
     return max_cluster_sums
 
 
 def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
                            max_step, include, partitions, t_power, orders,
-                           sample_shape, buffer_size, progress_bar, pb_idx):
+                           sample_shape, buffer_size, pb, pb_idx):
     n_samp, n_vars = X.shape
     assert slices is None  # should be None for the 1 sample case
 
@@ -654,8 +651,7 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
         else:
             max_cluster_sums[oi] = 0
 
-        if progress_bar is not None:
-            progress_bar[pb_idx[oi]] = True
+        pb[pb_idx[oi]] = True
 
     return max_cluster_sums
 
@@ -872,7 +868,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     n_step_downs = 0
 
     while n_removed > 0:
-        pb = ProgressBar(len(orders)) if logger.level <= logging.INFO else None
+        pb = ProgressBar(len(orders), verbose_bool='auto')
         # actually do the clustering for each partition
         if include is not None:
             if step_down_include is not None:
@@ -915,8 +911,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                         'cluster%s to exclude from subsequent iterations'
                         % (n_step_downs, n_removed, a_text,
                            _pl(n_removed)))
-        if pb is not None:
-            pb.cleanup()
+        pb.cleanup()
     logger.info('Done.')
     # The clusters should have the same shape as the samples
     clusters = _reshape_clusters(clusters, sample_shape)
