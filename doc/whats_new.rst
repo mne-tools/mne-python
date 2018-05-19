@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add possibility to save :class:`mne.VolSourceEstimate` and :class:`mne.MixedSourceEstimate` to HDF5 format (file extension .h5) with :meth:`mne.VolSourceEstimate.save` and :meth:`mne.MixedSourceEstimate.save` by `Alex Gramfort`_
+
 Bug
 ~~~
 
