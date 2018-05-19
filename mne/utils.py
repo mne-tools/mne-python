@@ -309,10 +309,15 @@ def split_list(l, n, idx=False):
     yield (np.arange(start, tot), l[start:]) if idx else l[start]
 
 
-def array_split_idx(ary, indices_or_sections, axis=0):
+def array_split_idx(ary, indices_or_sections, axis=0, n_per_split=1):
     """Do what numpy.array_split does, but add indices."""
-    return zip(np.array_split(np.arange(ary.shape[axis]), indices_or_sections),
-               np.array_split(ary, indices_or_sections, axis=axis))
+    # this only works for indices_or_sections as int
+    indices_or_sections = _ensure_int(indices_or_sections)
+    ary_split = np.array_split(ary, indices_or_sections, axis=axis)
+    idx_split = np.array_split(np.arange(ary.shape[axis]), indices_or_sections)
+    idx_split = (np.arange(sp[0] * n_per_split, (sp[-1] + 1) * n_per_split)
+                 for sp in idx_split)
+    return zip(idx_split, ary_split)
 
 
 def create_chunks(sequence, size):
@@ -1841,7 +1846,7 @@ class ProgressBar(object):
                 self.update_with_increment_value(1)
 
     def __setitem__(self, idx, val):
-        """Use alterative, mmap-based incrementing (max_value must be int)."""
+        """Use alternative, mmap-based incrementing (max_value must be int)."""
         if not self._do_print:
             return
         assert val is True

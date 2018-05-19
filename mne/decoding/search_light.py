@@ -61,7 +61,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             repr_str += ', fitted with %i estimators' % len(self.estimators_)
         return repr_str + '>'
 
-    @verbose
+    @verbose  # to use class value
     def fit(self, X, y, **fit_params):
         """Fit a series of independent estimators to the dataset.
 
@@ -89,7 +89,8 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         parallel, p_func, n_jobs = parallel_func(_sl_fit, self.n_jobs,
                                                  verbose=False)
         n_jobs = min(n_jobs, X.shape[-1])
-        pb = ProgressBar(X.shape[-1], verbose_bool='auto', mesg='Fitting')
+        pb = ProgressBar(X.shape[-1], verbose_bool='auto',
+                         mesg='Fitting %s' % (self.__class__.__name__,))
         estimators = parallel(
             p_func(self.base_estimator, split, y, pb, pb_idx, **fit_params)
             for pb_idx, split in array_split_idx(X, n_jobs, axis=-1))
@@ -128,6 +129,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         """  # noqa: E501
         return self.fit(X, y, **fit_params).transform(X)
 
+    @verbose  # to use the class value
     def _transform(self, X, method):
         """Aux. function to make parallel predictions/transformation."""
         self._check_Xy(X)
@@ -137,12 +139,15 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
                              'X.shape[-1]')
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
-        parallel, p_func, n_jobs = parallel_func(_sl_transform, self.n_jobs)
+        pb = ProgressBar(X.shape[-1], verbose_bool='auto',
+                         mesg='Transforming %s' % (self.__class__.__name__,))
+        parallel, p_func, n_jobs = parallel_func(_sl_transform, self.n_jobs,
+                                                 verbose=False)
         n_jobs = min(n_jobs, X.shape[-1])
         X_splits = np.array_split(X, n_jobs, axis=-1)
-        est_splits = np.array_split(self.estimators_, n_jobs)
-        y_pred = parallel(p_func(est, x, method)
-                          for (est, x) in zip(est_splits, X_splits))
+        idx, est_splits = array_split_idx(self.estimators_, n_jobs)
+        y_pred = parallel(p_func(est, x, method, pb, pb_idx)
+                          for pb_idx, est, x in zip(idx, est_splits, X_splits))
 
         y_pred = np.concatenate(y_pred, axis=1)
         return y_pred
@@ -331,7 +336,7 @@ def _sl_fit(estimator, X, y, pb, pb_idx, **fit_params):
     return estimators_
 
 
-def _sl_transform(estimators, X, method):
+def _sl_transform(estimators, X, method, pb, pb_idx):
     """Aux. function to transform SlidingEstimator in parallel.
 
     Applies transform/predict/decision_function etc for each slice of data.
@@ -358,6 +363,7 @@ def _sl_transform(estimators, X, method):
         if ii == 0:
             y_pred = _sl_init_pred(_y_pred, X)
         y_pred[:, ii, ...] = _y_pred
+        pb[pb_idx[ii]] = True
     return y_pred
 
 
@@ -445,17 +451,21 @@ class GeneralizingEstimator(SlidingEstimator):
             repr_str += ', fitted with %i estimators>' % len(self.estimators_)
         return repr_str
 
+    @verbose  # use class value
     def _transform(self, X, method):
         """Aux. function to make parallel predictions/transformation."""
         self._check_Xy(X)
         method = _check_method(self.base_estimator, method)
-        pb = ProgressBar(X.shape[-1], verbose_bool='auto', mesg='Transforming')
+        pb = ProgressBar(X.shape[-1] * len(self.estimators_),
+                         verbose_bool='auto',
+                         mesg='Transforming %s' % (self.__class__.__name__,))
         parallel, p_func, n_jobs = parallel_func(_gl_transform, self.n_jobs,
                                                  verbose=False)
         n_jobs = min(n_jobs, X.shape[-1])
         y_pred = parallel(
             p_func(self.estimators_, x_split, method, pb, pb_idx)
-            for pb_idx, x_split in array_split_idx(X, n_jobs, axis=-1))
+            for pb_idx, x_split in array_split_idx(
+                X, n_jobs, axis=-1, n_per_split=len(self.estimators_)))
 
         y_pred = np.concatenate(y_pred, axis=2)
         return y_pred
@@ -541,6 +551,7 @@ class GeneralizingEstimator(SlidingEstimator):
         """  # noqa: E501
         return self._transform(X, 'decision_function')
 
+    @verbose  # to use class value
     def score(self, X, y):
         """Score each of the estimators on the tested dimensions.
 
@@ -564,13 +575,18 @@ class GeneralizingEstimator(SlidingEstimator):
         self._check_Xy(X)
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
-        parallel, p_func, n_jobs = parallel_func(_gl_score, self.n_jobs)
+        pb = ProgressBar(X.shape[-1] * len(self.estimators_),
+                         verbose_bool='auto',
+                         mesg='Scoring %s' % (self.__class__.__name__,))
+        parallel, p_func, n_jobs = parallel_func(_gl_score, self.n_jobs,
+                                                 verbose=False)
         n_jobs = min(n_jobs, X.shape[-1])
-        X_splits = np.array_split(X, n_jobs, axis=-1)
         scoring = check_scoring(self.base_estimator, self.scoring)
         y = _fix_auc(scoring, y)
-        score = parallel(p_func(self.estimators_, scoring, x, y)
-                         for x in X_splits)
+        score = parallel(p_func(self.estimators_, scoring, x, y, pb, pb_idx)
+                         for pb_idx, x in array_split_idx(
+                             X, n_jobs, axis=-1,
+                             n_per_split=len(self.estimators_)))
 
         score = np.concatenate(score, axis=1)
         return score
@@ -610,7 +626,7 @@ def _gl_transform(estimators, X, method, pb, pb_idx):
         if ii == 0:
             y_pred = _gl_init_pred(_y_pred, X, len(estimators))
         y_pred[:, ii, ...] = _y_pred
-        pb[pb_idx[ii]] = True
+        pb[pb_idx[ii * n_iter:(ii + 1) * n_iter]] = True
     return y_pred
 
 
@@ -625,7 +641,7 @@ def _gl_init_pred(y_pred, X, n_train):
     return y_pred
 
 
-def _gl_score(estimators, scoring, X, y):
+def _gl_score(estimators, scoring, X, y, pb, pb_idx):
     """Score GeneralizingEstimator in parallel.
 
     Predict and score each slice of data.
@@ -660,6 +676,7 @@ def _gl_score(estimators, scoring, X, y):
                 dtype = type(_score)
                 score = np.zeros(score_shape, dtype)
             score[ii, jj, ...] = _score
+            pb[pb_idx[jj * len(estimators) + ii]] = True
     return score
 
 

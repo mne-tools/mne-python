@@ -51,20 +51,24 @@ epochs = mne.Epochs(raw, events, event_id=event_id, tmin=tmin, tmax=tmax,
                     proj=True, picks=picks, baseline=None, preload=True,
                     reject=dict(mag=5e-12), decim=decim)
 
+###############################################################################
 # We will train the classifier on all left visual vs auditory trials
 # and test on all right visual vs auditory trials.
 clf = make_pipeline(StandardScaler(), LogisticRegression())
-time_gen = GeneralizingEstimator(clf, scoring='roc_auc', n_jobs=1)
+time_gen = GeneralizingEstimator(clf, scoring='roc_auc', n_jobs=2,
+                                 verbose=True)
 
 # Fit classifiers on the epochs where the stimulus was presented to the left.
 # Note that the experimental condition y indicates auditory or visual
 time_gen.fit(X=epochs['Left'].get_data(),
              y=epochs['Left'].events[:, 2] > 2)
 
+###############################################################################
 # Score on the epochs where the stimulus was presented to the right.
 scores = time_gen.score(X=epochs['Right'].get_data(),
                         y=epochs['Right'].events[:, 2] > 2)
 
+###############################################################################
 # Plot
 fig, ax = plt.subplots(1)
 im = ax.matshow(scores, vmin=0, vmax=1., cmap='RdBu_r', origin='lower',
