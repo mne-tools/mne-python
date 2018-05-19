@@ -432,6 +432,10 @@ class GeneralizingEstimator(SlidingEstimator):
     n_jobs : int, optional (default=1)
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see
+        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+        for more).
     """
 
     def __repr__(self):  # noqa: D105
