@@ -59,6 +59,7 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
         Number of jobs >= 0
     """
     # for a single job, we don't need joblib
+    should_print = (logger.level <= logging.INFO)
     if n_jobs != 1:
         Parallel, delayed = _get_parallel()
         if Parallel is None:
@@ -90,7 +91,7 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
                     'in large memory savings.')
 
         # create keyword arguments for Parallel
-        kwargs = {'verbose': 5 if logger.level <= logging.INFO else 0}
+        kwargs = {'verbose': 5 if should_print and total is None else 0}
         kwargs['pre_dispatch'] = pre_dispatch
 
         if joblib_mmap:
@@ -105,7 +106,8 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
 
     if total is not None:
         def parallel_progress(op_iter):
-            return parallel(ProgressBar(total)(op_iter))
+            pb = ProgressBar(total, verbose_bool=should_print)
+            return parallel(pb(op_iter))
         parallel_out = parallel_progress
     else:
         parallel_out = parallel

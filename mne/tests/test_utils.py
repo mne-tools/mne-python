@@ -781,7 +781,8 @@ def identity(x):
 def test_progressbar_parallel_basic(capsys):
     """Test ProgressBar with parallel computing, basic version."""
     assert capsys.readouterr().out == ''
-    parallel, p_fun, _ = parallel_func(identity, total=10, n_jobs=2)
+    parallel, p_fun, _ = parallel_func(identity, total=10, n_jobs=2,
+                                       verbose=True)
     out = parallel(p_fun(x) for x in range(10))
     assert out == list(range(10))
     assert '100.00%' in capsys.readouterr().out
