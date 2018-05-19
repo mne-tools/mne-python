@@ -1142,7 +1142,7 @@ class AverageTFR(_BaseTFR):
             and transparency are used.
             If ``None``, defaults to 'both' if `mask` is not None, and is ignored
             otherwise.
-    
+
              .. versionadded:: 0.17
         mask_cmap : matplotlib colormap | (colormap, bool) | 'interactive'
             The colormap chosen for masked parts of the image (see below), if
