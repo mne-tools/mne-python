@@ -145,7 +145,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
                                                  verbose=False)
         n_jobs = min(n_jobs, X.shape[-1])
         X_splits = np.array_split(X, n_jobs, axis=-1)
-        idx, est_splits = array_split_idx(self.estimators_, n_jobs)
+        idx, est_splits = zip(*array_split_idx(self.estimators_, n_jobs))
         y_pred = parallel(p_func(est, x, method, pb, pb_idx)
                           for pb_idx, est, x in zip(idx, est_splits, X_splits))
 
