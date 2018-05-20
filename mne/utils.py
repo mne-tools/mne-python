@@ -1752,8 +1752,8 @@ class ProgressBar(object):
             max_chars = min(max(max_total_width - 40, 10), 60)
         self.max_chars = int(max_chars)
         self.cur_rate = 0
-        tf = tempfile.NamedTemporaryFile('wb', prefix='tmp_mne_progress')
-        self._mmap_fname = tf.name
+        with tempfile.NamedTemporaryFile('wb', prefix='tmp_mne_prog') as tf:
+            self._mmap_fname = tf.name
         del tf  # should remove the file
         self._mmap = None
 
