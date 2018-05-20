@@ -243,7 +243,7 @@ def read_source_estimate(fname, subject=None):
      - for single time point .w files, ``fname`` should follow the same
        pattern as for surface estimates, except that files are named
        '*-lh.w' and '*-rh.w'.
-    """  # noqa
+    """  # noqa: E501
     fname_arg = fname
 
     # make sure corresponding file(s) can be found
