@@ -93,6 +93,7 @@ def test_spatial_inter_hemi_connectivity():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
+@requires_h5py
 def test_volume_stc():
     """Test volume STCs."""
     tempdir = _TempDir()
@@ -848,7 +849,7 @@ def test_get_peak():
         assert_equal(time_idx, np.argmax(np.abs(stc.data[data_idx, :])))
 
 
-@testing.requires_testing_data
+@requires_h5py
 def test_mixed_stc():
     """Test source estimate from mixed source space."""
     N = 90  # number of sources
