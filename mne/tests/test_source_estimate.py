@@ -93,6 +93,7 @@ def test_spatial_inter_hemi_connectivity():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
+@requires_h5py
 def test_volume_stc():
     """Test volume STCs."""
     tempdir = _TempDir()
@@ -120,13 +121,14 @@ def test_volume_stc():
     assert_true('sample' in repr(stc))
     stc_new = stc
     assert_raises(ValueError, stc.save, fname_vol, ftype='whatever')
-    for _ in range(2):
-        fname_temp = op.join(tempdir, 'temp-vol.w')
-        stc_new.save(fname_temp, ftype='w')
-        stc_new = read_source_estimate(fname_temp)
-        assert_true(isinstance(stc_new, VolSourceEstimate))
-        assert_array_equal(stc.vertices, stc_new.vertices)
-        assert_array_almost_equal(stc.data, stc_new.data)
+    for ftype in ['w', 'h5']:
+        for _ in range(2):
+            fname_temp = op.join(tempdir, 'temp-vol.%s' % ftype)
+            stc_new.save(fname_temp, ftype=ftype)
+            stc_new = read_source_estimate(fname_temp)
+            assert_true(isinstance(stc_new, VolSourceEstimate))
+            assert_array_equal(stc.vertices, stc_new.vertices)
+            assert_array_almost_equal(stc.data, stc_new.data)
 
     # save the stc as a nifti file and export
     try:
@@ -847,7 +849,7 @@ def test_get_peak():
         assert_equal(time_idx, np.argmax(np.abs(stc.data[data_idx, :])))
 
 
-@testing.requires_testing_data
+@requires_h5py
 def test_mixed_stc():
     """Test source estimate from mixed source space."""
     N = 90  # number of sources
@@ -867,6 +869,16 @@ def test_mixed_stc():
 
     # make sure error is raised for plotting surface with volume source
     assert_raises(ValueError, stc.plot_surface, src=vol)
+
+    tempdir = _TempDir()
+    fname = op.join(tempdir, 'mixed-stc.h5')
+    stc.save(fname)
+    stc_out = read_source_estimate(fname)
+    assert_array_equal(stc_out.vertices, vertno)
+    assert_array_equal(stc_out.data, data)
+    assert stc_out.tmin == 0
+    assert stc_out.tstep == 1
+    assert isinstance(stc_out, MixedSourceEstimate)
 
 
 def test_vec_stc():
