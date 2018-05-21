@@ -735,7 +735,7 @@ FIFF.FIFF_UNIT_MHO = 110  # one per ohm
 FIFF.FIFF_UNIT_WB  = 111  # weber
 FIFF.FIFF_UNIT_T   = 112  # tesla
 FIFF.FIFF_UNIT_H   = 113  # Henry
-FIFF.FIFF_UNIT_CEL = 114  # celcius
+FIFF.FIFF_UNIT_CEL = 114  # celsius
 FIFF.FIFF_UNIT_LM  = 115  # lumen
 FIFF.FIFF_UNIT_LX  = 116  # lux
 #
