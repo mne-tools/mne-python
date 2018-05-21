@@ -58,13 +58,17 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
     n_jobs: int
         Number of jobs >= 0
     """
-    # for a single job, we don't need joblib
     should_print = (logger.level <= logging.INFO)
+    # for a single job, we don't need joblib
     if n_jobs != 1:
-        Parallel, delayed = _get_parallel()
-        if Parallel is None:
-            warn('joblib not installed. Cannot run in parallel.')
-            n_jobs = 1
+        try:
+            from joblib import Parallel, delayed
+        except ImportError:
+            try:
+                from sklearn.externals.joblib import Parallel, delayed
+            except ImportError:
+                warn('joblib not installed. Cannot run in parallel.')
+                n_jobs = 1
     if n_jobs == 1:
         n_jobs = 1
         my_func = func
@@ -112,17 +116,6 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
     else:
         parallel_out = parallel
     return parallel_out, my_func, n_jobs
-
-
-def _get_parallel():
-    try:
-        from joblib import Parallel, delayed
-    except ImportError:
-        try:
-            from sklearn.externals.joblib import Parallel, delayed
-        except ImportError:
-            Parallel = delayed = None
-    return Parallel, delayed
 
 
 def check_n_jobs(n_jobs, allow_cuda=False):
