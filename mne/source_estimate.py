@@ -381,6 +381,8 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None,
                                  tstep=tstep, subject=subject)
     elif isinstance(vertices, np.ndarray) or isinstance(vertices, list)\
             and len(vertices) == 1:
+        if vector:
+            data = data.reshape((-1, 3, data.shape[-1]))
         stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
                                 tstep=tstep, subject=subject)
     elif isinstance(vertices, list) and len(vertices) > 2:
@@ -1817,7 +1819,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
         s += ", tmin : %s (ms)" % (1e3 * self.tmin)
         s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
         s += ", tstep : %s (ms)" % (1e3 * self.tstep)
-        s += ", data size : %s x %s" % self.shape
+        s += ", data size : %s" % ' x '.join(map(str, self.shape))
         return "<VolSourceEstimate  |  %s>" % s
 
     def get_peak(self, tmin=None, tmax=None, mode='abs',

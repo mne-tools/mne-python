@@ -639,9 +639,9 @@ def test_inverse_operator_volume():
     """
     tempdir = _TempDir()
     evoked = _get_evoked()
-    inverse_operator_vol = read_inverse_operator(fname_vol_inv)
-    assert_true(repr(inverse_operator_vol))
-    stc = apply_inverse(evoked, inverse_operator_vol, lambda2, "dSPM")
+    inv_vol = read_inverse_operator(fname_vol_inv)
+    assert_true(repr(inv_vol))
+    stc = apply_inverse(evoked, inv_vol, lambda2, 'dSPM')
     assert_true(isinstance(stc, VolSourceEstimate))
     # volume inverses don't have associated subject IDs
     assert_true(stc.subject is None)
@@ -651,6 +651,10 @@ def test_inverse_operator_volume():
     assert_true(np.all(stc.data < 35))
     assert_array_almost_equal(stc.data, stc2.data)
     assert_array_almost_equal(stc.times, stc2.times)
+    # vector source estimate
+    stc_vec = apply_inverse(evoked, inv_vol, lambda2, 'dSPM', 'vector')
+    assert_true(repr(stc_vec))
+    assert_allclose(np.linalg.norm(stc_vec.data, axis=1), stc.data)
 
 
 @pytest.mark.slowtest

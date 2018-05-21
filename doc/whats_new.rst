@@ -30,6 +30,8 @@ Bug
 
 - Fix bug in :class:`mne.io.Raw` where warnings were emitted when objects were deleted by `Eric Larson`_
 
+- Allow vector data for :class:`mne.VolSourceEstimate` by `Christian Brodbeck`_
+
 API
 ~~~
 
