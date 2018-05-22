@@ -126,13 +126,14 @@ for event in event_ids:
 
         # plot TFR (ERDS map with masking)
         tfr.average().plot([ch], vmin=vmin, vmax=vmax, cmap=(cmap, False),
-                           axes=ax, colorbar=False, show=False, mask=mask)
+                           axes=ax, colorbar=False, show=False, mask=mask,
+                           mask_style="mask")
 
         ax.set_title(epochs.ch_names[ch], fontsize=10)
         ax.axvline(0, linewidth=1, color="black", linestyle=":")  # event
         if not ax.is_first_col():
             ax.set_ylabel("")
             ax.set_yticklabels("")
-    fig.colorbar(axes[0].collections[1], cax=axes[-1])
+    fig.colorbar(axes[0].images[-1], cax=axes[-1])
     fig.suptitle("ERDS ({})".format(event))
     fig.show()

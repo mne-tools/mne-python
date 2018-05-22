@@ -29,7 +29,8 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _validate_if_list_of_axes, _triage_rank_sss,
                     _connection_line, COLORS, _setup_ax_spines,
                     _setup_plot_projector, _prepare_joint_axes,
-                    _set_title_multiple_electrodes, _check_time_unit)
+                    _set_title_multiple_electrodes, _check_time_unit,
+                    _plot_masked_image)
 from ..utils import logger, _clean_names, warn, _pl, verbose, _validate_type
 
 from .topo import _plot_evoked_topo
@@ -493,13 +494,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
     import matplotlib.pyplot as plt
     assert time_unit is not None
 
-    if mask_style is None and mask is not None:
-        mask_style = "both"  # default
-    draw_mask = mask_style in {"both", "mask"}
-    draw_contour = mask_style in {"both", "contour"}
-
     cmap = _setup_cmap(cmap)
-    mask_cmap = cmap if mask_cmap is None else _setup_cmap(mask_cmap)
 
     ch_unit = units[this_type]
     this_scaling = scalings[this_type]
@@ -507,54 +502,23 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         this_scaling = 1.0
         ch_unit = 'NA'  # no unit
 
-    # mask param check and preparation
-    if draw_mask is None:
+    if picks is not None:
+        data = data[picks]
         if mask is not None:
-            draw_mask = True
-        else:
-            draw_mask = False
-    if draw_contour is None:
-        if mask is not None:
-            draw_contour = True
-        else:
-            draw_contour = False
-    if mask is None:
-        if draw_mask:
-            warn("`mask` is None, not masking the plot ...")
-            draw_mask = False
-        if draw_contour:
-            warn("`mask` is None, not adding contour to the plot ...")
-            draw_contour = False
-
-    if draw_mask:
-        if mask.shape != data.shape:
-            raise ValueError("The mask must have the same shape as the data, "
-                             "i.e., %s, not %s" % (data.shape, mask.shape))
-        if picks is not None:
-            mask = mask[picks, :]
-
+            mask = mask[picks]
     # Show the image
     # Set amplitude scaling
-    data = this_scaling * data[picks, :]
+    data = this_scaling * data
     if ylim is None or this_type not in ylim:
         vmax = np.abs(data).max()
         vmin = -vmax
     else:
         vmin, vmax = ylim[this_type]
-    extent = [times[0], times[-1], 0, len(data)]
-    im_args = dict(interpolation='nearest', origin='lower',
-                   extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
 
-    if draw_mask:
-        ax.imshow(data, alpha=mask_alpha, cmap=mask_cmap[0], **im_args)
-        im = ax.imshow(
-            np.ma.masked_where(~mask, data), cmap=cmap[0], **im_args)
-    else:
-        im = ax.imshow(data, cmap=cmap[0], **im_args)
-    if draw_contour and np.unique(mask).size == 2:
-        big_mask = np.kron(mask, np.ones((10, 10)))
-        ax.contour(big_mask, colors=["k"], extent=extent, linewidths=[.75],
-                   corner_mask=False, antialiased=False, levels=[.5])
+    im, t_end = _plot_masked_image(
+        ax, data, times, mask, picks=None, yvals=None, cmap=cmap[0],
+        vmin=vmin, vmax=vmax, mask_style=mask_style, mask_alpha=mask_alpha,
+        mask_cmap=mask_cmap)
 
     if xlim is not None:
         if xlim == 'tight':
@@ -568,18 +532,8 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
             ax.CB = DraggableColorbar(cbar, im)
 
     ax.set(ylabel='Channel (index)', xlabel='Time (%s)' % (time_unit,))
-
-    if (draw_mask or draw_contour) and mask is not None:
-        if mask.all():
-            t_end = ", all points masked)"
-        else:
-            fraction = 1. - np.mean(mask)
-            percent = np.floor(fraction * 100).astype(int)
-            t_end = ", " + str(percent) + "% of points masked)"
-    else:
-        t_end = ")"
-    ax.set(title='%s (%d channel%s%s'
-           % (titles[this_type], len(data), _pl(len(data)), t_end))
+    ax.set_title(
+        titles[this_type] + ' (%d channel%s' % (len(data), _pl(data)) + t_end)
     _add_nave(ax, nave)
 
 
@@ -1230,15 +1184,15 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     show : bool
         Show figure if True. Defaults to True.
     ts_args : None | dict
-        A dict of `kwargs` that are forwarded to `evoked.plot` to
+        A dict of `kwargs` that are forwarded to :meth:`Evoked.plot` to
         style the butterfly plot. If they are not in this dict, the following
         defaults are passed: ``spatial_colors=True``, ``zorder='std'``,
         ``axes``, ``show``, ``exclude`` are illegal.
         If None, no customizable arguments will be passed.
         Defaults to `None`.
     topomap_args : None | dict
-        A dict of `kwargs` that are forwarded to `evoked.plot_topomap` to
-        style the topomaps. If it is not in this dict, ``outlines='skirt'``
+        A dict of `kwargs` that are forwarded to :meth:`Evoked.plot_topomap`
+        to style the topomaps. If it is not in this dict, ``outlines='skirt'``
         will be passed. `axes`, `show`, `times`, `colorbar` are illegal`
         If None, no customizable arguments will be passed.
         Defaults to `None`.
@@ -1822,7 +1776,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             show_sensors = False  # don't show sensors for GFP
         ch_names = ['Global Field Power']
         if len(picks) < 2:
-            raise ValueError("A GFP with less than 2 channels doesn't work, "
+            raise ValueError("Cannot compute GFP for fewer than 2 channels, "
                              "please pick more than %d channels." % len(picks))
     else:
         if show_sensors is None:

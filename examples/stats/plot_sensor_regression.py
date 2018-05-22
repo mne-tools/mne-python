@@ -7,13 +7,13 @@ Predict single trial activity from a continuous variable.
 A single-trial regression is performed in each sensor and timepoint
 individually, resulting in an :class:`mne.Evoked` object which contains the
 regression coefficient (beta value) for each combination of sensor and
-timepoint. Example shows the regression coefficient; the t and p values are
-also calculated automatically.
+timepoint. This example shows the regression coefficient; the t and p values
+are also calculated automatically.
 
-Here, we repeat a few of the analyses from [1]_ by accessing the metadata
-object, which contains word-level information about various
-psycholinguistically relevant features of the words for which we have EEG
-activity.
+Here, we repeat a few of the analyses from [1]_. This can be easily performed
+ by accessing the metadata object, which contains word-level information about
+various psycholinguistically relevant features of the words for which we have
+EEG activity.
 
 For the general methodology, see e.g. [2]_
 
