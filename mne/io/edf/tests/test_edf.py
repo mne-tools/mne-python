@@ -40,7 +40,6 @@ bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
 edf_uneven_eeglab_path = op.join(data_dir, 'test_uneven_samp.mat')
 edf_stim_channel_path = op.join(data_dir, 'test_edf_stim_channel.edf')
-bdf_stim_channel_path = op.join(data_dir, 'test_bdf_stim_channel.bdf')
 edf_txt_stim_channel_path = op.join(data_dir, 'test_edf_stim_channel.txt')
 
 data_path = testing.data_path(download=False)
@@ -48,6 +47,7 @@ edf_stim_resamp_path = op.join(data_path, 'EDF', 'test_edf_stim_resamp.edf')
 edf_overlap_annot_path = op.join(data_path, 'EDF',
                                  'test_edf_overlapping_annotations.edf')
 edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
+bdf_stim_channel_path = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 
 
 eog = ['REOG', 'LEOG', 'IEOG']
@@ -76,6 +76,7 @@ def test_bdf_data():
     assert_true((raw_py.info['chs'][63]['loc']).any())
 
 
+@testing.requires_testing_data
 def test_bdf_stim_channel():
     """Test BDF stim channel."""
     # test if last channel is detected as STIM by default
