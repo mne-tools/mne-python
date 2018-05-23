@@ -26,11 +26,11 @@ dependencies:
 - flake8
 - spyder
 - numexpr
+- traits>=4.6.0
+- pyface>=6
+- traitsui>=6
 - pip:
   - mne
-  - traits>=4.6.0
-  - pyface>=6
-  - traitsui>=6
   - "https://api.github.com/repos/enthought/mayavi/zipball/master"
   - "https://api.github.com/repos/nipy/PySurfer/zipball/master"
   - nitime
