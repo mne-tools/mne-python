@@ -5,7 +5,7 @@ Artifact Correction with ICA
 ICA finds directions in the feature space
 corresponding to projections with high non-Gaussianity. We thus obtain
 a decomposition into independent components, and the artifact's contribution
-is localized in only a small number of components.
+is typically localized in only a small number of components.
 These components have to be correctly identified and removed.
 
 If EOG or ECG recordings are available, they can be used in ICA to
@@ -165,6 +165,7 @@ print(ica.labels_)
 # Now let's see how we would modify our signals if we removed this component
 # from the data.
 ica.plot_overlay(eog_average, exclude=eog_inds, show=False)
+raise RuntimeError
 # red -> before, black -> after. Yes! We remove quite a lot!
 
 # to definitely register this component as a bad one to be removed

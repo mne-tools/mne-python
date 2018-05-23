@@ -15,18 +15,33 @@ from mne.forward._make_forward import _create_meg_coils
 from mne.forward._field_interpolation import _setup_dots
 from mne.surface import get_meg_helmet_surf, get_head_surf
 from mne.datasets import testing
-from mne import read_evokeds, pick_types
+from mne import read_evokeds, pick_types, make_fixed_length_events, Epochs
+from mne.io import read_raw_fif
 from mne.externals.six.moves import zip
 from mne.utils import run_tests_if_main
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
+raw_ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
 
 data_path = testing.data_path(download=False)
 trans_fname = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
 subjects_dir = op.join(data_path, 'subjects')
+
+
+@testing.requires_testing_data
+def test_field_map_ctf():
+    """Test that field mapping can be done with CTF data."""
+    raw = read_raw_fif(raw_ctf_fname).crop(0, 1)
+    raw.apply_gradient_compensation(3)
+    events = make_fixed_length_events(raw, duration=0.5)
+    evoked = Epochs(raw, events).average()
+    evoked.pick_channels(evoked.ch_names[:50])  # crappy mapping but faster
+    # smoke test
+    make_field_map(evoked, trans=trans_fname, subject='sample',
+                   subjects_dir=subjects_dir)
 
 
 def test_legendre_val():

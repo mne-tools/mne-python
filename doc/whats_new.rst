@@ -40,6 +40,8 @@ Bug
 
 - Fix bug in :func:`mne.time_frequency.tfr_morlet`, :func:`mne.time_frequency.tfr_multitaper`, and :func:`mne.time_frequency.tfr_stockwell` where not all data channels were picked by `Eric Larson`_
 
+- Fix bug in :meth:`mne.preprocessing.ICA.plot_overlay` and :func:`mne.make_field_map` for CTF data with compensation by `Eric Larson`_
+
 API
 ~~~
 

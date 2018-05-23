@@ -28,6 +28,7 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 event_id, tmin, tmax = 1, -0.1, 0.2
+raw_ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
 
 
 def _get_raw(preload=False):
@@ -246,6 +247,16 @@ def test_plot_ica_overlay():
     ica.plot_overlay(eog_epochs.average())
     assert_raises(TypeError, ica.plot_overlay, raw[:2, :3][0])
     ica.plot_overlay(raw)
+    plt.close('all')
+
+    # smoke test for CTF
+    raw = read_raw_fif(raw_ctf_fname)
+    raw.apply_gradient_compensation(3)
+    picks = pick_types(raw.info, meg=True, ref_meg=False)
+    ica = ICA(n_components=2, max_pca_components=3, n_pca_components=3)
+    ica.fit(raw, picks=picks)
+    ecg_epochs = create_ecg_epochs(raw)
+    ica.plot_overlay(ecg_epochs.average())
     plt.close('all')
 
 
