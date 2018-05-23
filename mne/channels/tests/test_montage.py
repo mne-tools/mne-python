@@ -553,6 +553,10 @@ def test_set_montage():
     assert_true((orig_pos != new_pos).all())
     r0 = _fit_sphere(new_pos)[1]
     assert_allclose(r0, [0., -0.016, 0.], atol=1e-3)
+    # mgh70 has no 61/62/63/64 (these are EOG/ECG)
+    mon = read_montage('mgh70')
+    assert 'EEG061' not in mon.ch_names
+    assert 'EEG074' in mon.ch_names
 
 
 def _check_roundtrip(montage, fname):
