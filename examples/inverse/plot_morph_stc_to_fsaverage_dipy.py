@@ -144,7 +144,7 @@ def compute_lcmv_example_data(data_path):
 def compute_morph_map(img_m, img_s=None, niter_affine=(100, 100, 10),
                       niter_sdr=(5, 5, 3)):
     # get Static to world transform
-    grid2world = img_s.affine
+    img_s_grid2world = img_s.affine
 
     # output Static as ndarray
     img_s = img_s.dataobj[:, :, :]
@@ -162,7 +162,7 @@ def compute_morph_map(img_m, img_s=None, niter_affine=(100, 100, 10),
     img_m = img_m.astype('float') / img_m.max()
 
     # compute center of mass
-    c_of_mass = transform_centers_of_mass(img_s, grid2world,
+    c_of_mass = transform_centers_of_mass(img_s, img_s_grid2world,
                                           img_m, img_m_grid2world)
 
     nbins = 32
@@ -175,17 +175,17 @@ def compute_morph_map(img_m, img_s=None, niter_affine=(100, 100, 10),
 
     # translation
     translation = affreg.optimize(img_s, img_m, TranslationTransform3D(), None,
-                                  grid2world, img_m_grid2world,
+                                  img_s_grid2world, img_m_grid2world,
                                   starting_affine=c_of_mass.affine)
 
     # rigid body transform (translation + rotation)
     rigid = affreg.optimize(img_s, img_m, RigidTransform3D(), None,
-                            grid2world, img_m_grid2world,
+                            img_s_grid2world, img_m_grid2world,
                             starting_affine=translation.affine)
 
     # affine transform (translation + rotation + scaling)
     affine = affreg.optimize(img_s, img_m, AffineTransform3D(), None,
-                             grid2world, img_m_grid2world,
+                             img_s_grid2world, img_m_grid2world,
                              starting_affine=rigid.affine)
 
     # apply affine transformation
@@ -197,24 +197,20 @@ def compute_morph_map(img_m, img_s=None, niter_affine=(100, 100, 10),
     # compute mapping
     mapping = sdr.optimize(img_s, img_m_affine)
 
-    return mapping, affine, grid2world
+    return mapping, affine
 
 
 ###############################################################################
 # Apply non-linear morph mapping
 
-def morph_precomputed(img, affine, mapping, grid2world):
+def morph_precomputed(img, affine, mapping):
     # morph img data
     img_sdr_affine = np.zeros(img.shape)
-    for ii in range(img.shape[3]):
-        img_sdr_affine[:, :, :, ii] = mapping.transform(
-            affine.transform(img.dataobj[:, :, :, ii]))
+    for vol in range(img.shape[3]):
+        img_sdr_affine[:, :, :, vol] = mapping.transform(
+            affine.transform(img.dataobj[:, :, :, vol]))
 
-    # make transformed ndarray a nifti
-    img_vol_sdr_affine = nib.Nifti1Image(img_sdr_affine,
-                                         affine=grid2world)
-
-    return img_vol_sdr_affine
+    return img_sdr_affine
 
 
 ###############################################################################
@@ -264,10 +260,13 @@ t1_s_img_res, t1_s_img_res_affine = reslice(t1_s_img.get_data(),
 t1_s_img_res = nib.Nifti1Image(t1_s_img_res, t1_s_img_res_affine)
 
 # compute morph map from Moving to Static
-mapping, affine, grid2world = compute_morph_map(t1_m_img_res, t1_s_img_res)
+mapping, affine = compute_morph_map(t1_m_img_res, t1_s_img_res)
 
 # apply morph map
-img_vol_morphed = morph_precomputed(img_vol_res, mapping, affine, grid2world)
+img_vol_morphed = morph_precomputed(img_vol_res, mapping, affine)
+
+# make transformed ndarray a nifti
+img_vol_morphed = nib.Nifti1Image(img_vol_morphed, affine=t1_s_img_res.affine)
 
 # save morphed result
 nib.save(img_vol_morphed, 'lcmv_inverse_fsavg.nii.gz')
