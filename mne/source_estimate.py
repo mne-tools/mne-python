@@ -359,10 +359,33 @@ def read_source_estimate(fname, subject=None):
     return stc
 
 
-def _make_stc(data, vertices, tmin=None, tstep=None, subject=None,
+def _get_src_type(src, vertices):
+    src_type = None
+    if src is None:
+        warn_("src should not be None for have a robust guess of stc type.")
+        if isinstance(vertices, list) and len(vertices) == 2:
+            src_type = 'surf'
+        elif isinstance(vertices, np.ndarray) or isinstance(vertices, list)\
+                and len(vertices) == 1:
+            src_type = 'vol'
+        elif isinstance(vertices, list) and len(vertices) > 2:
+            src_type = 'mixed'
+    else:
+        src_types = set([ss['type'] for ss in src])
+        if len(src_types) > 1:
+            src_type = 'mixed'
+        else:
+            src_type = src_types.pop()
+    assert src_type in ['surf', 'vol', 'mixed']
+    return src_type
+
+
+def _make_stc(data, vertices, src=None, tmin=None, tstep=None, subject=None,
               vector=False, source_nn=None):
     """Generate a surface, vector-surface, volume or mixed source estimate."""
-    if isinstance(vertices, list) and len(vertices) == 2:
+    src_type = _get_src_type(src, vertices)
+
+    if src_type == 'surf':
         # make a surface source estimate
         n_vertices = len(vertices[0]) + len(vertices[1])
         if vector:
@@ -385,13 +408,12 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None,
         else:
             stc = SourceEstimate(data, vertices=vertices, tmin=tmin,
                                  tstep=tstep, subject=subject)
-    elif isinstance(vertices, np.ndarray) or isinstance(vertices, list)\
-            and len(vertices) == 1:
+    elif src_type == 'vol':
         if vector:
             data = data.reshape((-1, 3, data.shape[-1]))
         stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
                                 tstep=tstep, subject=subject)
-    elif isinstance(vertices, list) and len(vertices) > 2:
+    elif src_type == 'mixed':
         # make a mixed source estimate
         stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin,
                                   tstep=tstep, subject=subject)
