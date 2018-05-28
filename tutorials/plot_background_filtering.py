@@ -221,7 +221,7 @@ plot_filter(h, sfreq, freq, gain, 'Sinc (10.0 sec)', flim=flim)
 #           is desired, but generally less clean (due to sampling issues) than
 #           a windowed approach for more straightfroward filter applications.
 #           Since our filters (low-pass, high-pass, band-pass, band-stop)
-#           are fairly simple and we require precisel control of all frequency
+#           are fairly simple and we require precise control of all frequency
 #           regions, here we will use and explore primarily windowed FIR
 #           design.
 #
@@ -907,21 +907,64 @@ baseline_plot(x)
 #    6. filter delay (zero-phase, linear-phase, non-linear phase) and causality
 #    7. direction of computation (one-pass forward/reverse,or two-pass forward and reverse)  # noqa
 #
-# In the following, we will address some of these points regarding fir-filters:
+# In the following, we will address how to deal with these parameters in MNE:
+#
+#
+# Filter type
+# -----------
+# Depending on the function or method used, the filter type can be specified.
+# To name an example. in `mne.filter.create_filter`, the relevant arguments
+# would be `l_freq`, h_freg`, `method`, and if the method is fir: `fir_window`,
+# and `fir_design`.
+#
 #
 # Cutoff frequency
 # ----------------
 #
+# TODO paste in here whatever you learned from stackoverflow regarding how the cutoff frequency is defined for scipy.signal.firwin
+#
+#
 # Filter length (order) and transition bandwith (roll-off)
 # --------------------------------------------------------
+#
+# TODO after the PR for not specifying data has been merged, write about how mne.filter.create_filter can be used to check length and transition bandwidth
+#
+# .. note:: If you are using an IIR filter, `mne.filter.create_filter` will not
+#           print a filter length and transition bandwidth to the log. Instead,
+#           you can specify the roll off with the `iir_params` argument or stay
+#           with the default, which is a 4th order (Butterworth) filter.
 #
 # Passband ripple and stopband attenuation
 # ----------------------------------------
 #
+# When use standard `scipy.signal.firwin` design (as for fir filters in MNE),
+# the passband ripple and stopband attenuation are dependent upon the window
+# used in design. For standard windows the values are listed in this table (see
+# Ifeachor & Jervis, p. 357 [3]_):
+#
+# +-------------------------+----------------------+---------------------------+
+# | Name of window function | Passband ripple (dB) | Stopband attenuation (dB) |
+# +=========================+======================+===========================+
+# | Hann                    | 0.0545               | 44                        |
+# +-------------------------+----------------------+---------------------------+
+# | Hamming                 | 0.0194               | 53                        |
+# +-------------------------+----------------------+---------------------------+
+# | Blackman                | 0.0017               | 74                        |
+# +-------------------------+----------------------+---------------------------+
 #
 #
+# Filter delay and direction of computation
+# -----------------------------------------
+# For reporting this information, it might be sufficient to read the docstring
+# of the filter function or method that you apply. For example in the
+# docstring of `mne.filter.create_filter`, for the phase parameter it says:
 #
-#
+#    "Phase of the filter, only used if ``method='fir'``.
+#    By default, a symmetric linear-phase FIR filter is constructed.
+#    If ``phase='zero'`` (default), the delay of this filter
+#    is compensated for. If ``phase=='zero-double'``, then this filter
+#    is applied twice, once forward, and once backward. If 'minimum',
+#    then a minimum-phase, causal filter will be used."
 #
 #
 # Summary
