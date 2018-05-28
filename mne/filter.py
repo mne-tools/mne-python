@@ -1055,7 +1055,7 @@ def create_filter(data=None, sfreq=None, l_freq=None, h_freq=None,
     # checks
     if data is None:
         logger.info('No data specified. No sanity checks performed.')
-        data = np.empty(sfreq**2)
+        data = np.empty(int(sfreq ** 2))
     if h_freq is not None:
         h_freq = np.array(h_freq, float).ravel()
         if (h_freq > (sfreq / 2.)).any():
