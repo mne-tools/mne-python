@@ -872,7 +872,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 
 
 @verbose
-def create_filter(data=None, sfreq=None, l_freq=None, h_freq=None,
+def create_filter(data, sfreq, l_freq, h_freq,
                   filter_length='auto', l_trans_bandwidth='auto',
                   h_trans_bandwidth='auto', method='fir', iir_params=None,
                   phase='zero', fir_window='hamming', fir_design='firwin',
@@ -1046,16 +1046,12 @@ def create_filter(data=None, sfreq=None, l_freq=None, h_freq=None,
 
     .. versionadded:: 0.14
     """
-    if sfreq is None or float(sfreq) < 0:
+    sfreq = float(sfreq)
+    if sfreq < 0:
         raise ValueError('sfreq must be positive')
-    else:
-        sfreq = float(sfreq)
-    # If no data specified, sanity checking is invalid
-    # perform it on a dummy array that is long enough to never fail sanity
-    # checks
+    # If no data specified, sanity checking will be skipped
     if data is None:
-        logger.info('No data specified. No sanity checks performed.')
-        data = np.empty(int(sfreq ** 2))
+        logger.info('No data specified. Sanity checks will be skipped.')
     if h_freq is not None:
         h_freq = np.array(h_freq, float).ravel()
         if (h_freq > (sfreq / 2.)).any():
@@ -1738,8 +1734,6 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
         cast = float_array
     else:
         cast = float
-    x = np.asanyarray(x)
-    len_x = x.shape[-1]
     sfreq = float(sfreq)
     if l_freq is not None:
         l_freq = cast(l_freq)
@@ -1838,17 +1832,24 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
         elif not isinstance(filter_length, integer_types):
             raise ValueError('filter_length must be a str, int, or None, got '
                              '%s' % (type(filter_length),))
-    if method != 'fir':
-        filter_length = len_x
+
     if phase == 'zero' and method == 'fir':
         filter_length += (filter_length % 2 == 0)
     if filter_length <= 0:
         raise ValueError('filter_length must be positive, got %s'
                          % (filter_length,))
-    if filter_length > len_x:
-        warn('filter_length (%s) is longer than the signal (%s), '
-             'distortion is likely. Reduce filter length or filter a '
-             'longer signal.' % (filter_length, len_x))
+
+    # If we have data supplied, do a sanity check
+    if x is not None:
+        x = np.asanyarray(x)
+        len_x = x.shape[-1]
+        if method != 'fir':
+            filter_length = len_x
+        if filter_length > len_x:
+            warn('filter_length (%s) is longer than the signal (%s), '
+                 'distortion is likely. Reduce filter length or filter a '
+                 'longer signal.' % (filter_length, len_x))
+
     logger.debug('Using filter length: %s' % filter_length)
     return (x, sfreq, l_freq, h_freq, l_stop, h_stop, filter_length, phase,
             fir_window, fir_design)
