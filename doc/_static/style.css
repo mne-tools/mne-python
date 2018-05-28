@@ -24,11 +24,6 @@ blockquote {
     font-size: 100% !important;
 }
 
-code {
-    color: rgb(61, 107, 153) !important;
-    background-color: rgb(230, 242, 255) !important;
-}
-
 .devbar {
     text-align: center;
     padding: 5px;
@@ -100,10 +95,6 @@ blockquote {
 
 .span h2 {
     background: rgb(242, 249, 255);
-}
-
-.span.box code {
-    background-color: rgb(204, 230, 255) !important;
 }
 
 /* OVERRIDES */
