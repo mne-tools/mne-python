@@ -1051,10 +1051,11 @@ def create_filter(data=None, sfreq=None, l_freq=None, h_freq=None,
     else:
         sfreq = float(sfreq)
     # If no data specified, sanity checking is invalid
-    # perform it on a dummy array that will never fail sanity checks
+    # perform it on a dummy array that is long enough to never fail sanity
+    # checks
     if data is None:
         logger.info('No data specified. No sanity checks performed.')
-        data = np.random.random(1, sfreq * 100)
+        data = np.empty(sfreq**2)
     if h_freq is not None:
         h_freq = np.array(h_freq, float).ravel()
         if (h_freq > (sfreq / 2.)).any():
