@@ -173,9 +173,6 @@ div.sphx-glr-download a:hover {
     }
 }
 
-.highlight pre {
-    background-color: rgb(242, 249, 255) !important;
-}
 .warning {
     background-color: rgb(230, 57, 57);
     color: white;

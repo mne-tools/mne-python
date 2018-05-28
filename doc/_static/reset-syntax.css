@@ -1,0 +1,9 @@
+.highlight a {
+    font-weight: bold;
+}
+.highlight * {
+    color: black;
+    /* font-weight: normal; */
+    font-style: normal;
+    background-color: transparent;
+}

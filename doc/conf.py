@@ -125,7 +125,7 @@ exclude_patterns = ['source/generated']
 #show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'default'
+pygments_style = 'default'  # CSS also needs to be copied to _static/pygments.css :(
 
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ['mne.']
