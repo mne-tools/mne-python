@@ -872,11 +872,10 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 
 
 @verbose
-def create_filter(data, sfreq, l_freq, h_freq,
-                  filter_length='auto', l_trans_bandwidth='auto',
-                  h_trans_bandwidth='auto', method='fir', iir_params=None,
-                  phase='zero', fir_window='hamming', fir_design='firwin',
-                  verbose=None):
+def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
+                  l_trans_bandwidth='auto', h_trans_bandwidth='auto',
+                  method='fir', iir_params=None, phase='zero',
+                  fir_window='hamming', fir_design='firwin', verbose=None):
     r"""Create a FIR or IIR filter.
 
     ``l_freq`` and ``h_freq`` are the frequencies below which and above
