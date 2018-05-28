@@ -305,6 +305,7 @@ def test_filters():
     assert_raises(ValueError, filter_data, a, sfreq, -1, None, None,
                   100, 1.0, 1.0, fir_design='firwin')
     # these should work
+    create_filter(None, sfreq)
     create_filter(a, sfreq, None, None, fir_design='firwin')
     create_filter(a, sfreq, None, None, method='iir')
 
