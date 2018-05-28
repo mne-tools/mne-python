@@ -1,6 +1,9 @@
 .highlight a {
     font-weight: bold;
 }
+div.highlight {
+    background-color: #f8f8f8;
+}
 .highlight * {
     color: black;
     /* font-weight: normal; */
