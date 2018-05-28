@@ -872,10 +872,11 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 
 
 @verbose
-def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
-                  l_trans_bandwidth='auto', h_trans_bandwidth='auto',
-                  method='fir', iir_params=None, phase='zero',
-                  fir_window='hamming', fir_design='firwin', verbose=None):
+def create_filter(data=None, sfreq=None, l_freq=None, h_freq=None,
+                  filter_length='auto', l_trans_bandwidth='auto',
+                  h_trans_bandwidth='auto', method='fir', iir_params=None,
+                  phase='zero', fir_window='hamming', fir_design='firwin',
+                  verbose=None):
     r"""Create a FIR or IIR filter.
 
     ``l_freq`` and ``h_freq`` are the frequencies below which and above
@@ -888,9 +889,9 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
 
     Parameters
     ----------
-    data : ndarray, shape (..., n_times)
+    data : ndarray, shape (..., n_times) | None
         The data that will be filtered. This is used for sanity checking
-        only.
+        only. If None, no sanity checking will be performed.
     sfreq : float
         The sample frequency in Hz.
     l_freq : float | None
@@ -1045,9 +1046,15 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
 
     .. versionadded:: 0.14
     """
-    sfreq = float(sfreq)
-    if sfreq < 0:
+    if sfreq is None or float(sfreq) < 0:
         raise ValueError('sfreq must be positive')
+    else:
+        sfreq = float(sfreq)
+    # If no data specified, sanity checking is invalid
+    # perform it on a dummy array that will never fail sanity checks
+    if data is None:
+        logger.info('No data specified. No sanity checks performed.')
+        data = np.random.random(1, sfreq * 100)
     if h_freq is not None:
         h_freq = np.array(h_freq, float).ravel()
         if (h_freq > (sfreq / 2.)).any():
