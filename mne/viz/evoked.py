@@ -134,7 +134,7 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
         plot_topomap(this_data, pos, cmap=cmap, vmin=vmin, vmax=vmax,
                      axes=axarr[0][idx], show=False)
 
-    unit = 'Hz' if psd else 'ms'
+    unit = 'Hz' if psd else 's'
     fig.suptitle('Average over %.2f%s - %.2f%s' % (xmin, unit, xmax, unit),
                  y=0.1)
     tight_layout(pad=2.0, fig=fig)
