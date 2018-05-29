@@ -165,7 +165,6 @@ print(ica.labels_)
 # Now let's see how we would modify our signals if we removed this component
 # from the data.
 ica.plot_overlay(eog_average, exclude=eog_inds, show=False)
-raise RuntimeError
 # red -> before, black -> after. Yes! We remove quite a lot!
 
 # to definitely register this component as a bad one to be removed
