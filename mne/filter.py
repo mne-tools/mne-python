@@ -438,16 +438,17 @@ def _filtfilt(x, iir_params, picks, n_jobs, copy):
     """Call filtfilt."""
     # set up array for filtering, reshape to 2D, operate on last axis
     from scipy.signal import filtfilt
-    padlen = min(iir_params['padlen'], len(x))
+    padlen = min(iir_params['padlen'], x.shape[-1] - 1)
     n_jobs = check_n_jobs(n_jobs)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     if 'sos' in iir_params:
         sosfiltfilt = get_sosfiltfilt()
-        fun = partial(sosfiltfilt, sos=iir_params['sos'], padlen=padlen)
+        fun = partial(sosfiltfilt, sos=iir_params['sos'], padlen=padlen,
+                      axis=-1)
         _check_coefficients(iir_params['sos'])
     else:
         fun = partial(filtfilt, b=iir_params['b'], a=iir_params['a'],
-                      padlen=padlen)
+                      padlen=padlen, axis=-1)
         _check_coefficients((iir_params['b'], iir_params['a']))
     if n_jobs == 1:
         for p in picks:
@@ -645,11 +646,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         system = (iir_params['b'], iir_params['a'])
         output = 'ba'
     else:
-        output = iir_params.get('output', None)
-        if output is None:
-            warn('The default output type is "ba" in 0.13 but will change '
-                 'to "sos" in 0.14')
-            output = 'ba'
+        output = iir_params.get('output', 'sos')
         if not isinstance(output, string_types) or output not in ('ba', 'sos'):
             raise ValueError('Output must be "ba" or "sos", got %s'
                              % (output,))
