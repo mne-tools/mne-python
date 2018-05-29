@@ -33,9 +33,6 @@ from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.time_frequency import csd_morlet
 from mne.beamformer import make_dics, apply_dics_csd
 
-# Suppress irrelevant output
-mne.set_log_level('ERROR')
-
 # We use the MEG and MRI setup from the MNE-sample dataset
 data_path = sample.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')

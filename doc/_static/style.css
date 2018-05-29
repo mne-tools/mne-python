@@ -97,7 +97,7 @@ blockquote {
     background: rgb(242, 249, 255);
 }
 .sphx-glr-script-out .highlight pre {
-    background: rgb(242, 249, 255);
+    background: #f8f8f8;
 }
 /* OVERRIDES */
 div.sphx-glr-download {
