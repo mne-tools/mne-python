@@ -920,19 +920,42 @@ baseline_plot(x)
 #
 # Cutoff frequency
 # ----------------
-#
-# TODO paste in here whatever you learned from stackoverflow regarding how the cutoff frequency is defined for scipy.signal.firwin
+# The cutoff of fir filters in MNE is defined as half-amplitude cutoff in the
+# middle of the transition band. That is, if you construct a lowpass fir filter
+# with `h_freq = 40.`, the filter function will provide a transition bandwidth.
+# The desired half-amplitude cutoff of the lowpass fir filter is then at:
+# `h_freq + transition_bandwidth/2.`
 #
 #
 # Filter length (order) and transition bandwith (roll-off)
 # --------------------------------------------------------
+# In the :ref:`tut_filtering_in_python` section, we have already talked about
+# the default filter lengths and transition bandwidths that are used when no
+# custom values are specified using the respective filter function's arguments.
 #
-# TODO after the PR for not specifying data has been merged, write about how mne.filter.create_filter can be used to check length and transition bandwidth
+# If you want to find out about the filter length and transition bandwidth that
+# were used through the 'auto' setting, you can use `mne.filter.create_filter`
+# to print out the settings once more:
+
+# Use the same settings as when calling e.g., `raw.filter()`
+fir_coefs = mne.filter.create_filter(data=None,  # Data is only used for sanity checking, not strictly needed  # noqa
+                                     sfreq=1000.,  # sfreq of your data in Hz
+                                     l_freq=None,
+                                     h_freq=40.,  # assuming a lowpass of 40 Hz
+                                     method='fir',
+                                     fir_window='hamming',
+                                     fir_design='firwin')
+
+# See the printed log for the transition bandwidth and filter length
+# Alternatively, get the filter length through:
+filter_length = fir_coefs.shape[0]
+
 #
 # .. note:: If you are using an IIR filter, `mne.filter.create_filter` will not
 #           print a filter length and transition bandwidth to the log. Instead,
 #           you can specify the roll off with the `iir_params` argument or stay
 #           with the default, which is a 4th order (Butterworth) filter.
+#
 #
 # Passband ripple and stopband attenuation
 # ----------------------------------------
@@ -942,15 +965,15 @@ baseline_plot(x)
 # used in design. For standard windows the values are listed in this table (see
 # Ifeachor & Jervis, p. 357 [3]_):
 #
-# +-------------------------+----------------------+---------------------------+
-# | Name of window function | Passband ripple (dB) | Stopband attenuation (dB) |
-# +=========================+======================+===========================+
-# | Hann                    | 0.0545               | 44                        |
-# +-------------------------+----------------------+---------------------------+
-# | Hamming                 | 0.0194               | 53                        |
-# +-------------------------+----------------------+---------------------------+
-# | Blackman                | 0.0017               | 74                        |
-# +-------------------------+----------------------+---------------------------+
+# +-------------------------+-----------------+----------------------+
+# | Name of window function | Passband ripple | Stopband attenuation |
+# +=========================+=================+======================+
+# | Hann                    | 0.0545 dB       | 44 dB                |
+# +-------------------------+-----------------+----------------------+
+# | Hamming                 | 0.0194 dB       | 53 dB                |
+# +-------------------------+-----------------+----------------------+
+# | Blackman                | 0.0017 dB       | 74 dB                |
+# +-------------------------+-----------------+----------------------+
 #
 #
 # Filter delay and direction of computation
