@@ -1,12 +1,12 @@
 .highlight a {
-    font-weight: bold;
+    color: rgb(41, 122, 204);
 }
 div.highlight {
     background-color: #f8f8f8;
 }
 .highlight * {
-    color: black;
-    /* font-weight: normal; */
-    font-style: normal;
+    color: inherit;
+    font-weight: inherit;
+    font-style: inherit;
     background-color: transparent;
 }
