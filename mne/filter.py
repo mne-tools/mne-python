@@ -890,7 +890,8 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
     ----------
     data : ndarray, shape (..., n_times) | None
         The data that will be filtered. This is used for sanity checking
-        only. If None, no sanity checking will be performed.
+        only. If None, no sanity checking related to the length of the signal
+        relative to the filter order will be performed.
     sfreq : float
         The sample frequency in Hz.
     l_freq : float | None
@@ -1050,7 +1051,9 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
         raise ValueError('sfreq must be positive')
     # If no data specified, sanity checking will be skipped
     if data is None:
-        logger.info('No data specified. Sanity checks will be skipped.')
+        logger.info('No data specified. Sanity checks related to the length of'
+                    ' the signal relative to the filter order will be'
+                    ' skipped.')
     if h_freq is not None:
         h_freq = np.array(h_freq, float).ravel()
         if (h_freq > (sfreq / 2.)).any():
@@ -1832,7 +1835,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
             raise ValueError('filter_length must be a str, int, or None, got '
                              '%s' % (type(filter_length),))
 
-    if filter_length is not 'auto':
+    if filter_length != 'auto':
         if phase == 'zero' and method == 'fir':
             filter_length += (filter_length % 2 == 0)
         if filter_length <= 0:
