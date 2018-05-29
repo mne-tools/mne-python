@@ -1832,11 +1832,12 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
             raise ValueError('filter_length must be a str, int, or None, got '
                              '%s' % (type(filter_length),))
 
-    if phase == 'zero' and method == 'fir':
-        filter_length += (filter_length % 2 == 0)
-    if filter_length <= 0:
-        raise ValueError('filter_length must be positive, got %s'
-                         % (filter_length,))
+    if filter_length is not 'auto':
+        if phase == 'zero' and method == 'fir':
+            filter_length += (filter_length % 2 == 0)
+        if filter_length <= 0:
+            raise ValueError('filter_length must be positive, got %s'
+                             % (filter_length,))
 
     # If we have data supplied, do a sanity check
     if x is not None:
