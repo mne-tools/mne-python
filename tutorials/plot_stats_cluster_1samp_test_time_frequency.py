@@ -84,8 +84,9 @@ epochs_power = tfr_epochs.data[:, 0, :, :]  # take the 1 channel
 # Compute statistic
 # -----------------
 threshold = 2.5
+n_permutations = 100  # Warning: 100 is too small please use a bigger number
 T_obs, clusters, cluster_p_values, H0 = \
-    permutation_cluster_1samp_test(epochs_power, n_permutations=100,
+    permutation_cluster_1samp_test(epochs_power, n_permutations=n_permutations,
                                    threshold=threshold, tail=0)
 
 ###############################################################################
