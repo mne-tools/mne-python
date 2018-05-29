@@ -960,10 +960,10 @@ filter_length = fir_coefs.shape[0]
 # Passband ripple and stopband attenuation
 # ----------------------------------------
 #
-# When use standard `scipy.signal.firwin` design (as for fir filters in MNE),
-# the passband ripple and stopband attenuation are dependent upon the window
-# used in design. For standard windows the values are listed in this table (see
-# Ifeachor & Jervis, p. 357 [3]_):
+# When use standard :func:`scipy.signal.firwin` design (as for fir filters in
+# MNE), the passband ripple and stopband attenuation are dependent upon the
+# window used in design. For standard windows the values are listed in this
+# table (see Ifeachor & Jervis, p. 357 [3]_):
 #
 # +-------------------------+-----------------+----------------------+
 # | Name of window function | Passband ripple | Stopband attenuation |
