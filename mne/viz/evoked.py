@@ -273,7 +273,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         _plot_lines(evoked.data, info, picks, fig, axes, spatial_colors, unit,
                     units, scalings, hline, gfp, types, zorder, xlim, ylim,
                     times, bad_ch_idx, titles, ch_types_used, selectable,
-                    False, line_alpha=1., nave=evoked.nave, time_unit=time_unit)
+                    False, line_alpha=1., nave=evoked.nave,
+                    time_unit=time_unit)
         plt.setp(axes, xlabel='Time (%s)' % time_unit)
 
     elif plot_type == 'image':
