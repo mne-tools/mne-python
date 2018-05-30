@@ -369,8 +369,8 @@ def _construct_fir_filter(sfreq, freq, gain, filter_length, phase, fir_window,
 
     Returns
     -------
-    xf : array
-        x filtered.
+    h : array
+        Filter coefficients.
     """
     assert freq[0] == 0
     if fir_design == 'firwin2':
