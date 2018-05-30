@@ -80,7 +80,7 @@ def _butterfly_on_button_press(event, params):
 
 
 def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
-                        psd=False):
+                        psd=False, time_unit='s'):
     """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
     ch_types = [type_ for type_ in ch_types if type_ in ('eeg', 'grad', 'mag')]
@@ -134,7 +134,7 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
         plot_topomap(this_data, pos, cmap=cmap, vmin=vmin, vmax=vmax,
                      axes=axarr[0][idx], show=False)
 
-    unit = 'Hz' if psd else 'ms'
+    unit = 'Hz' if psd else time_unit
     fig.suptitle('Average over %.2f%s - %.2f%s' % (xmin, unit, xmax, unit),
                  y=0.1)
     tight_layout(pad=2.0, fig=fig)
@@ -273,7 +273,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         _plot_lines(evoked.data, info, picks, fig, axes, spatial_colors, unit,
                     units, scalings, hline, gfp, types, zorder, xlim, ylim,
                     times, bad_ch_idx, titles, ch_types_used, selectable,
-                    False, line_alpha=1., nave=evoked.nave)
+                    False, line_alpha=1., nave=evoked.nave,
+                    time_unit=time_unit)
         plt.setp(axes, xlabel='Time (%s)' % time_unit)
 
     elif plot_type == 'image':
@@ -305,7 +306,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 scalings, hline, gfp, types, zorder, xlim, ylim, times,
                 bad_ch_idx, titles, ch_types_used, selectable, psd,
-                line_alpha, nave):
+                line_alpha, nave, time_unit='ms'):
     """Plot data as butterfly plot."""
     from matplotlib import patheffects, pyplot as plt
     from matplotlib.widgets import SpanSelector
@@ -456,7 +457,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             callback_onselect = partial(_line_plot_onselect,
                                         ch_types=ch_types_used, info=info,
                                         data=data, times=times, text=text,
-                                        psd=psd)
+                                        psd=psd, time_unit=time_unit)
             blit = False if plt.get_backend() == 'MacOSX' else True
             minspan = 0 if len(times) < 2 else times[1] - times[0]
             ax._span_selector = SpanSelector(
