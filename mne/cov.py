@@ -839,12 +839,11 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     for this_method, data in cov_data.items():
         cov = Covariance(data.pop('data'), ch_names, info['bads'], projs,
                          nfree=n_samples_tot)
-        logger.info('Number of samples used : %d' % n_samples_tot)
-        logger.info('[done]')
 
         # add extra info
         cov.update(method=this_method, **data)
         covs.append(cov)
+    logger.info('Number of samples used : %d' % n_samples_tot)
     covs.sort(key=lambda c: c['loglik'], reverse=True)
 
     if len(covs) > 1:
@@ -859,6 +858,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             logger.info('selecting best estimator: {0}'.format(out['method']))
     else:
         out = covs[0]
+    logger.info('[done]')
 
     return out
 
