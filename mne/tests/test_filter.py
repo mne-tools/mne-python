@@ -23,6 +23,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 rng = np.random.RandomState(0)
 
 
+@requires_version('scipy', '0.16')
 def test_filter_array():
     """Test filtering an array."""
     for data in (np.zeros((11, 1, 10)), np.zeros((9, 1, 10))):
