@@ -305,7 +305,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 scalings, hline, gfp, types, zorder, xlim, ylim, times,
                 bad_ch_idx, titles, ch_types_used, selectable, psd,
-                line_alpha, nave, time_unit):
+                line_alpha, nave, time_unit='ms'):
     """Plot data as butterfly plot."""
     from matplotlib import patheffects, pyplot as plt
     from matplotlib.widgets import SpanSelector
