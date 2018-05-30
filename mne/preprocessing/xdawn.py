@@ -142,10 +142,9 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
         except np.linalg.LinAlgError as exp:
             raise ValueError('Could not compute eigenvalues, ensure '
                              'proper regularization (%s)' % (exp,))
-        order = np.argsort(evals)[::-1]
-        evecs = evecs[:, order]  # sort eigenvectors
+        evecs = evecs[:, ::-1]  # sort eigenvectors
         evecs /= np.apply_along_axis(np.linalg.norm, 0, evecs)
-        evals = np.abs(evals[order])
+        evals = np.abs(evals[::-1])
         evals /= evals.sum()
         _patterns = np.linalg.pinv(evecs.T)
         filters.append(evecs[:, :n_components].T)

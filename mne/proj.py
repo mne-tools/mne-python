@@ -71,8 +71,9 @@ def write_proj(fname, projs):
 
 
 @verbose
-def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, method='ssp',
-                  reg=None, method_params=None, verbose=None):
+def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
+                  fit_method='ssp', reg=None, method_params=None,
+                  verbose=None):
     from .preprocessing.xdawn import _fit_xdawn
     assert len(info['ch_names']) == data.shape[1]
     mag_ind = pick_types(info, meg='mag', ref_meg=False, exclude='bads')
@@ -103,17 +104,18 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, method='ssp',
         if n == 0:
             continue
         data_ind = data[:, ind]
-        if method == 'ssp':
+        if fit_method == 'ssp':
             data_ind = data_ind[ind]
             assert data.ndim == 2 and data.shape[0] == data.shape[1]
             # data is the covariance matrix: U * S**2 * Ut
-            U, Sexp2, _ = linalg.svd(data_ind, full_matrices=False,
-                                     overwrite_a=True)
+            Sexp2, U = linalg.eigh(data_ind, overwrite_a=True)
+            U = U[:, ::-1]
+            Sexp2 = Sexp2[::-1]
             U = U[:, :n].T
             exp_var = Sexp2 / Sexp2.sum()
             exp_var = exp_var[:n]
         else:
-            assert method == 'xdawn'
+            assert fit_method == 'xdawn'
             _, U, _, exp_var = _fit_xdawn(data_ind, np.ones(len(data_ind)), n,
                                           reg=reg, method_params=method_params)
             U /= np.linalg.norm(U, axis=1, keepdims=True)
