@@ -221,7 +221,7 @@ plot_filter(h, sfreq, freq, gain, 'Sinc (10.0 sec)', flim=flim)
 #           is desired, but generally less clean (due to sampling issues) than
 #           a windowed approach for more straightfroward filter applications.
 #           Since our filters (low-pass, high-pass, band-pass, band-stop)
-#           are fairly simple and we require precisel control of all frequency
+#           are fairly simple and we require precise control of all frequency
 #           regions, here we will use and explore primarily windowed FIR
 #           design.
 #
@@ -894,6 +894,104 @@ baseline_plot(x)
 #     (see also :func:`mne.filter.construct_iir_filter` for options).
 #     For more inforamtion, see e.g. `FieldTrip band-pass documentation`_.
 #
+# Reporting Filters
+# =================
+# On page 45 in Widmann *et al.* [7]_, there is a convenient list of important
+# filter parameters that should be reported with each publication:
+#
+# 1. filtertype (high-pass, low-pass, band-pass, band-stop, FIR, IIR)
+# 2. cutoff frequency (including definition)
+# 3. filter order (or length)
+# 4. roll-off or transition bandwidth
+# 5. passband ripple and stopband attenuation
+# 6. filter delay (zero-phase, linear-phase, non-linear phase) and causality
+# 7. direction of computation (one-pass forward/reverse,or two-pass forward and
+#    reverse)
+#
+# In the following, we will address how to deal with these parameters in MNE:
+#
+#
+# Filter type
+# -----------
+# Depending on the function or method used, the filter type can be specified.
+# To name an example. in :func:`mne.filter.create_filter`, the relevant
+# arguments would be `l_freq`, `h_freg`, `method`, and if the method is FIR:
+# `fir_window`, and `fir_design`.
+#
+#
+# Cutoff frequency
+# ----------------
+# The cutoff of FIR filters in MNE is defined as half-amplitude cutoff in the
+# middle of the transition band. That is, if you construct a lowpass FIR filter
+# with ``h_freq = 40.``, the filter function will provide a transition
+# bandwidth that depens on the `h_trans_bandwidth` argument. The desired
+# half-amplitude  cutoff of the lowpass FIR filter is then at:
+# ``h_freq + transition_bandwidth/2.``.
+#
+# Filter length (order) and transition bandwidth (roll-off)
+# --------------------------------------------------------
+# In the :ref:`tut_filtering_in_python` section, we have already talked about
+# the default filter lengths and transition bandwidths that are used when no
+# custom values are specified using the respective filter function's arguments.
+#
+# If you want to find out about the filter length and transition bandwidth that
+# were used through the 'auto' setting, you can use
+# :func:`mne.filter.create_filter` to print out the settings once more:
+
+# Use the same settings as when calling e.g., `raw.filter()`
+fir_coefs = mne.filter.create_filter(data=None,  # Data is only used for sanity checking, not strictly needed  # noqa
+                                     sfreq=1000.,  # sfreq of your data in Hz
+                                     l_freq=None,
+                                     h_freq=40.,  # assuming a lowpass of 40 Hz
+                                     method='fir',
+                                     fir_window='hamming',
+                                     fir_design='firwin',
+                                     verbose=True)
+
+# See the printed log for the transition bandwidth and filter length
+# Alternatively, get the filter length through:
+filter_length = fir_coefs.shape[0]
+
+###############################################################################
+# .. note:: If you are using an IIR filter, :func:`mne.filter.create_filter`
+#           will not print a filter length and transition bandwidth to the log.
+#           Instead, you can specify the roll off with the `iir_params`
+#           argument or stay with the default, which is a 4th order
+#           (Butterworth) filter.
+#
+# Passband ripple and stopband attenuation
+# ----------------------------------------
+#
+# When use standard :func:`scipy.signal.firwin` design (as for FIR filters in
+# MNE), the passband ripple and stopband attenuation are dependent upon the
+# window used in design. For standard windows the values are listed in this
+# table (see Ifeachor & Jervis, p. 357 [3]_):
+#
+# +-------------------------+-----------------+----------------------+
+# | Name of window function | Passband ripple | Stopband attenuation |
+# +=========================+=================+======================+
+# | Hann                    | 0.0545 dB       | 44 dB                |
+# +-------------------------+-----------------+----------------------+
+# | Hamming                 | 0.0194 dB       | 53 dB                |
+# +-------------------------+-----------------+----------------------+
+# | Blackman                | 0.0017 dB       | 74 dB                |
+# +-------------------------+-----------------+----------------------+
+#
+#
+# Filter delay and direction of computation
+# -----------------------------------------
+# For reporting this information, it might be sufficient to read the docstring
+# of the filter function or method that you apply. For example in the
+# docstring of `mne.filter.create_filter`, for the phase parameter it says:
+#
+#    Phase of the filter, only used if ``method='fir'``.
+#    By default, a symmetric linear-phase FIR filter is constructed.
+#    If ``phase='zero'`` (default), the delay of this filter
+#    is compensated for. If ``phase=='zero-double'``, then this filter
+#    is applied twice, once forward, and once backward. If 'minimum',
+#    then a minimum-phase, causal filter will be used.
+#
+#
 # Summary
 # =======
 #
@@ -918,7 +1016,7 @@ baseline_plot(x)
 # .. [4] Acunzo, D. J., MacKenzie, G., & van Rossum, M. C. W. (2012).
 #        Systematic biases in early ERP and ERF components as a result
 #        of high-pass filtering. Journal of Neuroscience Methods,
-#        209(1), 212–218. http://doi.org/10.1016/j.jneumeth.2012.06.011
+#        209(1), 212–218. https://doi.org/10.1016/j.jneumeth.2012.06.011
 # .. [5] Rousselet, G. A. (2012). Does filtering preclude us from studying
 #        ERP time-courses? Frontiers in Psychology, 3(131)
 # .. [6] Widmann, A., & Schröger, E. (2012). Filter effects and filter
@@ -927,10 +1025,11 @@ baseline_plot(x)
 # .. [7] Widmann, A., Schröger, E., & Maess, B. (2015). Digital filter
 #        design for electrophysiological data – a practical approach.
 #        Journal of Neuroscience Methods, 250, 34–46.
+#        https://doi.org/10.1016/j.jneumeth.2014.08.002
 # .. [8] Tanner, D., Morgan-Short, K., & Luck, S. J. (2015).
 #        How inappropriate high-pass filters can produce artifactual effects
 #        and incorrect conclusions in ERP studies of language and cognition.
-#        Psychophysiology, 52(8), 997–1009. http://doi.org/10.1111/psyp.12437
+#        Psychophysiology, 52(8), 997–1009. https://doi.org/10.1111/psyp.12437
 # .. [9] Maess, B., Schröger, E., & Widmann, A. (2016).
 #        High-pass filters and baseline correction in M/EEG analysis.
 #        Commentary on: “How inappropriate high-pass filters can produce
