@@ -2,15 +2,16 @@ import os.path as op
 import warnings
 
 from nose.tools import assert_true, assert_equal
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_allclose
 import numpy as np
 
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.io.proj import make_projector, activate_proj
-from mne.preprocessing.ssp import compute_proj_ecg, compute_proj_eog
+from mne.preprocessing import (compute_proj_ecg, compute_proj_eog,
+                               create_ecg_epochs)
 from mne.utils import run_tests_if_main
 from mne.datasets import testing
-from mne import pick_types
+from mne import (pick_types, compute_proj_epochs, compute_proj_evoked)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -19,8 +20,10 @@ raw_fname = op.join(data_path, 'test_raw.fif')
 dur_use = 5.0
 eog_times = np.array([0.5, 2.3, 3.6, 14.5])
 
-ctf_fname = op.join(testing.data_path(download=False), 'CTF',
-                    'testdata_ctf.ds')
+testing_path = testing.data_path(download=False)
+ctf_fname = op.join(testing_path, 'CTF', 'testdata_ctf.ds')
+raw_sample_fname = op.join(testing_path, 'MEG', 'sample',
+                           'sample_audvis_trunc_raw.fif')
 
 
 def test_compute_proj_ecg():
@@ -176,6 +179,69 @@ def test_compute_proj_ctf():
                                              filter_length=6000)
             _check_projs_for_expected_channels(projs, n_mags, n_grads, n_eegs)
             assert len(projs) == (4 + n_projs_init)
+
+
+@testing.requires_testing_data
+def test_compute_proj_xdawn():
+    """Test computing projectors with Xdawn."""
+    raw = read_raw_fif(raw_sample_fname).load_data().del_proj()
+    raw.pick_types(meg='mag')
+
+    # capture "true" / ideal epochs using the average in fairly clean data
+    ecg_epochs = create_ecg_epochs(raw, l_freq=None, h_freq=None,
+                                   tmin=-0.2, tmax=0.4)
+    assert len(ecg_epochs) > 20
+    assert ecg_epochs.info['projs'] == []
+    proj_true = compute_proj_evoked(ecg_epochs.average(), n_mag=1)[0]
+    proj_true = proj_true['data']['data'][0]
+    assert proj_true.ndim == 1
+
+    # create a huge environmental artifact
+    rng = np.random.RandomState(0)
+    artifact = rng.randn(len(proj_true))
+
+    # ensure it's orthogonal to the proj of interest (cleans up some math)
+    artifact -= np.dot(np.dot(artifact, proj_true), proj_true)
+    artifact /= np.linalg.norm(artifact)
+    assert_allclose(np.linalg.norm(proj_true), 1.)
+    assert_allclose(np.linalg.norm(artifact), 1.)
+    assert_allclose(np.dot(artifact, proj_true), 0., atol=1e-14)
+
+    # add this artifact to our ECG epochs, with different amp per epoch
+    # (similar to a low frequency/DC drift)
+    amps = 2e-11 * rng.randn(len(ecg_epochs), 1, 1)
+    ecg_epochs._data += artifact[np.newaxis, :, np.newaxis] * amps
+    del amps
+
+    # evaluate performance
+    proj_epochs = compute_proj_epochs(
+        ecg_epochs, n_mag=1)[0]
+    proj_epochs_reg = compute_proj_epochs(
+        ecg_epochs, n_mag=1, reg='diagonal_fixed')[0]
+    assert_allclose(proj_epochs['data']['data'],
+                    proj_epochs_reg['data']['data'])
+    proj_evoked = compute_proj_evoked(
+        ecg_epochs.average(), n_mag=1)[0]
+    proj_xdawn = compute_proj_epochs(
+        ecg_epochs, n_mag=1, fit_method='xdawn')[0]
+    proj_xdawn_reg = compute_proj_epochs(
+        ecg_epochs, n_mag=1, fit_method='xdawn', reg=0.9)[0]
+
+    # Look at how much var explained by true proj and artifact
+    for kind, proj, p_lim, v_lim in (
+            ('epochs', proj_epochs, [0.00, 0.01], [0.9, 0.95]),  # bad
+            ('epochs_reg', proj_epochs_reg, [0.00, 0.01], [0.9, 0.95]),  # bad
+            ('evoked', proj_evoked, [0.2, 0.3], [0.97, 0.99]),  # better
+            ('xdawn', proj_xdawn, [0.2, 0.3], [0.15, 0.2]),  # better
+            ('xdawn_reg', proj_xdawn_reg, [0.3, 0.4], [0.01, 0.03]),  # best
+            ):
+        exp_var = proj['explained_var']
+        assert v_lim[0] <= exp_var <= v_lim[1], kind
+        proj = proj['data']['data'][0]
+        proj_var = np.dot(proj_true, proj) ** 2
+        assert p_lim[0] <= proj_var <= p_lim[1], kind
+        arti_var = np.dot(artifact, proj) ** 2
+        assert p_lim[1] < arti_var < 1.0, kind
 
 
 run_tests_if_main()

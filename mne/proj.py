@@ -5,13 +5,14 @@
 import numpy as np
 from scipy import linalg
 
-from . import io, Epochs
+from .io import fiff_open
+from .io.write import start_file, end_file
 from .utils import check_fname, logger, verbose
-from .io.pick import pick_types, pick_types_forward
-from .io.proj import Projection, _has_eeg_average_ref_proj
-from .event import make_fixed_length_events
-from .parallel import parallel_func
-from .cov import _check_n_samples
+from .io.pick import (pick_types, pick_types_forward, pick_info,
+                      _pick_data_channels)
+from .io.proj import (Projection, _has_eeg_average_ref_proj, _read_proj,
+                      _write_proj)
+from .cov import compute_covariance, compute_raw_covariance
 from .forward import (is_fixed_orient, _subject_from_forward,
                       convert_forward_solution)
 from .source_estimate import SourceEstimate, VolSourceEstimate
@@ -39,9 +40,9 @@ def read_proj(fname):
     check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz',
                                       '_proj.fif', '_proj.fif.gz'))
 
-    ff, tree, _ = io.fiff_open(fname)
+    ff, tree, _ = fiff_open(fname)
     with ff as fid:
-        projs = io.proj._read_proj(fid, tree)
+        projs = _read_proj(fid, tree)
     return projs
 
 
@@ -64,13 +65,15 @@ def write_proj(fname, projs):
     check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz',
                                       '_proj.fif', '_proj.fif.gz'))
 
-    fid = io.write.start_file(fname)
-    io.proj._write_proj(fid, projs)
-    io.write.end_file(fid)
+    fid = start_file(fname)
+    _write_proj(fid, projs)
+    end_file(fid)
 
 
 @verbose
-def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
+def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, method='ssp',
+                  reg=None, method_params=None, verbose=None):
+    from .preprocessing.xdawn import _fit_xdawn
     mag_ind = pick_types(info, meg='mag', ref_meg=False, exclude='bads')
     grad_ind = pick_types(info, meg='grad', ref_meg=False, exclude='bads')
     eeg_ind = pick_types(info, meg=False, eeg=True, ref_meg=False,
@@ -98,13 +101,33 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
                                    ['planar', 'axial', 'eeg']):
         if n == 0:
             continue
-        data_ind = data[ind][:, ind]
-        # data is the covariance matrix: U * S**2 * Ut
-        U, Sexp2, _ = linalg.svd(data_ind, full_matrices=False,
-                                 overwrite_a=True)
-        U = U[:, :n]
-        exp_var = Sexp2 / Sexp2.sum()
-        exp_var = exp_var[:n]
+        data_ind = data[:, ind]
+        if method == 'ssp':
+            data_ind = data_ind[ind]
+            assert data.ndim == 2 and data.shape[0] == data.shape[1]
+            # data is the covariance matrix: U * S**2 * Ut
+            U, Sexp2, _ = linalg.svd(data_ind, full_matrices=False,
+                                     overwrite_a=True)
+            U = U[:, :n]
+            exp_var = Sexp2 / Sexp2.sum()
+            exp_var = exp_var[:n]
+        else:
+            assert method == 'xdawn'
+            """
+            from .preprocessing.xdawn import Xdawn
+            from mne import EpochsArray, create_info
+            xd = Xdawn(n, None, False)
+            xd.fit(EpochsArray(data_ind, create_info(data_ind.shape[1], 1000., 'eeg')))
+            U2 = xd.patterns_['1'][:, :n]
+            exp_var = np.full(n, 0.15)
+            """
+            _, U, _, exp_var = _fit_xdawn(data_ind, np.ones(len(data_ind)), n,
+                                          reg=reg, method_params=method_params)
+            U = U.T
+            # np.testing.assert_allclose(U, U2)
+            U /= np.linalg.norm(U, axis=0, keepdims=True)
+        assert U.shape == (ind.size, n)
+        assert exp_var.shape == (n,)
         for k, (u, var) in enumerate(zip(U.T, exp_var)):
             proj_data = dict(col_names=names, row_names=None,
                              data=u[np.newaxis, :], nrow=1, ncol=u.size)
@@ -119,7 +142,8 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
 
 @verbose
 def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
-                        desc_prefix=None, verbose=None):
+                        desc_prefix=None, fit_method='ssp', reg=None,
+                        method_params=None, verbose=None):
     """Compute SSP (spatial space projection) vectors on Epochs.
 
     Parameters
@@ -137,6 +161,20 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     desc_prefix : str | None
         The description prefix to use. If None, one will be created based on
         the event_id, tmin, and tmax.
+    fit_method : str
+        Method to use to compute projection vectors.
+        Can be "ssp" (default) or "xdawn".
+
+        .. versionadded:: 0.17
+    reg : str | None (default None)
+        This will be passed as ``method`` to :func:`mne.compute_covariance`
+        (see its documentation for details).
+
+        .. versionadded:: 0.17
+    method_params : dict | None
+        See :class:`mne.compute_covariance`.
+
+        .. versionadded:: 0.17
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -151,7 +189,15 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     compute_proj_raw, compute_proj_evoked
     """
     # compute data covariance
-    data = _compute_cov_epochs(epochs, n_jobs)
+    if fit_method not in ('ssp', 'xdawn'):
+        raise ValueError('fit_method must be "ssp" or "xdawn", got %r'
+                         % (fit_method,))
+    if fit_method == 'ssp':
+        data = compute_covariance(
+            epochs, n_jobs=n_jobs, verbose='error',
+            method=reg, method_params=method_params)['data']
+    else:
+        data = epochs.get_data()
     event_id = epochs.event_id
     if event_id is None or len(list(event_id.keys())) == 0:
         event_id = '0'
@@ -161,21 +207,8 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
         event_id = 'Multiple-events'
     if desc_prefix is None:
         desc_prefix = "%s-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
-    return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix)
-
-
-def _compute_cov_epochs(epochs, n_jobs):
-    """Compute epochs covariance."""
-    parallel, p_fun, _ = parallel_func(np.dot, n_jobs)
-    data = parallel(p_fun(e, e.T) for e in epochs)
-    n_epochs = len(data)
-    if n_epochs == 0:
-        raise RuntimeError('No good epochs found')
-
-    n_chan, n_samples = epochs.info['nchan'], len(epochs.times)
-    _check_n_samples(n_samples * n_epochs, n_chan)
-    data = sum(data)
-    return data
+    return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix,
+                         fit_method, reg, method_params)
 
 
 @verbose
@@ -212,7 +245,8 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, verbose=None):
 
 @verbose
 def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
-                     n_eeg=0, reject=None, flat=None, n_jobs=1, verbose=None):
+                     n_eeg=0, reject=None, flat=None, n_jobs=1,
+                     reg=None, method_params=None, verbose=None):
     """Compute SSP (spatial space projection) vectors on Raw.
 
     Parameters
@@ -224,7 +258,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     stop : float
         Time (in sec) to stop computing SSP.
         None will go to the end of the file.
-    duration : float
+    duration : float | None
         Duration (in sec) to chunk data into for SSP
         If duration is None, data will not be chunked.
     n_grad : int
@@ -239,6 +273,15 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
         Epoch flat configuration (see Epochs).
     n_jobs : int
         Number of jobs to use to compute covariance.
+    reg : float | str | None (default None)
+        ``reg`` will be passed to :func:`mne.compute_raw_covariance`
+        as the parameter ``method``.
+
+        .. versionadded:: 0.17
+    method_params : dict | None
+        See :class:`mne.compute_raw_covariance`.
+
+        .. versionadded:: 0.17
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -252,29 +295,13 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     --------
     compute_proj_epochs, compute_proj_evoked
     """
-    if duration is not None:
-        events = make_fixed_length_events(raw, 999, start, stop, duration)
-        picks = pick_types(raw.info, meg=True, eeg=True, eog=True, ecg=True,
-                           emg=True, exclude='bads')
-        epochs = Epochs(raw, events, None, tmin=0., tmax=duration,
-                        picks=picks, reject=reject, flat=flat)
-        data = _compute_cov_epochs(epochs, n_jobs)
-        info = epochs.info
-        if not stop:
-            stop = raw.n_times / raw.info['sfreq']
-    else:
-        # convert to sample indices
-        start = max(raw.time_as_index(start)[0], 0)
-        stop = raw.time_as_index(stop)[0] if stop else raw.n_times
-        stop = min(stop, raw.n_times)
-        data, times = raw[:, start:stop]
-        _check_n_samples(stop - start, data.shape[0])
-        data = np.dot(data, data.T)  # compute data covariance
-        info = raw.info
-        # convert back to times
-        start = start / raw.info['sfreq']
-        stop = stop / raw.info['sfreq']
-
+    picks = _pick_data_channels(raw.info, exclude='bads')
+    data = compute_raw_covariance(
+        raw, start, stop, duration, method=reg, method_params=method_params,
+        picks=picks, n_jobs=n_jobs)['data']
+    info = pick_info(raw.info, picks)
+    start = float(start)
+    stop = raw.times[-1] if stop is None else float(stop)
     desc_prefix = "Raw-%-.3f-%-.3f" % (start, stop)
     projs = _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix)
     return projs

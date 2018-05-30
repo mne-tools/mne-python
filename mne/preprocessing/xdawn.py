@@ -100,49 +100,7 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
 
 def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
                events=None, tmin=0., sfreq=1., method_params=None, info=None):
-    """Fit filters and coefs using Xdawn Algorithm.
-
-    Xdawn is a spatial filtering method designed to improve the signal
-    to signal + noise ratio (SSNR) of the event related responses. Xdawn was
-    originally designed for P300 evoked potential by enhancing the target
-    response with respect to the non-target response. This implementation is a
-    generalization to any type of event related response.
-
-    Parameters
-    ----------
-    epochs_data : array, shape (n_epochs, n_channels, n_times)
-        The epochs data.
-    y : array, shape (n_epochs)
-        The epochs class.
-    n_components : int (default 2)
-        The number of components to decompose the signals signals.
-    reg : float | str | None (default None)
-        If not None (same as ``'empirical'``, default), allow
-        regularization for covariance estimation.
-        If float, shrinkage is used (0 <= shrinkage <= 1).
-        For str options, ``reg`` will be passed as ``method`` to
-        :func:`mne.compute_covariance`.
-    signal_cov : None | Covariance | array, shape (n_channels, n_channels)
-        The signal covariance used for whitening of the data.
-        if None, the covariance is estimated from the epochs signal.
-    events : array, shape (n_epochs, 3)
-        The epochs events, used to correct for epochs overlap.
-    tmin : float
-        Epochs starting time. Only used if events is passed to correct for
-        epochs overlap.
-    sfreq : float
-        Sampling frequency.  Only used if events is passed to correct for
-        epochs overlap.
-
-    Returns
-    -------
-    filters : array, shape (n_channels, n_channels)
-        The Xdawn components used to decompose the data for each event type.
-    patterns : array, shape (n_channels, n_channels)
-        The Xdawn patterns used to restore the signals for each event type.
-    evokeds : array, shape (n_class, n_components, n_times)
-        The independent evoked responses per condition.
-    """
+    """Fit filters and coefs using Xdawn algorithm."""
     n_epochs, n_channels, n_times = epochs_data.shape
 
     classes = np.unique(y)
@@ -172,6 +130,7 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
 
     filters = list()
     patterns = list()
+    expvars = list()
     for evo, toeplitz in zip(evokeds, toeplitzs):
         # Estimate covariance matrix of the prototype response
         evo = np.dot(evo, toeplitz)
@@ -183,16 +142,21 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
         except np.linalg.LinAlgError as exp:
             raise ValueError('Could not compute eigenvalues, ensure '
                              'proper regularization (%s)' % (exp,))
-        evecs = evecs[:, np.argsort(evals)[::-1]]  # sort eigenvectors
+        order = np.argsort(evals)[::-1]
+        evecs = evecs[:, order]  # sort eigenvectors
         evecs /= np.apply_along_axis(np.linalg.norm, 0, evecs)
+        evals = np.abs(evals[order])
+        evals /= evals.sum()
         _patterns = np.linalg.pinv(evecs.T)
         filters.append(evecs[:, :n_components].T)
         patterns.append(_patterns[:, :n_components].T)
+        expvars.append(evals[:n_components])
 
     filters = np.concatenate(filters, axis=0)
     patterns = np.concatenate(patterns, axis=0)
     evokeds = np.array(evokeds)
-    return filters, patterns, evokeds
+    expvars = np.concatenate(expvars, axis=0)
+    return filters, patterns, evokeds, expvars
 
 
 class _XdawnTransformer(BaseEstimator, TransformerMixin):
@@ -262,7 +226,7 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
 
         # Main function
         self.classes_ = np.unique(y)
-        self.filters_, self.patterns_, _ = _fit_xdawn(
+        self.filters_, self.patterns_, _, _ = _fit_xdawn(
             X, y, n_components=self.n_components, reg=self.reg,
             signal_cov=self.signal_cov, method_params=self.method_params)
         return self
@@ -457,7 +421,7 @@ class Xdawn(_XdawnTransformer):
         n_components = X.shape[1]
 
         # Main fitting function
-        filters, patterns, evokeds = _fit_xdawn(
+        filters, patterns, evokeds, _ = _fit_xdawn(
             X, y, n_components=n_components, reg=self.reg,
             signal_cov=self.signal_cov, events=events, tmin=tmin, sfreq=sfreq,
             method_params=self.method_params, info=use_info)
