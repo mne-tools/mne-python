@@ -1,8 +1,11 @@
-language: c
+language: python
+python:
+  - 3.6
 dist: trusty
 sudo: false
 cache:
   apt: true
+  pip: true
 env:
     # TRAVIS_PYTHON_VERSION is only needed for neo's setup.py
     global: PYTHON_VERSION=3.6 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning TEST_LOCATION=src
@@ -26,20 +29,26 @@ matrix:
           env: CONDA_ENVIRONMENT="environment.yml"
                SPLIT=1
 
-        # OSX
+        # OSX conda
         - os: osx
           env: CONDA_ENVIRONMENT="environment.yml"
-              SPLIT=0
+               SPLIT=0
         - os: osx
           env: CONDA_ENVIRONMENT="environment.yml"
-              SPLIT=1
+               SPLIT=1
 
-        # 2.7 + non-default stim channel
+        # OSX pip
+        - os: osx
+          env: SPLIT=0
+        - os: osx
+          env: SPLIT=1
+
+        # PIP + non-default stim channel
         - os: linux
-          env: CONDA_ENVIRONMENT="environment2.yml" MNE_STIM_CHANNEL=STI101
+          env: MNE_STIM_CHANNEL=STI101
                SPLIT=0
         - os: linux
-          env: CONDA_ENVIRONMENT="environment2.yml" MNE_STIM_CHANNEL=STI101
+          env: MNE_STIM_CHANNEL=STI101
                SPLIT=1
 
         # 2.7 Old dependencies
@@ -67,14 +76,18 @@ before_install:
     - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
         /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
       fi;
-    - git clone https://github.com/astropy/ci-helpers.git
-    - source ci-helpers/travis/setup_conda.sh
-    - if [ ! -z $CONDA_ENVIRONMENT ]; then
-        pip uninstall --yes mne;
-      fi;
-    - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-        pip install --upgrade pyqt5>=5.10;
-      fi;
+    - if [ -z CONDA_ENVIRONMENT ] && [ -z CONDA_DEPENDENCIES ]; then
+        pip install -r requirements.txt
+      else
+        git clone https://github.com/astropy/ci-helpers.git;
+        source ci-helpers/travis/setup_conda.sh;
+        if [ ! -z $CONDA_ENVIRONMENT ]; then
+          pip uninstall --yes mne;
+        fi;
+        if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+          pip install --upgrade pyqt5>=5.10;
+        fi;
+      fi
     # Don't source mne_setup_sh here because changing PATH etc. can't be done in a script
     - if [ "${DEPS}" == "" ]; then
         export MNE_ROOT="${PWD}/minimal_cmds";
