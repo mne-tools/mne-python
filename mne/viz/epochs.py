@@ -176,7 +176,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     if "invert_y" in ts_args:
         raise NotImplementedError("'invert_y' found in 'ts_args'. "
-                                  "This currently not implemented.")
+                                  "This is currently not implemented.")
 
     manual_ylims = "ylim" in ts_args
     vlines = ts_args.get(
