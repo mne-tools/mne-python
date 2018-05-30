@@ -32,10 +32,12 @@ raw = mne.io.read_raw_fif(raw_fname).crop(120, 240).load_data()
 events = mne.find_events(raw)
 epochs = mne.Epochs(raw, events, event_id=2, tmin=-0.1, tmax=0.8, preload=True)
 
-# Downsample to 100 Hz
-print('Original sampling rate:', epochs.info['sfreq'], 'Hz')
-epochs_resampled = epochs.copy().resample(100, npad='auto')
-print('New sampling rate:', epochs_resampled.info['sfreq'], 'Hz')
+# Downsample to 100 Hz. Since this does not evenly divide into the
+# original sample rate (600.614990234375 Hz), here we use the "FFT" method
+# as it is faster.
+print('Original sampling rate: %s Hz' % epochs.info['sfreq'])
+epochs_resampled = epochs.copy().resample(100, method='fft')
+print('New sampling rate:      %s Hz' % epochs_resampled.info['sfreq'])
 
 # Plot a piece of data to see the effects of downsampling
 plt.figure(figsize=(7, 3))
@@ -61,8 +63,11 @@ mne.viz.tight_layout()
 # all, the alternative approach is to resample the continuous data. This
 # can only be done on loaded or pre-loaded data.
 
-# Resample to 300 Hz
-raw_resampled = raw.copy().resample(300, npad='auto')
+# Resample to ~300 Hz, which is similar to decimation but effectively
+# low-passes the data before subselecting samples to avoid aliasing.
+new_sfreq = raw.info['sfreq'] / 2.
+raw_resampled = raw.copy().resample(new_sfreq, method='poly')
+print('New sampling rate:      %s Hz' % raw_resampled.info['sfreq'])
 
 ###############################################################################
 # Because resampling also affects the stim channels, some trigger onsets might
@@ -72,12 +77,11 @@ raw_resampled = raw.copy().resample(300, npad='auto')
 print('Number of events before resampling:', len(mne.find_events(raw)))
 
 # Resample to 100 Hz (suppress the warning that would be emitted)
-raw_resampled = raw.copy().resample(100, npad='auto', verbose='error')
+raw_resampled = raw.copy().resample(100, method='fft', verbose='error')
 print('Number of events after resampling:',
       len(mne.find_events(raw_resampled)))
 
 # To avoid losing events, jointly resample the data and event matrix
 events = mne.find_events(raw)
-raw_resampled, events_resampled = raw.copy().resample(
-    100, npad='auto', events=events)
+raw_resampled, events_resampled = raw.copy().resample(100, events=events)
 print('Number of events after resampling:', len(events_resampled))

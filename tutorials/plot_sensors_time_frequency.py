@@ -39,7 +39,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=baseline, reject=dict(grad=4000e-13, eog=350e-6),
                     preload=True)
 
-epochs.resample(150., npad='auto')  # resample to reduce computation time
+epochs.resample(150., method='fft')  # resample to reduce computation time
 
 ###############################################################################
 # Frequency analysis

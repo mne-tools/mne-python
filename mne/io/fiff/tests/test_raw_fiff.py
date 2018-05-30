@@ -23,7 +23,8 @@ from mne.io.tests.test_raw import _test_concat, _test_raw_reader
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels, create_info)
 from mne.utils import (_TempDir, requires_pandas, object_diff,
-                       requires_mne, run_subprocess, run_tests_if_main)
+                       requires_mne, run_subprocess, run_tests_if_main,
+                       requires_version)
 from mne.externals.six.moves import zip, cPickle as pickle
 from mne.io.proc_history import _get_rank_sss
 from mne.io.pick import _picks_by_type
@@ -989,8 +990,22 @@ def test_crop():
         assert_equal(raw1[:][0].shape, (1, 2001))
 
 
+# we can't simply use pytest.mark.parametrize here b/c requires_testing_data
+# is incompatible with it :(
+
+@requires_version('scipy', '0.18')
+def test_resample_poly():
+    """Test resampling using polyphase interp."""
+    _test_resample('poly')
+
+
+def test_resample_fft():
+    """Test resampling using FFT."""
+    _test_resample('fft')
+
+
 @testing.requires_testing_data
-def test_resample():
+def _test_resample(method):
     """Test resample (with I/O and multiple files)."""
     tempdir = _TempDir()
     raw = read_raw_fif(fif_fname).crop(0, 3)
@@ -998,7 +1013,7 @@ def test_resample():
     raw_resamp = raw.copy()
     sfreq = raw.info['sfreq']
     # test parallel on upsample
-    raw_resamp.resample(sfreq * 2, n_jobs=2, npad='auto')
+    raw_resamp.resample(sfreq * 2, n_jobs=2, npad='auto', method=method)
     assert_equal(raw_resamp.n_times, len(raw_resamp.times))
     raw_resamp.save(op.join(tempdir, 'raw_resamp-raw.fif'))
     raw_resamp = read_raw_fif(op.join(tempdir, 'raw_resamp-raw.fif'),
@@ -1008,7 +1023,7 @@ def test_resample():
     assert_equal(raw_resamp._data.shape[1], raw_resamp.n_times)
     assert_equal(raw._data.shape[0], raw_resamp._data.shape[0])
     # test non-parallel on downsample
-    raw_resamp.resample(sfreq, n_jobs=1, npad='auto')
+    raw_resamp.resample(sfreq, n_jobs=1, npad='auto', method=method)
     assert_equal(raw_resamp.info['sfreq'], sfreq)
     assert_equal(raw._data.shape, raw_resamp._data.shape)
     assert_equal(raw.first_samp, raw_resamp.first_samp)
@@ -1031,9 +1046,9 @@ def test_resample():
     raw3 = raw.copy()
     raw4 = raw.copy()
     raw1 = concatenate_raws([raw1, raw2])
-    raw1.resample(10., npad='auto')
-    raw3.resample(10., npad='auto')
-    raw4.resample(10., npad='auto')
+    raw1.resample(10., npad='auto', method=method)
+    raw3.resample(10., npad='auto', method=method)
+    raw4.resample(10., npad='auto', method=method)
     raw3 = concatenate_raws([raw3, raw4])
     assert_array_equal(raw1._data, raw3._data)
     assert_array_equal(raw1._first_samps, raw3._first_samps)
@@ -1048,12 +1063,13 @@ def test_resample():
     # basic decimation
     stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
-    assert_allclose(raw.resample(8., npad='auto')._data,
+    assert_allclose(raw.resample(8., npad='auto', method=method)._data,
                     [[1, 1, 0, 0, 1, 1, 0, 0]])
 
     # decimation of multiple stim channels
     raw = RawArray(2 * [stim], create_info(2, len(stim), 2 * ['stim']))
-    assert_allclose(raw.resample(8., npad='auto', verbose='error')._data,
+    assert_allclose(raw.resample(8., npad='auto', verbose='error',
+                                 method=method)._data,
                     [[1, 1, 0, 0, 1, 1, 0, 0],
                      [1, 1, 0, 0, 1, 1, 0, 0]])
 
@@ -1061,7 +1077,7 @@ def test_resample():
     # done naively
     stim = [0, 0, 0, 1, 1, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
-    assert_allclose(raw.resample(4., npad='auto')._data,
+    assert_allclose(raw.resample(4., npad='auto', method=method)._data,
                     [[0, 1, 1, 0]])
 
     # two events are merged in this case (warning)
@@ -1069,7 +1085,7 @@ def test_resample():
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        raw.resample(8., npad='auto')
+        raw.resample(8., npad='auto', method=method)
         assert_true(len(w) == 1)
 
     # events are dropped in this case (warning)
@@ -1077,7 +1093,7 @@ def test_resample():
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        raw.resample(4., npad='auto')
+        raw.resample(4., npad='auto', method=method)
         assert_true(len(w) == 1)
 
     # test resampling events: this should no longer give a warning
@@ -1090,7 +1106,8 @@ def test_resample():
     raw = RawArray([stim], create_info(1, o_sfreq, ['stim']),
                    first_samp=first_samp)
     events = find_events(raw)
-    raw, events = raw.resample(n_sfreq, events=events, npad='auto')
+    raw, events = raw.resample(n_sfreq, events=events, npad='auto',
+                               method=method)
     n_fsamp = int(first_samp * sfreq_ratio)  # how it's calc'd in base.py
     # NB np.round used for rounding event times, which has 0.5 as corner case:
     # https://docs.scipy.org/doc/numpy/reference/generated/numpy.around.html
@@ -1101,15 +1118,15 @@ def test_resample():
     # test copy flag
     stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
-    raw_resampled = raw.copy().resample(4., npad='auto')
+    raw_resampled = raw.copy().resample(4., npad='auto', method=method)
     assert_true(raw_resampled is not raw)
-    raw_resampled = raw.resample(4., npad='auto')
+    raw_resampled = raw.resample(4., npad='auto', method=method)
     assert_true(raw_resampled is raw)
 
     # resample should still work even when no stim channel is present
     raw = RawArray(np.random.randn(1, 100), create_info(1, 100, ['eeg']))
     raw.info['lowpass'] = 50.
-    raw.resample(10, npad='auto')
+    raw.resample(10, npad='auto', method=method)
     assert_equal(raw.info['lowpass'], 5.)
     assert_equal(len(raw), 10)
 

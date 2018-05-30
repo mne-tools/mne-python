@@ -74,7 +74,7 @@ data = loadmat(path_audio + '/speech_data.mat')
 audio = data['spectrogram'].T
 sfreq = float(data['Fs'][0, 0])
 n_decim = 2
-audio = mne.filter.resample(audio, down=n_decim, npad='auto')
+audio = mne.filter.resample(audio, down=n_decim)
 sfreq /= n_decim
 
 ###############################################################################

@@ -26,7 +26,8 @@ from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs)
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
-                       requires_h5py, run_tests_if_main, requires_nibabel)
+                       requires_h5py, run_tests_if_main, requires_nibabel,
+                       requires_version)
 from mne.io import read_raw_fif
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -367,6 +368,7 @@ def test_stc_arithmetic():
 
 
 @pytest.mark.slowtest
+@requires_version('scipy', '0.18')
 @testing.requires_testing_data
 def test_stc_methods():
     """Test stc methods lh_data, rh_data, bin(), resample()."""
@@ -412,16 +414,19 @@ def test_stc_methods():
         label_lh.subject = 'foo'
         assert_raises(RuntimeError, stc.in_label, label_lh)
 
-        stc_new = deepcopy(stc)
-        o_sfreq = 1.0 / stc.tstep
-        # note that using no padding for this STC reduces edge ringing...
-        stc_new.resample(2 * o_sfreq, npad=0, n_jobs=2)
-        assert_true(stc_new.data.shape[1] == 2 * stc.data.shape[1])
-        assert_true(stc_new.tstep == stc.tstep / 2)
-        stc_new.resample(o_sfreq, npad=0)
-        assert_true(stc_new.data.shape[1] == stc.data.shape[1])
-        assert_true(stc_new.tstep == stc.tstep)
-        assert_array_almost_equal(stc_new.data, stc.data, 5)
+        for method in ('fft', 'poly'):
+            o_sfreq = 1.0 / stc.tstep
+            # first vertex has less bad ringing than others, also for speed:
+            stc_new = SourceEstimate(
+                stc.data[[0]], [stc.vertices[0][[0]], []], 0, stc.tstep)
+            stc_new.resample(2 * o_sfreq, n_jobs=2, method=method,
+                             pad='edge', npad=100)
+            assert_true(stc_new.data.shape[1] == 2 * stc.data.shape[1])
+            assert_true(stc_new.tstep == stc.tstep / 2)
+            stc_new.resample(o_sfreq, method=method, pad='edge', npad=100)
+            assert_true(stc_new.data.shape[1] == stc.data.shape[1])
+            assert_true(stc_new.tstep == stc.tstep)
+            assert_allclose(stc_new.data[0], stc.data[0], rtol=1e-3, atol=5e-1)
 
 
 @testing.requires_testing_data
@@ -965,7 +970,8 @@ def test_spatial_src_connectivity():
     # oct
     src = read_source_spaces(fname_src)
     assert src[0]['dist'] is not None  # distance info
-    con = spatial_src_connectivity(src).toarray()
+    with warnings.catch_warnings(record=True):  # omissions
+        con = spatial_src_connectivity(src).toarray()
     con_dist = spatial_src_connectivity(src, dist=0.01).toarray()
     assert (con == con_dist).mean() > 0.75
     # ico

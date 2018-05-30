@@ -1396,8 +1396,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self
 
     @verbose
-    def resample(self, sfreq, npad='auto', window='boxcar', stim_picks=None,
-                 n_jobs=1, events=None, pad='reflect_limited', verbose=None):
+    def resample(self, sfreq, npad='auto', window=None, stim_picks=None,
+                 n_jobs=1, events=None, pad='reflect_limited',
+                 method='fft', verbose=None):
         """Resample all channels.
 
         The Raw object has to have the data loaded e.g. with ``preload=True``
@@ -1427,9 +1428,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Amount to pad the start and end of the data.
             Can also be "auto" to use a padding that will result in
             a power-of-two size (can be much faster).
-        window : string or tuple
-            Frequency-domain window to use in resampling.
-            See :func:`scipy.signal.resample`.
+        window : str | tuple
+            Frequency-domain window when ``method='fft'`` and
+            time-domain FIR filter when ``method='poly'``; can be None
+            (default) to use ``'boxcar'`` and ``('kaiser', 5.0)`` respectively.
         stim_picks : array of int | None
             Stim channels. These channels are simply subsampled or
             supersampled (without applying any filtering). This reduces
@@ -1450,6 +1452,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             values of the vector, followed by zeros.
 
             .. versionadded:: 0.15
+        method : str
+            Can be "fft" (default) to use `scipy.signal.resample` or
+            "poly" to use `scipy.signal.resample_poly`, see
+            :func:`mne.filter.resample` for details.
+
+            .. versionadded:: 0.16
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1466,6 +1474,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         --------
         mne.io.Raw.filter
         mne.Epochs.resample
+        mne.filter.resample
 
         Notes
         -----
@@ -1502,7 +1511,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         for ri in range(len(self._raw_lengths)):
             data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
             new_data.append(resample(data_chunk, sfreq, o_sfreq, npad,
-                                     window=window, n_jobs=n_jobs, pad=pad))
+                                     window=window, n_jobs=n_jobs, pad=pad,
+                                     method=method))
             new_ntimes = new_data[ri].shape[1]
 
             # In empirical testing, it was faster to resample all channels

@@ -534,8 +534,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         return self  # return self for chaining methods
 
     @verbose
-    def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=1,
-                 verbose=None):
+    def resample(self, sfreq, npad='auto', window=None, n_jobs=1,
+                 pad='reflect_limited', method='fft', verbose=None):
         """Resample data.
 
         Parameters
@@ -546,10 +546,26 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             Amount to pad the start and end of the data.
             Can also be "auto" to use a padding that will result in
             a power-of-two size (can be much faster).
-        window : string or tuple
-            Window to use in resampling. See scipy.signal.resample.
+        window : str | tuple | None
+            Frequency-domain window when ``method='fft'`` and
+            time-domain FIR filter when ``method='poly'``; can be None
+            (default) to use ``'boxcar'`` and ``('kaiser', 5.0)`` respectively.
         n_jobs : int
             Number of jobs to run in parallel.
+        pad : str
+            The type of padding to use. Supports all :func:`numpy.pad` ``mode``
+            options. Can also be "reflect_limited" (default), which pads with a
+            reflected version of each vector mirrored on the first and last
+            values of the vector, followed by zeros. The default is "edge",
+            which pads with the edge values of each vector.
+
+            .. versionadded:: 0.16
+        method : str
+            Can be "fft" (default) to use `scipy.signal.resample` or
+            "poly" to use `scipy.signal.resample_poly`, see
+            :func:`mne.filter.resample` for details.
+
+            .. versionadded:: 0.16
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -567,7 +583,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         self._remove_kernel_sens_data_()
 
         o_sfreq = 1.0 / self.tstep
-        self.data = resample(self.data, sfreq, o_sfreq, npad, n_jobs=n_jobs)
+        self.data = resample(self.data, sfreq, o_sfreq, npad, window=window,
+                             pad=pad, method=method, n_jobs=n_jobs)
 
         # adjust indirectly affected variables
         self.tstep = 1.0 / sfreq
