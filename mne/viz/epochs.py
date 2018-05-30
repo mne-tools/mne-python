@@ -1967,7 +1967,7 @@ def _plot_histogram(params):
             ax.plot((rej, rej), (0, ax.get_ylim()[1]), color='r')
         plt.title(titles[types[idx]])
     params['histogram'].suptitle('Peak-to-peak histogram', y=0.99)
-    params['histogram'].subplots_adjust(hspace=0.6)
+    params['histogram'].subplots_adjust(hspace=1)
     try:
         params['histogram'].show(warn=False)
     except Exception:
