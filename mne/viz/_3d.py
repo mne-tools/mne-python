@@ -1259,11 +1259,12 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
         ctrl_pts = np.percentile(np.abs(stc_data), [96, 97.5, 99.95])
     elif isinstance(clim, dict):
         # Get appropriate key for clim if it's a dict
-        limit_key = ['lims', 'pos_lims'][colormap in ('mne', 'mne_analyze')]
-        if colormap != 'auto' and limit_key not in clim.keys():
-            raise KeyError('"pos_lims" must be used with "mne" colormap')
         if 'pos_lims' in clim and not allow_pos_lims:
-            raise ValueError('Cannot use pos_lims for clim')
+            raise ValueError('Cannot use "pos_lims" for clim, use "lims" '
+                             'instead')
+        limit_key = ['lims', 'pos_lims'][colormap in ('mne', 'mne_analyze')]
+        if limit_key not in clim.keys():
+            raise KeyError('"pos_lims" must be used with "mne" colormap')
         clim['kind'] = clim.get('kind', 'percent')
         if clim['kind'] == 'percent':
             ctrl_pts = np.percentile(np.abs(stc_data),
