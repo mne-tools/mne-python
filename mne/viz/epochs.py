@@ -139,7 +139,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Arguments passed to a call to `mne.viz.plot_compare_evoked` to style
         the evoked plot below the image. Defaults to an empty dictionary,
         meaning `plot_compare_evokeds` will be called with default parameters
-        (yaxis truncation will be turned off).
+        (yaxis truncation will be turned off, and inversion of the y axis
+        via `invert_y=True` will raise an error).
     title : None | str
         If str, will be plotted as figure title. Else, the channels will be
         indicated.
@@ -172,6 +173,10 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             picks = picks[:5]  # take 5 picks to prevent spawning many figs
     else:
         picks = np.atleast_1d(picks)
+
+    if "invert_y" in ts_args:
+        raise NotImplementedError("'invert_y' found in 'ts_args'. "
+                                  "This currently")
 
     manual_ylims = "ylim" in ts_args
     vlines = ts_args.get(

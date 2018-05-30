@@ -171,6 +171,7 @@ def test_plot_epochs_image():
                       ts_args=ts_args)
         warnings.simplefilter('always')
     assert_equal(len(w), 1)
+    epochs.plot_image(ts_args=dict(invert_y=True))
 
     plt.close('all')
 
