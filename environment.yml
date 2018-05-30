@@ -31,7 +31,7 @@ dependencies:
 - traitsui>=6
 - pip:
   - mne
-  - "https://api.github.com/repos/enthought/mayavi/zipball/master"
+  - mayavi
   - "https://api.github.com/repos/nipy/PySurfer/zipball/master"
   - nitime
   - nibabel
