@@ -899,13 +899,14 @@ baseline_plot(x)
 # On page 45 in Widmann *et al.* [7]_, there is a convenient list of important
 # filter parameters that should be reported with each publication:
 #
-#    1. filtertype (high-pass, low-pass, band-pass, band-stop, FIR, IIR)
-#    2. cutoff frequency (including definition)
-#    3. filter order (or length)
-#    4. roll-off or transition bandwidth
-#    5. passband ripple and stopband attenuation
-#    6. filter delay (zero-phase, linear-phase, non-linear phase) and causality
-#    7. direction of computation (one-pass forward/reverse,or two-pass forward and reverse)  # noqa
+# 1. filtertype (high-pass, low-pass, band-pass, band-stop, FIR, IIR)
+# 2. cutoff frequency (including definition)
+# 3. filter order (or length)
+# 4. roll-off or transition bandwidth
+# 5. passband ripple and stopband attenuation
+# 6. filter delay (zero-phase, linear-phase, non-linear phase) and causality
+# 7. direction of computation (one-pass forward/reverse,or two-pass forward and
+#    reverse)
 #
 # In the following, we will address how to deal with these parameters in MNE:
 #
@@ -913,9 +914,9 @@ baseline_plot(x)
 # Filter type
 # -----------
 # Depending on the function or method used, the filter type can be specified.
-# To name an example. in `mne.filter.create_filter`, the relevant arguments
-# would be `l_freq`, h_freg`, `method`, and if the method is fir: `fir_window`,
-# and `fir_design`.
+# To name an example. in :func:`mne.filter.create_filter`, the relevant
+# arguments would be `l_freq`, `h_freg`, `method`, and if the method is fir:
+# `fir_window`, and `fir_design`.
 #
 #
 # Cutoff frequency
@@ -950,7 +951,7 @@ fir_coefs = mne.filter.create_filter(data=None,  # Data is only used for sanity 
 # Alternatively, get the filter length through:
 filter_length = fir_coefs.shape[0]
 
-#
+###############################################################################
 # .. note:: If you are using an IIR filter, `mne.filter.create_filter` will not
 #           print a filter length and transition bandwidth to the log. Instead,
 #           you can specify the roll off with the `iir_params` argument or stay
@@ -982,12 +983,12 @@ filter_length = fir_coefs.shape[0]
 # of the filter function or method that you apply. For example in the
 # docstring of `mne.filter.create_filter`, for the phase parameter it says:
 #
-#    "Phase of the filter, only used if ``method='fir'``.
+#    Phase of the filter, only used if ``method='fir'``.
 #    By default, a symmetric linear-phase FIR filter is constructed.
 #    If ``phase='zero'`` (default), the delay of this filter
 #    is compensated for. If ``phase=='zero-double'``, then this filter
 #    is applied twice, once forward, and once backward. If 'minimum',
-#    then a minimum-phase, causal filter will be used."
+#    then a minimum-phase, causal filter will be used.
 #
 #
 # Summary
@@ -1022,7 +1023,8 @@ filter_length = fir_coefs.shape[0]
 #        Perception Science, 233.
 # .. [7] Widmann, A., Schröger, E., & Maess, B. (2015). Digital filter
 #        design for electrophysiological data – a practical approach.
-#        Journal of Neuroscience Methods, 250, 34–46. https://doi.org/10.1016/j.jneumeth.2014.08.002  # noqa
+#        Journal of Neuroscience Methods, 250, 34–46.
+#        https://doi.org/10.1016/j.jneumeth.2014.08.002
 # .. [8] Tanner, D., Morgan-Short, K., & Luck, S. J. (2015).
 #        How inappropriate high-pass filters can produce artifactual effects
 #        and incorrect conclusions in ERP studies of language and cognition.
