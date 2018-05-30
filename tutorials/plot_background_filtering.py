@@ -935,8 +935,8 @@ baseline_plot(x)
 # custom values are specified using the respective filter function's arguments.
 #
 # If you want to find out about the filter length and transition bandwidth that
-# were used through the 'auto' setting, you can use `mne.filter.create_filter`
-# to print out the settings once more:
+# were used through the 'auto' setting, you can use
+# :func:`mne.filter.create_filter` to print out the settings once more:
 
 # Use the same settings as when calling e.g., `raw.filter()`
 fir_coefs = mne.filter.create_filter(data=None,  # Data is only used for sanity checking, not strictly needed  # noqa
@@ -952,11 +952,11 @@ fir_coefs = mne.filter.create_filter(data=None,  # Data is only used for sanity 
 filter_length = fir_coefs.shape[0]
 
 ###############################################################################
-# .. note:: If you are using an IIR filter, `mne.filter.create_filter` will not
-#           print a filter length and transition bandwidth to the log. Instead,
-#           you can specify the roll off with the `iir_params` argument or stay
-#           with the default, which is a 4th order (Butterworth) filter.
-#
+# .. note:: If you are using an IIR filter, :func:`mne.filter.create_filter`
+#           will not print a filter length and transition bandwidth to the log.
+#           Instead, you can specify the roll off with the `iir_params`
+#           argument or stay with the default, which is a 4th order
+#           (Butterworth) filter.
 #
 # Passband ripple and stopband attenuation
 # ----------------------------------------
