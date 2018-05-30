@@ -12,7 +12,8 @@ import numpy as np
 from .evoked import _generate_noise
 from ..event import _get_stim_channel
 from ..filter import _Interp2
-from ..io.pick import pick_types, pick_info, pick_channels
+from ..io.pick import (pick_types, pick_info, pick_channels,
+                       pick_channels_forward)
 from ..source_estimate import VolSourceEstimate
 from ..cov import make_ad_hoc_cov, read_cov, Covariance
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
@@ -23,7 +24,8 @@ from ..io.constants import FIFF
 from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _stc_src_sel, convert_forward_solution,
                        _prepare_for_forward, _transform_orig_meg_coils,
-                       _compute_forwards, _to_forward_dict)
+                       _compute_forwards, _to_forward_dict,
+                       restrict_forward_to_stc)
 from ..transforms import _get_trans, transform_surface_to
 from ..source_space import (_ensure_src, _points_outside_surface,
                             _adjust_patch_info)
@@ -64,7 +66,7 @@ def _log_ch(start, info, ch):
 def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                  blink=False, ecg=False, chpi=False, head_pos=None,
                  mindist=1.0, interp='cos2', iir_filter=None, n_jobs=1,
-                 random_state=None, use_cps=True, verbose=None):
+                 random_state=None, use_cps=True, forward=None, verbose=None):
     u"""Simulate raw data.
 
     Head movements can optionally be simulated using the ``head_pos``
@@ -132,6 +134,9 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations. Only used when surf_ori and/or force_fixed are True.
+    forward : instance of Forward | None
+        The forward operator to use. If None (default) it will be computed
+        using `bem`, `trans`, and `src`.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -188,6 +193,10 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
            head center; this dipole is oriented in the +x direction.
         4. Activations only affect MEG channels.
 
+    If you have a :class:`mne.Info` that you want to use with no associated
+    :class:`mne.io.Raw` instance, consider creating a dummy one using
+    :class:`mne.io.RawArray`.
+
     .. versionadded:: 0.10.0
 
     References
@@ -213,6 +222,17 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
     rng = check_random_state(random_state)
     interper = _Interp2(interp)
+
+    if forward is not None:
+        if any(x is not None for x in (trans, src, bem, head_pos)):
+            raise ValueError('If forward is not None then trans, src, bem, '
+                             'and head_pos must all be None')
+        if not np.allclose(forward['info']['dev_head_t']['trans'],
+                           raw.info['dev_head_t']['trans'], atol=1e-6):
+            raise ValueError('The forward meg<->head transform '
+                             'forward["info"]["dev_head_t"] does not match '
+                             'the one in raw.info["dev_head_t"]')
+        src = forward['src']
 
     if head_pos is None:  # use pos from info['dev_head_t']
         head_pos = dict()
@@ -276,6 +296,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     verts = stc.vertices
     verts = [verts] if isinstance(stc, VolSourceEstimate) else verts
     src = _restrict_source_space_to(src, verts)
+    if forward is not None:
+        forward = restrict_forward_to_stc(forward, stc)
 
     # array used to store result
     raw_data = np.zeros((len(info['ch_names']), len(times)))
@@ -376,7 +398,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     for fi, (fwd, fwd_blink, fwd_ecg, fwd_chpi) in \
         enumerate(_iter_forward_solutions(
             fwd_info, trans, src, bem, exg_bem, dev_head_ts, mindist,
-            hpi_rrs, blink_rrs, ecg_rr, n_jobs)):
+            hpi_rrs, blink_rrs, ecg_rr, n_jobs, forward)):
         # must be fixed orientation
         # XXX eventually we could speed this up by allowing the forward
         # solution code to only compute the normal direction
@@ -400,6 +422,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                                          hpi_nns[ii])
             fwd_chpi = fwd_chpi[:, :len(hpi_rrs)].copy()
 
+        assert fwd['sol']['data'].shape[0] == len(meeg_picks)
         interper['fwd'] = fwd['sol']['data']
         interper['fwd_blink'] = fwd_blink
         interper['fwd_ecg'] = fwd_ecg
@@ -461,18 +484,27 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
 
 def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
-                            mindist, hpi_rrs, blink_rrs, ecg_rrs, n_jobs):
+                            mindist, hpi_rrs, blink_rrs, ecg_rrs, n_jobs,
+                            forward):
     """Calculate a forward solution for a subject."""
-    mri_head_t, trans = _get_trans(trans)
     logger.info('Setting up forward solutions')
+    mri_head_t, trans = _get_trans(trans)
     megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, info, \
         update_kwargs, bem = _prepare_for_forward(
-            src, mri_head_t, info, bem, mindist, n_jobs, verbose=False)
+            src, mri_head_t, info, bem, mindist, n_jobs, allow_bem_none=True,
+            verbose=False)
     del (src, mindist)
 
-    eegfwd = _compute_forwards(rr, bem, [eegels], [None],
-                               [None], ['eeg'], n_jobs, verbose=False)[0]
-    eegfwd = _to_forward_dict(eegfwd, eegnames)
+    if forward is None:
+        eegfwd = _compute_forwards(rr, bem, [eegels], [None],
+                                   [None], ['eeg'], n_jobs, verbose=False)[0]
+        eegfwd = _to_forward_dict(eegfwd, eegnames)
+    else:
+        if len(eegnames) > 0:
+            eegfwd = pick_channels_forward(forward, eegnames, verbose=False)
+        else:
+            eegfwd = None
+
     if blink_rrs is not None:
         eegblink = _compute_forwards(blink_rrs, exg_bem, [eegels], [None],
                                      [None], ['eeg'], n_jobs,
@@ -491,7 +523,7 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
         return
 
     coord_frame = FIFF.FIFFV_COORD_HEAD
-    if not bem['is_sphere']:
+    if bem is not None and not bem['is_sphere']:
         idx = np.where(np.array([s['id'] for s in bem['surfs']]) ==
                        FIFF.FIFFV_BEM_SURF_ID_BRAIN)[0]
         assert len(idx) == 1
@@ -508,22 +540,27 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
 
         # Make sure our sensors are all outside our BEM
         coil_rr = [coil['r0'] for coil in megcoils]
-        if not bem['is_sphere']:
-            outside = _points_outside_surface(coil_rr, bem_surf, n_jobs,
-                                              verbose=False)
-        else:
-            d = coil_rr - bem['r0']
-            outside = np.sqrt(np.sum(d * d, axis=1)) > bem.radius
-        if not outside.all():
-            raise RuntimeError('%s MEG sensors collided with inner skull '
-                               'surface for transform %s'
-                               % (np.sum(~outside), ti))
 
         # Compute forward
-        megfwd = _compute_forwards(rr, bem, [megcoils], [compcoils],
-                                   [meg_info], ['meg'], n_jobs,
-                                   verbose=False)[0]
-        megfwd = _to_forward_dict(megfwd, megnames)
+        if forward is None:
+            if not bem['is_sphere']:
+                outside = _points_outside_surface(coil_rr, bem_surf, n_jobs,
+                                                  verbose=False)
+            elif bem.radius is not None:
+                d = coil_rr - bem['r0']
+                outside = np.sqrt(np.sum(d * d, axis=1)) > bem.radius
+            else:  # only r0 provided
+                outside = np.ones(len(coil_rr), bool)
+            if not outside.all():
+                raise RuntimeError('%s MEG sensors collided with inner skull '
+                                   'surface for transform %s'
+                                   % (np.sum(~outside), ti))
+            megfwd = _compute_forwards(rr, bem, [megcoils], [compcoils],
+                                       [meg_info], ['meg'], n_jobs,
+                                       verbose=False)[0]
+            megfwd = _to_forward_dict(megfwd, megnames)
+        else:
+            megfwd = pick_channels_forward(forward, megnames, verbose=False)
         fwd = _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=False)
         fwd.update(**update_kwargs)
 
