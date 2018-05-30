@@ -96,9 +96,6 @@ blockquote {
 .span h2 {
     background: rgb(242, 249, 255);
 }
-.sphx-glr-script-out .highlight pre {
-    background: #f8f8f8;
-}
 /* OVERRIDES */
 div.sphx-glr-download {
   width: inherit;

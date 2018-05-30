@@ -44,6 +44,7 @@ jobs:
         # Look at what we have and fail early if there is some library conflict
         - run: python -c "import mne; mne.sys_info()"
         - run: python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
+        - run: python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
 
         # Figure out if we should run a full, pattern, or noplot version
         - run: python setup.py develop
