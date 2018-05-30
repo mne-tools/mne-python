@@ -74,6 +74,7 @@ def write_proj(fname, projs):
 def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, method='ssp',
                   reg=None, method_params=None, verbose=None):
     from .preprocessing.xdawn import _fit_xdawn
+    assert len(info['ch_names']) == data.shape[1]
     mag_ind = pick_types(info, meg='mag', ref_meg=False, exclude='bads')
     grad_ind = pick_types(info, meg='grad', ref_meg=False, exclude='bads')
     eeg_ind = pick_types(info, meg=False, eeg=True, ref_meg=False,
@@ -108,27 +109,17 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, method='ssp',
             # data is the covariance matrix: U * S**2 * Ut
             U, Sexp2, _ = linalg.svd(data_ind, full_matrices=False,
                                      overwrite_a=True)
-            U = U[:, :n]
+            U = U[:, :n].T
             exp_var = Sexp2 / Sexp2.sum()
             exp_var = exp_var[:n]
         else:
             assert method == 'xdawn'
-            """
-            from .preprocessing.xdawn import Xdawn
-            from mne import EpochsArray, create_info
-            xd = Xdawn(n, None, False)
-            xd.fit(EpochsArray(data_ind, create_info(data_ind.shape[1], 1000., 'eeg')))
-            U2 = xd.patterns_['1'][:, :n]
-            exp_var = np.full(n, 0.15)
-            """
             _, U, _, exp_var = _fit_xdawn(data_ind, np.ones(len(data_ind)), n,
                                           reg=reg, method_params=method_params)
-            U = U.T
-            # np.testing.assert_allclose(U, U2)
-            U /= np.linalg.norm(U, axis=0, keepdims=True)
-        assert U.shape == (ind.size, n)
+            U /= np.linalg.norm(U, axis=1, keepdims=True)
+        assert U.shape == (n, ind.size)
         assert exp_var.shape == (n,)
-        for k, (u, var) in enumerate(zip(U.T, exp_var)):
+        for k, (u, var) in enumerate(zip(U, exp_var)):
             proj_data = dict(col_names=names, row_names=None,
                              data=u[np.newaxis, :], nrow=1, ncol=u.size)
             this_desc = "%s-%s-PCA-%02d" % (desc, desc_prefix, k + 1)
@@ -193,11 +184,14 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
         raise ValueError('fit_method must be "ssp" or "xdawn", got %r'
                          % (fit_method,))
     if fit_method == 'ssp':
+        picks = _pick_data_channels(epochs.info, with_ref_meg=False)
         data = compute_covariance(
             epochs, n_jobs=n_jobs, verbose='error',
             method=reg, method_params=method_params)['data']
+        info = pick_info(epochs.info, picks)
     else:
         data = epochs.get_data()
+        info = epochs.info
     event_id = epochs.event_id
     if event_id is None or len(list(event_id.keys())) == 0:
         event_id = '0'
@@ -207,7 +201,7 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
         event_id = 'Multiple-events'
     if desc_prefix is None:
         desc_prefix = "%s-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
-    return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix,
+    return _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
                          fit_method, reg, method_params)
 
 

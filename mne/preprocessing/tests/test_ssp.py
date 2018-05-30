@@ -233,8 +233,7 @@ def test_compute_proj_xdawn():
             ('epochs_reg', proj_epochs_reg, [0.00, 0.01], [0.9, 0.95]),  # bad
             ('evoked', proj_evoked, [0.2, 0.3], [0.97, 0.99]),  # better
             ('xdawn', proj_xdawn, [0.2, 0.3], [0.15, 0.2]),  # better
-            ('xdawn_reg', proj_xdawn_reg, [0.3, 0.4], [0.01, 0.03]),  # best
-            ):
+            ('xdawn_reg', proj_xdawn_reg, [0.3, 0.4], [0.01, 0.03])):  # best
         exp_var = proj['explained_var']
         assert v_lim[0] <= exp_var <= v_lim[1], kind
         proj = proj['data']['data'][0]

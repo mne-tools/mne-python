@@ -34,14 +34,15 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       reject, flat, bads, avg_ref, no_proj, event_id,
                       exg_l_freq, exg_h_freq, tstart, qrs_threshold,
                       filter_method, iir_params, return_drop_log, copy,
-                      method, method_params, verbose):
+                      fit_method, reg, method_params, verbose):
     """Compute SSP/PCA projections for ECG or EOG artifacts."""
     raw = raw.copy() if copy else raw
     del copy
     raw.load_data()  # we will filter it later
 
-    if method not in ('ssp', 'xdawn'):
-        raise ValueError('method must be "ssp" or "xdawn", got %r' % (method,))
+    if fit_method not in ('ssp', 'xdawn'):
+        raise ValueError('fit_method must be "ssp" or "xdawn", got %r'
+                         % (fit_method,))
     if average is not True and average is not False and average != 'auto':
         raise ValueError('average must be True, False, or "auto", got %r'
                          % (average,))
@@ -131,18 +132,18 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         return (None, events) + ((drop_log,) if return_drop_log else ())
 
     if average == 'auto':
-        average = True if method == 'ssp' else False
+        average = True if fit_method == 'ssp' else False
     if average:
-        if method != 'ssp':
+        if fit_method != 'ssp':
             raise ValueError('if average=True, method must be "ssp", got %r'
-                             % (method,))
+                             % (fit_method,))
         evoked = epochs.average()
         ev_projs = compute_proj_evoked(evoked, n_grad=n_grad, n_mag=n_mag,
                                        n_eeg=n_eeg)
     else:
         ev_projs = compute_proj_epochs(epochs, n_grad=n_grad, n_mag=n_mag,
                                        n_eeg=n_eeg, n_jobs=n_jobs,
-                                       method=method,
+                                       fit_method=fit_method, reg=reg,
                                        method_params=method_params)
 
     for p in ev_projs:
@@ -163,7 +164,8 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      no_proj=False, event_id=999, ecg_l_freq=5, ecg_h_freq=35,
                      tstart=0., qrs_threshold='auto', filter_method='fft',
                      iir_params=None, copy=True, return_drop_log=False,
-                     method='ssp', method_params=None, verbose=None):
+                     fit_method='ssp', reg=None, method_params=None,
+                     verbose=None):
     """Compute SSP/PCA projections for ECG artifacts.
 
     .. note:: raw data will be loaded if it is not already.
@@ -232,14 +234,18 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         If True, return the drop log.
 
         .. versionadded:: 0.15
-    method : str
+    fit_method : str
         Method to use to compute projection vectors.
         Can be "ssp" (default) or "xdawn".
 
         .. versionadded:: 0.17
+    reg : str | None (default None)
+        This will be passed as ``method`` to :func:`mne.compute_covariance`
+        (see its documentation for details).
+
+        .. versionadded:: 0.17
     method_params : dict | None
-        Method parameters to pass to :class:`mne.decoding.Xdawn`
-        when ``method='xdawn'``.
+        See :class:`mne.compute_covariance`.
 
         .. versionadded:: 0.17
     verbose : bool, str, int, or None
@@ -272,7 +278,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         l_freq, h_freq, average, filter_length, n_jobs, ch_name, reject, flat,
         bads, avg_ref, no_proj, event_id, ecg_l_freq, ecg_h_freq, tstart,
         qrs_threshold, filter_method, iir_params, return_drop_log, copy,
-        method, method_params, verbose)
+        fit_method, reg, method_params, verbose)
 
 
 @verbose
@@ -284,8 +290,8 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      avg_ref=False, no_proj=False, event_id=998, eog_l_freq=1,
                      eog_h_freq=10, tstart=0., filter_method='fft',
                      iir_params=None, ch_name=None, copy=True,
-                     return_drop_log=False, method='ssp', method_params=None,
-                     verbose=None):
+                     return_drop_log=False, fit_method='ssp', reg=None,
+                     method_params=None, verbose=None):
     """Compute SSP/PCA projections for EOG artifacts.
 
     .. note:: raw data must be preloaded.
@@ -350,14 +356,18 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         If True, return the drop log.
 
         .. versionadded:: 0.15
-    method : str
+    fit_method : str
         Method to use to compute projection vectors.
         Can be "ssp" (default) or "xdawn".
 
         .. versionadded:: 0.17
+    reg : str | None (default None)
+        This will be passed as ``method`` to :func:`mne.compute_covariance`
+        (see its documentation for details).
+
+        .. versionadded:: 0.17
     method_params : dict | None
-        Method parameters to pass to :class:`mne.decoding.Xdawn`
-        when ``method='xdawn'``.
+        See :class:`mne.compute_covariance`.
 
         .. versionadded:: 0.17
     verbose : bool, str, int, or None
@@ -389,5 +399,5 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         'EOG', raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg,
         l_freq, h_freq, average, filter_length, n_jobs, ch_name, reject, flat,
         bads, avg_ref, no_proj, event_id, eog_l_freq, eog_h_freq, tstart,
-        'auto', filter_method, iir_params, return_drop_log, copy, method,
-        method_params, verbose)
+        'auto', filter_method, iir_params, return_drop_log, copy, fit_method,
+        reg, method_params, verbose)
