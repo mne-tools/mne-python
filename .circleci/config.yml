@@ -45,6 +45,7 @@ jobs:
         - run: python -c "import mne; mne.sys_info()"
         - run: python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
         - run: python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
+        - run: python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
         # Figure out if we should run a full, pattern, or noplot version
         - run: python setup.py develop
@@ -159,6 +160,7 @@ jobs:
                 cd doc;
                 make $(cat ../build.txt);
               fi;
+        - run: python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
         - store_artifacts:
             path: doc/_build/html/

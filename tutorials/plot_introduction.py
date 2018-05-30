@@ -104,16 +104,16 @@ mne.set_log_level('WARNING')
 mne.set_log_level('INFO')
 
 ##############################################################################
-# You can set the default level by setting the environment variable
-# "MNE_LOGGING_LEVEL", or by having mne-python write preferences to a file:
-
-mne.set_config('MNE_LOGGING_LEVEL', 'WARNING', set_env=True)
-
-##############################################################################
+# You can set the default level in every session by setting the environment
+# variable "MNE_LOGGING_LEVEL", or by having mne-python write preferences to a
+# file with::
+#
+#     >>> mne.set_config('MNE_LOGGING_LEVEL', 'WARNING')
+#
 # Note that the location of the mne-python preferences file (for easier manual
 # editing) can be found using:
 
-mne.get_config_path()
+print(mne.get_config_path())
 
 ##############################################################################
 # By default logging messages print to the console, but look at
