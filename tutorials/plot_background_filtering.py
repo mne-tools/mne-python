@@ -915,18 +915,18 @@ baseline_plot(x)
 # -----------
 # Depending on the function or method used, the filter type can be specified.
 # To name an example. in :func:`mne.filter.create_filter`, the relevant
-# arguments would be `l_freq`, `h_freg`, `method`, and if the method is fir:
+# arguments would be `l_freq`, `h_freg`, `method`, and if the method is FIR:
 # `fir_window`, and `fir_design`.
 #
 #
 # Cutoff frequency
 # ----------------
-# The cutoff of fir filters in MNE is defined as half-amplitude cutoff in the
-# middle of the transition band. That is, if you construct a lowpass fir filter
-# with `h_freq = 40.`, the filter function will provide a transition bandwidth.
-# The desired half-amplitude cutoff of the lowpass fir filter is then at:
-# `h_freq + transition_bandwidth/2.`
-#
+# The cutoff of FIR filters in MNE is defined as half-amplitude cutoff in the
+# middle of the transition band. That is, if you construct a lowpass FIR filter
+# with ``h_freq = 40.``, the filter function will provide a transition
+# bandwidth that depens on the `h_trans_bandwidth` argument. The desired
+# half-amplitude  cutoff of the lowpass FIR filter is then at:
+# ``h_freq + transition_bandwidth/2.``.
 #
 # Filter length (order) and transition bandwidth (roll-off)
 # --------------------------------------------------------
@@ -945,7 +945,8 @@ fir_coefs = mne.filter.create_filter(data=None,  # Data is only used for sanity 
                                      h_freq=40.,  # assuming a lowpass of 40 Hz
                                      method='fir',
                                      fir_window='hamming',
-                                     fir_design='firwin')
+                                     fir_design='firwin',
+                                     verbose=True)
 
 # See the printed log for the transition bandwidth and filter length
 # Alternatively, get the filter length through:
@@ -961,7 +962,7 @@ filter_length = fir_coefs.shape[0]
 # Passband ripple and stopband attenuation
 # ----------------------------------------
 #
-# When use standard :func:`scipy.signal.firwin` design (as for fir filters in
+# When use standard :func:`scipy.signal.firwin` design (as for FIR filters in
 # MNE), the passband ripple and stopband attenuation are dependent upon the
 # window used in design. For standard windows the values are listed in this
 # table (see Ifeachor & Jervis, p. 357 [3]_):
