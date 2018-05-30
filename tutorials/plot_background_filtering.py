@@ -928,7 +928,7 @@ baseline_plot(x)
 # `h_freq + transition_bandwidth/2.`
 #
 #
-# Filter length (order) and transition bandwith (roll-off)
+# Filter length (order) and transition bandwidth (roll-off)
 # --------------------------------------------------------
 # In the :ref:`tut_filtering_in_python` section, we have already talked about
 # the default filter lengths and transition bandwidths that are used when no
