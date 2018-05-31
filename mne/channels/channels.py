@@ -1352,13 +1352,13 @@ def create_1020_montage_mapping(ch_names, midline="z12"):
     Parameters
     ----------
     ch_names : instance of info | list
-        Object a list of channel names will be extracted from. The picks will be
-        in relation to the position in this list. If an info object, lists will
-        be sorted by y value position of the channel locations, i.e., from
-        front to back.
+        Object a list of channel names will be extracted from. The picks will
+        be in relation to the position in this list. If an info object, lists
+        will be sorted by y value position of the channel locations, i.e.,
+        from front to back.
     midline : str
         Names ending in any of these characters are stored under the `midline`
-        key. Defaults to 'z12'. Note that capitlaization is ignored.
+        key. Defaults to 'z12'. Note that capitlaization is
 
     Returns
     -------
