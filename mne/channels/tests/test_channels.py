@@ -16,7 +16,7 @@ from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_true, assert_equal, assert_false
 
 from mne.channels import (rename_channels, read_ch_connectivity,
-                          find_ch_connectivity)
+                          find_ch_connectivity, create_1020_montage_mapping)
 from mne.channels.channels import (_ch_neighbor_connectivity,
                                    _compute_ch_connectivity)
 from mne.io import read_info, read_raw_fif, read_raw_ctf, read_raw_bti
@@ -235,6 +235,16 @@ def test_get_set_sensor_positions():
     raw1._set_channel_positions([[1, 2, 3]], [ch_name])
     assert_array_equal(raw1.info['chs'][13]['loc'],
                        raw2.info['chs'][13]['loc'])
+
+    for input in ("a_string", 100, raw1, [1, 2]):
+        assert_raises(TypeError, create_1020_montage_mapping,
+                      input)
+    ch_names = ["Cz", "C3", "C4", "C1", "Missing"]
+    intended_output = {"Midline": [0, 3], "Left": [1], "Right": [2]}
+    assert_equal(create_1020_montage_mapping(ch_names),
+                 intended_output)
+    create_1020_montage_mapping(raw1.info)  # test if layout sorting works
+    # FIXME missing: test if sorting actually works. Needs 10/20 file
 
 
 @testing.requires_testing_data

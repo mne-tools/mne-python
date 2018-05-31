@@ -31,7 +31,7 @@ from ..utils import (_check_fname, warn, copy_function_doc_to_method_doc,
 from ..externals.six import string_types
 from ..externals.six.moves import map
 
-from .layout import _pol_to_cart, _cart_to_sph
+from .layout import _pol_to_cart, _cart_to_sph, find_layout
 
 
 class Montage(object):

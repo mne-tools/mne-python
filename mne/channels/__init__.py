@@ -9,4 +9,4 @@ from .montage import (read_montage, read_dig_montage, Montage, DigMontage,
                       get_builtin_montages)
 from .channels import (equalize_channels, rename_channels, fix_mag_coil_types,
                        read_ch_connectivity, _get_ch_type,
-                       find_ch_connectivity)
+                       find_ch_connectivity, create_1020_montage_mapping)

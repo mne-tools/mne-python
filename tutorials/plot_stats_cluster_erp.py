@@ -27,7 +27,8 @@ from scipy.stats import ttest_ind
 import numpy as np
 
 import mne
-from mne.channels import find_layout, find_ch_connectivity
+from mne.channels import (find_layout, find_ch_connectivity,
+                          create_1020_montage_mapping)
 from mne.stats import spatio_temporal_cluster_test
 
 np.random.seed(0)
@@ -113,18 +114,7 @@ evoked.plot_joint(title="Long vs. short words", ts_args=time_unit,
                   topomap_args=time_unit)  # show difference wave
 
 # Create ROIs by checking channel labels
-pos = find_layout(epochs.info).pos
-rois = dict()
-for pick, channel in enumerate(epochs.ch_names):
-    last_char = channel[-1]  # for 10/20, last letter codes the hemisphere
-    roi = ("Midline" if last_char in "z12" else
-           ("Left" if int(last_char) % 2 else "Right"))
-    rois[roi] = rois.get(roi, list()) + [pick]
-
-# sort channels from front to center
-# (y-coordinate of the position info in the layout)
-rois = {roi: np.array(picks)[pos[picks, 1].argsort()]
-        for roi, picks in rois.items()}
+rois = create_1020_montage_mapping(evoked.info)
 
 # Visualize the results
 fig, axes = plt.subplots(nrows=3, figsize=(8, 8))
