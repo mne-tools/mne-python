@@ -612,9 +612,9 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
                                     times=times, title=title,
                                     ch_types_used=ch_types_used, show=show)
     elif isinstance(inst, Evoked):
-        if start is not None and stop is not None:
-            inst = inst.copy().crop(start, stop)
+        inst = inst.copy().crop(start, stop)
         if picks is not None:
+            inst.info['comps'] = []  # can be safely disabled
             inst.pick_channels([inst.ch_names[p] for p in picks])
         evoked_cln = ica.apply(inst.copy(), exclude=exclude)
         fig = _plot_ica_overlay_evoked(evoked=inst, evoked_cln=evoked_cln,

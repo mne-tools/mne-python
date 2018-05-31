@@ -8,7 +8,7 @@ import numpy as np
 
 # hardcoded external test results, manually transferred
 test_external = {
-    # SPSS, manually conducted analyis
+    # SPSS, manually conducted analysis
     'spss_fvals': np.array([2.568, 0.240, 1.756]),
     'spss_pvals_uncorrected': np.array([0.126, 0.788, 0.186]),
     'spss_pvals_corrected': np.array([0.126, 0.784, 0.192]),

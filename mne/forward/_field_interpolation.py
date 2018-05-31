@@ -281,7 +281,10 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         logger.info('Prepare EEG mapping...')
     if len(picks) == 0:
         raise RuntimeError('cannot map, no channels found')
-    chs = pick_info(info, picks)['chs']
+    # XXX this code does not do any checking for compensation channels,
+    # but it seems like this must be intentional from the ref_meg=False
+    # (presumably from the C code)
+    chs = [info['chs'][pick] for pick in picks]
 
     # create coil defs in head coordinates
     if ch_type == 'meg':

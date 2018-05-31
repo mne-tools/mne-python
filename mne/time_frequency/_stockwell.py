@@ -9,7 +9,7 @@ import numpy as np
 from scipy import fftpack
 # XXX explore cuda optimization at some point.
 
-from ..io.pick import pick_types, pick_info
+from ..io.pick import _pick_data_channels, pick_info
 from ..utils import verbose, warn
 from ..parallel import parallel_func, check_n_jobs
 from .tfr import AverageTFR, _get_data
@@ -252,7 +252,7 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     """
     # verbose dec is used b/c subfunctions are verbose
     data = _get_data(inst, return_itc)
-    picks = pick_types(inst.info, meg=True, eeg=True)
+    picks = _pick_data_channels(inst.info)
     info = pick_info(inst.info, picks)
     data = data[:, picks, :]
     n_jobs = check_n_jobs(n_jobs)
