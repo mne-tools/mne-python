@@ -29,11 +29,12 @@ raw_ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
 
 def test_stockwell_ctf():
     """Test that Stockwell can be calculated on CTF data."""
-    raw = read_raw_fif(raw_ctf_fname).crop(0, 1)
+    raw = read_raw_fif(raw_ctf_fname)
     raw.apply_gradient_compensation(3)
     events = make_fixed_length_events(raw, duration=0.5)
-    epochs = Epochs(raw, events)
-    tfr_stockwell(epochs)  # smoke test
+    evoked = Epochs(raw, events, tmin=-0.2, tmax=0.3, decim=10,
+                    preload=True, verbose='error').average()
+    tfr_stockwell(evoked, verbose='error')  # smoke test
 
 
 def test_stockwell_check_input():
