@@ -38,6 +38,7 @@ dependencies:
   - neo
   - pytest-sugar
   - pytest-faulthandler
+  - pytest-xdist
   - pydocstyle
   - sphinx_bootstrap_theme
   - "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master"
