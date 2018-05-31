@@ -22,13 +22,12 @@ References
    localisation in cluster inference", NeuroImage 44 (2009) 83-98.
 """
 
+import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import ttest_ind
-import numpy as np
 
 import mne
-from mne.channels import (find_layout, find_ch_connectivity,
-                          create_1020_montage_mapping)
+from mne.channels import find_ch_connectivity, create_1020_montage_mapping
 from mne.stats import spatio_temporal_cluster_test
 
 np.random.seed(0)
