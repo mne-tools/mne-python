@@ -118,7 +118,7 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
             assert fit_method == 'xdawn'
             _, U, _, exp_var = _fit_xdawn(data_ind, np.ones(len(data_ind)), n,
                                           reg=reg, method_params=method_params)
-            U /= np.linalg.norm(U, axis=1, keepdims=True)
+            U /= np.linalg.norm(U, axis=1)[:, np.newaxis]
         assert U.shape == (n, ind.size)
         assert exp_var.shape == (n,)
         for k, (u, var) in enumerate(zip(U, exp_var)):
