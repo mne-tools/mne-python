@@ -1245,7 +1245,10 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
     # Based on type of limits specified, get cmap control points
     if colormap == 'auto':
         if clim == 'auto':
-            colormap = 'mne' if (stc_data < 0).any() else 'hot'
+            if allow_pos_lims and (stc_data < 0).any():
+                colormap = 'mne'
+            else:
+                colormap = 'hot'
         else:
             if 'lims' in clim:
                 colormap = 'hot'
@@ -1256,11 +1259,12 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
         ctrl_pts = np.percentile(np.abs(stc_data), [96, 97.5, 99.95])
     elif isinstance(clim, dict):
         # Get appropriate key for clim if it's a dict
-        limit_key = ['lims', 'pos_lims'][colormap in ('mne', 'mne_analyze')]
-        if colormap != 'auto' and limit_key not in clim.keys():
-            raise KeyError('"pos_lims" must be used with "mne" colormap')
         if 'pos_lims' in clim and not allow_pos_lims:
-            raise ValueError('Cannot use pos_lims for clim')
+            raise ValueError('Cannot use "pos_lims" for clim, use "lims" '
+                             'instead')
+        limit_key = ['lims', 'pos_lims'][colormap in ('mne', 'mne_analyze')]
+        if limit_key not in clim.keys():
+            raise KeyError('"pos_lims" must be used with "mne" colormap')
         clim['kind'] = clim.get('kind', 'percent')
         if clim['kind'] == 'percent':
             ctrl_pts = np.percentile(np.abs(stc_data),
@@ -1490,7 +1494,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
 
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
-                          colormap='hot', time_label='auto',
+                          colormap='auto', time_label='auto',
                           smoothing_steps=10, transparent=None, alpha=1.0,
                           time_viewer=False, subjects_dir=None, figure=None,
                           views='lat', colorbar=True, clim='auto',
@@ -1715,7 +1719,7 @@ def _get_ps_kwargs(initial_time, require='0.6'):
     return initial_time, ad_kwargs, sd_kwargs
 
 
-def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='auto',
+def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  time_label='auto', smoothing_steps=10,
                                  transparent=None, brain_alpha=0.4,
                                  overlay_alpha=None, vector_alpha=1.0,
