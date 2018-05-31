@@ -12,6 +12,7 @@ from nose.tools import assert_raises
 
 import numpy as np
 from numpy.testing import assert_equal
+import pytest
 
 from mne import read_events, Epochs, pick_types, read_cov
 from mne.channels import read_layout
@@ -171,6 +172,8 @@ def test_plot_epochs_image():
                       ts_args=ts_args)
         warnings.simplefilter('always')
     assert_equal(len(w), 1)
+    with pytest.raises(NotImplementedError, match='currently'):
+        epochs.plot_image(ts_args=dict(invert_y=True))
 
     plt.close('all')
 
