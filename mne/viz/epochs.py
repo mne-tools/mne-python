@@ -1974,6 +1974,7 @@ def _plot_histogram(params):
         pass
     if params['fig_proj'] is not None:
         params['fig_proj'].canvas.draw()
+    plt.tight_layout(h_pad=0.7, pad=2)
 
 
 def _label2idx(params, pos):
