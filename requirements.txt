@@ -2,6 +2,7 @@ numpy
 scipy
 matplotlib
 mayavi
+pyqt5
 scikit-learn
 nibabel
 pandas
