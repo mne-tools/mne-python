@@ -9,9 +9,9 @@ from mne.io import read_raw_fif, read_raw_ctf
 from mne.io.proj import make_projector, activate_proj
 from mne.preprocessing import (compute_proj_ecg, compute_proj_eog,
                                create_ecg_epochs)
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, requires_sklearn
 from mne.datasets import testing
-from mne import (pick_types, compute_proj_epochs, compute_proj_evoked)
+from mne import pick_types, compute_proj_epochs, compute_proj_evoked
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -181,6 +181,7 @@ def test_compute_proj_ctf():
             assert len(projs) == (4 + n_projs_init)
 
 
+@requires_sklearn
 @testing.requires_testing_data
 def test_compute_proj_xdawn():
     """Test computing projectors with Xdawn."""
