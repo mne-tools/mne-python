@@ -38,7 +38,7 @@ What you can do with MNE Python
    - **Spectrum estimation** using multi-taper method
    - **Mixed Source Models** combining cortical and subcortical structures
    - **Dipole Fitting**
-   - **Decoding** multivariate pattern analyis of M/EEG topographies
+   - **Decoding** multivariate pattern analysis of M/EEG topographies
    - **Compute contrasts** between conditions, between sensors, across
      subjects etc.
    - **Non-parametric statistics** in time, space and frequency

@@ -23,7 +23,7 @@ from ..parallel import parallel_func
 from ..utils import logger, verbose, _time_mask, check_fname, sizeof_fmt
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
-from ..io.pick import (pick_info, pick_types, _pick_data_channels,
+from ..io.pick import (pick_info, _pick_data_channels,
                        channel_type, _pick_inst, _get_channel_types)
 from ..io.meas_info import Info
 from ..utils import SizeMixin, _is_numeric
@@ -668,7 +668,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         The number of jobs to run in parallel.
     picks : array-like of int | None, defaults to None
         The indices of the channels to decompose. If None, all available
-        channels are decomposed.
+        good data channels are decomposed.
     zero_mean : bool, defaults to True
         Make sure the wavelet has a mean of zero.
 
@@ -825,7 +825,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         The number of jobs to run in parallel.
     picks : array-like of int | None, defaults to None
         The indices of the channels to decompose. If None, all available
-        channels are decomposed.
+        good data channels are decomposed.
     average : bool, defaults to True
         If True average across Epochs.
 
@@ -2120,8 +2120,7 @@ def _get_data(inst, return_itc):
 def _prepare_picks(info, data, picks):
     """Prepare the picks."""
     if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
+        picks = _pick_data_channels(info, with_ref_meg=True, exclude='bads')
     if np.array_equal(picks, np.arange(len(data))):
         picks = slice(None)
     else:
