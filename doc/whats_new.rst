@@ -31,6 +31,8 @@ Bug
 
 - Fix bug in :func:`mne.preprocessing.ICA.apply` to handle arrays as `exclude` property by `Joan Massich`_
 
+- Fix bug with IIR filtering axis in :func:`mne.filter.filter_data` by `Eric Larson`_
+
 .. _changes_0_16:
 
 Version 0.16
