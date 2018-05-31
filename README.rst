@@ -73,10 +73,11 @@ The minimum required dependencies to run MNE-Python are:
 - Python >= 2.7
 - NumPy >= 1.8
 - SciPy >= 0.12
-- Matplotlib >= 1.3
 
 For full functionality, some functions require:
 
+- Matplotlib >= 1.3
+- Mayavi >= 4.6
 - Scikit-learn >= 0.15 (>= 0.18 recommended)
 - NiBabel >= 2.1.0
 - Pandas >= 0.13

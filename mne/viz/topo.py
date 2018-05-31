@@ -8,10 +8,10 @@ from __future__ import print_function
 #
 # License: Simplified BSD
 
+from copy import deepcopy
 from functools import partial
 from itertools import cycle
-from copy import deepcopy
-from matplotlib.colors import colorConverter
+
 import numpy as np
 
 from ..io.constants import Bunch
@@ -341,6 +341,7 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
                      labels=None):
     """Show time series on topo split across multiple axes."""
     import matplotlib.pyplot as plt
+    from matplotlib.colors import colorConverter
     picker_flag = False
     for data_, color_ in zip(data, color):
         if not picker_flag:
