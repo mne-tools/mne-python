@@ -1358,11 +1358,11 @@ def create_1020_montage_mapping(ch_names, midline="z12"):
         front to back.
     midline : str
         Names ending in any of these characters are stored under the `midline`
-        key. Defaults to 'z12'.
+        key. Defaults to 'z12'. Note that capitlaization is ignored.
 
     Returns
     -------
-    roi_mapping : dict
+    rois : dict
         A dictionary mapping from ROI names to lists of picks (untegers).
     """
     if isinstance(ch_names, Info):
@@ -1379,7 +1379,7 @@ def create_1020_montage_mapping(ch_names, midline="z12"):
 
     rois = dict(Midline=[], Left=[], Right=[])
     for pick, channel in enumerate(ch_names):
-        last_char = channel[-1]  # for 10/20, last letter codes the hemisphere
+        last_char = channel[-1].lower()  # in 10/20, last char codes hemisphere
         if last_char in midline:
             roi = "Midline"
         elif last_char.isdigit():
