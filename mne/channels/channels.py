@@ -1358,7 +1358,7 @@ def create_1020_montage_mapping(ch_names, midline="z12"):
         from front to back.
     midline : str
         Names ending in any of these characters are stored under the `midline`
-        key. Defaults to 'z12'. Note that capitlaization is
+        key. Defaults to 'z12'. Note that capitalization is ignored.
 
     Returns
     -------
