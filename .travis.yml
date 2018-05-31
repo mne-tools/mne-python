@@ -1,6 +1,4 @@
-language: python
-python:
-  - "3.6"
+language: c
 dist: trusty
 sudo: false
 cache:
@@ -41,9 +39,13 @@ matrix:
         - os: linux
           env: MNE_STIM_CHANNEL=STI101
                SPLIT=0
+          language: python
+          python: "3.6"
         - os: linux
           env: MNE_STIM_CHANNEL=STI101
                SPLIT=1
+          language: python
+          python: "3.6"
 
         # 2.7 Old dependencies
         - os: linux

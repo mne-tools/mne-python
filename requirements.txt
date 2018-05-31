@@ -14,7 +14,7 @@ sphinx
 joblib
 psutil
 numpydoc
-"https://api.github.com/repos/nipy/PySurfer/zipball/master"
+https://api.github.com/repos/nipy/PySurfer/zipball/master
 nitime
 nilearn
 neo
