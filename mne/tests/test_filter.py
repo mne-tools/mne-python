@@ -4,7 +4,6 @@ import warnings
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
                            assert_array_equal, assert_allclose)
-from nose.tools import assert_equal, assert_true, assert_raises
 import pytest
 from scipy.signal import resample as sp_resample, butter
 from scipy.fftpack import fft, fftfreq
@@ -22,6 +21,14 @@ from mne.utils import (sum_squared, run_tests_if_main,
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 rng = np.random.RandomState(0)
+
+
+@requires_version('scipy', '0.16')
+def test_filter_array():
+    """Test filtering an array."""
+    for data in (np.zeros((11, 1, 10)), np.zeros((9, 1, 10))):
+        filter_data(data, 512., 8, 12, method='iir',
+                    iir_params=dict(ftype='butterworth', order=2))
 
 
 @requires_mne
@@ -65,12 +72,11 @@ def test_estimate_ringing():
                              (0.001, (3000, 6000)),  # 4758
                              (0.0001, (30000, 60000))):  # 37993
             n_ring = estimate_ringing_samples(butter(3, thresh, output=kind))
-            assert_true(lims[0] <= n_ring <= lims[1],
-                        msg='%s %s: %s <= %s <= %s'
-                        % (kind, thresh, lims[0], n_ring, lims[1]))
-    with warnings.catch_warnings(record=True) as w:
-        assert_equal(estimate_ringing_samples(butter(4, 0.00001)), 100000)
-    assert_true(any('properly estimate' in str(ww.message) for ww in w))
+            assert lims[0] <= n_ring <= lims[1], (
+                '%s %s: %s <= %s <= %s'
+                % (kind, thresh, lims[0], n_ring, lims[1]))
+    with pytest.warns(RuntimeWarning, match='properly estimate'):
+        assert estimate_ringing_samples(butter(4, 0.00001)) == 100000
 
 
 def test_1d_filter():
@@ -92,7 +98,7 @@ def test_1d_filter():
                     if phase == 'zero':
                         # only allow zero-phase for odd-length filters
                         if n_filter % 2 == 0:
-                            assert_raises(RuntimeError, _overlap_add_filter,
+                            pytest.raises(RuntimeError, _overlap_add_filter,
                                           x[np.newaxis], h, phase=phase)
                             continue
                         shift = (len(h) - 1) // 2
@@ -111,7 +117,7 @@ def test_1d_filter():
                     # remove padding
                     if n_pad > 0:
                         x_expected = x_expected[n_pad:len(x_expected) - n_pad]
-                    assert_equal(len(x_expected), len(x))
+                    assert len(x_expected) == len(x)
                     # make sure we actually set things up reasonably
                     if filter_type == 'identity':
                         out = x_pad.copy()
@@ -119,9 +125,9 @@ def test_1d_filter():
                         out = out[:len(x)]
                         out = np.concatenate((out, np.zeros(max(len(x) -
                                                                 len(out), 0))))
-                        assert_equal(len(out), len(x))
+                        assert len(out) == len(x)
                         assert_allclose(out, x_expected)
-                    assert_equal(len(x_expected), len(x))
+                    assert len(x_expected) == len(x)
 
                     # compute our version
                     for n_fft in (None, 32, 128, 129, 1023, 1024, 1025, 2048):
@@ -131,7 +137,7 @@ def test_1d_filter():
                         if phase == 'zero-double':
                             min_fft = 2 * min_fft - 1
                         if n_fft is not None and n_fft < min_fft:
-                            assert_raises(ValueError, _overlap_add_filter,
+                            pytest.raises(ValueError, _overlap_add_filter,
                                           x_copy, h, n_fft, phase=phase)
                         else:
                             x_filtered = _overlap_add_filter(
@@ -145,39 +151,39 @@ def test_iir_stability():
     sig = np.empty(1000)
     sfreq = 1000
     # This will make an unstable filter, should throw RuntimeError
-    assert_raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
+    pytest.raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
                   method='iir', iir_params=dict(ftype='butter', order=8,
                                                 output='ba'))
     # This one should work just fine
     filter_data(sig, sfreq, 0.6, None, method='iir',
                 iir_params=dict(ftype='butter', order=8, output='sos'))
     # bad system type
-    assert_raises(ValueError, filter_data, sig, sfreq, 0.6, None, method='iir',
+    pytest.raises(ValueError, filter_data, sig, sfreq, 0.6, None, method='iir',
                   iir_params=dict(ftype='butter', order=8, output='foo'))
     # missing ftype
-    assert_raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
+    pytest.raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
                   method='iir', iir_params=dict(order=8, output='sos'))
     # bad ftype
-    assert_raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
+    pytest.raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
                   method='iir',
                   iir_params=dict(order=8, ftype='foo', output='sos'))
     # missing gstop
-    assert_raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
+    pytest.raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
                   method='iir', iir_params=dict(gpass=0.5, output='sos'))
     # can't pass iir_params if method='fft'
-    assert_raises(ValueError, filter_data, sig, sfreq, 0.1, None,
+    pytest.raises(ValueError, filter_data, sig, sfreq, 0.1, None,
                   method='fft', iir_params=dict(ftype='butter', order=2,
                                                 output='sos'))
     # method must be string
-    assert_raises(TypeError, filter_data, sig, sfreq, 0.1, None,
+    pytest.raises(TypeError, filter_data, sig, sfreq, 0.1, None,
                   method=1)
     # unknown method
-    assert_raises(ValueError, filter_data, sig, sfreq, 0.1, None,
+    pytest.raises(ValueError, filter_data, sig, sfreq, 0.1, None,
                   method='blah')
     # bad iir_params
-    assert_raises(TypeError, filter_data, sig, sfreq, 0.1, None,
+    pytest.raises(TypeError, filter_data, sig, sfreq, 0.1, None,
                   method='iir', iir_params='blah')
-    assert_raises(ValueError, filter_data, sig, sfreq, 0.1, None,
+    pytest.raises(ValueError, filter_data, sig, sfreq, 0.1, None,
                   method='fft', iir_params=dict())
 
     # should pass because default trans_bandwidth is not relevant
@@ -211,8 +217,8 @@ def test_notch_filters():
     a += np.sum([np.sin(2 * np.pi * f * t) for f in freqs], axis=0)
 
     # only allow None line_freqs with 'spectrum_fit' mode
-    assert_raises(ValueError, notch_filter, a, sfreq, None, 'fft')
-    assert_raises(ValueError, notch_filter, a, sfreq, None, 'iir')
+    pytest.raises(ValueError, notch_filter, a, sfreq, None, 'fft')
+    pytest.raises(ValueError, notch_filter, a, sfreq, None, 'iir')
     methods = ['spectrum_fit', 'spectrum_fit', 'fft', 'fft', 'iir']
     filter_lengths = ['auto', 'auto', 'auto', 8192, 'auto']
     line_freqs = [None, freqs, freqs, freqs, freqs]
@@ -236,8 +242,8 @@ def test_resample():
     """Test resampling."""
     x = rng.normal(0, 1, (10, 10, 10))
     x_rs = resample(x, 1, 2, 10)
-    assert_equal(x.shape, (10, 10, 10))
-    assert_equal(x_rs.shape, (10, 10, 5))
+    assert x.shape == (10, 10, 10)
+    assert x_rs.shape == (10, 10, 5)
 
     x_2 = x.swapaxes(0, 1)
     x_2_rs = resample(x_2, 1, 2, 10)
@@ -276,7 +282,7 @@ def test_resample_stim_channel():
     for new_data_len in (52598, 52599, 52600, 52601, 315599, 315600):
         new_data = _resample_stim_channels(data_chunk, new_data_len,
                                            data_chunk.shape[1])
-        assert_equal(new_data.shape[1], new_data_len)
+        assert new_data.shape[1] == new_data_len
 
 
 @requires_version('scipy', '0.16')
@@ -290,19 +296,19 @@ def test_filters():
 
     # let's test our catchers
     for fl in ['blah', [0, 1], 1000.5, '10ss', '10']:
-        assert_raises(ValueError, filter_data, a, sfreq, 4, 8, None, fl,
+        pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, fl,
                       1.0, 1.0, fir_design='firwin')
     for nj in ['blah', 0.5]:
-        assert_raises(ValueError, filter_data, a, sfreq, 4, 8, None, 1000,
+        pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, 1000,
                       1.0, 1.0, n_jobs=nj, phase='zero', fir_design='firwin')
-    assert_raises(ValueError, filter_data, a, sfreq, 4, 8, None, 100,
+    pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, 100,
                   1., 1., fir_window='foo')
-    assert_raises(ValueError, filter_data, a, sfreq, 4, 8, None, 10,
+    pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, 10,
                   1., 1., fir_design='firwin')  # too short
     # > Nyq/2
-    assert_raises(ValueError, filter_data, a, sfreq, 4, sfreq / 2., None,
+    pytest.raises(ValueError, filter_data, a, sfreq, 4, sfreq / 2., None,
                   100, 1.0, 1.0, fir_design='firwin')
-    assert_raises(ValueError, filter_data, a, sfreq, -1, None, None,
+    pytest.raises(ValueError, filter_data, a, sfreq, -1, None, None,
                   100, 1.0, 1.0, fir_design='firwin')
     # these should work
     create_filter(None, sfreq, None, None)
@@ -310,14 +316,12 @@ def test_filters():
     create_filter(a, sfreq, None, None, method='iir')
 
     # check our short-filter warning:
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='attenuation'):
         # Warning for low attenuation
         filter_data(a, sfreq, 1, 8, filter_length=256, fir_design='firwin2')
-    assert_true(any('attenuation' in str(ww.message) for ww in w))
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='Increase filter_length'):
         # Warning for too short a filter
         filter_data(a, sfreq, 1, 8, filter_length='0.5s', fir_design='firwin2')
-    assert_true(any('Increase filter_length' in str(ww.message) for ww in w))
 
     # try new default and old default
     freqs = fftfreq(a.shape[-1], 1. / sfreq)
@@ -377,19 +381,19 @@ def test_filters():
     iir_params = dict(ftype='cheby1', gpass=1, gstop=20, output='ba')
     iir_params = construct_iir_filter(iir_params, 40, 80, 1000, 'low')
     # this should be a third order filter
-    assert_equal(iir_params['a'].size - 1, 3)
-    assert_equal(iir_params['b'].size - 1, 3)
+    assert iir_params['a'].size - 1 == 3
+    assert iir_params['b'].size - 1 == 3
     iir_params = dict(ftype='butter', order=4, output='ba')
     iir_params = construct_iir_filter(iir_params, 40, None, 1000, 'low')
-    assert_equal(iir_params['a'].size - 1, 4)
-    assert_equal(iir_params['b'].size - 1, 4)
-    iir_params = dict(ftype='cheby1', gpass=1, gstop=20, output='sos')
+    assert iir_params['a'].size - 1 == 4
+    assert iir_params['b'].size - 1 == 4
+    iir_params = dict(ftype='cheby1', gpass=1, gstop=20)
     iir_params = construct_iir_filter(iir_params, 40, 80, 1000, 'low')
     # this should be a third order filter, which requires 2 SOS ((2, 6))
-    assert_equal(iir_params['sos'].shape, (2, 6))
+    assert iir_params['sos'].shape == (2, 6)
     iir_params = dict(ftype='butter', order=4, output='sos')
     iir_params = construct_iir_filter(iir_params, 40, None, 1000, 'low')
-    assert_equal(iir_params['sos'].shape, (2, 6))
+    assert iir_params['sos'].shape == (2, 6)
 
     # check that picks work for 3d array with one channel and picks=[0]
     a = rng.randn(5 * sfreq, 5 * sfreq)
@@ -405,7 +409,7 @@ def test_filters():
     # check for n-dimensional case
     a = rng.randn(2, 2, 2, 2)
     with warnings.catch_warnings(record=True):  # filter too long
-        assert_raises(ValueError, filter_data, a, sfreq, 4, 8,
+        pytest.raises(ValueError, filter_data, a, sfreq, 4, 8,
                       np.array([0, 1]), 100, 1.0, 1.0)
 
     # check corner case (#4693)
@@ -448,9 +452,9 @@ def test_filter_auto():
             assert_array_equal(x, x_filt)
 
     # degenerate conditions
-    assert_raises(ValueError, filter_data, x, -sfreq, 1, 10)
-    assert_raises(ValueError, filter_data, x, sfreq, 1, sfreq * 0.75)
-    assert_raises(TypeError, filter_data, x.astype(np.float32), sfreq, None,
+    pytest.raises(ValueError, filter_data, x, -sfreq, 1, 10)
+    pytest.raises(ValueError, filter_data, x, sfreq, 1, sfreq * 0.75)
+    pytest.raises(TypeError, filter_data, x.astype(np.float32), sfreq, None,
                   10, filter_length='auto', h_trans_bandwidth='auto', **kwargs)
 
 
@@ -492,8 +496,7 @@ def test_cuda():
     # triage based on whether or not we actually expected to use CUDA
     from mne.cuda import _cuda_capable  # allow above funs to set it
     tot = 12 if _cuda_capable else 0
-    assert_true(sum(['Using CUDA for FFT FIR filtering' in o
-                     for o in out]) == tot)
+    assert sum(['Using CUDA for FFT FIR filtering' in o for o in out]) == tot
 
     # check resampling
     for window in ('boxcar', 'triang'):
