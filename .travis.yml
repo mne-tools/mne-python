@@ -9,7 +9,7 @@ cache:
 env:
     # TRAVIS_PYTHON_VERSION is only needed for neo's setup.py
     global: PYTHON_VERSION=3.6 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning TEST_LOCATION=src
-            PIP_DEPENDENCIES="codecov pytest-faulthandler pytest-sugar pytest-xdist" OPTION=""
+            PIP_DEPENDENCIES="codecov pytest-faulthandler pytest-sugar" OPTION=""
             TRAVIS_PYTHON_VERSION=3.6 CONDA_VERSION=">=4.3.27"
 
 matrix:
@@ -18,7 +18,7 @@ matrix:
         - os: linux
           env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
                CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest pytest-cov"
-               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest pytest-sugar pytest-xdist"
+               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest pytest-sugar"
                OPTION="--doctest-ignore-import-errors"
 
         # Linux
@@ -36,12 +36,6 @@ matrix:
         - os: osx
           env: CONDA_ENVIRONMENT="environment.yml"
                SPLIT=1
-
-        # OSX pip
-        - os: osx
-          env: SPLIT=0
-        - os: osx
-          env: SPLIT=1
 
         # PIP + non-default stim channel
         - os: linux
@@ -184,7 +178,7 @@ script:
         done;
       fi;
     - echo py.test -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne;
-    - py.test -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne -n 2;
+    - py.test -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne;
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
       fi;
