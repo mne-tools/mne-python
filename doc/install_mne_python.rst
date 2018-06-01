@@ -25,6 +25,8 @@ Here we provide guidance for the simplest, most well tested solution.
   Look through the Anaconda documentation and Google Anaconda install
   tips (StackExchange results are often helpful).
 
+  Note that MNE-Python 0.17 will be the last release to support Python 3. From MNE-Python 0.18, only Python 3 will be supported.
+
 2. Get MNE and its dependencies
 ###############################
 
