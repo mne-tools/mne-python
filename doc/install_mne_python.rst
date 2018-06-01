@@ -12,7 +12,7 @@ There are many ways to install a Python interpreter and MNE. Here we show a simp
 
 We recommend the `Anaconda distribution <https://www.anaconda.com/distribution/>`_.
 Follow the `installation instructions <http://docs.continuum.io/anaconda/install>`_.
-When you are done, you should see a similar message if you type the following command in a terminal:
+When you are done, you should see a similar output if you type the following command in a terminal:
 
 .. code-block:: console
 
@@ -23,7 +23,7 @@ When you are done, you should see a similar message if you type the following co
 If you get an error message, consult the Anaconda documentation and search for Anaconda install
 tips (StackExchange results are often helpful).
 
-.. note:: Note that MNE-Python 0.17 will be the last release to support Python 3. From MNE-Python 0.18, only Python 3 will be supported.
+.. note:: Note that MNE-Python 0.17 will be the last release to support Python 2. From MNE-Python 0.18, only Python 3 will be supported.
 
 2. Get MNE and its dependencies
 ###############################
@@ -40,15 +40,13 @@ You can also use a web browser to `download the required environment file <https
 
 .. raw:: html
 
-<p class="first"><b><i class="fa fa-apple"></i> macOS users only</b></p>
+  <p class="first"><b><i class="fa fa-apple"></i> macOS users only</b></p>
 
 Manually update PyQt5. This step is not needed on Linux, and breaks things on Windows.
 
 .. code-block:: console
 
   $ pip install --upgrade pyqt5>=5.10
-
-.. raw:: html
 
 
 3. Check that everything works
@@ -69,7 +67,7 @@ If you get a new prompt with no error messages, you should be good to go!
 
 .. raw:: html
 
-<p class="first"><b><i class="fa fa-windows"></i> Windows users only</b></p>
+  <p class="first"><b><i class="fa fa-windows"></i> Windows users only</b></p>
 
 In IPython, using the magic command ``%gui qt`` after importing MNE, Mayavi or PySurfer `might be
 necessary <https://github.com/ipython/ipython/issues/10384>`_, for example:
@@ -78,8 +76,6 @@ necessary <https://github.com/ipython/ipython/issues/10384>`_, for example:
 
    In [1]: from mayavi import mlab
    In [2]: %gui qt
-
-.. raw:: html
 
 For advanced topics like how to get :ref:`CUDA` support or if you are experiencing other issues, check out :ref:`advanced_setup`.
 
