@@ -1185,15 +1185,16 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     show : bool
         Show figure if True. Defaults to True.
     ts_args : None | dict
-        A dict of `kwargs` that are forwarded to :meth:`Evoked.plot` to
+        A dict of `kwargs` that are forwarded to :meth:`mne.Evoked.plot` to
         style the butterfly plot. If they are not in this dict, the following
         defaults are passed: ``spatial_colors=True``, ``zorder='std'``,
         ``axes``, ``show``, ``exclude`` are illegal.
         If None, no customizable arguments will be passed.
         Defaults to `None`.
     topomap_args : None | dict
-        A dict of `kwargs` that are forwarded to :meth:`Evoked.plot_topomap`
-        to style the topomaps. If it is not in this dict, ``outlines='skirt'``
+        A dict of `kwargs` that are forwarded to
+        :meth:`mne.Evoked.plot_topomap` to style the topomaps.
+        If it is not in this dict, ``outlines='skirt'``
         will be passed. `axes`, `show`, `times`, `colorbar` are illegal`
         If None, no customizable arguments will be passed.
         Defaults to `None`.

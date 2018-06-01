@@ -54,25 +54,26 @@ command_rst = """
 
 
 def generate_commands_rst(app):
+    from sphinx_gallery import sphinx_compatibility
     out_dir = op.abspath(op.join(op.dirname(__file__), '..', 'generated'))
     if not op.isdir(out_dir):
         os.mkdir(out_dir)
     out_fname = op.join(out_dir, 'commands.rst')
 
-    command_path = op.join(os.path.dirname(__file__), '..', '..', 'mne',
-                           'commands')
-    print('Generating commands for: %s ... ' % op.abspath(command_path),
-          end='')
-    fnames = glob.glob(op.join(command_path, 'mne_*.py'))
-
+    command_path = op.abspath(
+        op.join(os.path.dirname(__file__), '..', '..', 'mne', 'commands'))
+    fnames = [op.basename(fname)
+              for fname in glob.glob(op.join(command_path, 'mne_*.py'))]
+    iterator = sphinx_compatibility.status_iterator(
+        fnames, 'generating MNE command help ... ', length=len(fnames))
     with open(out_fname, 'w') as f:
         f.write(header)
-        for fname in fnames:
-            cmd_name = op.basename(fname)[:-3]
-
-            output, _ = run_subprocess([sys.executable, fname, '--help'],
+        for fname in iterator:
+            cmd_name = fname[:-3]
+            run_name = op.join(command_path, fname)
+            output, _ = run_subprocess([sys.executable, run_name, '--help'],
                                        stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE)
+                                       stderr=subprocess.PIPE, verbose=False)
             f.write(command_rst % (cmd_name, cmd_name.replace('mne_', 'mne '),
                                    output))
     print('[Done]')

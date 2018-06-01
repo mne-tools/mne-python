@@ -85,3 +85,4 @@ cov = mne.compute_raw_covariance(raw, verbose=True)
 # | CRITICAL | 50      |         |
 # +----------+---------+---------+
 mne.set_config('MNE_LOGGING_LEVEL', original_level)
+print('Config value restored to: %s' % mne.get_config(key='MNE_LOGGING_LEVEL'))

@@ -11,19 +11,18 @@ timepoint. This example shows the regression coefficient; the t and p values
 are also calculated automatically.
 
 Here, we repeat a few of the analyses from [1]_. This can be easily performed
- by accessing the metadata object, which contains word-level information about
+by accessing the metadata object, which contains word-level information about
 various psycholinguistically relevant features of the words for which we have
 EEG activity.
 
-For the general methodology, see e.g. [2]_
-
+For the general methodology, see e.g. [2]_.
 
 References
 ----------
-.. [1]  Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand
+.. [1] Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand
    words are worth a picture: Snapshots of printed-word processing in an
    event-related potential megastudy. Psychological Science, 2015
-.. [2]  Hauk et al. The time course of visual word recognition as revealed by
+.. [2] Hauk et al. The time course of visual word recognition as revealed by
    linear regression analysis of ERP data. Neuroimage, 2006
 """
 # Authors: Tal Linzen <linzen@nyu.edu>
