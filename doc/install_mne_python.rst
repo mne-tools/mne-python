@@ -7,8 +7,8 @@ Installing MNE-Python
 
 There are many ways to install a Python interpreter and MNE. Here we show a simple well tested solution.
 
-1. Get a Python interpreter
-###########################
+1. Get Python
+#############
 
 We recommend the `Anaconda distribution <https://www.anaconda.com/distribution/>`_.
 Follow the `installation instructions <http://docs.continuum.io/anaconda/install>`_.
