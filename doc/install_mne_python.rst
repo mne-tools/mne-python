@@ -21,7 +21,7 @@ When you are done, you should see a similar output if you type the following com
     Python 3.6.5 :: Anaconda, Inc.
 
 If you get an error message, consult the Anaconda documentation and search for Anaconda install
-tips (StackExchange results are often helpful).
+tips (`Stack Overflow <https://stackoverflow.com/>`_ results are often helpful).
 
 .. note:: Note that MNE-Python 0.17 will be the last release to support Python 2. From MNE-Python 0.18, only Python 3 will be supported.
 
