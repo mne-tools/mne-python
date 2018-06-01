@@ -38,7 +38,7 @@ From the command line, install the MNE dependencies to a dedicated ``mne`` Anaco
 
 You can also use a web browser to `download the required environment file <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml>`_ if you do not have ``curl``.
 
-.. note:: **macOS users only:** Manually update PyQt5. This step is not needed on Linux, and even breaks things on Windows.
+.. note:: If you are on macOS, you need to manually update PyQt5. This step is not needed on Linux, and even breaks things on Windows.
 
   .. code-block:: console
 
@@ -60,18 +60,13 @@ This should open an interactive Python prompt, where you can type:
 
 If you get a new prompt with no error messages, you should be good to go!
 
+.. note:: If you are on Windows, you might have to use the IPython magic command ``%gui qt``
+          after importing MNE, Mayavi or PySurfer (see `here <https://github.com/ipython/ipython/issues/10384>`_):
 
-.. raw:: html
+  .. code-block:: ipython
 
-  <p class="first"><b><i class="fa fa-windows"></i> Windows users only</b></p>
-
-In IPython, using the magic command ``%gui qt`` after importing MNE, Mayavi or PySurfer `might be
-necessary <https://github.com/ipython/ipython/issues/10384>`_, for example:
-
-.. code-block:: ipython
-
-   In [1]: from mayavi import mlab
-   In [2]: %gui qt
+     In [1]: from mayavi import mlab
+     In [2]: %gui qt
 
 For advanced topics like how to get :ref:`CUDA` support or if you are experiencing other issues, check out :ref:`advanced_setup`.
 
