@@ -38,15 +38,11 @@ From the command line, install the MNE dependencies to a dedicated ``mne`` Anaco
 
 You can also use a web browser to `download the required environment file <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml>`_ if you do not have ``curl``.
 
-.. raw:: html
+.. note:: **macOS users only:** Manually update PyQt5. This step is not needed on Linux, and even breaks things on Windows.
 
-  <p class="first"><b><i class="fa fa-apple"></i> macOS users only</b></p>
+  .. code-block:: console
 
-Manually update PyQt5. This step is not needed on Linux, and breaks things on Windows.
-
-.. code-block:: console
-
-  $ pip install --upgrade pyqt5>=5.10
+    $ pip install --upgrade pyqt5>=5.10
 
 
 3. Check that everything works
