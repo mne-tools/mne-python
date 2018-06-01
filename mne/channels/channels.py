@@ -1337,14 +1337,14 @@ def _get_ch_info(info):
             has_eeg_coils_and_meg, has_eeg_coils_only)
 
 
-def create_1020_montage_mapping(ch_names, midline="z12"):
-    r"""Return dict mapping from ROI names to lists of picks for 10/20 setups.
+def create_1020_montage_mapping(ch_names, midline="z"):
+    """Return dict mapping from ROI names to lists of picks for 10/20 setups.
 
     This passes through all channel names, and uses a simple heuristic to
     separate channel names into three Regions of Interest: Left, Midline and
     Right. The heuristic is that channels ending on any of the characters in
-    `midline` are filed under that heading, otherwise those ending in uneven
-    numbers to the left, those in even numbers to the right. Other channels
+    `midline` are filed under that heading, otherwise those ending in odd
+    numbers under "Left", those in even numbers under "Right". Other channels
     are ignored. This is appropriate for 10/20 files, but not for other channel
     naming conventions.
     If an info object is provided, lists are sorted from posterior to anterior.
@@ -1352,18 +1352,18 @@ def create_1020_montage_mapping(ch_names, midline="z12"):
     Parameters
     ----------
     ch_names : instance of info | list
-        Object a list of channel names will be extracted from. The picks will
-        be in relation to the position in this list. If an info object, lists
+        Where to obtain the channel names from. The picks will
+        be in relation to the position in this list. If an Info object, lists
         will be sorted by y value position of the channel locations, i.e.,
-        from front to back.
+        from back to front.
     midline : str
-        Names ending in any of these characters are stored under the `midline`
-        key. Defaults to 'z12'. Note that capitalization is ignored.
+        Names ending in any of these characters are stored under the `Midline`
+        key. Defaults to 'z'. Note that capitalization is ignored.
 
     Returns
     -------
     rois : dict
-        A dictionary mapping from ROI names to lists of picks (untegers).
+        A dictionary mapping from ROI names to lists of picks (integers).
     """
     if isinstance(ch_names, Info):
         from .layout import find_layout
@@ -1375,7 +1375,7 @@ def create_1020_montage_mapping(ch_names, midline="z12"):
                        "Info, or a collection of channel names.")
         for ch_name in ch_names:
             _validate_type(ch_name, "str")
-        pos = False
+        pos = None
 
     rois = dict(Midline=[], Left=[], Right=[])
     for pick, channel in enumerate(ch_names):
@@ -1388,7 +1388,7 @@ def create_1020_montage_mapping(ch_names, midline="z12"):
             continue
         rois[roi].append(pick)
 
-    if pos is not False:
+    if pos is not None:
         # sort channels from front to center
         # (y-coordinate of the position info in the layout)
         rois = {roi: np.array(picks)[pos[picks, 1].argsort()]
