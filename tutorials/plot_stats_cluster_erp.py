@@ -113,7 +113,7 @@ evoked.plot_joint(title="Long vs. short words", ts_args=time_unit,
                   topomap_args=time_unit)  # show difference wave
 
 # Create ROIs by checking channel labels
-rois = create_1020_montage_mapping(evoked.info)
+rois = create_1020_montage_mapping(evoked.info, midline="12z")
 
 # Visualize the results
 fig, axes = plt.subplots(nrows=3, figsize=(8, 8))
