@@ -38,7 +38,7 @@ From the command line, install the MNE dependencies to a dedicated ``mne`` Anaco
 
 You can also use a web browser to `download the required environment file <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml>`_ if you do not have ``curl``.
 
-.. note:: If you are on macOS, you need to manually update PyQt5. This step is not needed on Linux, and even breaks things on Windows.
+.. note:: If you are on |apple| macOS, you need to manually update PyQt5. This step is not needed on Linux, and even breaks things on Windows.
 
   .. code-block:: console
 
@@ -60,7 +60,7 @@ This should open an interactive Python prompt, where you can type:
 
 If you get a new prompt with no error messages, you should be good to go!
 
-.. note:: If you are on Windows, you might have to use the IPython magic command ``%gui qt``
+.. note:: If you are on |windows| Windows, you might have to use the IPython magic command ``%gui qt``
           after importing MNE, Mayavi or PySurfer (see `here <https://github.com/ipython/ipython/issues/10384>`_):
 
   .. code-block:: ipython

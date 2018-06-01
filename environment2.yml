@@ -42,3 +42,4 @@ dependencies:
   - sphinx_bootstrap_theme
   - git+https://github.com/sphinx-gallery/sphinx-gallery.git
   - python-picard
+  - sphinx_fontawesome

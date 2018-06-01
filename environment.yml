@@ -43,3 +43,4 @@ dependencies:
   - sphinx_bootstrap_theme
   - "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master"
   - python-picard
+  - sphinx_fontawesome
