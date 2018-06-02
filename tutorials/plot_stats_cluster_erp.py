@@ -138,8 +138,6 @@ for roi_name, ax in zip(sorted(rois.keys()), axes):
                       clim=dict(eeg=(-vmax, vmax)), mask=significant_points,
                       **time_unit, show_ch_names="all")
     evoked.nave = None
-#    ax.set_yticks((np.arange(len(picks))) + .5)
-#    ax.set_yticklabels([evoked.ch_names[idx] for idx in picks])
     if not ax.is_last_row():  # remove xticklabels for all but bottom axis
         ax.set(xlabel='', xticklabels=[])
     ax.set(ylabel='', title=roi_name)
