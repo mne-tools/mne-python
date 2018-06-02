@@ -5,7 +5,7 @@ div.highlight {
     background-color: #fafafa;
 }
 .highlight * {
-    color: inherit;
+    color: #2c3e50;  /* copied from body text default value */
     font-weight: inherit;
     font-style: inherit;
     background-color: transparent;
