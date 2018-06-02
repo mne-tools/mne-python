@@ -240,7 +240,7 @@ def test_get_set_sensor_positions():
         assert_raises(TypeError, create_1020_montage_mapping,
                       input)
     ch_names = ["Cz", "C3", "C4", "C1", "Missing"]
-    intended_output = {"Midline": [0, 3], "Left": [1], "Right": [2]}
+    intended_output = {"Midline": [0], "Left": [1, 3], "Right": [2]}
     assert_equal(create_1020_montage_mapping(ch_names),
                  intended_output)
     create_1020_montage_mapping(raw1.info)  # test if layout sorting works
