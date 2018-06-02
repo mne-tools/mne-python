@@ -547,13 +547,13 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
 
     if show_ch_names is not False:
         if show_ch_names == "all":
-            yticks = np.arange(len(picks))
+            yticks = np.arange(len(picks)).astype(int)
             yticklabels = np.array(ch_names)[picks]
         else:
-            yticks = np.array(ax.get_yticks())
+            yticks = np.array(ax.get_yticks()).astype(int)
             # these should only ever be ints right?
             yticklabels = np.array(ch_names)[picks][yticks]
-        ax.set(yticks=yticks.astype(int) + .5, yticklabels=yticklabels)
+        ax.set(yticks=yticks + .5, yticklabels=yticklabels)
 
 
 @verbose
