@@ -551,8 +551,9 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
             yticklabels = np.array(ch_names)[picks]
         else:
             yticks = np.array(ax.get_yticks())
+            # these should only ever be ints right?
             yticklabels = np.array(ch_names)[picks][yticks]
-        ax.set(yticks=yticks + .5, yticklabels=yticklabels)
+        ax.set(yticks=yticks.astype(int) + .5, yticklabels=yticklabels)
 
 
 @verbose
