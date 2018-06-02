@@ -1392,6 +1392,6 @@ def make_1020_channel_selections(ch_names, midline="z"):
         # sort channels from front to center
         # (y-coordinate of the position info in the layout)
         selections = {selection: np.array(picks)[pos[picks, 1].argsort()]
-                for selection, picks in selections.items()}
+                      for selection, picks in selections.items()}
 
     return selections
