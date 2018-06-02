@@ -113,7 +113,7 @@ evoked.plot_joint(title="Long vs. short words", ts_args=time_unit,
                   topomap_args=time_unit)  # show difference wave
 
 # Create ROIs by checking channel labels
-rois = make_1020_channel_selections(evoked.info, midline="12z")
+selections = make_1020_channel_selections(evoked.info, midline="12z")
 
 # Visualize the results
 fig, axes = plt.subplots(nrows=3, figsize=(8, 8))
@@ -121,8 +121,8 @@ vmax = np.abs(evoked.data).max() * 1e6
 
 # Iterate over ROIs and axes
 axes = axes.ravel().tolist()
-for roi_name, ax in zip(sorted(rois.keys()), axes):
-    picks = rois[roi_name]
+for selection_name, ax in zip(sorted(selections.keys()), axes):
+    picks = selections[selection_name]
     evoked.plot_image(picks=picks, axes=ax, colorbar=False, show=False,
                       clim=dict(eeg=(-vmax, vmax)), mask=significant_points,
                       **time_unit)
@@ -131,7 +131,7 @@ for roi_name, ax in zip(sorted(rois.keys()), axes):
     ax.set_yticklabels([evoked.ch_names[idx] for idx in picks])
     if not ax.is_last_row():  # remove xticklabels for all but bottom axis
         ax.set(xlabel='', xticklabels=[])
-    ax.set(ylabel='', title=roi_name)
+    ax.set(ylabel='', title=selection_name)
 
 fig.colorbar(ax.images[-1], ax=axes, fraction=.1, aspect=20,
              pad=.05, shrink=2 / 3, label="uV", orientation="vertical")

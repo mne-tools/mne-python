@@ -1362,7 +1362,7 @@ def make_1020_channel_selections(ch_names, midline="z"):
 
     Returns
     -------
-    rois : dict
+    selections : dict
         A dictionary mapping from ROI names to lists of picks (integers).
     """
     if isinstance(ch_names, Info):
@@ -1377,21 +1377,21 @@ def make_1020_channel_selections(ch_names, midline="z"):
             _validate_type(ch_name, "str")
         pos = None
 
-    rois = dict(Midline=[], Left=[], Right=[])
+    selections = dict(Midline=[], Left=[], Right=[])
     for pick, channel in enumerate(ch_names):
         last_char = channel[-1].lower()  # in 10/20, last char codes hemisphere
         if last_char in midline:
-            roi = "Midline"
+            selection = "Midline"
         elif last_char.isdigit():
-            roi = "Left" if int(last_char) % 2 else "Right"
+            selection = "Left" if int(last_char) % 2 else "Right"
         else:  # ignore the channel
             continue
-        rois[roi].append(pick)
+        selections[selection].append(pick)
 
     if pos is not None:
         # sort channels from front to center
         # (y-coordinate of the position info in the layout)
-        rois = {roi: np.array(picks)[pos[picks, 1].argsort()]
-                for roi, picks in rois.items()}
+        selections = {selection: np.array(picks)[pos[picks, 1].argsort()]
+                for selection, picks in selections.items()}
 
-    return rois
+    return selections

@@ -59,10 +59,10 @@ epochs = Epochs(raw, events=new_events, tmax=tmax + .1,
 # Parameters for plotting
 order = rts.argsort()  # sorting from fast to slow trials
 
-rois = make_1020_channel_selections(epochs.info, midline="12z")
+selections = make_1020_channel_selections(epochs.info, midline="12z")
 
 # The actual plots
 for combine_measures in ('gfp', 'median'):
-    epochs.plot_image(group_by=rois, order=order, overlay_times=rts / 1000.,
-                      sigma=1.5, combine=combine_measures,
+    epochs.plot_image(group_by=selections, order=order, sigma=1.5,
+                      overlay_times=rts / 1000., combine=combine_measures,
                       ts_args=dict(vlines=[0, rts.mean() / 1000.]))
