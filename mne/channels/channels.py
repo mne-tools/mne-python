@@ -1337,16 +1337,16 @@ def _get_ch_info(info):
             has_eeg_coils_and_meg, has_eeg_coils_only)
 
 
-def create_1020_montage_mapping(ch_names, midline="z"):
+def make_1020_channel_selections(ch_names, midline="z"):
     """Return dict mapping from ROI names to lists of picks for 10/20 setups.
 
     This passes through all channel names, and uses a simple heuristic to
-    separate channel names into three Regions of Interest: Left, Midline and
-    Right. The heuristic is that channels ending on any of the characters in
-    `midline` are filed under that heading, otherwise those ending in odd
-    numbers under "Left", those in even numbers under "Right". Other channels
-    are ignored. This is appropriate for 10/20 files, but not for other channel
-    naming conventions.
+    separate channel names into three Region of Interest-based selections:
+    Left, Midline and Right. The heuristic is that channels ending on any of
+    the characters in `midline` are filed under that heading, otherwise those
+    ending in odd numbers under "Left", those in even numbers under "Right".
+    Other channels are ignored. This is appropriate for 10/20 files, but not
+    for other channel naming conventions.
     If an info object is provided, lists are sorted from posterior to anterior.
 
     Parameters
