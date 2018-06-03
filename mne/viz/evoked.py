@@ -550,7 +550,9 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
             yticks = np.arange(len(picks)).astype(int)
             yticklabels = np.array(ch_names)[picks]
         else:
-            yticks = np.array(ax.get_yticks()).astype(int)
+            max_tick = len(picks)
+            yticks = [tick for tick in ax.get_yticks() if tick < max_tick]
+            yticks = np.array(yticks).astype(int)
             # these should only ever be ints right?
             yticklabels = np.array(ch_names)[picks][yticks]
         ax.set(yticks=yticks + .5, yticklabels=yticklabels)
