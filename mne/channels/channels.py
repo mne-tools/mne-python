@@ -1373,7 +1373,7 @@ def make_1020_channel_selections(info, midline="z"):
         from .layout import find_layout
         layout = find_layout(info)
         pos = layout.pos
-    except Exception:  # no channel positions found
+    except RuntimeError:  # no channel positions found
         pos = None
 
     selections = dict(Midline=[], Left=[], Right=[])
