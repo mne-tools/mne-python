@@ -1337,7 +1337,7 @@ def _get_ch_info(info):
             has_eeg_coils_and_meg, has_eeg_coils_only)
 
 
-def make_1020_channel_selections(ch_names, midline="z"):
+def make_1020_channel_selections(info, midline="z"):
     """Return dict mapping from ROI names to lists of picks for 10/20 setups.
 
     This passes through all channel names, and uses a simple heuristic to
@@ -1351,10 +1351,10 @@ def make_1020_channel_selections(ch_names, midline="z"):
 
     Parameters
     ----------
-    ch_names : instance of info | list
+    info : instance of info
         Where to obtain the channel names from. The picks will
-        be in relation to the position in this list. If an Info object, lists
-        will be sorted by y value position of the channel locations, i.e.,
+        be in relation to the position in `info["ch_names"]`. If possible, this
+        lists will be sorted by y value position of the channel locations, i.e.,
         from back to front.
     midline : str
         Names ending in any of these characters are stored under the `Midline`
@@ -1365,16 +1365,15 @@ def make_1020_channel_selections(ch_names, midline="z"):
     selections : dict
         A dictionary mapping from ROI names to lists of picks (integers).
     """
-    if isinstance(ch_names, Info):
+    _validate_type(info, Info, "info")
+
+    ch_names = info["ch_names"]
+
+    try:
         from .layout import find_layout
-        layout = find_layout(ch_names)
+        layout = find_layout(info)
         pos = layout.pos
-        ch_names = layout.names
-    else:
-        _validate_type(ch_names, (tuple, list, np.ndarray), "ch_names",
-                       "Info, or a collection of channel names.")
-        for ch_name in ch_names:
-            _validate_type(ch_name, "str")
+    except Exception:  # no channel positions found
         pos = None
 
     selections = dict(Midline=[], Left=[], Right=[])

@@ -22,7 +22,7 @@ from mne.channels.channels import (_ch_neighbor_connectivity,
 from mne.io import read_info, read_raw_fif, read_raw_ctf, read_raw_bti
 from mne.io.constants import FIFF
 from mne.utils import _TempDir, run_tests_if_main
-from mne import pick_types, pick_channels
+from mne import pick_types, pick_channels, read_epochs_eeglab
 from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -236,14 +236,30 @@ def test_get_set_sensor_positions():
     assert_array_equal(raw1.info['chs'][13]['loc'],
                        raw2.info['chs'][13]['loc'])
 
+
+@testing.requires_testing_data
+def test_1020_selection():
+    """Test making a 10/20 selection dict"""
+    base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
+    epochs_fname = op.join(base_dir, 'test_epochs.set')
+    epochs = read_epochs_eeglab(epochs_fname)
+
     for input in ("a_string", 100, raw1, [1, 2]):
         assert_raises(TypeError, make_1020_channel_selections, input)
-    ch_names = ["Cz", "C3", "C4", "C1", "Missing"]
-    intended_output = {"Midline": [0], "Left": [1, 3], "Right": [2]}
-    assert_equal(make_1020_channel_selections(ch_names),
-                 intended_output)
-    make_1020_channel_selections(raw1.info)  # test if layout sorting works
-    # FIXME missing: test if sorting actually works. Needs 10/20 file
+
+    sels = make_1020_channel_selections(epochs.info)
+    # are all frontal channels placed before all occipital channels?
+    for name, picks in sels.items():
+        fs = [ii for ii, pick in enumerate(picks)
+              if epochs.ch_names[pick].startswith("F")]
+        ps = [ii for ii, pick in enumerate(picks)
+              if epochs.ch_names[pick].startswith("O")]
+        assert_true(min(fs) > max(ps))
+
+    # are channels in the correct selection?
+    fz_c1_c2 = [epochs.ch_names.index(ch) for ch in ("Fz", "C1", "C2")]
+    for channel, roi in zip(fz_c1_c2, ("Midline", "Left", "Right")):
+        assert_true(channel in sels[roi])
 
 
 @testing.requires_testing_data
