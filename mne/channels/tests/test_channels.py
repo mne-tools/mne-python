@@ -244,7 +244,7 @@ def test_1020_selection():
     epochs_fname = op.join(base_dir, 'test_epochs.set')
     epochs = read_epochs_eeglab(epochs_fname)
 
-    for input in ("a_string", 100, raw1, [1, 2]):
+    for input in ("a_string", 100, epochs, [1, 2]):
         assert_raises(TypeError, make_1020_channel_selections, input)
 
     sels = make_1020_channel_selections(epochs.info)
