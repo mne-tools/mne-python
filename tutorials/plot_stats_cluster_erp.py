@@ -136,7 +136,7 @@ for roi_name, ax in zip(sorted(rois.keys()), axes):
     picks = rois[roi_name]
     evoked.plot_image(picks=picks, axes=ax, colorbar=False, show=False,
                       clim=dict(eeg=(-vmax, vmax)), mask=significant_points,
-                      **time_unit, show_ch_names="all")
+                      **time_unit, show_names="all")
     evoked.nave = None
     if not ax.is_last_row():  # remove xticklabels for all but bottom axis
         ax.set(xlabel='', xticklabels=[])
