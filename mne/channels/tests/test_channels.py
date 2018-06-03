@@ -19,10 +19,11 @@ from mne.channels import (rename_channels, read_ch_connectivity,
                           find_ch_connectivity, make_1020_channel_selections)
 from mne.channels.channels import (_ch_neighbor_connectivity,
                                    _compute_ch_connectivity)
-from mne.io import read_info, read_raw_fif, read_raw_ctf, read_raw_bti
+from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
+                    read_raw_eeglab)
 from mne.io.constants import FIFF
 from mne.utils import _TempDir, run_tests_if_main
-from mne import pick_types, pick_channels, read_epochs_eeglab
+from mne import pick_types, pick_channels
 from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -241,24 +242,26 @@ def test_get_set_sensor_positions():
 def test_1020_selection():
     """Test making a 10/20 selection dict"""
     base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
-    epochs_fname = op.join(base_dir, 'test_epochs.set')
-    epochs = read_epochs_eeglab(epochs_fname)
+    raw_fname = op.join(base_dir, 'test_raw.set')
+    loc_fname = op.join(base_dir, 'test_chans.locs')
+    raw = read_raw_eeglab(raw_fname, montage=loc_fname)
+    print("hsdfahs,djfbs,dj2", raw.ch_names, "kjhserbf,jdb")
 
-    for input in ("a_string", 100, epochs, [1, 2]):
+    for input in ("a_string", 100, raw, [1, 2]):
         assert_raises(TypeError, make_1020_channel_selections, input)
 
-    sels = make_1020_channel_selections(epochs.info)
+    sels = make_1020_channel_selections(raw.info)
     # are all frontal channels placed before all occipital channels?
     for name, picks in sels.items():
         fs = [ii for ii, pick in enumerate(picks)
-              if epochs.ch_names[pick].startswith("F")]
+              if raw.ch_names[pick].startswith("F")]
         ps = [ii for ii, pick in enumerate(picks)
-              if epochs.ch_names[pick].startswith("O")]
+              if raw.ch_names[pick].startswith("O")]
         assert_true(min(fs) > max(ps))
 
     # are channels in the correct selection?
-    fz_c1_c2 = [epochs.ch_names.index(ch) for ch in ("Fz", "C1", "C2")]
-    for channel, roi in zip(fz_c1_c2, ("Midline", "Left", "Right")):
+    fz_c3_c4 = [raw.ch_names.index(ch) for ch in ("Fz", "C3", "C4")]
+    for channel, roi in zip(fz_c3_c4, ("Midline", "Left", "Right")):
         assert_true(channel in sels[roi])
 
 

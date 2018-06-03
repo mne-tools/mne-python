@@ -1354,8 +1354,8 @@ def make_1020_channel_selections(info, midline="z"):
     info : instance of info
         Where to obtain the channel names from. The picks will
         be in relation to the position in `info["ch_names"]`. If possible, this
-        lists will be sorted by y value position of the channel locations, i.e.,
-        from back to front.
+        lists will be sorted by y value position of the channel locations,
+        i.e., from back to front.
     midline : str
         Names ending in any of these characters are stored under the `Midline`
         key. Defaults to 'z'. Note that capitalization is ignored.
@@ -1367,13 +1367,13 @@ def make_1020_channel_selections(info, midline="z"):
     """
     _validate_type(info, Info, "info")
 
-    ch_names = info["ch_names"]
-
     try:
         from .layout import find_layout
         layout = find_layout(info)
         pos = layout.pos
+        ch_names = layout.names
     except RuntimeError:  # no channel positions found
+        ch_names = info["ch_names"]
         pos = None
 
     selections = dict(Midline=[], Left=[], Right=[])
