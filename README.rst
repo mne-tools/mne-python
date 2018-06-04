@@ -61,6 +61,8 @@ To install the latest stable version of MNE-Python, you can use `pip <https://pi
 
     pip install -U mne
 
+**Note** that MNE-Python 0.17 will be the last release to support Python 2. From MNE-Python 0.18, only Python 3 will be supported.
+
 For more complete instructions and more advanced installation methods (e.g. for
 the latest development version), see the `getting started page`_.
 

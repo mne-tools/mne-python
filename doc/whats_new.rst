@@ -49,6 +49,7 @@ Bug
 API
 ~~~
 
+- Prepare transition to Python 3. This release will be the last release compatible with Python 2. The next version will be Python 3 only.
 
 .. _changes_0_16:
 

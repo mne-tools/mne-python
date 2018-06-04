@@ -20,6 +20,7 @@ from datetime import date
 import sphinx_gallery  # noqa
 import sphinx_bootstrap_theme
 from numpydoc import numpydoc, docscrape  # noqa
+import sphinx_fontawesome
 import mne
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -53,6 +54,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.todo',
     'sphinx_gallery.gen_gallery',
+    'sphinx_fontawesome',
     'numpydoc',
     'gen_commands',
 ]
