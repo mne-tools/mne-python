@@ -27,10 +27,11 @@ from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
                       _fast_cross_nd_sum, _get_solids)
-from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn, _pl
+from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
+                    _pl, _validate_type)
 from .fixes import einsum
 from .externals.six import string_types
-
+_validate_type
 
 # ############################################################################
 # Compute BEM solution
