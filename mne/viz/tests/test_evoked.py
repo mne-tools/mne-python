@@ -154,8 +154,8 @@ def test_plot_evoked():
     assert_raises(ValueError, evoked.plot_image, picks=[0, 0],
                   time_unit='s')  # duplicates
 
-    evoked.plot_image(show_names="all")
-    evoked.plot_image(show_names=True)
+    evoked.plot_image(show_names="all", time_unit='s')
+    evoked.plot_image(show_names=True, time_unit='s')
 
     evoked.plot_topo()  # should auto-find layout
     _line_plot_onselect(0, 200, ['mag', 'grad'], evoked.info, evoked.data,
