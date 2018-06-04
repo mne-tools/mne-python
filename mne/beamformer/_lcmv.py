@@ -15,7 +15,7 @@ from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate
-from ..utils import logger, verbose, warn, estimate_rank
+from ..utils import logger, verbose, warn, estimate_rank, _validate_type
 from .. import Epochs
 from ..externals import six
 from ._compute_beamformer import (
@@ -182,9 +182,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
                                       'with rank reduction using reduce_rank '
                                       'parameter is only implemented with '
                                       'pick_ori=="max-power".')
-        if not isinstance(reduce_rank, bool):
-            raise ValueError('reduce_rank has to be True or False '
-                             ' (got %s).' % reduce_rank)
+        _validate_type(reduce_rank, bool, "reduce_rank", "a boolean")
 
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)

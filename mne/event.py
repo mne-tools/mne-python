@@ -11,7 +11,8 @@ import numpy as np
 from os.path import splitext
 
 
-from .utils import check_fname, logger, verbose, _get_stim_channel, warn
+from .utils import (check_fname, logger, verbose, _get_stim_channel, warn,
+                    _validate_type)
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
@@ -720,9 +721,7 @@ def _mask_trigs(events, mask, mask_type):
         raise ValueError('mask_type must be "not_and" or "and", got %s'
                          % (mask_type,))
     if mask is not None:
-        if not isinstance(mask, int):
-            raise TypeError('You provided a(n) %s.' % type(mask) +
-                            'Mask must be an int or None.')
+        _validate_type(mask, "int", "mask", "None or an int")
     n_events = len(events)
     if n_events == 0:
         return events.copy()
@@ -856,14 +855,10 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
         The new events.
     """
     from .io.base import BaseRaw
-    if not isinstance(raw, BaseRaw):
-        raise ValueError('Input data must be an instance of Raw, got'
-                         ' %s instead.' % (type(raw)))
-    if not isinstance(id, int):
-        raise ValueError('id must be an integer')
-    if not isinstance(duration, (int, float)):
-        raise ValueError('duration must be an integer of a float, '
-                         'got %s instead.' % (type(duration)))
+    _validate_type(raw, BaseRaw, "raw")
+    _validate_type(id, int, "id")
+    _validate_type(duration, "numeric", "duration")
+
     start = raw.time_as_index(start, use_rounding=True)[0]
     if stop is not None:
         stop = raw.time_as_index(stop, use_rounding=True)[0]
@@ -913,8 +908,7 @@ def concatenate_events(events, first_samps, last_samps):
     --------
     mne.concatenate_raws
     """
-    if not isinstance(events, list):
-        raise ValueError('events must be a list of arrays')
+    _validate_type(events, list, "events")
     if not (len(events) == len(last_samps) and
             len(events) == len(first_samps)):
         raise ValueError('events, first_samps, and last_samps must all have '
@@ -1103,8 +1097,8 @@ class AcqParserFIF(object):
         """
         if isinstance(item, str):
             item = [item]
-        elif not isinstance(item, list):
-            raise ValueError('Keys must be category names')
+        else:
+            _validate_type(item, list, "Keys", "category names")
         cats = list()
         for it in item:
             if it in self._categories:
