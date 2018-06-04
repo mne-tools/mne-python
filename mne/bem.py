@@ -31,7 +31,7 @@ from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type)
 from .fixes import einsum
 from .externals.six import string_types
-_validate_type
+
 
 # ############################################################################
 # Compute BEM solution
