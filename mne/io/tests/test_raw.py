@@ -94,8 +94,6 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
             assert_equal(raw.info['meas_id'][key], raw3.info['meas_id'][key])
         assert_array_equal(raw.info['meas_id']['machid'],
                            raw3.info['meas_id']['machid'])
-    else:
-        logger.warn('Reader does not set meas_id')
     return raw
 
 
