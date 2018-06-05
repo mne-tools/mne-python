@@ -721,7 +721,7 @@ def _mask_trigs(events, mask, mask_type):
         raise ValueError('mask_type must be "not_and" or "and", got %s'
                          % (mask_type,))
     if mask is not None:
-        _validate_type(mask, "int", "mask", "None or an int")
+        _validate_type(mask, "int", "mask", "int or None")
     n_events = len(events)
     if n_events == 0:
         return events.copy()

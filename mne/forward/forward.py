@@ -1379,7 +1379,7 @@ def restrict_forward_to_label(fwd, labels):
 
     # Get vertices separately of each hemisphere from all label
     for label in labels:
-        _validate_type(label, Label, "label", "Label")
+        _validate_type(label, Label, "label", "Label or list")
         i = 0 if label.hemi == 'lh' else 1
         vertices[i] = np.append(vertices[i], label.vertices)
     # Remove duplicates and sort
