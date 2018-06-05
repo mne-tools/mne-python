@@ -540,9 +540,9 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         if cmap[1]:
             ax.CB = DraggableColorbar(cbar, im)
 
-    ax.set(ylabel='Channel (index)', xlabel='Time (%s)' % (time_unit,))
-    ax.set_title(
-        titles[this_type] + ' (%d channel%s' % (len(data), _pl(data)) + t_end)
+    ylabel = "Channels" if show_names else 'Channel (index)'
+    t = titles[this_type] + ' (%d channel%s' % (len(data), _pl(data)) + t_end
+    ax.set(ylabel=ylabel, xlabel='Time (%s)' % (time_unit,), title=t)
     _add_nave(ax, nave)
 
     if show_names is not False:
