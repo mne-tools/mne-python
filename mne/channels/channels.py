@@ -1376,7 +1376,7 @@ def make_1020_channel_selections(info, midline="z"):
         ch_names = info["ch_names"]
         pos = None
 
-    selections = dict(Midline=[], Left=[], Right=[])
+    selections = dict(Left=[], Midline=[], Right=[])
     for pick, channel in enumerate(ch_names):
         last_char = channel[-1].lower()  # in 10/20, last char codes hemisphere
         if last_char in midline:
