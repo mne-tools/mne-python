@@ -163,7 +163,7 @@ def compute_lcmv_example_data(data_path, fname=None):
 
     # select time window (tmin, tmax) in ms - consider changing for real data
     # scenario, since those values were chosen to optimize computation time
-    stc.crop(0.0, 0.01)
+    stc.crop(0.0, 0.0)
 
     # Save result in a 4D nifti file
     img = mne.save_stc_as_volume(fname, stc, forward['src'],
