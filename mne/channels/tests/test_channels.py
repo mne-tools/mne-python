@@ -252,11 +252,11 @@ def test_1020_selection():
     sels = make_1020_channel_selections(raw.info)
     # are all frontal channels placed before all occipital channels?
     for name, picks in sels.items():
-        fs = [ii for ii, pick in enumerate(picks)
-              if raw.ch_names[pick].startswith("F")]
-        ps = [ii for ii, pick in enumerate(picks)
-              if raw.ch_names[pick].startswith("O")]
-        assert_true(min(fs) > max(ps))
+        fs = min([ii for ii, pick in enumerate(picks)
+                  if raw.ch_names[pick].startswith("F")])
+        ps = max([ii for ii, pick in enumerate(picks)
+                  if raw.ch_names[pick].startswith("O")])
+        assert_true(fs > ps)
 
     # are channels in the correct selection?
     fz_c3_c4 = [raw.ch_names.index(ch) for ch in ("Fz", "C3", "C4")]
