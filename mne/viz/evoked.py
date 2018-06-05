@@ -188,7 +188,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  set_tight_layout=True, selectable=True, zorder='unsorted',
                  noise_cov=None, colorbar=True, mask=None, mask_style=None,
                  mask_cmap=None, mask_alpha=.25, time_unit='s',
-                 show_names=False):
+                 show_names=False, group_by=None):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -201,6 +201,26 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         interactive.
     """
     time_unit, times = _check_time_unit(time_unit, evoked.times)
+    if isinstance(axes, dict) or isinstance(group_by, dict):
+        if not isinstance(axes, dict) and isinstance(group_by, dict):
+            raise TypeError("If one of `axes` and `group_by` is a dict, "
+                            "the other must be, too.")
+        for sel in group_by:  # ... we loop over selections
+            # the unwieldly dict comp below just sets the title to the sel
+            _plot_evoked(evoked, group_by[sel], exclude, unit, show, ylim,
+                         proj, xlim, hline, units, scalings,
+                         (titles if titles is not None else {
+                             channel_type(evoked.info, idx): sel
+                             for idx in group_by[sel]}),
+                         axes[sel], plot_type, cmap=cmap, gfp=gfp,
+                         window_title=window_title,
+                         set_tight_layout=set_tight_layout,
+                         selectable=selectable, noise_cov=noise_cov,
+                         colorbar=colorbar, mask=mask, mask_style=mask_style,
+                         mask_cmap=mask_cmap, mask_alpha=mask_alpha,
+                         time_unit=time_unit)
+        return axes[sel].get_figure()
+
     import matplotlib.pyplot as plt
     info = evoked.info
     if axes is not None and proj == 'interactive':
@@ -798,7 +818,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
                       units=None, scalings=None, titles=None, axes=None,
                       cmap='RdBu_r', colorbar=True, mask=None,
                       mask_style=None, mask_cmap="Greys", mask_alpha=.25,
-                      time_unit='s', show_names="auto"):
+                      time_unit='s', show_names="auto", group_by=None):
     """Plot evoked data as images.
 
     Parameters
@@ -892,7 +912,20 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         If "auto", is set to False if `picks` is ``None``; to ``True`` if
         `picks` is not ``None`` and fewer than 25 picks are shown; to "all"
         if `picks` is not ``None`` and contains fewer than 25 entries.
+    group_by : None | str | dict
+        If not None, combining happens over channel groups defined by this
+        parameter.
+        If str, must be "type", in which case one figure per channel type is
+        returned (combining within channel types).
+        If a dict, the values must be picks and one figure will be returned
+        for each entry, aggregating over the corresponding pick groups; keys
+        will become plot titles. This is useful for e.g. ROIs. Each entry must
+        contain only one channel type. For example::
 
+            group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
+
+        If not None, combine must not be None. Defaults to `None` if picks are
+        provided, otherwise 'type'.
 
     Returns
     -------
@@ -905,7 +938,8 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
                         axes=axes, plot_type="image", cmap=cmap,
                         colorbar=colorbar, mask=mask, mask_style=mask_style,
                         mask_cmap=mask_cmap, mask_alpha=mask_alpha,
-                        time_unit=time_unit, show_names=show_names)
+                        time_unit=time_unit, show_names=show_names,
+                        group_by=group_by)
 
 
 def _plot_update_evoked(params, bools):

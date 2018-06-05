@@ -162,6 +162,11 @@ def test_plot_evoked():
         assert_true(tick_target in str(tick_observed))
     evoked.plot_image(show_names=True, time_unit='s')
 
+    # test groupby
+    evoked.plot_image(group_by=dict(sel=[0, 7]), axes=dict(sel=plt.axes()))
+    plt.close('all')
+
+    # test plot_topo
     evoked.plot_topo()  # should auto-find layout
     _line_plot_onselect(0, 200, ['mag', 'grad'], evoked.info, evoked.data,
                         evoked.times)
