@@ -310,7 +310,7 @@ img_vol_res, t1_m_img_res, t1_s_img_res = prepare_volume_example_data(
     img,
     data_path + '/subjects/sample/mri/brain.mgz',
     data_path + '/subjects/fsaverage/mri/brain.mgz',
-    voxel_size=(3., 3., 3.))
+    voxel_size=(5., 5., 5.))
 
 # compute morph map from Moving to Static
 mapping, affine = compute_morph_map(t1_m_img_res, t1_s_img_res)
