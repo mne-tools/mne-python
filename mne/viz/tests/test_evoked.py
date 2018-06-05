@@ -41,6 +41,7 @@ event_id, tmin, tmax = 1, -0.1, 0.1
 n_chan = 6
 layout = read_layout('Vectorview-all')
 
+
 def _get_picks(raw):
     """Get picks."""
     return pick_types(raw.info, meg=True, eeg=False, stim=False,
