@@ -150,8 +150,9 @@ class RawCTF(BaseRaw):
             last_samps=last_samps, filenames=fnames,
             raw_extras=raw_extras, orig_format='int', verbose=verbose)
 
-        # Add bad segments as Annotations
-        self.annotations = _read_bad_segments(directory, info)
+        # Add bad segments as Annotations (correct for start time)
+        s_time = -res4['pre_trig_pts'] / float(info['sfreq'])
+        self.annotations = _read_bad_segments(directory, s_time)
 
         if clean_names:
             self._clean_names()

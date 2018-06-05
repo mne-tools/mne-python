@@ -463,7 +463,7 @@ def _read_bad_chans(directory, info):
     return bad_chans
 
 
-def _read_bad_segments(directory, info):
+def _read_bad_segments(directory, start_time):
     fname = op.join(directory, 'bad.segments')
     if not op.exists(fname):
         return None
@@ -480,4 +480,5 @@ def _read_bad_segments(directory, info):
     # return None if there are no bad segments
     if len(onsets) == 0:
         return None
-    return Annotations(onsets, durations, desc, orig_time=info['meas_date'])
+
+    return Annotations(onsets, durations, desc, orig_time=-start_time)

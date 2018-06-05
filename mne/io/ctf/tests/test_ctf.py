@@ -209,7 +209,13 @@ def test_read_ctf():
         with warnings.catch_warnings(record=True) as w:  # reclassified ch
             raw = read_raw_ctf(fname, preload=True)
         assert all('MISC channel' in str(ww.message) for ww in w)
-        assert_allclose(raw[:][0], raw_c[:][0])
+        assert_allclose(raw[:][0], raw_c[:][0], atol=1e-15)
+        # test bad segment annotations
+        if 'testdata_ctf_short.ds' in fname:
+            assert 'bad' in raw.annotations.description[0]
+            assert_allclose(raw.annotations.onset, [4.15])
+            assert_allclose(raw.annotations.duration, [0.0225])
+
     pytest.raises(TypeError, read_raw_ctf, 1)
     pytest.raises(ValueError, read_raw_ctf, ctf_fname_continuous + 'foo.ds')
     # test ignoring of system clock
