@@ -1372,7 +1372,6 @@ def restrict_forward_to_label(fwd, labels):
     --------
     restrict_forward_to_stc
     """
-    message = 'labels must be instance of Label or a list of Label.'
     vertices = [np.array([], int), np.array([], int)]
 
     if not isinstance(labels, list):
