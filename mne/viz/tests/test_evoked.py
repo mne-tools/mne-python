@@ -41,7 +41,6 @@ event_id, tmin, tmax = 1, -0.1, 0.1
 n_chan = 6
 layout = read_layout('Vectorview-all')
 
-
 def _get_picks(raw):
     """Get picks."""
     return pick_types(raw.info, meg=True, eeg=False, stim=False,
@@ -154,7 +153,12 @@ def test_plot_evoked():
     assert_raises(ValueError, evoked.plot_image, picks=[0, 0],
                   time_unit='s')  # duplicates
 
-    evoked.plot_image(show_names="all", time_unit='s')
+    ch_names = ["MEG 1131", "MEG 0111"]
+    picks = [evoked.ch_names.index(ch) for ch in ch_names]
+    evoked.plot_image(show_names="all", time_unit='s', picks=picks)
+    yticklabels = plt.gca().get_yticklabels()
+    for tick_target, tick_observed in zip(ch_names, yticklabels):
+        assert_true(tick_target in str(tick_observed))
     evoked.plot_image(show_names=True, time_unit='s')
 
     evoked.plot_topo()  # should auto-find layout
