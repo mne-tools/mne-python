@@ -109,12 +109,8 @@ def test_read_ctf():
         assert_array_equal(raw.ch_names, raw_c.ch_names)
         assert_allclose(raw.times, raw_c.times)
         assert_allclose(raw._cals, raw_c._cals)
-        for key in ('version', 'usecs'):
-            assert_equal(raw.info['meas_id'][key], raw_c.info['meas_id'][key])
-        py_time = raw.info['meas_id']['secs']
-        c_time = raw_c.info['meas_id']['secs']
-        max_offset = 24 * 60 * 60  # probably overkill but covers timezone
-        assert c_time - max_offset <= py_time <= c_time
+        assert_equal(raw.info['meas_id']['version'],
+                     raw_c.info['meas_id']['version'])
         for t in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
             assert_allclose(raw.info[t]['trans'], raw_c.info[t]['trans'],
                             rtol=1e-4, atol=1e-7)
