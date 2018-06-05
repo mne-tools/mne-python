@@ -245,7 +245,6 @@ def test_1020_selection():
     raw_fname = op.join(base_dir, 'test_raw.set')
     loc_fname = op.join(base_dir, 'test_chans.locs')
     raw = read_raw_eeglab(raw_fname, montage=loc_fname)
-    print("hsdfahs,djfbs,dj2", raw.ch_names, "kjhserbf,jdb")
 
     for input in ("a_string", 100, raw, [1, 2]):
         assert_raises(TypeError, make_1020_channel_selections, input)
