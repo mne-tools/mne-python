@@ -63,44 +63,6 @@ print(__doc__)
 # from :ref:`LCMV beamformer inverse example
 # <sphx_glr_auto_examples_inverse_plot_lcmv_beamformer_volume.py>`
 
-def save_mapping(fname, data, overwrite=True):
-    out = []
-
-    # dissolve object structure
-    for d in data:
-        d_dict = d.__dict__
-        # save type for order independent decomposition
-        d_dict['type'] = type(d).__name__
-        out.append(d_dict)
-
-    write_hdf5(fname, out, overwrite=overwrite)
-
-
-def load_mapping(fname):
-    # create new instance
-    mapping = imwarp.DiffeomorphicMap(None, [])
-    affine = imaffine.AffineMap(None)
-
-    data = read_hdf5(fname)
-
-    for d in data:
-
-        d_type = d.get('type')
-        del d['type']
-
-        # make reading independent of save order
-        if d_type == 'DiffeomorphicMap':
-            mapping.__dict__ = d
-
-        elif d_type == 'AffineMap':
-            affine.__dict__ = d
-
-        else:
-            raise ValueError('invalid data')
-
-    return mapping, affine
-
-
 def compute_lcmv_example_data(data_path, fname=None):
     raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
     event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
@@ -235,6 +197,48 @@ def compute_morph_map(img_m, img_s=None, niter_affine=(100, 100, 10),
 
     # compute mapping
     mapping = sdr.optimize(img_s, img_m_affine)
+
+    return mapping, affine
+
+
+###############################################################################
+# Save non linear mapping data
+def save_mapping(fname, data, overwrite=True):
+    out = []
+
+    # dissolve object structure
+    for d in data:
+        d_dict = d.__dict__
+        # save type for order independent decomposition
+        d_dict['type'] = type(d).__name__
+        out.append(d_dict)
+
+    write_hdf5(fname, out, overwrite=overwrite)
+
+
+###############################################################################
+# Load non linear mapping data
+def load_mapping(fname):
+    # create new instance
+    mapping = imwarp.DiffeomorphicMap(None, [])
+    affine = imaffine.AffineMap(None)
+
+    data = read_hdf5(fname)
+
+    for d in data:
+
+        d_type = d.get('type')
+        del d['type']
+
+        # make reading independent of save order
+        if d_type == 'DiffeomorphicMap':
+            mapping.__dict__ = d
+
+        elif d_type == 'AffineMap':
+            affine.__dict__ = d
+
+        else:
+            raise ValueError('invalid data')
 
     return mapping, affine
 
