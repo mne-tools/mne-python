@@ -189,6 +189,11 @@ def test_subject_info():
         assert_equal(subject_info[key], raw_read.info['subject_info'][key])
     assert_equal(raw.info['meas_date'], raw_read.info['meas_date'])
 
+    for key in ['secs', 'usecs', 'version']:
+        assert_equal(raw.info['meas_id'][key], raw_read.info['meas_id'][key])
+    assert_array_equal(raw.info['meas_id']['machid'],
+                       raw_read.info['meas_id']['machid'])
+
 
 @testing.requires_testing_data
 def test_copy_append():

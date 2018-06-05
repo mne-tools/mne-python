@@ -24,7 +24,7 @@ from .ctf_comp import read_ctf_comp, write_ctf_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_points, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
-                    write_julian, write_float_matrix, DATE_NONE)
+                    write_julian, write_float_matrix, write_id, DATE_NONE)
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import _to_const
 from ..transforms import invert_transform
@@ -1302,6 +1302,10 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
 
     # Measurement info
     start_block(fid, FIFF.FIFFB_MEAS_INFO)
+
+    # Add measurement id
+    if info['meas_id'] is not None:
+        write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info['meas_id'])
 
     for event in info['events']:
         start_block(fid, FIFF.FIFFB_EVENTS)

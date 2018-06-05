@@ -9,7 +9,7 @@ from numpy.testing import (assert_allclose, assert_array_almost_equal,
 from mne import concatenate_raws
 from mne.datasets import testing
 from mne.io import read_raw_fif
-from mne.utils import _TempDir
+from mne.utils import _TempDir, logger
 
 
 def _test_raw_reader(reader, test_preloading=True, **kwargs):
@@ -88,6 +88,14 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
     idx = np.where(concat_raw.annotations.description == 'BAD boundary')[0]
     assert_array_almost_equal([(last_samp - first_samp) / raw.info['sfreq']],
                               concat_raw.annotations.onset[idx], decimal=2)
+
+    if raw.info['meas_id'] is not None:
+        for key in ['secs', 'usecs', 'version']:
+            assert_equal(raw.info['meas_id'][key], raw3.info['meas_id'][key])
+        assert_array_equal(raw.info['meas_id']['machid'],
+                           raw3.info['meas_id']['machid'])
+    else:
+        logger.warn('Reader does not set meas_id')
     return raw
 
 
