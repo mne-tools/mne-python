@@ -45,23 +45,16 @@ References
 import numpy as np
 
 import mne
-from mne.datasets import sample
 from mne.beamformer import make_lcmv, apply_lcmv
+from mne.datasets import sample
+from mne.externals.h5io import read_hdf5, write_hdf5
 
-from dipy.align.imwarp import SymmetricDiffeomorphicRegistration
-from dipy.align.metrics import CCMetric
-from dipy.align.reslice import reslice
-from dipy.align.transforms import (TranslationTransform3D,
-                                   RigidTransform3D,
-                                   AffineTransform3D)
-from dipy.align.imaffine import (transform_centers_of_mass,
-                                 MutualInformationMetric,
-                                 AffineRegistration)
+from dipy.align import imaffine, imwarp, metrics, reslice, transforms
+
 import nibabel as nib
 
-from nilearn.plotting import plot_anat
-
 from nilearn.image import index_img
+from nilearn.plotting import plot_anat
 
 print(__doc__)
 
@@ -70,7 +63,45 @@ print(__doc__)
 # from :ref:`LCMV beamformer inverse example
 # <sphx_glr_auto_examples_inverse_plot_lcmv_beamformer_volume.py>`
 
-def compute_lcmv_example_data(data_path):
+def save_mapping(fname, data, overwrite=True):
+    out = []
+
+    # dissolve object structure
+    for d in data:
+        d_dict = d.__dict__
+        # save type for order independent decomposition
+        d_dict['type'] = type(d).__name__
+        out.append(d_dict)
+
+    write_hdf5(fname, out, overwrite=overwrite)
+
+
+def load_mapping(fname):
+    # create new instance
+    mapping = imwarp.DiffeomorphicMap(None, [])
+    affine = imaffine.AffineMap(None)
+
+    data = read_hdf5(fname)
+
+    for d in data:
+
+        d_type = d.get('type')
+        del d['type']
+
+        # make reading independent of save order
+        if d_type == 'DiffeomorphicMap':
+            mapping.__dict__ = d
+
+        elif d_type == 'AffineMap':
+            affine.__dict__ = d
+
+        else:
+            raise ValueError('invalid data')
+
+    return mapping, affine
+
+
+def compute_lcmv_example_data(data_path, fname=None):
     raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
     event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
     fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
@@ -127,15 +158,18 @@ def compute_lcmv_example_data(data_path):
     stc.data[:, :] = np.abs(stc.data)
 
     # Save result in stc files
-    stc.save('lcmv-vol')
+    if fname is not None:
+        stc.save('lcmv-vol')
 
     # select time window (tmin, tmax) in ms - consider changing for real data
     # scenario, since those values were chosen to optimize computation time
     stc.crop(0.0, 0.01)
 
     # Save result in a 4D nifti file
-    mne.save_stc_as_volume('lcmv_inverse.nii.gz', stc,
-                           forward['src'], mri_resolution=True)
+    img = mne.save_stc_as_volume(fname, stc, forward['src'],
+                                 mri_resolution=True)
+
+    return img
 
 
 ###############################################################################
@@ -162,29 +196,33 @@ def compute_morph_map(img_m, img_s=None, niter_affine=(100, 100, 10),
     img_m = img_m.astype('float') / img_m.max()
 
     # compute center of mass
-    c_of_mass = transform_centers_of_mass(img_s, img_s_grid2world,
-                                          img_m, img_m_grid2world)
+    c_of_mass = imaffine.transform_centers_of_mass(img_s, img_s_grid2world,
+                                                   img_m, img_m_grid2world)
 
     nbins = 32
 
     # set up Affine Registration
-    affreg = AffineRegistration(metric=MutualInformationMetric(nbins, None),
-                                level_iters=list(niter_affine),
-                                sigmas=[3.0, 1.0, 0.0],
-                                factors=[4, 2, 1])
+    affreg = imaffine.AffineRegistration(
+        metric=imaffine.MutualInformationMetric(nbins, None),
+        level_iters=list(niter_affine),
+        sigmas=[3.0, 1.0, 0.0],
+        factors=[4, 2, 1])
 
     # translation
-    translation = affreg.optimize(img_s, img_m, TranslationTransform3D(), None,
+    translation = affreg.optimize(img_s, img_m,
+                                  transforms.TranslationTransform3D(), None,
                                   img_s_grid2world, img_m_grid2world,
                                   starting_affine=c_of_mass.affine)
 
     # rigid body transform (translation + rotation)
-    rigid = affreg.optimize(img_s, img_m, RigidTransform3D(), None,
+    rigid = affreg.optimize(img_s, img_m,
+                            transforms.RigidTransform3D(), None,
                             img_s_grid2world, img_m_grid2world,
                             starting_affine=translation.affine)
 
     # affine transform (translation + rotation + scaling)
-    affine = affreg.optimize(img_s, img_m, AffineTransform3D(), None,
+    affine = affreg.optimize(img_s, img_m,
+                             transforms.AffineTransform3D(), None,
                              img_s_grid2world, img_m_grid2world,
                              starting_affine=rigid.affine)
 
@@ -192,7 +230,8 @@ def compute_morph_map(img_m, img_s=None, niter_affine=(100, 100, 10),
     img_m_affine = affine.transform(img_m)
 
     # set up Symmetric Diffeomorphic Registration (metric, iterations)
-    sdr = SymmetricDiffeomorphicRegistration(CCMetric(3), list(niter_sdr))
+    sdr = imwarp.SymmetricDiffeomorphicRegistration(
+        metrics.CCMetric(3), list(niter_sdr))
 
     # compute mapping
     mapping = sdr.optimize(img_s, img_m_affine)
@@ -213,6 +252,50 @@ def morph_precomputed(img, affine, mapping):
     return img_sdr_affine
 
 
+def prepare_volume_example_data(img_in, t1_m_path, t1_s_path,
+                                voxel_size=(3., 3., 3.)):
+    # load lcmv inverse
+    if isinstance(img_in, str):
+        img_vol = nib.load(img_in)
+    else:
+        img_vol = img_in
+
+    # reslice lcmv inverse
+    img_vol_res, img_vol_res_affine = reslice.reslice(
+        img_vol.get_data(),
+        img_vol.affine,
+        img_vol.header.get_zooms()[:3],
+        voxel_size)
+
+    img_vol_res = nib.Nifti1Image(img_vol_res, img_vol_res_affine)
+
+    # load subject brain (Moving)
+    t1_m_img = nib.load(t1_m_path)
+
+    # reslice Moving
+    t1_m_img_res, t1_m_img_res_affine = reslice.reslice(
+        t1_m_img.get_data(),
+        t1_m_img.affine,
+        t1_m_img.header.get_zooms()[:3],
+        voxel_size)
+
+    t1_m_img_res = nib.Nifti1Image(t1_m_img_res, t1_m_img_res_affine)
+
+    # load fsaverage brain (Static)
+    t1_s_img = nib.load(t1_s_path)
+
+    # reslice Static
+    t1_s_img_res, t1_s_img_res_affine = reslice.reslice(
+        t1_s_img.get_data(),
+        t1_s_img.affine,
+        t1_s_img.header.get_zooms()[:3],
+        voxel_size)
+
+    t1_s_img_res = nib.Nifti1Image(t1_s_img_res, t1_s_img_res_affine)
+
+    return img_vol_res, t1_m_img_res, t1_s_img_res
+
+
 ###############################################################################
 # Execute example
 
@@ -220,53 +303,28 @@ def morph_precomputed(img, affine, mapping):
 data_path = sample.data_path()
 
 # compute LCMV beamformer inverse example
-compute_lcmv_example_data(data_path)
+img = compute_lcmv_example_data(data_path)
 
-# voxel size for reslicing
-voxel_size = (3., 3., 3.)  # consider changing for real data scenario
-
-# load lcmv inverse
-img_vol = nib.load('lcmv_inverse.nii.gz')
-
-# reslice lcmv inverse
-img_vol_res, img_vol_res_affine = reslice(img_vol.get_data(), img_vol.affine,
-                                          img_vol.header.get_zooms()[:3],
-                                          voxel_size)
-
-img_vol_res = nib.Nifti1Image(img_vol_res, img_vol_res_affine)
-
-# load subject brain (Moving)
-t1_fname = data_path + '/subjects/sample/mri/brain.mgz'
-t1_m_img = nib.load(t1_fname)
-
-# reslice Moving
-t1_m_img_res, t1_m_img_res_affine = reslice(t1_m_img.get_data(),
-                                            t1_m_img.affine,
-                                            t1_m_img.header.get_zooms()[:3],
-                                            voxel_size)
-
-t1_m_img_res = nib.Nifti1Image(t1_m_img_res, t1_m_img_res_affine)
-
-# load fsaverage brain (Static)
-t1_fname = data_path + '/subjects/fsaverage/mri/brain.mgz'
-t1_s_img = nib.load(t1_fname)
-
-# reslice Static
-t1_s_img_res, t1_s_img_res_affine = reslice(t1_s_img.get_data(),
-                                            t1_s_img.affine,
-                                            t1_s_img.header.get_zooms()[:3],
-                                            voxel_size)
-
-t1_s_img_res = nib.Nifti1Image(t1_s_img_res, t1_s_img_res_affine)
+# load and reslice volumes
+img_vol_res, t1_m_img_res, t1_s_img_res = prepare_volume_example_data(
+    img,
+    data_path + '/subjects/sample/mri/brain.mgz',
+    data_path + '/subjects/fsaverage/mri/brain.mgz',
+    voxel_size=(3., 3., 3.))
 
 # compute morph map from Moving to Static
 mapping, affine = compute_morph_map(t1_m_img_res, t1_s_img_res)
+
+save_mapping('fsaverageMapping', [mapping, affine])
+
+mapping, affine = load_mapping('fsaverageMapping')
 
 # apply morph map
 img_vol_morphed = morph_precomputed(img_vol_res, mapping, affine)
 
 # make transformed ndarray a nifti
-img_vol_morphed = nib.Nifti1Image(img_vol_morphed, affine=t1_s_img_res.affine)
+img_vol_morphed = nib.Nifti1Image(img_vol_morphed,
+                                  affine=t1_s_img_res.affine)
 
 # save morphed result
 nib.save(img_vol_morphed, 'lcmv_inverse_fsavg.nii.gz')
