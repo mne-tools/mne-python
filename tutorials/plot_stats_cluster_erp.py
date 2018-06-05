@@ -137,7 +137,7 @@ for roi_name, ax in zip(sorted(rois.keys()), axes):
     evoked.plot_image(picks=picks, axes=ax, colorbar=False, show=False,
                       clim=dict(eeg=(-vmax, vmax)), mask=significant_points,
                       **time_unit, show_names="all")
-    evoked.nave = None
+    evoked.nave = None  # to suppress printing trial count for other images
     if not ax.is_last_row():  # remove xticklabels for all but bottom axis
         ax.set(xlabel='', xticklabels=[])
     ax.set(ylabel='', title=roi_name)
