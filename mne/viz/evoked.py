@@ -213,23 +213,34 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
             raise TypeError( "If either `axes` or `group_by` is a dict, "
                              "the other must be, too.")
         _validate_if_list_of_axes(list(axes.values()))
-        for sel in group_by:  # ... we loop over selections
+        remove_xlabels = any([ax.is_last_row() for ax in axes.values()])
+        for ii, sel in enumerate(group_by):  # ... we loop over selections
             if sel not in axes:
                 raise ValueError(sel + " present in `group_by`, but not "
                                  "found in `axes`")
+            ax = axes[sel]
             # the unwieldly dict comp below defaults the title to the sel
             _plot_evoked(evoked, group_by[sel], exclude, unit, show, ylim,
                          proj, xlim, hline, units, scalings,
                          (titles if titles is not None else
                           {channel_type(evoked.info, idx): sel
                            for idx in group_by[sel]}),
-                         axes[sel], plot_type, cmap=cmap, gfp=gfp,
+                         ax, plot_type, cmap=cmap, gfp=gfp,
                          window_title=window_title,
                          set_tight_layout=set_tight_layout,
                          selectable=selectable, noise_cov=noise_cov,
                          colorbar=colorbar, mask=mask,
                          mask_style=mask_style, mask_cmap=mask_cmap,
-                         mask_alpha=mask_alpha, time_unit=time_unit)
+                         mask_alpha=mask_alpha, time_unit=time_unit,
+                         show_names=show_names)
+            if remove_xlabels and not ax.is_last_row():
+                ax.set_xticklabels([])
+                ax.set_xlabel("")
+        ims = [ax.images[0] for ax in axes.values()]
+        clims = np.array([im.get_clim() for im in ims])
+        min, max = clims.min(), clims.max()
+        for im in ims:
+            im.set_clim(min, max)
         return axes[sel].get_figure()
 
     time_unit, times = _check_time_unit(time_unit, evoked.times)

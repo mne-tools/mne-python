@@ -312,7 +312,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                    scalings=None, titles=None, axes=None, cmap='RdBu_r',
                    colorbar=True, mask=None, mask_style=None,
                    mask_cmap='Greys', mask_alpha=.25, time_unit='s',
-                   show_names=None, group_by=group_by):
+                   show_names=None, group_by=None):
         return plot_evoked_image(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             clim=clim, xlim=xlim, proj=proj, units=units, scalings=scalings,
