@@ -30,7 +30,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _connection_line, COLORS, _setup_ax_spines,
                     _setup_plot_projector, _prepare_joint_axes,
                     _set_title_multiple_electrodes, _check_time_unit,
-                    _plot_masked_image)
+                    _plot_masked_image, _validate_if_list_of_axes)
 from ..utils import logger, _clean_names, warn, _pl, verbose, _validate_type
 
 from .topo import _plot_evoked_topo
@@ -1257,15 +1257,15 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         if any((x in args for x in illegal_args)):
             raise ValueError("Don't pass any of {} as *_args.".format(
                 ", ".join(list(illegal_args))))
-    if len(ts_args.get("axes", "1")) != 1:
-        raise ValueError("If `ts_args` contains 'axes', it must contain "
-                         "exaclty one element.")
-    n_topomaps = (3 if times is None else len(times)) + 1
-    if "axes" in topomap_args:
-        if n_topomaps != len(topomap_args["axes"])
-            raise ValueError("If `topomap_args` contains 'axes', it "
-                             "must contain one more element than the number "
-                             "of times you want to plot.")
+    if ("axes" in ts_args) or ("axes" in topomap_args):
+        if not ("axes" in ts_args) and ("axes" in topomap_args):
+            raise ValueError("If one of `ts_args` and `topomap_args` contains "
+                             "'axes', the other must, too.")
+        if "axes" in ts_args:
+            _validate_if_list_of_axes([ts_args["axes"]], 1)
+        n_topomaps = (3 if times is None else len(times)) + 1
+        if "axes" in topomap_args:
+            _validate_if_list_of_axes(list(topomap_args["axes"]), n_topomaps)
 
     # channel selection
     # simply create a new evoked object with the desired channel selection
@@ -1275,6 +1275,10 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
+        if "axes" in ts_args or "axes" in topomap_args:
+            raise NotImplementedError(
+                "Currently, passing axes manually (via `ts_args` or "
+                "`topomap_args`) is not supported for multiple channel types.")
         figs = list()
         for this_type in ch_types:  # pick only the corresponding channel type
             ev_ = evoked.copy().pick_channels(
@@ -1296,9 +1300,9 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     _, times_ts = _check_time_unit(ts_args['time_unit'], times_sec)
 
     # prepare axes for topomap
-    if "axes" not in topomap_args or "axes" not in ts_args:
-         fig, ts_ax, map_ax, cbar_ax = _prepare_joint_axes(len(times_sec),
-                                                           figsize=(8.0, 4.2))
+    if ("axes" not in topomap_args) or ("axes" not in ts_args):
+        fig, ts_ax, map_ax, cbar_ax = _prepare_joint_axes(len(times_sec),
+                                                          figsize=(8.0, 4.2))
     else:
         ts_ax = ts_args["axes"]
         del ts_args["axes"]
