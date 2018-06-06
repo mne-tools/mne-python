@@ -214,12 +214,12 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                             "the other must be, too.")
         _validate_if_list_of_axes(list(axes.values()))
         remove_xlabels = any([ax.is_last_row() for ax in axes.values()])
-        for ii, sel in enumerate(group_by):  # ... we loop over selections
+        for sel in group_by:  # ... we loop over selections
             if sel not in axes:
                 raise ValueError(sel + " present in `group_by`, but not "
                                  "found in `axes`")
             ax = axes[sel]
-            # the unwieldly dict comp below defaults the title to the sel
+            # the unwieldy dict comp below defaults the title to the sel
             _plot_evoked(evoked, group_by[sel], exclude, unit, show, ylim,
                          proj, xlim, hline, units, scalings,
                          (titles if titles is not None else
