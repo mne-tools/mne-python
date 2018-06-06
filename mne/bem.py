@@ -27,7 +27,8 @@ from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
                       _fast_cross_nd_sum, _get_solids)
-from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn, _pl
+from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
+                    _pl, _validate_type)
 from .fixes import einsum
 from .externals.six import string_types
 
@@ -905,8 +906,7 @@ def get_fitting_dig(info, dig_kinds='auto', verbose=None):
 
     .. versionadded:: 0.14
     """
-    if not isinstance(info, Info):
-        raise TypeError('info must be an instance of Info not %s' % type(info))
+    _validate_type(info, Info, "info", "Info")
     if info['dig'] is None:
         raise RuntimeError('Cannot fit headshape without digitization '
                            ', info["dig"] is None')
@@ -1555,8 +1555,7 @@ def _prepare_env(subject, subjects_dir, requires_freesurfer):
         raise RuntimeError('I cannot find freesurfer. The FREESURFER_HOME '
                            'environment variable is not set.')
 
-    if not isinstance(subject, string_types):
-        raise TypeError('The subject argument must be set')
+    _validate_type(subject, "str")
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if not op.isdir(subjects_dir):

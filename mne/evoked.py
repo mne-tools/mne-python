@@ -715,8 +715,7 @@ class EvokedArray(Evoked):
         self.verbose = verbose
         self.preload = True
         self._projector = None
-        if not isinstance(self.kind, string_types):
-            raise TypeError('kind must be a string, not "%s"' % (type(kind),))
+        _validate_type(self.kind, "str", "kind")
         if self.kind not in _aspect_dict:
             raise ValueError('unknown kind "%s", should be "average" or '
                              '"standard_error"' % (self.kind,))

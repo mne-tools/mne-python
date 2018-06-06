@@ -40,7 +40,8 @@ from ..source_estimate import VolSourceEstimate
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
-                     run_subprocess, check_fname, logger, verbose)
+                     run_subprocess, check_fname, logger, verbose,
+                     _validate_type)
 from ..label import Label
 
 
@@ -1371,7 +1372,6 @@ def restrict_forward_to_label(fwd, labels):
     --------
     restrict_forward_to_stc
     """
-    message = 'labels must be instance of Label or a list of Label.'
     vertices = [np.array([], int), np.array([], int)]
 
     if not isinstance(labels, list):
@@ -1379,8 +1379,7 @@ def restrict_forward_to_label(fwd, labels):
 
     # Get vertices separately of each hemisphere from all label
     for label in labels:
-        if not isinstance(label, Label):
-            raise TypeError(message + ' Instead received %s' % type(label))
+        _validate_type(label, Label, "label", "Label or list")
         i = 0 if label.hemi == 'lh' else 1
         vertices[i] = np.append(vertices[i], label.vertices)
     # Remove duplicates and sort
@@ -1544,9 +1543,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     if fname is None:
         fname = op.join(temp_dir, 'temp-fwd.fif')
     _check_fname(fname, overwrite)
-
-    if not isinstance(subject, string_types):
-        raise ValueError('subject must be a string')
+    _validate_type(subject, "str", "subject")
 
     # check for meas to exist as string, or try to make evoked
     if isinstance(meas, string_types):
@@ -1568,8 +1565,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         raise ValueError('Either trans or mri must be specified')
 
     if trans is not None:
-        if not isinstance(trans, string_types):
-            raise ValueError('trans must be a string')
+        _validate_type(trans, "str", "trans")
         if not op.isfile(trans):
             raise IOError('trans file "%s" not found' % trans)
     if mri is not None:
@@ -1607,15 +1603,9 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
             mindist = ['--mindist', '%g' % mindist]
 
     # src, spacing, bem
-    if src is not None:
-        if not isinstance(src, string_types):
-            raise ValueError('src must be a string or None')
-    if spacing is not None:
-        if not isinstance(spacing, string_types):
-            raise ValueError('spacing must be a string or None')
-    if bem is not None:
-        if not isinstance(bem, string_types):
-            raise ValueError('bem must be a string or None')
+    for element, name in zip((src, spacing, bem), ("src", "spacing", "bem")):
+        if element is not None:
+            _validate_type(element, "str", name, "string or None")
 
     # put together the actual call
     cmd = ['mne_do_forward_solution',
@@ -1693,8 +1683,7 @@ def average_forward_solutions(fwds, weights=None):
         The averaged forward solution.
     """
     # check for fwds being a list
-    if not isinstance(fwds, list):
-        raise TypeError('fwds must be a list')
+    _validate_type(fwds, list, "fwds")
     if not len(fwds) > 0:
         raise ValueError('fwds must not be empty')
 
@@ -1714,8 +1703,7 @@ def average_forward_solutions(fwds, weights=None):
     # check our forward solutions
     for fwd in fwds:
         # check to make sure it's a forward solution
-        if not isinstance(fwd, dict):
-            raise TypeError('Each entry in fwds must be a dict')
+        _validate_type(fwd, dict, "each entry in fwds", "dict")
         # check to make sure the dict is actually a fwd
         check_keys = ['info', 'sol_grad', 'nchan', 'src', 'source_nn', 'sol',
                       'source_rr', 'source_ori', 'surf_ori', 'coord_frame',
