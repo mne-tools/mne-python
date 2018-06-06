@@ -120,8 +120,7 @@ def compute_lcmv_example_data(data_path, fname=None):
     stc.data[:, :] = np.abs(stc.data)
 
     # Save result in stc files
-    if fname is not None:
-        stc.save('lcmv-vol')
+    stc.save('lcmv-vol')
 
     # select time window (tmin, tmax) in ms - consider changing for real data
     # scenario, since those values were chosen to optimize computation time
