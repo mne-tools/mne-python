@@ -207,11 +207,17 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     # Either both must be dicts, or neither.
     # If the former, the two dicts provide picks and axes to plot them to.
     # Then, we call this function recursively for each entry in `group_by`.
-    if plot_type == "image" and any(isinstance(thing, dict)
-                                    for thing in (axes, group_by)):
-        if not all(isinstance(thing, dict) for thing in (axes, group_by)):
-            raise TypeError("If either `axes` or `group_by` is a dict, "
-                            "the other must be, too.")
+    if plot_type == "image" and isinstance(group_by, dict):
+        if axes is None:
+            axes = dict()
+            for sel in group_by:
+                plt.figure()
+                axes[sel] = plt.axes()
+        elif isinstance(axes, dict):
+            pass
+        else:
+            raise ValueError("If `group_by` is a dict, `axes` must be "
+                             "a dict of axes or None.")
         _validate_if_list_of_axes(list(axes.values()))
         remove_xlabels = any([ax.is_last_row() for ax in axes.values()])
         for sel in group_by:  # ... we loop over selections
@@ -241,7 +247,13 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         min, max = clims.min(), clims.max()
         for im in ims:
             im.set_clim(min, max)
-        return axes[sel].get_figure()
+        figs = [ax.get_figure() for ax in axes.values()]
+        if len(set(figs)) is 1:
+            return figs[0]
+        else:
+            return figs
+    elif isinstance(axes, dict):
+        raise ValueError("If `group_by` isn't a dict, neither can `axes` be.")
 
     time_unit, times = _check_time_unit(time_unit, evoked.times)
     info = evoked.info
@@ -938,20 +950,18 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         If "auto", is set to False if `picks` is ``None``; to ``True`` if
         `picks` is not ``None`` and fewer than 25 picks are shown; to "all"
         if `picks` is not ``None`` and contains fewer than 25 entries.
-    group_by : None | str | dict
-        If not None, combining happens over channel groups defined by this
-        parameter.
-        If str, must be "type", in which case one figure per channel type is
-        returned (combining within channel types).
-        If a dict, the values must be picks and one figure will be returned
-        for each entry, aggregating over the corresponding pick groups; keys
-        will become plot titles. This is useful for e.g. ROIs. Each entry must
-        contain only one channel type. For example::
+    group_by : None | dict
+        If a dict, the values must be picks, and `axes` must also be a dict
+        with matching keys, or None. If `axes` is None, one figure and one axis
+        will be created for each entry in `group_by`.
+        Then, for each entry, the picked channels will be plotted
+        to the corresponding axis. If `titles` are None, keys will become plot
+        titles. This is useful for e.g. ROIs. Each entry must contain only
+        one channel type. For example::
 
             group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
 
-        If not None, combine must not be None. Defaults to `None` if picks are
-        provided, otherwise 'type'.
+        If None, all picked channels are plotted to the same axis.
 
     Returns
     -------

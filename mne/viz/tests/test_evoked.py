@@ -167,7 +167,7 @@ def test_plot_evoked():
     evoked.plot_image(group_by=dict(sel=[0, 7]), axes=dict(sel=plt.axes()))
     plt.close('all')
     for group_by, axes in (("something", dict()), (dict(), "something")):
-        assert_raises(TypeError, evoked.plot_image, group_by=group_by,
+        assert_raises(ValueError, evoked.plot_image, group_by=group_by,
                       axes=axes)
 
     # test plot_topo
