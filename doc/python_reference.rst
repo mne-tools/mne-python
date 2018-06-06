@@ -333,6 +333,7 @@ Projections:
    equalize_channels
    rename_channels
    generate_2d_layout
+   make_1020_channel_selections
 
 :py:mod:`mne.preprocessing`:
 

@@ -23,6 +23,8 @@ Changelog
 
 - Add ability to pass a precomputed forward solution to :func:`mne.simulation.simulate_raw` by `Eric Larson`_
 
+- Add :func:`mne.channels.make_1020_channel_selections` to group 10/20-named EEG channels by location, `Jona Sassenhagen`_
+
 Bug
 ~~~
 
@@ -50,6 +52,8 @@ API
 ~~~
 
 - Prepare transition to Python 3. This release will be the last release compatible with Python 2. The next version will be Python 3 only.
+
+- :meth:`mne.Evoked.plot_image` has gained the ability to ``show_names``, and if a selection is provided to ``group_by``, ``axes`` can now receive a `dict`, by `Jona Sassenhagen`_
 
 .. _changes_0_16:
 
