@@ -274,8 +274,8 @@ def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
     return F_threshold if len(F_threshold) > 1 else F_threshold[0]
 
 
-def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
-              correction=False, return_pvals=True):
+def f_mway_rm(data, factor_levels, effects='all', correction=False,
+              return_pvals=True):
     """Compute M-way repeated measures ANOVA for fully balanced designs.
 
     Parameters
@@ -306,8 +306,6 @@ def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
             * ``'all'``: all effects (equals 'A*B' in a 2 way design)
 
         If list, effect names are used: ``['A', 'B', 'A:B']``.
-    alpha : float
-        The significance threshold.
     correction : bool
         The correction method to be employed if one factor has more than two
         levels. If True, sphericity correction using the Greenhouse-Geisser
