@@ -187,7 +187,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  gfp=False, window_title=None, spatial_colors=False,
                  set_tight_layout=True, selectable=True, zorder='unsorted',
                  noise_cov=None, colorbar=True, mask=None, mask_style=None,
-                 mask_cmap=None, mask_alpha=.25, time_unit='s'):
+                 mask_cmap=None, mask_alpha=.25, time_unit='s',
+                 show_names=False):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -285,7 +286,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                         units, scalings, times, xlim, ylim, titles,
                         colorbar=colorbar, mask=mask, mask_style=mask_style,
                         mask_cmap=mask_cmap, mask_alpha=mask_alpha,
-                        nave=use_nave, time_unit=time_unit)
+                        nave=use_nave, time_unit=time_unit,
+                        show_names=show_names, ch_names=evoked.ch_names)
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=info['projs'], axes=axes,
@@ -490,10 +492,16 @@ def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
                 xlim, ylim, titles, colorbar=True, mask=None, mask_cmap=None,
                 mask_style=None, mask_alpha=.25, nave=None,
-                time_unit='s'):
+                time_unit='s', show_names=False, ch_names=None):
     """Plot images."""
     import matplotlib.pyplot as plt
     assert time_unit is not None
+
+    if show_names == "auto":
+        if picks is not None:
+            show_names = "all" if len(picks) < 25 else True
+        else:
+            show_names = False
 
     cmap = _setup_cmap(cmap)
 
@@ -532,10 +540,22 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         if cmap[1]:
             ax.CB = DraggableColorbar(cbar, im)
 
-    ax.set(ylabel='Channel (index)', xlabel='Time (%s)' % (time_unit,))
-    ax.set_title(
-        titles[this_type] + ' (%d channel%s' % (len(data), _pl(data)) + t_end)
+    ylabel = "Channels" if show_names else 'Channel (index)'
+    t = titles[this_type] + ' (%d channel%s' % (len(data), _pl(data)) + t_end
+    ax.set(ylabel=ylabel, xlabel='Time (%s)' % (time_unit,), title=t)
     _add_nave(ax, nave)
+
+    if show_names is not False:
+        if show_names == "all":
+            yticks = np.arange(len(picks)).astype(int)
+            yticklabels = np.array(ch_names)[picks]
+        else:
+            max_tick = len(picks)
+            yticks = [tick for tick in ax.get_yticks() if tick < max_tick]
+            yticks = np.array(yticks).astype(int)
+            # these should only ever be ints right?
+            yticklabels = np.array(ch_names)[picks][yticks]
+        ax.set(yticks=yticks + .5, yticklabels=yticklabels)
 
 
 @verbose
@@ -778,7 +798,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
                       units=None, scalings=None, titles=None, axes=None,
                       cmap='RdBu_r', colorbar=True, mask=None,
                       mask_style=None, mask_cmap="Greys", mask_alpha=.25,
-                      time_unit='s'):
+                      time_unit='s', show_names="auto"):
     """Plot evoked data as images.
 
     Parameters
@@ -787,6 +807,8 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         The evoked data
     picks : array-like of int | None
         The indices of channels to plot. If None show all.
+        This parameter can also be used to set the order the channels
+        are shown in, as the channel image is sorted by the order of picks.
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
         bad channels are excluded.
@@ -862,6 +884,15 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
+    show_names : bool | str
+        Determines if channel names should be plotted on the y axis. If False,
+        no names are shown. If True, ticks are set automatically and the
+        corresponding channel names are shown. If str, must be "auto" or "all".
+        If "all", all channel names are shown.
+        If "auto", is set to False if `picks` is ``None``; to ``True`` if
+        `picks` is not ``None`` and fewer than 25 picks are shown; to "all"
+        if `picks` is not ``None`` and contains fewer than 25 entries.
+
 
     Returns
     -------
@@ -874,7 +905,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
                         axes=axes, plot_type="image", cmap=cmap,
                         colorbar=colorbar, mask=mask, mask_style=mask_style,
                         mask_cmap=mask_cmap, mask_alpha=mask_alpha,
-                        time_unit=time_unit)
+                        time_unit=time_unit, show_names=show_names)
 
 
 def _plot_update_evoked(params, bools):

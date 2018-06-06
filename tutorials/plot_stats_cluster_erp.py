@@ -125,10 +125,8 @@ for selection_name, ax in zip(sorted(selections.keys()), axes):
     picks = selections[selection_name]
     evoked.plot_image(picks=picks, axes=ax, colorbar=False, show=False,
                       clim=dict(eeg=(-vmax, vmax)), mask=significant_points,
-                      **time_unit)
-    evoked.nave = None
-    ax.set_yticks((np.arange(len(picks))) + .5)
-    ax.set_yticklabels([evoked.ch_names[idx] for idx in picks])
+                      **time_unit, show_names="all")
+    evoked.nave = None  # to suppress printing trial count for other images
     if not ax.is_last_row():  # remove xticklabels for all but bottom axis
         ax.set(xlabel='', xticklabels=[])
     ax.set(ylabel='', title=selection_name)
