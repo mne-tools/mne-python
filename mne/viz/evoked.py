@@ -200,28 +200,39 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         (x axis: time, y axis: channel). In 'image' mode, the plot is not
         interactive.
     """
-    time_unit, times = _check_time_unit(time_unit, evoked.times)
-    if isinstance(axes, dict) or isinstance(group_by, dict):
-        if not isinstance(axes, dict) and isinstance(group_by, dict):
-            raise TypeError("If one of `axes` and `group_by` is a dict, "
-                            "the other must be, too.")
+    import matplotlib.pyplot as plt
+
+    # For evoked.plot_image ...
+    # First input checks for group_by and axes if any of them is not None.
+    # Either both must be dicts, or neither.
+    # If the former, the two dicts provide picks and axes to plot them to.
+    # Then, we call this function recursively for each entry in `group_by`.
+    if plot_type == "image" and any(isinstance(thing, dict)
+                                    for thing in (axes, group_by)):
+        if not all(isinstance(thing, dict) for thing in (axes, group_by)):
+            raise TypeError( "If either `axes` or `group_by` is a dict, "
+                             "the other must be, too.")
+        _validate_if_list_of_axes(list(axes.values()))
         for sel in group_by:  # ... we loop over selections
-            # the unwieldly dict comp below just sets the title to the sel
+            if sel not in axes:
+                raise ValueError(sel + " present in `group_by`, but not "
+                                 "found in `axes`")
+            # the unwieldly dict comp below defaults the title to the sel
             _plot_evoked(evoked, group_by[sel], exclude, unit, show, ylim,
                          proj, xlim, hline, units, scalings,
-                         (titles if titles is not None else {
-                             channel_type(evoked.info, idx): sel
-                             for idx in group_by[sel]}),
+                         (titles if titles is not None else
+                          {channel_type(evoked.info, idx): sel
+                           for idx in group_by[sel]}),
                          axes[sel], plot_type, cmap=cmap, gfp=gfp,
                          window_title=window_title,
                          set_tight_layout=set_tight_layout,
                          selectable=selectable, noise_cov=noise_cov,
-                         colorbar=colorbar, mask=mask, mask_style=mask_style,
-                         mask_cmap=mask_cmap, mask_alpha=mask_alpha,
-                         time_unit=time_unit)
+                         colorbar=colorbar, mask=mask,
+                         mask_style=mask_style, mask_cmap=mask_cmap,
+                         mask_alpha=mask_alpha, time_unit=time_unit)
         return axes[sel].get_figure()
 
-    import matplotlib.pyplot as plt
+    time_unit, times = _check_time_unit(time_unit, evoked.times)
     info = evoked.info
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
@@ -856,10 +867,14 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
     titles : dict | None
         The titles associated with the channels. If None, defaults to
         ``dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')``.
-    axes : instance of Axis | list | None
+    axes : instance of Axis | list | dict | None
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
+        If ``group_by`` is a dict, this cannot be a list, but it can be a dict
+        of lists of axes, with the keys matching those of ``group_by``. In that
+        case, the provided axes will be used for the corresponding groups.
+        Defaults to `None`.
     cmap : matplotlib colormap | (colormap, bool) | 'interactive'
         Colormap. If tuple, the first value indicates the colormap to use and
         the second value is a boolean defining interactivity. In interactive

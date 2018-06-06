@@ -133,6 +133,7 @@ def test_plot_evoked():
     assert_raises(ValueError, evoked.plot, gfp='foo', time_unit='s')
 
     evoked.plot_image(proj=True, time_unit='ms')
+
     # test mask
     evoked.plot_image(picks=[1, 2], mask=evoked.data > 0, time_unit='s')
     evoked.plot_image(picks=[1, 2], mask_cmap=None, colorbar=False,
@@ -165,6 +166,9 @@ def test_plot_evoked():
     # test groupby
     evoked.plot_image(group_by=dict(sel=[0, 7]), axes=dict(sel=plt.axes()))
     plt.close('all')
+    for group_by, axes in (("something", dict()), (dict(), "something")):
+        assert_raises(TypeError, evoked.plot_image, group_by=group_by,
+                      axes=axes)
 
     # test plot_topo
     evoked.plot_topo()  # should auto-find layout
