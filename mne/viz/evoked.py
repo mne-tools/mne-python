@@ -210,8 +210,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     if plot_type == "image" and any(isinstance(thing, dict)
                                     for thing in (axes, group_by)):
         if not all(isinstance(thing, dict) for thing in (axes, group_by)):
-            raise TypeError( "If either `axes` or `group_by` is a dict, "
-                             "the other must be, too.")
+            raise TypeError("If either `axes` or `group_by` is a dict, "
+                            "the other must be, too.")
         _validate_if_list_of_axes(list(axes.values()))
         remove_xlabels = any([ax.is_last_row() for ax in axes.values()])
         for ii, sel in enumerate(group_by):  # ... we loop over selections
