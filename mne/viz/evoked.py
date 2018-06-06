@@ -30,7 +30,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _connection_line, COLORS, _setup_ax_spines,
                     _setup_plot_projector, _prepare_joint_axes,
                     _set_title_multiple_electrodes, _check_time_unit,
-                    _plot_masked_image, _validate_if_list_of_axes)
+                    _plot_masked_image)
 from ..utils import logger, _clean_names, warn, _pl, verbose, _validate_type
 
 from .topo import _plot_evoked_topo
