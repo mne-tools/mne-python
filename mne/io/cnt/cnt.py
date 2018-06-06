@@ -226,15 +226,22 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
 
         if event_offset > data_offset:
             fid.seek(event_offset)
-            event_type = np.fromfile(fid, dtype='<i1', count=1)[0]
-            event_size = np.fromfile(fid, dtype='<i4', count=1)[0]
-            if event_type == 1:
-                event_bytes = 8
-            elif event_type in (2, 3):
-                event_bytes = 19
+            xx = np.fromfile(fid, dtype='<i1', count=1)
+            yy = np.fromfile(fid, dtype='<i4', count=1)
+            if len(xx) == 0:
+                n_events = 0
             else:
-                raise IOError('Unexpected event size.')
-            n_events = event_size // event_bytes
+                event_type = xx[0]
+                # event_type = np.fromfile(fid, dtype='<i1', count=1)[0]
+                event_size = yy[0]
+                # event_size = np.fromfile(fid, dtype='<i4', count=1)[0]
+                if event_type == 1:
+                    event_bytes = 8
+                elif event_type in (2, 3):
+                    event_bytes = 19
+                else:
+                    raise IOError('Unexpected event size.')
+                n_events = event_size // event_bytes
         else:
             n_events = 0
 
@@ -406,10 +413,12 @@ class RawCNT(BaseRaw):
                 count = n_samps // channel_offset * chunk_size + extra_samps
                 n_chunks = count // chunk_size
                 samps = np.fromfile(fid, dtype=dtype, count=count)
+                n_chunks = len(samps) // n_channels // channel_offset
                 samps = samps.reshape((n_chunks, n_channels, channel_offset),
                                       order='C')
+
                 # Intermediate shaping to chunk sizes.
-                block = np.zeros((n_channels + 1, channel_offset * n_chunks))
+                block = np.zeros((n_channels + 1, channel_offset * n_chunks + 1))
                 for set_idx, row in enumerate(samps):  # Final shape.
                     block_slice = slice(set_idx * channel_offset,
                                         (set_idx + 1) * channel_offset)
