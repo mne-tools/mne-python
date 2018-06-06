@@ -16,10 +16,11 @@ from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_true, assert_equal, assert_false
 
 from mne.channels import (rename_channels, read_ch_connectivity,
-                          find_ch_connectivity)
+                          find_ch_connectivity, make_1020_channel_selections)
 from mne.channels.channels import (_ch_neighbor_connectivity,
                                    _compute_ch_connectivity)
-from mne.io import read_info, read_raw_fif, read_raw_ctf, read_raw_bti
+from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
+                    read_raw_eeglab)
 from mne.io.constants import FIFF
 from mne.utils import _TempDir, run_tests_if_main
 from mne import pick_types, pick_channels
@@ -235,6 +236,32 @@ def test_get_set_sensor_positions():
     raw1._set_channel_positions([[1, 2, 3]], [ch_name])
     assert_array_equal(raw1.info['chs'][13]['loc'],
                        raw2.info['chs'][13]['loc'])
+
+
+@testing.requires_testing_data
+def test_1020_selection():
+    """Test making a 10/20 selection dict"""
+    base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
+    raw_fname = op.join(base_dir, 'test_raw.set')
+    loc_fname = op.join(base_dir, 'test_chans.locs')
+    raw = read_raw_eeglab(raw_fname, montage=loc_fname)
+
+    for input in ("a_string", 100, raw, [1, 2]):
+        assert_raises(TypeError, make_1020_channel_selections, input)
+
+    sels = make_1020_channel_selections(raw.info)
+    # are all frontal channels placed before all occipital channels?
+    for name, picks in sels.items():
+        fs = min([ii for ii, pick in enumerate(picks)
+                  if raw.ch_names[pick].startswith("F")])
+        ps = max([ii for ii, pick in enumerate(picks)
+                  if raw.ch_names[pick].startswith("O")])
+        assert_true(fs > ps)
+
+    # are channels in the correct selection?
+    fz_c3_c4 = [raw.ch_names.index(ch) for ch in ("Fz", "C3", "C4")]
+    for channel, roi in zip(fz_c3_c4, ("Midline", "Left", "Right")):
+        assert_true(channel in sels[roi])
 
 
 @testing.requires_testing_data

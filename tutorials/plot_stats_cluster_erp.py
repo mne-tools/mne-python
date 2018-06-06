@@ -22,12 +22,12 @@ References
    localisation in cluster inference", NeuroImage 44 (2009) 83-98.
 """
 
+import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import ttest_ind
-import numpy as np
 
 import mne
-from mne.channels import find_layout, find_ch_connectivity
+from mne.channels import find_ch_connectivity, make_1020_channel_selections
 from mne.stats import spatio_temporal_cluster_test
 
 np.random.seed(0)
@@ -113,18 +113,7 @@ evoked.plot_joint(title="Long vs. short words", ts_args=time_unit,
                   topomap_args=time_unit)  # show difference wave
 
 # Create ROIs by checking channel labels
-pos = find_layout(epochs.info).pos
-rois = dict()
-for pick, channel in enumerate(epochs.ch_names):
-    last_char = channel[-1]  # for 10/20, last letter codes the hemisphere
-    roi = ("Midline" if last_char in "z12" else
-           ("Left" if int(last_char) % 2 else "Right"))
-    rois[roi] = rois.get(roi, list()) + [pick]
-
-# sort channels from front to center
-# (y-coordinate of the position info in the layout)
-rois = {roi: np.array(picks)[pos[picks, 1].argsort()]
-        for roi, picks in rois.items()}
+selections = make_1020_channel_selections(evoked.info, midline="12z")
 
 # Visualize the results
 fig, axes = plt.subplots(nrows=3, figsize=(8, 8))
@@ -132,8 +121,8 @@ vmax = np.abs(evoked.data).max() * 1e6
 
 # Iterate over ROIs and axes
 axes = axes.ravel().tolist()
-for roi_name, ax in zip(sorted(rois.keys()), axes):
-    picks = rois[roi_name]
+for selection_name, ax in zip(sorted(selections.keys()), axes):
+    picks = selections[selection_name]
     evoked.plot_image(picks=picks, axes=ax, colorbar=False, show=False,
                       clim=dict(eeg=(-vmax, vmax)), mask=significant_points,
                       **time_unit)
@@ -142,7 +131,7 @@ for roi_name, ax in zip(sorted(rois.keys()), axes):
     ax.set_yticklabels([evoked.ch_names[idx] for idx in picks])
     if not ax.is_last_row():  # remove xticklabels for all but bottom axis
         ax.set(xlabel='', xticklabels=[])
-    ax.set(ylabel='', title=roi_name)
+    ax.set(ylabel='', title=selection_name)
 
 fig.colorbar(ax.images[-1], ax=axes, fraction=.1, aspect=20,
              pad=.05, shrink=2 / 3, label="uV", orientation="vertical")
