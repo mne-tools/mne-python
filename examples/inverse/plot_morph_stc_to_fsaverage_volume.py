@@ -255,6 +255,9 @@ def morph_precomputed(img, affine, mapping):
     return img_sdr_affine
 
 
+###############################################################################
+# Prepare volumetric data for morphing
+
 def prepare_volume_example_data(img_in, t1_m_path, t1_s_path,
                                 voxel_size=(3., 3., 3.)):
     # load lcmv inverse
@@ -336,28 +339,25 @@ nib.save(img_vol_morphed,
          data_path + '/subjects/fsaverage/src/lcmv-fsaverage.nii.gz')
 
 ###############################################################################
-# Save result plots
+# Plot results
 
-# overlay images (random time point)
+# select image overlay(random time point)
 t = np.random.randint(img_vol_res.shape[-1])
 imgs = [index_img(img_vol_res, t), index_img(img_vol_res, t),
         index_img(img_vol_morphed, t)]
 
-# anatomical background images
+# select anatomical background images
 t1_imgs = [t1_m_img_res, t1_s_img_res, t1_s_img_res]
 
-# titles for plots
+# define titles for plots
 titles = ['subject brain', 'fsaverage brian',
           'fsaverage brian\nmorphed source']
 
-# file names for saving plots
-saveas = [data_path + '/subjects/fsaverage/src/' + res_img for res_img in
-          ['lcmv-subject.png', 'lcmv-fsaverage.png',
-           'lcmv-fsaverage-morphed.png']]
-
-# plot and save
-for img, t1_img, title, fname in zip(imgs, t1_imgs, titles, saveas):
+# plot results
+for img, t1_img, title in zip(imgs, t1_imgs, titles):
     display = plot_anat(t1_img, display_mode='x', title=title)
     display.add_overlay(img)
-    display.savefig(fname)
-    display.close()
+
+    # You could save the image to disk with:
+    # display.savefig(fname)
+    # display.close()
