@@ -2193,13 +2193,28 @@ def _check_preload(inst, msg):
                 '%s.load_data().' % (name, name))
 
 
-def _check_compensation_grade(inst, inst2, name, name2):
-    """Ensure that objects have same compenstation_grade."""
-    if (None not in [inst.info, inst2.info]) and (inst.compensation_grade !=
-                                                  inst2.compensation_grade):
-            msg = ('Compensation grade of %s (%d) and %s (%d) don\'t match')
-            raise RuntimeError(msg % (name, inst.compensation_grade,
-                                      name2, inst2.compensation_grade))
+def _check_compensation_grade(inst, inst2, name, name2, ch_names=None):
+    """Ensure that objects have same compensation_grade."""
+    from .io.pick import pick_channels, pick_info
+    from .io.compensator import get_current_comp
+
+    if None in [inst.info, inst2.info]:
+        return
+
+    if ch_names is None:
+        grade = inst.compensation_grade
+        grade2 = inst2.compensation_grade
+    else:
+        picks = pick_channels(inst.info['ch_names'], ch_names)
+        info = pick_info(inst.info, picks, copy=True)
+        picks = pick_channels(inst2.info['ch_names'], ch_names)
+        info2 = pick_info(inst2.info, picks, copy=True)
+        grade = get_current_comp(info)
+        grade2 = get_current_comp(info2)
+    if grade != grade2:
+        msg = 'Compensation grade of %s (%d) and %s (%d) don\'t match'
+        raise RuntimeError(msg % (name, inst.compensation_grade,
+                                  name2, inst2.compensation_grade))
 
 
 def _check_pandas_installed(strict=True):
