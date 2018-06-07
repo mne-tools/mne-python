@@ -443,8 +443,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             raise NotImplementedError('Datatype %s is not supported' % fmt)
         fmt = _fmt_dict[fmt]
     else:
-        fmt = dict((key, cfg.get('ASCII Infos', key))
-                   for key in cfg.options('ASCII Infos'))
+        raise NotImplementedError('BrainVision files with ASCII data are not '
+                                  'supported yet. Please convert this file to '
+                                  'a binary data file (using e.g. BrainVision '
+                                  'Recorder).')
 
     # locate EEG and marker files
     path = op.dirname(vhdr_fname)
