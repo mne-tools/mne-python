@@ -303,7 +303,7 @@ def test_limits_to_control_points():
                   clim=dict(pos_lims=(5, 10, 15), kind='foo'), **kwargs)
     assert_raises(ValueError, stc.plot, colormap='mne', clim='foo', **kwargs)
     assert_raises(ValueError, stc.plot, clim=(5, 10, 15), **kwargs)
-    assert_raises(ValueError, plot_source_estimates, 'foo', clim='auto',
+    assert_raises(TypeError, plot_source_estimates, 'foo', clim='auto',
                   **kwargs)
     assert_raises(ValueError, stc.plot, hemi='foo', clim='auto', **kwargs)
 

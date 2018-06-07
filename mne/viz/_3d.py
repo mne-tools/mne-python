@@ -2249,7 +2249,7 @@ def _get_world_to_view_matrix(scene):
     from mayavi.core.ui.mayavi_scene import MayaviScene
     from tvtk.pyface.tvtk_scene import TVTKScene
 
-    _validate_type(scence, (MayaviScene, TVTKScene), "scene",
+    _validate_type(scene, (MayaviScene, TVTKScene), "scene",
                    "TVTKScene/MayaviScene")
     cam = scene.camera
 
