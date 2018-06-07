@@ -54,6 +54,8 @@ fif_fname = op.join(test_base_dir, 'MEG', 'sample',
 eeglab_fname = op.join(test_base_dir, 'EEGLAB', 'test_raw.set')
 eeglab_montage = op.join(test_base_dir, 'EEGLAB', 'test_chans.locs')
 
+ctf_fname2 = op.join(test_base_dir, 'CTF', 'catch-alp-good-f.ds')
+
 event_id, tmin, tmax = 1, -0.2, 0.2
 # if stop is too small pca may fail in some cases, but we're okay on this file
 start, stop = 0, 6
@@ -894,7 +896,7 @@ def test_ica_ctf():
             ica = ICA(n_components=2, random_state=0, max_iter=2,
                       method=method)
             with warnings.catch_warnings(record=True):  # convergence
-                ica.fit(raw)
+                ica.fit(inst)
 
         # test apply and get_sources
         for inst in [raw, epochs, evoked]:
@@ -930,12 +932,12 @@ def test_ica_eeg():
         picks_meg = pick_types(raw.info, meg=True, eeg=False)
         picks_eeg = pick_types(raw.info, meg=False, eeg=True)
         picks_all = pick_types(raw.info, meg=True, eeg=True)
+        epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
+        evoked = epochs.average()
+
         for picks in [picks_meg, picks_eeg, picks_all]:
             if len(picks) == 0:
                 continue
-            epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
-            evoked = epochs.average()
-
             # test fit
             for inst in [raw, epochs]:
                 ica = ICA(n_components=2, random_state=0, max_iter=2,
@@ -947,6 +949,33 @@ def test_ica_eeg():
             for inst in [raw, epochs, evoked]:
                 ica.apply(inst)
                 ica.get_sources(inst)
+
+    raw = read_raw_ctf(ctf_fname2,  preload=True)
+    events = make_fixed_length_events(raw, 99999)
+    picks_meg = pick_types(raw.info, meg=True, eeg=False)
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True)
+    picks_all = pick_types(raw.info, meg=True, eeg=True)
+    for comp in [0, 1]:
+        raw.apply_gradient_compensation(comp)
+        epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
+        evoked = epochs.average()
+
+        for picks in [picks_meg, picks_eeg, picks_all]:
+            if len(picks) == 0:
+                continue
+
+            # test fit
+            for inst in [raw, epochs]:
+                ica = ICA(n_components=2, random_state=0, max_iter=2,
+                          method=method)
+                with warnings.catch_warnings(record=True):  # convergence
+                    ica.fit(inst)
+
+            # test apply and get_sources
+            for inst in [raw, epochs, evoked]:
+                ica.apply(inst)
+                ica.get_sources(inst)
+
 
 
 run_tests_if_main()

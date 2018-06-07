@@ -2205,12 +2205,19 @@ def _check_compensation_grade(inst, inst2, name, name2, ch_names=None):
         grade = inst.compensation_grade
         grade2 = inst2.compensation_grade
     else:
-        picks = pick_channels(inst.info['ch_names'], ch_names)
-        info = pick_info(inst.info, picks, copy=True)
-        picks = pick_channels(inst2.info['ch_names'], ch_names)
-        info2 = pick_info(inst2.info, picks, copy=True)
+        info = inst.info.copy()
+        info2 = inst2.info.copy()
+        # pick channels
+        for t_info in [info, info2]:
+            if t_info['comps']:
+                t_info['comps'] = []
+            picks = pick_channels(t_info['ch_names'], ch_names)
+            pick_info(t_info, picks, copy=False)
+        # get compensation grades
         grade = get_current_comp(info)
         grade2 = get_current_comp(info2)
+
+    # perform check
     if grade != grade2:
         msg = 'Compensation grade of %s (%d) and %s (%d) don\'t match'
         raise RuntimeError(msg % (name, inst.compensation_grade,
