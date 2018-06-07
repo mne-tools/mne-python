@@ -55,13 +55,15 @@ import nibabel as nib
 
 from nilearn.image import index_img
 from nilearn.plotting import plot_anat
+import matplotlib.pylab as plt
 
 print(__doc__)
 
 
 ###############################################################################
 # from :ref:`LCMV beamformer inverse example
-# <sphx_glr_auto_examples_inverse_plot_lcmv_beamformer_volume.py>`
+# <sphx_glr_auto_examples_inverse_plot_lcmv_beamformer_volume.py>`. Note, that
+# in order to save the data fname needs to be set
 
 def compute_lcmv_example_data(data_path, fname=None):
     raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -119,8 +121,9 @@ def compute_lcmv_example_data(data_path, fname=None):
     # take absolute values for plotting
     stc.data[:, :] = np.abs(stc.data)
 
-    # Save result in stc files
-    stc.save('lcmv-vol')
+    # Save result in stc files if desired
+    if fname is not None:
+        stc.save('lcmv-vol')
 
     # select time window (tmin, tmax) in ms - consider changing for real data
     # scenario, since those values were chosen to optimize computation time
@@ -349,15 +352,36 @@ imgs = [index_img(img_vol_res, t), index_img(img_vol_res, t),
 # select anatomical background images
 t1_imgs = [t1_m_img_res, t1_s_img_res, t1_s_img_res]
 
+# slices to show for Static volume
+slices_s = (-10, 0, 0)
+
+# slices to show for Moving volume
+# to show roughly the same view, we transform the selected Static slices using
+# the inverse affine transformation. Note that due to rotation and the
+# non-linear transform, both views do not overlap perfectly
+slices_m = tuple(
+    np.round(np.matmul(affine.affine_inv, (slices_s + (1,))))[:-1])
+
+slices = [slices_s, slices_s, slices_m]
+
 # define titles for plots
-titles = ['subject brain', 'fsaverage brian',
-          'fsaverage brian\nmorphed source']
+titles = ['subject brain', 'fsaverage brain',
+          'fsaverage brain morphed result']
 
 # plot results
-for img, t1_img, title in zip(imgs, t1_imgs, titles):
-    display = plot_anat(t1_img, display_mode='x', title=title)
-    display.add_overlay(img)
+figure, (axes1, axes2, axes3) = plt.subplots(3, 1)
+figure.subplots_adjust(top=0.9, left=0.1, right=0.9, hspace=0.5)
 
-    # You could save the image to disk with:
-    # display.savefig(fname)
-    # display.close()
+for axes, img, t1_img, cut_coords, title in zip([axes1, axes2, axes3],
+                                                imgs, t1_imgs, slices, titles):
+    display = plot_anat(t1_img,
+                        display_mode='ortho',
+                        cut_coords=cut_coords,
+                        draw_cross=False,
+                        axes=axes,
+                        figure=figure,
+                        annotate=False)
+
+    display.add_overlay(img, alpha=0.75)
+    axes.set_title(title)
+plt.show()
