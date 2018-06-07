@@ -117,7 +117,7 @@ selections = make_1020_channel_selections(evoked.info, midline="12z")
 
 # Visualize the results
 fig, axes = plt.subplots(nrows=3, figsize=(8, 8))
-axes = {sel: ax for sel, ax in zip(selections, axes.ravel().tolist())}
+axes = {sel: ax for sel, ax in zip(selections, axes.ravel())}
 evoked.plot_image(axes=axes, group_by=selections, colorbar=False, show=False,
                   mask=significant_points, show_names="all", titles=None,
                   **time_unit)
