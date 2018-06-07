@@ -24,7 +24,7 @@ from scipy import linalg
 from ..defaults import DEFAULTS
 from ..externals.six import BytesIO, string_types, advance_iterator
 from ..fixes import einsum
-from ..io import _loc_to_coil_trans, Info
+from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials
@@ -2202,7 +2202,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
             raise ValueError('All electrode positions must be length 3')
         ch_names, xyz = zip(*[(ich, ixyz) for ich, ixyz in montage.items()])
     else:
-        raise ValueError('montage must be an instance of `DigMontage`, `Info`,'
+        raise TypeError('montage must be an instance of `DigMontage`, `Info`,'
                          ' or `dict`')
 
     xyz = np.vstack(xyz)
