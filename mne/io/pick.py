@@ -273,7 +273,6 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     """
     # NOTE: Changes to this function's signature should also be changed in
     # PickChannelsMixin
-    from .meas_info import Info
     _validate_type(info, "info")
     info._check_consistency()
     nchan = info['nchan']

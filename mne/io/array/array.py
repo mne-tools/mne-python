@@ -7,7 +7,6 @@
 import numpy as np
 
 from ..base import BaseRaw
-from ..meas_info import Info
 from ...utils import verbose, logger, _validate_type
 
 
