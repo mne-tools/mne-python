@@ -213,9 +213,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
             for sel in group_by:
                 plt.figure()
                 axes[sel] = plt.axes()
-        elif isinstance(axes, dict):
-            pass
-        else:
+        if not isinstance(axes, dict):
             raise ValueError("If `group_by` is a dict, `axes` must be "
                              "a dict of axes or None.")
         _validate_if_list_of_axes(list(axes.values()))
@@ -253,7 +251,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         else:
             return figs
     elif isinstance(axes, dict):
-        raise ValueError("If `group_by` isn't a dict, neither can `axes` be.")
+        raise ValueError("If `group_by` is not a dict, "
+                         "`axes` must not be a dict either.")
 
     time_unit, times = _check_time_unit(time_unit, evoked.times)
     info = evoked.info
@@ -894,8 +893,8 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
-        If ``group_by`` is a dict, this cannot be a list, but it can be a dict
-        of lists of axes, with the keys matching those of ``group_by``. In that
+        If `group_by` is a dict, this cannot be a list, but it can be a dict
+        of lists of axes, with the keys matching those of `group_by`. In that
         case, the provided axes will be used for the corresponding groups.
         Defaults to `None`.
     cmap : matplotlib colormap | (colormap, bool) | 'interactive'

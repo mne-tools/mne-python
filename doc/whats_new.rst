@@ -23,7 +23,7 @@ Changelog
 
 - Add ability to pass a precomputed forward solution to :func:`mne.simulation.simulate_raw` by `Eric Larson`_
 
-- Add :func:`mne.channels.make_1020_channel_selections` to group 10/20-named EEG channels by location, `Jona Sassenhagen`_
+- Add :func:`mne.channels.make_1020_channel_selections` to group 10/20-named EEG channels by location, by `Jona Sassenhagen`_
 
 Bug
 ~~~
