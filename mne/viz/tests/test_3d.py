@@ -368,7 +368,7 @@ def test_plot_dipole_mri_orthoview():
         fig.canvas.key_press_event('down')
         fig.canvas.key_press_event('a')  # some other key
     ax = plt.subplot(111)
-    assert_raises(ValueError, dipoles.plot_locations, trans, 'sample',
+    assert_raises(TypeError, dipoles.plot_locations, trans, 'sample',
                   subjects_dir, ax=ax)
     plt.close('all')
 

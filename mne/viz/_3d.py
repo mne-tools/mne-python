@@ -707,7 +707,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         raise ValueError('eeg must only contain "original" and '
                          '"projected", got %s' % (eeg,))
 
-    _vaidate_type(info, "info")
+    _validate_type(info, "info")
 
     if isinstance(surfaces, string_types):
         surfaces = [surfaces]
@@ -1607,7 +1607,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     """  # noqa: E501
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
-    _validate_type(std, SourceEstimate, "stc", "Surface Source Estimate")
+    _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
