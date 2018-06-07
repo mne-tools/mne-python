@@ -1365,7 +1365,7 @@ def make_1020_channel_selections(info, midline="z"):
     selections : dict
         A dictionary mapping from ROI names to lists of picks (integers).
     """
-    _validate_type(info, Info, "info")
+    _validate_type(info, "info")
 
     try:
         from .layout import find_layout

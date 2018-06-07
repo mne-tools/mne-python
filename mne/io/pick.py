@@ -274,9 +274,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     # NOTE: Changes to this function's signature should also be changed in
     # PickChannelsMixin
     from .meas_info import Info
-    if not isinstance(info, Info):
-        raise TypeError('info must be an instance of Info, not %s'
-                        % type(info))
+    _validate_type(info, "info")
     info._check_consistency()
     nchan = info['nchan']
     pick = np.zeros(nchan, dtype=np.bool)

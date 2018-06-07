@@ -16,7 +16,6 @@ import numpy as np
 from scipy import linalg
 
 from .transforms import _ensure_trans, apply_trans
-from .io import Info
 from .io.constants import FIFF
 from .io.write import (start_file, start_block, write_float, write_int,
                        write_float_matrix, write_int_matrix, end_block,
@@ -906,7 +905,7 @@ def get_fitting_dig(info, dig_kinds='auto', verbose=None):
 
     .. versionadded:: 0.14
     """
-    _validate_type(info, Info, "info", "Info")
+    _validate_type(info, "info")
     if info['dig'] is None:
         raise RuntimeError('Cannot fit headshape without digitization '
                            ', info["dig"] is None')
