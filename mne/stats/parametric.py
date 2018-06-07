@@ -9,6 +9,7 @@ from functools import reduce
 from string import ascii_uppercase
 
 from ..externals.six import string_types
+from ..utils import warn
 
 # The following function is a rewriting of scipy.stats.f_oneway
 # Contrary to the scipy.stats.f_oneway implementation it does not
@@ -274,7 +275,7 @@ def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
     return F_threshold if len(F_threshold) > 1 else F_threshold[0]
 
 
-def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
+def f_mway_rm(data, factor_levels, effects='all', alpha=None,
               correction=False, return_pvals=True):
     """Compute M-way repeated measures ANOVA for fully balanced designs.
 
@@ -307,7 +308,7 @@ def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
 
         If list, effect names are used: ``['A', 'B', 'A:B']``.
     alpha : float
-        The significance threshold.
+        This argument is deprecated.
     correction : bool
         The correction method to be employed if one factor has more than two
         levels. If True, sphericity correction using the Greenhouse-Geisser
@@ -334,6 +335,11 @@ def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
     .. versionadded:: 0.10
     """
     from scipy.stats import f
+
+    if alpha is not None:
+        warn('alpha is deprecated and will be removed in 0.18.',
+             DeprecationWarning)
+
     if data.ndim == 2:  # general purpose support, e.g. behavioural data
         data = data[:, :, np.newaxis]
     elif data.ndim > 3:  # let's allow for some magic here.
