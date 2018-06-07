@@ -10,7 +10,7 @@ import re
 import numpy as np
 
 from .constants import FIFF
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _validate_type
 from ..externals.six import string_types
 from .compensator import get_current_comp
 
