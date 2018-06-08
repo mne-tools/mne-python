@@ -963,7 +963,6 @@ def test_ica_eeg():
         for picks in [picks_meg, picks_eeg, picks_all]:
             if len(picks) == 0:
                 continue
-
             # test fit
             for inst in [raw, epochs]:
                 ica = ICA(n_components=2, random_state=0, max_iter=2,
@@ -975,7 +974,6 @@ def test_ica_eeg():
             for inst in [raw, epochs, evoked]:
                 ica.apply(inst)
                 ica.get_sources(inst)
-
 
 
 run_tests_if_main()
