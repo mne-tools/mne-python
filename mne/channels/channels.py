@@ -51,6 +51,9 @@ def _get_meg_system(info):
             elif coil_type == FIFF.FIFFV_COIL_BABY_GRAD:
                 system = 'BabySQUID'
                 break
+            elif coil_type == FIFF.FIFFV_COIL_ARTEMIS123_GRAD:
+                system = 'ARTEMIS123'
+                break
     return system
 
 

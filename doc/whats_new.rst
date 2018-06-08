@@ -25,6 +25,8 @@ Changelog
 
 - Add :func:`mne.channels.make_1020_channel_selections` to group 10/20-named EEG channels by location, by `Jona Sassenhagen`_
 
+- Add helmet for Artemis123 for :func:`mne.viz.plot_alignment` by `Eric Larson`_
+
 Bug
 ~~~
 
