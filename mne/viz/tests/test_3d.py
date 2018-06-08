@@ -388,7 +388,7 @@ def test_snapshot_brain_montage():
     xyz_dict[info['chs'][0]['ch_name']] = [1, 2]  # Set one ch to only 2 vals
 
     # Make sure wrong types are checked
-    assert_raises(ValueError, snapshot_brain_montage, fig, xyz)
+    assert_raises(TypeError, snapshot_brain_montage, fig, xyz)
 
     # All chs must have 3 position values
     assert_raises(ValueError, snapshot_brain_montage, fig, xyz_dict)
