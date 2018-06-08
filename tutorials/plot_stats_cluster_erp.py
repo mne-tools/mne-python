@@ -39,8 +39,8 @@ name = "NumberOfLetters"
 
 # Split up the data by the median length in letters via the attached metadata
 median_value = str(epochs.metadata[name].median())
-long = epochs[name + " > " + median_value]
-short = epochs[name + " < " + median_value]
+long_words = epochs[name + " > " + median_value]
+short_words = epochs[name + " < " + median_value]
 
 #############################################################################
 # If we have a specific point in space and time we wish to test, it can be
@@ -60,8 +60,8 @@ print(epochs.to_data_frame()[elecs].head())
 report = "{elec}, time: {tmin}-{tmax} s; t({df})={t_val:.3f}, p={p:.3f}"
 print("\nTargeted statistical test results:")
 for (tmin, tmax) in time_windows:
-    long_df = long.copy().crop(tmin, tmax).to_data_frame()
-    short_df = short.copy().crop(tmin, tmax).to_data_frame()
+    long_df = long_words.copy().crop(tmin, tmax).to_data_frame()
+    short_df = short_words.copy().crop(tmin, tmax).to_data_frame()
     for elec in elecs:
         # extract data
         A = long_df[elec].groupby("condition").mean()
@@ -89,12 +89,12 @@ con = find_ch_connectivity(epochs.info, "eeg")
 # Extract data: transpose because the cluster test requires channels to be last
 # In this case, inference is done over items. In the same manner, we could
 # also conduct the test over, e.g., subjects.
-X = [long.get_data().transpose(0, 2, 1),
-     short.get_data().transpose(0, 2, 1)]
+X = [long_words.get_data().transpose(0, 2, 1),
+     short_words.get_data().transpose(0, 2, 1)]
 tfce = dict(start=.2, step=.2)
 
 t_obs, clusters, cluster_pv, h0 = spatio_temporal_cluster_test(
-    X, tfce, n_permutations=100)
+    X, tfce, n_permutations=100)  # a more standard number would be 1000+
 significant_points = cluster_pv.reshape(t_obs.shape).T < .05
 print(str(significant_points.sum()) + " points selected by TFCE ...")
 
@@ -106,7 +106,7 @@ print(str(significant_points.sum()) + " points selected by TFCE ...")
 # effects on the head.
 
 # We need an evoked object to plot the image to be masked
-evoked = mne.combine_evoked([long.average(), -short.average()],
+evoked = mne.combine_evoked([long_words.average(), -short_words.average()],
                             weights='equal')  # calculate difference wave
 time_unit = dict(time_unit="s")
 evoked.plot_joint(title="Long vs. short words", ts_args=time_unit,
@@ -117,21 +117,11 @@ selections = make_1020_channel_selections(evoked.info, midline="12z")
 
 # Visualize the results
 fig, axes = plt.subplots(nrows=3, figsize=(8, 8))
-vmax = np.abs(evoked.data).max() * 1e6
-
-# Iterate over ROIs and axes
-axes = axes.ravel().tolist()
-for selection_name, ax in zip(sorted(selections.keys()), axes):
-    picks = selections[selection_name]
-    evoked.plot_image(picks=picks, axes=ax, colorbar=False, show=False,
-                      clim=dict(eeg=(-vmax, vmax)), mask=significant_points,
-                      **time_unit, show_names="all")
-    evoked.nave = None  # to suppress printing trial count for other images
-    if not ax.is_last_row():  # remove xticklabels for all but bottom axis
-        ax.set(xlabel='', xticklabels=[])
-    ax.set(ylabel='', title=selection_name)
-
-fig.colorbar(ax.images[-1], ax=axes, fraction=.1, aspect=20,
-             pad=.05, shrink=2 / 3, label="uV", orientation="vertical")
+axes = {sel: ax for sel, ax in zip(selections, axes.ravel())}
+evoked.plot_image(axes=axes, group_by=selections, colorbar=False, show=False,
+                  mask=significant_points, show_names="all", titles=None,
+                  **time_unit)
+plt.colorbar(axes["Left"].images[-1], ax=list(axes.values()), shrink=.3,
+             label="uV")
 
 plt.show()

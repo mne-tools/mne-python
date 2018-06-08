@@ -188,7 +188,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  set_tight_layout=True, selectable=True, zorder='unsorted',
                  noise_cov=None, colorbar=True, mask=None, mask_style=None,
                  mask_cmap=None, mask_alpha=.25, time_unit='s',
-                 show_names=False):
+                 show_names=False, group_by=None):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -200,8 +200,61 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         (x axis: time, y axis: channel). In 'image' mode, the plot is not
         interactive.
     """
-    time_unit, times = _check_time_unit(time_unit, evoked.times)
     import matplotlib.pyplot as plt
+
+    # For evoked.plot_image ...
+    # First input checks for group_by and axes if any of them is not None.
+    # Either both must be dicts, or neither.
+    # If the former, the two dicts provide picks and axes to plot them to.
+    # Then, we call this function recursively for each entry in `group_by`.
+    if plot_type == "image" and isinstance(group_by, dict):
+        if axes is None:
+            axes = dict()
+            for sel in group_by:
+                plt.figure()
+                axes[sel] = plt.axes()
+        if not isinstance(axes, dict):
+            raise ValueError("If `group_by` is a dict, `axes` must be "
+                             "a dict of axes or None.")
+        _validate_if_list_of_axes(list(axes.values()))
+        remove_xlabels = any([ax.is_last_row() for ax in axes.values()])
+        for sel in group_by:  # ... we loop over selections
+            if sel not in axes:
+                raise ValueError(sel + " present in `group_by`, but not "
+                                 "found in `axes`")
+            ax = axes[sel]
+            # the unwieldy dict comp below defaults the title to the sel
+            _plot_evoked(evoked, group_by[sel], exclude, unit, show, ylim,
+                         proj, xlim, hline, units, scalings,
+                         (titles if titles is not None else
+                          {channel_type(evoked.info, idx): sel
+                           for idx in group_by[sel]}),
+                         ax, plot_type, cmap=cmap, gfp=gfp,
+                         window_title=window_title,
+                         set_tight_layout=set_tight_layout,
+                         selectable=selectable, noise_cov=noise_cov,
+                         colorbar=colorbar, mask=mask,
+                         mask_style=mask_style, mask_cmap=mask_cmap,
+                         mask_alpha=mask_alpha, time_unit=time_unit,
+                         show_names=show_names)
+            if remove_xlabels and not ax.is_last_row():
+                ax.set_xticklabels([])
+                ax.set_xlabel("")
+        ims = [ax.images[0] for ax in axes.values()]
+        clims = np.array([im.get_clim() for im in ims])
+        min, max = clims.min(), clims.max()
+        for im in ims:
+            im.set_clim(min, max)
+        figs = [ax.get_figure() for ax in axes.values()]
+        if len(set(figs)) is 1:
+            return figs[0]
+        else:
+            return figs
+    elif isinstance(axes, dict):
+        raise ValueError("If `group_by` is not a dict, "
+                         "`axes` must not be a dict either.")
+
+    time_unit, times = _check_time_unit(time_unit, evoked.times)
     info = evoked.info
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
@@ -798,7 +851,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
                       units=None, scalings=None, titles=None, axes=None,
                       cmap='RdBu_r', colorbar=True, mask=None,
                       mask_style=None, mask_cmap="Greys", mask_alpha=.25,
-                      time_unit='s', show_names="auto"):
+                      time_unit='s', show_names="auto", group_by=None):
     """Plot evoked data as images.
 
     Parameters
@@ -836,10 +889,14 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
     titles : dict | None
         The titles associated with the channels. If None, defaults to
         ``dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')``.
-    axes : instance of Axis | list | None
+    axes : instance of Axis | list | dict | None
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
+        If `group_by` is a dict, this cannot be a list, but it can be a dict
+        of lists of axes, with the keys matching those of `group_by`. In that
+        case, the provided axes will be used for the corresponding groups.
+        Defaults to `None`.
     cmap : matplotlib colormap | (colormap, bool) | 'interactive'
         Colormap. If tuple, the first value indicates the colormap to use and
         the second value is a boolean defining interactivity. In interactive
@@ -892,7 +949,18 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         If "auto", is set to False if `picks` is ``None``; to ``True`` if
         `picks` is not ``None`` and fewer than 25 picks are shown; to "all"
         if `picks` is not ``None`` and contains fewer than 25 entries.
+    group_by : None | dict
+        If a dict, the values must be picks, and `axes` must also be a dict
+        with matching keys, or None. If `axes` is None, one figure and one axis
+        will be created for each entry in `group_by`.
+        Then, for each entry, the picked channels will be plotted
+        to the corresponding axis. If `titles` are None, keys will become plot
+        titles. This is useful for e.g. ROIs. Each entry must contain only
+        one channel type. For example::
 
+            group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
+
+        If None, all picked channels are plotted to the same axis.
 
     Returns
     -------
@@ -905,7 +973,8 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
                         axes=axes, plot_type="image", cmap=cmap,
                         colorbar=colorbar, mask=mask, mask_style=mask_style,
                         mask_cmap=mask_cmap, mask_alpha=mask_alpha,
-                        time_unit=time_unit, show_names=show_names)
+                        time_unit=time_unit, show_names=show_names,
+                        group_by=group_by)
 
 
 def _plot_update_evoked(params, bools):
