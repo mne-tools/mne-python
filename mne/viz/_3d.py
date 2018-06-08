@@ -2203,7 +2203,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         ch_names, xyz = zip(*[(ich, ixyz) for ich, ixyz in montage.items()])
     else:
         raise TypeError('montage must be an instance of `DigMontage`, `Info`,'
-                         ' or `dict`')
+                        ' or `dict`')
 
     xyz = np.vstack(xyz)
     xy = _3d_to_2d(fig, xyz)
