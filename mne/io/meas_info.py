@@ -1888,7 +1888,7 @@ def anonymize_info(info):
     -----
     Operates in place.
     """
-    _validate_type(info, Info, "self", "Info")
+    _validate_type(info, 'info', "self")
     if info.get('subject_info') is not None:
         del info['subject_info']
     info['meas_date'] = None

@@ -2757,6 +2757,10 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
     elif types == "numeric":
         types = (np.integer, np.floating, int, float)
         type_name = "numeric" if type_name is None else type_name
+    elif types == "info":
+        from mne.io import Info as types
+        type_name = "Info" if type_name is None else type_name
+        item_name = "Info" if item_name is None else item_name
 
     if type_name is None:
         iter_types = ([types] if not isinstance(types, (list, tuple))

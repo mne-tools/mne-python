@@ -7,8 +7,7 @@
 import numpy as np
 
 from ..base import BaseRaw
-from ..meas_info import Info
-from ...utils import verbose, logger
+from ...utils import verbose, logger, _validate_type
 
 
 class RawArray(BaseRaw):
@@ -49,9 +48,7 @@ class RawArray(BaseRaw):
 
     @verbose
     def __init__(self, data, info, first_samp=0, verbose=None):  # noqa: D102
-        if not isinstance(info, Info):
-            raise TypeError('info must be an instance of Info, got %s'
-                            % type(info))
+        _validate_type(info, "info")
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
 

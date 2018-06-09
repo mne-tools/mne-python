@@ -303,7 +303,7 @@ def test_limits_to_control_points():
                   clim=dict(pos_lims=(5, 10, 15), kind='foo'), **kwargs)
     assert_raises(ValueError, stc.plot, colormap='mne', clim='foo', **kwargs)
     assert_raises(ValueError, stc.plot, clim=(5, 10, 15), **kwargs)
-    assert_raises(ValueError, plot_source_estimates, 'foo', clim='auto',
+    assert_raises(TypeError, plot_source_estimates, 'foo', clim='auto',
                   **kwargs)
     assert_raises(ValueError, stc.plot, hemi='foo', clim='auto', **kwargs)
 
@@ -368,7 +368,7 @@ def test_plot_dipole_mri_orthoview():
         fig.canvas.key_press_event('down')
         fig.canvas.key_press_event('a')  # some other key
     ax = plt.subplot(111)
-    assert_raises(ValueError, dipoles.plot_locations, trans, 'sample',
+    assert_raises(TypeError, dipoles.plot_locations, trans, 'sample',
                   subjects_dir, ax=ax)
     plt.close('all')
 
@@ -388,7 +388,7 @@ def test_snapshot_brain_montage():
     xyz_dict[info['chs'][0]['ch_name']] = [1, 2]  # Set one ch to only 2 vals
 
     # Make sure wrong types are checked
-    assert_raises(ValueError, snapshot_brain_montage, fig, xyz)
+    assert_raises(TypeError, snapshot_brain_montage, fig, xyz)
 
     # All chs must have 3 position values
     assert_raises(ValueError, snapshot_brain_montage, fig, xyz_dict)
