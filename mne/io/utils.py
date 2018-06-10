@@ -243,7 +243,7 @@ def _synthesize_stim_channel(events, n_samples):
     # select events overlapping buffer
     onset = events[:, 0]
     events = events.copy()
-    events[events[:, 1] == 0, 1] = 1
+    events[events[:, 1] < 1, 1] = 1
     # create output buffer
     stim_channel = np.zeros(n_samples, int)
     for onset, duration, trigger in events:
