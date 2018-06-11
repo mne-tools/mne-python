@@ -42,20 +42,23 @@ References
 #
 # License: BSD (3-clause)
 
-import numpy as np
+from dipy.align import imaffine, imwarp, metrics, reslice, transforms
+
+import matplotlib.pylab as plt
 
 import mne
 from mne.beamformer import make_lcmv, apply_lcmv
 from mne.datasets import sample
 from mne.externals.h5io import read_hdf5, write_hdf5
 
-from dipy.align import imaffine, imwarp, metrics, reslice, transforms
-
 import nibabel as nib
 
 from nilearn.image import index_img
 from nilearn.plotting import plot_anat
-import matplotlib.pylab as plt
+
+import numpy as np
+
+from os import path, makedirs
 
 print(__doc__)
 
@@ -127,7 +130,7 @@ def compute_lcmv_example_data(data_path, fname=None):
 
     # select time window (tmin, tmax) in ms - consider changing for real data
     # scenario, since those values were chosen to optimize computation time
-    stc.crop(0.0, 0.0)
+    stc.crop(0.087, 0.087)
 
     # Save result in a 4D nifti file
     img = mne.save_stc_as_volume(fname, stc, forward['src'],
@@ -205,42 +208,30 @@ def compute_morph_map(img_m, img_s=None, niter_affine=(100, 100, 10),
 
 ###############################################################################
 # Save non linear mapping data
+
 def save_mapping(fname, data, overwrite=True):
-    out = []
+    out = dict()
 
     # dissolve object structure
     for d in data:
-        d_dict = d.__dict__
         # save type for order independent decomposition
-        d_dict['type'] = type(d).__name__
-        out.append(d_dict)
+        out[type(d).__name__] = d.__dict__
 
-    write_hdf5(fname, out, overwrite=overwrite)
+    write_hdf5(fname + '.h5', out, overwrite=overwrite)
 
 
 ###############################################################################
 # Load non linear mapping data
+
 def load_mapping(fname):
-    # create new instance
+    # create new instances
     mapping = imwarp.DiffeomorphicMap(None, [])
     affine = imaffine.AffineMap(None)
 
-    data = read_hdf5(fname)
+    data = read_hdf5(fname + '.h5')
 
-    for d in data:
-
-        d_type = d.get('type')
-        del d['type']
-
-        # make reading independent of save order
-        if d_type == 'DiffeomorphicMap':
-            mapping.__dict__ = d
-
-        elif d_type == 'AffineMap':
-            affine.__dict__ = d
-
-        else:
-            raise ValueError('invalid data')
+    mapping.__dict__ = data.get(type(mapping).__name__)
+    affine.__dict__ = data.get(type(affine).__name__)
 
     return mapping, affine
 
@@ -256,6 +247,27 @@ def morph_precomputed(img, affine, mapping):
             affine.transform(img.dataobj[:, :, :, vol]))
 
     return img_sdr_affine
+
+
+###############################################################################
+# Morph 3D coordinates. This is used to transform the respective slices shown
+# in the output such that the field of view if more or less similar. Note that
+# this is necessary, because shown volumes will be positioned differently in
+# the volume bounding box.
+
+def morph_slice_indices(slice_indices, transmat):
+    # make sure array is 2D
+    slice_indices = np.atleast_2d(slice_indices)
+
+    # add a column of ones
+    slice_indices = np.append(slice_indices,
+                              np.ones((slice_indices.shape[0], 1)), axis=1)
+
+    # matrix multiplication with transformation matrix
+    slice_indices_out = np.einsum('...j,ij', slice_indices, transmat)
+
+    # round to select valid slices and remove last column
+    return np.round(slice_indices_out[:, :-1])
 
 
 ###############################################################################
@@ -310,6 +322,11 @@ def prepare_volume_example_data(img_in, t1_m_path, t1_s_path,
 
 # Setup path
 data_path = sample.data_path()
+results_path = data_path + '/subjects/LCMV-results'
+
+# create results directory if it doesn't exist
+if not path.exists(results_path):
+    makedirs(results_path)
 
 # compute LCMV beamformer inverse example
 img = compute_lcmv_example_data(data_path)
@@ -324,13 +341,11 @@ img_vol_res, t1_m_img_res, t1_s_img_res = prepare_volume_example_data(
 # compute morph map from Moving to Static
 mapping, affine = compute_morph_map(t1_m_img_res, t1_s_img_res)
 
-save_mapping(data_path + '/subjects/morph-maps/subject-fsaverage-morph',
-             [mapping, affine])
+save_mapping(results_path + '/volume_morph', [mapping, affine])
 
-mapping, affine = load_mapping(
-    data_path + '/subjects/morph-maps/subject-fsaverage-morph')
+mapping, affine = load_mapping(results_path + '/volume_morph')
 
-# apply morph map
+# apply morph map (test if saving and loading worked)
 img_vol_morphed = morph_precomputed(img_vol_res, mapping, affine)
 
 # make transformed ndarray a nifti
@@ -338,16 +353,14 @@ img_vol_morphed = nib.Nifti1Image(img_vol_morphed,
                                   affine=t1_s_img_res.affine)
 
 # save morphed result
-nib.save(img_vol_morphed,
-         data_path + '/subjects/fsaverage/src/lcmv-fsaverage.nii.gz')
+nib.save(img_vol_morphed, results_path + '/lcmv-fsaverage.nii.gz')
 
 ###############################################################################
 # Plot results
 
-# select image overlay(random time point)
-t = np.random.randint(img_vol_res.shape[-1])
-imgs = [index_img(img_vol_res, t), index_img(img_vol_res, t),
-        index_img(img_vol_morphed, t)]
+# select image overlay
+imgs = [index_img(img_vol_res, 0), index_img(img_vol_res, 0),
+        index_img(img_vol_morphed, 0)]
 
 # select anatomical background images
 t1_imgs = [t1_m_img_res, t1_s_img_res, t1_s_img_res]
@@ -358,19 +371,19 @@ slices_s = (-10, 0, 0)
 # slices to show for Moving volume
 # to show roughly the same view, we transform the selected Static slices using
 # the inverse affine transformation. Note that due to rotation and the
-# non-linear transform, both views do not overlap perfectly
-slices_m = tuple(
-    np.round(np.matmul(affine.affine_inv, (slices_s + (1,))))[:-1])
+# non-linear transform, both views do not overlap perfectly (pre computed for
+# this example)
+slices_m = morph_slice_indices(np.atleast_2d(slices_s), affine.affine_inv)[0]
 
-slices = [slices_s, slices_s, slices_m]
+slices = [slices_s, slices_s, tuple(slices_m)]
 
 # define titles for plots
-titles = ['subject brain', 'fsaverage brain',
-          'fsaverage brain morphed result']
+titles = ['subject brain', 'fsaverage brain', 'fsaverage brain morphed result']
 
 # plot results
 figure, (axes1, axes2, axes3) = plt.subplots(3, 1)
-figure.subplots_adjust(top=0.9, left=0.1, right=0.9, hspace=0.5)
+figure.subplots_adjust(top=0.8, left=0.1, right=0.9, hspace=0.5)
+figure.patch.set_facecolor('black')
 
 for axes, img, t1_img, cut_coords, title in zip([axes1, axes2, axes3],
                                                 imgs, t1_imgs, slices, titles):
@@ -383,5 +396,9 @@ for axes, img, t1_img, cut_coords, title in zip([axes1, axes2, axes3],
                         annotate=False)
 
     display.add_overlay(img, alpha=0.75)
-    axes.set_title(title)
+    display.annotate(size=8)
+    axes.set_title(title, color='white', fontsize=12)
+
+plt.text(plt.xlim()[1], plt.ylim()[0], 't = 0.087s', color='white')
+plt.suptitle('morph subject results to fsaverage', color='white', fontsize=16)
 plt.show()
