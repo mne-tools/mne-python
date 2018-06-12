@@ -25,7 +25,7 @@ def _buffer_recv_worker(ft_client):
     except RuntimeError as err:
         # something is wrong, the server stopped (or something)
         ft_client._recv_thread = None
-        print('Buffer receive thread stopped: %s' % err)
+        logger.error('Buffer receive thread stopped: %s' % err)
 
 
 class FieldTripClient(object):
@@ -347,10 +347,14 @@ class FieldTripClient(object):
         raw_buffer : generator
             Generator for iteration over raw buffers.
         """
-        iter_times = zip(range(self.tmin_samp, self.tmax_samp,
-                               self.buffer_size),
-                         range(self.tmin_samp + self.buffer_size - 1,
-                               self.tmax_samp, self.buffer_size))
+        # self.tmax_samp should be included
+        iter_times = list(zip(
+            list(range(self.tmin_samp, self.tmax_samp, self.buffer_size)),
+            list(range(self.tmin_samp + self.buffer_size,
+                       self.tmax_samp + 1, self.buffer_size))))
+        last_iter_sample = iter_times[-1][1] if iter_times else self.tmin_samp
+        if last_iter_sample < self.tmax_samp + 1:
+            iter_times.append((last_iter_sample, self.tmax_samp + 1))
 
         for ii, (start, stop) in enumerate(iter_times):
 
@@ -358,7 +362,7 @@ class FieldTripClient(object):
             self.ft_client.wait(stop, np.iinfo(np.uint32).max,
                                 np.iinfo(np.uint32).max)
 
-            # get the samples
-            raw_buffer = self.ft_client.getData([start, stop]).transpose()
+            # get the samples (stop index is inclusive)
+            raw_buffer = self.ft_client.getData([start, stop - 1]).transpose()
 
             yield raw_buffer

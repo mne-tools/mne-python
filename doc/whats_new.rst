@@ -48,12 +48,18 @@ Bug
 
 - Fix bug in :meth:`mne.preprocessing.ICA.plot_overlay` and :func:`mne.make_field_map` for CTF data with compensation by `Eric Larson`_
 
+- Fix bug in :class:`mne.realtime.RtEpochs` where events during the buildup of the buffer were not correctly processed when incoming data buffers are smaller than the epochs by `Henrich Kolkhorst`_
+
 API
 ~~~
 
 - Prepare transition to Python 3. This release will be the last release compatible with Python 2. The next version will be Python 3 only.
 
 - :meth:`mne.Evoked.plot_image` has gained the ability to ``show_names``, and if a selection is provided to ``group_by``, ``axes`` can now receive a `dict`, by `Jona Sassenhagen`_
+
+- Calling :meth:`mne.Epochs.decimate` with ``decim=1`` no longer copies the data by `Henrich Kolkhorst`_
+
+- Removed blocking (waiting for new epochs) in :meth:`mne.realtime.RtEpochs.get_data()` by `Henrich Kolkhorst`_
 
 .. _changes_0_16:
 
@@ -2767,3 +2773,5 @@ of commits):
 .. _Susanna Aro: https://www.linkedin.com/in/susanna-aro
 
 .. _Joan Massich: https://github.com/massich
+
+.. _Henrich Kolkhorst: https://github.com/hekolk
