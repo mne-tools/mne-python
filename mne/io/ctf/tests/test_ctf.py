@@ -209,7 +209,7 @@ def test_read_ctf():
         # test bad segment annotations
         if 'testdata_ctf_short.ds' in fname:
             assert 'bad' in raw.annotations.description[0]
-            assert_allclose(raw.annotations.onset, [4.15])
+            assert_allclose(raw.annotations.onset, [2.15])
             assert_allclose(raw.annotations.duration, [0.0225])
 
     pytest.raises(TypeError, read_raw_ctf, 1)

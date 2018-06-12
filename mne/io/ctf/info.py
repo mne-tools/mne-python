@@ -463,7 +463,7 @@ def _read_bad_chans(directory, info):
     return bad_chans
 
 
-def _read_bad_segments(directory, start_time):
+def _annotate_bad_segments(directory, start_time):
     fname = op.join(directory, 'bad.segments')
     if not op.exists(fname):
         return None
@@ -475,10 +475,10 @@ def _read_bad_segments(directory, start_time):
         for f in fid.readlines():
             tmp = f.strip().split()
             desc.append('bad_%s' % tmp[0])
-            onsets.append(np.float(tmp[1]))
+            onsets.append(np.float(tmp[1]) - start_time)
             durations.append(np.float(tmp[2]) - np.float(tmp[1]))
     # return None if there are no bad segments
     if len(onsets) == 0:
         return None
 
-    return Annotations(onsets, durations, desc, orig_time=-start_time)
+    return Annotations(onsets, durations, desc)

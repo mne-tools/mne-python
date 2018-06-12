@@ -19,7 +19,7 @@ from .res4 import _read_res4, _make_ctf_name
 from .hc import _read_hc
 from .eeg import _read_eeg, _read_pos
 from .trans import _make_ctf_coord_trans_set
-from .info import _compose_meas_info, _read_bad_chans, _read_bad_segments
+from .info import _compose_meas_info, _read_bad_chans, _annotate_bad_segments
 from .constants import CTF
 
 
@@ -151,8 +151,8 @@ class RawCTF(BaseRaw):
             raw_extras=raw_extras, orig_format='int', verbose=verbose)
 
         # Add bad segments as Annotations (correct for start time)
-        s_time = -res4['pre_trig_pts'] / float(info['sfreq'])
-        self.annotations = _read_bad_segments(directory, s_time)
+        start_time = -res4['pre_trig_pts'] / float(info['sfreq'])
+        self.annotations = _annotate_bad_segments(directory, start_time)
 
         if clean_names:
             self._clean_names()
