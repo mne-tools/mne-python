@@ -448,6 +448,7 @@ def test_events():
     assert_raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
                   preload=True, response_trig_shift=np.nan)
 
+    # to handle the min duration = 1 of stim trig (re)construction ...
     events = np.array([[487, 1, 253],
                        [497, 1, 255],
                        [1770, 1, 254],
