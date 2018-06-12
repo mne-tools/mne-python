@@ -287,6 +287,9 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
                     trigger += response_trig_shift
                 else:
                     trigger = None
+        # FIXME: ideally, we would not use the middle column of the events
+        # array to store the duration. A better solution would be using
+        # annotations.
         if trigger:
             events.append((onset, duration, trigger))
         else:
