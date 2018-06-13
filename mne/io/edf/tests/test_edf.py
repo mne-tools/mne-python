@@ -85,15 +85,15 @@ def test_bdf_stim_channel():
 
     # test BDF file with wrong scaling info in header - this should be ignored
     # for BDF stim channels
-    events = [[ 242,    0,    4],
-              [ 310,    0,    2],
-              [ 952,    0,    1],
-              [1606,    0,    1],
-              [2249,    0,    1],
-              [2900,    0,    1],
-              [3537,    0,    1],
-              [4162,    0,    1],
-              [4790,    0,    1]]
+    events = [[242, 0, 4],
+              [310, 0, 2],
+              [952, 0, 1],
+              [1606, 0, 1],
+              [2249, 0, 1],
+              [2900, 0, 1],
+              [3537, 0, 1],
+              [4162, 0, 1],
+              [4790, 0, 1]]
     raw = read_raw_edf(bdf_stim_channel_path, preload=True)
     bdf_events = find_events(raw)
     assert_array_equal(events, bdf_events)
