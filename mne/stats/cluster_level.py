@@ -1241,7 +1241,7 @@ def spatio_temporal_cluster_1samp_test(
         stat_fun=None, connectivity=None, n_jobs=1, seed=None,
         max_step=1, spatial_exclude=None, step_down_p=0, t_power=1,
         out_type='indices', check_disjoint=False, buffer_size=1000,
-        verbose=None):
+        verbose=None, min_size=None):
     """Non-parametric cluster-level 1 sample t-test for spatio-temporal data.
 
     This function provides a convenient wrapper for data organized in the form
@@ -1373,7 +1373,7 @@ def spatio_temporal_cluster_test(
         X, threshold=None, n_permutations=1024, tail=0, stat_fun=None,
         connectivity=None, verbose=None, n_jobs=1, seed=None, max_step=1,
         spatial_exclude=None, step_down_p=0, t_power=1, out_type='indices',
-        check_disjoint=False, buffer_size=1000):
+        check_disjoint=False, buffer_size=1000, min_size=None):
     """Non-parametric cluster-level test for spatio-temporal data.
 
     This function provides a convenient wrapper for data organized in the form
