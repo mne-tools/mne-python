@@ -739,10 +739,30 @@ def _get_1samp_orders(n_samples, n_permutations, tail, rng):
     return orders, n_permutations, extra
 
 
+def _threshold_clusters(clusters, min_size):
+    """Return boolean array of clusters that exceed size threshold"""
+
+    # init
+    cluster_bool = np.zeros([len(clusters)])
+    keep_clusters = list()
+
+    # loop through each cluster and assess size
+    for ii, cluster in enumerate(clusters):
+        if len(cluster) >= min_size:
+            keep_clusters.append(cluster)
+            cluster_bool[ii] = 1
+    if sum(cluster_bool) == 0:
+        print("No clusters surpassed constraints")
+        return None
+
+    # return boolean of which clusters survived
+    return cluster_bool == 1
+
+
 def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                               connectivity, n_jobs, seed, max_step,
                               exclude, step_down_p, t_power, out_type,
-                              check_disjoint, buffer_size):
+                              check_disjoint, buffer_size, min_size):
     n_jobs = check_n_jobs(n_jobs)
     """Aux Function.
 
@@ -815,7 +835,15 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                          max_step=max_step, include=include,
                          partitions=partitions, t_power=t_power,
                          show_info=True)
+
     clusters, cluster_stats = out
+
+    # if the user specifies a min duration or size, apply threshold here
+    if min_size:
+        cluster_bool = _threshold_clusters(clusters, min_size)
+        clusters = np.array(clusters)[cluster_bool]
+        cluster_stats = cluster_stats[cluster_bool]
+
     # For TFCE, return the "adjusted" statistic instead of raw scores
     if isinstance(threshold, dict):
         t_obs = cluster_stats.copy()
@@ -964,7 +992,7 @@ def permutation_cluster_test(
         X, threshold=None, n_permutations=1024, tail=0, stat_fun=None,
         connectivity=None, n_jobs=1, seed=None, max_step=1, exclude=None,
         step_down_p=0, t_power=1, out_type='mask', check_disjoint=False,
-        buffer_size=1000, verbose=None):
+        buffer_size=1000, verbose=None, min_size=None):
     """Cluster-level statistical permutation test.
 
     For a list of nd-arrays of data, e.g. 2d for time series or 3d for
@@ -1076,7 +1104,7 @@ def permutation_cluster_test(
         stat_fun=stat_fun, connectivity=connectivity, n_jobs=n_jobs, seed=seed,
         max_step=max_step, exclude=exclude, step_down_p=step_down_p,
         t_power=t_power, out_type=out_type, check_disjoint=check_disjoint,
-        buffer_size=buffer_size)
+        buffer_size=buffer_size, min_size=min_size)
 
 
 @verbose
@@ -1084,7 +1112,7 @@ def permutation_cluster_1samp_test(
         X, threshold=None, n_permutations=1024, tail=0, stat_fun=None,
         connectivity=None, verbose=None, n_jobs=1, seed=None, max_step=1,
         exclude=None, step_down_p=0, t_power=1, out_type='mask',
-        check_disjoint=False, buffer_size=1000):
+        check_disjoint=False, buffer_size=1000, min_size=None):
     """Non-parametric cluster-level 1 sample t-test.
 
     From a array of observations, e.g. signal amplitudes or power spectrum
@@ -1204,7 +1232,7 @@ def permutation_cluster_1samp_test(
         stat_fun=stat_fun, connectivity=connectivity, n_jobs=n_jobs, seed=seed,
         max_step=max_step, exclude=exclude, step_down_p=step_down_p,
         t_power=t_power, out_type=out_type, check_disjoint=check_disjoint,
-        buffer_size=buffer_size)
+        buffer_size=buffer_size, min_size=min_size)
 
 
 @verbose
