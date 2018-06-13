@@ -1364,7 +1364,8 @@ def spatio_temporal_cluster_1samp_test(
         n_permutations=n_permutations, connectivity=connectivity,
         n_jobs=n_jobs, seed=seed, max_step=max_step, exclude=exclude,
         step_down_p=step_down_p, t_power=t_power, out_type=out_type,
-        check_disjoint=check_disjoint, buffer_size=buffer_size)
+        check_disjoint=check_disjoint, buffer_size=buffer_size,
+        min_size=min_size)
 
 
 @verbose
@@ -1475,7 +1476,8 @@ def spatio_temporal_cluster_test(
         n_permutations=n_permutations, connectivity=connectivity,
         n_jobs=n_jobs, seed=seed, max_step=max_step, exclude=exclude,
         step_down_p=step_down_p, t_power=t_power, out_type=out_type,
-        check_disjoint=check_disjoint, buffer_size=buffer_size)
+        check_disjoint=check_disjoint, buffer_size=buffer_size,
+        min_size=min_size)
 
 
 def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
