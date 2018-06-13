@@ -74,6 +74,7 @@ before_install:
       fi;
     - if [ -z "$CONDA_ENVIRONMENT" ] && [ -z "$CONDA_DEPENDENCIES" ]; then
         pip uninstall -y numpy;
+        pip install numpy scipy vtk;
         pip install -r requirements.txt;
       else
         git clone https://github.com/astropy/ci-helpers.git;
