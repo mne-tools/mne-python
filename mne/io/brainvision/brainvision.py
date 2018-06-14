@@ -94,11 +94,14 @@ class RawBrainVision(BaseRaw):
         _check_update_montage(info, montage)
         with open(data_filename, 'rb') as f:
             if isinstance(fmt, dict):  # ASCII, this will be slow :(
-                n_skip = 0
-                for ii in range(int(fmt['skiplines'])):
-                    n_skip += len(f.readline())
-                offsets = np.cumsum([n_skip] + [len(line) for line in f])
-                n_samples = len(offsets) - 1
+                if self._order == 'F':  # multiplexed, channels in columns
+                    n_skip = 0
+                    for ii in range(int(fmt['skiplines'])):
+                        n_skip += len(f.readline())
+                    offsets = np.cumsum([n_skip] + [len(line) for line in f])
+                    n_samples = len(offsets) - 1
+                elif self._order == 'C':  # vectorized, channels, in rows
+                    raise NotImplementedError()
             else:
                 f.seek(0, os.SEEK_END)
                 n_samples = f.tell()
@@ -446,6 +449,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             raise NotImplementedError('Datatype %s is not supported' % fmt)
         fmt = _fmt_dict[fmt]
     else:
+        if order == 'C':  # channels in rows
+            raise NotImplementedError('BrainVision files with ASCII data in '
+                                      'vectorized order (i.e. channels in rows'
+                                      ') are not supported yet.')
         fmt = dict((key, cfg.get('ASCII Infos', key))
                    for key in cfg.options('ASCII Infos'))
 
