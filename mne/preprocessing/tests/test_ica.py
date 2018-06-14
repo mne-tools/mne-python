@@ -922,17 +922,20 @@ def test_ica_ctf():
 @testing.requires_testing_data
 def test_ica_eeg():
     method = 'fastica'
-
+    reject = {}
     raw_fif = read_raw_fif(fif_fname, preload=True)
-    raw_eeglab = read_raw_eeglab(input_fname=eeglab_fname,
-                                 montage=eeglab_montage, preload=True)
-
-    for raw in [raw_eeglab, raw_fif]:
-        events = make_fixed_length_events(raw, 99999)
-        picks_meg = pick_types(raw.info, meg=True, eeg=False)
-        picks_eeg = pick_types(raw.info, meg=False, eeg=True)
-        picks_all = pick_types(raw.info, meg=True, eeg=True)
-        epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
+    with warnings.catch_warnings(record=True):  # events etc.
+        raw_eeglab = read_raw_eeglab(input_fname=eeglab_fname,
+                                     montage=eeglab_montage, preload=True)
+    for raw in [raw_fif, raw_eeglab]:
+        events = make_fixed_length_events(raw, 99999, start=0, stop=0.3,
+                                          duration=0.1)
+        picks_meg = pick_types(raw.info, meg=True, eeg=False)[:2]
+        picks_eeg = pick_types(raw.info, meg=False, eeg=True)[:2]
+        picks_all = []
+        picks_all.extend(picks_meg)
+        picks_all.extend(picks_eeg)
+        epochs = Epochs(raw, events, None, -0.1, 0.1, preload=True)
         evoked = epochs.average()
 
         for picks in [picks_meg, picks_eeg, picks_all]:
@@ -950,14 +953,16 @@ def test_ica_eeg():
                 ica.apply(inst)
                 ica.get_sources(inst)
 
-    raw = read_raw_ctf(ctf_fname2,  preload=True)
-    events = make_fixed_length_events(raw, 99999)
-    picks_meg = pick_types(raw.info, meg=True, eeg=False)
-    picks_eeg = pick_types(raw.info, meg=False, eeg=True)
-    picks_all = pick_types(raw.info, meg=True, eeg=True)
+    with warnings.catch_warnings(record=True):  # misc channel
+        raw = read_raw_ctf(ctf_fname2,  preload=True)
+    events = make_fixed_length_events(raw, 99999, start=0, stop=0.2,
+                                      duration=0.1)
+    picks_meg = pick_types(raw.info, meg=True, eeg=False)[:2]
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True)[:2]
+    picks_all = picks_meg + picks_eeg
     for comp in [0, 1]:
         raw.apply_gradient_compensation(comp)
-        epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
+        epochs = Epochs(raw, events, None, -0.1, 0.1, preload=True)
         evoked = epochs.average()
 
         for picks in [picks_meg, picks_eeg, picks_all]:
