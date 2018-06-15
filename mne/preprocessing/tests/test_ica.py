@@ -922,7 +922,6 @@ def test_ica_ctf():
 @testing.requires_testing_data
 def test_ica_eeg():
     method = 'fastica'
-    reject = {}
     raw_fif = read_raw_fif(fif_fname, preload=True)
     with warnings.catch_warnings(record=True):  # events etc.
         raw_eeglab = read_raw_eeglab(input_fname=eeglab_fname,
