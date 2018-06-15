@@ -276,7 +276,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     events, dropped = list(), list()
     for info in items:
         mtype, mdesc, onset, duration = info.split(',')[:4]
-        onset = int(onset)
+        onset = int(onset) - 1  # BrainVision is 1-indexed, not 0-indexed
         duration = (int(duration) if duration.isdigit() else 1)
         if mdesc in event_id:
             trigger = event_id[mdesc]
