@@ -50,6 +50,8 @@ Bug
 
 - Fix bug in :class:`mne.realtime.RtEpochs` where events during the buildup of the buffer were not correctly processed when incoming data buffers are smaller than the epochs by `Henrich Kolkhorst`_
 
+- Fix bug in :func:`mne.io.read_raw_brainvision` where 1-indexed BrainVision events were not being converted into 0-indexed mne events by `Steven Bethard`_
+
 API
 ~~~
 
@@ -2775,3 +2777,5 @@ of commits):
 .. _Joan Massich: https://github.com/massich
 
 .. _Henrich Kolkhorst: https://github.com/hekolk
+
+.. _Steven Bethard: https://github.com/bethard
