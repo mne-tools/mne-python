@@ -26,7 +26,7 @@ from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
 from mne.preprocessing.ica import (get_score_funcs, corrmap, _sort_components,
                                    _ica_explained_variance)
-from mne.io import read_raw_fif, Info, RawArray, read_raw_ctf
+from mne.io import read_raw_fif, Info, RawArray, read_raw_ctf, read_raw_eeglab
 from mne.io.meas_info import _kind_dict
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.tests.common import assert_naming
@@ -46,8 +46,15 @@ raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
 test_cov_name = op.join(data_dir, 'test-cov.fif')
 
-ctf_fname = op.join(testing.data_path(download=False), 'CTF',
-                    'testdata_ctf.ds')
+test_base_dir = testing.data_path(download=False)
+ctf_fname = op.join(test_base_dir, 'CTF', 'testdata_ctf.ds')
+
+fif_fname = op.join(test_base_dir, 'MEG', 'sample',
+                    'sample_audvis_trunc_raw.fif')
+eeglab_fname = op.join(test_base_dir, 'EEGLAB', 'test_raw.set')
+eeglab_montage = op.join(test_base_dir, 'EEGLAB', 'test_chans.locs')
+
+ctf_fname2 = op.join(test_base_dir, 'CTF', 'catch-alp-good-f.ds')
 
 event_id, tmin, tmax = 1, -0.2, 0.2
 # if stop is too small pca may fail in some cases, but we're okay on this file
@@ -889,7 +896,7 @@ def test_ica_ctf():
             ica = ICA(n_components=2, random_state=0, max_iter=2,
                       method=method)
             with warnings.catch_warnings(record=True):  # convergence
-                ica.fit(raw)
+                ica.fit(inst)
 
         # test apply and get_sources
         for inst in [raw, epochs, evoked]:
@@ -909,6 +916,68 @@ def test_ica_ctf():
             ica.apply(inst)
         with pytest.raises(RuntimeError, match='Compensation grade of ICA'):
             ica.get_sources(inst)
+
+
+@requires_sklearn
+@testing.requires_testing_data
+def test_ica_eeg():
+    method = 'fastica'
+    raw_fif = read_raw_fif(fif_fname, preload=True)
+    with warnings.catch_warnings(record=True):  # events etc.
+        raw_eeglab = read_raw_eeglab(input_fname=eeglab_fname,
+                                     montage=eeglab_montage, preload=True)
+    for raw in [raw_fif, raw_eeglab]:
+        events = make_fixed_length_events(raw, 99999, start=0, stop=0.3,
+                                          duration=0.1)
+        picks_meg = pick_types(raw.info, meg=True, eeg=False)[:2]
+        picks_eeg = pick_types(raw.info, meg=False, eeg=True)[:2]
+        picks_all = []
+        picks_all.extend(picks_meg)
+        picks_all.extend(picks_eeg)
+        epochs = Epochs(raw, events, None, -0.1, 0.1, preload=True)
+        evoked = epochs.average()
+
+        for picks in [picks_meg, picks_eeg, picks_all]:
+            if len(picks) == 0:
+                continue
+            # test fit
+            for inst in [raw, epochs]:
+                ica = ICA(n_components=2, random_state=0, max_iter=2,
+                          method=method)
+                with warnings.catch_warnings(record=True):  # convergence
+                    ica.fit(inst, picks=picks)
+
+            # test apply and get_sources
+            for inst in [raw, epochs, evoked]:
+                ica.apply(inst)
+                ica.get_sources(inst)
+
+    with warnings.catch_warnings(record=True):  # misc channel
+        raw = read_raw_ctf(ctf_fname2,  preload=True)
+    events = make_fixed_length_events(raw, 99999, start=0, stop=0.2,
+                                      duration=0.1)
+    picks_meg = pick_types(raw.info, meg=True, eeg=False)[:2]
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True)[:2]
+    picks_all = picks_meg + picks_eeg
+    for comp in [0, 1]:
+        raw.apply_gradient_compensation(comp)
+        epochs = Epochs(raw, events, None, -0.1, 0.1, preload=True)
+        evoked = epochs.average()
+
+        for picks in [picks_meg, picks_eeg, picks_all]:
+            if len(picks) == 0:
+                continue
+            # test fit
+            for inst in [raw, epochs]:
+                ica = ICA(n_components=2, random_state=0, max_iter=2,
+                          method=method)
+                with warnings.catch_warnings(record=True):  # convergence
+                    ica.fit(inst)
+
+            # test apply and get_sources
+            for inst in [raw, epochs, evoked]:
+                ica.apply(inst)
+                ica.get_sources(inst)
 
 
 run_tests_if_main()
