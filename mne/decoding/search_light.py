@@ -7,6 +7,7 @@ import numpy as np
 from .mixin import TransformerMixin
 from .base import BaseEstimator, _check_estimator
 from ..parallel import parallel_func
+from ..utils import _validate_type
 
 
 class SlidingEstimator(BaseEstimator, TransformerMixin):
@@ -44,8 +45,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         self.n_jobs = n_jobs
         self.scoring = scoring
 
-        if not isinstance(self.n_jobs, int):
-            raise ValueError('n_jobs must be int, got %s' % n_jobs)
+        _validate_type(self.n_jobs, 'int', 'n_jobs')
 
     def __repr__(self):  # noqa: D105
         repr_str = '<' + super(SlidingEstimator, self).__repr__()
@@ -622,7 +622,7 @@ def _gl_score(estimators, scoring, X, y):
     score : array, shape (n_estimators, n_slices)
         The score for each slice of data.
     """
-    # FIXME: The level parallization may be a bit high, and might be memory
+    # FIXME: The level parallelization may be a bit high, and might be memory
     # consuming. Perhaps need to lower it down to the loop across X slices.
     score_shape = [len(estimators), X.shape[-1]]
     for ii, est in enumerate(estimators):

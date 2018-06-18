@@ -253,8 +253,6 @@ def test_plot_topomap():
                   np.repeat(.1, 50), time_unit='s')
     assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6],
                   time_unit='s')
-    with warnings.catch_warnings(record=True):  # deprecated param
-        assert_raises(ValueError, plot_evoked_topomap, evoked, scaling_time=20)
 
     for ch in evoked.info['chs']:
         if ch['coil_type'] == FIFF.FIFFV_COIL_EEG:

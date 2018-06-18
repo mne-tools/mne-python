@@ -16,7 +16,6 @@ import numpy as np
 from scipy import linalg
 
 from .transforms import _ensure_trans, apply_trans
-from .io import Info
 from .io.constants import FIFF
 from .io.write import (start_file, start_block, write_float, write_int,
                        write_float_matrix, write_int_matrix, end_block,
@@ -27,7 +26,8 @@ from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
                       _fast_cross_nd_sum, _get_solids)
-from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn, _pl
+from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
+                    _pl, _validate_type)
 from .fixes import einsum
 from .externals.six import string_types
 
@@ -721,7 +721,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
         center will be calculated from the digitization points in info.
     head_radius : float | str | None
         If float, compute spherical shells for EEG using the given radius.
-        If 'auto', estimate an approriate radius from the dig points in Info,
+        If 'auto', estimate an appropriate radius from the dig points in Info,
         If None, exclude shells (single layer sphere model).
     info : instance of Info | None
         Measurement info. Only needed if ``r0`` or ``head_radius`` are
@@ -905,8 +905,7 @@ def get_fitting_dig(info, dig_kinds='auto', verbose=None):
 
     .. versionadded:: 0.14
     """
-    if not isinstance(info, Info):
-        raise TypeError('info must be an instance of Info not %s' % type(info))
+    _validate_type(info, "info")
     if info['dig'] is None:
         raise RuntimeError('Cannot fit headshape without digitization '
                            ', info["dig"] is None')
@@ -1555,8 +1554,7 @@ def _prepare_env(subject, subjects_dir, requires_freesurfer):
         raise RuntimeError('I cannot find freesurfer. The FREESURFER_HOME '
                            'environment variable is not set.')
 
-    if not isinstance(subject, string_types):
-        raise TypeError('The subject argument must be set')
+    _validate_type(subject, "str")
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if not op.isdir(subjects_dir):

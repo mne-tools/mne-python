@@ -17,6 +17,7 @@ get_data_as_epoch function.
 
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 import mne
 from mne.realtime import FieldTripClient
@@ -41,6 +42,10 @@ with FieldTripClient(host='localhost', port=1972,
 
     n_fft = 256  # the FFT size. Ideally a power of 2
     n_samples = 2048  # time window on which to compute FFT
+
+    # make sure at least one epoch is available
+    time.sleep(n_samples / raw_info['sfreq'])
+
     for ii in range(20):
         epoch = rt_client.get_data_as_epoch(n_samples=n_samples, picks=picks)
         psd, freqs = psd_welch(epoch, fmin=2, fmax=200, n_fft=n_fft)

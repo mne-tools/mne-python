@@ -338,7 +338,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         End of time interval in seconds. If None (default), use the end of the
         recording.
     tstep : float (default 0.2)
-        Length of data chunks for artefact rejection in seconds.
+        Length of data chunks for artifact rejection in seconds.
         Can also be None to use a single epoch of (tmax - tmin)
         duration. This can use a lot of memory for large ``Raw``
         instances.
@@ -839,12 +839,11 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     for this_method, data in cov_data.items():
         cov = Covariance(data.pop('data'), ch_names, info['bads'], projs,
                          nfree=n_samples_tot)
-        logger.info('Number of samples used : %d' % n_samples_tot)
-        logger.info('[done]')
 
         # add extra info
         cov.update(method=this_method, **data)
         covs.append(cov)
+    logger.info('Number of samples used : %d' % n_samples_tot)
     covs.sort(key=lambda c: c['loglik'], reverse=True)
 
     if len(covs) > 1:
@@ -859,6 +858,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             logger.info('selecting best estimator: {0}'.format(out['method']))
     else:
         out = covs[0]
+    logger.info('[done]')
 
     return out
 
@@ -1968,7 +1968,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
     data : np.ndarray of float, shape(n_channels, n_samples)
         The M/EEG signals.
     info : Info
-        The measurment info.
+        The measurement info.
     scalings : dict | 'norm' | np.ndarray | None
         The rescaling method to be applied. If dict, it will override the
         following default dict:
@@ -2014,7 +2014,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
     data : np.ndarray of float, shape (n_channels, n_channels)
         The M/EEG covariance.
     info : Info
-        The measurment info.
+        The measurement info.
     scalings : dict | 'norm' | np.ndarray | None
         The rescaling method to be applied. If dict, it will override the
         following default dict:

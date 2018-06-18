@@ -7,8 +7,7 @@
 import numpy as np
 
 from ..base import BaseRaw
-from ..meas_info import Info
-from ...utils import verbose, logger
+from ...utils import verbose, logger, _validate_type
 
 
 class RawArray(BaseRaw):
@@ -49,9 +48,7 @@ class RawArray(BaseRaw):
 
     @verbose
     def __init__(self, data, info, first_samp=0, verbose=None):  # noqa: D102
-        if not isinstance(info, Info):
-            raise TypeError('info must be an instance of Info, got %s'
-                            % type(info))
+        _validate_type(info, "info")
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
 
@@ -63,7 +60,9 @@ class RawArray(BaseRaw):
                     % (dtype.__name__, data.shape[0], data.shape[1]))
 
         if len(data) != len(info['ch_names']):
-            raise ValueError('len(data) does not match len(info["ch_names"])')
+            raise ValueError('len(data) (%s) does not match '
+                             'len(info["ch_names"]) (%s)'
+                             % (len(data), len(info['ch_names'])))
         assert len(info['ch_names']) == info['nchan']
         if info.get('buffer_size_sec', None) is None:
             info['buffer_size_sec'] = 1.  # reasonable default

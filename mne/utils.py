@@ -546,14 +546,10 @@ def _get_inst_data(inst):
     from . import Evoked
     from .time_frequency.tfr import _BaseTFR
 
-    if isinstance(inst, (BaseRaw, BaseEpochs, Evoked, _BaseTFR)):
-        if not inst.preload:
-            inst.load_data()
-        return inst._data
-    else:
-        raise TypeError('The argument must be an instance of Raw, Epochs, '
-                        'Evoked, EpochsTFR or AverageTFR, got {0}.'.format(
-                            type(inst)))
+    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked, _BaseTFR), "Instance")
+    if not inst.preload:
+        inst.load_data()
+    return inst._data
 
 
 class _FormatDict(dict):
@@ -1555,7 +1551,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     Parameters
     ----------
     key : None | str
-        The preference key to look for. The os evironment is searched first,
+        The preference key to look for. The os environment is searched first,
         then the mne-python config file is parsed.
         If None, all the config parameters present in environment variables or
         the path are returned.
@@ -1577,8 +1573,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     --------
     set_config
     """
-    if key is not None and not isinstance(key, string_types):
-        raise TypeError('key must be a string')
+    _validate_type(key, (string_types, type(None)), "key", 'string or None')
 
     # first, check to see if key is in env
     if key is not None and key in os.environ:
@@ -1636,12 +1631,12 @@ def set_config(key, value, home_dir=None, set_env=True):
     """
     if key is None:
         return known_config_types
-    if not isinstance(key, string_types):
-        raise TypeError('key must be a string')
+    _validate_type(key, 'str', "key")
     # While JSON allow non-string types, we allow users to override config
     # settings using env, which are strings, so we enforce that here
-    if not isinstance(value, string_types) and value is not None:
-        raise TypeError('value must be a string or None')
+    _validate_type(value, (string_types, type(None)), "value",
+                   "None or string")
+
     if key not in known_config_types and not \
             any(k in key for k in known_config_wildcards):
         warn('Setting non-standard config type: "%s"' % key)
@@ -1976,8 +1971,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         finally:
             u.close()
             del u
-        logger.info('Downloading %s (%s)'
-                    % (url, sizeof_fmt(file_size)))
+        logger.info('Downloading %s (%s)' % (url, sizeof_fmt(file_size)))
 
         # Triage resume
         if not os.path.exists(temp_file_name):
@@ -2083,9 +2077,7 @@ class SizeMixin(object):
         if isinstance(self, Evoked):
             return object_hash(dict(info=self.info, data=self.data))
         elif isinstance(self, (BaseEpochs, BaseRaw)):
-            if not self.preload:
-                raise RuntimeError('Cannot hash %s unless data are loaded'
-                                   % self.__class__.__name__)
+            _check_preload(self, "Hashing ")
             return object_hash(dict(info=self.info, data=self._data))
         else:
             raise RuntimeError('Hashing unknown object type: %s' % type(self))
@@ -2123,11 +2115,10 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     """
     if stim_channel is not None:
         if not isinstance(stim_channel, list):
-            if not isinstance(stim_channel, string_types):
-                raise TypeError('stim_channel must be a str, list, or None')
+            _validate_type(stim_channel, 'str', "Stim channel")
             stim_channel = [stim_channel]
-        if not all(isinstance(s, string_types) for s in stim_channel):
-            raise TypeError('stim_channel list must contain all strings')
+        for channel in stim_channel:
+            _validate_type(channel, 'str', "Each provided stim channel")
         return stim_channel
 
     stim_channel = list()
@@ -2157,8 +2148,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
 
 def _check_fname(fname, overwrite=False, must_exist=False):
     """Check for file existence."""
-    if not isinstance(fname, string_types):
-        raise TypeError('file name is not a string')
+    _validate_type(fname, 'str', 'fname')
     if must_exist and not op.isfile(fname):
         raise IOError('File "%s" does not exist' % fname)
     if op.isfile(fname):
@@ -2172,16 +2162,12 @@ def _check_fname(fname, overwrite=False, must_exist=False):
 def _check_subject(class_subject, input_subject, raise_error=True):
     """Get subject name from class."""
     if input_subject is not None:
-        if not isinstance(input_subject, string_types):
-            raise ValueError('subject input must be a string')
-        else:
-            return input_subject
+        _validate_type(input_subject, 'str', "subject input")
+        return input_subject
     elif class_subject is not None:
-        if not isinstance(class_subject, string_types):
-            raise ValueError('Neither subject input nor class subject '
-                             'attribute was a string')
-        else:
-            return class_subject
+        _validate_type(class_subject, 'str',
+                       "Either subject input or class subject attribute")
+        return class_subject
     else:
         if raise_error is True:
             raise ValueError('Neither subject input nor class subject '
@@ -2192,25 +2178,50 @@ def _check_subject(class_subject, input_subject, raise_error=True):
 def _check_preload(inst, msg):
     """Ensure data are preloaded."""
     from .epochs import BaseEpochs
+    from .evoked import Evoked
+    from .time_frequency import _BaseTFR
 
-    name = 'raw'
-    if isinstance(inst, BaseEpochs):
-        name = 'epochs'
-    if not inst.preload:
-        raise RuntimeError(
-            "By default, MNE does not load data into main memory to "
-            "conserve ressources. " + msg + ' requires %s data to be loaded. '
-            'Use preload=True (or string) in the constructor or '
-            '%s.load_data().' % (name, name))
+    if isinstance(inst, (_BaseTFR, Evoked)):
+        pass
+    else:
+        name = "epochs" if isinstance(inst, BaseEpochs) else 'raw'
+        if not inst.preload:
+            raise RuntimeError(
+                "By default, MNE does not load data into main memory to "
+                "conserve resources. " + msg + ' requires %s data to be '
+                'loaded. Use preload=True (or string) in the constructor or '
+                '%s.load_data().' % (name, name))
 
 
-def _check_compensation_grade(inst, inst2, name, name2):
-    """Ensure that objects have same compenstation_grade."""
-    if (None not in [inst.info, inst2.info]) and (inst.compensation_grade !=
-                                                  inst2.compensation_grade):
-            msg = ('Compensation grade of %s (%d) and %s (%d) don\'t match')
-            raise RuntimeError(msg % (name, inst.compensation_grade,
-                                      name2, inst2.compensation_grade))
+def _check_compensation_grade(inst, inst2, name, name2, ch_names=None):
+    """Ensure that objects have same compensation_grade."""
+    from .io.pick import pick_channels, pick_info
+    from .io.compensator import get_current_comp
+
+    if None in [inst.info, inst2.info]:
+        return
+
+    if ch_names is None:
+        grade = inst.compensation_grade
+        grade2 = inst2.compensation_grade
+    else:
+        info = inst.info.copy()
+        info2 = inst2.info.copy()
+        # pick channels
+        for t_info in [info, info2]:
+            if t_info['comps']:
+                t_info['comps'] = []
+            picks = pick_channels(t_info['ch_names'], ch_names)
+            pick_info(t_info, picks, copy=False)
+        # get compensation grades
+        grade = get_current_comp(info)
+        grade2 = get_current_comp(info2)
+
+    # perform check
+    if grade != grade2:
+        msg = 'Compensation grade of %s (%d) and %s (%d) don\'t match'
+        raise RuntimeError(msg % (name, inst.compensation_grade,
+                                  name2, inst2.compensation_grade))
 
 
 def _check_pandas_installed(strict=True):
@@ -2220,7 +2231,7 @@ def _check_pandas_installed(strict=True):
         return pandas
     except ImportError:
         if strict is True:
-            raise RuntimeError('For this functionality to work the Pandas '
+            raise RuntimeError('For this functionality to work, the Pandas '
                                'library is required.')
         else:
             return False
@@ -2273,14 +2284,14 @@ def _check_type_picks(picks):
     if picks is None:
         pass
     elif isinstance(picks, list):
-        if not all(isinstance(i, int) for i in picks):
-            raise ValueError(err_msg)
+        for pick in picks:
+            _validate_type(pick, 'int', 'Each pick')
         picks = np.array(picks)
     elif isinstance(picks, np.ndarray):
         if not picks.dtype.kind == 'i':
-            raise ValueError(err_msg)
+            raise TypeError(err_msg)
     else:
-        raise ValueError(err_msg)
+        raise TypeError(err_msg)
     return picks
 
 
@@ -2552,8 +2563,11 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     from .evoked import Evoked
     from .time_frequency import AverageTFR
     from .channels.channels import equalize_channels
-    if not all(isinstance(inst, (Evoked, AverageTFR)) for inst in all_inst):
-        raise ValueError("Not all input elements are Evoked or AverageTFR")
+    assert len(all_inst) > 1
+    inst_type = type(all_inst[0])
+    _validate_type(all_inst[0], (Evoked, AverageTFR), 'All elements')
+    for inst in all_inst:
+        _validate_type(inst, inst_type, 'All elements', 'of the same type')
 
     # Copy channels to leave the original evoked datasets intact.
     all_inst = [inst.copy() for inst in all_inst]
@@ -2666,9 +2680,8 @@ def sys_info(fid=None, show_paths=False):
                 libs += ['%s=%s' % (key, lib)]
     libs = ', '.join(libs)
     version_texts = dict(pycuda='VERSION_TEXT')
-    for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '',
-                     'sklearn', 'nibabel', 'mayavi', 'pycuda', 'skcuda',
-                     'pandas'):
+    for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
+                     'nibabel', 'mayavi', 'pycuda', 'skcuda', 'pandas'):
         if mod_name == '':
             out += '\n'
             continue
@@ -2740,3 +2753,41 @@ def open_docs(kind=None, version=None):
         raise ValueError('version must be one of %s, got %s'
                          % (version, versions))
     webbrowser.open_new_tab('https://martinos.org/mne/%s/%s' % (version, kind))
+
+
+def _is_numeric(n):
+    return isinstance(n, (np.integer, np.floating, int, float))
+
+
+def _validate_type(item, types=None, item_name=None, type_name=None):
+    """Validate that `item` is an instance of `types`.
+
+    Parameters
+    ----------
+    item : obj
+        The thing to be checked.
+    types : type | tuple of types | str
+         The types to be checked against. If str, must be one of 'str', 'int',
+         'numeric'.
+    """
+    if types == "int":
+        _ensure_int(item, name=item_name)
+        return  # terminate prematurely
+    elif types == "str":
+        types = string_types
+        type_name = "str" if type_name is None else type_name
+    elif types == "numeric":
+        types = (np.integer, np.floating, int, float)
+        type_name = "numeric" if type_name is None else type_name
+    elif types == "info":
+        from mne.io import Info as types
+        type_name = "Info" if type_name is None else type_name
+        item_name = "Info" if item_name is None else item_name
+
+    if type_name is None:
+        iter_types = ([types] if not isinstance(types, (list, tuple))
+                      else types)
+        type_name = ', '.join(cls.__name__ for cls in iter_types)
+    if not isinstance(item, types):
+        raise TypeError(item_name, ' must be an instance of ', type_name,
+                        ', got %s instead.' % (type(item),))

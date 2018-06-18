@@ -128,7 +128,7 @@ def test_xdawn_apply_transform():
     # Transform on ndarray
     xd.transform(epochs._data)
     xd.transform(epochs._data[0])
-    # Transform on someting else
+    # Transform on something else
     pytest.raises(ValueError, xd.transform, 42)
 
     # Check numerical results with shuffled epochs

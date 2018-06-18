@@ -80,7 +80,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     lambda2 : float
         The regularization parameter of the minimum norm.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
-        Use mininum norm, dSPM (default), sLORETA, or eLORETA.
+        Use minimum norm, dSPM (default), sLORETA, or eLORETA.
     nave : int
         The number of averages used to scale the noise covariance matrix.
     n_cycles : float | array of float
@@ -314,7 +314,7 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
                          method_params=None, verbose=None):
     """Compute induced power and phase lock.
 
-    Computation can optionaly be restricted in a label.
+    Computation can optionally be restricted in a label.
 
     Parameters
     ----------
@@ -329,7 +329,7 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
     lambda2 : float
         The regularization parameter of the minimum norm.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
-        Use mininum norm, dSPM (default), sLORETA, or eLORETA.
+        Use minimum norm, dSPM (default), sLORETA, or eLORETA.
     nave : int
         The number of averages used to scale the noise covariance matrix.
     n_cycles : float | array of float
@@ -413,7 +413,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     lambda2: float
         The regularization parameter
     method: "MNE" | "dSPM" | "sLORETA"
-        Use mininum norm, dSPM (default), sLORETA, or eLORETA.
+        Use minimum norm, dSPM (default), sLORETA, or eLORETA.
     tmin : float | None
         The beginning of the time interval of interest (in seconds). If None
         start from the beginning of the file.
@@ -456,7 +456,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     stc : SourceEstimate | VolSourceEstimate
         The PSD (in dB) of each of the sources.
     """
-    from scipy.signal import hanning
+    from scipy.signal import hann
     _check_ori(pick_ori, inverse_operator['source_ori'])
 
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
@@ -473,7 +473,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         stop = raw.time_as_index(tmax)[0] + 1
     n_fft = int(n_fft)
     Fs = raw.info['sfreq']
-    window = hanning(n_fft)
+    window = hann(n_fft)
     freqs = fftpack.fftfreq(n_fft, 1. / Fs)
     freqs_mask = (freqs >= 0) & (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freqs_mask]
@@ -639,7 +639,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
-        Use mininum norm, dSPM (default), sLORETA, or eLORETA.
+        Use minimum norm, dSPM (default), sLORETA, or eLORETA.
     fmin : float
         The lower frequency of interest.
     fmax : float

@@ -21,6 +21,7 @@ import mne
 from mne.datasets import testing
 from mne import Epochs, io, pick_types
 from mne.event import define_target_events
+from mne.channels import make_1020_channel_selections
 
 print(__doc__)
 
@@ -58,15 +59,10 @@ epochs = Epochs(raw, events=new_events, tmax=tmax + .1,
 # Parameters for plotting
 order = rts.argsort()  # sorting from fast to slow trials
 
-rois = dict()
-for pick, channel in enumerate(epochs.ch_names):
-    last_char = channel[-1]  # for 10/20, last letter codes the hemisphere
-    roi = ("Midline" if last_char in "z12" else
-           ("Left" if int(last_char) % 2 else "Right"))
-    rois[roi] = rois.get(roi, list()) + [pick]
+selections = make_1020_channel_selections(epochs.info, midline="12z")
 
 # The actual plots
 for combine_measures in ('gfp', 'median'):
-    epochs.plot_image(group_by=rois, order=order, overlay_times=rts / 1000.,
-                      sigma=1.5, combine=combine_measures,
+    epochs.plot_image(group_by=selections, order=order, sigma=1.5,
+                      overlay_times=rts / 1000., combine=combine_measures,
                       ts_args=dict(vlines=[0, rts.mean() / 1000.]))

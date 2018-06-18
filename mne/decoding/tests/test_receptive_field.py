@@ -113,10 +113,9 @@ def test_time_delay():
         ((-.1, .1), 10)]
     for (tmin, tmax), isfreq in test_tlims:
         # sfreq must be int/float
-        assert_raises(ValueError, _delay_time_series, X, tmin, tmax,
-                      sfreq=[1])
+        assert_raises(TypeError, _delay_time_series, X, tmin, tmax, sfreq=[1])
         # Delays must be int/float
-        assert_raises(ValueError, _delay_time_series, X,
+        assert_raises(TypeError, _delay_time_series, X,
                       np.complex(tmin), tmax, 1)
         # Make sure swapaxes works
         start, stop = int(round(tmin * isfreq)), int(round(tmax * isfreq)) + 1

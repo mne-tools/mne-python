@@ -1,5 +1,4 @@
 import os.path as op
-from nose.tools import assert_true, assert_raises
 import warnings
 
 import numpy as np
@@ -62,7 +61,7 @@ def test_bad_proj():
     _check_warnings(raw, events, count=0)
 
     raw = read_raw_fif(raw_fname)
-    assert_raises(ValueError, raw.del_proj, 'foo')
+    pytest.raises(ValueError, raw.del_proj, 'foo')
     n_proj = len(raw.info['projs'])
     raw.del_proj(0)
     assert_equal(len(raw.info['projs']), n_proj - 1)
@@ -97,7 +96,7 @@ def _check_warnings(raw, events, picks=None, count=3):
                -0.2, 0.5, picks=picks, preload=True, proj=True)
     assert_equal(len(w), count)
     for ww in w:
-        assert_true('dangerous' in str(ww.message))
+        assert 'dangerous' in str(ww.message)
 
 
 @testing.requires_testing_data
@@ -115,7 +114,7 @@ def test_sensitivity_maps():
         stc = sensitivity_map(fwd, projs=None, ch_type=ch_type,
                               mode='free', exclude='bads')
         assert_array_almost_equal(stc.data, w, decim)
-        assert_true(stc.subject == 'sample')
+        assert stc.subject == 'sample'
         # let's just make sure the others run
         if ch_type == 'grad':
             # fixed (2)
@@ -143,8 +142,8 @@ def test_sensitivity_maps():
     stc = sensitivity_map(fwd, projs=[make_eeg_average_ref_proj(fwd['info'])],
                           ch_type='eeg', exclude='bads')
     # test corner case for projs being passed but no valid ones (#3135)
-    assert_raises(ValueError, sensitivity_map, fwd, projs=None, mode='angle')
-    assert_raises(RuntimeError, sensitivity_map, fwd, projs=[], mode='angle')
+    pytest.raises(ValueError, sensitivity_map, fwd, projs=None, mode='angle')
+    pytest.raises(RuntimeError, sensitivity_map, fwd, projs=[], mode='angle')
     # test volume source space
     fname = op.join(sample_path, 'sample_audvis_trunc-meg-vol-7-fwd.fif')
     fwd = mne.read_forward_solution(fname)
@@ -171,12 +170,12 @@ def test_compute_proj_epochs():
                     op.join(tempdir, 'test-proj.fif.gz')]:
         projs2 = read_proj(p_fname)
 
-        assert_true(len(projs) == len(projs2))
+        assert len(projs) == len(projs2)
 
         for p1, p2 in zip(projs, projs2):
-            assert_true(p1['desc'] == p2['desc'])
-            assert_true(p1['data']['col_names'] == p2['data']['col_names'])
-            assert_true(p1['active'] == p2['active'])
+            assert p1['desc'] == p2['desc']
+            assert p1['data']['col_names'] == p2['data']['col_names']
+            assert p1['active'] == p2['active']
             # compare with sign invariance
             p1_data = p1['data']['data'] * np.sign(p1['data']['data'][0, 0])
             p2_data = p2['data']['data'] * np.sign(p2['data']['data'][0, 0])
@@ -196,8 +195,8 @@ def test_compute_proj_epochs():
     projs = activate_proj(projs)
     proj, nproj, U = make_projector(projs, epochs.ch_names, bads=[])
 
-    assert_true(nproj == 2)
-    assert_true(U.shape[1] == 2)
+    assert nproj == 2
+    assert U.shape[1] == 2
 
     # test that you can save them
     epochs.info['projs'] += projs
@@ -207,13 +206,13 @@ def test_compute_proj_epochs():
     projs = read_proj(proj_fname)
 
     projs_evoked = compute_proj_evoked(evoked, n_grad=1, n_mag=1, n_eeg=0)
-    assert_true(len(projs_evoked) == 2)
+    assert len(projs_evoked) == 2
     # XXX : test something
 
     # test parallelization
     projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=1,
                                 desc_prefix='foobar')
-    assert_true(all('foobar' in x['desc'] for x in projs))
+    assert all('foobar' in x['desc'] for x in projs)
     projs = activate_proj(projs)
     proj_par, _, _ = make_projector(projs, epochs.ch_names, bads=[])
     assert_allclose(proj, proj_par, rtol=1e-8, atol=1e-16)
@@ -240,14 +239,14 @@ def test_compute_proj_raw():
             warnings.simplefilter('always')
             projs = compute_proj_raw(raw, duration=ii - 0.1, stop=raw_time,
                                      n_grad=1, n_mag=1, n_eeg=0)
-            assert_true(len(w) == 1)
+            assert len(w) == 1
 
         # test that you can compute the projection matrix
         projs = activate_proj(projs)
         proj, nproj, U = make_projector(projs, raw.ch_names, bads=[])
 
-        assert_true(nproj == 2)
-        assert_true(U.shape[1] == 2)
+        assert nproj == 2
+        assert U.shape[1] == 2
 
         # test that you can save them
         raw.info['projs'] += projs
@@ -264,8 +263,8 @@ def test_compute_proj_raw():
     projs = activate_proj(projs)
     proj, nproj, U = make_projector(projs, raw.ch_names, bads=[])
 
-    assert_true(nproj == 2)
-    assert_true(U.shape[1] == 2)
+    assert nproj == 2
+    assert U.shape[1] == 2
 
     # test that you can save them
     raw.info['projs'] += projs
@@ -301,7 +300,7 @@ def test_make_eeg_average_ref_proj():
     eeg = mne.pick_types(raw.info, meg=False, eeg=True)
 
     # No average EEG reference
-    assert_true(not np.all(raw._data[eeg].mean(axis=0) < 1e-19))
+    assert not np.all(raw._data[eeg].mean(axis=0) < 1e-19)
 
     # Apply average EEG reference
     car = make_eeg_average_ref_proj(raw.info)
@@ -312,36 +311,44 @@ def test_make_eeg_average_ref_proj():
 
     # Error when custom reference has already been applied
     raw.info['custom_ref_applied'] = True
-    assert_raises(RuntimeError, make_eeg_average_ref_proj, raw.info)
+    pytest.raises(RuntimeError, make_eeg_average_ref_proj, raw.info)
+
+    # test that an average EEG ref is not added when doing proj
+    raw.set_eeg_reference(projection=True)
+    assert _has_eeg_average_ref_proj(raw.info['projs'])
+    raw.del_proj(idx=-1)
+    assert not _has_eeg_average_ref_proj(raw.info['projs'])
+    raw.apply_proj()
+    assert not _has_eeg_average_ref_proj(raw.info['projs'])
 
 
 def test_has_eeg_average_ref_proj():
     """Test checking whether an EEG average reference exists"""
-    assert_true(not _has_eeg_average_ref_proj([]))
+    assert not _has_eeg_average_ref_proj([])
 
     raw = read_raw_fif(raw_fname)
     raw.set_eeg_reference(projection=True)
-    assert_true(_has_eeg_average_ref_proj(raw.info['projs']))
+    assert _has_eeg_average_ref_proj(raw.info['projs'])
 
 
 def test_needs_eeg_average_ref_proj():
     """Test checking whether a recording needs an EEG average reference"""
     raw = read_raw_fif(raw_fname)
-    assert_true(_needs_eeg_average_ref_proj(raw.info))
+    assert _needs_eeg_average_ref_proj(raw.info)
 
     raw.set_eeg_reference(projection=True)
-    assert_true(not _needs_eeg_average_ref_proj(raw.info))
+    assert not _needs_eeg_average_ref_proj(raw.info)
 
     # No EEG channels
     raw = read_raw_fif(raw_fname, preload=True)
     eeg = [raw.ch_names[c] for c in pick_types(raw.info, meg=False, eeg=True)]
     raw.drop_channels(eeg)
-    assert_true(not _needs_eeg_average_ref_proj(raw.info))
+    assert not _needs_eeg_average_ref_proj(raw.info)
 
     # Custom ref flag set
     raw = read_raw_fif(raw_fname)
     raw.info['custom_ref_applied'] = True
-    assert_true(not _needs_eeg_average_ref_proj(raw.info))
+    assert not _needs_eeg_average_ref_proj(raw.info)
 
 
 run_tests_if_main()

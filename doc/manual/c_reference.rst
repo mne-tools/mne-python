@@ -2006,7 +2006,7 @@ Times and baseline
 
 ``--tstep <*step/ms*>``
 
-    Time step between consequtive movie frames, specified in milliseconds.
+    Time step between consecutive movie frames, specified in milliseconds.
 
 ``--integ  <*:math:`\Delta`t/ms*>``
 
@@ -2250,7 +2250,7 @@ Output files
 ``--mov <*name*>``
 
     Produce QuickTime movie files. This is the 'stem' of
-    the ouput file name. The actual name is derived by stripping anything
+    the output file name. The actual name is derived by stripping anything
     up to and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` or ``-rh`` is
     then appended. The name of the view is indicated with ``-`` <*viename*> .
@@ -2273,7 +2273,7 @@ Output files
 ``--rgb <*name*>``
 
     Produce rgb snapshots. This is the 'stem' of the
-    ouput file name. The actual name is derived by stripping anything
+    output file name. The actual name is derived by stripping anything
     up to and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` or ``-rh`` is
     then appended. The name of the view is indicated with ``-`` <*viename*> .
@@ -2283,7 +2283,7 @@ Output files
 ``--tif <*name*>``
 
     Produce tif snapshots. This is the 'stem' of the
-    ouput file name. The actual name is derived by stripping anything
+    output file name. The actual name is derived by stripping anything
     up to and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` or ``-rh`` is
     then appended. The name of the view is indicated with ``-`` <*viename*> .
@@ -2295,7 +2295,7 @@ Output files
 ``--jpg <*name*>``
 
     Produce jpg snapshots. This is the 'stem' of the
-    ouput file name. The actual name is derived by stripping anything
+    output file name. The actual name is derived by stripping anything
     up to and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` or ``-rh`` is
     then appended. The name of the view is indicated with ``-`` <*viename*> .
@@ -2305,7 +2305,7 @@ Output files
 ``--png <*name*>``
 
     Produce png snapshots. This is the 'stem' of the
-    ouput file name. The actual name is derived by stripping anything
+    output file name. The actual name is derived by stripping anything
     up to and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` or ``-rh`` is
     then appended. The name of the view is indicated with ``-`` <*viename*> .
@@ -2315,7 +2315,7 @@ Output files
 ``--w <*name*>``
 
     Produce w file snapshots. This is the 'stem' of
-    the ouput file name. The actual name is derived by stripping anything
+    the output file name. The actual name is derived by stripping anything
     up to and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` .w or ``-rh`` .w
     is then appended. Files are produced for all picked times as dictated
@@ -3487,7 +3487,7 @@ the so-called *processing history* block must
 be included in data files. Previous versions of the MNE Matlab functions
 did not copy processing history to files saved. As of March 30,
 2009, the Matlab toolbox routines fiff_start_writing_raw and fiff_write_evoked have
-been enchanced to include these data to the output file as appropriate.
+been enhanced to include these data to the output file as appropriate.
 If you have older raw data files created in Matlab from input which
 has been processed Maxfilter, it is necessary to copy the *processing
 history* block from the original to modified raw data
@@ -3787,7 +3787,7 @@ the following command-line options:
 ``--triout <*name*>``
 
     Specifies an ASCII output file that will contain the surface data
-    in the triangle file format desribed in :ref:`BEHDEFCD`.
+    in the triangle file format described in :ref:`BEHDEFCD`.
 
 ``--pntout <*name*>``
 
@@ -4009,7 +4009,7 @@ of the ``eeg`` file.
 
 .. note:: In newer CTF data the EEG position information maybe present in the ``res4`` file. If the ``eeg`` file    is present, the positions given there take precedence over the information in the ``res4`` file.
 
-.. note:: mne_ctf2fiff converts both epoch mode and continuous raw data file into raw data fif files. It is not advisable to use epoch mode files with time gaps between the epochs because the data will be discontinuous in the resulting fif file with jumps at the junctions between epochs. These discontinuities    produce artefacts if the raw data is filtered in mne_browse_raw , mne_process_raw ,    or graph .
+.. note:: mne_ctf2fiff converts both epoch mode and continuous raw data file into raw data fif files. It is not advisable to use epoch mode files with time gaps between the epochs because the data will be discontinuous in the resulting fif file with jumps at the junctions between epochs. These discontinuities    produce artifacts if the raw data is filtered in mne_browse_raw , mne_process_raw ,    or graph .
 
 .. note:: The conversion process includes a transformation from the CTF head coordinate system convention to that used in the Neuromag systems.
 
@@ -5427,7 +5427,7 @@ Matlab data structures
 
 The Matlab files output by mne_raw2mat can
 contain two data structures, <*tag*>_raw and <*tag*>_raw_info .
-If ``--info`` option is specifed, the file contains the
+If ``--info`` option is specified, the file contains the
 latter structure only.
 
 The <*tag*>_raw structure
@@ -5672,7 +5672,7 @@ that :math:`g_{1k}` is has the largest power
 among the signal distributions produced by unit dipoles at source
 space location :math:`k`.
 
-Furthermore, assume that the colums orthogonal matrix :math:`U_P` (:math:`U_P^T U_P = I`) contain
+Furthermore, assume that the columns orthogonal matrix :math:`U_P` (:math:`U_P^T U_P = I`) contain
 the orthogonal basis of the noise subspace corresponding to the signal
 space projection (SSP) operator :math:`P` specified
 with one or more ``--proj`` options so that :math:`P = I - U_P U_P^T`.

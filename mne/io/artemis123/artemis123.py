@@ -132,7 +132,7 @@ def _get_artemis123_info(fname, pos_fname=None):
         if(header_info[k] != 'FALSE'):
             warn('%s - set to but is not supported' % k)
     if(header_info['filter_hist']):
-        warn('Non-Empty Filter histroy found, BUT is not supported' % k)
+        warn('Non-Empty Filter history found, BUT is not supported' % k)
 
     # build mne info struct
     info = _empty_info(float(header_info['DAQ Sample Rate']))

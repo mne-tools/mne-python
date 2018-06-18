@@ -407,9 +407,9 @@ def test_make_fixed_length_events():
     assert_raises(ValueError, make_fixed_length_events, raw, 1,
                   tmin, tmax - 1e-3, duration)
     # not raw, bad id or duration
-    assert_raises(ValueError, make_fixed_length_events, raw, 2.3)
-    assert_raises(ValueError, make_fixed_length_events, 'not raw', 2)
-    assert_raises(ValueError, make_fixed_length_events, raw, 23, tmin, tmax,
+    assert_raises(TypeError, make_fixed_length_events, raw, 2.3)
+    assert_raises(TypeError, make_fixed_length_events, 'not raw', 2)
+    assert_raises(TypeError, make_fixed_length_events, raw, 23, tmin, tmax,
                   'abc')
 
     # Let's try some ugly sample rate/sample count combos
@@ -499,7 +499,7 @@ def test_acqparser():
     assert_raises(KeyError, acqp.__getitem__, 'does not exist')
     assert_raises(KeyError, acqp.get_condition, raw, 'foo')
     # category not a string
-    assert_raises(ValueError, acqp.__getitem__, 0)
+    assert_raises(TypeError, acqp.__getitem__, 0)
     # number of events / categories
     assert_equal(len(acqp), 7)
     assert_equal(len(acqp.categories), 7)

@@ -84,7 +84,7 @@ def test_interpolation():
 
     # check that interpolation fails when preload is False
     epochs_eeg.preload = False
-    assert_raises(ValueError, epochs_eeg.interpolate_bads)
+    assert_raises(RuntimeError, epochs_eeg.interpolate_bads)
     epochs_eeg.preload = True
 
     # check that interpolation changes the data in raw
@@ -98,7 +98,7 @@ def test_interpolation():
         assert hasattr(inst, 'preload')
         inst.preload = False
         inst.info['bads'] = [inst.ch_names[1]]
-        assert_raises(ValueError, inst.interpolate_bads)
+        assert_raises(RuntimeError, inst.interpolate_bads)
 
     # check that interpolation works with few channels
     raw_few = raw.copy().crop(0, 0.1).load_data()

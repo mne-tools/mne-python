@@ -120,7 +120,7 @@ with ``<MNE>`` replaced
 by the directory where you have installed the MNE software and ``<Matlab>`` is
 the directory where Matlab is installed. If you do not have Matlab,
 leave MATLAB_ROOT undefined. If Matlab is not available, the utilities
-mne_convert_mne_data, mne_epochs2mat, mne_raw2mat, nd mne_simu will not work.
+mne_convert_mne_data, mne_epochs2mat, mne_raw2mat, and mne_simu will not work.
 
 For csh/tcsh the corresponding commands are:
 

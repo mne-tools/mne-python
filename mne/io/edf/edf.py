@@ -412,11 +412,16 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     nchan = edf_info['nchan']
     physical_ranges = edf_info['physical_max'] - edf_info['physical_min']
     cals = edf_info['digital_max'] - edf_info['digital_min']
-    if np.any(~np.isfinite(cals)):
-        idx = np.where(~np.isfinite(cals))[0]
+    bad_idx = np.where((~np.isfinite(cals)) | (cals == 0))[0]
+    if len(bad_idx) > 0:
         warn('Scaling factor is not defined in following channels:\n' +
-             ', '.join(ch_names[i] for i in idx))
-        cals[idx] = 1
+             ', '.join(ch_names[i] for i in bad_idx))
+        cals[bad_idx] = 1
+    bad_idx = np.where(physical_ranges == 0)[0]
+    if len(bad_idx) > 0:
+        warn('Physical range is not defined in following channels:\n' +
+             ', '.join(ch_names[i] for i in bad_idx))
+        physical_ranges[bad_idx] = 1
     if 'stim_data' in edf_info and stim_channel == 'auto':  # For GDF events.
         cals = np.append(cals, 1)
     if stim_channel is not None:

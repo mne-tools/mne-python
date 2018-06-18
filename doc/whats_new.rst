@@ -19,16 +19,49 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add possibility to save :class:`mne.VolSourceEstimate` and :class:`mne.MixedSourceEstimate` to HDF5 format (file extension .h5) with :meth:`mne.VolSourceEstimate.save` and :meth:`mne.MixedSourceEstimate.save` by `Alex Gramfort`_
+
+- Add ability to pass a precomputed forward solution to :func:`mne.simulation.simulate_raw` by `Eric Larson`_
+
+- Add :func:`mne.channels.make_1020_channel_selections` to group 10/20-named EEG channels by location, by `Jona Sassenhagen`_
+
 Bug
 ~~~
 
 - Fix bug with ``mne flash_bem`` when ``flash30`` is not used by `Eric Larson`_
 
+- Fix bug with channel names in ``mgh70`` montage in :func:`mne.channels.read_montage` by `Eric Larson`_
+
 - Fix bug in :func:`mne.preprocessing.ICA.apply` to handle arrays as `exclude` property by `Joan Massich`_
+
+- Fix bug in ``method='eLORETA'`` for :func:`mne.minimum_norm.apply_inverse` when using a sphere model and saved ``inv`` by `Eric Larson`_
+
+- Fix bug in :class:`mne.io.Raw` where warnings were emitted when objects were deleted by `Eric Larson`_
+
+- Allow vector data for :class:`mne.VolSourceEstimate` by `Christian Brodbeck`_
+
+- Fix bug with IIR filtering axis in :func:`mne.filter.filter_data` by `Eric Larson`_
+
+- Fix bug in ``inst.apply_proj()`` where an average EEG reference was always added by `Eric Larson`_
+
+- Fix bug in :func:`mne.time_frequency.tfr_morlet`, :func:`mne.time_frequency.tfr_multitaper`, and :func:`mne.time_frequency.tfr_stockwell` where not all data channels were picked by `Eric Larson`_
+
+- Fix bug in :meth:`mne.preprocessing.ICA.plot_overlay` and :func:`mne.make_field_map` for CTF data with compensation by `Eric Larson`_
+
+- Fix bug in :class:`mne.realtime.RtEpochs` where events during the buildup of the buffer were not correctly processed when incoming data buffers are smaller than the epochs by `Henrich Kolkhorst`_
+
+- Fix bug in :func:`mne.io.read_raw_brainvision` where 1-indexed BrainVision events were not being converted into 0-indexed mne events by `Steven Bethard`_
 
 API
 ~~~
 
+- Prepare transition to Python 3. This release will be the last release compatible with Python 2. The next version will be Python 3 only.
+
+- :meth:`mne.Evoked.plot_image` has gained the ability to ``show_names``, and if a selection is provided to ``group_by``, ``axes`` can now receive a `dict`, by `Jona Sassenhagen`_
+
+- Calling :meth:`mne.Epochs.decimate` with ``decim=1`` no longer copies the data by `Henrich Kolkhorst`_
+
+- Removed blocking (waiting for new epochs) in :meth:`mne.realtime.RtEpochs.get_data()` by `Henrich Kolkhorst`_
 
 .. _changes_0_16:
 
@@ -500,7 +533,7 @@ API
 
 - Add :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.apply_lcmv`, :func:`mne.beamformer.apply_lcmv_epochs`, and :func:`mne.beamformer.apply_lcmv_raw` to enable the separate computation and application of LCMV beamformer weights by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
 
-- Add ``weight_norm`` parameter to enable both unit-noise-gain beamformer and neural activity index (weight normalization) and make whitening optional by allowing ``noise_cov=None`` in :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.lcmv_epochs`, and :func:`mne.beamformer.lcmv_raw`, by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
+- Add ``weight_norm`` parameter to enable both unit-noise-gain beamformer and neural activity index (weight normalization) and make whitening optional by allowing ``noise_cov=None`` in ``mne.beamformer.lcmv``, ``mne.beamformer.lcmv_epochs``, and ``mne.beamformer.lcmv_raw``, by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
 
 - Add new filtering mode ``fir_design='firwin'`` (default in the next 0.16 release) that gets improved attenuation using fewer samples compared to ``fir_design='firwin2'`` (default in the current 0.15 release) by `Eric Larson`_
 
@@ -534,7 +567,7 @@ API
 
 - :func:`mne.time_frequency.psd_welch` and :func:`mne.time_frequency.psd_array_welch` now use a Hamming window (instead of a Hann window) by `Clemens Brunner`_
 
-- ``picks`` parameter in :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.lcmv_epochs`, :func:`mne.beamformer.lcmv_raw`, :func:`mne.beamformer.tf_lcmv` and :func:`mne.beamformer.rap_music` is now deprecated and will be removed in 0.16, by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
+- ``picks`` parameter in ``mne.beamformer.lcmv``, ``mne.beamformer.lcmv_epochs``, ``mne.beamformer.lcmv_raw``, :func:`mne.beamformer.tf_lcmv` and :func:`mne.beamformer.rap_music` is now deprecated and will be removed in 0.16, by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
 
 - The keyword argument ``frequencies`` has been deprecated in favor of ``freqs`` in various time-frequency functions, e.g. :func:`mne.time_frequency.tfr_array_morlet`, by `Eric Larson`_
 
@@ -548,7 +581,7 @@ API
 
 - Deprecate force_fixed and surf_ori in :func:`mne.read_forward_solution` by `Daniel Strohmeier`_
 
-- :func:`mne.convert_forward_solution` has a new argument ``use_cps``, which controls wether information on cortical patch statistics is applied while generating surface-oriented forward solutions with free and fixed orientation by `Daniel Strohmeier`_
+- :func:`mne.convert_forward_solution` has a new argument ``use_cps``, which controls whether information on cortical patch statistics is applied while generating surface-oriented forward solutions with free and fixed orientation by `Daniel Strohmeier`_
 
 - :func:`mne.write_forward_solution` writes a forward solution as a forward solution with free orientation in X/Y/Z RAS coordinates if it is derived from a forward solution with free orientation and as a forward solution with fixed orientation in surface-based local coordinates otherwise by `Daniel Strohmeier`_
 
@@ -713,7 +746,7 @@ Changelog
 BUG
 ~~~
 
-- Fix bug with DICS and LCMV (e.g., :func:`mne.beamformer.lcmv`, ``mne.beamformer.dics``) where regularization was done improperly. The default ``reg=0.01`` has been changed to ``reg=0.05``, by `Andrea Brovelli`_, `Alex Gramfort`_, and `Eric Larson`_
+- Fix bug with DICS and LCMV (e.g., ``mne.beamformer.lcmv``, ``mne.beamformer.dics``) where regularization was done improperly. The default ``reg=0.01`` has been changed to ``reg=0.05``, by `Andrea Brovelli`_, `Alex Gramfort`_, and `Eric Larson`_
 
 - Fix callback function call in ``mne.viz.topo._plot_topo_onpick`` by `Erkka Heinila`_
 
@@ -1035,7 +1068,7 @@ API
 
 - Now it is possible to plot only a subselection of channels in :func:`mne.viz.plot_raw` by using an array for order parameter by `Jaakko Leppakangas`_
 
-- EOG channels can now be incuded when calling :func:`mne.preprocessing.ICA.fit` and a proper error is raised when trying to include unsupported channels by `Alexander Rudiuk`_
+- EOG channels can now be included when calling :func:`mne.preprocessing.ICA.fit` and a proper error is raised when trying to include unsupported channels by `Alexander Rudiuk`_
 
 - :func:`mne.concatenate_epochs` and :func:`mne.compute_covariance` now check to see if all :class:`Epochs` instances have the same MEG-to-Head transformation, and errors by default if they do not by `Eric Larson`_
 
@@ -1479,7 +1512,7 @@ Changelog
 
 - Add ``preload`` argument to :func:`mne.read_epochs` to enable on-demand reads from disk by `Eric Larson`_
 
-- Big rewrite of simulation module by `Yousra Bekhti`_, `Mark Wronkiewicz`_, `Eric Larson`_ and `Alex Gramfort`_. Allows to simulate raw with artefacts (ECG, EOG) and evoked data, exploiting the forward solution. See :func:`mne.simulation.simulate_raw`, :func:`mne.simulation.simulate_evoked` and :func:`mne.simulation.simulate_sparse_stc`
+- Big rewrite of simulation module by `Yousra Bekhti`_, `Mark Wronkiewicz`_, `Eric Larson`_ and `Alex Gramfort`_. Allows to simulate raw with artifacts (ECG, EOG) and evoked data, exploiting the forward solution. See :func:`mne.simulation.simulate_raw`, :func:`mne.simulation.simulate_evoked` and :func:`mne.simulation.simulate_sparse_stc`
 
 - Add :func:`mne.Epochs.load_data` method to :class:`mne.Epochs` by `Teon Brooks`_
 
@@ -1933,7 +1966,7 @@ BUG
 
 - Fix selection of total number of components via float when picking ICA sources by `Denis Engemann`_ and `Qunxi Dong`_
 
-- Fix writing and reading transforms after modification in measurment info by `Denis Engemann`_ and `Martin Luessi`_ and `Eric Larson`_
+- Fix writing and reading transforms after modification in measurement info by `Denis Engemann`_ and `Martin Luessi`_ and `Eric Larson`_
 
 - Fix pre-whitening / rescaling when estimating ICA on multiple channels without covariance by `Denis Engemann`_
 
@@ -2101,7 +2134,7 @@ API
 
 - The pick_normal parameter for minimum norm solvers has been renamed as ``pick_ori`` and normal orientation picking is now achieved by passing the value "normal" for the `pick_ori` parameter.
 
-- ICA objects now expose the measurment info of the object fitted.
+- ICA objects now expose the measurement info of the object fitted.
 
 - Average EEG reference is now added by default to Raw instances.
 
@@ -2236,7 +2269,7 @@ Changelog
 
 - Add function for summarizing clusters from spatio-temporal-cluster permutation tests by `Denis Engemann`_ and `Eric Larson`_
 
-- Add generator support for lcmv_epochs by `Denis Engemann`_
+- Add generator support for ``lcmv_epochs`` by `Denis Engemann`_
 
 - Gamma-MAP sparse source localization method by `Martin Luessi`_ and `Alex Gramfort`_
 
@@ -2740,3 +2773,9 @@ of commits):
 .. _Oleh Kozynets: https://github.com/OlehKSS
 
 .. _Susanna Aro: https://www.linkedin.com/in/susanna-aro
+
+.. _Joan Massich: https://github.com/massich
+
+.. _Henrich Kolkhorst: https://github.com/hekolk
+
+.. _Steven Bethard: https://github.com/bethard

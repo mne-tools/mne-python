@@ -13,7 +13,7 @@ from .fixes import get_sosfiltfilt, minimum_phase
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, check_version, warn,
-                    _check_preload)
+                    _check_preload, _validate_type)
 
 # These values from Ifeachor and Jervis.
 _length_factors = dict(hann=3.1, hamming=3.3, blackman=5.0)
@@ -369,8 +369,8 @@ def _construct_fir_filter(sfreq, freq, gain, filter_length, phase, fir_window,
 
     Returns
     -------
-    xf : array
-        x filtered.
+    h : array
+        Filter coefficients.
     """
     assert freq[0] == 0
     if fir_design == 'firwin2':
@@ -438,16 +438,17 @@ def _filtfilt(x, iir_params, picks, n_jobs, copy):
     """Call filtfilt."""
     # set up array for filtering, reshape to 2D, operate on last axis
     from scipy.signal import filtfilt
-    padlen = min(iir_params['padlen'], len(x))
+    padlen = min(iir_params['padlen'], x.shape[-1] - 1)
     n_jobs = check_n_jobs(n_jobs)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     if 'sos' in iir_params:
         sosfiltfilt = get_sosfiltfilt()
-        fun = partial(sosfiltfilt, sos=iir_params['sos'], padlen=padlen)
+        fun = partial(sosfiltfilt, sos=iir_params['sos'], padlen=padlen,
+                      axis=-1)
         _check_coefficients(iir_params['sos'])
     else:
         fun = partial(filtfilt, b=iir_params['b'], a=iir_params['a'],
-                      padlen=padlen)
+                      padlen=padlen, axis=-1)
         _check_coefficients((iir_params['b'], iir_params['a']))
     if n_jobs == 1:
         for p in picks:
@@ -470,7 +471,7 @@ def estimate_ringing_samples(system, max_try=100000):
         A tuple of (b, a) or ndarray of second-order sections coefficients.
     max_try : int
         Approximate maximum number of samples to try.
-        This will be changed to a multple of 1000.
+        This will be changed to a multiple of 1000.
 
     Returns
     -------
@@ -645,11 +646,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         system = (iir_params['b'], iir_params['a'])
         output = 'ba'
     else:
-        output = iir_params.get('output', None)
-        if output is None:
-            warn('The default output type is "ba" in 0.13 but will change '
-                 'to "sos" in 0.14')
-            output = 'ba'
+        output = iir_params.get('output', 'sos')
         if not isinstance(output, string_types) or output not in ('ba', 'sos'):
             raise ValueError('Output must be "ba" or "sos", got %s'
                              % (output,))
@@ -702,8 +699,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
 def _check_method(method, iir_params, extra_types=()):
     """Parse method arguments."""
     allowed_types = ['iir', 'fir', 'fft'] + list(extra_types)
-    if not isinstance(method, string_types):
-        raise TypeError('method must be a string')
+    _validate_type(method, 'str', 'method')
     if method not in allowed_types:
         raise ValueError('method must be one of %s, not "%s"'
                          % (allowed_types, method))
@@ -889,9 +885,10 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
 
     Parameters
     ----------
-    data : ndarray, shape (..., n_times)
+    data : ndarray, shape (..., n_times) | None
         The data that will be filtered. This is used for sanity checking
-        only.
+        only. If None, no sanity checking related to the length of the signal
+        relative to the filter order will be performed.
     sfreq : float
         The sample frequency in Hz.
     l_freq : float | None
@@ -1049,6 +1046,11 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
     sfreq = float(sfreq)
     if sfreq < 0:
         raise ValueError('sfreq must be positive')
+    # If no data specified, sanity checking will be skipped
+    if data is None:
+        logger.info('No data specified. Sanity checks related to the length of'
+                    ' the signal relative to the filter order will be'
+                    ' skipped.')
     if h_freq is not None:
         h_freq = np.array(h_freq, float).ravel()
         if (h_freq > (sfreq / 2.)).any():
@@ -1731,8 +1733,6 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
         cast = float_array
     else:
         cast = float
-    x = np.asanyarray(x)
-    len_x = x.shape[-1]
     sfreq = float(sfreq)
     if l_freq is not None:
         l_freq = cast(l_freq)
@@ -1831,17 +1831,25 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
         elif not isinstance(filter_length, integer_types):
             raise ValueError('filter_length must be a str, int, or None, got '
                              '%s' % (type(filter_length),))
-    if method != 'fir':
-        filter_length = len_x
-    if phase == 'zero' and method == 'fir':
-        filter_length += (filter_length % 2 == 0)
-    if filter_length <= 0:
-        raise ValueError('filter_length must be positive, got %s'
-                         % (filter_length,))
-    if filter_length > len_x:
-        warn('filter_length (%s) is longer than the signal (%s), '
-             'distortion is likely. Reduce filter length or filter a '
-             'longer signal.' % (filter_length, len_x))
+
+    if filter_length != 'auto':
+        if phase == 'zero' and method == 'fir':
+            filter_length += (filter_length % 2 == 0)
+        if filter_length <= 0:
+            raise ValueError('filter_length must be positive, got %s'
+                             % (filter_length,))
+
+    # If we have data supplied, do a sanity check
+    if x is not None:
+        x = np.asanyarray(x)
+        len_x = x.shape[-1]
+        if method != 'fir':
+            filter_length = len_x
+        if filter_length > len_x:
+            warn('filter_length (%s) is longer than the signal (%s), '
+                 'distortion is likely. Reduce filter length or filter a '
+                 'longer signal.' % (filter_length, len_x))
+
     logger.debug('Using filter length: %s' % filter_length)
     return (x, sfreq, l_freq, h_freq, l_stop, h_stop, filter_length, phase,
             fir_window, fir_design)
@@ -2310,7 +2318,7 @@ class _Interp2(object):
         for start, stop in zip(self._chunks[:-1], self._chunks[1:]):
             time_sl = slice(start, stop)
             if data_idx is not None:
-                # This is useful e.g. when circularly accessing the same data.
+                # This is useful e.g. when using circular access to the data.
                 # This prevents STC blowups in raw data simulation.
                 data_sl = data[:, data_idx[time_sl]]
             else:

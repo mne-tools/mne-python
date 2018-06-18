@@ -1,0 +1,12 @@
+.highlight a {
+    color: rgb(41, 122, 204);
+}
+div.highlight {
+    background-color: #fafafa;
+}
+.highlight * {
+    color: inherit;
+    font-weight: inherit;
+    font-style: inherit;
+    background-color: transparent;
+}

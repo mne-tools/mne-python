@@ -144,12 +144,6 @@ def _pick_channels_spatial_filter(ch_names, filters):
     return sel
 
 
-def _check_cov_matrix(data_cov):
-    if data_cov is None:
-        raise ValueError('Source reconstruction with beamformers requires '
-                         'a data covariance matrix.')
-
-
 def _check_proj_match(info, filters):
     """Check whether SSP projections in data and spatial filter match."""
     proj_data, _, _ = make_projector(info['projs'],

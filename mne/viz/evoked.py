@@ -29,8 +29,9 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _validate_if_list_of_axes, _triage_rank_sss,
                     _connection_line, COLORS, _setup_ax_spines,
                     _setup_plot_projector, _prepare_joint_axes,
-                    _set_title_multiple_electrodes, _check_time_unit)
-from ..utils import logger, _clean_names, warn, _pl, verbose
+                    _set_title_multiple_electrodes, _check_time_unit,
+                    _plot_masked_image)
+from ..utils import logger, _clean_names, warn, _pl, verbose, _validate_type
 
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
@@ -79,7 +80,7 @@ def _butterfly_on_button_press(event, params):
 
 
 def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
-                        psd=False):
+                        psd=False, time_unit='s'):
     """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
     ch_types = [type_ for type_ in ch_types if type_ in ('eeg', 'grad', 'mag')]
@@ -133,7 +134,7 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
         plot_topomap(this_data, pos, cmap=cmap, vmin=vmin, vmax=vmax,
                      axes=axarr[0][idx], show=False)
 
-    unit = 'Hz' if psd else 'ms'
+    unit = 'Hz' if psd else time_unit
     fig.suptitle('Average over %.2f%s - %.2f%s' % (xmin, unit, xmax, unit),
                  y=0.1)
     tight_layout(pad=2.0, fig=fig)
@@ -186,7 +187,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  gfp=False, window_title=None, spatial_colors=False,
                  set_tight_layout=True, selectable=True, zorder='unsorted',
                  noise_cov=None, colorbar=True, mask=None, mask_style=None,
-                 mask_cmap=None, mask_alpha=.25, time_unit=None):
+                 mask_cmap=None, mask_alpha=.25, time_unit='s',
+                 show_names=False, group_by=None):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -198,9 +200,61 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         (x axis: time, y axis: channel). In 'image' mode, the plot is not
         interactive.
     """
-    time_unit, times = _check_time_unit(
-        time_unit, evoked.times, allow_none=True)
     import matplotlib.pyplot as plt
+
+    # For evoked.plot_image ...
+    # First input checks for group_by and axes if any of them is not None.
+    # Either both must be dicts, or neither.
+    # If the former, the two dicts provide picks and axes to plot them to.
+    # Then, we call this function recursively for each entry in `group_by`.
+    if plot_type == "image" and isinstance(group_by, dict):
+        if axes is None:
+            axes = dict()
+            for sel in group_by:
+                plt.figure()
+                axes[sel] = plt.axes()
+        if not isinstance(axes, dict):
+            raise ValueError("If `group_by` is a dict, `axes` must be "
+                             "a dict of axes or None.")
+        _validate_if_list_of_axes(list(axes.values()))
+        remove_xlabels = any([ax.is_last_row() for ax in axes.values()])
+        for sel in group_by:  # ... we loop over selections
+            if sel not in axes:
+                raise ValueError(sel + " present in `group_by`, but not "
+                                 "found in `axes`")
+            ax = axes[sel]
+            # the unwieldy dict comp below defaults the title to the sel
+            _plot_evoked(evoked, group_by[sel], exclude, unit, show, ylim,
+                         proj, xlim, hline, units, scalings,
+                         (titles if titles is not None else
+                          {channel_type(evoked.info, idx): sel
+                           for idx in group_by[sel]}),
+                         ax, plot_type, cmap=cmap, gfp=gfp,
+                         window_title=window_title,
+                         set_tight_layout=set_tight_layout,
+                         selectable=selectable, noise_cov=noise_cov,
+                         colorbar=colorbar, mask=mask,
+                         mask_style=mask_style, mask_cmap=mask_cmap,
+                         mask_alpha=mask_alpha, time_unit=time_unit,
+                         show_names=show_names)
+            if remove_xlabels and not ax.is_last_row():
+                ax.set_xticklabels([])
+                ax.set_xlabel("")
+        ims = [ax.images[0] for ax in axes.values()]
+        clims = np.array([im.get_clim() for im in ims])
+        min, max = clims.min(), clims.max()
+        for im in ims:
+            im.set_clim(min, max)
+        figs = [ax.get_figure() for ax in axes.values()]
+        if len(set(figs)) is 1:
+            return figs[0]
+        else:
+            return figs
+    elif isinstance(axes, dict):
+        raise ValueError("If `group_by` is not a dict, "
+                         "`axes` must not be a dict either.")
+
+    time_unit, times = _check_time_unit(time_unit, evoked.times)
     info = evoked.info
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
@@ -273,7 +327,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         _plot_lines(evoked.data, info, picks, fig, axes, spatial_colors, unit,
                     units, scalings, hline, gfp, types, zorder, xlim, ylim,
                     times, bad_ch_idx, titles, ch_types_used, selectable,
-                    False, line_alpha=1., nave=evoked.nave)
+                    False, line_alpha=1., nave=evoked.nave,
+                    time_unit=time_unit)
         plt.setp(axes, xlabel='Time (%s)' % time_unit)
 
     elif plot_type == 'image':
@@ -284,7 +339,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                         units, scalings, times, xlim, ylim, titles,
                         colorbar=colorbar, mask=mask, mask_style=mask_style,
                         mask_cmap=mask_cmap, mask_alpha=mask_alpha,
-                        nave=use_nave, time_unit=time_unit)
+                        nave=use_nave, time_unit=time_unit,
+                        show_names=show_names, ch_names=evoked.ch_names)
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=info['projs'], axes=axes,
@@ -305,7 +361,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 scalings, hline, gfp, types, zorder, xlim, ylim, times,
                 bad_ch_idx, titles, ch_types_used, selectable, psd,
-                line_alpha, nave):
+                line_alpha, nave, time_unit='ms'):
     """Plot data as butterfly plot."""
     from matplotlib import patheffects, pyplot as plt
     from matplotlib.widgets import SpanSelector
@@ -456,7 +512,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             callback_onselect = partial(_line_plot_onselect,
                                         ch_types=ch_types_used, info=info,
                                         data=data, times=times, text=text,
-                                        psd=psd)
+                                        psd=psd, time_unit=time_unit)
             blit = False if plt.get_backend() == 'MacOSX' else True
             minspan = 0 if len(times) < 2 else times[1] - times[0]
             ax._span_selector = SpanSelector(
@@ -489,18 +545,18 @@ def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
                 xlim, ylim, titles, colorbar=True, mask=None, mask_cmap=None,
                 mask_style=None, mask_alpha=.25, nave=None,
-                time_unit=None):
+                time_unit='s', show_names=False, ch_names=None):
     """Plot images."""
     import matplotlib.pyplot as plt
     assert time_unit is not None
 
-    if mask_style is None and mask is not None:
-        mask_style = "both"  # default
-    draw_mask = mask_style in {"both", "mask"}
-    draw_contour = mask_style in {"both", "contour"}
+    if show_names == "auto":
+        if picks is not None:
+            show_names = "all" if len(picks) < 25 else True
+        else:
+            show_names = False
 
     cmap = _setup_cmap(cmap)
-    mask_cmap = cmap if mask_cmap is None else _setup_cmap(mask_cmap)
 
     ch_unit = units[this_type]
     this_scaling = scalings[this_type]
@@ -508,54 +564,23 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         this_scaling = 1.0
         ch_unit = 'NA'  # no unit
 
-    # mask param check and preparation
-    if draw_mask is None:
+    if picks is not None:
+        data = data[picks]
         if mask is not None:
-            draw_mask = True
-        else:
-            draw_mask = False
-    if draw_contour is None:
-        if mask is not None:
-            draw_contour = True
-        else:
-            draw_contour = False
-    if mask is None:
-        if draw_mask:
-            warn("`mask` is None, not masking the plot ...")
-            draw_mask = False
-        if draw_contour:
-            warn("`mask` is None, not adding contour to the plot ...")
-            draw_contour = False
-
-    if draw_mask:
-        if mask.shape != data.shape:
-            raise ValueError("The mask must have the same shape as the data, "
-                             "i.e., %s, not %s" % (data.shape, mask.shape))
-        if picks is not None:
-            mask = mask[picks, :]
-
+            mask = mask[picks]
     # Show the image
     # Set amplitude scaling
-    data = this_scaling * data[picks, :]
+    data = this_scaling * data
     if ylim is None or this_type not in ylim:
         vmax = np.abs(data).max()
         vmin = -vmax
     else:
         vmin, vmax = ylim[this_type]
-    extent = [times[0], times[-1], 0, len(data)]
-    im_args = dict(interpolation='nearest', origin='lower',
-                   extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
 
-    if draw_mask:
-        ax.imshow(data, alpha=mask_alpha, cmap=mask_cmap[0], **im_args)
-        im = ax.imshow(
-            np.ma.masked_where(~mask, data), cmap=cmap[0], **im_args)
-    else:
-        im = ax.imshow(data, cmap=cmap[0], **im_args)
-    if draw_contour and np.unique(mask).size == 2:
-        big_mask = np.kron(mask, np.ones((10, 10)))
-        ax.contour(big_mask, colors=["k"], extent=extent, linewidths=[.75],
-                   corner_mask=False, antialiased=False, levels=[.5])
+    im, t_end = _plot_masked_image(
+        ax, data, times, mask, picks=None, yvals=None, cmap=cmap[0],
+        vmin=vmin, vmax=vmax, mask_style=mask_style, mask_alpha=mask_alpha,
+        mask_cmap=mask_cmap)
 
     if xlim is not None:
         if xlim == 'tight':
@@ -568,20 +593,22 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         if cmap[1]:
             ax.CB = DraggableColorbar(cbar, im)
 
-    ax.set(ylabel='Channel (index)', xlabel='Time (%s)' % (time_unit,))
-
-    if (draw_mask or draw_contour) and mask is not None:
-        if mask.all():
-            t_end = ", all points masked)"
-        else:
-            fraction = 1. - np.mean(mask)
-            percent = np.floor(fraction * 100).astype(int)
-            t_end = ", " + str(percent) + "% of points masked)"
-    else:
-        t_end = ")"
-    ax.set(title='%s (%d channel%s%s'
-           % (titles[this_type], len(data), _pl(len(data)), t_end))
+    ylabel = "Channels" if show_names else 'Channel (index)'
+    t = titles[this_type] + ' (%d channel%s' % (len(data), _pl(data)) + t_end
+    ax.set(ylabel=ylabel, xlabel='Time (%s)' % (time_unit,), title=t)
     _add_nave(ax, nave)
+
+    if show_names is not False:
+        if show_names == "all":
+            yticks = np.arange(len(picks)).astype(int)
+            yticklabels = np.array(ch_names)[picks]
+        else:
+            max_tick = len(picks)
+            yticks = [tick for tick in ax.get_yticks() if tick < max_tick]
+            yticks = np.array(yticks).astype(int)
+            # these should only ever be ints right?
+            yticklabels = np.array(ch_names)[picks][yticks]
+        ax.set(yticks=yticks + .5, yticklabels=yticklabels)
 
 
 @verbose
@@ -589,7 +616,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
                 window_title=None, spatial_colors=False, zorder='unsorted',
-                selectable=True, noise_cov=None, time_unit=None, verbose=None):
+                selectable=True, noise_cov=None, time_unit='s', verbose=None):
     """Plot evoked data using butterfly plots.
 
     Left click to a line shows the channel name. Selecting an area by clicking
@@ -624,7 +651,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     hline : list of floats | None
         The values at which to show an horizontal line.
     units : dict | None
-        The units of the channel types used for axes lables. If None,
+        The units of the channel types used for axes labels. If None,
         defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,
@@ -680,8 +707,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
         .. versionadded:: 0.16.0
     time_unit : str
-        The units for the time axis, can be "ms" (default in 0.16)
-        or "s" (will become the default in 0.17).
+        The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
     verbose : bool, str, int, or None
@@ -825,7 +851,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
                       units=None, scalings=None, titles=None, axes=None,
                       cmap='RdBu_r', colorbar=True, mask=None,
                       mask_style=None, mask_cmap="Greys", mask_alpha=.25,
-                      time_unit=None):
+                      time_unit='s', show_names="auto", group_by=None):
     """Plot evoked data as images.
 
     Parameters
@@ -834,6 +860,8 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         The evoked data
     picks : array-like of int | None
         The indices of channels to plot. If None show all.
+        This parameter can also be used to set the order the channels
+        are shown in, as the channel image is sorted by the order of picks.
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
         bad channels are excluded.
@@ -853,7 +881,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         a check box for reversible selection of SSP projection vectors will
         be shown.
     units : dict | None
-        The units of the channel types used for axes lables. If None,
+        The units of the channel types used for axes labels. If None,
         defaults to ``dict(eeg='uV', grad='fT/cm', mag='fT')``.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
@@ -861,10 +889,14 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
     titles : dict | None
         The titles associated with the channels. If None, defaults to
         ``dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')``.
-    axes : instance of Axis | list | None
+    axes : instance of Axis | list | dict | None
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
+        If `group_by` is a dict, this cannot be a list, but it can be a dict
+        of lists of axes, with the keys matching those of `group_by`. In that
+        case, the provided axes will be used for the corresponding groups.
+        Defaults to `None`.
     cmap : matplotlib colormap | (colormap, bool) | 'interactive'
         Colormap. If tuple, the first value indicates the colormap to use and
         the second value is a boolean defining interactivity. In interactive
@@ -906,10 +938,29 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
 
         .. versionadded:: 0.16
     time_unit : str
-        The units for the time axis, can be "ms" (default in 0.16)
-        or "s" (will become the default in 0.17).
+        The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
+    show_names : bool | str
+        Determines if channel names should be plotted on the y axis. If False,
+        no names are shown. If True, ticks are set automatically and the
+        corresponding channel names are shown. If str, must be "auto" or "all".
+        If "all", all channel names are shown.
+        If "auto", is set to False if `picks` is ``None``; to ``True`` if
+        `picks` is not ``None`` and fewer than 25 picks are shown; to "all"
+        if `picks` is not ``None`` and contains fewer than 25 entries.
+    group_by : None | dict
+        If a dict, the values must be picks, and `axes` must also be a dict
+        with matching keys, or None. If `axes` is None, one figure and one axis
+        will be created for each entry in `group_by`.
+        Then, for each entry, the picked channels will be plotted
+        to the corresponding axis. If `titles` are None, keys will become plot
+        titles. This is useful for e.g. ROIs. Each entry must contain only
+        one channel type. For example::
+
+            group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
+
+        If None, all picked channels are plotted to the same axis.
 
     Returns
     -------
@@ -922,7 +973,8 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
                         axes=axes, plot_type="image", cmap=cmap,
                         colorbar=colorbar, mask=mask, mask_style=mask_style,
                         mask_cmap=mask_cmap, mask_alpha=mask_alpha,
-                        time_unit=time_unit)
+                        time_unit=time_unit, show_names=show_names,
+                        group_by=group_by)
 
 
 def _plot_update_evoked(params, bools):
@@ -948,7 +1000,7 @@ def _plot_update_evoked(params, bools):
 
 
 @verbose
-def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit=None,
+def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
                       verbose=None):
     u"""Plot whitened evoked response.
 
@@ -974,8 +1026,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit=None,
         estimated. Note. The rank estimation will be printed by the logger for
         each noise covariance estimator that is passed.
     time_unit : str
-        The units for the time axis, can be "ms" (default in 0.16)
-        or "s" (will become the default in 0.17).
+        The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
     verbose : bool, str, int, or None
@@ -1020,7 +1071,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit=None,
 
 
 def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True,
-                       time_unit=None):
+                       time_unit='s'):
     """Help plot_evoked_white.
 
     Additional Parameters
@@ -1038,8 +1089,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True,
     """
     from ..cov import whiten_evoked, read_cov  # recursive import
     import matplotlib.pyplot as plt
-    time_unit, times = _check_time_unit(
-        time_unit, evoked.times, allow_none=True)
+    time_unit, times = _check_time_unit(time_unit, evoked.times)
 
     if isinstance(noise_cov, string_types):
         noise_cov = read_cov(noise_cov)
@@ -1235,15 +1285,16 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     show : bool
         Show figure if True. Defaults to True.
     ts_args : None | dict
-        A dict of `kwargs` that are forwarded to `evoked.plot` to
+        A dict of `kwargs` that are forwarded to :meth:`mne.Evoked.plot` to
         style the butterfly plot. If they are not in this dict, the following
         defaults are passed: ``spatial_colors=True``, ``zorder='std'``,
         ``axes``, ``show``, ``exclude`` are illegal.
         If None, no customizable arguments will be passed.
         Defaults to `None`.
     topomap_args : None | dict
-        A dict of `kwargs` that are forwarded to `evoked.plot_topomap` to
-        style the topomaps. If it is not in this dict, ``outlines='skirt'``
+        A dict of `kwargs` that are forwarded to
+        :meth:`mne.Evoked.plot_topomap` to style the topomaps.
+        If it is not in this dict, ``outlines='skirt'``
         will be passed. `axes`, `show`, `times`, `colorbar` are illegal`
         If None, no customizable arguments will be passed.
         Defaults to `None`.
@@ -1266,7 +1317,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                         % (type(ts_args),))
     ts_args = dict() if ts_args is None else ts_args.copy()
     ts_args['time_unit'], evoked_times = _check_time_unit(
-        ts_args.get('time_unit'), evoked.times, allow_none=True)
+        ts_args.get('time_unit', 's'), evoked.times)
     if topomap_args is None:
         topomap_args = dict()
 
@@ -1502,8 +1553,7 @@ def _format_evokeds_colors(evokeds, cmap, colors):
             raise ValueError('If evokeds is a dict and a cmap is passed, '
                              'you must specify the colors.')
     for cond in evokeds.keys():
-        if not isinstance(cond, string_types):
-            raise TypeError('Conditions must be str, not %s' % (type(cond),))
+        _validate_type(cond, 'str', "Conditions")
     # Now make sure all values are list of Evoked objects
     evokeds = {condition: [v] if isinstance(v, Evoked) else v
                for condition, v in evokeds.items()}
@@ -1511,9 +1561,7 @@ def _format_evokeds_colors(evokeds, cmap, colors):
     # Check that all elements are of type evoked
     for this_evoked in evokeds.values():
         for ev in this_evoked:
-            if not isinstance(ev, Evoked):
-                raise ValueError("Not all elements are Evoked "
-                                 "object. Got %s" % type(this_evoked))
+            _validate_type(ev, Evoked, "All evokeds entries ", "Evoked")
 
     # Check that all evoked objects have the same time axis and channels
     all_evoked = sum(evokeds.values(), [])
@@ -1803,9 +1851,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     if vlines == "auto" and (tmin < 0 and tmax > 0):
         vlines = [0.]
-    if not isinstance(vlines, (list, tuple)):
-        raise TypeError(
-            "vlines must be a list or tuple, not %s" % type(vlines))
+    _validate_type(vlines, (list, tuple), "vlines", "list or tuple")
 
     if isinstance(picks, Integral):
         picks = [picks]
@@ -1814,9 +1860,10 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         gfp = True
         picks = _pick_data_channels(info)
 
-    if not isinstance(picks, (list, np.ndarray)):
-        raise TypeError("picks should be a list or np.array of integers. "
-                        "Got %s." % type(picks))
+    _validate_type(picks, (list, np.ndarray), "picks",
+                   "list or np.array of integers")
+    for entry in picks:
+        _validate_type(entry, 'int', "entries of picks", "integers")
 
     if len(picks) == 0:
         raise ValueError("No valid channels were found to plot the GFP. " +
@@ -1831,7 +1878,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             show_sensors = False  # don't show sensors for GFP
         ch_names = ['Global Field Power']
         if len(picks) < 2:
-            raise ValueError("A GFP with less than 2 channels doesn't work, "
+            raise ValueError("Cannot compute GFP for fewer than 2 channels, "
                              "please pick more than %d channels." % len(picks))
     else:
         if show_sensors is None:
@@ -2057,9 +2104,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             head_pos = {'center': (0, 0), 'scale': (0.5, 0.5)}
             pos, outlines = _check_outlines(pos, np.array([1, 1]), head_pos)
 
-            if not isinstance(show_sensors, (np.int, bool, str)):
-                raise TypeError("show_sensors must be numeric, str or bool, "
-                                "not " + str(type(show_sensors)))
+            _validate_type(show_sensors, (np.int, bool, str),
+                           "show_sensors", "numeric, str or bool")
             show_sensors = _check_loc_legal(show_sensors, "show_sensors")
             _plot_legend(pos, ["k"] * len(picks), ax, list(), outlines,
                          show_sensors, size=25)

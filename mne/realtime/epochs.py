@@ -97,7 +97,7 @@ class RtEpochs(BaseEpochs):
         shift, or set baseline correction to use the entire time interval
         (will yield equivalent results but be slower).
     isi_max : float
-        The maximmum time in seconds between epochs. If no epoch
+        The maximum time in seconds between epochs. If no epoch
         arrives in the next isi_max seconds the RtEpochs stops.
     find_events : dict
         The arguments to the real-time `find_events` method as a dictionary.
@@ -126,6 +126,14 @@ class RtEpochs(BaseEpochs):
         The events associated with the epochs currently in the queue.
     verbose : bool, str, int, or None
         See above.
+
+    Notes
+    -----
+    - Calling `next()` on an `RtEpochs` object (as internally done when
+      iterating over the object) is blocking, i.e., waits for at most `isi_max`
+      seconds for a new epoch to be received.
+    - Calling `get_data()` on an `RtEpochs` object immediately returns the
+      epochs received so far (without waiting for new epochs).
     """
 
     @verbose
@@ -141,12 +149,19 @@ class RtEpochs(BaseEpochs):
 
         verbose = client.verbose if verbose is None else verbose
 
+        # FIFO queues for received epochs and events
+        # need to be initialized to validate invariants in base constructor
+        self._epoch_queue = list()
+        self._events = list()
+        self._selection = list()
+
         # call BaseEpochs constructor
         super(RtEpochs, self).__init__(
             info, None, None, event_id, tmin, tmax, baseline, picks=picks,
             reject=reject, flat=flat, decim=decim,
             reject_tmin=reject_tmin, reject_tmax=reject_tmax, detrend=detrend,
             verbose=verbose, proj=True)
+        self._bad_dropped = True
 
         self._client = client
 
@@ -185,10 +200,6 @@ class RtEpochs(BaseEpochs):
                        self._client_info['chs'][k]['cal'])
         self._cals = cals[:, None]
 
-        # FIFO queues for received epochs and events
-        self._epoch_queue = list()
-        self._events = list()
-
         # variables needed for receiving raw buffers
         self._last_buffer = None
         self._first_samp = 0
@@ -207,6 +218,62 @@ class RtEpochs(BaseEpochs):
     def events(self):
         """The events associated with the epochs currently in the queue."""
         return np.array(self._events)
+
+    @events.setter
+    def events(self, new_events):
+        """
+        Update the internal event list.
+
+        Parameters
+        ----------
+        new_events : array of int, shape (n_events, 3)
+            new events
+        """
+        self._events = [tuple(new_events[i, :])
+                        for i in range(len(new_events))]
+
+    @property
+    def selection(self):
+        """Array of integers of the current selection."""
+        return np.asarray(self._selection, dtype=int)
+
+    @selection.setter
+    def selection(self, new_selection):
+        """
+        Update the internal selection list.
+
+        Parameters
+        ----------
+        new_selection : iterable of epoch indices
+
+        """
+        self._selection = list(new_selection)
+
+    def copy(self):
+        """Return copy of Epochs instance."""
+        client = self._client
+        del self._client
+        new = super(RtEpochs, self).copy()
+        self._client = client
+        new._client = client
+        return new
+
+    def _getitem(self, item, reason='IGNORED', copy=True, drop_event_id=True,
+                 select_data=True, return_indices=False):
+
+        epochs, select = super(RtEpochs, self)._getitem(
+            item=item, reason=reason, copy=copy, drop_event_id=drop_event_id,
+            select_data=False, return_indices=True)
+
+        # try to be compatible with numpy indexing
+        new_queue = list()
+        for kept_idx in np.arange(len(epochs._epoch_queue), dtype=int)[select]:
+            new_queue.append(epochs._epoch_queue[kept_idx])
+        epochs._epoch_queue = new_queue
+
+        epochs._n_good = len(epochs._epoch_queue)
+
+        return epochs
 
     def start(self):
         """Start receiving epochs.
@@ -262,15 +329,15 @@ class RtEpochs(BaseEpochs):
         first = True
         while True:
             current_time = time.time()
-            if current_time > (self._last_time + self.isi_max):
-                logger.info('Time of %s seconds exceeded.' % self.isi_max)
-                return  # signal the end properly
             if len(self._epoch_queue) > self._current:
                 epoch = self._epoch_queue[self._current]
                 event_id = self._events[self._current][-1]
                 self._current += 1
                 self._last_time = current_time
                 return (epoch, event_id) if return_event_id else epoch
+            if current_time > (self._last_time + self.isi_max):
+                logger.info('Time of %s seconds exceeded.' % self.isi_max)
+                return  # signal the end properly
             if self._started:
                 if first:
                     logger.info('Waiting for epoch %d' % (self._current + 1))
@@ -280,15 +347,38 @@ class RtEpochs(BaseEpochs):
                 raise RuntimeError('Not enough epochs in queue and currently '
                                    'not receiving epochs, cannot get epochs!')
 
-    def _get_data(self):
-        """Return the data for n_epochs epochs."""
-        epochs = list()
-        for epoch in self:
-            epochs.append(epoch)
+    @verbose
+    def _get_data(self, out=True, verbose=None):
+        """
+        Return all data as numpy array.
 
-        data = np.array(epochs)
+        Parameters
+        ----------
+        out : bool
+            Return the data.
+        verbose: bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
-        return data
+        Returns
+        -------
+        np.ndarray or None
+        epochs data
+
+        Notes
+        -----
+        Rejection in RtEpochs already happens at epoch creation,
+        not on data loading.
+        """
+        if out:
+            epochs = list()
+            for epoch in self._epoch_queue:
+                epochs.append(epoch)
+
+            data = np.array(epochs)
+
+            return data
 
     def _process_raw_buffer(self, raw_buffer):
         """Process raw buffer (callback from RtClient).
@@ -384,14 +474,13 @@ class RtEpochs(BaseEpochs):
         n_buffer = raw_buffer.shape[1]
         if self._last_buffer is None:
             self._last_buffer = raw_buffer
-            self._first_samp = last_samp + 1
         elif self._last_buffer.shape[1] <= n_samp + n_buffer:
             self._last_buffer = np.c_[self._last_buffer, raw_buffer]
         else:
             # do not increase size of _last_buffer any further
-            self._first_samp = self._first_samp + n_buffer
             self._last_buffer[:, :-n_buffer] = self._last_buffer[:, n_buffer:]
             self._last_buffer[:, -n_buffer:] = raw_buffer
+        self._first_samp = self._first_samp + n_buffer
 
     def _append_epoch_to_queue(self, epoch, event_samp, event_id):
         """Append a (raw) epoch to queue.
@@ -419,14 +508,66 @@ class RtEpochs(BaseEpochs):
         epoch = self._project_epoch(epoch)
 
         # Decide if this is a good epoch
-        is_good, _ = self._is_good_epoch(epoch, verbose='ERROR')
+        is_good, offending_reasons = self._is_good_epoch(epoch,
+                                                         verbose='ERROR')
 
         if is_good:
             self._epoch_queue.append(epoch)
             self._events.append((event_samp, 0, event_id))
+            self.drop_log.append(list())
+            self._selection.append(len(self.drop_log) - 1)
             self._n_good += 1
         else:
+            self.drop_log.append(offending_reasons)
             self._n_bad += 1
+
+    @verbose
+    def decimate(self, decim, offset=0, verbose=None):
+        """Decimate the epochs.
+
+        .. note:: No filtering is performed. To avoid aliasing, ensure
+                  your data are properly lowpassed.
+
+        Parameters
+        ----------
+        decim : int
+            The amount to decimate data.
+        offset : int
+            Apply an offset to where the decimation starts relative to the
+            sample corresponding to t=0. The offset is in samples at the
+            current sampling rate.
+
+            .. versionadded:: 0.12
+
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The decimated Epochs object.
+
+        See Also
+        --------
+        mne.Evoked.decimate
+        mne.Epochs.resample
+        mne.io.Raw.resample
+
+        Notes
+        -----
+        Decimation can be done multiple times. For example,
+        ``epochs.decimate(2).decimate(2)`` will be the same as
+        ``epochs.decimate(4)``.
+        If `decim` is 1, this method does not copy the underlying data.
+
+        .. versionadded:: 0.10.0
+        """
+        super(RtEpochs, self).decimate(decim, offset, verbose)
+        for i in range(len(self._epoch_queue)):
+            self._epoch_queue[i] = self._epoch_queue[i][:, self._decim_slice]
+        return self
 
     def __repr__(self):  # noqa: D105
         s = 'good / bad epochs received: %d / %d, epochs in queue: %d, '\

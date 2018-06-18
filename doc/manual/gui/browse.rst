@@ -752,7 +752,7 @@ The items in the dialog have the following functions:
 
     Ignore this many milliseconds on both sides of the trigger when considering
     the epoch. This parameter is useful for ignoring large stimulus
-    artefacts, *e.g.*, from electrical somatosensory
+    artifacts, *e.g.*, from electrical somatosensory
     stimulation.
 
 **MEG grad rejection (fT/cm)**
@@ -1025,7 +1025,7 @@ are:
 
     If you click on a channel name the corresponding channel is marked bad
     or reinstated as an acceptable one. A channel marked bad is not considered
-    in the artefact rejection procedures in averaging and it is omitted
+    in the artifact rejection procedures in averaging and it is omitted
     from the signal-space projection operations.
 
 **Browsing**
@@ -1561,7 +1561,7 @@ They include:
 **stimIgnore <*time / s*>**
 
     Ignore this many seconds on both sides of the trigger when considering
-    the epoch. This parameter is useful for ignoring large stimulus artefacts, *e.g.*,
+    the epoch. This parameter is useful for ignoring large stimulus artifacts, *e.g.*,
     from electrical somatosensory stimulation.
 
 **fixSkew**
@@ -1837,7 +1837,7 @@ They include:
 **stimIgnore <*time / s*>**
 
     Ignore this many seconds on both sides of the trigger when considering
-    the epoch. This parameter is useful for ignoring large stimulus artefacts, *e.g.*,
+    the epoch. This parameter is useful for ignoring large stimulus artifacts, *e.g.*,
     from electrical somatosensory stimulation.
 
 **fixSkew**
@@ -2090,7 +2090,7 @@ Continuous raw data
 ===================
 
 If a covariance matrix of a raw data is computed the data
-are checked for artefacts in 200-sample pieces. Let us collect the
+are checked for artifacts in 200-sample pieces. Let us collect the
 accepted :math:`M` samples from all channels to
 the vectors :math:`s_j,\ j = 1, \dotsc ,M`. The estimate of the covariance
 matrix is then computed as:

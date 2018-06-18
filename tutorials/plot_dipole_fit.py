@@ -56,7 +56,7 @@ best_time = dip.times[best_idx]
 print('Highest GOF %0.1f%% at t=%0.1f ms with confidence volume %0.1f cm^3'
       % (dip.gof[best_idx], best_time * 1000,
          dip.conf['vol'][best_idx] * 100 ** 3))
-# rememeber to create a subplot for the colorbar
+# remember to create a subplot for the colorbar
 fig, axes = plt.subplots(nrows=1, ncols=4, figsize=[10., 3.4])
 vmin, vmax = -400, 400  # make sure each plot has same colour range
 

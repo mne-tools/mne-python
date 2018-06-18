@@ -727,7 +727,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def __del__(self):  # noqa: D105
         # remove file for memmap
-        if hasattr(self, '_data') and hasattr(self._data, 'filename'):
+        if hasattr(self, '_data') and \
+                getattr(self._data, 'filename', None) is not None:
             # First, close the file out; happens automatically on del
             filename = self._data.filename
             del self._data
@@ -2082,8 +2083,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         Data must be preloaded in order to add events.
         """
-        if not self.preload:
-            raise RuntimeError('cannot add events unless data are preloaded')
+        _check_preload(self, 'Adding events')
         events = np.asarray(events)
         if events.ndim != 2 or events.shape[1] != 3:
             raise ValueError('events must be shape (n_events, 3)')

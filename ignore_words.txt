@@ -1,0 +1,13 @@
+ons
+fro
+ang
+als
+buss
+dur
+sinc
+wan
+reord
+iff
+# for tempita
+delimeters
+delimeter

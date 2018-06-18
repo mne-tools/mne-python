@@ -24,11 +24,6 @@ blockquote {
     font-size: 100% !important;
 }
 
-code {
-    color: rgb(61, 107, 153) !important;
-    background-color: rgb(230, 242, 255) !important;
-}
-
 .devbar {
     text-align: center;
     padding: 5px;
@@ -101,11 +96,6 @@ blockquote {
 .span h2 {
     background: rgb(242, 249, 255);
 }
-
-.span.box code {
-    background-color: rgb(204, 230, 255) !important;
-}
-
 /* OVERRIDES */
 div.sphx-glr-download {
   width: inherit;
@@ -130,60 +120,10 @@ div.sphx-glr-download a:hover {
   background-image: none;
   background-color: inherit;
 }
-/* On large screens, float the download and binder buttons on the right */
-@media only screen and (min-width: 140ex) {
-    div.sphx-glr-footer-example  {
-	position: unset;
-	right: unset;
-	top: unset;
-	background: unset;
-	padding: unset;
-	border: unset;
-	max-width: unset;
-	width: fit-content;
-	}
-    div.sphx-glr-footer-example code {
-	max-width: unset;
-	overflow: unset;
-    }
-    div.sphx-glr-footer-example a {
-	max-width: unset;
-	overflow: unset;
-	padding: unset;
-    }
-    div.sphx-glr-footer-example a code span:last-child {
-	font-size: unset;
-    }
-}
-@media (min-width: 1720px) {
-    div.sphx-glr-footer-example  {
-	position: fixed;
-	right: 30px;
-	top: 150px;
-	background: rgba(200, 200, 200, 0.3);
-	padding: 0ex .5ex;
-	border: solid 1px #ccc;
-	width: 250px;
-	}
-
-    /* Avoid overflow of long file names */
-    div.sphx-glr-footer-example code {
-	max-width: 100%;
-	overflow: hidden;
-    }
-
-    div.sphx-glr-footer-example a {
-	max-width: 95%;
-	overflow: hidden;
-    }
-
-    div.sphx-glr-footer-example a code span:last-child {
-	font-size: smaller;
-    }
-}
-
-.highlight pre {
-    background-color: rgb(242, 249, 255) !important;
+/* hide the top link */
+div.sphx-glr-download-link-note {
+  height: 0px;
+  visibility: hidden;
 }
 .warning {
     background-color: rgb(230, 57, 57);

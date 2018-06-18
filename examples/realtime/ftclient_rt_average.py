@@ -12,7 +12,7 @@ neuromag2ft --file MNE-sample-data/MEG/sample/sample_audvis_raw.fif
 
 using a modified version of neuromag2ft available at
 
-http://neuro.hut.fi/~mainak/neuromag2ft-2.0.0.zip
+https://staff.washington.edu/larsoner/minimal_cmds.tar.gz
 
 to run the FieldTrip buffer. Then running this example acquires the
 data on the client side.

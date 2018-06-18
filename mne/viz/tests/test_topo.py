@@ -215,7 +215,7 @@ def test_plot_tfr_topo():
                      freqs, nave)
     tfr.plot([4], baseline=None, vmax=14., show=False, yscale='linear')
 
-    # one freqency bin, log scale required: as it doesn't make sense
+    # one frequency bin, log scale required: as it doesn't make sense
     # to plot log scale for one value, we test whether yscale is set to linear
     vmin, vmax = 0., 2.
     fig, ax = plt.subplots()

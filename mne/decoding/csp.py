@@ -313,11 +313,11 @@ class CSP(TransformerMixin, BaseEstimator):
             is inferred from the data; if no appropriate layout file was found
             the layout is automatically generated from the sensor locations.
         vmin : float | callable
-            The value specfying the lower bound of the color range.
+            The value specifying the lower bound of the color range.
             If None, and vmax is None, -vmax is used. Else np.min(data).
             If callable, the output equals vmin(data).
         vmax : float | callable
-            The value specfying the upper bound of the color range.
+            The value specifying the upper bound of the color range.
             If None, the maximum absolute value is used. If vmin is None,
             but vmax is not, defaults to np.min(data).
             If callable, the output equals vmax(data).
@@ -461,11 +461,11 @@ class CSP(TransformerMixin, BaseEstimator):
             is inferred from the data; if no appropriate layout file was found
             the layout is automatically generated from the sensor locations.
         vmin : float | callable
-            The value specfying the lower bound of the color range.
+            The value specifying the lower bound of the color range.
             If None, and vmax is None, -vmax is used. Else np.min(data).
             If callable, the output equals vmin(data).
         vmax : float | callable
-            The value specfying the upper bound of the color range.
+            The value specifying the upper bound of the color range.
             If None, the maximum absolute value is used. If vmin is None,
             but vmax is not, defaults to np.min(data).
             If callable, the output equals vmax(data).
@@ -590,7 +590,7 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
     X : ndarray, shape (n_epochs, n_channels, n_channels)
         A set of covariance matrices to diagonalize.
     eps : float, defaults to 1e-6
-        The tolerance for stoping criterion.
+        The tolerance for stopping criterion.
     max_iter : int, defaults to 1000
         The maximum number of iteration to reach convergence.
 

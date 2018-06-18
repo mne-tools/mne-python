@@ -57,7 +57,7 @@ def _compute_corrs(X, y, smin, smax):
             # the mode="same"-like behavior of the algorithm,
             # i.e. the non-zero delays should not have the same AC value
             # as the zero-delay ones (because they actually have fewer
-            # coefficents).
+            # coefficients).
             #
             # These adjustments also follow a Toeplitz structure, but it's
             # computationally more efficient to manually accumulate and

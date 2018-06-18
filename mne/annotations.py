@@ -8,7 +8,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from .utils import _pl, check_fname
+from .utils import _pl, check_fname, _validate_type
 from .externals.six import string_types
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
@@ -232,13 +232,14 @@ def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
 
     onsets and ends are inclusive.
     """
-    if not isinstance(kinds, (string_types, list, tuple)):
-        raise TypeError('%s must be str, list, or tuple, got %s'
-                        % (type(kinds), name))
-    elif isinstance(kinds, string_types):
+    _validate_type(kinds, (string_types, list, tuple), str(type(kinds)),
+                   "str, list or tuple")
+    if isinstance(kinds, string_types):
         kinds = [kinds]
-    elif not all(isinstance(kind, string_types) for kind in kinds):
-        raise TypeError('All entries in %s must be str' % (name,))
+    else:
+        for kind in kinds:
+            _validate_type(kind, 'str', "All entries")
+
     if raw.annotations is None:
         onsets, ends = np.array([], int), np.array([], int)
     else:
@@ -322,10 +323,7 @@ def read_brainstorm_annotations(fname, orig_time=None):
     from scipy import io
 
     def get_duration_from_times(t):
-        if t.shape[0] == 2:
-            return t[1] - t[0]
-        else:
-            return np.zeros(len(t[0]))
+        return t[1] - t[0] if t.shape[0] == 2 else np.zeros(len(t[0]))
 
     annot_data = io.loadmat(fname)
     onsets, durations, descriptions = (list(), list(), list())

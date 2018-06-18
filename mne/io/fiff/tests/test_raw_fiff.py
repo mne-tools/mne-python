@@ -229,7 +229,7 @@ def test_rank_estimation():
         n_proj = len(raw.info['projs'])
         assert_array_equal(raw.estimate_rank(tstart=0, tstop=3.,
                                              scalings=scalings),
-                           expected_rank - (1 if 'sss' in fname else n_proj))
+                           expected_rank - (0 if 'sss' in fname else n_proj))
 
 
 @testing.requires_testing_data
@@ -853,8 +853,12 @@ def test_filter():
 
     # ... and that inplace changes are inplace
     raw_copy = raw.copy()
+    assert np.may_share_memory(raw._data, raw._data)
+    assert not np.may_share_memory(raw_copy._data, raw._data)
+    # this could be assert_array_equal but we do this to mirror the call below
+    assert (raw._data[0] == raw_copy._data[0]).all()
     raw_copy.filter(None, 20., n_jobs=2, **filter_params)
-    assert_true(raw._data[0, 0] != raw_copy._data[0, 0])
+    assert not (raw._data[0] == raw_copy._data[0]).all()
     assert_equal(raw.copy().filter(None, 20., **filter_params)._data,
                  raw_copy._data)
 
@@ -1213,11 +1217,11 @@ def test_add_channels():
     raw_badsf.info['sfreq'] = 3.1415927
     raw_eeg.crop(.5)
 
-    assert_raises(AssertionError, raw_meg.add_channels, [raw_nopre])
+    assert_raises(RuntimeError, raw_meg.add_channels, [raw_nopre])
     assert_raises(RuntimeError, raw_meg.add_channels, [raw_badsf])
     assert_raises(AssertionError, raw_meg.add_channels, [raw_eeg])
     assert_raises(ValueError, raw_meg.add_channels, [raw_meg])
-    assert_raises(AssertionError, raw_meg.add_channels, raw_badsf)
+    assert_raises(TypeError, raw_meg.add_channels, raw_badsf)
 
 
 @testing.requires_testing_data

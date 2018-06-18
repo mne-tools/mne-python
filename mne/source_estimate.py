@@ -211,7 +211,7 @@ def _write_w(filename, vertices, data):
 
 
 def read_source_estimate(fname, subject=None):
-    """Read a soure estimate object.
+    """Read a source estimate object.
 
     Parameters
     ----------
@@ -226,8 +226,8 @@ def read_source_estimate(fname, subject=None):
 
     Returns
     -------
-    stc : SourceEstimate | VectorSourceEstimate | VolSourceEstimate
-        The soure estimate object loaded from file.
+    stc : SourceEstimate | VectorSourceEstimate | VolSourceEstimate | MixedSourceEstimate
+        The source estimate object loaded from file.
 
     Notes
     -----
@@ -239,10 +239,11 @@ def read_source_estimate(fname, subject=None):
        case, the function expects files for both hemisphere with names
        following this pattern.
      - for vector surface source estimates, only HDF5 files are supported.
+     - for mixed source estimates, only HDF5 files are supported.
      - for single time point .w files, ``fname`` should follow the same
        pattern as for surface estimates, except that files are named
        '*-lh.w' and '*-rh.w'.
-    """
+    """  # noqa: E501
     fname_arg = fname
 
     # make sure corresponding file(s) can be found
@@ -325,6 +326,9 @@ def read_source_estimate(fname, subject=None):
         kwargs['tstep'] = 1.0
     elif ftype == 'h5':
         kwargs = read_hdf5(fname + '.h5', title='mnepython')
+        if "src_type" in kwargs:
+            ftype = kwargs['src_type']
+            del kwargs['src_type']
 
     if ftype != 'volume':
         # Make sure the vertices are ordered
@@ -345,6 +349,8 @@ def read_source_estimate(fname, subject=None):
 
     if ftype == 'volume':
         stc = VolSourceEstimate(**kwargs)
+    elif ftype == 'mixed':
+        stc = MixedSourceEstimate(**kwargs)
     elif ftype == 'h5' and kwargs['data'].ndim == 3:
         stc = VectorSourceEstimate(**kwargs)
     else:
@@ -381,6 +387,8 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None,
                                  tstep=tstep, subject=subject)
     elif isinstance(vertices, np.ndarray) or isinstance(vertices, list)\
             and len(vertices) == 1:
+        if vector:
+            data = data.reshape((-1, 3, data.shape[-1]))
         stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
                                 tstep=tstep, subject=subject)
     elif isinstance(vertices, list) and len(vertices) > 2:
@@ -1724,15 +1732,16 @@ class VolSourceEstimate(_BaseSourceEstimate):
             The stem of the file name. The stem is extended with "-vl.stc"
             or "-vl.w".
         ftype : string
-            File format to use. Allowed values are "stc" (default) and "w".
-            The "w" format only supports a single time point.
+            File format to use. Allowed values are "stc" (default), "w",
+            and "h5". The "w" format only supports a single time point.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
             for more). Defaults to self.verbose.
         """
-        if ftype not in ['stc', 'w']:
-            raise ValueError('ftype must be "stc" or "w", not "%s"' % ftype)
+        if ftype not in ['stc', 'w', 'h5']:
+            raise ValueError('ftype must be "stc", "w" or "h5", not "%s"' %
+                             ftype)
 
         if ftype == 'stc':
             logger.info('Writing STC to disk...')
@@ -1745,6 +1754,15 @@ class VolSourceEstimate(_BaseSourceEstimate):
             if not (fname.endswith('-vl.w') or fname.endswith('-vol.w')):
                 fname += '-vl.w'
             _write_w(fname, vertices=self.vertices, data=self.data)
+        elif ftype == 'h5':
+            if not fname.endswith('.h5'):
+                fname += '-stc.h5'
+            write_hdf5(fname,
+                       dict(vertices=self.vertices, data=self.data,
+                            tmin=self.tmin, tstep=self.tstep,
+                            subject=self.subject, src_type='volume'),
+                       title='mnepython',
+                       overwrite=True)
 
         logger.info('[done]')
 
@@ -1817,7 +1835,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
         s += ", tmin : %s (ms)" % (1e3 * self.tmin)
         s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
         s += ", tstep : %s (ms)" % (1e3 * self.tstep)
-        s += ", data size : %s x %s" % self.shape
+        s += ", data size : %s" % ' x '.join(map(str, self.shape))
         return "<VolSourceEstimate  |  %s>" % s
 
     def get_peak(self, tmin=None, tmax=None, mode='abs',
@@ -1959,7 +1977,7 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
                               self.subject, self.verbose)
 
     @copy_function_doc_to_method_doc(plot_vector_source_estimates)
-    def plot(self, subject=None, hemi='lh', colormap='auto', time_label='auto',
+    def plot(self, subject=None, hemi='lh', colormap='hot', time_label='auto',
              smoothing_steps=10, transparent=None, brain_alpha=0.4,
              overlay_alpha=None, vector_alpha=1.0, scale_factor=None,
              time_viewer=False, subjects_dir=None, figure=None, views='lat',
@@ -2135,6 +2153,39 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                                      subjects_dir=subjects_dir, figure=figure,
                                      views=views, colorbar=colorbar, clim=clim)
 
+    @verbose
+    def save(self, fname, ftype='h5', verbose=None):
+        """Save the source estimates to a file.
+
+        Parameters
+        ----------
+        fname : string
+            The stem of the file name. The file names used for surface source
+            spaces are obtained by adding "-lh.stc" and "-rh.stc" (or "-lh.w"
+            and "-rh.w") to the stem provided, for the left and the right
+            hemisphere, respectively.
+        ftype : string
+            File format to use. Allowed values are "stc" (default), "w",
+            and "h5". The "w" format only supports a single time point.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
+        """
+        if ftype != 'h5':
+            raise ValueError('MixedSourceEstimate objects can only be '
+                             'written as HDF5 files.')
+
+        if not fname.endswith('.h5'):
+            fname += '-stc.h5'
+
+        write_hdf5(fname,
+                   dict(vertices=self.vertices, data=self.data,
+                        tmin=self.tmin, tstep=self.tstep,
+                        subject=self.subject, src_type='mixed'),
+                   title='mnepython',
+                   overwrite=True)
+        logger.info('[done]')
 
 ###############################################################################
 # Morphing

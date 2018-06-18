@@ -24,7 +24,7 @@ from scipy import linalg
 from ..defaults import DEFAULTS
 from ..externals.six import BytesIO, string_types, advance_iterator
 from ..fixes import einsum
-from ..io import _loc_to_coil_trans, Info
+from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials
@@ -39,7 +39,7 @@ from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
                           invert_transform, Transform)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      _import_mlab, SilenceStdout, has_nibabel, check_version,
-                     _ensure_int)
+                     _ensure_int, _validate_type)
 from .utils import (mne_analyze_colormap, _prepare_trellis, COLORS, plt_show,
                     tight_layout, figure_nobar, _check_time_unit)
 from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
@@ -707,15 +707,13 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         raise ValueError('eeg must only contain "original" and '
                          '"projected", got %s' % (eeg,))
 
-    if not isinstance(info, Info):
-        raise TypeError('info must be an instance of Info, got %s'
-                        % type(info))
+    _validate_type(info, "info")
 
     if isinstance(surfaces, string_types):
         surfaces = [surfaces]
     surfaces = list(surfaces)
-    if not all(isinstance(s, string_types) for s in surfaces):
-        raise TypeError('all entries in surfaces must be strings')
+    for s in surfaces:
+        _validate_type(s, "str", "all entries in surfaces")
 
     is_sphere = False
     if isinstance(bem, ConductorModel) and bem['is_sphere']:
@@ -767,8 +765,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
             raise exp
     elif trans is None:
         trans = Transform('head', 'mri')
-    elif not isinstance(trans, dict):
-        raise TypeError('trans must be str, dict, or None')
+    else:
+        _validate_type(trans, dict, "str, dict, or None")
     head_mri_t = _ensure_trans(trans, 'head', 'mri')
     dev_head_t = info['dev_head_t']
     del trans
@@ -1245,7 +1243,10 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
     # Based on type of limits specified, get cmap control points
     if colormap == 'auto':
         if clim == 'auto':
-            colormap = 'mne' if (stc_data < 0).any() else 'hot'
+            if allow_pos_lims and (stc_data < 0).any():
+                colormap = 'mne'
+            else:
+                colormap = 'hot'
         else:
             if 'lims' in clim:
                 colormap = 'hot'
@@ -1256,11 +1257,12 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
         ctrl_pts = np.percentile(np.abs(stc_data), [96, 97.5, 99.95])
     elif isinstance(clim, dict):
         # Get appropriate key for clim if it's a dict
-        limit_key = ['lims', 'pos_lims'][colormap in ('mne', 'mne_analyze')]
-        if colormap != 'auto' and limit_key not in clim.keys():
-            raise KeyError('"pos_lims" must be used with "mne" colormap')
         if 'pos_lims' in clim and not allow_pos_lims:
-            raise ValueError('Cannot use pos_lims for clim')
+            raise ValueError('Cannot use "pos_lims" for clim, use "lims" '
+                             'instead')
+        limit_key = ['lims', 'pos_lims'][colormap in ('mne', 'mne_analyze')]
+        if limit_key not in clim.keys():
+            raise KeyError('"pos_lims" must be used with "mne" colormap')
         clim['kind'] = clim.get('kind', 'percent')
         if clim['kind'] == 'percent':
             ctrl_pts = np.percentile(np.abs(stc_data),
@@ -1490,7 +1492,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
 
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
-                          colormap='hot', time_label='auto',
+                          colormap='auto', time_label='auto',
                           smoothing_steps=10, transparent=None, alpha=1.0,
                           time_viewer=False, subjects_dir=None, figure=None,
                           views='lat', colorbar=True, clim='auto',
@@ -1605,8 +1607,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     """  # noqa: E501
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
-    if not isinstance(stc, SourceEstimate):
-        raise ValueError('stc has to be a surface source estimate')
+    _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
@@ -1647,8 +1648,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             figure = [mayavi.mlab.figure(figure, size=size_)]
         elif not isinstance(figure, (list, tuple)):
             figure = [figure]
-        if not all(isinstance(f, mayavi.core.scene.Scene) for f in figure):
-            raise TypeError('figure must be a mayavi scene or list of scenes')
+        for f in figure:
+            _validate_type(f, mayavi.core.scene.Scene, "figure",
+                           "mayavi scene or list of scenes")
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     # convert control points to locations in colormap
@@ -1662,7 +1664,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
     with warnings.catch_warnings(record=True):  # traits warnings
-        brain = Brain(subject, hemi=hemi, surf=surface, curv=True,
+        brain = Brain(subject, hemi=hemi, surf=surface,
                       title=title, cortex=cortex, size=size,
                       background=background, foreground=foreground,
                       figure=figure, subjects_dir=subjects_dir,
@@ -1715,7 +1717,7 @@ def _get_ps_kwargs(initial_time, require='0.6'):
     return initial_time, ad_kwargs, sd_kwargs
 
 
-def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='auto',
+def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  time_label='auto', smoothing_steps=10,
                                  transparent=None, brain_alpha=0.4,
                                  overlay_alpha=None, vector_alpha=1.0,
@@ -1831,8 +1833,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='auto',
     from surfer import Brain, TimeViewer
     from ..source_estimate import VectorSourceEstimate
 
-    if not isinstance(stc, VectorSourceEstimate):
-        raise ValueError('stc has to be a vector source estimate')
+    _validate_type(stc, VectorSourceEstimate, "stc", "Vector Source Estimate")
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
@@ -1861,7 +1862,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='auto',
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
     with warnings.catch_warnings(record=True):  # traits warnings
-        brain = Brain(subject, hemi=hemi, surf='white', curv=True,
+        brain = Brain(subject, hemi=hemi, surf='white',
                       title=title, cortex=cortex, size=size,
                       background=background, foreground=foreground,
                       figure=figure, subjects_dir=subjects_dir,
@@ -2201,8 +2202,8 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
             raise ValueError('All electrode positions must be length 3')
         ch_names, xyz = zip(*[(ich, ixyz) for ich, ixyz in montage.items()])
     else:
-        raise ValueError('montage must be an instance of `DigMontage`, `Info`,'
-                         ' or `dict`')
+        raise TypeError('montage must be an instance of `DigMontage`, `Info`,'
+                        ' or `dict`')
 
     xyz = np.vstack(xyz)
     xy = _3d_to_2d(fig, xyz)
@@ -2221,9 +2222,7 @@ def _3d_to_2d(fig, xyz):
     """Convert 3d points to a 2d perspective using a Mayavi Scene."""
     from mayavi.core.scene import Scene
 
-    if not isinstance(fig, Scene):
-        raise TypeError('fig must be an instance of Scene, '
-                        'found type %s' % type(fig))
+    _validate_type(fig, Scene, "fig", "Scene")
     xyz = np.column_stack([xyz, np.ones(xyz.shape[0])])
 
     # Transform points into 'unnormalized' view coordinates
@@ -2250,9 +2249,8 @@ def _get_world_to_view_matrix(scene):
     from mayavi.core.ui.mayavi_scene import MayaviScene
     from tvtk.pyface.tvtk_scene import TVTKScene
 
-    if not isinstance(scene, (MayaviScene, TVTKScene)):
-        raise TypeError('scene must be an instance of TVTKScene/MayaviScene, '
-                        'found type %s' % type(scene))
+    _validate_type(scene, (MayaviScene, TVTKScene), "scene",
+                   "TVTKScene/MayaviScene")
     cam = scene.camera
 
     # The VTK method needs the aspect ratio and near and far
@@ -2277,9 +2275,8 @@ def _get_view_to_display_matrix(scene):
     from mayavi.core.ui.mayavi_scene import MayaviScene
     from tvtk.pyface.tvtk_scene import TVTKScene
 
-    if not isinstance(scene, (MayaviScene, TVTKScene)):
-        raise TypeError('scene must be an instance of TVTKScene/MayaviScene, '
-                        'found type %s' % type(scene))
+    _validate_type(scene, (MayaviScene, TVTKScene), "scene",
+                   "TVTKScene/MayaviScene")
 
     # normalized view coordinates have the origin in the middle of the space
     # so we need to scale by width and height of the display window and shift
@@ -2351,10 +2348,8 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     if ax is None:
         fig = plt.figure()
         ax = Axes3D(fig)
-    elif not isinstance(ax, Axes3D):
-        raise ValueError('ax must be an instance of Axes3D. '
-                         'Got %s.' % type(ax))
     else:
+        _validate_type(ax, Axes3D, "ax", "Axes3D")
         fig = ax.get_figure()
 
     gridx, gridy = np.meshgrid(np.linspace(-dd, dd, dims),
@@ -2398,15 +2393,15 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
         colors[idx] = 'r'
         size = np.repeat(5, len(points))
         size[idx] = 20
-        visibles = range(len(points))
+        visible = np.arange(len(points))
     else:
         colors = 'r'
         size = 20
-        visibles = idx
+        visible = idx
 
     offset = np.min(gridx)
-    ax.scatter(xs=xyz[visibles, 0], ys=xyz[visibles, 1],
-               zs=xyz[visibles, 2], zorder=2, s=size, facecolor=colors)
+    ax.scatter(xs=xyz[visible, 0], ys=xyz[visible, 1],
+               zs=xyz[visible, 2], zorder=2, s=size, facecolor=colors)
     xx = np.linspace(offset, xyz[idx, 0], xidx)
     yy = np.linspace(offset, xyz[idx, 1], yidx)
     zz = np.linspace(offset, xyz[idx, 2], zidx)

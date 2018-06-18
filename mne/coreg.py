@@ -828,7 +828,7 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
                            name=bem_name)
 
     if os.path.exists(dst):
-        raise IOError("File alredy exists: %s" % dst)
+        raise IOError("File already exists: %s" % dst)
 
     surfs = read_bem_surfaces(src)
     for surf in surfs:
@@ -855,7 +855,7 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
         in the "fsaverage/label/aparc" directory). With None, scale all labels.
     overwrite : bool
         Overwrite any label file that already exists for subject_to (otherwise
-        existsing labels are skipped).
+        existing labels are skipped).
     subject_from : None | str
         Name of the original MRI subject (the brain that was scaled to create
         subject_to). If None, the value is read from subject_to's cfg file.

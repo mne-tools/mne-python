@@ -117,7 +117,10 @@ def _compute_eloreta_inv(G, W, n_orient, n_nzero, lambda2, force_equal):
         W_inv[:] = 1. / W
     else:
         for ii in range(n_src):
-            W_inv[ii] = linalg.pinv2(W[ii])
+            # Here we use a single-precision-suitable `rcond` (given our
+            # 3x3 matrix size) because the inv could be saved in single
+            # precision.
+            W_inv[ii] = linalg.pinv2(W[ii], rcond=1e-7)
 
     # Weight the gain matrix
     W_inv_Gt = np.empty_like(G).T
@@ -138,7 +141,7 @@ def _sqrtm_sym(C):
     """Compute the square root of a symmetric matrix."""
     # Same as linalg.sqrtm(C) but faster, also yields the eigenvalues
     s, u = linalg.eigh(C)
-    mask = np.abs(s) > s.max() * 1e-12
+    mask = s > s.max() * 1e-7
     u = u[:, mask]
     s = np.sqrt(s[mask])
     a = np.dot(s * u, u.T)

@@ -371,58 +371,60 @@ def test_brainvision_vectorized_data():
 def test_events():
     """Test reading and modifying events."""
     tempdir = _TempDir()
+    # Note: BrainVision event offsets are 1-based, mne offsets are 0-based.
+    # So in all tests below, the "onset" is 1 less than what's in the file
 
-    # check that events are read and stim channel is synthesized correcly
+    # check that events are read and stim channel is synthesized correctly
     raw = read_raw_brainvision(vhdr_path, eog=eog, event_id=event_id)
     events = raw._get_brainvision_events()
     events = events[events[:, 2] != event_id['Sync On']]
-    assert_array_equal(events, [[487, 1, 253],
-                                [497, 1, 255],
-                                [1770, 1, 254],
-                                [1780, 1, 255],
-                                [3253, 1, 254],
-                                [3263, 1, 255],
-                                [4936, 1, 253],
-                                [4946, 1, 255],
-                                [6000, 1, 255],
-                                [6620, 1, 254],
-                                [6630, 1, 255]])
+    assert_array_equal(events, [[486, 0, 253],
+                                [496, 1, 255],
+                                [1769, 1, 254],
+                                [1779, 1, 255],
+                                [3252, 1, 254],
+                                [3262, 1, 255],
+                                [4935, 1, 253],
+                                [4945, 1, 255],
+                                [5999, 1, 255],
+                                [6619, 1, 254],
+                                [6629, 1, 255]])
 
-    # check that events are read and stim channel is synthesized correcly and
+    # check that events are read and stim channel is synthesized correctly and
     # response triggers are shifted like they're supposed to be.
     raw = read_raw_brainvision(vhdr_path, eog=eog,
                                response_trig_shift=1000, event_id=event_id)
     events = raw._get_brainvision_events()
     events = events[events[:, 2] != event_id['Sync On']]
-    assert_array_equal(events, [[487, 1, 253],
-                                [497, 1, 255],
-                                [1770, 1, 254],
-                                [1780, 1, 255],
-                                [3253, 1, 254],
-                                [3263, 1, 255],
-                                [4936, 1, 253],
-                                [4946, 1, 255],
-                                [6000, 1, 1255],
-                                [6620, 1, 254],
-                                [6630, 1, 255]])
+    assert_array_equal(events, [[486, 0, 253],
+                                [496, 1, 255],
+                                [1769, 1, 254],
+                                [1779, 1, 255],
+                                [3252, 1, 254],
+                                [3262, 1, 255],
+                                [4935, 1, 253],
+                                [4945, 1, 255],
+                                [5999, 1, 1255],
+                                [6619, 1, 254],
+                                [6629, 1, 255]])
 
-    # check that events are read and stim channel is synthesized correcly and
+    # check that events are read and stim channel is synthesized correctly and
     # response triggers are ignored.
     with warnings.catch_warnings(record=True):  # ignored events
         raw = read_raw_brainvision(vhdr_path, eog=eog,
                                    response_trig_shift=None)
     events = raw._get_brainvision_events()
     events = events[events[:, 2] != event_id['Sync On']]
-    assert_array_equal(events, [[487, 1, 253],
-                                [497, 1, 255],
-                                [1770, 1, 254],
-                                [1780, 1, 255],
-                                [3253, 1, 254],
-                                [3263, 1, 255],
-                                [4936, 1, 253],
-                                [4946, 1, 255],
-                                [6620, 1, 254],
-                                [6630, 1, 255]])
+    assert_array_equal(events, [[486, 0, 253],
+                                [496, 1, 255],
+                                [1769, 1, 254],
+                                [1779, 1, 255],
+                                [3252, 1, 254],
+                                [3262, 1, 255],
+                                [4935, 1, 253],
+                                [4945, 1, 255],
+                                [6619, 1, 254],
+                                [6629, 1, 255]])
 
     # check that events are read properly when event_id is specified for
     # auxiliary events
@@ -431,22 +433,35 @@ def test_events():
                                    response_trig_shift=None,
                                    event_id=event_id)
     events = raw._get_brainvision_events()
-    assert_array_equal(events, [[487, 1, 253],
-                                [497, 1, 255],
-                                [1770, 1, 254],
-                                [1780, 1, 255],
-                                [3253, 1, 254],
-                                [3263, 1, 255],
-                                [4936, 1, 253],
-                                [4946, 1, 255],
-                                [6620, 1, 254],
-                                [6630, 1, 255],
-                                [7630, 1, 5]])
+    assert_array_equal(events, [[486, 0, 253],
+                                [496, 1, 255],
+                                [1769, 1, 254],
+                                [1779, 1, 255],
+                                [3252, 1, 254],
+                                [3262, 1, 255],
+                                [4935, 1, 253],
+                                [4945, 1, 255],
+                                [6619, 1, 254],
+                                [6629, 1, 255],
+                                [7629, 1, 5]])
 
     assert_raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
                   preload=True, response_trig_shift=0.1)
     assert_raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
                   preload=True, response_trig_shift=np.nan)
+
+    # to handle the min duration = 1 of stim trig (re)construction ...
+    events = np.array([[486, 1, 253],
+                       [496, 1, 255],
+                       [1769, 1, 254],
+                       [1779, 1, 255],
+                       [3252, 1, 254],
+                       [3262, 1, 255],
+                       [4935, 1, 253],
+                       [4945, 1, 255],
+                       [6619, 1, 254],
+                       [6629, 1, 255],
+                       [7629, 1, 5]])
 
     # Test that both response_trig_shit and event_id can be set
     read_raw_brainvision(vhdr_path, eog=eog, preload=False,

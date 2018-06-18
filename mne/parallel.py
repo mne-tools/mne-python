@@ -37,7 +37,7 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto',
         will print parallel status, others will not.
     max_nbytes : int, str, or None
         Threshold on the minimum size of arrays passed to the workers that
-        triggers automated memmory mapping. Can be an int in Bytes,
+        triggers automated memory mapping. Can be an int in Bytes,
         or a human-readable string, e.g., '1M' for 1 megabyte.
         Use None to disable memmaping of large arrays. Use 'auto' to
         use the value set using mne.set_memmap_min_size.

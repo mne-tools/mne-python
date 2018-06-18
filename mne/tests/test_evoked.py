@@ -494,7 +494,7 @@ def test_arithmetic():
     assert_equal(gave.data.shape, [len(ch_names), evoked1.data.shape[1]])
     assert_equal(ch_names, gave.ch_names)
     assert_equal(gave.nave, 2)
-    assert_raises(ValueError, grand_average, [1, evoked1])
+    assert_raises(TypeError, grand_average, [1, evoked1])
 
 
 def test_array_epochs():
@@ -581,7 +581,7 @@ def test_add_channels():
     assert_raises(RuntimeError, evoked_meg.add_channels, [evoked_badsf])
     assert_raises(AssertionError, evoked_meg.add_channels, [evoked_eeg])
     assert_raises(ValueError, evoked_meg.add_channels, [evoked_meg])
-    assert_raises(AssertionError, evoked_meg.add_channels, evoked_badsf)
+    assert_raises(TypeError, evoked_meg.add_channels, evoked_badsf)
 
 
 def test_evoked_baseline():

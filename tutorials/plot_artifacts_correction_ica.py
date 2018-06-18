@@ -5,7 +5,7 @@ Artifact Correction with ICA
 ICA finds directions in the feature space
 corresponding to projections with high non-Gaussianity. We thus obtain
 a decomposition into independent components, and the artifact's contribution
-is localized in only a small number of components.
+is typically localized in only a small number of components.
 These components have to be correctly identified and removed.
 
 If EOG or ECG recordings are available, they can be used in ICA to
@@ -213,7 +213,7 @@ ica.plot_properties(ecg_epochs, picks=ecg_inds, psd_args={'fmax': 35.})
 from mne.preprocessing.ica import corrmap  # noqa
 
 ###############################################################################
-# The idea behind corrmap is that artefact patterns are similar across subjects
+# The idea behind corrmap is that artifact patterns are similar across subjects
 # and can thus be identified by correlating the different patterns resulting
 # from each solution with a template. The procedure is therefore
 # semi-automatic. :func:`mne.preprocessing.corrmap` hence takes a list of

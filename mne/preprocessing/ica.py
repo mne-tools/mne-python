@@ -657,7 +657,6 @@ class ICA(ContainsMixin):
             data = raw[picks, start:stop][0]
 
         # remove comp matrices
-        assert(raw.compensation_grade == self.compensation_grade)
         info = raw.info.copy()
         if info['comps']:
             info['comps'] = []
@@ -680,7 +679,6 @@ class ICA(ContainsMixin):
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
         # remove comp matrices
-        assert(epochs.compensation_grade == self.compensation_grade)
         info = epochs.info.copy()
         if info['comps']:
             info['comps'] = []
@@ -711,7 +709,6 @@ class ICA(ContainsMixin):
                                                  len(picks)))
 
         # remove comp matrices
-        assert(evoked.compensation_grade == self.compensation_grade)
         info = evoked.info.copy()
         if info['comps']:
             info['comps'] = []
@@ -762,13 +759,16 @@ class ICA(ContainsMixin):
             The ICA sources time series.
         """
         if isinstance(inst, BaseRaw):
-            _check_compensation_grade(self, inst, 'ICA', 'Raw')
+            _check_compensation_grade(self, inst, 'ICA', 'Raw',
+                                      ch_names=self.ch_names)
             sources = self._sources_as_raw(inst, add_channels, start, stop)
         elif isinstance(inst, BaseEpochs):
-            _check_compensation_grade(self, inst, 'ICA', 'Epochs')
+            _check_compensation_grade(self, inst, 'ICA', 'Epochs',
+                                      ch_names=self.ch_names)
             sources = self._sources_as_epochs(inst, add_channels, False)
         elif isinstance(inst, Evoked):
-            _check_compensation_grade(self, inst, 'ICA', 'Evoked')
+            _check_compensation_grade(self, inst, 'ICA', 'Evoked',
+                                      ch_names=self.ch_names)
             sources = self._sources_as_evoked(inst, add_channels)
         else:
             raise ValueError('Data input must be of Raw, Epochs or Evoked '
@@ -925,14 +925,17 @@ class ICA(ContainsMixin):
             scores for each source as returned from score_func
         """
         if isinstance(inst, BaseRaw):
-            _check_compensation_grade(self, inst, 'ICA', 'Raw')
+            _check_compensation_grade(self, inst, 'ICA', 'Raw',
+                                      ch_names=self.ch_names)
             sources = self._transform_raw(inst, start, stop,
                                           reject_by_annotation)
         elif isinstance(inst, BaseEpochs):
-            _check_compensation_grade(self, inst, 'ICA', 'Epochs')
+            _check_compensation_grade(self, inst, 'ICA', 'Epochs',
+                                      ch_names=self.ch_names)
             sources = self._transform_epochs(inst, concatenate=True)
         elif isinstance(inst, Evoked):
-            _check_compensation_grade(self, inst, 'ICA', 'Evoked')
+            _check_compensation_grade(self, inst, 'ICA', 'Evoked',
+                                      ch_names=self.ch_names)
             sources = self._transform_evoked(inst)
         else:
             raise ValueError('Data input must be of Raw, Epochs or Evoked '
@@ -1240,18 +1243,21 @@ class ICA(ContainsMixin):
             The processed data.
         """
         if isinstance(inst, BaseRaw):
-            _check_compensation_grade(self, inst, 'ICA', 'Raw')
+            _check_compensation_grade(self, inst, 'ICA', 'Raw',
+                                      ch_names=self.ch_names)
             out = self._apply_raw(raw=inst, include=include,
                                   exclude=exclude,
                                   n_pca_components=n_pca_components,
                                   start=start, stop=stop)
         elif isinstance(inst, BaseEpochs):
-            _check_compensation_grade(self, inst, 'ICA', 'Epochs')
+            _check_compensation_grade(self, inst, 'ICA', 'Epochs',
+                                      ch_names=self.ch_names)
             out = self._apply_epochs(epochs=inst, include=include,
                                      exclude=exclude,
                                      n_pca_components=n_pca_components)
         elif isinstance(inst, Evoked):
-            _check_compensation_grade(self, inst, 'ICA', 'Evoked')
+            _check_compensation_grade(self, inst, 'ICA', 'Evoked',
+                                      ch_names=self.ch_names)
             out = self._apply_evoked(evoked=inst, include=include,
                                      exclude=exclude,
                                      n_pca_components=n_pca_components)
@@ -1777,8 +1783,8 @@ def _ica_explained_variance(ica, inst, normalize=False):
             (n_chan, n_epochs * n_samp))
 
     n_chan, n_samp = source_data.shape
-    var = np.sum(ica.mixing_matrix_**2, axis=0) * np.sum(
-        source_data**2, axis=1) / (n_chan * n_samp - 1)
+    var = np.sum(ica.mixing_matrix_ ** 2, axis=0) * np.sum(
+        source_data ** 2, axis=1) / (n_chan * n_samp - 1)
     if normalize:
         var /= var.sum()
     return var

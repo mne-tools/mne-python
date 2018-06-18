@@ -133,6 +133,7 @@ def test_plot_evoked():
     assert_raises(ValueError, evoked.plot, gfp='foo', time_unit='s')
 
     evoked.plot_image(proj=True, time_unit='ms')
+
     # test mask
     evoked.plot_image(picks=[1, 2], mask=evoked.data > 0, time_unit='s')
     evoked.plot_image(picks=[1, 2], mask_cmap=None, colorbar=False,
@@ -154,6 +155,22 @@ def test_plot_evoked():
     assert_raises(ValueError, evoked.plot_image, picks=[0, 0],
                   time_unit='s')  # duplicates
 
+    ch_names = ["MEG 1131", "MEG 0111"]
+    picks = [evoked.ch_names.index(ch) for ch in ch_names]
+    evoked.plot_image(show_names="all", time_unit='s', picks=picks)
+    yticklabels = plt.gca().get_yticklabels()
+    for tick_target, tick_observed in zip(ch_names, yticklabels):
+        assert_true(tick_target in str(tick_observed))
+    evoked.plot_image(show_names=True, time_unit='s')
+
+    # test groupby
+    evoked.plot_image(group_by=dict(sel=[0, 7]), axes=dict(sel=plt.axes()))
+    plt.close('all')
+    for group_by, axes in (("something", dict()), (dict(), "something")):
+        assert_raises(ValueError, evoked.plot_image, group_by=group_by,
+                      axes=axes)
+
+    # test plot_topo
     evoked.plot_topo()  # should auto-find layout
     _line_plot_onselect(0, 200, ['mag', 'grad'], evoked.info, evoked.data,
                         evoked.times)
@@ -237,7 +254,7 @@ def test_plot_evoked():
     assert_raises(TypeError, plot_compare_evokeds, evoked, vlines='x')
     plt.close('all')
     # `evoked` must contain Evokeds
-    assert_raises(ValueError, plot_compare_evokeds, [[1, 2], [3, 4]])
+    assert_raises(TypeError, plot_compare_evokeds, [[1, 2], [3, 4]])
     # `ci` must be float or None
     assert_raises(TypeError, plot_compare_evokeds, contrast, ci='err')
     # test all-positive ylim

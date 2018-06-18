@@ -976,7 +976,7 @@ def write_label(filename, label, verbose=None):
 
 
 def _prep_label_split(label, subject=None, subjects_dir=None):
-    """Get label and subject information prior to label spliting."""
+    """Get label and subject information prior to label splitting."""
     # If necessary, find the label
     if isinstance(label, BiHemiLabel):
         raise TypeError("Can only split labels restricted to one hemisphere.")

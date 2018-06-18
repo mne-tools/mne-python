@@ -501,8 +501,7 @@ def test_event_ordering():
     for ii, eve in enumerate([events, events2]):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            Epochs(raw, eve, event_id, tmin, tmax,
-                   reject=reject, flat=flat)
+            Epochs(raw, eve, event_id, tmin, tmax, reject=reject, flat=flat)
             assert_equal(len(w), ii)
             if ii > 0:
                 assert_true('chronologically' in '%s' % w[-1].message)
@@ -1213,7 +1212,7 @@ def test_crop():
 
     epochs = Epochs(raw, events[:5], event_id, -1, 1,
                     picks=picks, preload=True, reject=reject, flat=flat)
-    # We include nearest sample, so actually a bit beyound our bounds here
+    # We include nearest sample, so actually a bit beyond our bounds here
     assert_allclose(epochs.tmin, -1.0006410259015925, rtol=1e-12)
     assert_allclose(epochs.tmax, 1.0006410259015925, rtol=1e-12)
     epochs_crop = epochs.copy().crop(-1, 1)
@@ -1378,11 +1377,11 @@ def test_subtract_evoked():
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks)
 
-    # make sure subraction fails if data channels are missing
+    # make sure subtraction fails if data channels are missing
     assert_raises(ValueError, epochs.subtract_evoked,
                   epochs.average(picks[:5]))
 
-    # do the subraction using the default argument
+    # do the subtraction using the default argument
     epochs.subtract_evoked()
 
     # apply SSP now
@@ -1837,7 +1836,7 @@ def test_contains():
         assert_true(not any(o in epochs for o in others))
 
     assert_raises(ValueError, epochs.__contains__, 'foo')
-    assert_raises(ValueError, epochs.__contains__, 1)
+    assert_raises(TypeError, epochs.__contains__, 1)
 
 
 def test_drop_channels_mixin():
@@ -2190,11 +2189,12 @@ def test_add_channels():
     epoch_badsf.info['sfreq'] = 3.1415927
     epoch_eeg = epoch_eeg.crop(-.1, .1)
 
-    assert_raises(AssertionError, epoch_meg.add_channels, [epoch_nopre])
+    epoch_meg.load_data()
+    assert_raises(RuntimeError, epoch_meg.add_channels, [epoch_nopre])
     assert_raises(RuntimeError, epoch_meg.add_channels, [epoch_badsf])
     assert_raises(AssertionError, epoch_meg.add_channels, [epoch_eeg])
     assert_raises(ValueError, epoch_meg.add_channels, [epoch_meg])
-    assert_raises(AssertionError, epoch_meg.add_channels, epoch_badsf)
+    assert_raises(TypeError, epoch_meg.add_channels, epoch_badsf)
 
 
 def test_seeg_ecog():

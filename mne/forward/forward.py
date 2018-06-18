@@ -40,7 +40,8 @@ from ..source_estimate import VolSourceEstimate
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
-                     run_subprocess, check_fname, logger, verbose)
+                     run_subprocess, check_fname, logger, verbose,
+                     _validate_type)
 from ..label import Label
 
 
@@ -410,14 +411,14 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
     Forward solutions, which are derived from an original forward solution with
     free orientation, are always stored on disk as forward solution with free
     orientation in X/Y/Z RAS coordinates. To apply any transformation to the
-    forward operator (surface orientation, fixed orienation) please apply
+    forward operator (surface orientation, fixed orientation) please apply
     :func:`convert_forward_solution` after reading the forward solution with
     :func:`read_forward_solution`.
 
     Forward solutions, which are derived from an original forward solution with
     fixed orientation, are stored on disk as forward solution with fixed
     surface-based orientations. Please note that the transformation to
-    surface-based, fixed orienation cannot be reverted after loading the
+    surface-based, fixed orientation cannot be reverted after loading the
     forward solution with :func:`read_forward_solution`.
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz',
@@ -572,7 +573,7 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
 
 @verbose
 def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
-                             copy=True, use_cps=None, verbose=None):
+                             copy=True, use_cps=True, verbose=None):
     """Convert forward solution between different source orientations.
 
     Parameters
@@ -586,7 +587,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         Force fixed source orientation mode?
     copy : bool
         Whether to return a new instance or modify in place.
-    use_cps : None | bool (default None)
+    use_cps : bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations. Only used when surf_ori and/or force_fixed are True.
     verbose : bool, str, int, or None
@@ -598,18 +599,6 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     fwd : Forward
         The modified forward solution.
     """
-    if use_cps is None:
-        if force_fixed:
-            use_cps = False
-            warn('The default settings controlling the application of '
-                 'cortical patch statistics (cps) in the creation of forward '
-                 'operators with fixed orientation will be modified in 0.16. '
-                 'The cps (if available) will then be applied by default. '
-                 'To avoid this warning, set use_cps explicitly to False (the '
-                 'current default) or True (the new default).', FutureWarning)
-        else:
-            use_cps = True
-
     fwd = fwd.copy() if copy else fwd
 
     if force_fixed is True:
@@ -623,7 +612,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         force_fixed = False
 
     if surf_ori:
-        if use_cps is True:
+        if use_cps:
             if fwd['src'][0].get('patch_inds') is not None:
                 use_ave_nn = True
                 logger.info('    Average patch normals will be employed in '
@@ -758,14 +747,14 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     Forward solutions, which are derived from an original forward solution with
     free orientation, are always stored on disk as forward solution with free
     orientation in X/Y/Z RAS coordinates. Transformations (surface orientation,
-    fixed orienation) will be reverted. To reapply any transformation to the
+    fixed orientation) will be reverted. To reapply any transformation to the
     forward operator please apply :func:`convert_forward_solution` after
     reading the forward solution with :func:`read_forward_solution`.
 
     Forward solutions, which are derived from an original forward solution with
     fixed orientation, are stored on disk as forward solution with fixed
     surface-based orientations. Please note that the transformation to
-    surface-based, fixed orienation cannot be reverted after loading the
+    surface-based, fixed orientation cannot be reverted after loading the
     forward solution with :func:`read_forward_solution`.
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz',
@@ -1169,7 +1158,7 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
 
 
 @verbose
-def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=None,
+def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
                   verbose=None):
     """Project source space currents to sensor space using a forward operator.
 
@@ -1195,7 +1184,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=None,
         Index of first time sample (index not time is seconds).
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
-    use_cps : None | bool (default None)
+    use_cps : bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations when converting to fixed orientation (if necessary).
 
@@ -1383,7 +1372,6 @@ def restrict_forward_to_label(fwd, labels):
     --------
     restrict_forward_to_stc
     """
-    message = 'labels must be instance of Label or a list of Label.'
     vertices = [np.array([], int), np.array([], int)]
 
     if not isinstance(labels, list):
@@ -1391,8 +1379,7 @@ def restrict_forward_to_label(fwd, labels):
 
     # Get vertices separately of each hemisphere from all label
     for label in labels:
-        if not isinstance(label, Label):
-            raise TypeError(message + ' Instead received %s' % type(label))
+        _validate_type(label, Label, "label", "Label or list")
         i = 0 if label.hemi == 'lh' else 1
         vertices[i] = np.append(vertices[i], label.vertices)
     # Remove duplicates and sort
@@ -1556,9 +1543,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     if fname is None:
         fname = op.join(temp_dir, 'temp-fwd.fif')
     _check_fname(fname, overwrite)
-
-    if not isinstance(subject, string_types):
-        raise ValueError('subject must be a string')
+    _validate_type(subject, "str", "subject")
 
     # check for meas to exist as string, or try to make evoked
     if isinstance(meas, string_types):
@@ -1580,8 +1565,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         raise ValueError('Either trans or mri must be specified')
 
     if trans is not None:
-        if not isinstance(trans, string_types):
-            raise ValueError('trans must be a string')
+        _validate_type(trans, "str", "trans")
         if not op.isfile(trans):
             raise IOError('trans file "%s" not found' % trans)
     if mri is not None:
@@ -1619,15 +1603,9 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
             mindist = ['--mindist', '%g' % mindist]
 
     # src, spacing, bem
-    if src is not None:
-        if not isinstance(src, string_types):
-            raise ValueError('src must be a string or None')
-    if spacing is not None:
-        if not isinstance(spacing, string_types):
-            raise ValueError('spacing must be a string or None')
-    if bem is not None:
-        if not isinstance(bem, string_types):
-            raise ValueError('bem must be a string or None')
+    for element, name in zip((src, spacing, bem), ("src", "spacing", "bem")):
+        if element is not None:
+            _validate_type(element, "str", name, "string or None")
 
     # put together the actual call
     cmd = ['mne_do_forward_solution',
@@ -1705,8 +1683,7 @@ def average_forward_solutions(fwds, weights=None):
         The averaged forward solution.
     """
     # check for fwds being a list
-    if not isinstance(fwds, list):
-        raise TypeError('fwds must be a list')
+    _validate_type(fwds, list, "fwds")
     if not len(fwds) > 0:
         raise ValueError('fwds must not be empty')
 
@@ -1726,8 +1703,7 @@ def average_forward_solutions(fwds, weights=None):
     # check our forward solutions
     for fwd in fwds:
         # check to make sure it's a forward solution
-        if not isinstance(fwd, dict):
-            raise TypeError('Each entry in fwds must be a dict')
+        _validate_type(fwd, dict, "each entry in fwds", "dict")
         # check to make sure the dict is actually a fwd
         check_keys = ['info', 'sol_grad', 'nchan', 'src', 'source_nn', 'sol',
                       'source_rr', 'source_ori', 'surf_ori', 'coord_frame',

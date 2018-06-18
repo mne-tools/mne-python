@@ -85,7 +85,7 @@ epochs['1'].average().plot(time_unit='s')
 
 ###############################################################################
 # Let's use a sphere head geometry model and let's see the coordinate
-# alignement and the sphere location. The phantom is properly modeled by
+# alignment and the sphere location. The phantom is properly modeled by
 # a single-shell sphere with origin (0., 0., 0.).
 sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=None)
 

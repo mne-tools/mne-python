@@ -18,7 +18,7 @@ from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  pick_types_forward, make_forward_solution, EvokedArray,
                  convert_forward_solution, Covariance, combine_evoked,
-                 SourceEstimate)
+                 SourceEstimate, make_sphere_model, make_ad_hoc_cov)
 from mne.io import read_raw_fif, Info
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
@@ -322,10 +322,10 @@ def test_localization_bias():
     fwd = convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
     fwd = fwd['sol']['data']
     want = np.arange(fwd.shape[1])
-    for method, lower, upper in (('MNE', 35, 40),
-                                 ('dSPM', 45, 50),
-                                 ('sLORETA', 55, 60),
-                                 ('eLORETA', 50, 55)):
+    for method, lower, upper in (('MNE', 83, 87),
+                                 ('dSPM', 96, 98),
+                                 ('sLORETA', 100, 100),
+                                 ('eLORETA', 100, 100)):
         inv_op = apply_inverse(evoked, inv_fixed, lambda2, method).data
         loc = np.abs(np.dot(inv_op, fwd))
         # Compute the percentage of sources for which there is no localization
@@ -375,6 +375,39 @@ def test_localization_bias():
         # bias:
         perc = (want == np.argmax(loc, axis=0)).mean() * 100
         assert lower <= perc <= upper, method
+
+
+@testing.requires_testing_data
+def test_apply_inverse_sphere():
+    """Test applying an inverse with a sphere model (rank-deficient)."""
+    evoked = _get_evoked()
+    evoked.pick_channels(evoked.ch_names[:306:8])
+    evoked.info['projs'] = []
+    cov = make_ad_hoc_cov(evoked.info)
+    sphere = make_sphere_model('auto', 'auto', evoked.info)
+    fwd = read_forward_solution(fname_fwd)
+    vertices = [fwd['src'][0]['vertno'][::5],
+                fwd['src'][1]['vertno'][::5]]
+    stc = SourceEstimate(np.zeros((sum(len(v) for v in vertices), 1)),
+                         vertices, 0., 1.)
+    fwd = restrict_forward_to_stc(fwd, stc)
+    fwd = make_forward_solution(evoked.info, fwd['mri_head_t'], fwd['src'],
+                                sphere, mindist=5.)
+    evoked = EvokedArray(fwd['sol']['data'].copy(), evoked.info)
+    assert fwd['sol']['nrow'] == 39
+    assert fwd['nsource'] == 101
+    assert fwd['sol']['ncol'] == 303
+    tempdir = _TempDir()
+    temp_fname = op.join(tempdir, 'temp-inv.fif')
+    inv = make_inverse_operator(evoked.info, fwd, cov, loose=1.)
+    # This forces everything to be float32
+    write_inverse_operator(temp_fname, inv)
+    inv = read_inverse_operator(temp_fname)
+    stc = apply_inverse(evoked, inv, method='eLORETA',
+                        method_params=dict(eps=1e-3))
+    # assert zero localization bias
+    assert_array_equal(np.argmax(stc.data, axis=0),
+                       np.repeat(np.arange(101), 3))
 
 
 @pytest.mark.slowtest
@@ -606,9 +639,9 @@ def test_inverse_operator_volume():
     """
     tempdir = _TempDir()
     evoked = _get_evoked()
-    inverse_operator_vol = read_inverse_operator(fname_vol_inv)
-    assert_true(repr(inverse_operator_vol))
-    stc = apply_inverse(evoked, inverse_operator_vol, lambda2, "dSPM")
+    inv_vol = read_inverse_operator(fname_vol_inv)
+    assert_true(repr(inv_vol))
+    stc = apply_inverse(evoked, inv_vol, lambda2, 'dSPM')
     assert_true(isinstance(stc, VolSourceEstimate))
     # volume inverses don't have associated subject IDs
     assert_true(stc.subject is None)
@@ -618,6 +651,10 @@ def test_inverse_operator_volume():
     assert_true(np.all(stc.data < 35))
     assert_array_almost_equal(stc.data, stc2.data)
     assert_array_almost_equal(stc.times, stc2.times)
+    # vector source estimate
+    stc_vec = apply_inverse(evoked, inv_vol, lambda2, 'dSPM', 'vector')
+    assert_true(repr(stc_vec))
+    assert_allclose(np.linalg.norm(stc_vec.data, axis=1), stc.data)
 
 
 @pytest.mark.slowtest

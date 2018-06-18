@@ -333,6 +333,7 @@ Projections:
    equalize_channels
    rename_channels
    generate_2d_layout
+   make_1020_channel_selections
 
 :py:mod:`mne.preprocessing`:
 
@@ -706,9 +707,6 @@ Inverse Solutions
    :toctree: generated/
    :template: function.rst
 
-   lcmv
-   lcmv_epochs
-   lcmv_raw
    make_lcmv
    apply_lcmv
    apply_lcmv_epochs

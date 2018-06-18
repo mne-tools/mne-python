@@ -23,10 +23,10 @@ from ..parallel import parallel_func
 from ..utils import logger, verbose, _time_mask, check_fname, sizeof_fmt
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
-from ..io.pick import (pick_info, pick_types, _pick_data_channels,
+from ..io.pick import (pick_info, _pick_data_channels,
                        channel_type, _pick_inst, _get_channel_types)
 from ..io.meas_info import Info
-from ..utils import SizeMixin
+from ..utils import SizeMixin, _is_numeric
 from .multitaper import dpss_windows
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
                          _connection_line, _prepare_joint_axes,
@@ -668,7 +668,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         The number of jobs to run in parallel.
     picks : array-like of int | None, defaults to None
         The indices of the channels to decompose. If None, all available
-        channels are decomposed.
+        good data channels are decomposed.
     zero_mean : bool, defaults to True
         Make sure the wavelet has a mean of zero.
 
@@ -825,7 +825,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         The number of jobs to run in parallel.
     picks : array-like of int | None, defaults to None
         The indices of the channels to decompose. If None, all available
-        channels are decomposed.
+        good data channels are decomposed.
     average : bool, defaults to True
         If True average across Epochs.
 
@@ -1039,7 +1039,8 @@ class AverageTFR(_BaseTFR):
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
              cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
              axes=None, layout=None, yscale='auto', mask=None,
-             mask_alpha=0.1, combine=None, exclude=[], verbose=None):
+             mask_style=None, mask_cmap="Greys", mask_alpha=0.1, combine=None,
+             exclude=[], verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         Parameters
@@ -1083,10 +1084,10 @@ class AverageTFR(_BaseTFR):
             The last frequency to display. If None the last frequency
             available is used.
         vmin : float | None
-            The mininum value an the color scale. If vmin is None, the data
+            The minimum value an the color scale. If vmin is None, the data
             minimum value is used.
         vmax : float | None
-            The maxinum value an the color scale. If vmax is None, the data
+            The maximum value an the color scale. If vmax is None, the data
             maximum value is used.
         cmap : matplotlib colormap | 'interactive' | (colormap, bool)
             The colormap to use. If tuple, the first value indicates the
@@ -1134,6 +1135,21 @@ class AverageTFR(_BaseTFR):
             significance.
 
             .. versionadded:: 0.16.0
+        mask_style: None | 'both' | 'contour' | 'mask'
+            If `mask` is not None: if 'contour', a contour line is drawn around
+            the masked areas (``True`` in `mask`). If 'mask', entries not
+            ``True`` in `mask` are shown transparently. If 'both', both a contour
+            and transparency are used.
+            If ``None``, defaults to 'both' if `mask` is not None, and is ignored
+            otherwise.
+
+             .. versionadded:: 0.17
+        mask_cmap : matplotlib colormap | (colormap, bool) | 'interactive'
+            The colormap chosen for masked parts of the image (see below), if
+            `mask` is not ``None``. If None, `cmap` is reused. Defaults to
+            ``Greys``. Not interactive. Otherwise, as `cmap`.
+
+             .. versionadded:: 0.17
         mask_alpha : float
             A float between 0 and 1. If ``mask`` is not None, this sets the
             alpha level (degree of transparency) for the masked-out segments.
@@ -1161,6 +1177,7 @@ class AverageTFR(_BaseTFR):
                           vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
                           colorbar=colorbar, show=show, title=title,
                           axes=axes, layout=layout, yscale=yscale, mask=mask,
+                          mask_style=mask_style, mask_cmap=mask_cmap,
                           mask_alpha=mask_alpha, combine=combine,
                           exclude=exclude, verbose=verbose)
 
@@ -1168,9 +1185,11 @@ class AverageTFR(_BaseTFR):
     def _plot(self, picks=None, baseline=None, mode='mean', tmin=None,
               tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
               cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
-              axes=None, layout=None, yscale='auto', mask=None, mask_alpha=.1,
-              combine=None, exclude=None, copy=True, source_plot_joint=False,
-              topomap_args=dict(), ch_type=None, verbose=None):
+              axes=None, layout=None, yscale='auto', mask=None,
+              mask_style=None, mask_cmap="Greys", mask_alpha=.25,
+              combine=None, exclude=None, copy=True,
+              source_plot_joint=False, topomap_args=dict(), ch_type=None,
+              verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         See self.plot() for parameters description.
@@ -1218,19 +1237,20 @@ class AverageTFR(_BaseTFR):
                 tfr._onselect, cmap=cmap, source_plot_joint=source_plot_joint,
                 topomap_args={k: v for k, v in topomap_args.items()
                               if k not in {"vmin", "vmax", "cmap", "axes"}})
-            _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
-                        ylim=None, tfr=data[idx: idx + 1], freq=tfr.freqs,
-                        x_label='Time (s)', y_label='Frequency (Hz)',
-                        colorbar=colorbar, cmap=cmap, yscale=yscale, mask=mask,
-                        mask_alpha=mask_alpha)
+            t_end = _imshow_tfr(
+                ax, 0, tmin, tmax, vmin, vmax, onselect_callback, ylim=None,
+                tfr=data[idx: idx + 1], freq=tfr.freqs, x_label='Time (s)',
+                y_label='Frequency (Hz)', colorbar=colorbar, cmap=cmap,
+                yscale=yscale, mask=mask, mask_style=mask_style,
+                mask_cmap=mask_cmap, mask_alpha=mask_alpha)
 
             if title is None:
                 if combine is None or len(tfr.info['ch_names']) == 1:
-                    title = tfr.info['ch_names'][0]
+                    title = tfr.info['ch_names'][0] + t_end
                 else:
                     title = _set_title_multiple_electrodes(
                         title, combine, tfr.info["ch_names"], all=True,
-                        ch_type=ch_type)
+                        ch_type=ch_type) + t_end
 
             if title:
                 fig.suptitle(title)
@@ -1244,7 +1264,7 @@ class AverageTFR(_BaseTFR):
                    vmin=None, vmax=None, cmap='RdBu_r', dB=False,
                    colorbar=True, show=True, title=None, layout=None,
                    yscale='auto', combine='mean', exclude=[],
-                   topomap_args=None, verbose=None):
+                   topomap_args=None, image_args=None, verbose=None):
         """Plot TFRs as a two-dimensional image with topomaps.
 
         Parameters
@@ -1288,11 +1308,11 @@ class AverageTFR(_BaseTFR):
             The last frequency to display. If None the last frequency
             available is used.
         vmin : float | None
-            The mininum value of the color scale for the image (for
+            The minimum value of the color scale for the image (for
             topomaps, see `topomap_args`). If vmin is None, the data
             absolute minimum value is used.
         vmax : float | None
-            The maxinum value of the color scale for the image (for
+            The maximum value of the color scale for the image (for
             topomaps, see `topomap_args`). If vmax is None, the data
             absolute maximum value is used.
         cmap : matplotlib colormap
@@ -1321,9 +1341,15 @@ class AverageTFR(_BaseTFR):
             Channels names to exclude from being shown. If 'bads', the
             bad channels are excluded. Defaults to an empty list, i.e., `[]`.
         topomap_args : None | dict
-            A dict of `kwargs` that are forwarded to `mne.viz.plot_topomap`
-            to style the topomaps. `axes` and `show` are ignored. If `times`
-            is not in this dict, automatic peak detection is used. Beyond that,
+            A dict of `kwargs` that are forwarded to
+            :func:`mne.viz.plot_topomap` to style the topomaps. `axes` and
+            `show` are ignored. If `times` is not in this dict, automatic
+            peak detection is used. Beyond that, if ``None``, no customizable
+            arguments will be passed.
+            Defaults to ``None``.
+        image_args : None | dict
+            A dict of `kwargs` that are forwarded to :meth:`AverageTFR.plot`
+            to style the image. `axes` and `show` are ignored. Beyond that,
             if ``None``, no customizable arguments will be passed.
             Defaults to ``None``.
         verbose : bool, str, int, or None
@@ -1424,13 +1450,15 @@ class AverageTFR(_BaseTFR):
         # image plot
         # we also use this to baseline and truncate (times and freqs)
         # (a copy of) the instance
+        if image_args is None:
+            image_args = dict()
         fig = tfr._plot(
             picks=None, baseline=baseline, mode=mode, tmin=tmin, tmax=tmax,
             fmin=fmin, fmax=fmax, vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
             colorbar=False, show=False, title=title, axes=tf_ax, layout=layout,
             yscale=yscale, combine=combine, exclude=None, copy=False,
             source_plot_joint=True, topomap_args=topomap_args_pass,
-            ch_type=ch_type)
+            ch_type=ch_type, **image_args)
 
         # set and check time and freq limits ...
         # can only do this after the tfr plot because it may change these
@@ -1637,10 +1665,10 @@ class AverageTFR(_BaseTFR):
             The last frequency to display. If None the last frequency
             available is used.
         vmin : float | None
-            The mininum value of the color scale. If vmin is None, the data
+            The minimum value of the color scale. If vmin is None, the data
             minimum value is used.
         vmax : float | None
-            The maxinum value of the color scale. If vmax is None, the data
+            The maximum value of the color scale. If vmax is None, the data
             maximum value is used.
         layout : Layout | None
             Layout instance specifying sensor positions. If possible, the
@@ -2092,8 +2120,7 @@ def _get_data(inst, return_itc):
 def _prepare_picks(info, data, picks):
     """Prepare the picks."""
     if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
+        picks = _pick_data_channels(info, with_ref_meg=True, exclude='bads')
     if np.array_equal(picks, np.arange(len(data))):
         picks = slice(None)
     else:
@@ -2250,10 +2277,6 @@ def read_tfrs(fname, condition=None):
         inst = AverageTFR if is_average else EpochsTFR
         out = [inst(**d) for d in list(zip(*tfr_data))[1]]
     return out
-
-
-def _is_numeric(n):
-    return isinstance(n, (np.integer, np.floating, int, float))
 
 
 def _get_timefreqs(tfr, timefreqs):

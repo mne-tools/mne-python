@@ -89,7 +89,7 @@ evoked.crop(0., 0.)
 
 ###############################################################################
 # Let's use a sphere head geometry model and let's see the coordinate
-# alignement and the sphere location.
+# alignment and the sphere location.
 sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=None)
 
 mne.viz.plot_alignment(raw.info, subject='sample',

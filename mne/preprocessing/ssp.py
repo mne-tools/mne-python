@@ -26,18 +26,6 @@ def _safe_del_key(dict_, key):
         del dict_[key]
 
 
-def _deprecate_average(average):
-    # XXX: When deprecation cycle is done, default average option should be
-    #      changed in:
-    #      - mne/commands/mne_compute_proj_ecg.py
-    #      - mne/commands/mne_compute_proj_eog.py
-    if average is None:
-        warn('The default parameter `average=False` is deprecated'
-             ' and will be replaced by `average=True` in 0.17.',
-             DeprecationWarning)
-    return False if average is None else average
-
-
 @verbose
 def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       n_grad, n_mag, n_eeg, l_freq, h_freq,
@@ -47,7 +35,6 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       filter_method, iir_params, return_drop_log, copy,
                       verbose):
     """Compute SSP/PCA projections for ECG or EOG artifacts."""
-    average = _deprecate_average(average)
     raw = raw.copy() if copy else raw
     del copy
     raw.load_data()  # we will filter it later
@@ -80,7 +67,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                                  filter_length=filter_length, ch_name=ch_name,
                                  tstart=tstart)
 
-    # Check to make sure we actually got at least one useable event
+    # Check to make sure we actually got at least one usable event
     if events.shape[0] < 1:
         warn('No %s events found, returning None for projs' % mode)
         return (None, events) + (([],) if return_drop_log else ())
@@ -155,7 +142,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 @verbose
 def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
-                     average=None, filter_length='10s', n_jobs=1,
+                     average=True, filter_length='10s', n_jobs=1,
                      ch_name=None, reject=dict(grad=2000e-13, mag=3000e-15,
                                                eeg=50e-6, eog=250e-6),
                      flat=None, bads=[], avg_ref=False,
@@ -188,8 +175,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
     h_freq : float | None
         Filter high cut-off frequency for the data channels in Hz.
     average : bool
-        Compute SSP after averaging. Default is False in 0.16 but will change
-        to True in 0.17.
+        Compute SSP after averaging. Default is True.
     filter_length : str | int | None
         Number of taps to use for filtering.
     n_jobs : int
@@ -266,7 +252,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
 @verbose
 def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
-                     average=None, filter_length='10s', n_jobs=1,
+                     average=True, filter_length='10s', n_jobs=1,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=500e-6,
                                  eog=np.inf), flat=None, bads=[],
                      avg_ref=False, no_proj=False, event_id=998, eog_l_freq=1,
@@ -298,8 +284,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
     h_freq : float | None
         Filter high cut-off frequency for the data channels in Hz.
     average : bool
-        Compute SSP after averaging. Default is False in 0.16 but will change
-        to True in 0.17.
+        Compute SSP after averaging. Default is True.
     filter_length : str | int | None
         Number of taps to use for filtering.
     n_jobs : int

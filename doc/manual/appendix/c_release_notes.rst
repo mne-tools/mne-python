@@ -606,7 +606,7 @@ Matlab toolbox
 
 Several new functions were added, see :ref:`ch_matlab`.
 
-.. note:: The matlab function fiff_setup_read_raw has    a significant change. The sample numbers now take into account possible    initial skip in the file, *i.e.*, the time between    the start of the data acquisition and the start of saving the data    to disk. The first_samp member    of the returned structure indicates the initial skip in samples.    If you want your own routines, which assume that initial skip has    been removed, perform indentically with the previous version, subtract first_samp from    the sample numbers you specify to fiff_read_raw_segment .    Furthermore, fiff_setup_read_raw has    an optional argument to allow reading of unprocessed MaxShield data acquired    with the Elekta MEG systems.
+.. note:: The matlab function fiff_setup_read_raw has    a significant change. The sample numbers now take into account possible    initial skip in the file, *i.e.*, the time between    the start of the data acquisition and the start of saving the data    to disk. The first_samp member    of the returned structure indicates the initial skip in samples.    If you want your own routines, which assume that initial skip has    been removed, perform identically with the previous version, subtract first_samp from    the sample numbers you specify to fiff_read_raw_segment .    Furthermore, fiff_setup_read_raw has    an optional argument to allow reading of unprocessed MaxShield data acquired    with the Elekta MEG systems.
 
 New utilities
 =============

@@ -8,7 +8,7 @@ Maxwell filtering
    :depth: 2
 
 Maxwell filtering in mne-python can be used to suppress sources of external
-intereference and compensate for subject head movements. 
+interference and compensate for subject head movements. 
 
 About Maxwell filtering
 -----------------------

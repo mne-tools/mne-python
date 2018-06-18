@@ -347,9 +347,9 @@ def test_make_forward_dipole():
         assert_true(issubclass(w[-1].category, RuntimeWarning))
 
     # stc is list of VolSourceEstimate's
-    assert_true(isinstance(stc, list))
-    for nd in range(n_test_dipoles):
-        assert_true(isinstance(stc[nd], VolSourceEstimate))
+    assert isinstance(stc, list)
+    for n_dip in range(n_test_dipoles):
+        assert isinstance(stc[n_dip], VolSourceEstimate)
 
     # Now simulate evoked responses for each of the test dipoles,
     # and fit dipoles to them (sphere model, MEG and EEG)

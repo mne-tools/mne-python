@@ -2537,15 +2537,9 @@ def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
     return title
 
 
-def _check_time_unit(time_unit, times, allow_none=False):
-    if not (isinstance(time_unit, string_types) or
-            (time_unit is None and allow_none)):
+def _check_time_unit(time_unit, times):
+    if not isinstance(time_unit, string_types):
         raise TypeError('time_unit must be str, got %s' % (type(time_unit),))
-    if time_unit is None:
-        warn('time_unit defaults to "ms" in 0.16 but will change to "s" in '
-             '0.17, set it explicitly to avoid this warning',
-             DeprecationWarning)
-        time_unit = 'ms'
     if time_unit == 's':
         times = times
     elif time_unit == 'ms':
@@ -2553,3 +2547,141 @@ def _check_time_unit(time_unit, times, allow_none=False):
     else:
         raise ValueError("time_unit must be 's' or 'ms', got %r" % time_unit)
     return time_unit, times
+
+
+def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
+                       cmap="RdBu_r", vmin=None, vmax=None, ylim=None,
+                       mask_style="both", mask_alpha=.25, mask_cmap="Greys",
+                       yscale="linear"):
+    """Plot a potentially masked (evoked, TFR, ...) 2D image."""
+    from matplotlib import ticker, __version__ as v
+
+    if mask_style is None and mask is not None:
+        mask_style = "both"  # default
+    draw_mask = mask_style in {"both", "mask"}
+    draw_contour = mask_style in {"both", "contour"}
+    if cmap is None:
+        mask_cmap = cmap
+
+    # mask param check and preparation
+    if draw_mask is None:
+        if mask is not None:
+            draw_mask = True
+        else:
+            draw_mask = False
+    if draw_contour is None:
+        if mask is not None:
+            draw_contour = True
+        else:
+            draw_contour = False
+    if mask is None:
+        if draw_mask:
+            warn("`mask` is None, not masking the plot ...")
+            draw_mask = False
+        if draw_contour:
+            warn("`mask` is None, not adding contour to the plot ...")
+            draw_contour = False
+
+    if draw_mask:
+        if mask.shape != data.shape:
+            raise ValueError(
+                "The mask must have the same shape as the data, "
+                "i.e., %s, not %s" % (data.shape, mask.shape))
+        if draw_contour and yscale == "log":
+            warn("Cannot draw contours with linear yscale yet ...")
+
+    if yvals is None:  # for e.g. Evoked images
+        yvals = np.arange(data.shape[0])
+    # else, if TFR plot, yvals will be freqs
+
+    # test yscale
+    if yscale == 'log' and not yvals[0] > 0:
+        raise ValueError('Using log scale for frequency axis requires all your'
+                         ' frequencies to be positive (you cannot include'
+                         ' the DC component (0 Hz) in the TFR).')
+
+    if len(yvals) < 2 or yvals[0] == 0:
+        yscale = 'linear'
+    elif yscale != 'linear':
+        ratio = yvals[1:] / yvals[:-1]
+    if yscale == 'auto':
+        if yvals[0] > 0 and np.allclose(ratio, ratio[0]):
+            yscale = 'log'
+        else:
+            yscale = 'linear'
+
+    # https://github.com/matplotlib/matplotlib/pull/9477
+    if yscale == "log" and v == "2.1.0":
+        warn("With matplotlib version 2.1.0, lines may not show up in "
+             "`AverageTFR.plot_joint`. Upgrade to a more recent version.")
+
+    if yscale is "log":  # pcolormesh for log scale
+        # compute bounds between time samples
+        time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]
+        time_lims = np.concatenate([[times[0] - time_diff[0]], times[:-1] +
+                                   time_diff, [times[-1] + time_diff[-1]]])
+
+        log_yvals = np.concatenate([[yvals[0] / ratio[0]], yvals,
+                                   [yvals[-1] * ratio[0]]])
+        yval_lims = np.sqrt(log_yvals[:-1] * log_yvals[1:])
+
+        # construct a time-yvaluency bounds grid
+        time_mesh, yval_mesh = np.meshgrid(time_lims, yval_lims)
+
+        if mask is not None:
+            ax.pcolormesh(time_mesh, yval_mesh, data, cmap=mask_cmap,
+                          vmin=vmin, vmax=vmax, alpha=mask_alpha)
+            im = ax.pcolormesh(time_mesh, yval_mesh,
+                               np.ma.masked_where(~mask, data), cmap=cmap,
+                               vmin=vmin, vmax=vmax, alpha=1)
+        else:
+            im = ax.pcolormesh(time_mesh, yval_mesh, data, cmap=cmap,
+                               vmin=vmin, vmax=vmax)
+        if ylim is None:
+            ylim = yval_lims[[0, -1]]
+        if yscale == 'log':
+            ax.set_yscale('log')
+            ax.get_yaxis().set_major_formatter(ticker.ScalarFormatter())
+
+        ax.yaxis.set_minor_formatter(ticker.NullFormatter())
+        # get rid of minor ticks
+        ax.yaxis.set_minor_locator(ticker.NullLocator())
+        tick_vals = yvals[np.unique(np.linspace(
+            0, len(yvals) - 1, 12).round().astype('int'))]
+        ax.set_yticks(tick_vals)
+
+    else:
+        # imshow for linear because the y ticks are nicer
+        # and the masked areas look better
+        extent = [times[0], times[-1], yvals[0], yvals[-1] + 1]
+        im_args = dict(interpolation='nearest', origin='lower',
+                       extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
+
+        if draw_mask:
+            ax.imshow(data, alpha=mask_alpha, cmap=mask_cmap, **im_args)
+            im = ax.imshow(
+                np.ma.masked_where(~mask, data), cmap=cmap, **im_args)
+        else:
+            im = ax.imshow(data, cmap=cmap, **im_args)
+
+        if draw_contour and np.unique(mask).size == 2:
+                big_mask = np.kron(mask, np.ones((10, 10)))
+                ax.contour(big_mask, colors=["k"], extent=extent,
+                           linewidths=[.75], corner_mask=False,
+                           antialiased=False, levels=[.5])
+        time_lims = times[[0, -1]]
+        ylim = yvals[0], yvals[-1] + 1
+
+    ax.set_xlim(time_lims[0], time_lims[-1])
+    ax.set_ylim(ylim)
+
+    if (draw_mask or draw_contour) and mask is not None:
+        if mask.all():
+            t_end = ", all points masked)"
+        else:
+            fraction = 1 - (np.float(mask.sum()) / np.float(mask.size))
+            t_end = ", %0.3g%% of points masked)" % (fraction * 100,)
+    else:
+        t_end = ")"
+
+    return im, t_end

@@ -8,7 +8,7 @@
 .. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.png?branch=master
 .. _Travis: https://travis-ci.org/mne-tools/mne-python
 
-.. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/7isroetnxsp7hgxv/branch/master?svg=true
+.. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/jg8ncqql9wayo8mg/branch/master?svg=true
 .. _Appveyor: https://ci.appveyor.com/project/mne-tools/mne-python/branch/master
 
 .. |Circle| image:: https://circleci.com/gh/mne-tools/mne-python.svg?style=svg
@@ -61,6 +61,8 @@ To install the latest stable version of MNE-Python, you can use `pip <https://pi
 
     pip install -U mne
 
+**Note** that MNE-Python 0.17 will be the last release to support Python 2. From MNE-Python 0.18, only Python 3 will be supported.
+
 For more complete instructions and more advanced installation methods (e.g. for
 the latest development version), see the `getting started page`_.
 
@@ -73,10 +75,11 @@ The minimum required dependencies to run MNE-Python are:
 - Python >= 2.7
 - NumPy >= 1.8
 - SciPy >= 0.12
-- Matplotlib >= 1.3
 
 For full functionality, some functions require:
 
+- Matplotlib >= 1.3
+- Mayavi >= 4.6
 - Scikit-learn >= 0.15 (>= 0.18 recommended)
 - NiBabel >= 2.1.0
 - Pandas >= 0.13

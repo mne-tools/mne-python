@@ -26,13 +26,13 @@ dependencies:
 - flake8
 - spyder
 - numexpr
+- traits>=4.6.0
+- pyface>=6
+- traitsui>=6
 - pip:
   - dipy
   - mne
-  - "https://api.github.com/repos/enthought/traits/zipball/a99b3f64d50c5f7f28ffc01bf69419b061f9e976"
-  - "https://api.github.com/repos/enthought/pyface/zipball/6a0cac149d56293482bb828a7d98122667c773be"
-  - "https://api.github.com/repos/enthought/traitsui/zipball/e366ad3886d3c39bedb96e83bab447d31c4ab725"
-  - "https://api.github.com/repos/enthought/mayavi/zipball/master"
+  - mayavi
   - "https://api.github.com/repos/nipy/PySurfer/zipball/master"
   - nitime
   - nibabel
@@ -44,3 +44,4 @@ dependencies:
   - sphinx_bootstrap_theme
   - "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master"
   - python-picard
+  - sphinx_fontawesome

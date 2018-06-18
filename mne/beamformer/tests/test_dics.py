@@ -15,9 +15,8 @@ import numpy as np
 import mne
 from mne.datasets import testing
 from mne.beamformer import (make_dics, apply_dics, apply_dics_epochs,
-                            apply_dics_csd, dics, dics_epochs,
-                            dics_source_power, tf_dics)
-from mne.time_frequency import csd_multitaper, csd_morlet
+                            apply_dics_csd, tf_dics)
+from mne.time_frequency import csd_morlet
 from mne.utils import run_tests_if_main
 from mne.externals.six import advance_iterator
 from mne.proj import compute_proj_evoked, make_projector
@@ -25,9 +24,6 @@ from mne.proj import compute_proj_evoked, make_projector
 # Note that if this is the first test file, this will apply to all subsequent
 # tests in a full nosetest:
 warnings.simplefilter('always')  # ensure we can verify expected warnings
-
-# Silence these warnings
-warnings.simplefilter('ignore', category=DeprecationWarning)
 
 data_path = testing.data_path(download=False)
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -477,183 +473,6 @@ def test_tf_dics():
                        mode='cwt_morlet', frequencies=frequencies,
                        subtract_evoked=True, reg=reg, label=label, decim=20)
     assert np.all(np.isnan(stcs[0].data))
-
-
-###############################################################################
-# Below are tests for the old DICS code. We can remove this for MNE 0.16.
-def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
-    """Read in real MEG data. Used to test deprecated dics_* functions."""
-    """Read in data used in tests."""
-    if read_all_forward:
-        fwd_free, fwd_surf, fwd_fixed, fwd_vol, _ = _load_forward()
-    label_fname = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
-    label = mne.read_label(label_fname)
-    events = mne.read_events(fname_event)[:10]
-    raw = mne.io.read_raw_fif(fname_raw, preload=False)
-    raw.add_proj([], remove_existing=True)  # we'll subselect so remove proj
-    event_id, tmin, tmax = 1, tmin, tmax
-
-    # Setup for reading the raw data
-    raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
-
-    # Set up pick list: MEG - bad channels
-    left_temporal_channels = mne.read_selection('Left-temporal')
-    picks = mne.pick_types(raw.info, meg=True, eeg=False,
-                           stim=True, eog=True, exclude='bads',
-                           selection=left_temporal_channels)
-
-    # Read epochs
-    epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                        picks=picks, baseline=(None, 0), preload=True,
-                        reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
-    epochs.resample(200, npad=0, n_jobs=2)
-    evoked = epochs.average().crop(0, None)
-
-    # Computing the data and noise cross-spectral density matrices
-    if compute_csds:
-        data_csd = csd_multitaper(epochs, tmin=0.045, tmax=None, fmin=8,
-                                  fmax=12, bandwidth=72.72).sum()
-        noise_csd = csd_multitaper(epochs, tmin=None, tmax=0, fmin=8, fmax=12,
-                                   bandwidth=72.72).sum()
-    else:
-        data_csd, noise_csd = None, None
-
-    return (raw, epochs, evoked, data_csd, noise_csd, label, fwd_free,
-            fwd_surf, fwd_fixed, fwd_vol)
-
-
-@testing.requires_testing_data
-def test_dics():
-    """Test DICS with evoked data and single trials."""
-    raw, epochs, evoked, data_csd, noise_csd, label, forward,\
-        forward_surf_ori, forward_fixed, forward_vol = _get_data()
-    epochs.crop(0, None)
-    reg = 0.5  # Heavily regularize due to low SNR
-
-    for real_filter in (True, False):
-        stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd,
-                   label=label, real_filter=real_filter, reg=reg)
-        stc_pow = np.sum(stc.data, axis=1)
-        idx = np.argmax(stc_pow)
-        max_stc = stc.data[idx]
-        tmax = stc.times[np.argmax(max_stc)]
-
-        # Incorrect due to limited number of epochs
-        assert 0.04 < tmax < 0.06
-        assert 3. < np.max(max_stc) < 6.
-
-    # Test picking normal orientation
-    stc_normal = dics(evoked, forward_surf_ori, noise_csd, data_csd,
-                      pick_ori="normal", label=label, real_filter=True,
-                      reg=reg)
-    assert stc_normal.data.min() < 0  # this doesn't take abs
-    stc_normal = dics(evoked, forward_surf_ori, noise_csd, data_csd,
-                      pick_ori="normal", label=label, reg=reg)
-    assert stc_normal.data.min() >= 0  # this does take abs
-
-    # The amplitude of normal orientation results should always be smaller than
-    # free orientation results
-    assert (np.abs(stc_normal.data) <= stc.data).all()
-
-    # Test if fixed forward operator is detected when picking normal
-    # orientation
-    raises(ValueError, dics_epochs, epochs, forward_fixed, noise_csd, data_csd,
-           pick_ori="normal")
-
-    # Test if non-surface oriented forward operator is detected when picking
-    # normal orientation
-    raises(ValueError, dics_epochs, epochs, forward, noise_csd, data_csd,
-           pick_ori="normal")
-
-    # Test if volume forward operator is detected when picking normal
-    # orientation
-    raises(ValueError, dics_epochs, epochs, forward_vol, noise_csd, data_csd,
-           pick_ori="normal")
-
-    # Now test single trial using fixed orientation forward solution
-    # so we can compare it to the evoked solution
-    stcs = dics_epochs(epochs, forward_fixed, noise_csd, data_csd, label=label)
-
-    # Testing returning of generator
-    stcs_ = dics_epochs(epochs, forward_fixed, noise_csd, data_csd,
-                        return_generator=True, label=label)
-    assert_array_equal(stcs[0].data, advance_iterator(stcs_).data)
-
-    # Test whether correct number of trials was returned
-    epochs.drop_bad()
-    assert len(epochs.events) == len(stcs)
-
-    # Average the single trial estimates
-    stc_avg = np.zeros_like(stc.data)
-    for this_stc in stcs:
-        stc_avg += this_stc.data
-    stc_avg /= len(stcs)
-
-    idx = np.argmax(np.max(stc_avg, axis=1))
-    max_stc = stc_avg[idx]
-    tmax = stc.times[np.argmax(max_stc)]
-
-    assert 0.120 < tmax < 0.150  # incorrect due to limited #
-    assert 12 < np.max(max_stc) < 18.5
-
-
-@testing.requires_testing_data
-def test_dics_source_power():
-    """Test old DICS source power computation."""
-    raw, epochs, evoked, data_csd, noise_csd, label, forward,\
-        forward_surf_ori, forward_fixed, forward_vol = _get_data()
-    epochs.crop(0, None)
-    reg = 0.05
-
-    stc_source_power = dics_source_power(epochs.info, forward, noise_csd,
-                                         data_csd, label=label, reg=reg)
-
-    max_source_idx = np.argmax(stc_source_power.data)
-    max_source_power = np.max(stc_source_power.data)
-
-    # TODO: Maybe these could be more directly compared to dics() results?
-    assert max_source_idx == 1
-    assert 0.004 < max_source_power < 0.005
-
-    # Test picking normal orientation
-    stc_normal = dics_source_power(epochs.info, forward_surf_ori, noise_csd,
-                                   data_csd, pick_ori="normal", label=label,
-                                   reg=reg)
-    assert stc_normal.data.shape == stc_source_power.data.shape
-
-    # The normal orientation results should always be smaller than free
-    # orientation results
-    assert (np.abs(stc_normal.data) <= stc_source_power.data).all()
-
-    # Test if fixed forward operator is detected when picking normal
-    # orientation
-    raises(ValueError, dics_source_power, raw.info, forward_fixed, noise_csd,
-           data_csd, pick_ori="normal")
-
-    # Test if non-surface oriented forward operator is detected when picking
-    # normal orientation
-    raises(ValueError, dics_source_power, raw.info, forward, noise_csd,
-           data_csd, pick_ori="normal")
-
-    # Test if volume forward operator is detected when picking normal
-    # orientation
-    raises(ValueError, dics_source_power, epochs.info, forward_vol, noise_csd,
-           data_csd, pick_ori="normal")
-
-    # Test detection of different frequencies in noise and data CSD objects
-    noise_csd.frequencies = [1, 2]
-    data_csd.frequencies = [1, 2, 3]
-    raises(ValueError, dics_source_power, epochs.info, forward, noise_csd,
-           data_csd)
-
-    # Test detection of uneven frequency spacing
-    data_csd.frequencies = [1, 3, 4]
-    data_csd._data = data_csd._data.repeat(3, axis=1)
-    noise_csd = data_csd
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        dics_source_power(epochs.info, forward, noise_csd, data_csd)
-    assert len(w) == 2  # Also deprecation warning
 
 
 run_tests_if_main()

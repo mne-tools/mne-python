@@ -20,10 +20,20 @@ from itertools import product
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
 
-raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
-                    'test_raw.fif')
-event_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                      'data', 'test-eve.fif')
+data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
+raw_fname = op.join(data_path, 'test_raw.fif')
+event_fname = op.join(data_path, 'test-eve.fif')
+raw_ctf_fname = op.join(data_path, 'test_ctf_raw.fif')
+
+
+def test_tfr_ctf():
+    """Test that TFRs can be calculated on CTF data."""
+    raw = read_raw_fif(raw_ctf_fname).crop(0, 1)
+    raw.apply_gradient_compensation(3)
+    events = mne.make_fixed_length_events(raw, duration=0.5)
+    epochs = mne.Epochs(raw, events)
+    for method in (tfr_multitaper, tfr_morlet):
+        method(epochs, [10], 1)  # smoke test
 
 
 def test_morlet():
@@ -36,7 +46,7 @@ def test_morlet():
 
 
 def test_time_frequency():
-    """Test the to-be-deprecated time-frequency transform (PSD and ITC)."""
+    """Test time-frequency transform (PSD and ITC)."""
     # Set parameters
     event_id = 1
     tmin = -0.2
@@ -534,7 +544,7 @@ def test_add_channels():
     assert_raises(RuntimeError, tfr_meg.add_channels, [tfr_badsf])
     assert_raises(AssertionError, tfr_meg.add_channels, [tfr_eeg])
     assert_raises(ValueError, tfr_meg.add_channels, [tfr_meg])
-    assert_raises(AssertionError, tfr_meg.add_channels, tfr_badsf)
+    assert_raises(TypeError, tfr_meg.add_channels, tfr_badsf)
 
 
 def test_compute_tfr():

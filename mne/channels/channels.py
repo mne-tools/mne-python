@@ -14,7 +14,7 @@ from scipy import sparse
 
 from ..externals.six import string_types
 from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
-from ..utils import _check_preload
+from ..utils import _check_preload, _validate_type
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info
@@ -69,9 +69,7 @@ def _contains_ch_type(info, ch_type):
     has_ch_type : bool
         Whether the channel type is present or not.
     """
-    if not isinstance(ch_type, string_types):
-        raise ValueError('`ch_type` is of class {actual_class}. It must be '
-                         '`str`'.format(actual_class=type(ch_type)))
+    _validate_type(ch_type, 'str', "ch_type")
 
     meg_extras = ['mag', 'grad', 'planar1', 'planar2']
     fnirs_extras = ['hbo', 'hbr']
@@ -125,12 +123,13 @@ def equalize_channels(candidates, verbose=None):
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
-    from ..time_frequency import AverageTFR
+    from ..time_frequency import _BaseTFR
 
-    if not all(isinstance(c, (BaseRaw, BaseEpochs, Evoked, AverageTFR))
-               for c in candidates):
-        raise ValueError('candidates must be Raw, Epochs, Evoked, or '
-                         'AverageTFR')
+    for candidate in candidates:
+        _validate_type(candidate,
+                       (BaseRaw, BaseEpochs, Evoked, _BaseTFR),
+                       "Instances to be modified",
+                       "Raw, Epochs, Evoked or TFR")
 
     chan_max_idx = np.argmax([c.info['nchan'] for c in candidates])
     chan_template = candidates[chan_max_idx].ch_names
@@ -843,12 +842,11 @@ class UpdateChannelsMixin(object):
         from ..io import BaseRaw, _merge_info
         from ..epochs import BaseEpochs
 
-        if not isinstance(add_list, (list, tuple)):
-            raise AssertionError('Input must be a list or tuple of objs')
+        _validate_type(add_list, (list, tuple), 'Input')
 
         # Object-specific checks
-        if not all([inst.preload for inst in add_list] + [self.preload]):
-            raise AssertionError('All data must be preloaded')
+        for inst in add_list + [self]:
+            _check_preload(inst, "adding channels")
         if isinstance(self, BaseRaw):
             con_axis = 0
             comp_class = BaseRaw
@@ -859,9 +857,7 @@ class UpdateChannelsMixin(object):
             con_axis = 0
             comp_class = type(self)
         for inst in add_list:
-            if not isinstance(inst, comp_class):
-                raise AssertionError('All input data must be of same type, got'
-                                     ' %s and %s' % (comp_class, type(inst)))
+            _validate_type(inst, comp_class, 'All input')
         data = [inst._data for inst in [self] + add_list]
 
         # Make sure that all dimensions other than channel axis are the same
@@ -921,8 +917,7 @@ class InterpolationMixin(object):
         """
         from .interpolation import _interpolate_bads_eeg, _interpolate_bads_meg
 
-        if getattr(self, 'preload', None) is False:
-            raise ValueError('Data must be preloaded.')
+        _check_preload(self, "interpolation")
 
         if len(self.info['bads']) == 0:
             warn('No bad channels to interpolate. Doing nothing...')
@@ -972,9 +967,8 @@ def rename_channels(info, mapping):
                          % (type(mapping),))
 
     # check we got all strings out of the mapping
-    if any(not isinstance(new_name[1], string_types)
-           for new_name in new_names):
-        raise ValueError('New channel mapping must only be to strings')
+    for new_name in new_names:
+        _validate_type(new_name[1], 'str', 'New channel mappings')
 
     bad_new_names = [name for _, name in new_names if len(name) > 15]
     if len(bad_new_names):
@@ -1341,3 +1335,62 @@ def _get_ch_info(info):
     return (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
             has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
             has_eeg_coils_and_meg, has_eeg_coils_only)
+
+
+def make_1020_channel_selections(info, midline="z"):
+    """Return dict mapping from ROI names to lists of picks for 10/20 setups.
+
+    This passes through all channel names, and uses a simple heuristic to
+    separate channel names into three Region of Interest-based selections:
+    Left, Midline and Right. The heuristic is that channels ending on any of
+    the characters in `midline` are filed under that heading, otherwise those
+    ending in odd numbers under "Left", those in even numbers under "Right".
+    Other channels are ignored. This is appropriate for 10/20 files, but not
+    for other channel naming conventions.
+    If an info object is provided, lists are sorted from posterior to anterior.
+
+    Parameters
+    ----------
+    info : instance of info
+        Where to obtain the channel names from. The picks will
+        be in relation to the position in `info["ch_names"]`. If possible, this
+        lists will be sorted by y value position of the channel locations,
+        i.e., from back to front.
+    midline : str
+        Names ending in any of these characters are stored under the `Midline`
+        key. Defaults to 'z'. Note that capitalization is ignored.
+
+    Returns
+    -------
+    selections : dict
+        A dictionary mapping from ROI names to lists of picks (integers).
+    """
+    _validate_type(info, "info")
+
+    try:
+        from .layout import find_layout
+        layout = find_layout(info)
+        pos = layout.pos
+        ch_names = layout.names
+    except RuntimeError:  # no channel positions found
+        ch_names = info["ch_names"]
+        pos = None
+
+    selections = dict(Left=[], Midline=[], Right=[])
+    for pick, channel in enumerate(ch_names):
+        last_char = channel[-1].lower()  # in 10/20, last char codes hemisphere
+        if last_char in midline:
+            selection = "Midline"
+        elif last_char.isdigit():
+            selection = "Left" if int(last_char) % 2 else "Right"
+        else:  # ignore the channel
+            continue
+        selections[selection].append(pick)
+
+    if pos is not None:
+        # sort channels from front to center
+        # (y-coordinate of the position info in the layout)
+        selections = {selection: np.array(picks)[pos[picks, 1].argsort()]
+                      for selection, picks in selections.items()}
+
+    return selections

@@ -173,7 +173,7 @@ class Dipole(object):
         Returns
         -------
         self : instance of Dipole
-            The cropped intance.
+            The cropped instance.
         """
         sfreq = None
         if len(self.times) > 1:
@@ -462,7 +462,7 @@ class DipoleFixed(object):
                     ('.fif', '.fif.gz'))
         _write_evokeds(fname, self, check=False)
 
-    def plot(self, show=True, time_unit=None):
+    def plot(self, show=True, time_unit='s'):
         """Plot dipole data.
 
         Parameters
@@ -470,8 +470,7 @@ class DipoleFixed(object):
         show : bool
             Call pyplot.show() at the end or not.
         time_unit : str
-            The units for the time axis, can be "ms" (default in 0.16)
-            or "s" (will become the default in 0.17).
+            The units for the time axis, can be "ms" or "s" (default).
 
             .. versionadded:: 0.16
 
@@ -1021,7 +1020,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         The head<->MRI transform filename. Must be provided unless BEM
         is a sphere model.
     min_dist : float
-        Minimum distance (in milimeters) from the dipole to the inner skull.
+        Minimum distance (in millimeters) from the dipole to the inner skull.
         Must be positive. Note that because this is a constraint passed to
         a solver it is not strict but close, i.e. for a ``min_dist=5.`` the
         fits could be 4.9 mm from the inner skull.

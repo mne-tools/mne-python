@@ -267,7 +267,7 @@ def test_plot_alignment():
 @requires_mayavi
 @traits_test
 def test_limits_to_control_points():
-    """Test functionality for determing control points."""
+    """Test functionality for determining control points."""
     sample_src = read_source_spaces(src_fname)
     kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1)
 
@@ -303,7 +303,7 @@ def test_limits_to_control_points():
                   clim=dict(pos_lims=(5, 10, 15), kind='foo'), **kwargs)
     assert_raises(ValueError, stc.plot, colormap='mne', clim='foo', **kwargs)
     assert_raises(ValueError, stc.plot, clim=(5, 10, 15), **kwargs)
-    assert_raises(ValueError, plot_source_estimates, 'foo', clim='auto',
+    assert_raises(TypeError, plot_source_estimates, 'foo', clim='auto',
                   **kwargs)
     assert_raises(ValueError, stc.plot, hemi='foo', clim='auto', **kwargs)
 
@@ -368,7 +368,7 @@ def test_plot_dipole_mri_orthoview():
         fig.canvas.key_press_event('down')
         fig.canvas.key_press_event('a')  # some other key
     ax = plt.subplot(111)
-    assert_raises(ValueError, dipoles.plot_locations, trans, 'sample',
+    assert_raises(TypeError, dipoles.plot_locations, trans, 'sample',
                   subjects_dir, ax=ax)
     plt.close('all')
 
@@ -379,9 +379,8 @@ def test_plot_dipole_mri_orthoview():
 def test_snapshot_brain_montage():
     """Test snapshot brain montage."""
     info = read_info(evoked_fname)
-    with warnings.catch_warnings(record=True):  # deprecated
-        fig = plot_alignment(
-            info, trans=None, subject='sample', subjects_dir=subjects_dir)
+    fig = plot_alignment(
+        info, trans=None, subject='sample', subjects_dir=subjects_dir)
 
     xyz = np.vstack([ich['loc'][:3] for ich in info['chs']])
     ch_names = [ich['ch_name'] for ich in info['chs']]
@@ -389,7 +388,7 @@ def test_snapshot_brain_montage():
     xyz_dict[info['chs'][0]['ch_name']] = [1, 2]  # Set one ch to only 2 vals
 
     # Make sure wrong types are checked
-    assert_raises(ValueError, snapshot_brain_montage, fig, xyz)
+    assert_raises(TypeError, snapshot_brain_montage, fig, xyz)
 
     # All chs must have 3 position values
     assert_raises(ValueError, snapshot_brain_montage, fig, xyz_dict)
@@ -412,12 +411,15 @@ def test_plot_vec_source_estimates():
     data = np.random.RandomState(0).rand(n_verts, 3, n_time)
     stc = VectorSourceEstimate(data, vertices, 1, 1)
 
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         stc.plot('sample', subjects_dir=subjects_dir)
-        with pytest.raises(ValueError, match='use pos_lims'):
+        assert len(w) == 0  # not using deprecated params
+
+        with pytest.raises(ValueError, match='use "pos_lims"'):
             stc.plot('sample', subjects_dir=subjects_dir,
                      clim=dict(pos_lims=[1, 2, 3]))
+        assert len(w) == 0
 
 
 run_tests_if_main()
