@@ -52,6 +52,8 @@ Bug
 
 - Fix bug in :func:`mne.io.read_raw_brainvision` where 1-indexed BrainVision events were not being converted into 0-indexed mne events by `Steven Bethard`_
 
+- Fix bug in :func:`mne.viz.plot_snr_estimate` and :func:`mne.minimum_norm.estimate_snr` where the inverse rank was not properly utilized (especially affecting SSS'ed MEG data) by `Eric Larson`_
+
 API
 ~~~
 

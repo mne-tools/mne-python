@@ -1220,7 +1220,8 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True,
     return fig
 
 
-def plot_snr_estimate(evoked, inv, show=True):
+@verbose
+def plot_snr_estimate(evoked, inv, show=True, verbose=None):
     """Plot a data SNR estimate.
 
     Parameters
@@ -1239,23 +1240,26 @@ def plot_snr_estimate(evoked, inv, show=True):
 
     Notes
     -----
+    The bluish green line is the SNR determined by the GFP of the whitened
+    evoked data. The orange line is the SNR estimated based on the mismatch
+    between the data and the data re-estimated from the regularized inverse.
+
     .. versionadded:: 0.9.0
     """
     import matplotlib.pyplot as plt
     from ..minimum_norm import estimate_snr
-    snr, snr_est = estimate_snr(evoked, inv, verbose=True)
+    snr, snr_est = estimate_snr(evoked, inv)
     fig, ax = plt.subplots(1, 1)
     lims = np.concatenate([evoked.times[[0, -1]], [-1, snr_est.max()]])
-    ax.plot([0, 0], lims[2:], 'k:')
-    ax.plot(lims[:2], [0, 0], 'k:')
+    ax.axvline(0, color='k', ls=':', lw=1)
+    ax.axhline(0, color='k', ls=':', lw=1)
     # Colors are "bluish green" and "vermilion" taken from:
     #  http://bconnelly.net/2013/10/creating-colorblind-friendly-figures/
     ax.plot(evoked.times, snr_est, color=[0.0, 0.6, 0.5])
-    ax.plot(evoked.times, snr, color=[0.8, 0.4, 0.0])
+    ax.plot(evoked.times, snr - 1, color=[0.8, 0.4, 0.0])
     ax.set(xlim=lims[:2], ylim=lims[2:], ylabel='SNR', xlabel='Time (s)')
     if evoked.comment is not None:
         ax.set_title(evoked.comment)
-    plt.draw()
     plt_show(show)
     return fig
 
