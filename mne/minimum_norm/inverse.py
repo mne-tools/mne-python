@@ -1722,11 +1722,12 @@ def estimate_snr(evoked, inv, verbose=None):
 
     # Adapted from mne_analyze/regularization.c, compute_regularization
     n_zero = (inv['noise_cov']['eig'] <= 0).sum()
+    n_ch_eff = n_ch - n_zero
     logger.info('Effective nchan = %d - %d = %d'
-                % (n_ch, n_zero, n_ch - n_zero))
+                % (n_ch, n_zero, n_ch_eff))
+    del n_ch
     signal = np.sum(data_white ** 2, axis=0)  # sum of squares across channels
-    noise = n_ch - n_zero
-    snr = signal / noise
+    snr = signal / n_ch_eff
 
     # Adapted from noise_regularization
     lambda2_est = np.empty(n_times)
@@ -1735,13 +1736,13 @@ def estimate_snr(evoked, inv, verbose=None):
 
     # deal with low SNRs
     bad = (snr <= 1)
-    lambda2_est[bad] = 100.
+    lambda2_est[bad] = np.inf
     remaining[bad] = False
 
     # parameters
-    lambda_mult = 0.9
+    lambda_mult = 0.99
     sing2 = (inv['sing'] * inv['sing'])[:, np.newaxis]
-    val = chi2.isf(1e-3, n_ch - 1)
+    val = chi2.isf(1e-3, n_ch_eff)
     for n_iter in range(1000):
         # get_mne_weights (ew=error_weights)
         # (split newaxis creation here for old numpy)

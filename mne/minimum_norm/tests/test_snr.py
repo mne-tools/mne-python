@@ -38,5 +38,6 @@ def test_snr():
         pass  # this returns 1 for some reason
     finally:
         os.chdir(orig_dir)
-    snr_c = np.loadtxt(op.join(tempdir, 'SNR'))[:, 1]
+    times, snr_c, _ = np.loadtxt(op.join(tempdir, 'SNR')).T
+    assert_allclose(times / 1000., evoked.times, atol=1e-2)
     assert_allclose(snr, snr_c, atol=1e-2, rtol=1e-2)
