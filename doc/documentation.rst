@@ -431,6 +431,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/inverse/plot_mne_crosstalk_function.rst
     auto_examples/inverse/plot_mne_point_spread_function.rst
     auto_examples/inverse/plot_morph_data.rst
+    auto_examples/inverse/plot_morph_stc_to_fsaverage_volume.rst
     auto_examples/inverse/plot_rap_music.rst
     auto_examples/inverse/plot_read_stc.rst
     auto_examples/inverse/plot_read_inverse.rst
