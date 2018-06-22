@@ -143,7 +143,7 @@ def write_morph(fname, morph, overwrite=True):
     morph_out = dict()
 
     # dissolve object structure
-    for key, value in morph.iteritems():
+    for key, value in morph.items():
         # save type for order independent decomposition
         if hasattr(value, '__dict__'):
             value = value.__dict__
