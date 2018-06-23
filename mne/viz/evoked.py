@@ -1858,7 +1858,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     elif picks is None:
         logger.info("No picks, plotting the GFP ...")
         gfp = True
-        picks = _pick_data_channels(info)
+        picks = _pick_data_channels(info, with_ref_meg=False)
 
     _validate_type(picks, (list, np.ndarray), "picks",
                    "list or np.array of integers")
