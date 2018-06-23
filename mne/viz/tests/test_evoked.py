@@ -16,6 +16,7 @@ from numpy.testing import assert_raises, assert_allclose
 from nose.tools import assert_true
 import pytest
 
+import mne
 from mne import (read_events, Epochs, pick_types, read_cov, compute_covariance,
                  make_fixed_length_events)
 from mne.channels import read_layout
@@ -24,6 +25,7 @@ from mne.utils import run_tests_if_main, catch_logging
 from mne.viz.evoked import _line_plot_onselect, plot_compare_evokeds
 from mne.viz.utils import _fake_click
 from mne.stats import _parametric_ci
+from mne.datasets import testing
 
 # Set our plotters to test mode
 import matplotlib
@@ -321,5 +323,24 @@ def test_plot_evoked():
         evoked.plot(verbose=True, time_unit='s')
     assert_true('Need more than one' in log_file.getvalue())
 
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_plot_ctf():
+    """Test plotting of CTF evoked."""
+    ctf_dir = op.join(testing.data_path(download=False), 'CTF')
+    raw_fname = op.join(ctf_dir, 'testdata_ctf.ds')
+
+    raw = mne.io.read_raw_ctf(raw_fname, preload=True)
+    events = np.array([[200, 0, 1]])
+    event_id = 1
+    tmin, tmax = -0.1, 0.5  # start and end of an epoch in sec.
+    picks = mne.pick_types(raw.info, meg=True, stim=True, eog=True,
+                           ref_meg=True, exclude='bads')
+    epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
+                        picks=picks, preload=True)
+    evoked = epochs.average()
+    evoked.plot_joint(times=[0.1])
+    mne.viz.plot_compare_evokeds([evoked, evoked])
 
 run_tests_if_main()
