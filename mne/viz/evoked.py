@@ -1331,7 +1331,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     # simply create a new evoked object with the desired channel selection
     evoked = _pick_inst(evoked, picks, exclude, copy=True)
     info = evoked.info
-    ch_types = _get_channel_types(info)
+    ch_types = _get_channel_types(info, restrict_data_types=True)
 
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
