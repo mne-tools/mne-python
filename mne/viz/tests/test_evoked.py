@@ -324,7 +324,6 @@ def test_plot_evoked():
     assert_true('Need more than one' in log_file.getvalue())
 
 
-@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_plot_ctf():
     """Test plotting of CTF evoked."""
