@@ -812,5 +812,5 @@ def _get_channel_types(info, picks=None, unique=True,
                 if idx in picks]
     if restrict_data_types is True:
         ch_types = [ch_type for ch_type in ch_types
-                    if ch_type not in _DATA_CH_TYPES_SPLIT]
+                    if ch_type in _DATA_CH_TYPES_SPLIT]
     return set(ch_types) if unique is True else ch_types
