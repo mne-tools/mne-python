@@ -1338,7 +1338,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     # simply create a new evoked object with the desired channel selection
     evoked = _pick_inst(evoked, picks, exclude, copy=True)
     info = evoked.info
-    ch_types = _get_channel_types(info)
+    ch_types = _get_channel_types(info, restrict_data_types=True)
 
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
@@ -1865,7 +1865,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     elif picks is None:
         logger.info("No picks, plotting the GFP ...")
         gfp = True
-        picks = _pick_data_channels(info)
+        picks = _pick_data_channels(info, with_ref_meg=False)
 
     _validate_type(picks, (list, np.ndarray), "picks",
                    "list or np.array of integers")
