@@ -1229,6 +1229,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     return stcs
 
 
+# XXX what is this???
 '''
 def _xyz2lf(Lf_xyz, normals):
     """Reorient leadfield to one component matching the normal to the cortex

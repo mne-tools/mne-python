@@ -368,6 +368,7 @@ def _apply_dics(data, filters, info, tmin):
 
             tstep = 1.0 / info['sfreq']
 
+            # XXX we should pass src to _make_stc
             stcs.append(_make_stc(sol, vertices=filters['vertices'], tmin=tmin,
                                   tstep=tstep, subject=subject))
         if one_freq:
@@ -567,6 +568,7 @@ def apply_dics_csd(csd, filters, verbose=None):
 
     logger.info('[done]')
 
+    # XXX we should pass src to _make_stc
     return (_make_stc(source_power.reshape(-1, n_freqs), vertices=vertices,
                       tmin=0, tstep=1, subject=subject), frequencies)
 
@@ -654,6 +656,7 @@ def _apply_old_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
         tstep = 1.0 / info['sfreq']
         if np.iscomplexobj(sol):
             sol = np.abs(sol)  # XXX : STC cannot contain (yet?) complex values
+        # XXX we should pass src to _make_stc
         yield _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
                         subject=subject)
 

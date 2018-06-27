@@ -1736,9 +1736,9 @@ class VolSourceEstimate(_BaseSourceEstimate):
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
                  subject=None, verbose=None):  # noqa: D102
         if not (isinstance(vertices, np.ndarray) or
-                isinstance(vertices, list) and len(vertices) == 1):
-            raise ValueError('Vertices must be a numpy array or a list with '
-                             'one array')
+                isinstance(vertices, list)):
+            raise ValueError('Vertices must be a numpy array or a list of '
+                             'arrays')
 
         _BaseSourceEstimate.__init__(self, data, vertices=vertices, tmin=tmin,
                                      tstep=tstep, subject=subject,
@@ -3105,15 +3105,19 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
         The image object.
     """
     if not isinstance(stc, VolSourceEstimate):
-        raise Exception('Only volume source estimates can be saved as '
-                        'volumes')
+        raise ValueError('Only volume source estimates can be saved as '
+                         'volumes')
+
+    src_type = _get_src_type(src, None)
+    if src_type != 'vol':
+        raise ValueError('You need a volume source space. Got type: %s.'
+                         % src_type)
 
     n_times = stc.data.shape[1]
     shape = src[0]['shape']
     shape3d = (shape[2], shape[1], shape[0])
     shape = (n_times, shape[2], shape[1], shape[0])
     vol = np.zeros(shape)
-    mask3d = src[0]['inuse'].reshape(shape3d).astype(np.bool)
 
     if mri_resolution:
         mri_shape3d = (src[0]['mri_height'], src[0]['mri_depth'],
@@ -3123,12 +3127,21 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
         mri_vol = np.zeros(mri_shape)
         interpolator = src[0]['interpolator']
 
-    for k, v in enumerate(vol):
-        v[mask3d] = stc.data[:, k]
-        if mri_resolution:
-            mri_vol[k] = (interpolator * v.ravel()).reshape(mri_shape3d)
+    n_vertices_seen = 0
+    for src_idx in range(len(src)):
+        assert tuple(src[src_idx]['shape']) == tuple(src[0]['shape'])
+        mask3d = src[src_idx]['inuse'].reshape(shape3d).astype(np.bool)
+        n_vertices = np.sum(mask3d)
+
+        for k, v in enumerate(vol):  # loop over time instants
+            stc_slice = slice(n_vertices_seen, n_vertices_seen + n_vertices)
+            v[mask3d] = stc.data[stc_slice, k]
+
+        n_vertices_seen += n_vertices
 
     if mri_resolution:
+        for k, v in enumerate(vol):
+            mri_vol[k] = (interpolator * v.ravel()).reshape(mri_shape3d)
         vol = mri_vol
 
     vol = vol.T
