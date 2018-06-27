@@ -2,34 +2,34 @@
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Mads Jensen <mje.mads@gmail.com>
+#          Tommy Clausner <tommy.clausner@gmail.com>
 #
 # License: BSD (3-clause)
 
 import copy
 import os.path as op
-from math import ceil
 import warnings
+from math import ceil
 
 import numpy as np
 from scipy import linalg, sparse
 from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
+from .evoked import _get_peak
+from .externals.h5io import read_hdf5, write_hdf5
+from .externals.six import string_types
+from .externals.six.moves import zip
 from .filter import resample
 from .fixes import einsum
-from .evoked import _get_peak
+from .io.base import ToDataFrameMixin, TimeMixin
 from .parallel import parallel_func
-from .surface import (read_surface, _get_ico_surface, read_morph_map,
-                      _compute_nearest, mesh_edges)
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces)
+from .surface import (read_surface, _get_ico_surface, read_morph_map,
+                      _compute_nearest, mesh_edges)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_, copy_function_doc_to_method_doc)
 from .viz import plot_source_estimates, plot_vector_source_estimates
-from .io.base import ToDataFrameMixin, TimeMixin
-
-from .externals.six import string_types
-from .externals.six.moves import zip
-from .externals.h5io import read_hdf5, write_hdf5
 
 
 def _read_stc(filename):
@@ -189,7 +189,7 @@ def _write_w(filename, vertices, data):
     data: 1D array
         The data array (nvert).
     """
-    assert(len(vertices) == len(data))
+    assert (len(vertices) == len(data))
 
     fid = open(filename, 'wb')
 
@@ -385,7 +385,7 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None,
         else:
             stc = SourceEstimate(data, vertices=vertices, tmin=tmin,
                                  tstep=tstep, subject=subject)
-    elif isinstance(vertices, np.ndarray) or isinstance(vertices, list)\
+    elif isinstance(vertices, np.ndarray) or isinstance(vertices, list) \
             and len(vertices) == 1:
         if vector:
             data = data.reshape((-1, 3, data.shape[-1]))
@@ -1642,7 +1642,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
                      np.arange(len(self.vertices[1])) + len(self.vertices[0])]
         if hemi is None:
             hemi = np.where(np.array([np.sum(values[vi])
-                            for vi in vert_inds]))[0]
+                                      for vi in vert_inds]))[0]
             if not len(hemi) == 1:
                 raise ValueError('Could not infer hemisphere')
             hemi = hemi[0]
@@ -1872,6 +1872,95 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
         return (vert_idx if vert_as_index else self.vertices[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
+
+    def morph_precomputed(self, subject_from, subject_to, src, morph,
+                          as_volume=True):
+        """Morph volumetric source estimate between subjects using a
+        precomputed sdr.
+
+        Parameters
+        ----------
+        subject_to : string
+            Name of the subject on which to morph as named in the SUBJECTS_DIR.
+        subject_from : string | None
+            Name of the original subject as named in the SUBJECTS_DIR.
+            If None, self.subject will be used.
+        src : src
+            Source Space typically from ``forward['src']``
+        morph : sparse matrix or dict
+            If "stc_from" is SourceEstimate | VectorSourceEstimate "morph" is
+            the morphing matrix, typically from compute_morph_matrix. If
+            "stc_from" is a VolSourceEstimate, morph is a dict containing an
+            (``morph['affine']``), a DiffeomorphicMap (``morph['mapping']``),
+            4 x 4 ndarray as a volume to world registration matrix
+            (``morph['affine_reg']``) and a 1 x ndim ndarray of the desired
+            voxel size after the morph was applied (``morph['domain_shape']``).
+            Typically from compute_morph_sdr.
+        as_volume : bool
+            If the function returns the morphed data as a Nifti1Image
+
+        Returns
+        -------
+        data_to : stc | Nifti1Image
+            Source estimate for the destination subject as stc or volume.
+        """
+
+        return morph_data_precomputed(subject_from, subject_to, self, src,
+                                      morph, as_volume=as_volume)
+
+    @verbose
+    def morph(self, subject_from, subject_to, mri_from, mri_to, src,
+              niter_affine=(100, 100, 10),
+              niter_sdr=(5, 5, 3),
+              voxel_size=None,
+              as_volume=True,
+              verbose=None):
+        """Morph volumetric source estimate between subjects
+
+        Parameters
+        ----------
+        subject_to : string
+            Name of the subject on which to morph as named in the SUBJECTS_DIR.
+        subject_from : string | None
+            Name of the original subject as named in the SUBJECTS_DIR.
+            If None, self.subject will be used.
+        mri_from : string | Nifti1Image
+            Path to source subject's anatomical MRI or Nifti1Image
+        mri_to : string | Nifti1Image
+            Path to destination subject's anatomical MRI or Nifti1Image
+        src : src
+            Source Space typically from ``forward['src']``
+        niter_affine : tuple of int
+            Number of levels (``niter_affine.__len__()``) and per level of
+            iterations to perform the affine transform. Increasing index values
+            for the tuple mean later levels and each int represents the number
+            of iterations in that level.
+        niter_sdr : tuple of int
+            Number of levels (``niter_sdr.__len__()``) and number per level of
+            iterations to perform the sdr transform. Increasing index values
+            for the tuple mean later levels and each int represents the number
+            of iterations in that level.
+        voxel_size : tuple
+            Voxel size of volume for each spatial dimension
+        as_volume : bool
+            If the function returns the morphed data as a Nifti1Image
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
+
+        Returns
+        -------
+        data_to : stc | Nifti1Image
+            Source estimate for the destination subject as stc or volume.
+        """
+
+        morph = compute_morph_sdr(mri_from, mri_to, voxel_size=voxel_size,
+                                  niter_affine=niter_affine,
+                                  niter_sdr=niter_sdr, verbose=verbose)
+
+        return morph_data_precomputed(subject_from, subject_to, self, src,
+                                      morph, as_volume=as_volume)
 
 
 class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
@@ -2186,6 +2275,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                    title='mnepython',
                    overwrite=True)
         logger.info('[done]')
+
 
 ###############################################################################
 # Morphing
@@ -2592,6 +2682,172 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
 
 
 @verbose
+def compute_morph_sdr(mri_from, mri_to,
+                      niter_affine=(100, 100, 10),
+                      niter_sdr=(5, 5, 3),
+                      voxel_size=None,
+                      verbose=None):
+    """Get a matrix that morphs data from one subject to another.
+
+    Parameters
+    ----------
+    mri_from : string | Nifti1Image
+        Path to source subject's anatomical MRI or Nifti1Image
+    mri_to : string | Nifti1Image
+        Path to destination subject's anatomical MRI or Nifti1Image
+    niter_affine : tuple of int
+        Number of levels (``niter_affine.__len__()``) and number per level of
+        iterations to perform the affine transform. Increasing index values
+        for the tuple mean later levels and each int represents the number
+        of iterations in that level.
+    niter_sdr : tuple of int
+        Number of levels (``niter_sdr.__len__()``) and number per level of
+        iterations to perform the sdr transform. Increasing index values
+        for the tuple mean later levels and each int represents the number
+        of iterations in that level.
+    voxel_size : tuple
+        Voxel size of volume for each spatial dimension. If voxel_size is None,
+        MRIs won't be resliced. Note that in this case both volumes must have
+        the same number of slices in every spatial dimension.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    morph : list of AffineMap and DiffeomorphicMap
+        Affine and Diffeomorphic registration
+
+    Notes
+    -----
+    This function will be used to morph VolSourceEstimate based on an
+    affine transformation and a nonlinear morph, estimated based on
+    respective transformation from the subject's anatomical T1 (brain) to
+    a destination subject's anatomical T1 (e.g. fsaverage). Afterwards the
+    transformation will be applied to. Affine transformations are computed
+    based on the mutual information. This metric relates structural changes
+    in image intensity values. Because different still brains expose high
+    structural similarities this method works quite well to relate
+    corresponding features [1]_.
+    The nonlinear transformations will be performed as Symmetric
+    Diffeomorphic Registration using the cross-correlation metric [2]_.
+
+    References
+    ----------
+    .. [1] Mattes, D., Haynor, D. R., Vesselle, H., Lewellen, T. K., &
+    Eubank, W. (2003). PET-CT image registration in the chest using
+    free-form deformations. IEEE transactions on medical imaging, 22(1),
+    120-128.
+
+    .. [2] Avants, B. B., Epstein, C. L., Grossman, M., & Gee, J. C. (2009).
+    Symmetric Diffeomorphic Image Registration with Cross- Correlation:
+    Evaluating Automated Labeling of Elderly and Neurodegenerative Brain,
+    12(1), 26-41. Asymmetry. Journal of Cognitive Neuroscience 25(9),
+    1477-1492, 2013.
+        """
+    from dipy.align import imaffine, imwarp, metrics, reslice, transforms
+    import nibabel as nib
+    logger.info('Computing nonlinear Symmetric Diffeomorphic Registration...')
+
+    if isinstance(mri_from, string_types):
+        mri_from = nib.load(mri_from)
+
+    if isinstance(mri_to, string_types):
+        mri_to = nib.load(mri_to)
+
+    if voxel_size is None:
+        voxel_size = mri_from.header.get_zooms()[:3]
+
+    # reslice Moving
+    mri_from_res, mri_from_res_affine = reslice.reslice(
+        mri_from.get_data(),
+        mri_from.affine,
+        mri_from.header.get_zooms()[:3],
+        voxel_size)
+
+    mri_from = nib.Nifti1Image(mri_from_res, mri_from_res_affine)
+
+    # reslice Static
+    mri_to_res, mri_to_res_affine = reslice.reslice(
+        mri_to.get_data(),
+        mri_to.affine,
+        mri_to.header.get_zooms()[:3],
+        voxel_size)
+
+    mri_to = nib.Nifti1Image(mri_to_res, mri_to_res_affine)
+
+    # get Static to world transform
+    mri_to_grid2world = mri_to.affine
+
+    # output Static as ndarray
+    mri_to = mri_to.dataobj[:, :, :]
+
+    # normalize values
+    mri_to = mri_to.astype('float') / mri_to.max()
+
+    # get Moving to world transform
+    mri_from_grid2world = mri_from.affine
+
+    # output Moving as ndarray
+    mri_from = mri_from.dataobj[:, :, :]
+
+    # normalize values
+    mri_from = mri_from.astype('float') / mri_from.max()
+
+    # compute center of mass
+    c_of_mass = imaffine.transform_centers_of_mass(mri_to, mri_to_grid2world,
+                                                   mri_from,
+                                                   mri_from_grid2world)
+
+    nbins = 32
+
+    # set up Affine Registration
+    affreg = imaffine.AffineRegistration(
+        metric=imaffine.MutualInformationMetric(nbins, None),
+        level_iters=list(niter_affine),
+        sigmas=[3.0, 1.0, 0.0],
+        factors=[4, 2, 1])
+
+    # translation
+    translation = affreg.optimize(mri_to, mri_from,
+                                  transforms.TranslationTransform3D(), None,
+                                  mri_to_grid2world, mri_from_grid2world,
+                                  starting_affine=c_of_mass.affine)
+
+    # rigid body transform (translation + rotation)
+    rigid = affreg.optimize(mri_to, mri_from,
+                            transforms.RigidTransform3D(), None,
+                            mri_to_grid2world, mri_from_grid2world,
+                            starting_affine=translation.affine)
+
+    # affine transform (translation + rotation + scaling)
+    affine = affreg.optimize(mri_to, mri_from,
+                             transforms.AffineTransform3D(), None,
+                             mri_to_grid2world, mri_from_grid2world,
+                             starting_affine=rigid.affine)
+
+    # apply affine transformation
+    mri_from_affine = affine.transform(mri_from)
+
+    # set up Symmetric Diffeomorphic Registration (metric, iterations)
+    sdr = imwarp.SymmetricDiffeomorphicRegistration(
+        metrics.CCMetric(3), list(niter_sdr))
+
+    # compute mapping
+    mapping = sdr.optimize(mri_to, mri_from_affine)
+
+    morph = dict()
+    morph['affine'] = affine
+    morph['mapping'] = mapping
+    morph['affine_reg'] = mri_to_grid2world
+    morph['domain_shape'] = mapping.domain_shape
+
+    logger.info('done.')
+
+    return morph
+
+
+@verbose
 def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
                       verbose=None):
     """Convert a grade to source space vertices for a given subject.
@@ -2667,8 +2923,8 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     return vertices
 
 
-def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
-                           morph_mat):
+def morph_data_precomputed(subject_from, subject_to, data_from, space_to,
+                           morph, as_volume=False):
     """Morph source estimate between subjects using a precomputed matrix.
 
     Parameters
@@ -2677,50 +2933,175 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
         Name of the original subject as named in the SUBJECTS_DIR.
     subject_to : string
         Name of the subject on which to morph as named in the SUBJECTS_DIR.
-    stc_from : SourceEstimate | VectorSourceEstimate
+    data_from : SourceEstimate | VectorSourceEstimate | VolSourceEstimate
         Source estimates for subject "from" to morph.
-    vertices_to : list of array of int
-        The vertices on the destination subject's brain.
-    morph_mat : sparse matrix
-        The morphing matrix, typically from compute_morph_matrix.
+    space_to : list of array of int or src
+        If "data_from" is SourceEstimate | VectorSourceEstimate "space_to"
+        contains the vertices on the destination subject's brain.
+        If "data_from" is a VolSourceEstimate, "space_to" is an instance of src
+        e.g. forward['src_from'] to define the target volumetric space, but in
+        this case it's the source target's brain.
+    morph : sparse matrix or dict
+        If "data_from" is SourceEstimate | VectorSourceEstimate "morph" is the
+        morphing matrix, typically from compute_morph_matrix. If "data_from"
+        is a VolSourceEstimate, morph is a dict containing an AffineMap
+        (``morph['affine']``), a DiffeomorphicMap (``morph['mapping']``),
+        4 x 4 ndarray as a volume to world registration matrix
+        (``morph['affine_reg']``) and a 1 x ndim ndarray of the desired voxel
+        size after the morph was applied (``morph['domain_shape']``). Typically
+        from compute_morph_sdr.
+    as_volume : bool
+        Whether the function returns a Nifti1Image or not.
 
     Returns
     -------
-    stc_to : SourceEstimate | VectorSourceEstimate
+    data_to : SourceEstimate | VectorSourceEstimate | VolSourceEstimate |
+        SourceSpaces | Nifti1Image
         Source estimate for the destination subject.
+        if data_from is VolSourceEstimate and as_volume=True data_to becomes a
+        Nifti1Image in the destination subject's space.
     """
-    if not sparse.issparse(morph_mat):
-        raise ValueError('morph_mat must be a sparse matrix')
+    if isinstance(data_from, VolSourceEstimate):
 
-    if not isinstance(vertices_to, list) or not len(vertices_to) == 2:
-        raise ValueError('vertices_to must be a list of length 2')
+        # Note that the order is important: first affine and later a
+        # non-linear transform
+        morph_components = ['affine', 'mapping']
 
-    if not sum(len(v) for v in vertices_to) == morph_mat.shape[0]:
-        raise ValueError('number of vertices in vertices_to must match '
-                         'morph_mat.shape[0]')
+        # check if the correct morpher is present
+        if not isinstance(morph, dict):
+            raise ValueError(
+                'morph must be a dictionary, containing at least one of'
+                'the following keys: ' + ', '.join(morph_components))
 
-    if not stc_from.data.shape[0] == morph_mat.shape[1]:
-        raise ValueError('stc_from.data.shape[0] must be the same as '
-                         'morph_mat.shape[0]')
+        # check if the correct morpher is present
+        if not sum(comp in morph for comp in morph_components) > 0:
+            raise ValueError(
+                'morph must be a dictionary, containing at least one of'
+                'the following keys: ' + ', '.join(morph_components))
 
-    if stc_from.subject is not None and stc_from.subject != subject_from:
-        raise ValueError('stc_from.subject and subject_from must match')
+        # check if the src is present
+        if not isinstance(space_to, SourceSpaces):
+            raise ValueError('space_to must be a Source Space (src)')
 
-    if isinstance(stc_from, VectorSourceEstimate):
-        # Morph the locations of the dipoles, but not their orientation
-        n_verts, _, n_samples = stc_from.data.shape
-        data = morph_mat * stc_from.data.reshape(n_verts, 3 * n_samples)
-        data = data.reshape(morph_mat.shape[0], 3, n_samples)
-        stc_to = VectorSourceEstimate(data, vertices=vertices_to,
-                                      tmin=stc_from.tmin, tstep=stc_from.tstep,
-                                      verbose=stc_from.verbose,
-                                      subject=subject_to)
+        if data_from.subject is not None and data_from.subject != subject_from:
+            raise ValueError('data_from.subject and subject_from must match')
+
+        from dipy.align import reslice
+        import nibabel as nib
+
+        # check if volume to world registration is present
+        if 'affine_reg' not in morph:
+            warn_("Could not find morph['affine_reg']. Using identity matrix "
+                  "instead")
+            morph['affine_reg'] = np.eye(4)
+
+        # check if volxel size is specified
+        if 'domain_shape' not in morph:
+            domain_shape = morph['mapping'].domain_shape
+            warn_("Could not find morph['domain_shape'] - Using %s instead"
+                  % domain_shape)
+            morph['domain_shape'] = domain_shape
+
+        img_to = data_from.as_volume(space_to, mri_resolution=True)
+
+        img_slice_ratio = img_to.shape[:3] / np.asanyarray(
+            img_to.header.get_zooms()[:3]).astype('float')
+
+        new_voxel_size = tuple(
+            img_slice_ratio /
+            morph['mapping'].domain_shape.astype('float')[:3])
+
+        # reslice to match morph
+        img_to, img_to_affine = reslice.reslice(
+            img_to.get_data(),
+            img_to.affine,
+            img_to.header.get_zooms()[:3],
+            new_voxel_size)
+
+        # transform according to pre-defined morph order
+        for comp in morph_components:
+            if comp in morph:
+                for vol in range(img_to.shape[3]):
+                    img_to[:, :, :, vol] = morph[comp].transform(
+                        img_to[:, :, :, vol])
+
+        img_to = nib.Nifti1Image(img_to, affine=morph['affine_reg'])
+
+        if not np.all(
+                morph['domain_shape'][:3] == morph['mapping'].domain_shape[
+                                             :3]):
+            # reslice to match output
+            new_voxel_size = tuple(
+                img_slice_ratio /
+                morph['domain_shape'].astype('float')[:3])
+
+            img_to, img_to_affine = reslice.reslice(
+                img_to.get_data(),
+                img_to.affine,
+                img_to.header.get_zooms()[:3],
+                new_voxel_size)
+
+            img_to = nib.Nifti1Image(img_to, affine=morph['affine_reg'])
+
+        if as_volume:
+            data_to = img_to
+        else:
+            data = img_to.get_data()
+            del img_to
+            if data.ndim is 4:
+                nvol = data.shape[3]
+            else:
+                nvol = 1
+
+            data = data.reshape(-1, nvol)
+
+            vertices = [i for i, d in enumerate(data.sum(axis=1) == 0) if
+                        not d]
+            data_to = VolSourceEstimate(data[vertices, :],
+                                        vertices=np.asanyarray(vertices),
+                                        tmin=data_from.tmin,
+                                        tstep=data_from.tstep,
+                                        verbose=data_from.verbose,
+                                        subject=subject_to)
+
     else:
-        data = morph_mat * stc_from.data
-        stc_to = SourceEstimate(data, vertices=vertices_to, tmin=stc_from.tmin,
-                                tstep=stc_from.tstep, verbose=stc_from.verbose,
-                                subject=subject_to)
-    return stc_to
+
+        if not sparse.issparse(morph):
+            raise ValueError('morph must be a sparse matrix')
+
+        if not isinstance(space_to, list) or not len(space_to) == 2:
+            raise ValueError('space_to must be a list of length 2')
+
+        if not sum(len(v) for v in space_to) == morph.shape[0]:
+            raise ValueError('number of vertices in space_to must match '
+                             'morph.shape[0]')
+
+        if not data_from.data.shape[0] == morph.shape[1]:
+            raise ValueError('data_from.data.shape[0] must be the same as '
+                             'morph.shape[0]')
+
+        if data_from.subject is not None and data_from.subject != subject_from:
+            raise ValueError('data_from.subject and subject_from must match')
+
+        if isinstance(data_from, VectorSourceEstimate):
+            # Morph the locations of the dipoles, but not their orientation
+            n_verts, _, n_samples = data_from.data.shape
+            data = morph * data_from.data.reshape(n_verts, 3 * n_samples)
+            data = data.reshape(morph.shape[0], 3, n_samples)
+            data_to = VectorSourceEstimate(data, vertices=space_to,
+                                           tmin=data_from.tmin,
+                                           tstep=data_from.tstep,
+                                           verbose=data_from.verbose,
+                                           subject=subject_to)
+        else:
+            data = morph * data_from.data
+            data_to = SourceEstimate(data, vertices=space_to,
+                                     tmin=data_from.tmin,
+                                     tstep=data_from.tstep,
+                                     verbose=data_from.verbose,
+                                     subject=subject_to)
+
+    return data_to
 
 
 def _get_vol_mask(src):
@@ -2909,7 +3290,7 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
         raise RuntimeError('src must have distances included, consider using\n'
                            'mne_add_patch_info with --dist argument')
     edges = sparse_block_diag([s['dist'][s['vertno'], :][:, s['vertno']]
-                              for s in src])
+                               for s in src])
     edges.data[:] = np.less_equal(edges.data, dist)
     # clean it up and put it in coo format
     edges = edges.tocsr()
@@ -3042,7 +3423,7 @@ def _get_connectivity_from_edges(edges, n_times, verbose=None):
     data = np.ones(edges.data.size * n_times + 2 * n_vertices * (n_times - 1),
                    dtype=np.int)
     connectivity = coo_matrix((data, (row, col)),
-                              shape=(n_times * n_vertices, ) * 2)
+                              shape=(n_times * n_vertices,) * 2)
     return connectivity
 
 
@@ -3115,6 +3496,7 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
         affine = src[0]['vox_mri_t']['trans'].copy()
     else:
         affine = src[0]['src_mri_t']['trans'].copy()
+
     if dest == 'mri':
         affine = np.dot(src[0]['mri_ras_t']['trans'], affine)
     affine[:3] *= 1e3

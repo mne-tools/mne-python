@@ -771,6 +771,7 @@ Source Space Data
 
    head_to_mni
    compute_morph_matrix
+   compute_morph_sdr
    extract_label_time_course
    grade_to_tris
    grade_to_vertices
