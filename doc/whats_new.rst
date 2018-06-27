@@ -68,6 +68,9 @@ API
 
 - Removed blocking (waiting for new epochs) in :meth:`mne.realtime.RtEpochs.get_data()` by `Henrich Kolkhorst`_
 
+- Deprecated save_stc_as_volume function in favor of :meth:`mne.VolSourceEstimate.as_volume` and
+   :meth:`mne.VolSourceEstimate.save_as_volume` by `Alex Gramfort`_
+
 .. _changes_0_16:
 
 Version 0.16

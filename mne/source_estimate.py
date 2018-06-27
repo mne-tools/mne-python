@@ -14,6 +14,7 @@ import numpy as np
 from scipy import linalg, sparse
 from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
+from .utils import deprecated
 from .filter import resample
 from .fixes import einsum
 from .evoked import _get_peak
@@ -3078,7 +3079,41 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
         return ico
 
 
+@deprecated("This function is deprecated and will be removed in version 0.18. "
+            "Use instead stc.as_volume or stc.save_as_volume methods.")
 def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
+    """Save a volume source estimate in a NIfTI file.
+
+    This function is DEPRECATED.
+
+    Parameters
+    ----------
+    fname : string | None
+        The name of the generated nifti file. If None, the image is only
+        returned and not saved.
+    stc : instance of VolSourceEstimate
+        The source estimate
+    src : list
+        The list of source spaces (should actually be of length 1)
+    dest : 'mri' | 'surf'
+        If 'mri' the volume is defined in the coordinate system of
+        the original T1 image. If 'surf' the coordinate system
+        of the FreeSurfer surface is used (Surface RAS).
+    mri_resolution: bool
+        It True the image is saved in MRI resolution.
+        WARNING: if you have many time points the file produced can be
+        huge.
+
+    Returns
+    -------
+    img : instance Nifti1Image
+        The image object.
+    """
+    return _save_stc_as_volume(fname, stc, src, dest='mri',
+                               mri_resolution=False)
+
+
+def _save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     """Save a volume source estimate in a NIfTI file.
 
     Parameters
