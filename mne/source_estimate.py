@@ -1816,8 +1816,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
         -----
         .. versionadded:: 0.9.0
         """
-        save_stc_as_volume(fname, self, src, dest=dest,
-                           mri_resolution=mri_resolution)
+        _save_stc_as_volume(fname, self, src, dest=dest,
+                            mri_resolution=mri_resolution)
 
     def as_volume(self, src, dest='mri', mri_resolution=False):
         """Export volume source estimate as a nifti object.
@@ -1844,8 +1844,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
         -----
         .. versionadded:: 0.9.0
         """
-        return save_stc_as_volume(None, self, src, dest=dest,
-                                  mri_resolution=mri_resolution)
+        return _save_stc_as_volume(None, self, src, dest=dest,
+                                   mri_resolution=mri_resolution)
 
     def __repr__(self):  # noqa: D105
         if isinstance(self.vertices, list):
