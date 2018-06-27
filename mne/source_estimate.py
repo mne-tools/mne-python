@@ -1796,7 +1796,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
         fname : string
             The name of the generated nifti file.
         src : list
-            The list of source spaces (should actually be of length 1)
+            The list of source spaces (should all be of type volume).
         dest : 'mri' | 'surf'
             If 'mri' the volume is defined in the coordinate system of
             the original T1 image. If 'surf' the coordinate system
@@ -1824,7 +1824,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
         Parameters
         ----------
         src : list
-            The list of source spaces (should actually be of length 1)
+            The list of source spaces (should all be of type volume).
         dest : 'mri' | 'surf'
             If 'mri' the volume is defined in the coordinate system of
             the original T1 image. If 'surf' the coordinate system

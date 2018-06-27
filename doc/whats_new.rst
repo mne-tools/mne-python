@@ -54,6 +54,9 @@ Bug
 
 - Fix bug in :func:`mne.viz.plot_snr_estimate` and :func:`mne.minimum_norm.estimate_snr` where the inverse rank was not properly utilized (especially affecting SSS'ed MEG data) by `Eric Larson`_
 
+- Fix error when saving stc as nifti image when using volume source space formed by more than one label by `Alex Gramfort`_
+
+
 API
 ~~~
 
