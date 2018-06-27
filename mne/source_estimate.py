@@ -365,19 +365,15 @@ def _get_src_type(src, vertices):
     if src is None:
         warn_("src should not be None for have a robust guess of stc type.")
         if isinstance(vertices, list) and len(vertices) == 2:
-            src_type = 'surf'
+            src_type = 'surface'
         elif isinstance(vertices, np.ndarray) or isinstance(vertices, list)\
                 and len(vertices) == 1:
-            src_type = 'vol'
+            src_type = 'volume'
         elif isinstance(vertices, list) and len(vertices) > 2:
-            src_type = 'mixed'
+            src_type = 'combined'
     else:
-        src_types = set([ss['type'] for ss in src])
-        if len(src_types) > 1:
-            src_type = 'mixed'
-        else:
-            src_type = src_types.pop()
-    assert src_type in ['surf', 'vol', 'mixed']
+        src_type = src.kind
+    assert src_type in ['surface', 'volume', 'combined']
     return src_type
 
 
@@ -386,7 +382,7 @@ def _make_stc(data, vertices, src=None, tmin=None, tstep=None, subject=None,
     """Generate a surface, vector-surface, volume or mixed source estimate."""
     src_type = _get_src_type(src, vertices)
 
-    if src_type == 'surf':
+    if src_type == 'surface':
         # make a surface source estimate
         n_vertices = len(vertices[0]) + len(vertices[1])
         if vector:
@@ -409,12 +405,12 @@ def _make_stc(data, vertices, src=None, tmin=None, tstep=None, subject=None,
         else:
             stc = SourceEstimate(data, vertices=vertices, tmin=tmin,
                                  tstep=tstep, subject=subject)
-    elif src_type == 'vol':
+    elif src_type == 'volume':
         if vector:
             data = data.reshape((-1, 3, data.shape[-1]))
         stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
                                 tstep=tstep, subject=subject)
-    elif src_type == 'mixed':
+    elif src_type == 'combined':
         # make a mixed source estimate
         stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin,
                                   tstep=tstep, subject=subject)
@@ -3084,8 +3080,6 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
 def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     """Save a volume source estimate in a NIfTI file.
 
-    This function is DEPRECATED.
-
     Parameters
     ----------
     fname : string | None
@@ -3144,7 +3138,7 @@ def _save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
                          'volumes')
 
     src_type = _get_src_type(src, None)
-    if src_type != 'vol':
+    if src_type != 'volume':
         raise ValueError('You need a volume source space. Got type: %s.'
                          % src_type)
 
@@ -3163,9 +3157,9 @@ def _save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
         interpolator = src[0]['interpolator']
 
     n_vertices_seen = 0
-    for src_idx in range(len(src)):
-        assert tuple(src[src_idx]['shape']) == tuple(src[0]['shape'])
-        mask3d = src[src_idx]['inuse'].reshape(shape3d).astype(np.bool)
+    for this_src in src:
+        assert tuple(this_src['shape']) == tuple(src[0]['shape'])
+        mask3d = this_src['inuse'].reshape(shape3d).astype(np.bool)
         n_vertices = np.sum(mask3d)
 
         for k, v in enumerate(vol):  # loop over time instants
