@@ -14,6 +14,7 @@ import numpy as np
 from scipy import linalg, sparse
 from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
+from .utils import deprecated
 from .filter import resample
 from .fixes import einsum
 from .evoked import _get_peak
@@ -359,10 +360,29 @@ def read_source_estimate(fname, subject=None):
     return stc
 
 
-def _make_stc(data, vertices, tmin=None, tstep=None, subject=None,
+def _get_src_type(src, vertices):
+    src_type = None
+    if src is None:
+        warn_("src should not be None for have a robust guess of stc type.")
+        if isinstance(vertices, list) and len(vertices) == 2:
+            src_type = 'surface'
+        elif isinstance(vertices, np.ndarray) or isinstance(vertices, list)\
+                and len(vertices) == 1:
+            src_type = 'volume'
+        elif isinstance(vertices, list) and len(vertices) > 2:
+            src_type = 'mixed'
+    else:
+        src_type = src.kind
+    assert src_type in ['surface', 'volume', 'mixed']
+    return src_type
+
+
+def _make_stc(data, vertices, src=None, tmin=None, tstep=None, subject=None,
               vector=False, source_nn=None):
     """Generate a surface, vector-surface, volume or mixed source estimate."""
-    if isinstance(vertices, list) and len(vertices) == 2:
+    src_type = _get_src_type(src, vertices)
+
+    if src_type == 'surface':
         # make a surface source estimate
         n_vertices = len(vertices[0]) + len(vertices[1])
         if vector:
@@ -385,13 +405,12 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None,
         else:
             stc = SourceEstimate(data, vertices=vertices, tmin=tmin,
                                  tstep=tstep, subject=subject)
-    elif isinstance(vertices, np.ndarray) or isinstance(vertices, list)\
-            and len(vertices) == 1:
+    elif src_type == 'volume':
         if vector:
             data = data.reshape((-1, 3, data.shape[-1]))
         stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
                                 tstep=tstep, subject=subject)
-    elif isinstance(vertices, list) and len(vertices) > 2:
+    elif src_type == 'mixed':
         # make a mixed source estimate
         stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin,
                                   tstep=tstep, subject=subject)
@@ -1714,9 +1733,9 @@ class VolSourceEstimate(_BaseSourceEstimate):
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
                  subject=None, verbose=None):  # noqa: D102
         if not (isinstance(vertices, np.ndarray) or
-                isinstance(vertices, list) and len(vertices) == 1):
-            raise ValueError('Vertices must be a numpy array or a list with '
-                             'one array')
+                isinstance(vertices, list)):
+            raise ValueError('Vertices must be a numpy array or a list of '
+                             'arrays')
 
         _BaseSourceEstimate.__init__(self, data, vertices=vertices, tmin=tmin,
                                      tstep=tstep, subject=subject,
@@ -1774,7 +1793,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
         fname : string
             The name of the generated nifti file.
         src : list
-            The list of source spaces (should actually be of length 1)
+            The list of source spaces (should all be of type volume).
         dest : 'mri' | 'surf'
             If 'mri' the volume is defined in the coordinate system of
             the original T1 image. If 'surf' the coordinate system
@@ -1793,8 +1812,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
         -----
         .. versionadded:: 0.9.0
         """
-        save_stc_as_volume(fname, self, src, dest=dest,
-                           mri_resolution=mri_resolution)
+        _save_stc_as_volume(fname, self, src, dest=dest,
+                            mri_resolution=mri_resolution)
 
     def as_volume(self, src, dest='mri', mri_resolution=False):
         """Export volume source estimate as a nifti object.
@@ -1802,7 +1821,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
         Parameters
         ----------
         src : list
-            The list of source spaces (should actually be of length 1)
+            The list of source spaces (should all be of type volume).
         dest : 'mri' | 'surf'
             If 'mri' the volume is defined in the coordinate system of
             the original T1 image. If 'surf' the coordinate system
@@ -1821,8 +1840,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
         -----
         .. versionadded:: 0.9.0
         """
-        return save_stc_as_volume(None, self, src, dest=dest,
-                                  mri_resolution=mri_resolution)
+        return _save_stc_as_volume(None, self, src, dest=dest,
+                                   mri_resolution=mri_resolution)
 
     def __repr__(self):  # noqa: D105
         if isinstance(self.vertices, list):
@@ -3056,6 +3075,8 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
         return ico
 
 
+@deprecated("This function is deprecated and will be removed in version 0.18. "
+            "Use instead stc.as_volume or stc.save_as_volume methods.")
 def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     """Save a volume source estimate in a NIfTI file.
 
@@ -3082,16 +3103,50 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     img : instance Nifti1Image
         The image object.
     """
+    return _save_stc_as_volume(fname, stc, src, dest='mri',
+                               mri_resolution=False)
+
+
+def _save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
+    """Save a volume source estimate in a NIfTI file.
+
+    Parameters
+    ----------
+    fname : string | None
+        The name of the generated nifti file. If None, the image is only
+        returned and not saved.
+    stc : instance of VolSourceEstimate
+        The source estimate
+    src : list
+        The list of source spaces (should actually be of length 1)
+    dest : 'mri' | 'surf'
+        If 'mri' the volume is defined in the coordinate system of
+        the original T1 image. If 'surf' the coordinate system
+        of the FreeSurfer surface is used (Surface RAS).
+    mri_resolution: bool
+        It True the image is saved in MRI resolution.
+        WARNING: if you have many time points the file produced can be
+        huge.
+
+    Returns
+    -------
+    img : instance Nifti1Image
+        The image object.
+    """
     if not isinstance(stc, VolSourceEstimate):
-        raise Exception('Only volume source estimates can be saved as '
-                        'volumes')
+        raise ValueError('Only volume source estimates can be saved as '
+                         'volumes')
+
+    src_type = _get_src_type(src, None)
+    if src_type != 'volume':
+        raise ValueError('You need a volume source space. Got type: %s.'
+                         % src_type)
 
     n_times = stc.data.shape[1]
     shape = src[0]['shape']
     shape3d = (shape[2], shape[1], shape[0])
     shape = (n_times, shape[2], shape[1], shape[0])
     vol = np.zeros(shape)
-    mask3d = src[0]['inuse'].reshape(shape3d).astype(np.bool)
 
     if mri_resolution:
         mri_shape3d = (src[0]['mri_height'], src[0]['mri_depth'],
@@ -3101,12 +3156,21 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
         mri_vol = np.zeros(mri_shape)
         interpolator = src[0]['interpolator']
 
-    for k, v in enumerate(vol):
-        v[mask3d] = stc.data[:, k]
-        if mri_resolution:
-            mri_vol[k] = (interpolator * v.ravel()).reshape(mri_shape3d)
+    n_vertices_seen = 0
+    for this_src in src:
+        assert tuple(this_src['shape']) == tuple(src[0]['shape'])
+        mask3d = this_src['inuse'].reshape(shape3d).astype(np.bool)
+        n_vertices = np.sum(mask3d)
+
+        for k, v in enumerate(vol):  # loop over time instants
+            stc_slice = slice(n_vertices_seen, n_vertices_seen + n_vertices)
+            v[mask3d] = stc.data[stc_slice, k]
+
+        n_vertices_seen += n_vertices
 
     if mri_resolution:
+        for k, v in enumerate(vol):
+            mri_vol[k] = (interpolator * v.ravel()).reshape(mri_shape3d)
         vol = mri_vol
 
     vol = vol.T

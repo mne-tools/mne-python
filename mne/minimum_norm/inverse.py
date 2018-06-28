@@ -947,7 +947,8 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     subject = _subject_from_inverse(inverse_operator)
 
     stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
-                    vector=(pick_ori == 'vector'), source_nn=source_nn)
+                    vector=(pick_ori == 'vector'), source_nn=source_nn,
+                    src=inverse_operator['src'])
     logger.info('[done]')
 
     return stc
@@ -1086,7 +1087,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     tstep = 1.0 / raw.info['sfreq']
     subject = _subject_from_inverse(inverse_operator)
     stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
-                    vector=(pick_ori == 'vector'), source_nn=source_nn)
+                    vector=(pick_ori == 'vector'), source_nn=source_nn,
+                    src=inverse_operator['src'])
     logger.info('[done]')
 
     return stc
@@ -1153,7 +1155,8 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                 sol = np.dot(K, e[sel])
 
         stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
-                        vector=(pick_ori == 'vector'), source_nn=source_nn)
+                        vector=(pick_ori == 'vector'), source_nn=source_nn,
+                        src=inverse_operator['src'])
 
         yield stc
 
@@ -1226,6 +1229,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     return stcs
 
 
+# XXX what is this???
 '''
 def _xyz2lf(Lf_xyz, normals):
     """Reorient leadfield to one component matching the normal to the cortex

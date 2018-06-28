@@ -54,6 +54,9 @@ Bug
 
 - Fix bug in :func:`mne.viz.plot_snr_estimate` and :func:`mne.minimum_norm.estimate_snr` where the inverse rank was not properly utilized (especially affecting SSS'ed MEG data) by `Eric Larson`_
 
+- Fix error when saving stc as nifti image when using volume source space formed by more than one label by `Alex Gramfort`_
+
+
 API
 ~~~
 
@@ -64,6 +67,11 @@ API
 - Calling :meth:`mne.Epochs.decimate` with ``decim=1`` no longer copies the data by `Henrich Kolkhorst`_
 
 - Removed blocking (waiting for new epochs) in :meth:`mne.realtime.RtEpochs.get_data()` by `Henrich Kolkhorst`_
+
+- Deprecated save_stc_as_volume function in favor of :meth:`mne.VolSourceEstimate.as_volume` and
+   :meth:`mne.VolSourceEstimate.save_as_volume` by `Alex Gramfort`_
+
+- `src.kind` now equals to `'mixed'` (and not `'combined'`) for a mixed source space (made of surfaces and volume grids) by `Alex Gramfort`_
 
 .. _changes_0_16:
 
