@@ -39,19 +39,6 @@ Documentation
 `MNE documentation`_ for MNE-Python is available online.
 
 
-Get the latest code
-^^^^^^^^^^^^^^^^^^^
-
-To get the latest code using `git <https://git-scm.com/>`_, open a terminal and type:
-
-.. code-block:: bash
-
-    git clone git://github.com/mne-tools/mne-python.git
-
-Alternatively, you can also download a
-`zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/master.zip>`_.
-
-
 Installing MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -65,6 +52,25 @@ To install the latest stable version of MNE-Python, you can use `pip <https://pi
 
 For more complete instructions and more advanced installation methods (e.g. for
 the latest development version), see the `getting started page`_.
+
+
+Get the latest code
+^^^^^^^^^^^^^^^^^^^
+
+To install the latest version of the code using `pip <https://pip.pypa.io/en/stable/>`_ open a terminal and type:
+
+.. code-block:: bash
+
+    pip install -U https://api.github.com/repos/mne-tools/mne-python/zipball/master
+
+To get the latest code using `git <https://git-scm.com/>`_, open a terminal and type:
+
+.. code-block:: bash
+
+    git clone git://github.com/mne-tools/mne-python.git
+
+Alternatively, you can also download a
+`zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/master.zip>`_.
 
 
 Dependencies
