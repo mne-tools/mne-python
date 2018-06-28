@@ -52,6 +52,11 @@ Bug
 
 - Fix bug in :func:`mne.io.read_raw_brainvision` where 1-indexed BrainVision events were not being converted into 0-indexed mne events by `Steven Bethard`_
 
+- Fix bug in :func:`mne.viz.plot_snr_estimate` and :func:`mne.minimum_norm.estimate_snr` where the inverse rank was not properly utilized (especially affecting SSS'ed MEG data) by `Eric Larson`_
+
+- Fix error when saving stc as nifti image when using volume source space formed by more than one label by `Alex Gramfort`_
+
+
 API
 ~~~
 
@@ -62,6 +67,11 @@ API
 - Calling :meth:`mne.Epochs.decimate` with ``decim=1`` no longer copies the data by `Henrich Kolkhorst`_
 
 - Removed blocking (waiting for new epochs) in :meth:`mne.realtime.RtEpochs.get_data()` by `Henrich Kolkhorst`_
+
+- Deprecated save_stc_as_volume function in favor of :meth:`mne.VolSourceEstimate.as_volume` and
+   :meth:`mne.VolSourceEstimate.save_as_volume` by `Alex Gramfort`_
+
+- `src.kind` now equals to `'mixed'` (and not `'combined'`) for a mixed source space (made of surfaces and volume grids) by `Alex Gramfort`_
 
 .. _changes_0_16:
 
@@ -243,6 +253,8 @@ Bug
 - Fix bug in :class:`mne.make_forward_solution` when passing data with compensation channels (e.g. CTF) that contain bad channels by `Alex Gramfort`_
 
 - Fix bug in :meth:`mne.SourceEstimate.get_peak` and :meth:`mne.VolSourceEstimate.get_peak` when there is only a single time point by `Marijn van Vliet`_
+
+- Fix bug in :func:`mne.io.read_raw_edf` when reading BDF files stimulus channels are now not scaled anymore by `Clemens Brunner`_
 
 API
 ~~~

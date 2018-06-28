@@ -272,15 +272,22 @@ class RawEDF(BaseRaw):
                     assert ch_data.shape == (len(ch_data), buf_len)
                     data[ii, d_sidx:d_eidx] = ch_data.ravel()[r_sidx:r_eidx]
 
-        data *= cal.T[idx]  # scale
-        data += offsets[idx]  # offset
-        data *= gains.T[idx]  # apply units gain last
-
         # only try to read the stim channel if it's not None and it's
         # actually one of the requested channels
         idx = np.arange(self.info['nchan'])[idx]  # slice -> ints
         read_size = len(r_lims) * buf_len
         stim_channel_idx = np.where(idx == stim_channel)[0]
+
+        if subtype == 'bdf':
+            # do not scale stim channel (see gh-5160)
+            stim_idx = np.where(np.arange(self.info['nchan']) == stim_channel)
+            cal[0, stim_idx[0]] = 1
+            offsets[stim_idx[0], 0] = 0
+            gains[0, stim_idx[0]] = 1
+        data *= cal.T[idx]
+        data += offsets[idx]
+        data *= gains.T[idx]
+
         if stim_channel is not None and len(stim_channel_idx) > 0:
             if annot and annotmap:
                 evts = _read_annot(annot, annotmap, sfreq,

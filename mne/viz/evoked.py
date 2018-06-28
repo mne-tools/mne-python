@@ -1220,7 +1220,8 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True,
     return fig
 
 
-def plot_snr_estimate(evoked, inv, show=True):
+@verbose
+def plot_snr_estimate(evoked, inv, show=True, verbose=None):
     """Plot a data SNR estimate.
 
     Parameters
@@ -1231,6 +1232,9 @@ def plot_snr_estimate(evoked, inv, show=True):
         The minimum-norm inverse operator.
     show : bool
         Show figure if True.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1239,23 +1243,26 @@ def plot_snr_estimate(evoked, inv, show=True):
 
     Notes
     -----
+    The bluish green line is the SNR determined by the GFP of the whitened
+    evoked data. The orange line is the SNR estimated based on the mismatch
+    between the data and the data re-estimated from the regularized inverse.
+
     .. versionadded:: 0.9.0
     """
     import matplotlib.pyplot as plt
     from ..minimum_norm import estimate_snr
-    snr, snr_est = estimate_snr(evoked, inv, verbose=True)
+    snr, snr_est = estimate_snr(evoked, inv)
     fig, ax = plt.subplots(1, 1)
     lims = np.concatenate([evoked.times[[0, -1]], [-1, snr_est.max()]])
-    ax.plot([0, 0], lims[2:], 'k:')
-    ax.plot(lims[:2], [0, 0], 'k:')
+    ax.axvline(0, color='k', ls=':', lw=1)
+    ax.axhline(0, color='k', ls=':', lw=1)
     # Colors are "bluish green" and "vermilion" taken from:
     #  http://bconnelly.net/2013/10/creating-colorblind-friendly-figures/
     ax.plot(evoked.times, snr_est, color=[0.0, 0.6, 0.5])
-    ax.plot(evoked.times, snr, color=[0.8, 0.4, 0.0])
+    ax.plot(evoked.times, snr - 1, color=[0.8, 0.4, 0.0])
     ax.set(xlim=lims[:2], ylim=lims[2:], ylabel='SNR', xlabel='Time (s)')
     if evoked.comment is not None:
         ax.set_title(evoked.comment)
-    plt.draw()
     plt_show(show)
     return fig
 
@@ -1331,7 +1338,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     # simply create a new evoked object with the desired channel selection
     evoked = _pick_inst(evoked, picks, exclude, copy=True)
     info = evoked.info
-    ch_types = _get_channel_types(info)
+    ch_types = _get_channel_types(info, restrict_data_types=True)
 
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
@@ -1858,7 +1865,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     elif picks is None:
         logger.info("No picks, plotting the GFP ...")
         gfp = True
-        picks = _pick_data_channels(info)
+        picks = _pick_data_channels(info, with_ref_meg=False)
 
     _validate_type(picks, (list, np.ndarray), "picks",
                    "list or np.array of integers")

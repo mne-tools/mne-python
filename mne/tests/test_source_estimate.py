@@ -18,7 +18,8 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  spatio_temporal_tris_connectivity,
                  spatio_temporal_src_connectivity,
                  spatial_inter_hemi_connectivity,
-                 spatial_src_connectivity, spatial_tris_connectivity)
+                 spatial_src_connectivity, spatial_tris_connectivity,
+                 SourceSpaces)
 from mne.source_estimate import (compute_morph_matrix, grade_to_vertices,
                                  grade_to_tris, _get_vol_mask)
 
@@ -130,35 +131,48 @@ def test_volume_stc():
             assert_array_equal(stc.vertices, stc_new.vertices)
             assert_array_almost_equal(stc.data, stc_new.data)
 
-    # save the stc as a nifti file and export
-    try:
-        import nibabel as nib
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter('always')
-            src = read_source_spaces(fname_vsrc)
-        vol_fname = op.join(tempdir, 'stc.nii.gz')
-        stc.save_as_volume(vol_fname, src,
-                           dest='surf', mri_resolution=False)
-        with warnings.catch_warnings(record=True):  # nib<->numpy
-            img = nib.load(vol_fname)
-        assert_true(img.shape == src[0]['shape'] + (len(stc.times),))
 
-        with warnings.catch_warnings(record=True):  # nib<->numpy
-            t1_img = nib.load(fname_t1)
-        stc.save_as_volume(op.join(tempdir, 'stc.nii.gz'), src,
-                           dest='mri', mri_resolution=True)
-        with warnings.catch_warnings(record=True):  # nib<->numpy
-            img = nib.load(vol_fname)
-        assert_true(img.shape == t1_img.shape + (len(stc.times),))
-        assert_allclose(img.affine, t1_img.affine, atol=1e-5)
+@testing.requires_testing_data
+@requires_nibabel()
+def test_save_vol_stc_as_nifti():
+    """Save the stc as a nifti file and export."""
+    import nibabel as nib
+    tempdir = _TempDir()
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('always')
+        src = read_source_spaces(fname_vsrc)
+    vol_fname = op.join(tempdir, 'stc.nii.gz')
 
-        # export without saving
-        img = stc.as_volume(src, dest='mri', mri_resolution=True)
-        assert_true(img.shape == t1_img.shape + (len(stc.times),))
-        assert_allclose(img.affine, t1_img.affine, atol=1e-5)
+    # now let's actually read a MNE-C processed file
+    stc = read_source_estimate(fname_vol, 'sample')
+    assert_true(isinstance(stc, VolSourceEstimate))
 
-    except ImportError:
-        print('Save as nifti test skipped, needs NiBabel')
+    stc.save_as_volume(vol_fname, src,
+                       dest='surf', mri_resolution=False)
+    with warnings.catch_warnings(record=True):  # nib<->numpy
+        img = nib.load(vol_fname)
+    assert_true(img.shape == src[0]['shape'] + (len(stc.times),))
+
+    with warnings.catch_warnings(record=True):  # nib<->numpy
+        t1_img = nib.load(fname_t1)
+    stc.save_as_volume(op.join(tempdir, 'stc.nii.gz'), src,
+                       dest='mri', mri_resolution=True)
+    with warnings.catch_warnings(record=True):  # nib<->numpy
+        img = nib.load(vol_fname)
+    assert_true(img.shape == t1_img.shape + (len(stc.times),))
+    assert_allclose(img.affine, t1_img.affine, atol=1e-5)
+
+    # export without saving
+    img = stc.as_volume(src, dest='mri', mri_resolution=True)
+    assert_true(img.shape == t1_img.shape + (len(stc.times),))
+    assert_allclose(img.affine, t1_img.affine, atol=1e-5)
+
+    src = SourceSpaces([src[0], src[0]])
+    stc = VolSourceEstimate(np.r_[stc.data, stc.data],
+                            [stc.vertices, stc.vertices],
+                            tmin=stc.tmin, tstep=stc.tstep)
+    img = stc.as_volume(src, dest='mri', mri_resolution=False)
+    assert_true(img.shape == src[0]['shape'] + (len(stc.times),))
 
 
 @testing.requires_testing_data

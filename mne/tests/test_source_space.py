@@ -611,7 +611,7 @@ def test_combine_source_spaces():
     src_from_file = read_source_spaces(src_out_name)
     _compare_source_spaces(src, src_from_file, mode='approx')
     assert_equal(repr(src), repr(src_from_file))
-    assert_equal(src.kind, 'combined')
+    assert_equal(src.kind, 'mixed')
 
     # test that all source spaces are in MRI coordinates
     coord_frames = np.array([s['coord_frame'] for s in src])
