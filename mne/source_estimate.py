@@ -370,10 +370,10 @@ def _get_src_type(src, vertices):
                 and len(vertices) == 1:
             src_type = 'volume'
         elif isinstance(vertices, list) and len(vertices) > 2:
-            src_type = 'combined'
+            src_type = 'mixed'
     else:
         src_type = src.kind
-    assert src_type in ['surface', 'volume', 'combined']
+    assert src_type in ['surface', 'volume', 'mixed']
     return src_type
 
 
@@ -410,7 +410,7 @@ def _make_stc(data, vertices, src=None, tmin=None, tstep=None, subject=None,
             data = data.reshape((-1, 3, data.shape[-1]))
         stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
                                 tstep=tstep, subject=subject)
-    elif src_type == 'combined':
+    elif src_type == 'mixed':
         # make a mixed source estimate
         stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin,
                                   tstep=tstep, subject=subject)

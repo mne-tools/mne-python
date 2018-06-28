@@ -71,6 +71,8 @@ API
 - Deprecated save_stc_as_volume function in favor of :meth:`mne.VolSourceEstimate.as_volume` and
    :meth:`mne.VolSourceEstimate.save_as_volume` by `Alex Gramfort`_
 
+- `src.kind` now equals to `'mixed'` (and not `'combined'`) for a mixed source space (made of surfaces and volume grids) by `Alex Gramfort`_
+
 .. _changes_0_16:
 
 Version 0.16
