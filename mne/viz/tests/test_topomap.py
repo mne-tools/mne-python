@@ -199,8 +199,9 @@ def test_plot_topomap():
 
     p = plt_topomap(times, ch_type='grad', image_interp='bilinear',
                     show_names=lambda x: x.replace('MEG', ''))
-    subplot = [x for x in p.get_children() if
-               isinstance(x, matplotlib.axes.Subplot)][0]
+    subplot = [x for x in p.get_children() if 'Subplot' in str(type(x))]
+    assert len(subplot) >= 1, [type(x) for x in p.get_children()]
+    subplot = subplot[0]
     assert (all('MEG' not in x.get_text()
                 for x in subplot.get_children()
                 if isinstance(x, matplotlib.text.Text)))
