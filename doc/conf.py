@@ -290,6 +290,7 @@ intersphinx_mapping = {
     'surfer': ('https://pysurfer.github.io/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
     'statsmodels': ('http://www.statsmodels.org/stable/', None),
+    'dipy': ('http://nipy.org/dipy', None),
 }
 
 examples_dirs = ['../examples', '../tutorials']

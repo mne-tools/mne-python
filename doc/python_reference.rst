@@ -763,6 +763,7 @@ Source Space Data
    SourceEstimate
    VectorSourceEstimate
    VolSourceEstimate
+   SourceMorph
 
 .. autosummary::
    :toctree: generated/
