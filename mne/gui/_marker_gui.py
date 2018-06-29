@@ -294,7 +294,8 @@ class MarkerPointDest(MarkerPoints):  # noqa: D401
             return pts
 
         # Transform method
-        idx = np.intersect1d(self.src1.use, self.src2.use, assume_unique=True)
+        idx = np.intersect1d(np.array(self.src1.use),
+                             np.array(self.src2.use), assume_unique=True)
         if len(idx) < 3:
             error(None, "Need at least three shared points for trans"
                   "formation.", "Marker Interpolation Error")
