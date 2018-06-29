@@ -10,9 +10,10 @@ import shutil
 from unittest import SkipTest
 
 import warnings
-from nose.tools import assert_raises, assert_equal, assert_true
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import (assert_array_equal, assert_array_almost_equal,
+                           assert_equal)
+import pytest
 from scipy import io
 
 from mne import write_events, read_epochs_eeglab, Epochs, find_events
@@ -46,7 +47,7 @@ def test_io_set():
                          montage=montage)
     for want in ('Events like', 'consist entirely', 'could not be mapped',
                  'string preload is not supported'):
-        assert_true(any(want in str(ww.message) for ww in w))
+        assert (any(want in str(ww.message) for ww in w))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         # test finding events in continuous data
@@ -102,12 +103,12 @@ def test_io_set():
 
     epochs = read_epochs_eeglab(epochs_fname, epochs.events, event_id)
     assert_equal(len(epochs.events), 4)
-    assert_true(epochs.preload)
-    assert_true(epochs._bad_dropped)
+    assert (epochs.preload)
+    assert (epochs._bad_dropped)
     epochs = read_epochs_eeglab(epochs_fname, out_fname, event_id)
-    assert_raises(ValueError, read_epochs_eeglab, epochs_fname,
+    pytest.raises(ValueError, read_epochs_eeglab, epochs_fname,
                   None, event_id)
-    assert_raises(ValueError, read_epochs_eeglab, epochs_fname,
+    pytest.raises(ValueError, read_epochs_eeglab, epochs_fname,
                   epochs.events, None)
 
     # test reading file with one event
@@ -140,7 +141,7 @@ def test_io_set():
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     negative_latency_fname.replace('.set', '.fdt'))
     event_id = {eeg.event[0].type: 1}
-    assert_raises(ValueError, read_raw_eeglab, montage=montage, preload=True,
+    pytest.raises(ValueError, read_raw_eeglab, montage=montage, preload=True,
                   event_id=event_id, input_fname=negative_latency_fname)
 
     # test overlapping events
@@ -161,8 +162,8 @@ def test_io_set():
     assert_equal(len(w), 1)  # one warning for the dropped event
     events_stimchan = find_events(raw)
     events_read_events_eeglab = read_events_eeglab(overlap_fname, event_id)
-    assert_true(len(events_stimchan) == 1)
-    assert_true(len(events_read_events_eeglab) == 2)
+    assert (len(events_stimchan) == 1)
+    assert (len(events_read_events_eeglab) == 2)
 
     # test reading file with one channel
     one_chan_fname = op.join(temp_dir, 'test_one_channel.set')
@@ -269,18 +270,19 @@ def test_degenerate():
                     op.join(temp_dir, 'test_epochs.dat'))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        assert_raises(NotImplementedError, read_epochs_eeglab,
+        pytest.raises(NotImplementedError, read_epochs_eeglab,
                       bad_epochs_fname)
     assert_equal(len(w), 1)
 
 
 @testing.requires_testing_data
 def test_eeglab_annotations():
-    """Test reading annotations in EEGLAB files"""
+    """Test reading annotations in EEGLAB files."""
     for fname in [raw_fname_onefile, raw_fname]:
         annotations = read_annotations_eeglab(fname)
         assert len(annotations) == 154
         assert set(annotations.description) == set(['rt', 'square'])
         assert np.all(annotations.duration == 0.)
+
 
 run_tests_if_main()

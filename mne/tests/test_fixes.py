@@ -15,7 +15,7 @@ from mne.fixes import _sosfiltfilt as mne_sosfiltfilt, _sph_harm
 
 
 def test_filtfilt():
-    """Test SOS filtfilt replacement"""
+    """Test SOS filtfilt replacement."""
     x = np.r_[1, np.zeros(100)]
     # Filter with an impulse
     y = filtfilt([1, 0], [1, 0], x, padlen=0)
@@ -35,5 +35,6 @@ def test_spherical_harmonics():
             sph = _sph_harm(order, degree, az, pol)
             sph_scipy = sph_harm(order, degree, az, pol)
             assert_allclose(sph, sph_scipy, atol=1e-7)
+
 
 run_tests_if_main()

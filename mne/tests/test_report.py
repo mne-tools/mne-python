@@ -11,7 +11,7 @@ import shutil
 import warnings
 
 import numpy as np
-from nose.tools import assert_true, assert_equal, assert_raises
+from numpy.testing import assert_equal
 import pytest
 
 from mne import Epochs, read_events, read_evokeds
@@ -83,15 +83,15 @@ def test_render_report():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         report.parse_folder(data_path=tempdir, on_error='raise')
-    assert_true(len(w) >= 1)
-    assert_true(repr(report))
+    assert (len(w) >= 1)
+    assert (repr(report))
 
     # Check correct paths and filenames
     fnames = glob.glob(op.join(tempdir, '*.fif'))
     for fname in fnames:
-        assert_true(op.basename(fname) in
-                    [op.basename(x) for x in report.fnames])
-        assert_true(''.join(report.html).find(op.basename(fname)) != -1)
+        assert (op.basename(fname) in
+                [op.basename(x) for x in report.fnames])
+        assert (''.join(report.html).find(op.basename(fname)) != -1)
 
     assert_equal(len(report.fnames), len(fnames))
     assert_equal(len(report.html), len(report.fnames))
@@ -101,7 +101,7 @@ def test_render_report():
     report.data_path = tempdir
     fname = op.join(tempdir, 'report.html')
     report.save(fname=fname, open_browser=False)
-    assert_true(op.isfile(fname))
+    assert (op.isfile(fname))
     with open(fname, 'rb') as fid:
         html = fid.read().decode('utf-8')
     assert '(MaxShield on)' in html
@@ -111,30 +111,30 @@ def test_render_report():
 
     # Check saving same report to new filename
     report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
-    assert_true(op.isfile(op.join(tempdir, 'report2.html')))
+    assert (op.isfile(op.join(tempdir, 'report2.html')))
 
     # Check overwriting file
     report.save(fname=op.join(tempdir, 'report.html'), open_browser=False,
                 overwrite=True)
-    assert_true(op.isfile(op.join(tempdir, 'report.html')))
+    assert (op.isfile(op.join(tempdir, 'report.html')))
 
     # Check pattern matching with multiple patterns
     pattern = ['*raw.fif', '*eve.fif']
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         report.parse_folder(data_path=tempdir, pattern=pattern)
-    assert_true(len(w) >= 1)
-    assert_true(repr(report))
+    assert (len(w) >= 1)
+    assert (repr(report))
 
     fnames = glob.glob(op.join(tempdir, '*.raw')) + \
         glob.glob(op.join(tempdir, '*.raw'))
     for fname in fnames:
-        assert_true(op.basename(fname) in
-                    [op.basename(x) for x in report.fnames])
-        assert_true(''.join(report.html).find(op.basename(fname)) != -1)
+        assert (op.basename(fname) in
+                [op.basename(x) for x in report.fnames])
+        assert (''.join(report.html).find(op.basename(fname)) != -1)
 
-    assert_raises(ValueError, Report, image_format='foo')
-    assert_raises(ValueError, Report, image_format=None)
+    pytest.raises(ValueError, Report, image_format='foo')
+    pytest.raises(ValueError, Report, image_format=None)
 
     # SVG rendering
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
@@ -160,11 +160,11 @@ def test_render_add_sections():
     report.add_figs_to_section(figs=fig,  # test non-list input
                                captions=['evoked response'], scale=1.2,
                                image_format='svg')
-    assert_raises(ValueError, report.add_figs_to_section, figs=[fig, fig],
+    pytest.raises(ValueError, report.add_figs_to_section, figs=[fig, fig],
                   captions='H')
-    assert_raises(ValueError, report.add_figs_to_section, figs=fig,
+    pytest.raises(ValueError, report.add_figs_to_section, figs=fig,
                   captions=['foo'], scale=0, image_format='svg')
-    assert_raises(ValueError, report.add_figs_to_section, figs=fig,
+    pytest.raises(ValueError, report.add_figs_to_section, figs=fig,
                   captions=['foo'], scale=1e-10, image_format='svg')
     # need to recreate because calls above change size
     fig = plt.plot([1, 2], [1, 2])[0].figure
@@ -178,10 +178,10 @@ def test_render_add_sections():
     report.add_images_to_section(fnames=[img_fname],
                                  captions=['evoked response'])
 
-    assert_raises(ValueError, report.add_images_to_section,
+    pytest.raises(ValueError, report.add_images_to_section,
                   fnames=[img_fname, img_fname], captions='H')
 
-    assert_raises(ValueError, report.add_images_to_section,
+    pytest.raises(ValueError, report.add_images_to_section,
                   fnames=['foobar.xxx'], captions='H')
 
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
@@ -191,7 +191,7 @@ def test_render_add_sections():
 
     report.add_figs_to_section(figs=fig,  # test non-list input
                                captions='random image', scale=1.2)
-    assert_true(repr(report))
+    assert (repr(report))
 
 
 @pytest.mark.slowtest
@@ -212,7 +212,7 @@ def test_render_mri():
         report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*',
                             n_jobs=2)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
-    assert_true(repr(report))
+    assert (repr(report))
 
 
 @testing.requires_testing_data
@@ -228,7 +228,7 @@ def test_render_mri_without_bem():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         report.parse_folder(tempdir)
-    assert_true(len(w) >= 1)
+    assert (len(w) >= 1)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 
@@ -243,8 +243,8 @@ def test_add_htmls_to_section():
     report.add_htmls_to_section(html, caption, section)
     idx = report._sectionlabels.index('report_' + section)
     html_compare = report.html[idx]
-    assert_true(html in html_compare)
-    assert_true(repr(report))
+    assert (html in html_compare)
+    assert (repr(report))
 
 
 def test_add_slider_to_section():
@@ -264,12 +264,12 @@ def test_add_slider_to_section():
     report.add_slider_to_section(figs, section=section)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
-    assert_raises(NotImplementedError, report.add_slider_to_section,
+    pytest.raises(NotImplementedError, report.add_slider_to_section,
                   [figs, figs])
-    assert_raises(ValueError, report.add_slider_to_section, figs, ['wug'])
-    assert_raises(TypeError, report.add_slider_to_section, figs, 'wug')
+    pytest.raises(ValueError, report.add_slider_to_section, figs, ['wug'])
+    pytest.raises(TypeError, report.add_slider_to_section, figs, 'wug')
     # need at least 2
-    assert_raises(ValueError, report.add_slider_to_section, figs[:1], 'wug')
+    pytest.raises(ValueError, report.add_slider_to_section, figs[:1], 'wug')
 
     # Smoke test that SVG w/unicode can be added
     report = Report()
@@ -287,9 +287,9 @@ def test_validate_input():
     comments = ['First letter of the alphabet.',
                 'Second letter of the alphabet',
                 'Third letter of the alphabet']
-    assert_raises(ValueError, report._validate_input, items, captions[:-1],
+    pytest.raises(ValueError, report._validate_input, items, captions[:-1],
                   section, comments=None)
-    assert_raises(ValueError, report._validate_input, items, captions, section,
+    pytest.raises(ValueError, report._validate_input, items, captions, section,
                   comments=comments[:-1])
     values = report._validate_input(items, captions, section, comments=None)
     items_new, captions_new, comments_new = values

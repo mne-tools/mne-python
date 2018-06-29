@@ -1,11 +1,11 @@
 import os.path as op
 import os
+import warnings
 
-from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal, assert_allclose)
-import warnings
+import pytest
 
 from mne import (read_events, write_events, make_fixed_length_events,
                  find_events, pick_events, find_stim_steps, pick_channels,
@@ -43,8 +43,8 @@ def test_fix_stim():
     raw._data[raw.ch_names.index('STI 014'), :3] = [0, -32765, 0]
     with warnings.catch_warnings(record=True) as w:
         events = find_events(raw, 'STI 014')
-    assert_true(len(w) >= 1)
-    assert_true(any('STI016' in str(ww.message) for ww in w))
+    assert (len(w) >= 1)
+    assert (any('STI016' in str(ww.message) for ww in w))
     assert_array_equal(events[0], [raw.first_samp + 1, 0, 32765])
     events = find_events(raw, 'STI 014', uint_cast=True)
     assert_array_equal(events[0], [raw.first_samp + 1, 0, 32771])
@@ -55,19 +55,19 @@ def test_add_events():
     # need preload
     raw = read_raw_fif(raw_fname)
     events = np.array([[raw.first_samp, 0, 1]])
-    assert_raises(RuntimeError, raw.add_events, events, 'STI 014')
+    pytest.raises(RuntimeError, raw.add_events, events, 'STI 014')
     raw = read_raw_fif(raw_fname, preload=True)
     orig_events = find_events(raw, 'STI 014')
     # add some events
     events = np.array([raw.first_samp, 0, 1])
-    assert_raises(ValueError, raw.add_events, events, 'STI 014')  # bad shape
+    pytest.raises(ValueError, raw.add_events, events, 'STI 014')  # bad shape
     events[0] = raw.first_samp + raw.n_times + 1
     events = events[np.newaxis, :]
-    assert_raises(ValueError, raw.add_events, events, 'STI 014')  # bad time
+    pytest.raises(ValueError, raw.add_events, events, 'STI 014')  # bad time
     events[0, 0] = raw.first_samp - 1
-    assert_raises(ValueError, raw.add_events, events, 'STI 014')  # bad time
+    pytest.raises(ValueError, raw.add_events, events, 'STI 014')  # bad time
     events[0, 0] = raw.first_samp + 1  # can't actually be first_samp
-    assert_raises(ValueError, raw.add_events, events, 'STI FOO')
+    pytest.raises(ValueError, raw.add_events, events, 'STI FOO')
     raw.add_events(events, 'STI 014')
     new_events = find_events(raw, 'STI 014')
     assert_array_equal(new_events, np.concatenate((events, orig_events)))
@@ -128,7 +128,7 @@ def test_io_events():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         events2 = read_events(fname_txt_mpr, mask=0, mask_type='not_and')
-        assert_true(sum('first row of' in str(ww.message) for ww in w) == 1)
+        assert (sum('first row of' in str(ww.message) for ww in w) == 1)
     assert_array_almost_equal(events, events2)
 
     # Test old format text file IO
@@ -193,7 +193,7 @@ def test_find_events():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         events22 = read_events(fname, mask=3, mask_type='not_and')
-        assert_true(sum('events masked' in str(ww.message) for ww in w) == 1)
+        assert (sum('events masked' in str(ww.message) for ww in w) == 1)
     assert_array_equal(events11, events22)
 
     # Reset some data for ease of comparison
@@ -210,8 +210,8 @@ def test_find_events():
     raw._data[stim_channel_idx, 5:] = 0
     # 1 == '0b1', 2 == '0b10', 3 == '0b11', 4 == '0b100'
 
-    assert_raises(TypeError, find_events, raw, mask="0", mask_type='and')
-    assert_raises(ValueError, find_events, raw, mask=0, mask_type='blah')
+    pytest.raises(TypeError, find_events, raw, mask="0", mask_type='and')
+    pytest.raises(ValueError, find_events, raw, mask=0, mask_type='blah')
     # testing mask_type. default = 'not_and'
     assert_array_equal(find_events(raw, shortest_event=1, mask=1,
                                    mask_type='not_and'),
@@ -280,7 +280,7 @@ def test_find_events():
                         [31, 0, 5],
                         [40, 0, 6],
                         [14399, 0, 9]])
-    assert_raises(ValueError, find_events, raw, output='step',
+    pytest.raises(ValueError, find_events, raw, output='step',
                   consecutive=True)
     assert_array_equal(find_events(raw, output='step', consecutive=True,
                                    shortest_event=1),
@@ -394,7 +394,7 @@ def test_make_fixed_length_events():
     """Test making events of a fixed length."""
     raw = read_raw_fif(raw_fname)
     events = make_fixed_length_events(raw, id=1)
-    assert_true(events.shape[1], 3)
+    assert events.shape[1] == 3
     events_zero = make_fixed_length_events(raw, 1, first_samp=False)
     assert_equal(events_zero[0, 0], 0)
     assert_array_equal(events_zero[:, 0], events[:, 0] - raw.first_samp)
@@ -404,12 +404,12 @@ def test_make_fixed_length_events():
     events = make_fixed_length_events(raw, 1, tmin, tmax, duration)
     assert_equal(events.shape[0], 1)
     # With bad limits (no resulting events)
-    assert_raises(ValueError, make_fixed_length_events, raw, 1,
+    pytest.raises(ValueError, make_fixed_length_events, raw, 1,
                   tmin, tmax - 1e-3, duration)
     # not raw, bad id or duration
-    assert_raises(TypeError, make_fixed_length_events, raw, 2.3)
-    assert_raises(TypeError, make_fixed_length_events, 'not raw', 2)
-    assert_raises(TypeError, make_fixed_length_events, raw, 23, tmin, tmax,
+    pytest.raises(TypeError, make_fixed_length_events, raw, 2.3)
+    pytest.raises(TypeError, make_fixed_length_events, 'not raw', 2)
+    pytest.raises(TypeError, make_fixed_length_events, raw, 23, tmin, tmax,
                   'abc')
 
     # Let's try some ugly sample rate/sample count combos
@@ -444,7 +444,7 @@ def test_define_events():
     n_miss = events_[events_[:, 2] == 99].shape[0]
     n_target_ = events_[events_[:, 2] == 42].shape[0]
 
-    assert_true(n_target_ == (n_target - n_miss))
+    assert (n_target_ == (n_target - n_miss))
 
     events = np.array([[0, 0, 1],
                        [375, 0, 2],
@@ -467,39 +467,39 @@ def test_define_events():
 
 @testing.requires_testing_data
 def test_acqparser():
-    """ Test AcqParserFIF """
+    """Test AcqParserFIF."""
     # no acquisition parameters
-    assert_raises(ValueError, AcqParserFIF, {'acq_pars': ''})
+    pytest.raises(ValueError, AcqParserFIF, {'acq_pars': ''})
     # invalid acquisition parameters
-    assert_raises(ValueError, AcqParserFIF, {'acq_pars': 'baaa'})
-    assert_raises(ValueError, AcqParserFIF, {'acq_pars': 'ERFVersion\n1'})
+    pytest.raises(ValueError, AcqParserFIF, {'acq_pars': 'baaa'})
+    pytest.raises(ValueError, AcqParserFIF, {'acq_pars': 'ERFVersion\n1'})
     # test oldish file
     raw = read_raw_fif(raw_fname, preload=False)
     acqp = AcqParserFIF(raw.info)
     # test __repr__()
-    assert_true(repr(acqp))
+    assert (repr(acqp))
     # old file should trigger compat mode
-    assert_true(acqp.compat)
+    assert (acqp.compat)
     # count events and categories
     assert_equal(len(acqp.categories), 6)
     assert_equal(len(acqp._categories), 17)
     assert_equal(len(acqp.events), 6)
     assert_equal(len(acqp._events), 17)
     # get category
-    assert_true(acqp['Surprise visual'])
+    assert (acqp['Surprise visual'])
     # test TRIUX file
     raw = read_raw_fif(fname_raw_elekta, preload=False)
     acqp = raw.acqparser
-    assert_true(acqp is raw.acqparser)  # same one, not regenerated
+    assert (acqp is raw.acqparser)  # same one, not regenerated
     # test __repr__()
-    assert_true(repr(acqp))
+    assert (repr(acqp))
     # this file should not be in compatibility mode
-    assert_true(not acqp.compat)
+    assert (not acqp.compat)
     # nonexisting category
-    assert_raises(KeyError, acqp.__getitem__, 'does not exist')
-    assert_raises(KeyError, acqp.get_condition, raw, 'foo')
+    pytest.raises(KeyError, acqp.__getitem__, 'does not exist')
+    pytest.raises(KeyError, acqp.get_condition, raw, 'foo')
     # category not a string
-    assert_raises(TypeError, acqp.__getitem__, 0)
+    pytest.raises(TypeError, acqp.__getitem__, 0)
     # number of events / categories
     assert_equal(len(acqp), 7)
     assert_equal(len(acqp.categories), 7)
@@ -507,12 +507,12 @@ def test_acqparser():
     assert_equal(len(acqp.events), 6)
     assert_equal(len(acqp._events), 32)
     # get category
-    assert_true(acqp['Test event 5'])
+    assert (acqp['Test event 5'])
 
 
 @testing.requires_testing_data
 def test_acqparser_averaging():
-    """ Test averaging with AcqParserFIF vs. Elekta software """
+    """Test averaging with AcqParserFIF vs. Elekta software."""
     raw = read_raw_fif(fname_raw_elekta, preload=True)
     acqp = AcqParserFIF(raw.info)
     for cat in acqp.categories:

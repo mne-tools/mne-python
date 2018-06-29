@@ -1,6 +1,3 @@
-"""Data Equivalence Tests"""
-from __future__ import print_function
-
 # Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
 #          Nicolas Barascud <nicolas.barascud@ens.fr>
 #
@@ -9,7 +6,6 @@ from __future__ import print_function
 import os.path as op
 import warnings
 
-from nose.tools import assert_true
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
 import numpy as np
@@ -52,7 +48,7 @@ def test_gdf_data():
     # Test events are encoded to stim channel.
     events = find_events(raw)
     evs = raw.find_edf_events()
-    assert_true(all([event in evs[1] for event in events[:, 0]]))
+    assert (all([event in evs[1] for event in events[:, 0]]))
 
 
 @testing.requires_testing_data
@@ -84,7 +80,7 @@ def test_gdf2_data():
         # header contains no events
         raw = read_raw_edf(gdf2_path + '.gdf', stim_channel='auto')
         assert_equal(len(w), 1)
-        assert_true(str(w[0].message).startswith('No events found.'))
+        assert (str(w[0].message).startswith('No events found.'))
     assert_equal(nchan, raw.info['nchan'])  # stim channel not constructed
     assert_array_equal(ch_names[1:], raw.ch_names[1:])
 

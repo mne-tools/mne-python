@@ -14,7 +14,7 @@ from ..bem import fit_sphere_to_headshape
 
 
 def _get_data(x, ch_idx):
-    """Helper to get the (n_ch, n_times) data array"""
+    """Get the (n_ch, n_times) data array."""
     if isinstance(x, BaseRaw):
         return x[ch_idx][0]
     elif isinstance(x, Evoked):
@@ -22,8 +22,7 @@ def _get_data(x, ch_idx):
 
 
 def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind='MEG'):
-    """Helper to check the SNR of a set of channels"""
-    from nose.tools import assert_true
+    """Check the SNR of a set of channels."""
     actual_data = _get_data(actual, picks)
     desired_data = _get_data(desired, picks)
     bench_rms = np.sqrt(np.mean(desired_data * desired_data, axis=1))
@@ -35,17 +34,18 @@ def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind='MEG'):
     snr = snrs.min()
     bad_count = (snrs < min_tol).sum()
     msg = ' (%s)' % msg if msg != '' else msg
-    assert_true(bad_count == 0, 'SNR (worst %0.2f) < %0.2f for %s/%s '
-                'channels%s' % (snr, min_tol, bad_count, len(picks), msg))
+    assert bad_count == 0, ('SNR (worst %0.2f) < %0.2f for %s/%s '
+                            'channels%s' % (snr, min_tol, bad_count,
+                                            len(picks), msg))
     # median tol
     snr = np.median(snrs)
-    assert_true(snr >= med_tol, '%s SNR median %0.2f < %0.2f%s'
-                % (kind, snr, med_tol, msg))
+    assert snr >= med_tol, ('%s SNR median %0.2f < %0.2f%s'
+                            % (kind, snr, med_tol, msg))
 
 
 def assert_meg_snr(actual, desired, min_tol, med_tol=500., chpi_med_tol=500.,
                    msg=None):
-    """Helper to assert channel SNR of a certain level
+    """Assert channel SNR of a certain level.
 
     Mostly useful for operations like Maxwell filtering that modify
     MEG channels while leaving EEG and others intact.
@@ -73,19 +73,19 @@ def assert_meg_snr(actual, desired, min_tol, med_tol=500., chpi_med_tol=500.,
 
 
 def assert_snr(actual, desired, tol):
-    """Assert actual and desired arrays are within some SNR tolerance"""
-    from nose.tools import assert_true
+    """Assert actual and desired arrays are within some SNR tolerance."""
     snr = (linalg.norm(desired, ord='fro') /
            linalg.norm(desired - actual, ord='fro'))
-    assert_true(snr >= tol, msg='%f < %f' % (snr, tol))
+    assert snr >= tol, '%f < %f' % (snr, tol)
 
 
 def _dig_sort_key(dig):
-    """Helper for sorting"""
-    return 10000 * dig['kind'] + dig['ident']
+    """Sort dig keys."""
+    return (dig['kind'], dig['ident'])
 
 
 def assert_dig_allclose(info_py, info_bin):
+    """Assert dig allclose."""
     # test dig positions
     dig_py = sorted(info_py['dig'], key=_dig_sort_key)
     dig_bin = sorted(info_bin['dig'], key=_dig_sort_key)
@@ -107,7 +107,7 @@ def assert_dig_allclose(info_py, info_bin):
 
 
 def assert_naming(warns, fname, n_warn):
-    """Assert a non-standard naming scheme was used while saving or loading
+    """Assert a non-standard naming scheme was used while saving or loading.
 
     Parameters
     ----------
@@ -118,11 +118,9 @@ def assert_naming(warns, fname, n_warn):
     n_warn : int
         Number of warnings that should have naming convention errors.
     """
-    from nose.tools import assert_true
-    assert_true(sum('naming conventions' in str(ww.message)
-                    for ww in warns) == n_warn)
+    assert sum('naming conventions' in str(ww.message)
+               for ww in warns) == n_warn
     # check proper stacklevel reporting
     for ww in warns:
         if 'naming conventions' in str(ww.message):
-            assert_true(fname in ww.filename,
-                        msg='"%s" not in "%s"' % (fname, ww.filename))
+            assert fname in ww.filename

@@ -1,7 +1,7 @@
 import threading
 import time
-from nose.tools import assert_equal, assert_raises, assert_true
 
+import pytest
 from mne.realtime import StimServer, StimClient
 from mne.externals.six.moves import queue
 from mne.utils import requires_good_network, run_tests_if_main
@@ -14,8 +14,7 @@ _max_wait = 10.
 
 @requires_good_network
 def test_connection():
-    """Test TCP/IP connection for StimServer <-> StimClient.
-    """
+    """Test TCP/IP connection for StimServer <-> StimClient."""
     global _server, _have_put_in_trigger
 
     # have to start a thread to simulate the effect of two
@@ -48,25 +47,24 @@ def test_connection():
         # Hence communication between threads is necessary
         trig1 = trig_queue1.get(timeout=_max_wait)
         trig2 = trig_queue2.get(timeout=_max_wait)
-        assert_equal(trig1, 20)
+        assert trig1 == 20
 
         # test if both clients receive the same trigger
-        assert_equal(trig1, trig2)
+        assert trig1 == trig2
 
     # test timeout for stim_server
     with StimServer(port=4218) as stim_server:
-        assert_raises(StopIteration, stim_server.start, 0.1)
+        pytest.raises(StopIteration, stim_server.start, 0.1)
 
 
 def _connect_client(trig_queue):
-    """Helper method that instantiates the StimClient.
-    """
+    """Instantiate the StimClient."""
     # just wait till the main thread reaches stim_server.start()
     t0 = time.time()
     while (time.time() - t0 < _max_wait and
            (_server is None or not _server._running)):
         time.sleep(0.01)
-    assert_true(_server is not None and _server._running)
+    assert _server is not None and _server._running
 
     # instantiate StimClient
     stim_client = StimClient('localhost', port=4218)
@@ -75,7 +73,7 @@ def _connect_client(trig_queue):
     t0 = time.time()
     while (time.time() - t0 < _max_wait and not _have_put_in_trigger):
         time.sleep(0.01)
-    assert_true(_have_put_in_trigger)
+    assert _have_put_in_trigger
 
     trig_queue.put(stim_client.get_trigger())
     stim_client.close()

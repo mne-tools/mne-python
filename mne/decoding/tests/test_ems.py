@@ -4,8 +4,8 @@
 
 import os.path as op
 import numpy as np
-from numpy.testing import assert_array_almost_equal
-from nose.tools import assert_equal, assert_raises
+from numpy.testing import assert_array_almost_equal, assert_equal
+import pytest
 
 from mne import io, Epochs, read_events, pick_types
 from mne.utils import requires_version, check_version, run_tests_if_main
@@ -34,10 +34,10 @@ def test_ems():
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
-    assert_raises(ValueError, compute_ems, epochs, ['aud_l', 'vis_l'])
+    pytest.raises(ValueError, compute_ems, epochs, ['aud_l', 'vis_l'])
     epochs.equalize_event_counts(epochs.event_id)
 
-    assert_raises(KeyError, compute_ems, epochs, ['blah', 'hahah'])
+    pytest.raises(KeyError, compute_ems, epochs, ['blah', 'hahah'])
     surrogates, filters, conditions = compute_ems(epochs)
     assert_equal(list(set(conditions)), [1, 3])
 
@@ -49,7 +49,7 @@ def test_ems():
 
     n_expected = sum([len(epochs[k]) for k in ['aud_l', 'vis_l']])
 
-    assert_raises(ValueError, compute_ems, epochs)
+    pytest.raises(ValueError, compute_ems, epochs)
     surrogates, filters, conditions = compute_ems(epochs, ['aud_r', 'vis_l'])
     assert_equal(n_expected, len(surrogates))
     assert_equal(n_expected, len(conditions))
@@ -66,8 +66,8 @@ def test_ems():
         cv = StratifiedKFold(epochs.events[:, 2])
     compute_ems(epochs, cv=cv)
     compute_ems(epochs, cv=2)
-    assert_raises(ValueError, compute_ems, epochs, cv='foo')
-    assert_raises(ValueError, compute_ems, epochs, cv=len(epochs) + 1)
+    pytest.raises(ValueError, compute_ems, epochs, cv='foo')
+    pytest.raises(ValueError, compute_ems, epochs, cv=len(epochs) + 1)
     raw.close()
 
     # EMS transformer, check that identical to compute_ems

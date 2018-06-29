@@ -1,13 +1,13 @@
-from numpy.testing import assert_equal, assert_array_equal, assert_allclose
-from nose.tools import (assert_true, assert_raises, assert_not_equal,
-                        assert_not_in)
 from copy import deepcopy
 import os.path as op
-import numpy as np
-from scipy import sparse
 import os
 import warnings
 import webbrowser
+
+import numpy as np
+import pytest
+from scipy import sparse
+from numpy.testing import assert_equal, assert_array_equal, assert_allclose
 
 from mne import read_evokeds, open_docs
 from mne.datasets import testing
@@ -45,7 +45,7 @@ fname_fsaverage_trans = op.join(data_path, 'subjects', 'fsaverage', 'bem',
 
 
 def clean_lines(lines=[]):
-    # Function to scrub filenames for checking logging output (in test_logging)
+    """Scrub filenames for checking logging output (in test_logging)."""
     return [l if 'Reading ' not in l else 'Reading test file' for l in lines]
 
 
@@ -57,13 +57,13 @@ def test_buggy_mkl():
     def foo(a, b):
         raise np.linalg.LinAlgError('SVD did not converge')
     with warnings.catch_warnings(record=True) as w:
-        assert_raises(SkipTest, foo, 1, 2)
-    assert_true(all('convergence error' in str(ww.message) for ww in w))
+        pytest.raises(SkipTest, foo, 1, 2)
+    assert (all('convergence error' in str(ww.message) for ww in w))
 
     @buggy_mkl_svd
     def bar(c, d, e):
         raise RuntimeError('SVD did not converge')
-    assert_raises(RuntimeError, bar, 1, 2, 3)
+    pytest.raises(RuntimeError, bar, 1, 2, 3)
 
 
 def test_sys_info():
@@ -71,7 +71,7 @@ def test_sys_info():
     out = StringIO()
     sys_info(fid=out)
     out = out.getvalue()
-    assert_true('numpy:' in out)
+    assert ('numpy:' in out)
 
 
 def test_get_call_line():
@@ -93,8 +93,8 @@ def test_get_call_line():
 
 def test_object_size():
     """Test object size estimation."""
-    assert_true(object_size(np.ones(10, np.float32)) <
-                object_size(np.ones(10, np.float64)))
+    assert (object_size(np.ones(10, np.float32)) <
+            object_size(np.ones(10, np.float64)))
     for lower, upper, obj in ((0, 60, ''),
                               (0, 30, 1),
                               (0, 30, 1.),
@@ -107,8 +107,8 @@ def test_object_size():
                               (200, 900, sparse.eye(20, format='csc')),
                               (200, 900, sparse.eye(20, format='csr'))):
         size = object_size(obj)
-        assert_true(lower < size < upper,
-                    msg='%s < %s < %s:\n%s' % (lower, size, upper, obj))
+        assert lower < size < upper, \
+            '%s < %s < %s:\n%s' % (lower, size, upper, obj)
 
 
 def test_get_inst_data():
@@ -131,7 +131,7 @@ def test_get_inst_data():
     tfr = tfr_morlet(evoked, freqs, n_cycles, return_itc=False, picks=picks)
     assert_equal(_get_inst_data(tfr), tfr.data)
 
-    assert_raises(TypeError, _get_inst_data, 'foo')
+    pytest.raises(TypeError, _get_inst_data, 'foo')
 
 
 def test_misc():
@@ -139,26 +139,26 @@ def test_misc():
     assert_equal(_memory_usage(-1)[0], -1)
     assert_equal(_memory_usage((clean_lines, [], {}))[0], -1)
     assert_equal(_memory_usage(clean_lines)[0], -1)
-    assert_raises(ValueError, check_random_state, 'foo')
-    assert_raises(ValueError, set_memmap_min_size, 1)
-    assert_raises(ValueError, set_memmap_min_size, 'foo')
-    assert_raises(TypeError, get_config, 1)
-    assert_raises(TypeError, set_config, 1)
-    assert_raises(TypeError, set_config, 'foo', 1)
-    assert_raises(TypeError, _get_stim_channel, 1, None)
-    assert_raises(TypeError, _get_stim_channel, [1], None)
-    assert_raises(TypeError, _check_fname, 1)
-    assert_raises(IOError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
-    assert_raises(ValueError, _check_subject, None, None)
-    assert_raises(TypeError, _check_subject, None, 1)
-    assert_raises(TypeError, _check_subject, 1, None)
+    pytest.raises(ValueError, check_random_state, 'foo')
+    pytest.raises(ValueError, set_memmap_min_size, 1)
+    pytest.raises(ValueError, set_memmap_min_size, 'foo')
+    pytest.raises(TypeError, get_config, 1)
+    pytest.raises(TypeError, set_config, 1)
+    pytest.raises(TypeError, set_config, 'foo', 1)
+    pytest.raises(TypeError, _get_stim_channel, 1, None)
+    pytest.raises(TypeError, _get_stim_channel, [1], None)
+    pytest.raises(TypeError, _check_fname, 1)
+    pytest.raises(IOError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
+    pytest.raises(ValueError, _check_subject, None, None)
+    pytest.raises(TypeError, _check_subject, None, 1)
+    pytest.raises(TypeError, _check_subject, 1, None)
 
 
 @requires_mayavi
 @traits_test
 def test_check_mayavi():
     """Test mayavi version check."""
-    assert_raises(RuntimeError, _check_mayavi_version, '100.0.0')
+    pytest.raises(RuntimeError, _check_mayavi_version, '100.0.0')
 
 
 def test_run_tests_if_main():
@@ -168,7 +168,7 @@ def test_run_tests_if_main():
     def test_a():
         x.append(True)
 
-    @np.testing.dec.skipif(True)
+    @pytest.mark.skipif(True)
     def test_b():
         return
 
@@ -188,8 +188,8 @@ def test_run_tests_if_main():
             raise RuntimeError('Error not raised')
     finally:
         del __name__
-    assert_true(len(x) == 2)
-    assert_true(x[0] and x[1])
+    assert (len(x) == 2)
+    assert (x[0] and x[1])
 
 
 def test_hash():
@@ -202,76 +202,76 @@ def test_hash():
     d0[2.] = b'123'
 
     d1 = deepcopy(d0)
-    assert_true(len(object_diff(d0, d1)) == 0)
-    assert_true(len(object_diff(d1, d0)) == 0)
+    assert (len(object_diff(d0, d1)) == 0)
+    assert (len(object_diff(d1, d0)) == 0)
     assert_equal(object_hash(d0), object_hash(d1))
 
     # change values slightly
     d1['data'] = np.ones(3, int)
     d1['d'][0] = 0
-    assert_not_equal(object_hash(d0), object_hash(d1))
+    assert object_hash(d0) != object_hash(d1)
 
     d1 = deepcopy(d0)
     assert_equal(object_hash(d0), object_hash(d1))
     d1['a']['a'] = 0.11
-    assert_true(len(object_diff(d0, d1)) > 0)
-    assert_true(len(object_diff(d1, d0)) > 0)
-    assert_not_equal(object_hash(d0), object_hash(d1))
+    assert (len(object_diff(d0, d1)) > 0)
+    assert (len(object_diff(d1, d0)) > 0)
+    assert object_hash(d0) != object_hash(d1)
 
     d1 = deepcopy(d0)
     assert_equal(object_hash(d0), object_hash(d1))
     d1['a']['d'] = 0  # non-existent key
-    assert_true(len(object_diff(d0, d1)) > 0)
-    assert_true(len(object_diff(d1, d0)) > 0)
-    assert_not_equal(object_hash(d0), object_hash(d1))
+    assert (len(object_diff(d0, d1)) > 0)
+    assert (len(object_diff(d1, d0)) > 0)
+    assert object_hash(d0) != object_hash(d1)
 
     d1 = deepcopy(d0)
     assert_equal(object_hash(d0), object_hash(d1))
     d1['b'].append(0)  # different-length lists
-    assert_true(len(object_diff(d0, d1)) > 0)
-    assert_true(len(object_diff(d1, d0)) > 0)
-    assert_not_equal(object_hash(d0), object_hash(d1))
+    assert (len(object_diff(d0, d1)) > 0)
+    assert (len(object_diff(d1, d0)) > 0)
+    assert object_hash(d0) != object_hash(d1)
 
     d1 = deepcopy(d0)
     assert_equal(object_hash(d0), object_hash(d1))
     d1['e'] = 'foo'  # non-None
-    assert_true(len(object_diff(d0, d1)) > 0)
-    assert_true(len(object_diff(d1, d0)) > 0)
-    assert_not_equal(object_hash(d0), object_hash(d1))
+    assert (len(object_diff(d0, d1)) > 0)
+    assert (len(object_diff(d1, d0)) > 0)
+    assert object_hash(d0) != object_hash(d1)
 
     d1 = deepcopy(d0)
     d2 = deepcopy(d0)
     d1['e'] = StringIO()
     d2['e'] = StringIO()
     d2['e'].write('foo')
-    assert_true(len(object_diff(d0, d1)) > 0)
-    assert_true(len(object_diff(d1, d0)) > 0)
+    assert (len(object_diff(d0, d1)) > 0)
+    assert (len(object_diff(d1, d0)) > 0)
 
     d1 = deepcopy(d0)
     d1[1] = 2
-    assert_true(len(object_diff(d0, d1)) > 0)
-    assert_true(len(object_diff(d1, d0)) > 0)
-    assert_not_equal(object_hash(d0), object_hash(d1))
+    assert (len(object_diff(d0, d1)) > 0)
+    assert (len(object_diff(d1, d0)) > 0)
+    assert object_hash(d0) != object_hash(d1)
 
     # generators (and other types) not supported
     d1 = deepcopy(d0)
     d2 = deepcopy(d0)
     d1[1] = (x for x in d0)
     d2[1] = (x for x in d0)
-    assert_raises(RuntimeError, object_diff, d1, d2)
-    assert_raises(RuntimeError, object_hash, d1)
+    pytest.raises(RuntimeError, object_diff, d1, d2)
+    pytest.raises(RuntimeError, object_hash, d1)
 
     x = sparse.eye(2, 2, format='csc')
     y = sparse.eye(2, 2, format='csr')
-    assert_true('type mismatch' in object_diff(x, y))
+    assert ('type mismatch' in object_diff(x, y))
     y = sparse.eye(2, 2, format='csc')
     assert_equal(len(object_diff(x, y)), 0)
     y[1, 1] = 2
-    assert_true('elements' in object_diff(x, y))
+    assert ('elements' in object_diff(x, y))
     y = sparse.eye(3, 3, format='csc')
-    assert_true('shape' in object_diff(x, y))
+    assert ('shape' in object_diff(x, y))
     y = 0
-    assert_true('type mismatch' in object_diff(x, y))
+    assert ('type mismatch' in object_diff(x, y))
 
     # smoke test for gh-4796
     assert object_hash(np.int64(1)) != 0
@@ -289,16 +289,16 @@ def test_md5sum():
         fid.write(b'efgh')
     assert_equal(md5sum(fname1), md5sum(fname1, 1))
     assert_equal(md5sum(fname2), md5sum(fname2, 1024))
-    assert_true(md5sum(fname1) != md5sum(fname2))
+    assert (md5sum(fname1) != md5sum(fname2))
 
 
 def test_tempdir():
     """Test TempDir."""
     tempdir2 = _TempDir()
-    assert_true(op.isdir(tempdir2))
+    assert (op.isdir(tempdir2))
     x = str(tempdir2)
     del tempdir2
-    assert_true(not op.isdir(x))
+    assert (not op.isdir(x))
 
 
 def test_estimate_rank():
@@ -308,12 +308,12 @@ def test_estimate_rank():
                        np.ones(10))
     data[0, 0] = 0
     assert_equal(estimate_rank(data), 9)
-    assert_raises(ValueError, estimate_rank, data, 'foo')
+    pytest.raises(ValueError, estimate_rank, data, 'foo')
 
 
 def test_logging():
     """Test logging (to file)."""
-    assert_raises(ValueError, set_log_level, 'foo')
+    pytest.raises(ValueError, set_log_level, 'foo')
     tempdir = _TempDir()
     test_name = op.join(tempdir, 'test.log')
     with open(fname_log, 'r') as old_log_file:
@@ -333,15 +333,15 @@ def test_logging():
     # should NOT print
     evoked = read_evokeds(fname_evoked, condition=1)
     with open(test_name) as fid:
-        assert_true(fid.readlines() == [])
+        assert (fid.readlines() == [])
     # should NOT print
     evoked = read_evokeds(fname_evoked, condition=1, verbose=False)
     with open(test_name) as fid:
-        assert_true(fid.readlines() == [])
+        assert (fid.readlines() == [])
     # should NOT print
     evoked = read_evokeds(fname_evoked, condition=1, verbose='WARNING')
     with open(test_name) as fid:
-        assert_true(fid.readlines() == [])
+        assert (fid.readlines() == [])
     # SHOULD print
     evoked = read_evokeds(fname_evoked, condition=1, verbose=True)
     with open(test_name, 'r') as new_log_file:
@@ -356,11 +356,11 @@ def test_logging():
     # should NOT print
     evoked = read_evokeds(fname_evoked, condition=1, verbose='WARNING')
     with open(test_name) as fid:
-        assert_true(fid.readlines() == [])
+        assert (fid.readlines() == [])
     # should NOT print
     evoked = read_evokeds(fname_evoked, condition=1, verbose=False)
     with open(test_name) as fid:
-        assert_true(fid.readlines() == [])
+        assert (fid.readlines() == [])
     # SHOULD print
     evoked = read_evokeds(fname_evoked, condition=1)
     with open(test_name, 'r') as new_log_file:
@@ -373,7 +373,7 @@ def test_logging():
         assert_equal(len(w), 0)
         set_log_file(test_name)
     assert_equal(len(w), 1)
-    assert_true('test_utils.py' in w[0].filename)
+    assert ('test_utils.py' in w[0].filename)
     evoked = read_evokeds(fname_evoked, condition=1)
     with open(test_name, 'r') as new_log_file:
         new_lines = clean_lines(new_log_file.readlines())
@@ -406,31 +406,31 @@ def test_config():
     value2 = '123'
     old_val = os.getenv(key, None)
     os.environ[key] = value
-    assert_true(get_config(key) == value)
+    assert (get_config(key) == value)
     del os.environ[key]
     # catch the warning about it being a non-standard config key
-    assert_true(len(set_config(None, None)) > 10)  # tuple of valid keys
+    assert (len(set_config(None, None)) > 10)  # tuple of valid keys
     with warnings.catch_warnings(record=True) as w:  # non-standard key
         warnings.simplefilter('always')
         set_config(key, None, home_dir=tempdir, set_env=False)
-    assert_true(len(w) == 1)
-    assert_true(get_config(key, home_dir=tempdir) is None)
-    assert_raises(KeyError, get_config, key, raise_error=True)
+    assert (len(w) == 1)
+    assert (get_config(key, home_dir=tempdir) is None)
+    pytest.raises(KeyError, get_config, key, raise_error=True)
     with warnings.catch_warnings(record=True):  # non-standard key
         warnings.simplefilter('always')
-        assert_true(key not in os.environ)
+        assert (key not in os.environ)
         set_config(key, value, home_dir=tempdir, set_env=True)
-        assert_true(key in os.environ)
-        assert_true(get_config(key, home_dir=tempdir) == value)
+        assert (key in os.environ)
+        assert (get_config(key, home_dir=tempdir) == value)
         set_config(key, None, home_dir=tempdir, set_env=True)
-        assert_true(key not in os.environ)
+        assert (key not in os.environ)
         set_config(key, None, home_dir=tempdir, set_env=True)
-        assert_true(key not in os.environ)
+        assert (key not in os.environ)
     if old_val is not None:
         os.environ[key] = old_val
     # Check if get_config with key=None returns all config
     key = 'MNE_PYTHON_TESTING_KEY'
-    assert_not_in(key, get_config(home_dir=tempdir))
+    assert key not in get_config(home_dir=tempdir)
     with warnings.catch_warnings(record=True):  # non-standard key
         warnings.simplefilter('always')
         set_config(key, value, home_dir=tempdir)
@@ -449,10 +449,10 @@ def test_config():
     with open(json_fname, 'w') as fid:
         fid.write('foo{}')
     with warnings.catch_warnings(record=True) as w:
-        assert_not_in(key, get_config(home_dir=tempdir))
-    assert_true(any('not a valid JSON' in str(ww.message) for ww in w))
+        assert key not in get_config(home_dir=tempdir)
+    assert (any('not a valid JSON' in str(ww.message) for ww in w))
     with warnings.catch_warnings(record=True):  # non-standard key
-        assert_raises(RuntimeError, set_config, key, 'true', home_dir=tempdir)
+        pytest.raises(RuntimeError, set_config, key, 'true', home_dir=tempdir)
 
 
 @testing.requires_testing_data
@@ -463,9 +463,9 @@ def test_show_fiff():
     keys = ['FIFF_EPOCH', 'FIFFB_HPI_COIL', 'FIFFB_PROJ_ITEM',
             'FIFFB_PROCESSED_DATA', 'FIFFB_EVOKED', 'FIFF_NAVE',
             'FIFF_EPOCH']
-    assert_true(all(key in info for key in keys))
+    assert (all(key in info for key in keys))
     info = show_fiff(fname_raw, read_limit=1024)
-    assert_true('COORD_TRANS' in show_fiff(fname_fsaverage_trans))
+    assert ('COORD_TRANS' in show_fiff(fname_fsaverage_trans))
 
 
 @deprecated('message')
@@ -485,21 +485,21 @@ def test_deprecated():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         deprecated_func()
-    assert_true(len(w) == 1)
+    assert (len(w) == 1)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         deprecated_class()
-    assert_true(len(w) == 1)
+    assert (len(w) == 1)
 
 
 def _test_fetch(url):
-    """Helper to test URL retrieval."""
+    """Test URL retrieval."""
     tempdir = _TempDir()
     with ArgvSetter(disable_stderr=False):  # to capture stdout
         archive_name = op.join(tempdir, "download_test")
         _fetch_file(url, archive_name, timeout=30., verbose=False,
                     resume=False)
-        assert_raises(Exception, _fetch_file, 'NOT_AN_ADDRESS',
+        pytest.raises(Exception, _fetch_file, 'NOT_AN_ADDRESS',
                       op.join(tempdir, 'test'), verbose=False)
         resume_name = op.join(tempdir, "download_resume")
         # touch file
@@ -507,9 +507,9 @@ def _test_fetch(url):
             os.utime(resume_name + '.part', None)
         _fetch_file(url, resume_name, resume=True, timeout=30.,
                     verbose=False)
-        assert_raises(ValueError, _fetch_file, url, archive_name,
+        pytest.raises(ValueError, _fetch_file, url, archive_name,
                       hash_='a', verbose=False)
-        assert_raises(RuntimeError, _fetch_file, url, archive_name,
+        pytest.raises(RuntimeError, _fetch_file, url, archive_name,
                       hash_='a' * 32, verbose=False)
 
 
@@ -554,9 +554,9 @@ def test_check_type_picks():
     picks = None
     assert_array_equal(None, _check_type_picks(picks))
     picks = ['a', 'b']
-    assert_raises(TypeError, _check_type_picks, picks)
+    pytest.raises(TypeError, _check_type_picks, picks)
     picks = 'b'
-    assert_raises(TypeError, _check_type_picks, picks)
+    pytest.raises(TypeError, _check_type_picks, picks)
 
 
 def test_compute_corr():
@@ -576,42 +576,42 @@ def test_compute_corr():
     r2 = np.array([np.corrcoef(x, y[i])[0, 1]
                    for i in range(len(y))])
     assert_allclose(r, r2)
-    assert_raises(ValueError, compute_corr, [1, 2], [])
+    pytest.raises(ValueError, compute_corr, [1, 2], [])
 
 
 def test_create_slices():
     """Test checking the create of time create_slices."""
     # Test that create_slices default provide an empty list
-    assert_true(create_slices(0, 0) == [])
+    assert (create_slices(0, 0) == [])
     # Test that create_slice return correct number of slices
-    assert_true(len(create_slices(0, 100)) == 100)
+    assert (len(create_slices(0, 100)) == 100)
     # Test with non-zero start parameters
-    assert_true(len(create_slices(50, 100)) == 50)
+    assert (len(create_slices(50, 100)) == 50)
     # Test slices' length with non-zero start and window_width=2
-    assert_true(len(create_slices(0, 100, length=2)) == 50)
+    assert (len(create_slices(0, 100, length=2)) == 50)
     # Test slices' length with manual slice separation
-    assert_true(len(create_slices(0, 100, step=10)) == 10)
+    assert (len(create_slices(0, 100, step=10)) == 10)
     # Test slices' within length for non-consecutive samples
-    assert_true(len(create_slices(0, 500, length=50, step=10)) == 46)
+    assert (len(create_slices(0, 500, length=50, step=10)) == 46)
     # Test that slices elements start, stop and step correctly
     slices = create_slices(0, 10)
-    assert_true(slices[0].start == 0)
-    assert_true(slices[0].step == 1)
-    assert_true(slices[0].stop == 1)
-    assert_true(slices[-1].stop == 10)
+    assert (slices[0].start == 0)
+    assert (slices[0].step == 1)
+    assert (slices[0].stop == 1)
+    assert (slices[-1].stop == 10)
     # Same with larger window width
     slices = create_slices(0, 9, length=3)
-    assert_true(slices[0].start == 0)
-    assert_true(slices[0].step == 1)
-    assert_true(slices[0].stop == 3)
-    assert_true(slices[-1].stop == 9)
+    assert (slices[0].start == 0)
+    assert (slices[0].step == 1)
+    assert (slices[0].stop == 3)
+    assert (slices[-1].stop == 9)
     # Same with manual slices' separation
     slices = create_slices(0, 9, length=3, step=1)
-    assert_true(len(slices) == 7)
-    assert_true(slices[0].step == 1)
-    assert_true(slices[0].stop == 3)
-    assert_true(slices[-1].start == 6)
-    assert_true(slices[-1].stop == 9)
+    assert (len(slices) == 7)
+    assert (slices[0].step == 1)
+    assert (slices[0].stop == 3)
+    assert (slices[-1].start == 6)
+    assert (slices[-1].stop == 9)
 
 
 def test_time_mask():
@@ -637,8 +637,8 @@ def test_time_mask():
     assert_equal(_time_mask(x, tmin=4.4999, sfreq=1).sum(), 2)
     assert_equal(_time_mask(x, tmin=4, sfreq=1).sum(), 2)
     # degenerate cases
-    assert_raises(ValueError, _time_mask, x[:1], tmin=11, tmax=12)
-    assert_raises(ValueError, _time_mask, x[:1], tmin=10, sfreq=1)
+    pytest.raises(ValueError, _time_mask, x[:1], tmin=11, tmax=12)
+    pytest.raises(ValueError, _time_mask, x[:1], tmin=10, sfreq=1)
 
 
 def test_random_permutation():
@@ -657,7 +657,7 @@ def test_copy_doc():
     """Test decorator for copying docstrings."""
     class A:
         def m1():
-            """Docstring for m1"""
+            """Docstring for m1."""
             pass
 
     class B:
@@ -669,14 +669,14 @@ def test_copy_doc():
         def m1():
             pass
 
-    assert_equal(C.m1.__doc__, 'Docstring for m1')
-    assert_raises(ValueError, copy_doc(B.m1), C.m1)
+    assert_equal(C.m1.__doc__, 'Docstring for m1.')
+    pytest.raises(ValueError, copy_doc(B.m1), C.m1)
 
 
 def test_copy_function_doc_to_method_doc():
     """Test decorator for re-using function docstring as method docstrings."""
     def f1(object, a, b, c):
-        """Docstring for f1
+        """Docstring for f1.
 
         Parameters
         ----------
@@ -692,7 +692,7 @@ def test_copy_function_doc_to_method_doc():
         pass
 
     def f2(object):
-        """Docstring for f2
+        """Docstring for f2.
 
         Parameters
         ----------
@@ -706,7 +706,7 @@ def test_copy_function_doc_to_method_doc():
         pass
 
     def f3(object):
-        """Docstring for f3
+        """Docstring for f3.
 
         Parameters
         ----------
@@ -716,11 +716,11 @@ def test_copy_function_doc_to_method_doc():
         pass
 
     def f4(object):
-        """Docstring for f4"""
+        """Docstring for f4."""
         pass
 
-    def f5(object):
-        """Docstring for f5
+    def f5(object):  # noqa: D410, D411, D414
+        """Docstring for f5.
 
         Parameters
         ----------
@@ -746,7 +746,7 @@ def test_copy_function_doc_to_method_doc():
 
     assert_equal(
         A.method_f1.__doc__,
-        """Docstring for f1
+        """Docstring for f1.
 
         Parameters
         ----------
@@ -759,7 +759,7 @@ def test_copy_function_doc_to_method_doc():
 
     assert_equal(
         A.method_f2.__doc__,
-        """Docstring for f2
+        """Docstring for f2.
 
         Returns
         -------
@@ -767,12 +767,13 @@ def test_copy_function_doc_to_method_doc():
         method_f3 own docstring"""
     )
 
-    assert_equal(A.method_f3.__doc__, 'Docstring for f3\n\n        ')
-    assert_raises(ValueError, copy_function_doc_to_method_doc(f4), A.method_f1)
-    assert_raises(ValueError, copy_function_doc_to_method_doc(f5), A.method_f1)
+    assert_equal(A.method_f3.__doc__, 'Docstring for f3.\n\n        ')
+    pytest.raises(ValueError, copy_function_doc_to_method_doc(f4), A.method_f1)
+    pytest.raises(ValueError, copy_function_doc_to_method_doc(f5), A.method_f1)
 
 
 def test_progressbar():
+    """Test progressbar class."""
     a = np.arange(10)
     pbar = ProgressBar(a)
     assert_equal(a, pbar.iterable)
@@ -780,13 +781,18 @@ def test_progressbar():
 
     pbar = ProgressBar(10)
     assert_equal(10, pbar.max_value)
-    assert_true(pbar.iterable is None)
+    assert (pbar.iterable is None)
 
     # Make sure that non-iterable input raises an error
     def iter_func(a):
         for ii in a:
             pass
-    assert_raises(ValueError, iter_func, ProgressBar(20))
+    pytest.raises(ValueError, iter_func, ProgressBar(20))
+
+
+def myfun(x):
+    """Check url."""
+    assert 'martinos' in x
 
 
 def test_open_docs():
@@ -794,13 +800,14 @@ def test_open_docs():
     old_tab = webbrowser.open_new_tab
     try:
         # monkey patch temporarily to prevent tabs from actually spawning
-        webbrowser.open_new_tab = lambda x: assert_true('martinos' in x)
+        webbrowser.open_new_tab = myfun
         open_docs()
         open_docs('tutorials', 'dev')
         open_docs('examples', 'stable')
-        assert_raises(ValueError, open_docs, 'foo')
-        assert_raises(ValueError, open_docs, 'api', 'foo')
+        pytest.raises(ValueError, open_docs, 'foo')
+        pytest.raises(ValueError, open_docs, 'api', 'foo')
     finally:
         webbrowser.open_new_tab = old_tab
+
 
 run_tests_if_main()

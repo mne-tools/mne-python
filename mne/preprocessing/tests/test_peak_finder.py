@@ -1,12 +1,13 @@
-from numpy.testing import assert_array_equal, assert_raises, assert_equal
+from numpy.testing import assert_array_equal, assert_equal
+import pytest
 import numpy as np
+
 from mne.utils import run_tests_if_main
 from mne.preprocessing.peak_finder import peak_finder
 
 
 def test_peak_finder():
-    """Test the peak detection method"""
-
+    """Test the peak detection method."""
     # check for random data
     rng = np.random.RandomState(42)
     peak_inds, peak_mags = peak_finder(rng.randn(20))
@@ -15,11 +16,11 @@ def test_peak_finder():
     assert_equal(peak_mags.dtype, np.dtype('float64'))
 
     # check for empty array as created in the #5025
-    with assert_raises(ValueError):
+    with pytest.raises(ValueError):
         peak_finder(np.arange(2, 1, 0.05))
 
     # check for empty array
-    with assert_raises(ValueError):
+    with pytest.raises(ValueError):
         peak_finder([])
 
     # check for monotonic function
@@ -37,5 +38,6 @@ def test_peak_finder():
     # check values
     peak_inds, peak_mags = peak_finder([0, 2, 5, 0, 6, -1])
     assert_array_equal(peak_inds, [2, 4])
+
 
 run_tests_if_main()

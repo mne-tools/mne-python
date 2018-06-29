@@ -259,7 +259,6 @@ def test_resample():
 
 def test_resample_stim_channel():
     """Test resampling of stim channels."""
-
     # Downsampling
     assert_array_equal(
         _resample_stim_channels([1, 0, 0, 0, 2, 0, 0, 0], 1, 2),
@@ -421,7 +420,7 @@ def test_filters():
 
 
 def test_filter_auto():
-    """Test filter auto parameters"""
+    """Test filter auto parameters."""
     # test that our overlap-add filtering doesn't introduce strange
     # artifacts (from mne_analyze mailing list 2015/06/25)
     N = 300
@@ -459,7 +458,7 @@ def test_filter_auto():
 
 
 def test_cuda():
-    """Test CUDA-based filtering"""
+    """Test CUDA-based filtering."""
     # NOTE: don't make test_cuda() the last test, or pycuda might spew
     # some warnings about clean-up failing
     # Also, using `n_jobs='cuda'` on a non-CUDA system should be fine,

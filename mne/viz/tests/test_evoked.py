@@ -12,8 +12,7 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_raises, assert_allclose
-from nose.tools import assert_true
+from numpy.testing import assert_allclose
 import pytest
 
 import mne
@@ -121,18 +120,18 @@ def test_plot_evoked():
     evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
     evoked_delayed_ssp.plot(proj='interactive', time_unit='s')
     evoked_delayed_ssp.apply_proj()
-    assert_raises(RuntimeError, evoked_delayed_ssp.plot,
+    pytest.raises(RuntimeError, evoked_delayed_ssp.plot,
                   proj='interactive', time_unit='s')
     evoked_delayed_ssp.info['projs'] = []
-    assert_raises(RuntimeError, evoked_delayed_ssp.plot,
+    pytest.raises(RuntimeError, evoked_delayed_ssp.plot,
                   proj='interactive', time_unit='s')
-    assert_raises(RuntimeError, evoked_delayed_ssp.plot,
+    pytest.raises(RuntimeError, evoked_delayed_ssp.plot,
                   proj='interactive', axes='foo', time_unit='s')
     plt.close('all')
 
     # test GFP only
     evoked.plot(gfp='only', time_unit='s')
-    assert_raises(ValueError, evoked.plot, gfp='foo', time_unit='s')
+    pytest.raises(ValueError, evoked.plot, gfp='foo', time_unit='s')
 
     evoked.plot_image(proj=True, time_unit='ms')
 
@@ -146,7 +145,7 @@ def test_plot_evoked():
         evoked.plot_image(picks=[1, 2], mask=None, mask_style="both",
                           time_unit='s')
     assert len(w) == 2
-    assert_raises(ValueError, evoked.plot_image, mask=evoked.data[1:, 1:] > 0,
+    pytest.raises(ValueError, evoked.plot_image, mask=evoked.data[1:, 1:] > 0,
                   time_unit='s')
 
     # plot with bad channels excluded
@@ -154,7 +153,7 @@ def test_plot_evoked():
     evoked.plot_image(exclude=evoked.info['bads'], time_unit='s')  # same thing
     plt.close('all')
 
-    assert_raises(ValueError, evoked.plot_image, picks=[0, 0],
+    pytest.raises(ValueError, evoked.plot_image, picks=[0, 0],
                   time_unit='s')  # duplicates
 
     ch_names = ["MEG 1131", "MEG 0111"]
@@ -162,14 +161,14 @@ def test_plot_evoked():
     evoked.plot_image(show_names="all", time_unit='s', picks=picks)
     yticklabels = plt.gca().get_yticklabels()
     for tick_target, tick_observed in zip(ch_names, yticklabels):
-        assert_true(tick_target in str(tick_observed))
+        assert tick_target in str(tick_observed)
     evoked.plot_image(show_names=True, time_unit='s')
 
     # test groupby
     evoked.plot_image(group_by=dict(sel=[0, 7]), axes=dict(sel=plt.axes()))
     plt.close('all')
     for group_by, axes in (("something", dict()), (dict(), "something")):
-        assert_raises(ValueError, evoked.plot_image, group_by=group_by,
+        pytest.raises(ValueError, evoked.plot_image, group_by=group_by,
                       axes=axes)
 
     # test plot_topo
@@ -185,10 +184,10 @@ def test_plot_evoked():
     evoked.plot_white(cov, rank={'mag': 101, 'grad': 201}, time_unit='s')
     evoked.plot_white(cov, rank={'mag': 101}, time_unit='s')  # test rank param
     evoked.plot_white(cov, rank={'grad': 201}, time_unit='s')
-    assert_raises(
+    pytest.raises(
         ValueError, evoked.plot_white, cov,
         rank={'mag': 101, 'grad': 201, 'meg': 306}, time_unit='s')
-    assert_raises(
+    pytest.raises(
         ValueError, evoked.plot_white, cov, rank={'meg': 306}, time_unit='s')
 
     evoked.plot_white([cov, cov], time_unit='s')
@@ -251,14 +250,14 @@ def test_plot_evoked():
               dict(picks=3, show_sensors="a"),
               dict(colors=dict(red=10., blue=-2))]
     for param in params:
-        assert_raises(ValueError, plot_compare_evokeds, evoked, **param)
-    assert_raises(TypeError, plot_compare_evokeds, evoked, picks='str')
-    assert_raises(TypeError, plot_compare_evokeds, evoked, vlines='x')
+        pytest.raises(ValueError, plot_compare_evokeds, evoked, **param)
+    pytest.raises(TypeError, plot_compare_evokeds, evoked, picks='str')
+    pytest.raises(TypeError, plot_compare_evokeds, evoked, vlines='x')
     plt.close('all')
     # `evoked` must contain Evokeds
-    assert_raises(TypeError, plot_compare_evokeds, [[1, 2], [3, 4]])
+    pytest.raises(TypeError, plot_compare_evokeds, [[1, 2], [3, 4]])
     # `ci` must be float or None
-    assert_raises(TypeError, plot_compare_evokeds, contrast, ci='err')
+    pytest.raises(TypeError, plot_compare_evokeds, contrast, ci='err')
     # test all-positive ylim
     contrast["red/stim"], contrast["blue/stim"] = red, blue
     plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'],
@@ -290,8 +289,8 @@ def test_plot_evoked():
     plot_compare_evokeds([red, blue], picks=[0], cmap="summer", ci=None,
                          split_legend=None)
     plot_compare_evokeds([red, blue], cmap=None, split_legend=True)
-    assert_raises(ValueError, plot_compare_evokeds, [red] * 20)
-    assert_raises(ValueError, plot_compare_evokeds, contrasts,
+    pytest.raises(ValueError, plot_compare_evokeds, [red] * 20)
+    pytest.raises(ValueError, plot_compare_evokeds, contrasts,
                   cmap='summer')
 
     plt.close('all')
@@ -301,7 +300,7 @@ def test_plot_evoked():
     sss = dict(sss_info=dict(in_order=80, components=np.arange(80)))
     evoked_sss.info['proc_history'] = [dict(max_info=sss)]
     evoked_sss.plot_white(cov, rank={'meg': 64}, time_unit='s')
-    assert_raises(
+    pytest.raises(
         ValueError, evoked_sss.plot_white, cov, rank={'grad': 201},
         time_unit='s')
     evoked_sss.plot_white(cov, time_unit='s')
@@ -312,7 +311,7 @@ def test_plot_evoked():
                 zorder='std', time_unit='s')
     evoked.plot(exclude=[], spatial_colors=True, zorder='unsorted',
                 time_unit='s')
-    assert_raises(TypeError, evoked.plot, zorder='asdf', time_unit='s')
+    pytest.raises(TypeError, evoked.plot, zorder='asdf', time_unit='s')
     plt.close('all')
 
     evoked.plot_sensors()  # Test plot_sensors
@@ -321,7 +320,7 @@ def test_plot_evoked():
     evoked.pick_channels(evoked.ch_names[:4])
     with catch_logging() as log_file:
         evoked.plot(verbose=True, time_unit='s')
-    assert_true('Need more than one' in log_file.getvalue())
+    assert 'Need more than one' in log_file.getvalue()
 
 
 @testing.requires_testing_data
@@ -341,5 +340,6 @@ def test_plot_ctf():
     evoked = epochs.average()
     evoked.plot_joint(times=[0.1])
     mne.viz.plot_compare_evokeds([evoked, evoked])
+
 
 run_tests_if_main()

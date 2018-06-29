@@ -25,7 +25,7 @@ if len(bad) > 0:
     out.append('scipy submodules: %s' % list(bad))
 
 # check sklearn and others
-_sklearn = _pandas = _nose = _mayavi = _matplotlib = False
+_sklearn = _pandas = _mayavi = _matplotlib = False
 for x in sys.modules.keys():
     if x.startswith('sklearn') and not _sklearn:
         out.append('sklearn')
@@ -33,9 +33,6 @@ for x in sys.modules.keys():
     if x.startswith('pandas') and not _pandas:
         out.append('pandas')
         _pandas = True
-    if x.startswith('nose') and not _nose:
-        out.append('nose')
-        _nose = True
     if x.startswith('mayavi') and not _mayavi:
         out.append('mayavi')
         _mayavi = True

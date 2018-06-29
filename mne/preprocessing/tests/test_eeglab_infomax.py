@@ -18,7 +18,6 @@ base_dir = op.join(op.dirname(__file__), 'data')
 
 def generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state):
     """Generate data."""
-
     data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
     raw_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 
@@ -62,7 +61,7 @@ def generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state):
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_mne_python_vs_eeglab():
-    """ Test eeglab vs mne_python infomax code."""
+    """Test eeglab vs mne_python infomax code."""
     random_state = 42
 
     methods = ['infomax', 'extended_infomax']
@@ -176,5 +175,6 @@ def test_mne_python_vs_eeglab():
                                                unmixing_eeglab))
 
             assert_almost_equal(maximum_difference, 1e-12, decimal=10)
+
 
 run_tests_if_main()

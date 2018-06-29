@@ -1,10 +1,10 @@
 # Generic tests that all raw classes should run
 from os import path as op
 import math
-import numpy as np
-from numpy.testing import assert_allclose, assert_array_almost_equal
 
-from nose.tools import assert_equal, assert_true
+import numpy as np
+from numpy.testing import (assert_allclose, assert_array_almost_equal,
+                           assert_equal)
 
 from mne import concatenate_raws
 from mne.datasets import testing
@@ -58,25 +58,25 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
         raw = reader(**kwargs)
 
     full_data = raw._data
-    assert_true(raw.__class__.__name__, repr(raw))  # to test repr
-    assert_true(raw.info.__class__.__name__, repr(raw.info))
+    assert raw.__class__.__name__ in repr(raw)  # to test repr
+    assert raw.info.__class__.__name__ in repr(raw.info)
 
     # Test saving and reading
     out_fname = op.join(tempdir, 'test_raw.fif')
     raw = concatenate_raws([raw])
     raw.save(out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1)
     raw3 = read_raw_fif(out_fname)
-    assert_equal(set(raw.info.keys()), set(raw3.info.keys()))
+    assert set(raw.info.keys()) == set(raw3.info.keys())
     assert_allclose(raw3[0:20][0], full_data[0:20], rtol=1e-6,
                     atol=1e-20)  # atol is very small but > 0
     assert_array_almost_equal(raw.times, raw3.times)
 
-    assert_true(not math.isnan(raw3.info['highpass']))
-    assert_true(not math.isnan(raw3.info['lowpass']))
-    assert_true(not math.isnan(raw.info['highpass']))
-    assert_true(not math.isnan(raw.info['lowpass']))
+    assert not math.isnan(raw3.info['highpass'])
+    assert not math.isnan(raw3.info['lowpass'])
+    assert not math.isnan(raw.info['highpass'])
+    assert not math.isnan(raw.info['lowpass'])
 
-    assert_equal(raw3.info['kit_system_id'], raw.info['kit_system_id'])
+    assert raw3.info['kit_system_id'] == raw.info['kit_system_id']
 
     # Make sure concatenation works
     first_samp = raw.first_samp

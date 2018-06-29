@@ -7,7 +7,7 @@ import os.path as op
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
-from nose.tools import assert_true, assert_raises
+import pytest
 import warnings
 
 from mne import (read_cov, read_forward_solution, convert_forward_solution,
@@ -34,7 +34,6 @@ cov_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
 @testing.requires_testing_data
 def test_simulate_evoked():
     """Test simulation of evoked data."""
-
     raw = read_raw_fif(raw_fname)
     fwd = read_forward_solution(fwd_fname)
     fwd = convert_forward_solution(fwd, force_fixed=True, use_cps=False)
@@ -62,7 +61,7 @@ def test_simulate_evoked():
     evoked = simulate_evoked(fwd, stc, evoked_template.info, cov,
                              iir_filter=iir_filter, nave=nave)
     assert_array_almost_equal(evoked.times, stc.times)
-    assert_true(len(evoked.data) == len(fwd['sol']['data']))
+    assert len(evoked.data) == len(fwd['sol']['data'])
     assert_equal(evoked.nave, nave)
 
     # make a vertex that doesn't exist in fwd, should throw error
@@ -70,7 +69,7 @@ def test_simulate_evoked():
     mv = np.max(fwd['src'][0]['vertno'][fwd['src'][0]['inuse']])
     stc_bad.vertices[0][0] = mv + 1
 
-    assert_raises(RuntimeError, simulate_evoked, fwd, stc_bad,
+    pytest.raises(RuntimeError, simulate_evoked, fwd, stc_bad,
                   evoked_template.info, cov)
     evoked_1 = simulate_evoked(fwd, stc, evoked_template.info, cov,
                                nave=np.inf)
@@ -79,7 +78,7 @@ def test_simulate_evoked():
     assert_array_equal(evoked_1.data, evoked_2.data)
 
     cov['names'] = cov.ch_names[:-2]  # Error channels are different.
-    assert_raises(ValueError, simulate_evoked, fwd, stc, evoked_template.info,
+    pytest.raises(ValueError, simulate_evoked, fwd, stc, evoked_template.info,
                   cov, nave=nave, iir_filter=None)
 
 

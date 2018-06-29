@@ -8,8 +8,8 @@ import warnings
 import os.path as op
 import numpy as np
 
-from nose.tools import assert_true, assert_equal, assert_raises
-from numpy.testing import assert_array_equal, assert_allclose
+from numpy.testing import assert_array_equal, assert_allclose, assert_equal
+import pytest
 
 from mne import (pick_channels, pick_types, Epochs, read_events,
                  set_eeg_reference, set_bipolar_reference,
@@ -76,15 +76,15 @@ def test_apply_reference():
     # Rereference raw data by creating a copy of original data
     reref, ref_data = _apply_reference(
         raw.copy(), ref_from=['EEG 001', 'EEG 002'])
-    assert_true(reref.info['custom_ref_applied'])
+    assert (reref.info['custom_ref_applied'])
     _test_reference(raw, reref, ref_data, ['EEG 001', 'EEG 002'])
 
     # The CAR reference projection should have been removed by the function
-    assert_true(not _has_eeg_average_ref_proj(reref.info['projs']))
+    assert (not _has_eeg_average_ref_proj(reref.info['projs']))
 
     # Test that data is modified in place when copy=False
     reref, ref_data = _apply_reference(raw, ['EEG 001', 'EEG 002'])
-    assert_true(raw is reref)
+    assert (raw is reref)
 
     # Test that disabling the reference does not change anything
     reref, ref_data = _apply_reference(raw.copy(), [])
@@ -98,19 +98,19 @@ def test_apply_reference():
                     picks=picks_eeg, preload=True)
     reref, ref_data = _apply_reference(
         epochs.copy(), ref_from=['EEG 001', 'EEG 002'])
-    assert_true(reref.info['custom_ref_applied'])
+    assert (reref.info['custom_ref_applied'])
     _test_reference(epochs, reref, ref_data, ['EEG 001', 'EEG 002'])
 
     # Test re-referencing Evoked object
     evoked = epochs.average()
     reref, ref_data = _apply_reference(
         evoked.copy(), ref_from=['EEG 001', 'EEG 002'])
-    assert_true(reref.info['custom_ref_applied'])
+    assert (reref.info['custom_ref_applied'])
     _test_reference(evoked, reref, ref_data, ['EEG 001', 'EEG 002'])
 
     # Referencing needs data to be preloaded
     raw_np = read_raw_fif(fif_fname, preload=False)
-    assert_raises(RuntimeError, _apply_reference, raw_np, ['EEG 001'])
+    pytest.raises(RuntimeError, _apply_reference, raw_np, ['EEG 001'])
 
     # Test having inactive SSP projections that deal with channels involved
     # during re-referencing
@@ -130,7 +130,7 @@ def test_apply_reference():
         )
     )
     # Projection concerns channels mentioned in projector
-    assert_raises(RuntimeError, _apply_reference, raw, ['EEG 001'])
+    pytest.raises(RuntimeError, _apply_reference, raw, ['EEG 001'])
 
     # Projection does not concern channels mentioned in projector, no error
     _apply_reference(raw, ['EEG 003'], ['EEG 004'])
@@ -143,11 +143,11 @@ def test_set_eeg_reference():
     raw.info['projs'] = []
 
     # Test setting an average reference projection
-    assert_true(not _has_eeg_average_ref_proj(raw.info['projs']))
+    assert (not _has_eeg_average_ref_proj(raw.info['projs']))
     reref, ref_data = set_eeg_reference(raw, projection=True)
-    assert_true(_has_eeg_average_ref_proj(reref.info['projs']))
-    assert_true(not reref.info['projs'][0]['active'])
-    assert_true(ref_data is None)
+    assert (_has_eeg_average_ref_proj(reref.info['projs']))
+    assert (not reref.info['projs'][0]['active'])
+    assert (ref_data is None)
     reref.apply_proj()
     eeg_chans = [raw.ch_names[ch]
                  for ch in pick_types(raw.info, meg=False, eeg=True)]
@@ -157,29 +157,29 @@ def test_set_eeg_reference():
     # Test setting an average reference when one was already present
     with warnings.catch_warnings(record=True):
         reref, ref_data = set_eeg_reference(raw, copy=False, projection=True)
-    assert_true(ref_data is None)
+    assert (ref_data is None)
 
     # Test setting an average reference on non-preloaded data
     raw_nopreload = read_raw_fif(fif_fname, preload=False)
     raw_nopreload.info['projs'] = []
     reref, ref_data = set_eeg_reference(raw_nopreload, projection=True)
-    assert_true(_has_eeg_average_ref_proj(reref.info['projs']))
-    assert_true(not reref.info['projs'][0]['active'])
+    assert (_has_eeg_average_ref_proj(reref.info['projs']))
+    assert (not reref.info['projs'][0]['active'])
 
     # Rereference raw data by creating a copy of original data
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'], copy=True)
-    assert_true(reref.info['custom_ref_applied'])
+    assert (reref.info['custom_ref_applied'])
     _test_reference(raw, reref, ref_data, ['EEG 001', 'EEG 002'])
 
     # Test that data is modified in place when copy=False
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'],
                                         copy=False)
-    assert_true(raw is reref)
+    assert (raw is reref)
 
     # Test moving from custom to average reference
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'])
     reref, _ = set_eeg_reference(reref, projection=True)
-    assert_true(_has_eeg_average_ref_proj(reref.info['projs']))
+    assert (_has_eeg_average_ref_proj(reref.info['projs']))
     assert_equal(reref.info['custom_ref_applied'], False)
 
     # When creating an average reference fails, make sure the
@@ -187,8 +187,8 @@ def test_set_eeg_reference():
     reref = raw.copy()
     reref.info['custom_ref_applied'] = True
     reref.pick_types(eeg=False)  # Cause making average ref fail
-    assert_raises(ValueError, set_eeg_reference, reref, projection=True)
-    assert_true(reref.info['custom_ref_applied'])
+    pytest.raises(ValueError, set_eeg_reference, reref, projection=True)
+    assert (reref.info['custom_ref_applied'])
 
     # Test moving from average to custom reference
     reref, ref_data = set_eeg_reference(raw, projection=True)
@@ -206,7 +206,7 @@ def test_set_eeg_reference():
     # make sure ref_channels=[] removes average reference projectors
     assert _has_eeg_average_ref_proj(raw.info['projs'])
     reref, _ = set_eeg_reference(raw, [])
-    assert_true(not _has_eeg_average_ref_proj(reref.info['projs']))
+    assert (not _has_eeg_average_ref_proj(reref.info['projs']))
 
     # Test that average reference gives identical results when calculated
     # via SSP projection (projection=True) or directly (projection=False)
@@ -222,8 +222,8 @@ def test_set_eeg_reference():
     _test_reference(raw, reref, ref_data, eeg_chans)
 
     # projection=True only works for ref_channels='average'
-    assert_raises(ValueError, set_eeg_reference, raw, [], True, True)
-    assert_raises(ValueError, set_eeg_reference, raw, ['EEG 001'], True, True)
+    pytest.raises(ValueError, set_eeg_reference, raw, [], True, True)
+    pytest.raises(ValueError, set_eeg_reference, raw, ['EEG 001'], True, True)
 
 
 @testing.requires_testing_data
@@ -235,7 +235,7 @@ def test_set_bipolar_reference():
     reref = set_bipolar_reference(raw, 'EEG 001', 'EEG 002', 'bipolar',
                                   {'kind': FIFF.FIFFV_EOG_CH,
                                    'extra': 'some extra value'})
-    assert_true(reref.info['custom_ref_applied'])
+    assert (reref.info['custom_ref_applied'])
 
     # Compare result to a manual calculation
     a = raw.copy().pick_channels(['EEG 001', 'EEG 002'])
@@ -244,9 +244,9 @@ def test_set_bipolar_reference():
     assert_allclose(a, b)
 
     # Original channels should be replaced by a virtual one
-    assert_true('EEG 001' not in reref.ch_names)
-    assert_true('EEG 002' not in reref.ch_names)
-    assert_true('bipolar' in reref.ch_names)
+    assert ('EEG 001' not in reref.ch_names)
+    assert ('EEG 002' not in reref.ch_names)
+    assert ('bipolar' in reref.ch_names)
 
     # Check channel information
     bp_info = reref.info['chs'][reref.ch_names.index('bipolar')]
@@ -264,14 +264,14 @@ def test_set_bipolar_reference():
 
     # Minimalist call
     reref = set_bipolar_reference(raw, 'EEG 001', 'EEG 002')
-    assert_true('EEG 001-EEG 002' in reref.ch_names)
+    assert ('EEG 001-EEG 002' in reref.ch_names)
 
     # Minimalist call with twice the same anode
     reref = set_bipolar_reference(raw,
                                   ['EEG 001', 'EEG 001', 'EEG 002'],
                                   ['EEG 002', 'EEG 003', 'EEG 003'])
-    assert_true('EEG 001-EEG 002' in reref.ch_names)
-    assert_true('EEG 001-EEG 003' in reref.ch_names)
+    assert ('EEG 001-EEG 002' in reref.ch_names)
+    assert ('EEG 001-EEG 003' in reref.ch_names)
 
     # Set multiple references at once
     reref = set_bipolar_reference(
@@ -293,20 +293,20 @@ def test_set_bipolar_reference():
     reref = set_bipolar_reference(raw, 'MEG 0111', 'MEG 0112',
                                   ch_info={'kind': FIFF.FIFFV_MEG_CH},
                                   verbose='error')
-    assert_true(not reref.info['custom_ref_applied'])
-    assert_true('MEG 0111-MEG 0112'[:15] in reref.ch_names)
+    assert (not reref.info['custom_ref_applied'])
+    assert ('MEG 0111-MEG 0112'[:15] in reref.ch_names)
 
     # Test a battery of invalid inputs
-    assert_raises(ValueError, set_bipolar_reference, raw,
+    pytest.raises(ValueError, set_bipolar_reference, raw,
                   'EEG 001', ['EEG 002', 'EEG 003'], 'bipolar')
-    assert_raises(ValueError, set_bipolar_reference, raw,
+    pytest.raises(ValueError, set_bipolar_reference, raw,
                   ['EEG 001', 'EEG 002'], 'EEG 003', 'bipolar')
-    assert_raises(ValueError, set_bipolar_reference, raw,
+    pytest.raises(ValueError, set_bipolar_reference, raw,
                   'EEG 001', 'EEG 002', ['bipolar1', 'bipolar2'])
-    assert_raises(ValueError, set_bipolar_reference, raw,
+    pytest.raises(ValueError, set_bipolar_reference, raw,
                   'EEG 001', 'EEG 002', 'bipolar',
                   ch_info=[{'foo': 'bar'}, {'foo': 'bar'}])
-    assert_raises(ValueError, set_bipolar_reference, raw,
+    pytest.raises(ValueError, set_bipolar_reference, raw,
                   'EEG 001', 'EEG 002', ch_name='EEG 003')
 
 
@@ -317,7 +317,7 @@ def _check_channel_names(inst, ref_names):
 
     # Test that the names of the reference channels are present in `ch_names`
     ref_idx = pick_channels(inst.info['ch_names'], ref_names)
-    assert_true(len(ref_idx), len(ref_names))
+    assert len(ref_idx) == len(ref_names)
 
     # Test that the names of the reference channels are present in the `chs`
     # list
@@ -330,7 +330,7 @@ def test_add_reference():
     raw = read_raw_fif(fif_fname, preload=True)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     # check if channel already exists
-    assert_raises(ValueError, add_reference_channels,
+    pytest.raises(ValueError, add_reference_channels,
                   raw, raw.info['ch_names'][0])
     # add reference channel to Raw
     raw_ref = add_reference_channels(raw, 'Ref', copy=True)
@@ -371,7 +371,7 @@ def test_add_reference():
     _check_channel_names(raw, 'Ref')
 
     # Test adding an existing channel as reference channel
-    assert_raises(ValueError, add_reference_channels, raw,
+    pytest.raises(ValueError, add_reference_channels, raw,
                   raw.info['ch_names'][0])
 
     # add two reference channels to Raw
@@ -395,7 +395,7 @@ def test_add_reference():
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True)
     # default: proj=True, after which adding a Ref channel is prohibited
-    assert_raises(RuntimeError, add_reference_channels, epochs, 'Ref')
+    pytest.raises(RuntimeError, add_reference_channels, epochs, 'Ref')
 
     # create epochs in delayed mode, allowing removal of CAR when re-reffing
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
@@ -472,8 +472,8 @@ def test_add_reference():
 
     # Test invalid inputs
     raw_np = read_raw_fif(fif_fname, preload=False)
-    assert_raises(RuntimeError, add_reference_channels, raw_np, ['Ref'])
-    assert_raises(ValueError, add_reference_channels, raw, 1)
+    pytest.raises(RuntimeError, add_reference_channels, raw_np, ['Ref'])
+    pytest.raises(ValueError, add_reference_channels, raw, 1)
 
 
 run_tests_if_main()

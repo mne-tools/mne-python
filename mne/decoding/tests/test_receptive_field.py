@@ -4,10 +4,10 @@
 import warnings
 import os.path as op
 
-from nose.tools import assert_raises, assert_true, assert_equal
+import pytest
 import numpy as np
 
-from numpy.testing import assert_array_equal, assert_allclose
+from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
 from mne import io, pick_types
 from mne.fixes import einsum
@@ -86,7 +86,7 @@ def test_rank_deficiency():
         pred = rf.predict(eeg)
         assert_equal(y.shape, pred.shape)
         corr = np.corrcoef(y.ravel(), pred.ravel())[0, 1]
-        assert_true(corr > 0.995, msg=corr)
+        assert corr > 0.995
 
 
 def test_time_delay():
@@ -113,9 +113,9 @@ def test_time_delay():
         ((-.1, .1), 10)]
     for (tmin, tmax), isfreq in test_tlims:
         # sfreq must be int/float
-        assert_raises(TypeError, _delay_time_series, X, tmin, tmax, sfreq=[1])
+        pytest.raises(TypeError, _delay_time_series, X, tmin, tmax, sfreq=[1])
         # Delays must be int/float
-        assert_raises(TypeError, _delay_time_series, X,
+        pytest.raises(TypeError, _delay_time_series, X,
                       np.complex(tmin), tmax, 1)
         # Make sure swapaxes works
         start, stop = int(round(tmin * isfreq)), int(round(tmax * isfreq)) + 1
@@ -129,8 +129,8 @@ def test_time_delay():
         expected = np.where((X_delayed != 0).all(-1).all(-1))[0]
         got = np.arange(len(X_delayed))[keep]
         assert_array_equal(got, expected)
-        assert_true(X_delayed[keep].shape[-1] > 0)
-        assert_true((X_delayed[keep] == 0).sum() == 0)
+        assert X_delayed[keep].shape[-1] > 0
+        assert (X_delayed[keep] == 0).sum() == 0
 
         del_zero = int(round(-tmin * isfreq))
         for ii in range(-2, 3):
@@ -179,41 +179,41 @@ def test_receptive_field():
     y_pred = rf.predict(X)
     assert_allclose(y[rf.valid_samples_], y_pred[rf.valid_samples_], atol=1e-2)
     scores = rf.score(X, y)
-    assert_true(scores > .99)
+    assert scores > .99
     assert_allclose(rf.coef_.T.ravel(), w, atol=1e-2)
     # Make sure different input shapes work
     rf.fit(X[:, np.newaxis:, ], y[:, np.newaxis])
     rf.fit(X, y[:, np.newaxis])
-    assert_raises(ValueError, rf.fit, X[..., np.newaxis], y)
-    assert_raises(ValueError, rf.fit, X[:, 0], y)
-    assert_raises(ValueError, rf.fit, X[..., np.newaxis],
+    pytest.raises(ValueError, rf.fit, X[..., np.newaxis], y)
+    pytest.raises(ValueError, rf.fit, X[:, 0], y)
+    pytest.raises(ValueError, rf.fit, X[..., np.newaxis],
                   np.tile(y[..., np.newaxis], [2, 1, 1]))
     # stim features must match length of input data
-    assert_raises(ValueError, rf.fit, X[:, :1], y)
+    pytest.raises(ValueError, rf.fit, X[:, :1], y)
     # auto-naming features
     rf = ReceptiveField(tmin, tmax, 1, estimator=mod)
     rf.fit(X, y)
     assert_equal(rf.feature_names, ['feature_%s' % ii for ii in [0, 1, 2]])
     # X/y same n timepoints
-    assert_raises(ValueError, rf.fit, X, y[:-2])
+    pytest.raises(ValueError, rf.fit, X, y[:-2])
     # Float becomes ridge
     rf = ReceptiveField(tmin, tmax, 1, ['one', 'two', 'three'],
                         estimator=0, patterns=True)
     str(rf)  # repr works before fit
     rf.fit(X, y)
-    assert_true(isinstance(rf.estimator_, TimeDelayingRidge))
+    assert isinstance(rf.estimator_, TimeDelayingRidge)
     str(rf)  # repr works after fit
     rf = ReceptiveField(tmin, tmax, 1, ['one'], estimator=0, patterns=True)
     rf.fit(X[:, [0]], y)
     str(rf)  # repr with one feature
     # Should only accept estimators or floats
     rf = ReceptiveField(tmin, tmax, 1, estimator='foo', patterns=True)
-    assert_raises(ValueError, rf.fit, X, y)
+    pytest.raises(ValueError, rf.fit, X, y)
     rf = ReceptiveField(tmin, tmax, 1, estimator=np.array([1, 2, 3]))
-    assert_raises(ValueError, rf.fit, X, y)
+    pytest.raises(ValueError, rf.fit, X, y)
     # tmin must be <= tmax
     rf = ReceptiveField(5, 4, 1, patterns=True)
-    assert_raises(ValueError, rf.fit, X, y)
+    pytest.raises(ValueError, rf.fit, X, y)
     # scorers
     for key, val in _SCORERS.items():
         rf = ReceptiveField(tmin, tmax, 1, ['one'],
@@ -224,11 +224,11 @@ def test_receptive_field():
                             multioutput='raw_values'),
                         rf.score(X[:, [0]], y), rtol=1e-2)
     # Need 2D input
-    assert_raises(ValueError, _SCORERS['corrcoef'], y.ravel(), y_pred,
+    pytest.raises(ValueError, _SCORERS['corrcoef'], y.ravel(), y_pred,
                   multioutput='raw_values')
     # Need correct scorers
     rf = ReceptiveField(tmin, tmax, 1., scoring='foo')
-    assert_raises(ValueError, rf.fit, X, y)
+    pytest.raises(ValueError, rf.fit, X, y)
 
 
 def test_time_delaying_fast_calc():
@@ -380,7 +380,7 @@ def test_receptive_field_1d():
                             model.predict(use_x)[model.valid_samples_],
                             y[model.valid_samples_], atol=1e-2)
                         score = np.mean(model.score(use_x, y))
-                        assert_true(score > 0.9999, msg=score)
+                        assert score > 0.9999
 
 
 @requires_version('sklearn', '0.17')
@@ -417,10 +417,10 @@ def test_receptive_field_nd():
         assert_allclose(model.coef_, expected, atol=1e-1)
     tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.01, reg_type='foo')
     model = ReceptiveField(slim[0], slim[1], 1., estimator=tdr)
-    assert_raises(ValueError, model.fit, x, y)
+    pytest.raises(ValueError, model.fit, x, y)
     tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.01, reg_type=['laplacian'])
     model = ReceptiveField(slim[0], slim[1], 1., estimator=tdr)
-    assert_raises(ValueError, model.fit, x, y)
+    pytest.raises(ValueError, model.fit, x, y)
 
     # Now check the intercept_
     tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.)
@@ -469,7 +469,7 @@ def test_receptive_field_nd():
         model.fit(x_off, y)
         assert_allclose(model.estimator_.intercept_, 0., atol=1e-7)
         score = np.mean(model.score(x_off, y))
-        assert_true(score > 0.6, msg=score)
+        assert score > 0.6
 
 
 @requires_version('sklearn', '0.17')
@@ -523,9 +523,8 @@ def test_inverse_coef():
             if estimator and not check_version('numpy', '1.13'):
                 continue
             assert_equal(len(w), 1)
-            assert_true(any(x in str(w[0].message).lower()
-                            for x in ('singular', 'scipy.linalg.solve')),
-                        msg=str(w[0].message))
+            assert any(x in str(w[0].message).lower()
+                       for x in ('singular', 'scipy.linalg.solve'))
 
 
 run_tests_if_main()

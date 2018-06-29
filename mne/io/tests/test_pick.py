@@ -2,8 +2,8 @@ import inspect
 import os.path as op
 import warnings
 
-from nose.tools import assert_equal, assert_raises, assert_true
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_equal
+import pytest
 import numpy as np
 
 from mne import (pick_channels_regexp, pick_types, Epochs,
@@ -50,8 +50,8 @@ def test_pick_refs():
     raw_ctf.apply_gradient_compensation(2)
     for info in infos:
         info['bads'] = []
-        assert_raises(ValueError, pick_types, info, meg='foo')
-        assert_raises(ValueError, pick_types, info, ref_meg='foo')
+        pytest.raises(ValueError, pick_types, info, meg='foo')
+        pytest.raises(ValueError, pick_types, info, ref_meg='foo')
         picks_meg_ref = pick_types(info, meg=True, ref_meg=True)
         picks_meg = pick_types(info, meg=True, ref_meg=False)
         picks_ref = pick_types(info, meg=False, ref_meg=True)
@@ -98,7 +98,7 @@ def test_pick_refs():
 
     for pick in (picks_meg, picks_mag):
         if len(pick) > 0:
-            assert_raises(RuntimeError, pick_info, info, pick)
+            pytest.raises(RuntimeError, pick_info, info, pick)
 
 
 def test_pick_channels_regexp():
@@ -141,9 +141,9 @@ def test_pick_chpi():
     info = read_info(op.join(io_dir, 'tests', 'data', 'test_chpi_raw_sss.fif'))
     channel_types = set([channel_type(info, idx)
                          for idx in range(info['nchan'])])
-    assert_true('chpi' in channel_types)
-    assert_true('seeg' not in channel_types)
-    assert_true('ecog' not in channel_types)
+    assert 'chpi' in channel_types
+    assert 'seeg' not in channel_types
+    assert 'ecog' not in channel_types
 
 
 def test_pick_bio():
@@ -189,8 +189,8 @@ def test_pick_forward_seeg_ecog():
     fwd_ = pick_types_forward(fwd, meg=False, eeg=True)
     _check_fwd_n_chan_consistent(fwd_, counts['eeg'])
     # should raise exception related to emptiness
-    assert_raises(ValueError, pick_types_forward, fwd, meg=False, seeg=True)
-    assert_raises(ValueError, pick_types_forward, fwd, meg=False, ecog=True)
+    pytest.raises(ValueError, pick_types_forward, fwd, meg=False, seeg=True)
+    pytest.raises(ValueError, pick_types_forward, fwd, meg=False, ecog=True)
     # change last chan from EEG to sEEG, second-to-last to ECoG
     ecog_name = 'E1'
     seeg_name = 'OTp1'
@@ -256,8 +256,8 @@ def test_picks_by_channels():
                        [0, 1])
 
     # Make sure checks for list input work.
-    assert_raises(ValueError, pick_channels, ch_names, 'MEG 001')
-    assert_raises(ValueError, pick_channels, ch_names, ['MEG 001'], 'hi')
+    pytest.raises(ValueError, pick_channels, ch_names, 'MEG 001')
+    pytest.raises(ValueError, pick_channels, ch_names, ['MEG 001'], 'hi')
 
     pick_list = _picks_by_type(raw.info)
     assert_equal(len(pick_list), 1)
@@ -267,7 +267,7 @@ def test_picks_by_channels():
     assert_equal(pick_list2[0][0], 'mag')
 
     # pick_types type check
-    assert_raises(ValueError, raw.pick_types, eeg='string')
+    pytest.raises(ValueError, raw.pick_types, eeg='string')
 
     # duplicate check
     names = ['MEG 002', 'MEG 002']
@@ -277,7 +277,6 @@ def test_picks_by_channels():
 
 def test_clean_info_bads():
     """Test cleaning info['bads'] when bad_channels are excluded."""
-
     raw_file = op.join(op.dirname(_root_init_fname), 'io', 'tests', 'data',
                        'test_raw.fif')
     raw = read_raw_fif(raw_file)
@@ -311,6 +310,7 @@ def test_clean_info_bads():
     info = pick_info(raw.info, picks_meg)
     info._check_consistency()
     info['bads'] += ['EEG 053']
-    assert_raises(RuntimeError, info._check_consistency)
+    pytest.raises(RuntimeError, info._check_consistency)
+
 
 run_tests_if_main()

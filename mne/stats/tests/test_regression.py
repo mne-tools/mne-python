@@ -8,11 +8,10 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
+from numpy.testing import assert_array_equal, assert_allclose, assert_equal
+import pytest
 
 from scipy.signal import hann
-
-from nose.tools import assert_raises, assert_true, assert_equal
 
 import mne
 from mne import read_source_estimate
@@ -51,14 +50,14 @@ def test_regression():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         lm = linear_regression(epochs, design_matrix, ['intercept', 'aud'])
-        assert_true(w[0].category == RuntimeWarning)
-        assert_true('non-data' in '%s' % w[0].message)
+        assert (w[0].category == RuntimeWarning)
+        assert ('non-data' in '%s' % w[0].message)
 
     for predictor, parameters in lm.items():
         for value in parameters:
             assert_equal(value.data.shape, evoked.data.shape)
 
-    assert_raises(ValueError, linear_regression, [epochs, epochs],
+    pytest.raises(ValueError, linear_regression, [epochs, epochs],
                   design_matrix)
 
     stc = read_source_estimate(stc_fname).crop(0, 0.02)
@@ -72,13 +71,13 @@ def test_regression():
         # all p values are 0 < p <= 1 to start, but get stored in float32
         # data, so can actually be truncated to 0. Thus the mlog10_p_val
         # actually maintains better precision for tiny p-values.
-        assert_true(np.isfinite(val.p_val.data).all())
-        assert_true((val.p_val.data <= 1).all())
-        assert_true((val.p_val.data >= 0).all())
+        assert (np.isfinite(val.p_val.data).all())
+        assert ((val.p_val.data <= 1).all())
+        assert ((val.p_val.data >= 0).all())
         # all -log10(p) are non-negative
-        assert_true(np.isfinite(val.mlog10_p_val.data).all())
-        assert_true((val.mlog10_p_val.data >= 0).all())
-        assert_true((val.mlog10_p_val.data >= 0).all())
+        assert (np.isfinite(val.mlog10_p_val.data).all())
+        assert ((val.mlog10_p_val.data >= 0).all())
+        assert ((val.mlog10_p_val.data >= 0).all())
 
     for k in lm1:
         for v1, v2 in zip(lm1[k], lm2[k]):
@@ -118,12 +117,12 @@ def test_continuous_regression_no_overlap():
     # Test events that will lead to "duplicate" errors
     old_latency = events[1, 0]
     events[1, 0] = events[0, 0]
-    assert_raises(ValueError, linear_regression_raw,
+    pytest.raises(ValueError, linear_regression_raw,
                   raw, events, event_id, tmin, tmax)
 
     events[1, 0] = old_latency
     events[:, 0] = range(len(events))
-    assert_raises(ValueError, linear_regression_raw, raw,
+    pytest.raises(ValueError, linear_regression_raw, raw,
                   events, event_id, tmin, tmax, decim=2)
 
 
@@ -158,9 +157,9 @@ def test_continuous_regression_with_overlap():
     def solT(X, y):
         return ridge_regression(X, y, alpha=0.).T
     with warnings.catch_warnings(record=True):  # transpose
-        assert_raises(ValueError, linear_regression_raw, raw, events,
+        pytest.raises(ValueError, linear_regression_raw, raw, events,
                       solver=solT)
-    assert_raises(ValueError, linear_regression_raw, raw, events, solver='err')
-    assert_raises(TypeError, linear_regression_raw, raw, events, solver=0)
+    pytest.raises(ValueError, linear_regression_raw, raw, events, solver='err')
+    pytest.raises(TypeError, linear_regression_raw, raw, events, solver=0)
 
 run_tests_if_main()

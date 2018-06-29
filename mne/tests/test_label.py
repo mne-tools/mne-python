@@ -7,8 +7,8 @@ import warnings
 import numpy as np
 from scipy import sparse
 
-from numpy.testing import assert_array_equal, assert_array_almost_equal
-from nose.tools import assert_equal, assert_true, assert_false, assert_raises
+from numpy.testing import (assert_array_equal, assert_array_almost_equal,
+                           assert_equal)
 import pytest
 
 from mne.datasets import testing
@@ -150,6 +150,7 @@ def _stc_to_label(stc, src, smooth, subjects_dir=None):
 
 
 def assert_labels_equal(l0, l1, decimal=5, comment=True, color=True):
+    """Assert two labels are equal."""
     if comment:
         assert_equal(l0.comment, l1.comment)
     if color:
@@ -178,10 +179,10 @@ def test_label_subject():
     """Test label subject name extraction."""
     label = read_label(label_fname)
     assert_is(label.subject, None)
-    assert_true('unknown' in repr(label))
+    assert ('unknown' in repr(label))
     label = read_label(label_fname, subject='fsaverage')
-    assert_true(label.subject == 'fsaverage')
-    assert_true('fsaverage' in repr(label))
+    assert (label.subject == 'fsaverage')
+    assert ('fsaverage' in repr(label))
 
 
 def test_label_addition():
@@ -201,10 +202,10 @@ def test_label_addition():
     l_good.subject = 'sample'
     l_bad = l1.copy()
     l_bad.subject = 'foo'
-    assert_raises(ValueError, l_good.__add__, l_bad)
-    assert_raises(TypeError, l_good.__add__, 'foo')
-    assert_raises(ValueError, l_good.__sub__, l_bad)
-    assert_raises(TypeError, l_good.__sub__, 'foo')
+    pytest.raises(ValueError, l_good.__add__, l_bad)
+    pytest.raises(TypeError, l_good.__add__, 'foo')
+    pytest.raises(ValueError, l_good.__sub__, l_bad)
+    pytest.raises(TypeError, l_good.__sub__, 'foo')
 
     # adding non-overlapping labels
     l01 = l0 + l1
@@ -231,7 +232,7 @@ def test_label_addition():
     assert_equal(bhl.hemi, 'both')
     assert_equal(len(bhl), len(l0) + len(l2))
     assert_equal(bhl.color, l02.color)
-    assert_true('BiHemiLabel' in repr(bhl))
+    assert ('BiHemiLabel' in repr(bhl))
     # subtraction
     assert_labels_equal(bhl - l0, l2)
     assert_labels_equal(bhl - l2, l0)
@@ -241,7 +242,7 @@ def test_label_addition():
     assert_equal(bhl2.color, _blend_colors(l1.color, bhl.color))
     assert_array_equal((l2 + bhl).rh.vertices, bhl.rh.vertices)  # rh label
     assert_array_equal((bhl + bhl).lh.vertices, bhl.lh.vertices)
-    assert_raises(TypeError, bhl.__add__, 5)
+    pytest.raises(TypeError, bhl.__add__, 5)
 
     # subtraction
     bhl_ = bhl2 - l1
@@ -280,7 +281,7 @@ def test_label_in_src():
 
     # test exception
     vertices = np.append([-1], vert_in_src)
-    assert_raises(ValueError, Label(vertices, hemi='lh').fill, src)
+    pytest.raises(ValueError, Label(vertices, hemi='lh').fill, src)
 
     # test filling empty label
     label = Label([], hemi='lh')
@@ -295,8 +296,8 @@ def test_label_io_and_time_course_estimates():
     label = read_label(real_label_fname)
     stc_label = stc.in_label(label)
 
-    assert_true(len(stc_label.times) == stc_label.data.shape[1])
-    assert_true(len(stc_label.vertices[0]) == stc_label.data.shape[0])
+    assert (len(stc_label.times) == stc_label.data.shape[1])
+    assert (len(stc_label.vertices[0]) == stc_label.data.shape[0])
 
 
 @testing.requires_testing_data
@@ -325,11 +326,11 @@ def test_label_io():
 
 
 def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
-    """Make sure two sets of labels are equal"""
+    """Ensure two sets of labels are equal."""
     for label_a, label_b in zip(labels_a, labels_b):
         assert_array_equal(label_a.vertices, label_b.vertices)
-        assert_true(label_a.name == label_b.name)
-        assert_true(label_a.hemi == label_b.hemi)
+        assert (label_a.name == label_b.name)
+        assert (label_a.hemi == label_b.hemi)
         if not ignore_pos:
             assert_array_equal(label_a.pos, label_b.pos)
 
@@ -352,7 +353,7 @@ def test_annot_io():
     shutil.copy(os.path.join(surf_src, 'rh.white'), surf_dir)
 
     # read original labels
-    assert_raises(IOError, read_labels_from_annot, subject, 'PALS_B12_Lobesey',
+    pytest.raises(IOError, read_labels_from_annot, subject, 'PALS_B12_Lobesey',
                   subjects_dir=tempdir)
     labels = read_labels_from_annot(subject, 'PALS_B12_Lobes',
                                     subjects_dir=tempdir)
@@ -371,8 +372,8 @@ def test_annot_io():
     write_labels_to_annot(parc, subject, 'myparc2', hemi='lh',
                           subjects_dir=tempdir)
     annot_fname = os.path.join(tempdir, subject, 'label', '%sh.myparc2.annot')
-    assert_true(os.path.isfile(annot_fname % 'l'))
-    assert_false(os.path.isfile(annot_fname % 'r'))
+    assert os.path.isfile(annot_fname % 'l')
+    assert not os.path.isfile(annot_fname % 'r')
     parc1 = read_labels_from_annot(subject, 'myparc2',
                                    annot_fname=annot_fname % 'l',
                                    subjects_dir=tempdir)
@@ -385,17 +386,17 @@ def test_annot_io():
 def test_read_labels_from_annot():
     """Test reading labels from FreeSurfer parcellation."""
     # test some invalid inputs
-    assert_raises(ValueError, read_labels_from_annot, 'sample', hemi='bla',
+    pytest.raises(ValueError, read_labels_from_annot, 'sample', hemi='bla',
                   subjects_dir=subjects_dir)
-    assert_raises(ValueError, read_labels_from_annot, 'sample',
+    pytest.raises(ValueError, read_labels_from_annot, 'sample',
                   annot_fname='bla.annot', subjects_dir=subjects_dir)
 
     # read labels using hemi specification
     labels_lh = read_labels_from_annot('sample', hemi='lh',
                                        subjects_dir=subjects_dir)
     for label in labels_lh:
-        assert_true(label.name.endswith('-lh'))
-        assert_true(label.hemi == 'lh')
+        assert (label.name.endswith('-lh'))
+        assert (label.hemi == 'lh')
         assert_is_not(label.color, None)
 
     # read labels using annot_fname
@@ -403,8 +404,8 @@ def test_read_labels_from_annot():
     labels_rh = read_labels_from_annot('sample', annot_fname=annot_fname,
                                        subjects_dir=subjects_dir)
     for label in labels_rh:
-        assert_true(label.name.endswith('-rh'))
-        assert_true(label.hemi == 'rh')
+        assert (label.name.endswith('-rh'))
+        assert (label.hemi == 'rh')
         assert_is_not(label.color, None)
 
     # combine the lh, rh, labels and sort them
@@ -422,18 +423,18 @@ def test_read_labels_from_annot():
     _assert_labels_equal(labels_lhrh, labels_both)
 
     # aparc has 68 cortical labels
-    assert_true(len(labels_both) == 68)
+    assert (len(labels_both) == 68)
 
     # test regexp
     label = read_labels_from_annot('sample', parc='aparc.a2009s',
                                    regexp='Angu', subjects_dir=subjects_dir)[0]
-    assert_true(label.name == 'G_pariet_inf-Angular-lh')
+    assert (label.name == 'G_pariet_inf-Angular-lh')
     # silly, but real regexp:
     label = read_labels_from_annot('sample', 'aparc.a2009s',
                                    regexp='.*-.{4,}_.{3,3}-L',
                                    subjects_dir=subjects_dir)[0]
-    assert_true(label.name == 'G_oc-temp_med-Lingual-lh')
-    assert_raises(RuntimeError, read_labels_from_annot, 'sample', parc='aparc',
+    assert (label.name == 'G_oc-temp_med-Lingual-lh')
+    pytest.raises(RuntimeError, read_labels_from_annot, 'sample', parc='aparc',
                   annot_fname=annot_fname, regexp='JackTheRipper',
                   subjects_dir=subjects_dir)
 
@@ -468,24 +469,24 @@ def test_write_labels_to_annot():
     # test automatic filenames
     dst = op.join(tempdir, 'sample', 'label', '%s.%s.annot')
     write_labels_to_annot(labels, 'sample', 'test1', subjects_dir=tempdir)
-    assert_true(op.exists(dst % ('lh', 'test1')))
-    assert_true(op.exists(dst % ('rh', 'test1')))
+    assert (op.exists(dst % ('lh', 'test1')))
+    assert (op.exists(dst % ('rh', 'test1')))
     # lh only
     for label in labels:
         if label.hemi == 'lh':
             break
     write_labels_to_annot([label], 'sample', 'test2', subjects_dir=tempdir)
-    assert_true(op.exists(dst % ('lh', 'test2')))
-    assert_true(op.exists(dst % ('rh', 'test2')))
+    assert (op.exists(dst % ('lh', 'test2')))
+    assert (op.exists(dst % ('rh', 'test2')))
     # rh only
     for label in labels:
         if label.hemi == 'rh':
             break
     write_labels_to_annot([label], 'sample', 'test3', subjects_dir=tempdir)
-    assert_true(op.exists(dst % ('lh', 'test3')))
-    assert_true(op.exists(dst % ('rh', 'test3')))
+    assert (op.exists(dst % ('lh', 'test3')))
+    assert (op.exists(dst % ('rh', 'test3')))
     # label alone
-    assert_raises(TypeError, write_labels_to_annot, labels[0], 'sample',
+    pytest.raises(TypeError, write_labels_to_annot, labels[0], 'sample',
                   'test4', subjects_dir=tempdir)
 
     # write left and right hemi labels with filenames:
@@ -522,7 +523,7 @@ def test_write_labels_to_annot():
         assert_labels_equal(label, labels3[idx])
 
     # make sure we can't overwrite things
-    assert_raises(ValueError, write_labels_to_annot, labels, 'sample',
+    pytest.raises(ValueError, write_labels_to_annot, labels, 'sample',
                   annot_fname=fnames[0], subjects_dir=subjects_dir)
 
     # however, this works
@@ -538,13 +539,13 @@ def test_write_labels_to_annot():
 
     # duplicate color
     labels_[0].color = labels_[2].color
-    assert_raises(ValueError, write_labels_to_annot, labels_, 'sample',
+    pytest.raises(ValueError, write_labels_to_annot, labels_, 'sample',
                   annot_fname=fnames[0], overwrite=True,
                   subjects_dir=subjects_dir)
 
     # invalid color inputs
     labels_[0].color = (1.1, 1., 1., 1.)
-    assert_raises(ValueError, write_labels_to_annot, labels_, 'sample',
+    pytest.raises(ValueError, write_labels_to_annot, labels_, 'sample',
                   annot_fname=fnames[0], overwrite=True,
                   subjects_dir=subjects_dir)
 
@@ -553,7 +554,7 @@ def test_write_labels_to_annot():
     cuneus_lh = labels[6]
     precuneus_lh = labels[50]
     labels_.append(precuneus_lh + cuneus_lh)
-    assert_raises(ValueError, write_labels_to_annot, labels_, 'sample',
+    pytest.raises(ValueError, write_labels_to_annot, labels_, 'sample',
                   annot_fname=fnames[0], overwrite=True,
                   subjects_dir=subjects_dir)
 
@@ -567,12 +568,12 @@ def test_write_labels_to_annot():
     label0 = labels_lh[0]
     label1 = labels_reloaded[-1]
     assert_equal(label1.name, "unknown-lh")
-    assert_true(np.all(np.in1d(label0.vertices, label1.vertices)))
+    assert (np.all(np.in1d(label0.vertices, label1.vertices)))
 
     # unnamed labels
     labels4 = labels[:]
     labels4[0].name = None
-    assert_raises(ValueError, write_labels_to_annot, labels4,
+    pytest.raises(ValueError, write_labels_to_annot, labels4,
                   annot_fname=fnames[0])
 
 
@@ -585,7 +586,7 @@ def test_split_label():
     lingual = aparc[0]
 
     # Test input error
-    assert_raises(ValueError, lingual.split, 'bad_input_string')
+    pytest.raises(ValueError, lingual.split, 'bad_input_string')
 
     # split with names
     parts = ('lingual_post', 'lingual_ant')
@@ -651,35 +652,35 @@ def test_stc_to_label():
         labels_lh, labels_rh = stc_to_label(stc, src=src, smooth=True,
                                             connected=True)
 
-    assert_true(len(w) > 0)
-    assert_raises(ValueError, stc_to_label, stc, 'sample', smooth=True,
+    assert (len(w) > 0)
+    pytest.raises(ValueError, stc_to_label, stc, 'sample', smooth=True,
                   connected=True)
-    assert_raises(RuntimeError, stc_to_label, stc, smooth=True, src=src_bad,
+    pytest.raises(RuntimeError, stc_to_label, stc, smooth=True, src=src_bad,
                   connected=True)
     assert_equal(len(labels_lh), 1)
     assert_equal(len(labels_rh), 1)
 
     # test getting tris
     tris = labels_lh[0].get_tris(src[0]['use_tris'], vertices=stc.vertices[0])
-    assert_raises(ValueError, spatial_tris_connectivity, tris,
+    pytest.raises(ValueError, spatial_tris_connectivity, tris,
                   remap_vertices=False)
     connectivity = spatial_tris_connectivity(tris, remap_vertices=True)
-    assert_true(connectivity.shape[0] == len(stc.vertices[0]))
+    assert (connectivity.shape[0] == len(stc.vertices[0]))
 
     # "src" as a subject name
-    assert_raises(TypeError, stc_to_label, stc, src=1, smooth=False,
+    pytest.raises(TypeError, stc_to_label, stc, src=1, smooth=False,
                   connected=False, subjects_dir=subjects_dir)
-    assert_raises(ValueError, stc_to_label, stc, src=SourceSpaces([src[0]]),
+    pytest.raises(ValueError, stc_to_label, stc, src=SourceSpaces([src[0]]),
                   smooth=False, connected=False, subjects_dir=subjects_dir)
-    assert_raises(ValueError, stc_to_label, stc, src='sample', smooth=False,
+    pytest.raises(ValueError, stc_to_label, stc, src='sample', smooth=False,
                   connected=True, subjects_dir=subjects_dir)
-    assert_raises(ValueError, stc_to_label, stc, src='sample', smooth=True,
+    pytest.raises(ValueError, stc_to_label, stc, src='sample', smooth=True,
                   connected=False, subjects_dir=subjects_dir)
     labels_lh, labels_rh = stc_to_label(stc, src='sample', smooth=False,
                                         connected=False,
                                         subjects_dir=subjects_dir)
-    assert_true(len(labels_lh) > 1)
-    assert_true(len(labels_rh) > 1)
+    assert (len(labels_lh) > 1)
+    assert (len(labels_rh) > 1)
 
     # with smooth='patch'
     with warnings.catch_warnings(record=True) as w:  # connectedness warning
@@ -703,12 +704,12 @@ def test_morph():
     for grade in [5, [np.arange(10242), np.arange(10242)], np.arange(10242)]:
         label = label_orig.copy()
         # this should throw an error because the label has all zero values
-        assert_raises(ValueError, label.morph, 'sample', 'fsaverage')
+        pytest.raises(ValueError, label.morph, 'sample', 'fsaverage')
         label.values.fill(1)
         label = label.morph(None, 'fsaverage', 5, grade, subjects_dir, 1)
         label = label.morph('fsaverage', 'sample', 5, None, subjects_dir, 2)
-        assert_true(np.in1d(label_orig.vertices, label.vertices).all())
-        assert_true(len(label.vertices) < 3 * len(label_orig.vertices))
+        assert (np.in1d(label_orig.vertices, label.vertices).all())
+        assert (len(label.vertices) < 3 * len(label_orig.vertices))
         vals.append(label.vertices)
     assert_array_equal(vals[0], vals[1])
     # make sure label smoothing can run
@@ -718,9 +719,9 @@ def test_morph():
         label.hemi = hemi
         with warnings.catch_warnings(record=True):  # morph map maybe missing
             label.morph(None, 'fsaverage', 5, verts, subjects_dir, 2)
-    assert_raises(TypeError, label.morph, None, 1, 5, verts,
+    pytest.raises(TypeError, label.morph, None, 1, 5, verts,
                   subjects_dir, 2)
-    assert_raises(TypeError, label.morph, None, 'fsaverage', 5.5, verts,
+    pytest.raises(TypeError, label.morph, None, 'fsaverage', 5.5, verts,
                   subjects_dir, 2)
     with warnings.catch_warnings(record=True):  # morph map could be missing
         label.smooth(subjects_dir=subjects_dir)  # make sure this runs
@@ -740,8 +741,8 @@ def test_grow_labels():
     tgt_hemis = ['lh', 'rh']
     for label, seed, hemi, sh, name in zip(labels, seeds, tgt_hemis,
                                            should_be_in, tgt_names):
-        assert_true(np.any(label.vertices == seed))
-        assert_true(np.all(np.in1d(sh, label.vertices)))
+        assert (np.any(label.vertices == seed))
+        assert (np.all(np.in1d(sh, label.vertices)))
         assert_equal(label.hemi, hemi)
         assert_equal(label.name, name)
 
@@ -791,7 +792,7 @@ def test_random_parcellation():
         for label in labels:
             if label.hemi == hemi:
                 # test that labels are not empty
-                assert_true(len(label.vertices) > 0)
+                assert (len(label.vertices) > 0)
 
                 # vertices of hemi covered by labels
                 vertices_total = np.append(vertices_total, label.vertices)
@@ -853,10 +854,10 @@ def test_label_center_of_mass():
     for label, expected in zip([labels[2], labels[3], labels[-5]],
                                [141162, 145221, 55979]):
         label.values[:] = -1
-        assert_raises(ValueError, label.center_of_mass,
+        pytest.raises(ValueError, label.center_of_mass,
                       subjects_dir=subjects_dir)
         label.values[:] = 0
-        assert_raises(ValueError, label.center_of_mass,
+        pytest.raises(ValueError, label.center_of_mass,
                       subjects_dir=subjects_dir)
         label.values[:] = 1
         assert_equal(label.center_of_mass(subjects_dir=subjects_dir), expected)
@@ -880,11 +881,11 @@ def test_label_center_of_mass():
                                           restrict_vertices=src),
                      src_expected)
     # degenerate cases
-    assert_raises(ValueError, label.center_of_mass, subjects_dir=subjects_dir,
+    pytest.raises(ValueError, label.center_of_mass, subjects_dir=subjects_dir,
                   restrict_vertices='foo')
-    assert_raises(TypeError, label.center_of_mass, subjects_dir=subjects_dir,
+    pytest.raises(TypeError, label.center_of_mass, subjects_dir=subjects_dir,
                   surf=1)
-    assert_raises(IOError, label.center_of_mass, subjects_dir=subjects_dir,
+    pytest.raises(IOError, label.center_of_mass, subjects_dir=subjects_dir,
                   surf='foo')
 
 

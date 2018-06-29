@@ -8,7 +8,6 @@ import numpy as np
 
 from numpy.testing import assert_equal, assert_allclose, assert_array_equal
 import pytest
-from nose.tools import assert_true, assert_raises
 from scipy import sparse
 
 from mne import compute_raw_covariance, pick_types
@@ -112,8 +111,8 @@ def _assert_n_free(raw_sss, lower, upper=None):
     """Check the DOF."""
     upper = lower if upper is None else upper
     n_free = raw_sss.info['proc_history'][0]['max_info']['sss_info']['nfree']
-    assert_true(lower <= n_free <= upper,
-                'nfree fail: %s <= %s <= %s' % (lower, n_free, upper))
+    assert lower <= n_free <= upper, \
+        'nfree fail: %s <= %s <= %s' % (lower, n_free, upper)
 
 
 def read_crop(fname, lims=(0, None)):
@@ -160,7 +159,7 @@ def test_movement_compensation():
                                     st_duration=4., origin=mf_head_origin,
                                     st_fixed=False)
     assert_equal(len(w), 1)
-    assert_true('is untested' in str(w[0].message))
+    assert ('is untested' in str(w[0].message))
     # Neither match is particularly good because our algorithm actually differs
     assert_meg_snr(raw_sss_mv, read_crop(sss_movecomp_reg_in_st4s_fname, lims),
                    0.6, 1.3)
@@ -181,22 +180,22 @@ def test_movement_compensation():
 
     # some degenerate cases
     raw_erm = read_crop(erm_fname)
-    assert_raises(ValueError, maxwell_filter, raw_erm, coord_frame='meg',
+    pytest.raises(ValueError, maxwell_filter, raw_erm, coord_frame='meg',
                   head_pos=head_pos)  # can't do ERM file
-    assert_raises(ValueError, maxwell_filter, raw,
+    pytest.raises(ValueError, maxwell_filter, raw,
                   head_pos=head_pos[:, :9])  # bad shape
-    assert_raises(TypeError, maxwell_filter, raw, head_pos='foo')  # bad type
-    assert_raises(ValueError, maxwell_filter, raw, head_pos=head_pos[::-1])
+    pytest.raises(TypeError, maxwell_filter, raw, head_pos='foo')  # bad type
+    pytest.raises(ValueError, maxwell_filter, raw, head_pos=head_pos[::-1])
     head_pos_bad = head_pos.copy()
     head_pos_bad[0, 0] = raw.first_samp / raw.info['sfreq'] - 1e-2
-    assert_raises(ValueError, maxwell_filter, raw, head_pos=head_pos_bad)
+    pytest.raises(ValueError, maxwell_filter, raw, head_pos=head_pos_bad)
 
     head_pos_bad = head_pos.copy()
     head_pos_bad[0, 4] = 1.  # off by more than 1 m
     with warnings.catch_warnings(record=True) as w:
         maxwell_filter(raw.copy().crop(0, 0.1), head_pos=head_pos_bad,
                        bad_condition='ignore')
-    assert_true(any('greater than 1 m' in str(ww.message) for ww in w))
+    assert (any('greater than 1 m' in str(ww.message) for ww in w))
 
     # make sure numerical error doesn't screw it up, though
     head_pos_bad = head_pos.copy()
@@ -218,7 +217,7 @@ def test_other_systems():
     hsp_path = op.join(kit_dir, 'test_hsp.txt')
     raw_kit = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
     with warnings.catch_warnings(record=True):  # head fit
-        assert_raises(RuntimeError, maxwell_filter, raw_kit)
+        pytest.raises(RuntimeError, maxwell_filter, raw_kit)
     with catch_logging() as log:
         raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
                                  ignore_ref=True, verbose=True)
@@ -231,7 +230,7 @@ def test_other_systems():
     # corrected HSP file with proper coverage
     with warnings.catch_warnings(record=True):
         with catch_logging() as log:
-            assert_raises(RuntimeError, maxwell_filter, raw_kit,
+            pytest.raises(RuntimeError, maxwell_filter, raw_kit,
                           ignore_ref=True, regularize=None)  # bad condition
             raw_sss = maxwell_filter(raw_kit, origin='auto',
                                      ignore_ref=True, bad_condition='warning',
@@ -279,9 +278,9 @@ def test_other_systems():
     # CTF
     raw_ctf = read_crop(fname_ctf_raw)
     assert_equal(raw_ctf.compensation_grade, 3)
-    assert_raises(RuntimeError, maxwell_filter, raw_ctf)  # compensated
+    pytest.raises(RuntimeError, maxwell_filter, raw_ctf)  # compensated
     raw_ctf.apply_gradient_compensation(0)
-    assert_raises(ValueError, maxwell_filter, raw_ctf)  # cannot fit headshape
+    pytest.raises(ValueError, maxwell_filter, raw_ctf)  # cannot fit headshape
     raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04))
     _assert_n_free(raw_sss, 68)
     _assert_shielding(raw_sss, raw_ctf, 1.8)
@@ -385,9 +384,9 @@ def test_basic():
     raw = read_crop(raw_fname, (0., 1.))
     raw_err = read_crop(raw_fname).apply_proj()
     raw_erm = read_crop(erm_fname)
-    assert_raises(RuntimeError, maxwell_filter, raw_err)
-    assert_raises(TypeError, maxwell_filter, 1.)  # not a raw
-    assert_raises(ValueError, maxwell_filter, raw, int_order=20)  # too many
+    pytest.raises(RuntimeError, maxwell_filter, raw_err)
+    pytest.raises(TypeError, maxwell_filter, 1.)  # not a raw
+    pytest.raises(ValueError, maxwell_filter, raw, int_order=20)  # too many
 
     n_int_bases = int_order ** 2 + 2 * int_order
     n_ext_bases = ext_order ** 2 + 2 * ext_order
@@ -409,7 +408,7 @@ def test_basic():
     assert_equal(len(py_ctc), 0)
     py_st = raw_sss.info['proc_history'][0]['max_info']['max_st']
     assert_equal(len(py_st), 0)
-    assert_raises(RuntimeError, maxwell_filter, raw_sss)
+    pytest.raises(RuntimeError, maxwell_filter, raw_sss)
 
     # Test SSS computation at non-standard head origin
     raw_sss = maxwell_filter(raw, origin=[0., 0.02, 0.02], regularize=None,
@@ -441,10 +440,10 @@ def test_basic():
                  proc_history._get_sss_rank(sss_info))
 
     # Degenerate cases
-    assert_raises(ValueError, maxwell_filter, raw, coord_frame='foo')
-    assert_raises(ValueError, maxwell_filter, raw, origin='foo')
-    assert_raises(ValueError, maxwell_filter, raw, origin=[0] * 4)
-    assert_raises(ValueError, maxwell_filter, raw, mag_scale='foo')
+    pytest.raises(ValueError, maxwell_filter, raw, coord_frame='foo')
+    pytest.raises(ValueError, maxwell_filter, raw, origin='foo')
+    pytest.raises(ValueError, maxwell_filter, raw, origin=[0] * 4)
+    pytest.raises(ValueError, maxwell_filter, raw, mag_scale='foo')
     raw_missing = raw.copy().load_data()
     raw_missing.info['bads'] = ['MEG0111']
     raw_missing.pick_types(meg=True)  # will be missing the bad
@@ -452,13 +451,12 @@ def test_basic():
     with warnings.catch_warnings(record=True) as w:
         maxwell_filter(raw_missing, calibration=fine_cal_fname)
     assert_equal(len(w), 1)
-    assert_true('not in data' in str(w[0].message))
+    assert ('not in data' in str(w[0].message))
 
 
 @testing.requires_testing_data
 def test_maxwell_filter_additional():
     """Test processing of Maxwell filtered data."""
-
     # TODO: Future tests integrate with mne/io/tests/test_proc_history
 
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
@@ -521,7 +519,7 @@ def test_spatiotemporal():
     raw = read_crop(raw_fname)
 
     # Test that window is less than length of data
-    assert_raises(ValueError, maxwell_filter, raw, st_duration=1000.)
+    pytest.raises(ValueError, maxwell_filter, raw, st_duration=1000.)
 
     # We could check both 4 and 10 seconds because Elekta handles them
     # differently (to ensure that std/non-std tSSS windows are correctly
@@ -549,12 +547,12 @@ def test_spatiotemporal():
         assert_equal(raw_tsss.estimate_rank(), 140)
         assert_meg_snr(raw_tsss, tsss_bench, tol)
         py_st = raw_tsss.info['proc_history'][0]['max_info']['max_st']
-        assert_true(len(py_st) > 0)
+        assert (len(py_st) > 0)
         assert_equal(py_st['buflen'], st_duration)
         assert_equal(py_st['subspcorr'], 0.98)
 
     # Degenerate cases
-    assert_raises(ValueError, maxwell_filter, raw, st_duration=10.,
+    pytest.raises(ValueError, maxwell_filter, raw, st_duration=10.,
                   st_correlation=0.)
 
 
@@ -591,7 +589,7 @@ def test_spatiotemporal_only():
                               st_only=True)
     assert_allclose(raw[:][0], raw_tsss[:][0])
     # degenerate
-    assert_raises(ValueError, maxwell_filter, raw, st_only=True)  # no ST
+    pytest.raises(ValueError, maxwell_filter, raw, st_only=True)  # no ST
     # two-step process equivalent to single-step process
     raw_tsss = maxwell_filter(raw, st_duration=tmax, st_only=True)
     raw_tsss = maxwell_filter(raw_tsss)
@@ -615,7 +613,6 @@ def test_spatiotemporal_only():
 @testing.requires_testing_data
 def test_fine_calibration():
     """Test Maxwell filter fine calibration."""
-
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
     raw = read_crop(raw_fname, (0., 1.))
     sss_fine_cal = read_crop(sss_fine_cal_fname)
@@ -626,8 +623,8 @@ def test_fine_calibration():
                              bad_condition='ignore')
     assert_meg_snr(raw_sss, sss_fine_cal, 82, 611)
     py_cal = raw_sss.info['proc_history'][0]['max_info']['sss_cal']
-    assert_true(py_cal is not None)
-    assert_true(len(py_cal) > 0)
+    assert (py_cal is not None)
+    assert (len(py_cal) > 0)
     mf_cal = sss_fine_cal.info['proc_history'][0]['max_info']['sss_cal']
     # we identify these differently
     mf_cal['cal_chans'][mf_cal['cal_chans'][:, 1] == 3022, 1] = 3024
@@ -656,7 +653,7 @@ def test_fine_calibration():
                                 bad_condition='ignore')
     assert_meg_snr(raw_sss_3D, sss_fine_cal, 1.0, 6.)
     raw_ctf = read_crop(fname_ctf_raw).apply_gradient_compensation(0)
-    assert_raises(RuntimeError, maxwell_filter, raw_ctf, origin=(0., 0., 0.04),
+    pytest.raises(RuntimeError, maxwell_filter, raw_ctf, origin=(0., 0., 0.04),
                   calibration=fine_cal_fname)
 
 
@@ -687,10 +684,10 @@ def test_regularization():
 
 
 def _check_reg_match(sss_py, sss_mf, comp_tol):
-    """Helper to check regularization."""
+    """Check regularization."""
     info_py = sss_py.info['proc_history'][0]['max_info']['sss_info']
-    assert_true(info_py is not None)
-    assert_true(len(info_py) > 0)
+    assert (info_py is not None)
+    assert (len(info_py) > 0)
     info_mf = sss_mf.info['proc_history'][0]['max_info']['sss_info']
     n_in = None
     for inf in (info_py, info_mf):
@@ -714,9 +711,9 @@ def test_cross_talk():
                              bad_condition='ignore')
     assert_meg_snr(raw_sss, sss_ctc, 275.)
     py_ctc = raw_sss.info['proc_history'][0]['max_info']['sss_ctc']
-    assert_true(len(py_ctc) > 0)
-    assert_raises(ValueError, maxwell_filter, raw, cross_talk=raw)
-    assert_raises(ValueError, maxwell_filter, raw, cross_talk=raw_fname)
+    assert (len(py_ctc) > 0)
+    pytest.raises(ValueError, maxwell_filter, raw, cross_talk=raw)
+    pytest.raises(ValueError, maxwell_filter, raw, cross_talk=raw_fname)
     mf_ctc = sss_ctc.info['proc_history'][0]['max_info']['sss_ctc']
     del mf_ctc['block_id']  # we don't write this
     assert isinstance(py_ctc['decoupler'], sparse.csc_matrix)
@@ -734,7 +731,7 @@ def test_cross_talk():
                        mf_ctc['decoupler'].toarray())
     assert_equal(object_diff(py_ctc, mf_ctc), '')
     raw_ctf = read_crop(fname_ctf_raw).apply_gradient_compensation(0)
-    assert_raises(ValueError, maxwell_filter, raw_ctf)  # cannot fit headshape
+    pytest.raises(ValueError, maxwell_filter, raw_ctf)  # cannot fit headshape
     raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04))
     _assert_n_free(raw_sss, 68)
     raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04), ignore_ref=True)
@@ -745,9 +742,9 @@ def test_cross_talk():
     with warnings.catch_warnings(record=True) as w:
         maxwell_filter(raw_missing, cross_talk=ctc_fname)
     assert_equal(len(w), 1)
-    assert_true('Not all cross-talk channels in raw' in str(w[0].message))
+    assert ('Not all cross-talk channels in raw' in str(w[0].message))
     # MEG channels not in cross-talk
-    assert_raises(RuntimeError, maxwell_filter, raw_ctf, origin=(0., 0., 0.04),
+    pytest.raises(RuntimeError, maxwell_filter, raw_ctf, origin=(0., 0., 0.04),
                   cross_talk=ctc_fname)
 
 
@@ -766,7 +763,7 @@ def test_head_translation():
             raw_sss = maxwell_filter(raw, destination=mf_head_origin,
                                      origin=mf_head_origin, regularize=None,
                                      bad_condition='ignore', verbose='warning')
-    assert_true('over 25 mm' in log.getvalue())
+    assert ('over 25 mm' in log.getvalue())
     assert_meg_snr(raw_sss, read_crop(sss_trans_default_fname), 125.)
     destination = np.eye(4)
     destination[2, 3] = 0.04
@@ -777,14 +774,14 @@ def test_head_translation():
             raw_sss = maxwell_filter(raw, destination=sample_fname,
                                      origin=mf_head_origin, regularize=None,
                                      bad_condition='ignore', verbose='warning')
-    assert_true('= 25.6 mm' in log.getvalue())
+    assert ('= 25.6 mm' in log.getvalue())
     assert_meg_snr(raw_sss, read_crop(sss_trans_sample_fname), 350.)
     assert_allclose(raw_sss.info['dev_head_t']['trans'],
                     read_info(sample_fname)['dev_head_t']['trans'])
     # Degenerate cases
-    assert_raises(RuntimeError, maxwell_filter, raw,
+    pytest.raises(RuntimeError, maxwell_filter, raw,
                   destination=mf_head_origin, coord_frame='meg')
-    assert_raises(ValueError, maxwell_filter, raw, destination=[0.] * 4)
+    pytest.raises(ValueError, maxwell_filter, raw, destination=[0.] * 4)
 
 
 # TODO: Eventually add simulation tests mirroring Taulu's original paper
@@ -792,7 +789,7 @@ def test_head_translation():
 # http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=1495874
 
 def _assert_shielding(raw_sss, erm_power, shielding_factor, meg='mag'):
-    """Helper to assert a minimum shielding factor using empty-room power."""
+    """Assert a minimum shielding factor using empty-room power."""
     picks = pick_types(raw_sss.info, meg=meg, ref_meg=False)
     if isinstance(erm_power, BaseRaw):
         picks_erm = pick_types(raw_sss.info, meg=meg, ref_meg=False)
@@ -801,8 +798,8 @@ def _assert_shielding(raw_sss, erm_power, shielding_factor, meg='mag'):
     sss_power = raw_sss[picks][0].ravel()
     sss_power = np.sqrt(np.sum(sss_power * sss_power))
     factor = erm_power / sss_power
-    assert_true(factor >= shielding_factor,
-                'Shielding factor %0.3f < %0.3f' % (factor, shielding_factor))
+    assert factor >= shielding_factor, \
+        'Shielding factor %0.3f < %0.3f' % (factor, shielding_factor)
 
 
 @buggy_mkl_svd
@@ -1002,9 +999,11 @@ def test_triux():
 
 @testing.requires_testing_data
 def test_MGH_cross_talk():
+    """Test cross-talk."""
     raw = read_crop(raw_fname, (0., 1.))
     raw_sss = maxwell_filter(raw, cross_talk=ctc_mgh_fname)
     py_ctc = raw_sss.info['proc_history'][0]['max_info']['sss_ctc']
-    assert_true(len(py_ctc) > 0)
+    assert (len(py_ctc) > 0)
+
 
 run_tests_if_main()

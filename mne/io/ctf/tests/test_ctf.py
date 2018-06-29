@@ -50,7 +50,7 @@ ctf_fnames = tuple(sorted(block_sizes.keys()))
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_read_ctf():
-    """Test CTF reader"""
+    """Test CTF reader."""
     temp_dir = _TempDir()
     out_fname = op.join(temp_dir, 'test_py_raw.fif')
 

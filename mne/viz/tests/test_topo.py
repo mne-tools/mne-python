@@ -10,8 +10,7 @@ import warnings
 from collections import namedtuple
 
 import numpy as np
-from numpy.testing import assert_raises, assert_equal
-from nose.tools import assert_true
+import pytest
 
 from mne import read_events, Epochs, pick_channels_evoked, read_cov
 from mne.channels import read_layout
@@ -91,7 +90,7 @@ def test_plot_topo():
                                                       time_unit='ms'),
                       ts_args=dict(spatial_colors=True, zorder=return_inds,
                                    time_unit='s'))
-    assert_raises(ValueError, evoked.plot_joint, ts_args=dict(axes=True,
+    pytest.raises(ValueError, evoked.plot_joint, ts_args=dict(axes=True,
                                                               time_unit='s'))
 
     warnings.simplefilter('always', UserWarning)
@@ -105,7 +104,7 @@ def test_plot_topo():
             plot_evoked_topo([picked_evoked] * 2, layout, ylim=ylim)
 
         for evo in [evoked, [evoked, picked_evoked]]:
-            assert_raises(ValueError, plot_evoked_topo, evo, layout,
+            pytest.raises(ValueError, plot_evoked_topo, evo, layout,
                           color=['y', 'b'])
 
         evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
@@ -134,7 +133,7 @@ def test_plot_topo():
     for ax, idx in iter_topography(evoked.info):
         ax.plot(evoked.data[idx], color='red')
         # test status bar message
-        assert_true(evoked.ch_names[idx] in ax.format_coord(.5, .5))
+        assert (evoked.ch_names[idx] in ax.format_coord(.5, .5))
     plt.close('all')
     cov = read_cov(cov_fname)
     cov['projs'] = []
@@ -143,22 +142,22 @@ def test_plot_topo():
 
 
 def test_plot_topo_single_ch():
-    """Test single channel topoplot with time cursor"""
+    """Test single channel topoplot with time cursor."""
     import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     fig = plot_evoked_topo(evoked, background_color='w')
     # test status bar message
     ax = plt.gca()
-    assert_true('MEG 0113' in ax.format_coord(.065, .63))
+    assert ('MEG 0113' in ax.format_coord(.065, .63))
     num_figures_before = len(plt.get_fignums())
     _fake_click(fig, fig.axes[0], (0.08, 0.65))
-    assert_equal(num_figures_before + 1, len(plt.get_fignums()))
+    assert num_figures_before + 1 == len(plt.get_fignums())
     fig = plt.gcf()
     ax = plt.gca()
     _fake_click(fig, ax, (.5, .5), kind='motion')  # cursor should appear
-    assert_true(isinstance(ax._cursorline, matplotlib.lines.Line2D))
+    assert (isinstance(ax._cursorline, matplotlib.lines.Line2D))
     _fake_click(fig, ax, (1.5, 1.5), kind='motion')  # cursor should disappear
-    assert_equal(ax._cursorline, None)
+    assert ax._cursorline is None
     plt.close('all')
 
 
@@ -173,10 +172,10 @@ def test_plot_topo_image_epochs():
     plt.close('all')
     fig = plot_topo_image_epochs(epochs, sigma=0.5, vmin=-200, vmax=200,
                                  colorbar=True, title=title, cmap=cmap)
-    assert_equal(epochs._data.min(), data_min)
+    assert epochs._data.min() == data_min
     num_figures_before = len(plt.get_fignums())
     _fake_click(fig, fig.axes[0], (0.08, 0.64))
-    assert_equal(num_figures_before + 1, len(plt.get_fignums()))
+    assert num_figures_before + 1 == len(plt.get_fignums())
     plt.close('all')
 
 
@@ -198,17 +197,17 @@ def test_plot_tfr_topo():
     num_figures_before = len(plt.get_fignums())
     # could use np.reshape(fig.axes[-1].images[0].get_extent(), (2, 2)).mean(1)
     _fake_click(fig, fig.axes[0], (0.08, 0.65))
-    assert_equal(num_figures_before + 1, len(plt.get_fignums()))
+    assert num_figures_before + 1 == len(plt.get_fignums())
     plt.close('all')
 
     tfr.plot([4], baseline=(None, 0), mode='ratio', show=False, title='foo')
-    assert_raises(ValueError, tfr.plot, [4], yscale='lin', show=False)
+    pytest.raises(ValueError, tfr.plot, [4], yscale='lin', show=False)
 
     # nonuniform freqs
     freqs = np.logspace(*np.log10([3, 10]), num=3)
     tfr = AverageTFR(epochs.info, data, epochs.times, freqs, nave)
     fig = tfr.plot([4], baseline=(None, 0), mode='mean', vmax=14., show=False)
-    assert_equal(fig.axes[0].get_yaxis().get_scale(), 'log')
+    assert fig.axes[0].get_yaxis().get_scale() == 'log'
 
     # one timesample
     tfr = AverageTFR(epochs.info, data[:, :, [0]], epochs.times[[1]],
@@ -224,12 +223,12 @@ def test_plot_tfr_topo():
                 freq=freqs[[-1]], x_label=None, y_label=None,
                 colorbar=False, cmap=('RdBu_r', True), yscale='log')
     fig = plt.gcf()
-    assert_equal(fig.axes[0].get_yaxis().get_scale(), 'linear')
+    assert fig.axes[0].get_yaxis().get_scale() == 'linear'
 
     # ValueError when freq[0] == 0 and yscale == 'log'
     these_freqs = freqs[:3].copy()
     these_freqs[0] = 0
-    assert_raises(ValueError, _imshow_tfr, ax, 3, tmin, tmax, vmin, vmax,
+    pytest.raises(ValueError, _imshow_tfr, ax, 3, tmin, tmax, vmin, vmax,
                   None, tfr=data[:, :3, :], freq=these_freqs, x_label=None,
                   y_label=None, colorbar=False, cmap=('RdBu_r', True),
                   yscale='log')

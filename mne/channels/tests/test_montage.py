@@ -6,14 +6,14 @@ import os
 import os.path as op
 import warnings
 
-from nose.tools import assert_equal, assert_true, assert_raises
+import pytest
 
 import numpy as np
 from scipy.io import savemat
 
 from numpy.testing import (assert_array_equal, assert_almost_equal,
                            assert_allclose, assert_array_almost_equal,
-                           assert_array_less)
+                           assert_array_less, assert_equal)
 from mne.tests.common import assert_dig_allclose
 from mne.channels.montage import (read_montage, _set_montage, read_dig_montage,
                                   get_builtin_montages)
@@ -81,15 +81,15 @@ def test_documented():
         elif start is not None and li > start and line.startswith('===='):
             stop = li
             break
-    assert_true(start is not None)
-    assert_true(stop is not None)
+    assert (start is not None)
+    assert (stop is not None)
     kinds = [line.split(' ')[0] for line in lines[start:stop]]
     kinds = [kind for kind in kinds if kind != '']
     montages = os.listdir(op.join(op.dirname(_mne_file), 'channels', 'data',
                                   'montages'))
     montages = sorted(op.splitext(m)[0] for m in montages)
     assert_equal(len(set(montages)), len(montages))
-    assert_equal(len(set(kinds)), len(kinds), msg=sorted(kinds))
+    assert_equal(len(set(kinds)), len(kinds), err_msg=str(sorted(kinds)))
     assert_equal(set(montages), set(kinds))
 
 
@@ -193,7 +193,7 @@ def test_montage():
             fid.write(text)
         montage = read_montage(fname)
         if kind in ('sfp', 'txt'):
-            assert_true('very_very_very_long_name' in montage.ch_names)
+            assert ('very_very_very_long_name' in montage.ch_names)
         assert_equal(len(montage.ch_names), 4)
         assert_equal(len(montage.ch_names), len(montage.pos))
         assert_equal(montage.pos.shape, (4, 3))
@@ -282,7 +282,7 @@ def test_montage():
             data=np.zeros((len(montage.ch_names), 1)), info=info, tmin=0)
 
         # test return type as well as set montage
-        assert_true(isinstance(evoked.set_montage(montage), type(evoked)))
+        assert (isinstance(evoked.set_montage(montage), type(evoked)))
 
         pos3 = np.array([c['loc'][:3] for c in evoked.info['chs']])
         assert_array_equal(pos3, montage.pos)
@@ -293,28 +293,28 @@ def test_montage():
             info = create_info(montage.ch_names + ['foo', 'bar'], 1e3,
                                ['eeg'] * (len(montage.ch_names) + 2))
             _set_montage(info, montage)
-            assert_true(len(w) == 1)
+            assert (len(w) == 1)
 
     # Channel names can be treated case insensitive
     with warnings.catch_warnings(record=True) as w:
         info = create_info(['FP1', 'af7', 'AF3'], 1e3, ['eeg'] * 3)
         _set_montage(info, montage)
-        assert_true(len(w) == 0)
+        assert (len(w) == 0)
 
     # Unless there is a collision in names
     with warnings.catch_warnings(record=True) as w:
         info = create_info(['FP1', 'Fp1', 'AF3'], 1e3, ['eeg'] * 3)
-        assert_true(info['dig'] is None)
+        assert (info['dig'] is None)
         _set_montage(info, montage)
         assert_equal(len(info['dig']), 5)  # 2 EEG w/pos, 3 fiducials
-        assert_true(len(w) == 1)
+        assert (len(w) == 1)
     with warnings.catch_warnings(record=True) as w:
         montage.ch_names = ['FP1', 'Fp1', 'AF3']
         info = create_info(['fp1', 'AF3'], 1e3, ['eeg', 'eeg'])
-        assert_true(info['dig'] is None)
+        assert (info['dig'] is None)
         _set_montage(info, montage, set_dig=False)
-        assert_true(info['dig'] is None)
-        assert_true(len(w) == 1)
+        assert (info['dig'] is None)
+        assert (len(w) == 1)
 
     # test get_pos2d method
     montage = read_montage("standard_1020")
@@ -323,19 +323,19 @@ def test_montage():
     fz = montage.get_pos2d()[montage.ch_names.index("Fz")]
     oz = montage.get_pos2d()[montage.ch_names.index("Oz")]
     f1 = montage.get_pos2d()[montage.ch_names.index("F1")]
-    assert_true(c3[0] < 0)  # left hemisphere
-    assert_true(c4[0] > 0)  # right hemisphere
-    assert_true(fz[1] > 0)  # frontal
-    assert_true(oz[1] < 0)  # occipital
+    assert (c3[0] < 0)  # left hemisphere
+    assert (c4[0] > 0)  # right hemisphere
+    assert (fz[1] > 0)  # frontal
+    assert (oz[1] < 0)  # occipital
     assert_allclose(fz[0], 0, atol=1e-2)  # midline
     assert_allclose(oz[0], 0, atol=1e-2)  # midline
-    assert_true(f1[0] < 0 and f1[1] > 0)  # left frontal
+    assert (f1[0] < 0 and f1[1] > 0)  # left frontal
 
     # test get_builtin_montages function
     montages = get_builtin_montages()
-    assert_true(len(montages) > 0)  # MNE should always ship with montages
-    assert_true("standard_1020" in montages)  # 10/20 montage
-    assert_true("standard_1005" in montages)  # 10/05 montage
+    assert (len(montages) > 0)  # MNE should always ship with montages
+    assert ("standard_1020" in montages)  # 10/20 montage
+    assert ("standard_1005" in montages)  # 10/05 montage
 
 
 @testing.requires_testing_data
@@ -350,7 +350,7 @@ def test_read_locs():
 
 
 def test_read_dig_montage():
-    """Test read_dig_montage"""
+    """Test read_dig_montage."""
     names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
     montage = read_dig_montage(hsp, hpi, elp, names, transform=False)
     elp_points = _read_dig_points(elp)
@@ -360,7 +360,7 @@ def test_read_dig_montage():
     assert_array_equal(montage.elp, elp_points)
     assert_array_equal(montage.hsp, hsp_points)
     assert_array_equal(montage.hpi, hpi_points)
-    assert_true(montage.dev_head_t is None)
+    assert (montage.dev_head_t is None)
     montage = read_dig_montage(hsp, hpi, elp, names,
                                transform=True, dev_head_t=True)
     # check coordinate transformation
@@ -390,7 +390,7 @@ def test_read_dig_montage():
     assert_allclose(montage_cm.hsp, montage.hsp * 10.)
     assert_allclose(montage_cm.elp, montage.elp * 10.)
     assert_array_equal(montage_cm.hpi, montage.hpi)
-    assert_raises(ValueError, read_dig_montage, hsp, hpi, elp, names,
+    pytest.raises(ValueError, read_dig_montage, hsp, hpi, elp, names,
                   unit='km')
     # extra columns
     extra_hsp = op.join(tempdir, 'test.txt')
@@ -404,7 +404,7 @@ def test_read_dig_montage():
                     fout.write(line.rstrip() + b' 0.0 0.0 0.0\n')
     with warnings.catch_warnings(record=True) as w:
         montage_extra = read_dig_montage(extra_hsp, hpi, elp, names)
-    assert_true(len(w) == 1 and all('columns' in str(ww.message) for ww in w))
+    assert (len(w) == 1 and all('columns' in str(ww.message) for ww in w))
     assert_allclose(montage_extra.hsp, montage.hsp)
     assert_allclose(montage_extra.elp, montage.elp)
 
@@ -432,7 +432,7 @@ def test_set_dig_montage():
         info = create_info(['Test Ch'], 1e3, ['eeg'])
         with warnings.catch_warnings(record=True) as w:  # test ch pos not set
             _set_montage(info, use_mon)
-        assert_true(all('not set' in str(ww.message) for ww in w))
+        assert (all('not set' in str(ww.message) for ww in w))
         hs = np.array([p['r'] for i, p in enumerate(info['dig'])
                        if p['kind'] == FIFF.FIFFV_POINT_EXTRA])
         nasion_dig = np.array([p['r'] for p in info['dig']
@@ -467,7 +467,7 @@ def test_fif_dig_montage():
     # Make a BrainVision file like the one the user would have had
     with warnings.catch_warnings(record=True) as w:
         raw_bv = read_raw_brainvision(bv_fname, preload=True)
-    assert_true(any('will be dropped' in str(ww.message) for ww in w))
+    assert (any('will be dropped' in str(ww.message) for ww in w))
     raw_bv_2 = raw_bv.copy()
     mapping = dict()
     for ii, ch_name in enumerate(raw_bv.ch_names[:-1]):
@@ -504,7 +504,7 @@ def test_fif_dig_montage():
     # Roundtrip of non-FIF start
     names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
     montage = read_dig_montage(hsp, hpi, elp, names, transform=False)
-    assert_raises(RuntimeError, montage.save, fname_temp)  # must be head coord
+    pytest.raises(RuntimeError, montage.save, fname_temp)  # must be head coord
     montage = read_dig_montage(hsp, hpi, elp, names)
     _check_roundtrip(montage, fname_temp)
 
@@ -550,7 +550,7 @@ def test_set_montage():
     raw.set_montage('mgh60')  # test loading with string argument
     new_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
                         if ch['ch_name'].startswith('EEG')])
-    assert_true((orig_pos != new_pos).all())
+    assert ((orig_pos != new_pos).all())
     r0 = _fit_sphere(new_pos)[1]
     assert_allclose(r0, [0., -0.016, 0.], atol=1e-3)
     # mgh70 has no 61/62/63/64 (these are EOG/ECG)

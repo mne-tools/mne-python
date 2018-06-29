@@ -4,7 +4,7 @@ import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_allclose, assert_array_equal)
 from scipy import sparse
-from nose.tools import assert_true, assert_raises
+
 import pytest
 import copy
 import warnings
@@ -96,7 +96,7 @@ def _compare(a, b):
                   'command_line', 'working_dir', 'mri_file', 'mri_id']
     try:
         if isinstance(a, (dict, Info)):
-            assert_true(isinstance(b, (dict, Info)))
+            assert (isinstance(b, (dict, Info)))
             for k, v in six.iteritems(a):
                 if k not in b and k not in skip_types:
                     raise ValueError('First one had one second one didn\'t:\n'
@@ -110,7 +110,7 @@ def _compare(a, b):
                     raise ValueError('Second one had one first one didn\'t:\n'
                                      '%s not in %s' % (k, a.keys()))
         elif isinstance(a, list):
-            assert_true(len(a) == len(b))
+            assert (len(a) == len(b))
             for i, j in zip(a, b):
                 _compare(i, j)
         elif isinstance(a, sparse.csr.csr_matrix):
@@ -135,13 +135,13 @@ def _compare_inverses_approx(inv_1, inv_2, evoked, rtol, atol,
         assert_allclose(inv_1['depth_prior']['data'],
                         inv_2['depth_prior']['data'], atol=depth_atol)
     else:
-        assert_true(inv_2['depth_prior'] is None)
+        assert (inv_2['depth_prior'] is None)
     # orient prior
     if inv_1['orient_prior'] is not None:
         assert_allclose(inv_1['orient_prior']['data'],
                         inv_2['orient_prior']['data'], atol=1e-7)
     else:
-        assert_true(inv_2['orient_prior'] is None)
+        assert (inv_2['orient_prior'] is None)
     # source cov
     assert_allclose(inv_1['source_cov']['data'], inv_2['source_cov']['data'],
                     atol=1e-7)
@@ -179,7 +179,7 @@ def _compare_inverses_approx(inv_1, inv_2, evoked, rtol, atol,
         stc_1 /= norms
         stc_2 /= norms
         corr = np.corrcoef(stc_1.ravel(), stc_2.ravel())[0, 1]
-        assert_true(corr > ctol, msg='%s < %s' % (corr, ctol))
+        assert corr > ctol
         assert_allclose(stc_1, stc_2, rtol=rtol, atol=atol,
                         err_msg='%s: %s' % (method, corr))
 
@@ -238,8 +238,8 @@ def test_make_inverse_operator():
     _compare_io(my_inv_op)
     _compare_inverses_approx(my_inv_op, inverse_operator, evoked,
                              rtol=1e-3, atol=1e-5)
-    assert_true('dev_head_t' in my_inv_op['info'])
-    assert_true('mri_head_t' in my_inv_op)
+    assert ('dev_head_t' in my_inv_op['info'])
+    assert ('mri_head_t' in my_inv_op)
 
 
 @pytest.mark.slowtest
@@ -288,7 +288,7 @@ def test_inverse_operator_channel_ordering():
     assert_equal(stc_1.subject, stc_2.subject)
     assert_array_equal(stc_1.times, stc_2.times)
     assert_allclose(stc_1.data, stc_2.data, rtol=1e-5, atol=1e-5)
-    assert_true(inv_orig['units'] == inv_reorder['units'])
+    assert (inv_orig['units'] == inv_reorder['units'])
 
     # Reload with original ordering & apply reordered inverse
     evoked = _get_evoked()
@@ -419,10 +419,10 @@ def test_apply_inverse_operator():
     evoked = _get_evoked()
 
     # Inverse has 306 channels - 4 proj = 302
-    assert_true(compute_rank_inverse(inverse_operator) == 302)
+    assert (compute_rank_inverse(inverse_operator) == 302)
 
     # Inverse has 306 channels - 4 proj = 302
-    assert_true(compute_rank_inverse(inverse_operator) == 302)
+    assert (compute_rank_inverse(inverse_operator) == 302)
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "MNE")
     assert stc.subject == 'sample'
@@ -477,10 +477,10 @@ def test_apply_inverse_operator():
 
     # Test we get errors when using custom ref or no average proj is present
     evoked.info['custom_ref_applied'] = True
-    assert_raises(ValueError, apply_inverse, evoked, inv_op, lambda2, "MNE")
+    pytest.raises(ValueError, apply_inverse, evoked, inv_op, lambda2, "MNE")
     evoked.info['custom_ref_applied'] = False
     evoked.info['projs'] = []  # remove EEG proj
-    assert_raises(ValueError, apply_inverse, evoked, inv_op, lambda2, "MNE")
+    pytest.raises(ValueError, apply_inverse, evoked, inv_op, lambda2, "MNE")
 
 
 @testing.requires_testing_data
@@ -493,7 +493,7 @@ def test_make_inverse_operator_fixed():
     # can't make fixed inv with depth weighting without free ori fwd
     fwd_fixed = convert_forward_solution(fwd, force_fixed=True,
                                          use_cps=True)
-    assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_fixed,
+    pytest.raises(ValueError, make_inverse_operator, evoked.info, fwd_fixed,
                   noise_cov, depth=0.8, fixed=True)
 
     # now compare to C solution
@@ -511,7 +511,7 @@ def test_make_inverse_operator_fixed():
     _compare_inverses_approx(inverse_operator_nodepth, inv_op, evoked,
                              rtol=1e-5, atol=1e-4)
     # Inverse has 306 channels - 6 proj = 302
-    assert_true(compute_rank_inverse(inverse_operator_nodepth) == 302)
+    assert (compute_rank_inverse(inverse_operator_nodepth) == 302)
     # Now with depth
     fwd_surf = convert_forward_solution(fwd, surf_ori=True)  # not fixed
     for kwargs, use_fwd in zip([dict(fixed=True), dict(loose=0.)],
@@ -538,7 +538,7 @@ def test_make_inverse_operator_free():
     noise_cov = read_cov(fname_cov)
 
     # can't make free inv with fixed fwd
-    assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_fixed,
+    pytest.raises(ValueError, make_inverse_operator, evoked.info, fwd_fixed,
                   noise_cov, depth=None)
 
     # for depth=None, surf_ori of the fwd should not matter
@@ -578,7 +578,7 @@ def test_make_inverse_operator_vector():
             assert_allclose(stc.data, stc_vec.magnitude().data)
 
     # Vector estimates don't work when using fixed orientations
-    assert_raises(RuntimeError, apply_inverse, evoked, inv_3,
+    pytest.raises(RuntimeError, apply_inverse, evoked, inv_3,
                   pick_ori='vector')
 
     # When computing with vector fields, computing the difference between two
@@ -614,59 +614,56 @@ def test_make_inverse_operator_diag():
     _compare_inverses_approx(inverse_operator_diag, inv_op, evoked,
                              rtol=1e-1, atol=1e-1, ctol=0.99, check_K=False)
     # Inverse has 366 channels - 6 proj = 360
-    assert_true(compute_rank_inverse(inverse_operator_diag) == 360)
+    assert (compute_rank_inverse(inverse_operator_diag) == 360)
 
 
 @testing.requires_testing_data
 def test_inverse_operator_noise_cov_rank():
-    """Test MNE inverse operator with a specified noise cov rank
-    """
+    """Test MNE inverse operator with a specified noise cov rank."""
     fwd_op = read_forward_solution_meg(fname_fwd, surf_ori=True)
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
     inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=64)
-    assert_true(compute_rank_inverse(inv) == 64)
+    assert (compute_rank_inverse(inv) == 64)
 
     fwd_op = read_forward_solution_eeg(fname_fwd, surf_ori=True)
     inv = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                 rank=dict(eeg=20))
-    assert_true(compute_rank_inverse(inv) == 20)
+    assert (compute_rank_inverse(inv) == 20)
 
 
 @testing.requires_testing_data
 def test_inverse_operator_volume():
-    """Test MNE inverse computation on volume source space
-    """
+    """Test MNE inverse computation on volume source space."""
     tempdir = _TempDir()
     evoked = _get_evoked()
     inv_vol = read_inverse_operator(fname_vol_inv)
-    assert_true(repr(inv_vol))
+    assert (repr(inv_vol))
     stc = apply_inverse(evoked, inv_vol, lambda2, 'dSPM')
-    assert_true(isinstance(stc, VolSourceEstimate))
+    assert (isinstance(stc, VolSourceEstimate))
     # volume inverses don't have associated subject IDs
-    assert_true(stc.subject is None)
+    assert (stc.subject is None)
     stc.save(op.join(tempdir, 'tmp-vl.stc'))
     stc2 = read_source_estimate(op.join(tempdir, 'tmp-vl.stc'))
-    assert_true(np.all(stc.data > 0))
-    assert_true(np.all(stc.data < 35))
+    assert (np.all(stc.data > 0))
+    assert (np.all(stc.data < 35))
     assert_array_almost_equal(stc.data, stc2.data)
     assert_array_almost_equal(stc.times, stc2.times)
     # vector source estimate
     stc_vec = apply_inverse(evoked, inv_vol, lambda2, 'dSPM', 'vector')
-    assert_true(repr(stc_vec))
+    assert (repr(stc_vec))
     assert_allclose(np.linalg.norm(stc_vec.data, axis=1), stc.data)
 
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_io_inverse_operator():
-    """Test IO of inverse_operator
-    """
+    """Test IO of inverse_operator."""
     tempdir = _TempDir()
     inverse_operator = read_inverse_operator(fname_inv)
     x = repr(inverse_operator)
-    assert_true(x)
-    assert_true(isinstance(inverse_operator['noise_cov'], Covariance))
+    assert (x)
+    assert (isinstance(inverse_operator['noise_cov'], Covariance))
     # just do one example for .gz, as it should generalize
     _compare_io(inverse_operator, '.gz')
 
@@ -714,11 +711,11 @@ def test_apply_mne_inverse_raw():
                                  buffer_size=3, prepared=True)
 
         if pick_ori is None:
-            assert_true(np.all(stc.data > 0))
-            assert_true(np.all(stc2.data > 0))
+            assert (np.all(stc.data > 0))
+            assert (np.all(stc2.data > 0))
 
-        assert_true(stc.subject == 'sample')
-        assert_true(stc2.subject == 'sample')
+        assert (stc.subject == 'sample')
+        assert (stc2.subject == 'sample')
         assert_array_almost_equal(stc.times, times)
         assert_array_almost_equal(stc2.times, times)
         assert_array_almost_equal(stc.data, stc2.data)
@@ -737,7 +734,7 @@ def test_apply_mne_inverse_fixed_raw():
     fwd = read_forward_solution_meg(fname_fwd, force_fixed=False,
                                     surf_ori=True)
     noise_cov = read_cov(fname_cov)
-    assert_raises(ValueError, make_inverse_operator,
+    pytest.raises(ValueError, make_inverse_operator,
                   raw.info, fwd, noise_cov, loose=1., fixed=True)
     inv_op = make_inverse_operator(raw.info, fwd, noise_cov,
                                    fixed=True, use_cps=True)
@@ -756,8 +753,8 @@ def test_apply_mne_inverse_fixed_raw():
                              label=label_lh, start=start, stop=stop, nave=1,
                              pick_ori=None, buffer_size=None)
 
-    assert_true(stc.subject == 'sample')
-    assert_true(stc2.subject == 'sample')
+    assert (stc.subject == 'sample')
+    assert (stc2.subject == 'sample')
     assert_array_almost_equal(stc.times, times)
     assert_array_almost_equal(stc2.times, times)
     assert_array_almost_equal(stc3.times, times)
@@ -797,9 +794,9 @@ def test_apply_mne_inverse_epochs():
         assert_array_almost_equal(stcs[0].data, stcs2[0].data)
         assert_array_almost_equal(stcs[0].times, stcs2[0].times)
 
-        assert_true(len(stcs) == 2)
-        assert_true(3 < stcs[0].data.max() < 10)
-        assert_true(stcs[0].subject == 'sample')
+        assert (len(stcs) == 2)
+        assert (3 < stcs[0].data.max() < 10)
+        assert (stcs[0].subject == 'sample')
     inverse_operator = read_inverse_operator(fname_full)
 
     stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
@@ -810,7 +807,7 @@ def test_apply_mne_inverse_epochs():
     label_mean = np.mean(data, axis=0)
     label_mean_flip = np.mean(flip[:, np.newaxis] * data, axis=0)
 
-    assert_true(label_mean.max() < label_mean_flip.max())
+    assert (label_mean.max() < label_mean_flip.max())
 
     # test extracting a BiHemiLabel
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
@@ -831,9 +828,9 @@ def test_apply_mne_inverse_epochs():
     # test without using a label (so delayed computation is used)
     stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
                                 pick_ori="normal", prepared=True)
-    assert_true(stcs[0].subject == 'sample')
+    assert (stcs[0].subject == 'sample')
     label_stc = stcs[0].in_label(label_rh)
-    assert_true(label_stc.subject == 'sample')
+    assert (label_stc.subject == 'sample')
     assert_array_almost_equal(stcs_rh[0].data, label_stc.data)
 
 
@@ -851,8 +848,8 @@ def test_make_inverse_operator_bads():
     union_bads = set(noise_cov['bads']) & set(evoked.info['bads'])
     evoked.info['bads'].append(bad)
 
-    assert_true(len(set(inv_['info']['ch_names']) - union_good) == 0)
-    assert_true(len(set(inv_['info']['bads']) - union_bads) == 0)
+    assert (len(set(inv_['info']['ch_names']) - union_good) == 0)
+    assert (len(set(inv_['info']['bads']) - union_bads) == 0)
 
 
 run_tests_if_main()

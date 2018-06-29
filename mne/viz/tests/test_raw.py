@@ -8,7 +8,8 @@ import warnings
 import itertools
 from distutils.version import LooseVersion
 
-from numpy.testing import assert_raises, assert_allclose
+from numpy.testing import assert_allclose
+import pytest
 
 from mne import read_events, pick_types, Annotations
 from mne.datasets import testing
@@ -49,7 +50,7 @@ def _get_events():
 
 
 def _annotation_helper(raw, events=False):
-    """Helper for testing interactive annotations."""
+    """Test interactive annotations."""
     import matplotlib.pyplot as plt
     # Some of our checks here require modern mpl to work properly
     mpl_good_enough = LooseVersion(matplotlib.__version__) >= '2.0'
@@ -192,8 +193,8 @@ def test_plot_raw():
                     'escape']:
             fig.canvas.key_press_event(key)
         # Color setting
-        assert_raises(KeyError, raw.plot, event_color={0: 'r'})
-        assert_raises(TypeError, raw.plot, event_color={'foo': 'r'})
+        pytest.raises(KeyError, raw.plot, event_color={0: 'r'})
+        pytest.raises(TypeError, raw.plot, event_color={'foo': 'r'})
         annot = Annotations([10, 10 + raw.first_samp / raw.info['sfreq']],
                             [10, 10], ['test', 'test'], raw.info['meas_date'])
         raw.annotations = annot
@@ -256,7 +257,7 @@ def test_plot_ref_meg():
     raw_ctf = read_raw_ctf(ctf_fname_continuous).crop(0, 1).load_data()
     raw_ctf.plot()
     plt.close('all')
-    assert_raises(ValueError, raw_ctf.plot, group_by='selection')
+    pytest.raises(ValueError, raw_ctf.plot, group_by='selection')
 
 
 def test_plot_annotations():
@@ -275,11 +276,11 @@ def test_plot_annotations():
 def test_plot_raw_filtered():
     """Test filtering of raw plots."""
     raw = _get_raw()
-    assert_raises(ValueError, raw.plot, lowpass=raw.info['sfreq'] / 2.)
-    assert_raises(ValueError, raw.plot, highpass=0)
-    assert_raises(ValueError, raw.plot, lowpass=1, highpass=1)
-    assert_raises(ValueError, raw.plot, lowpass=1, filtorder=0)
-    assert_raises(ValueError, raw.plot, clipping='foo')
+    pytest.raises(ValueError, raw.plot, lowpass=raw.info['sfreq'] / 2.)
+    pytest.raises(ValueError, raw.plot, highpass=0)
+    pytest.raises(ValueError, raw.plot, lowpass=1, highpass=1)
+    pytest.raises(ValueError, raw.plot, lowpass=1, filtorder=0)
+    pytest.raises(ValueError, raw.plot, clipping='foo')
     raw.plot(lowpass=1, clipping='transparent')
     raw.plot(highpass=1, clipping='clamp')
     raw.plot(highpass=1, lowpass=2, butterfly=True)
@@ -301,12 +302,12 @@ def test_plot_raw_psd():
     plt.close('all')
     ax = plt.axes()
     # if ax is supplied:
-    assert_raises(ValueError, raw.plot_psd, ax=ax, average=True)
-    assert_raises(ValueError, raw.plot_psd, average=True, spatial_colors=True)
+    pytest.raises(ValueError, raw.plot_psd, ax=ax, average=True)
+    pytest.raises(ValueError, raw.plot_psd, average=True, spatial_colors=True)
     raw.plot_psd(tmax=np.inf, picks=picks, ax=ax, average=True)
     plt.close('all')
     ax = plt.axes()
-    assert_raises(ValueError, raw.plot_psd, ax=ax, average=True)
+    pytest.raises(ValueError, raw.plot_psd, ax=ax, average=True)
     plt.close('all')
     ax = plt.subplots(2)[1]
     raw.plot_psd(tmax=np.inf, ax=ax, average=True)
@@ -354,9 +355,9 @@ def test_plot_sensors():
     raw.plot_sensors(ch_groups='position', axes=ax)
     raw.plot_sensors(ch_groups='selection', to_sphere=False)
     raw.plot_sensors(ch_groups=[[0, 1, 2], [3, 4]])
-    assert_raises(ValueError, raw.plot_sensors, ch_groups='asd')
-    assert_raises(TypeError, plot_sensors, raw)  # needs to be info
-    assert_raises(ValueError, plot_sensors, raw.info, kind='sasaasd')
+    pytest.raises(ValueError, raw.plot_sensors, ch_groups='asd')
+    pytest.raises(TypeError, plot_sensors, raw)  # needs to be info
+    pytest.raises(ValueError, plot_sensors, raw.info, kind='sasaasd')
     plt.close('all')
     fig, sels = raw.plot_sensors('select', show_names=True)
     ax = fig.axes[0]

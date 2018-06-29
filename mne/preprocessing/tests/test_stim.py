@@ -6,7 +6,7 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal
-from nose.tools import assert_true, assert_raises
+import pytest
 
 from mne.io import read_raw_fif
 from mne.io.pick import pick_types
@@ -24,7 +24,7 @@ def test_fix_stim_artifact():
     events = read_events(event_fname)
 
     raw = read_raw_fif(raw_fname)
-    assert_raises(RuntimeError, fix_stim_artifact, raw)
+    pytest.raises(RuntimeError, fix_stim_artifact, raw)
 
     raw = read_raw_fif(raw_fname, preload=True)
 
@@ -47,7 +47,8 @@ def test_fix_stim_artifact():
 
     epochs = fix_stim_artifact(epochs, tmin=tmin, tmax=tmax, mode='window')
     data_from_epochs_fix = epochs.get_data()[:, :, tmin_samp:tmax_samp]
-    assert_true(np.all(data_from_epochs_fix) == 0.)
+    # XXX This is a very wierd check...
+    assert np.all(data_from_epochs_fix) == 0.
 
     # use window before stimulus in raw
     event_idx = np.where(events[:, 2] == 1)[0][0]
@@ -56,7 +57,7 @@ def test_fix_stim_artifact():
     tmax_samp = int(-0.015 * raw.info['sfreq'])
     tidx = int(events[event_idx, 0] - raw.first_samp)
 
-    assert_raises(ValueError, fix_stim_artifact, raw, events=np.array([]))
+    pytest.raises(ValueError, fix_stim_artifact, raw, events=np.array([]))
     raw = fix_stim_artifact(raw, events=None, event_id=1, tmin=tmin,
                             tmax=tmax, mode='linear', stim_channel='STI 014')
     data, times = raw[:, (tidx + tmin_samp):(tidx + tmax_samp)]
@@ -67,7 +68,7 @@ def test_fix_stim_artifact():
     raw = fix_stim_artifact(raw, events, event_id=1, tmin=tmin,
                             tmax=tmax, mode='window')
     data, times = raw[:, (tidx + tmin_samp):(tidx + tmax_samp)]
-    assert_true(np.all(data) == 0.)
+    assert np.all(data) == 0.
 
     # get epochs from raw with fixed data
     tmin, tmax, event_id = -0.2, 0.5, 1
@@ -77,7 +78,7 @@ def test_fix_stim_artifact():
     tmin_samp = int(-0.035 * epochs.info['sfreq']) - e_start
     tmax_samp = int(-0.015 * epochs.info['sfreq']) - e_start
     data_from_raw_fix = epochs.get_data()[:, :, tmin_samp:tmax_samp]
-    assert_true(np.all(data_from_raw_fix) == 0.)
+    assert np.all(data_from_raw_fix) == 0.
 
     # use window after stimulus
     evoked = epochs.average()
@@ -93,4 +94,4 @@ def test_fix_stim_artifact():
 
     evoked = fix_stim_artifact(evoked, tmin=tmin, tmax=tmax, mode='window')
     data = evoked.data[:, tmin_samp:tmax_samp]
-    assert_true(np.all(data) == 0.)
+    assert np.all(data) == 0.

@@ -22,7 +22,7 @@ from mne.source_space import write_source_spaces
 
 
 def test_coregister_fiducials():
-    """Test coreg.coregister_fiducials()"""
+    """Test coreg.coregister_fiducials()."""
     # prepare head and MRI fiducials
     trans = Transform('head', 'mri',
                       rotation(.4, .1, 0).dot(translation(.1, -.1, .1)))
@@ -192,7 +192,7 @@ def test_scale_mri_xfm():
 
 
 def test_fit_matched_points():
-    """Test fit_matched_points: fitting two matching sets of points"""
+    """Test fit_matched_points: fitting two matching sets of points."""
     tgt_pts = np.random.RandomState(42).uniform(size=(6, 3))
 
     # rotation only

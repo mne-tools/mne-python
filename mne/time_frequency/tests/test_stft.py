@@ -6,7 +6,7 @@ from mne.time_frequency.stft import stft, istft, stftfreq, stft_norm2
 
 
 def test_stft():
-    "Test stft and istft tight frame property"
+    """Test stft and istft tight frame property."""
     sfreq = 1000.  # Hz
     f = 7.  # Hz
     for T in [127, 128]:  # try with even and odd numbers

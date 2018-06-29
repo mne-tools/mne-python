@@ -10,10 +10,10 @@ import os.path as op
 import shutil
 import warnings
 
-from nose.tools import assert_equal, assert_raises, assert_true
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_allclose)
+                           assert_allclose, assert_equal)
+import pytest
 
 from mne.utils import _TempDir, run_tests_if_main
 from mne import pick_types, find_events
@@ -135,7 +135,7 @@ def test_brainvision_data_highpass_filters():
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_highpass_path,
             montage=montage, eog=eog)
-    assert_true(all('parse triggers that' in str(ww.message) for ww in w))
+    assert (all('parse triggers that' in str(ww.message) for ww in w))
 
     assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
     assert_equal(raw.info['lowpass'], 250.)
@@ -153,7 +153,7 @@ def test_brainvision_data_highpass_filters():
 
     expected_warnings = zip(lowpass_warning, highpass_warning)
 
-    assert_true(all(any([lp, hp]) for lp, hp in expected_warnings))
+    assert (all(any([lp, hp]) for lp, hp in expected_warnings))
 
     assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
     assert_equal(raw.info['lowpass'], 250.)
@@ -182,7 +182,7 @@ def test_brainvision_data_highpass_filters():
 
     expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
 
-    assert_true(all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
+    assert (all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
 
     assert_equal(raw.info['highpass'], 5.)
     assert_equal(raw.info['lowpass'], 250.)
@@ -211,7 +211,7 @@ def test_brainvision_data_lowpass_filters():
 
     expected_warnings = zip(lowpass_warning, highpass_warning)
 
-    assert_true(all(any([lp, hp]) for lp, hp in expected_warnings))
+    assert (all(any([lp, hp]) for lp, hp in expected_warnings))
 
     assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
     assert_equal(raw.info['lowpass'], 250.)
@@ -237,7 +237,7 @@ def test_brainvision_data_lowpass_filters():
 
     expected_warnings = zip(lowpass_warning, highpass_warning)
 
-    assert_true(all(any([lp, hp]) for lp, hp in expected_warnings))
+    assert (all(any([lp, hp]) for lp, hp in expected_warnings))
 
     assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
     assert_equal(raw.info['lowpass'], 1. / (2 * np.pi * 0.004))
@@ -260,7 +260,7 @@ def test_brainvision_data_partially_disabled_hw_filters():
 
     expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
 
-    assert_true(all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
+    assert (all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
 
     assert_equal(raw.info['highpass'], 0.)
     assert_equal(raw.info['lowpass'], 500.)
@@ -272,7 +272,7 @@ def test_brainvision_data_software_filters_latin1_global_units():
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_old_path,
             eog=("VEOGo", "VEOGu", "HEOGli", "HEOGre"), misc=("A2",))
-    assert_true(all('software filter detected' in str(ww.message) for ww in w))
+    assert (all('software filter detected' in str(ww.message) for ww in w))
 
     assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 0.9))
     assert_equal(raw.info['lowpass'], 50.)
@@ -280,15 +280,15 @@ def test_brainvision_data_software_filters_latin1_global_units():
 
 def test_brainvision_data():
     """Test reading raw Brain Vision files."""
-    assert_raises(IOError, read_raw_brainvision, vmrk_path)
-    assert_raises(ValueError, read_raw_brainvision, vhdr_path, montage,
+    pytest.raises(IOError, read_raw_brainvision, vmrk_path)
+    pytest.raises(ValueError, read_raw_brainvision, vhdr_path, montage,
                   preload=True, scale="foo")
 
     raw_py = _test_raw_reader(
         read_raw_brainvision, vhdr_fname=vhdr_path, montage=montage,
         eog=eog, misc='auto', event_id=event_id)
 
-    assert_true('RawBrainVision' in repr(raw_py))
+    assert ('RawBrainVision' in repr(raw_py))
 
     assert_equal(raw_py.info['highpass'], 0.)
     assert_equal(raw_py.info['lowpass'], 250.)
@@ -445,9 +445,9 @@ def test_events():
                                 [6629, 1, 255],
                                 [7629, 1, 5]])
 
-    assert_raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
+    pytest.raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
                   preload=True, response_trig_shift=0.1)
-    assert_raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
+    pytest.raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
                   preload=True, response_trig_shift=np.nan)
 
     # to handle the min duration = 1 of stim trig (re)construction ...

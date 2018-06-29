@@ -4,7 +4,6 @@
 
 import os.path as op
 
-from nose.tools import assert_true, assert_raises
 import pytest
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_equal,
@@ -31,18 +30,18 @@ subjects_dir = op.join(data_path, 'subjects')
 
 
 def _check_stc(stc, evoked, idx, ratio=50.):
-    """Helper to check correctness"""
+    """Check correctness."""
     assert_array_almost_equal(stc.times, evoked.times, 5)
     amps = np.sum(stc.data ** 2, axis=1)
     order = np.argsort(amps)[::-1]
     amps = amps[order]
     verts = np.concatenate(stc.vertices)[order]
     assert_equal(idx, verts[0], err_msg=str(list(verts)))
-    assert_true(amps[0] > ratio * amps[1], msg=str(amps[0] / amps[1]))
+    assert amps[0] > ratio * amps[1]
 
 
 def _check_stcs(stc1, stc2):
-    """Helper to check correctness"""
+    """Check correctness."""
     assert_allclose(stc1.times, stc2.times)
     assert_allclose(stc1.data, stc2.data)
     assert_allclose(stc1.vertices[0], stc2.vertices[0])
@@ -54,7 +53,7 @@ def _check_stcs(stc1, stc2):
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_gamma_map():
-    """Test Gamma MAP inverse"""
+    """Test Gamma MAP inverse."""
     forward = read_forward_solution(fname_fwd)
     forward = convert_forward_solution(forward, surf_ori=True)
 
@@ -79,7 +78,7 @@ def test_gamma_map():
     dips = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
                      xyz_same_gamma=False, update_mode=1,
                      return_as_dipoles=True)
-    assert_true(isinstance(dips[0], Dipole))
+    assert (isinstance(dips[0], Dipole))
     stc_dip = make_stc_from_dipoles(dips, forward['src'])
     _check_stcs(stc, stc_dip)
 
@@ -93,7 +92,7 @@ def test_gamma_map():
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_gamma_map_vol_sphere():
-    """Gamma MAP with a sphere forward and volumic source space"""
+    """Gamma MAP with a sphere forward and volumic source space."""
     evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0),
                           proj=False)
     evoked.resample(50, npad=100)
@@ -112,10 +111,10 @@ def test_gamma_map_vol_sphere():
                                     eeg=False, meg=True)
 
     alpha = 0.5
-    assert_raises(ValueError, gamma_map, evoked, fwd, cov, alpha,
+    pytest.raises(ValueError, gamma_map, evoked, fwd, cov, alpha,
                   loose=0, return_residual=False)
 
-    assert_raises(ValueError, gamma_map, evoked, fwd, cov, alpha,
+    pytest.raises(ValueError, gamma_map, evoked, fwd, cov, alpha,
                   loose=0.2, return_residual=False)
 
     stc = gamma_map(evoked, fwd, cov, alpha, tol=1e-4,
@@ -137,9 +136,10 @@ def test_gamma_map_vol_sphere():
 
     amp_max = [np.max(d.amplitude) for d in dip_gmap]
     dip_gmap = dip_gmap[np.argmax(amp_max)]
-    assert_true(dip_gmap[0].pos[0] in src[0]['rr'][stc.vertices])
+    assert (dip_gmap[0].pos[0] in src[0]['rr'][stc.vertices])
 
     dip_fit = mne.fit_dipole(evoked_dip, cov, sphere)[0]
-    assert_true(np.abs(np.dot(dip_fit.ori[0], dip_gmap.ori[0])) > 0.99)
+    assert (np.abs(np.dot(dip_fit.ori[0], dip_gmap.ori[0])) > 0.99)
+
 
 run_tests_if_main()

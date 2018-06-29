@@ -2,8 +2,7 @@ import os.path as op
 import warnings
 
 import numpy as np
-from nose.tools import assert_true, assert_equal, assert_raises
-from numpy.testing import assert_allclose, assert_array_equal
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 import pytest
 
 from mne import (read_dipole, read_forward_solution,
@@ -143,8 +142,8 @@ def test_dipole_fitting():
     # Sanity check: do our residuals have less power than orig data?
     data_rms = np.sqrt(np.sum(evoked.data ** 2, axis=0))
     resi_rms = np.sqrt(np.sum(residuals ** 2, axis=0))
-    assert_true((data_rms > resi_rms * 0.95).all(),
-                msg='%s (factor: %s)' % ((data_rms / resi_rms).min(), 0.95))
+    assert (data_rms > resi_rms * 0.95).all(), \
+        '%s (factor: %s)' % ((data_rms / resi_rms).min(), 0.95)
 
     # Compare to original points
     transform_surface_to(fwd['src'][0], 'head', fwd['mri_head_t'])
@@ -157,7 +156,7 @@ def test_dipole_fitting():
 
     # MNE-C skips the last "time" point :(
     out = dip.crop(dip_c.times[0], dip_c.times[-1])
-    assert_true(dip is out)
+    assert (dip is out)
     src_rr, src_nn = src_rr[:-1], src_nn[:-1]
 
     # check that we did about as well
@@ -172,14 +171,14 @@ def test_dipole_fitting():
         amp_errs += [np.sqrt(np.mean((amp - d.amplitude) ** 2))]
         gofs += [np.mean(d.gof)]
     factor = 0.8
-    assert_true(dists[0] / factor >= dists[1], 'dists: %s' % dists)
-    assert_true(corrs[0] * factor <= corrs[1], 'corrs: %s' % corrs)
-    assert_true(gc_dists[0] / factor >= gc_dists[1] * 0.8,
-                'gc-dists (ori): %s' % gc_dists)
-    assert_true(amp_errs[0] / factor >= amp_errs[1],
-                'amplitude errors: %s' % amp_errs)
+    assert dists[0] / factor >= dists[1], 'dists: %s' % dists
+    assert corrs[0] * factor <= corrs[1], 'corrs: %s' % corrs
+    assert gc_dists[0] / factor >= gc_dists[1] * 0.8, \
+        'gc-dists (ori): %s' % gc_dists
+    assert amp_errs[0] / factor >= amp_errs[1],\
+        'amplitude errors: %s' % amp_errs
     # This one is weird because our cov/sim/picking is weird
-    assert_true(gofs[0] * factor <= gofs[1] * 2, 'gof: %s' % gofs)
+    assert gofs[0] * factor <= gofs[1] * 2, 'gof: %s' % gofs
 
 
 @testing.requires_testing_data
@@ -195,24 +194,24 @@ def test_dipole_fitting_fixed():
     assert_equal(len(evoked_crop.times), 1)
     cov = read_cov(fname_cov)
     dip_seq, resid = fit_dipole(evoked_crop, cov, sphere)
-    assert_true(isinstance(dip_seq, Dipole))
+    assert (isinstance(dip_seq, Dipole))
     assert_equal(len(dip_seq.times), 1)
     pos, ori, gof = dip_seq.pos[0], dip_seq.ori[0], dip_seq.gof[0]
     amp = dip_seq.amplitude[0]
     # Fix position, allow orientation to change
     dip_free, resid_free = fit_dipole(evoked, cov, sphere, pos=pos)
-    assert_true(isinstance(dip_free, Dipole))
+    assert (isinstance(dip_free, Dipole))
     assert_allclose(dip_free.times, evoked.times)
     assert_allclose(np.tile(pos[np.newaxis], (len(evoked.times), 1)),
                     dip_free.pos)
     assert_allclose(ori, dip_free.ori[t_idx])  # should find same ori
-    assert_true(np.dot(dip_free.ori, ori).mean() < 0.9)  # but few the same
+    assert (np.dot(dip_free.ori, ori).mean() < 0.9)  # but few the same
     assert_allclose(gof, dip_free.gof[t_idx])  # ... same gof
     assert_allclose(amp, dip_free.amplitude[t_idx])  # and same amp
     assert_allclose(resid, resid_free[:, [t_idx]])
     # Fix position and orientation
     dip_fixed, resid_fixed = fit_dipole(evoked, cov, sphere, pos=pos, ori=ori)
-    assert_true(isinstance(dip_fixed, DipoleFixed))
+    assert (isinstance(dip_fixed, DipoleFixed))
     assert_allclose(dip_fixed.times, evoked.times)
     assert_allclose(dip_fixed.info['chs'][0]['loc'][:3], pos)
     assert_allclose(dip_fixed.info['chs'][0]['loc'][3:6], ori)
@@ -225,11 +224,11 @@ def test_dipole_fitting_fixed():
     # Degenerate conditions
     evoked_nan = evoked.copy().crop(0, 0)
     evoked_nan.data[0, 0] = None
-    assert_raises(ValueError, fit_dipole, evoked_nan, cov, sphere)
-    assert_raises(ValueError, fit_dipole, evoked, cov, sphere, ori=[1, 0, 0])
-    assert_raises(ValueError, fit_dipole, evoked, cov, sphere, pos=[0, 0, 0],
+    pytest.raises(ValueError, fit_dipole, evoked_nan, cov, sphere)
+    pytest.raises(ValueError, fit_dipole, evoked, cov, sphere, ori=[1, 0, 0])
+    pytest.raises(ValueError, fit_dipole, evoked, cov, sphere, pos=[0, 0, 0],
                   ori=[2, 0, 0])
-    assert_raises(ValueError, fit_dipole, evoked, cov, sphere, pos=[0.1, 0, 0])
+    pytest.raises(ValueError, fit_dipole, evoked, cov, sphere, pos=[0.1, 0, 0])
     # copying
     dip_fixed_2 = dip_fixed.copy()
     dip_fixed_2.data[:] = 0.
@@ -287,9 +286,9 @@ def test_min_distance_fit_dipole():
     dist = _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir)
 
     # Constraints are not exact, so bump the minimum slightly
-    assert_true(min_dist - 0.1 < (dist[0] * 1000.) < (min_dist + 1.))
+    assert (min_dist - 0.1 < (dist[0] * 1000.) < (min_dist + 1.))
 
-    assert_raises(ValueError, fit_dipole, evoked, cov, fname_bem, fname_trans,
+    pytest.raises(ValueError, fit_dipole, evoked, cov, fname_bem, fname_trans,
                   -1.)
 
 
@@ -345,7 +344,7 @@ def test_accuracy():
         # make sure that our median is sub-mm and the large majority are very
         # close (we expect some to be off by a bit e.g. because they are
         # radial)
-        assert_true((np.percentile(ds, [50, 90]) < [0.0005, perc_90]).all())
+        assert ((np.percentile(ds, [50, 90]) < [0.0005, perc_90]).all())
 
 
 @testing.requires_testing_data
@@ -358,7 +357,7 @@ def test_dipole_fixed():
     _check_roundtrip_fixed(dip)
     with warnings.catch_warnings(record=True) as w:  # unused fields
         dip_txt = read_dipole(fname_xfit_dip_txt)
-    assert_true(any('extra fields' in str(ww.message) for ww in w))
+    assert (any('extra fields' in str(ww.message) for ww in w))
     assert_allclose(dip.info['chs'][0]['loc'][:3], dip_txt.pos[0])
     assert_allclose(dip_txt.amplitude[0], 12.1e-9)
     with warnings.catch_warnings(record=True):  # unused fields
@@ -367,7 +366,7 @@ def test_dipole_fixed():
 
 
 def _check_roundtrip_fixed(dip):
-    """Helper to test roundtrip IO for fixed dipoles."""
+    """Check roundtrip IO for fixed dipoles."""
     tempdir = _TempDir()
     dip.save(op.join(tempdir, 'test-dip.fif.gz'))
     dip_read = read_dipole(op.join(tempdir, 'test-dip.fif.gz'))
@@ -384,8 +383,8 @@ def _check_roundtrip_fixed(dip):
 
 def test_get_phantom_dipoles():
     """Test getting phantom dipole locations."""
-    assert_raises(ValueError, get_phantom_dipoles, 0)
-    assert_raises(ValueError, get_phantom_dipoles, 'foo')
+    pytest.raises(ValueError, get_phantom_dipoles, 0)
+    pytest.raises(ValueError, get_phantom_dipoles, 'foo')
     for kind in ('vectorview', 'otaniemi'):
         pos, ori = get_phantom_dipoles(kind)
         assert_equal(pos.shape, (32, 3))
@@ -407,7 +406,7 @@ def test_confidence():
     with warnings.catch_warnings(record=True) as w:
         dip_xfit = read_dipole(fname_dip_xfit)
     assert_equal(len(w), 1)
-    assert_true("['noise/ft/cm', 'prob']" in str(w[0].message))
+    assert ("['noise/ft/cm', 'prob']" in str(w[0].message))
     for dip_check in (dip_py, dip_read):
         assert_allclose(dip_check.pos, dip_xfit.pos, atol=5e-4)  # < 0.5 mm
         assert_allclose(dip_check.gof, dip_xfit.gof, atol=5e-1)  # < 0.5%
@@ -417,5 +416,6 @@ def test_confidence():
         for key in sorted(dip_check.conf.keys()):
             assert_allclose(dip_check.conf[key], dip_xfit.conf[key],
                             rtol=1.5e-1, err_msg=key)
+
 
 run_tests_if_main(False)

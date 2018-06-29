@@ -78,7 +78,6 @@ def _call_base_epochs_public_api(epochs, tmpdir):
 
 def test_mockclient(tmpdir):
     """Test the RtMockClient."""
-
     raw = read_raw_fif(raw_fname, preload=True, verbose=False)
     picks = pick_types(raw.info, meg='grad', eeg=False, eog=True,
                        stim=True, exclude=raw.info['bads'])
@@ -125,7 +124,6 @@ def test_mockclient(tmpdir):
 
 def test_get_event_data():
     """Test emulation of realtime data stream."""
-
     raw = read_raw_fif(raw_fname, preload=True, verbose=False)
     picks = pick_types(raw.info, meg='grad', eeg=False, eog=True,
                        stim=True, exclude=raw.info['bads'])
@@ -147,7 +145,6 @@ def test_get_event_data():
 
 def test_find_events():
     """Test find_events in rt_epochs."""
-
     raw = read_raw_fif(raw_fname, preload=True, verbose=False)
     picks = pick_types(raw.info, meg='grad', eeg=False, eog=True,
                        stim=True, exclude=raw.info['bads'])
@@ -268,6 +265,7 @@ def test_find_events():
 
 @pytest.mark.parametrize("buffer_size", [420, 1000, 6000])
 def test_rejection(buffer_size):
+    """Test rejection."""
     event_id, tmin, tmax = 1, 0.0, 0.5
     sfreq = 1000
     ch_names = ['Fz', 'Cz', 'Pz', 'STI 014']
@@ -324,7 +322,7 @@ def test_rejection(buffer_size):
 
 @sample.requires_sample_data
 def test_events_sampledata():
-    """ based on examples/realtime/plot_compute_rt_decoder.py"""
+    """Test events."""
     data_path = sample.data_path()
     raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
     raw = read_raw_fif(raw_fname, preload=True)

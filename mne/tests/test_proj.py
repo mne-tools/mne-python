@@ -89,7 +89,7 @@ def test_bad_proj():
 
 
 def _check_warnings(raw, events, picks=None, count=3):
-    """Helper to count warnings."""
+    """Count warnings."""
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         Epochs(raw, events, dict(aud_l=1, vis_l=3),
@@ -228,7 +228,7 @@ def test_compute_proj_epochs():
 
 @pytest.mark.slowtest
 def test_compute_proj_raw():
-    """Test SSP computation on raw"""
+    """Test SSP computation on raw."""
     tempdir = _TempDir()
     # Test that the raw projectors work
     raw_time = 2.5  # Do shorter amount for speed
@@ -323,7 +323,7 @@ def test_make_eeg_average_ref_proj():
 
 
 def test_has_eeg_average_ref_proj():
-    """Test checking whether an EEG average reference exists"""
+    """Test checking whether an EEG average reference exists."""
     assert not _has_eeg_average_ref_proj([])
 
     raw = read_raw_fif(raw_fname)
@@ -332,7 +332,7 @@ def test_has_eeg_average_ref_proj():
 
 
 def test_needs_eeg_average_ref_proj():
-    """Test checking whether a recording needs an EEG average reference"""
+    """Test checking whether a recording needs an EEG average reference."""
     raw = read_raw_fif(raw_fname)
     assert _needs_eeg_average_ref_proj(raw.info)
 

@@ -3,9 +3,9 @@
 # License: BSD 3 clause
 import warnings
 
-from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import assert_array_equal
+import pytest
 
 from mne.time_frequency import morlet
 from mne.preprocessing.ctps_ import (ctps, _prob_kuiper,
@@ -31,7 +31,7 @@ rng = np.random.RandomState(42)
 
 
 def get_data(n_trials, j_extent):
-    """Generate ground truth and testing data"""
+    """Generate ground truth and testing data."""
     ground_truth = np.tile(single_trial,  n_trials)
     my_shape = n_trials, 1, 600
     random_data = rng.random_sample(my_shape)
@@ -42,8 +42,9 @@ def get_data(n_trials, j_extent):
                            jittered_data.reshape(my_shape),
                            random_data.reshape(my_shape)], 1)
 
-    assert_true(data.shape == (n_trials, 3, 600))
+    assert data.shape == (n_trials, 3, 600)
     return data
+
 
 # vary extent of jittering --> creates phaselocks at the borders if
 # 2 * extent != n_samples
@@ -51,8 +52,7 @@ iter_test_ctps = enumerate(zip([400, 400], [150, 300], [0.6, 0.2]))
 
 
 def test_ctps():
-    """ Test basic ctps functionality
-    """
+    """Test basic ctps functionality."""
     for ii, (n_trials, j_extent, pk_max) in iter_test_ctps:
         data = get_data(n_trials, j_extent)
         ks_dyn, pk_dyn, phase_trial = ctps(data)
@@ -61,27 +61,26 @@ def test_ctps():
         for a, b in zip([ks_dyn, pk_dyn, phase_trial],
                         [ks_dyn2, pk_dyn2, data2]):
             assert_array_equal(a, b)
-            assert_true(a.min() >= 0)
-            assert_true(a.max() <= 1)
-            assert_true(b.min() >= 0)
-            assert_true(b.max() <= 1)
+            assert (a.min() >= 0)
+            assert (a.max() <= 1)
+            assert (b.min() >= 0)
+            assert (b.max() <= 1)
 
         # test for normalization
-        assert_true((pk_dyn.min() > 0.0) or (pk_dyn.max() < 1.0))
+        assert ((pk_dyn.min() > 0.0) or (pk_dyn.max() < 1.0))
         # test shapes
-        assert_true(phase_trial.shape == data.shape)
-        assert_true(pk_dyn.shape == data.shape[1:])
+        assert (phase_trial.shape == data.shape)
+        assert (pk_dyn.shape == data.shape[1:])
         # tets ground_truth + random + jittered case
-        assert_true(pk_dyn[0].max() == 1.0)
-        assert_true(len(np.unique(pk_dyn[0])) == 1.0)
-        assert_true(pk_dyn[1].max() < pk_max)
-        assert_true(pk_dyn[2].max() > 0.3)
+        assert (pk_dyn[0].max() == 1.0)
+        assert (len(np.unique(pk_dyn[0])) == 1.0)
+        assert (pk_dyn[1].max() < pk_max)
+        assert (pk_dyn[2].max() > 0.3)
         if ii < 1:
-            assert_raises(ValueError, ctps,
-                          data[:, :, :, None])
+            pytest.raises(ValueError, ctps, data[:, :, :, None])
 
-    assert_true(_prob_kuiper(1.0, 400) == 1.0)
+    assert (_prob_kuiper(1.0, 400) == 1.0)
     # test vecrosization
     assert_array_equal(_prob_kuiper(np.array([1.0, 1.0]), 400),
                        _prob_kuiper(np.array([1.0, 1.0]), 400))
-    assert_true(_prob_kuiper(0.1, 400) < 0.1)
+    assert (_prob_kuiper(0.1, 400) < 0.1)

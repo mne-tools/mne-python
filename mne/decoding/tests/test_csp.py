@@ -7,10 +7,10 @@
 
 import os.path as op
 
-from nose.tools import assert_true, assert_raises, assert_equal, assert_greater
 import pytest
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_equal)
 
 from mne import io, Epochs, read_events, pick_types
 from mne.decoding.csp import CSP, _ajd_pham, SPoC
@@ -49,8 +49,7 @@ def simulate_data(target, n_trials=100, n_channels=10, random_state=42):
 
 @pytest.mark.slowtest
 def test_csp():
-    """Test Common Spatial Patterns algorithm on epochs
-    """
+    """Test Common Spatial Patterns algorithm on epochs."""
     raw = io.read_raw_fif(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
@@ -64,15 +63,15 @@ def test_csp():
     y = epochs.events[:, -1]
 
     # Init
-    assert_raises(ValueError, CSP, n_components='foo', norm_trace=False)
+    pytest.raises(ValueError, CSP, n_components='foo', norm_trace=False)
     for reg in ['foo', -0.1, 1.1]:
         csp = CSP(reg=reg, norm_trace=False)
-        assert_raises(ValueError, csp.fit, epochs_data, epochs.events[:, -1])
+        pytest.raises(ValueError, csp.fit, epochs_data, epochs.events[:, -1])
     for reg in ['oas', 'ledoit_wolf', 0, 0.5, 1.]:
         CSP(reg=reg, norm_trace=False)
     for cov_est in ['foo', None]:
-        assert_raises(ValueError, CSP, cov_est=cov_est, norm_trace=False)
-    assert_raises(ValueError, CSP, norm_trace='foo')
+        pytest.raises(ValueError, CSP, cov_est=cov_est, norm_trace=False)
+    pytest.raises(ValueError, CSP, norm_trace='foo')
     for cov_est in ['concat', 'epoch']:
         CSP(cov_est=cov_est, norm_trace=False)
 
@@ -88,16 +87,16 @@ def test_csp():
     # Transform
     X = csp.fit_transform(epochs_data, y)
     sources = csp.transform(epochs_data)
-    assert_true(sources.shape[1] == n_components)
-    assert_true(csp.filters_.shape == (n_channels, n_channels))
-    assert_true(csp.patterns_.shape == (n_channels, n_channels))
+    assert (sources.shape[1] == n_components)
+    assert (csp.filters_.shape == (n_channels, n_channels))
+    assert (csp.patterns_.shape == (n_channels, n_channels))
     assert_array_almost_equal(sources, X)
 
     # Test data exception
-    assert_raises(ValueError, csp.fit, epochs_data,
+    pytest.raises(ValueError, csp.fit, epochs_data,
                   np.zeros_like(epochs.events))
-    assert_raises(ValueError, csp.fit, epochs, y)
-    assert_raises(ValueError, csp.transform, epochs)
+    pytest.raises(ValueError, csp.fit, epochs, y)
+    pytest.raises(ValueError, csp.transform, epochs)
 
     # Test plots
     epochs.pick_types(meg='mag')
@@ -123,27 +122,27 @@ def test_csp():
 
     # Test average power transform
     n_components = 2
-    assert_true(csp.transform_into == 'average_power')
+    assert (csp.transform_into == 'average_power')
     feature_shape = [len(epochs_data), n_components]
     X_trans = dict()
     for log in (None, True, False):
         csp = CSP(n_components=n_components, log=log, norm_trace=False)
-        assert_true(csp.log is log)
+        assert (csp.log is log)
         Xt = csp.fit_transform(epochs_data, epochs.events[:, 2])
         assert_array_equal(Xt.shape, feature_shape)
         X_trans[str(log)] = Xt
     # log=None => log=True
     assert_array_almost_equal(X_trans['None'], X_trans['True'])
     # Different normalization return different transform
-    assert_true(np.sum((X_trans['True'] - X_trans['False']) ** 2) > 1.)
+    assert (np.sum((X_trans['True'] - X_trans['False']) ** 2) > 1.)
     # Check wrong inputs
-    assert_raises(ValueError, CSP, transform_into='average_power', log='foo')
+    pytest.raises(ValueError, CSP, transform_into='average_power', log='foo')
 
     # Test csp space transform
     csp = CSP(transform_into='csp_space', norm_trace=False)
-    assert_true(csp.transform_into == 'csp_space')
+    assert (csp.transform_into == 'csp_space')
     for log in ('foo', True, False):
-        assert_raises(ValueError, CSP, transform_into='csp_space', log=log,
+        pytest.raises(ValueError, CSP, transform_into='csp_space', log=log,
                       norm_trace=False)
     n_components = 2
     csp = CSP(n_components=n_components, transform_into='csp_space',
@@ -164,12 +163,12 @@ def test_csp():
         # check the first pattern match the mixing matrix
         # the sign might change
         corr = np.abs(np.corrcoef(csp.patterns_[0, :].T, A[:, 0])[0, 1])
-        assert_greater(np.abs(corr), 0.99)
+        assert np.abs(corr) > 0.99
 
         # check output
         out = csp.transform(X)
         corr = np.abs(np.corrcoef(out[:, 0], y)[0, 1])
-        assert_greater(np.abs(corr), 0.95)
+        assert np.abs(corr) > 0.95
 
 
 @requires_sklearn
@@ -192,39 +191,38 @@ def test_regularized_csp():
         csp.fit(epochs_data, epochs.events[:, -1])
         y = epochs.events[:, -1]
         X = csp.fit_transform(epochs_data, y)
-        assert_true(csp.filters_.shape == (n_channels, n_channels))
-        assert_true(csp.patterns_.shape == (n_channels, n_channels))
+        assert (csp.filters_.shape == (n_channels, n_channels))
+        assert (csp.patterns_.shape == (n_channels, n_channels))
         assert_array_almost_equal(csp.fit(epochs_data, y).
                                   transform(epochs_data), X)
 
         # test init exception
-        assert_raises(ValueError, csp.fit, epochs_data,
+        pytest.raises(ValueError, csp.fit, epochs_data,
                       np.zeros_like(epochs.events))
-        assert_raises(ValueError, csp.fit, epochs, y)
-        assert_raises(ValueError, csp.transform, epochs)
+        pytest.raises(ValueError, csp.fit, epochs, y)
+        pytest.raises(ValueError, csp.transform, epochs)
 
         csp.n_components = n_components
         sources = csp.transform(epochs_data)
-        assert_true(sources.shape[1] == n_components)
+        assert (sources.shape[1] == n_components)
 
 
 @requires_sklearn
 def test_csp_pipeline():
-    """Test if CSP works in a pipeline
-    """
+    """Test if CSP works in a pipeline."""
     from sklearn.svm import SVC
     from sklearn.pipeline import Pipeline
     csp = CSP(reg=1, norm_trace=False)
     svc = SVC()
     pipe = Pipeline([("CSP", csp), ("SVC", svc)])
     pipe.set_params(CSP__reg=0.2)
-    assert_true(pipe.get_params()["CSP__reg"] == 0.2)
+    assert (pipe.get_params()["CSP__reg"] == 0.2)
 
 
 def test_ajd():
-    """Test if Approximate joint diagonalization implementation obtains same
-    results as the Matlab implementation by Pham Dinh-Tuan.
-    """
+    """Test approximate joint diagonalization."""
+    # The implementation shuold obtain the same
+    # results as the Matlab implementation by Pham Dinh-Tuan.
     # Generate a set of cavariances matrices for test purpose
     n_times, n_channels = 10, 3
     seed = np.random.RandomState(0)
@@ -243,6 +241,7 @@ def test_ajd():
 
 
 def test_spoc():
+    """Test SPoC."""
     X = np.random.randn(10, 10, 20)
     y = np.random.randn(10)
 
@@ -258,10 +257,10 @@ def test_spoc():
     assert_array_equal(spoc.patterns_.shape, [10, 10])
 
     # check y
-    assert_raises(ValueError, spoc.fit, X, y * 0)
+    pytest.raises(ValueError, spoc.fit, X, y * 0)
 
     # Check that doesn't take CSP-spcific input
-    assert_raises(TypeError, SPoC, cov_est='epoch')
+    pytest.raises(TypeError, SPoC, cov_est='epoch')
 
     # Check mixing matrix on simulated data
     rs = np.random.RandomState(42)
@@ -274,9 +273,9 @@ def test_spoc():
 
     # check the first patterns match the mixing matrix
     corr = np.abs(np.corrcoef(spoc.patterns_[0, :].T, A[:, 0])[0, 1])
-    assert_greater(np.abs(corr), 0.99)
+    assert np.abs(corr) > 0.99
 
     # check output
     out = spoc.transform(X)
     corr = np.abs(np.corrcoef(out[:, 0], y)[0, 1])
-    assert_greater(np.abs(corr), 0.85)
+    assert np.abs(corr) > 0.85

@@ -3,7 +3,6 @@ import os.path as op
 import warnings
 import gc
 
-from nose.tools import assert_true, assert_raises
 import pytest
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_equal,
@@ -39,38 +38,37 @@ fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-4-src.fif')
 
 
 def compare_forwards(f1, f2):
-    """Helper to compare two potentially converted forward solutions"""
+    """Compare two potentially converted forward solutions."""
     assert_allclose(f1['sol']['data'], f2['sol']['data'])
     assert_equal(f1['sol']['ncol'], f2['sol']['ncol'])
     assert_equal(f1['sol']['ncol'], f1['sol']['data'].shape[1])
     assert_allclose(f1['source_nn'], f2['source_nn'])
     if f1['sol_grad'] is not None:
-        assert_true(f2['sol_grad'] is not None)
+        assert (f2['sol_grad'] is not None)
         assert_allclose(f1['sol_grad']['data'], f2['sol_grad']['data'])
         assert_equal(f1['sol_grad']['ncol'], f2['sol_grad']['ncol'])
         assert_equal(f1['sol_grad']['ncol'], f1['sol_grad']['data'].shape[1])
     else:
-        assert_true(f2['sol_grad'] is None)
+        assert (f2['sol_grad'] is None)
     assert_equal(f1['source_ori'], f2['source_ori'])
     assert_equal(f1['surf_ori'], f2['surf_ori'])
 
 
 @testing.requires_testing_data
 def test_convert_forward():
-    """Test converting forward solution between different representations
-    """
+    """Test converting forward solution between different representations."""
     fwd = read_forward_solution(fname_meeg_grad)
     fwd_repr = repr(fwd)
-    assert_true('306' in fwd_repr)
-    assert_true('60' in fwd_repr)
-    assert_true(fwd_repr)
-    assert_true(isinstance(fwd, Forward))
+    assert ('306' in fwd_repr)
+    assert ('60' in fwd_repr)
+    assert (fwd_repr)
+    assert (isinstance(fwd, Forward))
     # look at surface orientation
     fwd_surf = convert_forward_solution(fwd, surf_ori=True)
     # go back
     fwd_new = convert_forward_solution(fwd_surf, surf_ori=False)
-    assert_true(repr(fwd_new))
-    assert_true(isinstance(fwd_new, Forward))
+    assert (repr(fwd_new))
+    assert (isinstance(fwd_new, Forward))
     compare_forwards(fwd, fwd_new)
     del fwd_new
     gc.collect()
@@ -80,14 +78,14 @@ def test_convert_forward():
                                          force_fixed=True, use_cps=False)
     del fwd_surf
     gc.collect()
-    assert_true(repr(fwd_fixed))
-    assert_true(isinstance(fwd_fixed, Forward))
-    assert_true(is_fixed_orient(fwd_fixed))
+    assert (repr(fwd_fixed))
+    assert (isinstance(fwd_fixed, Forward))
+    assert (is_fixed_orient(fwd_fixed))
     # now go back to cartesian (original condition)
     fwd_new = convert_forward_solution(fwd_fixed, surf_ori=False,
                                        force_fixed=False)
-    assert_true(repr(fwd_new))
-    assert_true(isinstance(fwd_new, Forward))
+    assert (repr(fwd_new))
+    assert (isinstance(fwd_new, Forward))
     compare_forwards(fwd, fwd_new)
     del fwd, fwd_new, fwd_fixed
     gc.collect()
@@ -96,13 +94,12 @@ def test_convert_forward():
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_io_forward():
-    """Test IO for forward solutions
-    """
+    """Test IO for forward solutions."""
     temp_dir = _TempDir()
     # do extensive tests with MEEG + grad
     n_channels, n_src = 366, 108
     fwd = read_forward_solution(fname_meeg_grad)
-    assert_true(isinstance(fwd, Forward))
+    assert (isinstance(fwd, Forward))
     fwd = read_forward_solution(fname_meeg_grad)
     fwd = convert_forward_solution(fwd, surf_ori=True)
     leadfield = fwd['sol']['data']
@@ -121,8 +118,8 @@ def test_io_forward():
     assert_equal(leadfield.shape, (n_channels, n_src))
     assert_equal(len(fwd_read['sol']['row_names']), n_channels)
     assert_equal(len(fwd_read['info']['chs']), n_channels)
-    assert_true('dev_head_t' in fwd_read['info'])
-    assert_true('mri_head_t' in fwd_read)
+    assert ('dev_head_t' in fwd_read['info'])
+    assert ('mri_head_t' in fwd_read)
     assert_array_almost_equal(fwd['sol']['data'], fwd_read['sol']['data'])
 
     fwd = read_forward_solution(fname_meeg)
@@ -134,9 +131,9 @@ def test_io_forward():
     fwd_read = read_forward_solution(fname_temp)
     fwd_read = convert_forward_solution(fwd_read, surf_ori=True,
                                         force_fixed=True, use_cps=False)
-    assert_true(repr(fwd_read))
-    assert_true(isinstance(fwd_read, Forward))
-    assert_true(is_fixed_orient(fwd_read))
+    assert (repr(fwd_read))
+    assert (isinstance(fwd_read, Forward))
+    assert (is_fixed_orient(fwd_read))
     compare_forwards(fwd, fwd_read)
 
     fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
@@ -145,18 +142,18 @@ def test_io_forward():
     assert_equal(leadfield.shape, (n_channels, 1494 / 3))
     assert_equal(len(fwd['sol']['row_names']), n_channels)
     assert_equal(len(fwd['info']['chs']), n_channels)
-    assert_true('dev_head_t' in fwd['info'])
-    assert_true('mri_head_t' in fwd)
-    assert_true(fwd['surf_ori'])
+    assert ('dev_head_t' in fwd['info'])
+    assert ('mri_head_t' in fwd)
+    assert (fwd['surf_ori'])
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         write_forward_solution(fname_temp, fwd, overwrite=True)
     fwd_read = read_forward_solution(fname_temp)
     fwd_read = convert_forward_solution(fwd_read, surf_ori=True,
                                         force_fixed=True, use_cps=True)
-    assert_true(repr(fwd_read))
-    assert_true(isinstance(fwd_read, Forward))
-    assert_true(is_fixed_orient(fwd_read))
+    assert (repr(fwd_read))
+    assert (isinstance(fwd_read, Forward))
+    assert (is_fixed_orient(fwd_read))
     compare_forwards(fwd, fwd_read)
 
     fwd = read_forward_solution(fname_meeg_grad)
@@ -166,18 +163,18 @@ def test_io_forward():
     assert_equal(leadfield.shape, (n_channels, n_src / 3))
     assert_equal(len(fwd['sol']['row_names']), n_channels)
     assert_equal(len(fwd['info']['chs']), n_channels)
-    assert_true('dev_head_t' in fwd['info'])
-    assert_true('mri_head_t' in fwd)
-    assert_true(fwd['surf_ori'])
+    assert ('dev_head_t' in fwd['info'])
+    assert ('mri_head_t' in fwd)
+    assert (fwd['surf_ori'])
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         write_forward_solution(fname_temp, fwd, overwrite=True)
     fwd_read = read_forward_solution(fname_temp)
     fwd_read = convert_forward_solution(fwd_read, surf_ori=True,
                                         force_fixed=True, use_cps=True)
-    assert_true(repr(fwd_read))
-    assert_true(isinstance(fwd_read, Forward))
-    assert_true(is_fixed_orient(fwd_read))
+    assert (repr(fwd_read))
+    assert (isinstance(fwd_read, Forward))
+    assert (is_fixed_orient(fwd_read))
     compare_forwards(fwd, fwd_read)
 
     # test warnings on bad filenames
@@ -197,8 +194,7 @@ def test_io_forward():
 
 @testing.requires_testing_data
 def test_apply_forward():
-    """Test projection of source space data to sensor space
-    """
+    """Test projection of source space data to sensor space."""
     start = 0
     stop = 5
     n_times = stop - start - 1
@@ -209,7 +205,7 @@ def test_apply_forward():
     fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
                                    use_cps=True)
     fwd = pick_types_forward(fwd, meg=True)
-    assert_true(isinstance(fwd, Forward))
+    assert isinstance(fwd, Forward)
 
     vertno = [fwd['src'][0]['vertno'], fwd['src'][1]['vertno']]
     stc_data = np.ones((len(vertno[0]) + len(vertno[1]), n_times))
@@ -248,8 +244,7 @@ def test_apply_forward():
 
 @testing.requires_testing_data
 def test_restrict_forward_to_stc():
-    """Test restriction of source space to source SourceEstimate
-    """
+    """Test restriction of source space to source SourceEstimate."""
     start = 0
     stop = 5
     n_times = stop - start - 1
@@ -266,7 +261,7 @@ def test_restrict_forward_to_stc():
     stc = SourceEstimate(stc_data, vertno, tmin=t_start, tstep=1.0 / sfreq)
 
     fwd_out = restrict_forward_to_stc(fwd, stc)
-    assert_true(isinstance(fwd_out, Forward))
+    assert (isinstance(fwd_out, Forward))
 
     assert_equal(fwd_out['sol']['ncol'], 20)
     assert_equal(fwd_out['src'][0]['nuse'], 15)
@@ -305,8 +300,7 @@ def test_restrict_forward_to_stc():
 
 @testing.requires_testing_data
 def test_restrict_forward_to_label():
-    """Test restriction of source space to label
-    """
+    """Test restriction of source space to label."""
     fwd = read_forward_solution(fname_meeg)
     fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
                                    use_cps=True)
@@ -374,26 +368,25 @@ def test_restrict_forward_to_label():
 @testing.requires_testing_data
 @requires_mne
 def test_average_forward_solution():
-    """Test averaging forward solutions
-    """
+    """Test averaging forward solutions."""
     temp_dir = _TempDir()
     fwd = read_forward_solution(fname_meeg)
     # input not a list
-    assert_raises(TypeError, average_forward_solutions, 1)
+    pytest.raises(TypeError, average_forward_solutions, 1)
     # list is too short
-    assert_raises(ValueError, average_forward_solutions, [])
+    pytest.raises(ValueError, average_forward_solutions, [])
     # negative weights
-    assert_raises(ValueError, average_forward_solutions, [fwd, fwd], [-1, 0])
+    pytest.raises(ValueError, average_forward_solutions, [fwd, fwd], [-1, 0])
     # all zero weights
-    assert_raises(ValueError, average_forward_solutions, [fwd, fwd], [0, 0])
+    pytest.raises(ValueError, average_forward_solutions, [fwd, fwd], [0, 0])
     # weights not same length
-    assert_raises(ValueError, average_forward_solutions, [fwd, fwd], [0, 0, 0])
+    pytest.raises(ValueError, average_forward_solutions, [fwd, fwd], [0, 0, 0])
     # list does not only have all dict()
-    assert_raises(TypeError, average_forward_solutions, [1, fwd])
+    pytest.raises(TypeError, average_forward_solutions, [1, fwd])
 
     # try an easy case
     fwd_copy = average_forward_solutions([fwd])
-    assert_true(isinstance(fwd_copy, Forward))
+    assert (isinstance(fwd_copy, Forward))
     assert_array_equal(fwd['sol']['data'], fwd_copy['sol']['data'])
 
     # modify a fwd solution, save it, use MNE to average with old one
@@ -414,5 +407,6 @@ def test_average_forward_solution():
     fwd = read_forward_solution(fname_meeg_grad)
     fwd_ave = average_forward_solutions([fwd, fwd])
     compare_forwards(fwd, fwd_ave)
+
 
 run_tests_if_main()

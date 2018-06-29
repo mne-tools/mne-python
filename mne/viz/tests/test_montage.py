@@ -22,8 +22,7 @@ point_names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
 
 
 def test_plot_montage():
-    """Test plotting montages.
-    """
+    """Test plotting montages."""
     import matplotlib.pyplot as plt
     m = read_montage('easycap-M1')
     m.plot()
@@ -46,8 +45,7 @@ def test_plot_montage():
 
 
 def test_plot_defect_montage():
-    """Test plotting defect montages (i.e. with duplicate labels).
-    """
+    """Test plotting defect montages (i.e. with duplicate labels)."""
     # montage name and number of unique labels
     montages = [('standard_1005', 342), ('standard_postfixed', 85),
                 ('standard_primed', 85), ('standard_1020', 93)]

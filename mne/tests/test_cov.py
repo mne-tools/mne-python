@@ -7,10 +7,8 @@ import os.path as op
 import itertools as itt
 import warnings
 
-from nose.tools import assert_true
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal, assert_allclose)
-from nose.tools import assert_raises
 import pytest
 import numpy as np
 from scipy import linalg
@@ -66,14 +64,14 @@ def test_cov_mismatch():
                 epochs_2.info['dev_head_t']['trans'][:3, 3] += 0.001
             else:  # None
                 epochs_2.info['dev_head_t'] = None
-            assert_raises(ValueError, compute_covariance, [epochs, epochs_2])
+            pytest.raises(ValueError, compute_covariance, [epochs, epochs_2])
             assert_equal(len(w), 0)
             compute_covariance([epochs, epochs_2], on_mismatch='ignore')
             assert_equal(len(w), 0)
             compute_covariance([epochs, epochs_2], on_mismatch='warn')
-            assert_raises(ValueError, compute_covariance, epochs,
+            pytest.raises(ValueError, compute_covariance, epochs,
                           on_mismatch='x')
-        assert_true(any('transform mismatch' in str(ww.message) for ww in w))
+        assert any('transform mismatch' in str(ww.message) for ww in w)
     # This should work
     epochs.info['dev_head_t'] = None
     epochs_2.info['dev_head_t'] = None
@@ -136,13 +134,13 @@ def test_ad_hoc_cov():
     evoked = read_evokeds(ave_fname)[0]
     cov = make_ad_hoc_cov(evoked.info)
     cov.save(out_fname)
-    assert_true('Covariance' in repr(cov))
+    assert 'Covariance' in repr(cov)
     cov2 = read_cov(out_fname)
     assert_array_almost_equal(cov['data'], cov2['data'])
     std = dict(grad=2e-13, mag=10e-15, eeg=0.1e-6)
     cov = make_ad_hoc_cov(evoked.info, std)
     cov.save(out_fname)
-    assert_true('Covariance' in repr(cov))
+    assert 'Covariance' in repr(cov)
     cov2 = read_cov(out_fname)
     assert_array_almost_equal(cov['data'], cov2['data'])
 
@@ -158,7 +156,7 @@ def test_io_cov():
     assert_array_almost_equal(cov.data, cov2.data)
     assert_equal(cov['method'], cov2['method'])
     assert_equal(cov['loglik'], cov2['loglik'])
-    assert_true('Covariance' in repr(cov))
+    assert 'Covariance' in repr(cov)
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
@@ -168,8 +166,8 @@ def test_io_cov():
 
     cov['bads'] = ['EEG 039']
     cov_sel = pick_channels_cov(cov, exclude=cov['bads'])
-    assert_true(cov_sel['dim'] == (len(cov['data']) - len(cov['bads'])))
-    assert_true(cov_sel['data'].shape == (cov_sel['dim'], cov_sel['dim']))
+    assert cov_sel['dim'] == (len(cov['data']) - len(cov['bads']))
+    assert cov_sel['data'].shape == (cov_sel['dim'], cov_sel['dim'])
     cov_sel.save(op.join(tempdir, 'test-cov.fif'))
 
     cov2 = read_cov(cov_gz_fname)
@@ -209,15 +207,15 @@ def test_cov_estimation_on_raw():
         # test IO when computation done in Python
         cov.save(op.join(tempdir, 'test-cov.fif'))  # test saving
         cov_read = read_cov(op.join(tempdir, 'test-cov.fif'))
-        assert_true(cov_read.ch_names == cov.ch_names)
-        assert_true(cov_read.nfree == cov.nfree)
+        assert cov_read.ch_names == cov.ch_names
+        assert cov_read.nfree == cov.nfree
         assert_array_almost_equal(cov.data, cov_read.data)
 
         # test with a subset of channels
         raw_pick = raw.copy().pick_channels(raw.ch_names[:5])
         raw_pick.info.normalize_proj()
         cov = compute_raw_covariance(raw_pick, tstep=None, method=method)
-        assert_true(cov_mne.ch_names[:5] == cov.ch_names)
+        assert cov_mne.ch_names[:5] == cov.ch_names
         assert_snr(cov.data, cov_mne.data[:5, :5], 1e4)
         cov = compute_raw_covariance(raw_pick, method=method)
         assert_snr(cov.data, cov_mne.data[:5, :5], 90)  # cutoff samps
@@ -226,9 +224,9 @@ def test_cov_estimation_on_raw():
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             cov = compute_raw_covariance(raw_2, method=method)
-        assert_true(any('Too few samples' in str(ww.message) for ww in w))
+        assert any('Too few samples' in str(ww.message) for ww in w)
         # no epochs found due to rejection
-        assert_raises(ValueError, compute_raw_covariance, raw, tstep=None,
+        pytest.raises(ValueError, compute_raw_covariance, raw, tstep=None,
                       method='empirical', reject=dict(eog=200e-6))
         # but this should work
         cov = compute_raw_covariance(raw.copy().crop(0, 10.),
@@ -256,7 +254,7 @@ def _assert_cov(cov, cov_desired, tol=0.005, nfree=True):
     assert_equal(cov.ch_names, cov_desired.ch_names)
     err = (linalg.norm(cov.data - cov_desired.data, ord='fro') /
            linalg.norm(cov.data, ord='fro'))
-    assert_true(err < tol, msg='%s >= %s' % (err, tol))
+    assert err < tol, '%s >= %s' % (err, tol)
     if nfree:
         assert_equal(cov.nfree, cov_desired.nfree)
 
@@ -282,10 +280,10 @@ def test_cov_estimation_with_triggers():
 
     # Test with tmin and tmax (different but not too much)
     cov_tmin_tmax = compute_covariance(epochs, tmin=-0.19, tmax=-0.01)
-    assert_true(np.all(cov.data != cov_tmin_tmax.data))
+    assert np.all(cov.data != cov_tmin_tmax.data)
     err = (linalg.norm(cov.data - cov_tmin_tmax.data, ord='fro') /
            linalg.norm(cov_tmin_tmax.data, ord='fro'))
-    assert_true(err < 0.05, msg=err)
+    assert err < 0.05
 
     # cov using a list of epochs and keep_sample_mean=True
     epochs = [Epochs(raw, events, ev_id, tmin=-0.2, tmax=0,
@@ -293,16 +291,16 @@ def test_cov_estimation_with_triggers():
               for ev_id in event_ids]
     cov2 = compute_covariance(epochs, keep_sample_mean=True)
     assert_array_almost_equal(cov.data, cov2.data)
-    assert_true(cov.ch_names == cov2.ch_names)
+    assert cov.ch_names == cov2.ch_names
 
     # cov with keep_sample_mean=False using a list of epochs
     cov = compute_covariance(epochs, keep_sample_mean=False)
     _assert_cov(cov, read_cov(cov_fname), nfree=False)
 
     method_params = {'empirical': {'assume_centered': False}}
-    assert_raises(ValueError, compute_covariance, epochs,
+    pytest.raises(ValueError, compute_covariance, epochs,
                   keep_sample_mean=False, method_params=method_params)
-    assert_raises(ValueError, compute_covariance, epochs,
+    pytest.raises(ValueError, compute_covariance, epochs,
                   keep_sample_mean=False, method='factor_analysis')
 
     # test IO when computation done in Python
@@ -316,8 +314,8 @@ def test_cov_estimation_with_triggers():
               Epochs(raw, events[:1], None, tmin=-0.2, tmax=0,
                      baseline=(-0.2, -0.1), proj=False)]
     # these should fail
-    assert_raises(ValueError, compute_covariance, epochs)
-    assert_raises(ValueError, compute_covariance, epochs, projs=None)
+    pytest.raises(ValueError, compute_covariance, epochs)
+    pytest.raises(ValueError, compute_covariance, epochs, projs=None)
     # these should work, but won't be equal to above
     with warnings.catch_warnings(record=True) as w:  # too few samples warning
         warnings.simplefilter('always')
@@ -333,8 +331,8 @@ def test_cov_estimation_with_triggers():
 
         # projs checking
         compute_covariance(epochs, projs=[])
-    assert_raises(TypeError, compute_covariance, epochs, projs='foo')
-    assert_raises(TypeError, compute_covariance, epochs, projs=['foo'])
+    pytest.raises(TypeError, compute_covariance, epochs, projs='foo')
+    pytest.raises(TypeError, compute_covariance, epochs, projs=['foo'])
 
 
 def test_arithmetic_cov():
@@ -343,12 +341,12 @@ def test_arithmetic_cov():
     cov_sum = cov + cov
     assert_array_almost_equal(2 * cov.nfree, cov_sum.nfree)
     assert_array_almost_equal(2 * cov.data, cov_sum.data)
-    assert_true(cov.ch_names == cov_sum.ch_names)
+    assert cov.ch_names == cov_sum.ch_names
 
     cov += cov
     assert_array_almost_equal(cov_sum.nfree, cov.nfree)
     assert_array_almost_equal(cov_sum.data, cov.data)
-    assert_true(cov_sum.ch_names == cov.ch_names)
+    assert cov_sum.ch_names == cov.ch_names
 
 
 def test_regularize_cov():
@@ -384,12 +382,12 @@ def test_whiten_evoked():
     evoked_white = whiten_evoked(evoked, noise_cov, picks, diag=True)
     whiten_baseline_data = evoked_white.data[picks][:, evoked.times < 0]
     mean_baseline = np.mean(np.abs(whiten_baseline_data), axis=1)
-    assert_true(np.all(mean_baseline < 1.))
-    assert_true(np.all(mean_baseline > 0.2))
+    assert np.all(mean_baseline < 1.)
+    assert np.all(mean_baseline > 0.2)
 
     # degenerate
     cov_bad = pick_channels_cov(cov, include=evoked.ch_names[:10])
-    assert_raises(RuntimeError, whiten_evoked, evoked, cov_bad, picks)
+    pytest.raises(RuntimeError, whiten_evoked, evoked, cov_bad, picks)
 
 
 @pytest.mark.slowtest
@@ -403,7 +401,7 @@ def test_rank():
                 ch.startswith('EEG')]
     cov = prepare_noise_cov(cov, evoked.info, ch_names, None)
     assert_equal(cov['eig'][0], 0.)  # avg projector should set this to zero
-    assert_true((cov['eig'][1:] > 0).all())  # all else should be > 0
+    assert (cov['eig'][1:] > 0).all()  # all else should be > 0
 
     # Now do some more comprehensive tests
     raw_sample = read_raw_fif(raw_fname)
@@ -483,7 +481,7 @@ def test_rank():
 
 
 def test_cov_scaling():
-    """Test rescaling covs"""
+    """Test rescaling covs."""
     evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
                           proj=True)
     cov = read_cov(cov_fname)['data']
@@ -499,12 +497,12 @@ def test_cov_scaling():
     _apply_scaling_cov(cov2, picks_list, scalings=scalings)
     _apply_scaling_cov(cov, picks_list, scalings=scalings)
     assert_array_equal(cov, cov2)
-    assert_true(cov.max() > 1)
+    assert cov.max() > 1
 
     _undo_scaling_cov(cov2, picks_list, scalings=scalings)
     _undo_scaling_cov(cov, picks_list, scalings=scalings)
     assert_array_equal(cov, cov2)
-    assert_true(cov.max() < 1)
+    assert cov.max() < 1
 
     data = evoked.data.copy()
     _apply_scaling_array(data, picks_list, scalings=scalings)
@@ -555,7 +553,7 @@ def test_auto_low_rank():
         assert_equal(msg % (n_features + 5, n_features), '%s' % w[0].message)
 
     method_params = {'iter_n_components': [n_features + 5]}
-    assert_raises(ValueError, _auto_low_rank_model, X, mode='foo',
+    pytest.raises(ValueError, _auto_low_rank_model, X, mode='foo',
                   n_jobs=n_jobs, method_params=method_params, cv=cv)
 
 
@@ -594,27 +592,23 @@ def test_compute_covariance_auto_reg():
                 # here we have diagnoal or no regularization.
                 cov_b['method'] == 'empirical'):
 
-            assert_true(not np.any(
-                        cov_a['data'][diag_mask] ==
-                        cov_b['data'][diag_mask]))
+            assert not np.any(cov_a['data'][diag_mask] ==
+                              cov_b['data'][diag_mask])
 
             # but the rest is the same
-            assert_array_equal(
-                cov_a['data'][off_diag_mask],
-                cov_b['data'][off_diag_mask])
+            assert_array_equal(cov_a['data'][off_diag_mask],
+                               cov_b['data'][off_diag_mask])
 
         else:
             # and here we have shrinkage everywhere.
-            assert_true(not np.any(
-                        cov_a['data'][diag_mask] ==
-                        cov_b['data'][diag_mask]))
+            assert not np.any(cov_a['data'][diag_mask] ==
+                              cov_b['data'][diag_mask])
 
-            assert_true(not np.any(
-                        cov_a['data'][diag_mask] ==
-                        cov_b['data'][diag_mask]))
+            assert not np.any(cov_a['data'][diag_mask] ==
+                              cov_b['data'][diag_mask])
 
     logliks = [c['loglik'] for c in covs]
-    assert_true(np.diff(logliks).max() <= 0)  # descending order
+    assert np.diff(logliks).max() <= 0  # descending order
 
     methods = ['empirical', 'factor_analysis', 'ledoit_wolf', 'oas', 'pca',
                'shrunk', 'shrinkage']
@@ -639,10 +633,10 @@ def test_compute_covariance_auto_reg():
     assert cov3[0]['method'] == cov4['method']  # ordering
 
     # invalid prespecified method
-    assert_raises(ValueError, compute_covariance, epochs, method='pizza')
+    pytest.raises(ValueError, compute_covariance, epochs, method='pizza')
 
     # invalid scalings
-    assert_raises(ValueError, compute_covariance, epochs, method='shrunk',
+    pytest.raises(ValueError, compute_covariance, epochs, method='shrunk',
                   scalings=dict(misc=123))
 
 

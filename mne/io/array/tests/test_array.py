@@ -7,8 +7,8 @@ import warnings
 import matplotlib
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_allclose
-from nose.tools import assert_equal, assert_raises, assert_true
+from numpy.testing import (assert_array_almost_equal, assert_allclose,
+                           assert_equal)
 import pytest
 
 from mne import find_events, Epochs, pick_types, channels
@@ -57,10 +57,10 @@ def test_array_raw():
     types.extend(['stim'] * 9)
     types.extend(['eeg'] * 60)
     # wrong length
-    assert_raises(ValueError, create_info, ch_names, sfreq, types)
+    pytest.raises(ValueError, create_info, ch_names, sfreq, types)
     # bad entry
     types.append('foo')
-    assert_raises(KeyError, create_info, ch_names, sfreq, types)
+    pytest.raises(KeyError, create_info, ch_names, sfreq, types)
     types[-1] = 'eog'
     # default type
     info = create_info(ch_names, sfreq)
@@ -72,8 +72,8 @@ def test_array_raw():
     data2, times2 = raw2[:, :]
     assert_allclose(data, data2)
     assert_allclose(times, times2)
-    assert_true('RawArray' in repr(raw2))
-    assert_raises(TypeError, RawArray, info, data)
+    assert ('RawArray' in repr(raw2))
+    pytest.raises(TypeError, RawArray, info, data)
 
     # filtering
     picks = pick_types(raw2.info, misc=True, exclude='bads')[:4]
@@ -106,7 +106,7 @@ def test_array_raw():
     # epoching
     events = find_events(raw2, stim_channel='STI 014')
     events[:, 2] = 1
-    assert_true(len(events) > 2)
+    assert (len(events) > 2)
     epochs = Epochs(raw2, events, 1, -0.2, 0.4, preload=True)
     epochs.plot_drop_log()
     epochs.plot()

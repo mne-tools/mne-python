@@ -47,6 +47,7 @@ public_modules = [
 
 
 def get_name(func):
+    """Get the name."""
     parts = []
     module = inspect.getmodule(func)
     if module:
@@ -69,7 +70,7 @@ _tab_ignores = [
 
 
 def check_parameters_match(func, doc=None):
-    """Helper to check docstring, returns list of incorrect results"""
+    """Check docstring, return list of incorrect results."""
     from numpydoc import docscrape
     incorrect = []
     name_ = get_name(func)
@@ -155,7 +156,7 @@ def test_docstring_parameters():
 
 
 def test_tabs():
-    """Test that there are no tabs in our source files"""
+    """Test that there are no tabs in our source files."""
     # avoid importing modules that require mayavi if mayavi is not installed
     ignore = _tab_ignores[:]
     try:
