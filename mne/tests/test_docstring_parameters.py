@@ -62,6 +62,7 @@ def get_name(func):
 _docstring_ignores = [
     'mne.io.Info',  # Parameters
     'mne.io.write',  # always ignore these
+    'mne.datasets.sample.sample.requires_sample_data',
     # Deprecations
 ]
 
@@ -240,6 +241,7 @@ plot_source_spectrogram
 prepare_inverse_operator
 read_fiducials
 read_tag
+requires_sample_data
 rescale
 simulate_noise_evoked
 source_estimate_quantification
@@ -255,9 +257,10 @@ def test_documented():
     public_modules_ = public_modules[:]
     try:
         import mayavi  # noqa: F401, analysis:ignore
-        public_modules_.append('mne.gui')
     except ImportError:
         pass
+    else:
+        public_modules_.append('mne.gui')
 
     doc_file = op.abspath(op.join(op.dirname(__file__), '..', '..', 'doc',
                                   'python_reference.rst'))
