@@ -47,7 +47,7 @@ def test_fix_stim_artifact():
 
     epochs = fix_stim_artifact(epochs, tmin=tmin, tmax=tmax, mode='window')
     data_from_epochs_fix = epochs.get_data()[:, :, tmin_samp:tmax_samp]
-    # XXX This is a very wierd check...
+    # XXX This is a very weird check...
     assert np.all(data_from_epochs_fix) == 0.
 
     # use window before stimulus in raw
