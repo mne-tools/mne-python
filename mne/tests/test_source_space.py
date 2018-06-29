@@ -3,7 +3,6 @@ from __future__ import print_function
 import os
 import os.path as op
 from unittest import SkipTest
-from nose.tools import assert_true, assert_raises
 import pytest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
@@ -20,6 +19,7 @@ from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_mne, requires_version, run_tests_if_main)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mri_header, _get_mgz_header, _read_talxfm
+from mne.source_estimate import _get_src_type
 from mne.transforms import apply_trans, invert_transform
 from mne.externals.six.moves import zip
 from mne.source_space import (get_volume_labels_from_aseg, SourceSpaces,
@@ -77,9 +77,9 @@ def test_add_patch_info():
     except RuntimeError:  # what we throw when scipy version is wrong
         pass
     else:
-        assert_true(all(s['nearest'] is None for s in src_new))
-        assert_true(all(s['nearest_dist'] is None for s in src_new))
-        assert_true(all(s['pinfo'] is None for s in src_new))
+        assert all(s['nearest'] is None for s in src_new)
+        assert all(s['nearest_dist'] is None for s in src_new)
+        assert all(s['pinfo'] is None for s in src_new)
 
     # now let's use one that works
     add_source_space_distances(src_new)
@@ -123,7 +123,7 @@ def test_add_source_space_distances_limited():
         do.eliminate_zeros()
 
         # make sure we have some comparable distances
-        assert_true(np.sum(do.data < 0.007) > 400)
+        assert np.sum(do.data < 0.007) > 400
 
         # do comparison over the region computed
         d = (do - dn)[:sn['vertno'][n_do - 1]][:, :sn['vertno'][n_do - 1]]
@@ -145,7 +145,7 @@ def test_add_source_space_distances():
     src_new[1]['vertno'] = src_new[1]['vertno'][:n_do].copy()
     out_name = op.join(tempdir, 'temp-src.fif')
     n_jobs = 2
-    assert_true(n_do % n_jobs != 0)
+    assert n_do % n_jobs != 0
     add_source_space_distances(src_new, n_jobs=n_jobs)
     write_source_spaces(out_name, src_new)
     src_new = read_source_spaces(out_name)
@@ -167,7 +167,7 @@ def test_add_source_space_distances():
             ds.append(d)
 
         # make sure we actually calculated some comparable distances
-        assert_true(np.sum(ds[0].data < 0.007) > 10)
+        assert np.sum(ds[0].data < 0.007) > 10
 
         # do comparison
         d = ds[0] - ds[1]
@@ -203,16 +203,17 @@ def test_discrete_source_space():
         # now do writing
         write_source_spaces(temp_name, src_c, overwrite=True)
         src_c2 = read_source_spaces(temp_name)
-        _compare_source_spaces(src_c, src_c2)
-
-        # now do MRI
-        assert_raises(ValueError, setup_volume_source_space, 'sample',
-                      pos=pos_dict, mri=fname_mri)
-        assert_equal(repr(src_new), repr(src_c))
-        assert_equal(src_new.kind, 'discrete')
     finally:
         if op.isfile(temp_name):
             os.remove(temp_name)
+    _compare_source_spaces(src_c, src_c2)
+
+    # now do MRI
+    pytest.raises(ValueError, setup_volume_source_space, 'sample',
+                  pos=pos_dict, mri=fname_mri)
+    assert repr(src_new) == repr(src_c)
+    assert src_new.kind == 'discrete'
+    assert _get_src_type(src_new, None) == 'discrete'
 
 
 @pytest.mark.slowtest
@@ -235,21 +236,21 @@ def test_volume_source_space():
         del src_new
         src_new = read_source_spaces(temp_name)
         _compare_source_spaces(src, src_new, mode='approx')
-    assert_raises(IOError, setup_volume_source_space, 'sample',
+    pytest.raises(IOError, setup_volume_source_space, 'sample',
                   pos=7.0, bem=None, surface='foo',  # bad surf
                   mri=fname_mri, subjects_dir=subjects_dir)
-    assert_equal(repr(src), repr(src_new))
-    assert_equal(src.kind, 'volume')
+    assert repr(src) == repr(src_new)
+    assert src.kind == 'volume'
     # Spheres
     sphere = make_sphere_model(r0=(0., 0., 0.), head_radius=0.1,
                                relative_radii=(0.9, 1.0), sigmas=(0.33, 1.0))
     src = setup_volume_source_space(pos=10)
     src_new = setup_volume_source_space(pos=10, sphere=sphere)
     _compare_source_spaces(src, src_new, mode='exact')
-    assert_raises(ValueError, setup_volume_source_space, sphere='foo')
+    pytest.raises(ValueError, setup_volume_source_space, sphere='foo')
     # Need a radius
     sphere = make_sphere_model(head_radius=None)
-    assert_raises(ValueError, setup_volume_source_space, sphere=sphere)
+    pytest.raises(ValueError, setup_volume_source_space, sphere=sphere)
 
 
 @testing.requires_testing_data
@@ -271,21 +272,21 @@ def test_other_volume_source_spaces():
                                         subjects_dir=subjects_dir)
     # we use a more accurate elimination criteria, so let's fix the MNE-C
     # source space
-    assert_equal(len(src_new[0]['vertno']), 7497)
-    assert_equal(len(src), 1)
-    assert_equal(len(src_new), 1)
+    assert len(src_new[0]['vertno']) == 7497
+    assert len(src) == 1
+    assert len(src_new) == 1
     good_mask = np.in1d(src[0]['vertno'], src_new[0]['vertno'])
     src[0]['inuse'][src[0]['vertno'][~good_mask]] = 0
-    assert_equal(src[0]['inuse'].sum(), 7497)
+    assert src[0]['inuse'].sum() == 7497
     src[0]['vertno'] = src[0]['vertno'][good_mask]
-    assert_equal(len(src[0]['vertno']), 7497)
+    assert len(src[0]['vertno']) == 7497
     src[0]['nuse'] = len(src[0]['vertno'])
-    assert_equal(src[0]['nuse'], 7497)
+    assert src[0]['nuse'] == 7497
     _compare_source_spaces(src_new, src, mode='approx')
-    assert_true('volume, shape' in repr(src))
+    assert 'volume, shape' in repr(src)
     del src
     del src_new
-    assert_raises(ValueError, setup_volume_source_space, 'sample', pos=7.0,
+    pytest.raises(ValueError, setup_volume_source_space, 'sample', pos=7.0,
                   sphere=[1., 1.], mri=fname_mri,  # bad sphere
                   subjects_dir=subjects_dir)
 
@@ -294,7 +295,7 @@ def test_other_volume_source_spaces():
     run_subprocess(['mne_volume_source_space',
                     '--grid', '7.0',
                     '--src', temp_name])
-    assert_raises(ValueError, read_source_spaces, temp_name)
+    pytest.raises(ValueError, read_source_spaces, temp_name)
 
 
 @testing.requires_testing_data
@@ -310,8 +311,8 @@ def test_triangle_neighbors():
     this['neighbor_tri'] = [np.array(nb, int) for nb in this['neighbor_tri']]
 
     neighbor_tri = _triangle_neighbors(this['tris'], this['np'])
-    assert_true(np.array_equal(nt1, nt2)
-                for nt1, nt2 in zip(neighbor_tri, this['neighbor_tri']))
+    assert all(np.array_equal(nt1, nt2)
+               for nt1, nt2 in zip(neighbor_tri, this['neighbor_tri']))
 
 
 def test_accumulate_normals():
@@ -347,15 +348,15 @@ def test_setup_source_space():
     fname_ico = op.join(data_path, 'subjects', 'fsaverage', 'bem',
                         'fsaverage-ico-5-src.fif')
     # first lets test some input params
-    assert_raises(ValueError, setup_source_space, 'sample', spacing='oct',
+    pytest.raises(ValueError, setup_source_space, 'sample', spacing='oct',
                   add_dist=False, subjects_dir=subjects_dir)
-    assert_raises(ValueError, setup_source_space, 'sample', spacing='octo',
+    pytest.raises(ValueError, setup_source_space, 'sample', spacing='octo',
                   add_dist=False, subjects_dir=subjects_dir)
-    assert_raises(ValueError, setup_source_space, 'sample', spacing='oct6e',
+    pytest.raises(ValueError, setup_source_space, 'sample', spacing='oct6e',
                   add_dist=False, subjects_dir=subjects_dir)
-    assert_raises(ValueError, setup_source_space, 'sample', spacing='7emm',
+    pytest.raises(ValueError, setup_source_space, 'sample', spacing='7emm',
                   add_dist=False, subjects_dir=subjects_dir)
-    assert_raises(ValueError, setup_source_space, 'sample', spacing='alls',
+    pytest.raises(ValueError, setup_source_space, 'sample', spacing='alls',
                   add_dist=False, subjects_dir=subjects_dir)
 
     # ico 5 (fsaverage) - write to temp file
@@ -386,11 +387,11 @@ def test_setup_source_space():
     # all source points - no file writing
     src_new = setup_source_space('sample', spacing='all',
                                  subjects_dir=subjects_dir, add_dist=False)
-    assert_true(src_new[0]['nuse'] == len(src_new[0]['rr']))
-    assert_true(src_new[1]['nuse'] == len(src_new[1]['rr']))
+    assert src_new[0]['nuse'] == len(src_new[0]['rr'])
+    assert src_new[1]['nuse'] == len(src_new[1]['rr'])
 
     # dense source space to hit surf['inuse'] lines of _create_surf_spacing
-    assert_raises(RuntimeError, setup_source_space, 'sample',
+    pytest.raises(RuntimeError, setup_source_space, 'sample',
                   spacing='ico6', subjects_dir=subjects_dir, add_dist=False)
 
 
@@ -406,14 +407,14 @@ def test_read_source_spaces():
     rh_points = src[1]['rr']
     rh_faces = src[1]['tris']
     rh_use_faces = src[1]['use_tris']
-    assert_true(lh_faces.min() == 0)
-    assert_true(lh_faces.max() == lh_points.shape[0] - 1)
-    assert_true(lh_use_faces.min() >= 0)
-    assert_true(lh_use_faces.max() <= lh_points.shape[0] - 1)
-    assert_true(rh_faces.min() == 0)
-    assert_true(rh_faces.max() == rh_points.shape[0] - 1)
-    assert_true(rh_use_faces.min() >= 0)
-    assert_true(rh_use_faces.max() <= rh_points.shape[0] - 1)
+    assert lh_faces.min() == 0
+    assert lh_faces.max() == lh_points.shape[0] - 1
+    assert lh_use_faces.min() >= 0
+    assert lh_use_faces.max() <= lh_points.shape[0] - 1
+    assert rh_faces.min() == 0
+    assert rh_faces.max() == rh_points.shape[0] - 1
+    assert rh_use_faces.min() >= 0
+    assert rh_use_faces.max() <= rh_points.shape[0] - 1
 
 
 @pytest.mark.slowtest
@@ -517,15 +518,15 @@ def test_source_space_from_label():
 
     # Test pos as dict
     pos = dict()
-    assert_raises(ValueError, setup_volume_source_space, 'sample', pos=pos,
+    pytest.raises(ValueError, setup_volume_source_space, 'sample', pos=pos,
                   volume_label=volume_label, mri=aseg_fname)
 
     # Test no mri provided
-    assert_raises(RuntimeError, setup_volume_source_space, 'sample', mri=None,
+    pytest.raises(RuntimeError, setup_volume_source_space, 'sample', mri=None,
                   volume_label=volume_label)
 
     # Test invalid volume label
-    assert_raises(ValueError, setup_volume_source_space, 'sample',
+    pytest.raises(ValueError, setup_volume_source_space, 'sample',
                   volume_label='Hello World!', mri=aseg_fname)
 
     src = setup_volume_source_space('sample', subjects_dir=subjects_dir,
@@ -615,32 +616,32 @@ def test_combine_source_spaces():
 
     # test that all source spaces are in MRI coordinates
     coord_frames = np.array([s['coord_frame'] for s in src])
-    assert_true((coord_frames == FIFF.FIFFV_COORD_MRI).all())
+    assert (coord_frames == FIFF.FIFFV_COORD_MRI).all()
 
     # test errors for export_volume
     image_fname = op.join(tempdir, 'temp-image.mgz')
 
     # source spaces with no volume
-    assert_raises(ValueError, srf.export_volume, image_fname, verbose='error')
+    pytest.raises(ValueError, srf.export_volume, image_fname, verbose='error')
 
     # unrecognized source type
     disc2 = disc.copy()
     disc2[0]['type'] = 'kitty'
     src_unrecognized = src + disc2
-    assert_raises(ValueError, src_unrecognized.export_volume, image_fname,
+    pytest.raises(ValueError, src_unrecognized.export_volume, image_fname,
                   verbose='error')
 
     # unrecognized file type
     bad_image_fname = op.join(tempdir, 'temp-image.png')
     # vertices outside vol space warning
-    assert_raises(ValueError, src.export_volume, bad_image_fname,
+    pytest.raises(ValueError, src.export_volume, bad_image_fname,
                   verbose='error')
 
     # mixed coordinate frames
     disc3 = disc.copy()
     disc3[0]['coord_frame'] = 10
     src_mixed_coord = src + disc3
-    assert_raises(ValueError, src_mixed_coord.export_volume, image_fname,
+    pytest.raises(ValueError, src_mixed_coord.export_volume, image_fname,
                   verbose='error')
 
 
@@ -697,7 +698,7 @@ def test_morphed_source_space_return():
     # These will not match perfectly because morphing pushes data around
     corr = np.corrcoef(stc_morph_return.data[:, 0],
                        stc_morph_morph.data[:, 0])[0, 1]
-    assert_true(corr > 0.99, corr)
+    assert corr > 0.99, corr
 
     # Explicitly test having two vertices map to the same target vertex. We
     # simulate this by having two vertices be at the same position.
@@ -709,18 +710,18 @@ def test_morphed_source_space_return():
 
     # Degenerate cases
     stc_morph.subject = None  # no .subject provided
-    assert_raises(ValueError, stc_morph.to_original_src,
+    pytest.raises(ValueError, stc_morph.to_original_src,
                   src_fs, subject_orig='fsaverage', subjects_dir=subjects_dir)
     stc_morph.subject = 'sample'
     del src_fs[0]['subject_his_id']  # no name in src_fsaverage
-    assert_raises(ValueError, stc_morph.to_original_src,
+    pytest.raises(ValueError, stc_morph.to_original_src,
                   src_fs, subjects_dir=subjects_dir)
     src_fs[0]['subject_his_id'] = 'fsaverage'  # name mismatch
-    assert_raises(ValueError, stc_morph.to_original_src,
+    pytest.raises(ValueError, stc_morph.to_original_src,
                   src_fs, subject_orig='foo', subjects_dir=subjects_dir)
     src_fs[0]['subject_his_id'] = 'sample'
     src = read_source_spaces(fname)  # wrong source space
-    assert_raises(RuntimeError, stc_morph.to_original_src,
+    pytest.raises(RuntimeError, stc_morph.to_original_src,
                   src, subjects_dir=subjects_dir)
 
 
