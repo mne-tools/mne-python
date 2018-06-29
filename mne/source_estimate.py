@@ -348,7 +348,7 @@ def read_source_estimate(fname, subject=None):
                            'subject name from the file "%s'
                            % (subject, kwargs['subject']))
 
-    if ftype == 'volume':
+    if ftype in ('volume', 'discrete'):
         stc = VolSourceEstimate(**kwargs)
     elif ftype == 'mixed':
         stc = MixedSourceEstimate(**kwargs)
@@ -373,7 +373,7 @@ def _get_src_type(src, vertices):
             src_type = 'mixed'
     else:
         src_type = src.kind
-    assert src_type in ['surface', 'volume', 'mixed']
+    assert src_type in ('surface', 'volume', 'mixed', 'discrete')
     return src_type
 
 
@@ -405,7 +405,7 @@ def _make_stc(data, vertices, src=None, tmin=None, tstep=None, subject=None,
         else:
             stc = SourceEstimate(data, vertices=vertices, tmin=tmin,
                                  tstep=tstep, subject=subject)
-    elif src_type == 'volume':
+    elif src_type in ('volume', 'discrete'):
         if vector:
             data = data.reshape((-1, 3, data.shape[-1]))
         stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
