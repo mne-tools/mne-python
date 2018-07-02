@@ -1529,7 +1529,8 @@ class AverageTFR(_BaseTFR):
                 if layout is None:
                     pos = new_pos
                 shape = data[picks].shape
-                data = _merge_grad_data(data[picks], method=combine)
+                method = combine or 'rms'
+                data = _merge_grad_data(data[picks], method=method)
                 data = data.reshape((data.shape[0], shape[1], shape[2]))
 
             all_pos.append(pos)
