@@ -1184,7 +1184,14 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     if not show_names:
         names = None
 
-    data = tfr.data
+    data = tfr.data[picks, :, :]
+
+    # merging grads before rescaling makes ERDs visible
+    if merge_grads:
+        from ..channels.layout import _merge_grad_data
+        data, shape = _merge_grad_data(data), data.shape
+        data = data.reshape((data.shape[0], shape[1], shape[2]))
+
     data = rescale(data, tfr.times, baseline, mode, copy=True)
 
     # crop time
@@ -1203,12 +1210,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     if fmax is not None:
         ifmax = idx[-1] + 1
 
-    data = data[picks, ifmin:ifmax, itmin:itmax]
+    data = data[:, ifmin:ifmax, itmin:itmax]
     data = np.mean(np.mean(data, axis=2), axis=1)[:, np.newaxis]
-
-    if merge_grads:
-        from ..channels.layout import _merge_grad_data
-        data = _merge_grad_data(data)
 
     norm = False if np.min(data) < 0 else True
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)

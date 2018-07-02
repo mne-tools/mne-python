@@ -1480,7 +1480,7 @@ class AverageTFR(_BaseTFR):
         ############
 
         from ..viz import plot_topomap
-        titles, all_data, vlims = [], [], []
+        titles, all_data, all_pos, vlims = [], [], [], []
 
         # the structure here is a bit complicated to allow aggregating vlims
         # over all topomaps. First, one loop over all timefreqs to collect
@@ -1511,9 +1511,33 @@ class AverageTFR(_BaseTFR):
             fmin = freq - freq_half_range
             fmax = freq + freq_half_range
 
+            data = tfr.data
+
+            if layout is None:
+                from ..channels.layout import find_layout
+                pos = find_layout(tfr.info).pos
+            else:
+                pos = layout.pos
+
+            # merging grads here before rescaling makes ERDs visible
+            if ch_type == 'grad':
+                from ..channels.layout import find_layout
+                from ..channels.layout import _merge_grad_data
+                from ..channels.layout import _pair_grad_sensors
+                info = tfr.info
+                picks, new_pos = _pair_grad_sensors(info, find_layout(info))
+                if layout is None:
+                    pos = new_pos
+                shape = data[picks].shape
+                data = _merge_grad_data(data[picks], method=combine)
+                data = data.reshape((data.shape[0], shape[1], shape[2]))
+
+            all_pos.append(pos)
+
             data, times, freqs, _, _ = _preproc_tfr(
-                tfr.data, tfr.times, tfr.freqs, tmin, tmax, fmin, fmax,
-                None, None, vmin, vmax, None, tfr.info['sfreq'])
+                data, tfr.times, tfr.freqs, tmin, tmax, fmin, fmax,
+                mode, baseline, vmin, vmax, None, tfr.info['sfreq'])
+
             vlims.append(np.abs(data).max())
             titles.append(sub_map_title)
             all_data.append(data)
@@ -1529,10 +1553,9 @@ class AverageTFR(_BaseTFR):
             vmin, vmax, topomap_args_pass["contours"])
         topomap_args_pass['contours'] = contours
 
-        for ax, title, data in zip(map_ax, titles, all_data):
+        for ax, title, data, pos in zip(map_ax, titles, all_data, all_pos):
             ax.set_title(title)
-            plot_topomap(data.mean(-1).mean(-1),
-                         tfr.info if layout is None else layout.pos,
+            plot_topomap(data.mean(-1).mean(-1), pos,
                          cmap=cmap[0], axes=ax, show=False,
                          **topomap_args_pass)
 
