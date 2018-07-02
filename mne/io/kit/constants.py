@@ -133,7 +133,7 @@ KIT.DIG_POINTS = 10000
 # Known KIT systems
 # -----------------
 # KIT recording system is encoded in the SQD file as integer:
-KIT.SYSTEM_MQ_ADULT = 345 # Macquarie Dept of Cognitive Science, 2006 -
+KIT.SYSTEM_MQ_ADULT = 345  # Macquarie Dept of Cognitive Science, 2006 -
 KIT.SYSTEM_AS = 260  # Academia Sinica at Taiwan
 KIT.SYSTEM_AS_2008 = 261  # Academia Sinica, 2008 or 2009 -
 KIT.SYSTEM_NYU_2008 = 32  # NYU-NY, July 7, 2008 -
