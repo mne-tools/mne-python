@@ -955,7 +955,7 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind='within'):
             p_thresh = 0.05
             dfn = len(X) - 1
             dfd = np.sum([len(x) for x in X]) - len(X)
-            threshold = ppf(1. - p_thresh, dfn=dfn, dfd=dfd)
+            threshold = ppf(1. - p_thresh, dfn, dfd)
             logger.info("Using a threshold of {:.6f}".format(threshold))
         stat_fun = f_oneway if stat_fun is None else stat_fun
     return stat_fun, threshold
