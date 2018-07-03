@@ -460,7 +460,7 @@ def _find_kit_layout(info, n_grads):
     Returns
     -------
     kit_layout : str
-        One of 'KIT-AD', 'KIT-157' or 'KIT-UMD'.
+        One of 'KIT-AD', 'KIT-157', 'KIT-160', or 'KIT-UMD'.
     """
     if info['kit_system_id'] is not None:
         # avoid circular import
@@ -473,7 +473,10 @@ def _find_kit_layout(info, n_grads):
         raise NotImplementedError("The layout for the KIT system with ID %i "
                                   "is missing. Please contact the developers "
                                   "about adding it." % info['kit_system_id'])
-    elif n_grads > 157:
+    elif n_grads == 160:
+        return 'KIT-160'
+        
+    elif n_grads > 157 and n_grads != 160:
         return 'KIT-AD'
 
     # channels which are on the left hemisphere for NY and right for UMD
