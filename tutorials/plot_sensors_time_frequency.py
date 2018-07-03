@@ -107,10 +107,10 @@ power.plot([82], baseline=(-0.5, 0), mode='logratio', title=power.ch_names[82])
 fig, axis = plt.subplots(1, 2, figsize=(7, 4))
 power.plot_topomap(ch_type='grad', tmin=0.5, tmax=1.5, fmin=8, fmax=12,
                    baseline=(-0.5, 0), mode='logratio', axes=axis[0],
-                   title='Alpha', vmax=0.45, show=False)
+                   title='Alpha', show=False)
 power.plot_topomap(ch_type='grad', tmin=0.5, tmax=1.5, fmin=13, fmax=25,
                    baseline=(-0.5, 0), mode='logratio', axes=axis[1],
-                   title='Beta', vmax=0.45, show=False)
+                   title='Beta', show=False)
 mne.viz.tight_layout()
 plt.show()
 
