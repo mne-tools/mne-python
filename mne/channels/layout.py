@@ -475,7 +475,7 @@ def _find_kit_layout(info, n_grads):
                                   "about adding it." % info['kit_system_id'])
     elif n_grads == 160:
         return 'KIT-160'
-        
+
     elif n_grads > 157:
         return 'KIT-AD'
 
