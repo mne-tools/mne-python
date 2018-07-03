@@ -41,26 +41,28 @@ print(__doc__)
 #     association among groups.
 #
 # We typically want to reject a **null hypothesis** with
-# some probability level (e.g., p < 0.05).
+# some probability (e.g., p < 0.05). This probability is also called the
+# significance level :math:`\alpha`.
 # To think about what this means, let's follow the illustrative example from
 # [1]_ and construct a toy dataset consisting of a 40 x 40 square with a
 # "signal" present in the center (at pixel [20, 20]) with white noise
-# added and a 5-pixel-SD normal smoothing kernel applied.
+# added and a Gaussian smoothing kernel applied.
 width = 40
 n_subjects = 10
 signal_mean = 100
 signal_sd = 100
 noise_sd = 0.01
 gaussian_sd = 5
+alpha = 0.05
 sigma = 1e-3  # sigma for the "hat" method
-threshold = -stats.distributions.t.ppf(0.05, n_subjects - 1)
+threshold = stats.distributions.t.ppf(1 - alpha, n_subjects - 1)
 n_permutations = 'all'  # run an exact test
 n_src = width * width
 
 # For each "subject", make a smoothed noisy signal with a centered peak
 rng = np.random.RandomState(42)
 X = noise_sd * rng.randn(n_subjects, width, width)
-# Add a signal at the dead center
+# Add a signal at the center
 X[:, width // 2, width // 2] = signal_mean + rng.randn(n_subjects) * signal_sd
 # Spatially smooth with a 2D Gaussian kernel
 size = width // 2 - 1
@@ -75,39 +77,38 @@ for si in range(X.shape[0]):
 # In this case, a null hypothesis we could test for each voxel is:
 #
 #     There is no difference between the mean value and zero
-#     (:math:`H_0: \mu = 0`).
+#     (:math:`H_0 \colon \mu = 0`).
 #
 # The alternative hypothesis, then, is that the voxel has a non-zero mean.
-# This is a *two-tailed test* because the mean could be less than
-# or greater than zero (whereas a *one-tailed test* would test only one of
-# these possibilities, i.e. :math:`H_0: \mu \geq 0` or
-# :math:`H_0: \mu \leq 0`).
+# This is a *two-tailed* test because the mean could be less than
+# or greater than zero (whereas a *one-tailed* test would test only one of
+# these possibilities, i.e. :math:`H_0 \colon \mu \geq 0` or
+# :math:`H_0 \colon \mu \leq 0`).
 #
 # .. note:: Here we will refer to each spatial location as a "voxel".
-#           In general, though, it could be any sort of data value
-#           (e.g., cortical vertex at a specific time, pixel in a
-#           time-frequency decomposition, etc.).
+#           In general, though, it could be any sort of data value,
+#           including cortical vertex at a specific time, pixel in a
+#           time-frequency decomposition, etc.
 #
 # Parametric tests
 # ^^^^^^^^^^^^^^^^
 # Let's start with a **1-sample t-test**, which is a standard test
 # for differences in paired sample means. This test is **parametric**,
-# as it assumes that the underlying sample distribution is Gaussian, and is
-# only valid in this case. (This happens to be satisfied by our toy dataset,
-# but is not always satisfied for neuroimaging data.)
+# because it assumes that the underlying sample distribution is Gaussian, and
+# is only valid in this case. This happens to be satisfied by our toy dataset,
+# but is not always satisfied for neuroimaging data.
 #
-# In the context of our toy dataset, which has many voxels, applying the
-# 1-sample t-test is called a *mass-univariate* approach as it treats
-# each voxel independently.
+# In the context of our toy dataset, which has many voxels
+# (:math:``40 \cdot 40 = 1600`), applying the 1-sample t-test is called a
+# *mass-univariate* approach as it treats each voxel independently.
 
-titles = ['t-statistic']
+titles = ['1-sample t-tests']
 out = stats.ttest_1samp(X, 0, axis=0)
 ts = [out[0]]
 ps = [out[1]]
 mccs = [False]  # these are not multiple-comparisons corrected
 
 
-# let's make a plotting function
 def plot_t_p(t, p, title, mcc, axes=None):
     if axes is None:
         fig = plt.figure(figsize=(6, 3))
@@ -159,13 +160,13 @@ def plot_t_p(t, p, title, mcc, axes=None):
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
 ###############################################################################
-# "hat" variance adjustment
+# "Hat" variance adjustment
 # ~~~~~~~~~~~~~~~~~~~~~~~~~
 # The "hat" technique regularizes the variance values used in the t-test
 # calculation [1]_ to compensate for implausibly small variances.
 ts.append(ttest_1samp_no_p(X, sigma=sigma))
 ps.append(stats.distributions.t.sf(np.abs(ts[-1]), len(X) - 1) * 2)
-titles.append('$\mathrm{t_{hat}}$')
+titles.append('1-sample t-tests with "hat" variance adjustment')
 mccs.append(False)
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
