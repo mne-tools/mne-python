@@ -21,15 +21,16 @@ from .utils import logger, verbose, get_subjects_dir, warn as warn_
 
 class SourceMorph:
     """Container for source estimate morphs.
+
     Parameters
     ----------
-    src : SourceSpaces
+    src : instance of SourceSpaces
         Information about the respective source space, with src being the
         corresponding list of SourceSpaces
-    subject_from : string | None
+    subject_from : str | None
         Name of the original subject as named in the SUBJECTS_DIR.
         If None src[0]['subject]' will be used.
-    subject_to : string
+    subject_to : str
         Name of the subject on which to morph as named in the SUBJECTS_DIR
         The default is 'fsaverage'.
     data_from : array | list of two arrays | str | None
@@ -44,7 +45,7 @@ class SourceMorph:
         If morphing a volume source estimate data_to is the absolute path
         where subject_to/mri/brain.mgz is stored
         If None data_to will be found through subject_to if present
-    subjects_dir : string, or None
+    subjects_dir : str, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     **options : **kwargs
         Keyword arguments for the respective morphing function. For surface
@@ -58,9 +59,9 @@ class SourceMorph:
     subjects_dir : str
         The path to the FreeSurfer subjects reconstructions.
         It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
-    subject_from : string
+    subject_from : str
         Name of the subject from which to morph as named in the SUBJECTS_DIR
-    subject_to : string
+    subject_to : str
         Name of the subject to which to morph as named in the SUBJECTS_DIR
     vol_info : dict
         Information about reference volumes for volumetric morph. Additional
@@ -232,7 +233,7 @@ class SourceMorph:
 
         Parameters
         ----------
-        fname : string
+        fname : str
             The stem of the file name. '-morph.h5' will be added
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
@@ -284,7 +285,7 @@ def read_source_morph(fname, verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         Full filename including path
     verbose : bool, str, int, or None
         If not None, override default verbose level (see
@@ -471,9 +472,9 @@ def compute_morph_sdr(mri_from, mri_to,
 
     Parameters
     ----------
-    mri_from : string | Nifti1Image
+    mri_from : str | Nifti1Image
         Path to source subject's anatomical MRI or Nifti1Image
-    mri_to : string | Nifti1Image
+    mri_to : str | Nifti1Image
         Path to destination subject's anatomical MRI or Nifti1Image
     niter_affine : tuple of int
         Number of levels (``niter_affine.__len__()``) and number per level of
@@ -799,9 +800,9 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
 
     Parameters
     ----------
-    subject_from : string
+    subject_from : str
         Name of the original subject as named in the SUBJECTS_DIR.
-    subject_to : string
+    subject_to : str
         Name of the subject on which to morph as named in the SUBJECTS_DIR.
     vertices_from : list of arrays of int
         Vertices for each hemisphere (LH, RH) for subject_from.
@@ -811,7 +812,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         Number of iterations for the smoothing of the surface data.
         If None, smooth is automatically defined to fill the surface
         with non-zero values.
-    subjects_dir : string
+    subjects_dir : str
         Path to SUBJECTS_DIR is not set in the environment.
     warn : bool
         If True, warn if not all vertices were used.
