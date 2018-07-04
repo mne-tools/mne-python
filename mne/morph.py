@@ -11,8 +11,10 @@ from scipy import sparse
 from scipy.sparse import block_diag as sparse_block_diag
 
 from .externals.h5io import read_hdf5, write_hdf5
-from .source_estimate import (VolSourceEstimate, SourceSpaces, SourceEstimate,
+from .externals.six import string_types
+from .source_estimate import (VolSourceEstimate, SourceEstimate,
                               VectorSourceEstimate)
+from .source_space import SourceSpaces
 from .surface import read_surface, read_morph_map, mesh_edges
 from .utils import logger, verbose, get_subjects_dir, warn as warn_
 
@@ -21,10 +23,15 @@ class SourceMorph:
     """Container for source estimate morphs.
     Parameters
     ----------
-    subject_from : string
-        Name of the original subject as named in the SUBJECTS_DIR
+    src : SourceSpaces
+        Information about the respective source space, with src being the
+        corresponding list of SourceSpaces
+    subject_from : string | None
+        Name of the original subject as named in the SUBJECTS_DIR.
+        If None src[0]['subject]' will be used.
     subject_to : string
         Name of the subject on which to morph as named in the SUBJECTS_DIR
+        The default is 'fsaverage'.
     data_from : array | list of two arrays | str | None
         If morphing a surface source estimate, data_from is the
         Vertex numbers corresponding to the data.
@@ -37,14 +44,6 @@ class SourceMorph:
         If morphing a volume source estimate data_to is the absolute path
         where subject_to/mri/brain.mgz is stored
         If None data_to will be found through subject_to if present
-    src : str | SourceSpaces
-        Information about the respective source space.
-        If morphing a surface source estimate, src='surf' (default)
-        If morphing a volume source estimate, src=src with src being the
-        corresponding list of SourceSpaces
-    fname : str | None
-        If not None, a previously saved morpher will be loaded. fname has to be
-        an absolute path.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     **options : **kwargs
@@ -60,9 +59,9 @@ class SourceMorph:
         The path to the FreeSurfer subjects reconstructions.
         It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
     subject_from : string
-        Name of the original subject as named in the SUBJECTS_DIR
+        Name of the subject from which to morph as named in the SUBJECTS_DIR
     subject_to : string
-        Name of the subject on which to morph as named in the SUBJECTS_DIR
+        Name of the subject to which to morph as named in the SUBJECTS_DIR
     vol_info : dict
         Information about reference volumes for volumetric morph. Additional
         information required to transform volume source estimate into
@@ -70,8 +69,6 @@ class SourceMorph:
     src_info : dict
         Information required to transform volume source estimate into
         Nifti1Image using as_volume
-    surf_info : dict
-        The shape of the data. A tuple of int (n_dipoles, n_times).
     morph_data : Trans | dict
         If morphing a surface source estimate , morph_data is an instance
         of Trans to morph the data
@@ -92,51 +89,66 @@ class SourceMorph:
     """
 
     # initialize and pre-compute morph
-    def __init__(self, subject_from, subject_to, data_from=None, data_to=None,
-                 src='surf',
-                 fname=None,
-                 subjects_dir=None,
-                 **options):
+    def __init__(self, src, subject_from=None, subject_to='fsaverage',
+                 data_from=None, data_to=None, subjects_dir=None, **options):
+        self.type = None
+
+        if isinstance(src, string_types):
+            from mne import read_forward_solution
+            try:
+                src = read_forward_solution(src)['src']
+            except IOError:
+                IOError('cannot locate file: ' + src)
 
         # Set attributes
-        self.type = src
+
         if isinstance(src, SourceSpaces):
-            self.type = src[0]['type']
+            self.type = src.kind
+
+        if subject_from is None:
+            subject_from = src[0]['subject_his_id']
 
         self.subjects_dir = subjects_dir
         self.subject_from = subject_from
         self.subject_to = subject_to
-        self.vol_info = dict()
         self.src_info = dict()
-        self.surf_info = dict()
-        self.morph_data = dict()
+        self.vol_info = dict()
         self.options = options
 
-        if fname is not None:
-            self.load(fname)
-            return
         # VolSourceEstimate
-        if self.type == 'vol':
-
+        if self.type == 'volume':
+            logger.info('volume source space inferred...')
             try:
                 import nibabel as nib
             except ImportError:
                 raise ImportError(
-                    "nibabel is required to laod volume images.")
+                    "nibabel is required to load volume images.")
 
             self.vol_info = dict({'mri_from': dict(), 'mri_to': dict()})
 
             # use subject or manually defined volume
             if data_from is not None:
-                mri_from = nib.load(data_from)
+                mri_path_from = data_from
             else:
-                mri_from = nib.load(
-                    subjects_dir + '/' + subject_from + '/mri/brain.mgz')
+                mri_path_from = self.subjects_dir + '/' + self.subject_from
+                mri_path_from += '/mri/brain.mgz'
+            try:
+                logger.info(
+                    'loading ' + mri_path_from + ' as moving volume...')
+                mri_from = nib.load(mri_path_from)
+            except IOError:
+                raise IOError('cannot locate file: ' + mri_path_from)
+
             if data_to is not None:
-                mri_to = nib.load(data_to)
+                mri_path_to = data_to
             else:
-                mri_to = nib.load(
-                    subjects_dir + '/' + subject_to + '/mri/brain.mgz')
+                mri_path_to = self.subjects_dir + '/' + self.subject_to
+                mri_path_to += '/mri/brain.mgz'
+            try:
+                logger.info('loading ' + mri_path_to + ' as static volume...')
+                mri_to = nib.load(mri_path_to)
+            except IOError:
+                raise IOError('cannot locate file: ' + mri_path_to)
 
             # get MRI meta data from both reference volumes
             self.vol_info['mri_from']['shape'] = mri_from.shape
@@ -153,7 +165,8 @@ class SourceMorph:
             self.src_info['zooms'] = tuple(np.asanyarray(
                 self.vol_info['mri_from']['shape'][:3]).astype(
                 'float') / np.asanyarray(self.src_info['shape'][:3]))
-            self.src_info['zooms_mri'] = self.vol_info['mri_from']['zooms']
+            self.src_info['zooms_mri'] = self.vol_info['mri_from'][
+                'zooms']
             self.src_info['affine'] = src[0]['vox_mri_t']['trans']
             self.src_info['mri_ras_t'] = src[0]['mri_ras_t']['trans']
             self.src_info['interpolator'] = src[0]['interpolator']
@@ -163,55 +176,55 @@ class SourceMorph:
             self.morph_data = compute_morph_sdr(mri_from, mri_to,
                                                 **self.options)
         # SourceEstimate | MixedSourceEstimate
-        if self.type == 'surf':
+        elif self.type == 'surface':
+            logger.info('surface source space inferred...')
+
             # get surface data
-            self.surf_info = dict()
-            self.surf_info['vertices_from'] = data_from
-            self.surf_info['vertices_to'] = data_to
+            if data_from is None:
+                data_from = []
+                for s in src:
+                    data_from.append(s['vertno'])
+
+            if data_to is None and subject_to == 'fsaverage':
+                data_to = [np.arange(10242)] * len(data_from)
 
             # pre-compute morph
             self.morph_data = compute_morph_matrix(
-                self.subject_from,
-                self.subject_to,
-                data_from,
-                data_to,
+                subject_from=self.subject_from,
+                subject_to=self.subject_to,
+                vertices_from=data_from,
+                vertices_to=data_to,
                 subjects_dir=self.subjects_dir,
                 **self.options)
+            self.src_info['vertno'] = data_to
+        else:
+            return
 
-    def __call__(self, data_from):
-        """Morph data"""
-        data_to = apply_morph(data_from, self, **self.options)
-        if self.type == 'vol':
-            update_src_vol_info(self, self.morph_data)
-        data_to.subject = self.subject_to
-        return data_to
-
-    @verbose
-    def load(self, fname, verbose=None):
-        """Load the morph for source estimates from a file.
+    def __call__(self, stc_from):
+        """Morph data
 
         Parameters
         ----------
-        fname : string
-            Full filename including path
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        stc_from : VolSourceEstimate | SourceEstimate | VectorSourceEstimate
+            The source estimate to morph.
+
+        Returns
+        -------
+        stc_to : VolSourceEstimate | SourceEstimate | VectorSourceEstimate
+            The morphed source estimate.
         """
-        logger.info('loading morph...')
-        morph = read_hdf5(fname)
-        self.subject_from = morph['subject_from']
-        self.subject_to = morph['subject_to']
-        self.subjects_dir = morph['subjects_dir']
-        self.type = morph['type']
-        self.src_info = morph['src_info']
-        self.morph_data = morph['morph_data']
-        self.options = morph['options']
-        self.vol_info = morph['vol_info']
-        self.src_info = morph['src_info']
-        self.surf_info = morph['surf_info']
-        logger.info('[done]')
+        if stc_from.subject is not None \
+                and stc_from.subject != self.subject_from:
+            raise ValueError('stc_from.subject and '
+                             'morpher.subject_from must match')
+
+        stc_to = _apply_morph(stc_from, self)
+
+        if self.type == 'volume':
+            _update_src_vol_info(self, self.morph_data)
+
+        stc_to.subject = self.subject_to
+        return stc_to
 
     @verbose
     def save(self, fname, verbose=None):
@@ -235,42 +248,79 @@ class SourceMorph:
                    overwrite=True)
         logger.info('[done]')
 
-    def as_volume(self, stc, shape=None, affine=None, zooms=None,
-                  new_zooms=None, fname=None, mri_resolution=False):
+    def as_volume(self, stc, fname=None, mri_resolution=False):
         """Return volume source space as Nifti1Image and or save
 
         Parameters
         ----------
-        stc : VolSourceEstimate | SourceEstimate | VectorSourceEstimate
-            Data to be transformed
-        shape : tuple | None
-            Shape of the volume the data projects to
-        affine : ndarray | None
-            MRI to world transformation
-        zooms : tuple | None
-            Current voxel size
-        new_zooms : tuple | None
-            Output volume voxel size.
+        stc : VolSourceEstimate
+            Data to be transformed into NIfTI
         fname : str | None
             String to where to save the volume. If not None that volume will
             be saved at fname.
-        mri_resolution : bool
-            Whether to use MRI resolution
+        mri_resolution : bool | tuple
+            Whether to use MRI resolution. If False the morpher's resolution
+            will be used. If tuple the voxel size must be given in float values
+            in mm. E.g. mri_resolution=(3., 3., 3.)
 
         Returns
         -------
         img : instance of Nifti1Image
             The image object.
         """
-        return stc_as_volume(stc, self, shape=shape, affine=affine,
-                             zooms=zooms, new_zooms=new_zooms, fname=fname,
+
+        if not isinstance(stc, (SourceEstimate, VolSourceEstimate,
+                                VectorSourceEstimate)):
+            raise ValueError('Please provide valid source estimate')
+
+        return stc_as_volume(stc, self, shape=None, affine=None,
+                             zooms=None, fname=fname,
                              mri_resolution=mri_resolution)
+
+
+@verbose
+def read_source_morph(fname, verbose=None):
+    """Load the morph for source estimates from a file.
+
+    Parameters
+    ----------
+    fname : string
+        Full filename including path
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see
+        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+        for more). Defaults to self.verbose.
+
+    Returns
+    -------
+    source_morph : instance of SourceMorph
+        The loaded morph.
+    """
+    try:
+        logger.info('loading morph...')
+        morph_data = read_hdf5(fname)
+    except IOError:
+        raise IOError('cannot locate file: ' + fname)
+
+    source_morph = SourceMorph(None)
+    source_morph.subject_from = morph_data['subject_from']
+    source_morph.subject_to = morph_data['subject_to']
+    source_morph.subjects_dir = morph_data['subjects_dir']
+    source_morph.type = morph_data['type']
+    source_morph.src_info = morph_data['src_info']
+    source_morph.morph_data = morph_data['morph_data']
+    source_morph.options = morph_data['options']
+    source_morph.vol_info = morph_data['vol_info']
+    logger.info('[done]')
+    return source_morph
 
 
 ###############################################################################
 # Make Nifti1Image
-def update_src_vol_info(self, vol_info):
+
+def _update_src_vol_info(self, vol_info):
     """Update information needed for as_volume"""
+
     self.src_info['shape'] = vol_info['shape']
     self.src_info['affine'] = vol_info['affine']
     self.src_info['zooms'] = vol_info['zooms']
@@ -278,6 +328,8 @@ def update_src_vol_info(self, vol_info):
 
 
 def _interpolate_data(stc, morpher):
+    """Interpolate source estimate data to MRI"""
+
     n_times = stc.data.shape[1]
     shape = morpher.src_info['shape']
     shape3d = shape
@@ -325,8 +377,8 @@ def _interpolate_data(stc, morpher):
     return img
 
 
-def stc_as_volume(stc, morph, shape=None, affine=None, zooms=None,
-                  new_zooms=None, hdr=None, fname=None, mri_resolution=False):
+def stc_as_volume(stc, morph, shape=None, affine=None, zooms=None, hdr=None,
+                  fname=None, mri_resolution=False):
     """Return volume source space as Nifti1Image and or save
 
     Parameters
@@ -339,13 +391,15 @@ def stc_as_volume(stc, morph, shape=None, affine=None, zooms=None,
         MRI to world transformation
     zooms : tuple | None
         Current voxel size
-    new_zooms : tuple | None
-        Output volume voxel size.
+    hdr : instance of Nifti1Header
+        NIfTI header to use for the output volume
     fname : str | None
         String to where to save the volume. If not None that volume will
         be saved at fname.
-    mri_resolution : bool
-        Whether to use MRI resolution
+    mri_resolution : bool | tuple
+        Whether to use MRI resolution. If False the morpher's resolution
+        will be used. If tuple the voxel size must be given in float values
+        in mm. E.g. mri_resolution=(3., 3., 3.)
 
     Returns
     -------
@@ -353,11 +407,16 @@ def stc_as_volume(stc, morph, shape=None, affine=None, zooms=None,
         The image object.
     """
     try:
-        from dipy.align.reslice import reslice
         import nibabel as nib
     except ImportError:
         raise ImportError(
-            "dipy and nibabel is required to save volume images.")
+            "nibabel is required to save volume images.")
+
+    try:
+        from dipy.align.reslice import reslice
+    except ImportError:
+        raise ImportError(
+            "dipy is required to save volume images.")
 
     if shape is None:
         shape = tuple([int(i) for i in morph.src_info['shape']])
@@ -369,8 +428,14 @@ def stc_as_volume(stc, morph, shape=None, affine=None, zooms=None,
         hdr = nib.nifti1.Nifti1Header()
         hdr.set_xyzt_units('mm', 'msec')
         hdr['pixdim'][4] = 1e3 * stc.tstep
-    if mri_resolution:
-        new_zooms = morph.src_info['zooms_mri']
+
+    if isinstance(mri_resolution, bool):
+        if mri_resolution:
+            new_zooms = morph.src_info['zooms_mri']
+        else:
+            new_zooms = None
+    else:
+        new_zooms = mri_resolution
 
     img = np.zeros(shape).reshape(-1, stc.shape[1])
     img[stc.vertices, :] = stc.data
@@ -401,7 +466,7 @@ def compute_morph_sdr(mri_from, mri_to,
                       niter_affine=(100, 100, 10),
                       niter_sdr=(5, 5, 3),
                       grid_spacing=None,
-                      verbose=None, **kwargs):
+                      verbose=None):
     """Get a matrix that morphs data from one subject to another.
 
     Parameters
@@ -463,12 +528,18 @@ def compute_morph_sdr(mri_from, mri_to,
         """
 
     try:
-        from dipy.align import imaffine, imwarp, metrics, transforms
-        from dipy.align.reslice import reslice
         import nibabel as nib
     except ImportError:
         raise ImportError(
-            "dipy and nibabel is required compute nonlinear "
+            "nibabel is required compute nonlinear "
+            "Symmetric Diffeomorphic Image Registration.")
+
+    try:
+        from dipy.align import imaffine, imwarp, metrics, transforms
+        from dipy.align.reslice import reslice
+    except ImportError:
+        raise ImportError(
+            "dipy is required compute nonlinear "
             "Symmetric Diffeomorphic Image Registration.")
 
     logger.info('Computing nonlinear Symmetric Diffeomorphic Registration...')
@@ -820,33 +891,28 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
 
 ###############################################################################
 # Apply pre-computed morph
-def apply_morph(data_from, morpher, subject_from=None, subject_to=None,
-                **kwargs):
+
+@verbose
+def _apply_morph(stc_from, morpher, verbose=None):
     """Morph a source estimate from one subject to another.
 
     Parameters
     ----------
-    data_from : VolSourceEstimate | VectorSourceEstimate | SourceEstimate
+    stc_from : VolSourceEstimate | VectorSourceEstimate | SourceEstimate
         Data to be morphed
     morpher : SourceMorph
         SourceMorph obtained from SourceMorph(subject_from, subject_to)
-    subject_from : string
-        Name of the subject on which to morph as named in the SUBJECTS_DIR
-    **kwargs : **kwargs
-        Keyword arguments for the respective type of morph
-        (e.g. 'vol' or 'surf')
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     stc_to : VolSourceEstimate | VectorSourceEstimate | SourceEstimate
         Source estimate for the destination subject.
     """
-    if subject_from is None:
-        subject_from = morpher.subject_from
-    if subject_to is None:
-        subject_to = morpher.subject_to
 
-    if morpher.type == 'vol':
+    if morpher.type == 'volume':
 
         try:
             from dipy.align.imwarp import DiffeomorphicMap
@@ -857,7 +923,7 @@ def apply_morph(data_from, morpher, subject_from=None, subject_to=None,
                 "dipy is required to morph volume data.")
 
         # prepare data to be morphed
-        img_to = _interpolate_data(data_from, morpher)
+        img_to = _interpolate_data(stc_from, morpher)
 
         # setup morphers
         affine_morph = AffineMap(None)
@@ -887,15 +953,15 @@ def apply_morph(data_from, morpher, subject_from=None, subject_to=None,
         # create new source estimate
         stc_to = VolSourceEstimate(img_to[vertices, :],
                                    vertices=np.asanyarray(vertices),
-                                   tmin=data_from.tmin,
-                                   tstep=data_from.tstep,
-                                   verbose=data_from.verbose,
-                                   subject=subject_to)
+                                   tmin=stc_from.tmin,
+                                   tstep=stc_from.tstep,
+                                   verbose=stc_from.verbose,
+                                   subject=morpher.subject_to)
 
-    elif morpher.type == 'surf':
+    elif morpher.type == 'surface':
 
         morph_mat = morpher.morph_data
-        vertices_to = morpher.surf_info['vertices_to']
+        vertices_to = morpher.src_info['vertno']
 
         if not sparse.issparse(morph_mat):
             raise ValueError('morph_mat must be a sparse matrix')
@@ -903,32 +969,29 @@ def apply_morph(data_from, morpher, subject_from=None, subject_to=None,
         if not isinstance(vertices_to, list) or not len(vertices_to) == 2:
             raise ValueError('vertices_to must be a list of length 2')
 
-        if not sum(len(v) for v in vertices_to) == morph_mat.shape[0]:
+        if sum(len(v) for v in vertices_to) != morph_mat.shape[0]:
             raise ValueError('number of vertices in vertices_to must match '
                              'morph_mat.shape[0]')
 
-        if not data_from.data.shape[0] == morph_mat.shape[1]:
-            raise ValueError('data_from.data.shape[0] must be the same as '
+        if stc_from.data.shape[0] != morph_mat.shape[1]:
+            raise ValueError('stc_from.data.shape[0] must be the same as '
                              'morph_mat.shape[0]')
 
-        if data_from.subject is not None and data_from.subject != subject_from:
-            raise ValueError('data_from.subject and subject_from must match')
-
-        if isinstance(data_from, VectorSourceEstimate):
+        if isinstance(stc_from, VectorSourceEstimate):
             # Morph the locations of the dipoles, but not their orientation
-            n_verts, _, n_samples = data_from.data.shape
-            data = morph_mat * data_from.data.reshape(n_verts, 3 * n_samples)
+            n_verts, _, n_samples = stc_from.data.shape
+            data = morph_mat * stc_from.data.reshape(n_verts, 3 * n_samples)
             data = data.reshape(morph_mat.shape[0], 3, n_samples)
             stc_to = VectorSourceEstimate(data, vertices=vertices_to,
-                                          tmin=data_from.tmin,
-                                          tstep=data_from.tstep,
-                                          verbose=data_from.verbose,
-                                          subject=subject_to)
+                                          tmin=stc_from.tmin,
+                                          tstep=stc_from.tstep,
+                                          verbose=stc_from.verbose,
+                                          subject=morpher.subject_to)
         else:
-            data = morph_mat * data_from.data
+            data = morph_mat * stc_from.data
             stc_to = SourceEstimate(data, vertices=vertices_to,
-                                    tmin=data_from.tmin,
-                                    tstep=data_from.tstep,
-                                    verbose=data_from.verbose,
-                                    subject=subject_to)
+                                    tmin=stc_from.tmin,
+                                    tstep=stc_from.tstep,
+                                    verbose=stc_from.verbose,
+                                    subject=morpher.subject_to)
     return stc_to
