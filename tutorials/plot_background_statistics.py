@@ -179,35 +179,33 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # is true, we should be able to exchange conditions and not change the
 # distribution of the test statistic.
 #
-# In the case of a 2-tailed paired t-test against 0 (or between two conditions
-# where you have already subtracted them), exchangeability means that we can
-# flip the signs of our data. Therefore, we can construct the
-# **null distribution** values by taking random subsets of samples (subjects),
-# flipping the sign of their data, and recording the resulting statistic
-# absolute value. The absolute value of the statistic evaluated on the
-# veridical data can then be compared to this distribution, and the p-value
-# is simply the proportion of null distribution values that were smaller.
+# In the case of a two-tailed 1-sample t-test (which also tests the difference
+# between two conditions against zero), exchangeability means that we can flip
+# the signs of our data. Therefore, we can construct the **null distribution**
+# values for each voxel by taking random subsets of samples (subjects),
+# flipping the sign of their data, and recording the absolute value of the
+# resulting statistic. The absolute value of the statistic evaluated on the
+# veridical data can then be compared to this distribution, and the p-value is
+# simply the proportion of null distribution values that were smaller.
 #
 # .. note:: In the case where ``n_permutations`` is large enough (or "all") so
 #           that the complete set of unique resampling exchanges can be done
-#           (which is :math:`2^{N_{samp}}-1=1023` for the one-tailed paired
-#           test here, not counting the veridical distribution),
-#           instead of randomly exchanging conditions the null is formed
-#           from using all possible exchanges. This is known as a permutation
-#           test (or exact test) form of a non-parametric resampling test.
+#           (which is :math:`2^{N_{samp}}-1` for a one-tailed and
+#           :math:`2^{N_{samp}-1}-1` for a two-tailed test, not counting the
+#           veridical distribution), instead of randomly exchanging conditions
+#           the null is formed from using all possible exchanges. This is known
+#           as a permutation test (or exact test).
 
 # Here we have to do a bit of gymnastics to get our function to do
 # a permutation test without correcting for multiple comparisons:
 
-# Let's flatten the array for simplicity
-X.shape = (n_subjects, n_src)
+X.shape = (n_subjects, n_src)  # flatten the array for simplicity
 titles.append('Permutation')
 ts.append(np.zeros(width * width))
 ps.append(np.zeros(width * width))
 mccs.append(False)
 for ii in range(n_src):
-    ts[-1][ii], ps[-1][ii] = \
-        permutation_t_test(X[:, [ii]], verbose=True if ii == 0 else False)[:2]
+    ts[-1][ii], ps[-1][ii] = permutation_t_test(X[:, [ii]], verbose=False)[:2]
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
 ###############################################################################
