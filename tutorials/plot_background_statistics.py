@@ -213,11 +213,11 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # --------------------
 # So far, we have done no correction for multiple comparisons. This is
 # potentially problematic for these data because there are
-# :math:`40 \times 40 = 1600` tests being performed. If we just use
-# a threshold ``p < 0.05`` for all of our tests, we would expect many
-# voxels to be declared significant even if there were no true effect.
+# :math:`40 \cdot 40 = 1600` tests being performed. If we use a threshold
+# ``p < 0.05`` for each individual test, we would expect many voxels to be
+# declared significant even if there were no true effect.
 # In other words, we would make many **type I errors** (adapted from
-# `here <https://en.wikipedia.org/wiki/Type_I_and_type_II_errors>`_):
+# `here <https://en.wikipedia.org/w/index.php?title=Type_I_and_type_II_errors#Table_of_error_types>`_):  # noqa
 #
 # .. rst-class:: skinnytable
 #
@@ -245,29 +245,29 @@ p_type_I = 1 - (1 - alpha) ** N
 fig, ax = plt.subplots(figsize=(4, 3))
 ax.scatter(N, p_type_I, 3)
 ax.set(xlim=N[[0, -1]], ylim=[0, 1], xlabel='$N_{\mathrm{test}}$',
-       ylabel=u'Probability of ≥ 1\ntype I error')
+       ylabel=u'Probability of at least\none type I error')
 ax.grid(True)
 fig.tight_layout()
-mne.viz.utils.plt_show()
+fig.show()
 
 ###############################################################################
-# To combat this problem, multiple methods exist. Typically these
-# provide control over either the:
+# To combat this problem, several methods exist. Typically these
+# provide control over either one of the following two measures:
 #
-# 1. `Familywise error rate (FWER) <fwer>`_
+# 1. `Familywise error rate (FWER) <https://en.wikipedia.org/wiki/Family-wise_error_rate>`_  # noqa
 #      The probability of making one or more type I errors:
 #
 #      .. math::
-#        \mathrm{P}(N_{\mathrm{type\ I}} >= 1 | H_0)
+#        \mathrm{P}(N_{\mathrm{type\ I}} >= 1 \mid H_0)
 #
-# 2. `False discovery rate (FDR) <fdr>`_
+# 2. `False discovery rate (FDR) <https://en.wikipedia.org/wiki/False_discovery_rate>`_  # noqa
 #      The expected proportion of rejected null hypotheses that are
 #      actually true:
 #
 #      .. math::
-#        \mathrm{E}(N_{\mathrm{type\ I}} / N_{\mathrm{reject}}
-#        | N_{\mathrm{reject}} > 0)
-#        \mathrm{P}(N_{\mathrm{reject}} > 0 | H_0)
+#        \mathrm{E}(\frac{N_{\mathrm{type\ I}}}{N_{\mathrm{reject}}}
+#        \mid N_{\mathrm{reject}} > 0) \cdot
+#        \mathrm{P}(N_{\mathrm{reject}} > 0 \mid H_0)
 #
 # We cover some techniques that control FWER and FDR below.
 #
@@ -287,10 +287,10 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 ###############################################################################
 # False discovery rate (FDR) correction
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Typically FDR is performed with the Benjamini/Hochberg procedure, which
+# Typically FDR is performed with the Benjamini-Hochberg procedure, which
 # is less restrictive than Bonferroni correction for large numbers of
-# comparisons (fewer type II errors) but provides less strict control of
-# errors (more type I errors).
+# comparisons (fewer type II errors), but provides less strict control of type
+# I errors.
 
 titles.append('FDR')
 ts.append(ts[-1])
@@ -382,8 +382,8 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # made, as the entire cluster as a whole is used to reject the null.
 # Moreover, because the test statistic concerns the full data, the null
 # hypothesis (and our rejection of it) refers to the structure of the full
-# data. For more information, see also the
-# `excellent FieldTrip cluster interpretation tutorial <ft_cluster>`_.
+# data. For more information, see also the excellent
+# `FieldTrip tutorial <http://www.fieldtriptoolbox.org/faq/how_not_to_interpret_results_from_a_cluster-based_permutation_test>`_.  # noqa
 #
 # Defining the connectivity/neighbor/adjacency matrix
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -639,7 +639,3 @@ plt.show()
 # .. [2] Smith and Nichols 2009, "Threshold-free cluster enhancement:
 #        addressing problems of smoothing, threshold dependence, and
 #        localisation in cluster inference", NeuroImage 44 (2009) 83-98.
-#
-# .. _fwer: https://en.wikipedia.org/wiki/Family-wise_error_rate
-# .. _fdr: https://en.wikipedia.org/wiki/False_discovery_rate
-# .. _ft_cluster: http://www.fieldtriptoolbox.org/faq/how_not_to_interpret_results_from_a_cluster-based_permutation_test  # noqa
