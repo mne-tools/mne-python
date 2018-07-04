@@ -313,11 +313,11 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 #
 # 1. It controls FWER.
 # 2. It is non-parametric. Even though our initial test statistic
-#    (here a 1-sample t-test) for clustering is parametric, the null
-#    distribution for the null hypothesis rejection (cluster size
-#    distribution is indistinguishable from zero) is obtained by
-#    permutations. This means that it makes no assumptions of Gaussianity
-#    (which do hold for this example but do not in general for some types
+#    (here a 1-sample t-test) is parametric, the null
+#    distribution for the null hypothesis rejection (the difference between
+#    conditions is indistinguishable from zero) is obtained by permutations.
+#    This means that it makes no assumptions of Gaussianity
+#    (which do hold for this example, but do not in general for some types
 #    of processed neuroimaging data).
 
 titles.append('$\mathbf{Perm_{max}}$')
