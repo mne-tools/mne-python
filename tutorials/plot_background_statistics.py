@@ -191,10 +191,11 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # that we can flip the signs of our data. Therefore, we can construct the
 # **null distribution** values for each voxel by taking random subsets of
 # samples (subjects), flipping the sign of their data, and recording the
-# absolute value of the resulting statistic. The absolute value of the
-# statistic evaluated on the veridical data can then be compared to this
-# distribution, and the p-value is simply the proportion of null distribution
-# values that were smaller.
+# absolute value of the resulting statistic (we record the absolute value
+# because we conduct a two-tailed test). The absolute value of the statistic
+# evaluated on the veridical data can then be compared to this distribution,
+# and the p-value is simply the proportion of null distribution values that
+# are smaller.
 #
 # .. note:: In the case where ``n_permutations`` is large enough (or "all") so
 #           that the complete set of unique resampling exchanges can be done
