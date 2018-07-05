@@ -179,14 +179,15 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # is true, we should be able to exchange conditions and not change the
 # distribution of the test statistic.
 #
-# In the case of a two-tailed 1-sample t-test (which also tests the difference
-# between two conditions against zero), exchangeability means that we can flip
-# the signs of our data. Therefore, we can construct the **null distribution**
-# values for each voxel by taking random subsets of samples (subjects),
-# flipping the sign of their data, and recording the absolute value of the
-# resulting statistic. The absolute value of the statistic evaluated on the
-# veridical data can then be compared to this distribution, and the p-value is
-# simply the proportion of null distribution values that were smaller.
+# In the case of a two-tailed 1-sample t-test (which can also be used to test
+# the difference between two conditions against zero), exchangeability means
+# that we can flip the signs of our data. Therefore, we can construct the
+# **null distribution** values for each voxel by taking random subsets of
+# samples (subjects), flipping the sign of their data, and recording the
+# absolute value of the resulting statistic. The absolute value of the
+# statistic evaluated on the veridical data can then be compared to this
+# distribution, and the p-value is simply the proportion of null distribution
+# values that were smaller.
 #
 # .. note:: In the case where ``n_permutations`` is large enough (or "all") so
 #           that the complete set of unique resampling exchanges can be done
@@ -382,7 +383,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # made, as the entire cluster as a whole is used to reject the null.
 # Moreover, because the test statistic concerns the full data, the null
 # hypothesis (and our rejection of it) refers to the structure of the full
-# data. For more information, see also the excellent
+# data. For more information, see also the comprehensive
 # `FieldTrip tutorial <http://www.fieldtriptoolbox.org/faq/how_not_to_interpret_results_from_a_cluster-based_permutation_test>`_.  # noqa
 #
 # Defining the connectivity/neighbor/adjacency matrix
