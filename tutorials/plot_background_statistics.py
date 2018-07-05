@@ -341,7 +341,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # ^^^^^^^^^^
 # Each of the aforementioned multiple comparisons corrections have the
 # disadvantage of not fully incorporating the correlation structure of the
-# data, i.e., that points close to one another (e.g., in space or time) tend
+# data, namely that points close to one another (e.g., in space or time) tend
 # to be correlated. However, by defining the connectivity/adjacency/neighbor
 # structure in our data, we can use **clustering** to compensate.
 #
@@ -404,9 +404,9 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 #
 # Let's pretend that our data were smaller -- a 3x3 grid. Thinking about
 # each voxel as being connected to the other voxels it touches, we would
-# need a 9x9 connectivity matrix. The first row should contain the elements
-# in the ``.ravel()``'ed data that it touches. Since it touches the
-# second element in the first row and the first element in the second row
+# need a 9x9 connectivity matrix. The first row of this matrix contains the
+# voxels in the flattened data that the first voxel touches. Since it touches
+# the second element in the first row and the first element in the second row
 # (and is also a neighbor to itself), this would be::
 #
 #     [1, 1, 0, 1, 0, 0, 0, 0, 0]
