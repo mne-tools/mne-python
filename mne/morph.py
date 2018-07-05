@@ -87,10 +87,9 @@ class SourceMorph(object):
 
     See Also
     --------
+    X
 
     """
-
-    # initialize and pre-compute morph
     def __init__(self, src, subject_from=None, subject_to='fsaverage',
                  data_from=None, data_to=None, subjects_dir=None, **options):
         self.kind = None
@@ -207,7 +206,7 @@ class SourceMorph(object):
             return
 
     def __call__(self, stc_from):
-        """Morph data
+        """Morph data.
 
         Parameters
         ----------
@@ -255,7 +254,7 @@ class SourceMorph(object):
         logger.info('[done]')
 
     def as_volume(self, stc, fname=None, mri_resolution=False):
-        """Return volume source space as Nifti1Image and or save
+        """Return volume source space as Nifti1Image and or save.
 
         Parameters
         ----------
@@ -274,7 +273,6 @@ class SourceMorph(object):
         img : instance of Nifti1Image
             The image object.
         """
-
         if not isinstance(stc, (SourceEstimate, VolSourceEstimate,
                                 VectorSourceEstimate)):
             raise ValueError(
@@ -367,8 +365,7 @@ def read_source_morph(fname, verbose=None):
 # Make Nifti1Image
 
 def _update_src_vol_info(self, vol_info):
-    """Update information needed for as_volume"""
-
+    """Update information needed for as_volume."""
     self.src_info['shape'] = vol_info['shape']
     self.src_info['affine'] = vol_info['affine']
     self.src_info['zooms'] = vol_info['zooms']
@@ -376,8 +373,7 @@ def _update_src_vol_info(self, vol_info):
 
 
 def _interpolate_data(stc, morph):
-    """Interpolate source estimate data to MRI"""
-
+    """Interpolate source estimate data to MRI."""
     if not has_nibabel():
         raise ImportError(
             'NiBabel (Python) must be correctly installed and accessible '
@@ -495,7 +491,6 @@ def _compute_morph_sdr(mri_from, mri_to,
     12(1), 26-41. Asymmetry. Journal of Cognitive Neuroscience 25(9),
     1477-1492, 2013.
     """
-
     if not has_nibabel() and not has_dipy():
         raise ImportError(
             'NiBabel (Python) and DiPy (Python) must be correctly installed '
@@ -639,7 +634,6 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     data_morphed : array | csr sparse matrix
         The morphed data (same kind as input).
     """
-    # When operating on vector data, morph each dimension separately
     if data.ndim == 3:
         data_morphed = np.zeros((len(nearest), 3, data.shape[2]),
                                 dtype=data.dtype)
@@ -816,7 +810,6 @@ def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
            A Surface-based Analysis of Language Lateralization and Cortical
            Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
     """
-
     logger.info('Computing morph matrix...')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
@@ -874,7 +867,6 @@ def _apply_morph(stc_from, morph, verbose=None):
     stc_to : VolSourceEstimate | VectorSourceEstimate | SourceEstimate
         Source estimate for the destination subject.
     """
-
     if morph.kind == 'volume':
 
         if not has_dipy():
