@@ -771,7 +771,6 @@ Source Space Data
 
    head_to_mni
    compute_morph_matrix
-   compute_morph_sdr
    extract_label_time_course
    grade_to_tris
    grade_to_vertices
@@ -787,7 +786,6 @@ Source Space Data
    read_source_morph
    save_stc_as_volume
    split_label
-   stc_as_volume
    stc_to_label
    transform_surface_to
    vertex_to_mni
