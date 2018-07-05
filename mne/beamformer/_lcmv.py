@@ -344,9 +344,8 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
                 sol = np.abs(sol)
 
         tstep = 1.0 / info['sfreq']
-        # XXX we should pass src to _make_stc
-        yield _make_stc(sol, vertices=filters['vertices'], tmin=tmin,
-                        tstep=tstep, subject=subject, vector=vector,
+        yield _make_stc(sol, vertices=filters['vertices'], src=filters['src'],
+                        tmin=tmin, tstep=tstep, subject=subject, vector=vector,
                         source_nn=filters['source_nn'])
 
     logger.info('[done]')
