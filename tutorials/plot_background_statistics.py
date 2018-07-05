@@ -73,6 +73,11 @@ for si in range(X.shape[0]):
     for ci in range(X.shape[2]):
         X[si, :, ci] = np.convolve(X[si, :, ci], gaussian, 'same')
 
+# The data averaged over all subjects looks like this:
+fig, ax = plt.subplots()
+ax.imshow(X.mean(0), cmap='inferno')
+ax.set(xticks=[], yticks=[], title="Data averaged over subjects")
+
 ###############################################################################
 # In this case, a null hypothesis we could test for each voxel is:
 #
