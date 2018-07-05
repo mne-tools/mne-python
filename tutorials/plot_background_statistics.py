@@ -124,9 +124,9 @@ def plot_t_p(t, p, title, mcc, axes=None):
     else:
         fig = axes[0].figure
         show = False
-    p_lims = [0.05, 0.001]
+    p_lims = [0.1, 0.001]
     t_lims = -stats.distributions.t.ppf(p_lims, n_subjects - 1)
-    p_lims = [-np.log10(0.05), -np.log10(0.001)]
+    p_lims = [-np.log10(p) for p in p_lims]
     # t plot
     x, y = np.mgrid[0:width, 0:width]
     surf = axes[0].plot_surface(x, y, np.reshape(t, (width, width)),
