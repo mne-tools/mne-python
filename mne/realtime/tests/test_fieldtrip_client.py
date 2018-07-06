@@ -36,7 +36,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 @pytest.fixture
 def free_tcp_port():
-    """Returns a free TCP port"""
+    """Get a free TCP port."""
     with contextlib.closing(socket.socket()) as free_socket:
         free_socket.bind(('127.0.0.1', 0))
         return free_socket.getsockname()[1]
@@ -75,6 +75,7 @@ def _start_buffer_thread(buffer_port):
 @pytest.mark.slowtest
 @requires_neuromag2ft
 def test_fieldtrip_rtepochs(free_tcp_port, tmpdir):
+    """Test FieldTrip RtEpochs."""
     raw_tmax = 7
     raw = read_raw_fif(raw_fname, preload=True)
     raw.crop(tmin=0, tmax=raw_tmax)
@@ -130,8 +131,7 @@ def test_fieldtrip_rtepochs(free_tcp_port, tmpdir):
 
 @requires_neuromag2ft
 def test_fieldtrip_client(free_tcp_port):
-    """Test fieldtrip_client"""
-
+    """Test fieldtrip_client."""
     kill_signal = _start_buffer_thread(free_tcp_port)
 
     time.sleep(0.5)

@@ -6,8 +6,6 @@
 import os.path as op
 import warnings
 
-from nose.tools import assert_equal, assert_true
-
 from mne import pick_types
 from mne.utils import run_tests_if_main
 from mne.datasets import testing
@@ -26,10 +24,11 @@ def test_data():
     with warnings.catch_warnings(record=True) as w:
         raw = _test_raw_reader(read_raw_cnt, montage=None, input_fname=fname,
                                eog='auto', misc=['NA1', 'LEFT_EAR'])
-    assert_true(all('meas date' in str(ww.message) or
-                    'number of bytes' in str(ww.message) for ww in w))
+    assert all('meas date' in str(ww.message) or
+               'number of bytes' in str(ww.message) for ww in w)
     eog_chs = pick_types(raw.info, eog=True, exclude=[])
-    assert_equal(len(eog_chs), 2)  # test eog='auto'
-    assert_equal(raw.info['bads'], ['LEFT_EAR', 'VEOGR'])  # test bads
+    assert len(eog_chs) == 2  # test eog='auto'
+    assert raw.info['bads'] == ['LEFT_EAR', 'VEOGR']  # test bads
+
 
 run_tests_if_main()

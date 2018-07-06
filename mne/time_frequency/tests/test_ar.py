@@ -2,7 +2,6 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_allclose
-from nose.tools import assert_equal
 from scipy.signal import lfilter
 
 from mne import io
@@ -33,7 +32,7 @@ def test_ar_raw():
     # pick MEG gradiometers
     for order in (2, 5, 10):
         coeffs = fit_iir_model_raw(raw, order)[1][1:]
-        assert_equal(coeffs.shape, (order,))
+        assert coeffs.shape == (order,)
         assert_allclose(-coeffs[0], 1., atol=0.5)
     # let's make sure we're doing something reasonable: first, white noise
     rng = np.random.RandomState(0)
@@ -48,5 +47,6 @@ def test_ar_raw():
     for order in (2, 5, 10):
         coeffs = fit_iir_model_raw(raw, order)[1]
         assert_allclose(coeffs, iir + [0.] * (order - 2), atol=5e-2)
+
 
 run_tests_if_main()

@@ -10,9 +10,7 @@ import warnings
 from functools import partial
 
 import numpy as np
-from numpy.testing import assert_raises, assert_array_equal
-
-from nose.tools import assert_true, assert_equal
+from numpy.testing import assert_array_equal, assert_equal
 import pytest
 
 from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
@@ -127,7 +125,7 @@ def test_plot_projs_topomap():
     plot_projs_topomap(read_info(triux_fname)['projs'][:1], ** fast_test)
     plt.close('all')
     eeg_avg = make_eeg_average_ref_proj(info)
-    assert_raises(RuntimeError, eeg_avg.plot_topomap)  # no layout
+    pytest.raises(RuntimeError, eeg_avg.plot_topomap)  # no layout
     eeg_avg.plot_topomap(info=info, **fast_test)
     plt.close('all')
 
@@ -156,12 +154,12 @@ def test_plot_topomap():
     ev_bad.pick_channels(ev_bad.ch_names[:2])
     plt_topomap = partial(ev_bad.plot_topomap, **fast_test)
     plt_topomap(times=ev_bad.times[:2] - 1e-6)  # auto, plots EEG
-    assert_raises(ValueError, plt_topomap, ch_type='mag')
-    assert_raises(TypeError, plt_topomap, head_pos='foo')
-    assert_raises(KeyError, plt_topomap, head_pos=dict(foo='bar'))
-    assert_raises(ValueError, plt_topomap, head_pos=dict(center=0))
-    assert_raises(ValueError, plt_topomap, times=[-100])  # bad time
-    assert_raises(ValueError, plt_topomap, times=[[0]])  # bad time
+    pytest.raises(ValueError, plt_topomap, ch_type='mag')
+    pytest.raises(TypeError, plt_topomap, head_pos='foo')
+    pytest.raises(KeyError, plt_topomap, head_pos=dict(foo='bar'))
+    pytest.raises(ValueError, plt_topomap, head_pos=dict(center=0))
+    pytest.raises(ValueError, plt_topomap, times=[-100])  # bad time
+    pytest.raises(ValueError, plt_topomap, times=[[0]])  # bad time
 
     evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
                         contours=[-100, 0, 100], time_unit='ms')
@@ -196,23 +194,24 @@ def test_plot_topomap():
     plt_topomap(times, ch_type='grad', mask=mask, show_names=True,
                 mask_params={'marker': 'x'})
     plt.close('all')
-    assert_raises(ValueError, plt_topomap, times, ch_type='eeg', average=-1e3)
-    assert_raises(ValueError, plt_topomap, times, ch_type='eeg', average='x')
+    pytest.raises(ValueError, plt_topomap, times, ch_type='eeg', average=-1e3)
+    pytest.raises(ValueError, plt_topomap, times, ch_type='eeg', average='x')
 
     p = plt_topomap(times, ch_type='grad', image_interp='bilinear',
                     show_names=lambda x: x.replace('MEG', ''))
-    subplot = [x for x in p.get_children() if
-               isinstance(x, matplotlib.axes.Subplot)][0]
-    assert_true(all('MEG' not in x.get_text()
-                    for x in subplot.get_children()
-                    if isinstance(x, matplotlib.text.Text)))
+    subplot = [x for x in p.get_children() if 'Subplot' in str(type(x))]
+    assert len(subplot) >= 1, [type(x) for x in p.get_children()]
+    subplot = subplot[0]
+    assert (all('MEG' not in x.get_text()
+                for x in subplot.get_children()
+                if isinstance(x, matplotlib.text.Text)))
 
     # Plot array
     for ch_type in ('mag', 'grad'):
         evoked_ = evoked.copy().pick_types(eeg=False, meg=ch_type)
         plot_topomap(evoked_.data[:, 0], evoked_.info, **fast_test_noscale)
     # fail with multiple channel types
-    assert_raises(ValueError, plot_topomap, evoked.data[0, :], evoked.info)
+    pytest.raises(ValueError, plot_topomap, evoked.data[0, :], evoked.info)
 
     # Test title
     def get_texts(p):
@@ -232,7 +231,7 @@ def test_plot_topomap():
         warnings.simplefilter('always')
         plt_topomap(times, ch_type='mag', layout=None)
     # projs have already been applied
-    assert_raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
+    pytest.raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
                   proj='interactive', time_unit='s')
 
     # change to no-proj mode
@@ -247,11 +246,11 @@ def test_plot_topomap():
     fig2 = plt.gcf()
     _fake_click(fig2, fig2.axes[0], (0.075, 0.775))  # toggle projector
     # make sure projector gets toggled
-    assert_true(np.max(fig1.axes[0].images[0]._A) != data_max)
+    assert (np.max(fig1.axes[0].images[0]._A) != data_max)
 
-    assert_raises(RuntimeError, plot_evoked_topomap, evoked,
+    pytest.raises(RuntimeError, plot_evoked_topomap, evoked,
                   np.repeat(.1, 50), time_unit='s')
-    assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6],
+    pytest.raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6],
                   time_unit='s')
 
     for ch in evoked.info['chs']:
@@ -264,23 +263,23 @@ def test_plot_topomap():
 
     pos = make_eeg_layout(evoked.info).pos[:, :2]
     pos, outlines = _check_outlines(pos, 'head')
-    assert_true('head' in outlines.keys())
-    assert_true('nose' in outlines.keys())
-    assert_true('ear_left' in outlines.keys())
-    assert_true('ear_right' in outlines.keys())
-    assert_true('autoshrink' in outlines.keys())
-    assert_true(outlines['autoshrink'])
-    assert_true('clip_radius' in outlines.keys())
+    assert ('head' in outlines.keys())
+    assert ('nose' in outlines.keys())
+    assert ('ear_left' in outlines.keys())
+    assert ('ear_right' in outlines.keys())
+    assert ('autoshrink' in outlines.keys())
+    assert (outlines['autoshrink'])
+    assert ('clip_radius' in outlines.keys())
     assert_array_equal(outlines['clip_radius'], 0.5)
 
     pos, outlines = _check_outlines(pos, 'skirt')
-    assert_true('head' in outlines.keys())
-    assert_true('nose' in outlines.keys())
-    assert_true('ear_left' in outlines.keys())
-    assert_true('ear_right' in outlines.keys())
-    assert_true('autoshrink' in outlines.keys())
-    assert_true(not outlines['autoshrink'])
-    assert_true('clip_radius' in outlines.keys())
+    assert ('head' in outlines.keys())
+    assert ('nose' in outlines.keys())
+    assert ('ear_left' in outlines.keys())
+    assert ('ear_right' in outlines.keys())
+    assert ('autoshrink' in outlines.keys())
+    assert (not outlines['autoshrink'])
+    assert ('clip_radius' in outlines.keys())
     assert_array_equal(outlines['clip_radius'], 0.625)
 
     pos, outlines = _check_outlines(pos, 'skirt',
@@ -325,26 +324,26 @@ def test_plot_topomap():
 
     # Remove digitization points. Now topomap should fail
     evoked.info['dig'] = None
-    assert_raises(RuntimeError, plot_evoked_topomap, evoked,
+    pytest.raises(RuntimeError, plot_evoked_topomap, evoked,
                   times, ch_type='eeg', time_unit='s')
     plt.close('all')
 
     # Error for missing names
     n_channels = len(pos)
     data = np.ones(n_channels)
-    assert_raises(ValueError, plot_topomap, data, pos, show_names=True)
+    pytest.raises(ValueError, plot_topomap, data, pos, show_names=True)
 
     # Test error messages for invalid pos parameter
     pos_1d = np.zeros(n_channels)
     pos_3d = np.zeros((n_channels, 2, 2))
-    assert_raises(ValueError, plot_topomap, data, pos_1d)
-    assert_raises(ValueError, plot_topomap, data, pos_3d)
-    assert_raises(ValueError, plot_topomap, data, pos[:3, :])
+    pytest.raises(ValueError, plot_topomap, data, pos_1d)
+    pytest.raises(ValueError, plot_topomap, data, pos_3d)
+    pytest.raises(ValueError, plot_topomap, data, pos[:3, :])
 
     pos_x = pos[:, :1]
     pos_xyz = np.c_[pos, np.zeros(n_channels)[:, np.newaxis]]
-    assert_raises(ValueError, plot_topomap, data, pos_x)
-    assert_raises(ValueError, plot_topomap, data, pos_xyz)
+    pytest.raises(ValueError, plot_topomap, data, pos_x)
+    pytest.raises(ValueError, plot_topomap, data, pos_xyz)
 
     # An #channels x 4 matrix should work though. In this case (x, y, width,
     # height) is assumed.

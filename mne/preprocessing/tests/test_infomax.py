@@ -2,10 +2,7 @@
 #
 # License: BSD (3-clause)
 
-"""
-Test the infomax algorithm.
-Parts of this code are taken from scikit-learn
-"""
+# Parts of this code are taken from scikit-learn
 
 import numpy as np
 from numpy.testing import assert_almost_equal
@@ -18,10 +15,10 @@ from mne.utils import requires_sklearn, run_tests_if_main, check_version
 
 
 def center_and_norm(x, axis=-1):
-    """Centers and norms x **in place**.
+    """Center and norm x in place.
 
     Parameters
-    -----------
+    ----------
     x: ndarray
         Array with an axis of observations (statistical units) measured on
         random variables.
@@ -36,7 +33,6 @@ def center_and_norm(x, axis=-1):
 @requires_sklearn
 def test_infomax_blowup():
     """Test the infomax algorithm blowup condition."""
-
     # scipy.stats uses the global RNG:
     np.random.seed(0)
     n_samples = 100

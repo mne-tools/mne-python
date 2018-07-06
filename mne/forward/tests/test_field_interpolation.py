@@ -5,7 +5,7 @@ from numpy.polynomial import legendre
 from numpy.testing import (assert_allclose, assert_array_equal, assert_equal,
                            assert_array_almost_equal)
 from scipy.interpolate import interp1d
-from nose.tools import assert_raises, assert_true
+
 import pytest
 
 from mne.forward import _make_surface_mapping, make_field_map
@@ -114,21 +114,21 @@ def test_make_field_map_eeg():
     evoked.info['bads'] = ['MEG 2443', 'EEG 053']  # add some bads
     surf = get_head_surf('sample', subjects_dir=subjects_dir)
     # we must have trans if surface is in MRI coords
-    assert_raises(ValueError, _make_surface_mapping, evoked.info, surf, 'eeg')
+    pytest.raises(ValueError, _make_surface_mapping, evoked.info, surf, 'eeg')
 
     evoked.pick_types(meg=False, eeg=True)
     fmd = make_field_map(evoked, trans_fname,
                          subject='sample', subjects_dir=subjects_dir)
 
     # trans is necessary for EEG only
-    assert_raises(RuntimeError, make_field_map, evoked, None,
+    pytest.raises(RuntimeError, make_field_map, evoked, None,
                   subject='sample', subjects_dir=subjects_dir)
 
     fmd = make_field_map(evoked, trans_fname,
                          subject='sample', subjects_dir=subjects_dir)
-    assert_true(len(fmd) == 1)
+    assert len(fmd) == 1
     assert_array_equal(fmd[0]['data'].shape, (642, 59))  # maps data onto surf
-    assert_true(len(fmd[0]['ch_names']), 59)
+    assert len(fmd[0]['ch_names']) == 59
 
 
 @testing.requires_testing_data
@@ -141,22 +141,22 @@ def test_make_field_map_meg():
     # let's reduce the number of channels by a bunch to speed it up
     info['bads'] = info['ch_names'][:200]
     # bad ch_type
-    assert_raises(ValueError, _make_surface_mapping, info, surf, 'foo')
+    pytest.raises(ValueError, _make_surface_mapping, info, surf, 'foo')
     # bad mode
-    assert_raises(ValueError, _make_surface_mapping, info, surf, 'meg',
+    pytest.raises(ValueError, _make_surface_mapping, info, surf, 'meg',
                   mode='foo')
     # no picks
     evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
-    assert_raises(RuntimeError, _make_surface_mapping, evoked_eeg.info,
+    pytest.raises(RuntimeError, _make_surface_mapping, evoked_eeg.info,
                   surf, 'meg')
     # bad surface def
     nn = surf['nn']
     del surf['nn']
-    assert_raises(KeyError, _make_surface_mapping, info, surf, 'meg')
+    pytest.raises(KeyError, _make_surface_mapping, info, surf, 'meg')
     surf['nn'] = nn
     cf = surf['coord_frame']
     del surf['coord_frame']
-    assert_raises(KeyError, _make_surface_mapping, info, surf, 'meg')
+    pytest.raises(KeyError, _make_surface_mapping, info, surf, 'meg')
     surf['coord_frame'] = cf
 
     # now do it with make_field_map
@@ -164,22 +164,22 @@ def test_make_field_map_meg():
     evoked.info.normalize_proj()  # avoid projection warnings
     fmd = make_field_map(evoked, None,
                          subject='sample', subjects_dir=subjects_dir)
-    assert_true(len(fmd) == 1)
+    assert (len(fmd) == 1)
     assert_array_equal(fmd[0]['data'].shape, (304, 106))  # maps data onto surf
-    assert_true(len(fmd[0]['ch_names']), 106)
+    assert len(fmd[0]['ch_names']) == 106
 
-    assert_raises(ValueError, make_field_map, evoked, ch_type='foobar')
+    pytest.raises(ValueError, make_field_map, evoked, ch_type='foobar')
 
     # now test the make_field_map on head surf for MEG
     evoked.pick_types(meg=True, eeg=False)
     evoked.info.normalize_proj()
     fmd = make_field_map(evoked, trans_fname, meg_surf='head',
                          subject='sample', subjects_dir=subjects_dir)
-    assert_true(len(fmd) == 1)
+    assert len(fmd) == 1
     assert_array_equal(fmd[0]['data'].shape, (642, 106))  # maps data onto surf
-    assert_true(len(fmd[0]['ch_names']), 106)
+    assert len(fmd[0]['ch_names']) == 106
 
-    assert_raises(ValueError, make_field_map, evoked, meg_surf='foobar',
+    pytest.raises(ValueError, make_field_map, evoked, meg_surf='foobar',
                   subjects_dir=subjects_dir, trans=trans_fname)
 
 
@@ -210,7 +210,7 @@ def test_make_field_map_meeg():
 
 
 def _setup_args(info):
-    """Helper to test_as_meg_type_evoked."""
+    """Configure args for test_as_meg_type_evoked."""
     coils = _create_meg_coils(info['chs'], 'normal', info['dev_head_t'])
     int_rad, noise, lut_fun, n_fact = _setup_dots('fast', coils, 'meg')
     my_origin = np.array([0., 0., 0.04])
@@ -224,8 +224,8 @@ def test_as_meg_type_evoked():
     """Test interpolation of data on to virtual channels."""
     # validation tests
     evoked = read_evokeds(evoked_fname, condition='Left Auditory')
-    assert_raises(ValueError, evoked.as_type, 'meg')
-    assert_raises(ValueError, evoked.copy().pick_types(meg='grad').as_type,
+    pytest.raises(ValueError, evoked.as_type, 'meg')
+    pytest.raises(ValueError, evoked.copy().pick_types(meg='grad').as_type,
                   'meg')
 
     # channel names
@@ -233,7 +233,7 @@ def test_as_meg_type_evoked():
     virt_evoked = evoked.copy().pick_channels(ch_names=ch_names[:10:1])
     virt_evoked.info.normalize_proj()
     virt_evoked = virt_evoked.as_type('mag')
-    assert_true(all(ch.endswith('_v') for ch in virt_evoked.info['ch_names']))
+    assert (all(ch.endswith('_v') for ch in virt_evoked.info['ch_names']))
 
     # pick from and to channels
     evoked_from = evoked.copy().pick_channels(ch_names=ch_names[2:10:3])
@@ -256,7 +256,7 @@ def test_as_meg_type_evoked():
     evoked = evoked.pick_channels(ch_names=ch_names[:10:]).copy()
     data1 = evoked.pick_types(meg='grad').data.ravel()
     data2 = evoked.as_type('grad').data.ravel()
-    assert_true(np.corrcoef(data1, data2)[0, 1] > 0.95)
+    assert (np.corrcoef(data1, data2)[0, 1] > 0.95)
 
 
 run_tests_if_main()

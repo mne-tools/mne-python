@@ -63,6 +63,7 @@ def test_permutation_t_test():
 
 
 def test_ci():
+    """Test confidence intervals."""
     # isolated test of CI functions
     arr = np.linspace(0, 1, 1000)[..., np.newaxis]
     assert_allclose(_ci(arr, method="parametric"),

@@ -14,7 +14,7 @@ matrix:
         # No data + style testing
         - os: linux
           env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
-               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx nose pytest pytest-cov"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest pytest-cov"
                PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest pytest-sugar"
                OPTION="--doctest-ignore-import-errors"
 
@@ -45,21 +45,21 @@ matrix:
         # 2.7 Old dependencies
         - os: linux
           env: PYTHON_VERSION=2.7
-               CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.13 scikit-learn=0.15 nose pytest pytest-cov"
+               CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.13 scikit-learn=0.15 pytest pytest-cov"
                SPLIT=0
         - os: linux
           env: PYTHON_VERSION=2.7
-               CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.13 scikit-learn=0.15 nose pytest pytest-cov"
+               CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.13 scikit-learn=0.15 pytest pytest-cov"
                SPLIT=1
 
         # Minimal
         - os: linux
           env: DEPS=minimial
-               CONDA_DEPENDENCIES="numpy scipy matplotlib nose pytest pytest-cov"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib pytest pytest-cov"
                SPLIT=0
         - os: linux
           env: DEPS=minimial
-               CONDA_DEPENDENCIES="numpy scipy matplotlib nose pytest pytest-cov"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib pytest pytest-cov"
                SPLIT=1
 
 # Setup anaconda

@@ -15,7 +15,6 @@ dependencies:
 - pillow
 - statsmodels
 - jupyter
-- nose
 - pytest
 - pytest-cov
 - sphinx

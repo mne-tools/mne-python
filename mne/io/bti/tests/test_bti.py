@@ -10,8 +10,7 @@ import warnings
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_allclose)
-from nose.tools import assert_true, assert_raises, assert_equal
+                           assert_allclose, assert_equal)
 import pytest
 
 from mne.datasets import testing
@@ -58,8 +57,8 @@ def test_read_config():
     # for config in config_fname, config_solaris_fname:
     for config in config_fnames:
         cfg = _read_config(config)
-        assert_true(all('unknown' not in block.lower() and block != ''
-                        for block in cfg['user_blocks']))
+        assert all('unknown' not in block.lower() and block != ''
+                   for block in cfg['user_blocks'])
 
 
 def test_crop_append():
@@ -72,8 +71,8 @@ def test_crop_append():
     mask = (t0 <= t) * (t <= t1)
     raw_ = raw.copy().crop(t0, t1)
     y_, _ = raw_[:]
-    assert_true(y_.shape[1] == mask.sum())
-    assert_true(y_.shape[0] == y.shape[0])
+    assert (y_.shape[1] == mask.sum())
+    assert (y_.shape[0] == y.shape[0])
 
 
 def test_transforms():
@@ -104,14 +103,14 @@ def test_raw():
     for pdf, config, hs, exported in zip(pdf_fnames, config_fnames, hs_fnames,
                                          exported_fnames):
         # rx = 2 if 'linux' in pdf else 0
-        assert_raises(ValueError, read_raw_bti, pdf, 'eggs', preload=False)
-        assert_raises(ValueError, read_raw_bti, pdf, config, 'spam',
+        pytest.raises(ValueError, read_raw_bti, pdf, 'eggs', preload=False)
+        pytest.raises(ValueError, read_raw_bti, pdf, config, 'spam',
                       preload=False)
         if op.exists(tmp_raw_fname):
             os.remove(tmp_raw_fname)
         ex = read_raw_fif(exported, preload=True)
         ra = read_raw_bti(pdf, config, hs, preload=False)
-        assert_true('RawBTi' in repr(ra))
+        assert ('RawBTi' in repr(ra))
         assert_equal(ex.ch_names[:NCH], ra.ch_names[:NCH])
         assert_array_almost_equal(ex.info['dev_head_t']['trans'],
                                   ra.info['dev_head_t']['trans'], 7)
@@ -138,7 +137,7 @@ def test_raw():
             if ex.info[key] is None:
                 pass
             else:
-                assert_true(ra.info[key] is not None)
+                assert (ra.info[key] is not None)
                 for ent in ('to', 'from', 'trans'):
                     assert_allclose(ex.info[key][ent],
                                     ra.info[key][ent])
@@ -147,11 +146,11 @@ def test_raw():
         re = read_raw_fif(tmp_raw_fname)
         print(re)
         for key in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
-            assert_true(isinstance(re.info[key], dict))
+            assert (isinstance(re.info[key], dict))
             this_t = re.info[key]['trans']
             assert_equal(this_t.shape, (4, 4))
             # check that matrix by is not identity
-            assert_true(not np.allclose(this_t, np.eye(4)))
+            assert (not np.allclose(this_t, np.eye(4)))
         os.remove(tmp_raw_fname)
 
 
@@ -181,10 +180,10 @@ def test_info_no_rename_no_reorder_no_pdf():
         info2 = pick_info(info2, pick_types(info2, meg=True, stim=True,
                                             resp=True))
 
-        assert_true(info['sfreq'] is not None)
-        assert_true(info['lowpass'] is not None)
-        assert_true(info['highpass'] is not None)
-        assert_true(info['meas_date'] is not None)
+        assert (info['sfreq'] is not None)
+        assert (info['lowpass'] is not None)
+        assert (info['highpass'] is not None)
+        assert (info['meas_date'] is not None)
 
         assert_equal(info2['sfreq'], None)
         assert_equal(info2['lowpass'], None)
@@ -247,7 +246,7 @@ def test_no_conversion():
                 dig, raw_info['dig'], raw_info_con['dig'])):
             assert_equal(old['ident'], new['ident'])
             assert_array_equal(old['r'], new['r'])
-            assert_true(not np.allclose(old['r'], con['r']))
+            assert (not np.allclose(old['r'], con['r']))
 
             if ii > 10:
                 break
@@ -262,7 +261,7 @@ def test_no_conversion():
             t2 = raw_info['chs'][ii]['loc']
             t3 = raw_info_con['chs'][ii]['loc']
             assert_allclose(t1, t2, atol=1e-15)
-            assert_true(not np.allclose(t1, t3))
+            assert (not np.allclose(t1, t3))
             idx_a = raw_info_con['ch_names'].index('MEG 001')
             idx_b = raw_info['ch_names'].index('A22')
             assert_equal(
@@ -297,6 +296,7 @@ def test_setup_headshape():
         expected = set(['kind', 'ident', 'r'])
         found = set(reduce(lambda x, y: list(x) + list(y),
                            [d.keys() for d in dig]))
-        assert_true(not expected - found)
+        assert (not expected - found)
+
 
 run_tests_if_main()

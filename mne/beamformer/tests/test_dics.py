@@ -2,7 +2,7 @@
 #          Britta Westner
 #
 # License: BSD 3 clause
-from __future__ import print_function
+
 import warnings
 import os.path as op
 import copy as cp
@@ -22,7 +22,7 @@ from mne.externals.six import advance_iterator
 from mne.proj import compute_proj_evoked, make_projector
 
 # Note that if this is the first test file, this will apply to all subsequent
-# tests in a full nosetest:
+# tests in a full test:
 warnings.simplefilter('always')  # ensure we can verify expected warnings
 
 data_path = testing.data_path(download=False)
@@ -40,7 +40,7 @@ fname_label = op.join(subjects_dir, 'sample', 'label', 'aparc',
 
 
 def _load_forward():
-    """Load forward models"""
+    """Load forward models."""
     fwd_free = mne.read_forward_solution(fname_fwd)
     fwd_free = mne.pick_types_forward(fwd_free, meg=True, eeg=False)
     fwd_free = mne.convert_forward_solution(fwd_free, surf_ori=False)

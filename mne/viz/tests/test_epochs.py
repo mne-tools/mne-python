@@ -8,7 +8,6 @@
 
 import os.path as op
 import warnings
-from nose.tools import assert_raises
 
 import numpy as np
 from numpy.testing import assert_equal
@@ -112,7 +111,7 @@ def test_plot_epochs():
     fig.canvas.resize_event()
     fig.canvas.close_event()  # closing and epoch dropping
     plt.close('all')
-    assert_raises(RuntimeError, epochs.plot, picks=[])
+    pytest.raises(RuntimeError, epochs.plot, picks=[])
     plt.close('all')
     with warnings.catch_warnings(record=True):
         fig = epochs.plot(events=epochs.events)
@@ -146,17 +145,17 @@ def test_plot_epochs_image():
                       )
     epochs.plot_image(picks=[1], overlay_times=overlay_times, vmin=-0.001,
                       vmax=0.001)
-    assert_raises(ValueError, epochs.plot_image,
+    pytest.raises(ValueError, epochs.plot_image,
                   picks=[1], overlay_times=[0.1, 0.2])
-    assert_raises(ValueError, epochs.plot_image,
+    pytest.raises(ValueError, epochs.plot_image,
                   picks=[1], order=[0, 1])
-    assert_raises(ValueError, epochs.plot_image, axes=dict(), group_by=list(),
+    pytest.raises(ValueError, epochs.plot_image, axes=dict(), group_by=list(),
                   combine='mean')
-    assert_raises(ValueError, epochs.plot_image, axes=list(), group_by=dict(),
+    pytest.raises(ValueError, epochs.plot_image, axes=list(), group_by=dict(),
                   combine='mean')
-    assert_raises(ValueError, epochs.plot_image, group_by='error',
+    pytest.raises(ValueError, epochs.plot_image, group_by='error',
                   picks=[1, 2])
-    assert_raises(ValueError, epochs.plot_image, units={"hi": 1},
+    pytest.raises(ValueError, epochs.plot_image, units={"hi": 1},
                   scalings={"ho": 1})
     epochs.load_data().pick_types(meg='mag')
     epochs.info.normalize_proj()
@@ -164,11 +163,11 @@ def test_plot_epochs_image():
         epochs.plot_image(group_by='type', combine='mean')
         epochs.plot_image(group_by={"1": [1, 2], "2": [1, 2]}, combine='mean')
         epochs.plot_image(vmin=lambda x: x.min())
-        assert_raises(ValueError, epochs.plot_image, axes=1, fig=2)
+        pytest.raises(ValueError, epochs.plot_image, axes=1, fig=2)
     ts_args = dict(show_sensors=False)
     with warnings.catch_warnings(record=True) as w:
         epochs.plot_image(overlay_times=[1.1], combine="gfp", ts_args=ts_args)
-        assert_raises(ValueError, epochs.plot_image, combine='error',
+        pytest.raises(ValueError, epochs.plot_image, combine='error',
                       ts_args=ts_args)
         warnings.simplefilter('always')
     assert_equal(len(w), 1)
@@ -182,7 +181,7 @@ def test_plot_drop_log():
     """Test plotting a drop log."""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
-    assert_raises(ValueError, epochs.plot_drop_log)
+    pytest.raises(ValueError, epochs.plot_drop_log)
     epochs.drop_bad()
 
     warnings.simplefilter('always', UserWarning)
@@ -201,7 +200,7 @@ def test_plot_psd_epochs():
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
     epochs.plot_psd()
-    assert_raises(RuntimeError, epochs.plot_psd_topomap,
+    pytest.raises(RuntimeError, epochs.plot_psd_topomap,
                   bands=[(0, 0.01, 'foo')])  # no freqs in range
     epochs.plot_psd_topomap()
     plt.close('all')

@@ -17,7 +17,7 @@ subjects_dir = os.path.join(sample_path, 'subjects')
 @requires_mayavi
 @traits_test
 def test_mri_model():
-    """Test MRIHeadWithFiducialsModel Traits Model"""
+    """Test MRIHeadWithFiducialsModel Traits Model."""
     from mne.gui._fiducials_gui import MRIHeadWithFiducialsModel
     tempdir = _TempDir()
     tgt_fname = os.path.join(tempdir, 'test-fiducials.fif')

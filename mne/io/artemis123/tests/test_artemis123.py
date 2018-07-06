@@ -8,7 +8,6 @@ import warnings
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
-from nose.tools import assert_true
 
 from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_artemis123
@@ -38,9 +37,9 @@ def _assert_trans(actual, desired, dist_tol=0.003, angle_tol=5.):
 
     angle = 180 * _angle_between_quats(quat_est, quat) / np.pi
     dist = np.sqrt(np.sum((trans - trans_est) ** 2))
-    assert_true(dist <= dist_tol, '%0.3f > %0.3f mm' % (1000 * dist,
-                                                        1000 * dist_tol))
-    assert_true(angle <= angle_tol, '%0.3f > %0.3f deg' % (angle, angle_tol))
+    assert dist <= dist_tol, '%0.3f > %0.3f mm' % (1000 * dist,
+                                                   1000 * dist_tol)
+    assert angle <= angle_tol, '%0.3f > %0.3f deg' % (angle, angle_tol)
 
 
 @testing.requires_testing_data

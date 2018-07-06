@@ -4,9 +4,9 @@
 
 import inspect
 import os
-from ....externals.six.moves import cPickle as pickle
+from mne.externals.six.moves import cPickle as pickle
 
-from nose.tools import assert_raises
+import pytest
 from numpy.testing import assert_array_equal
 
 from mne.io.kit import read_mrk
@@ -21,7 +21,7 @@ mrk_fname = os.path.join(data_dir, 'test_mrk.sqd')
 
 
 def test_io_mrk():
-    """Test IO for mrk files"""
+    """Test IO for mrk files."""
     tempdir = _TempDir()
     pts = read_mrk(mrk_fname)
 
@@ -39,7 +39,7 @@ def test_io_mrk():
     assert_array_equal(pts_2, pts, "pickle mrk")
     with open(fname, 'wb') as fid:
         pickle.dump(dict(), fid)
-    assert_raises(ValueError, read_mrk, fname)
+    pytest.raises(ValueError, read_mrk, fname)
 
     # unsupported extension
-    assert_raises(ValueError, read_mrk, "file.ext")
+    pytest.raises(ValueError, read_mrk, "file.ext")

@@ -15,7 +15,6 @@ from mne import create_info
 @requires_nitime
 def test_dpss_windows():
     """Test computation of DPSS windows."""
-
     import nitime as ni
     N = 1000
     half_nbw = 4

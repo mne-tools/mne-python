@@ -4,9 +4,10 @@
 
 import os.path as op
 import warnings
+
 import numpy as np
-from nose.tools import assert_true, assert_raises
 from numpy.testing import assert_allclose
+import pytest
 
 from mne.viz.utils import (compare_fiff, _fake_click, _compute_scalings,
                            _validate_if_list_of_axes)
@@ -30,12 +31,13 @@ ev_fname = op.join(base_dir, 'test_raw-eve.fif')
 
 def test_mne_analyze_colormap():
     """Test mne_analyze_colormap."""
-    assert_raises(ValueError, mne_analyze_colormap, [0])
-    assert_raises(ValueError, mne_analyze_colormap, [-1, 1, 2])
-    assert_raises(ValueError, mne_analyze_colormap, [0, 2, 1])
+    pytest.raises(ValueError, mne_analyze_colormap, [0])
+    pytest.raises(ValueError, mne_analyze_colormap, [-1, 1, 2])
+    pytest.raises(ValueError, mne_analyze_colormap, [0, 2, 1])
 
 
 def test_compare_fiff():
+    """Test compare_fiff."""
     import matplotlib.pyplot as plt
     compare_fiff(raw_fname, cov_fname, read_limit=0, show=False)
     plt.close('all')
@@ -53,11 +55,11 @@ def test_clickable_image():
     for click in clicks:
         _fake_click(clk.fig, clk.ax, click, xform='data')
     assert_allclose(np.array(clicks), np.array(clk.coords))
-    assert_true(len(clicks) == len(clk.coords))
+    assert (len(clicks) == len(clk.coords))
 
     # Exporting to layout
     lt = clk.to_layout()
-    assert_true(lt.pos.shape[0] == len(clicks))
+    assert (lt.pos.shape[0] == len(clicks))
     assert_allclose(lt.pos[1, 0] / lt.pos[2, 0],
                     clicks[1][0] / float(clicks[2][0]))
     clk.plot_clicks()
@@ -81,20 +83,20 @@ def test_add_background_image():
         if ii == 0:
             ax_im = add_background_image(f, im)
             return
-            assert_true(ax_im.get_aspect() == 'auto')
+            assert (ax_im.get_aspect() == 'auto')
             for ax in axs:
-                assert_true(ax.get_aspect() == 1)
+                assert (ax.get_aspect() == 1)
         else:
             # Background with changing aspect
             ax_im_asp = add_background_image(f, im, set_ratios='auto')
-            assert_true(ax_im_asp.get_aspect() == 'auto')
+            assert (ax_im_asp.get_aspect() == 'auto')
             for ax in axs:
-                assert_true(ax.get_aspect() == 'auto')
+                assert (ax.get_aspect() == 'auto')
         plt.close('all')
 
     # Make sure passing None as image returns None
     f, axs = plt.subplots(1, 2)
-    assert_true(add_background_image(f, None) is None)
+    assert (add_background_image(f, None) is None)
     plt.close('all')
 
 
@@ -110,18 +112,18 @@ def test_auto_scale():
                              ('stim', 'auto')])
 
         # Test for wrong inputs
-        assert_raises(ValueError, inst.plot, scalings='foo')
-        assert_raises(ValueError, _compute_scalings, 'foo', inst)
+        pytest.raises(ValueError, inst.plot, scalings='foo')
+        pytest.raises(ValueError, _compute_scalings, 'foo', inst)
 
         # Make sure compute_scalings doesn't change anything not auto
         scalings_new = _compute_scalings(scalings_def, inst)
-        assert_true(scale_grad == scalings_new['grad'])
-        assert_true(scalings_new['eeg'] != 'auto')
+        assert (scale_grad == scalings_new['grad'])
+        assert (scalings_new['eeg'] != 'auto')
 
-    assert_raises(ValueError, _compute_scalings, scalings_def, rand_data)
+    pytest.raises(ValueError, _compute_scalings, scalings_def, rand_data)
     epochs = epochs[0].load_data()
     epochs.pick_types(eeg=True, meg=False)
-    assert_raises(ValueError, _compute_scalings,
+    pytest.raises(ValueError, _compute_scalings,
                   dict(grad='auto'), epochs)
 
 
@@ -129,19 +131,19 @@ def test_validate_if_list_of_axes():
     """Test validation of axes."""
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(2, 2)
-    assert_raises(ValueError, _validate_if_list_of_axes, ax)
+    pytest.raises(ValueError, _validate_if_list_of_axes, ax)
     ax_flat = ax.ravel()
     ax = ax.ravel().tolist()
     _validate_if_list_of_axes(ax_flat)
     _validate_if_list_of_axes(ax_flat, 4)
-    assert_raises(ValueError, _validate_if_list_of_axes, ax_flat, 5)
-    assert_raises(ValueError, _validate_if_list_of_axes, ax, 3)
-    assert_raises(ValueError, _validate_if_list_of_axes, 'error')
-    assert_raises(ValueError, _validate_if_list_of_axes, ['error'] * 2)
-    assert_raises(ValueError, _validate_if_list_of_axes, ax[0])
-    assert_raises(ValueError, _validate_if_list_of_axes, ax, 3)
+    pytest.raises(ValueError, _validate_if_list_of_axes, ax_flat, 5)
+    pytest.raises(ValueError, _validate_if_list_of_axes, ax, 3)
+    pytest.raises(ValueError, _validate_if_list_of_axes, 'error')
+    pytest.raises(ValueError, _validate_if_list_of_axes, ['error'] * 2)
+    pytest.raises(ValueError, _validate_if_list_of_axes, ax[0])
+    pytest.raises(ValueError, _validate_if_list_of_axes, ax, 3)
     ax_flat[2] = 23
-    assert_raises(ValueError, _validate_if_list_of_axes, ax_flat)
+    pytest.raises(ValueError, _validate_if_list_of_axes, ax_flat)
     _validate_if_list_of_axes(ax, 4)
     plt.close('all')
 

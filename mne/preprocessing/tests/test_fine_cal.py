@@ -9,7 +9,6 @@ from mne.datasets import testing
 from mne.preprocessing._fine_cal import (read_fine_calibration,
                                          write_fine_calibration)
 from mne.utils import _TempDir, object_hash, run_tests_if_main
-from nose.tools import assert_equal
 
 warnings.simplefilter('always')  # Always throw warnings
 
@@ -21,7 +20,7 @@ fine_cal_fname_3d = op.join(data_path, 'SSS', 'sss_cal_3053_3d.dat')
 
 @testing.requires_testing_data
 def test_read_write_fine_cal():
-    """Test round trip reading/writing of fine calibration .dat file"""
+    """Test round trip reading/writing of fine calibration .dat file."""
     temp_dir = _TempDir()
     temp_fname = op.join(temp_dir, 'fine_cal_temp.dat')
 
@@ -34,7 +33,8 @@ def test_read_write_fine_cal():
         fine_cal_dict_reload = read_fine_calibration(temp_fname)
 
         # Load temp version of fine calibration file and compare hashes
-        assert_equal(object_hash(fine_cal_dict),
-                     object_hash(fine_cal_dict_reload))
+        assert (object_hash(fine_cal_dict) ==
+                object_hash(fine_cal_dict_reload))
+
 
 run_tests_if_main()

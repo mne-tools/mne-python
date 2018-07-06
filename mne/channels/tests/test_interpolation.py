@@ -4,7 +4,6 @@ import warnings
 import numpy as np
 from numpy.testing import (assert_allclose, assert_array_equal)
 import pytest
-from nose.tools import assert_raises, assert_equal, assert_true
 
 from mne import io, pick_types, pick_channels, read_events, Epochs
 from mne.channels.interpolation import _make_interpolation_matrix
@@ -19,7 +18,7 @@ event_id_2 = 2
 
 
 def _load_data():
-    """Helper function to load data."""
+    """Load data."""
     # It is more memory efficient to load data in a separate
     # function so it's loaded on-demand
     raw = io.read_raw_fif(raw_fname)
@@ -44,7 +43,7 @@ def _load_data():
 
 @pytest.mark.slowtest
 def test_interpolation():
-    """Test interpolation"""
+    """Test interpolation."""
     raw, epochs, epochs_eeg, epochs_meg = _load_data()
 
     # It's a trade of between speed and accuracy. If every second channel is
@@ -57,7 +56,7 @@ def test_interpolation():
     evoked_eeg = epochs_eeg.average()
     with warnings.catch_warnings(record=True) as w:
         evoked_eeg.interpolate_bads()
-    assert_true(any('Doing nothing' in str(ww.message) for ww in w))
+    assert any('Doing nothing' in str(ww.message) for ww in w)
 
     # create good and bad channels for EEG
     epochs_eeg.info['bads'] = []
@@ -73,7 +72,7 @@ def test_interpolation():
     pos_good = pos[goods_idx]
     pos_bad = pos[bads_idx]
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
-    assert_equal(interpolation.shape, (1, len(epochs_eeg.ch_names) - 1))
+    assert interpolation.shape == (1, len(epochs_eeg.ch_names) - 1)
     ave_after = np.dot(interpolation, evoked_eeg.data[goods_idx])
 
     epochs_eeg.info['bads'] = ['EEG 012']
@@ -84,26 +83,26 @@ def test_interpolation():
 
     # check that interpolation fails when preload is False
     epochs_eeg.preload = False
-    assert_raises(RuntimeError, epochs_eeg.interpolate_bads)
+    pytest.raises(RuntimeError, epochs_eeg.interpolate_bads)
     epochs_eeg.preload = True
 
     # check that interpolation changes the data in raw
     raw_eeg = io.RawArray(data=epochs_eeg._data[0], info=epochs_eeg.info)
     raw_before = raw_eeg._data[bads_idx]
     raw_after = raw_eeg.interpolate_bads()._data[bads_idx]
-    assert_equal(np.all(raw_before == raw_after), False)
+    assert not np.all(raw_before == raw_after)
 
     # check that interpolation fails when preload is False
     for inst in [raw, epochs]:
         assert hasattr(inst, 'preload')
         inst.preload = False
         inst.info['bads'] = [inst.ch_names[1]]
-        assert_raises(RuntimeError, inst.interpolate_bads)
+        pytest.raises(RuntimeError, inst.interpolate_bads)
 
     # check that interpolation works with few channels
     raw_few = raw.copy().crop(0, 0.1).load_data()
     raw_few.pick_channels(raw_few.ch_names[:1] + raw_few.ch_names[3:4])
-    assert_equal(len(raw_few.ch_names), 2)
+    assert len(raw_few.ch_names) == 2
     raw_few.del_proj()
     raw_few.info['bads'] = [raw_few.ch_names[-1]]
     orig_data = raw_few[1][0]
@@ -111,8 +110,8 @@ def test_interpolation():
         raw_few.interpolate_bads(reset_bads=False)
     assert len(w) == 0
     new_data = raw_few[1][0]
-    assert_true((new_data == 0).mean() < 0.5)
-    assert_true(np.corrcoef(new_data, orig_data)[0, 1] > 0.1)
+    assert (new_data == 0).mean() < 0.5
+    assert np.corrcoef(new_data, orig_data)[0, 1] > 0.1
 
     # check that interpolation works when non M/EEG channels are present
     # before MEG channels
@@ -135,23 +134,23 @@ def test_interpolation():
 
     raw_meg.info.normalize_proj()
     data2 = raw_meg.interpolate_bads(reset_bads=False)[pick, :][0][0]
-    assert_true(np.corrcoef(data1, data2)[0, 1] > thresh)
+    assert np.corrcoef(data1, data2)[0, 1] > thresh
     # the same number of bads as before
-    assert_true(len(raw_meg.info['bads']) == len(raw_meg.info['bads']))
+    assert len(raw_meg.info['bads']) == len(raw_meg.info['bads'])
 
     # MEG -- epochs
     data1 = epochs_meg.get_data()[:, pick, :].ravel()
     epochs_meg.info.normalize_proj()
     epochs_meg.interpolate_bads()
     data2 = epochs_meg.get_data()[:, pick, :].ravel()
-    assert_true(np.corrcoef(data1, data2)[0, 1] > thresh)
-    assert_true(len(epochs_meg.info['bads']) == 0)
+    assert np.corrcoef(data1, data2)[0, 1] > thresh
+    assert len(epochs_meg.info['bads']) == 0
 
     # MEG -- evoked
     data1 = evoked.data[pick]
     evoked.info.normalize_proj()
     data2 = evoked.interpolate_bads().data[pick]
-    assert_true(np.corrcoef(data1, data2)[0, 1] > thresh)
+    assert np.corrcoef(data1, data2)[0, 1] > thresh
 
 
 run_tests_if_main()

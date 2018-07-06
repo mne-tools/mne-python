@@ -32,7 +32,7 @@ fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
 
 def _check_stcs(stc1, stc2):
-    """Helper to check correctness"""
+    """Check STC correctness."""
     assert_allclose(stc1.times, stc2.times)
     assert_allclose(stc1.data, stc2.data)
     assert_allclose(stc1.vertices[0], stc2.vertices[0])
@@ -44,7 +44,7 @@ def _check_stcs(stc1, stc2):
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_mxne_inverse():
-    """Test (TF-)MxNE inverse computation"""
+    """Test (TF-)MxNE inverse computation."""
     # Read noise covariance matrix
     cov = read_cov(fname_cov)
 
@@ -142,7 +142,7 @@ def test_mxne_inverse():
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_mxne_vol_sphere():
-    """(TF-)MxNE with a sphere forward and volumic source space"""
+    """Test (TF-)MxNE with a sphere forward and volumic source space."""
     evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))
     evoked.crop(tmin=-0.05, tmax=0.2)
     cov = read_cov(fname_cov)

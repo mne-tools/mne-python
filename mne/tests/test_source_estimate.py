@@ -1,6 +1,4 @@
-from __future__ import print_function
 import os.path as op
-from nose.tools import assert_true, assert_raises
 import warnings
 from copy import deepcopy
 
@@ -71,7 +69,7 @@ def test_spatial_inter_hemi_connectivity():
     conn = spatial_inter_hemi_connectivity(src, 10e-3)
     conn = conn.tocsr()
     n_src = conn.shape[0]
-    assert_true(n_src * 0.02 < conn.data.size < n_src * 0.10)
+    assert (n_src * 0.02 < conn.data.size < n_src * 0.10)
     assert_equal(conn[:src[0]['nuse'], :src[0]['nuse']].data.size, 0)
     assert_equal(conn[-src[1]['nuse']:, -src[1]['nuse']:].data.size, 0)
     c = (conn.T + conn) / 2. - conn
@@ -89,7 +87,7 @@ def test_spatial_inter_hemi_connectivity():
                                         subjects_dir=subjects_dir)
         use_labels = [l.name[:-3] for l in labels
                       if np.in1d(l.vertices, has_neighbors).any()]
-        assert_true(set(use_labels) - set(good_labels) == set())
+        assert (set(use_labels) - set(good_labels) == set())
 
 
 @pytest.mark.slowtest
@@ -111,23 +109,23 @@ def test_volume_stc():
         for _ in range(2):
             stc_new.save(fname_temp)
             stc_new = read_source_estimate(fname_temp)
-            assert_true(isinstance(stc_new, VolSourceEstimate))
+            assert (isinstance(stc_new, VolSourceEstimate))
             assert_array_equal(vertno_read, stc_new.vertices)
             assert_array_almost_equal(stc.data, stc_new.data)
 
     # now let's actually read a MNE-C processed file
     stc = read_source_estimate(fname_vol, 'sample')
-    assert_true(isinstance(stc, VolSourceEstimate))
+    assert (isinstance(stc, VolSourceEstimate))
 
-    assert_true('sample' in repr(stc))
+    assert ('sample' in repr(stc))
     stc_new = stc
-    assert_raises(ValueError, stc.save, fname_vol, ftype='whatever')
+    pytest.raises(ValueError, stc.save, fname_vol, ftype='whatever')
     for ftype in ['w', 'h5']:
         for _ in range(2):
             fname_temp = op.join(tempdir, 'temp-vol.%s' % ftype)
             stc_new.save(fname_temp, ftype=ftype)
             stc_new = read_source_estimate(fname_temp)
-            assert_true(isinstance(stc_new, VolSourceEstimate))
+            assert (isinstance(stc_new, VolSourceEstimate))
             assert_array_equal(stc.vertices, stc_new.vertices)
             assert_array_almost_equal(stc.data, stc_new.data)
 
@@ -145,13 +143,13 @@ def test_save_vol_stc_as_nifti():
 
     # now let's actually read a MNE-C processed file
     stc = read_source_estimate(fname_vol, 'sample')
-    assert_true(isinstance(stc, VolSourceEstimate))
+    assert (isinstance(stc, VolSourceEstimate))
 
     stc.save_as_volume(vol_fname, src,
                        dest='surf', mri_resolution=False)
     with warnings.catch_warnings(record=True):  # nib<->numpy
         img = nib.load(vol_fname)
-    assert_true(img.shape == src[0]['shape'] + (len(stc.times),))
+    assert (img.shape == src[0]['shape'] + (len(stc.times),))
 
     with warnings.catch_warnings(record=True):  # nib<->numpy
         t1_img = nib.load(fname_t1)
@@ -159,12 +157,12 @@ def test_save_vol_stc_as_nifti():
                        dest='mri', mri_resolution=True)
     with warnings.catch_warnings(record=True):  # nib<->numpy
         img = nib.load(vol_fname)
-    assert_true(img.shape == t1_img.shape + (len(stc.times),))
+    assert (img.shape == t1_img.shape + (len(stc.times),))
     assert_allclose(img.affine, t1_img.affine, atol=1e-5)
 
     # export without saving
     img = stc.as_volume(src, dest='mri', mri_resolution=True)
-    assert_true(img.shape == t1_img.shape + (len(stc.times),))
+    assert (img.shape == t1_img.shape + (len(stc.times),))
     assert_allclose(img.affine, t1_img.affine, atol=1e-5)
 
     src = SourceSpaces([src[0], src[0]])
@@ -172,7 +170,7 @@ def test_save_vol_stc_as_nifti():
                             [stc.vertices, stc.vertices],
                             tmin=stc.tmin, tstep=stc.tstep)
     img = stc.as_volume(src, dest='mri', mri_resolution=False)
-    assert_true(img.shape == src[0]['shape'] + (len(stc.times),))
+    assert (img.shape == src[0]['shape'] + (len(stc.times),))
 
 
 @testing.requires_testing_data
@@ -185,7 +183,7 @@ def test_expand():
                                     stc_.subject)
 
     for stc in [stc_, vec_stc_]:
-        assert_true('sample' in repr(stc))
+        assert ('sample' in repr(stc))
         labels_lh = read_labels_from_annot('sample', 'aparc', 'lh',
                                            subjects_dir=subjects_dir)
         new_label = labels_lh[0] + labels_lh[1]
@@ -194,10 +192,10 @@ def test_expand():
         stc_new.data.fill(0)
         for label in labels_lh[:2]:
             stc_new += stc.in_label(label).expand(stc_limited.vertices)
-        assert_raises(TypeError, stc_new.expand, stc_limited.vertices[0])
-        assert_raises(ValueError, stc_new.expand, [stc_limited.vertices[0]])
+        pytest.raises(TypeError, stc_new.expand, stc_limited.vertices[0])
+        pytest.raises(ValueError, stc_new.expand, [stc_limited.vertices[0]])
         # make sure we can't add unless vertno agree
-        assert_raises(ValueError, stc.__add__, stc.in_label(labels_lh[0]))
+        pytest.raises(ValueError, stc.__add__, stc.in_label(labels_lh[0]))
 
 
 def _fake_stc(n_time=10):
@@ -240,23 +238,23 @@ def test_stc_attributes():
         setattr(stc, attr, val)
 
     # .times is read-only
-    assert_raises(ValueError, attempt_times_mutation, stc)
-    assert_raises(ValueError, attempt_assignment, stc, 'times', [1])
+    pytest.raises(ValueError, attempt_times_mutation, stc)
+    pytest.raises(ValueError, attempt_assignment, stc, 'times', [1])
 
     # Changing .tmin or .tstep re-computes .times
     stc.tmin = 1
-    assert_true(type(stc.tmin) == float)
+    assert (type(stc.tmin) == float)
     assert_array_almost_equal(
         stc.times, [1., 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9])
 
     stc.tstep = 1
-    assert_true(type(stc.tstep) == float)
+    assert (type(stc.tstep) == float)
     assert_array_almost_equal(
         stc.times, [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.])
 
     # tstep <= 0 is not allowed
-    assert_raises(ValueError, attempt_assignment, stc, 'tstep', 0)
-    assert_raises(ValueError, attempt_assignment, stc, 'tstep', -1)
+    pytest.raises(ValueError, attempt_assignment, stc, 'tstep', 0)
+    pytest.raises(ValueError, attempt_assignment, stc, 'tstep', -1)
 
     # Changing .data re-computes .times
     stc.data = np.random.rand(100, 5)
@@ -264,14 +262,14 @@ def test_stc_attributes():
         stc.times, [1., 2., 3., 4., 5.])
 
     # .data must match the number of vertices
-    assert_raises(ValueError, attempt_assignment, stc, 'data', [[1]])
-    assert_raises(ValueError, attempt_assignment, stc, 'data', None)
+    pytest.raises(ValueError, attempt_assignment, stc, 'data', [[1]])
+    pytest.raises(ValueError, attempt_assignment, stc, 'data', None)
 
     # .data much match number of dimensions
-    assert_raises(ValueError, attempt_assignment, stc, 'data', np.arange(100))
-    assert_raises(ValueError, attempt_assignment, vec_stc, 'data',
+    pytest.raises(ValueError, attempt_assignment, stc, 'data', np.arange(100))
+    pytest.raises(ValueError, attempt_assignment, vec_stc, 'data',
                   [np.arange(100)])
-    assert_raises(ValueError, attempt_assignment, vec_stc, 'data',
+    pytest.raises(ValueError, attempt_assignment, vec_stc, 'data',
                   [[[np.arange(100)]]])
 
     # .shape attribute must also work when ._data is None
@@ -301,7 +299,7 @@ def test_io_stc_h5():
     """Test IO for STC files using HDF5."""
     for stc in [_fake_stc(), _fake_vec_stc()]:
         tempdir = _TempDir()
-        assert_raises(ValueError, stc.save, op.join(tempdir, 'tmp'),
+        pytest.raises(ValueError, stc.save, op.join(tempdir, 'tmp'),
                       ftype='foo')
         out_name = op.join(tempdir, 'tmp')
         stc.save(out_name, ftype='h5')
@@ -309,7 +307,7 @@ def test_io_stc_h5():
         stc3 = read_source_estimate(out_name)
         stc4 = read_source_estimate(out_name + '-stc')
         stc5 = read_source_estimate(out_name + '-stc.h5')
-        assert_raises(RuntimeError, read_source_estimate, out_name,
+        pytest.raises(RuntimeError, read_source_estimate, out_name,
                       subject='bar')
         for stc_new in stc3, stc4, stc5:
             assert_equal(stc_new.subject, stc.subject)
@@ -412,7 +410,7 @@ def test_stc_methods():
                                           subjects_dir=subjects_dir)[0]
         label_both = label_lh + label_rh
         for label in (label_lh, label_rh, label_both):
-            assert_true(isinstance(stc.shape, tuple) and len(stc.shape) == 2)
+            assert (isinstance(stc.shape, tuple) and len(stc.shape) == 2)
             stc_label = stc.in_label(label)
             if label.hemi != 'both':
                 if label.hemi == 'lh':
@@ -422,19 +420,19 @@ def test_stc_methods():
                 n_vertices_used = len(label.get_vertices_used(verts))
                 assert_equal(len(stc_label.data), n_vertices_used)
         stc_lh = stc.in_label(label_lh)
-        assert_raises(ValueError, stc_lh.in_label, label_rh)
+        pytest.raises(ValueError, stc_lh.in_label, label_rh)
         label_lh.subject = 'foo'
-        assert_raises(RuntimeError, stc.in_label, label_lh)
+        pytest.raises(RuntimeError, stc.in_label, label_lh)
 
         stc_new = deepcopy(stc)
         o_sfreq = 1.0 / stc.tstep
         # note that using no padding for this STC reduces edge ringing...
         stc_new.resample(2 * o_sfreq, npad=0, n_jobs=2)
-        assert_true(stc_new.data.shape[1] == 2 * stc.data.shape[1])
-        assert_true(stc_new.tstep == stc.tstep / 2)
+        assert (stc_new.data.shape[1] == 2 * stc.data.shape[1])
+        assert (stc_new.tstep == stc.tstep / 2)
         stc_new.resample(o_sfreq, npad=0)
-        assert_true(stc_new.data.shape[1] == stc.data.shape[1])
-        assert_true(stc_new.tstep == stc.tstep)
+        assert (stc_new.data.shape[1] == stc.data.shape[1])
+        assert (stc_new.tstep == stc.tstep)
         assert_array_almost_equal(stc_new.data, stc.data, 5)
 
 
@@ -442,10 +440,10 @@ def test_stc_methods():
 def test_center_of_mass():
     """Test computing the center of mass on an stc."""
     stc = read_source_estimate(fname_stc)
-    assert_raises(ValueError, stc.center_of_mass, 'sample')
+    pytest.raises(ValueError, stc.center_of_mass, 'sample')
     stc.lh_data[:] = 0
     vertex, hemi, t = stc.center_of_mass('sample', subjects_dir=subjects_dir)
-    assert_true(hemi == 1)
+    assert (hemi == 1)
     # XXX Should design a fool-proof test case, but here were the
     # results:
     assert_equal(vertex, 124791)
@@ -499,13 +497,13 @@ def test_extract_label_time_course():
         stcs.append(this_stc)
 
     # test some invalid inputs
-    assert_raises(ValueError, extract_label_time_course, stcs, labels,
+    pytest.raises(ValueError, extract_label_time_course, stcs, labels,
                   src, mode='notamode')
 
     # have an empty label
     empty_label = labels[0].copy()
     empty_label.vertices += 1000000
-    assert_raises(ValueError, extract_label_time_course, stcs, empty_label,
+    pytest.raises(ValueError, extract_label_time_course, stcs, empty_label,
                   src, mode='mean')
 
     # but this works:
@@ -513,7 +511,7 @@ def test_extract_label_time_course():
         tc = extract_label_time_course(stcs, empty_label, src, mode='mean',
                                        allow_empty=True)
     for arr in tc:
-        assert_true(arr.shape == (1, n_times))
+        assert (arr.shape == (1, n_times))
         assert_array_equal(arr, np.zeros((1, n_times)))
 
     # test the different modes
@@ -523,12 +521,12 @@ def test_extract_label_time_course():
         label_tc = extract_label_time_course(stcs, labels, src, mode=mode)
         label_tc_method = [stc.extract_label_time_course(labels, src,
                            mode=mode) for stc in stcs]
-        assert_true(len(label_tc) == n_stcs)
-        assert_true(len(label_tc_method) == n_stcs)
+        assert (len(label_tc) == n_stcs)
+        assert (len(label_tc_method) == n_stcs)
         for tc1, tc2 in zip(label_tc, label_tc_method):
-            assert_true(tc1.shape == (n_labels, n_times))
-            assert_true(tc2.shape == (n_labels, n_times))
-            assert_true(np.allclose(tc1, tc2, rtol=1e-8, atol=1e-16))
+            assert (tc1.shape == (n_labels, n_times))
+            assert (tc2.shape == (n_labels, n_times))
+            assert (np.allclose(tc1, tc2, rtol=1e-8, atol=1e-16))
             if mode == 'mean':
                 assert_array_almost_equal(tc1, label_means)
             if mode == 'mean_flip':
@@ -539,10 +537,10 @@ def test_extract_label_time_course():
     # test label with very few vertices (check SVD conditionals)
     label = Label(vertices=src[0]['vertno'][:2], hemi='lh')
     x = label_sign_flip(label, src)
-    assert_true(len(x) == 2)
+    assert (len(x) == 2)
     label = Label(vertices=[], hemi='lh')
     x = label_sign_flip(label, src)
-    assert_true(x.size == 0)
+    assert (x.size == 0)
 
 
 @pytest.mark.slowtest
@@ -559,7 +557,7 @@ def test_morph_data():
     stc_to.crop(0.09, 0.1)  # for faster computation
     assert_array_equal(stc_to.time_as_index([0.09, 0.1], use_rounding=True),
                        [0, len(stc_to.times) - 1])
-    assert_raises(ValueError, stc_from.morph, subject_to, grade=3, smooth=-1,
+    pytest.raises(ValueError, stc_from.morph, subject_to, grade=3, smooth=-1,
                   subjects_dir=subjects_dir)
     stc_to1 = stc_from.morph(subject_to, grade=3, smooth=12, buffer_size=1000,
                              subjects_dir=subjects_dir)
@@ -567,7 +565,7 @@ def test_morph_data():
     # Morphing to a density that is too high should raise an informative error
     # (here we need to push to grade=6, but for some subjects even grade=5
     # will break)
-    assert_raises(ValueError, stc_to1.morph, subject_from, grade=6,
+    pytest.raises(ValueError, stc_to1.morph, subject_from, grade=6,
                   subjects_dir=subjects_dir)
     # make sure we can specify vertices
     vertices_to = grade_to_vertices(subject_to, grade=3,
@@ -585,7 +583,7 @@ def test_morph_data():
         morph_data(subject_from, subject_to, stc_from,
                    grade=vertices_to, smooth=1, buffer_size=3,
                    subjects_dir=subjects_dir)
-    assert_equal(len(w), 2)
+    assert sum('consider increasing' in str(ww.message) for ww in w) == 2
 
     assert_array_almost_equal(stc_to.data, stc_to1.data, 5)
     assert_array_almost_equal(stc_to1.data, stc_to2.data)
@@ -596,13 +594,13 @@ def test_morph_data():
                                      smooth=12, subjects_dir=subjects_dir)
     stc_to3 = stc_from.morph_precomputed(subject_to, vertices_to, morph_mat)
     assert_array_almost_equal(stc_to1.data, stc_to3.data)
-    assert_raises(ValueError, stc_from.morph_precomputed,
+    pytest.raises(ValueError, stc_from.morph_precomputed,
                   subject_to, vertices_to, 'foo')
-    assert_raises(ValueError, stc_from.morph_precomputed,
+    pytest.raises(ValueError, stc_from.morph_precomputed,
                   subject_to, [vertices_to[0]], morph_mat)
-    assert_raises(ValueError, stc_from.morph_precomputed,
+    pytest.raises(ValueError, stc_from.morph_precomputed,
                   subject_to, [vertices_to[0][:-1], vertices_to[1]], morph_mat)
-    assert_raises(ValueError, stc_from.morph_precomputed, subject_to,
+    pytest.raises(ValueError, stc_from.morph_precomputed, subject_to,
                   vertices_to, morph_mat, subject_from='foo')
 
     # steps warning
@@ -615,12 +613,12 @@ def test_morph_data():
 
     mean_from = stc_from.data.mean(axis=0)
     mean_to = stc_to1.data.mean(axis=0)
-    assert_true(np.corrcoef(mean_to, mean_from).min() > 0.999)
+    assert (np.corrcoef(mean_to, mean_from).min() > 0.999)
 
     # make sure we can fill by morphing
     stc_to5 = morph_data(subject_from, subject_to, stc_from, grade=None,
                          smooth=12, buffer_size=3, subjects_dir=subjects_dir)
-    assert_true(stc_to5.data.shape[0] == 163842 + 163842)
+    assert (stc_to5.data.shape[0] == 163842 + 163842)
 
     # Morph sparse data
     # Make a sparse stc
@@ -628,7 +626,7 @@ def test_morph_data():
     stc_from.vertices[1] = stc_from.vertices[1][[200]]
     stc_from._data = stc_from._data[:3]
 
-    assert_raises(RuntimeError, stc_from.morph, subject_to, sparse=True,
+    pytest.raises(RuntimeError, stc_from.morph, subject_to, sparse=True,
                   grade=5, subjects_dir=subjects_dir)
 
     stc_to_sparse = stc_from.morph(subject_to, grade=None, sparse=True,
@@ -711,7 +709,7 @@ def test_transform():
 
     # data_t.ndim > 2 & copy is True
     stcs_t = stc.transform(_my_trans, copy=True)
-    assert_true(isinstance(stcs_t, list))
+    assert (isinstance(stcs_t, list))
     assert_array_equal(stc.times, stcs_t[0].times)
     assert_equal(stc.vertices, stcs_t[0].vertices)
 
@@ -721,12 +719,12 @@ def test_transform():
     assert_array_equal(data, data_t)  # check against stc.transform_data()
 
     # data_t.ndim > 2 & copy is False
-    assert_raises(ValueError, stc.transform, _my_trans, copy=False)
+    pytest.raises(ValueError, stc.transform, _my_trans, copy=False)
 
     # data_t.ndim = 2 & copy is True
     tmp = deepcopy(stc)
     stc_t = stc.transform(np.abs, copy=True)
-    assert_true(isinstance(stc_t, SourceEstimate))
+    assert (isinstance(stc_t, SourceEstimate))
     assert_array_equal(stc.data, tmp.data)  # xfrm doesn't modify original?
 
     # data_t.ndim = 2 & copy is False
@@ -739,7 +737,7 @@ def test_transform():
     data_t = stc.transform_data(np.abs, idx=verts, tmin_idx=tmin_idx,
                                 tmax_idx=tmax_idx)
     stc.transform(np.abs, idx=verts, tmin=-50, tmax=500, copy=False)
-    assert_true(isinstance(stc, SourceEstimate))
+    assert (isinstance(stc, SourceEstimate))
     assert_equal(stc.tmin, 0.)
     assert_equal(stc.times[-1], 0.5)
     assert_equal(len(stc.vertices[0]), 0)
@@ -767,7 +765,7 @@ def test_spatio_temporal_tris_connectivity():
     new_fmt = np.array(old_fmt)
     new_fmt = [np.nonzero(new_fmt == v)[0]
                for v in np.unique(new_fmt[new_fmt >= 0])]
-    assert_true(len(new_fmt), len(components))
+    assert len(new_fmt) == len(components)
     for c, n in zip(components, new_fmt):
         assert_array_equal(c, n)
 
@@ -804,7 +802,7 @@ def test_spatio_temporal_src_connectivity():
     assert_equal(len(w), 1)
     a = connectivity.shape[0] / 2
     b = sum([s['nuse'] for s in inverse_operator['src']])
-    assert_true(a == b)
+    assert (a == b)
 
     assert_equal(grade_to_tris(5).shape, [40960, 3])
 
@@ -820,15 +818,15 @@ def test_to_data_frame():
     stc_vol = VolSourceEstimate(data, vertices=vertices[0], tmin=0, tstep=1,
                                 subject='sample')
     for stc in [stc_surf, stc_vol]:
-        assert_raises(ValueError, stc.to_data_frame, index=['foo', 'bar'])
+        pytest.raises(ValueError, stc.to_data_frame, index=['foo', 'bar'])
         for ncat, ind in zip([1, 0], ['time', ['subject', 'time']]):
             df = stc.to_data_frame(index=ind)
-            assert_true(df.index.names == ind
-                        if isinstance(ind, list) else [ind])
+            assert (df.index.names == ind
+                    if isinstance(ind, list) else [ind])
             assert_array_equal(df.values.T[ncat:], stc.data)
             # test that non-indexed data were present as categorial variables
-            assert_true(all([c in ['time', 'subject'] for c in
-                             df.reset_index().columns][:2]))
+            assert all([c in ['time', 'subject'] for c in
+                        df.reset_index().columns][:2])
 
 
 def test_get_peak():
@@ -848,14 +846,14 @@ def test_get_peak():
                                   tstep=1, subject='sample')
 
     for ii, stc in enumerate([stc_surf, stc_vol, stc_surf_1, stc_vol_1]):
-        assert_raises(ValueError, stc.get_peak, tmin=-100)
-        assert_raises(ValueError, stc.get_peak, tmax=90)
-        assert_raises(ValueError, stc.get_peak, tmin=0.002, tmax=0.001)
+        pytest.raises(ValueError, stc.get_peak, tmin=-100)
+        pytest.raises(ValueError, stc.get_peak, tmax=90)
+        pytest.raises(ValueError, stc.get_peak, tmin=0.002, tmax=0.001)
 
         vert_idx, time_idx = stc.get_peak()
         vertno = np.concatenate(stc.vertices) if ii in [0, 2] else stc.vertices
-        assert_true(vert_idx in vertno)
-        assert_true(time_idx in stc.times)
+        assert (vert_idx in vertno)
+        assert (time_idx in stc.times)
 
         data_idx, time_idx = stc.get_peak(vert_as_index=True,
                                           time_as_index=True)
@@ -874,7 +872,7 @@ def test_mixed_stc():
     vertno = S * [np.arange(N // S)]
 
     # make sure error is raised if vertices are not a list of length >= 2
-    assert_raises(ValueError, MixedSourceEstimate, data=data,
+    pytest.raises(ValueError, MixedSourceEstimate, data=data,
                   vertices=[np.arange(N)])
 
     stc = MixedSourceEstimate(data, vertno, 0, 1)
@@ -882,7 +880,7 @@ def test_mixed_stc():
     vol = read_source_spaces(fname_vsrc)
 
     # make sure error is raised for plotting surface with volume source
-    assert_raises(ValueError, stc.plot_surface, src=vol)
+    pytest.raises(ValueError, stc.plot_surface, src=vol)
 
     tempdir = _TempDir()
     fname = op.join(tempdir, 'mixed-stc.h5')
@@ -924,8 +922,7 @@ def test_vec_stc():
 
 @testing.requires_testing_data
 def test_epochs_vector_inverse():
-    """Test vector inverse consistency between evoked and epochs"""
-
+    """Test vector inverse consistency between evoked and epochs."""
     raw = read_raw_fif(fname_raw)
     events = find_events(raw, stim_channel='STI 014')[:2]
     reject = dict(grad=2000e-13, mag=4e-12, eog=150e-6)
@@ -960,17 +957,17 @@ def test_vol_connectivity():
     from scipy import sparse
     vol = read_source_spaces(fname_vsrc)
 
-    assert_raises(ValueError, spatial_src_connectivity, vol, dist=1.)
+    pytest.raises(ValueError, spatial_src_connectivity, vol, dist=1.)
 
     connectivity = spatial_src_connectivity(vol)
     n_vertices = vol[0]['inuse'].sum()
     assert_equal(connectivity.shape, (n_vertices, n_vertices))
-    assert_true(np.all(connectivity.data == 1))
-    assert_true(isinstance(connectivity, sparse.coo_matrix))
+    assert (np.all(connectivity.data == 1))
+    assert (isinstance(connectivity, sparse.coo_matrix))
 
     connectivity2 = spatio_temporal_src_connectivity(vol, n_times=2)
     assert_equal(connectivity2.shape, (2 * n_vertices, 2 * n_vertices))
-    assert_true(np.all(connectivity2.data == 1))
+    assert (np.all(connectivity2.data == 1))
 
 
 @testing.requires_testing_data

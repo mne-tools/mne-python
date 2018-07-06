@@ -1,8 +1,6 @@
 import numpy as np
 import os.path as op
-from numpy.testing import (assert_array_almost_equal, assert_raises,
-                           assert_allclose)
-from nose.tools import assert_true, assert_equal
+from numpy.testing import assert_array_almost_equal, assert_allclose
 import pytest
 
 from mne import pick_types, Epochs, read_events
@@ -65,37 +63,37 @@ def test_psd():
         psds, freqs = func(raw, proj=False, **kws)
         psds_proj, freqs_proj = func(raw, proj=True, **kws)
 
-        assert_equal(psds.shape, (len(kws['picks']), len(freqs)))
-        assert_equal(np.sum(freqs < 0), 0)
-        assert_equal(np.sum(psds < 0), 0)
+        assert psds.shape == (len(kws['picks']), len(freqs))
+        assert np.sum(freqs < 0) == 0
+        assert np.sum(psds < 0) == 0
 
         # Is power found where it should be
         ixs_max = np.argmax(psds, axis=1)
         for ixmax, ifreq in zip(ixs_max, freqs_sig):
             # Find nearest frequency to the "true" freq
             ixtrue = np.argmin(np.abs(ifreq - freqs))
-            assert_true(np.abs(ixmax - ixtrue) < 2)
+            assert (np.abs(ixmax - ixtrue) < 2)
 
         # Make sure the projection doesn't change channels it shouldn't
         assert_array_almost_equal(psds, psds_proj)
         # Array input shouldn't work
-        assert_raises(ValueError, func, raw[:3, :20][0])
+        pytest.raises(ValueError, func, raw[:3, :20][0])
 
     # test n_per_seg in psd_welch (and padding)
     psds1, freqs1 = psd_welch(raw, proj=False, n_fft=128, n_per_seg=128,
                               **kws_psd)
     psds2, freqs2 = psd_welch(raw, proj=False, n_fft=256, n_per_seg=128,
                               **kws_psd)
-    assert_true(len(freqs1) == np.floor(len(freqs2) / 2.))
-    assert_true(psds1.shape[-1] == np.floor(psds2.shape[-1] / 2.))
+    assert (len(freqs1) == np.floor(len(freqs2) / 2.))
+    assert (psds1.shape[-1] == np.floor(psds2.shape[-1] / 2.))
 
     # tests ValueError when n_per_seg=None and n_fft > signal length
     kws_psd.update(dict(n_fft=tmax * 1.1 * raw.info['sfreq']))
-    assert_raises(ValueError, psd_welch, raw, proj=False, n_per_seg=None,
+    pytest.raises(ValueError, psd_welch, raw, proj=False, n_per_seg=None,
                   **kws_psd)
     # ValueError when n_overlap > n_per_seg
     kws_psd.update(dict(n_fft=128, n_per_seg=64, n_overlap=90))
-    assert_raises(ValueError, psd_welch, raw, proj=False, **kws_psd)
+    pytest.raises(ValueError, psd_welch, raw, proj=False, **kws_psd)
 
     # -- Epochs/Evoked --
     events = read_events(event_fname)
@@ -135,13 +133,13 @@ def test_psd():
         for ixmax, ifreq in zip(ixs_max, freqs_sig):
             # Find nearest frequency to the "true" freq
             ixtrue = np.argmin(np.abs(ifreq - freqs))
-            assert_true(np.abs(ixmax - ixtrue) < 2)
-        assert_true(psds.shape == (1, len(kws['picks']), len(freqs)))
-        assert_true(np.sum(freqs < 0) == 0)
-        assert_true(np.sum(psds < 0) == 0)
+            assert (np.abs(ixmax - ixtrue) < 2)
+        assert (psds.shape == (1, len(kws['picks']), len(freqs)))
+        assert (np.sum(freqs < 0) == 0)
+        assert (np.sum(psds < 0) == 0)
 
         # Array input shouldn't work
-        assert_raises(ValueError, func, epochs.get_data())
+        pytest.raises(ValueError, func, epochs.get_data())
 
         # Testing evoked (doesn't work w/ compute_epochs_psd)
         psds_ev, freqs_ev = func(
@@ -154,11 +152,11 @@ def test_psd():
         for ixmax, ifreq in zip(ixs_max, freqs_sig):
             # Find nearest frequency to the "true" freq
             ixtrue = np.argmin(np.abs(ifreq - freqs_ev))
-            assert_true(np.abs(ixmax - ixtrue) < 2)
+            assert (np.abs(ixmax - ixtrue) < 2)
 
         # Make sure the projection doesn't change channels it shouldn't
         assert_array_almost_equal(psds_ev, psds_ev_proj, 27)
-        assert_true(psds_ev.shape == (len(kws['picks']), len(freqs)))
+        assert (psds_ev.shape == (len(kws['picks']), len(freqs)))
 
 
 @pytest.mark.slowtest
@@ -196,13 +194,13 @@ def test_compares_psd():
     assert_array_almost_equal(psds_welch, psds_mpl)
     assert_array_almost_equal(freqs_welch, freqs_mpl)
 
-    assert_true(psds_welch.shape == (len(picks), len(freqs_welch)))
-    assert_true(psds_mpl.shape == (len(picks), len(freqs_mpl)))
+    assert (psds_welch.shape == (len(picks), len(freqs_welch)))
+    assert (psds_mpl.shape == (len(picks), len(freqs_mpl)))
 
-    assert_true(np.sum(freqs_welch < 0) == 0)
-    assert_true(np.sum(freqs_mpl < 0) == 0)
+    assert (np.sum(freqs_welch < 0) == 0)
+    assert (np.sum(freqs_mpl < 0) == 0)
 
-    assert_true(np.sum(psds_welch < 0) == 0)
-    assert_true(np.sum(psds_mpl < 0) == 0)
+    assert (np.sum(psds_welch < 0) == 0)
+    assert (np.sum(psds_mpl < 0) == 0)
 
 run_tests_if_main()

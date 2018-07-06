@@ -47,7 +47,7 @@ pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw_subsampled.pos')
 
 
 def _make_stc(raw, src):
-    """Helper to make a STC."""
+    """Make a STC."""
     seed = 42
     sfreq = raw.info['sfreq']  # Hz
     tstep = 1. / sfreq
@@ -58,7 +58,7 @@ def _make_stc(raw, src):
 
 
 def _get_data():
-    """Helper to get some starting data."""
+    """Get some starting data."""
     # raw with ECG channel
     raw = read_raw_fif(raw_fname).crop(0., 5.0).load_data()
     data_picks = pick_types(raw.info, meg=True, eeg=True)

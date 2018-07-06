@@ -8,8 +8,7 @@ import numpy as np
 from scipy import linalg
 
 import warnings
-from nose.tools import assert_true, assert_equal
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_equal
 
 import mne
 from mne.datasets import testing
@@ -90,8 +89,8 @@ def _check_dipoles(dipoles, fwd, stc, evoked, residual=None):
                             len(src[0]['vertno'])]
 
     # Check the position of the two dipoles
-    assert_true(dipoles[0].pos[0] in np.array([pos1, pos2]))
-    assert_true(dipoles[1].pos[0] in np.array([pos1, pos2]))
+    assert (dipoles[0].pos[0] in np.array([pos1, pos2]))
+    assert (dipoles[1].pos[0] in np.array([pos1, pos2]))
 
     ori1 = fwd['source_nn'][np.where(src[0]['vertno'] ==
                                      stc.vertices[0])[0]][0]
@@ -100,20 +99,19 @@ def _check_dipoles(dipoles, fwd, stc, evoked, residual=None):
                             len(src[0]['vertno'])][0]
 
     # Check the orientation of the dipoles
-    assert_true(np.max(np.abs(np.dot(dipoles[0].ori[0],
-                                     np.array([ori1, ori2]).T))) > 0.99)
+    assert (np.max(np.abs(np.dot(dipoles[0].ori[0],
+                                 np.array([ori1, ori2]).T))) > 0.99)
 
-    assert_true(np.max(np.abs(np.dot(dipoles[1].ori[0],
-                                     np.array([ori1, ori2]).T))) > 0.99)
+    assert (np.max(np.abs(np.dot(dipoles[1].ori[0],
+                                 np.array([ori1, ori2]).T))) > 0.99)
 
     if residual is not None:
         picks_grad = mne.pick_types(residual.info, meg='grad')
         picks_mag = mne.pick_types(residual.info, meg='mag')
         rel_tol = 0.02
         for picks in [picks_grad, picks_mag]:
-            assert_true(linalg.norm(residual.data[picks], ord='fro') <
-                        rel_tol *
-                        linalg.norm(evoked.data[picks], ord='fro'))
+            assert (linalg.norm(residual.data[picks], ord='fro') <
+                    rel_tol * linalg.norm(evoked.data[picks], ord='fro'))
 
 
 @testing.requires_testing_data
@@ -133,8 +131,8 @@ def test_rap_music_simulated():
     dipoles = rap_music(sim_evoked, forward_fixed, noise_cov,
                         n_dipoles=n_dipoles)
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked)
-    assert_true(0.98 < dipoles[0].gof.max() < 1.)
-    assert_true(dipoles[0].gof.min() >= 0.)
+    assert (0.98 < dipoles[0].gof.max() < 1.)
+    assert (dipoles[0].gof.min() >= 0.)
     assert_array_equal(dipoles[0].gof, dipoles[1].gof)
 
     nave = 100000  # add a tiny amount of noise to the simulated evokeds
@@ -173,11 +171,11 @@ def test_rap_music_sphere():
     assert_equal((pos[:, 0] < 0).sum(), 1)
     assert_equal((pos[:, 0] > 0).sum(), 1)
     # Check the amplitude scale
-    assert_true(1e-10 < dipoles[0].amplitude[0] < 1e-7)
+    assert (1e-10 < dipoles[0].amplitude[0] < 1e-7)
     # Check the orientation
     dip_fit = mne.fit_dipole(evoked, noise_cov, sphere)[0]
-    assert_true(np.max(np.abs(np.dot(dip_fit.ori, dipoles[0].ori[0]))) > 0.99)
-    assert_true(np.max(np.abs(np.dot(dip_fit.ori, dipoles[1].ori[0]))) > 0.99)
+    assert (np.max(np.abs(np.dot(dip_fit.ori, dipoles[0].ori[0]))) > 0.99)
+    assert (np.max(np.abs(np.dot(dip_fit.ori, dipoles[1].ori[0]))) > 0.99)
 
 
 run_tests_if_main()

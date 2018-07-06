@@ -212,7 +212,7 @@ def test_crop_more():
 
 @testing.requires_testing_data
 def test_read_brainstorm_annotations():
-    """Test reading for Brainstorm events file"""
+    """Test reading for Brainstorm events file."""
     fname = op.join(data_dir, 'events_sample_audvis_raw_bst.mat')
     annot = read_brainstorm_annotations(fname)
     assert len(annot) == 238

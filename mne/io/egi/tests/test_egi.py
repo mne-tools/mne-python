@@ -8,8 +8,8 @@ import warnings
 import inspect
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
-from nose.tools import assert_true, assert_raises, assert_equal
+from numpy.testing import assert_array_equal, assert_allclose, assert_equal
+import pytest
 from scipy import io as sio
 
 
@@ -30,10 +30,10 @@ egi_txt_fname = op.join(base_dir, 'test_egi.txt')
 
 @requires_testing_data
 def test_io_egi_mff():
-    """Test importing EGI MFF simple binary files"""
+    """Test importing EGI MFF simple binary files."""
     egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi.mff')
     raw = read_raw_egi(egi_fname_mff, include=None)
-    assert_true('RawMff' in repr(raw))
+    assert ('RawMff' in repr(raw))
     include = ['DIN1', 'DIN2', 'DIN3', 'DIN4', 'DIN5', 'DIN7']
     raw = _test_raw_reader(read_raw_egi, input_fname=egi_fname_mff,
                            include=include, channel_naming='EEG %03d')
@@ -48,16 +48,16 @@ def test_io_egi_mff():
     events = find_events(raw, stim_channel='STI 014')
     assert_equal(len(events), 8)
     assert_equal(np.unique(events[:, 1])[0], 0)
-    assert_true(np.unique(events[:, 0])[0] != 0)
-    assert_true(np.unique(events[:, 2])[0] != 0)
+    assert (np.unique(events[:, 0])[0] != 0)
+    assert (np.unique(events[:, 2])[0] != 0)
 
-    assert_raises(ValueError, read_raw_egi, egi_fname_mff, include=['Foo'],
+    pytest.raises(ValueError, read_raw_egi, egi_fname_mff, include=['Foo'],
                   preload=False)
-    assert_raises(ValueError, read_raw_egi, egi_fname_mff, exclude=['Bar'],
+    pytest.raises(ValueError, read_raw_egi, egi_fname_mff, exclude=['Bar'],
                   preload=False)
     for ii, k in enumerate(include, 1):
-        assert_true(k in raw.event_id)
-        assert_true(raw.event_id[k] == ii)
+        assert (k in raw.event_id)
+        assert (raw.event_id[k] == ii)
 
 
 def test_io_egi():
@@ -72,11 +72,11 @@ def test_io_egi():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         raw = read_raw_egi(egi_fname, include=None)
-        assert_true('RawEGI' in repr(raw))
+        assert ('RawEGI' in repr(raw))
         assert_equal(len(w), 1)
-        assert_true(w[0].category == RuntimeWarning)
+        assert (w[0].category == RuntimeWarning)
         msg = 'Did not find any event code with more than one event.'
-        assert_true(msg in '%s' % w[0].message)
+        assert (msg in '%s' % w[0].message)
     data_read, t_read = raw[:256]
     assert_allclose(t_read, t)
     assert_allclose(data_read, data, atol=1e-10)
@@ -97,8 +97,8 @@ def test_io_egi():
     events = find_events(raw, stim_channel='STI 014')
     assert_equal(len(events), 2)  # ground truth
     assert_equal(np.unique(events[:, 1])[0], 0)
-    assert_true(np.unique(events[:, 0])[0] != 0)
-    assert_true(np.unique(events[:, 2])[0] != 0)
+    assert (np.unique(events[:, 0])[0] != 0)
+    assert (np.unique(events[:, 2])[0] != 0)
     triggers = np.array([[0, 1, 1, 0], [0, 0, 1, 0]])
 
     # test trigger functionality
@@ -107,22 +107,22 @@ def test_io_egi():
     new_trigger = _combine_triggers(triggers, events_ids)
     assert_array_equal(np.unique(new_trigger), np.unique([0, 12, 24]))
 
-    assert_raises(ValueError, read_raw_egi, egi_fname, include=['Foo'],
+    pytest.raises(ValueError, read_raw_egi, egi_fname, include=['Foo'],
                   preload=False)
-    assert_raises(ValueError, read_raw_egi, egi_fname, exclude=['Bar'],
+    pytest.raises(ValueError, read_raw_egi, egi_fname, exclude=['Bar'],
                   preload=False)
     for ii, k in enumerate(include, 1):
-        assert_true(k in raw.event_id)
-        assert_true(raw.event_id[k] == ii)
+        assert (k in raw.event_id)
+        assert (raw.event_id[k] == ii)
 
 
 @requires_testing_data
 def test_io_egi_pns_mff():
-    """Test importing EGI MFF with PNS data"""
+    """Test importing EGI MFF with PNS data."""
     egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi_pns.mff')
     raw = read_raw_egi(egi_fname_mff, include=None, preload=True,
                        verbose='error')
-    assert_true('RawMff' in repr(raw))
+    assert ('RawMff' in repr(raw))
     pns_chans = pick_types(raw.info, ecg=True, bio=True, emg=True)
     assert_equal(len(pns_chans), 7)
     names = [raw.ch_names[x] for x in pns_chans]
@@ -159,7 +159,7 @@ def test_io_egi_pns_mff():
 
 @requires_testing_data
 def test_io_egi_pns_mff_bug():
-    """Test importing EGI MFF with PNS data (BUG)"""
+    """Test importing EGI MFF with PNS data (BUG)."""
     egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi_pns_bug.mff')
     with warnings.catch_warnings(record=True) as w:
         raw = read_raw_egi(egi_fname_mff, include=None, preload=True,
@@ -193,5 +193,6 @@ def test_io_egi_pns_mff_bug():
         mat_data[:, -1] = 0  # The MFF has one less sample, the last one
         raw_data = raw[ch_idx][0]
         assert_array_equal(mat_data, raw_data)
+
 
 run_tests_if_main()

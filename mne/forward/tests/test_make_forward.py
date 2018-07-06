@@ -1,11 +1,8 @@
-from __future__ import print_function
-
 from itertools import product
 import os
 import os.path as op
 import warnings
 
-from nose.tools import assert_raises, assert_true
 import pytest
 import numpy as np
 from numpy.testing import assert_equal, assert_allclose, assert_array_equal
@@ -146,18 +143,18 @@ def test_make_forward_solution_kit():
     fwd = _do_forward_solution('sample', fname_kit_raw, src=fname_src_small,
                                bem=fname_bem_meg, mri=trans_path,
                                eeg=False, meg=True, subjects_dir=subjects_dir)
-    assert_true(isinstance(fwd, Forward))
+    assert (isinstance(fwd, Forward))
 
     # now let's use python with the same raw file
     fwd_py = make_forward_solution(fname_kit_raw, trans_path, src,
                                    fname_bem_meg, eeg=False, meg=True)
     _compare_forwards(fwd, fwd_py, 157, n_src)
-    assert_true(isinstance(fwd_py, Forward))
+    assert (isinstance(fwd_py, Forward))
 
     # now let's use mne-python all the way
     raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
     # without ignore_ref=True, this should throw an error:
-    assert_raises(NotImplementedError, make_forward_solution, raw_py.info,
+    pytest.raises(NotImplementedError, make_forward_solution, raw_py.info,
                   src=src, eeg=False, meg=True,
                   bem=fname_bem_meg, trans=trans_path)
 
@@ -218,9 +215,9 @@ def test_make_forward_solution():
     fwd_py = make_forward_solution(fname_raw, fname_trans, fname_src,
                                    fname_bem, mindist=5.0, eeg=True, meg=True,
                                    n_jobs=-1)
-    assert_true(isinstance(fwd_py, Forward))
+    assert (isinstance(fwd_py, Forward))
     fwd = read_forward_solution(fname_meeg)
-    assert_true(isinstance(fwd, Forward))
+    assert (isinstance(fwd, Forward))
     _compare_forwards(fwd, fwd_py, 366, 1494, meg_rtol=1e-3)
 
 
@@ -289,7 +286,7 @@ def test_forward_mixed_source_space():
 
     # calculate forward solution
     fwd = make_forward_solution(fname_raw, fname_trans, src, fname_bem, None)
-    assert_true(repr(fwd))
+    assert (repr(fwd))
 
     # extract source spaces
     src_from_fwd = fwd['src']
@@ -298,18 +295,18 @@ def test_forward_mixed_source_space():
     coord_frames = np.array([s['coord_frame'] for s in src_from_fwd])
 
     # assert that all source spaces are in head coordinates
-    assert_true((coord_frames == FIFF.FIFFV_COORD_HEAD).all())
+    assert ((coord_frames == FIFF.FIFFV_COORD_HEAD).all())
 
     # run tests for SourceSpaces.export_volume
     fname_img = op.join(temp_dir, 'temp-image.mgz')
 
     # head coordinates and mri_resolution, but trans file
-    assert_raises(ValueError, src_from_fwd.export_volume, fname_img,
+    pytest.raises(ValueError, src_from_fwd.export_volume, fname_img,
                   mri_resolution=True, trans=None)
 
     # head coordinates and mri_resolution, but wrong trans file
     vox_mri_t = vol1[0]['vox_mri_t']
-    assert_raises(ValueError, src_from_fwd.export_volume, fname_img,
+    pytest.raises(ValueError, src_from_fwd.export_volume, fname_img,
                   mri_resolution=True, trans=vox_mri_t)
 
 
@@ -344,7 +341,7 @@ def test_make_forward_dipole():
     with warnings.catch_warnings(record=True) as w:
         fwd, stc = make_forward_dipole(dip_test, sphere, info,
                                        trans=fname_trans)
-        assert_true(issubclass(w[-1].category, RuntimeWarning))
+        assert (issubclass(w[-1].category, RuntimeWarning))
 
     # stc is list of VolSourceEstimate's
     assert isinstance(stc, list)
@@ -382,10 +379,10 @@ def test_make_forward_dipole():
     # NB tolerance should be set relative to snr of simulated evoked!
     assert_allclose(dip_fit.pos, dip_test.pos, rtol=0, atol=1e-2,
                     err_msg='position mismatch')
-    assert_true(dist < 1e-2, 'dist: %s' % dist)  # within 1 cm
-    assert_true(corr > 1 - 1e-2, 'corr: %s' % corr)
-    assert_true(gc_dist < 20, 'gc_dist: %s' % gc_dist)  # less than 20 degrees
-    assert_true(amp_err < 10e-9, 'amp_err: %s' % amp_err)  # within 10 nAm
+    assert dist < 1e-2  # within 1 cm
+    assert corr > 1 - 1e-2
+    assert gc_dist < 20  # less than 20 degrees
+    assert amp_err < 10e-9  # within 10 nAm
 
     # Make sure rejection works with BEM: one dipole at z=1m
     # NB _make_forward.py:_prepare_for_forward will raise a RuntimeError
@@ -394,7 +391,7 @@ def test_make_forward_dipole():
                          pos=[[0., 0., 1.0], [0., 0., 0.040]],
                          amplitude=[100e-9, 100e-9],
                          ori=[[1., 0., 0.], [1., 0., 0.]], gof=1)
-    assert_raises(ValueError, make_forward_dipole, dip_outside, fname_bem,
+    pytest.raises(ValueError, make_forward_dipole, dip_outside, fname_bem,
                   info, fname_trans)
     # if we get this far, can safely assume the code works with BEMs too
     # -> use sphere again below for speed
@@ -412,7 +409,8 @@ def test_make_forward_dipole():
 
     fwd, stc = make_forward_dipole(dip_even_samp, sphere, info,
                                    trans=fname_trans)
-    assert_true(isinstance, VolSourceEstimate)
+    assert isinstance(stc, VolSourceEstimate)
     assert_allclose(stc.times, np.arange(0., 0.003, 0.001))
+
 
 run_tests_if_main()

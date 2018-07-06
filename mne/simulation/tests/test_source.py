@@ -1,8 +1,9 @@
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
-from nose.tools import assert_true, assert_raises, assert_equal
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_equal)
+import pytest
 
 from mne.datasets import testing
 from mne import (read_label, read_forward_solution, pick_types_forward,
@@ -22,6 +23,7 @@ subjects_dir = op.join(data_path, 'subjects')
 
 
 def read_forward_solution_meg(*args, **kwargs):
+    """Read forward MEG."""
     fwd = read_forward_solution(*args)
     fwd = convert_forward_solution(fwd, **kwargs)
     fwd = pick_types_forward(fwd, meg=True, eeg=False)
@@ -30,7 +32,7 @@ def read_forward_solution_meg(*args, **kwargs):
 
 @testing.requires_testing_data
 def test_simulate_stc():
-    """ Test generation of source estimate """
+    """Test generation of source estimate."""
     fwd = read_forward_solution_meg(fname_fwd, force_fixed=True, use_cps=True)
     labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
                          '%s.label' % label)) for label in label_names]
@@ -63,8 +65,8 @@ def test_simulate_stc():
         if hemi_idx == 1:
             idx += len(stc.vertices[0])
 
-        assert_true(np.all(stc.data[idx] == 1.0))
-        assert_true(stc.data[idx].shape[1] == n_times)
+        assert (np.all(stc.data[idx] == 1.0))
+        assert (stc.data[idx].shape[1] == n_times)
 
     # test with function
     def fun(x):
@@ -92,15 +94,15 @@ def test_simulate_stc():
     label_subset = mylabels[:2]
     data_subset = stc_data[:2]
     stc = simulate_stc(fwd['src'], label_subset, data_subset, tmin, tstep, fun)
-    assert_raises(ValueError, simulate_stc, fwd['src'],
+    pytest.raises(ValueError, simulate_stc, fwd['src'],
                   label_subset, data_subset[:-1], tmin, tstep, fun)
-    assert_raises(RuntimeError, simulate_stc, fwd['src'], label_subset * 2,
+    pytest.raises(RuntimeError, simulate_stc, fwd['src'], label_subset * 2,
                   np.concatenate([data_subset] * 2, axis=0), tmin, tstep, fun)
 
 
 @testing.requires_testing_data
 def test_simulate_sparse_stc():
-    """ Test generation of sparse source estimate """
+    """Test generation of sparse source estimate."""
     fwd = read_forward_solution_meg(fname_fwd, force_fixed=True, use_cps=True)
     labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
                          '%s.label' % label)) for label in label_names]
@@ -110,7 +112,7 @@ def test_simulate_sparse_stc():
     tstep = 1e-3
     times = np.arange(n_times, dtype=np.float) * tstep + tmin
 
-    assert_raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels),
+    pytest.raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels),
                   times, labels=labels, location='center', subject='sample',
                   subjects_dir=subjects_dir)  # no non-zero values
     for label in labels:
@@ -123,8 +125,8 @@ def test_simulate_sparse_stc():
                                     subjects_dir=subjects_dir)
         assert_equal(stc_1.subject, 'sample')
 
-        assert_true(stc_1.data.shape[0] == len(labels))
-        assert_true(stc_1.data.shape[1] == n_times)
+        assert (stc_1.data.shape[0] == len(labels))
+        assert (stc_1.data.shape[1] == n_times)
 
         # make sure we get the same result when using the same seed
         stc_2 = simulate_sparse_stc(fwd['src'], len(labels), times,
@@ -135,20 +137,20 @@ def test_simulate_sparse_stc():
         assert_array_equal(stc_1.lh_vertno, stc_2.lh_vertno)
         assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
     # Degenerate cases
-    assert_raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels),
+    pytest.raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels),
                   times, labels=labels, location='center', subject='foo',
                   subjects_dir=subjects_dir)  # wrong subject
     del fwd['src'][0]['subject_his_id']
-    assert_raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels),
+    pytest.raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels),
                   times, labels=labels, location='center',
                   subjects_dir=subjects_dir)  # no subject
-    assert_raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels),
+    pytest.raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels),
                   times, labels=labels, location='foo')  # bad location
 
 
 @testing.requires_testing_data
 def test_generate_stc_single_hemi():
-    """ Test generation of source estimate, single hemi """
+    """Test generation of source estimate, single hemi."""
     fwd = read_forward_solution_meg(fname_fwd, force_fixed=True, use_cps=True)
     labels_single_hemi = [read_label(op.join(data_path, 'MEG', 'sample',
                                              'labels', '%s.label' % label))
@@ -181,8 +183,8 @@ def test_generate_stc_single_hemi():
         if hemi_idx == 1:
             idx += len(stc.vertices[0])
 
-        assert_true(np.all(stc.data[idx] == 1.0))
-        assert_true(stc.data[idx].shape[1] == n_times)
+        assert (np.all(stc.data[idx] == 1.0))
+        assert (stc.data[idx].shape[1] == n_times)
 
     # test with function
     def fun(x):
@@ -209,7 +211,7 @@ def test_generate_stc_single_hemi():
 
 @testing.requires_testing_data
 def test_simulate_sparse_stc_single_hemi():
-    """ Test generation of sparse source estimate """
+    """Test generation of sparse source estimate."""
     fwd = read_forward_solution_meg(fname_fwd, force_fixed=True, use_cps=True)
     n_times = 10
     tmin = 0
@@ -223,8 +225,8 @@ def test_simulate_sparse_stc_single_hemi():
     stc_1 = simulate_sparse_stc(fwd['src'], len(labels_single_hemi), times,
                                 labels=labels_single_hemi, random_state=0)
 
-    assert_true(stc_1.data.shape[0] == len(labels_single_hemi))
-    assert_true(stc_1.data.shape[1] == n_times)
+    assert (stc_1.data.shape[0] == len(labels_single_hemi))
+    assert (stc_1.data.shape[1] == n_times)
 
     # make sure we get the same result when using the same seed
     stc_2 = simulate_sparse_stc(fwd['src'], len(labels_single_hemi), times,
@@ -232,5 +234,6 @@ def test_simulate_sparse_stc_single_hemi():
 
     assert_array_equal(stc_1.lh_vertno, stc_2.lh_vertno)
     assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
+
 
 run_tests_if_main()

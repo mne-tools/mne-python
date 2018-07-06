@@ -47,6 +47,7 @@ public_modules = [
 
 
 def get_name(func):
+    """Get the name."""
     parts = []
     module = inspect.getmodule(func)
     if module:
@@ -61,6 +62,7 @@ def get_name(func):
 _docstring_ignores = [
     'mne.io.Info',  # Parameters
     'mne.io.write',  # always ignore these
+    'mne.datasets.sample.sample.requires_sample_data',
     # Deprecations
 ]
 
@@ -69,7 +71,7 @@ _tab_ignores = [
 
 
 def check_parameters_match(func, doc=None):
-    """Helper to check docstring, returns list of incorrect results"""
+    """Check docstring, return list of incorrect results."""
     from numpydoc import docscrape
     incorrect = []
     name_ = get_name(func)
@@ -155,7 +157,7 @@ def test_docstring_parameters():
 
 
 def test_tabs():
-    """Test that there are no tabs in our source files"""
+    """Test that there are no tabs in our source files."""
     # avoid importing modules that require mayavi if mayavi is not installed
     ignore = _tab_ignores[:]
     try:
@@ -239,6 +241,7 @@ plot_source_spectrogram
 prepare_inverse_operator
 read_fiducials
 read_tag
+requires_sample_data
 rescale
 simulate_noise_evoked
 source_estimate_quantification
@@ -254,9 +257,10 @@ def test_documented():
     public_modules_ = public_modules[:]
     try:
         import mayavi  # noqa: F401, analysis:ignore
-        public_modules_.append('mne.gui')
     except ImportError:
         pass
+    else:
+        public_modules_.append('mne.gui')
 
     doc_file = op.abspath(op.join(op.dirname(__file__), '..', '..', 'doc',
                                   'python_reference.rst'))

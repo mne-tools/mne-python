@@ -58,7 +58,7 @@ def test_tps():
 
 @testing.requires_testing_data
 def test_get_trans():
-    """Test converting '-trans.txt' to '-trans.fif'"""
+    """Test converting '-trans.txt' to '-trans.fif'."""
     trans = read_trans(fname)
     trans = invert_transform(trans)  # starts out as head->MRI, so invert
     trans_2 = _get_trans(fname_trans)[0]
@@ -161,14 +161,14 @@ def test_sph_to_cart():
 
 
 def _polar_to_cartesian(theta, r):
-    """Transform polar coordinates to cartesian"""
+    """Transform polar coordinates to cartesian."""
     x = r * np.cos(theta)
     y = r * np.sin(theta)
     return x, y
 
 
 def test_polar_to_cartesian():
-    """Test helper transform function from polar to cartesian"""
+    """Test helper transform function from polar to cartesian."""
     r = 1
     theta = np.pi
     # expected values are (-1, 0)
@@ -259,8 +259,7 @@ def test_rotation3d_align_z_axis():
 
 @testing.requires_testing_data
 def test_combine():
-    """Test combining transforms
-    """
+    """Test combining transforms."""
     trans = read_trans(fname)
     inv = invert_transform(trans)
     combine_transforms(trans, inv, trans['from'], trans['from'])

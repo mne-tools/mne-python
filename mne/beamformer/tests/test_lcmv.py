@@ -2,7 +2,6 @@ from copy import deepcopy
 import os.path as op
 
 import pytest
-from nose.tools import assert_true, assert_raises
 import numpy as np
 from scipy import linalg
 from scipy.spatial.distance import cdist
@@ -196,8 +195,8 @@ def test_lcmv():
         max_stc = stc.data[idx]
         tmax = stc.times[np.argmax(max_stc)]
 
-        assert_true(0.09 < tmax < 0.105, tmax)
-        assert_true(0.9 < np.max(max_stc) < 3., np.max(max_stc))
+        assert 0.09 < tmax < 0.105, tmax
+        assert 0.9 < np.max(max_stc) < 3., np.max(max_stc)
 
         if fwd is forward:
             # Test picking normal orientation (surface source space only)
@@ -212,12 +211,12 @@ def test_lcmv():
             max_stc = stc_normal.data[idx]
             tmax = stc_normal.times[np.argmax(max_stc)]
 
-            assert_true(0.04 < tmax < 0.11, tmax)
-            assert_true(0.4 < np.max(max_stc) < 2., np.max(max_stc))
+            assert 0.04 < tmax < 0.11, tmax
+            assert 0.4 < np.max(max_stc) < 2., np.max(max_stc)
 
             # The amplitude of normal orientation results should always be
             # smaller than free orientation results
-            assert_true((np.abs(stc_normal.data) <= stc.data).all())
+            assert (np.abs(stc_normal.data) <= stc.data).all()
 
         # Test picking source orientation maximizing output source power
         filters = make_lcmv(evoked.info, fwd, data_cov, reg=0.01,
@@ -229,8 +228,8 @@ def test_lcmv():
         max_stc = np.abs(stc_max_power.data[idx])
         tmax = stc.times[np.argmax(max_stc)]
 
-        assert_true(0.08 < tmax < 0.11, tmax)
-        assert_true(0.8 < np.max(max_stc) < 3., np.max(max_stc))
+        assert 0.08 < tmax < 0.11, tmax
+        assert 0.8 < np.max(max_stc) < 3., np.max(max_stc)
 
         stc_max_power.data[:, :] = np.abs(stc_max_power.data)
 
@@ -244,7 +243,7 @@ def test_lcmv():
             mean_stc_max_pow = \
                 stc_max_power.extract_label_time_course(label, fwd['src'],
                                                         mode='mean')
-            assert_true((np.abs(mean_stc - mean_stc_max_pow) < 0.5).all())
+            assert ((np.abs(mean_stc - mean_stc_max_pow) < 0.5).all())
 
         # Test NAI weight normalization:
         filters = make_lcmv(evoked.info, fwd, data_cov, reg=0.01,
@@ -269,7 +268,7 @@ def test_lcmv():
                                            bem=sphere, eeg=False, meg=True)
 
     # Test that we get an error if not reducing rank
-    assert_raises(ValueError, make_lcmv, evoked.info, fwd_sphere, data_cov,
+    pytest.raises(ValueError, make_lcmv, evoked.info, fwd_sphere, data_cov,
                   reg=0.1, noise_cov=noise_cov, weight_norm='unit-noise-gain',
                   pick_ori='max-power', reduce_rank=False)
 
@@ -286,44 +285,44 @@ def test_lcmv():
     max_stc = stc_sphere.data[idx]
     tmax = stc_sphere.times[np.argmax(max_stc)]
 
-    assert_true(0.08 < tmax < 0.11, tmax)
-    assert_true(0.4 < np.max(max_stc) < 2., np.max(max_stc))
+    assert 0.08 < tmax < 0.11, tmax
+    assert 0.4 < np.max(max_stc) < 2., np.max(max_stc)
 
     # Test if fixed forward operator is detected when picking normal or
     # max-power orientation
-    assert_raises(ValueError, make_lcmv, evoked.info, forward_fixed, data_cov,
+    pytest.raises(ValueError, make_lcmv, evoked.info, forward_fixed, data_cov,
                   reg=0.01, noise_cov=noise_cov, pick_ori='normal')
-    assert_raises(ValueError, make_lcmv, evoked.info, forward_fixed, data_cov,
+    pytest.raises(ValueError, make_lcmv, evoked.info, forward_fixed, data_cov,
                   reg=0.01, noise_cov=noise_cov, pick_ori='max-power')
 
     # Test if non-surface oriented forward operator is detected when picking
     # normal orientation
-    assert_raises(ValueError, make_lcmv, evoked.info, forward, data_cov,
+    pytest.raises(ValueError, make_lcmv, evoked.info, forward, data_cov,
                   reg=0.01, noise_cov=noise_cov, pick_ori='normal')
 
     # Test if volume forward operator is detected when picking normal
     # orientation
-    assert_raises(ValueError, make_lcmv, evoked.info, forward_vol, data_cov,
+    pytest.raises(ValueError, make_lcmv, evoked.info, forward_vol, data_cov,
                   reg=0.01, noise_cov=noise_cov, pick_ori='normal')
 
     # Test if missing of noise covariance matrix is detected when more than
     # one channel type is present in the data
-    assert_raises(ValueError, make_lcmv, evoked.info, forward_vol,
+    pytest.raises(ValueError, make_lcmv, evoked.info, forward_vol,
                   data_cov=data_cov, reg=0.01, noise_cov=None,
                   pick_ori='max-power')
 
     # Test if not-yet-implemented orientation selections raise error with
     # neural activity index
-    assert_raises(NotImplementedError, make_lcmv, evoked.info,
+    pytest.raises(NotImplementedError, make_lcmv, evoked.info,
                   forward_surf_ori, data_cov, reg=0.01, noise_cov=noise_cov,
                   pick_ori='normal', weight_norm='nai')
-    assert_raises(NotImplementedError, make_lcmv, evoked.info, forward_vol,
+    pytest.raises(NotImplementedError, make_lcmv, evoked.info, forward_vol,
                   data_cov, reg=0.01, noise_cov=noise_cov, pick_ori=None,
                   weight_norm='nai')
 
     # Test if no weight-normalization and max-power source orientation throws
     # an error
-    assert_raises(NotImplementedError, make_lcmv, evoked.info, forward_vol,
+    pytest.raises(NotImplementedError, make_lcmv, evoked.info, forward_vol,
                   data_cov, reg=0.01, noise_cov=noise_cov,
                   pick_ori='max-power', weight_norm=None)
 
@@ -332,7 +331,7 @@ def test_lcmv():
     evoked_ch.pick_channels(evoked_ch.ch_names[1:])
     filters = make_lcmv(evoked.info, forward_vol, data_cov, reg=0.01,
                         noise_cov=noise_cov)
-    assert_raises(ValueError, apply_lcmv, evoked_ch, filters,
+    pytest.raises(ValueError, apply_lcmv, evoked_ch, filters,
                   max_ori_out='signed')
 
     # Test if discrepancies in channel selection of data and fwd model are
@@ -351,15 +350,15 @@ def test_lcmv():
     # Test if non-matching SSP projection is detected in application of filter
     raw_proj = deepcopy(raw)
     raw_proj.del_proj()
-    assert_raises(ValueError, apply_lcmv_raw, raw_proj, filters,
+    pytest.raises(ValueError, apply_lcmv_raw, raw_proj, filters,
                   max_ori_out='signed')
 
     # Test if setting reduce_rank to True returns a NotImplementedError
     # when no orientation selection is done or pick_ori='normal'
-    assert_raises(NotImplementedError, make_lcmv, evoked.info, forward_vol,
+    pytest.raises(NotImplementedError, make_lcmv, evoked.info, forward_vol,
                   data_cov, noise_cov=noise_cov, pick_ori=None,
                   weight_norm='nai', reduce_rank=True)
-    assert_raises(NotImplementedError, make_lcmv, evoked.info,
+    pytest.raises(NotImplementedError, make_lcmv, evoked.info,
                   forward_surf_ori, data_cov, noise_cov=noise_cov,
                   pick_ori='normal', weight_norm='nai', reduce_rank=True)
 
@@ -373,7 +372,7 @@ def test_lcmv():
     assert_array_equal(stcs[0].data, advance_iterator(stcs_).data)
 
     epochs.drop_bad()
-    assert_true(len(epochs.events) == len(stcs))
+    assert (len(epochs.events) == len(stcs))
 
     # average the single trial estimates
     stc_avg = np.zeros_like(stcs[0].data)
@@ -418,9 +417,9 @@ def test_lcmv_raw():
 
     # make sure we get an stc with vertices only in the lh
     vertno = [forward['src'][0]['vertno'], forward['src'][1]['vertno']]
-    assert_true(len(stc.vertices[0]) == len(np.intersect1d(vertno[0],
-                                                           label.vertices)))
-    assert_true(len(stc.vertices[1]) == 0)
+    assert len(stc.vertices[0]) == len(np.intersect1d(vertno[0],
+                                                      label.vertices))
+    assert len(stc.vertices[1]) == 0
 
 
 @testing.requires_testing_data
@@ -436,8 +435,8 @@ def test_lcmv_source_power():
     max_source_idx = np.argmax(stc_source_power.data)
     max_source_power = np.max(stc_source_power.data)
 
-    assert_true(max_source_idx == 0, max_source_idx)
-    assert_true(0.4 < max_source_power < 2.4, max_source_power)
+    assert max_source_idx == 0, max_source_idx
+    assert 0.4 < max_source_power < 2.4, max_source_power
 
     # Test picking normal orientation and using a list of CSD matrices
     stc_normal = _lcmv_source_power(
@@ -446,22 +445,21 @@ def test_lcmv_source_power():
 
     # The normal orientation results should always be smaller than free
     # orientation results
-    assert_true((np.abs(stc_normal.data[:, 0]) <=
-                 stc_source_power.data[:, 0]).all())
+    assert (np.abs(stc_normal.data[:, 0]) <= stc_source_power.data[:, 0]).all()
 
     # Test if fixed forward operator is detected when picking normal
     # orientation
-    assert_raises(ValueError, _lcmv_source_power, raw.info, forward_fixed,
+    pytest.raises(ValueError, _lcmv_source_power, raw.info, forward_fixed,
                   noise_cov, data_cov, pick_ori="normal")
 
     # Test if non-surface oriented forward operator is detected when picking
     # normal orientation
-    assert_raises(ValueError, _lcmv_source_power, raw.info, forward, noise_cov,
+    pytest.raises(ValueError, _lcmv_source_power, raw.info, forward, noise_cov,
                   data_cov, pick_ori="normal")
 
     # Test if volume forward operator is detected when picking normal
     # orientation
-    assert_raises(ValueError, _lcmv_source_power, epochs.info, forward_vol,
+    pytest.raises(ValueError, _lcmv_source_power, epochs.info, forward_vol,
                   noise_cov, data_cov, pick_ori="normal")
 
 
@@ -530,13 +528,13 @@ def test_tf_lcmv():
                         reg=reg, label=label, weight_norm='unit-noise-gain')
                 source_power.append(stc_source_power.data)
 
-    assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
+    pytest.raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
                   tstep, win_lengths, freq_bins, reg=reg, label=label)
     stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep,
                    win_lengths, freq_bins, reg=reg, label=label, raw=raw)
 
-    assert_true(len(stcs) == len(freq_bins))
-    assert_true(stcs[0].shape[1] == 4)
+    assert (len(stcs) == len(freq_bins))
+    assert (stcs[0].shape[1] == 4)
 
     # Averaging all time windows that overlap the time period 0 to 100 ms
     source_power = np.mean(source_power, axis=0)
@@ -548,31 +546,31 @@ def test_tf_lcmv():
     assert_array_almost_equal(stc.data[:, 2], source_power[:, 0])
 
     # Test if using unsupported max-power orientation is detected
-    assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
+    pytest.raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
                   tstep, win_lengths, freq_bins=freq_bins,
                   pick_ori='max-power')
 
     # Test if incorrect number of noise CSDs is detected
     # Test if incorrect number of noise covariances is detected
-    assert_raises(ValueError, tf_lcmv, epochs, forward, [noise_covs[0]], tmin,
+    pytest.raises(ValueError, tf_lcmv, epochs, forward, [noise_covs[0]], tmin,
                   tmax, tstep, win_lengths, freq_bins)
 
     # Test if freq_bins and win_lengths incompatibility is detected
-    assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
+    pytest.raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
                   tstep, win_lengths=[0, 1, 2], freq_bins=freq_bins)
 
     # Test if time step exceeding window lengths is detected
-    assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
+    pytest.raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
                   tstep=0.15, win_lengths=[0.2, 0.1], freq_bins=freq_bins)
 
     # Test if missing of noise covariance matrix is detected when more than
     # one channel type is present in the data
-    assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs=None,
+    pytest.raises(ValueError, tf_lcmv, epochs, forward, noise_covs=None,
                   tmin=tmin, tmax=tmax, tstep=tstep, win_lengths=win_lengths,
                   freq_bins=freq_bins)
 
     # Test if unsupported weight normalization specification is detected
-    assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
+    pytest.raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
                   tstep, win_lengths, freq_bins, weight_norm='nai')
 
     # Test unsupported pick_ori (vector not supported here)
@@ -585,7 +583,7 @@ def test_tf_lcmv():
                                   baseline=(None, 0), preload=True)
     epochs_preloaded._raw = None
     with warnings.catch_warnings(record=True):  # not enough samples
-        assert_raises(ValueError, tf_lcmv, epochs_preloaded, forward,
+        pytest.raises(ValueError, tf_lcmv, epochs_preloaded, forward,
                       noise_covs, tmin, tmax, tstep, win_lengths, freq_bins)
 
     with warnings.catch_warnings(record=True):  # not enough samples
@@ -607,7 +605,7 @@ def test_reg_pinv():
     # specific warning
     with warnings.catch_warnings(record=True) as w:
         _reg_pinv(a, reg=0.)
-    assert_true(any('deficient' in str(ww.message) for ww in w))
+    assert (any('deficient' in str(ww.message) for ww in w))
 
 
 def test_eig_inv():

@@ -6,8 +6,8 @@
 import os.path as op
 import warnings
 
-from numpy.testing import assert_raises, assert_equal, assert_array_equal
-from nose.tools import assert_true
+from numpy.testing import assert_equal, assert_array_equal
+import pytest
 
 from mne import read_events, Epochs, read_cov, pick_types
 from mne.io import read_raw_fif
@@ -101,15 +101,15 @@ def test_plot_ica_components():
         labels = [ax.get_label() for ax in c_fig.axes]
 
         for l in ['topomap', 'image', 'erp', 'spectrum', 'variance']:
-            assert_true(l in labels)
+            assert (l in labels)
 
         topomap_ax = c_fig.axes[labels.index('topomap')]
         title = topomap_ax.get_title()
-        assert_true(lbl == title)
+        assert (lbl == title)
 
     ica.info = None
-    assert_raises(ValueError, ica.plot_components, 1)
-    assert_raises(RuntimeError, ica.plot_components, 1, ch_type='mag')
+    pytest.raises(ValueError, ica.plot_components, 1)
+    pytest.raises(RuntimeError, ica.plot_components, 1, ch_type='mag')
     plt.close('all')
 
 
@@ -148,22 +148,22 @@ def test_plot_ica_properties():
                         figsize=[4.5, 4.5])
     plt.close('all')
 
-    assert_raises(TypeError, ica.plot_properties, epochs, dB=list('abc'))
-    assert_raises(TypeError, ica.plot_properties, ica)
-    assert_raises(TypeError, ica.plot_properties, [0.2])
-    assert_raises(TypeError, plot_ica_properties, epochs, epochs)
-    assert_raises(TypeError, ica.plot_properties, epochs,
+    pytest.raises(TypeError, ica.plot_properties, epochs, dB=list('abc'))
+    pytest.raises(TypeError, ica.plot_properties, ica)
+    pytest.raises(TypeError, ica.plot_properties, [0.2])
+    pytest.raises(TypeError, plot_ica_properties, epochs, epochs)
+    pytest.raises(TypeError, ica.plot_properties, epochs,
                   psd_args='not dict')
-    assert_raises(ValueError, ica.plot_properties, epochs, plot_std=[])
+    pytest.raises(ValueError, ica.plot_properties, epochs, plot_std=[])
 
     fig, ax = plt.subplots(2, 3)
     ax = ax.ravel()[:-1]
     ica.plot_properties(epochs, picks=1, axes=ax, **topoargs)
     fig = ica.plot_properties(raw, picks=[0, 1], **topoargs)
     assert_equal(len(fig), 2)
-    assert_raises(TypeError, plot_ica_properties, epochs, ica, picks=[0, 1],
+    pytest.raises(TypeError, plot_ica_properties, epochs, ica, picks=[0, 1],
                   axes=ax)
-    assert_raises(ValueError, ica.plot_properties, epochs, axes='not axes')
+    pytest.raises(ValueError, ica.plot_properties, epochs, axes='not axes')
     plt.close('all')
 
     # Test merging grads.
@@ -199,10 +199,10 @@ def test_plot_ica_sources():
     _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
 
     raw.info['bads'] = ['MEG 0113']
-    assert_raises(RuntimeError, ica.plot_sources, inst=raw)
+    pytest.raises(RuntimeError, ica.plot_sources, inst=raw)
     ica.plot_sources(epochs)
     epochs.info['bads'] = ['MEG 0113']
-    assert_raises(RuntimeError, ica.plot_sources, inst=epochs)
+    pytest.raises(RuntimeError, ica.plot_sources, inst=epochs)
     epochs.info['bads'] = []
     with warnings.catch_warnings(record=True):  # no labeled objects mpl
         ica.plot_sources(epochs.average())
@@ -222,7 +222,7 @@ def test_plot_ica_sources():
         ica.labels_ = dict(eog=[0])
         ica.labels_['eog/0/crazy-channel'] = [0]
         ica.plot_sources(evoked)  # now with labels
-    assert_raises(ValueError, ica.plot_sources, 'meeow')
+    pytest.raises(ValueError, ica.plot_sources, 'meeow')
     plt.close('all')
 
 
@@ -245,7 +245,7 @@ def test_plot_ica_overlay():
     with warnings.catch_warnings(record=True):  # bad proj
         eog_epochs = create_eog_epochs(raw, picks=picks)
     ica.plot_overlay(eog_epochs.average())
-    assert_raises(TypeError, ica.plot_overlay, raw[:2, :3][0])
+    pytest.raises(TypeError, ica.plot_overlay, raw[:2, :3][0])
     ica.plot_overlay(raw)
     plt.close('all')
 
@@ -278,11 +278,11 @@ def test_plot_ica_scores():
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='foo')
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='eog')
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='ecg')
-    assert_raises(
+    pytest.raises(
         ValueError,
         ica.plot_scores,
         [0.3, 0.2], axhline=[0.1, -0.1], labels=['one', 'one-too-many'])
-    assert_raises(ValueError, ica.plot_scores, [0.2])
+    pytest.raises(ValueError, ica.plot_scores, [0.2])
     plt.close('all')
 
 

@@ -1,8 +1,7 @@
 import os.path as op
 import warnings
 
-from nose.tools import assert_true, assert_equal
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_equal
 import numpy as np
 
 from mne.io import read_raw_fif, read_raw_ctf
@@ -36,8 +35,8 @@ def test_compute_proj_ecg():
             qrs_threshold=0.5, filter_length=6000)
         assert len(projs) == 7
         # heart rate at least 0.5 Hz, but less than 3 Hz
-        assert_true(events.shape[0] > 0.5 * dur_use and
-                    events.shape[0] < 3 * dur_use)
+        assert (events.shape[0] > 0.5 * dur_use and
+                events.shape[0] < 3 * dur_use)
         ssp_ecg = [proj for proj in projs if proj['desc'].startswith('ECG')]
         # check that the first principal component have a certain minimum
         ssp_ecg = [proj for proj in ssp_ecg if 'PCA-01' in proj['desc']]
@@ -75,20 +74,20 @@ def test_compute_proj_eog():
                                          l_freq=None, h_freq=None,
                                          reject=None, tmax=dur_use,
                                          filter_length=6000)
-        assert_true(len(projs) == (7 + n_projs_init))
-        assert_true(np.abs(events.shape[0] -
-                    np.sum(np.less(eog_times, dur_use))) <= 1)
+        assert (len(projs) == (7 + n_projs_init))
+        assert (np.abs(events.shape[0] -
+                np.sum(np.less(eog_times, dur_use))) <= 1)
         ssp_eog = [proj for proj in projs if proj['desc'].startswith('EOG')]
         # check that the first principal component have a certain minimum
         ssp_eog = [proj for proj in ssp_eog if 'PCA-01' in proj['desc']]
         thresh_eeg, thresh_axial, thresh_planar = .9, .3, .1
         for proj in ssp_eog:
             if 'planar' in proj['desc']:
-                assert_true(proj['explained_var'] > thresh_planar)
+                assert (proj['explained_var'] > thresh_planar)
             elif 'axial' in proj['desc']:
-                assert_true(proj['explained_var'] > thresh_axial)
+                assert (proj['explained_var'] > thresh_axial)
             elif 'eeg' in proj['desc']:
-                assert_true(proj['explained_var'] > thresh_eeg)
+                assert (proj['explained_var'] > thresh_eeg)
         # XXX: better tests
 
         # This will throw a warning b/c simplefilter('always')
@@ -99,7 +98,7 @@ def test_compute_proj_eog():
                                              avg_ref=True, no_proj=False,
                                              l_freq=None, h_freq=None,
                                              tmax=dur_use)
-        assert_true(len(w) >= 1)
+        assert (len(w) >= 1)
         assert_equal(projs, None)
 
 

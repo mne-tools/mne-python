@@ -2723,8 +2723,8 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
 
     Note: this function is also used by forward/tests/test_make_forward.py
     """
-    from nose.tools import assert_equal, assert_true
-    from numpy.testing import assert_allclose, assert_array_equal
+    from numpy.testing import (assert_allclose, assert_array_equal,
+                               assert_equal, assert_)
     from scipy.spatial.distance import cdist
     if mode != 'exact' and 'approx' not in mode:  # 'nointerp' can be appended
         raise RuntimeError('unknown mode %s' % mode)
@@ -2743,10 +2743,10 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
                 diffs = (s0['interpolator'] - s1['interpolator']).data
                 if len(diffs) > 0 and 'nointerp' not in mode:
                     # 5%
-                    assert_true(np.sqrt(np.mean(diffs ** 2)) < 0.10, name)
+                    assert_(np.sqrt(np.mean(diffs ** 2)) < 0.10, name)
         for name in ['nn', 'rr', 'nuse_tri', 'coord_frame', 'tris']:
             if s0[name] is None:
-                assert_true(s1[name] is None, name)
+                assert_(s1[name] is None, name)
             else:
                 if mode == 'exact':
                     assert_array_equal(s0[name], s1[name], name)
@@ -2761,25 +2761,25 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
         if nearest:
             for name in ['nearest', 'nearest_dist', 'patch_inds']:
                 if s0[name] is None:
-                    assert_true(s1[name] is None, name)
+                    assert_(s1[name] is None, name)
                 else:
                     assert_array_equal(s0[name], s1[name])
             for name in ['pinfo']:
                 if s0[name] is None:
-                    assert_true(s1[name] is None, name)
+                    assert_(s1[name] is None, name)
                 else:
-                    assert_true(len(s0[name]) == len(s1[name]), name)
+                    assert_(len(s0[name]) == len(s1[name]), name)
                     for p1, p2 in zip(s0[name], s1[name]):
-                        assert_true(all(p1 == p2), name)
+                        assert_(all(p1 == p2), name)
         if mode == 'exact':
             for name in ['inuse', 'vertno', 'use_tris']:
                 assert_array_equal(s0[name], s1[name], err_msg=name)
             for name in ['dist_limit']:
-                assert_true(s0[name] == s1[name], name)
+                assert_(s0[name] == s1[name], name)
             for name in ['dist']:
                 if s0[name] is not None:
                     assert_equal(s1[name].shape, s0[name].shape)
-                    assert_true(len((s0['dist'] - s1['dist']).data) == 0)
+                    assert_(len((s0['dist'] - s1['dist']).data) == 0)
         else:  # 'approx' in mode:
             # deal with vertno, inuse, and use_tris carefully
             for ii, s in enumerate((s0, s1)):
@@ -2789,7 +2789,7 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
                                    % (ii, si, ii, si))
             assert_equal(len(s0['vertno']), len(s1['vertno']))
             agreement = np.mean(s0['inuse'] == s1['inuse'])
-            assert_true(agreement >= 0.99, "%s < 0.99" % agreement)
+            assert_(agreement >= 0.99, "%s < 0.99" % agreement)
             if agreement < 1.0:
                 # make sure mismatched vertno are within 1.5mm
                 v0 = np.setdiff1d(s0['vertno'], s1['vertno'])
@@ -2800,8 +2800,8 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
             if s0['use_tris'] is not None:  # for "spacing"
                 assert_array_equal(s0['use_tris'].shape, s1['use_tris'].shape)
             else:
-                assert_true(s1['use_tris'] is None)
-            assert_true(np.mean(s0['use_tris'] == s1['use_tris']) > 0.99)
+                assert_(s1['use_tris'] is None)
+            assert_(np.mean(s0['use_tris'] == s1['use_tris']) > 0.99)
     # The above "if s0[name] is not None" can be removed once the sample
     # dataset is updated to have a source space with distance info
     for name in ['working_dir', 'command_line']:
@@ -2809,7 +2809,6 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
             assert_equal(src0.info[name], src1.info[name])
         else:  # 'approx' in mode:
             if name in src0.info:
-                assert_true(name in src1.info, '"%s" missing' % name)
+                assert_(name in src1.info, '"%s" missing' % name)
             else:
-                assert_true(name not in src1.info,
-                            '"%s" should not exist' % name)
+                assert_(name not in src1.info, '"%s" should not exist' % name)

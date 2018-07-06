@@ -3,7 +3,6 @@
 # License: BSD (3-clause)
 
 import os.path as op
-from nose.tools import assert_true
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
 
@@ -22,9 +21,9 @@ def test_compensation():
     raw = read_raw_fif(ctf_comp_fname)
     assert_equal(get_current_comp(raw.info), 3)
     comp1 = make_compensator(raw.info, 3, 1, exclude_comp_chs=False)
-    assert_true(comp1.shape == (340, 340))
+    assert comp1.shape == (340, 340)
     comp2 = make_compensator(raw.info, 3, 1, exclude_comp_chs=True)
-    assert_true(comp2.shape == (311, 340))
+    assert comp2.shape == (311, 340)
 
     # round-trip
     desired = np.eye(340)
@@ -54,7 +53,7 @@ def test_compensation():
     # channels have norm ~1e-12
     assert_allclose(data, data2, rtol=1e-9, atol=1e-18)
     for ch1, ch2 in zip(raw.info['chs'], raw2.info['chs']):
-        assert_true(ch1['coil_type'] == ch2['coil_type'])
+        assert ch1['coil_type'] == ch2['coil_type']
 
 
 @requires_mne
@@ -95,5 +94,6 @@ def test_compensation_mne():
         chs_c = [evoked_c.info['chs'][ii] for ii in picks_c]
         for ch_py, ch_c in zip(chs_py, chs_c):
             assert_equal(ch_py['coil_type'], ch_c['coil_type'])
+
 
 run_tests_if_main()

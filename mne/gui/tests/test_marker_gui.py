@@ -31,7 +31,7 @@ def _check_ci():
 @requires_mayavi
 @traits_test
 def test_combine_markers_model():
-    """Test CombineMarkersModel Traits Model"""
+    """Test CombineMarkersModel Traits Model."""
     from mne.gui._marker_gui import CombineMarkersModel, CombineMarkersPanel
     tempdir = _TempDir()
     tgt_fname = os.path.join(tempdir, 'test.txt')

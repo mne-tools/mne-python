@@ -5,7 +5,7 @@ import numpy as np
 import warnings
 from shutil import copyfile
 from scipy import sparse
-from nose.tools import assert_true, assert_raises
+
 import pytest
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
@@ -51,8 +51,8 @@ def test_head():
     """Test loading the head surface."""
     surf_1 = get_head_surf('sample', subjects_dir=subjects_dir)
     surf_2 = get_head_surf('sample', 'head', subjects_dir=subjects_dir)
-    assert_true(len(surf_1['rr']) < len(surf_2['rr']))  # BEM vs dense head
-    assert_raises(TypeError, get_head_surf, subject=None,
+    assert len(surf_1['rr']) < len(surf_2['rr'])  # BEM vs dense head
+    pytest.raises(TypeError, get_head_surf, subject=None,
                   subjects_dir=subjects_dir)
 
 
@@ -126,7 +126,7 @@ def test_make_morph_maps():
     with warnings.catch_warnings(record=True):
         mmap = read_morph_map('sample', 'sample', subjects_dir=tempdir)
     for mm in mmap:
-        assert_true((mm - sparse.eye(mm.shape[0], mm.shape[0])).sum() == 0)
+        assert (mm - sparse.eye(mm.shape[0], mm.shape[0])).sum() == 0
 
 
 @testing.requires_testing_data
@@ -140,7 +140,7 @@ def test_io_surface():
     for fname in (fname_quad, fname_tri):
         with warnings.catch_warnings(record=True) as w:
             pts, tri, vol_info = read_surface(fname, read_metadata=True)
-        assert_true(all('No volume info' in str(ww.message) for ww in w))
+        assert all('No volume info' in str(ww.message) for ww in w)
         write_surface(op.join(tempdir, 'tmp'), pts, tri, volume_info=vol_info)
         with warnings.catch_warnings(record=True) as w:  # No vol info
             c_pts, c_tri, c_vol_info = read_surface(op.join(tempdir, 'tmp'),
@@ -158,8 +158,8 @@ def test_read_curv():
                          'lh.inflated')
     bin_curv = read_curvature(fname_curv)
     rr = read_surface(fname_surf)[0]
-    assert_true(len(bin_curv) == len(rr))
-    assert_true(np.logical_or(bin_curv == 0, bin_curv == 1).all())
+    assert len(bin_curv) == len(rr)
+    assert np.logical_or(bin_curv == 0, bin_curv == 1).all()
 
 
 @requires_tvtk
@@ -174,10 +174,10 @@ def test_decimate_surface():
     tris = np.array([[0, 1, 2], [1, 2, 3], [0, 3, 1], [1, 2, 0]])
     for n_tri in [4, 3, 2]:  # quadric decimation creates even numbered output.
         _, this_tris = decimate_surface(points, tris, n_tri)
-        assert_true(len(this_tris) == n_tri if not n_tri % 2 else 2)
+        assert len(this_tris) == n_tri if not n_tri % 2 else 2
     nirvana = 5
     tris = np.array([[0, 1, 2], [1, 2, 3], [0, 3, 1], [1, 2, nirvana]])
-    assert_raises(ValueError, decimate_surface, points, tris, n_tri)
+    pytest.raises(ValueError, decimate_surface, points, tris, n_tri)
 
 
 run_tests_if_main()

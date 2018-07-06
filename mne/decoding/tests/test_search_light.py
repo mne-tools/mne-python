@@ -4,14 +4,16 @@
 
 
 import numpy as np
-from numpy.testing import assert_array_equal
-from nose.tools import assert_raises, assert_true, assert_equal
+from numpy.testing import assert_array_equal, assert_equal
+import pytest
+
 from mne.utils import requires_version
 from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
 from mne.decoding.transformer import Vectorizer
 
 
 def make_data():
+    """Make data."""
     n_epochs, n_chan, n_time = 50, 32, 10
     X = np.random.rand(n_epochs, n_chan, n_time)
     y = np.arange(n_epochs) % 2
@@ -24,7 +26,7 @@ def make_data():
 
 @requires_version('sklearn', '0.17')
 def test_search_light():
-    """Test SlidingEstimator"""
+    """Test SlidingEstimator."""
     from sklearn.linear_model import Ridge, LogisticRegression
     from sklearn.pipeline import make_pipeline
     from sklearn.metrics import roc_auc_score, make_scorer
@@ -34,33 +36,33 @@ def test_search_light():
     X, y = make_data()
     n_epochs, _, n_time = X.shape
     # init
-    assert_raises(ValueError, SlidingEstimator, 'foo')
+    pytest.raises(ValueError, SlidingEstimator, 'foo')
     sl = SlidingEstimator(Ridge())
-    assert_true(not is_classifier(sl))
+    assert (not is_classifier(sl))
     sl = SlidingEstimator(LogisticRegression())
-    assert_true(is_classifier(sl))
+    assert (is_classifier(sl))
     # fit
     assert_equal(sl.__repr__()[:18], '<SlidingEstimator(')
     sl.fit(X, y)
     assert_equal(sl.__repr__()[-28:], ', fitted with 10 estimators>')
-    assert_raises(ValueError, sl.fit, X[1:], y)
-    assert_raises(ValueError, sl.fit, X[:, :, 0], y)
+    pytest.raises(ValueError, sl.fit, X[1:], y)
+    pytest.raises(ValueError, sl.fit, X[:, :, 0], y)
     sl.fit(X, y, sample_weight=np.ones_like(y))
 
     # transforms
-    assert_raises(ValueError, sl.predict, X[:, :, :2])
+    pytest.raises(ValueError, sl.predict, X[:, :, :2])
     y_pred = sl.predict(X)
-    assert_true(y_pred.dtype == int)
+    assert (y_pred.dtype == int)
     assert_array_equal(y_pred.shape, [n_epochs, n_time])
     y_proba = sl.predict_proba(X)
-    assert_true(y_proba.dtype == float)
+    assert (y_proba.dtype == float)
     assert_array_equal(y_proba.shape, [n_epochs, n_time, 2])
 
     # score
     score = sl.score(X, y)
     assert_array_equal(score.shape, [n_time])
-    assert_true(np.sum(np.abs(score)) != 0)
-    assert_true(score.dtype == float)
+    assert (np.sum(np.abs(score)) != 0)
+    assert (score.dtype == float)
 
     sl = SlidingEstimator(LogisticRegression())
     assert_equal(sl.scoring, None)
@@ -69,7 +71,7 @@ def test_search_light():
     for scoring in ['foo', 999]:
         sl = SlidingEstimator(LogisticRegression(), scoring=scoring)
         sl.fit(X, y)
-        assert_raises((ValueError, TypeError), sl.score, X, y)
+        pytest.raises((ValueError, TypeError), sl.score, X, y)
 
     # Check sklearn's roc_auc fix: scikit-learn/scikit-learn#6874
     # -- 3 class problem
@@ -77,7 +79,7 @@ def test_search_light():
                           scoring='roc_auc')
     y = np.arange(len(X)) % 3
     sl.fit(X, y)
-    assert_raises(ValueError, sl.score, X, y)
+    pytest.raises(ValueError, sl.score, X, y)
     # -- 2 class problem not in [0, 1]
     y = np.arange(len(X)) % 2 + 1
     sl.fit(X, y)
@@ -89,7 +91,7 @@ def test_search_light():
     # Cannot pass a metric as a scoring parameter
     sl1 = SlidingEstimator(LogisticRegression(), scoring=roc_auc_score)
     sl1.fit(X, y)
-    assert_raises(ValueError, sl1.score, X, y)
+    pytest.raises(ValueError, sl1.score, X, y)
 
     # Now use string as scoring
     sl1 = SlidingEstimator(LogisticRegression(), scoring='roc_auc')
@@ -98,7 +100,7 @@ def test_search_light():
     X = rng.randn(*X.shape)  # randomize X to avoid AUCs in [0, 1]
     score_sl = sl1.score(X, y)
     assert_array_equal(score_sl.shape, [n_time])
-    assert_true(score_sl.dtype == float)
+    assert (score_sl.dtype == float)
 
     # Check that scoring was applied adequately
     scoring = make_scorer(roc_auc_score, needs_threshold=True)
@@ -149,12 +151,12 @@ def test_search_light():
         pipe = SlidingEstimator(BaggingClassifier(None, 2), n_jobs=n_jobs)
         pipe.fit(X, y)
         pipe.score(X, y)
-        assert_true(isinstance(pipe.estimators_[0], BaggingClassifier))
+        assert (isinstance(pipe.estimators_[0], BaggingClassifier))
 
 
 @requires_version('sklearn', '0.17')
 def test_generalization_light():
-    """Test GeneralizingEstimator"""
+    """Test GeneralizingEstimator."""
     from sklearn.pipeline import make_pipeline
     from sklearn.linear_model import LogisticRegression
     from sklearn.metrics import roc_auc_score
@@ -171,9 +173,9 @@ def test_generalization_light():
     # transforms
     y_pred = gl.predict(X)
     assert_array_equal(y_pred.shape, [n_epochs, n_time, n_time])
-    assert_true(y_pred.dtype == int)
+    assert (y_pred.dtype == int)
     y_proba = gl.predict_proba(X)
-    assert_true(y_proba.dtype == float)
+    assert (y_proba.dtype == float)
     assert_array_equal(y_proba.shape, [n_epochs, n_time, n_time, 2])
 
     # transform to different datasize
@@ -183,8 +185,8 @@ def test_generalization_light():
     # score
     score = gl.score(X[:, :, :3], y)
     assert_array_equal(score.shape, [n_time, 3])
-    assert_true(np.sum(np.abs(score)) != 0)
-    assert_true(score.dtype == float)
+    assert (np.sum(np.abs(score)) != 0)
+    assert (score.dtype == float)
 
     gl = GeneralizingEstimator(LogisticRegression(), scoring='roc_auc')
     gl.fit(X, y)
@@ -195,14 +197,14 @@ def test_generalization_light():
     for scoring in ['foo', 999]:
         gl = GeneralizingEstimator(LogisticRegression(), scoring=scoring)
         gl.fit(X, y)
-        assert_raises((ValueError, TypeError), gl.score, X, y)
+        pytest.raises((ValueError, TypeError), gl.score, X, y)
 
     # Check sklearn's roc_auc fix: scikit-learn/scikit-learn#6874
     # -- 3 class problem
     gl = GeneralizingEstimator(LogisticRegression(), scoring='roc_auc')
     y = np.arange(len(X)) % 3
     gl.fit(X, y)
-    assert_raises(ValueError, gl.score, X, y)
+    pytest.raises(ValueError, gl.score, X, y)
     # -- 2 class problem not in [0, 1]
     y = np.arange(len(X)) % 2 + 1
     gl.fit(X, y)

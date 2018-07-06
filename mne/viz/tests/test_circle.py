@@ -6,7 +6,7 @@
 
 
 import numpy as np
-from numpy.testing import assert_raises
+import pytest
 
 from mne.viz import plot_connectivity_circle, circular_layout
 
@@ -16,8 +16,7 @@ matplotlib.use('Agg')  # for testing don't use X server
 
 
 def test_plot_connectivity_circle():
-    """Test plotting connectivity circle
-    """
+    """Test plotting connectivity circle."""
     import matplotlib.pyplot as plt
     node_order = ['frontalpole-lh', 'parsorbitalis-lh',
                   'lateralorbitofrontal-lh', 'rostralmiddlefrontal-lh',
@@ -87,8 +86,8 @@ def test_plot_connectivity_circle():
                              node_angles=node_angles, title='test',
                              )
 
-    assert_raises(ValueError, circular_layout, label_names, node_order,
+    pytest.raises(ValueError, circular_layout, label_names, node_order,
                   group_boundaries=[-1])
-    assert_raises(ValueError, circular_layout, label_names, node_order,
+    pytest.raises(ValueError, circular_layout, label_names, node_order,
                   group_boundaries=[20, 0])
     plt.close('all')

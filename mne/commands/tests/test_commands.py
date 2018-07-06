@@ -4,8 +4,8 @@ from os import path as op
 import shutil
 import glob
 import warnings
+
 import pytest
-from nose.tools import assert_true, assert_raises
 from numpy.testing import assert_equal, assert_allclose
 
 from mne import concatenate_raws, read_bem_surfaces
@@ -32,14 +32,14 @@ warnings.simplefilter('always')
 
 
 def check_usage(module, force_help=False):
-    """Helper to ensure we print usage"""
+    """Ensure we print usage."""
     args = ('--help',) if force_help else ()
     with ArgvSetter(args) as out:
         try:
             module.run()
         except SystemExit:
             pass
-        assert_true('Usage: ' in out.stdout.getvalue())
+        assert 'Usage: ' in out.stdout.getvalue()
 
 
 @pytest.mark.slowtest
@@ -82,9 +82,9 @@ def test_clean_eog_ecg():
     with ArgvSetter(('-i', use_fname, '--quiet')):
         mne_clean_eog_ecg.run()
     fnames = glob.glob(op.join(tempdir, '*proj.fif'))
-    assert_true(len(fnames) == 2)  # two projs
+    assert len(fnames) == 2  # two projs
     fnames = glob.glob(op.join(tempdir, '*-eve.fif'))
-    assert_true(len(fnames) == 3)  # raw plus two projs
+    assert len(fnames) == 3  # raw plus two projs
 
 
 @pytest.mark.slowtest
@@ -103,14 +103,14 @@ def test_compute_proj_ecg_eog():
             with warnings.catch_warnings(record=True):  # too few samples
                 fun.run()
         fnames = glob.glob(op.join(tempdir, '*proj.fif'))
-        assert_true(len(fnames) == 1)
+        assert len(fnames) == 1
         fnames = glob.glob(op.join(tempdir, '*-eve.fif'))
-        assert_true(len(fnames) == 1)
+        assert len(fnames) == 1
 
 
 def test_coreg():
     """Test mne coreg."""
-    assert_true(hasattr(mne_coreg, 'run'))
+    assert hasattr(mne_coreg, 'run')
 
 
 def test_kit2fiff():
@@ -143,12 +143,12 @@ def test_make_scalp_surfaces():
     medium_fname = op.join(subj_dir, 'sample-head-medium.fif')
     try:
         with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
-            assert_raises(RuntimeError, mne_make_scalp_surfaces.run)
+            pytest.raises(RuntimeError, mne_make_scalp_surfaces.run)
             os.environ['FREESURFER_HOME'] = tempdir  # don't actually use it
             mne_make_scalp_surfaces.run()
-            assert_true(op.isfile(dense_fname))
-            assert_true(op.isfile(medium_fname))
-            assert_raises(IOError, mne_make_scalp_surfaces.run)  # no overwrite
+            assert op.isfile(dense_fname)
+            assert op.isfile(medium_fname)
+            pytest.raises(IOError, mne_make_scalp_surfaces.run)  # no overwrite
     finally:
         if orig_fs is not None:
             os.environ['FREESURFER_HOME'] = orig_fs
@@ -176,9 +176,9 @@ def test_maxfilter():
                 mne_maxfilter.run()
             finally:
                 del os.environ['_MNE_MAXFILTER_TEST']
-        assert_true(len(w) == 1)
+        assert len(w) == 1
         for check in ('maxfilter', '-trans', '-movecomp'):
-            assert_true(check in out.stdout.getvalue(), check)
+            assert check in out.stdout.getvalue(), check
 
 
 @pytest.mark.slowtest
@@ -195,7 +195,7 @@ def test_report():
                      '-s', 'sample', '--no-browser', '-m', '30')):
         mne_report.run()
     fnames = glob.glob(op.join(tempdir, '*.html'))
-    assert_true(len(fnames) == 1)
+    assert len(fnames) == 1
 
 
 def test_surf2bem():

@@ -11,9 +11,9 @@ from unittest import SkipTest
 import warnings
 
 import numpy as np
-from numpy.testing import assert_allclose
-from nose.tools import (assert_equal, assert_almost_equal, assert_false,
-                        assert_raises, assert_true)
+from numpy.testing import (assert_allclose, assert_equal,
+                           assert_array_almost_equal)
+import pytest
 
 import mne
 from mne.datasets import testing
@@ -75,16 +75,16 @@ def test_coreg_model():
     trans_dst = op.join(tempdir, 'test-trans.fif')
 
     model = CoregModel()
-    assert_raises(RuntimeError, model.save_trans, 'blah.fif')
+    pytest.raises(RuntimeError, model.save_trans, 'blah.fif')
 
     model.mri.subjects_dir = subjects_dir
     model.mri.subject = 'sample'
 
-    assert_false(model.mri.fid_ok)
+    assert not model.mri.fid_ok
     model.mri.lpa = [[-0.06, 0, 0]]
     model.mri.nasion = [[0, 0.05, 0]]
     model.mri.rpa = [[0.08, 0, 0]]
-    assert_true(model.mri.fid_ok)
+    assert (model.mri.fid_ok)
 
     model.hsp.file = raw_path
     assert_allclose(model.hsp.lpa, [[-7.137e-2, 0, 5.122e-9]], 1e-4)
@@ -132,21 +132,21 @@ def test_coreg_model():
                         "rot_z"])
     assert_equal(model.trans_x, 0)
     model.set_trans(trans)
-    assert_almost_equal(model.trans_x, x)
-    assert_almost_equal(model.trans_y, y)
-    assert_almost_equal(model.trans_z, z)
-    assert_almost_equal(model.rot_x, rot_x)
-    assert_almost_equal(model.rot_y, rot_y)
-    assert_almost_equal(model.rot_z, rot_z)
+    assert_array_almost_equal(model.trans_x, x)
+    assert_array_almost_equal(model.trans_y, y)
+    assert_array_almost_equal(model.trans_z, z)
+    assert_array_almost_equal(model.rot_x, rot_x)
+    assert_array_almost_equal(model.rot_y, rot_y)
+    assert_array_almost_equal(model.rot_z, rot_z)
 
     # info
-    assert_true(isinstance(model.fid_eval_str, string_types))
-    assert_true(isinstance(model.points_eval_str, string_types))
+    assert (isinstance(model.fid_eval_str, string_types))
+    assert (isinstance(model.points_eval_str, string_types))
 
     # scaling job
-    assert_false(model.can_prepare_bem_model)
+    assert not model.can_prepare_bem_model
     model.n_scale_params = 1
-    assert_true(model.can_prepare_bem_model)
+    assert (model.can_prepare_bem_model)
     model.prepare_bem_model = True
     sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
         model.get_scaling_job('sample2', False)
@@ -166,7 +166,7 @@ def test_coreg_model():
     sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
         model.get_scaling_job('sample2', True)
     assert_equal(bemsol, [])
-    assert_true(skip_fiducials)
+    assert (skip_fiducials)
 
     model.load_trans(fname_trans)
     model.save_trans(trans_dst)
@@ -192,7 +192,7 @@ def test_coreg_gui():
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     os.environ['_MNE_FAKE_HOME_DIR'] = home_dir
     try:
-        assert_raises(ValueError, mne.gui.coregistration, subject='Elvis',
+        pytest.raises(ValueError, mne.gui.coregistration, subject='Elvis',
                       subjects_dir=subjects_dir)
 
         from pyface.api import GUI
@@ -206,11 +206,11 @@ def test_coreg_gui():
         frame.model.mri.subjects_dir = subjects_dir
         frame.model.mri.subject = 'sample'
 
-        assert_false(frame.model.mri.fid_ok)
+        assert not frame.model.mri.fid_ok
         frame.model.mri.lpa = [[-0.06, 0, 0]]
         frame.model.mri.nasion = [[0, 0.05, 0]]
         frame.model.mri.rpa = [[0.08, 0, 0]]
-        assert_true(frame.model.mri.fid_ok)
+        assert (frame.model.mri.fid_ok)
         frame.data_panel.raw_src.file = raw_path
         assert isinstance(frame.eeg_obj.glyph.glyph.glyph_source.glyph_source,
                           tvtk.SphereSource)
@@ -236,14 +236,14 @@ def test_coreg_gui():
         assert not frame.data_panel.view_options_panel.head_high_res
 
         # configuration persistence
-        assert_true(frame.model.prepare_bem_model)
+        assert (frame.model.prepare_bem_model)
         frame.model.prepare_bem_model = False
         frame.save_config(home_dir)
         ui.dispose()
         gui.process_events()
 
         ui, frame = mne.gui.coregistration(subjects_dir=subjects_dir)
-        assert_false(frame.model.prepare_bem_model)
+        assert not frame.model.prepare_bem_model
         assert not frame.data_panel.view_options_panel.head_high_res
         ui.dispose()
         gui.process_events()
@@ -266,7 +266,7 @@ def test_coreg_model_with_fsaverage():
     model = CoregModel()
     model.mri.subjects_dir = tempdir
     model.mri.subject = 'fsaverage'
-    assert_true(model.mri.fid_ok)
+    assert (model.mri.fid_ok)
 
     model.hsp.file = raw_path
     lpa_distance = model.lpa_distance
@@ -299,11 +299,11 @@ def test_coreg_model_with_fsaverage():
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
     new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2 +
              model.nasion_distance ** 2)
-    assert_true(new_x < old_x)
+    assert (new_x < old_x)
 
     model.fit_icp(1)
     avg_point_distance_1param = np.mean(model.point_distance)
-    assert_true(avg_point_distance_1param < avg_point_distance)
+    assert (avg_point_distance_1param < avg_point_distance)
 
     # scaling job
     sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
@@ -321,7 +321,7 @@ def test_coreg_model_with_fsaverage():
     # scale with 3 parameters
     model.n_scale_params = 3
     model.fit_icp(3)
-    assert_true(np.mean(model.point_distance) < avg_point_distance_1param)
+    assert (np.mean(model.point_distance) < avg_point_distance_1param)
 
     # test switching raw disables point omission
     assert_equal(model.hsp.n_omitted, 1)

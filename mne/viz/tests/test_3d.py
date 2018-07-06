@@ -10,9 +10,7 @@
 import os.path as op
 import warnings
 
-from nose.tools import assert_true
 import numpy as np
-from numpy.testing import assert_raises
 import pytest
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
@@ -70,12 +68,12 @@ def test_plot_head_positions():
             plot_head_positions(pos, mode='field', info=info,
                                 destination=destination)
         else:
-            assert_raises(RuntimeError, plot_head_positions, pos, mode='field',
+            pytest.raises(RuntimeError, plot_head_positions, pos, mode='field',
                           info=info, destination=destination)
         plot_head_positions([pos, pos])  # list support
-        assert_raises(ValueError, plot_head_positions, ['pos'])
-        assert_raises(ValueError, plot_head_positions, pos[:, :9])
-    assert_raises(ValueError, plot_head_positions, pos, 'foo')
+        pytest.raises(ValueError, plot_head_positions, ['pos'])
+        pytest.raises(ValueError, plot_head_positions, pos[:, :9])
+    pytest.raises(ValueError, plot_head_positions, pos, 'foo')
     with pytest.raises(ValueError, match='shape'):
         plot_head_positions(pos, axes=1.)
     plt.close('all')
@@ -105,7 +103,7 @@ def test_plot_sparse_source_estimates():
                           background=(1, 1, 0),
                           subjects_dir=subjects_dir, colorbar=True,
                           clim='auto')
-    assert_raises(TypeError, plot_source_estimates, stc, 'sample',
+    pytest.raises(TypeError, plot_source_estimates, stc, 'sample',
                   figure='foo', hemi='both', clim='auto',
                   subjects_dir=subjects_dir)
 
@@ -175,11 +173,11 @@ def test_plot_alignment():
     # KIT ref sensor coil def is defined
     mlab.close(all=True)
     info = infos['Neuromag']
-    assert_raises(TypeError, plot_alignment, 'foo', trans_fname,
+    pytest.raises(TypeError, plot_alignment, 'foo', trans_fname,
                   subject='sample', subjects_dir=subjects_dir)
-    assert_raises(TypeError, plot_alignment, info, trans_fname,
+    pytest.raises(TypeError, plot_alignment, info, trans_fname,
                   subject='sample', subjects_dir=subjects_dir, src='foo')
-    assert_raises(ValueError, plot_alignment, info, trans_fname,
+    pytest.raises(ValueError, plot_alignment, info, trans_fname,
                   subject='fsaverage', subjects_dir=subjects_dir,
                   src=sample_src)
     sample_src.plot(subjects_dir=subjects_dir, head=True, skull=True,
@@ -188,7 +186,7 @@ def test_plot_alignment():
     # no-head version
     mlab.close(all=True)
     # all coord frames
-    assert_raises(ValueError, plot_alignment, info)
+    pytest.raises(ValueError, plot_alignment, info)
     plot_alignment(info, surfaces=[])
     for coord_frame in ('meg', 'head', 'mri'):
         plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
@@ -208,7 +206,7 @@ def test_plot_alignment():
                        meg=['helmet', 'sensors'],
                        eeg=['original', 'projected'], ecog=True, seeg=True)
     mlab.close(all=True)
-    assert_true(['Cannot plot MEG' in str(ww.message) for ww in w])
+    assert any('Cannot plot MEG' in str(ww.message) for ww in w)
 
     sphere = make_sphere_model(info=evoked.info, r0='auto', head_radius='auto')
     bem_sol = read_bem_solution(op.join(subjects_dir, 'sample', 'bem',
@@ -240,23 +238,23 @@ def test_plot_alignment():
                    surfaces=['brain'], bem=sphere, show_axes=True)
 
     # one layer bem with skull surfaces:
-    assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
+    pytest.raises(ValueError, plot_alignment, info=info, trans=trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   surfaces=['brain', 'head', 'inner_skull'], bem=sphere)
     # wrong eeg value:
-    assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
+    pytest.raises(ValueError, plot_alignment, info=info, trans=trans_fname,
                   subject='sample', subjects_dir=subjects_dir, eeg='foo')
     # wrong meg value:
-    assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
+    pytest.raises(ValueError, plot_alignment, info=info, trans=trans_fname,
                   subject='sample', subjects_dir=subjects_dir, meg='bar')
     # multiple brain surfaces:
-    assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
+    pytest.raises(ValueError, plot_alignment, info=info, trans=trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   surfaces=['white', 'pial'])
-    assert_raises(TypeError, plot_alignment, info=info, trans=trans_fname,
+    pytest.raises(TypeError, plot_alignment, info=info, trans=trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   surfaces=[1])
-    assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
+    pytest.raises(ValueError, plot_alignment, info=info, trans=trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   surfaces=['foo'])
     mlab.close(all=True)
@@ -286,26 +284,26 @@ def test_limits_to_control_points():
     stc.plot(colormap='mne', clim='auto', **kwargs)
     figs = [mlab.figure(), mlab.figure()]
     stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99, **kwargs)
-    assert_raises(ValueError, stc.plot, clim='auto', figure=figs, **kwargs)
+    pytest.raises(ValueError, stc.plot, clim='auto', figure=figs, **kwargs)
 
     # Test both types of incorrect limits key (lims/pos_lims)
-    assert_raises(KeyError, plot_source_estimates, stc, colormap='mne',
+    pytest.raises(KeyError, plot_source_estimates, stc, colormap='mne',
                   clim=dict(kind='value', lims=(5, 10, 15)), **kwargs)
-    assert_raises(KeyError, plot_source_estimates, stc, colormap='hot',
+    pytest.raises(KeyError, plot_source_estimates, stc, colormap='hot',
                   clim=dict(kind='value', pos_lims=(5, 10, 15)), **kwargs)
 
     # Test for correct clim values
-    assert_raises(ValueError, stc.plot,
+    pytest.raises(ValueError, stc.plot,
                   clim=dict(kind='value', pos_lims=[0, 1, 0]), **kwargs)
-    assert_raises(ValueError, stc.plot, colormap='mne',
+    pytest.raises(ValueError, stc.plot, colormap='mne',
                   clim=dict(pos_lims=(5, 10, 15, 20)), **kwargs)
-    assert_raises(ValueError, stc.plot,
+    pytest.raises(ValueError, stc.plot,
                   clim=dict(pos_lims=(5, 10, 15), kind='foo'), **kwargs)
-    assert_raises(ValueError, stc.plot, colormap='mne', clim='foo', **kwargs)
-    assert_raises(ValueError, stc.plot, clim=(5, 10, 15), **kwargs)
-    assert_raises(TypeError, plot_source_estimates, 'foo', clim='auto',
+    pytest.raises(ValueError, stc.plot, colormap='mne', clim='foo', **kwargs)
+    pytest.raises(ValueError, stc.plot, clim=(5, 10, 15), **kwargs)
+    pytest.raises(TypeError, plot_source_estimates, 'foo', clim='auto',
                   **kwargs)
-    assert_raises(ValueError, stc.plot, hemi='foo', clim='auto', **kwargs)
+    pytest.raises(ValueError, stc.plot, hemi='foo', clim='auto', **kwargs)
 
     # Test handling of degenerate data
     with warnings.catch_warnings(record=True) as w:
@@ -343,9 +341,9 @@ def test_stc_mpl():
         _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change t
         time_viewer.canvas.key_press_event('ctrl+right')
         time_viewer.canvas.key_press_event('left')
-    assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,
+    pytest.raises(ValueError, stc.plot, subjects_dir=subjects_dir,
                   hemi='both', subject='sample', backend='matplotlib')
-    assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,
+    pytest.raises(ValueError, stc.plot, subjects_dir=subjects_dir,
                   time_unit='ss', subject='sample', backend='matplotlib')
     plt.close('all')
 
@@ -368,7 +366,7 @@ def test_plot_dipole_mri_orthoview():
         fig.canvas.key_press_event('down')
         fig.canvas.key_press_event('a')  # some other key
     ax = plt.subplot(111)
-    assert_raises(TypeError, dipoles.plot_locations, trans, 'sample',
+    pytest.raises(TypeError, dipoles.plot_locations, trans, 'sample',
                   subjects_dir, ax=ax)
     plt.close('all')
 
@@ -388,13 +386,13 @@ def test_snapshot_brain_montage():
     xyz_dict[info['chs'][0]['ch_name']] = [1, 2]  # Set one ch to only 2 vals
 
     # Make sure wrong types are checked
-    assert_raises(TypeError, snapshot_brain_montage, fig, xyz)
+    pytest.raises(TypeError, snapshot_brain_montage, fig, xyz)
 
     # All chs must have 3 position values
-    assert_raises(ValueError, snapshot_brain_montage, fig, xyz_dict)
+    pytest.raises(ValueError, snapshot_brain_montage, fig, xyz_dict)
 
     # Make sure we raise error if the figure has no scene
-    assert_raises(TypeError, snapshot_brain_montage, fig, info)
+    pytest.raises(TypeError, snapshot_brain_montage, fig, info)
 
 
 @testing.requires_testing_data

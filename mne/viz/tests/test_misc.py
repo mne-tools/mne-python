@@ -11,7 +11,6 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_raises
 import pytest
 
 from mne import (read_events, read_cov, read_source_spaces, read_evokeds,
@@ -95,9 +94,9 @@ def test_plot_cov():
 @requires_nibabel()
 def test_plot_bem():
     """Test plotting of BEM contours."""
-    assert_raises(IOError, plot_bem, subject='bad-subject',
+    pytest.raises(IOError, plot_bem, subject='bad-subject',
                   subjects_dir=subjects_dir)
-    assert_raises(ValueError, plot_bem, subject='sample',
+    pytest.raises(ValueError, plot_bem, subject='sample',
                   subjects_dir=subjects_dir, orientation='bad-ori')
     plot_bem(subject='sample', subjects_dir=subjects_dir,
              orientation='sagittal', slices=[25, 50])
@@ -126,9 +125,9 @@ def test_plot_events():
                     color=color)
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     event_id=event_labels, color=color)
-        assert_raises(ValueError, plot_events, events, raw.info['sfreq'],
+        pytest.raises(ValueError, plot_events, events, raw.info['sfreq'],
                       raw.first_samp, event_id={'aud_l': 1}, color=color)
-        assert_raises(ValueError, plot_events, events, raw.info['sfreq'],
+        pytest.raises(ValueError, plot_events, events, raw.info['sfreq'],
                       raw.first_samp, event_id={'aud_l': 111}, color=color)
     plt.close('all')
 
@@ -146,10 +145,10 @@ def test_plot_source_spectrogram():
     stc_data = np.ones((n_verts, n_times))
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     plot_source_spectrogram([stc, stc], [[1, 2], [3, 4]])
-    assert_raises(ValueError, plot_source_spectrogram, [], [])
-    assert_raises(ValueError, plot_source_spectrogram, [stc, stc],
+    pytest.raises(ValueError, plot_source_spectrogram, [], [])
+    pytest.raises(ValueError, plot_source_spectrogram, [stc, stc],
                   [[1, 2], [3, 4]], tmin=0)
-    assert_raises(ValueError, plot_source_spectrogram, [stc, stc],
+    pytest.raises(ValueError, plot_source_spectrogram, [stc, stc],
                   [[1, 2], [3, 4]], tmax=7)
     plt.close('all')
 
