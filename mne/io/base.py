@@ -937,6 +937,70 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return data
 
     @verbose
+    def events_from_annot(self, event_id=None, regexp=None, verbose=None):
+        """Get events and event_id from Annotations.
+
+        .. note:: Some EEG systems come with multiple annotation channels
+                  such that different annotations can share time stamps.
+                  As a result, events will have to be filtered before
+                  constructing epochs for which unique time indices are
+                  required.
+
+        Parameters
+        ----------
+        event_id : dict | None
+            Dictionary of string keys and integer values as used in mne.Epochs
+            to map annotation descriptions to integer event codes. If None,
+            all descriptions of annotations are mapped and assigned arbitrary
+            unique integer values. Else, only the keys present will be mapped
+            and and the annotations with other descriptions will be ignored.
+        regexp : str | None
+            Regular expression used to filter the annotations whose
+            descriptions is a match.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
+
+        Returns
+        -------
+        events : array of int, shape (n_events, 3)
+            The events
+        event_id : dict
+            The event_id that can be used with the events array.
+        """
+        import re
+        inds = self.time_as_index(
+            self.annotations.onset, use_rounding=True) + self.first_samp
+
+        unique_keys = np.unique(self.annotations.description)
+
+        logger.info('Annotations descriptions: %s' % unique_keys)
+
+        if regexp is not None:
+            pat = re.compile(regexp)
+            unique_keys = [kk for kk in unique_keys if pat.match(kk)]
+
+        if event_id is None:
+            event_id_ = dict(
+                zip(unique_keys, np.arange(1, 1 + len(unique_keys))))
+        else:
+            event_id_ = {k: v for k, v in event_id.items()
+                         if k in unique_keys}
+
+        event_sel = [ii for ii, kk in
+                     enumerate(self.annotations.description)
+                     if kk in event_id_]
+        if len(event_sel) == 0:
+            raise ValueError('Could not find any of the events you specified.')
+        values = [event_id_[kk] for kk in
+                  self.annotations.description[event_sel]]
+        previous_value = np.zeros(len(event_sel))
+        inds = inds[event_sel]
+        events = np.c_[inds, previous_value, values].astype(int)
+        return events, event_id_
+
+    @verbose
     def apply_function(self, fun, picks=None, dtype=None,
                        n_jobs=1, *args, **kwargs):
         """Apply a function to a subset of channels.
