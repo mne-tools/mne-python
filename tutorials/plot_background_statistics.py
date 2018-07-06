@@ -109,7 +109,7 @@ ax.set(xticks=[], yticks=[], title="Data averaged over subjects")
 # (:math:``40 \cdot 40 = 1600`), applying the 1-sample t-test is called a
 # *mass-univariate* approach as it treats each voxel independently.
 
-titles = ['1-sample t-tests']
+titles = ['t']
 out = stats.ttest_1samp(X, 0, axis=0)
 ts = [out[0]]
 ps = [out[1]]
@@ -173,7 +173,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # calculation [1]_ to compensate for implausibly small variances.
 ts.append(ttest_1samp_no_p(X, sigma=sigma))
 ps.append(stats.distributions.t.sf(np.abs(ts[-1]), len(X) - 1) * 2)
-titles.append('1-sample t-tests with "hat" variance adjustment')
+titles.append('$\mathrm{t_{hat}}$')
 mccs.append(False)
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
