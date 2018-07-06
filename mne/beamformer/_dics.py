@@ -6,6 +6,7 @@
 #          Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD (3-clause)
+from copy import deepcopy
 
 import numpy as np
 from scipy import linalg
@@ -330,8 +331,8 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                    vertices=vertices, subject=subject,
                    pick_ori=pick_ori, inversion=inversion,
                    weight_norm=weight_norm,
-                   normalize_fwd=normalize_fwd, n_orient=n_orient
-                   if pick_ori is None else 1)
+                   normalize_fwd=normalize_fwd, src=deepcopy(forward['src']),
+                   n_orient=n_orient if pick_ori is None else 1)
 
     return filters
 
