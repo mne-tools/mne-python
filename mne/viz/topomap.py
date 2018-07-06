@@ -1189,8 +1189,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     # merging grads before rescaling makes ERDs visible
     if merge_grads:
         from ..channels.layout import _merge_grad_data
-        data, shape = _merge_grad_data(data), data.shape
-        data = data.reshape((data.shape[0], shape[1], shape[2]))
+        data = _merge_grad_data(data)
 
     data = rescale(data, tfr.times, baseline, mode, copy=True)
 

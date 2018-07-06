@@ -1386,6 +1386,8 @@ class AverageTFR(_BaseTFR):
 
         """  # noqa: E501
         from ..viz.topomap import _set_contour_locator
+        from ..channels.layout import (find_layout, _merge_grad_data,
+                                       _pair_grad_sensors)
         import matplotlib.pyplot as plt
 
         #####################################
@@ -1514,24 +1516,18 @@ class AverageTFR(_BaseTFR):
             data = tfr.data
 
             if layout is None:
-                from ..channels.layout import find_layout
                 pos = find_layout(tfr.info).pos
             else:
                 pos = layout.pos
 
             # merging grads here before rescaling makes ERDs visible
             if ch_type == 'grad':
-                from ..channels.layout import find_layout
-                from ..channels.layout import _merge_grad_data
-                from ..channels.layout import _pair_grad_sensors
                 info = tfr.info
                 picks, new_pos = _pair_grad_sensors(info, find_layout(info))
                 if layout is None:
                     pos = new_pos
-                shape = data[picks].shape
                 method = combine or 'rms'
                 data = _merge_grad_data(data[picks], method=method)
-                data = data.reshape((data.shape[0], shape[1], shape[2]))
 
             all_pos.append(pos)
 
