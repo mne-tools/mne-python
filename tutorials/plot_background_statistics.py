@@ -45,8 +45,8 @@ print(__doc__)
 # significance level :math:`\alpha`.
 # To think about what this means, let's follow the illustrative example from
 # [1]_ and construct a toy dataset consisting of a 40 x 40 square with a
-# "signal" present in the center (at pixel [20, 20]) with white noise
-# added and a Gaussian smoothing kernel applied.
+# "signal" present in the center with white noise added and a Gaussian
+# smoothing kernel applied.
 width = 40
 n_subjects = 10
 signal_mean = 100
@@ -86,11 +86,12 @@ ax.set(xticks=[], yticks=[], title="Data averaged over subjects")
 #     There is no difference between the mean value and zero
 #     (:math:`H_0 \colon \mu = 0`).
 #
-# The alternative hypothesis, then, is that the voxel has a non-zero mean.
+# The alternative hypothesis, then, is that the voxel has a non-zero mean
+# (:math:`H_1 \colon \mu \neq 0`).
 # This is a *two-tailed* test because the mean could be less than
-# or greater than zero (whereas a *one-tailed* test would test only one of
-# these possibilities, i.e. :math:`H_0 \colon \mu \geq 0` or
-# :math:`H_0 \colon \mu \leq 0`).
+# or greater than zero, whereas a *one-tailed* test would test only one of
+# these possibilities, i.e. :math:`H_1 \colon \mu \geq 0` or
+# :math:`H_1 \colon \mu \leq 0`.
 #
 # .. note:: Here we will refer to each spatial location as a "voxel".
 #           In general, though, it could be any sort of data value,
@@ -106,7 +107,7 @@ ax.set(xticks=[], yticks=[], title="Data averaged over subjects")
 # but is not always satisfied for neuroimaging data.
 #
 # In the context of our toy dataset, which has many voxels
-# (:math:``40 \cdot 40 = 1600`), applying the 1-sample t-test is called a
+# (:math:`40 \cdot 40 = 1600`), applying the 1-sample t-test is called a
 # *mass-univariate* approach as it treats each voxel independently.
 
 titles = ['t']
@@ -263,13 +264,13 @@ fig.show()
 # To combat this problem, several methods exist. Typically these
 # provide control over either one of the following two measures:
 #
-# 1. `Familywise error rate (FWER) <https://en.wikipedia.org/wiki/Family-wise_error_rate>`_  # noqa
+# 1. `Familywise error rate (FWER) <https://en.wikipedia.org/wiki/Family-wise_error_rate>`_
 #      The probability of making one or more type I errors:
 #
 #      .. math::
 #        \mathrm{P}(N_{\mathrm{type\ I}} >= 1 \mid H_0)
 #
-# 2. `False discovery rate (FDR) <https://en.wikipedia.org/wiki/False_discovery_rate>`_  # noqa
+# 2. `False discovery rate (FDR) <https://en.wikipedia.org/wiki/False_discovery_rate>`_
 #      The expected proportion of rejected null hypotheses that are
 #      actually true:
 #
@@ -330,7 +331,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 #    of processed neuroimaging data).
 
 titles.append('$\mathbf{Perm_{max}}$')
-out = permutation_t_test(X)[:2]
+out = permutation_t_test(X, verbose=False)[:2]
 ts.append(out[0])
 ps.append(out[1])
 mccs.append(True)
@@ -392,7 +393,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # Moreover, because the test statistic concerns the full data, the null
 # hypothesis (and our rejection of it) refers to the structure of the full
 # data. For more information, see also the comprehensive
-# `FieldTrip tutorial <http://www.fieldtriptoolbox.org/faq/how_not_to_interpret_results_from_a_cluster-based_permutation_test>`_.  # noqa
+# `FieldTrip tutorial <http://www.fieldtriptoolbox.org/faq/how_not_to_interpret_results_from_a_cluster-based_permutation_test>`_.
 #
 # Defining the connectivity/neighbor/adjacency matrix
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
