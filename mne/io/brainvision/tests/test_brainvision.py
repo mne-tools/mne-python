@@ -50,6 +50,9 @@ vhdr_mixed_lowpass_path = op.join(data_dir, 'test_mixed_lowpass.vhdr')
 vhdr_lowpass_s_path = op.join(data_dir, 'test_lowpass_s.vhdr')
 vhdr_mixed_lowpass_s_path = op.join(data_dir, 'test_mixed_lowpass_s.vhdr')
 
+# Test for nanovolts as unit
+vhdr_nV_path = op.join(data_dir, 'test_nV.vhdr')
+
 montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 eog = ['HL', 'HR', 'Vb']
@@ -325,6 +328,15 @@ def test_brainvision_data():
     # test loading v2
     read_raw_brainvision(vhdr_v2_path, eog=eog, preload=True,
                          response_trig_shift=1000, verbose='error')
+    # For the nanovolt unit test we use the same data file with a different
+    # header file.
+    raw_nV = _test_raw_reader(
+        read_raw_brainvision, vhdr_fname=vhdr_nV_path, montage=montage,
+        eog=eog, misc='auto', event_id=event_id)
+    assert_equal(raw_nV.info['chs'][0]['ch_name'], 'FP1')
+    assert_equal(raw_nV.info['chs'][0]['kind'], FIFF.FIFFV_EEG_CH)
+    data_nanovolt, _ = raw_nV[0]
+    assert_array_almost_equal(data_py[0, :], data_nanovolt[0, :])
 
 
 def test_brainvision_vectorized_data():
