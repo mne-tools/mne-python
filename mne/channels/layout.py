@@ -15,8 +15,7 @@ import os.path as op
 
 import numpy as np
 
-from ..transforms import _pol_to_cart, _cart_to_sph
-from ..bem import fit_sphere_to_headshape
+from ..transforms import _pol_to_cart, _cart_to_sph, apply_trans
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..io.meas_info import Info
@@ -615,7 +614,7 @@ def _find_topomap_coords(info, picks, layout=None):
         pos = [layout.pos[layout.names.index(ch['ch_name'])] for ch in chs]
         pos = np.asarray(pos)
     else:
-        pos = _auto_topomap_coords(info, picks)
+        pos = _auto_topomap_coords(info, picks)  # will do to_sphere=True
 
     return pos
 
@@ -650,7 +649,12 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
     chs = [info['chs'][i] for i in picks]
 
     # Use channel locations if available
-    locs3d = np.array([ch['loc'][:3] for ch in chs])
+    locs3d = np.empty((len(chs), 3))
+    for ci, ch in enumerate(chs):
+        if ch['kind'] == FIFF.FIFFV_MEG_CH:
+            locs3d[ci] = apply_trans(info['dev_head_t'], ch['loc'][:3])
+        else:
+            locs3d[ci] = ch['loc'][:3]
 
     # If electrode locations are not available, use digization points
     if len(locs3d) == 0 or (~np.isfinite(locs3d)).all() or \
@@ -677,7 +681,8 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
             raise RuntimeError('No digitization points found.')
 
         locs3d = np.array([point['r'] for point in info['dig']
-                           if point['kind'] == FIFF.FIFFV_POINT_EEG])
+                           if point['kind'] == FIFF.FIFFV_POINT_EEG and
+                           point['coord_frame'] == FIFF.FIFFV_COORD_HEAD])
 
         if len(locs3d) == 0:
             raise RuntimeError('Did not find any digitization points of '
@@ -688,13 +693,6 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
             raise ValueError("Number of EEG digitization points (%d) "
                              "doesn't match the number of EEG channels "
                              "(%d)" % (len(locs3d), len(eeg_ch_names)))
-
-        # Center digitization points on head origin
-        dig_kinds = (FIFF.FIFFV_POINT_CARDINAL,
-                     FIFF.FIFFV_POINT_EEG,
-                     FIFF.FIFFV_POINT_EXTRA)
-        _, origin_head, _ = fit_sphere_to_headshape(info, dig_kinds, units='m')
-        locs3d -= origin_head
 
         # Match the digitization points with the requested
         # channels.
@@ -715,8 +713,10 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
 
     if to_sphere:
         # use spherical (theta, pol) as (r, theta) for polar->cartesian
-        return _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
-    return _pol_to_cart(_cart_to_sph(locs3d))
+        out = _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
+    else:
+        out = _pol_to_cart(_cart_to_sph(locs3d))
+    return out
 
 
 def _topo_to_sphere(pos, eegs):
