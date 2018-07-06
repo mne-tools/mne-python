@@ -769,6 +769,21 @@ def has_nibabel(vox2ras_tkr=False):
         return False
 
 
+def has_dipy():
+    """Determine if dipy is installed.
+
+    Returns
+    -------
+    has : bool
+        True if the user has dipy.
+    """
+    try:
+        import dipy
+        return True
+    except ImportError:
+        return False
+
+
 def has_mne_c():
     """Check for MNE-C."""
     return 'MNE_ROOT' in os.environ

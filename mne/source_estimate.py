@@ -84,7 +84,7 @@ def _write_stc(filename, tmin, tstep, vertices, data):
 
     Parameters
     ----------
-    filename : string
+    filename : str
         The name of the STC file.
     tmin : float
         The first time point of the data in seconds.
@@ -134,7 +134,7 @@ def _read_w(filename):
 
     Parameters
     ----------
-    filename : string
+    filename : str
         The name of the w file.
 
     Returns
@@ -183,7 +183,7 @@ def _write_w(filename, vertices, data):
 
     Parameters
     ----------
-    filename: string
+    filename: str
         The name of the w file.
     vertices: array of int
         Vertex indices (0 based).
@@ -565,7 +565,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             Amount to pad the start and end of the data.
             Can also be "auto" to use a padding that will result in
             a power-of-two size (can be much faster).
-        window : string or tuple
+        window : str | tuple
             Window to use in resampling. See scipy.signal.resample.
         n_jobs : int
             Number of jobs to run in parallel.
@@ -1256,7 +1256,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         subject_orig : str | None
             The original subject. For most source spaces this shouldn't need
             to be provided, since it is stored in the source space itself.
-        subjects_dir : string, or None
+        subjects_dir : str | None
             Path to SUBJECTS_DIR if it is not set in the environment.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
@@ -1293,7 +1293,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        subject_to : string
+        subject_to : str
             Name of the subject on which to morph as named in the SUBJECTS_DIR
         grade : int, list (of two arrays), or None
             Resolution of the icosahedral mesh (typically 5). If None, all
@@ -1310,14 +1310,14 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             Number of iterations for the smoothing of the surface data.
             If None, smooth is automatically defined to fill the surface
             with non-zero values.
-        subjects_dir : string, or None
+        subjects_dir : str | None
             Path to SUBJECTS_DIR if it is not set in the environment.
         buffer_size : int
             Morph data in chunks of `buffer_size` time instants.
             Saves memory when morphing long time intervals.
         n_jobs : int
             Number of jobs to run in parallel.
-        subject_from : string
+        subject_from : str
             Name of the original subject as named in the SUBJECTS_DIR.
             If None, self.subject will be used.
         sparse : bool
@@ -1349,13 +1349,13 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        subject_to : string
+        subject_to : str
             Name of the subject on which to morph as named in the SUBJECTS_DIR.
         vertices_to : list of array of int
             The vertices on the destination subject's brain.
         morph_mat : sparse matrix
             The morphing matrix, usually from compute_morph_matrix.
-        subject_from : string | None
+        subject_from : str | None
             Name of the original subject as named in the SUBJECTS_DIR.
             If None, self.subject will be used.
 
@@ -1419,12 +1419,12 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Parameters
         ----------
-        fname : string
+        fname : str
             The stem of the file name. The file names used for surface source
             spaces are obtained by adding "-lh.stc" and "-rh.stc" (or "-lh.w"
             and "-rh.w") to the stem provided, for the left and the right
             hemisphere, respectively.
-        ftype : string
+        ftype : str
             File format to use. Allowed values are "stc" (default), "w",
             and "h5". The "w" format only supports a single time point.
         verbose : bool, str, int, or None
@@ -1606,7 +1606,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Parameters
         ----------
-        subject : string | None
+        subject : str | None
             The subject the stc is defined for.
         hemi : int, or None
             Calculate the center of mass for the left (0) or right (1)
@@ -1652,7 +1652,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
                switching of auditory spatial attention", NeuroImage 2012.
         """
         if not isinstance(surf, string_types):
-            raise TypeError('surf must be a string, got %s' % (type(surf),))
+            raise TypeError('surf must be a str, got %s' % (type(surf),))
         subject = _check_subject(self.subject, subject)
         if np.any(self.data < 0):
             raise ValueError('Cannot compute COM with negative values')
@@ -1747,10 +1747,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        fname : string
+        fname : str
             The stem of the file name. The stem is extended with "-vl.stc"
             or "-vl.w".
-        ftype : string
+        ftype : str
             File format to use. Allowed values are "stc" (default), "w",
             and "h5". The "w" format only supports a single time point.
         verbose : bool, str, int, or None
@@ -1790,7 +1790,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        fname : string
+        fname : str
             The name of the generated nifti file.
         src : list
             The list of source spaces (should all be of type volume).
@@ -1943,10 +1943,10 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
 
         Parameters
         ----------
-        fname : string
+        fname : str
             The file name to write the source estimate to, should end in
             '-stc.h5'.
-        ftype : string
+        ftype : str
             File format to use. Currently, the only allowed values is "h5".
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
@@ -2178,12 +2178,12 @@ class MixedSourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        fname : string
+        fname : str
             The stem of the file name. The file names used for surface source
             spaces are obtained by adding "-lh.stc" and "-rh.stc" (or "-lh.w"
             and "-rh.w") to the stem provided, for the left and the right
             hemisphere, respectively.
-        ftype : string
+        ftype : str
             File format to use. Allowed values are "stc" (default), "w",
             and "h5". The "w" format only supports a single time point.
         verbose : bool, str, int, or None
@@ -2416,9 +2416,9 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 
     Parameters
     ----------
-    subject_from : string
+    subject_from : str
         Name of the original subject as named in the SUBJECTS_DIR
-    subject_to : string
+    subject_to : str
         Name of the subject on which to morph as named in the SUBJECTS_DIR
     stc_from : SourceEstimate | VectorSourceEstimate
         Source estimates for subject "from" to morph
@@ -2436,7 +2436,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         Number of iterations for the smoothing of the surface data.
         If None, smooth is automatically defined to fill the surface
         with non-zero values.
-    subjects_dir : string, or None
+    subjects_dir : str | None
         Path to SUBJECTS_DIR if it is not set in the environment.
     buffer_size : int
         Morph data in chunks of `buffer_size` time instants.
@@ -2521,9 +2521,9 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
 
     Parameters
     ----------
-    subject_from : string
+    subject_from : str
         Name of the original subject as named in the SUBJECTS_DIR.
-    subject_to : string
+    subject_to : str
         Name of the subject on which to morph as named in the SUBJECTS_DIR.
     vertices_from : list of arrays of int
         Vertices for each hemisphere (LH, RH) for subject_from.
@@ -2533,7 +2533,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         Number of iterations for the smoothing of the surface data.
         If None, smooth is automatically defined to fill the surface
         with non-zero values.
-    subjects_dir : string
+    subjects_dir : str
         Path to SUBJECTS_DIR is not set in the environment.
     warn : bool
         If True, warn if not all vertices were used.
@@ -2629,7 +2629,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
         computing vertex locations. Note that if subject='fsaverage'
         and 'grade=5', this set of vertices will automatically be used
         (instead of computed) for speed, since this is a common morph.
-    subjects_dir : string, or None
+    subjects_dir : str | None
         Path to SUBJECTS_DIR if it is not set in the environment
     n_jobs : int
         Number of jobs to run in parallel
@@ -2692,9 +2692,9 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
 
     Parameters
     ----------
-    subject_from : string
+    subject_from : str
         Name of the original subject as named in the SUBJECTS_DIR.
-    subject_to : string
+    subject_to : str
         Name of the subject on which to morph as named in the SUBJECTS_DIR.
     stc_from : SourceEstimate | VectorSourceEstimate
         Source estimates for subject "from" to morph.
@@ -3082,7 +3082,7 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
 
     Parameters
     ----------
-    fname : string | None
+    fname : str | None
         The name of the generated nifti file. If None, the image is only
         returned and not saved.
     stc : instance of VolSourceEstimate
@@ -3112,7 +3112,7 @@ def _save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
 
     Parameters
     ----------
-    fname : string | None
+    fname : str | None
         The name of the generated nifti file. If None, the image is only
         returned and not saved.
     stc : instance of VolSourceEstimate
