@@ -34,7 +34,7 @@ print(__doc__)
 # ------------------
 # Null hypothesis
 # ^^^^^^^^^^^^^^^
-# From `Wikipedia <https://en.wikipedia.org/wiki/Null_hypothesis>`_:
+# From `Wikipedia <https://en.wikipedia.org/wiki/Null_hypothesis>`__:
 #
 #     In inferential statistics, a general statement or default position that
 #     there is no relationship between two measured phenomena, or no
@@ -227,7 +227,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # ``p < 0.05`` for each individual test, we would expect many voxels to be
 # declared significant even if there were no true effect.
 # In other words, we would make many **type I errors** (adapted from
-# `here <errors>`_):
+# `here <errors_>`_):
 #
 # .. rst-class:: skinnytable
 #
@@ -248,8 +248,6 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # The probability of making at least one type I error in
 # :math:`N_{\mathrm{test}}` independent tests is then given by
 # :math:`1 - (1 - \alpha)^{N_{\mathrm{test}}}`:
-#
-# .. _errors: https://en.wikipedia.org/w/index.php?title=Type_I_and_type_II_errors#Table_of_error_types  # noqa
 
 N = np.arange(1, 80)
 alpha = 0.05
@@ -266,13 +264,13 @@ fig.show()
 # To combat this problem, several methods exist. Typically these
 # provide control over either one of the following two measures:
 #
-# 1. `Familywise error rate (FWER) <fwer>`_
+# 1. `Familywise error rate (FWER) <fwer_>`_
 #      The probability of making one or more type I errors:
 #
 #      .. math::
 #        \mathrm{P}(N_{\mathrm{type\ I}} >= 1 \mid H_0)
 #
-# 2. `False discovery rate (FDR) <fdr>`_
+# 2. `False discovery rate (FDR) <fdr_>`_
 #      The expected proportion of rejected null hypotheses that are
 #      actually true:
 #
@@ -286,12 +284,9 @@ fig.show()
 # Bonferroni correction
 # ^^^^^^^^^^^^^^^^^^^^^
 # Perhaps the simplest way to deal with multiple comparisons, `Bonferroni
-# correction <https://en.wikipedia.org/wiki/Bonferroni_correction>`_
+# correction <https://en.wikipedia.org/wiki/Bonferroni_correction>`__
 # conservatively multiplies the p-values by the number of comparisons to
 # control the FWER.
-#
-# .. _fwer: https://en.wikipedia.org/wiki/Family-wise_error_rate
-# .. _fdr: https://en.wikipedia.org/wiki/False_discovery_rate
 
 titles.append('Bonferroni')
 ts.append(ts[-1])
@@ -398,7 +393,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # Moreover, because the test statistic concerns the full data, the null
 # hypothesis (and our rejection of it) refers to the structure of the full
 # data. For more information, see also the comprehensive
-# `FieldTrip tutorial <fieldtrip>`_.
+# `FieldTrip tutorial <ft_cluster_>`_.
 #
 # Defining the connectivity/neighbor/adjacency matrix
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -418,8 +413,6 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 #     [1, 1, 0, 1, 0, 0, 0, 0, 0]
 #
 # :mod:`sklearn.feature_extraction` provides a convenient function for this:
-#
-# .. _fieldtrip : http://www.fieldtriptoolbox.org/faq/how_not_to_interpret_results_from_a_cluster-based_permutation_test  # noqa
 
 from sklearn.feature_extraction.image import grid_to_graph  # noqa: E402
 mini_connectivity = grid_to_graph(3, 3).toarray()
@@ -480,7 +473,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # TFCE eliminates the free parameter initial ``threshold`` value that
 # determines which points are included in clustering by approximating
 # a continuous integration across possible threshold values with a standard
-# `Riemann sum <https://en.wikipedia.org/wiki/Riemann_sum>`_ [2]_.
+# `Riemann sum <https://en.wikipedia.org/wiki/Riemann_sum>`__ [2]_.
 # This requires giving a starting threshold ``'start'`` and a step
 # size ``'step'``, which in MNE is supplied as a dict.
 # The smaller the ``'step'`` and closer to 0 the ``'start'`` value,
@@ -656,3 +649,8 @@ plt.show()
 # .. [2] Smith and Nichols 2009, "Threshold-free cluster enhancement:
 #        addressing problems of smoothing, threshold dependence, and
 #        localisation in cluster inference", NeuroImage 44 (2009) 83-98.
+#
+# .. _errors: https://en.wikipedia.org/w/index.php?title=Type_I_and_type_II_errors#Table_of_error_types  # noqa
+# .. _fwer: https://en.wikipedia.org/wiki/Family-wise_error_rate
+# .. _fdr: https://en.wikipedia.org/wiki/False_discovery_rate
+# .. _ft_cluster: http://www.fieldtriptoolbox.org/faq/how_not_to_interpret_results_from_a_cluster-based_permutation_test  # noqa
