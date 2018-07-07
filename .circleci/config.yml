@@ -21,7 +21,9 @@ jobs:
               - data-cache
 
         # Get latest Anaconda running
-        - run: sudo apt-get install libxss1
+        # Fix libgcc_s.so.1 pthread_cancel bug:
+        # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
+        - run: sudo apt-get install libgl1-mesa-glx libegl1-mesa libxrandr2 libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6
         - run: echo "export DISPLAY=:99" >> $BASH_ENV
         - run: echo "export PATH=~/miniconda/envs/mne/bin:~/miniconda/bin:$PATH" >> $BASH_ENV
         - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
@@ -35,12 +37,6 @@ jobs:
               conda update --yes --quiet conda;
               conda env create --quiet -f environment.yml;
               pip uninstall --yes mne;
-        # This is a CircleCI-specific fix -- for some reason 5.9.2 is problematic
-        # here but not on Travis, we get:
-        #
-        #     libgcc_s.so.1 must be installed for pthread_cancel to work
-        #     Aborted
-        #
         - run: pip install --upgrade --no-deps PyQt5 PyQt5-sip
         # Look at what we have and fail early if there is some library conflict
         - run: python -c "import mne; mne.sys_info()"
