@@ -227,7 +227,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # ``p < 0.05`` for each individual test, we would expect many voxels to be
 # declared significant even if there were no true effect.
 # In other words, we would make many **type I errors** (adapted from
-# `here <https://en.wikipedia.org/w/index.php?title=Type_I_and_type_II_errors#Table_of_error_types>`_):  # noqa
+# `here <errors>`_):
 #
 # .. rst-class:: skinnytable
 #
@@ -248,6 +248,8 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # The probability of making at least one type I error in
 # :math:`N_{\mathrm{test}}` independent tests is then given by
 # :math:`1 - (1 - \alpha)^{N_{\mathrm{test}}}`:
+#
+# .. _errors: https://en.wikipedia.org/w/index.php?title=Type_I_and_type_II_errors#Table_of_error_types  # noqa
 
 N = np.arange(1, 80)
 alpha = 0.05
@@ -264,13 +266,13 @@ fig.show()
 # To combat this problem, several methods exist. Typically these
 # provide control over either one of the following two measures:
 #
-# 1. `Familywise error rate (FWER) <https://en.wikipedia.org/wiki/Family-wise_error_rate>`_
+# 1. `Familywise error rate (FWER) <fwer>`_
 #      The probability of making one or more type I errors:
 #
 #      .. math::
 #        \mathrm{P}(N_{\mathrm{type\ I}} >= 1 \mid H_0)
 #
-# 2. `False discovery rate (FDR) <https://en.wikipedia.org/wiki/False_discovery_rate>`_
+# 2. `False discovery rate (FDR) <fdr>`_
 #      The expected proportion of rejected null hypotheses that are
 #      actually true:
 #
@@ -287,6 +289,9 @@ fig.show()
 # correction <https://en.wikipedia.org/wiki/Bonferroni_correction>`_
 # conservatively multiplies the p-values by the number of comparisons to
 # control the FWER.
+#
+# .. _fwer: https://en.wikipedia.org/wiki/Family-wise_error_rate
+# .. _fdr: https://en.wikipedia.org/wiki/False_discovery_rate
 
 titles.append('Bonferroni')
 ts.append(ts[-1])
@@ -393,7 +398,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # Moreover, because the test statistic concerns the full data, the null
 # hypothesis (and our rejection of it) refers to the structure of the full
 # data. For more information, see also the comprehensive
-# `FieldTrip tutorial <http://www.fieldtriptoolbox.org/faq/how_not_to_interpret_results_from_a_cluster-based_permutation_test>`_.
+# `FieldTrip tutorial <fieldtrip>`_.
 #
 # Defining the connectivity/neighbor/adjacency matrix
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -413,6 +418,8 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 #     [1, 1, 0, 1, 0, 0, 0, 0, 0]
 #
 # :mod:`sklearn.feature_extraction` provides a convenient function for this:
+#
+# .. _fieldtrip : http://www.fieldtriptoolbox.org/faq/how_not_to_interpret_results_from_a_cluster-based_permutation_test  # noqa
 
 from sklearn.feature_extraction.image import grid_to_graph  # noqa: E402
 mini_connectivity = grid_to_graph(3, 3).toarray()
