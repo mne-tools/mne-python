@@ -40,7 +40,7 @@ jobs:
         #     libgcc_s.so.1 must be installed for pthread_cancel to work
         #     Aborted
         #
-        - run: pip install --upgrade --no-deps pyqt5==5.10
+        - run: pip install --upgrade --no-deps PyQt5 PyQt5-sip
         # Look at what we have and fail early if there is some library conflict
         - run: python -c "import mne; mne.sys_info()"
         - run: python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
