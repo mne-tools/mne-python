@@ -161,8 +161,9 @@ def test_interpolation_ctf_comp():
     ctf_dir = op.join(testing.data_path(download=False), 'CTF')
     raw_fname = op.join(ctf_dir, 'somMDYO-18av.ds')
     raw = io.read_raw_ctf(raw_fname, preload=True)
-    raw.info['bads'] = [raw.ch_names[-5]]
-    raw.interpolate_bads()
+    raw.info['bads'] = [raw.ch_names[5], raw.ch_names[-5]]
+    raw.interpolate_bads(mode='fast')
+    assert raw.info['bads'] == []
 
 
 run_tests_if_main()
