@@ -59,6 +59,7 @@ from .source_estimate import (read_source_estimate, MixedSourceEstimate,
                               spatio_temporal_tris_connectivity,
                               spatio_temporal_dist_connectivity,
                               save_stc_as_volume, extract_label_time_course)
+from .morph import SourceMorph, read_source_morph
 from .surface import (read_surface, write_surface, decimate_surface, read_tri,
                       read_morph_map, get_head_surf, get_meg_helmet_surf)
 from .source_space import (read_source_spaces, vertex_to_mni,

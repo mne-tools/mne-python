@@ -25,6 +25,7 @@ dependencies:
 - spyder
 - numexpr
 - pip:
+  - dipy
   - mne
   - "git+https://github.com/enthought/traits.git@a7a83182048c08923953e302658b51b68c802132"
   - "git+https://github.com/enthought/pyface.git@13a064de48adda3c880350545717d8cf8929afad"

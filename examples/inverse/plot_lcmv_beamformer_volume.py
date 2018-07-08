@@ -93,7 +93,7 @@ stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 # Plot source space activity:
 
 # take absolute values for plotting
-stc.data[:, :] = np.abs(stc.data)
+np.abs(stc.data, out=stc.data)
 
 # Save result in stc files
 stc.save('lcmv-vol')
