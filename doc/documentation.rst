@@ -436,6 +436,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/inverse/plot_read_inverse.rst
     auto_examples/inverse/plot_read_source_space.rst
     auto_examples/inverse/plot_snr_estimate.rst
+    auto_examples/inverse/plot_use_sourcemorph.rst
     auto_examples/inverse/plot_tf_dics.rst
     auto_examples/inverse/plot_tf_lcmv.rst
     auto_examples/inverse/plot_time_frequency_mixed_norm_inverse.rst
