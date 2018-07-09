@@ -650,4 +650,4 @@ plt.show()
 #        addressing problems of smoothing, threshold dependence, and
 #        localisation in cluster inference", NeuroImage 44 (2009) 83-98.
 #
-# .. include:: ../doc/tutorial_links.inc
+# .. include:: ../links.inc
