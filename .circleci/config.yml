@@ -21,6 +21,7 @@ jobs:
         - restore_cache:
             keys:
               - data-cache
+              - pip-cache
 
         # Get latest Anaconda running
         # Fix libgcc_s.so.1 pthread_cancel bug:
@@ -41,9 +42,14 @@ jobs:
               pip uninstall --yes mne;
         # Fix segfaults on CircleCI (not present on Travis)
         - run: pip install --upgrade PyQt5 PyQt5-sip
+        - run: echo "export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libglapi.so.0" >> $BASH_ENV
+        - save_cache:
+            key: pip-cache
+            paths:
+              - ~/.cache/pip
         # Look at what we have and fail early if there is some library conflict
         - run: python -c "import mne; mne.sys_info()"
-        - run: python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
+        - run: LIBGL_DEBUG=verbose python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
         - run: python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
         - run: python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
