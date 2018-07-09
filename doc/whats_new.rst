@@ -58,6 +58,7 @@ Bug
 
 - Fix error when interpolating MEG channels with compensation using reference channels (like for CTF data) by `Alex Gramfort`_
 
+- Fix bug in :func:`mne.io.ctf.read_raw_ctf` to read bad channels and segments from CTF ds files by `Luke Bloy`_
 
 API
 ~~~
