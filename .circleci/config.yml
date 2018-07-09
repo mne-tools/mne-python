@@ -28,7 +28,7 @@ jobs:
         # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
         - run: sudo apt-get install libgl1-mesa-glx libegl1-mesa libxrandr2 libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6
         - run: echo "export DISPLAY=:99" >> $BASH_ENV
-        - run: echo "export PATH=~/miniconda/envs/mne/bin:~/miniconda/bin:$PATH" >> $BASH_ENV
+        - run: echo "export PATH=~/miniconda/bin:$PATH" >> $BASH_ENV
         - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
         - run:
             command: |
@@ -39,15 +39,15 @@ jobs:
             command: |
               conda update --yes --quiet conda;
               conda env create --quiet -f environment.yml;
+              source activate mne;
               pip uninstall --yes mne;
-        # Fix segfaults on CircleCI (not present on Travis)
-        - run: pip install --upgrade PyQt5 PyQt5-sip
-        - run: echo "export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libglapi.so.0" >> $BASH_ENV
+              echo "source activate mne" >> $BASH_ENV;
         - save_cache:
             key: pip-cache
             paths:
               - ~/.cache/pip
         # Look at what we have and fail early if there is some library conflict
+        - run: which python
         - run: python -c "import mne; mne.sys_info()"
         - run: LIBGL_DEBUG=verbose python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
         - run: python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
