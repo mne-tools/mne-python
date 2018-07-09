@@ -35,6 +35,8 @@ Bug
 
 - Fix bug in :func:`mne.preprocessing.ICA.apply` to handle arrays as `exclude` property by `Joan Massich`_
 
+- Fix error when interpolating MEG channels with compensation using reference channels (like for CTF data) by `Alex Gramfort`_
+
 - Fix bug with IIR filtering axis in :func:`mne.filter.filter_data` by `Eric Larson`_
 
 .. _changes_0_16:

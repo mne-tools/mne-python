@@ -8,6 +8,7 @@ from nose.tools import assert_raises, assert_equal, assert_true
 
 from mne import io, pick_types, pick_channels, read_events, Epochs
 from mne.channels.interpolation import _make_interpolation_matrix
+from mne.datasets import testing
 from mne.utils import run_tests_if_main
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -152,6 +153,17 @@ def test_interpolation():
     evoked.info.normalize_proj()
     data2 = evoked.interpolate_bads().data[pick]
     assert_true(np.corrcoef(data1, data2)[0, 1] > thresh)
+
+
+@testing.requires_testing_data
+def test_interpolation_ctf_comp():
+    """Test interpolation with compensated CTF data."""
+    ctf_dir = op.join(testing.data_path(download=False), 'CTF')
+    raw_fname = op.join(ctf_dir, 'somMDYO-18av.ds')
+    raw = io.read_raw_ctf(raw_fname, preload=True)
+    raw.info['bads'] = [raw.ch_names[5], raw.ch_names[-5]]
+    raw.interpolate_bads(mode='fast')
+    assert raw.info['bads'] == []
 
 
 run_tests_if_main()
