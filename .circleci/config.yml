@@ -1,3 +1,5 @@
+# Tagging a commit with [circle front] will build the front page and perform test-doc.
+# Tagging a commit with [circle full] will build everything.
 version: 2
 jobs:
     build:
@@ -37,6 +39,8 @@ jobs:
               conda update --yes --quiet conda;
               conda env create --quiet -f environment.yml;
               pip uninstall --yes mne;
+        # Fix segfaults on CircleCI (not present on Travis)
+        - run: pip install --upgrade PyQt5 PyQt5-sip
         # Look at what we have and fail early if there is some library conflict
         - run: python -c "import mne; mne.sys_info()"
         - run: python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
@@ -153,6 +157,11 @@ jobs:
                 make test-doc;
                 cd doc;
                 make $(cat ../build.txt);
+              fi;
+        - run:
+            command: |
+              if [[ $(cat gitlog.txt) == *"[circle front]"* ]]; then
+                make test-doc;
               fi;
         - run: python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
