@@ -5,17 +5,12 @@ Demonstrate usage of SourceMorph
 
 This example demonstrates how to morph an individual subject source estimate to
 a common reference space. It will be demonstrated using the SourceMorp class.
-The example uses parts of the MNE example
-:ref:`sphx_glr_auto_examples_inverse_plot_lcmv_beamformer_volume.py` and
-:ref:`sphx_glr_auto_examples_inverse_plot_lcmv_beamformer.py`.
-The respective result will be morphed based on an affine transformation and a
+Pre-computed data will be morphed based on an affine transformation and a
 nonlinear morph, estimated based on respective transformation from the
-subject's anatomical T1 (brain) to fsaverage T1 (brain) in VolSourceEstimate
-case and using an affine transform in the SourceEstimate or
-VectorSourceEstimate case. Afterwards the transformation will be applied to the
-beamformer result. The result will be a plot showing the morphed result
-overlaying the fsaverage T1. Uncomment at the respective location to plot the
-result of the surface morph.
+subject's anatomical T1 (brain) to fsaverage T1 (brain).
+Afterwards the transformation will be applied to the
+beamformer result. The result will be a plot showing the morphed source
+estimate overlaid with the fsaverage T1.
 
 """
 # Author: Tommy Clausner <tommy.clausner@gmail.com>
@@ -65,10 +60,6 @@ source_morph = SourceMorph(inverse_operator['src'],
                            subject_to='fsaverage',
                            subjects_dir=subjects_dir,
                            grid_spacing=(5., 5., 5.))
-
-# Save and load SourceMorph
-# source_morph.save('vol')
-# source_morph = mne.read_source_morph('vol-morph.h5')
 
 # Obtain absolute value for plotting
 # To not copy the data into a new memory location, out=stc.data is set

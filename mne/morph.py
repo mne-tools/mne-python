@@ -57,15 +57,16 @@ class SourceMorph(object):
     Volume Source Estimate parameters
     ---------------------------------
     niter_affine : tuple of int
-        Number of levels (``niter_affine.__len__()``) and number per level of
-        iterations to perform the affine transform. Increasing index values
+        Number of levels (``len(niter_affine)``) and number per level of
+        iterations to refine the affine registration. Increasing index values
         for the tuple mean later levels and each int represents the number
         of iterations in that level. Default is niter_affine=(100, 100, 10)
     niter_sdr : tuple of int
-        Number of levels (``niter_sdr.__len__()``) and number per level of
-        iterations to perform the sdr transform. Increasing index values
-        for the tuple mean later levels and each int represents the number
-        of iterations in that level. Default is niter_sdr=(5, 5, 3)
+        Number of levels (``len(niter_sdr)``) and number per level of
+        iterations to refine the Symmetric Diffeomorphic Registration (sdr).
+        Increasing index values for the tuple mean later levels and
+        each int represents the number of iterations in that level. Default is
+        niter_sdr=(5, 5, 3)
     grid_spacing : tuple
         Voxel size of volume for each spatial dimension in mm.
         If grid_spacing is None, MRIs won't be resliced. Note that in this case
@@ -88,12 +89,12 @@ class SourceMorph(object):
         vertices to morph to. If morphing a volume source space, subject_to can
         be the path to a MRI volume.
     niter_affine : tuple of int
-        Number of levels (``niter_affine.__len__()``) and number per level of
+        Number of levels (``len(niter_affine)``) and number per level of
         iterations to perform the affine transform. Increasing index values
         for the tuple mean later levels and each int represents the number
         of iterations in that level.
     niter_sdr : tuple of int
-        Number of levels (``niter_sdr.__len__()``) and number per level of
+        Number of levels (``len(niter_sdr)``) and number per level of
         iterations to perform the sdr transform. Increasing index values
         for the tuple mean later levels and each int represents the number
         of iterations in that level.
@@ -154,19 +155,20 @@ class SourceMorph(object):
 
         if isinstance(src, SourceSpaces):
             self.kind = src.kind
-            self.src = src
         else:
             raise ValueError('src must be an instance of SourceSpaces or a '
                              'path to a saved instance of SourceSpaces')
 
-        if subject_from is None:
-            try:
-                self.subject_from = src[0]['subject_his_id']
-            except KeyError:
-                raise KeyError('subject id in src is None. Please specify'
-                               'subject_from')
+        if src[0]['subject_his_id'] is not None:
+            self.subject_from = src[0]['subject_his_id']
+
+        if self.subject_from is None:
+            raise KeyError('subject id in src is None. Please specify'
+                           'subject_from')
+
         self.morph_data = _compute_morph_data(self, src, verbose=verbose)
 
+    # Note that the verbose decorator is used in _apply_morph_data
     def __call__(self, stc_from, verbose=None):
         """Morph data.
 
@@ -190,7 +192,7 @@ class SourceMorph(object):
                              'morph.subject_from must match')
 
         # if VolSourceEstimate update mri properties for '.as_volume'
-        if self.kind is 'volume':
+        if self.kind == 'volume':
             self.morph_data.update(
                 {'mri_zooms': self.morph_data['mri_zooms_to'],
                  'mri_shape': self.morph_data['mri_shape_to']})
@@ -198,19 +200,20 @@ class SourceMorph(object):
         return _apply_morph_data(self, stc_from, verbose=verbose)
 
     def __repr__(self):  # noqa: D105
-        s = None
-        if self.kind is not None:
-            s = "%s" % self.kind
-            s += ", subject_from : %s" % self.subject_from
-            s += ", subject_to : %s" % self.subject_to
-            if self.kind == 'volume':
-                s += ", niter_affine : {}".format(self.niter_affine)
-                s += ", niter_sdr : {}".format(self.niter_sdr)
-                s += ", grid_spacing : {}".format(self.grid_spacing)
+        if self.kind is None:
+            return 'None'
 
-            elif self.kind == 'surface':
-                s += ", smooth : %s" % self.smooth
-                s += ", xhemi : %s" % self.xhemi
+        s = "%s" % self.kind
+        s += ", subject_from : %s" % self.subject_from
+        s += ", subject_to : %s" % self.subject_to
+        if self.kind == 'volume':
+            s += ", niter_affine : {}".format(self.niter_affine)
+            s += ", niter_sdr : {}".format(self.niter_sdr)
+            s += ", grid_spacing : {}".format(self.grid_spacing)
+
+        elif self.kind == 'surface':
+            s += ", smooth : %s" % self.smooth
+            s += ", xhemi : %s" % self.xhemi
 
         return "<SourceMorph  |  %s>" % s
 
@@ -268,12 +271,12 @@ class SourceMorph(object):
         hdr.set_xyzt_units('mm', 'msec')
         hdr['pixdim'][4] = 1e3 * stc.tstep
 
-        if isinstance(mri_resolution, bool):
-            if mri_resolution:
-                new_zooms = self.morph_data['mri_zooms']
-            else:
-                new_zooms = None
-        else:
+        new_zooms = None
+
+        if isinstance(mri_resolution, bool) and mri_resolution:
+            new_zooms = self.morph_data['mri_zooms']
+
+        elif isinstance(mri_resolution, tuple):
             new_zooms = mri_resolution
 
         img = np.zeros(shape).reshape(-1, stc.shape[1])
@@ -343,11 +346,9 @@ def _compute_morph_data(morph, src, verbose=None):
         mri_subpath = op.join('mri', 'brain.mgz')
         mri_path_from = op.join(morph.subjects_dir, morph.subject_from,
                                 mri_subpath)
-        try:
-            logger.info('loading %s as moving volume' % mri_path_from)
-            mri_from = nib.load(mri_path_from)
-        except IOError:
-            raise IOError('cannot read file: %s' % mri_path_from)
+
+        logger.info('loading %s as moving volume' % mri_path_from)
+        mri_from = nib.load(mri_path_from)
 
         # load static mri
         static_path = op.join(morph.subjects_dir, morph.subject_to)
@@ -478,12 +479,12 @@ def _compute_morph_sdr(mri_from, mri_to,
     mri_to : str | Nifti1Image
         Path to destination subject's anatomical MRI or Nifti1Image
     niter_affine : tuple of int
-        Number of levels (``niter_affine.__len__()``) and number per level of
+        Number of levels (``len(niter_affine)``) and number per level of
         iterations to perform the affine transform. Increasing index values
         for the tuple mean later levels and each int represents the number
         of iterations in that level.
     niter_sdr : tuple of int
-        Number of levels (``niter_sdr.__len__()``) and number per level of
+        Number of levels (``len(niter_sdr)``) and number per level of
         iterations to perform the sdr transform. Increasing index values
         for the tuple mean later levels and each int represents the number
         of iterations in that level.
@@ -694,21 +695,6 @@ def _apply_morph_data(morph, stc_from, verbose=None):
 
         morph_mat = morph.morph_data['morph_mat']
         vertices_to = morph.morph_data['vertno']
-
-        if not sparse.issparse(morph_mat):
-            raise ValueError('morph_mat must be a sparse matrix')
-
-        if not isinstance(vertices_to, list) or not len(vertices_to) == 2:
-            raise ValueError('vertices_to must be a list of length 2')
-
-        if sum(len(v) for v in vertices_to) != morph_mat.shape[0]:
-            raise ValueError(
-                'number of vertices in vertices_to must match '
-                'morph_mat.shape[0]')
-
-        if stc_from.data.shape[0] != morph_mat.shape[1]:
-            raise ValueError('stc_from.data.shape[0] must be the same as '
-                             'morph_mat.shape[0]')
 
         if isinstance(stc_from, VectorSourceEstimate):
             # Morph the locations of the dipoles, but not their orientation
