@@ -26,6 +26,9 @@ jobs:
         # Spin up Xvfb
         - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
         - run: echo "export DISPLAY=:99" >> $BASH_ENV;
+        # Fix libgcc_s.so.1 pthread_cancel bug:
+        # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
+        - run: sudo apt-get install libgl1-mesa-glx libegl1-mesa libxrandr2 libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6
         # Get latest Anaconda running
         - run:
             command: |
