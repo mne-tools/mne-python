@@ -37,7 +37,6 @@ jobs:
               conda update --yes --quiet conda;
               conda env create --quiet -f environment.yml;
               pip uninstall --yes mne;
-        - run: pip install --upgrade PyQt5 PyQt5-sip
         # Look at what we have and fail early if there is some library conflict
         - run: python -c "import mne; mne.sys_info()"
         - run: python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
