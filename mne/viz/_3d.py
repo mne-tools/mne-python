@@ -1739,6 +1739,13 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
     from nilearn.plotting import plot_stat_map
     from nilearn.image import index_img
 
+    def _onclick(event, stc):
+        idx = stc.time_as_index(event.xdata)
+        plot_stat_map(index_img(img, idx), t1_fname, threshold=0.45,
+                      title='LCMV (t=%.3f s.)' % stc.times[idx])
+
+        return idx
+
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
@@ -1751,17 +1758,15 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
     # Plotting with nilearn
     # Based on the visualization of the sensor space data (gradiometers), plot
     # activity at 88 ms
-    idx = stc.time_as_index(0.088)
-    fig = plot_stat_map(index_img(img, idx), t1_fname, threshold=0.45,
-                        title='LCMV (t=%.3f s.)' % stc.times[idx])
 
     # plot source time courses with the maximum peak amplitudes at 88 ms
-    plt.figure()
-    plt.plot(stc.times, stc.data[np.argsort(np.max(stc.data[:, idx],
-                                                   axis=1))[-40:]].T)
+    fig = plt.figure()
+    loc_idx = 878  # hard coded for now, should be selected interactively
+    plt.plot(stc.times, stc.data[loc_idx].T)
     plt.xlabel('Time (ms)')
     plt.ylabel('LCMV value')
     plt.show()
+    fig.canvas.mpl_connect('button_press_event', partial(_onclick, stc=stc))
 
     return fig
 
