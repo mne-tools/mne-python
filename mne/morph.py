@@ -167,7 +167,7 @@ class SourceMorph(object):
 
         self.morph_data = _compute_morph_data(self, src, verbose=verbose)
 
-    # Note that the verbose decorator is used in _apply_morph_data
+    # Forward verbose decorator to _apply_morph_data
     def __call__(self, stc_from, verbose=None):
         """Morph data.
 
