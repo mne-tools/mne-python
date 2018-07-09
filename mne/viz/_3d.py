@@ -1718,28 +1718,42 @@ def _get_ps_kwargs(initial_time, require='0.6'):
     return initial_time, ad_kwargs, sd_kwargs
 
 
-def plot_volume_source_estimates(stc, subject=None, subjects_dir=None):
+def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
     """Plot Nutmeg style volumetric source estimates using nilearn.
 
     Parameters
     ----------
     stc : VectorSourceEstimate
         The vector source estimate to plot.
+    src : instance of SourceSpaces
+        The source space.
+    subject : str | None
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT. If None stc.subject will be used. If that
+        is None, the environment will be used.
+    subjects_dir : str
+        The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
     """
+    import matplotlib.pyplot as plt
     from nilearn.plotting import plot_stat_map
     from nilearn.image import index_img
 
-    plt.figure(2, 1)
-    img = stc.as_volume(forward['src'], mri_resolution=False)
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                    raise_error=True)
+    subject = _check_subject(stc.subject, subject, True)
 
-    t1_fname = data_path + '/subjects/sample/mri/T1.mgz'
+    # plt.figure(2, 1)
+    img = stc.as_volume(src, mri_resolution=False)
 
-    # Plotting with nilearn ######################################################
+    t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+
+    # Plotting with nilearn
     # Based on the visualization of the sensor space data (gradiometers), plot
     # activity at 88 ms
     idx = stc.time_as_index(0.088)
-    plot_stat_map(index_img(img, idx), t1_fname, threshold=0.45,
-                  title='LCMV (t=%.3f s.)' % stc.times[idx])
+    fig = plot_stat_map(index_img(img, idx), t1_fname, threshold=0.45,
+                        title='LCMV (t=%.3f s.)' % stc.times[idx])
 
     # plot source time courses with the maximum peak amplitudes at 88 ms
     plt.figure()
