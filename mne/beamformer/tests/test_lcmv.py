@@ -289,13 +289,12 @@ def test_lcmv():
     assert 0.4 < np.max(max_stc) < 2., np.max(max_stc)
 
     # Test if spatial filter contains src
-    assert_true('src' in filters.keys())
+    assert ('src' in filters.keys())
 
     # Test if stc contains src
     with warnings.catch_warnings(record=True) as wrn:
         stc = apply_lcmv(evoked, filters, max_ori_out='signed')
-    assert_false(any('src should not be None' in str(ww.message)
-                     for ww in wrn))
+    assert not any('src should not be None' in str(ww.message) for ww in wrn)
 
     # Test if fixed forward operator is detected when picking normal or
     # max-power orientation
