@@ -24,20 +24,42 @@ from mne.io.eeglab import read_annotations_eeglab
 from mne.datasets import testing
 from mne.utils import _TempDir, run_tests_if_main
 
-
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
-raw_fname = op.join(base_dir, 'test_raw.set')
-raw_fname_onefile = op.join(base_dir, 'test_raw_onefile.set')
-epochs_fname = op.join(base_dir, 'test_epochs.set')
-epochs_fname_onefile = op.join(base_dir, 'test_epochs_onefile.set')
+
+raw_fname_mat = op.join(base_dir, 'test_raw.set')
+raw_fname_onefile_mat = op.join(base_dir, 'test_raw_onefile.set')
+epochs_fname_mat = op.join(base_dir, 'test_epochs.set')
+epochs_fname_onefile_mat = op.join(base_dir, 'test_epochs_onefile.set')
+mat_fnames = [raw_fname_mat, raw_fname_onefile_mat,
+              epochs_fname_mat, epochs_fname_onefile_mat]
+
+raw_fname_h5 = op.join(base_dir, 'test_raw_h5.set')
+raw_fname_onefile_h5 = op.join(base_dir, 'test_raw_onefile_h5.set')
+epochs_fname_h5 = op.join(base_dir, 'test_epochs_h5.set')
+epochs_fname_onefile_h5 = op.join(base_dir, 'test_epochs_onefile_h5.set')
+h5_fnames = [raw_fname_h5, raw_fname_onefile_h5,
+             epochs_fname_h5, epochs_fname_onefile_h5]
+
+raw_fnames = [raw_fname_mat, raw_fname_onefile_mat,
+              raw_fname_h5, raw_fname_onefile_h5]
 montage = op.join(base_dir, 'test_chans.locs')
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
+def _check_h5(fname):
+    if fname.endswith('_h5.set'):
+        try:
+            import h5py  # noqa, analysis:ignore
+        except Exception:
+            raise SkipTest('h5py module required')
+
+
 @testing.requires_testing_data
-def test_io_set():
+@pytest.mark.parametrize('fnames', [mat_fnames, h5_fnames])
+def test_io_set(fnames):
     """Test importing EEGLAB .set files."""
+    raw_fname, raw_fname_onefile, epochs_fname, epochs_fname_onefile = fnames
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         # main tests, and test missing event_id
@@ -119,7 +141,8 @@ def test_io_set():
                {'trials': eeg.trials, 'srate': eeg.srate,
                 'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
                 'epoch': eeg.epoch, 'event': eeg.event[0],
-                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
+                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
+               appendmat=False)
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     one_event_fname.replace('.set', '.fdt'))
     event_id = {eeg.event[0].type: 1}
@@ -137,7 +160,7 @@ def test_io_set():
                {'trials': eeg.trials, 'srate': eeg.srate,
                 'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
                 'epoch': eeg.epoch, 'event': evnts,
-                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
+                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}}, appendmat=False)
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     negative_latency_fname.replace('.set', '.fdt'))
     event_id = {eeg.event[0].type: 1}
@@ -150,7 +173,8 @@ def test_io_set():
                {'trials': eeg.trials, 'srate': eeg.srate,
                 'nbchan': eeg.nbchan, 'data': 'test_overlap_event.fdt',
                 'epoch': eeg.epoch, 'event': [eeg.event[0], eeg.event[0]],
-                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
+                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
+               appendmat=False)
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     overlap_fname.replace('.set', '.fdt'))
     event_id = {'rt': 1, 'square': 2}
@@ -173,7 +197,7 @@ def test_io_set():
                 'epoch': eeg.epoch, 'event': eeg.epoch,
                 'chanlocs': {'labels': 'E1', 'Y': -6.6069,
                              'X': 6.3023, 'Z': -2.9423},
-                'times': eeg.times[:3], 'pnts': 3}})
+                'times': eeg.times[:3], 'pnts': 3}}, appendmat=False)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         read_raw_eeglab(input_fname=one_chan_fname, preload=True)
@@ -201,7 +225,8 @@ def test_io_set():
                {'trials': eeg.trials, 'srate': eeg.srate,
                 'nbchan': 3, 'data': np.random.random((3, 3)),
                 'epoch': eeg.epoch, 'event': eeg.epoch,
-                'chanlocs': chanlocs, 'times': eeg.times[:3], 'pnts': 3}})
+                'chanlocs': chanlocs, 'times': eeg.times[:3], 'pnts': 3}},
+               appendmat=False)
     # load it
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -240,7 +265,7 @@ def test_io_set():
                {'trials': eeg.trials, 'srate': eeg.srate, 'nbchan': 3,
                 'data': np.random.random((3, 2)), 'epoch': eeg.epoch,
                 'event': eeg.epoch, 'chanlocs': nopos_chanlocs,
-                'times': eeg.times[:2], 'pnts': 2}})
+                'times': eeg.times[:2], 'pnts': 2}}, appendmat=False)
     # load the file
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -257,7 +282,7 @@ def test_degenerate():
     """Test some degenerate conditions."""
     # test if .dat file raises an error
     temp_dir = _TempDir()
-    eeg = io.loadmat(epochs_fname, struct_as_record=False,
+    eeg = io.loadmat(epochs_fname_mat, struct_as_record=False,
                      squeeze_me=True)['EEG']
     eeg.data = 'epochs_fname.dat'
     bad_epochs_fname = op.join(temp_dir, 'test_epochs.set')
@@ -265,7 +290,7 @@ def test_degenerate():
                {'trials': eeg.trials, 'srate': eeg.srate,
                 'nbchan': eeg.nbchan, 'data': eeg.data,
                 'epoch': eeg.epoch, 'event': eeg.event,
-                'chanlocs': eeg.chanlocs}})
+                'chanlocs': eeg.chanlocs}}, appendmat=False)
     shutil.copyfile(op.join(base_dir, 'test_epochs.fdt'),
                     op.join(temp_dir, 'test_epochs.dat'))
     with warnings.catch_warnings(record=True) as w:
@@ -275,14 +300,15 @@ def test_degenerate():
     assert_equal(len(w), 1)
 
 
+@pytest.mark.parametrize("fname", raw_fnames)
 @testing.requires_testing_data
-def test_eeglab_annotations():
+def test_eeglab_annotations(fname):
     """Test reading annotations in EEGLAB files."""
-    for fname in [raw_fname_onefile, raw_fname]:
-        annotations = read_annotations_eeglab(fname)
-        assert len(annotations) == 154
-        assert set(annotations.description) == set(['rt', 'square'])
-        assert np.all(annotations.duration == 0.)
+    _check_h5(fname)
+    annotations = read_annotations_eeglab(fname)
+    assert len(annotations) == 154
+    assert set(annotations.description) == set(['rt', 'square'])
+    assert np.all(annotations.duration == 0.)
 
 
 run_tests_if_main()
