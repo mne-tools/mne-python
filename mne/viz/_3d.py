@@ -1718,6 +1718,40 @@ def _get_ps_kwargs(initial_time, require='0.6'):
     return initial_time, ad_kwargs, sd_kwargs
 
 
+def plot_volume_source_estimates(stc, subject=None, subjects_dir=None):
+    """Plot Nutmeg style volumetric source estimates using nilearn.
+
+    Parameters
+    ----------
+    stc : VectorSourceEstimate
+        The vector source estimate to plot.
+    """
+    from nilearn.plotting import plot_stat_map
+    from nilearn.image import index_img
+
+    plt.figure(2, 1)
+    img = stc.as_volume(forward['src'], mri_resolution=False)
+
+    t1_fname = data_path + '/subjects/sample/mri/T1.mgz'
+
+    # Plotting with nilearn ######################################################
+    # Based on the visualization of the sensor space data (gradiometers), plot
+    # activity at 88 ms
+    idx = stc.time_as_index(0.088)
+    plot_stat_map(index_img(img, idx), t1_fname, threshold=0.45,
+                  title='LCMV (t=%.3f s.)' % stc.times[idx])
+
+    # plot source time courses with the maximum peak amplitudes at 88 ms
+    plt.figure()
+    plt.plot(stc.times, stc.data[np.argsort(np.max(stc.data[:, idx],
+                                                   axis=1))[-40:]].T)
+    plt.xlabel('Time (ms)')
+    plt.ylabel('LCMV value')
+    plt.show()
+
+    return fig
+
+
 def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  time_label='auto', smoothing_steps=10,
                                  transparent=None, brain_alpha=0.4,

@@ -18,9 +18,6 @@ import mne
 from mne.datasets import sample
 from mne.beamformer import make_lcmv, apply_lcmv
 
-from nilearn.plotting import plot_stat_map
-from nilearn.image import index_img
-
 print(__doc__)
 
 # sphinx_gallery_thumbnail_number = 3
@@ -101,21 +98,3 @@ stc.save('lcmv-vol')
 stc.crop(0.0, 0.2)
 
 # Save result in a 4D nifti file
-img = stc.as_volume(forward['src'], mri_resolution=False)
-
-t1_fname = data_path + '/subjects/sample/mri/T1.mgz'
-
-# Plotting with nilearn ######################################################
-# Based on the visualization of the sensor space data (gradiometers), plot
-# activity at 88 ms
-idx = stc.time_as_index(0.088)
-plot_stat_map(index_img(img, idx), t1_fname, threshold=0.45,
-              title='LCMV (t=%.3f s.)' % stc.times[idx])
-
-# plot source time courses with the maximum peak amplitudes at 88 ms
-plt.figure()
-plt.plot(stc.times, stc.data[np.argsort(np.max(stc.data[:, idx],
-                                               axis=1))[-40:]].T)
-plt.xlabel('Time (ms)')
-plt.ylabel('LCMV value')
-plt.show()
