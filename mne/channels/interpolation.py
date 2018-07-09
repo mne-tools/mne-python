@@ -171,8 +171,10 @@ def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
     """
-    picks_meg = pick_types(inst.info, meg=True, eeg=False, exclude=[])
-    picks_good = pick_types(inst.info, meg=True, eeg=False, exclude='bads')
+    picks_meg = pick_types(inst.info, meg=True, eeg=False,
+                           ref_meg=True, exclude=[])
+    picks_good = pick_types(inst.info, meg=True, eeg=False,
+                            ref_meg=True, exclude='bads')
     meg_ch_names = [inst.info['ch_names'][p] for p in picks_meg]
     bads_meg = [ch for ch in inst.info['bads'] if ch in meg_ch_names]
 
@@ -186,7 +188,9 @@ def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
     # return without doing anything if there are no meg channels
     if len(picks_meg) == 0 or len(picks_bad) == 0:
         return
-    info_from = pick_info(inst.info, picks_good)
-    info_to = pick_info(inst.info, picks_bad)
+    inst_info = inst.info.copy()
+    inst_info['comps'] = []
+    info_from = pick_info(inst_info, picks_good)
+    info_to = pick_info(inst_info, picks_bad)
     mapping = _map_meg_channels(info_from, info_to, mode=mode)
     _do_interp_dots(inst, mapping, picks_good, picks_bad)

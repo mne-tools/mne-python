@@ -56,6 +56,8 @@ Bug
 
 - Fix error when saving stc as nifti image when using volume source space formed by more than one label by `Alex Gramfort`_
 
+- Fix error when interpolating MEG channels with compensation using reference channels (like for CTF data) by `Alex Gramfort`_
+
 
 API
 ~~~
