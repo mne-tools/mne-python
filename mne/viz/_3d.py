@@ -1739,11 +1739,18 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
     from nilearn.plotting import plot_stat_map
     from nilearn.image import index_img
 
-    def _onclick(event, stc):
-        idx = stc.time_as_index(event.xdata)
-        plot_stat_map(index_img(img, idx), t1_fname, threshold=0.45,
-                      title='LCMV (t=%.3f s.)' % stc.times[idx])
+    def _onclick(event, params):
+        idx = params['stc'].time_as_index(event.xdata)
+        if params['lx'] is None:
+            params['lx'] = params['fig_time'].axes[0].axvline(
+                event.xdata, color='g')
+        else:
+            params['lx'].set_xdata(event.xdata)
 
+        plot_stat_map(index_img(img, idx), t1_fname, threshold=0.45,
+                      title='LCMV (t=%.3f s.)' % params['stc'].times[idx],
+                      figure=10, cut_coords=(2, 2, 2))
+        params['fig_time'].canvas.draw()
         return idx
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
@@ -1760,15 +1767,17 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
     # activity at 88 ms
 
     # plot source time courses with the maximum peak amplitudes at 88 ms
-    fig = plt.figure()
+    fig_time = plt.figure()
     loc_idx = 878  # hard coded for now, should be selected interactively
     plt.plot(stc.times, stc.data[loc_idx].T)
     plt.xlabel('Time (ms)')
     plt.ylabel('LCMV value')
     plt.show()
-    fig.canvas.mpl_connect('button_press_event', partial(_onclick, stc=stc))
 
-    return fig
+    params = dict(stc=stc, fig_time=fig_time, lx=None)
+    fig_time.canvas.mpl_connect('button_press_event',
+                                partial(_onclick, params=params))
+    return fig_time
 
 
 def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
