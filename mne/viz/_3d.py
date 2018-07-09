@@ -1757,14 +1757,9 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
 
-    # plt.figure(2, 1)
     img = stc.as_volume(src, mri_resolution=False)
 
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-
-    # Plotting with nilearn
-    # Based on the visualization of the sensor space data (gradiometers), plot
-    # activity at 88 ms
 
     # plot source time courses with the maximum peak amplitudes at 88 ms
     fig_time = plt.figure()
