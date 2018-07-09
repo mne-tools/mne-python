@@ -9,8 +9,8 @@ Pre-computed data will be morphed based on an affine transformation and a
 nonlinear morph, estimated based on respective transformation from the
 subject's anatomical T1 (brain) to fsaverage T1 (brain).
 Afterwards the transformation will be applied to the
-beamformer result. The result will be a plot showing the morphed source
-estimate overlaid with the fsaverage T1.
+source estimate. The result will be a plot showing the fsaverage T1 overlaid
+with the morphed source estimate.
 
 """
 # Author: Tommy Clausner <tommy.clausner@gmail.com>

@@ -14,7 +14,7 @@ from mne.utils import (run_tests_if_main, requires_nibabel, _TempDir,
 from nose.tools import assert_raises
 
 # Setup paths
-tmpdir = _TempDir()
+tempdir = _TempDir()
 data_path = sample.data_path()
 sample_dir = op.join(data_path, 'MEG', 'sample')
 
@@ -100,14 +100,14 @@ def test_volume_source_morph():
                   subjects_dir=op.join(data_path, 'subjects'))
 
     # two different ways of saving
-    source_morph_vol.save(op.join(tmpdir, 'vol'))
-    source_morph_vol.save(op.join(tmpdir, 'vol.h5'))
+    source_morph_vol.save(op.join(tempdir, 'vol'))
+    source_morph_vol.save(op.join(tempdir, 'vol.h5'))
 
     # check loading
-    source_morph_vol_r = read_source_morph(op.join(tmpdir, 'vol.h5'))
+    source_morph_vol_r = read_source_morph(op.join(tempdir, 'vol.h5'))
 
     # check for invalid file name handling
-    assert_raises(IOError, read_source_morph, op.join(tmpdir, '42'))
+    assert_raises(IOError, read_source_morph, op.join(tempdir, '42'))
 
     # check morph
     stc_vol_morphed = source_morph_vol(stc_vol)
@@ -132,7 +132,7 @@ def test_volume_source_morph():
     # check if nifti is defined resolution with voxel_size == (7., 7., 7.)
     img_any_res = source_morph_vol.as_volume(stc_vol_morphed,
                                              mri_resolution=(7., 7., 7.),
-                                             fname=op.join(tmpdir, '42'))
+                                             fname=op.join(tempdir, '42'))
     assert isinstance(img_any_res, nib.Nifti1Image)
     assert img_any_res.header.get_zooms()[:3] == (7., 7., 7.)
 
