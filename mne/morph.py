@@ -7,13 +7,12 @@ import os.path as op
 import warnings
 
 import numpy as np
-from scipy import sparse
 
 from . import read_forward_solution, compute_morph_matrix
 from .externals.h5io import read_hdf5, write_hdf5
 from .externals.six import string_types
 from .source_estimate import (VolSourceEstimate, SourceEstimate,
-                              VectorSourceEstimate, _get_subject_sphere_tris)
+                              VectorSourceEstimate)
 from .source_space import SourceSpaces
 from .utils import logger, verbose, check_version
 
@@ -186,8 +185,7 @@ class SourceMorph(object):
         stc_to : VolSourceEstimate | SourceEstimate | VectorSourceEstimate
             The morphed source estimate.
         """
-        if stc_from.subject is not None \
-                and stc_from.subject != self.subject_from:
+        if stc_from.subject != self.subject_from:
             raise ValueError('stc_from.subject and '
                              'morph.subject_from must match')
 
@@ -211,7 +209,7 @@ class SourceMorph(object):
             s += ", niter_sdr : {}".format(self.niter_sdr)
             s += ", grid_spacing : {}".format(self.grid_spacing)
 
-        elif self.kind == 'surface':
+        elif self.kind == 'surface' or self.kind == 'vector':
             s += ", smooth : %s" % self.smooth
             s += ", xhemi : %s" % self.xhemi
 

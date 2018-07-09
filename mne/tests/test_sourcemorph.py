@@ -2,21 +2,18 @@
 # Author: Tommy Clausner <Tommy.Clausner@gmail.com>
 #
 # License: BSD (3-clause)
-import os
 import os.path as op
 
 import nibabel as nib
-import pytest
-from mne import SourceEstimate, VolSourceEstimate
+from mne import SourceEstimate, VolSourceEstimate, VectorSourceEstimate
 from mne import read_evokeds, SourceMorph, read_source_morph
-from mne.datasets import sample, testing
+from mne.datasets import sample
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.utils import (run_tests_if_main, requires_nibabel, _TempDir,
                        string_types)
 from nose.tools import assert_raises
 
 # Setup paths
-
 tmpdir = _TempDir()
 data_path = sample.data_path()
 sample_dir = op.join(data_path, 'MEG', 'sample')
@@ -26,8 +23,8 @@ fname_inv_vol = op.join(sample_dir, 'sample_audvis-meg-vol-7-meg-inv.fif')
 fname_inv_surf = op.join(sample_dir, 'sample_audvis-meg-oct-6-meg-inv.fif')
 
 
-def test_surface_source_morph():
-    """Test surface source morph."""
+def test_surface_vector_source_morph():
+    """Test surface and vector source estimate morph."""
     evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
     inverse_operator_surf = read_inverse_operator(fname_inv_surf)
 
@@ -35,15 +32,21 @@ def test_surface_source_morph():
     stc_surf = apply_inverse(evoked, inverse_operator_surf, 1.0 / 3.0 ** 2,
                              "dSPM")
 
+    stc_vec = apply_inverse(evoked, inverse_operator_surf, 1.0 / 3.0 ** 2,
+                            "dSPM", pick_ori="vector")
+
     stc_surf.crop(0.087, 0.087)
+    stc_vec.crop(0.087, 0.087)
 
     source_morph_surf = SourceMorph(inverse_operator_surf['src'],
                                     subjects_dir=data_path + '/subjects')
 
     stc_surf_morphed = source_morph_surf(stc_surf)
+    stc_vec_morphed = source_morph_surf(stc_vec)
 
     # check if correct class after morphing
     assert isinstance(stc_surf_morphed, SourceEstimate)
+    assert isinstance(stc_vec_morphed, VectorSourceEstimate)
 
     # check __repr__
     assert isinstance(source_morph_surf.__repr__(), string_types)
@@ -51,7 +54,7 @@ def test_surface_source_morph():
 
 @requires_nibabel()
 def test_volume_source_morph():
-    """Test volume source morph, special cases and exceptions."""
+    """Test volume source estimate morph, special cases and exceptions."""
     evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
     inverse_operator_vol = read_inverse_operator(fname_inv_vol)
 
@@ -76,15 +79,11 @@ def test_volume_source_morph():
     source_morph_vol = SourceMorph(inverse_operator_vol['src'],
                                    subjects_dir=data_path + '/subjects')
 
-    # save memory
-    del source_morph_vol
-
     # check full mri resolution registration (takes very long)
     # source_morph_vol = SourceMorph(
     #     op.join(sample_dir, 'sample_audvis-meg-vol-7-fwd.fif'),
     #     subject_from='sample', subjects_dir=op.join(data_path, 'subjects'),
     #     grid_spacing=None)
-    # del source_morph_vol
 
     # check input via path to src and path to subject_to
     source_morph_vol = SourceMorph(
@@ -117,15 +116,12 @@ def test_volume_source_morph():
     source_morph_vol_r.subject_from = '42'
     assert_raises(ValueError, source_morph_vol_r, stc_vol_morphed)
 
-    os.remove(op.join(tmpdir, 'vol-morph.h5'))
-    os.remove(op.join(tmpdir, 'vol.h5'))
-
     # check if nifti is in grid morph space with voxel_size == grid_spacing
     img_morph_res = source_morph_vol.as_volume(stc_vol_morphed,
                                                mri_resolution=False)
     assert isinstance(img_morph_res, nib.Nifti1Image)
-    assert img_morph_res.header.get_zooms()[
-           :3] == source_morph_vol.grid_spacing
+    grid_spacing = source_morph_vol.grid_spacing
+    assert img_morph_res.header.get_zooms()[:3] == grid_spacing
 
     # check if nifti is mri resolution with voxel_size == (1., 1., 1.)
     img_mri_res = source_morph_vol.as_volume(stc_vol_morphed,
@@ -135,7 +131,8 @@ def test_volume_source_morph():
 
     # check if nifti is defined resolution with voxel_size == (7., 7., 7.)
     img_any_res = source_morph_vol.as_volume(stc_vol_morphed,
-                                             mri_resolution=(7., 7., 7.))
+                                             mri_resolution=(7., 7., 7.),
+                                             fname=op.join(tmpdir, '42'))
     assert isinstance(img_any_res, nib.Nifti1Image)
     assert img_any_res.header.get_zooms()[:3] == (7., 7., 7.)
 
