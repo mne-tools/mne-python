@@ -1744,20 +1744,22 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
         raise ImportError('This function requires nilearn')
 
     def _onclick(event, params):
-        idx = params['stc'].time_as_index(event.xdata)
-        if params['lx'] is None:
-            params['lx'] = params['fig_time'].axes[0].axvline(
-                event.xdata, color='g')
-        else:
-            params['lx'].set_xdata(event.xdata)
+        if event.inaxes is params['ax_time']:
+            idx = params['stc'].time_as_index(event.xdata)
+            if params['lx'] is None:
+                params['lx'] = params['ax_time'].axvline(
+                    event.xdata, color='g')
+            else:
+                params['lx'].set_xdata(event.xdata)
 
-        fig_anat = plot_stat_map(
-            index_img(img, idx), t1_fname, threshold=0.45,
-            title='LCMV (t=%.3f s.)' % params['stc'].times[idx],
-            figure=10, cut_coords=(2, 2, 2),
-            resampling_interpolation='nearest')
-        # fig_anat.axes['x'].ax
-        params['fig_time'].canvas.draw()
+            fig_anat = plot_stat_map(
+                index_img(img, idx), t1_fname, threshold=0.45,
+                title='LCMV (t=%.3f s.)' % params['stc'].times[idx],
+                axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
+                cut_coords=(2, 2, 2),
+                resampling_interpolation='nearest')
+            # fig_anat.axes['x'].ax
+        params['fig'].canvas.draw()
         return idx
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
@@ -1768,17 +1770,18 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
 
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
 
-    fig_time = plt.figure()
+    fig = plt.figure()
     loc_idx = 878  # hard coded for now, should be selected interactively
-    plt.plot(stc.times, stc.data[loc_idx].T)
+    ax_time = fig.add_axes([0.05, 0.1, 0.9, 0.4])
+    ax_time.plot(stc.times, stc.data[loc_idx].T)
     plt.xlabel('Time (ms)')
     plt.ylabel('LCMV value')
     plt.show()
 
-    params = dict(stc=stc, fig_time=fig_time, lx=None)
-    fig_time.canvas.mpl_connect('button_press_event',
-                                partial(_onclick, params=params))
-    return fig_time
+    params = dict(stc=stc, ax_time=ax_time, lx=None, fig=fig)
+    fig.canvas.mpl_connect('button_press_event',
+                           partial(_onclick, params=params))
+    return fig
 
 
 def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
