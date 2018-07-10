@@ -47,6 +47,8 @@ jobs:
             key: pip-cache
             paths:
               - ~/.cache/pip
+        # The conda-provided PyQt5 does not work on CircleCI for some reason
+        - run: pip install --upgrade PyQt5 PyQt5-sip
         # Look at what we have and fail early if there is some library conflict
         - run: which python
         - run: python -c "import mne; mne.sys_info()"
