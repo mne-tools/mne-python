@@ -1736,8 +1736,12 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
     """
     import matplotlib.pyplot as plt
-    from nilearn.plotting import plot_stat_map
-    from nilearn.image import index_img
+
+    try:
+        from nilearn.plotting import plot_stat_map
+        from nilearn.image import index_img
+    except ImportError:
+        raise ImportError('This function requires nilearn')
 
     def _onclick(event, params):
         idx = params['stc'].time_as_index(event.xdata)
@@ -1747,9 +1751,12 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
         else:
             params['lx'].set_xdata(event.xdata)
 
-        plot_stat_map(index_img(img, idx), t1_fname, threshold=0.45,
-                      title='LCMV (t=%.3f s.)' % params['stc'].times[idx],
-                      figure=10, cut_coords=(2, 2, 2))
+        fig_anat = plot_stat_map(
+            index_img(img, idx), t1_fname, threshold=0.45,
+            title='LCMV (t=%.3f s.)' % params['stc'].times[idx],
+            figure=10, cut_coords=(2, 2, 2),
+            resampling_interpolation='nearest')
+        # fig_anat.axes['x'].ax
         params['fig_time'].canvas.draw()
         return idx
 
@@ -1761,7 +1768,6 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
 
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
 
-    # plot source time courses with the maximum peak amplitudes at 88 ms
     fig_time = plt.figure()
     loc_idx = 878  # hard coded for now, should be selected interactively
     plt.plot(stc.times, stc.data[loc_idx].T)
