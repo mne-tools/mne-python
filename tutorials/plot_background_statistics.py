@@ -365,7 +365,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 #
 # 1. Threshold the computed statistic with some **initial**
 #    ``threshold`` value.
-# 2. Cluster points that exceed this threshold (with the same sign)
+# 2. Cluster voxels that exceed this threshold (with the same sign)
 #    based on adjacency.
 # 3. Record the *size* of each cluster (measured, e.g., by a simple voxel
 #    count, or by the sum of voxel t-values within the cluster).
@@ -418,14 +418,13 @@ from sklearn.feature_extraction.image import grid_to_graph  # noqa: E402
 mini_connectivity = grid_to_graph(3, 3).toarray()
 assert mini_connectivity.shape == (9, 9)
 print(mini_connectivity[0])
-del mini_connectivity
 
 ###############################################################################
 # In general the connectivity between voxels can be more complex, such as
 # those between sensors in 3D space, or time-varying activation at brain
 # vertices on a cortical surface. MNE provides several convenience functions
-# for computing connectivity/neighbor/adjacency matrices, see the
-# :ref:`Statistics API <api_reference_statistics>`.
+# for computing connectivity/neighbor/adjacency matrices (see the
+# :ref:`Statistics API <api_reference_statistics>`).
 #
 # Standard clustering
 # ~~~~~~~~~~~~~~~~~~~
