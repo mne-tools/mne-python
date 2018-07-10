@@ -26,7 +26,7 @@ FIFF = BunchConst()
 # FIFF version number in use
 #
 FIFF.FIFFC_MAJOR_VERSION = 1
-FIFF.FIFFC_MINOR_VERSION = 3
+FIFF.FIFFC_MINOR_VERSION = 4
 FIFF.FIFFC_VERSION = FIFF.FIFFC_MAJOR_VERSION << 16 | FIFF.FIFFC_MINOR_VERSION
 
 #
@@ -129,7 +129,7 @@ FIFF.FIFF_BAD_CHS       = 220
 FIFF.FIFF_ARTEF_REMOVAL = 221
 FIFF.FIFF_COORD_TRANS = 222
 FIFF.FIFF_HIGHPASS    = 223
-FIFF.FIFF_CH_CALS        = 22     # This will not occur in new files
+FIFF.FIFF_CH_CALS        = 224     # This will not occur in new files
 FIFF.FIFF_HPI_BAD_CHS    = 225    # List of channels considered to be bad in hpi
 FIFF.FIFF_HPI_CORR_COEFF = 226    # HPI curve fit correlations
 FIFF.FIFF_EVENT_COMMENT  = 227    # Comment about the events used in averaging
