@@ -848,11 +848,11 @@ FIFF.FIFF_MNE_RT_COMMAND           = 3700  # realtime command
 FIFF.FIFF_MNE_RT_CLIENT_ID         = 3701  # realtime client
 
 # MNE epochs bookkeeping
-FIFF.FIFFB_MNE_EPOCHS_SELECTION    = 3800  # the epochs selection
-FIFF.FIFFB_MNE_EPOCHS_DROP_LOG     = 3801  # the drop log
+FIFF.FIFF_MNE_EPOCHS_SELECTION     = 3800  # the epochs selection
+FIFF.FIFF_MNE_EPOCHS_DROP_LOG      = 3801  # the drop log
 
 # MNE annotations
-FIFF.FIFFB_MNE_ANNOTATIONS          = 3810  # annotations
+FIFF.FIFFB_MNE_ANNOTATIONS         = 3810  # annotations block
 
 # MNE Metadata Dataframes
-FIFF.FIFFB_MNE_METADATA             = 3811  # metadata dataframes
+FIFF.FIFFB_MNE_METADATA            = 3811  # metadata dataframes block

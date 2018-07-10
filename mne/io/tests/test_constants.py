@@ -139,10 +139,7 @@ def test_constants(tmpdir):
         elif name.startswith('FIFFB_'):
             # We put these in the tag section rather than the IOD/block section
             # -> XXX fix this by moving them to the IOD files in fiff-constants
-            if name in ('FIFFB_MNE_ANNOTATIONS',
-                        'FIFFB_MNE_EPOCHS_DROP_LOG',
-                        'FIFFB_MNE_EPOCHS_SELECTION',
-                        'FIFFB_MNE_METADATA'):
+            if name in 'FIFFB_MNE_ANNOTATIONS':
                 assert val in tags
                 continue
             assert val in iod, (val, name)
