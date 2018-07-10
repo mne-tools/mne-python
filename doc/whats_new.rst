@@ -60,6 +60,7 @@ Bug
 
 - Fix error when interpolating MEG channels with compensation using reference channels (like for CTF data) by `Alex Gramfort`_
 
+- Fix problem with :meth:`mne.io.Raw.add_channels` where ``raw.info['bads']`` was replicated by `Eric Larson`_
 
 API
 ~~~
