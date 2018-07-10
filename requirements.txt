@@ -8,10 +8,9 @@ nibabel
 pandas
 python-picard
 statsmodels
-nose
 pytest
 pytest-cov
-sphinx
+pytest-sugar
 joblib
 psutil
 numpydoc
@@ -19,5 +18,5 @@ https://api.github.com/repos/nipy/PySurfer/zipball/master
 nitime
 nilearn
 neo
-pytest-sugar
 pydocstyle
+flake8
