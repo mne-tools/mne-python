@@ -245,7 +245,7 @@ class SetChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs."""
 
     @verbose
-    def set_eeg_reference(self, ref_channels='average', projection=None,
+    def set_eeg_reference(self, ref_channels='average', projection=False,
                           verbose=None):
         """Specify which reference to use for EEG data.
 
@@ -283,13 +283,6 @@ class SetChannelsMixin(object):
             mastoid reference, when using the 10-20 naming scheme, set
             ``ref_channels=['M1', 'M2']``.
 
-        .. note:: In case of ``ref_channels='average'`` in combination with
-                  ``projection=True``, the reference is added as a projection
-                  and it is not applied automatically. For it to take effect,
-                  apply with method :meth:`apply_proj <mne.io.Raw.apply_proj>`.
-                  Other references are directly applied (this behavior will
-                  change in MNE 0.16).
-
         Parameters
         ----------
         ref_channels : list of str | str
@@ -298,17 +291,15 @@ class SetChannelsMixin(object):
             If an empty list is specified, the data is assumed to already have
             a proper reference and MNE will not attempt any re-referencing of
             the data. Defaults to an average reference.
-        projection : bool | None
+        projection : bool
             If ``ref_channels='average'`` this argument specifies if the
             average reference should be computed as a projection (True) or not
-            (False). If ``projection=True``, the average reference is added as
-            a projection and is not applied to the data (it can be applied
-            afterwards with the ``apply_proj`` method). If
+            (False; default). If ``projection=True``, the average reference is
+            added as a projection and is not applied to the data (it can be
+            applied afterwards with the ``apply_proj`` method). If
             ``projection=False``, the average reference is directly applied to
-            the data. Defaults to None, which means ``projection=True``, but
-            will change to ``projection=False`` in the next release.
-            If ``ref_channels`` is not ``'average'``, ``projection`` must be
-            set to ``False`` (the default in this case).
+            the data. If ``ref_channels`` is not ``'average'``, ``projection``
+            must be set to ``False`` (the default in this case).
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`

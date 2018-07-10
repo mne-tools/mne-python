@@ -291,13 +291,6 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         channels to use. For example, to apply an average mastoid reference,
         when using the 10-20 naming scheme, set ``ref_channels=['M1', 'M2']``.
 
-    .. note:: In case of ``ref_channels='average'`` in combination with
-              ``projection=True``, the reference is added as a projection and
-              it is not applied automatically. For it to take effect, apply
-              with method :meth:`apply_proj <mne.io.Raw.apply_proj>`. Other
-              references are directly applied (this behavior will change in MNE
-              0.16).
-
     Parameters
     ----------
     inst : instance of Raw | Epochs | Evoked
@@ -356,9 +349,6 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
                             references.
     """
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), "Instance")
-
-    if ref_channels is None:
-        ref_channels = 'average'
 
     if ref_channels != 'average' and projection:
         raise ValueError('Setting projection=True is only supported for '
