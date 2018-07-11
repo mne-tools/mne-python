@@ -29,7 +29,7 @@ print(__doc__)
 
 ###############################################################################
 # Setup paths
-sample_dir_raw='/Users/Tommy/mne-data'
+sample_dir_raw = sample.data_path()
 sample_dir = sample_dir_raw + '/MEG/sample'
 subjects_dir = sample_dir_raw + '/subjects'
 

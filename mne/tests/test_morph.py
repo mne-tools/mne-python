@@ -26,7 +26,7 @@ from scipy.sparse import csr_matrix
 # Setup paths
 tempdir = _TempDir()
 
-data_path = '/Users/Tommy/mne-data/'
+data_path = testing.data_path()
 
 sample_dir = op.join(data_path, 'MEG', 'sample')
 
