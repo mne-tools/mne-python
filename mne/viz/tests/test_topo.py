@@ -97,7 +97,7 @@ def test_plot_topo():
     evoked.plot_joint(times=[0], picks=[6, 7, 8],  ts_args=dict(axes=axes[0]),
                       topomap_args={"axes": axes[1:], "time_unit": "s"})
     plt.close()
-    assert_raises(ValueError, evoked.plot_joint, picks=[6, 7, 8],
+    pytest.raises(ValueError, evoked.plot_joint, picks=[6, 7, 8],
                   ts_args=dict(axes=axes[0]), topomap_args=dict(axes=axes[2:]))
 
     warnings.simplefilter('always', UserWarning)
