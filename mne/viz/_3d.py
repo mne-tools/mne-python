@@ -1801,7 +1801,12 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
                     axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
                     cut_coords=cut_coords,
                     resampling_interpolation='nearest')
-
+                shape = params['img_idx'].shape
+                # XXX: check line below
+                loc_idx = (cut_coords[0] * shape[0] * shape[1] +
+                           cut_coords[1] * shape[1] +
+                           cut_coords[2])
+                ax_time.lines[0].set_ydata(stc.data[int(round(loc_idx))].T)
         params['fig'].canvas.draw()
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
