@@ -79,7 +79,8 @@ jobs:
               else
                 FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH upstream/master));
                 if [[ $(cat gitlog.txt) == *"[circle front]"* ]]; then
-                  FNAMES="plot_mne_dspm_source_localization.py plot_receptive_field.py plot_mne_inverse_label_connectivity.py plot_sensors_decoding.py plot_stats_cluster_spatio_temporal.py plot_visualize_evoked.py "${FNAMES};
+                  FNAMES="tutorials/plot_mne_dspm_source_localization.py tutorials/plot_receptive_field.py examples/connectivity/plot_mne_inverse_label_connectivity.py tutorials/plot_sensors_decoding.py tutorials/plot_stats_cluster_spatio_temporal.py tutorials/plot_visualize_evoked.py "${FNAMES};
+                  python -c "import mne; print(mne.datasets.testing.data_path(update_path=True))";
                 fi;
                 echo FNAMES="$FNAMES";
                 for FNAME in $FNAMES; do
