@@ -59,7 +59,7 @@ n_permutations = 'all'  # run an exact test
 n_src = width * width
 
 # For each "subject", make a smoothed noisy signal with a centered peak
-rng = np.random.RandomState(42)
+rng = np.random.RandomState(2)
 X = noise_sd * rng.randn(n_subjects, width, width)
 # Add a signal at the center
 X[:, width // 2, width // 2] = signal_mean + rng.randn(n_subjects) * signal_sd
@@ -527,12 +527,12 @@ plt.show()
 # The first three columns show the parametric and non-parametric statistics
 # that are not corrected for multiple comparisons:
 #
-# - Mass univariate t-tests (**t**) has jagged edges.
-# - **"Hat" variance correction** of the t-test has reduced peaky edges,
+# - Mass univariate **t-tests** result in jagged edges.
+# - **"Hat" variance correction** of the t-tests produces less peaky edges,
 #   correcting for sharpness in the statistic driven by low-variance voxels.
-# - **Non-parametric resampling tests** are very similar to the t-tests. This
-#   is to be expected: the data are drawn from a Gaussian distribution, and
-#   thus satisfy parametric assumptions.
+# - **Non-parametric resampling tests** are very similar to t-tests. This is to
+#   be expected: the data are drawn from a Gaussian distribution, and thus
+#   satisfy parametric assumptions.
 #
 # The next three columns show multiple comparison corrections of the
 # mass univariate tests (parametric and non-parametric). These
@@ -541,7 +541,7 @@ plt.show()
 #
 # - **Bonferroni correction** eliminates any significant activity.
 # - **FDR correction** is less conservative than Bonferroni.
-# - **Permutation tests with a maximum statistic** also eliminate any
+# - A **permutation test with a maximum statistic** also eliminates any
 #   significant activity.
 #
 # The final four columns show the non-parametric cluster-based permutation
