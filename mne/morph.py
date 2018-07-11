@@ -208,6 +208,10 @@ class SourceMorph(object):
         if src[0]['subject_his_id'] is not None and subject_from is None:
             self.subject_from = src[0]['subject_his_id']
 
+        if self.subject_from is None:
+            raise KeyError('subject id in src is None. Please specify '
+                           'subject_from')
+
         self.morph_data.update(_get_src_data(src))
         self.morph_data.update(_compute_morph_data(self, verbose=verbose))
 
