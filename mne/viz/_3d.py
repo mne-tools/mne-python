@@ -1736,6 +1736,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
     """
     import matplotlib.pyplot as plt
+    import nibabel as nib
 
     try:
         from nilearn.plotting import plot_stat_map
@@ -1752,7 +1753,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
             else:
                 params['lx'].set_xdata(event.xdata)
 
-            cut_coords = (2, 2, 2)
+            cut_coords = (0, 0, 0)
             if 'ax_x' in params:
                 cut_coords = (params['ax_z'].lines[0].get_xdata()[0],
                               params['ax_x'].lines[0].get_xdata()[0],
@@ -1801,12 +1802,26 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
                     axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
                     cut_coords=cut_coords,
                     resampling_interpolation='nearest')
-                shape = params['img_idx'].shape
                 # XXX: check line below
-                loc_idx = (cut_coords[0] * shape[0] * shape[1] +
-                           cut_coords[1] * shape[1] +
-                           cut_coords[2])
-                ax_time.lines[0].set_ydata(stc.data[int(round(loc_idx))].T)
+                img_bg = nib.load(t1_fname)
+
+                cut_coords = [c for c in cut_coords]
+
+                print(cut_coords)
+                cut_coords = apply_trans(linalg.inv(img_bg.affine), cut_coords)
+                print(cut_coords, img_bg.shape)
+                cut_coords = apply_trans(linalg.inv(img.affine), cut_coords)
+                print(cut_coords, img.shape)
+                print('')
+                sdfdf
+                # cut_coords = [int(round(c)) for c in cut_coords]
+
+                shape = params['img_idx'].shape
+                loc_idx = np.ravel_multi_index(
+                    cut_coords, shape[:-1])
+                print(loc_idx)
+                print(stc.vertices[-1])
+                # ax_time.lines[0].set_ydata(stc.data[int(round(loc_idx))].T)
         params['fig'].canvas.draw()
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
