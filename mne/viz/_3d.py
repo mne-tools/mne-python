@@ -1743,10 +1743,6 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
     except ImportError:
         raise ImportError('This function requires nilearn')
 
-    def _update_crosshairs(event):
-        event.inaxes.lines[0].set_xdata(event.xdata)
-        event.inaxes.lines[1].set_ydata(event.ydata)
-
     def _onclick(event, params):
         if event.inaxes is params['ax_time']:
             idx = params['stc'].time_as_index(event.xdata)
@@ -1756,23 +1752,55 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
             else:
                 params['lx'].set_xdata(event.xdata)
 
+            cut_coords = (2, 2, 2)
+            if 'ax_x' in params:
+                cut_coords = (params['ax_z'].lines[0].get_xdata()[0],
+                              params['ax_x'].lines[0].get_xdata()[0],
+                              params['ax_y'].lines[0].get_xdata()[0])
+                params['ax_x'].lines = []
+                params['ax_y'].lines = []
+                params['ax_z'].lines = []
+
+            params.update({'img_idx': index_img(img, idx)})
+            params.update({'title':
+                           'LCMV (t=%.3f s.)' % params['stc'].times[idx]})
             fig_anat = plot_stat_map(
-                index_img(img, idx), t1_fname, threshold=0.45,
-                title='LCMV (t=%.3f s.)' % params['stc'].times[idx],
+                params['img_idx'], t1_fname, threshold=0.45,
+                title=params['title'],
                 axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
-                cut_coords=(2, 2, 2),
+                cut_coords=cut_coords,
                 resampling_interpolation='nearest')
             params.update({'fig_anat': fig_anat})
 
-        if 'fig_anat' in params and 'ax_x' not in params:
+        if 'fig_anat' in params:
             fig_anat = params['fig_anat']
             ax_x = fig_anat.axes['x'].ax
             ax_y = fig_anat.axes['y'].ax
             ax_z = fig_anat.axes['z'].ax
-            params.update({'ax_x': ax_x, 'ax_y': ax_y, 'ax_z': ax_z})
-        if event.inaxes in [params['ax_x'], params['ax_y'], params['ax_z']]:
-            _update_crosshairs(event)
-        # ax_x.lines = []
+            if 'ax_x' not in params:
+                params.update({'ax_x': ax_x, 'ax_y': ax_y, 'ax_z': ax_z})
+
+            if event.inaxes is ax_x:
+                cut_coords = (params['ax_z'].lines[0].get_xdata()[0],
+                              event.xdata, event.ydata)
+            if event.inaxes is ax_y:
+                cut_coords = (event.xdata,
+                              params['ax_x'].lines[0].get_xdata()[0],
+                              event.ydata)
+            if event.inaxes is ax_z:
+                cut_coords = (event.xdata, event.ydata,
+                              params['ax_y'].lines[0].get_xdata()[0])
+
+            if event.inaxes in [ax_x, ax_y, ax_z]:
+                params['ax_x'].lines = []
+                params['ax_y'].lines = []
+                params['ax_z'].lines = []
+                fig_anat = plot_stat_map(
+                    params['img_idx'], t1_fname, threshold=0.45,
+                    title=params['title'],
+                    axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
+                    cut_coords=cut_coords,
+                    resampling_interpolation='nearest')
 
         params['fig'].canvas.draw()
 
