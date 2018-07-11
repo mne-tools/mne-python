@@ -1750,8 +1750,11 @@ def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs,
             vert_from = edge.pop(0)
 
             # add neighbors within allowable distance
-            row = graph[vert_from, :]
-            for vert_to, dist in zip(row.indices, row.data):
+            # row = graph[vert_from, :]
+            # row_indices, row_data = row.indices, row.data
+            sl = slice(graph.indptr[vert_from], graph.indptr[vert_from + 1])
+            row_indices, row_data = graph.indices[sl], graph.data[sl]
+            for vert_to, dist in zip(row_indices, row_data):
                 vert_to_label = parc[vert_to]
 
                 # abort if the vertex is already occupied
