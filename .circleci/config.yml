@@ -4,7 +4,7 @@ version: 2
 jobs:
     build:
       docker:
-        # 3.6-stretch is too new for conda
+        # 3.6-jessie is too new for conda
         - image: circleci/python:3.6-jessie
       steps:
         # Get our data and merge with upstream
@@ -24,12 +24,13 @@ jobs:
               - data-cache
               - pip-cache
 
-        # Fix libgcc_s.so.1 pthread_cancel bug:
-        # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
-        - run: sudo apt-get install libgl1-mesa-glx libegl1-mesa libxrandr2 libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6
         # Spin up Xvfb
         - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
         - run: echo "export DISPLAY=:99" >> $BASH_ENV;
+        # Fix libgcc_s.so.1 pthread_cancel bug:
+        # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
+        # https://github.com/golemfactory/golem/issues/1019
+        - run: sudo apt-get install libgl1-mesa-glx libegl1-mesa libxrandr2 libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6 qt5-default
         # Get latest Anaconda running
         - run:
             command: |
@@ -48,6 +49,12 @@ jobs:
             key: pip-cache
             paths:
               - ~/.cache/pip
+        # The conda-provided PyQt5 does not work on CircleCI for some reason,
+        # possibly because the libGL expects a sufficiently modern libgcc
+        # and conda rolls their own (libgcc-ng package).
+        - run: conda remove --yes qt pyqt matplotlib sip libxcb icu vtk sip
+        - run: pip uninstall --yes mayavi vtk
+        - run: pip install vtk mayavi PyQt5 PyQt5-sip sip matplotlib
         # Look at what we have and fail early if there is some library conflict
         - run: which python
         - run: python -c "import mne; mne.sys_info()"
@@ -63,6 +70,7 @@ jobs:
         - run: mkdir -p ~/mne_data
         - run:
             command: |
+              touch pattern.txt;
               if [ "$CIRCLE_BRANCH" == "master" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]]; then
                 echo html_dev > build.txt;
               elif [ "$CIRCLE_BRANCH" == "maint/0.16" ]; then
@@ -159,18 +167,7 @@ jobs:
                 make test-doc;
               fi;
         # Build docs
-        - run:
-            command: |
-              if [[ $(cat build.txt) == "html_dev-noplot" ]]; then
-                cd doc;
-                make html_dev-noplot;
-              elif [[ $(cat build.txt) == "html_dev-pattern" ]]; then
-                cd doc;
-                PATTERN=$(cat ../pattern.txt) make html_dev-pattern;
-              else
-                cd doc;
-                make $(cat ../build.txt);
-              fi;
+        - run: cd doc; PATTERN=$(cat ../pattern.txt) make $(cat ../build.txt);
         - run: python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
         - store_artifacts:
