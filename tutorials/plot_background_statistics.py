@@ -55,7 +55,6 @@ noise_sd = 0.01
 gaussian_sd = 5
 alpha = 0.05
 sigma = 1e-3  # sigma for the "hat" method
-threshold = stats.distributions.t.ppf(1 - alpha, n_subjects - 1)
 n_permutations = 'all'  # run an exact test
 n_src = width * width
 
@@ -224,10 +223,9 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # So far, we have done no correction for multiple comparisons. This is
 # potentially problematic for these data because there are
 # :math:`40 \cdot 40 = 1600` tests being performed. If we use a threshold
-# ``p < 0.05`` for each individual test, we would expect many voxels to be
-# declared significant even if there were no true effect.
-# In other words, we would make many **type I errors** (adapted from
-# `here <errors_>`_):
+# p < 0.05 for each individual test, we would expect many voxels to be declared
+# significant even if there were no true effect. In other words, we would make
+# many **type I errors** (adapted from `here <errors_>`_):
 #
 # .. rst-class:: skinnytable
 #
@@ -314,7 +312,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # **Non-parametric resampling tests** can also be used to correct for multiple
 # comparisons. In its simplest form, we again do permutations using
 # exchangeability under the null hypothesis, but this time we take the
-# *maximum statistic across all tests* in each permutation to form the
+# *maximum statistic across all voxels* in each permutation to form the
 # null distribution. The p-value for each voxel from the veridical data
 # is then given by the proportion of null distribution values
 # that were smaller.
@@ -363,29 +361,29 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # In this case, we again do permutations with a maximum statistic, but, under
 # each permutation, we:
 #
-# 1. Threshold the computed statistic with some **initial**
-#    ``threshold`` value.
-# 2. Cluster voxels that exceed this threshold (with the same sign)
-#    based on adjacency.
-# 3. Record the *size* of each cluster (measured, e.g., by a simple voxel
-#    count, or by the sum of voxel t-values within the cluster).
+# 1. Compute the test statistic for each voxel individually.
+# 2. Threshold the test statistic values.
+# 3. Cluster voxels that exceed this threshold (with the same sign) based on
+#    adjacency.
+# 4. Retain the size of the largest cluster (measured, e.g., by a simple voxel
+#    count, or by the sum of voxel t-values within the cluster) to build the
+#    null distribution.
 #
 # After doing these permutations, the cluster sizes in our veridical data
 # are compared to this null distribution. The p-value associated with each
 # cluster is again given by the proportion of smaller null distribution
 # values. This can then be subjected to a standard p-value threshold
-# (e.g., ``p < 0.05``) to reject the null hypothesis (i.e., find an effect
-# of interest).
+# (e.g., p < 0.05) to reject the null hypothesis (i.e., find an effect of
+# interest).
 #
 # This reframing to consider *cluster sizes* rather than *individual means*
 # maintains the advantages of the standard non-parametric permutation
 # test -- namely controlling FWER and making no assumptions of parametric
 # data distribution.
-# Cricitally, though, it also accounts for the correlation structure in the
-# data -- which in this toy case is spatial but
-# in general can be multidimensional (e.g., spatio-temporal) -- because the
-# null distribution will be derived from data in a way that preserves these
-# correlations.
+# Critically, though, it also accounts for the correlation structure in the
+# data -- which in this toy case is spatial but in general can be
+# multidimensional (e.g., spatio-temporal) -- because the null distribution
+# will be derived from data in a way that preserves these correlations.
 #
 # However, there is a drawback. If a cluster significantly deviates from
 # the null, no further inference on the cluster (e.g., peak location) can be
@@ -403,9 +401,9 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # which voxels are adjacent to each other. In our case this
 # is quite simple, as our data are aligned on a rectangular grid.
 #
-# Let's pretend that our data were smaller -- a 3x3 grid. Thinking about
+# Let's pretend that our data were smaller -- a 3 x 3 grid. Thinking about
 # each voxel as being connected to the other voxels it touches, we would
-# need a 9x9 connectivity matrix. The first row of this matrix contains the
+# need a 9 x 9 connectivity matrix. The first row of this matrix contains the
 # voxels in the flattened data that the first voxel touches. Since it touches
 # the second element in the first row and the first element in the second row
 # (and is also a neighbor to itself), this would be::
@@ -431,11 +429,13 @@ print(mini_connectivity[0])
 # Here, since our data are on a grid, we can use ``connectivity=None`` to
 # trigger optimized grid-based code, and run the clustering algorithm.
 
-# Reshape data to what is equivalent to (n_samples, n_space, n_time)
 titles.append('Clustering')
+# Reshape data to what is equivalent to (n_samples, n_space, n_time)
 X.shape = (n_subjects, width, width)
+# Compute threshold from t distribution (this is also the default)
+threshold = stats.distributions.t.ppf(1 - alpha, n_subjects - 1)
 t_clust, clusters, p_values, H0 = permutation_cluster_1samp_test(
-    X, n_jobs=1, threshold=threshold, connectivity=None, tail=1,
+    X, n_jobs=1, threshold=threshold, connectivity=None,
     n_permutations=n_permutations)
 # Put the cluster data in a viewable format
 p_clust = np.ones((width, width))
@@ -447,14 +447,14 @@ mccs.append(True)
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
 ###############################################################################
-# "hat" variance adjustment
+# "Hat" variance adjustment
 # ~~~~~~~~~~~~~~~~~~~~~~~~~
 # This method can also be used in this context to correct for small
 # variances [1]_:
 titles.append(r'$\mathbf{C_{hat}}$')
 stat_fun_hat = partial(ttest_1samp_no_p, sigma=sigma)
 t_hat, clusters, p_values, H0 = permutation_cluster_1samp_test(
-    X, n_jobs=1, threshold=threshold, connectivity=None, tail=1,
+    X, n_jobs=1, threshold=threshold, connectivity=None,
     n_permutations=n_permutations, stat_fun=stat_fun_hat, buffer_size=None)
 p_hat = np.ones((width, width))
 for cl, p in zip(clusters, p_values):
@@ -473,10 +473,10 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # determines which points are included in clustering by approximating
 # a continuous integration across possible threshold values with a standard
 # `Riemann sum <https://en.wikipedia.org/wiki/Riemann_sum>`__ [2]_.
-# This requires giving a starting threshold ``'start'`` and a step
-# size ``'step'``, which in MNE is supplied as a dict.
-# The smaller the ``'step'`` and closer to 0 the ``'start'`` value,
-# the better the approximation, but the longer it takes).
+# This requires giving a starting threshold ``start`` and a step
+# size ``step``, which in MNE is supplied as a dict.
+# The smaller the ``step`` and closer to 0 the ``start`` value,
+# the better the approximation, but the longer it takes.
 #
 # A significant advantage of TFCE is that, rather than modifying the
 # statistical null hypothesis under test (from one about individual voxels
@@ -489,7 +489,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 titles.append(r'$\mathbf{C_{TFCE}}$')
 threshold_tfce = dict(start=0, step=0.2)
 t_tfce, _, p_tfce, H0 = permutation_cluster_1samp_test(
-    X, n_jobs=1, threshold=threshold_tfce, connectivity=None, tail=1,
+    X, n_jobs=1, threshold=threshold_tfce, connectivity=None,
     n_permutations=n_permutations)
 ts.append(t_tfce)
 ps.append(p_tfce)
@@ -500,7 +500,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # We can also combine TFCE and the "hat" correction:
 titles.append(r'$\mathbf{C_{hat,TFCE}}$')
 t_tfce_hat, _, p_tfce_hat, H0 = permutation_cluster_1samp_test(
-    X, n_jobs=1, threshold=threshold_tfce, connectivity=None, tail=1,
+    X, n_jobs=1, threshold=threshold_tfce, connectivity=None,
     n_permutations=n_permutations, stat_fun=stat_fun_hat, buffer_size=None)
 ts.append(t_tfce_hat)
 ps.append(p_tfce_hat)
@@ -527,10 +527,10 @@ plt.show()
 # The first three columns show the parametric and non-parametric statistics
 # that are not corrected for multiple comparisons:
 #
-# - **t-test** has jagged edges.
-# - **"hat" variance correction** of the t-test has reduced peaky edges,
+# - Mass univariate t-tests (**t**) has jagged edges.
+# - **"Hat" variance correction** of the t-test has reduced peaky edges,
 #   correcting for sharpness in the statistic driven by low-variance voxels.
-# - **non-parametric resampling test** is very similar to the t-test. This
+# - **Non-parametric resampling tests** are very similar to the t-tests. This
 #   is to be expected: the data are drawn from a Gaussian distribution, and
 #   thus satisfy parametric assumptions.
 #
@@ -541,20 +541,21 @@ plt.show()
 #
 # - **Bonferroni correction** eliminates any significant activity.
 # - **FDR correction** is less conservative than Bonferroni.
-# - **Permutation test with a maximum statistic** also eliminates any
+# - **Permutation tests with a maximum statistic** also eliminate any
 #   significant activity.
 #
-# The final four columns show the non-parametric, cluster-based permutation
+# The final four columns show the non-parametric cluster-based permutation
 # tests with a maximum statistic:
 #
 # - **Standard clustering** identifies the correct region. However, the whole
 #   area must be declared significant, so no peak analysis can be done.
 #   Also, the peak is broad.
-# - **Clustering with "hat"** tightens the estimate of significant activity.
+# - **Clustering with "hat" variance adjustment** tightens the estimate of
+#   significant activity.
 # - **Clustering with TFCE** allows analyzing each significant point
 #   independently, but still has a broadened estimate.
-# - **Clustering with TFCE and "hat"** tightens the area declared
-#   significant (again FWER corrected).
+# - **Clustering with TFCE and "hat" variance adjustment** tightens the area
+#   declared significant (again FWER corrected).
 #
 # Statistical functions in MNE
 # ----------------------------
@@ -566,13 +567,13 @@ plt.show()
 # used in conjunction with the non-parametric clustering methods. However,
 # the set of functions we provide is not meant to be exhaustive.
 #
-# If the univariate statistical contrast of interest to you is not listed
-# here (e.g., interaction term in an unbalanced ANOVA), consider checking
-# out the :mod:`statsmodels` package. It offers many functions for computing
+# If the univariate statistical contrast of interest is not listed here
+# (e.g., interaction term in an unbalanced ANOVA), consider checking out the
+# :mod:`statsmodels` package. It offers many functions for computing
 # statistical contrasts, e.g., :func:`statsmodels.stats.anova.anova_lm`.
 # To use these functions in clustering:
 #
-# 1. Determine which test statistic (e.g., t-value, F-value) you would compute
+# 1. Determine which test statistic (e.g., t-value, F-value) you would use
 #    in a univariate context to compute your contrast of interest. In other
 #    words, if there were only a single output such as reaction times, what
 #    test statistic might you compute on the data?
