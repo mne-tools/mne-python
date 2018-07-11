@@ -50,7 +50,10 @@ jobs:
         # The conda-provided PyQt5 does not work on CircleCI for some reason,
         # possibly because the libGL expects a sufficiently modern libgcc
         # and conda rolls their own (libgcc-ng package).
-        - run: conda remove --yes qt pyqt matplotlib sip libxcb
+        - run: conda remove --yes qt pyqt matplotlib sip libxcb icu vtk
+        - run: pip uninstall --yes mayavi vtk
+        - run: pip install vtk
+        - run: pip install mayavi
         - run: pip install --upgrade PyQt5 PyQt5-sip matplotlib
         # Look at what we have and fail early if there is some library conflict
         - run: which python
