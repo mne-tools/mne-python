@@ -38,7 +38,12 @@ matrix:
         # PIP + non-default stim channel
         - os: linux
           env: MNE_STIM_CHANNEL=STI101
-               SPLIT=0
+               SPLIT=3
+          language: python
+          python: "3.6"
+        - os: linux
+          env: MNE_STIM_CHANNEL=STI101
+               SPLIT=2
           language: python
           python: "3.6"
         - os: linux
@@ -169,8 +174,12 @@ script:
       else
         if [ "${SPLIT}" == "0" ]; then
           MNE_DIRS=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io";
-        else
+        elif [ "${SPLIT}" == "1" ]; then
           MNE_DIRS="minimum_norm preprocessing realtime simulation stats time_frequency viz";
+        elif [ "${SPLIT}" == "2" ]; then
+          MNE_DIRS=".";
+        else
+          MNE_DIRS="beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io";
         fi;
         USE_DIRS="";
         for DIR in ${MNE_DIRS}; do
