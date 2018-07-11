@@ -1743,6 +1743,10 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
     except ImportError:
         raise ImportError('This function requires nilearn')
 
+    def _update_crosshairs(event):
+        event.inaxes.lines[0].set_xdata(event.xdata)
+        event.inaxes.lines[1].set_ydata(event.ydata)
+
     def _onclick(event, params):
         if event.inaxes is params['ax_time']:
             idx = params['stc'].time_as_index(event.xdata)
@@ -1758,9 +1762,19 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
                 axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
                 cut_coords=(2, 2, 2),
                 resampling_interpolation='nearest')
-            # fig_anat.axes['x'].ax
+            params.update({'fig_anat': fig_anat})
+
+        if 'fig_anat' in params and 'ax_x' not in params:
+            fig_anat = params['fig_anat']
+            ax_x = fig_anat.axes['x'].ax
+            ax_y = fig_anat.axes['y'].ax
+            ax_z = fig_anat.axes['z'].ax
+            params.update({'ax_x': ax_x, 'ax_y': ax_y, 'ax_z': ax_z})
+        if event.inaxes in [params['ax_x'], params['ax_y'], params['ax_z']]:
+            _update_crosshairs(event)
+        # ax_x.lines = []
+
         params['fig'].canvas.draw()
-        return idx
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
