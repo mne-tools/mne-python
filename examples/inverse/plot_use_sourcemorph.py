@@ -29,11 +29,12 @@ print(__doc__)
 
 ###############################################################################
 # Setup paths
-sample_dir = sample.data_path() + '/MEG/sample'
-subjects_dir = sample.data_path() + '/subjects'
+sample_dir_raw='/Users/Tommy/mne-data'
+sample_dir = sample_dir_raw + '/MEG/sample'
+subjects_dir = sample_dir_raw + '/subjects'
 
 fname_evoked = sample_dir + '/sample_audvis-ave.fif'
-fname_inv = sample_dir + '/sample_audvis-meg-vol-7-meg-inv.fif'
+fname_inv = sample_dir + '/sample_audvis_trunc-meg-vol-7-meg-inv.fif'
 
 fname_t1_fsaverage = subjects_dir + '/fsaverage/mri/brain.mgz'
 
@@ -59,7 +60,7 @@ source_morph = SourceMorph(inverse_operator['src'],
                            subject_from='sample',
                            subject_to='fsaverage',
                            subjects_dir=subjects_dir,
-                           grid_spacing=(5., 5., 5.))
+                           spacing=5)
 
 # Obtain absolute value for plotting
 # To not copy the data into a new memory location, out=stc.data is set

@@ -1343,7 +1343,7 @@ def _key_pressed_slider(event, params):
 
 def _smooth_plot(this_time, params):
     """Smooth source estimate data and plot with mpl."""
-    from ..source_estimate import _morph_buffer
+    from ..morph import _morph_buffer
     from mpl_toolkits.mplot3d import art3d
     ax = params['ax']
     stc = params['stc']
@@ -1403,7 +1403,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     from matplotlib.widgets import Slider
     import nibabel as nib
     from scipy import sparse, stats
-    from ..source_estimate import _get_subject_sphere_tris
+    from ..morph import _get_subject_sphere_tris
     if hemi not in ['lh', 'rh']:
         raise ValueError("hemi must be 'lh' or 'rh' when using matplotlib. "
                          "Got %s." % hemi)
