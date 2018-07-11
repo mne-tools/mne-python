@@ -7,8 +7,6 @@
 
 import copy
 import os.path as op
-from math import ceil
-import warnings
 
 import numpy as np
 from scipy import linalg, sparse
@@ -18,16 +16,13 @@ from .utils import deprecated
 from .filter import resample
 from .fixes import einsum
 from .evoked import _get_peak
-from .parallel import parallel_func
-from .surface import (read_surface, _get_ico_surface, read_morph_map,
-                      _compute_nearest, mesh_edges)
+from .surface import (read_surface, _get_ico_surface, mesh_edges)
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_, copy_function_doc_to_method_doc)
 from .viz import plot_source_estimates, plot_vector_source_estimates
 from .io.base import ToDataFrameMixin, TimeMixin
-
 from .externals.six import string_types
 from .externals.six.moves import zip
 from .externals.h5io import read_hdf5, write_hdf5
@@ -190,7 +185,7 @@ def _write_w(filename, vertices, data):
     data: 1D array
         The data array (nvert).
     """
-    assert(len(vertices) == len(data))
+    assert (len(vertices) == len(data))
 
     fid = open(filename, 'wb')
 
@@ -366,7 +361,7 @@ def _get_src_type(src, vertices):
         warn_("src should not be None for have a robust guess of stc type.")
         if isinstance(vertices, list) and len(vertices) == 2:
             src_type = 'surface'
-        elif isinstance(vertices, np.ndarray) or isinstance(vertices, list)\
+        elif isinstance(vertices, np.ndarray) or isinstance(vertices, list) \
                 and len(vertices) == 1:
             src_type = 'volume'
         elif isinstance(vertices, list) and len(vertices) > 2:
@@ -1313,10 +1308,9 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         subjects_dir : str | None
             Path to SUBJECTS_DIR if it is not set in the environment.
         buffer_size : int
-            Morph data in chunks of `buffer_size` time instants.
-            Saves memory when morphing long time intervals.
+            Deprecated. Will be ignored.
         n_jobs : int
-            Number of jobs to run in parallel.
+            Deprecated. Will be ignored.
         subject_from : str
             Name of the original subject as named in the SUBJECTS_DIR.
             If None, self.subject will be used.
@@ -1338,10 +1332,12 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         if sparse:
             if grade is not None:
                 raise RuntimeError('grade must be set to None if sparse=True.')
+            from mne.morph import _morph_sparse
             return _morph_sparse(self, subject_from, subject_to, subjects_dir)
         else:
             return morph_data(subject_from, subject_to, self, grade, smooth,
                               subjects_dir, buffer_size, n_jobs, verbose)
+
 
     def morph_precomputed(self, subject_to, vertices_to, morph_mat,
                           subject_from=None):
@@ -1354,7 +1350,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         vertices_to : list of array of int
             The vertices on the destination subject's brain.
         morph_mat : sparse matrix
-            The morphing matrix, usually from compute_morph_matrix.
+            The morphing matrix, usually from mne.compute_morph_matrix.
         subject_from : str | None
             Name of the original subject as named in the SUBJECTS_DIR.
             If None, self.subject will be used.
@@ -1661,7 +1657,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
                      np.arange(len(self.vertices[1])) + len(self.vertices[0])]
         if hemi is None:
             hemi = np.where(np.array([np.sum(values[vi])
-                            for vi in vert_inds]))[0]
+                                      for vi in vert_inds]))[0]
             if not len(hemi) == 1:
                 raise ValueError('Could not infer hemisphere')
             hemi = hemi[0]
@@ -1798,8 +1794,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
             If 'mri' the volume is defined in the coordinate system of
             the original T1 image. If 'surf' the coordinate system
             of the FreeSurfer surface is used (Surface RAS).
-        mri_resolution: bool
-            It True the image is saved in MRI resolution.
+        mri_resolution: bool | tuple
+            Whether to use MRI resolution. If False the morph's resolution
+            will be used. If tuple the voxel size must be given in float values
+            in mm. E.g. mri_resolution=(3., 3., 3.)
             WARNING: if you have many time points the file produced can be
             huge.
 
@@ -1826,8 +1824,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
             If 'mri' the volume is defined in the coordinate system of
             the original T1 image. If 'surf' the coordinate system
             of the FreeSurfer surface is used (Surface RAS).
-        mri_resolution: bool
-            It True the image is saved in MRI resolution.
+        mri_resolution: bool | tuple
+            Whether to use MRI resolution. If False the morph's resolution
+            will be used. If tuple the voxel size must be given in float values
+            in mm. E.g. mri_resolution=(3., 3., 3.)
             WARNING: if you have many time points the file produced can be
             huge.
 
@@ -2206,212 +2206,15 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                    overwrite=True)
         logger.info('[done]')
 
+
 ###############################################################################
 # Morphing
-
-
 @verbose
-def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
-                  warn=True, verbose=None):
-    """Morph data from one subject's source space to another.
-
-    Parameters
-    ----------
-    data : array, or csr sparse matrix
-        A n_vertices [x 3] x n_times (or other dimension) dataset to morph.
-    idx_use : array of int
-        Vertices from the original subject's data.
-    e : sparse matrix
-        The mesh edges of the "from" subject.
-    smooth : int
-        Number of smoothing iterations to perform. A hard limit of 100 is
-        also imposed.
-    n_vertices : int
-        Number of vertices.
-    nearest : array of int
-        Vertices on the destination surface to use.
-    maps : sparse matrix
-        Morph map from one subject to the other.
-    warn : bool
-        If True, warn if not all vertices were used.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-
-    Returns
-    -------
-    data_morphed : array, or csr sparse matrix
-        The morphed data (same type as input).
-    """
-    # When operating on vector data, morph each dimension separately
-    if data.ndim == 3:
-        data_morphed = np.zeros((len(nearest), 3, data.shape[2]),
-                                dtype=data.dtype)
-        for dim in range(3):
-            data_morphed[:, dim, :] = _morph_buffer(
-                data=data[:, dim, :], idx_use=idx_use, e=e, smooth=smooth,
-                n_vertices=n_vertices, nearest=nearest, maps=maps, warn=warn,
-                verbose=verbose
-            )
-        return data_morphed
-
-    n_iter = 99  # max nb of smoothing iterations (minus one)
-    if smooth is not None:
-        if smooth <= 0:
-            raise ValueError('The number of smoothing operations ("smooth") '
-                             'has to be at least 1.')
-        smooth -= 1
-    # make sure we're in CSR format
-    e = e.tocsr()
-    if sparse.issparse(data):
-        use_sparse = True
-        if not isinstance(data, sparse.csr_matrix):
-            data = data.tocsr()
-    else:
-        use_sparse = False
-
-    done = False
-    # do the smoothing
-    for k in range(n_iter + 1):
-        # get the row sum
-        mult = np.zeros(e.shape[1])
-        mult[idx_use] = 1
-        idx_use_data = idx_use
-        data_sum = e * mult
-
-        # new indices are non-zero sums
-        idx_use = np.where(data_sum)[0]
-
-        # typically want to make the next iteration have these indices
-        idx_out = idx_use
-
-        # figure out if this is the last iteration
-        if smooth is None:
-            if k == n_iter or len(idx_use) >= n_vertices:
-                # stop when vertices filled
-                idx_out = None
-                done = True
-        elif k == smooth:
-            idx_out = None
-            done = True
-
-        # do standard smoothing multiplication
-        data = _morph_mult(data, e, use_sparse, idx_use_data, idx_out)
-
-        if done is True:
-            break
-
-        # do standard normalization
-        if use_sparse:
-            data.data /= data_sum[idx_use].repeat(np.diff(data.indptr))
-        else:
-            data /= data_sum[idx_use][:, None]
-
-    # do special normalization for last iteration
-    if use_sparse:
-        data_sum[data_sum == 0] = 1
-        data.data /= data_sum.repeat(np.diff(data.indptr))
-    else:
-        data[idx_use, :] /= data_sum[idx_use][:, None]
-    if len(idx_use) != len(data_sum) and warn:
-        warn_('%s/%s vertices not included in smoothing, consider increasing '
-              'the number of steps'
-              % (len(data_sum) - len(idx_use), len(data_sum)))
-
-    logger.info('    %d smooth iterations done.' % (k + 1))
-
-    data_morphed = maps[nearest, :] * data
-    return data_morphed
-
-
-def _morph_mult(data, e, use_sparse, idx_use_data, idx_use_out=None):
-    """Help morphing.
-
-    Equivalent to "data = (e[:, idx_use_data] * data)[idx_use_out]"
-    but faster.
-    """
-    if len(idx_use_data) < e.shape[1]:
-        if use_sparse:
-            data = e[:, idx_use_data] * data
-        else:
-            # constructing a new sparse matrix is faster than sub-indexing
-            # e[:, idx_use_data]!
-            col, row = np.meshgrid(np.arange(data.shape[1]), idx_use_data)
-            d_sparse = sparse.csr_matrix((data.ravel(),
-                                          (row.ravel(), col.ravel())),
-                                         shape=(e.shape[1], data.shape[1]))
-            data = e * d_sparse
-            data = np.asarray(data.todense())
-    else:
-        data = e * data
-
-    # trim data
-    if idx_use_out is not None:
-        data = data[idx_use_out]
-    return data
-
-
-def _get_subject_sphere_tris(subject, subjects_dir):
-    spheres = [op.join(subjects_dir, subject, 'surf',
-                       xh + '.sphere.reg') for xh in ['lh', 'rh']]
-    tris = [read_surface(s)[1] for s in spheres]
-    return tris
-
-
-def _sparse_argmax_nnz_row(csr_mat):
-    """Return index of the maximum non-zero index in each row."""
-    n_rows = csr_mat.shape[0]
-    idx = np.empty(n_rows, dtype=np.int)
-    for k in range(n_rows):
-        row = csr_mat[k].tocoo()
-        idx[k] = row.col[np.argmax(row.data)]
-    return idx
-
-
-def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
-    """Morph sparse source estimates to an other subject.
-
-    Parameters
-    ----------
-    stc : SourceEstimate | VectorSourceEstimate
-        The sparse STC.
-    subject_from : str
-        The subject on which stc is defined.
-    subject_to : str
-        The target subject.
-    subjects_dir : str
-        Path to SUBJECTS_DIR if it is not set in the environment.
-
-    Returns
-    -------
-    stc_morph : SourceEstimate | VectorSourceEstimate
-        The morphed source estimates.
-    """
-    maps = read_morph_map(subject_to, subject_from, subjects_dir)
-    stc_morph = stc.copy()
-    stc_morph.subject = subject_to
-
-    cnt = 0
-    for k, hemi in enumerate(['lh', 'rh']):
-        if stc.vertices[k].size > 0:
-            map_hemi = maps[k]
-            vertno_k = _sparse_argmax_nnz_row(map_hemi[stc.vertices[k]])
-            order = np.argsort(vertno_k)
-            n_active_hemi = len(vertno_k)
-            data_hemi = stc_morph.data[cnt:cnt + n_active_hemi]
-            stc_morph.data[cnt:cnt + n_active_hemi] = data_hemi[order]
-            stc_morph.vertices[k] = vertno_k[order]
-            cnt += n_active_hemi
-        else:
-            stc_morph.vertices[k] = np.array([], int)
-
-    return stc_morph
-
-
-@verbose
+@deprecated("This function is deprecated and might be removed in a future "
+            "release. Use morph = SourceMorph(src_from) and "
+            "stc_to = morph(stc_from)")
 def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
-               subjects_dir=None, buffer_size=64, n_jobs=1, warn=True,
-               verbose=None):
+               subjects_dir=None, buffer_size=64, n_jobs=1, warn=True, verbose=None):
     """Morph a source estimate from one subject to another.
 
     Parameters
@@ -2439,10 +2242,9 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     subjects_dir : str | None
         Path to SUBJECTS_DIR if it is not set in the environment.
     buffer_size : int
-        Morph data in chunks of `buffer_size` time instants.
-        Saves memory when morphing long time intervals.
+        Deprecated. Will be ignored.
     n_jobs : int
-        Number of jobs to run in parallel
+        Deprecated. Will be ignored.
     warn : bool
         If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
@@ -2454,238 +2256,32 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     stc_to : SourceEstimate | VectorSourceEstimate
         Source estimate for the destination subject.
     """
+    from mne.morph import SourceMorph, _compute_morph_data
     if not isinstance(stc_from, _BaseSurfaceSourceEstimate):
         raise ValueError('Morphing is only possible with surface or vector '
                          'source estimates')
+    source_morph = SourceMorph(None, subject_from=subject_from,
+                               subject_to=subject_to, spacing=grade,
+                               smooth=smooth, subjects_dir=subjects_dir,
+                               warn=warn, verbose=verbose)
+    source_morph.kind = 'surface'
 
-    logger.info('Morphing data...')
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    nearest = grade_to_vertices(subject_to, grade, subjects_dir, n_jobs)
-    tris = _get_subject_sphere_tris(subject_from, subjects_dir)
-    maps = read_morph_map(subject_from, subject_to, subjects_dir)
+    # SourceSpace info
+    hemis = [0, 1]
+    for hemi in hemis:
+        source_morph.morph_data.update({str(hemi): stc_from.vertices[hemi]})
+    source_morph.morph_data.update({'hemis':hemis})
+    source_morph.morph_data.update(_compute_morph_data(source_morph,
+                                                       verbose=verbose))
 
-    # morph the data
-    data = [stc_from.lh_data, stc_from.rh_data]
-    data_morphed = [None, None]
-
-    n_chunks = ceil(stc_from.data.shape[1] / float(buffer_size))
-
-    parallel, my_morph_buffer, _ = parallel_func(_morph_buffer, n_jobs)
-
-    for hemi in [0, 1]:
-        e = mesh_edges(tris[hemi])
-        e.data[e.data == 2] = 1
-        n_vertices = e.shape[0]
-        e = e + sparse.eye(n_vertices, n_vertices)
-        idx_use = stc_from.vertices[hemi]
-        if len(idx_use) == 0:
-            continue
-        data_morphed[hemi] = np.concatenate(
-            parallel(my_morph_buffer(data_buffer, idx_use, e, smooth,
-                                     n_vertices, nearest[hemi], maps[hemi],
-                                     warn=warn)
-                     for data_buffer
-                     in np.array_split(data[hemi], n_chunks, axis=1)), axis=1)
-
-    vertices = [nearest[0], nearest[1]]
-    if data_morphed[0] is None:
-        if data_morphed[1] is None:
-            data = np.r_[[], []]
-            vertices = [np.array([], int), np.array([], int)]
-        else:
-            data = data_morphed[1]
-            vertices = [np.array([], int), vertices[1]]
-    elif data_morphed[1] is None:
-        data = data_morphed[0]
-        vertices = [vertices[0], np.array([], int)]
-    else:
-        data = np.r_[data_morphed[0], data_morphed[1]]
-
-    if isinstance(stc_from, VectorSourceEstimate):
-        stc_to = VectorSourceEstimate(data, vertices, stc_from.tmin,
-                                      stc_from.tstep, subject=subject_to,
-                                      verbose=stc_from.verbose)
-    else:
-        stc_to = SourceEstimate(data, vertices, stc_from.tmin, stc_from.tstep,
-                                subject=subject_to, verbose=stc_from.verbose)
-    logger.info('[done]')
+    stc_to = source_morph(stc_from)
 
     return stc_to
 
 
-@verbose
-def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
-                         smooth=None, subjects_dir=None, warn=True,
-                         xhemi=False, verbose=None):
-    """Get a matrix that morphs data from one subject to another.
-
-    Parameters
-    ----------
-    subject_from : str
-        Name of the original subject as named in the SUBJECTS_DIR.
-    subject_to : str
-        Name of the subject on which to morph as named in the SUBJECTS_DIR.
-    vertices_from : list of arrays of int
-        Vertices for each hemisphere (LH, RH) for subject_from.
-    vertices_to : list of arrays of int
-        Vertices for each hemisphere (LH, RH) for subject_to.
-    smooth : int or None
-        Number of iterations for the smoothing of the surface data.
-        If None, smooth is automatically defined to fill the surface
-        with non-zero values.
-    subjects_dir : str
-        Path to SUBJECTS_DIR is not set in the environment.
-    warn : bool
-        If True, warn if not all vertices were used.
-    xhemi : bool
-        Morph across hemisphere. Currently only implemented for
-        ``subject_to == subject_from``. See notes below.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-
-    Returns
-    -------
-    morph_matrix : sparse matrix
-        matrix that morphs data from ``subject_from`` to ``subject_to``.
-
-    Notes
-    -----
-    This function can be used to morph data between hemispheres by setting
-    ``xhemi=True``. The full cross-hemisphere morph matrix maps left to right
-    and right to left. A matrix for cross-mapping only one hemisphere can be
-    constructed by specifying the appropriate vertices, for example, to map the
-    right hemisphere to the left:
-    ``vertices_from=[[], vert_rh], vertices_to=[vert_lh, []]``.
-
-    Cross-hemisphere mapping requires appropriate ``sphere.left_right``
-    morph-maps in the subject's directory. These morph maps are included
-    with the ``fsaverage_sym`` FreeSurfer subject, and can be created for other
-    subjects with the ``mris_left_right_register`` FreeSurfer command. The
-    ``fsaverage_sym`` subject is included with FreeSurfer > 5.1 and can be
-    obtained as described `here
-    <http://surfer.nmr.mgh.harvard.edu/fswiki/Xhemi>`_. For statistical
-    comparisons between hemispheres, use of the symmetric ``fsaverage_sym``
-    model is recommended to minimize bias [1]_.
-
-    References
-    ----------
-    .. [1] Greve D. N., Van der Haegen L., Cai Q., Stufflebeam S., Sabuncu M.
-           R., Fischl B., Brysbaert M.
-           A Surface-based Analysis of Language Lateralization and Cortical
-           Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
-    """
-    logger.info('Computing morph matrix...')
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-
-    tris = _get_subject_sphere_tris(subject_from, subjects_dir)
-    maps = read_morph_map(subject_from, subject_to, subjects_dir, xhemi)
-
-    if xhemi:
-        hemi_indexes = [(0, 1), (1, 0)]
-    else:
-        hemi_indexes = [(0, 0), (1, 1)]
-
-    morpher = []
-    for hemi_from, hemi_to in hemi_indexes:
-        idx_use = vertices_from[hemi_from]
-        if len(idx_use) == 0:
-            continue
-        e = mesh_edges(tris[hemi_from])
-        e.data[e.data == 2] = 1
-        n_vertices = e.shape[0]
-        e = e + sparse.eye(n_vertices, n_vertices)
-        m = sparse.eye(len(idx_use), len(idx_use), format='csr')
-        mm = _morph_buffer(m, idx_use, e, smooth, n_vertices,
-                           vertices_to[hemi_to], maps[hemi_from], warn=warn)
-        morpher.append(mm)
-
-    if len(morpher) == 0:
-        raise ValueError("Empty morph-matrix")
-    elif len(morpher) == 1:
-        morpher = morpher[0]
-    else:
-        morpher = sparse_block_diag(morpher, format='csr')
-    logger.info('[done]')
-    return morpher
-
-
-@verbose
-def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
-                      verbose=None):
-    """Convert a grade to source space vertices for a given subject.
-
-    Parameters
-    ----------
-    subject : str
-        Name of the subject
-    grade : int | list
-        Resolution of the icosahedral mesh (typically 5). If None, all
-        vertices will be used (potentially filling the surface). If a list,
-        then values will be morphed to the set of vertices specified in
-        in grade[0] and grade[1]. Note that specifying the vertices (e.g.,
-        grade=[np.arange(10242), np.arange(10242)] for fsaverage on a
-        standard grade 5 source space) can be substantially faster than
-        computing vertex locations. Note that if subject='fsaverage'
-        and 'grade=5', this set of vertices will automatically be used
-        (instead of computed) for speed, since this is a common morph.
-    subjects_dir : str | None
-        Path to SUBJECTS_DIR if it is not set in the environment
-    n_jobs : int
-        Number of jobs to run in parallel
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-
-    Returns
-    -------
-    vertices : list of arrays of int
-        Vertex numbers for LH and RH
-    """
-    # add special case for fsaverage for speed
-    if subject == 'fsaverage' and grade == 5:
-        return [np.arange(10242), np.arange(10242)]
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-
-    spheres_to = [op.join(subjects_dir, subject, 'surf',
-                          xh + '.sphere.reg') for xh in ['lh', 'rh']]
-    lhs, rhs = [read_surface(s)[0] for s in spheres_to]
-
-    if grade is not None:  # fill a subset of vertices
-        if isinstance(grade, list):
-            if not len(grade) == 2:
-                raise ValueError('grade as a list must have two elements '
-                                 '(arrays of output vertices)')
-            vertices = grade
-        else:
-            # find which vertices to use in "to mesh"
-            ico = _get_ico_tris(grade, return_surf=True)
-            lhs /= np.sqrt(np.sum(lhs ** 2, axis=1))[:, None]
-            rhs /= np.sqrt(np.sum(rhs ** 2, axis=1))[:, None]
-
-            # Compute nearest vertices in high dim mesh
-            parallel, my_compute_nearest, _ = \
-                parallel_func(_compute_nearest, n_jobs)
-            lhs, rhs, rr = [a.astype(np.float32)
-                            for a in [lhs, rhs, ico['rr']]]
-            vertices = parallel(my_compute_nearest(xhs, rr)
-                                for xhs in [lhs, rhs])
-            # Make sure the vertices are ordered
-            vertices = [np.sort(verts) for verts in vertices]
-            for verts in vertices:
-                if (np.diff(verts) == 0).any():
-                    raise ValueError(
-                        'Cannot use icosahedral grade %s with subject %s, '
-                        'mapping %s vertices onto the high-resolution mesh '
-                        'yields repeated vertices, use a lower grade or a '
-                        'list of vertices from an existing source space'
-                        % (grade, subject, len(verts)))
-    else:  # potentially fill the surface
-        vertices = [np.arange(lhs.shape[0]), np.arange(rhs.shape[0])]
-
-    return vertices
-
-
+@deprecated("This function is deprecated and might be removed in a future "
+            "release. Use morph = SourceMorph(src_from) and "
+            "stc_to = morph(stc_from)")
 def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
                            morph_mat):
     """Morph source estimate between subjects using a precomputed matrix.
@@ -2701,13 +2297,14 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     vertices_to : list of array of int
         The vertices on the destination subject's brain.
     morph_mat : sparse matrix
-        The morphing matrix, typically from compute_morph_matrix.
+        The morphing matrix, typically from mne.compute_morph_matrix.
 
     Returns
     -------
     stc_to : SourceEstimate | VectorSourceEstimate
         Source estimate for the destination subject.
     """
+    from mne.morph import SourceMorph, _apply_morph_data
     if not sparse.issparse(morph_mat):
         raise ValueError('morph_mat must be a sparse matrix')
 
@@ -2725,20 +2322,14 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     if stc_from.subject is not None and stc_from.subject != subject_from:
         raise ValueError('stc_from.subject and subject_from must match')
 
-    if isinstance(stc_from, VectorSourceEstimate):
-        # Morph the locations of the dipoles, but not their orientation
-        n_verts, _, n_samples = stc_from.data.shape
-        data = morph_mat * stc_from.data.reshape(n_verts, 3 * n_samples)
-        data = data.reshape(morph_mat.shape[0], 3, n_samples)
-        stc_to = VectorSourceEstimate(data, vertices=vertices_to,
-                                      tmin=stc_from.tmin, tstep=stc_from.tstep,
-                                      verbose=stc_from.verbose,
-                                      subject=subject_to)
-    else:
-        data = morph_mat * stc_from.data
-        stc_to = SourceEstimate(data, vertices=vertices_to, tmin=stc_from.tmin,
-                                tstep=stc_from.tstep, verbose=stc_from.verbose,
-                                subject=subject_to)
+    source_morph = SourceMorph(None, subject_from=subject_from,
+                               subject_to=subject_to)
+    source_morph.kind = 'surface'
+    source_morph.morph_data['vertno'] = vertices_to
+    source_morph.morph_data['morph_mat'] = morph_mat
+
+    stc_to = _apply_morph_data(source_morph, stc_from)
+
     return stc_to
 
 
@@ -2928,7 +2519,7 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
         raise RuntimeError('src must have distances included, consider using\n'
                            'mne_add_patch_info with --dist argument')
     edges = sparse_block_diag([s['dist'][s['vertno'], :][:, s['vertno']]
-                              for s in src])
+                               for s in src])
     edges.data[:] = np.less_equal(edges.data, dist)
     # clean it up and put it in coo format
     edges = edges.tocsr()
@@ -3061,7 +2652,7 @@ def _get_connectivity_from_edges(edges, n_times, verbose=None):
     data = np.ones(edges.data.size * n_times + 2 * n_vertices * (n_times - 1),
                    dtype=np.int)
     connectivity = coo_matrix((data, (row, col)),
-                              shape=(n_times * n_vertices, ) * 2)
+                              shape=(n_times * n_vertices,) * 2)
     return connectivity
 
 
@@ -3093,8 +2684,10 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
         If 'mri' the volume is defined in the coordinate system of
         the original T1 image. If 'surf' the coordinate system
         of the FreeSurfer surface is used (Surface RAS).
-    mri_resolution: bool
-        It True the image is saved in MRI resolution.
+    mri_resolution: bool | tuple
+        Whether to use MRI resolution. If False the morph's resolution
+        will be used. If tuple the voxel size must be given in float values
+        in mm. E.g. mri_resolution=(3., 3., 3.)
         WARNING: if you have many time points the file produced can be
         huge.
 
@@ -3103,8 +2696,8 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     img : instance Nifti1Image
         The image object.
     """
-    return _save_stc_as_volume(fname, stc, src, dest='mri',
-                               mri_resolution=False)
+    return _save_stc_as_volume(fname, stc, src, dest=dest,
+                               mri_resolution=mri_resolution)
 
 
 def _save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
@@ -3123,8 +2716,10 @@ def _save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
         If 'mri' the volume is defined in the coordinate system of
         the original T1 image. If 'surf' the coordinate system
         of the FreeSurfer surface is used (Surface RAS).
-    mri_resolution: bool
-        It True the image is saved in MRI resolution.
+    mri_resolution: bool | tuple
+        Whether to use MRI resolution. If False the morph's resolution
+        will be used. If tuple the voxel size must be given in float values
+        in mm. E.g. mri_resolution=(3., 3., 3.)
         WARNING: if you have many time points the file produced can be
         huge.
 
@@ -3133,6 +2728,7 @@ def _save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     img : instance Nifti1Image
         The image object.
     """
+    from mne.morph import SourceMorph
     if not isinstance(stc, VolSourceEstimate):
         raise ValueError('Only volume source estimates can be saved as '
                          'volumes')
@@ -3142,60 +2738,10 @@ def _save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
         raise ValueError('You need a volume source space. Got type: %s.'
                          % src_type)
 
-    n_times = stc.data.shape[1]
-    shape = src[0]['shape']
-    shape3d = (shape[2], shape[1], shape[0])
-    shape = (n_times, shape[2], shape[1], shape[0])
-    vol = np.zeros(shape)
-
-    if mri_resolution:
-        mri_shape3d = (src[0]['mri_height'], src[0]['mri_depth'],
-                       src[0]['mri_width'])
-        mri_shape = (n_times, src[0]['mri_height'], src[0]['mri_depth'],
-                     src[0]['mri_width'])
-        mri_vol = np.zeros(mri_shape)
-        interpolator = src[0]['interpolator']
-
-    n_vertices_seen = 0
-    for this_src in src:
-        assert tuple(this_src['shape']) == tuple(src[0]['shape'])
-        mask3d = this_src['inuse'].reshape(shape3d).astype(np.bool)
-        n_vertices = np.sum(mask3d)
-
-        for k, v in enumerate(vol):  # loop over time instants
-            stc_slice = slice(n_vertices_seen, n_vertices_seen + n_vertices)
-            v[mask3d] = stc.data[stc_slice, k]
-
-        n_vertices_seen += n_vertices
-
-    if mri_resolution:
-        for k, v in enumerate(vol):
-            mri_vol[k] = (interpolator * v.ravel()).reshape(mri_shape3d)
-        vol = mri_vol
-
-    vol = vol.T
-
-    if mri_resolution:
-        affine = src[0]['vox_mri_t']['trans'].copy()
-    else:
-        affine = src[0]['src_mri_t']['trans'].copy()
-    if dest == 'mri':
-        affine = np.dot(src[0]['mri_ras_t']['trans'], affine)
-    affine[:3] *= 1e3
-
-    try:
-        import nibabel as nib  # lazy import to avoid dependency
-    except ImportError:
-        raise ImportError("nibabel is required to save volume images.")
-
-    header = nib.nifti1.Nifti1Header()
-    header.set_xyzt_units('mm', 'msec')
-    header['pixdim'][4] = 1e3 * stc.tstep
-    with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
-        img = nib.Nifti1Image(vol, affine, header=header)
-        if fname is not None:
-            nib.save(img, fname)
-    return img
+    morph = SourceMorph(src, subject_from=stc.subject, subject_to=None)
+    is_mri = True if dest == 'mri' else False
+    return morph.as_volume(stc, fname=fname, mri_resolution=mri_resolution,
+                           mri_space=is_mri)
 
 
 def _get_label_flip(labels, label_vertidx, src):
