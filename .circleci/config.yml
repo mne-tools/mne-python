@@ -1,8 +1,11 @@
+# Tagging a commit with [circle front] will build the front page and perform test-doc.
+# Tagging a commit with [circle full] will build everything.
 version: 2
 jobs:
     build:
       docker:
-        - image: circleci/python:3.6-stretch
+        # 3.6-jessie is too new for conda
+        - image: circleci/python:3.6-jessie
       steps:
         # Get our data and merge with upstream
         - checkout
@@ -19,27 +22,44 @@ jobs:
         - restore_cache:
             keys:
               - data-cache
+              - pip-cache
 
-        # Get latest Anaconda running
+        # Spin up Xvfb
+        - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+        - run: echo "export DISPLAY=:99" >> $BASH_ENV;
         # Fix libgcc_s.so.1 pthread_cancel bug:
         # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
-        - run: sudo apt-get install libgl1-mesa-glx libegl1-mesa libxrandr2 libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6
-        - run: echo "export DISPLAY=:99" >> $BASH_ENV
-        - run: echo "export PATH=~/miniconda/envs/mne/bin:~/miniconda/bin:$PATH" >> $BASH_ENV
-        - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+        # https://github.com/golemfactory/golem/issues/1019
+        - run: sudo apt-get install libgl1-mesa-glx libegl1-mesa libxrandr2 libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6 qt5-default
+        # Get latest Anaconda running
         - run:
             command: |
               wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O ~/miniconda.sh;
               chmod +x ~/miniconda.sh;
               ~/miniconda.sh -b -p ~/miniconda;
+              echo "export PATH=~/miniconda/bin:$PATH" >> $BASH_ENV;
         - run:
             command: |
               conda update --yes --quiet conda;
               conda env create --quiet -f environment.yml;
+              source activate mne;
               pip uninstall --yes mne;
+              echo "source activate mne" >> $BASH_ENV;
+        - save_cache:
+            key: pip-cache
+            paths:
+              - ~/.cache/pip
+        # The conda-provided PyQt5 does not work on CircleCI for some reason,
+        # possibly because the libGL expects a sufficiently modern libgcc
+        # and conda rolls their own (libgcc-ng package).
+        - run: conda remove --yes qt pyqt matplotlib sip libxcb icu vtk
+        - run: pip uninstall --yes mayavi vtk
+        - run: pip install vtk mayavi PyQt5 PyQt5-sip sip matplotlib
+        - run: echo "export LD_PRELOAD=~/miniconda/envs/mne/lib/libgobject-2.0.so.0.5600.1" >> $BASH_ENV
         # Look at what we have and fail early if there is some library conflict
+        - run: which python
         - run: python -c "import mne; mne.sys_info()"
-        - run: python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
+        - run: LIBGL_DEBUG=verbose python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
         - run: python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
         - run: python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
@@ -51,6 +71,7 @@ jobs:
         - run: mkdir -p ~/mne_data
         - run:
             command: |
+              touch pattern.txt;
               if [ "$CIRCLE_BRANCH" == "master" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]]; then
                 echo html_dev > build.txt;
               elif [ "$CIRCLE_BRANCH" == "maint/0.16" ]; then
@@ -58,7 +79,8 @@ jobs:
               else
                 FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH upstream/master));
                 if [[ $(cat gitlog.txt) == *"[circle front]"* ]]; then
-                  FNAMES="plot_mne_dspm_source_localization.py plot_receptive_field.py plot_mne_inverse_label_connectivity.py plot_sensors_decoding.py plot_stats_cluster_spatio_temporal.py plot_visualize_evoked.py "${FNAMES};
+                  FNAMES="tutorials/plot_mne_dspm_source_localization.py tutorials/plot_receptive_field.py examples/connectivity/plot_mne_inverse_label_connectivity.py tutorials/plot_sensors_decoding.py tutorials/plot_stats_cluster_spatio_temporal.py tutorials/plot_visualize_evoked.py "${FNAMES};
+                  python -c "import mne; print(mne.datasets.testing.data_path(update_path=True))";
                 fi;
                 echo FNAMES="$FNAMES";
                 for FNAME in $FNAMES; do
@@ -124,7 +146,6 @@ jobs:
                   fi;
                 done;
                 echo PATTERN="$PATTERN";
-                echo NEED_SAMPLE="$NEED_SAMPLE";
                 if [[ $PATTERN ]]; then
                   PATTERN="\(${PATTERN::-2}\)";
                   echo html_dev-pattern > build.txt;
@@ -133,7 +154,8 @@ jobs:
                 fi;
               fi;
               echo "$PATTERN" > pattern.txt;
-        - run: echo BUILD="$(cat build.txt)"
+        - run: echo "PATTERN=$(cat pattern.txt)"
+        - run: echo "BUILD=$(cat build.txt)"
         - run: ls -al ~/mne_data;
         - run:
             command: |
@@ -141,19 +163,17 @@ jobs:
                 SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects python -c "import mne; mne.datasets._download_all_example_data()";
               fi;
         - run: if [ ! -d ~/mne-tools.github.io ]; then git clone https://github.com/mne-tools/mne-tools.github.io.git ~/mne-tools.github.io --depth=1; fi;
+        # Run doctest (if it's full or front) before building the docs
         - run:
             command: |
-              if [[ $(cat build.txt) == "html_dev-noplot" ]]; then
-                cd doc;
-                make html_dev-noplot;
-              elif [[ $(cat build.txt) == "html_dev-pattern" ]]; then
-                cd doc;
-                PATTERN=$(cat ../pattern.txt) make html_dev-pattern;
-              else
+              if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
                 make test-doc;
-                cd doc;
-                make $(cat ../build.txt);
               fi;
+        # Build docs
+        - run:
+            command: |
+              cd doc;
+              PATTERN=$(cat ../pattern.txt) make $(cat ../build.txt);
         - run: python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
         - store_artifacts:

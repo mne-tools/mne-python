@@ -25,6 +25,8 @@ Changelog
 
 - Add :func:`mne.channels.make_1020_channel_selections` to group 10/20-named EEG channels by location, by `Jona Sassenhagen`_
 
+- Add helmet for Artemis123 for :func:`mne.viz.plot_alignment` by `Eric Larson`_
+
 Bug
 ~~~
 
@@ -59,6 +61,8 @@ Bug
 - Fix error when interpolating MEG channels with compensation using reference channels (like for CTF data) by `Alex Gramfort`_
 
 - Fix bug in :func:`mne.io.ctf.read_raw_ctf` to read bad channels and segments from CTF ds files by `Luke Bloy`_
+
+- Fix problem with :meth:`mne.io.Raw.add_channels` where ``raw.info['bads']`` was replicated by `Eric Larson`_
 
 API
 ~~~
