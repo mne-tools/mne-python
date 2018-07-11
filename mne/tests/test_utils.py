@@ -26,7 +26,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        set_memmap_min_size, _get_stim_channel, _check_fname,
                        create_slices, _time_mask, random_permutation,
                        _get_call_line, compute_corr, sys_info, verbose,
-                       check_fname, requires_ftp, get_config_path,
+                       check_fname, get_config_path,
                        object_size, buggy_mkl_svd, _get_inst_data,
                        copy_doc, copy_function_doc_to_method_doc, ProgressBar)
 
@@ -517,13 +517,6 @@ def _test_fetch(url):
 def test_fetch_file_html():
     """Test file downloading over http."""
     _test_fetch('http://google.com')
-
-
-@requires_ftp
-@requires_good_network
-def test_fetch_file_ftp():
-    """Test file downloading over ftp."""
-    _test_fetch('ftp://speedtest.tele2.net/1KB.zip')
 
 
 def test_sum_squared():

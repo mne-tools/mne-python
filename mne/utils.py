@@ -11,7 +11,6 @@ from collections import Iterable
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 from functools import wraps
-import ftplib
 from functools import partial
 import hashlib
 import inspect
@@ -1059,10 +1058,6 @@ requires_good_network = partial(
     requires_module, name='good network connection',
     call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
          '    raise ImportError')
-requires_ftp = partial(
-    requires_module, name='ftp downloading capability',
-    call='if int(os.environ.get("MNE_SKIP_FTP_TESTS", 0)):\n'
-         '    raise ImportError')
 requires_nitime = partial(requires_module, name='nitime')
 requires_h5py = partial(requires_module, name='h5py')
 requires_numpydoc = partial(requires_module, name='numpydoc')
@@ -1828,45 +1823,6 @@ def _get_terminal_width():
         return shutil.get_terminal_size((80, 20)).columns
 
 
-def _get_ftp(url, temp_file_name, initial_size, file_size, timeout,
-             verbose_bool):
-    """Safely (resume a) download to a file from FTP."""
-    # Adapted from: https://pypi.python.org/pypi/fileDownloader.py
-    # but with changes
-
-    parsed_url = urllib.parse.urlparse(url)
-    file_name = os.path.basename(parsed_url.path)
-    server_path = parsed_url.path.replace(file_name, "")
-    unquoted_server_path = urllib.parse.unquote(server_path)
-
-    data = ftplib.FTP()
-    if parsed_url.port is not None:
-        data.connect(parsed_url.hostname, parsed_url.port, timeout=timeout)
-    else:
-        data.connect(parsed_url.hostname, timeout=timeout)
-    data.login()
-    if len(server_path) > 1:
-        data.cwd(unquoted_server_path)
-    data.sendcmd("TYPE I")
-    data.sendcmd("REST " + str(initial_size))
-    down_cmd = "RETR " + file_name
-    assert file_size == data.size(file_name)
-    progress = ProgressBar(file_size, initial_value=initial_size,
-                           spinner=True, mesg='file_sizes',
-                           verbose_bool=verbose_bool)
-
-    # Callback lambda function that will be passed the downloaded data
-    # chunk and will write it to file and update the progress bar
-    mode = 'ab' if initial_size > 0 else 'wb'
-    with open(temp_file_name, mode) as local_file:
-        def chunk_write(chunk):
-            return _chunk_write(chunk, local_file, progress)
-        data.retrbinary(down_cmd, chunk_write)
-        data.close()
-    sys.stdout.write('\n')
-    sys.stdout.flush()
-
-
 def _get_http(url, temp_file_name, initial_size, file_size, timeout,
               verbose_bool):
     """Safely (resume a) download to a file from http(s)."""
@@ -1997,9 +1953,10 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         else:
             # Need to resume or start over
             scheme = urllib.parse.urlparse(url).scheme
-            fun = _get_http if scheme in ('http', 'https') else _get_ftp
-            fun(url, temp_file_name, initial_size, file_size, timeout,
-                verbose_bool)
+            if scheme not in ('http', 'https'):
+                raise NotImplementedError('Cannot use %s' % (scheme,))
+            _get_http(url, temp_file_name, initial_size, file_size, timeout,
+                      verbose_bool)
 
         # check md5sum
         if hash_ is not None:
