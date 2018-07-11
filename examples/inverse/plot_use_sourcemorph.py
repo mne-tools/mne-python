@@ -34,7 +34,7 @@ sample_dir = sample_dir_raw + '/MEG/sample'
 subjects_dir = sample_dir_raw + '/subjects'
 
 fname_evoked = sample_dir + '/sample_audvis-ave.fif'
-fname_inv = sample_dir + '/sample_audvis_trunc-meg-vol-7-meg-inv.fif'
+fname_inv = sample_dir + '/sample_audvis-meg-vol-7-meg-inv.fif'
 
 fname_t1_fsaverage = subjects_dir + '/fsaverage/mri/brain.mgz'
 
