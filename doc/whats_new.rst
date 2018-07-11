@@ -21,6 +21,8 @@ Changelog
 
 - Add possibility to save :class:`mne.VolSourceEstimate` and :class:`mne.MixedSourceEstimate` to HDF5 format (file extension .h5) with :meth:`mne.VolSourceEstimate.save` and :meth:`mne.MixedSourceEstimate.save` by `Alex Gramfort`_
 
+- Add ability to pass ``axes`` to ``ts_args`` and ``topomap_args`` of :meth:`mne.viz.plot_evoked_joint` by `Jona Sassenhagen`_
+
 - Add ability to pass a precomputed forward solution to :func:`mne.simulation.simulate_raw` by `Eric Larson`_
 
 - Add :func:`mne.channels.make_1020_channel_selections` to group 10/20-named EEG channels by location, by `Jona Sassenhagen`_

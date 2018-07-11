@@ -1294,15 +1294,15 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     ts_args : None | dict
         A dict of `kwargs` that are forwarded to :meth:`mne.Evoked.plot` to
         style the butterfly plot. If they are not in this dict, the following
-        defaults are passed: ``spatial_colors=True``, ``zorder='std'``,
-        ``axes``, ``show``, ``exclude`` are illegal.
+        defaults are passed: ``spatial_colors=True``, ``zorder='std'``.
+        ``show`` and ``exclude`` are illegal.
         If None, no customizable arguments will be passed.
         Defaults to `None`.
     topomap_args : None | dict
         A dict of `kwargs` that are forwarded to
         :meth:`mne.Evoked.plot_topomap` to style the topomaps.
         If it is not in this dict, ``outlines='skirt'``
-        will be passed. `axes`, `show`, `times`, `colorbar` are illegal`
+        will be passed. `show`, `times`, `colorbar` are illegal`
         If None, no customizable arguments will be passed.
         Defaults to `None`.
 
@@ -1328,11 +1328,20 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     if topomap_args is None:
         topomap_args = dict()
 
-    illegal_args = {"axes", "show", 'times', 'exclude'}
+    illegal_args = {"show", 'times', 'exclude'}
     for args in (ts_args, topomap_args):
         if any((x in args for x in illegal_args)):
             raise ValueError("Don't pass any of {} as *_args.".format(
                 ", ".join(list(illegal_args))))
+    if ("axes" in ts_args) or ("axes" in topomap_args):
+        if not ("axes" in ts_args) and ("axes" in topomap_args):
+            raise ValueError("If one of `ts_args` and `topomap_args` contains "
+                             "'axes', the other must, too.")
+        if "axes" in ts_args:
+            _validate_if_list_of_axes([ts_args["axes"]], 1)
+        n_topomaps = (3 if times is None else len(times)) + 1
+        if "axes" in topomap_args:
+            _validate_if_list_of_axes(list(topomap_args["axes"]), n_topomaps)
 
     # channel selection
     # simply create a new evoked object with the desired channel selection
@@ -1342,6 +1351,10 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
+        if "axes" in ts_args or "axes" in topomap_args:
+            raise NotImplementedError(
+                "Currently, passing axes manually (via `ts_args` or "
+                "`topomap_args`) is not supported for multiple channel types.")
         figs = list()
         for this_type in ch_types:  # pick only the corresponding channel type
             ev_ = evoked.copy().pick_channels(
@@ -1363,8 +1376,16 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     _, times_ts = _check_time_unit(ts_args['time_unit'], times_sec)
 
     # prepare axes for topomap
-    fig, ts_ax, map_ax, cbar_ax = _prepare_joint_axes(len(times_sec),
-                                                      figsize=(8.0, 4.2))
+    if ("axes" not in topomap_args) or ("axes" not in ts_args):
+        fig, ts_ax, map_ax, cbar_ax = _prepare_joint_axes(len(times_sec),
+                                                          figsize=(8.0, 4.2))
+    else:
+        ts_ax = ts_args["axes"]
+        del ts_args["axes"]
+        map_ax = topomap_args["axes"][:-1]
+        cbar_ax = topomap_args["axes"][-1]
+        del topomap_args["axes"]
+        fig = cbar_ax.figure
 
     # butterfly/time series plot
     # most of this code is about passing defaults on demand
