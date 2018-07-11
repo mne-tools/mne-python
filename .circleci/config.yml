@@ -4,7 +4,8 @@ version: 2
 jobs:
     build:
       docker:
-        - image: circleci/python:3.6-stretch
+        # 3.6-stretch is too new for conda
+        - image: circleci/python:3.6-jessie
       steps:
         # Get our data and merge with upstream
         - checkout
@@ -26,9 +27,6 @@ jobs:
         # Spin up Xvfb
         - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
         - run: echo "export DISPLAY=:99" >> $BASH_ENV;
-        # Fix libgcc_s.so.1 pthread_cancel bug:
-        # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
-        - run: sudo apt-get install libgl1-mesa-glx libegl1-mesa libxrandr2 libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6
         # Get latest Anaconda running
         - run:
             command: |
@@ -47,14 +45,6 @@ jobs:
             key: pip-cache
             paths:
               - ~/.cache/pip
-        # The conda-provided PyQt5 does not work on CircleCI for some reason,
-        # possibly because the libGL expects a sufficiently modern libgcc
-        # and conda rolls their own (libgcc-ng package).
-        - run: conda remove --yes qt pyqt matplotlib sip libxcb icu vtk sip
-        - run: pip uninstall --yes mayavi vtk
-        - run: pip install vtk
-        - run: pip install mayavi
-        - run: pip install --upgrade PyQt5 PyQt5-sip sip matplotlib
         # Look at what we have and fail early if there is some library conflict
         - run: which python
         - run: python -c "import mne; mne.sys_info()"
