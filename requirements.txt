@@ -3,6 +3,8 @@ scipy
 matplotlib
 mayavi
 pyqt5
+pyqt5-sip
+sip
 scikit-learn
 nibabel
 pandas
