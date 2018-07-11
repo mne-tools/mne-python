@@ -71,16 +71,15 @@ class SourceMorph(object):
     Volume Source Estimate parameters
     ---------------------------------
     niter_affine : tuple of int
-        Number of levels (``len(niter_affine)``) and number per level of
-        iterations to refine the affine registration. Increasing index values
-        for the tuple mean later levels and each int represents the number
-        of iterations in that level. Default is niter_affine=(100, 100, 10)
+        Number of levels (``len(niter_affine)``) and number of
+        iterations per level - for each successive stage of iterative
+        refinement - to perform the affine transform.
+        Default is niter_affine=(100, 100, 10)
     niter_sdr : tuple of int
-        Number of levels (``len(niter_sdr)``) and number per level of
-        iterations to refine the Symmetric Diffeomorphic Registration (sdr).
-        Increasing index values for the tuple mean later levels and
-        each int represents the number of iterations in that level. Default is
-        niter_sdr=(5, 5, 3)
+        Number of levels (``len(niter_sdr)``) and number of
+        iterations per level - for each successive stage of iterative
+        refinement - to perform the Symmetric Diffeomorphic Registration (sdr)
+        transform. Default is niter_sdr=(5, 5, 3)
     spacing : tuple | int | float | None
         Voxel size of volume for each spatial dimension in mm.
         If spacing is None, MRIs won't be resliced. Note that in this case
@@ -103,15 +102,15 @@ class SourceMorph(object):
         vertices to morph to. If morphing a volume source space, subject_to can
         be the path to a MRI volume.
     niter_affine : tuple of int
-        Number of levels (``len(niter_affine)``) and number per level of
-        iterations to perform the affine transform. Increasing index values
-        for the tuple mean later levels and each int represents the number
-        of iterations in that level.
+        Number of levels (``len(niter_affine)``) and number of
+        iterations per level - for each successive stage of iterative
+        refinement - to perform the affine transform.
+        Default is niter_affine=(100, 100, 10)
     niter_sdr : tuple of int
-        Number of levels (``len(niter_sdr)``) and number per level of
-        iterations to perform the sdr transform. Increasing index values
-        for the tuple mean later levels and each int represents the number
-        of iterations in that level.
+        Number of levels (``len(niter_sdr)``) and number of
+        iterations per level - for each successive stage of iterative
+        refinement - to perform the Symmetric Diffeomorphic Registration (sdr)
+        transform. Default is niter_sdr=(5, 5, 3)
     spacing : tuple | int | float | list | None
         If morphing VolSourceEstimate, spacing is a tuple carrying the voxel
         size of volume for each spatial dimension in mm.
@@ -138,7 +137,29 @@ class SourceMorph(object):
 
     Notes
     -----
-    .. versionadded:: X.X.X
+    This function can be used to morph data between hemispheres by setting
+    ``xhemi=True``. The full cross-hemisphere morph matrix maps left to right
+    and right to left. A matrix for cross-mapping only one hemisphere can be
+    constructed by specifying the appropriate vertices, for example, to map the
+    right hemisphere to the left:
+    ``vertices_from=[[], vert_rh], vertices_to=[vert_lh, []]``.
+
+    Cross-hemisphere mapping requires appropriate ``sphere.left_right``
+    morph-maps in the subject's directory. These morph maps are included
+    with the ``fsaverage_sym`` FreeSurfer subject, and can be created for other
+    subjects with the ``mris_left_right_register`` FreeSurfer command. The
+    ``fsaverage_sym`` subject is included with FreeSurfer > 5.1 and can be
+    obtained as described `here
+    <http://surfer.nmr.mgh.harvard.edu/fswiki/Xhemi>`_. For statistical
+    comparisons between hemispheres, use of the symmetric ``fsaverage_sym``
+    model is recommended to minimize bias [1]_.
+
+    References
+    ----------
+    .. [1] Greve D. N., Van der Haegen L., Cai Q., Stufflebeam S., Sabuncu M.
+           R., Fischl B., Brysbaert M.
+           A Surface-based Analysis of Language Lateralization and Cortical
+           Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
 
     See Also
     --------
@@ -310,10 +331,10 @@ def read_source_morph(fname, verbose=None):
     source_morph : instance of SourceMorph
         The loaded morph.
     """
-    try:
+    if op.isfile(fname):
         logger.info('loading morph...')
         morph_data = read_hdf5(fname)
-    except IOError:
+    else:
         raise IOError('cannot read file: %s' % fname)
 
     source_morph = SourceMorph(None)
@@ -471,10 +492,11 @@ def _compute_morph_data(morph, verbose=None):
             mri_path_to = static_path
         else:
             mri_path_to = op.join(static_path, mri_subpath)
-        try:
+
+        if op.isfile(mri_path_to):
             logger.info('loading %s as static volume' % mri_path_to)
             mri_to = nib.load(mri_path_to)
-        except IOError:
+        else:
             raise IOError('cannot read file: %s' % mri_path_to)
 
         # pre-compute non-linear morph
@@ -498,6 +520,7 @@ def _compute_morph_data(morph, verbose=None):
             data_from.append(morph.morph_data[str(h)])
 
         data_to = None
+        # default for fsaverage
         if morph.subject_to == 'fsaverage':
             data_to = [np.arange(10242)] * len(data_from)
 
@@ -625,15 +648,15 @@ def _compute_morph_sdr(mri_from, mri_to,
     mri_to : str | Nifti1Image
         Path to destination subject's anatomical MRI or Nifti1Image
     niter_affine : tuple of int
-        Number of levels (``len(niter_affine)``) and number per level of
-        iterations to perform the affine transform. Increasing index values
-        for the tuple mean later levels and each int represents the number
-        of iterations in that level.
+        Number of levels (``len(niter_affine)``) and number of
+        iterations per level - for each successive stage of iterative
+        refinement - to perform the affine transform.
+        Default is niter_affine=(100, 100, 10)
     niter_sdr : tuple of int
-        Number of levels (``len(niter_sdr)``) and number per level of
-        iterations to perform the sdr transform. Increasing index values
-        for the tuple mean later levels and each int represents the number
-        of iterations in that level.
+        Number of levels (``len(niter_sdr)``) and number of
+        iterations per level - for each successive stage of iterative
+        refinement - to perform the Symmetric Diffeomorphic Registration (sdr)
+        transform. Default is niter_sdr=(5, 5, 3)
     spacing : tuple | int | float | None
         Voxel size of volume for each spatial dimension separately (tuple) or
         isometric (int).
