@@ -109,8 +109,8 @@ def _test_weight_norm(filters):
             assert_allclose(np.trace(w.dot(w.T)), 1)
 
 
-#@pytest.mark.slowtest
-#@testing.requires_testing_data
+@pytest.mark.slowtest
+@testing.requires_testing_data
 def test_make_dics():
     """Test making DICS beamformer filters."""
     # We only test proper handling of parameters here. Testing the results is
