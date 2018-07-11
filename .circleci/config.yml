@@ -52,7 +52,7 @@ jobs:
         # The conda-provided PyQt5 does not work on CircleCI for some reason,
         # possibly because the libGL expects a sufficiently modern libgcc
         # and conda rolls their own (libgcc-ng package).
-        - run: conda remove --yes qt pyqt matplotlib sip libxcb icu vtk sip
+        - run: conda remove --yes qt pyqt matplotlib sip libxcb icu vtk
         - run: pip uninstall --yes mayavi vtk
         - run: pip install vtk mayavi PyQt5 PyQt5-sip sip matplotlib
         - run: echo "export LD_PRELOAD=~/miniconda/envs/mne/lib/libgobject-2.0.so.0.5600.1" >> $BASH_ENV
@@ -153,7 +153,8 @@ jobs:
                 fi;
               fi;
               echo "$PATTERN" > pattern.txt;
-        - run: echo BUILD="$(cat build.txt)"
+        - run: echo "PATTERN=$(cat pattern.txt)"
+        - run: echo "BUILD=$(cat build.txt)"
         - run: ls -al ~/mne_data;
         - run:
             command: |
@@ -168,7 +169,10 @@ jobs:
                 make test-doc;
               fi;
         # Build docs
-        - run: cd doc; PATTERN=$(cat ../pattern.txt) make $(cat ../build.txt);
+        - run:
+            command: |
+              cd doc;
+              PATTERN=$(cat ../pattern.txt) make $(cat ../build.txt);
         - run: python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
         - store_artifacts:
