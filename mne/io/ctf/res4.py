@@ -168,8 +168,8 @@ def _read_res4(dsdir):
             ch_name = _read_string(fid, 32)
             res['ch_names'].append(ch_name)
         _coil_dt = np.dtype([
-            ('pos', '>f8', (3,)), ('d0', '>f8'),
-            ('norm', '>f8', (3,)), ('d1', '>f8'),
+            ('pos', '>f8', 3), ('d0', '>f8'),
+            ('norm', '>f8', 3), ('d1', '>f8'),
             ('turns', '>i2'), ('d2', '>i4'), ('d3', '>i2'),
             ('area', '>f8')])
         _ch_dt = np.dtype([
@@ -182,9 +182,8 @@ def _read_res4(dsdir):
             ('io_offset', '>f8'),
             ('num_coils', '>i2'),
             ('grad_order_no', '>i2'), ('d0', '>i4'),
-            ('coil', _coil_dt, (CTF.CTFV_MAX_COILS,)),
-            ('head_coil', _coil_dt, (CTF.CTFV_MAX_COILS,)),
-            ])
+            ('coil', _coil_dt, CTF.CTFV_MAX_COILS),
+            ('head_coil', _coil_dt, CTF.CTFV_MAX_COILS)])
         chs = np.fromfile(fid, _ch_dt, res['nchan'])
         for coil in (chs['coil'], chs['head_coil']):
             coil['pos'] /= 100.
