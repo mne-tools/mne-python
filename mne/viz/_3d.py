@@ -1820,7 +1820,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
 
                 shape = params['img_idx'].shape
                 loc_idx = np.ravel_multi_index(
-                    cut_coords, shape[:-1])
+                    cut_coords, shape[:-1], order='F')
                 dist_vertices = [abs(v - loc_idx) for v in stc.vertices]
                 nearest_idx = np.argmin(dist_vertices)
                 ax_time.lines[0].set_ydata(stc.data[int(round(nearest_idx))].T)
