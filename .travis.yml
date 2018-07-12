@@ -36,18 +36,22 @@ matrix:
                SPLIT=1
 
         # PIP + non-default stim channel
+        # To avoid slowdowns: https://github.com/xianyi/OpenBLAS/issues/731
         - os: linux
           env: MNE_STIM_CHANNEL=STI101
+               OPENBLAS_NUM_THREADS=1
                SPLIT=3
           language: python
           python: "3.6"
         - os: linux
           env: MNE_STIM_CHANNEL=STI101
+               OPENBLAS_NUM_THREADS=1
                SPLIT=2
           language: python
           python: "3.6"
         - os: linux
           env: MNE_STIM_CHANNEL=STI101
+               OPENBLAS_NUM_THREADS=1
                SPLIT=1
           language: python
           python: "3.6"
