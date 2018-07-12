@@ -291,11 +291,6 @@ def test_lcmv():
     # Test if spatial filter contains src
     assert ('src' in filters.keys())
 
-    # Test if stc contains src
-    with warnings.catch_warnings(record=True) as wrn:
-        stc = apply_lcmv(evoked, filters, max_ori_out='signed')
-    assert not any('src should not be None' in str(ww.message) for ww in wrn)
-
     # Test if fixed forward operator is detected when picking normal or
     # max-power orientation
     pytest.raises(ValueError, make_lcmv, evoked.info, forward_fixed, data_cov,
@@ -349,7 +344,10 @@ def test_lcmv():
                         noise_cov=noise_cov)
     # applying that filter to the full data set should automatically exclude
     # this channel from the data
-    stc = apply_lcmv(evoked, filters, max_ori_out='signed')
+    # also test here whether stc contains src
+    with warnings.catch_warnings(record=True) as wrn:
+        stc = apply_lcmv(evoked, filters, max_ori_out='signed')
+    assert not any('src should not be None' in str(ww.message) for ww in wrn)
     # the result should be equal to applying this filter to a dataset without
     # this channel:
     stc_ch = apply_lcmv(evoked_ch, filters, max_ori_out='signed')
