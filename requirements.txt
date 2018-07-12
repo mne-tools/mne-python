@@ -7,7 +7,9 @@ pyqt5-sip
 sip
 scikit-learn
 nibabel
+h5py
 pandas
+numexpr
 python-picard
 statsmodels
 pytest
