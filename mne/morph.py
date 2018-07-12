@@ -45,9 +45,6 @@ class SourceMorph(object):
     verbose : bool | str | int | None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-
-    Surface / Vector Source Estimate parameters
-    -------------------------------------------
     smooth : int | None
         Number of iterations for the smoothing of the surface data.
         If None, smooth is automatically defined to fill the surface
@@ -66,9 +63,6 @@ class SourceMorph(object):
         spacing=[np.arange(10242), np.arange(10242)] for fsaverage on a
         standard spacing 5 source space) can be substantially faster than
         computing vertex locations. Default is spacing=5
-
-    Volume Source Estimate parameters
-    ---------------------------------
     niter_affine : tuple of int
         Number of levels (``len(niter_affine)``) and number of
         iterations per level - for each successive stage of iterative
@@ -358,6 +352,19 @@ def read_source_morph(fname, verbose=None):
 
 ###############################################################################
 # Helper functions for SourceMorph methods
+def _check_hemi_data(data_in, data_ref):
+    """Check and setup correct data for hemispheres."""
+    data_out = []
+    if data_ref[0].size == 0:
+        if data_ref[1].size == 0:
+            data_out = [np.array([], int), np.array([], int)]
+        else:
+            data_out = [np.array([], int), data_in[1]]
+    elif data_ref[1].size == 0:
+        data_out = [data_in[0], np.array([], int)]
+    return data_out
+
+
 def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
                    mri_space=True):
     """Return volume source space as Nifti1Image and/or save to disk.
@@ -555,14 +562,18 @@ def _compute_morph_data(morph, verbose=None):
         data_to = None
         # default for fsaverage
         if morph.subject_to == 'fsaverage':
-            data_to = [np.arange(10242)] * len(data_from)
+            data_to = [np.arange(10242)] * 2
 
-        if isinstance(morph.spacing, int) or isinstance(morph.spacing, list):
+        if (isinstance(morph.spacing, int) or isinstance(morph.spacing, list)
+                or morph.subject_to != 'fsaverage'):
             data_to = grade_to_vertices(morph.subject_to, morph.spacing,
                                         subjects_dir, 1)
 
         if data_to is None:
             raise ValueError('Please specify target to morph to.')
+
+        # check emptiness of hemispheres
+        data_to = _check_hemi_data(data_to, data_from)
 
         # pre-compute morph matrix
         morph_mat = _compute_morph_matrix(
@@ -1309,11 +1320,12 @@ def _apply_morph_data(morph, stc_from, verbose=None):
         morph_mat = morph.data['morph_mat']
         vertices_to = morph.data['vertno']
 
+        data = stc_from.data
+
         if isinstance(stc_from, VectorSourceEstimate):
             # Morph the locations of the dipoles, but not their orientation
             n_verts, _, n_samples = stc_from.data.shape
-            data = morph_mat * stc_from.data.reshape(n_verts,
-                                                     3 * n_samples)
+            data = morph_mat * data.reshape(n_verts, 3 * n_samples)
             data = data.reshape(morph_mat.shape[0], 3, n_samples)
             stc_to = VectorSourceEstimate(data, vertices=vertices_to,
                                           tmin=stc_from.tmin,
@@ -1321,7 +1333,7 @@ def _apply_morph_data(morph, stc_from, verbose=None):
                                           verbose=verbose,
                                           subject=morph.subject_to)
         else:
-            data = morph_mat * stc_from.data
+            data = morph_mat * data
             stc_to = SourceEstimate(data, vertices=vertices_to,
                                     tmin=stc_from.tmin,
                                     tstep=stc_from.tstep,
