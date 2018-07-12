@@ -1765,8 +1765,10 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
             params.update({'img_idx': index_img(img, idx)})
             params.update({'title':
                            'LCMV (t=%.3f s.)' % params['stc'].times[idx]})
+            img_bg = nib.load(t1_fname)
+            params.update({'img_bg': img_bg})
             fig_anat = plot_stat_map(
-                params['img_idx'], t1_fname, threshold=0.45,
+                params['img_idx'], params['img_bg'], threshold=0.45,
                 title=params['title'],
                 axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
                 cut_coords=cut_coords,
@@ -1796,32 +1798,30 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
                 params['ax_x'].lines = []
                 params['ax_y'].lines = []
                 params['ax_z'].lines = []
+
                 fig_anat = plot_stat_map(
-                    params['img_idx'], t1_fname, threshold=0.45,
+                    params['img_idx'], params['img_bg'], threshold=0.45,
                     title=params['title'],
                     axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
                     cut_coords=cut_coords,
                     resampling_interpolation='nearest')
-                # XXX: check line below
-                img_bg = nib.load(t1_fname)
 
-                cut_coords = [c for c in cut_coords]
+                # XXX: check lines below
+                cut_coords = apply_trans(linalg.inv(img.affine),
+                                         cut_coords)
+                cut_coords = np.array([int(round(c)) for c in cut_coords])
 
-                print(cut_coords)
-                cut_coords = apply_trans(linalg.inv(img_bg.affine), cut_coords)
-                print(cut_coords, img_bg.shape)
-                cut_coords = apply_trans(linalg.inv(img.affine), cut_coords)
-                print(cut_coords, img.shape)
-                print('')
-                sdfdf
-                # cut_coords = [int(round(c)) for c in cut_coords]
+                # the affine transformation can sometimes lead to corner
+                # cases near the edges?
+                if np.any(cut_coords < 0):
+                    return
 
                 shape = params['img_idx'].shape
                 loc_idx = np.ravel_multi_index(
                     cut_coords, shape[:-1])
-                print(loc_idx)
-                print(stc.vertices[-1])
-                # ax_time.lines[0].set_ydata(stc.data[int(round(loc_idx))].T)
+                dist_vertices = [abs(v - loc_idx) for v in stc.vertices]
+                nearest_idx = np.argmin(dist_vertices)
+                ax_time.lines[0].set_ydata(stc.data[int(round(nearest_idx))].T)
         params['fig'].canvas.draw()
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
@@ -1829,7 +1829,6 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
     subject = _check_subject(stc.subject, subject, True)
 
     img = stc.as_volume(src, mri_resolution=False)
-
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
 
     fig = plt.figure()
