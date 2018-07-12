@@ -1767,12 +1767,13 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
                            'LCMV (t=%.3f s.)' % params['stc'].times[idx]})
             img_bg = nib.load(t1_fname)
             params.update({'img_bg': img_bg})
+            vmax = np.abs(params['img_idx'].get_data()).max()
             fig_anat = plot_stat_map(
                 params['img_idx'], params['img_bg'], threshold=0.45,
                 title=params['title'],
                 axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
                 cut_coords=cut_coords,
-                resampling_interpolation='nearest')
+                resampling_interpolation='nearest', vmax=vmax)
             params.update({'fig_anat': fig_anat})
 
         if 'fig_anat' in params:
@@ -1799,12 +1800,13 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
                 params['ax_y'].lines = []
                 params['ax_z'].lines = []
 
+                vmax = np.abs(params['img_idx'].get_data()).max()
                 fig_anat = plot_stat_map(
                     params['img_idx'], params['img_bg'], threshold=0.45,
                     title=params['title'],
                     axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
                     cut_coords=cut_coords,
-                    resampling_interpolation='nearest')
+                    resampling_interpolation='nearest', vmax=vmax)
 
                 # XXX: check lines below
                 cut_coords = apply_trans(linalg.inv(img.affine),
