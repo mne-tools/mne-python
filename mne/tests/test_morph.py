@@ -9,7 +9,7 @@ import pytest
 import numpy as np
 import nibabel as nib
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_allclose)
+                           assert_allclose, assert_raises)
 from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
                  read_evokeds, SourceMorph, read_source_morph,
                  compute_morph_matrix, morph_data, read_source_estimate,
@@ -19,7 +19,6 @@ from mne.source_space import SourceSpaces
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.utils import (run_tests_if_main, requires_nibabel, _TempDir,
                        string_types)
-from nose.tools import assert_raises
 
 # Setup paths
 tempdir = _TempDir()
