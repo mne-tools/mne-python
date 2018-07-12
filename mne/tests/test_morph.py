@@ -5,6 +5,10 @@
 import os.path as op
 import warnings
 
+from mne import (read_label, stc_to_label, read_source_estimate,
+                 read_source_spaces, grow_labels, read_labels_from_annot,
+                 write_labels_to_annot, split_label, spatial_tris_connectivity,
+                 read_surface, random_parcellation)
 import pytest
 import numpy as np
 import nibabel as nib
@@ -344,19 +348,21 @@ def test_volume_source_morph():
     # check infer subject_from from src[0]['subject_his_id']
     src[0]['subject_his_id'] = 'sample'
     source_morph_vol = SourceMorph(inverse_operator_vol['src'],
-                                   subjects_dir=subjects_dir)
+                                   subjects_dir=subjects_dir,
+                                   niter_affine=(10, 10, 10),
+                                   niter_sdr=(3, 3, 3), spacing=7)
 
     # the brain used in sample data has shape (255, 255, 255), the default is
     # spacing=5
     assert tuple(
         source_morph_vol.data['DiffeomorphicMap']['domain_shape']) == (
-               51, 51, 51)
+               37, 37, 37)
 
     assert tuple(source_morph_vol.data['AffineMap']['domain_shape']) == (
-        51, 51, 51)
+        37, 37, 37)
 
     # proofs the above
-    assert source_morph_vol.spacing == 5
+    assert source_morph_vol.spacing == 7
 
     # assure proper src shape
     assert source_morph_vol.data['src_shape_full'] == (
@@ -374,7 +380,8 @@ def test_volume_source_morph():
         subject_from='sample',
         subject_to=op.join(data_path, 'subjects', 'fsaverage', 'mri',
                            'brain.mgz'),
-        subjects_dir=subjects_dir)
+        subjects_dir=subjects_dir, niter_affine=(10, 10, 10),
+        niter_sdr=(3, 3, 3), spacing=7)
 
     # check wrong subject_to
     assert_raises(IOError, SourceMorph,
@@ -405,7 +412,7 @@ def test_volume_source_morph():
 
     # assure morph spacing
     assert isinstance(img_morph_res, nib.Nifti1Image)
-    assert img_morph_res.header.get_zooms()[:3] == (5., 5., 5.)
+    assert img_morph_res.header.get_zooms()[:3] == (7., 7., 7.)
 
     # assure src shape
     img_mri_res = source_morph_vol.as_volume(stc_vol_morphed,
@@ -415,12 +422,12 @@ def test_volume_source_morph():
         src[0]['mri_height'], src[0]['mri_depth'], src[0]['mri_width']) + (
                img_mri_res.shape[3],)
 
-    # check if nifti is defined resolution with voxel_size == (7., 7., 7.)
+    # check if nifti is defined resolution with voxel_size == (5., 5., 5.)
     img_any_res = source_morph_vol.as_volume(stc_vol_morphed,
-                                             mri_resolution=(7., 7., 7.),
+                                             mri_resolution=(5., 5., 5.),
                                              fname=op.join(tempdir, '42'))
     assert isinstance(img_any_res, nib.Nifti1Image)
-    assert img_any_res.header.get_zooms()[:3] == (7., 7., 7.)
+    assert img_any_res.header.get_zooms()[:3] == (5., 5., 5.)
 
     # check if morph outputs correct data
     assert isinstance(stc_vol_morphed, VolSourceEstimate)
