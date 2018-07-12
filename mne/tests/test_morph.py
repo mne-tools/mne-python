@@ -16,12 +16,10 @@ from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
                  grade_to_vertices, read_source_spaces)
 from mne.datasets import sample, testing
 from mne.source_space import SourceSpaces
-from mne.source_estimate import _get_ico_tris
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.utils import (run_tests_if_main, requires_nibabel, _TempDir,
                        string_types)
 from nose.tools import assert_raises
-from scipy.sparse import csr_matrix
 
 # Setup paths
 tempdir = _TempDir()
@@ -106,6 +104,7 @@ def test_morph_data():
     """Test morphing of data."""
     subject_from = 'sample'
     subject_to = 'fsaverage'
+
     stc_from = read_source_estimate(fname_smorph, subject='sample')
     stc_to = read_source_estimate(fname_fmorph)
 
@@ -296,6 +295,8 @@ def test_surface_vector_source_morph():
     stc_surf_morphed = source_morph_surf(stc_surf)
     stc_vec_morphed = source_morph_surf(stc_vec)
 
+    assert_raises(ValueError, source_morph_surf.as_volume, stc_surf_morphed)
+
     # check if correct class after morphing
     assert isinstance(stc_surf_morphed, SourceEstimate)
     assert isinstance(stc_vec_morphed, VectorSourceEstimate)
@@ -315,9 +316,15 @@ def test_surface_vector_source_morph():
 
 @requires_nibabel()
 @pytest.mark.slowtest
-@testing.requires_testing_data
+@sample.requires_sample_data
 def test_volume_source_morph():
     """Test volume source estimate morph, special cases and exceptions."""
+    data_path = sample.data_path()  # because testing data has no brain.mgz
+    subjects_dir = op.join(data_path, 'subjects')
+    sample_dir = op.join(data_path, 'MEG', 'sample')
+    fname_inv_vol = op.join(sample_dir,
+                            'sample_audvis-meg-vol-7-meg-inv.fif')
+
     inverse_operator_vol = read_inverse_operator(fname_inv_vol)
 
     stc_vol = read_source_estimate(fname_vol, 'sample')
@@ -326,11 +333,14 @@ def test_volume_source_morph():
     assert_raises(ValueError, SourceMorph, 42)
 
     # check for raising an error if neither
-    # inverse_operator_vol['src'][0]['subject_his_id'] nor subject_from is set
+    # inverse_operator_vol['src'][0]['subject_his_id'] nor subject_from is set,
+    # but attempting to perform a volume morph
     src = inverse_operator_vol['src']
     src[0]['subject_his_id'] = None
-    assert_raises(KeyError, SourceMorph, src,
-                  subjects_dir=subjects_dir)
+    assert_raises(ValueError, SourceMorph, src, subjects_dir=subjects_dir)
+
+    # check path to src provided, but invalid
+    assert_raises(IOError, SourceMorph, '42', subjects_dir=subjects_dir)
 
     # check infer subject_from from src[0]['subject_his_id']
     src[0]['subject_his_id'] = 'sample'
@@ -340,17 +350,17 @@ def test_volume_source_morph():
     # the brain used in sample data has shape (255, 255, 255), the default is
     # spacing=5
     assert tuple(
-        source_morph_vol.morph_data['DiffeomorphicMap']['domain_shape']) == (
+        source_morph_vol.data['DiffeomorphicMap']['domain_shape']) == (
                51, 51, 51)
 
-    assert tuple(source_morph_vol.morph_data['AffineMap']['domain_shape']) == (
+    assert tuple(source_morph_vol.data['AffineMap']['domain_shape']) == (
         51, 51, 51)
 
     # proofs the above
     assert source_morph_vol.spacing == 5
 
     # assure proper src shape
-    assert source_morph_vol.morph_data['src_shape_full'] == (
+    assert source_morph_vol.data['src_shape_full'] == (
         src[0]['mri_height'], src[0]['mri_depth'], src[0]['mri_width'])
 
     # check full mri resolution registration (takes very long)
@@ -361,7 +371,7 @@ def test_volume_source_morph():
 
     # check input via path to src and path to subject_to
     source_morph_vol = SourceMorph(
-        op.join(sample_dir, 'sample_audvis_trunc-meg-vol-7-fwd.fif'),
+        op.join(sample_dir, 'sample_audvis-meg-vol-7-fwd.fif'),
         subject_from='sample',
         subject_to=op.join(data_path, 'subjects', 'fsaverage', 'mri',
                            'brain.mgz'),
@@ -369,7 +379,7 @@ def test_volume_source_morph():
 
     # check wrong subject_to
     assert_raises(IOError, SourceMorph,
-                  op.join(sample_dir, 'sample_audvis_trunc-meg-vol-7-fwd.fif'),
+                  op.join(sample_dir, 'sample_audvis-meg-vol-7-fwd.fif'),
                   subject_from='sample', subject_to='42',
                   subjects_dir=subjects_dir)
 

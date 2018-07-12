@@ -6,7 +6,6 @@
 import os.path as op
 import warnings
 import copy
-from math import ceil
 
 import numpy as np
 from scipy import sparse
@@ -19,7 +18,7 @@ from .source_estimate import (VolSourceEstimate, SourceEstimate,
 from .source_space import SourceSpaces
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
-                    _check_subject, warn as warn_, deprecated)
+                    warn as warn_, deprecated)
 from .externals.h5io import read_hdf5, write_hdf5
 from .externals.six import string_types
 
@@ -134,6 +133,9 @@ class SourceMorph(object):
         If True, warn if not all vertices were used.
     xhemi : bool
         Morph across hemisphere.
+    data : dict
+        The morph data. Contains all data relevant for morphing and / or volume
+        output.
 
     Notes
     -----
@@ -191,13 +193,17 @@ class SourceMorph(object):
         self.smooth = smooth
         self.warn = warn
         self.xhemi = xhemi
-        self.morph_data = dict()
+        self.data = dict()
 
+        # allow for creation of empty SourceMorph objects
         if src is None:
             return
-
+        # read if path provided
         if isinstance(src, string_types):
-            src = read_forward_solution(src)['src']
+            if op.isfile(src):
+                src = read_forward_solution(src)['src']
+            else:
+                raise IOError('cannot read file %s' % src)
 
         if isinstance(src, SourceSpaces):
             self.kind = src.kind
@@ -205,15 +211,12 @@ class SourceMorph(object):
             raise ValueError('src must be an instance of SourceSpaces or a '
                              'path to a saved instance of SourceSpaces')
 
-        if src[0]['subject_his_id'] is not None and subject_from is None:
-            self.subject_from = src[0]['subject_his_id']
+        # assure presence of subject_from for volume morphs
+        self.subject_from = _check_subject_from(self.subject_from, src)
 
-        if self.subject_from is None:
-            raise KeyError('subject id in src is None. Please specify '
-                           'subject_from')
-
-        self.morph_data.update(_get_src_data(src))
-        self.morph_data.update(_compute_morph_data(self, verbose=verbose))
+        # get data to perform morph and as_volume
+        self.data.update(_get_src_data(src))
+        self.data.update(_compute_morph_data(self, verbose=verbose))
 
     # Forward verbose decorator to _apply_morph_data
     def __call__(self, stc_from, verbose=None):
@@ -314,6 +317,15 @@ class SourceMorph(object):
 
 ###############################################################################
 # I/O
+def _check_subject_from(subject_from, src):
+    if src[0]['subject_his_id'] is not None and subject_from is None:
+        subject_from = src[0]['subject_his_id']
+    if subject_from is None and src.kind == 'volume':
+        raise ValueError(
+            'subject_from is None. Please specify subject_from')
+    return subject_from
+
+
 @verbose
 def read_source_morph(fname, verbose=None):
     """Load the morph for source estimates from a file.
@@ -334,12 +346,12 @@ def read_source_morph(fname, verbose=None):
     """
     if op.isfile(fname):
         logger.info('loading morph...')
-        morph_data = read_hdf5(fname)
+        data = read_hdf5(fname)
     else:
         raise IOError('cannot read file: %s' % fname)
 
     source_morph = SourceMorph(None)
-    source_morph.__dict__.update(morph_data)
+    source_morph.__dict__.update(data)
     logger.info('[done]')
     return source_morph
 
@@ -383,8 +395,8 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
 
     # this is a special case when as_volume is called without having done a
     # morph beforehand (to assure compatibility to previous versions)
-    if 'morph_shape' not in morph.morph_data:
-        img = _interpolate_data(stc, morph, mri_resolution=mri_resolution,
+    if 'morph_shape' not in morph.data:
+        img = _interpolate_data(stc, morph.data, mri_resolution=mri_resolution,
                                 mri_space=mri_space)
         if fname is not None:
             nib.save(img, fname)
@@ -392,9 +404,11 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
 
     new_zooms = None
 
+    # if full mri resolution, compute zooms from shape and mri zooms
     if isinstance(mri_resolution, bool) and mri_resolution:
-        new_zooms = _get_zooms_orig(morph)
+        new_zooms = _get_zooms_orig(morph.data)
 
+    # if mri resolution is set manually as a single value, convert to tuple
     if isinstance(mri_resolution, (int, float)) and not isinstance(
             mri_resolution, bool):
         # use iso voxel size
@@ -402,42 +416,57 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
             float(mri_resolution), float(mri_resolution),
             float(mri_resolution))
 
+    # if mri resolution is set manually as a tuple, use it
     if isinstance(mri_resolution, tuple):
         new_zooms = mri_resolution
 
-    shape = tuple([int(i) for i in morph.morph_data['morph_shape']])
-    affine = morph.morph_data['morph_affine']
-    zooms = morph.morph_data['morph_zooms'][:3]
+    # make raw volume file
+    shape = tuple([int(i) for i in morph.data['morph_shape']])
+    affine = morph.data['morph_affine']
+    zooms = morph.data['morph_zooms'][:3]
 
+    # create header
     hdr = nib.nifti1.Nifti1Header()
     hdr.set_xyzt_units('mm', 'msec')
     hdr['pixdim'][4] = 1e3 * stc.tstep
 
+    # setup volume
     img = np.zeros(shape).reshape(-1, stc.shape[1])
     img[stc.vertices, :] = stc.data
 
     img = img.reshape(shape + (-1,))
 
-    img = nib.Nifti1Image(img, affine, header=hdr)
+    # make nifti from data
+    with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
+        img = nib.Nifti1Image(img, affine, header=hdr)
 
+    # reslice in case of manually defined voxel size
     if new_zooms is not None:
         new_zooms = new_zooms[:3]
         img, affine = reslice(img.get_data(),
                               img.affine,
                               zooms,
                               new_zooms)
-        img = nib.Nifti1Image(img, affine)
+        with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
+            img = nib.Nifti1Image(img, affine)
         zooms = new_zooms
     img.header.set_zooms(tuple(zooms) + (1,))
+
+    # save is fname is provided
     if fname is not None:
         nib.save(img, fname)
+
     return img
 
 
 def _get_src_data(src):
     """Obtain src data relevant for as_volume() and __call__()."""
     src_data = dict()
+
+    # allocate new memory for information
     src_t = copy.deepcopy(src)
+
+    # extract all relevant data for volume operations
     if src.kind == 'volume':
         shape = src_t[0]['shape']
         src_data.update({'src_shape': (shape[2], shape[1], shape[0]),
@@ -451,18 +480,22 @@ def _get_src_data(src):
                          'inuse': src_t[0]['inuse']})
     elif src_t.kind == 'surface':
         hemis = []
+        # extract information for each hemisphere and save order (necessary for
+        # xhemi)
         for n, s in enumerate(src_t):
             src_data.update({str(n): s['vertno']})
             hemis.append(n)
         src_data.update({'hemis': hemis})
+
+    # delete copy to save memory
     del src_t
     return src_data
 
 
 def _compute_morph_data(morph, verbose=None):
     """Compute source estimate specific morph."""
-    morph_data = dict()
-    morph_data.update(morph.morph_data)
+    data = dict()
+    data.update(morph.data)
     subjects_dir = get_subjects_dir(morph.subjects_dir,
                                     raise_error=True)
 
@@ -501,7 +534,7 @@ def _compute_morph_data(morph, verbose=None):
             raise IOError('cannot read file: %s' % mri_path_to)
 
         # pre-compute non-linear morph
-        morph_data.update(_compute_morph_sdr(
+        data.update(_compute_morph_sdr(
             mri_from,
             mri_to,
             niter_affine=morph.niter_affine,
@@ -509,16 +542,15 @@ def _compute_morph_data(morph, verbose=None):
             spacing=morph.spacing,
             verbose=verbose))
 
-
     # SourceEstimate | VectorSourceEstimate
     elif morph.kind == 'surface':
         logger.info('surface source space inferred...')
 
         # get surface data
         data_from = []
-        hemis = morph.morph_data['hemis']
+        hemis = morph.data['hemis']
         for h in hemis:
-            data_from.append(morph.morph_data[str(h)])
+            data_from.append(morph.data[str(h)])
 
         data_to = None
         # default for fsaverage
@@ -543,18 +575,18 @@ def _compute_morph_data(morph, verbose=None):
             warn=morph.warn,
             xhemi=morph.xhemi,
             verbose=verbose)
-        morph_data.update({'morph_mat': morph_mat, 'vertno': data_to})
-    return morph_data
+        data.update({'morph_mat': morph_mat, 'vertno': data_to})
+    return data
 
 
-def _interpolate_data(stc, morph, mri_resolution=True,
+def _interpolate_data(stc, morph_data, mri_resolution=True,
                       mri_space=True):
     """Interpolate source estimate data to MRI."""
     import nibabel as nib
     from dipy.align.reslice import reslice
 
     n_times = stc.data.shape[1]
-    shape = morph.morph_data['src_shape']
+    shape = morph_data['src_shape']
     shape3d = shape
     shape = (n_times, shape[0], shape[1], shape[2])
     vol = np.zeros(shape)
@@ -573,19 +605,23 @@ def _interpolate_data(stc, morph, mri_resolution=True,
         voxel_size_defined = True
         mri_resolution = True
 
-    if 'morph_shape' not in morph.morph_data and voxel_size_defined:
+    # if data wasn't morphed yet - necessary for call of
+    # stc_unmorphed.as_volume. Since only the shape of src is known, it cannot
+    # be resliced to a given voxel size without knowing the original.
+    if 'morph_shape' not in morph_data and voxel_size_defined:
         raise ValueError(
             "Cannot infer original voxel size for reslicing... "
             "set mri_resolution to boolean value or apply morph first.")
 
+    # use mri resolution as represented in src
     if mri_resolution:
-        mri_shape3d = morph.morph_data['src_shape_full']
+        mri_shape3d = morph_data['src_shape_full']
         mri_shape = (n_times, mri_shape3d[0], mri_shape3d[1],
                      mri_shape3d[2])
         mri_vol = np.zeros(mri_shape)
-        interpolator = morph.morph_data['interpolator']
+        interpolator = morph_data['interpolator']
 
-    mask3d = morph.morph_data['inuse'].reshape(shape3d).astype(np.bool)
+    mask3d = morph_data['inuse'].reshape(shape3d).astype(np.bool)
     n_vertices = np.sum(mask3d)
 
     n_vertices_seen = 0
@@ -602,16 +638,18 @@ def _interpolate_data(stc, morph, mri_resolution=True,
 
     vol = vol.T
 
-    affine = morph.morph_data['src_affine_vox']
+    # set correct space
+    affine = morph_data['src_affine_vox']
 
     if not mri_resolution:
-        affine = morph.morph_data['src_affine_src']
+        affine = morph_data['src_affine_src']
 
     if mri_space:
-        affine = np.dot(morph.morph_data['src_affine_ras'], affine)
+        affine = np.dot(morph_data['src_affine_ras'], affine)
 
     affine[:3] *= 1e3
 
+    # pre-define header
     header = nib.nifti1.Nifti1Header()
     header.set_xyzt_units('mm', 'msec')
     header['pixdim'][4] = 1e3 * stc.tstep
@@ -619,15 +657,16 @@ def _interpolate_data(stc, morph, mri_resolution=True,
     with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
         img = nib.Nifti1Image(vol, affine, header=header)
 
+    # if a specific voxel size was targeted (only possible after morphing)
     if voxel_size_defined:
         # reslice mri
         img, img_affine = reslice(
             img.get_data(),
             img.affine,
-            _get_zooms_orig(morph),
+            _get_zooms_orig(morph_data),
             voxel_size)
-
-        img = nib.Nifti1Image(img, img_affine, header=header)
+        with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
+            img = nib.Nifti1Image(img, img_affine, header=header)
 
     return img
 
@@ -723,7 +762,8 @@ def _compute_morph_sdr(mri_from, mri_to,
         mri_from.header.get_zooms()[:3],
         spacing)
 
-    mri_from = nib.Nifti1Image(mri_from_res, mri_from_res_affine)
+    with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
+        mri_from = nib.Nifti1Image(mri_from_res, mri_from_res_affine)
 
     # reslice mri_to
     mri_to_res, mri_to_res_affine = reslice(
@@ -732,7 +772,8 @@ def _compute_morph_sdr(mri_from, mri_to,
         mri_to.header.get_zooms()[:3],
         spacing)
 
-    mri_to = nib.Nifti1Image(mri_to_res, mri_to_res_affine)
+    with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
+        mri_to = nib.Nifti1Image(mri_to_res, mri_to_res_affine)
 
     # get mri_to to world transform
     mri_to_grid2world = mri_to.affine
@@ -1192,11 +1233,11 @@ def _get_subject_sphere_tris(subject, subjects_dir):
 
 ###############################################################################
 # Apply morph to source estimate
-def _get_zooms_orig(morph):
+def _get_zooms_orig(morph_data):
     """Compute src zooms from morph zooms, morph shape and src shape."""
-    morph_zooms = morph.morph_data['morph_zooms']
-    morph_shape = morph.morph_data['morph_shape']
-    src_shape = morph.morph_data['src_shape_full']
+    morph_zooms = morph_data['morph_zooms']
+    morph_shape = morph_data['morph_shape']
+    src_shape = morph_data['src_shape_full']
 
     return [mz / ss * ms for mz, ms, ss in
             zip(morph_zooms, morph_shape, src_shape)]
@@ -1227,22 +1268,22 @@ def _apply_morph_data(morph, stc_from, verbose=None):
         from dipy.align.reslice import reslice
 
         # prepare data to be morphed
-        img_to = _interpolate_data(stc_from, morph, mri_resolution=True,
+        img_to = _interpolate_data(stc_from, morph.data, mri_resolution=True,
                                    mri_space=True)
 
         # setup morphs
         affine_morph = AffineMap(None)
-        affine_morph.__dict__ = morph.morph_data['AffineMap']
+        affine_morph.__dict__ = morph.data['AffineMap']
 
         sdr_morph = DiffeomorphicMap(None, [])
-        sdr_morph.__dict__ = morph.morph_data['DiffeomorphicMap']
+        sdr_morph.__dict__ = morph.data['DiffeomorphicMap']
 
         # reslice to match morph
         img_to, img_to_affine = reslice(
             img_to.get_data(),
-            morph.morph_data['morph_affine'],
-            _get_zooms_orig(morph),
-            morph.morph_data['morph_zooms'])
+            morph.data['morph_affine'],
+            _get_zooms_orig(morph.data),
+            morph.data['morph_zooms'])
 
         # morph data
         for vol in range(img_to.shape[3]):
@@ -1265,8 +1306,8 @@ def _apply_morph_data(morph, stc_from, verbose=None):
 
     elif morph.kind == 'surface':
 
-        morph_mat = morph.morph_data['morph_mat']
-        vertices_to = morph.morph_data['vertno']
+        morph_mat = morph.data['morph_mat']
+        vertices_to = morph.data['vertno']
 
         if isinstance(stc_from, VectorSourceEstimate):
             # Morph the locations of the dipoles, but not their orientation

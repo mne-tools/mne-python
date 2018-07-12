@@ -1338,7 +1338,6 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             return morph_data(subject_from, subject_to, self, grade, smooth,
                               subjects_dir, buffer_size, n_jobs, verbose)
 
-
     def morph_precomputed(self, subject_to, vertices_to, morph_mat,
                           subject_from=None):
         """Morph source estimate between subjects using a precomputed matrix.
@@ -1794,10 +1793,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
             If 'mri' the volume is defined in the coordinate system of
             the original T1 image. If 'surf' the coordinate system
             of the FreeSurfer surface is used (Surface RAS).
-        mri_resolution: bool | tuple
-            Whether to use MRI resolution. If False the morph's resolution
-            will be used. If tuple the voxel size must be given in float values
-            in mm. E.g. mri_resolution=(3., 3., 3.)
+        mri_resolution : bool
+            Whether to use MRI resolution.
             WARNING: if you have many time points the file produced can be
             huge.
 
@@ -1824,10 +1821,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
             If 'mri' the volume is defined in the coordinate system of
             the original T1 image. If 'surf' the coordinate system
             of the FreeSurfer surface is used (Surface RAS).
-        mri_resolution: bool | tuple
-            Whether to use MRI resolution. If False the morph's resolution
-            will be used. If tuple the voxel size must be given in float values
-            in mm. E.g. mri_resolution=(3., 3., 3.)
+        mri_resolution : bool
+            Whether to use MRI resolution.
             WARNING: if you have many time points the file produced can be
             huge.
 
@@ -2214,7 +2209,8 @@ class MixedSourceEstimate(_BaseSourceEstimate):
             "release. Use morph = SourceMorph(src_from) and "
             "stc_to = morph(stc_from)")
 def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
-               subjects_dir=None, buffer_size=64, n_jobs=1, warn=True, verbose=None):
+               subjects_dir=None, buffer_size=64, n_jobs=1, warn=True,
+               verbose=None):
     """Morph a source estimate from one subject to another.
 
     Parameters
@@ -2269,10 +2265,10 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     # SourceSpace info
     hemis = [0, 1]
     for hemi in hemis:
-        source_morph.morph_data.update({str(hemi): stc_from.vertices[hemi]})
-    source_morph.morph_data.update({'hemis':hemis})
-    source_morph.morph_data.update(_compute_morph_data(source_morph,
-                                                       verbose=verbose))
+        source_morph.data.update({str(hemi): stc_from.vertices[hemi]})
+    source_morph.data.update({'hemis': hemis})
+    source_morph.data.update(_compute_morph_data(source_morph,
+                                                 verbose=verbose))
 
     stc_to = source_morph(stc_from)
 
@@ -2325,8 +2321,8 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     source_morph = SourceMorph(None, subject_from=subject_from,
                                subject_to=subject_to)
     source_morph.kind = 'surface'
-    source_morph.morph_data['vertno'] = vertices_to
-    source_morph.morph_data['morph_mat'] = morph_mat
+    source_morph.data['vertno'] = vertices_to
+    source_morph.data['morph_mat'] = morph_mat
 
     stc_to = _apply_morph_data(source_morph, stc_from)
 
@@ -2684,10 +2680,8 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
         If 'mri' the volume is defined in the coordinate system of
         the original T1 image. If 'surf' the coordinate system
         of the FreeSurfer surface is used (Surface RAS).
-    mri_resolution: bool | tuple
-        Whether to use MRI resolution. If False the morph's resolution
-        will be used. If tuple the voxel size must be given in float values
-        in mm. E.g. mri_resolution=(3., 3., 3.)
+    mri_resolution : bool
+        Whether to use MRI resolution
         WARNING: if you have many time points the file produced can be
         huge.
 
@@ -2716,10 +2710,8 @@ def _save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
         If 'mri' the volume is defined in the coordinate system of
         the original T1 image. If 'surf' the coordinate system
         of the FreeSurfer surface is used (Surface RAS).
-    mri_resolution: bool | tuple
-        Whether to use MRI resolution. If False the morph's resolution
-        will be used. If tuple the voxel size must be given in float values
-        in mm. E.g. mri_resolution=(3., 3., 3.)
+    mri_resolution : bool
+        Whether to use MRI resolution.
         WARNING: if you have many time points the file produced can be
         huge.
 
@@ -2728,7 +2720,7 @@ def _save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     img : instance Nifti1Image
         The image object.
     """
-    from mne.morph import SourceMorph
+    from mne.morph import _interpolate_data, _get_src_data
     if not isinstance(stc, VolSourceEstimate):
         raise ValueError('Only volume source estimates can be saved as '
                          'volumes')
@@ -2738,10 +2730,17 @@ def _save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
         raise ValueError('You need a volume source space. Got type: %s.'
                          % src_type)
 
-    morph = SourceMorph(src, subject_from=stc.subject, subject_to=None)
+    # setup volume related information
     is_mri = True if dest == 'mri' else False
-    return morph.as_volume(stc, fname=fname, mri_resolution=mri_resolution,
-                           mri_space=is_mri)
+
+    img = _interpolate_data(stc, _get_src_data(src),
+                            mri_resolution=mri_resolution, mri_space=is_mri)
+    # save if desired
+    if fname is not None:
+        import nibabel as nib
+        nib.save(img, fname)
+
+    return img
 
 
 def _get_label_flip(labels, label_vertidx, src):
