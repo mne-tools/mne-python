@@ -202,6 +202,9 @@ def test_make_dics():
     w = filters['weights'][0][:3]
     assert not np.allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-2, atol=0)
 
+    # Test whether spatial filter contains src
+    assert ('src' in filters.keys())
+
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
@@ -270,7 +273,11 @@ def test_apply_dics_csd():
     # Test using a real-valued filter
     filters_real = make_dics(epochs.info, fwd_surf, csd, label=label, reg=reg,
                              real_filter=True)
-    power, f = apply_dics_csd(csd, filters_real)
+    # Also test whether stc contains src:
+    with warnings.catch_warnings(record=True) as wrn:
+        power, f = apply_dics_csd(csd, filters_real)
+    assert not any('src should not be None' in str(ww.message) for ww in wrn)
+
     assert f == [10, 20]
     assert np.argmax(power.data[:, 1]) == source_ind
     assert power.data[source_ind, 1] > power.data[source_ind, 0]
@@ -321,7 +328,11 @@ def test_apply_dics_timeseries():
     filters = make_dics(evoked.info, fwd_surf, csd20, label=label, reg=reg)
 
     # Sanity checks on the resulting STC after applying DICS on epochs.
-    stcs = apply_dics_epochs(epochs, filters)
+    # Also test whether stcs contain src
+    with warnings.catch_warnings(record=True) as wrn:
+        stcs = apply_dics_epochs(epochs, filters)
+    assert not any('src should not be None' in str(ww.message) for ww in wrn)
+
     assert isinstance(stcs, list)
     assert len(stcs) == 1
     assert_array_equal(stcs[0].vertices[0], filters['vertices'][0])
