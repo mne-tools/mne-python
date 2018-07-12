@@ -263,7 +263,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
         txt = txt.decode('latin-1')
 
     # extract Marker Infos block
-    m = re.search(r"\[Marker Infos\]", txt,re.IGNORECASE)
+    m = re.search(r"\[Marker Infos\]", txt, re.IGNORECASE)
     # updated to ignore case for NeurOne support
     if not m:
         return np.zeros((0, 3))
@@ -328,9 +328,9 @@ def _check_hdr_version(header):
 def _check_mrk_version(header):
     """Check the marker version."""
     tags = ['Brain Vision Data Exchange Marker File, Version 1.0',
-            'Brain Vision Data Exchange Marker File Version 1.0', 
+            'Brain Vision Data Exchange Marker File Version 1.0',
             'Brain Vision Data Exchange Marker File, Version 2.0']
-    #Missing , for NeurOne workaround
+    # missing , for NeurOne workaround
     if header not in tags:
         raise ValueError("Currently only support %r, not %r"
                          "Contact MNE-Developers for support."
@@ -434,7 +434,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         cfg.read_file(StringIO(params))
     else:
         cfg.readfp(StringIO(params))
-        
+
     # NeurOne BrainVision export workaround
     cinfostr = 'Common Infos'
     if not cfg.has_section(cinfostr):
