@@ -11,9 +11,8 @@ from mne import (read_label, stc_to_label, read_source_estimate,
                  read_surface, random_parcellation)
 import pytest
 import numpy as np
-import nibabel as nib
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_allclose, assert_raises)
+                           assert_allclose)
 from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
                  read_evokeds, SourceMorph, read_source_morph,
                  compute_morph_matrix, morph_data, read_source_estimate,
@@ -257,6 +256,7 @@ def test_morph_data():
 @testing.requires_testing_data
 def test_stc_as_volume():
     """Test previous volume source estimate morph."""
+    import nibabel as nib
     inverse_operator_vol = read_inverse_operator(fname_inv_vol)
 
     # Apply inverse operator
@@ -322,6 +322,7 @@ def test_surface_vector_source_morph():
 @sample.requires_sample_data
 def test_volume_source_morph():
     """Test volume source estimate morph, special cases and exceptions."""
+    import nibabel as nib
     data_path = sample.data_path()  # because testing data has no brain.mgz
     subjects_dir = op.join(data_path, 'subjects')
     sample_dir = op.join(data_path, 'MEG', 'sample')
@@ -333,17 +334,17 @@ def test_volume_source_morph():
     stc_vol = read_source_estimate(fname_vol, 'sample')
 
     # check for invalid input type
-    assert_raises(ValueError, SourceMorph, 42)
+    pytest.raises(ValueError, SourceMorph, 42)
 
     # check for raising an error if neither
     # inverse_operator_vol['src'][0]['subject_his_id'] nor subject_from is set,
     # but attempting to perform a volume morph
     src = inverse_operator_vol['src']
     src[0]['subject_his_id'] = None
-    assert_raises(ValueError, SourceMorph, src, subjects_dir=subjects_dir)
+    pytest.raises(ValueError, SourceMorph, src, subjects_dir=subjects_dir)
 
     # check path to src provided, but invalid
-    assert_raises(IOError, SourceMorph, '42', subjects_dir=subjects_dir)
+    pytest.raises(IOError, SourceMorph, '42', subjects_dir=subjects_dir)
 
     # check infer subject_from from src[0]['subject_his_id']
     src[0]['subject_his_id'] = 'sample'
@@ -384,7 +385,7 @@ def test_volume_source_morph():
         niter_sdr=(3, 3, 3), spacing=7)
 
     # check wrong subject_to
-    assert_raises(IOError, SourceMorph,
+    pytest.raises(IOError, SourceMorph,
                   op.join(sample_dir, 'sample_audvis-meg-vol-7-fwd.fif'),
                   subject_from='sample', subject_to='42',
                   subjects_dir=subjects_dir)
@@ -397,14 +398,14 @@ def test_volume_source_morph():
     source_morph_vol_r = read_source_morph(op.join(tempdir, 'vol.h5'))
 
     # check for invalid file name handling
-    assert_raises(IOError, read_source_morph, op.join(tempdir, '42'))
+    pytest.raises(IOError, read_source_morph, op.join(tempdir, '42'))
 
     # check morph
     stc_vol_morphed = source_morph_vol(stc_vol)
 
     # check for subject_from mismatch
     source_morph_vol_r.subject_from = '42'
-    assert_raises(ValueError, source_morph_vol_r, stc_vol_morphed)
+    pytest.raises(ValueError, source_morph_vol_r, stc_vol_morphed)
 
     # check if nifti is in grid morph space with voxel_size == spacing
     img_morph_res = source_morph_vol.as_volume(stc_vol_morphed,
