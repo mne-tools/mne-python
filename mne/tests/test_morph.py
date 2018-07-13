@@ -97,7 +97,7 @@ def test_save_vol_stc_as_nifti():
     img = stc.as_volume(src, dest='mri', mri_resolution=False)
     assert (img.shape == src[0]['shape'] + (len(stc.times),))
 
-    assert_raises(ValueError, stc.as_volume, src, mri_resolution=(4., 4., 4.))
+    pytest.raises(ValueError, stc.as_volume, src, mri_resolution=(4., 4., 4.))
 
 
 @pytest.mark.slowtest
@@ -116,7 +116,7 @@ def test_morph_data():
     assert_array_equal(stc_to.time_as_index([0.09, 0.1], use_rounding=True),
                        [0, len(stc_to.times) - 1])
     with warnings.catch_warnings(record=True):
-        assert_raises(ValueError, stc_from.morph, subject_to, grade=5,
+        pytest.raises(ValueError, stc_from.morph, subject_to, grade=5,
                       smooth=-1,
                       subjects_dir=subjects_dir)
 
@@ -132,7 +132,7 @@ def test_morph_data():
     # (here we need to push to grade=6, but for some subjects even grade=5
     # will break)
     with warnings.catch_warnings(record=True):
-        assert_raises(ValueError, stc_to1.morph, subject_from, grade=6,
+        pytest.raises(ValueError, stc_to1.morph, subject_from, grade=6,
                       subjects_dir=subjects_dir)
     # make sure we can specify vertices
     vertices_to = grade_to_vertices(subject_to, grade=3,
@@ -173,14 +173,14 @@ def test_morph_data():
     assert_array_almost_equal(stc_to1.data, stc_to2.data)
 
     with warnings.catch_warnings(record=True):
-        assert_raises(ValueError, stc_from.morph_precomputed,
+        pytest.raises(ValueError, stc_from.morph_precomputed,
                       subject_to, vertices_to, 'foo')
-        assert_raises(ValueError, stc_from.morph_precomputed,
+        pytest.raises(ValueError, stc_from.morph_precomputed,
                       subject_to, [vertices_to[0]], morph_mat)
-        assert_raises(ValueError, stc_from.morph_precomputed,
+        pytest.raises(ValueError, stc_from.morph_precomputed,
                       subject_to, [vertices_to[0][:-1], vertices_to[1]],
                       morph_mat)
-        assert_raises(ValueError, stc_from.morph_precomputed, subject_to,
+        pytest.raises(ValueError, stc_from.morph_precomputed, subject_to,
                       vertices_to, morph_mat, subject_from='foo')
 
     # steps warning
@@ -209,7 +209,7 @@ def test_morph_data():
     stc_from._data = stc_from._data[:3]
 
     with warnings.catch_warnings(record=True):
-        assert_raises(RuntimeError, stc_from.morph, subject_to, sparse=True,
+        pytest.raises(RuntimeError, stc_from.morph, subject_to, sparse=True,
                       grade=5, subjects_dir=subjects_dir)
 
     with warnings.catch_warnings(record=True):
@@ -276,7 +276,7 @@ def test_stc_as_volume():
     assert img.shape[:3] == inverse_operator_vol['src'][0]['shape'][:3]
 
     # Check if not morphed, but voxel size not boolean, raise ValueError
-    assert_raises(ValueError, stc_vol.as_volume, inverse_operator_vol['src'],
+    pytest.raises(ValueError, stc_vol.as_volume, inverse_operator_vol['src'],
                   mri_resolution=(4., 4., 4.))
 
 
@@ -298,7 +298,7 @@ def test_surface_vector_source_morph():
     stc_surf_morphed = source_morph_surf(stc_surf)
     stc_vec_morphed = source_morph_surf(stc_vec)
 
-    assert_raises(ValueError, source_morph_surf.as_volume, stc_surf_morphed)
+    pytest.raises(ValueError, source_morph_surf.as_volume, stc_surf_morphed)
 
     # check if correct class after morphing
     assert isinstance(stc_surf_morphed, SourceEstimate)
