@@ -42,27 +42,6 @@ class SourceMorph(object):
     subjects_dir : str | None
         Path to SUBJECTS_DIR if it is not set in the environment. The default
         is None.
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-    smooth : int | None
-        Number of iterations for the smoothing of the surface data.
-        If None, smooth is automatically defined to fill the surface
-        with non-zero values.
-    warn : bool
-        If True, warn if not all vertices were used.
-    xhemi : bool
-        Morph across hemisphere. Currently only implemented for
-        ``subject_to == subject_from``. See notes below.
-    spacing : int | list | None
-        int, list (of two arrays), or None
-        Resolution of the icosahedral mesh (typically 5). If None, all
-        vertices will be used (potentially filling the surface). If a list,
-        then values will be morphed to the set of vertices specified in
-        in spacing[0] and spacing[1]. Note that specifying the vertices (e.g.,
-        spacing=[np.arange(10242), np.arange(10242)] for fsaverage on a
-        standard spacing 5 source space) can be substantially faster than
-        computing vertex locations. Default is spacing=5
     niter_affine : tuple of int
         Number of levels (``len(niter_affine)``) and number of
         iterations per level - for each successive stage of iterative
@@ -78,6 +57,19 @@ class SourceMorph(object):
         If spacing is None, MRIs won't be resliced. Note that in this case
         both volumes must have the same number of slices in every
         spatial dimension. Default is spacing=(5., 5., 5.)
+    smooth : int | None
+        Number of iterations for the smoothing of the surface data.
+        If None, smooth is automatically defined to fill the surface
+        with non-zero values.
+    warn : bool
+        If True, warn if not all vertices were used.
+    xhemi : bool
+        Morph across hemisphere. Currently only implemented for
+        ``subject_to == subject_from``. See notes below.
+    verbose : bool | str | int | None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
 
     Attributes
     ----------
@@ -167,7 +159,7 @@ class SourceMorph(object):
                  subjects_dir=None, niter_affine=(100, 100, 10),
                  niter_sdr=(5, 5, 3), spacing=5,
                  smooth=None,
-                 warn=True, xhemi=False, verbose=False):  # noqa: D102
+                 warn=True, xhemi=False, verbose=False):
 
         # it's impossible to use the class without passing this check, so it
         # only needs to be checked here
