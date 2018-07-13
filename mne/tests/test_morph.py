@@ -26,7 +26,7 @@ from mne.utils import (run_tests_if_main, requires_nibabel, _TempDir,
 # Setup paths
 tempdir = _TempDir()
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 
 sample_dir = op.join(data_path, 'MEG', 'sample')
 
@@ -323,7 +323,7 @@ def test_surface_vector_source_morph():
 def test_volume_source_morph():
     """Test volume source estimate morph, special cases and exceptions."""
     import nibabel as nib
-    data_path = sample.data_path()  # because testing data has no brain.mgz
+    data_path = sample.data_path(download=False)  # because testing data has no brain.mgz
     subjects_dir = op.join(data_path, 'subjects')
     sample_dir = op.join(data_path, 'MEG', 'sample')
     fname_inv_vol = op.join(sample_dir,
