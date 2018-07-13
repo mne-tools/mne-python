@@ -7,11 +7,11 @@ import pytest
 
 
 from mne import (Epochs, read_events, read_epochs, find_events, create_info,
-                 pick_channels, pick_types)
+                 pick_channels, pick_types, concatenate_raws)
 from mne.io import RawArray, read_raw_fif
 from mne.utils import run_tests_if_main
 from mne.realtime import MockRtClient, RtEpochs
-from mne.datasets import sample
+from mne.datasets import testing
 
 # Set our plotters to test mode
 import matplotlib
@@ -320,11 +320,11 @@ def test_rejection(buffer_size):
     assert_array_equal(rt_data, epochs_data)
 
 
-@sample.requires_sample_data
-def test_events_sampledata():
+@testing.requires_testing_data
+def test_events_long():
     """Test events."""
-    data_path = sample.data_path()
-    raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+    data_path = testing.data_path()
+    raw_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw.fif'
     raw = read_raw_fif(raw_fname, preload=True)
     raw_tmin, raw_tmax = 0, 90
 
@@ -336,6 +336,9 @@ def test_events_sampledata():
                        stim=True, exclude=raw.info['bads'])
 
     # load data with usual Epochs for later verification
+    raw = concatenate_raws([raw, raw.copy(), raw.copy(), raw.copy(),
+                            raw.copy(), raw.copy()])
+    assert 110 < raw.times[-1] < 130
     raw_cropped = raw.copy().crop(raw_tmin, raw_tmax)
     events_offline = find_events(raw_cropped)
     epochs_offline = Epochs(raw_cropped, events_offline, event_id=event_id,

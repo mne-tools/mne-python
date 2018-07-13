@@ -97,7 +97,8 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
             n_active = active_set.size
             G = G[:, gidx]
 
-        CM = alpha * np.eye(n_sensors) + np.dot(G * gammas[np.newaxis, :], G.T)
+        CM = np.dot(G * gammas[np.newaxis, :], G.T)
+        CM.flat[::n_sensors + 1] += alpha
         # Invert CM keeping symmetry
         U, S, V = linalg.svd(CM, full_matrices=False)
         S = S[np.newaxis, :]

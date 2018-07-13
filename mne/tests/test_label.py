@@ -774,8 +774,8 @@ def test_random_parcellation():
     """Test generation of random cortical parcellation."""
     hemi = 'both'
     n_parcel = 50
-    surface = 'white'
-    subject = 'sample'
+    surface = 'sphere.reg'
+    subject = 'sample_ds'
     rng = np.random.RandomState(0)
 
     # Parcellation

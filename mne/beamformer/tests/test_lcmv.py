@@ -6,7 +6,8 @@ import numpy as np
 from scipy import linalg
 from scipy.spatial.distance import cdist
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_almost_equal, assert_allclose)
+                           assert_almost_equal, assert_allclose,
+                           assert_array_less)
 import warnings
 
 import mne
@@ -26,8 +27,6 @@ fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
-                    'sample-1280-1280-1280-bem-sol.fif')
 fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
                         'sample_audvis_trunc-meg-vol-7-fwd.fif')
 fname_event = op.join(data_path, 'MEG', 'sample',
@@ -35,6 +34,9 @@ fname_event = op.join(data_path, 'MEG', 'sample',
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
+
+reject = dict(grad=4000e-13, mag=4e-12)
 
 
 def _read_forward_solution_meg(*args, **kwargs):
@@ -67,18 +69,17 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bad channels
     # Set up pick list: MEG - bad channels
     left_temporal_channels = mne.read_selection('Left-temporal')
-    picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True,
-                           eog=True, ref_meg=False, exclude='bads',
-                           selection=left_temporal_channels)
+    picks = mne.pick_types(raw.info, selection=left_temporal_channels)
+    picks = picks[::4]  # decimate for speed
     raw.pick_channels([raw.ch_names[ii] for ii in picks])
+    del picks
     raw.info.normalize_proj()  # avoid projection warnings
 
     if epochs:
         # Read epochs
         epochs = mne.Epochs(
             raw, events, event_id, tmin, tmax, proj=True,
-            baseline=(None, 0), preload=epochs_preload,
-            reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
+            baseline=(None, 0), preload=epochs_preload, reject=reject)
         if epochs_preload:
             epochs.resample(200, npad=0, n_jobs=2)
         epochs.crop(0, None)
@@ -195,7 +196,7 @@ def test_lcmv():
         max_stc = stc.data[idx]
         tmax = stc.times[np.argmax(max_stc)]
 
-        assert 0.09 < tmax < 0.105, tmax
+        assert 0.09 < tmax < 0.12, tmax
         assert 0.9 < np.max(max_stc) < 3., np.max(max_stc)
 
         if fwd is forward:
@@ -211,7 +212,7 @@ def test_lcmv():
             max_stc = stc_normal.data[idx]
             tmax = stc_normal.times[np.argmax(max_stc)]
 
-            assert 0.04 < tmax < 0.11, tmax
+            assert 0.04 < tmax < 0.12, tmax
             assert 0.4 < np.max(max_stc) < 2., np.max(max_stc)
 
             # The amplitude of normal orientation results should always be
@@ -228,7 +229,7 @@ def test_lcmv():
         max_stc = np.abs(stc_max_power.data[idx])
         tmax = stc.times[np.argmax(max_stc)]
 
-        assert 0.08 < tmax < 0.11, tmax
+        assert 0.08 < tmax < 0.12, tmax
         assert 0.8 < np.max(max_stc) < 3., np.max(max_stc)
 
         stc_max_power.data[:, :] = np.abs(stc_max_power.data)
@@ -243,7 +244,7 @@ def test_lcmv():
             mean_stc_max_pow = \
                 stc_max_power.extract_label_time_course(label, fwd['src'],
                                                         mode='mean')
-            assert ((np.abs(mean_stc - mean_stc_max_pow) < 0.5).all())
+            assert_array_less(np.abs(mean_stc - mean_stc_max_pow), 0.6)
 
         # Test NAI weight normalization:
         filters = make_lcmv(evoked.info, fwd, data_cov, reg=0.01,
@@ -285,7 +286,7 @@ def test_lcmv():
     max_stc = stc_sphere.data[idx]
     tmax = stc_sphere.times[np.argmax(max_stc)]
 
-    assert 0.08 < tmax < 0.11, tmax
+    assert 0.08 < tmax < 0.15, tmax
     assert 0.4 < np.max(max_stc) < 2., np.max(max_stc)
 
     # Test if fixed forward operator is detected when picking normal or
@@ -478,17 +479,15 @@ def test_tf_lcmv():
 
     # Set up pick list: MEG - bad channels
     left_temporal_channels = mne.read_selection('Left-temporal')
-    picks = mne.pick_types(raw.info, meg=True, eeg=False,
-                           stim=True, eog=True, exclude='bads',
-                           selection=left_temporal_channels)
+    picks = mne.pick_types(raw.info, selection=left_temporal_channels)
+    picks = picks[::4]  # decimate for speed
     raw.pick_channels([raw.ch_names[ii] for ii in picks])
     raw.info.normalize_proj()  # avoid projection warnings
     del picks
 
     # Read epochs
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                        baseline=None, preload=False,
-                        reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
+                        baseline=None, preload=False, reject=reject)
     epochs.load_data()
 
     freq_bins = [(4, 12), (15, 40)]

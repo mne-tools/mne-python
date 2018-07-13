@@ -69,61 +69,29 @@ def _read_filter(fid):
     return f
 
 
-def _read_channel(fid):
-    """Read channel information."""
-    ch = dict()
-    ch['sensor_type_index'] = _read_int2(fid)
-    ch['original_run_no'] = _read_int2(fid)
-    ch['coil_type'] = _read_int(fid)
-    ch['proper_gain'] = _read_double(fid)[0]
-    ch['qgain'] = _read_double(fid)[0]
-    ch['io_gain'] = _read_double(fid)[0]
-    ch['io_offset'] = _read_double(fid)[0]
-    ch['num_coils'] = _read_int2(fid)
-    ch['grad_order_no'] = int(_read_int2(fid))
-    _read_int(fid)  # pad
-    ch['coil'] = dict()
-    ch['head_coil'] = dict()
-    for coil in (ch['coil'], ch['head_coil']):
-        coil['pos'] = list()
-        coil['norm'] = list()
-        coil['turns'] = np.empty(CTF.CTFV_MAX_COILS)
-        coil['area'] = np.empty(CTF.CTFV_MAX_COILS)
-        for k in range(CTF.CTFV_MAX_COILS):
-            # It would have been wonderful to use meters in the first place
-            coil['pos'].append(_read_double(fid, 3) / 100.)
-            fid.seek(8, 1)  # dummy double
-            coil['norm'].append(_read_double(fid, 3))
-            fid.seek(8, 1)  # dummy double
-            coil['turns'][k] = _read_int2(fid)
-            _read_int(fid)  # pad
-            _read_int2(fid)  # pad
-            # Looks like this is given in cm^2
-            coil['area'][k] = _read_double(fid)[0] * 1e-4
-    return ch
-
-
 def _read_comp_coeff(fid, d):
     """Read compensation coefficients."""
     # Read the coefficients and initialize
     d['ncomp'] = _read_int2(fid)
     d['comp'] = list()
     # Read each record
+    dt = np.dtype([
+        ('sensor_name', 'S32'),
+        ('coeff_type', '>i4'), ('d0', '>i4'),
+        ('ncoeff', '>i2'),
+        ('sensors', 'S%s' % CTF.CTFV_SENSOR_LABEL, CTF.CTFV_MAX_BALANCING),
+        ('coeffs', '>f8', CTF.CTFV_MAX_BALANCING)])
+    comps = np.fromfile(fid, dt, d['ncomp'])
     for k in range(d['ncomp']):
         comp = dict()
         d['comp'].append(comp)
-        comp['sensor_name'] = _read_string(fid, 32)
-        comp['coeff_type'] = _read_int(fid)
-        _read_int(fid)  # pad
-        comp['ncoeff'] = _read_int2(fid)
-        comp['coeffs'] = np.zeros(comp['ncoeff'])
-        comp['sensors'] = [_read_string(fid, CTF.CTFV_SENSOR_LABEL)
-                           for p in range(comp['ncoeff'])]
-        unused = CTF.CTFV_MAX_BALANCING - comp['ncoeff']
-        comp['sensors'] += [''] * unused
-        fid.seek(unused * CTF.CTFV_SENSOR_LABEL, 1)
-        comp['coeffs'][:comp['ncoeff']] = _read_double(fid, comp['ncoeff'])
-        fid.seek(unused * 8, 1)
+        comp['sensor_name'] = \
+            comps['sensor_name'][k].split(b'\x00')[0].decode('utf-8')
+        comp['coeff_type'] = comps['coeff_type'][k]
+        comp['ncoeff'] = comps['ncoeff'][k]
+        comp['sensors'] = [s.split(b'\x00')[0].decode('utf-8')
+                           for s in comps['sensors'][k][:comp['ncoeff']]]
+        comp['coeffs'] = comps['coeffs'][k][:comp['ncoeff']]
         comp['scanno'] = d['ch_names'].index(comp['sensor_name'])
 
 
@@ -194,16 +162,37 @@ def _read_res4(dsdir):
         for k in range(res['nfilt']):
             res['filters'].append(_read_filter(fid))
 
-        # Channel information
-        res['chs'] = list()
+        # Channel information (names, then data)
         res['ch_names'] = list()
         for k in range(res['nchan']):
-            res['chs'].append(dict())
             ch_name = _read_string(fid, 32)
-            res['chs'][k]['ch_name'] = ch_name
             res['ch_names'].append(ch_name)
+        _coil_dt = np.dtype([
+            ('pos', '>f8', 3), ('d0', '>f8'),
+            ('norm', '>f8', 3), ('d1', '>f8'),
+            ('turns', '>i2'), ('d2', '>i4'), ('d3', '>i2'),
+            ('area', '>f8')])
+        _ch_dt = np.dtype([
+            ('sensor_type_index', '>i2'),
+            ('original_run_no', '>i2'),
+            ('coil_type', '>i4'),
+            ('proper_gain', '>f8'),
+            ('qgain', '>f8'),
+            ('io_gain', '>f8'),
+            ('io_offset', '>f8'),
+            ('num_coils', '>i2'),
+            ('grad_order_no', '>i2'), ('d0', '>i4'),
+            ('coil', _coil_dt, CTF.CTFV_MAX_COILS),
+            ('head_coil', _coil_dt, CTF.CTFV_MAX_COILS)])
+        chs = np.fromfile(fid, _ch_dt, res['nchan'])
+        for coil in (chs['coil'], chs['head_coil']):
+            coil['pos'] /= 100.
+            coil['area'] *= 1e-4
+        # convert to dict
+        chs = [dict(zip(chs.dtype.names, x)) for x in chs]
+        res['chs'] = chs
         for k in range(res['nchan']):
-            res['chs'][k].update(_read_channel(fid))
+            res['chs'][k]['ch_name'] = res['ch_names'][k]
 
         # The compensation coefficients
         _read_comp_coeff(fid, res)

@@ -6,8 +6,7 @@ import os.path as op
 
 import pytest
 import numpy as np
-from numpy.testing import (assert_array_almost_equal, assert_equal,
-                           assert_allclose)
+from numpy.testing import assert_array_almost_equal, assert_allclose
 
 import mne
 from mne.datasets import testing
@@ -36,7 +35,7 @@ def _check_stc(stc, evoked, idx, ratio=50.):
     order = np.argsort(amps)[::-1]
     amps = amps[order]
     verts = np.concatenate(stc.vertices)[order]
-    assert_equal(idx, verts[0], err_msg=str(list(verts)))
+    assert idx == verts[0], str(list(verts))
     assert amps[0] > ratio * amps[1]
 
 
@@ -61,7 +60,7 @@ def test_gamma_map():
     evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0),
                           proj=False)
     evoked.resample(50, npad=100)
-    evoked.crop(tmin=0.1, tmax=0.16)  # crop to window around peak
+    evoked.crop(tmin=0.1, tmax=0.14)  # crop to window around peak
 
     cov = read_cov(fname_cov)
     cov = regularize(cov, evoked.info)
@@ -103,7 +102,7 @@ def test_gamma_map_vol_sphere():
 
     info = evoked.info
     sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.080)
-    src = mne.setup_volume_source_space(subject=None, pos=15., mri=None,
+    src = mne.setup_volume_source_space(subject=None, pos=30., mri=None,
                                         sphere=(0.0, 0.0, 0.0, 80.0),
                                         bem=None, mindist=5.0,
                                         exclude=2.0)

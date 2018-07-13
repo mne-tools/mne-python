@@ -69,8 +69,8 @@ def _skip_check_picard(method):
     if method == 'picard':
         try:
             import picard  # noqa, analysis:ignore
-        except Exception:
-            raise SkipTest("Picard is not installed.")
+        except Exception as exp:
+            raise SkipTest("Picard is not installed (%s)." % (exp,))
 
 
 @requires_sklearn
