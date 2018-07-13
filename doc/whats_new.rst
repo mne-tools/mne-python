@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add :class:`mne.SourceMorph` with :meth:`mne.SourceMorph.save` and :meth:`mne.SourceMorph.as_volume`, :func:`mne.read_source_morph`, :func:`mne.read_source_morph`, by `Tommy Clausner`_
+
 - Add possibility to save :class:`mne.VolSourceEstimate` and :class:`mne.MixedSourceEstimate` to HDF5 format (file extension .h5) with :meth:`mne.VolSourceEstimate.save` and :meth:`mne.MixedSourceEstimate.save` by `Alex Gramfort`_
 
 - Add ability to pass ``axes`` to ``ts_args`` and ``topomap_args`` of :meth:`mne.viz.plot_evoked_joint` by `Jona Sassenhagen`_

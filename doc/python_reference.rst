@@ -763,6 +763,7 @@ Source Space Data
    SourceEstimate
    VectorSourceEstimate
    VolSourceEstimate
+   SourceMorph
 
 .. autosummary::
    :toctree: generated/
@@ -782,6 +783,7 @@ Source Space Data
    read_dipole
    read_label
    read_source_estimate
+   read_source_morph
    save_stc_as_volume
    split_label
    stc_to_label

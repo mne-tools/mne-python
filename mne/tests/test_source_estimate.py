@@ -11,15 +11,13 @@ from scipy.fftpack import fft
 from mne.datasets import testing
 from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  VolSourceEstimate, Label, read_source_spaces,
-                 read_evokeds, MixedSourceEstimate, find_events, Epochs,
-                 read_source_estimate, morph_data, extract_label_time_course,
+                 MixedSourceEstimate, find_events, Epochs,
+                 read_source_estimate, extract_label_time_course,
                  spatio_temporal_tris_connectivity,
                  spatio_temporal_src_connectivity,
                  spatial_inter_hemi_connectivity,
-                 spatial_src_connectivity, spatial_tris_connectivity,
-                 SourceSpaces)
-from mne.source_estimate import (compute_morph_matrix, grade_to_vertices,
-                                 grade_to_tris, _get_vol_mask)
+                 spatial_src_connectivity, spatial_tris_connectivity)
+from mne.source_estimate import (grade_to_tris, _get_vol_mask)
 
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs)
@@ -131,49 +129,6 @@ def test_volume_stc():
 
 
 @testing.requires_testing_data
-@requires_nibabel()
-def test_save_vol_stc_as_nifti():
-    """Save the stc as a nifti file and export."""
-    import nibabel as nib
-    tempdir = _TempDir()
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('always')
-        src = read_source_spaces(fname_vsrc)
-    vol_fname = op.join(tempdir, 'stc.nii.gz')
-
-    # now let's actually read a MNE-C processed file
-    stc = read_source_estimate(fname_vol, 'sample')
-    assert (isinstance(stc, VolSourceEstimate))
-
-    stc.save_as_volume(vol_fname, src,
-                       dest='surf', mri_resolution=False)
-    with warnings.catch_warnings(record=True):  # nib<->numpy
-        img = nib.load(vol_fname)
-    assert (img.shape == src[0]['shape'] + (len(stc.times),))
-
-    with warnings.catch_warnings(record=True):  # nib<->numpy
-        t1_img = nib.load(fname_t1)
-    stc.save_as_volume(op.join(tempdir, 'stc.nii.gz'), src,
-                       dest='mri', mri_resolution=True)
-    with warnings.catch_warnings(record=True):  # nib<->numpy
-        img = nib.load(vol_fname)
-    assert (img.shape == t1_img.shape + (len(stc.times),))
-    assert_allclose(img.affine, t1_img.affine, atol=1e-5)
-
-    # export without saving
-    img = stc.as_volume(src, dest='mri', mri_resolution=True)
-    assert (img.shape == t1_img.shape + (len(stc.times),))
-    assert_allclose(img.affine, t1_img.affine, atol=1e-5)
-
-    src = SourceSpaces([src[0], src[0]])
-    stc = VolSourceEstimate(np.r_[stc.data, stc.data],
-                            [stc.vertices, stc.vertices],
-                            tmin=stc.tmin, tstep=stc.tstep)
-    img = stc.as_volume(src, dest='mri', mri_resolution=False)
-    assert (img.shape == src[0]['shape'] + (len(stc.times),))
-
-
-@testing.requires_testing_data
 def test_expand():
     """Test stc expansion."""
     stc_ = read_source_estimate(fname_stc, 'sample')
@@ -207,12 +162,6 @@ def _fake_vec_stc(n_time=10):
     verts = [np.arange(10), np.arange(90)]
     return VectorSourceEstimate(np.random.rand(100, 3, n_time), verts, 0, 1e-1,
                                 'foo')
-
-
-def _real_vec_stc():
-    inv = read_inverse_operator(fname_inv)
-    evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0].crop(0, 0.01)
-    return apply_inverse(evoked, inv, pick_ori='vector')
 
 
 def _test_stc_integrety(stc):
@@ -541,125 +490,6 @@ def test_extract_label_time_course():
     label = Label(vertices=[], hemi='lh')
     x = label_sign_flip(label, src)
     assert (x.size == 0)
-
-
-@pytest.mark.slowtest
-@testing.requires_testing_data
-def test_morph_data():
-    """Test morphing of data."""
-    tempdir = _TempDir()
-    subject_from = 'sample'
-    subject_to = 'fsaverage'
-    stc_from = read_source_estimate(fname_smorph, subject='sample')
-    stc_to = read_source_estimate(fname_fmorph)
-    # make sure we can specify grade
-    stc_from.crop(0.09, 0.1)  # for faster computation
-    stc_to.crop(0.09, 0.1)  # for faster computation
-    assert_array_equal(stc_to.time_as_index([0.09, 0.1], use_rounding=True),
-                       [0, len(stc_to.times) - 1])
-    pytest.raises(ValueError, stc_from.morph, subject_to, grade=3, smooth=-1,
-                  subjects_dir=subjects_dir)
-    stc_to1 = stc_from.morph(subject_to, grade=3, smooth=12, buffer_size=1000,
-                             subjects_dir=subjects_dir)
-    stc_to1.save(op.join(tempdir, '%s_audvis-meg' % subject_to))
-    # Morphing to a density that is too high should raise an informative error
-    # (here we need to push to grade=6, but for some subjects even grade=5
-    # will break)
-    pytest.raises(ValueError, stc_to1.morph, subject_from, grade=6,
-                  subjects_dir=subjects_dir)
-    # make sure we can specify vertices
-    vertices_to = grade_to_vertices(subject_to, grade=3,
-                                    subjects_dir=subjects_dir)
-    stc_to2 = morph_data(subject_from, subject_to, stc_from,
-                         grade=vertices_to, smooth=12, buffer_size=1000,
-                         subjects_dir=subjects_dir)
-    # make sure we can use different buffer_size
-    stc_to3 = morph_data(subject_from, subject_to, stc_from,
-                         grade=vertices_to, smooth=12, buffer_size=3,
-                         subjects_dir=subjects_dir)
-    # make sure we get a warning about # of steps
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        morph_data(subject_from, subject_to, stc_from,
-                   grade=vertices_to, smooth=1, buffer_size=3,
-                   subjects_dir=subjects_dir)
-    assert sum('consider increasing' in str(ww.message) for ww in w) == 2
-
-    assert_array_almost_equal(stc_to.data, stc_to1.data, 5)
-    assert_array_almost_equal(stc_to1.data, stc_to2.data)
-    assert_array_almost_equal(stc_to1.data, stc_to3.data)
-    # make sure precomputed morph matrices work
-    morph_mat = compute_morph_matrix(subject_from, subject_to,
-                                     stc_from.vertices, vertices_to,
-                                     smooth=12, subjects_dir=subjects_dir)
-    stc_to3 = stc_from.morph_precomputed(subject_to, vertices_to, morph_mat)
-    assert_array_almost_equal(stc_to1.data, stc_to3.data)
-    pytest.raises(ValueError, stc_from.morph_precomputed,
-                  subject_to, vertices_to, 'foo')
-    pytest.raises(ValueError, stc_from.morph_precomputed,
-                  subject_to, [vertices_to[0]], morph_mat)
-    pytest.raises(ValueError, stc_from.morph_precomputed,
-                  subject_to, [vertices_to[0][:-1], vertices_to[1]], morph_mat)
-    pytest.raises(ValueError, stc_from.morph_precomputed, subject_to,
-                  vertices_to, morph_mat, subject_from='foo')
-
-    # steps warning
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        compute_morph_matrix(subject_from, subject_to,
-                             stc_from.vertices, vertices_to,
-                             smooth=1, subjects_dir=subjects_dir)
-    assert_equal(len(w), 2)
-
-    mean_from = stc_from.data.mean(axis=0)
-    mean_to = stc_to1.data.mean(axis=0)
-    assert (np.corrcoef(mean_to, mean_from).min() > 0.999)
-
-    # make sure we can fill by morphing
-    stc_to5 = morph_data(subject_from, subject_to, stc_from, grade=None,
-                         smooth=12, buffer_size=3, subjects_dir=subjects_dir)
-    assert (stc_to5.data.shape[0] == 163842 + 163842)
-
-    # Morph sparse data
-    # Make a sparse stc
-    stc_from.vertices[0] = stc_from.vertices[0][[100, 500]]
-    stc_from.vertices[1] = stc_from.vertices[1][[200]]
-    stc_from._data = stc_from._data[:3]
-
-    pytest.raises(RuntimeError, stc_from.morph, subject_to, sparse=True,
-                  grade=5, subjects_dir=subjects_dir)
-
-    stc_to_sparse = stc_from.morph(subject_to, grade=None, sparse=True,
-                                   subjects_dir=subjects_dir)
-    assert_array_almost_equal(np.sort(stc_from.data.sum(axis=1)),
-                              np.sort(stc_to_sparse.data.sum(axis=1)))
-    assert_equal(len(stc_from.rh_vertno), len(stc_to_sparse.rh_vertno))
-    assert_equal(len(stc_from.lh_vertno), len(stc_to_sparse.lh_vertno))
-    assert_equal(stc_to_sparse.subject, subject_to)
-    assert_equal(stc_from.tmin, stc_from.tmin)
-    assert_equal(stc_from.tstep, stc_from.tstep)
-
-    stc_from.vertices[0] = np.array([], dtype=np.int64)
-    stc_from._data = stc_from._data[:1]
-
-    stc_to_sparse = stc_from.morph(subject_to, grade=None, sparse=True,
-                                   subjects_dir=subjects_dir)
-    assert_array_almost_equal(np.sort(stc_from.data.sum(axis=1)),
-                              np.sort(stc_to_sparse.data.sum(axis=1)))
-    assert_equal(len(stc_from.rh_vertno), len(stc_to_sparse.rh_vertno))
-    assert_equal(len(stc_from.lh_vertno), len(stc_to_sparse.lh_vertno))
-    assert_equal(stc_to_sparse.subject, subject_to)
-    assert_equal(stc_from.tmin, stc_from.tmin)
-    assert_equal(stc_from.tstep, stc_from.tstep)
-
-    # Morph vector data
-    stc_vec = _real_vec_stc()
-
-    # Ignore warnings about number of steps
-    stc_vec_to1 = stc_vec.morph(subject_to, grade=3, smooth=12,
-                                buffer_size=1000, subjects_dir=subjects_dir)
-    stc_vec_to2 = stc_vec.morph_precomputed(subject_to, vertices_to, morph_mat)
-    assert_array_almost_equal(stc_vec_to1.data, stc_vec_to2.data)
 
 
 def _my_trans(data):
