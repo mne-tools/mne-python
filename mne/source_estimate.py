@@ -2205,9 +2205,6 @@ class MixedSourceEstimate(_BaseSourceEstimate):
 ###############################################################################
 # Morphing
 @verbose
-@deprecated("This function is deprecated and might be removed in a future "
-            "release. Use morph = SourceMorph(src_from) and "
-            "stc_to = morph(stc_from)")
 def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
                subjects_dir=None, buffer_size=64, n_jobs=1, warn=True,
                verbose=None):
@@ -2275,9 +2272,6 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     return stc_to
 
 
-@deprecated("This function is deprecated and might be removed in a future "
-            "release. Use morph = SourceMorph(src_from) and "
-            "stc_to = morph(stc_from)")
 def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
                            morph_mat):
     """Morph source estimate between subjects using a precomputed matrix.

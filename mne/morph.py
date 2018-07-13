@@ -556,8 +556,9 @@ def _compute_morph_data(morph, verbose=None):
         if morph.subject_to == 'fsaverage':
             data_to = [np.arange(10242)] * 2
 
-        if (isinstance(morph.spacing, int) or isinstance(morph.spacing, list)
-                or morph.subject_to != 'fsaverage'):
+        if (isinstance(morph.spacing, int) or
+                isinstance(morph.spacing, list) or
+                morph.subject_to != 'fsaverage'):
             data_to = grade_to_vertices(morph.subject_to, morph.spacing,
                                         subjects_dir, 1)
 
@@ -1252,6 +1253,8 @@ def _apply_morph_data(morph, stc_from, verbose=None):
 
     Parameters
     ----------
+    morph : SourceMorph
+        Instance of SourceMorph used to compute the respective morphing data
     stc_from : VolSourceEstimate | VectorSourceEstimate | SourceEstimate
         Data to be morphed
     verbose : bool | str | int | None

@@ -5,10 +5,6 @@
 import os.path as op
 import warnings
 
-from mne import (read_label, stc_to_label, read_source_estimate,
-                 read_source_spaces, grow_labels, read_labels_from_annot,
-                 write_labels_to_annot, split_label, spatial_tris_connectivity,
-                 read_surface, random_parcellation)
 import pytest
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -124,8 +120,6 @@ def test_morph_data():
         warnings.simplefilter('always')
         stc_to1 = stc_from.morph(subject_to, grade=3, smooth=12,
                                  subjects_dir=subjects_dir)
-    # morph_data is deprecated
-    assert sum('deprecated' in str(ww.message) for ww in w) == 1
 
     stc_to1.save(op.join(tempdir, '%s_audvis-meg' % subject_to))
     # Morphing to a density that is too high should raise an informative error
@@ -142,8 +136,6 @@ def test_morph_data():
         stc_to2 = morph_data(subject_from, subject_to, stc_from,
                              grade=vertices_to, smooth=12,
                              subjects_dir=subjects_dir)
-    # morph_data is deprecated
-    assert sum('deprecated' in str(ww.message) for ww in w) == 1
 
     # make sure we get a warning about # of steps
     with warnings.catch_warnings(record=True) as w:
@@ -152,9 +144,6 @@ def test_morph_data():
                    grade=vertices_to, smooth=1,
                    subjects_dir=subjects_dir)
     assert sum('consider increasing' in str(ww.message) for ww in w) == 2
-
-    # previous + deprecation warning
-    assert sum('deprecated' in str(ww.message) for ww in w) == 1
 
     assert_array_almost_equal(stc_to.data, stc_to1.data, 5)
     assert_array_almost_equal(stc_to1.data, stc_to2.data)
@@ -189,8 +178,6 @@ def test_morph_data():
         compute_morph_matrix(subject_from, subject_to,
                              stc_from.vertices, vertices_to,
                              smooth=1, subjects_dir=subjects_dir)
-    # Deprecation warning
-    assert sum('deprecated' in str(ww.message) for ww in w) == 1
 
     mean_from = stc_from.data.mean(axis=0)
     mean_to = stc_to1.data.mean(axis=0)
@@ -248,8 +235,6 @@ def test_morph_data():
         stc_vec_to2 = stc_vec.morph_precomputed(subject_to, vertices_to,
                                                 morph_mat)
     assert_array_almost_equal(stc_vec_to1.data, stc_vec_to2.data)
-
-    assert sum('deprecated' in str(ww.message) for ww in w) == 2
 
 
 @requires_nibabel()
@@ -323,7 +308,8 @@ def test_surface_vector_source_morph():
 def test_volume_source_morph():
     """Test volume source estimate morph, special cases and exceptions."""
     import nibabel as nib
-    data_path = sample.data_path(download=False)  # because testing data has no brain.mgz
+    data_path = sample.data_path(
+        download=False)  # because testing data has no brain.mgz
     subjects_dir = op.join(data_path, 'subjects')
     sample_dir = op.join(data_path, 'MEG', 'sample')
     fname_inv_vol = op.join(sample_dir,
@@ -353,14 +339,12 @@ def test_volume_source_morph():
                                    niter_affine=(10, 10, 10),
                                    niter_sdr=(3, 3, 3), spacing=7)
 
-    # the brain used in sample data has shape (255, 255, 255), the default is
-    # spacing=5
-    assert tuple(
-        source_morph_vol.data['DiffeomorphicMap']['domain_shape']) == (
-               37, 37, 37)
+    # the brain used in sample data has shape (255, 255, 255)
+    assert (tuple(source_morph_vol.data['DiffeomorphicMap']['domain_shape']) ==
+            (37, 37, 37))
 
-    assert tuple(source_morph_vol.data['AffineMap']['domain_shape']) == (
-        37, 37, 37)
+    assert (tuple(source_morph_vol.data['AffineMap']['domain_shape']) ==
+            (37, 37, 37))
 
     # proofs the above
     assert source_morph_vol.spacing == 7
@@ -419,9 +403,9 @@ def test_volume_source_morph():
     img_mri_res = source_morph_vol.as_volume(stc_vol_morphed,
                                              mri_resolution=True)
     assert isinstance(img_mri_res, nib.Nifti1Image)
-    assert img_mri_res.shape == (
-        src[0]['mri_height'], src[0]['mri_depth'], src[0]['mri_width']) + (
-               img_mri_res.shape[3],)
+    assert (img_mri_res.shape == (src[0]['mri_height'], src[0]['mri_depth'],
+                                  src[0]['mri_width']) +
+            (img_mri_res.shape[3],))
 
     # check if nifti is defined resolution with voxel_size == (5., 5., 5.)
     img_any_res = source_morph_vol.as_volume(stc_vol_morphed,
