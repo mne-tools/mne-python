@@ -354,13 +354,13 @@ def read_source_morph(fname, verbose=None):
 # Helper functions for SourceMorph methods
 def _check_hemi_data(data_in, data_ref):
     """Check and setup correct data for hemispheres."""
-    data_out = []
-    if data_ref[0].size == 0:
-        if data_ref[1].size == 0:
+    data_out = data_in
+    if data_ref[0].size == 0 or data_ref[0] is None:
+        if data_ref[1].size == 0 or data_ref[1] is None:
             data_out = [np.array([], int), np.array([], int)]
         else:
             data_out = [np.array([], int), data_in[1]]
-    elif data_ref[1].size == 0:
+    elif data_ref[1].size == 0 or data_ref[1] is None:
         data_out = [data_in[0], np.array([], int)]
     return data_out
 
