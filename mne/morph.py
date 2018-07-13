@@ -167,7 +167,7 @@ class SourceMorph(object):
                  subjects_dir=None, niter_affine=(100, 100, 10),
                  niter_sdr=(5, 5, 3), spacing=5,
                  smooth=None,
-                 warn=True, xhemi=False, verbose=False):
+                 warn=True, xhemi=False, verbose=False):  # noqa: D102
 
         # it's impossible to use the class without passing this check, so it
         # only needs to be checked here
