@@ -97,6 +97,8 @@ def test_save_vol_stc_as_nifti():
     pytest.raises(ValueError, stc.as_volume, src, mri_resolution=(4., 4., 4.))
 
 
+@requires_nibabel()
+@requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_morph_data():
@@ -267,6 +269,8 @@ def test_stc_as_volume():
                   mri_resolution=(4., 4., 4.))
 
 
+@requires_nibabel()
+@requires_dipy()
 @testing.requires_testing_data
 def test_surface_vector_source_morph():
     """Test surface and vector source estimate morph."""
