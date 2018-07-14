@@ -65,6 +65,7 @@ source_morph = SourceMorph(inverse_operator['src'],
 # Obtain absolute value for plotting
 # To not copy the data into a new memory location, out=stc.data is set
 np.abs(stc.data, out=stc.data)
+
 # Morph data
 stc_fsaverage = source_morph(stc)
 

@@ -438,7 +438,7 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
     hdr['pixdim'][4] = 1e3 * stc.tstep
 
     # setup volume
-    img = np.zeros(shape).reshape(-1, stc.shape[1])
+    img = np.zeros(shape + (stc.shape[1],)).reshape(-1, stc.shape[1])
     img[stc.vertices, :] = stc.data
 
     img = img.reshape(shape + (-1,))
