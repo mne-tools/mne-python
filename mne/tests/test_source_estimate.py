@@ -23,7 +23,8 @@ from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs)
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
-                       requires_h5py, run_tests_if_main, requires_nibabel)
+                       requires_h5py, run_tests_if_main, requires_nibabel,
+                       requires_dipy)
 from mne.io import read_raw_fif
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -43,10 +44,7 @@ fname_src_fs = op.join(data_path, 'subjects', 'fsaverage', 'bem',
 fname_src_3 = op.join(data_path, 'subjects', 'sample', 'bem',
                       'sample-oct-4-src.fif')
 fname_stc = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg')
-fname_smorph = op.join(data_path, 'MEG', 'sample',
-                       'sample_audvis_trunc-meg')
-fname_fmorph = op.join(data_path, 'MEG', 'sample',
-                       'fsaverage_audvis_trunc-meg')
+
 fname_vol = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
 fname_vsrc = op.join(data_path, 'MEG', 'sample',
@@ -828,6 +826,7 @@ def test_spatial_src_connectivity():
 
 @requires_sklearn
 @requires_nibabel()
+@requires_dipy()
 @testing.requires_testing_data
 def test_vol_mask():
     """Test extraction of volume mask."""

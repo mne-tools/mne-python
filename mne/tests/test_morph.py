@@ -278,7 +278,8 @@ def test_surface_vector_source_morph():
     stc_vec = _real_vec_stc()
 
     source_morph_surf = SourceMorph(inverse_operator_surf['src'],
-                                    subjects_dir=subjects_dir)
+                                    subjects_dir=subjects_dir,
+                                    spacing=[np.arange(10242)] * 2)
 
     assert isinstance(source_morph_surf, SourceMorph)
 
