@@ -1,4 +1,4 @@
-import os.path as op
+import os
 import warnings
 from copy import deepcopy
 
@@ -7,7 +7,6 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
 from scipy.fftpack import fft
-
 from mne.datasets import testing
 from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  VolSourceEstimate, Label, read_source_spaces,
@@ -18,7 +17,6 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  spatial_inter_hemi_connectivity,
                  spatial_src_connectivity, spatial_tris_connectivity)
 from mne.source_estimate import (grade_to_tris, _get_vol_mask)
-
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs)
 from mne.label import read_labels_from_annot, label_sign_flip
@@ -30,25 +28,26 @@ from mne.io import read_raw_fif
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 data_path = testing.data_path(download=False)
-subjects_dir = op.join(data_path, 'subjects')
-fname_inv = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
-fname_evoked = op.join(data_path, 'MEG', 'sample',
-                       'sample_audvis_trunc-ave.fif')
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-fname_t1 = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
-fname_src = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
-fname_src_fs = op.join(data_path, 'subjects', 'fsaverage', 'bem',
-                       'fsaverage-ico-5-src.fif')
-fname_src_3 = op.join(data_path, 'subjects', 'sample', 'bem',
-                      'sample-oct-4-src.fif')
-fname_stc = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg')
+subjects_dir = os.path.join(data_path, 'subjects')
+fname_inv = os.path.join(data_path, 'MEG', 'sample',
+                         'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
+fname_evoked = os.path.join(data_path, 'MEG', 'sample',
+                            'sample_audvis_trunc-ave.fif')
+fname_raw = os.path.join(data_path, 'MEG', 'sample',
+                         'sample_audvis_trunc_raw.fif')
+fname_t1 = os.path.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
+fname_src = os.path.join(data_path, 'MEG', 'sample',
+                         'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
+fname_src_fs = os.path.join(data_path, 'subjects', 'fsaverage', 'bem',
+                            'fsaverage-ico-5-src.fif')
+fname_src_3 = os.path.join(data_path, 'subjects', 'sample', 'bem',
+                           'sample-oct-4-src.fif')
+fname_stc = os.path.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg')
 
-fname_vol = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
-fname_vsrc = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis_trunc-meg-vol-7-fwd.fif')
+fname_vol = os.path.join(data_path, 'MEG', 'sample',
+                         'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
+fname_vsrc = os.path.join(data_path, 'MEG', 'sample',
+                          'sample_audvis_trunc-meg-vol-7-fwd.fif')
 rng = np.random.RandomState(0)
 
 
@@ -100,7 +99,7 @@ def test_volume_stc():
     vertno_reads = [vertno, vertno, np.arange(2)]
     for data, vertno, vertno_read in zip(datas, vertnos, vertno_reads):
         stc = VolSourceEstimate(data, vertno, 0, 1)
-        fname_temp = op.join(tempdir, 'temp-vl.stc')
+        fname_temp = os.path.join(tempdir, 'temp-vl.stc')
         stc_new = stc
         for _ in range(2):
             stc_new.save(fname_temp)
@@ -118,7 +117,7 @@ def test_volume_stc():
     pytest.raises(ValueError, stc.save, fname_vol, ftype='whatever')
     for ftype in ['w', 'h5']:
         for _ in range(2):
-            fname_temp = op.join(tempdir, 'temp-vol.%s' % ftype)
+            fname_temp = os.path.join(tempdir, 'temp-vol.%s' % ftype)
             stc_new.save(fname_temp, ftype=ftype)
             stc_new = read_source_estimate(fname_temp)
             assert (isinstance(stc_new, VolSourceEstimate))
@@ -230,8 +229,8 @@ def test_io_stc():
     """Test IO for STC files."""
     tempdir = _TempDir()
     stc = _fake_stc()
-    stc.save(op.join(tempdir, "tmp.stc"))
-    stc2 = read_source_estimate(op.join(tempdir, "tmp.stc"))
+    stc.save(os.path.join(tempdir, "tmp.stc"))
+    stc2 = read_source_estimate(os.path.join(tempdir, "tmp.stc"))
 
     assert_array_almost_equal(stc.data, stc2.data)
     assert_array_almost_equal(stc.tmin, stc2.tmin)
@@ -246,9 +245,9 @@ def test_io_stc_h5():
     """Test IO for STC files using HDF5."""
     for stc in [_fake_stc(), _fake_vec_stc()]:
         tempdir = _TempDir()
-        pytest.raises(ValueError, stc.save, op.join(tempdir, 'tmp'),
+        pytest.raises(ValueError, stc.save, os.path.join(tempdir, 'tmp'),
                       ftype='foo')
-        out_name = op.join(tempdir, 'tmp')
+        out_name = os.path.join(tempdir, 'tmp')
         stc.save(out_name, ftype='h5')
         stc.save(out_name, ftype='h5')  # test overwrite
         stc3 = read_source_estimate(out_name)
@@ -270,11 +269,11 @@ def test_io_w():
     """Test IO for w files."""
     tempdir = _TempDir()
     stc = _fake_stc(n_time=1)
-    w_fname = op.join(tempdir, 'fake')
+    w_fname = os.path.join(tempdir, 'fake')
     stc.save(w_fname, ftype='w')
     src = read_source_estimate(w_fname)
-    src.save(op.join(tempdir, 'tmp'), ftype='w')
-    src2 = read_source_estimate(op.join(tempdir, 'tmp-lh.w'))
+    src.save(os.path.join(tempdir, 'tmp'), ftype='w')
+    src2 = read_source_estimate(os.path.join(tempdir, 'tmp-lh.w'))
     assert_array_almost_equal(src.data, src2.data)
     assert_array_almost_equal(src.lh_vertno, src2.lh_vertno)
     assert_array_almost_equal(src.rh_vertno, src2.rh_vertno)
@@ -467,7 +466,8 @@ def test_extract_label_time_course():
     for mode in modes:
         label_tc = extract_label_time_course(stcs, labels, src, mode=mode)
         label_tc_method = [stc.extract_label_time_course(labels, src,
-                           mode=mode) for stc in stcs]
+                                                         mode=mode) for stc in
+                           stcs]
         assert (len(label_tc) == n_stcs)
         assert (len(label_tc_method) == n_stcs)
         for tc1, tc2 in zip(label_tc, label_tc_method):
@@ -507,7 +507,7 @@ def test_transform_data():
     vertices = np.arange(n_vertices)
     data = np.dot(kernel, sens_data)
 
-    for idx, tmin_idx, tmax_idx in\
+    for idx, tmin_idx, tmax_idx in \
             zip([None, np.arange(n_vertices // 2, n_vertices)],
                 [None, 1], [None, 3]):
 
@@ -711,7 +711,7 @@ def test_mixed_stc():
     pytest.raises(ValueError, stc.plot_surface, src=vol)
 
     tempdir = _TempDir()
-    fname = op.join(tempdir, 'mixed-stc.h5')
+    fname = os.path.join(tempdir, 'mixed-stc.h5')
     stc.save(fname)
     stc_out = read_source_estimate(fname)
     assert_array_equal(stc_out.vertices, vertno)

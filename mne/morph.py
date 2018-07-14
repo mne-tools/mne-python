@@ -3,7 +3,7 @@
 # License: BSD (3-clause)
 
 
-import os.path as op
+import os
 import warnings
 import copy
 
@@ -186,7 +186,7 @@ class SourceMorph(object):
             return
         # read if path provided
         if isinstance(src, string_types):
-            if op.isfile(src):
+            if os.path.isfile(src):
                 src = read_forward_solution(src)['src']
             else:
                 raise IOError('cannot read file %s' % src)
@@ -338,7 +338,7 @@ def read_source_morph(fname, verbose=None):
     source_morph : instance of SourceMorph
         The loaded morph.
     """
-    if op.isfile(fname):
+    if os.path.isfile(fname):
         logger.info('loading morph...')
         data = read_hdf5(fname)
     else:
@@ -519,22 +519,22 @@ def _compute_morph_data(morph, verbose=None):
         import nibabel as nib
 
         # load moving mri
-        mri_subpath = op.join('mri', 'brain.mgz')
-        mri_path_from = op.join(subjects_dir, morph.subject_from,
-                                mri_subpath)
+        mri_subpath = os.path.join('mri', 'brain.mgz')
+        mri_path_from = os.path.join(subjects_dir, morph.subject_from,
+                                     mri_subpath)
 
         logger.info('loading %s as moving volume' % mri_path_from)
         mri_from = nib.load(mri_path_from)
 
         # load static mri
-        static_path = op.join(subjects_dir, morph.subject_to)
+        static_path = os.path.join(subjects_dir, morph.subject_to)
 
-        if not op.isdir(static_path):
+        if not os.path.isdir(static_path):
             mri_path_to = static_path
         else:
-            mri_path_to = op.join(static_path, mri_subpath)
+            mri_path_to = os.path.join(static_path, mri_subpath)
 
-        if op.isfile(mri_path_to):
+        if os.path.isfile(mri_path_to):
             logger.info('loading %s as static volume' % mri_path_to)
             mri_to = nib.load(mri_path_to)
         else:
@@ -1006,8 +1006,8 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
         return [np.arange(10242), np.arange(10242)]
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
-    spheres_to = [op.join(subjects_dir, subject, 'surf',
-                          xh + '.sphere.reg') for xh in ['lh', 'rh']]
+    spheres_to = [os.path.join(subjects_dir, subject, 'surf',
+                               xh + '.sphere.reg') for xh in ['lh', 'rh']]
     lhs, rhs = [read_surface(s)[0] for s in spheres_to]
 
     if grade is not None:  # fill a subset of vertices
@@ -1237,8 +1237,8 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
 
 
 def _get_subject_sphere_tris(subject, subjects_dir):
-    spheres = [op.join(subjects_dir, subject, 'surf',
-                       xh + '.sphere.reg') for xh in ['lh', 'rh']]
+    spheres = [os.path.join(subjects_dir, subject, 'surf',
+                            xh + '.sphere.reg') for xh in ['lh', 'rh']]
     tris = [read_surface(s)[1] for s in spheres]
     return tris
 

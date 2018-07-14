@@ -2,7 +2,7 @@
 # Author: Tommy Clausner <Tommy.Clausner@gmail.com>
 #
 # License: BSD (3-clause)
-import os.path as op
+import os
 import warnings
 
 import pytest
@@ -24,25 +24,25 @@ tempdir = _TempDir()
 
 data_path = testing.data_path(download=False)
 
-sample_dir = op.join(data_path, 'MEG', 'sample')
+sample_dir = os.path.join(data_path, 'MEG', 'sample')
 
-subjects_dir = op.join(data_path, 'subjects')
+subjects_dir = os.path.join(data_path, 'subjects')
 
-fname_evoked = op.join(sample_dir, 'sample_audvis-ave.fif')
+fname_evoked = os.path.join(sample_dir, 'sample_audvis-ave.fif')
 
-fname_fwd_vol = op.join(sample_dir,
-                        'sample_audvis_trunc-meg-vol-7-fwd.fif')
-fname_inv_vol = op.join(sample_dir,
-                        'sample_audvis_trunc-meg-vol-7-meg-inv.fif')
-fname_vol = op.join(sample_dir,
-                    'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
-fname_inv_surf = op.join(sample_dir,
-                         'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
+fname_fwd_vol = os.path.join(sample_dir,
+                             'sample_audvis_trunc-meg-vol-7-fwd.fif')
+fname_inv_vol = os.path.join(sample_dir,
+                             'sample_audvis_trunc-meg-vol-7-meg-inv.fif')
+fname_vol = os.path.join(sample_dir,
+                         'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
+fname_inv_surf = os.path.join(sample_dir,
+                              'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 
-fname_smorph = op.join(sample_dir, 'sample_audvis_trunc-meg')
-fname_fmorph = op.join(sample_dir, 'fsaverage_audvis_trunc-meg')
+fname_smorph = os.path.join(sample_dir, 'sample_audvis_trunc-meg')
+fname_fmorph = os.path.join(sample_dir, 'fsaverage_audvis_trunc-meg')
 
-fname_t1 = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
+fname_t1 = os.path.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
 
 
 def _real_vec_stc():
@@ -61,7 +61,7 @@ def test_save_vol_stc_as_nifti():
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
         src = read_source_spaces(fname_fwd_vol)
-    vol_fname = op.join(tempdir, 'stc.nii.gz')
+    vol_fname = os.path.join(tempdir, 'stc.nii.gz')
 
     # now let's actually read a MNE-C processed file
     stc = read_source_estimate(fname_vol, 'sample')
@@ -75,7 +75,7 @@ def test_save_vol_stc_as_nifti():
 
     with warnings.catch_warnings(record=True):  # nib<->numpy
         t1_img = nib.load(fname_t1)
-    stc.save_as_volume(op.join(tempdir, 'stc.nii.gz'), src,
+    stc.save_as_volume(os.path.join(tempdir, 'stc.nii.gz'), src,
                        dest='mri', mri_resolution=True)
     with warnings.catch_warnings(record=True):  # nib<->numpy
         img = nib.load(vol_fname)
@@ -124,7 +124,7 @@ def test_morph_data():
         stc_to1 = stc_from.morph(subject_to, grade=3, smooth=12,
                                  subjects_dir=subjects_dir)
 
-    stc_to1.save(op.join(tempdir, '%s_audvis-meg' % subject_to))
+    stc_to1.save(os.path.join(tempdir, '%s_audvis-meg' % subject_to))
     # Morphing to a density that is too high should raise an informative error
     # (here we need to push to grade=6, but for some subjects even grade=5
     # will break)
@@ -300,9 +300,9 @@ def test_surface_vector_source_morph():
     assert isinstance(source_morph_surf.__repr__(), string_types)
 
     # check loading and saving for surf
-    source_morph_surf.save(op.join(tempdir, '42.h5'))
+    source_morph_surf.save(os.path.join(tempdir, '42.h5'))
 
-    source_morph_surf_r = read_source_morph(op.join(tempdir, '42.h5'))
+    source_morph_surf_r = read_source_morph(os.path.join(tempdir, '42.h5'))
 
     assert (all([read == saved for read, saved in
                  zip(sorted(source_morph_surf_r.__dict__),
@@ -318,10 +318,10 @@ def test_volume_source_morph():
     import nibabel as nib
     data_path = sample.data_path(
         download=False)  # because testing data has no brain.mgz
-    subjects_dir = op.join(data_path, 'subjects')
-    sample_dir = op.join(data_path, 'MEG', 'sample')
-    fname_inv_vol = op.join(sample_dir,
-                            'sample_audvis-meg-vol-7-meg-inv.fif')
+    subjects_dir = os.path.join(data_path, 'subjects')
+    sample_dir = os.path.join(data_path, 'MEG', 'sample')
+    fname_inv_vol = os.path.join(sample_dir,
+                                 'sample_audvis-meg-vol-7-meg-inv.fif')
 
     inverse_operator_vol = read_inverse_operator(fname_inv_vol)
 
@@ -363,34 +363,35 @@ def test_volume_source_morph():
 
     # check full mri resolution registration (takes very long)
     # source_morph_vol = SourceMorph(
-    #     op.join(sample_dir, 'sample_audvis-meg-vol-7-fwd.fif'),
-    #     subject_from='sample', subjects_dir=op.join(data_path, 'subjects'),
+    #     os.path.join(sample_dir, 'sample_audvis-meg-vol-7-fwd.fif'),
+    #     subject_from='sample',
+    #     subjects_dir=os.path.join(data_path, 'subjects'),
     #     grid_spacing=None)
 
     # check input via path to src and path to subject_to
     source_morph_vol = SourceMorph(
-        op.join(sample_dir, 'sample_audvis-meg-vol-7-fwd.fif'),
+        os.path.join(sample_dir, 'sample_audvis-meg-vol-7-fwd.fif'),
         subject_from='sample',
-        subject_to=op.join(data_path, 'subjects', 'fsaverage', 'mri',
-                           'brain.mgz'),
+        subject_to=os.path.join(data_path, 'subjects', 'fsaverage', 'mri',
+                                'brain.mgz'),
         subjects_dir=subjects_dir, niter_affine=(10, 10, 10),
         niter_sdr=(3, 3, 3), spacing=7)
 
     # check wrong subject_to
     pytest.raises(IOError, SourceMorph,
-                  op.join(sample_dir, 'sample_audvis-meg-vol-7-fwd.fif'),
+                  os.path.join(sample_dir, 'sample_audvis-meg-vol-7-fwd.fif'),
                   subject_from='sample', subject_to='42',
                   subjects_dir=subjects_dir)
 
     # two different ways of saving
-    source_morph_vol.save(op.join(tempdir, 'vol'))
-    source_morph_vol.save(op.join(tempdir, 'vol.h5'))
+    source_morph_vol.save(os.path.join(tempdir, 'vol'))
+    source_morph_vol.save(os.path.join(tempdir, 'vol.h5'))
 
     # check loading
-    source_morph_vol_r = read_source_morph(op.join(tempdir, 'vol.h5'))
+    source_morph_vol_r = read_source_morph(os.path.join(tempdir, 'vol.h5'))
 
     # check for invalid file name handling
-    pytest.raises(IOError, read_source_morph, op.join(tempdir, '42'))
+    pytest.raises(IOError, read_source_morph, os.path.join(tempdir, '42'))
 
     # check morph
     stc_vol_morphed = source_morph_vol(stc_vol)
@@ -422,7 +423,7 @@ def test_volume_source_morph():
     # check if nifti is defined resolution with voxel_size == (5., 5., 5.)
     img_any_res = source_morph_vol.as_volume(stc_vol_morphed,
                                              mri_resolution=(5., 5., 5.),
-                                             fname=op.join(tempdir, '42'))
+                                             fname=os.path.join(tempdir, '42'))
     assert isinstance(img_any_res, nib.Nifti1Image)
     assert img_any_res.header.get_zooms()[:3] == (5., 5., 5.)
 

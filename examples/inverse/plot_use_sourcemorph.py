@@ -16,6 +16,7 @@ with the morphed source estimate.
 # Author: Tommy Clausner <tommy.clausner@gmail.com>
 #
 # License: BSD (3-clause)
+import os
 
 import matplotlib.pylab as plt
 import nibabel as nib
@@ -30,13 +31,14 @@ print(__doc__)
 ###############################################################################
 # Setup paths
 sample_dir_raw = sample.data_path()
-sample_dir = sample_dir_raw + '/MEG/sample'
-subjects_dir = sample_dir_raw + '/subjects'
+sample_dir = os.path.join(sample_dir_raw, 'MEG', 'sample')
+subjects_dir = os.path.join(sample_dir_raw, 'subjects')
 
-fname_evoked = sample_dir + '/sample_audvis-ave.fif'
-fname_inv = sample_dir + '/sample_audvis-meg-vol-7-meg-inv.fif'
+fname_evoked = os.path.join(sample_dir, 'sample_audvis-ave.fif')
+fname_inv = os.path.join(sample_dir, 'sample_audvis-meg-vol-7-meg-inv.fif')
 
-fname_t1_fsaverage = subjects_dir + '/fsaverage/mri/brain.mgz'
+fname_t1_fsaverage = os.path.join(subjects_dir, 'fsaverage', 'mri',
+                                  'brain.mgz')
 
 ###############################################################################
 # Compute example data. For reference see
