@@ -795,7 +795,6 @@ def requires_dipy():
 
 def buggy_mkl_svd(function):
     """Decorate tests that make calls to SVD and intermittently fail."""
-
     @wraps(function)
     def dec(*args, **kwargs):
         try:
@@ -867,7 +866,6 @@ def copy_doc(source):
     >>> print(B.m1.__doc__)
     Docstring for m1 this gets appended
     """
-
     def wrapper(func):
         if source.__doc__ is None or len(source.__doc__) == 0:
             raise ValueError('Cannot copy docstring: docstring was empty.')
@@ -948,7 +946,6 @@ def copy_function_doc_to_method_doc(source):
     that are not formatted exactly according to the ``numpydoc`` standard.
     Always inspect the resulting docstring when using this decorator.
     """
-
     def wrapper(func):
         doc = source.__doc__.split('\n')
 
@@ -1160,7 +1157,6 @@ def traits_test_context():
 
 def traits_test(test_func):
     """Raise errors in trait handlers (decorator)."""
-
     @wraps(test_func)
     def dec(*args, **kwargs):
         with traits_test_context():
@@ -2161,9 +2157,8 @@ def _check_preload(inst, msg):
             raise RuntimeError(
                 "By default, MNE does not load data into main memory to "
                 "conserve resources. " + msg + ' requires %s data to be '
-                                               'loaded. Use preload=True (or string) in the constructor or '
-                                               '%s.load_data().' % (
-                    name, name))
+                'loaded. Use preload=True (or string) in the constructor or '
+                '%s.load_data().' % (name, name))
 
 
 def _check_compensation_grade(inst, inst2, name, name2, ch_names=None):
