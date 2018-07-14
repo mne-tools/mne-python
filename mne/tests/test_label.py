@@ -18,7 +18,7 @@ from mne import (read_label, stc_to_label, read_source_estimate,
                  read_surface, random_parcellation)
 from mne.label import Label, _blend_colors, label_sign_flip
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
-                       run_tests_if_main)
+                       run_tests_if_main, requires_nibabel, requires_dipy)
 from mne.fixes import assert_is, assert_is_not
 from mne.label import _n_colors
 from mne.source_space import SourceSpaces
@@ -692,6 +692,8 @@ def test_stc_to_label():
         assert_labels_equal(l1, l2, decimal=4)
 
 
+@requires_nibabel()
+@requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_morph():

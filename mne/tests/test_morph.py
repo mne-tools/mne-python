@@ -17,7 +17,7 @@ from mne.datasets import sample, testing
 from mne.source_space import SourceSpaces
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.utils import (run_tests_if_main, requires_nibabel, _TempDir,
-                       string_types)
+                       requires_dipy, string_types)
 
 # Setup paths
 tempdir = _TempDir()
@@ -52,6 +52,7 @@ def _real_vec_stc():
 
 
 @requires_nibabel()
+@requires_dipy()
 @testing.requires_testing_data
 def test_save_vol_stc_as_nifti():
     """Save the stc as a nifti file and export."""
@@ -238,6 +239,7 @@ def test_morph_data():
 
 
 @requires_nibabel()
+@requires_dipy()
 @testing.requires_testing_data
 def test_stc_as_volume():
     """Test previous volume source estimate morph."""
@@ -292,7 +294,7 @@ def test_surface_vector_source_morph():
     # check __repr__
     assert isinstance(source_morph_surf.__repr__(), string_types)
 
-    # check laoding and saving for surf
+    # check loading and saving for surf
     source_morph_surf.save(op.join(tempdir, '42.h5'))
 
     source_morph_surf_r = read_source_morph(op.join(tempdir, '42.h5'))
@@ -303,6 +305,7 @@ def test_surface_vector_source_morph():
 
 
 @requires_nibabel()
+@requires_dipy()
 @pytest.mark.slowtest
 @sample.requires_sample_data
 def test_volume_source_morph():

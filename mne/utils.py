@@ -5,7 +5,6 @@ from __future__ import print_function
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
-
 import atexit
 from collections import Iterable
 from contextlib import contextmanager
@@ -40,7 +39,6 @@ from scipy import linalg, sparse
 from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO, integer_types
 from .externals.decorator import decorator
-
 from .fixes import _get_args
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
@@ -73,6 +71,7 @@ def nottest(f):
 _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
                         '__call__', '__add__', '__sub__', '__mul__', '__div__',
                         '__neg__', '__hash__')
+
 
 ###############################################################################
 # RANDOM UTILITIES
@@ -637,6 +636,7 @@ class deprecated(object):
         def deprecation_wrapped(*args, **kwargs):
             warnings.warn(msg, category=DeprecationWarning)
             return init(*args, **kwargs)
+
         cls.__init__ = deprecation_wrapped
 
         deprecation_wrapped.__name__ = '__init__'
@@ -786,8 +786,16 @@ def requires_nibabel(vox2ras_tkr=False):
                               reason='Requires nibabel%s' % extra)
 
 
+def requires_dipy():
+    """Check for dipy."""
+    import pytest
+    return pytest.mark.skipif(not check_version('dipy', ''),
+                              reason='Requires dipy')
+
+
 def buggy_mkl_svd(function):
     """Decorate tests that make calls to SVD and intermittently fail."""
+
     @wraps(function)
     def dec(*args, **kwargs):
         try:
@@ -798,6 +806,7 @@ def buggy_mkl_svd(function):
                 warn(msg)
                 raise SkipTest(msg)
             raise
+
     return dec
 
 
@@ -815,7 +824,7 @@ def requires_module(function, name, call=None):
     call = ('import %s' % name) if call is None else call
     reason = 'Test %s skipped, requires %s.' % (function.__name__, name)
     try:
-        exec(call) in globals(), locals()
+        exec (call) in globals(), locals()
     except Exception as exc:
         if len(str(exc)) > 0 and str(exc) != 'No module named %s' % name:
             reason += ' Got exception (%s)' % (exc,)
@@ -858,6 +867,7 @@ def copy_doc(source):
     >>> print(B.m1.__doc__)
     Docstring for m1 this gets appended
     """
+
     def wrapper(func):
         if source.__doc__ is None or len(source.__doc__) == 0:
             raise ValueError('Cannot copy docstring: docstring was empty.')
@@ -866,6 +876,7 @@ def copy_doc(source):
             doc += func.__doc__
         func.__doc__ = doc
         return func
+
     return wrapper
 
 
@@ -937,6 +948,7 @@ def copy_function_doc_to_method_doc(source):
     that are not formatted exactly according to the ``numpydoc`` standard.
     Always inspect the resulting docstring when using this decorator.
     """
+
     def wrapper(func):
         doc = source.__doc__.split('\n')
 
@@ -993,6 +1005,7 @@ def copy_function_doc_to_method_doc(source):
             doc += func.__doc__
         func.__doc__ = doc
         return func
+
     return wrapper
 
 
@@ -1147,10 +1160,12 @@ def traits_test_context():
 
 def traits_test(test_func):
     """Raise errors in trait handlers (decorator)."""
+
     @wraps(test_func)
     def dec(*args, **kwargs):
         with traits_test_context():
             return test_func(*args, **kwargs)
+
     return dec
 
 
@@ -2081,7 +2096,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     stim_channel = list()
     ch_count = 0
     ch = get_config('MNE_STIM_CHANNEL')
-    while(ch is not None and ch in info['ch_names']):
+    while (ch is not None and ch in info['ch_names']):
         stim_channel.append(ch)
         ch_count += 1
         ch = get_config('MNE_STIM_CHANNEL_%d' % ch_count)
@@ -2146,8 +2161,9 @@ def _check_preload(inst, msg):
             raise RuntimeError(
                 "By default, MNE does not load data into main memory to "
                 "conserve resources. " + msg + ' requires %s data to be '
-                'loaded. Use preload=True (or string) in the constructor or '
-                '%s.load_data().' % (name, name))
+                                               'loaded. Use preload=True (or string) in the constructor or '
+                                               '%s.load_data().' % (
+                    name, name))
 
 
 def _check_compensation_grade(inst, inst2, name, name2, ch_names=None):
@@ -2674,7 +2690,7 @@ class ETSContext(object):
         pass
 
     def __exit__(self, type, value, traceback):  # noqa: D105
-        if isinstance(value, SystemExit) and value.code.\
+        if isinstance(value, SystemExit) and value.code. \
                 startswith("This program needs access to the screen"):
             value.code += ("\nThis can probably be solved by setting "
                            "ETS_TOOLKIT=qt4. On bash, type\n\n    $ export "
