@@ -395,6 +395,10 @@ def test_volume_source_morph():
     # check morph
     stc_vol_morphed = source_morph_vol(stc_vol)
 
+    # check as_volume=True
+    assert isinstance(source_morph_vol(stc_vol, as_volume=True),
+                      nib.Nifti1Image)
+
     # check for subject_from mismatch
     source_morph_vol_r.subject_from = '42'
     pytest.raises(ValueError, source_morph_vol_r, stc_vol_morphed)

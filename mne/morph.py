@@ -205,14 +205,15 @@ class SourceMorph(object):
         self.data.update(_compute_morph_data(self, verbose=verbose))
 
     # Forward verbose decorator to _apply_morph_data
-    def __call__(self, stc_from, verbose=None):
+    def __call__(self, stc_from, as_volume=False, verbose=None):
         """Morph data.
 
         Parameters
         ----------
         stc_from : VolSourceEstimate | SourceEstimate | VectorSourceEstimate
             The source estimate to morph.
-
+        as_volume : bool
+            Whether to output a NIfTI volume. Default is False.
         verbose : bool | str | int | None
             If not None, override default verbose level (see :func:`mne.
             verbose` and :ref:`Logging documentation <tut_logging>` for more).
@@ -221,7 +222,14 @@ class SourceMorph(object):
         -------
         stc_to : VolSourceEstimate | SourceEstimate | VectorSourceEstimate
             The morphed source estimate.
+        img : Nifti1Image
+            If as_volume=True, the function outputs a volume in mri resolution.
         """
+        if as_volume:
+            return _stc_as_volume(self, stc_from, fname=None,
+                                  mri_resolution=True,
+                                  mri_space=True)
+
         if stc_from.subject is None:
             stc_from.subject = self.subject_from
 
