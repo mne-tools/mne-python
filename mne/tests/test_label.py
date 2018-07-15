@@ -341,16 +341,16 @@ def test_annot_io():
     # copy necessary files from fsaverage to tempdir
     tempdir = _TempDir()
     subject = 'fsaverage'
-    label_src = os.path.join(subjects_dir, 'fsaverage', 'label')
-    surf_src = os.path.join(subjects_dir, 'fsaverage', 'surf')
-    label_dir = os.path.join(tempdir, subject, 'label')
-    surf_dir = os.path.join(tempdir, subject, 'surf')
+    label_src = op.join(subjects_dir, 'fsaverage', 'label')
+    surf_src = op.join(subjects_dir, 'fsaverage', 'surf')
+    label_dir = op.join(tempdir, subject, 'label')
+    surf_dir = op.join(tempdir, subject, 'surf')
     os.makedirs(label_dir)
     os.mkdir(surf_dir)
-    shutil.copy(os.path.join(label_src, 'lh.PALS_B12_Lobes.annot'), label_dir)
-    shutil.copy(os.path.join(label_src, 'rh.PALS_B12_Lobes.annot'), label_dir)
-    shutil.copy(os.path.join(surf_src, 'lh.white'), surf_dir)
-    shutil.copy(os.path.join(surf_src, 'rh.white'), surf_dir)
+    shutil.copy(op.join(label_src, 'lh.PALS_B12_Lobes.annot'), label_dir)
+    shutil.copy(op.join(label_src, 'rh.PALS_B12_Lobes.annot'), label_dir)
+    shutil.copy(op.join(surf_src, 'lh.white'), surf_dir)
+    shutil.copy(op.join(surf_src, 'rh.white'), surf_dir)
 
     # read original labels
     pytest.raises(IOError, read_labels_from_annot, subject, 'PALS_B12_Lobesey',
@@ -371,9 +371,9 @@ def test_annot_io():
     parc = [l for l in labels if l.name.startswith('LOBE')]
     write_labels_to_annot(parc, subject, 'myparc2', hemi='lh',
                           subjects_dir=tempdir)
-    annot_fname = os.path.join(tempdir, subject, 'label', '%sh.myparc2.annot')
-    assert os.path.isfile(annot_fname % 'l')
-    assert not os.path.isfile(annot_fname % 'r')
+    annot_fname = op.join(tempdir, subject, 'label', '%sh.myparc2.annot')
+    assert op.isfile(annot_fname % 'l')
+    assert not op.isfile(annot_fname % 'r')
     parc1 = read_labels_from_annot(subject, 'myparc2',
                                    annot_fname=annot_fname % 'l',
                                    subjects_dir=tempdir)

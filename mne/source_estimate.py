@@ -2249,24 +2249,28 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     stc_to : SourceEstimate | VectorSourceEstimate
         Source estimate for the destination subject.
     """
-    from mne.morph import SourceMorph, _compute_morph_data
+    from mne.morph import (SourceMorph, _compute_morph_data,
+                           _update_morph_data)
     if not isinstance(stc_from, _BaseSurfaceSourceEstimate):
         raise ValueError('Morphing is only possible with surface or vector '
                          'source estimates')
+
+    # setup morph without src
     source_morph = SourceMorph(None, subject_from=subject_from,
                                subject_to=subject_to, spacing=grade,
                                smooth=smooth, subjects_dir=subjects_dir,
                                warn=warn, verbose=verbose)
-    source_morph.kind = 'surface'
 
-    # SourceSpace info
-    hemis = [0, 1]
-    for hemi in hemis:
-        source_morph.data.update({str(hemi): stc_from.vertices[hemi]})
-    source_morph.data.update({'hemis': hemis})
-    source_morph.data.update(_compute_morph_data(source_morph,
-                                                 verbose=verbose))
+    # update hemi information
+    _update_morph_data(source_morph, {'0': stc_from.lh_vertno,
+                                      '1': stc_from.rh_vertno,
+                                      'hemis': [0, 1]},
+                       kind='surface')
 
+    # compute morph
+    _compute_morph_data(source_morph, verbose=verbose)
+
+    # apply morph data
     stc_to = source_morph(stc_from)
 
     return stc_to
@@ -2294,7 +2298,7 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     stc_to : SourceEstimate | VectorSourceEstimate
         Source estimate for the destination subject.
     """
-    from mne.morph import SourceMorph, _apply_morph_data
+    from mne.morph import SourceMorph, _update_morph_data
     if not sparse.issparse(morph_mat):
         raise ValueError('morph_mat must be a sparse matrix')
 
@@ -2312,13 +2316,15 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     if stc_from.subject is not None and stc_from.subject != subject_from:
         raise ValueError('stc_from.subject and subject_from must match')
 
+    # setup morph object
     source_morph = SourceMorph(None, subject_from=subject_from,
                                subject_to=subject_to)
-    source_morph.kind = 'surface'
-    source_morph.data['vertno'] = vertices_to
-    source_morph.data['morph_mat'] = morph_mat
-
-    stc_to = _apply_morph_data(source_morph, stc_from)
+    # use pre-computed data
+    _update_morph_data(source_morph,
+                       {'vertno': vertices_to, 'morph_mat': morph_mat},
+                       'surface')
+    # apply morph
+    stc_to = source_morph(stc_from)
 
     return stc_to
 

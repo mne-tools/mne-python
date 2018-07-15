@@ -7,12 +7,12 @@ import warnings
 
 import pytest
 import numpy as np
-from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_allclose)
 from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
                  read_evokeds, SourceMorph, read_source_morph,
                  compute_morph_matrix, morph_data, read_source_estimate,
                  grade_to_vertices, read_source_spaces)
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_allclose)
 from mne.datasets import sample, testing
 from mne.source_space import SourceSpaces
 from mne.minimum_norm import apply_inverse, read_inverse_operator

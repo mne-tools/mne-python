@@ -201,8 +201,8 @@ class SourceMorph(object):
         self.subject_from = _check_subject_from(self.subject_from, src)
 
         # get data to perform morph and as_volume
-        self.data.update(_get_src_data(src))
-        self.data.update(_compute_morph_data(self, verbose=verbose))
+        _update_morph_data(self, _get_src_data(src))
+        _compute_morph_data(self, verbose=verbose)
 
     # Forward verbose decorator to _apply_morph_data
     def __call__(self, stc_from, as_volume=False, verbose=None):
@@ -213,7 +213,8 @@ class SourceMorph(object):
         stc_from : VolSourceEstimate | SourceEstimate | VectorSourceEstimate
             The source estimate to morph.
         as_volume : bool
-            Whether to output a NIfTI volume. Default is False.
+            Whether to output a NIfTI volume. stc_from has to be a
+            VolSourceEstimate. Default is False.
         verbose : bool | str | int | None
             If not None, override default verbose level (see :func:`mne.
             verbose` and :ref:`Logging documentation <tut_logging>` for more).
@@ -281,7 +282,7 @@ class SourceMorph(object):
         logger.info('[done]')
 
     def as_volume(self, stc, fname=None, mri_resolution=False, mri_space=True):
-        """Return volume source space as Nifti1Image and/or save to disk.
+        """Return volume source space as Nifti1Image and / or save to disk.
 
         Parameters
         ----------
@@ -352,17 +353,22 @@ def read_source_morph(fname, verbose=None):
 
 ###############################################################################
 # Helper functions for SourceMorph methods
+def _update_morph_data(morph, data=None, kind=None):
+    """Update morph data and kind."""
+    if data is not None:
+        morph.data.update(data)
+
+    if kind is not None:
+        morph.kind = kind
+
+
 def _check_hemi_data(data_in, data_ref):
     """Check and setup correct data for hemispheres."""
-    data_out = data_in
-    if data_ref[0].size == 0 or data_ref[0] is None:
-        if data_ref[1].size == 0 or data_ref[1] is None:
-            data_out = [np.array([], int), np.array([], int)]
-        else:
-            data_out = [np.array([], int), data_in[1]]
-    elif data_ref[1].size == 0 or data_ref[1] is None:
-        data_out = [data_in[0], np.array([], int)]
-    return data_out
+    return [np.array([], int) if
+            data_ref[h].size == 0 or
+            data_ref[h] is None else
+            data_in[h]
+            for h in range(len(data_ref))]
 
 
 def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
@@ -427,7 +433,7 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
     if isinstance(mri_resolution, tuple):
         new_zooms = mri_resolution
 
-    # make raw volume file
+    # setup volume properties
     shape = tuple([int(i) for i in morph.data['morph_shape']])
     affine = morph.data['morph_affine']
     zooms = morph.data['morph_zooms'][:3]
@@ -437,7 +443,7 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
     hdr.set_xyzt_units('mm', 'msec')
     hdr['pixdim'][4] = 1e3 * stc.tstep
 
-    # setup volume
+    # setup empty volume
     img = np.zeros(shape + (stc.shape[1],)).reshape(-1, stc.shape[1])
     img[stc.vertices, :] = stc.data
 
@@ -451,15 +457,17 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
     if new_zooms is not None:
         new_zooms = new_zooms[:3]
         img, affine = reslice(img.get_data(),
-                              img.affine,
-                              zooms,
-                              new_zooms)
+                              img.affine,  # mri to world registration
+                              zooms,  # old voxel size in mm
+                              new_zooms)  # new voxel size in mm
         with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
             img = nib.Nifti1Image(img, affine)
         zooms = new_zooms
+
+    #  set zooms in header
     img.header.set_zooms(tuple(zooms) + (1,))
 
-    # save is fname is provided
+    # save if fname is provided
     if fname is not None:
         nib.save(img, fname)
 
@@ -467,7 +475,7 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
 
 
 def _get_src_data(src):
-    """Obtain src data relevant for as_volume() and __call__()."""
+    """Obtain src data relevant for as _volume."""
     src_data = dict()
 
     # allocate new memory for information
@@ -494,7 +502,7 @@ def _get_src_data(src):
             hemis.append(n)
         src_data.update({'hemis': hemis})
 
-    # delete copy to save memory
+    # delete copy
     del src_t
     return src_data
 
@@ -502,15 +510,11 @@ def _get_src_data(src):
 def _compute_morph_data(morph, verbose=None):
     """Compute source estimate specific morph."""
     data = dict()
+
+    # get data currently present in morph
     data.update(morph.data)
     subjects_dir = get_subjects_dir(morph.subjects_dir,
                                     raise_error=True)
-
-    # get data from src - it is necessary to split this up (src info and
-    # morphing), because in order to provide backwards compatibility it should
-    # be possible to make a volume from an un-morphed stc. Hence in that case a
-    # morpher would be created that only holds src data needed for as_volume.
-    # Note further that this is only internal API.
 
     # VolSourceEstimate
     if morph.kind == 'volume' and morph.subject_to is not None:
@@ -588,6 +592,7 @@ def _compute_morph_data(morph, verbose=None):
             xhemi=morph.xhemi,
             verbose=verbose)
         data.update({'morph_mat': morph_mat, 'vertno': data_to})
+    _update_morph_data(morph, data)
     return data
 
 
@@ -597,6 +602,7 @@ def _interpolate_data(stc, morph_data, mri_resolution=True,
     import nibabel as nib
     from dipy.align.reslice import reslice
 
+    # setup volume parameters
     n_times = stc.data.shape[1]
     shape = morph_data['src_shape']
     shape3d = shape
@@ -1003,7 +1009,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     """
     # add special case for fsaverage for speed
     if subject == 'fsaverage' and grade == 5:
-        return [np.arange(10242), np.arange(10242)]
+        return [np.arange(10242)] * 2
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     spheres_to = [os.path.join(subjects_dir, subject, 'surf',
@@ -1220,18 +1226,18 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
     stc_morph.subject = subject_to
 
     cnt = 0
-    for k, hemi in enumerate(['lh', 'rh']):
-        if stc.vertices[k].size > 0:
-            map_hemi = maps[k]
-            vertno_k = _sparse_argmax_nnz_row(map_hemi[stc.vertices[k]])
-            order = np.argsort(vertno_k)
-            n_active_hemi = len(vertno_k)
+    for h in [0, 1]:
+        if stc.vertices[h].size > 0:
+            map_hemi = maps[h]
+            vertno_h = _sparse_argmax_nnz_row(map_hemi[stc.vertices[h]])
+            order = np.argsort(vertno_h)
+            n_active_hemi = len(vertno_h)
             data_hemi = stc_morph.data[cnt:cnt + n_active_hemi]
             stc_morph.data[cnt:cnt + n_active_hemi] = data_hemi[order]
-            stc_morph.vertices[k] = vertno_k[order]
+            stc_morph.vertices[h] = vertno_h[order]
             cnt += n_active_hemi
         else:
-            stc_morph.vertices[k] = np.array([], int)
+            stc_morph.vertices[h] = np.array([], int)
 
     return stc_morph
 
@@ -1251,6 +1257,7 @@ def _get_zooms_orig(morph_data):
     morph_shape = morph_data['morph_shape']
     src_shape = morph_data['src_shape_full']
 
+    # zooms_to = zooms_from / shape_to * shape_from for each spatial dimension
     return [mz / ss * ms for mz, ms, ss in
             zip(morph_zooms, morph_shape, src_shape)]
 
@@ -1274,7 +1281,6 @@ def _apply_morph_data(morph, stc_from, verbose=None):
     stc_to : VolSourceEstimate | VectorSourceEstimate | SourceEstimate
         Source estimate for the destination subject.
     """
-    stc_to = None
     if morph.kind == 'volume':
 
         from dipy.align.imwarp import DiffeomorphicMap
@@ -1285,7 +1291,8 @@ def _apply_morph_data(morph, stc_from, verbose=None):
         img_to = _interpolate_data(stc_from, morph.data, mri_resolution=True,
                                    mri_space=True)
 
-        # setup morphs
+        # setup morphs to not carry those custom objects around
+        # (issues in saving / loading)
         affine_morph = AffineMap(None)
         affine_morph.__dict__ = morph.data['AffineMap']
 
@@ -1325,6 +1332,7 @@ def _apply_morph_data(morph, stc_from, verbose=None):
 
         data = stc_from.data
 
+        # apply morph and return new morphed instance of (Vector)SourceEstimate
         if isinstance(stc_from, VectorSourceEstimate):
             # Morph the locations of the dipoles, but not their orientation
             n_verts, _, n_samples = stc_from.data.shape
@@ -1342,4 +1350,7 @@ def _apply_morph_data(morph, stc_from, verbose=None):
                                     tstep=stc_from.tstep,
                                     verbose=verbose,
                                     subject=morph.subject_to)
+    else:
+        stc_to = None
+
     return stc_to
