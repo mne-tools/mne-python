@@ -201,8 +201,8 @@ class SourceMorph(object):
         self.subject_from = _check_subject_from(self.subject_from, src)
 
         # get data to perform morph and as_volume
-        _update_morph_data(self, _get_src_data(src))
-        _compute_morph_data(self, verbose=verbose)
+        self._update_morph_data(_get_src_data(src))
+        self._compute_morph_data(verbose=verbose)
 
     # Forward verbose decorator to _apply_morph_data
     def __call__(self, stc_from, as_volume=False, verbose=None):
@@ -309,6 +309,18 @@ class SourceMorph(object):
                               mri_resolution=mri_resolution,
                               mri_space=mri_space)
 
+    def _update_morph_data(self, data=None, kind=None):
+        """Update morph data and kind."""
+        if data is not None:
+            self.data.update(data)
+
+        if kind is not None:
+            self.kind = kind
+
+    def _compute_morph_data(self, verbose=None):
+        """Compute morph data."""
+        self._update_morph_data(_compute_morph_data(self, verbose=verbose))
+
 
 ###############################################################################
 # I/O
@@ -353,15 +365,6 @@ def read_source_morph(fname, verbose=None):
 
 ###############################################################################
 # Helper functions for SourceMorph methods
-def _update_morph_data(morph, data=None, kind=None):
-    """Update morph data and kind."""
-    if data is not None:
-        morph.data.update(data)
-
-    if kind is not None:
-        morph.kind = kind
-
-
 def _check_hemi_data(data_in, data_ref):
     """Check and setup correct data for hemispheres."""
     return [np.array([], int) if
@@ -592,7 +595,7 @@ def _compute_morph_data(morph, verbose=None):
             xhemi=morph.xhemi,
             verbose=verbose)
         data.update({'morph_mat': morph_mat, 'vertno': data_to})
-    _update_morph_data(morph, data)
+
     return data
 
 

@@ -2249,8 +2249,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     stc_to : SourceEstimate | VectorSourceEstimate
         Source estimate for the destination subject.
     """
-    from mne.morph import (SourceMorph, _compute_morph_data,
-                           _update_morph_data)
+    from mne.morph import SourceMorph
     if not isinstance(stc_from, _BaseSurfaceSourceEstimate):
         raise ValueError('Morphing is only possible with surface or vector '
                          'source estimates')
@@ -2262,13 +2261,13 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
                                warn=warn, verbose=verbose)
 
     # update hemi information
-    _update_morph_data(source_morph, {'0': stc_from.lh_vertno,
-                                      '1': stc_from.rh_vertno,
-                                      'hemis': [0, 1]},
-                       kind='surface')
+    source_morph._update_morph_data({'0': stc_from.lh_vertno,
+                                     '1': stc_from.rh_vertno,
+                                     'hemis': [0, 1]},
+                                    kind='surface')
 
     # compute morph
-    _compute_morph_data(source_morph, verbose=verbose)
+    source_morph._compute_morph_data(verbose=verbose)
 
     # apply morph data
     stc_to = source_morph(stc_from)
@@ -2298,7 +2297,7 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     stc_to : SourceEstimate | VectorSourceEstimate
         Source estimate for the destination subject.
     """
-    from mne.morph import SourceMorph, _update_morph_data
+    from mne.morph import SourceMorph
     if not sparse.issparse(morph_mat):
         raise ValueError('morph_mat must be a sparse matrix')
 
@@ -2320,9 +2319,9 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     source_morph = SourceMorph(None, subject_from=subject_from,
                                subject_to=subject_to)
     # use pre-computed data
-    _update_morph_data(source_morph,
-                       {'vertno': vertices_to, 'morph_mat': morph_mat},
-                       'surface')
+    source_morph._update_morph_data({'vertno': vertices_to,
+                                     'morph_mat': morph_mat},
+                                    'surface')
     # apply morph
     stc_to = source_morph(stc_from)
 
