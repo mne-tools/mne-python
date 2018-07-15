@@ -620,4 +620,23 @@ def test_eig_inv():
     assert_almost_equal(a_inv, a_inv_eig)
 
 
+@testing.requires_testing_data
+def test_lcmv_ctf_comp():
+    """Test interpolation with compensated CTF data."""
+    ctf_dir = op.join(testing.data_path(download=False), 'CTF')
+    raw_fname = op.join(ctf_dir, 'somMDYO-18av.ds')
+    raw = mne.io.read_raw_ctf(raw_fname, preload=True)
+
+    events = mne.make_fixed_length_events(raw, duration=0.2)[:2]
+    epochs = mne.Epochs(raw, events, tmin=0., tmax=0.2)
+    evoked = epochs.average()
+
+    with warnings.catch_warnings(record=True) as w:
+        data_cov = mne.compute_covariance(epochs)
+    fwd = mne.make_forward_solution(evoked.info, None,
+                                    mne.setup_volume_source_space(pos=15.0),
+                                    mne.make_sphere_model())
+    filters = mne.beamformer.make_lcmv(evoked.info, fwd, data_cov)
+    assert 'weights' in filters
+
 run_tests_if_main()
