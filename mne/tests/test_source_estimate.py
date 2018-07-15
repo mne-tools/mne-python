@@ -1027,6 +1027,7 @@ def test_spatial_src_connectivity():
 
 @requires_sklearn
 @requires_nibabel()
+@requires_dipy()
 @testing.requires_testing_data
 def test_vol_mask():
     """Test extraction of volume mask."""
