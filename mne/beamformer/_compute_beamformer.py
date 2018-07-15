@@ -116,7 +116,10 @@ def _compare_ch_names(names1, names2, bads):
 
 def _check_one_ch_type(info, picks, noise_cov):
     """Check number of sensor types and presence of noise covariance matrix."""
+    comps = info['comps']
+    info['comps'] = []
     info_pick = pick_info(info, sel=picks)
+    info['comps'] = comps
     ch_types =\
         [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
     if sum(ch_types) > 1 and noise_cov is None:
