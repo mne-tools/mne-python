@@ -64,6 +64,8 @@ Bug
 
 - Fix problem with :meth:`mne.io.Raw.add_channels` where ``raw.info['bads']`` was replicated by `Eric Larson`_
 
+- Fix error when running LCMV on MEG channels with compensation using reference channels (like for CTF data) by `Alex Gramfort`_
+
 API
 ~~~
 
