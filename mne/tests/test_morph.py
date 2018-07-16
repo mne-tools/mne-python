@@ -154,17 +154,17 @@ def test_volume_source_morph():
     assert source_morph_vol.subject_from == 'sample'
 
     # the brain used in sample data has shape (255, 255, 255)
-    assert (tuple(source_morph_vol.data['DiffeomorphicMap']['domain_shape']) ==
+    assert (tuple(source_morph_vol.params['DiffeomorphicMap']['domain_shape']) ==
             (37, 37, 37))
 
-    assert (tuple(source_morph_vol.data['AffineMap']['domain_shape']) ==
+    assert (tuple(source_morph_vol.params['AffineMap']['domain_shape']) ==
             (37, 37, 37))
 
     # proofs the above
     assert source_morph_vol.spacing == 7
 
     # assure proper src shape
-    assert source_morph_vol.data['src_shape_full'] == (
+    assert source_morph_vol.params['src_shape_full'] == (
         src[0]['mri_height'], src[0]['mri_depth'], src[0]['mri_width'])
 
     # check full mri resolution registration (takes very long)

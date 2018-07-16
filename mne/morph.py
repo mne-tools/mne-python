@@ -136,7 +136,7 @@ class SourceMorph(object):
         If True, warn if not all vertices were used.
     xhemi : bool
         Morph across hemisphere.
-    data : dict
+    params : dict
         The morph data. Contains all data relevant for morphing and / or volume
         output.
 
@@ -205,7 +205,7 @@ class SourceMorph(object):
         self.warn = warn
         self.xhemi = xhemi
 
-        self.data = dict()
+        self.params = dict()
 
         # assure presence of subject_from for volume morphs
         self.subject_from = _check_subject_from(self.subject_from, src)
@@ -265,7 +265,7 @@ class SourceMorph(object):
                              (stc_from.subject, self.subject_from))
 
         # if not precomputed
-        if 'morph_mat' not in self.data and self.kind == 'surface':
+        if 'morph_mat' not in self.params and self.kind == 'surface':
             self._update_morph_data({'0': stc_from.lh_vertno,
                                      '1': stc_from.rh_vertno,
                                      'hemis': [0, 1]},
@@ -345,7 +345,7 @@ class SourceMorph(object):
     def _update_morph_data(self, data=None, kind=None):
         """Update morph data and kind."""
         if data is not None:
-            self.data.update(data)
+            self.params.update(data)
 
         if kind is not None:
             self.kind = kind
@@ -453,8 +453,8 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
 
     # this is a special case when as_volume is called without having done a
     # morph beforehand (to assure compatibility to previous versions)
-    if 'morph_shape' not in morph.data:
-        img = _interpolate_data(stc, morph.data, mri_resolution=mri_resolution,
+    if 'morph_shape' not in morph.params:
+        img = _interpolate_data(stc, morph.params, mri_resolution=mri_resolution,
                                 mri_space=mri_space)
         if fname is not None:
             nib.save(img, fname)
@@ -464,7 +464,7 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
 
     # if full MRI resolution, compute zooms from shape and MRI zooms
     if isinstance(mri_resolution, bool) and mri_resolution:
-        new_zooms = _get_zooms_orig(morph.data)
+        new_zooms = _get_zooms_orig(morph.params)
 
     # if MRI resolution is set manually as a single value, convert to tuple
     if isinstance(mri_resolution, (int, float)) and not isinstance(
@@ -477,9 +477,9 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
         new_zooms = mri_resolution
 
     # setup volume properties
-    shape = tuple([int(i) for i in morph.data['morph_shape']])
-    affine = morph.data['morph_affine']
-    zooms = morph.data['morph_zooms'][:3]
+    shape = tuple([int(i) for i in morph.params['morph_shape']])
+    affine = morph.params['morph_affine']
+    zooms = morph.params['morph_zooms'][:3]
 
     # create header
     hdr = nib.nifti1.Nifti1Header()
@@ -555,7 +555,7 @@ def _compute_morph_data(morph, verbose=None):
     data = dict()
 
     # get data currently present in morph
-    data.update(morph.data)
+    data.update(morph.params)
     subjects_dir = get_subjects_dir(morph.subjects_dir,
                                     raise_error=True)
 
@@ -602,9 +602,9 @@ def _compute_morph_data(morph, verbose=None):
 
         # get surface data
         data_from = []
-        hemis = morph.data['hemis']
+        hemis = morph.params['hemis']
         for h in hemis:
-            data_from.append(morph.data[str(h)])
+            data_from.append(morph.params[str(h)])
 
         data_to = None
         # default for fsaverage
@@ -907,7 +907,7 @@ def _compute_morph_sdr(mri_from, mri_to,
 # Morph for SourceEstimate |  VectorSourceEstimate
 @deprecated("This function is deprecated and might be removed in a future "
             "release. Use morph = mne.SourceMorph and morph(stc). Access the"
-            "morph matrix via morph.data['morph_mat']")
+            "morph matrix via morph.params['morph_mat']")
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
                          smooth=None, subjects_dir=None, warn=True,
                          xhemi=False, verbose=None):
@@ -1328,23 +1328,23 @@ def _apply_morph_data(morph, stc_from, verbose=None):
         from dipy.align.reslice import reslice
 
         # prepare data to be morphed
-        img_to = _interpolate_data(stc_from, morph.data, mri_resolution=True,
+        img_to = _interpolate_data(stc_from, morph.params, mri_resolution=True,
                                    mri_space=True)
 
         # setup morphs to not carry those custom objects around
         # (issues in saving / loading)
         affine_morph = AffineMap(None)
-        affine_morph.__dict__ = morph.data['AffineMap']
+        affine_morph.__dict__ = morph.params['AffineMap']
 
         sdr_morph = DiffeomorphicMap(None, [])
-        sdr_morph.__dict__ = morph.data['DiffeomorphicMap']
+        sdr_morph.__dict__ = morph.params['DiffeomorphicMap']
 
         # reslice to match morph
         img_to, img_to_affine = reslice(
             img_to.get_data(),
-            morph.data['morph_affine'],
-            _get_zooms_orig(morph.data),
-            morph.data['morph_zooms'])
+            morph.params['morph_affine'],
+            _get_zooms_orig(morph.params),
+            morph.params['morph_zooms'])
 
         # morph data
         for vol in range(img_to.shape[3]):
@@ -1367,8 +1367,8 @@ def _apply_morph_data(morph, stc_from, verbose=None):
 
     elif morph.kind == 'surface':
 
-        morph_mat = morph.data['morph_mat']
-        vertices_to = morph.data['vertno']
+        morph_mat = morph.params['morph_mat']
+        vertices_to = morph.params['vertno']
 
         data = stc_from.data
 
