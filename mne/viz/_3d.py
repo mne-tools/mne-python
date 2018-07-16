@@ -1809,18 +1809,18 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
                     resampling_interpolation='nearest', vmax=vmax)
 
                 # XXX: check lines below
-                cut_coords = apply_trans(linalg.inv(img.affine),
-                                         cut_coords)
-                cut_coords = np.array([int(round(c)) for c in cut_coords])
+                cut_coords_t = apply_trans(linalg.inv(img.affine),
+                                           cut_coords)
+                cut_coords_t = np.array([int(round(c)) for c in cut_coords_t])
 
                 # the affine transformation can sometimes lead to corner
                 # cases near the edges?
-                if np.any(cut_coords < 0):
+                if np.any(cut_coords_t < 0):
                     return
 
                 shape = params['img_idx'].shape
                 loc_idx = np.ravel_multi_index(
-                    cut_coords, shape[:-1], order='F')
+                    cut_coords_t, shape[:-1], order='F')
                 dist_vertices = [abs(v - loc_idx) for v in stc.vertices]
                 nearest_idx = np.argmin(dist_vertices)
                 ax_time.lines[0].set_ydata(stc.data[int(round(nearest_idx))].T)
