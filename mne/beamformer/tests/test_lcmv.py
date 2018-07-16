@@ -631,7 +631,7 @@ def test_lcmv_ctf_comp():
     epochs = mne.Epochs(raw, events, tmin=0., tmax=0.2)
     evoked = epochs.average()
 
-    with warnings.catch_warnings(record=True) as w:
+    with warnings.catch_warnings(record=True):
         data_cov = mne.compute_covariance(epochs)
     fwd = mne.make_forward_solution(evoked.info, None,
                                     mne.setup_volume_source_space(pos=15.0),

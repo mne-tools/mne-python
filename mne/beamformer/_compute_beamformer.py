@@ -116,6 +116,7 @@ def _compare_ch_names(names1, names2, bads):
 
 def _check_one_ch_type(info, picks, noise_cov):
     """Check number of sensor types and presence of noise covariance matrix."""
+    # XXX : ugly hack to avoid picking subset of info with applied comps
     comps = info['comps']
     info['comps'] = []
     info_pick = pick_info(info, sel=picks)
