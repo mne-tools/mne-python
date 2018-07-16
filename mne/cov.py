@@ -1424,6 +1424,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     return noise_cov
 
 
+@verbose
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
                proj=True, seeg=0.1, ecog=0.1, hbo=0.1, hbr=0.1,
                verbose=None):
