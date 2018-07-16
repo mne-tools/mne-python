@@ -66,6 +66,8 @@ Bug
 
 - Rename ``raw.info['buffer_size_sec']`` to ``raw.buffer_size_sec`` as it is a writing parameter rather than a measurement parameter by `Eric Larson`_
 
+- Fix error when running LCMV on MEG channels with compensation using reference channels (like for CTF data) by `Alex Gramfort`_
+
 API
 ~~~
 
