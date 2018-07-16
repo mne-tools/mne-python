@@ -11,6 +11,16 @@ What's new
 
 .. currentmodule:: mne
 
+.. _changes_0_16_3:
+
+Version 0.16.3
+--------------
+
+Bug
+~~~
+
+- Fix error when running LCMV on MEG channels with compensation using reference channels (like for CTF data) by `Alex Gramfort`_
+
 .. _changes_0_16_2:
 
 Version 0.16.2
