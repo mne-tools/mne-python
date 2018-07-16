@@ -245,36 +245,35 @@ class SourceMorph(object):
         stc_to : VolSourceEstimate | SourceEstimate | VectorSourceEstimate | Nifti1Image
             The morphed source estimate or a NIfTI image if as_volume=True.
         """  # noqa: E501
+        stc = copy.deepcopy(stc_from)
+
         if as_volume:
-            return _stc_as_volume(self, stc_from, fname=None,
+            return _stc_as_volume(self, stc, fname=None,
                                   mri_resolution=mri_resolution,
                                   mri_space=mri_space)
 
-        if stc_from.subject is None:
-            stc_from.subject = self.subject_from
+        if stc.subject is None:
+            stc.subject = self.subject_from
 
         if self.subject_from is None:
-            self.subject_from = stc_from.subject
+            self.subject_from = stc.subject
 
-        if stc_from.subject != self.subject_from:
+        if stc.subject != self.subject_from:
             raise ValueError('stc_from.subject and '
                              'morph.subject_from must match. (%s != %s)' %
-                             (stc_from.subject, self.subject_from))
+                             (stc.subject, self.subject_from))
 
         # if not precomputed
         if 'morph_mat' not in self.params and self.kind == 'surface':
-            self._update_morph_data({'0': stc_from.lh_vertno,
-                                     '1': stc_from.rh_vertno,
+            self._update_morph_data({'0': stc.lh_vertno,
+                                     '1': stc.rh_vertno,
                                      'hemis': [0, 1]},
                                     kind='surface')
             self._compute_morph_data(verbose=verbose)
 
-        return _apply_morph_data(self, stc_from, verbose=verbose)
+        return _apply_morph_data(self, stc, verbose=verbose)
 
     def __repr__(self):  # noqa: D105
-        if self.kind is None:
-            return 'None'
-
         s = "%s" % self.kind
         s += ", subject_from : %s" % self.subject_from
         s += ", subject_to : %s" % self.subject_to
@@ -354,7 +353,8 @@ class SourceMorph(object):
 
 ###############################################################################
 # I/O
-def _check_subject_from(subject_from, src):
+def _check_subject_from(subject_from, src_in):
+    src = copy.deepcopy(src_in)
     if src is None:
         return subject_from
 
@@ -372,6 +372,7 @@ def _check_subject_from(subject_from, src):
         raise ValueError(
             'subject_from is None. Please specify subject_from when working '
             'with volume source space.')
+    del src
     return subject_from
 
 

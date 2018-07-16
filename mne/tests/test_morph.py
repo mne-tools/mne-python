@@ -115,6 +115,10 @@ def test_surface_vector_source_morph():
                  zip(sorted(source_morph_surf_r.__dict__),
                      sorted(source_morph_surf.__dict__))]))
 
+    # check wrong subject correction
+    stc_surf.subject = None
+    assert isinstance(source_morph_surf(stc_surf), SourceEstimate)
+
 
 @requires_nibabel()
 @requires_dipy()
@@ -148,8 +152,8 @@ def test_volume_source_morph():
     src[0]['subject_his_id'] = 'sample'
     source_morph_vol = SourceMorph(subjects_dir=subjects_dir,
                                    src=inverse_operator_vol['src'],
-                                   niter_affine=(10, 10, 10),
-                                   niter_sdr=(3, 3, 3), spacing=7)
+                                   niter_affine=(10, 10),
+                                   niter_sdr=(3, 3), spacing=7)
 
     assert source_morph_vol.subject_from == 'sample'
 
@@ -182,9 +186,9 @@ def test_volume_source_morph():
         subject_from='sample',
         subject_to=os.path.join(data_path, 'subjects', 'fsaverage', 'mri',
                                 'brain.mgz'),
-        subjects_dir=subjects_dir, niter_affine=(10, 10, 10),
+        subjects_dir=subjects_dir, niter_affine=(10, 10),
         src=fwd['src'],
-        niter_sdr=(3, 3, 3), spacing=7)
+        niter_sdr=(3, 3), spacing=7)
 
     # check wrong subject_to
     pytest.raises(IOError, SourceMorph,
@@ -246,7 +250,9 @@ def test_volume_source_morph():
 
     # check __repr__
     assert isinstance(source_morph_vol.__repr__(), string_types)
-    assert isinstance(SourceMorph(None).__repr__(), string_types)
+
+    # check subject correction
+    pytest.raises(ValueError, SourceMorph, src=src, subject_from='42')
 
 
 run_tests_if_main()
