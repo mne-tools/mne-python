@@ -286,7 +286,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
                     stim_channel=stim_channel, n_bytes=n_bytes)
     info.update(meas_date=meas_date,
-                description=str(session_label), buffer_size_sec=10., bads=bads,
+                description=str(session_label), bads=bads,
                 subject_info=subject_info, chs=chs)
     info._update_redundant()
     return info, cnt_info

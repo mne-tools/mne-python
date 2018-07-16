@@ -39,7 +39,7 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
         buffer_fname = op.join(tempdir, 'buffer')
         picks = rng.permutation(np.arange(len(raw.ch_names) - 1))[:10]
         picks = np.append(picks, len(raw.ch_names) - 1)  # test trigger channel
-        bnd = min(int(round(raw.info['buffer_size_sec'] *
+        bnd = min(int(round(raw.buffer_size_sec *
                             raw.info['sfreq'])), raw.n_times)
         slices = [slice(0, bnd), slice(bnd - 1, bnd), slice(3, bnd),
                   slice(3, 300), slice(None), slice(1, bnd)]

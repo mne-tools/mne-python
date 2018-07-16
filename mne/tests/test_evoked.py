@@ -551,7 +551,6 @@ def test_time_as_index():
 def test_add_channels():
     """Test evoked splitting / re-appending channel types."""
     evoked = read_evokeds(fname, condition=0)
-    evoked.info['buffer_size_sec'] = None
     hpi_coils = [{'event_bits': []},
                  {'event_bits': np.array([256,   0, 256, 256])},
                  {'event_bits': np.array([512,   0, 512, 512])}]

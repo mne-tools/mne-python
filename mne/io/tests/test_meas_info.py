@@ -339,8 +339,6 @@ def test_merge_info():
 
     info_0 = read_info(raw_fname)
     info_0['bads'] = ['MEG 2443', 'EEG 053']
-    # XXX eventually this should not be in meas, but a property of BaseRaw
-    info_0['buffer_size_sec'] = None
     assert len(info_0['chs']) == 376
     assert len(info_0['dig']) == 146
     info_1 = create_info(["STI XXX"], info_0['sfreq'], ['stim'])

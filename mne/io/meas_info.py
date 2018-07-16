@@ -92,8 +92,6 @@ class Info(dict):
     bads : list of str
         List of bad (noisy/broken) channels, by name. These channels will by
         default be ignored by many processing steps.
-    buffer_size_sec : float | None
-        Buffer size (in seconds) when reading the raw data in chunks.
     ch_names : list of str
         The names of the channels.
     chs : list of dict
@@ -1695,7 +1693,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
             raise ValueError(msg)
 
     # other fields
-    other_fields = ['acq_pars', 'acq_stim', 'bads', 'buffer_size_sec',
+    other_fields = ['acq_pars', 'acq_stim', 'bads',
                     'comps', 'custom_ref_applied', 'description',
                     'experimenter', 'file_id', 'highpass',
                     'hpi_subsystem', 'events',
@@ -1808,7 +1806,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
 
 
 RAW_INFO_FIELDS = (
-    'acq_pars', 'acq_stim', 'bads', 'buffer_size_sec', 'ch_names', 'chs',
+    'acq_pars', 'acq_stim', 'bads', 'ch_names', 'chs',
     'comps', 'ctf_head_t', 'custom_ref_applied', 'description', 'dev_ctf_t',
     'dev_head_t', 'dig', 'experimenter', 'events',
     'file_id', 'highpass', 'hpi_meas', 'hpi_results',
@@ -1822,7 +1820,7 @@ def _empty_info(sfreq):
     """Create an empty info dictionary."""
     from ..transforms import Transform
     _none_keys = (
-        'acq_pars', 'acq_stim', 'buffer_size_sec', 'ctf_head_t', 'description',
+        'acq_pars', 'acq_stim', 'ctf_head_t', 'description',
         'dev_ctf_t', 'dig', 'experimenter',
         'file_id', 'highpass', 'hpi_subsystem', 'kit_system_id',
         'line_freq', 'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',

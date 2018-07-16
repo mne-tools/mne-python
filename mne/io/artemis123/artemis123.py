@@ -160,7 +160,7 @@ def _get_artemis123_info(fname, pos_fname=None):
     desc += 'Comments : {}'.format(header_info['comments'])
 
     info.update({'meas_date': meas_date,
-                 'description': desc, 'buffer_size_sec': 1.,
+                 'description': desc,
                  'subject_info': subject_info,
                  'proj_name': header_info['Project Name']})
 

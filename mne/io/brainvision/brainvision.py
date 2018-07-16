@@ -461,7 +461,6 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     path = op.dirname(vhdr_fname)
     data_filename = op.join(path, cfg.get('Common Infos', 'DataFile'))
     info['meas_date'] = int(time.time())
-    info['buffer_size_sec'] = 1.  # reasonable default
 
     # load channel labels
     nchan = cfg.getint('Common Infos', 'NumberOfChannels') + 1

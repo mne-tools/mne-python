@@ -1809,7 +1809,7 @@ def test_contains():
     # Add seeg channel
     seeg = RawArray(np.zeros((1, len(raw.times))),
                     create_info(['SEEG 001'], raw.info['sfreq'], 'seeg'))
-    for key in ('dev_head_t', 'buffer_size_sec', 'highpass', 'lowpass',
+    for key in ('dev_head_t', 'highpass', 'lowpass',
                 'dig', 'description', 'acq_pars', 'experimenter',
                 'proj_name'):
         seeg.info[key] = raw.info[key]

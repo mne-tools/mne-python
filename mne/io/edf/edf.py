@@ -562,7 +562,6 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
 
     # Some keys to be consistent with FIF measurement info
     info['description'] = None
-    info['buffer_size_sec'] = 1.
     edf_info['nsamples'] = int(edf_info['n_records'] * max_samp)
 
     # These are the conditions under which a stim channel will be interpolated

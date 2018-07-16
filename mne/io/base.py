@@ -282,13 +282,18 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     dtype : dtype | None
         The dtype of the raw data. If preload is an ndarray, its dtype must
         match what is passed here.
+    buffer_size_sec : float
+        The buffer size in seconds that should be written by default using
+        :meth:`mne.io.Raw.save`.
+
+        .. versionadded:: 0.17
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
-    The `BaseRaw` class is public to allow for stable type-checking in user
+    This class is public to allow for stable type-checking in user
     code (i.e., ``isinstance(my_raw_object, BaseRaw)``) but should not be used
     as a constructor for `Raw` objects (use instead one of the subclass
     constructors, or one of the ``mne.io.read_raw_*`` functions).
@@ -308,7 +313,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  first_samps=(0,), last_samps=None,
                  filenames=(None,), raw_extras=(None,),
                  orig_format='double', dtype=np.float64,
-                 verbose=None):  # noqa: D102
+                 buffer_size_sec=1., verbose=None):  # noqa: D102
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
@@ -337,8 +342,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._first_samps = np.array(first_samps)
         info._check_consistency()  # make sure subclass did a good job
         self.info = info
-        if info.get('buffer_size_sec', None) is None:
-            raise RuntimeError('Reader error, notify mne-python developers')
+        self.buffer_size_sec = float(buffer_size_sec)
         cals = np.empty(info['nchan'])
         for k in range(info['nchan']):
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
@@ -2103,7 +2107,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def _get_buffer_size(self, buffer_size_sec=None):
         """Get the buffer size."""
         if buffer_size_sec is None:
-            buffer_size_sec = self.info.get('buffer_size_sec', 1.)
+            buffer_size_sec = self.buffer_size_sec
+        buffer_size_sec = float(buffer_size_sec)
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
 
 
