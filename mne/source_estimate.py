@@ -1338,6 +1338,8 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             return morph_data(subject_from, subject_to, self, grade, smooth,
                               subjects_dir, buffer_size, n_jobs, verbose)
 
+    @deprecated("This function is deprecated and might be removed in a future "
+                "release. Use morph = mne.SourceMorph and morph(stc)")
     def morph_precomputed(self, subject_to, vertices_to, morph_mat,
                           subject_from=None):
         """Morph source estimate between subjects using a precomputed matrix.
@@ -2254,27 +2256,14 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         raise ValueError('Morphing is only possible with surface or vector '
                          'source estimates')
 
-    # setup morph without src
-    source_morph = SourceMorph(None, subject_from=subject_from,
-                               subject_to=subject_to, spacing=grade,
-                               smooth=smooth, subjects_dir=subjects_dir,
-                               warn=warn, verbose=verbose)
-
-    # update hemi information
-    source_morph._update_morph_data({'0': stc_from.lh_vertno,
-                                     '1': stc_from.rh_vertno,
-                                     'hemis': [0, 1]},
-                                    kind='surface')
-
-    # compute morph
-    source_morph._compute_morph_data(verbose=verbose)
-
-    # apply morph data
-    stc_to = source_morph(stc_from)
-
-    return stc_to
+    return SourceMorph(subject_from=subject_from,
+                       subject_to=subject_to, spacing=grade,
+                       smooth=smooth, subjects_dir=subjects_dir,
+                       warn=warn, verbose=verbose)(stc_from)
 
 
+@deprecated("This function is deprecated and might be removed in a future "
+            "release. Use morph = mne.SourceMorph and morph(stc).")
 def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
                            morph_mat):
     """Morph source estimate between subjects using a precomputed matrix.
@@ -2315,17 +2304,10 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     if stc_from.subject is not None and stc_from.subject != subject_from:
         raise ValueError('stc_from.subject and subject_from must match')
 
-    # setup morph object
-    source_morph = SourceMorph(None, subject_from=subject_from,
-                               subject_to=subject_to)
-    # use pre-computed data
-    source_morph._update_morph_data({'vertno': vertices_to,
-                                     'morph_mat': morph_mat},
-                                    'surface')
-    # apply morph
-    stc_to = source_morph(stc_from)
-
-    return stc_to
+    return SourceMorph(subject_from=subject_from,
+                       subject_to=subject_to,
+                       precomputed={'vertno': vertices_to,
+                                    'morph_mat': morph_mat})(stc_from)
 
 
 def _get_vol_mask(src):

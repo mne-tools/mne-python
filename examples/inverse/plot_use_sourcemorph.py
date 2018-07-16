@@ -58,10 +58,10 @@ stc.crop(0.087, 0.087)
 # Morph VolSourceEstimate
 
 # Initialize SourceMorph for VolSourceEstimate
-source_morph = SourceMorph(inverse_operator['src'],
-                           subject_from='sample',
+source_morph = SourceMorph(subject_from='sample',
                            subject_to='fsaverage',
                            subjects_dir=subjects_dir,
+                           src=inverse_operator['src'],
                            spacing=5)
 
 # Obtain absolute value for plotting

@@ -9,7 +9,7 @@ import pytest
 import numpy as np
 from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
                  read_evokeds, SourceMorph, read_source_morph,
-                 read_source_estimate)
+                 read_source_estimate, read_forward_solution)
 from mne.datasets import sample, testing
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.utils import (run_tests_if_main, requires_nibabel, _TempDir,
@@ -85,11 +85,14 @@ def test_surface_vector_source_morph():
 
     stc_vec = _real_vec_stc()
 
-    source_morph_surf = SourceMorph(inverse_operator_surf['src'],
-                                    subjects_dir=subjects_dir,
-                                    spacing=[np.arange(10242)] * 2)
+    source_morph_surf = SourceMorph(subjects_dir=subjects_dir,
+                                    spacing=[np.arange(10242)] * 2,
+                                    src=inverse_operator_surf['src'])
 
     assert isinstance(source_morph_surf, SourceMorph)
+
+    assert isinstance(SourceMorph(subjects_dir=subjects_dir)(stc_surf),
+                      SourceEstimate)
 
     stc_surf_morphed = source_morph_surf(stc_surf)
     stc_vec_morphed = source_morph_surf(stc_vec)
@@ -132,24 +135,23 @@ def test_volume_source_morph():
     stc_vol = read_source_estimate(fname_vol, 'sample')
 
     # check for invalid input type
-    pytest.raises(ValueError, SourceMorph, 42)
+    pytest.raises(ValueError, SourceMorph, src=42)
 
     # check for raising an error if neither
     # inverse_operator_vol['src'][0]['subject_his_id'] nor subject_from is set,
     # but attempting to perform a volume morph
     src = inverse_operator_vol['src']
     src[0]['subject_his_id'] = None
-    pytest.raises(ValueError, SourceMorph, src, subjects_dir=subjects_dir)
-
-    # check path to src provided, but invalid
-    pytest.raises(IOError, SourceMorph, '42', subjects_dir=subjects_dir)
+    pytest.raises(ValueError, SourceMorph, src=src, subjects_dir=subjects_dir)
 
     # check infer subject_from from src[0]['subject_his_id']
     src[0]['subject_his_id'] = 'sample'
-    source_morph_vol = SourceMorph(inverse_operator_vol['src'],
-                                   subjects_dir=subjects_dir,
+    source_morph_vol = SourceMorph(subjects_dir=subjects_dir,
+                                   src=inverse_operator_vol['src'],
                                    niter_affine=(10, 10, 10),
                                    niter_sdr=(3, 3, 3), spacing=7)
+
+    assert source_morph_vol.subject_from == 'sample'
 
     # the brain used in sample data has shape (255, 255, 255)
     assert (tuple(source_morph_vol.data['DiffeomorphicMap']['domain_shape']) ==
@@ -172,20 +174,22 @@ def test_volume_source_morph():
     #     subjects_dir=os.path.join(data_path, 'subjects'),
     #     grid_spacing=None)
 
+    fwd = read_forward_solution(
+        os.path.join(sample_dir, 'sample_audvis-meg-vol-7-fwd.fif'))
     # check input via path to src and path to subject_to
     source_morph_vol = SourceMorph(
-        os.path.join(sample_dir, 'sample_audvis-meg-vol-7-fwd.fif'),
         subject_from='sample',
         subject_to=os.path.join(data_path, 'subjects', 'fsaverage', 'mri',
                                 'brain.mgz'),
         subjects_dir=subjects_dir, niter_affine=(10, 10, 10),
+        src=fwd['src'],
         niter_sdr=(3, 3, 3), spacing=7)
 
     # check wrong subject_to
     pytest.raises(IOError, SourceMorph,
-                  os.path.join(sample_dir, 'sample_audvis-meg-vol-7-fwd.fif'),
                   subject_from='sample', subject_to='42',
-                  subjects_dir=subjects_dir)
+                  subjects_dir=subjects_dir,
+                  src=fwd['src'])
 
     # two different ways of saving
     source_morph_vol.save(os.path.join(tempdir, 'vol'))

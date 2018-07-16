@@ -610,10 +610,12 @@ def test_morph_data():
     # compute_morph_matrix is deprecated
     assert sum('deprecated' in str(ww.message) for ww in w) == 1
 
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True) as w:
         stc_to2 = stc_from.morph_precomputed(subject_to, vertices_to,
                                              morph_mat)
     assert_array_almost_equal(stc_to1.data, stc_to2.data)
+
+    assert sum('deprecated' in str(ww.message) for ww in w) == 2
 
     with warnings.catch_warnings(record=True):
         pytest.raises(ValueError, stc_from.morph_precomputed,
@@ -627,7 +629,7 @@ def test_morph_data():
                       vertices_to, morph_mat, subject_from='foo')
 
     # steps warning
-    with warnings.catch_warnings(record=True) as w:
+    with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
         compute_morph_matrix(subject_from, subject_to,
                              stc_from.vertices, vertices_to,
@@ -683,7 +685,7 @@ def test_morph_data():
     stc_vec = _real_vec_stc()
 
     # Ignore warnings about number of steps
-    with warnings.catch_warnings(record=True) as w:
+    with warnings.catch_warnings(record=True):
         stc_vec_to1 = stc_vec.morph(subject_to, grade=3, smooth=12,
                                     subjects_dir=subjects_dir)
         stc_vec_to2 = stc_vec.morph_precomputed(subject_to, vertices_to,
