@@ -789,7 +789,7 @@ def requires_nibabel(vox2ras_tkr=False):
 def requires_dipy():
     """Check for dipy."""
     import pytest
-    return pytest.mark.skipif(not check_version('dipy', ''),
+    return pytest.mark.skipif(not check_version('dipy', '0.10.1'),
                               reason='Requires dipy')
 
 
