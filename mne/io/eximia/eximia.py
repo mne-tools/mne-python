@@ -76,7 +76,6 @@ class RawEximia(BaseRaw):
         ch_types += ['eeg'] * n_eeg
         assert len(ch_names) == n_chan
         info = create_info(ch_names, sfreq, ch_types)
-        info.update(buffer_size_sec=1.)
         n_bytes = _file_size(fname)
         n_samples, extra = divmod(n_bytes, (n_chan * 2))
         if extra != 0:

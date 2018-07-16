@@ -1156,7 +1156,6 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         info['meas_date'] = None
         bti_info['processes'] = list()
 
-    info['buffer_size_sec'] = 1.  # reasonable default for writing
     # browse processing info for filter specs.
     hp, lp = ((0.0, info['sfreq'] * 0.4) if pdf_fname is not None else
               (None, None))

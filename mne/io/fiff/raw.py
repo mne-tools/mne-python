@@ -83,8 +83,9 @@ class Raw(BaseRaw):
         raws = []
         for ii, fname in enumerate(fnames):
             do_check_fname = fname not in split_fnames
-            raw, next_fname = self._read_raw_file(fname, allow_maxshield,
-                                                  preload, do_check_fname)
+            raw, next_fname, buffer_size_sec = \
+                self._read_raw_file(fname, allow_maxshield,
+                                    preload, do_check_fname)
             raws.append(raw)
             if next_fname is not None:
                 if not op.exists(next_fname):
@@ -96,12 +97,12 @@ class Raw(BaseRaw):
                 split_fnames.append(next_fname)
 
         _check_raw_compatibility(raws)
-
         super(Raw, self).__init__(
             copy.deepcopy(raws[0].info), False,
             [r.first_samp for r in raws], [r.last_samp for r in raws],
             [r.filename for r in raws], [r._raw_extras for r in raws],
-            raws[0].orig_format, None, verbose=verbose)
+            raws[0].orig_format, None, buffer_size_sec=buffer_size_sec,
+            verbose=verbose)
 
         # combine annotations
         BaseRaw.annotations.fset(self, raws[0].annotations, False)
@@ -282,16 +283,15 @@ class Raw(BaseRaw):
                     float(raw.last_samp) / info['sfreq']))
 
         # store the original buffer size
-        info['buffer_size_sec'] = (np.median([r['nsamp']
-                                              for r in raw_extras]) /
-                                   info['sfreq'])
+        buffer_size_sec = np.median(
+            [r['nsamp'] for r in raw_extras]) / info['sfreq']
 
         raw.info = info
         raw.verbose = verbose
 
         logger.info('Ready.')
 
-        return raw, next_fname
+        return raw, next_fname, buffer_size_sec
 
     @property
     def _dtype(self):

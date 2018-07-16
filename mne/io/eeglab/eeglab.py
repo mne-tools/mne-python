@@ -110,9 +110,6 @@ def _get_info(eeg, montage, eog=()):
             info, montage, path=path, update_ch_names=update_ch_names,
             raise_missing=False)
 
-    info['buffer_size_sec'] = 1.  # reasonable default
-    # update the info dict
-
     if eog == 'auto':
         eog = _find_channels(ch_names)
 

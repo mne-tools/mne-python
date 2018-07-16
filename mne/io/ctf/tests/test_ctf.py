@@ -126,8 +126,7 @@ def test_read_ctf():
             assert_equal(raw.info[key], raw_c.info[key], key)
         if op.basename(fname) not in single_trials:
             # We don't force buffer size to be smaller like MNE-C
-            assert_equal(raw.info['buffer_size_sec'],
-                         raw_c.info['buffer_size_sec'])
+            assert raw.buffer_size_sec == raw_c.buffer_size_sec
         assert_equal(len(raw.info['comps']), len(raw_c.info['comps']))
         for c1, c2 in zip(raw.info['comps'], raw_c.info['comps']):
             for key in ('colcals', 'rowcals'):
@@ -192,7 +191,7 @@ def test_read_ctf():
         # so let's check tricky cases based on sample boundaries
         rng = np.random.RandomState(0)
         pick_ch = rng.permutation(np.arange(len(raw.ch_names)))[:10]
-        bnd = int(round(raw.info['sfreq'] * raw.info['buffer_size_sec']))
+        bnd = int(round(raw.info['sfreq'] * raw.buffer_size_sec))
         assert_equal(bnd, raw._raw_extras[0]['block_size'])
         assert_equal(bnd, block_sizes[op.basename(fname)])
         slices = (slice(0, bnd), slice(bnd - 1, bnd), slice(3, bnd),

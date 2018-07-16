@@ -340,7 +340,6 @@ class RawMff(BaseRaw):
             self.event_id = None
             event_codes = []
         info = _empty_info(egi_info['sfreq'])
-        info['buffer_size_sec'] = 1.  # reasonable default
         my_time = datetime.datetime(
             egi_info['year'], egi_info['month'], egi_info['day'],
             egi_info['hour'], egi_info['minute'], egi_info['second'])

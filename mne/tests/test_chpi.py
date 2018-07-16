@@ -404,7 +404,6 @@ def test_chpi_subtraction():
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
     with warnings.catch_warnings(record=True):  # uint cast suggestion
         raw = raw.crop(0, 1).load_data().resample(600., npad='auto')
-    raw.info['buffer_size_sec'] = np.float64(2.)
     raw.info['lowpass'] = 200.
     del raw.info['maxshield']
     del raw.info['hpi_results'][0]['moments']

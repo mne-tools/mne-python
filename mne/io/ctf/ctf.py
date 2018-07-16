@@ -138,8 +138,9 @@ class RawCTF(BaseRaw):
             if sample_info['n_samp'] == 0:
                 break
             if len(fnames) == 0:
-                info['buffer_size_sec'] = \
-                    sample_info['block_size'] / info['sfreq']
+                buffer_size_sec = sample_info['block_size'] / info['sfreq']
+            else:
+                buffer_size_sec = 1.
             fnames.append(meg4_name)
             last_samps.append(sample_info['n_samp'] - 1)
             raw_extras.append(sample_info)
@@ -147,7 +148,8 @@ class RawCTF(BaseRaw):
         super(RawCTF, self).__init__(
             info, preload, first_samps=first_samps,
             last_samps=last_samps, filenames=fnames,
-            raw_extras=raw_extras, orig_format='int', verbose=verbose)
+            raw_extras=raw_extras, orig_format='int',
+            buffer_size_sec=buffer_size_sec, verbose=verbose)
 
         if clean_names:
             self._clean_names()
