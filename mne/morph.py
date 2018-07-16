@@ -190,7 +190,7 @@ class SourceMorph(object):
                              'path to a saved instance of SourceSpaces')
         # Params
         self.kind = 'surface' if src is None else src.kind
-        self.subject_from = subject_from
+        self.subject_from = _check_subject_from(subject_from, src)
         self.subject_to = subject_to
         self.subjects_dir = subjects_dir
 
@@ -206,9 +206,6 @@ class SourceMorph(object):
         self.xhemi = xhemi
 
         self.params = dict()
-
-        # assure presence of subject_from for volume morphs
-        self.subject_from = _check_subject_from(self.subject_from, src)
 
         # apply precomputed data and return
         if precomputed is not None:
@@ -454,7 +451,8 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
     # this is a special case when as_volume is called without having done a
     # morph beforehand (to assure compatibility to previous versions)
     if 'morph_shape' not in morph.params:
-        img = _interpolate_data(stc, morph.params, mri_resolution=mri_resolution,
+        img = _interpolate_data(stc, morph.params,
+                                mri_resolution=mri_resolution,
                                 mri_space=mri_space)
         if fname is not None:
             nib.save(img, fname)
