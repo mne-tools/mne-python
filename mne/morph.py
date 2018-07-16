@@ -179,10 +179,10 @@ class SourceMorph(object):
 
         # it's impossible to use the class without passing this check, so it
         # only needs to be checked here
-        if (not check_version('nibabel', '2.2.1') or
-                not check_version('dipy', '0.14.0')):
+        if (not check_version('nibabel', '2.1.0') or
+                not check_version('dipy', '0.10.1')):
             raise ImportError(
-                'NiBabel (Python) and DiPy (Python) must be correctly '
+                'NiBabel 2.1.0 and DiPy 0.10.1 or higher must be correctly '
                 'installed and accessible from Python')
 
         if src is not None and not isinstance(src, SourceSpaces):
@@ -906,7 +906,7 @@ def _compute_morph_sdr(mri_from, mri_to,
 ###############################################################################
 # Morph for SourceEstimate |  VectorSourceEstimate
 @deprecated("This function is deprecated and might be removed in a future "
-            "release. Use morph = mne.SourceMorph and morph(stc). Access the"
+            "release. Use morph = mne.SourceMorph and morph(stc). Access the "
             "morph matrix via morph.params['morph_mat']")
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
                          smooth=None, subjects_dir=None, warn=True,
