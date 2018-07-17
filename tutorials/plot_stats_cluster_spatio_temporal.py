@@ -122,8 +122,15 @@ X[:, :, :, 1] += condition2.data[:, :, np.newaxis]
 # Read the source space we are morphing to
 src = mne.read_source_spaces(src_fname)
 fsave_vertices = [s['vertno'] for s in src]
-morph_mat = mne.compute_morph_matrix('sample', 'fsaverage', sample_vertices,
-                                     fsave_vertices, 20, subjects_dir)
+
+# obtain morph_mat from SourceMorph
+morph_mat = mne.SourceMorph(subject_from='sample',
+                            subject_to='fsaverage',
+                            subjects_dir=subjects_dir,
+                            spacing=fsave_vertices,
+                            src=inverse_operator['src'],
+                            smooth=20).params['morph_mat']
+
 n_vertices_fsave = morph_mat.shape[0]
 
 #    We have to change the shape for the dot() to work properly

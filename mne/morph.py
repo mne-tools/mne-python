@@ -416,7 +416,7 @@ def read_source_morph(fname, verbose=None):
 def _check_hemi_data(data_in, data_ref):
     """Check and setup correct data for hemispheres."""
     return [np.array([], int) if
-            data_ref[h].size == 0 or
+            len(data_ref[h]) == 0 or
             data_ref[h] is None else
             data_in[h]
             for h in range(len(data_ref))]
@@ -623,6 +623,7 @@ def _compute_morph_data(morph, verbose=None):
                 morph.subject_to != 'fsaverage'):
             data_to = grade_to_vertices(morph.subject_to, morph.spacing,
                                         subjects_dir, 1)
+            data_from = _check_hemi_data(data_from, data_to)
 
         if data_to is None:
             raise ValueError('Please specify target to morph to.')
@@ -1274,7 +1275,7 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
 
     cnt = 0
     for h in [0, 1]:
-        if stc.vertices[h].size > 0:
+        if len(stc.vertices[h]) > 0:
             map_hemi = maps[h]
             vertno_h = _sparse_argmax_nnz_row(map_hemi[stc.vertices[h]])
             order = np.argsort(vertno_h)
