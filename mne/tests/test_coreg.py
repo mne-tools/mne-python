@@ -90,32 +90,33 @@ def test_scale_mri():
     write_source_spaces(path % 'vol-50', vsrc)
 
     # scale fsaverage
-    os.environ['_MNE_FEW_SURFACES'] = 'true'
-    scale = np.array([1, .2, .8])
-    scale_mri('fsaverage', 'flachkopf', scale, True, subjects_dir=tempdir,
-              verbose='debug')
-    del os.environ['_MNE_FEW_SURFACES']
-    assert _is_mri_subject('flachkopf', tempdir), "Scaling fsaverage failed"
-    spath = op.join(tempdir, 'flachkopf', 'bem', 'flachkopf-%s-src.fif')
+    for scale in (.9, [1, .2, .8]):
+        os.environ['_MNE_FEW_SURFACES'] = 'true'
+        scale_mri('fsaverage', 'flachkopf', scale, True, subjects_dir=tempdir,
+                  verbose='debug')
+        del os.environ['_MNE_FEW_SURFACES']
+        assert _is_mri_subject('flachkopf', tempdir), "Scaling failed"
+        spath = op.join(tempdir, 'flachkopf', 'bem', 'flachkopf-%s-src.fif')
 
-    assert op.exists(spath % 'ico-0'), "Source space ico-0 was not scaled"
-    assert os.path.isfile(os.path.join(tempdir, 'flachkopf', 'surf',
-                                       'lh.sphere.reg'))
-    vsrc_s = mne.read_source_spaces(spath % 'vol-50')
-    pt = np.array([0.12, 0.41, -0.22])
-    assert_array_almost_equal(apply_trans(vsrc_s[0]['src_mri_t'], pt * scale),
-                              apply_trans(vsrc[0]['src_mri_t'], pt))
-    scale_labels('flachkopf', subjects_dir=tempdir)
+        assert op.exists(spath % 'ico-0'), "Source space ico-0 was not scaled"
+        assert os.path.isfile(os.path.join(tempdir, 'flachkopf', 'surf',
+                                           'lh.sphere.reg'))
+        vsrc_s = mne.read_source_spaces(spath % 'vol-50')
+        pt = np.array([0.12, 0.41, -0.22])
+        assert_array_almost_equal(
+            apply_trans(vsrc_s[0]['src_mri_t'], pt * np.array(scale)),
+            apply_trans(vsrc[0]['src_mri_t'], pt))
+        scale_labels('flachkopf', subjects_dir=tempdir)
 
-    # add distances to source space
-    mne.add_source_space_distances(src)
-    src.save(path % 'ico-0', overwrite=True)
+        # add distances to source space
+        mne.add_source_space_distances(src)
+        src.save(path % 'ico-0', overwrite=True)
 
-    # scale with distances
-    os.remove(spath % 'ico-0')
-    scale_source_space('flachkopf', 'ico-0', subjects_dir=tempdir)
-    ssrc = mne.read_source_spaces(spath % 'ico-0')
-    assert ssrc[0]['dist'] is not None
+        # scale with distances
+        os.remove(spath % 'ico-0')
+        scale_source_space('flachkopf', 'ico-0', subjects_dir=tempdir)
+        ssrc = mne.read_source_spaces(spath % 'ico-0')
+        assert ssrc[0]['dist'] is not None
 
 
 @testing.requires_testing_data

@@ -1103,7 +1103,7 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         # distances and patch info
         if uniform:
             if ss['dist'] is not None:
-                ss['dist'] *= scale
+                ss['dist'] *= scale[0]
                 # Sometimes this is read-only due to how it's read
                 ss['nearest_dist'] = ss['nearest_dist'] * scale
                 ss['dist_limit'] = ss['dist_limit'] * scale
