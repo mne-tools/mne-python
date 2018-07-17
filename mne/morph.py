@@ -11,7 +11,6 @@ import numpy as np
 from scipy import sparse
 from scipy.sparse import block_diag as sparse_block_diag
 
-from .forward import read_forward_solution
 from .parallel import parallel_func
 from .source_estimate import (VolSourceEstimate, SourceEstimate,
                               VectorSourceEstimate, _get_ico_tris)
@@ -20,7 +19,6 @@ from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, deprecated)
 from .externals.h5io import read_hdf5, write_hdf5
-from .externals.six import string_types
 
 
 class SourceMorph(object):
@@ -219,7 +217,7 @@ class SourceMorph(object):
 
     # Forward verbose decorator to _apply_morph_data
     def __call__(self, stc_from, as_volume=False, mri_resolution=False,
-                 mri_space=False, verbose=None):
+                 mri_space=False, apply_morph=True, verbose=None):
         """Morph data.
 
         Parameters
@@ -236,6 +234,9 @@ class SourceMorph(object):
         mri_space : bool
             Whether the image to world registration should be in mri space.
             Default is False.
+        apply_morph : bool
+            If as_volume=True and apply_morph=True, the input stc will be
+            morphed and outputted as a volume.
         verbose : bool | str | int | None
             If not None, override default verbose level (see :func:`mne.
             verbose` and :ref:`Logging documentation <tut_logging>` for more).
@@ -248,9 +249,10 @@ class SourceMorph(object):
         stc = copy.deepcopy(stc_from)
 
         if as_volume:
-            return _stc_as_volume(self, stc, fname=None,
+            return self.as_volume(stc, fname=None,
                                   mri_resolution=mri_resolution,
-                                  mri_space=mri_space)
+                                  mri_space=mri_space,
+                                  apply_morph=apply_morph)
 
         if stc.subject is None:
             stc.subject = self.subject_from
@@ -310,7 +312,8 @@ class SourceMorph(object):
         write_hdf5(fname, self.__dict__, overwrite=True)
         logger.info('[done]')
 
-    def as_volume(self, stc, fname=None, mri_resolution=False, mri_space=True):
+    def as_volume(self, stc, fname=None, mri_resolution=False, mri_space=True,
+                  apply_morph=False):
         """Return volume source space as Nifti1Image and / or save to disk.
 
         Parameters
@@ -328,12 +331,17 @@ class SourceMorph(object):
             huge.
         mri_space : bool
             Whether the image to world registration should be in MRI space.
+        apply_morph : bool
+            Whether to apply the precomputed morph to stc or not. Default is
+            False.
 
         Returns
         -------
         img : instance of Nifti1Image
             The image object.
         """
+        if apply_morph:
+            stc = self.__call__(stc)  # apply morph if desired
         return _stc_as_volume(self, stc, fname=fname,
                               mri_resolution=mri_resolution,
                               mri_space=mri_space)
