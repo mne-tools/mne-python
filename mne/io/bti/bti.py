@@ -1016,7 +1016,7 @@ class RawBTi(BaseRaw):
         and :ref:`Logging documentation <tut_logging>` for more).
     """
 
-    @verbose
+    # @verbose
     def __init__(self, pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=0.,
                  translation=(0.0, 0.02, 0.11), convert=True,

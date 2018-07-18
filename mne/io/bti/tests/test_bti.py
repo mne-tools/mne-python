@@ -114,7 +114,8 @@ def test_raw():
         assert_equal(ex.ch_names[:NCH], ra.ch_names[:NCH])
         assert_array_almost_equal(ex.info['dev_head_t']['trans'],
                                   ra.info['dev_head_t']['trans'], 7)
-        assert_dig_allclose(ex.info, ra.info)
+        assert len(ex.info['dig']) in (3563, 5154)
+        assert_dig_allclose(ex.info, ra.info, limit=100)
         coil1, coil2 = [np.concatenate([d['loc'].flatten()
                         for d in r_.info['chs'][:NCH]])
                         for r_ in (ra, ex)]

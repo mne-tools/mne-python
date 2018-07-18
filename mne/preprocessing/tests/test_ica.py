@@ -333,15 +333,16 @@ def test_ica_additional(method):
     tempdir = _TempDir()
     stop2 = 500
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
+    raw.del_proj()  # avoid warnings
     raw.annotations = Annotations([0.5], [0.5], ['BAD'])
     # XXX This breaks the tests :(
     # raw.info['bads'] = [raw.ch_names[1]]
     test_cov = read_cov(test_cov_name)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                       eog=False, exclude='bads')
+                       eog=False, exclude='bads')[1::2]
     epochs = Epochs(raw, events, None, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
+                    baseline=(None, 0), preload=True, proj=False)
     epochs.decimate(3, verbose='error')
     assert len(epochs) == 4
 
@@ -351,10 +352,10 @@ def test_ica_additional(method):
     with warnings.catch_warnings(record=True):
         ica.fit(epochs)
     # for testing eog functionality
-    picks2 = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                        eog=True, exclude='bads')
+    picks2 = np.concatenate([picks, pick_types(raw.info, False, eog=True)])
     epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
                         baseline=(None, 0), preload=True)
+    del picks2
 
     test_cov2 = test_cov.copy()
     ica = ICA(noise_cov=test_cov2, n_components=3, max_pca_components=4,
@@ -413,7 +414,7 @@ def test_ica_additional(method):
         raw_.append(raw_)
     n_samples = raw_._data.shape[1]
     with warnings.catch_warnings(record=True):
-        ica.fit(raw, picks=None, decim=3)
+        ica.fit(raw, picks=picks[:5], decim=3)
     assert raw_._data.shape[1] == n_samples
 
     # test expl var
@@ -440,11 +441,11 @@ def test_ica_additional(method):
         ica = ICA(noise_cov=cov, n_components=2, max_pca_components=4,
                   n_pca_components=4, method=method, max_iter=1)
         with warnings.catch_warnings(record=True):  # ICA does not converge
-            ica.fit(raw, picks=picks, start=start, stop=stop2)
+            ica.fit(raw, picks=picks[:10], start=start, stop=stop2)
         sources = ica.get_sources(epochs).get_data()
         assert (ica.mixing_matrix_.shape == (2, 2))
         assert (ica.unmixing_matrix_.shape == (2, 2))
-        assert (ica.pca_components_.shape == (4, len(picks)))
+        assert (ica.pca_components_.shape == (4, 10))
         assert (sources.shape[1] == ica.n_components_)
 
         for exclude in [[], [0], np.array([1, 2, 3])]:

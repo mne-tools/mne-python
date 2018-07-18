@@ -84,13 +84,13 @@ def _dig_sort_key(dig):
     return (dig['kind'], dig['ident'])
 
 
-def assert_dig_allclose(info_py, info_bin):
+def assert_dig_allclose(info_py, info_bin, limit=None):
     """Assert dig allclose."""
     # test dig positions
     dig_py = sorted(info_py['dig'], key=_dig_sort_key)
     dig_bin = sorted(info_bin['dig'], key=_dig_sort_key)
-    assert_equal(len(dig_py), len(dig_bin))
-    for ii, (d_py, d_bin) in enumerate(zip(dig_py, dig_bin)):
+    assert len(dig_py) == len(dig_bin)
+    for ii, (d_py, d_bin) in enumerate(zip(dig_py[:limit], dig_bin[:limit])):
         for key in ('ident', 'kind', 'coord_frame'):
             assert_equal(d_py[key], d_bin[key])
         assert_allclose(d_py['r'], d_bin['r'], rtol=1e-5, atol=1e-5,
