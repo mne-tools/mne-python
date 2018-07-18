@@ -2748,3 +2748,79 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
     if not isinstance(item, types):
         raise TypeError(item_name, ' must be an instance of ', type_name,
                         ', got %s instead.' % (type(item),))
+
+
+def linkcode_resolve(domain, info):
+    """Determine the URL corresponding to Python object.
+
+    Parameters
+    ----------
+    domain : str
+        Only useful when 'py'.
+    info : dict
+        With keys "module" and "fullname".
+
+    Returns
+    -------
+    url : str
+        The code URL.
+
+    Notes
+    -----
+    This has been adapted to deal with our "verbose" decorator.
+
+    Adapted from SciPy (doc/source/conf.py).
+    """
+    import mne
+    if domain != 'py':
+        return None
+
+    modname = info['module']
+    fullname = info['fullname']
+
+    submod = sys.modules.get(modname)
+    if submod is None:
+        return None
+
+    obj = submod
+    for part in fullname.split('.'):
+        try:
+            obj = getattr(obj, part)
+        except Exception:
+            return None
+
+    try:
+        fn = inspect.getsourcefile(obj)
+    except Exception:
+        fn = None
+    if not fn:
+        try:
+            fn = inspect.getsourcefile(sys.modules[obj.__module__])
+        except Exception:
+            fn = None
+    if not fn:
+        return None
+    if fn == '<string>':  # verbose decorator
+        fn = '/'.join(op.split(inspect.getmodule(obj).__file__))
+        fn = 'mne/' + fn.split('/mne/')[-1]
+
+    try:
+        source, lineno = inspect.getsourcelines(obj)
+    except Exception:
+        lineno = None
+
+    if lineno:
+        linespec = "#L%d-L%d" % (lineno, lineno + len(source) - 1)
+    else:
+        linespec = ""
+    if '<string>' in fn:
+        raise RuntimeError
+
+    fn = op.relpath(fn, start=op.dirname(mne.__file__))
+
+    if 'dev' in mne.__version__:
+        kind = 'master'
+    else:
+        kind = 'maint/%s' % ('.'.join(mne.__version__.split('.')[:2]))
+    return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (  # noqa
+       kind, fn, linespec)

@@ -28,7 +28,8 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        _get_call_line, compute_corr, sys_info, verbose,
                        check_fname, get_config_path,
                        object_size, buggy_mkl_svd, _get_inst_data,
-                       copy_doc, copy_function_doc_to_method_doc, ProgressBar)
+                       copy_doc, copy_function_doc_to_method_doc, ProgressBar,
+                       linkcode_resolve)
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -801,6 +802,18 @@ def test_open_docs():
         pytest.raises(ValueError, open_docs, 'api', 'foo')
     finally:
         webbrowser.open_new_tab = old_tab
+
+
+def test_linkcode_resolve():
+    """Test linkcode resolving."""
+    url = linkcode_resolve('py', dict(module='mne', fullname='Epochs'))
+    assert '/mne/epochs.py#L' in url
+    url = linkcode_resolve('py', dict(module='mne',
+                                      fullname='compute_covariance'))
+    assert '/mne/cov.py#L' in url
+    url = linkcode_resolve('py', dict(module='mne',
+                                      fullname='convert_forward_solution'))
+    assert '/mne/forward/forward.py#L' in url
 
 
 run_tests_if_main()

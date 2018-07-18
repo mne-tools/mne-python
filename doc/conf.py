@@ -22,6 +22,7 @@ import sphinx_bootstrap_theme
 from numpydoc import numpydoc, docscrape  # noqa
 import sphinx_fontawesome
 import mne
+from mne.utils import linkcode_resolve  # noqa, analysis:ignore
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -322,60 +323,3 @@ sphinx_gallery_conf = {
 }
 
 numpydoc_class_members_toctree = False
-
-
-# -----------------------------------------------------------------------------
-# Source code links (adapted from SciPy (doc/source/conf.py))
-# -----------------------------------------------------------------------------
-
-def linkcode_resolve(domain, info):
-    """
-    Determine the URL corresponding to Python object
-    """
-    if domain != 'py':
-        return None
-
-    modname = info['module']
-    fullname = info['fullname']
-
-    submod = sys.modules.get(modname)
-    if submod is None:
-        return None
-
-    obj = submod
-    for part in fullname.split('.'):
-        try:
-            obj = getattr(obj, part)
-        except:
-            return None
-
-    try:
-        fn = inspect.getsourcefile(obj)
-    except:
-        fn = None
-    if not fn:
-        try:
-            fn = inspect.getsourcefile(sys.modules[obj.__module__])
-        except:
-            fn = None
-    if not fn:
-        return None
-
-    try:
-        source, lineno = inspect.getsourcelines(obj)
-    except:
-        lineno = None
-
-    if lineno:
-        linespec = "#L%d-L%d" % (lineno, lineno + len(source) - 1)
-    else:
-        linespec = ""
-
-    fn = relpath(fn, start=dirname(mne.__file__))
-
-    if 'dev' in mne.__version__:
-        kind = 'master'
-    else:
-        kind = 'maint/%s' % ('.'.join(mne.__version__.split('.')[:2]))
-    return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (  # noqa
-       kind, fn, linespec)
