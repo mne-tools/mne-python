@@ -314,6 +314,7 @@ class RawArtemis123(BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
 
+    @verbose
     def __init__(self, input_fname, preload=False, verbose=None,
                  pos_fname=None, add_head_trans=True):  # noqa: D102
         from scipy.spatial.distance import cdist
