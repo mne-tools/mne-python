@@ -27,8 +27,14 @@ jobs:
         # Spin up Xvfb
         - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
         - run: echo "export DISPLAY=:99" >> $BASH_ENV;
-        - run: pip install -r requirements.txt
-        - run: pip install --upgrade sphinx "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" sphinx_fontawesome
+        # Fix libgcc_s.so.1 pthread_cancel bug:
+        # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
+        # https://github.com/golemfactory/golem/issues/1019
+        - run: sudo apt-get install libgl1-mesa-glx libegl1-mesa libxrandr2 libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6 qt5-default
+        - run: echo "export PATH=~/.local/bin:$PATH" >> $BASH_ENV;
+        - run: pip install --user --upgrade numpy scipy vtk
+        - run: pip install --user -r requirements.txt
+        - run: pip install --user --upgrade sphinx "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" sphinx_fontawesome
         - save_cache:
             key: pip-cache
             paths:
