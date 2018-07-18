@@ -2801,8 +2801,9 @@ def linkcode_resolve(domain, info):
     if not fn:
         return None
     if fn == '<string>':  # verbose decorator
-        fn = '/'.join(op.split(inspect.getmodule(obj).__file__))
-        fn = 'mne/' + fn.split('/mne/')[-1]
+        fn = inspect.getmodule(obj).__file__
+    # rejoin with '/' for Windows
+    fn = '/'.join(op.split(op.relpath(fn, start=op.dirname(mne.__file__))))
 
     try:
         source, lineno = inspect.getsourcelines(obj)
@@ -2813,10 +2814,6 @@ def linkcode_resolve(domain, info):
         linespec = "#L%d-L%d" % (lineno, lineno + len(source) - 1)
     else:
         linespec = ""
-    if '<string>' in fn:
-        raise RuntimeError
-
-    fn = op.relpath(fn, start=op.dirname(mne.__file__))
 
     if 'dev' in mne.__version__:
         kind = 'master'
