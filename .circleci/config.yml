@@ -49,7 +49,7 @@ jobs:
         - run: python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
         # Figure out if we should run a full, pattern, or noplot version
-        - run: python setup.py develop
+        - run: python setup.py develop --user
         - run: if ! git remote -v | grep upstream ; then git remote add upstream git://github.com/mne-tools/mne-python.git; fi
         - run: git fetch upstream
         - run: git branch -a
