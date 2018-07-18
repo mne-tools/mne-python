@@ -1773,53 +1773,46 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
                 resampling_interpolation='nearest', vmax=params['vmax'])
             params.update({'fig_anat': fig_anat})
 
-        if 'fig_anat' in params:
-            fig_anat = params['fig_anat']
-            ax_x = fig_anat.axes['x'].ax
-            ax_y = fig_anat.axes['y'].ax
-            ax_z = fig_anat.axes['z'].ax
-            if 'ax_x' not in params:
-                params.update({'ax_x': ax_x, 'ax_y': ax_y, 'ax_z': ax_z})
+        ax_x, ax_y, ax_z = params['ax_x'], params['ax_y'], params['ax_z']
+        if event.inaxes is ax_x:
+            cut_coords = (params['ax_z'].lines[0].get_xdata()[0],
+                          event.xdata, event.ydata)
+        if event.inaxes is ax_y:
+            cut_coords = (event.xdata,
+                          params['ax_x'].lines[0].get_xdata()[0],
+                          event.ydata)
+        if event.inaxes is ax_z:
+            cut_coords = (event.xdata, event.ydata,
+                          params['ax_y'].lines[0].get_xdata()[0])
 
-            if event.inaxes is ax_x:
-                cut_coords = (params['ax_z'].lines[0].get_xdata()[0],
-                              event.xdata, event.ydata)
-            if event.inaxes is ax_y:
-                cut_coords = (event.xdata,
-                              params['ax_x'].lines[0].get_xdata()[0],
-                              event.ydata)
-            if event.inaxes is ax_z:
-                cut_coords = (event.xdata, event.ydata,
-                              params['ax_y'].lines[0].get_xdata()[0])
+        if event.inaxes in [ax_x, ax_y, ax_z]:
+            params['ax_x'].lines = []
+            params['ax_y'].lines = []
+            params['ax_z'].lines = []
 
-            if event.inaxes in [ax_x, ax_y, ax_z]:
-                params['ax_x'].lines = []
-                params['ax_y'].lines = []
-                params['ax_z'].lines = []
+            fig_anat = plot_stat_map(
+                params['img_idx'], params['img_bg'], threshold=0.45,
+                title=params['title'],
+                axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
+                cut_coords=cut_coords,
+                resampling_interpolation='nearest', vmax=params['vmax'])
 
-                fig_anat = plot_stat_map(
-                    params['img_idx'], params['img_bg'], threshold=0.45,
-                    title=params['title'],
-                    axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
-                    cut_coords=cut_coords,
-                    resampling_interpolation='nearest', vmax=params['vmax'])
+            # XXX: check lines below
+            cut_coords_t = apply_trans(linalg.inv(img.affine),
+                                       cut_coords)
+            cut_coords_t = np.array([int(round(c)) for c in cut_coords_t])
 
-                # XXX: check lines below
-                cut_coords_t = apply_trans(linalg.inv(img.affine),
-                                           cut_coords)
-                cut_coords_t = np.array([int(round(c)) for c in cut_coords_t])
+            # the affine transformation can sometimes lead to corner
+            # cases near the edges?
+            if np.any(cut_coords_t < 0):
+                return
 
-                # the affine transformation can sometimes lead to corner
-                # cases near the edges?
-                if np.any(cut_coords_t < 0):
-                    return
-
-                shape = params['img_idx'].shape
-                loc_idx = np.ravel_multi_index(
-                    cut_coords_t, shape[:-1], order='F')
-                dist_vertices = [abs(v - loc_idx) for v in stc.vertices]
-                nearest_idx = np.argmin(dist_vertices)
-                ax_time.lines[0].set_ydata(stc.data[int(round(nearest_idx))].T)
+            shape = params['img_idx'].shape
+            loc_idx = np.ravel_multi_index(
+                cut_coords_t, shape[:-1], order='F')
+            dist_vertices = [abs(v - loc_idx) for v in stc.vertices]
+            nearest_idx = np.argmin(dist_vertices)
+            ax_time.lines[0].set_ydata(stc.data[int(round(nearest_idx))].T)
         params['fig'].canvas.draw()
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
@@ -1852,6 +1845,13 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
         cut_coords=(0, 0, 0),
         resampling_interpolation='nearest', vmax=params['vmax'])
     params.update(fig_anat=fig_anat)
+
+    ax_x = fig_anat.axes['x'].ax
+    ax_y = fig_anat.axes['y'].ax
+    ax_z = fig_anat.axes['z'].ax
+    if 'ax_x' not in params:
+        params.update({'ax_x': ax_x, 'ax_y': ax_y, 'ax_z': ax_z})
+
     plt.show()
     fig.canvas.mpl_connect('button_press_event',
                            partial(_onclick, params=params))
