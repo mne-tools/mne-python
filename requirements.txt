@@ -24,3 +24,4 @@ nilearn
 neo
 pydocstyle
 flake8
+pillow
