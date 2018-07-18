@@ -1759,10 +1759,9 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
             cut_coords = (params['ax_y'].lines[0].get_xdata()[0],
                           params['ax_x'].lines[0].get_xdata()[0],
                           params['ax_x'].lines[1].get_ydata()[0])
-            params['ax_x'].lines = []
-            params['ax_y'].lines = []
-            params['ax_z'].lines = []
-
+            params['ax_x'].clear()
+            params['ax_y'].clear()
+            params['ax_z'].clear()
             params.update({'img_idx': index_img(img, idx)})
             params.update({'title':
                            'LCMV (t=%.3f s.)' % params['stc'].times[idx]})
@@ -1786,10 +1785,9 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
                           params['ax_x'].lines[1].get_ydata()[0])
 
         if event.inaxes in [ax_x, ax_y, ax_z]:
-            params['ax_x'].lines = []
-            params['ax_y'].lines = []
-            params['ax_z'].lines = []
-
+            params['ax_x'].clear()
+            params['ax_y'].clear()
+            params['ax_z'].clear()
             fig_anat = plot_stat_map(
                 params['img_idx'], params['img_bg'], threshold=0.45,
                 title=params['title'],
