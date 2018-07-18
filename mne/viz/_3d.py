@@ -1765,8 +1765,6 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
             params.update({'img_idx': index_img(img, idx)})
             params.update({'title':
                            'LCMV (t=%.3f s.)' % params['stc'].times[idx]})
-            img_bg = nib.load(t1_fname)
-            params.update({'img_bg': img_bg})
             fig_anat = plot_stat_map(
                 params['img_idx'], params['img_bg'], threshold=0.45,
                 title=params['title'],
@@ -1839,9 +1837,22 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
     ax_time.plot(stc.times, stc.data[loc_idx].T)
     plt.xlabel('Time (ms)')
     plt.ylabel('LCMV value')
-    plt.show()
 
+    img_bg = nib.load(t1_fname)
     params = dict(stc=stc, ax_time=ax_time, lx=None, fig=fig, vmax=vmax)
+    idx = stc.time_as_index(0.088)
+    params.update({'img_idx': index_img(img, idx)})
+    params.update({'img_bg': img_bg})
+    params.update({'title':
+                   'LCMV (t=%.3f s.)' % params['stc'].times[idx]})
+    fig_anat = plot_stat_map(
+        params['img_idx'], params['img_bg'], threshold=0.45,
+        title=params['title'],
+        axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
+        cut_coords=(0, 0, 0),
+        resampling_interpolation='nearest', vmax=params['vmax'])
+    params.update(fig_anat=fig_anat)
+    plt.show()
     fig.canvas.mpl_connect('button_press_event',
                            partial(_onclick, params=params))
     return fig
