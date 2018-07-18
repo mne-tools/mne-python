@@ -1767,13 +1767,12 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
                            'LCMV (t=%.3f s.)' % params['stc'].times[idx]})
             img_bg = nib.load(t1_fname)
             params.update({'img_bg': img_bg})
-            vmax = np.abs(params['img_idx'].get_data()).max()
             fig_anat = plot_stat_map(
                 params['img_idx'], params['img_bg'], threshold=0.45,
                 title=params['title'],
                 axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
                 cut_coords=cut_coords,
-                resampling_interpolation='nearest', vmax=vmax)
+                resampling_interpolation='nearest', vmax=params['vmax'])
             params.update({'fig_anat': fig_anat})
 
         if 'fig_anat' in params:
@@ -1800,13 +1799,12 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
                 params['ax_y'].lines = []
                 params['ax_z'].lines = []
 
-                vmax = np.abs(params['img_idx'].get_data()).max()
                 fig_anat = plot_stat_map(
                     params['img_idx'], params['img_bg'], threshold=0.45,
                     title=params['title'],
                     axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
                     cut_coords=cut_coords,
-                    resampling_interpolation='nearest', vmax=vmax)
+                    resampling_interpolation='nearest', vmax=params['vmax'])
 
                 # XXX: check lines below
                 cut_coords_t = apply_trans(linalg.inv(img.affine),
@@ -1836,12 +1834,14 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
     fig = plt.figure()
     loc_idx = 878  # hard coded for now, should be selected interactively
     ax_time = fig.add_axes([0.05, 0.1, 0.9, 0.4])
+
+    vmax = np.abs(stc.data).max()
     ax_time.plot(stc.times, stc.data[loc_idx].T)
     plt.xlabel('Time (ms)')
     plt.ylabel('LCMV value')
     plt.show()
 
-    params = dict(stc=stc, ax_time=ax_time, lx=None, fig=fig)
+    params = dict(stc=stc, ax_time=ax_time, lx=None, fig=fig, vmax=vmax)
     fig.canvas.mpl_connect('button_press_event',
                            partial(_onclick, params=params))
     return fig
