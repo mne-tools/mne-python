@@ -1745,6 +1745,9 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
         raise ImportError('This function requires nilearn')
 
     def _onclick(event, params):
+        """Callback to manage click on the plot."""
+        ax_x, ax_y, ax_z = params['ax_x'], params['ax_y'], params['ax_z']
+
         if event.inaxes is params['ax_time']:
             idx = params['stc'].time_as_index(event.xdata)
             if params['lx'] is None:
@@ -1753,14 +1756,12 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
             else:
                 params['lx'].set_xdata(event.xdata)
 
-            cut_coords = (0, 0, 0)
-            if 'ax_x' in params:
-                cut_coords = (params['ax_z'].lines[0].get_xdata()[0],
-                              params['ax_x'].lines[0].get_xdata()[0],
-                              params['ax_y'].lines[0].get_xdata()[0])
-                params['ax_x'].lines = []
-                params['ax_y'].lines = []
-                params['ax_z'].lines = []
+            cut_coords = (params['ax_z'].lines[0].get_xdata()[0],
+                          params['ax_x'].lines[0].get_xdata()[0],
+                          params['ax_y'].lines[0].get_xdata()[0])
+            params['ax_x'].lines = []
+            params['ax_y'].lines = []
+            params['ax_z'].lines = []
 
             params.update({'img_idx': index_img(img, idx)})
             params.update({'title':
@@ -1773,7 +1774,6 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
                 resampling_interpolation='nearest', vmax=params['vmax'])
             params.update({'fig_anat': fig_anat})
 
-        ax_x, ax_y, ax_z = params['ax_x'], params['ax_y'], params['ax_z']
         if event.inaxes is ax_x:
             cut_coords = (params['ax_z'].lines[0].get_xdata()[0],
                           event.xdata, event.ydata)
