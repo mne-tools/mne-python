@@ -28,11 +28,11 @@ matrix:
           env: CONDA_ENVIRONMENT="environment.yml"
 
         # PIP + non-default stim channel
-        # OPENBLAS_NUM_THREADS=1 avoid slowdowns:
+        # OPENBLAS_NUM_THREADS=4 avoid slowdowns:
         # https://github.com/xianyi/OpenBLAS/issues/731
         - os: linux
           env: MNE_STIM_CHANNEL=STI101
-               OPENBLAS_NUM_THREADS=1
+               OPENBLAS_NUM_THREADS=4
           language: python
           python: "3.6"
 
