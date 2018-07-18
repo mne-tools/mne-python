@@ -1,6 +1,7 @@
 from copy import deepcopy
 import os.path as op
 import os
+import sys
 import warnings
 import webbrowser
 
@@ -806,17 +807,18 @@ def test_open_docs():
 
 def test_linkcode_resolve():
     """Test linkcode resolving."""
+    ex = '' if sys.version[0] == '2' else '#L'
     url = linkcode_resolve('py', dict(module='mne', fullname='Epochs'))
-    assert '/mne/epochs.py#L' in url
+    assert '/mne/epochs.py' + ex in url
     url = linkcode_resolve('py', dict(module='mne',
                                       fullname='compute_covariance'))
-    assert '/mne/cov.py#L' in url
+    assert '/mne/cov.py' + ex in url
     url = linkcode_resolve('py', dict(module='mne',
                                       fullname='convert_forward_solution'))
-    assert '/mne/forward/forward.py#L' in url
+    assert '/mne/forward/forward.py' + ex in url
     url = linkcode_resolve('py', dict(module='mne',
                                       fullname='datasets.sample.data_path'))
-    assert '/mne/datasets/sample/sample.py#L' in url
+    assert '/mne/datasets/sample/sample.py' + ex in url
 
 
 run_tests_if_main()
