@@ -40,7 +40,7 @@ jobs:
             paths:
               - ~/.cache/pip
         # Fix for PyQt5
-        - run: echo "export LD_PRELOAD=~/miniconda/envs/mne/lib/libgobject-2.0.so.0.5600.1" >> $BASH_ENV
+        - run: echo "export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0" >> $BASH_ENV
         # Look at what we have and fail early if there is some library conflict
         - run: which python
         - run: python -c "import mne; mne.sys_info()"
