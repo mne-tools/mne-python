@@ -814,6 +814,9 @@ def test_linkcode_resolve():
     url = linkcode_resolve('py', dict(module='mne',
                                       fullname='convert_forward_solution'))
     assert '/mne/forward/forward.py#L' in url
+    url = linkcode_resolve('py', dict(module='mne',
+                                      fullname='datasets.sample.data_path'))
+    assert '/mne/datasets/sample/sample.py#L' in url
 
 
 run_tests_if_main()

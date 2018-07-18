@@ -2802,8 +2802,7 @@ def linkcode_resolve(domain, info):
         return None
     if fn == '<string>':  # verbose decorator
         fn = inspect.getmodule(obj).__file__
-    # rejoin with '/' for Windows
-    fn = '/'.join(op.split(op.relpath(fn, start=op.dirname(mne.__file__))))
+    fn = op.relpath(fn, start=op.dirname(mne.__file__))
 
     try:
         source, lineno = inspect.getsourcelines(obj)
