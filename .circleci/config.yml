@@ -34,7 +34,7 @@ jobs:
         - run: echo "export PATH=~/.local/bin:$PATH" >> $BASH_ENV;
         - run: pip install --user --upgrade numpy scipy vtk
         - run: pip install --user -r requirements.txt
-        - run: pip install --user --upgrade sphinx "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" sphinx_fontawesome
+        - run: pip install --user --upgrade sphinx "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" sphinx_fontawesome sphinx_bootstrap_theme
         - save_cache:
             key: pip-cache
             paths:
