@@ -168,9 +168,10 @@ class SourceMorph(object):
 
     See Also
     --------
-    SourceEstimate.morph : :meth:`stc.morph <mne.SourceEstimate.morph>`
-    VolSourceEstimate.as_volume : :meth:`stc.as_volume
-    <mne.VolSourceEstimate.as_volume>`
+    :meth:`mne.SourceEstimate.morph`
+    :meth:`mne.VolSourceEstimate.as_volume`
+    :ref:`sphx_glr_auto_examples_plot_use_source_morph.py`
+    :ref:`sphx_glr_auto_tutorials_plot_morph.py`
     """
 
     def __init__(self, subject_from=None, subject_to='fsaverage',
