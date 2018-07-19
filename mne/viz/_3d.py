@@ -1762,6 +1762,24 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         raise ValueError('Only VolSourceEstimate objects are supported.'
                          'Got %s' % type(stc))
 
+    def _cut_coords_to_idx(cut_coords, img_idx):
+        """Convert cut coords to index in stc.data."""
+        # XXX: check lines below
+        cut_coords = apply_trans(linalg.inv(img.affine), cut_coords)
+        cut_coords = np.array([int(round(c)) for c in cut_coords])
+
+        # the affine transformation can sometimes lead to corner
+        # cases near the edges?
+        if np.any(cut_coords < 0):
+            return -1
+
+        shape = img_idx.shape
+        loc_idx = np.ravel_multi_index(
+            cut_coords, shape[:-1], order='F')
+        dist_vertices = [abs(v - loc_idx) for v in stc.vertices]
+        nearest_idx = np.argmin(dist_vertices)
+        return int(round(nearest_idx))
+
     def _onclick(event, params):
         """Callback to manage click on the plot."""
         ax_x, ax_y, ax_z = params['ax_x'], params['ax_y'], params['ax_z']
@@ -1813,21 +1831,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                 params['img_idx'], title=params['title'],
                 cut_coords=cut_coords)
 
-            # XXX: check lines below
-            cut_coords = apply_trans(linalg.inv(img.affine), cut_coords)
-            cut_coords = np.array([int(round(c)) for c in cut_coords])
-
-            # the affine transformation can sometimes lead to corner
-            # cases near the edges?
-            if np.any(cut_coords < 0):
-                return fig
-
-            shape = params['img_idx'].shape
-            loc_idx = np.ravel_multi_index(
-                cut_coords, shape[:-1], order='F')
-            dist_vertices = [abs(v - loc_idx) for v in stc.vertices]
-            nearest_idx = np.argmin(dist_vertices)
-            ax_time.lines[0].set_ydata(stc.data[int(round(nearest_idx))].T)
+            loc_idx = _cut_coords_to_idx(cut_coords, params['img_idx'])
+            ax_time.lines[0].set_ydata(stc.data[loc_idx].T)
         params['fig'].canvas.draw()
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
@@ -1841,17 +1846,18 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     img = stc.as_volume(src, mri_resolution=False)
 
     vmax = np.abs(stc.data).max()
+    idx = stc.time_as_index(stc.times[0])
+    img_idx = index_img(img, idx)
 
     # Plot initial figure
     fig = plt.figure()
-    loc_idx = 878  # hard coded for now, should be selected interactively
+    loc_idx = _cut_coords_to_idx((0, 0, 0), img_idx)
 
-    ax_time = fig.add_axes([0.05, 0.1, 0.9, 0.4])
+    ax_time = fig.add_axes([0.05, 0.1, 0.9, 0.4], ylim=(0, vmax))
     ax_time.plot(stc.times, stc.data[loc_idx].T)
     plt.xlabel('Time (ms)')
     plt.ylabel('LCMV value')
 
-    idx = stc.time_as_index(0.088)
     plot_map_callback = partial(
         plot_func, threshold=0.45, axes=[0.05, 0.55, 0.9, 0.4],
         resampling_interpolation='nearest', vmax=vmax, figure=fig,
@@ -1859,7 +1865,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     params = {'stc': stc, 'ax_time': ax_time, 'lx': None,
               'plot_map_callback': plot_map_callback,
-              'img_idx': index_img(img, idx),
+              'img_idx': img_idx,
               'title': 'Activation (t=%.3f s.)' % stc.times[idx],
               'fig': fig}
 
