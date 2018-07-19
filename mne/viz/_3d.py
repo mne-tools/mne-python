@@ -1770,10 +1770,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
         # the affine transformation can sometimes lead to corner
         # cases near the edges?
-        if np.any(cut_coords < 0):
-            return -1
-
         shape = img_idx.shape
+        cut_coords = np.clip(cut_coords, 0, np.array(shape[:-1]) - 1)
         loc_idx = np.ravel_multi_index(
             cut_coords, shape[:-1], order='F')
         dist_vertices = [abs(v - loc_idx) for v in stc.vertices]
