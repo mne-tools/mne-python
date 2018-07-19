@@ -1718,7 +1718,8 @@ def _get_ps_kwargs(initial_time, require='0.6'):
     return initial_time, ad_kwargs, sd_kwargs
 
 
-def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
+def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
+                                 mode='anat', show=True):
     """Plot Nutmeg style volumetric source estimates using nilearn.
 
     Parameters
@@ -1734,19 +1735,32 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    mode : str
+        The plotting mode to use. Either 'anat' (default) or 'glass_brain'.
+    show : bool
+        Show figures if True. Defaults to True.
     """
     import matplotlib.pyplot as plt
     import nibabel as nib
 
     try:
-        from nilearn.plotting import plot_stat_map
+        from nilearn.plotting import plot_stat_map, plot_glass_brain
         from nilearn.image import index_img
     except ImportError:
         raise ImportError('This function requires nilearn')
 
+    if mode == 'anat':
+        plot_func = plot_stat_map
+    elif mode == 'glass_brain':
+        plot_func = plot_glass_brain
+    else:
+        raise ValueError('Plotting function must be one of anat | glas_brain.'
+                         'Got %s' % mode)
+
     def _onclick(event, params):
         """Callback to manage click on the plot."""
         ax_x, ax_y, ax_z = params['ax_x'], params['ax_y'], params['ax_z']
+        plot_map_callback = params['plot_map_callback']
 
         if event.inaxes is params['ax_time']:
             idx = params['stc'].time_as_index(event.xdata)
@@ -1756,22 +1770,23 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
             else:
                 params['lx'].set_xdata(event.xdata)
 
-            cut_coords = (params['ax_y'].lines[0].get_xdata()[0],
-                          params['ax_x'].lines[0].get_xdata()[0],
-                          params['ax_x'].lines[1].get_ydata()[0])
+            cut_coords = (0, 0, 0)
+            if mode == 'anat':
+                cut_coords = (params['ax_y'].lines[0].get_xdata()[0],
+                              params['ax_x'].lines[0].get_xdata()[0],
+                              params['ax_x'].lines[1].get_ydata()[0])
             params['ax_x'].clear()
             params['ax_y'].clear()
             params['ax_z'].clear()
             params.update({'img_idx': index_img(img, idx)})
             params.update({'title':
                            'LCMV (t=%.3f s.)' % params['stc'].times[idx]})
-            fig_anat = plot_stat_map(
-                params['img_idx'], params['img_bg'], threshold=0.45,
-                title=params['title'],
-                axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
-                cut_coords=cut_coords,
-                resampling_interpolation='nearest', vmax=params['vmax'])
-            params.update({'fig_anat': fig_anat})
+            plot_map_callback(
+                params['img_idx'], title=params['title'],
+                cut_coords=cut_coords)
+
+        if mode == 'glass_brain':
+            return fig
 
         if event.inaxes is ax_x:
             cut_coords = (params['ax_z'].lines[0].get_xdata()[0],
@@ -1788,12 +1803,9 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
             params['ax_x'].clear()
             params['ax_y'].clear()
             params['ax_z'].clear()
-            fig_anat = plot_stat_map(
-                params['img_idx'], params['img_bg'], threshold=0.45,
-                title=params['title'],
-                axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
-                cut_coords=cut_coords,
-                resampling_interpolation='nearest', vmax=params['vmax'])
+            plot_map_callback(
+                params['img_idx'], title=params['title'],
+                cut_coords=cut_coords)
 
             # XXX: check lines below
             cut_coords = apply_trans(linalg.inv(img.affine), cut_coords)
@@ -1802,7 +1814,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
             # the affine transformation can sometimes lead to corner
             # cases near the edges?
             if np.any(cut_coords < 0):
-                return
+                return fig
 
             shape = params['img_idx'].shape
             loc_idx = np.ravel_multi_index(
@@ -1815,41 +1827,47 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None):
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
-
-    img = stc.as_volume(src, mri_resolution=False)
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
 
-    fig = plt.figure()
-    loc_idx = 878  # hard coded for now, should be selected interactively
-    ax_time = fig.add_axes([0.05, 0.1, 0.9, 0.4])
+    img_bg = None
+    if mode == 'anat':
+        img_bg = nib.load(t1_fname)
+    img = stc.as_volume(src, mri_resolution=False)
 
     vmax = np.abs(stc.data).max()
+
+    # Plot initial figure
+    fig = plt.figure()
+    loc_idx = 878  # hard coded for now, should be selected interactively
+
+    ax_time = fig.add_axes([0.05, 0.1, 0.9, 0.4])
     ax_time.plot(stc.times, stc.data[loc_idx].T)
     plt.xlabel('Time (ms)')
     plt.ylabel('LCMV value')
 
-    img_bg = nib.load(t1_fname)
-    params = dict(stc=stc, ax_time=ax_time, lx=None, fig=fig, vmax=vmax)
     idx = stc.time_as_index(0.088)
-    params.update({'img_idx': index_img(img, idx)})
-    params.update({'img_bg': img_bg})
-    params.update({'title':
-                   'LCMV (t=%.3f s.)' % params['stc'].times[idx]})
-    fig_anat = plot_stat_map(
-        params['img_idx'], params['img_bg'], threshold=0.45,
-        title=params['title'],
-        axes=[0.05, 0.55, 0.9, 0.4], figure=params['fig'],
-        cut_coords=(0, 0, 0),
-        resampling_interpolation='nearest', vmax=params['vmax'])
-    params.update(fig_anat=fig_anat)
+    plot_map_callback = partial(
+        plot_func, threshold=0.45, axes=[0.05, 0.55, 0.9, 0.4],
+        resampling_interpolation='nearest', vmax=vmax, figure=fig,
+        colorbar=True, bg_img=img_bg)
 
+    params = {'stc': stc, 'ax_time': ax_time, 'lx': None,
+              'plot_map_callback': plot_map_callback,
+              'img_idx': index_img(img, idx),
+              'title': 'LCMV (t=%.3f s.)' % stc.times[idx],
+              'fig': fig}
+
+    fig_anat = plot_map_callback(
+        stat_map_img=params['img_idx'], title=params['title'],
+        cut_coords=(0, 0, 0))
     ax_x = fig_anat.axes['x'].ax
     ax_y = fig_anat.axes['y'].ax
     ax_z = fig_anat.axes['z'].ax
     if 'ax_x' not in params:
         params.update({'ax_x': ax_x, 'ax_y': ax_y, 'ax_z': ax_z})
 
-    plt.show()
+    if show:
+        plt.show()
     fig.canvas.mpl_connect('button_press_event',
                            partial(_onclick, params=params))
     return fig
