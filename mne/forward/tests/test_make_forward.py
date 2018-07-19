@@ -224,6 +224,7 @@ def test_make_forward_solution():
 
 @testing.requires_testing_data
 def test_make_forward_solution_discrete():
+    """Test making and converting a forward solution with discrete src."""
     # smoke test for depth weighting and discrete source spaces
     src = read_source_spaces(fname_src)[0]
     src = SourceSpaces([src] + setup_volume_source_space(
