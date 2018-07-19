@@ -1812,7 +1812,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
         _save_stc_as_volume(fname, self, src, dest=dest,
                             mri_resolution=mri_resolution)
 
-    def as_volume(self, src, dest='mri', mri_resolution=False):
+    def as_volume(self, src, dest='mri', mri_resolution=False,
+                  format='nifti1'):
         """Export volume source estimate as a nifti object.
 
         Parameters
@@ -1827,6 +1828,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
             Whether to use MRI resolution.
             WARNING: if you have many time points the file produced can be
             huge.
+        format : str
+            Either 'nifti1' (default) or 'nifti2'
 
         Returns
         -------
@@ -1837,8 +1840,11 @@ class VolSourceEstimate(_BaseSourceEstimate):
         -----
         .. versionadded:: 0.9.0
         """
-        return _save_stc_as_volume(None, self, src, dest=dest,
-                                   mri_resolution=mri_resolution)
+        return _save_stc_as_volume(None, self,
+                                   src,
+                                   dest=dest,
+                                   mri_resolution=mri_resolution,
+                                   format=format)
 
     def __repr__(self):  # noqa: D105
         if isinstance(self.vertices, list):
@@ -2675,7 +2681,8 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
                                mri_resolution=mri_resolution)
 
 
-def _save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
+def _save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False,
+                        format='nifti1'):
     """Save a volume source estimate in a NIfTI file.
 
     Parameters
@@ -2695,6 +2702,8 @@ def _save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
         Whether to use MRI resolution.
         WARNING: if you have many time points the file produced can be
         huge.
+    format : str
+        Either 'nifti1' (default) or 'nifti2'
 
     Returns
     -------
@@ -2715,7 +2724,9 @@ def _save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     is_mri = True if dest == 'mri' else False
 
     img = _interpolate_data(stc, _get_src_data(src),
-                            mri_resolution=mri_resolution, mri_space=is_mri)
+                            mri_resolution=mri_resolution,
+                            mri_space=is_mri,
+                            format=format)
     # save if desired
     if fname is not None:
         import nibabel as nib

@@ -254,5 +254,19 @@ def test_volume_source_morph():
     # check subject correction
     pytest.raises(ValueError, SourceMorph, src=src, subject_from='42')
 
+    # check Nifti2Image
+    assert isinstance(
+        source_morph_vol.as_volume(stc_vol_morphed, mri_resolution=True,
+                                   mri_space=True, format='nifti2'),
+        nib.Nifti2Image)
+
+    # check wrong format
+    pytest.raises(ValueError, source_morph_vol.as_volume, stc_vol_morphed,
+                  format='42')
+
+    pytest.raises(ValueError, stc_vol_morphed.as_volume,
+                  inverse_operator_vol['src'],
+                  format='42')
+
 
 run_tests_if_main()

@@ -313,7 +313,7 @@ class SourceMorph(object):
         logger.info('[done]')
 
     def as_volume(self, stc, fname=None, mri_resolution=False, mri_space=True,
-                  apply_morph=False):
+                  apply_morph=False, format='nifti1'):
         """Return volume source space as Nifti1Image and / or save to disk.
 
         Parameters
@@ -334,17 +334,23 @@ class SourceMorph(object):
         apply_morph : bool
             Whether to apply the precomputed morph to stc or not. Default is
             False.
+        format : str
+            Either 'nifti1' (default) or 'nifti2'
 
         Returns
         -------
         img : instance of Nifti1Image
             The image object.
         """
+        if format != 'nifti1' and format != 'nifti2':
+            raise ValueError("invalid format specifier %s. Must be 'nifti1' or"
+                             " 'nifti2'" % format)
         if apply_morph:
             stc = self.__call__(stc)  # apply morph if desired
         return _stc_as_volume(self, stc, fname=fname,
                               mri_resolution=mri_resolution,
-                              mri_space=mri_space)
+                              mri_space=mri_space,
+                              format=format)
 
     def _update_morph_data(self, data=None, kind=None):
         """Update morph data and kind."""
@@ -423,7 +429,7 @@ def _check_hemi_data(data_in, data_ref):
 
 
 def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
-                   mri_space=True):
+                   mri_space=True, format='nifti1'):
     """Return volume source space as Nifti1Image and/or save to disk.
 
     Parameters
@@ -444,6 +450,8 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
         huge.
     mri_space : bool
         Whether the image to world registration should be in MRI space.
+    format : str
+        Either 'nifti1' (default) or 'nifti2'
 
     Returns
     -------
@@ -451,8 +459,6 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
         The image object.
     """
     import nibabel as nib
-    from dipy.align.reslice import reslice
-
     if not isinstance(stc, VolSourceEstimate):
         raise ValueError('Only volume source estimates can be converted to '
                          'volumes')
@@ -462,10 +468,20 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
     if 'morph_shape' not in morph.params:
         img = _interpolate_data(stc, morph.params,
                                 mri_resolution=mri_resolution,
-                                mri_space=mri_space)
+                                mri_space=mri_space,
+                                format=format)
         if fname is not None:
             nib.save(img, fname)
         return img
+
+    if format == 'nifti1':
+        from nibabel import (Nifti1Image as NiftiImage,
+                             Nifti1Header as NiftiHeader)
+    elif format == 'nifti2':
+        from nibabel import (Nifti2Image as NiftiImage,
+                             Nifti2Header as NiftiHeader)
+
+    from dipy.align.reslice import reslice
 
     new_zooms = None
 
@@ -489,7 +505,7 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
     zooms = morph.params['morph_zooms'][:3]
 
     # create header
-    hdr = nib.nifti1.Nifti1Header()
+    hdr = NiftiHeader()
     hdr.set_xyzt_units('mm', 'msec')
     hdr['pixdim'][4] = 1e3 * stc.tstep
 
@@ -501,7 +517,7 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
 
     # make nifti from data
     with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
-        img = nib.Nifti1Image(img, affine, header=hdr)
+        img = NiftiImage(img, affine, header=hdr)
 
     # reslice in case of manually defined voxel size
     if new_zooms is not None:
@@ -511,7 +527,7 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
                               zooms,  # old voxel size in mm
                               new_zooms)  # new voxel size in mm
         with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
-            img = nib.Nifti1Image(img, affine)
+            img = NiftiImage(img, affine)
         zooms = new_zooms
 
     #  set zooms in header
@@ -647,9 +663,19 @@ def _compute_morph_data(morph, verbose=None):
     return data
 
 
-def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True):
+def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
+                      format='nifti1'):
     """Interpolate source estimate data to MRI."""
+    if format != 'nifti1' and format != 'nifti2':
+        raise ValueError("invalid format specifier %s. Must be 'nifti1' or"
+                         " 'nifti2'" % format)
     import nibabel as nib
+    if format == 'nifti1':
+        from nibabel import (Nifti1Image as NiftiImage,
+                             Nifti1Header as NiftiHeader)
+    elif format == 'nifti2':
+        from nibabel import (Nifti2Image as NiftiImage,
+                             Nifti2Header as NiftiHeader)
     from dipy.align.reslice import reslice
 
     # setup volume parameters
@@ -714,12 +740,12 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True):
     affine[:3] *= 1e3
 
     # pre-define header
-    header = nib.nifti1.Nifti1Header()
+    header = NiftiHeader()
     header.set_xyzt_units('mm', 'msec')
     header['pixdim'][4] = 1e3 * stc.tstep
 
     with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
-        img = nib.Nifti1Image(vol, affine, header=header)
+        img = NiftiImage(vol, affine, header=header)
 
     # if a specific voxel size was targeted (only possible after morphing)
     if voxel_size_defined:
@@ -730,7 +756,7 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True):
             _get_zooms_orig(morph_data),
             voxel_size)
         with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
-            img = nib.Nifti1Image(img, img_affine, header=header)
+            img = NiftiImage(img, img_affine, header=header)
 
     return img
 
