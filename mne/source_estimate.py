@@ -1751,7 +1751,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
                                      verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_volume_source_estimates)
-    def plot(self, src, subject=None, subjects_dir=None, mode='anat',
+    def plot(self, src, subject=None, subjects_dir=None, mode='stat_map',
              show=True):
         return plot_volume_source_estimates(
             self, src=src, subject=subject, subjects_dir=subjects_dir,

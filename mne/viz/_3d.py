@@ -1719,7 +1719,7 @@ def _get_ps_kwargs(initial_time, require='0.6'):
 
 
 def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
-                                 mode='anat', show=True):
+                                 mode='stat_map', show=True):
     """Plot Nutmeg style volumetric source estimates using nilearn.
 
     Parameters
@@ -1736,12 +1736,13 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
     mode : str
-        The plotting mode to use. Either 'anat' (default) or 'glass_brain'.
+        The plotting mode to use. Either 'stat_map' (default) or 'glass_brain'.
     show : bool
         Show figures if True. Defaults to True.
     """
     import matplotlib.pyplot as plt
     import nibabel as nib
+    from ..source_estimate import VolSourceEstimate
 
     try:
         from nilearn.plotting import plot_stat_map, plot_glass_brain
@@ -1749,13 +1750,17 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     except ImportError:
         raise ImportError('This function requires nilearn')
 
-    if mode == 'anat':
+    if mode == 'stat_map':
         plot_func = plot_stat_map
     elif mode == 'glass_brain':
         plot_func = plot_glass_brain
     else:
-        raise ValueError('Plotting function must be one of anat | glas_brain.'
-                         'Got %s' % mode)
+        raise ValueError('Plotting function must be one of'
+                         ' stat_map | glas_brain. Got %s' % mode)
+
+    if not isinstance(stc, VolSourceEstimate):
+        raise ValueError('Only VolSourceEstimate objects are supported.'
+                         'Got %s' % type(stc))
 
     def _onclick(event, params):
         """Callback to manage click on the plot."""
@@ -1771,7 +1776,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                 params['lx'].set_xdata(event.xdata)
 
             cut_coords = (0, 0, 0)
-            if mode == 'anat':
+            if mode == 'stat_map':
                 cut_coords = (params['ax_y'].lines[0].get_xdata()[0],
                               params['ax_x'].lines[0].get_xdata()[0],
                               params['ax_x'].lines[1].get_ydata()[0])
@@ -1788,18 +1793,19 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         if mode == 'glass_brain':
             return fig
 
-        if event.inaxes is ax_x:
-            cut_coords = (params['ax_z'].lines[0].get_xdata()[0],
-                          event.xdata, event.ydata)
-        if event.inaxes is ax_y:
-            cut_coords = (event.xdata,
-                          params['ax_x'].lines[0].get_xdata()[0],
-                          event.ydata)
-        if event.inaxes is ax_z:
-            cut_coords = (event.xdata, event.ydata,
-                          params['ax_x'].lines[1].get_ydata()[0])
-
         if event.inaxes in [ax_x, ax_y, ax_z]:
+
+            if event.inaxes is ax_x:
+                cut_coords = (params['ax_z'].lines[0].get_xdata()[0],
+                              event.xdata, event.ydata)
+            elif event.inaxes is ax_y:
+                cut_coords = (event.xdata,
+                              params['ax_x'].lines[0].get_xdata()[0],
+                              event.ydata)
+            else:
+                cut_coords = (event.xdata, event.ydata,
+                              params['ax_x'].lines[1].get_ydata()[0])
+
             params['ax_x'].clear()
             params['ax_y'].clear()
             params['ax_z'].clear()
@@ -1830,7 +1836,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
 
     img_bg = None
-    if mode == 'anat':
+    if mode == 'stat_map':
         img_bg = nib.load(t1_fname)
     img = stc.as_volume(src, mri_resolution=False)
 
@@ -1854,7 +1860,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     params = {'stc': stc, 'ax_time': ax_time, 'lx': None,
               'plot_map_callback': plot_map_callback,
               'img_idx': index_img(img, idx),
-              'title': 'LCMV (t=%.3f s.)' % stc.times[idx],
+              'title': 'Activation (t=%.3f s.)' % stc.times[idx],
               'fig': fig}
 
     fig_anat = plot_map_callback(

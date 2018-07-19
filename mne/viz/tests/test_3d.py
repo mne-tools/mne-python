@@ -20,7 +20,7 @@ from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
-                     plot_alignment)
+                     plot_alignment, plot_volume_source_estimates)
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        _import_mlab, _TempDir, requires_nibabel, check_version,
@@ -403,8 +403,13 @@ def test_plot_volume_source_estimates():
     n_verts = sum(len(v) for v in vertices)
     n_time = 5
     data = np.random.RandomState(0).rand(n_verts, n_time)
-    stc = VolSourceEstimate(data, vertices, 1, 1)
-    stc.plot(sample_src, subject='sample', subjects_dir=subjects_dir)
+    vol_stc = VolSourceEstimate(data, vertices, 1, 1)
+    vol_stc.plot(sample_src, subject='sample', subjects_dir=subjects_dir)
+
+    vertices.append([])
+    surface_stc = SourceEstimate(data, vertices, 1, 1)
+    pytest.raises(ValueError, plot_volume_source_estimates,
+                  surface_stc, sample_src, 'sample', subjects_dir)
 
 
 @testing.requires_testing_data
