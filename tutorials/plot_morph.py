@@ -99,9 +99,11 @@ stc_vol.crop(0.09, 0.1)
 
 # Make NIfTI volume variant 1
 # img = morph(stc_vol,
-#             as_volume=True,  # output as NIfTI
-#             mri_resolution=True,  # in MRI resolution
-#             mri_space=True)  # and MRI space
+#             as_volume=True,  # Default: False
+#             mri_resolution=True,  # Default: False
+#             mri_space=True, # Default: True
+#             format='nifti2',  # Default: 'nifti1'
+#             apply_morph=True)  # Default: False
 
 # Make NIfTI volume variant 2
 # img = morph.as_volume(stc_fsaverage,
@@ -257,6 +259,8 @@ stc_vol_m = morph_vol(stc_vol)  # morphed volume source estimate
 # Plot results
 # ------------
 
+# Plot morphed volume source estiamte
+
 # Load fsaverage anatomical image
 t1_fsaverage = nib.load(fname_t1_fsaverage)
 
@@ -285,6 +289,8 @@ plt.text(plt.xlim()[1], plt.ylim()[0], 't = 0.09s', color='white')
 plt.show()
 
 del stc_vol_m, morph_vol, morph_surf
+
+# Plot morphed surface source estiamte
 
 surfer_kwargs = dict(
     hemi='lh', subjects_dir=subjects_dir,
