@@ -14,7 +14,8 @@ import pytest
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
-                 make_sphere_model, setup_volume_source_space)
+                 VolSourceEstimate, make_sphere_model,
+                 setup_volume_source_space, read_forward_solution)
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
@@ -45,6 +46,9 @@ ctf_fname = op.join(data_dir, 'CTF', 'testdata_ctf.ds')
 io_dir = op.join(op.abspath(op.dirname(__file__)), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
+
+fwd_fname = op.join(data_dir, 'MEG', 'sample',
+                    'sample_audvis_trunc-meg-vol-7-fwd.fif')
 
 base_dir = op.join(io_dir, 'bti', 'tests', 'data')
 pdf_fname = op.join(base_dir, 'test_pdf_linux')
@@ -387,6 +391,20 @@ def test_snapshot_brain_montage():
 
     # Make sure we raise error if the figure has no scene
     pytest.raises(TypeError, snapshot_brain_montage, fig, info)
+
+
+@testing.requires_testing_data
+def test_plot_volume_source_estimates():
+    """Test interactive plotting of volume source estimates."""
+    forward = read_forward_solution(fwd_fname)
+    sample_src = forward['src']
+
+    vertices = [s['vertno'] for s in sample_src]
+    n_verts = sum(len(v) for v in vertices)
+    n_time = 5
+    data = np.random.RandomState(0).rand(n_verts, n_time)
+    stc = VolSourceEstimate(data, vertices, 1, 1)
+    stc.plot(sample_src, subject='sample', subjects_dir=subjects_dir)
 
 
 @testing.requires_testing_data
