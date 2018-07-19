@@ -157,6 +157,8 @@ class SourceMorph(object):
     comparisons between hemispheres, use of the symmetric ``fsaverage_sym``
     model is recommended to minimize bias [1]_.
 
+    .. versionadded:: 0.17.0
+
     References
     ----------
     .. [1] Greve D. N., Van der Haegen L., Cai Q., Stufflebeam S., Sabuncu M.
@@ -166,8 +168,9 @@ class SourceMorph(object):
 
     See Also
     --------
-    X
-
+    SourceEstimate.morph : :meth:`stc.morph <mne.SourceEstimate.morph>`
+    VolSourceEstimate.as_volume : :meth:`stc.as_volume
+    <mne.VolSourceEstimate.as_volume>`
     """
 
     def __init__(self, subject_from=None, subject_to='fsaverage',
