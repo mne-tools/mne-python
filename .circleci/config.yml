@@ -27,35 +27,21 @@ jobs:
         # Spin up Xvfb
         - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
         - run: echo "export DISPLAY=:99" >> $BASH_ENV;
+        - run: echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV;
         # Fix libgcc_s.so.1 pthread_cancel bug:
         # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
         # https://github.com/golemfactory/golem/issues/1019
         - run: sudo apt-get install libgl1-mesa-glx libegl1-mesa libxrandr2 libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6 qt5-default
-        # Get latest Anaconda running
-        - run:
-            command: |
-              wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O ~/miniconda.sh;
-              chmod +x ~/miniconda.sh;
-              ~/miniconda.sh -b -p ~/miniconda;
-              echo "export PATH=~/miniconda/bin:$PATH" >> $BASH_ENV;
-        - run:
-            command: |
-              conda update --yes --quiet conda;
-              conda env create --quiet -f environment.yml;
-              source activate mne;
-              pip uninstall --yes mne;
-              echo "source activate mne" >> $BASH_ENV;
+        - run: echo "export PATH=~/.local/bin:$PATH" >> $BASH_ENV;
+        - run: pip install --user --upgrade numpy scipy vtk
+        - run: pip install --user -r requirements.txt
+        - run: pip install --user --upgrade sphinx "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" sphinx_fontawesome sphinx_bootstrap_theme
         - save_cache:
             key: pip-cache
             paths:
               - ~/.cache/pip
-        # The conda-provided PyQt5 does not work on CircleCI for some reason,
-        # possibly because the libGL expects a sufficiently modern libgcc
-        # and conda rolls their own (libgcc-ng package).
-        - run: conda remove --yes qt pyqt matplotlib sip libxcb icu vtk
-        - run: pip uninstall --yes mayavi vtk
-        - run: pip install vtk mayavi PyQt5 PyQt5-sip sip matplotlib
-        - run: echo "export LD_PRELOAD=~/miniconda/envs/mne/lib/libgobject-2.0.so.0.5600.1" >> $BASH_ENV
+        # Fix for PyQt5
+        - run: echo "export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0" >> $BASH_ENV
         # Look at what we have and fail early if there is some library conflict
         - run: which python
         - run: python -c "import mne; mne.sys_info()"
@@ -64,7 +50,7 @@ jobs:
         - run: python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
         # Figure out if we should run a full, pattern, or noplot version
-        - run: python setup.py develop
+        - run: python setup.py develop --user
         - run: if ! git remote -v | grep upstream ; then git remote add upstream git://github.com/mne-tools/mne-python.git; fi
         - run: git fetch upstream
         - run: git branch -a
