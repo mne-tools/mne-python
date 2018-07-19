@@ -14,7 +14,8 @@ from mne import (read_forward_solution, write_forward_solution,
                  make_forward_solution, convert_forward_solution,
                  setup_volume_source_space, read_source_spaces,
                  make_sphere_model, pick_types_forward, pick_info, pick_types,
-                 Transform, read_evokeds, read_cov, read_dipole)
+                 Transform, read_evokeds, read_cov, read_dipole,
+                 SourceSpaces)
 from mne.utils import (requires_mne, requires_nibabel, _TempDir,
                        run_tests_if_main, run_subprocess)
 from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
@@ -219,6 +220,19 @@ def test_make_forward_solution():
     fwd = read_forward_solution(fname_meeg)
     assert (isinstance(fwd, Forward))
     _compare_forwards(fwd, fwd_py, 366, 1494, meg_rtol=1e-3)
+
+
+@testing.requires_testing_data
+def test_make_forward_solution_discrete():
+    # smoke test for depth weighting and discrete source spaces
+    src = read_source_spaces(fname_src)[0]
+    src = SourceSpaces([src] + setup_volume_source_space(
+        pos=dict(rr=src['rr'][src['vertno'][:3]].copy(),
+                 nn=src['nn'][src['vertno'][:3]].copy())))
+    sphere = make_sphere_model()
+    fwd = make_forward_solution(fname_raw, fname_trans, src, sphere,
+                                meg=True, eeg=False)
+    convert_forward_solution(fwd, surf_ori=True)
 
 
 @testing.requires_testing_data
