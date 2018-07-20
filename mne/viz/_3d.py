@@ -1746,7 +1746,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     try:
         from nilearn.plotting import plot_stat_map, plot_glass_brain
-        from nilearn.image import index_img
+        from nilearn.image import index_img, resample_to_img
     except ImportError:
         raise ImportError('This function requires nilearn')
 
@@ -1794,9 +1794,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     def _maximum_intensity_projection(event, params):
         """Get voxel coordinates with max intensity along plane of click."""
-        from nilearn.image import resample_to_img
-        img = resample_to_img(params['img_idx'], params['img_bg'])
-        img_data = img.get_data()[..., 0]
+        img_data = params['img_idx_resampled'].get_data()[..., 0]
         if event.inaxes is ax_x:
             y, z = int(round(event.xdata)), int(round(event.ydata))
             x = np.argmax(img_data[:, y, z])
@@ -1804,9 +1802,16 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             x, z = int(round(event.xdata)), int(round(event.ydata))
             y = np.argmax(img_data[x, :, z])
         else:
-            x, y = event.xdata, event.ydata
+            x, y = int(round(event.xdata)), int(round(event.ydata))
             z = np.argmax(img_data[x, y, :])
         return (x, y, z)
+
+    def _resample(event, params):
+        """Precompute the resampling as the mouse leaves the time axis."""
+        if event.inaxes is params['ax_time'] and mode == 'glass_brain':
+            img_resampled = resample_to_img(params['img_idx'],
+                                            params['img_bg'])
+            params.update({'img_idx_resampled': img_resampled})
 
     def _onclick(event, params):
         """Callback to manage click on the plot."""
@@ -1893,6 +1898,10 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     fig_anat = plot_map_callback(
         stat_map_img=params['img_idx'], title=params['title'],
         cut_coords=(0, 0, 0))
+    if mode == 'glass_brain':
+        img_resampled = resample_to_img(params['img_idx'],
+                                        params['img_bg'])
+        params.update({'img_idx_resampled': img_resampled})
     ax_x = fig_anat.axes['x'].ax
     ax_y = fig_anat.axes['y'].ax
     ax_z = fig_anat.axes['z'].ax
@@ -1903,6 +1912,9 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         plt.show()
     fig.canvas.mpl_connect('button_press_event',
                            partial(_onclick, params=params))
+    fig.canvas.mpl_connect('axes_leave_event',
+                           partial(_resample, params=params))
+
     return fig
 
 
