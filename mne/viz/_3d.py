@@ -1827,12 +1827,12 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
             cut_coords = (0, 0, 0)
             if mode == 'stat_map':
-                cut_coords = (params['ax_y'].lines[0].get_xdata()[0],
-                              params['ax_x'].lines[0].get_xdata()[0],
-                              params['ax_x'].lines[1].get_ydata()[0])
-            params['ax_x'].clear()
-            params['ax_y'].clear()
-            params['ax_z'].clear()
+                cut_coords = (ax_y.lines[0].get_xdata()[0],
+                              ax_x.lines[0].get_xdata()[0],
+                              ax_x.lines[1].get_ydata()[0])
+            ax_x.clear()
+            ax_y.clear()
+            ax_z.clear()
             params.update({'img_idx': index_img(img, idx)})
             params.update({'title':
                            'LCMV (t=%.3f s.)' % params['stc'].times[idx]})
@@ -1846,9 +1846,9 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             elif mode == 'glass_brain':
                 cut_coords = _maximum_intensity_projection(event, params)
 
-            params['ax_x'].clear()
-            params['ax_y'].clear()
-            params['ax_z'].clear()
+            ax_x.clear()
+            ax_y.clear()
+            ax_z.clear()
             plot_map_callback(
                 params['img_idx'], title=params['title'],
                 cut_coords=cut_coords)
