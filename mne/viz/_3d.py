@@ -1853,6 +1853,13 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                 params['img_idx'], title=params['title'],
                 cut_coords=cut_coords)
             loc_idx = _cut_coords_to_idx(cut_coords, params['img_idx'])
+
+            (x, y, z) = cut_coords
+            marker_kwargs = dict(markersize=10, markerfacecolor='w',
+                                 markeredgecolor='b', markeredgewidth=5)
+            ax_y.plot(x, z, 'wo', **marker_kwargs)
+            ax_x.plot(y, z, 'wo', **marker_kwargs)
+            ax_z.plot(x, y, 'wo', **marker_kwargs)
             ax_time.lines[0].set_ydata(stc.data[loc_idx].T)
         params['fig'].canvas.draw()
 
