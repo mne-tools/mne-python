@@ -613,7 +613,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
 
     if surf_ori:
         if use_cps:
-            if fwd['src'][0].get('patch_inds') is not None:
+            if any(s.get('patch_inds') is not None for s in fwd['src']):
                 use_ave_nn = True
                 logger.info('    Average patch normals will be employed in '
                             'the rotation to the local surface coordinates..'
@@ -664,7 +664,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
             if s['type'] in ['surf', 'discrete']:
                 for p in range(s['nuse']):
                     #  Project out the surface normal and compute SVD
-                    if use_ave_nn is True:
+                    if use_ave_nn and s.get('patch_inds') is not None:
                         nn = s['nn'][s['pinfo'][s['patch_inds'][p]], :]
                         nn = np.sum(nn, axis=0)[:, np.newaxis]
                         nn /= linalg.norm(nn)
