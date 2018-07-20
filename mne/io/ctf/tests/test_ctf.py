@@ -109,12 +109,8 @@ def test_read_ctf():
         assert_array_equal(raw.ch_names, raw_c.ch_names)
         assert_allclose(raw.times, raw_c.times)
         assert_allclose(raw._cals, raw_c._cals)
-        for key in ('version', 'usecs'):
-            assert_equal(raw.info['meas_id'][key], raw_c.info['meas_id'][key])
-        py_time = raw.info['meas_id']['secs']
-        c_time = raw_c.info['meas_id']['secs']
-        max_offset = 24 * 60 * 60  # probably overkill but covers timezone
-        assert c_time - max_offset <= py_time <= c_time
+        assert_equal(raw.info['meas_id']['version'],
+                     raw_c.info['meas_id']['version'])
         for t in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
             assert_allclose(raw.info[t]['trans'], raw_c.info[t]['trans'],
                             rtol=1e-4, atol=1e-7)
@@ -208,7 +204,13 @@ def test_read_ctf():
         with warnings.catch_warnings(record=True) as w:  # reclassified ch
             raw = read_raw_ctf(fname, preload=True)
         assert all('MISC channel' in str(ww.message) for ww in w)
-        assert_allclose(raw[:][0], raw_c[:][0])
+        assert_allclose(raw[:][0], raw_c[:][0], atol=1e-15)
+        # test bad segment annotations
+        if 'testdata_ctf_short.ds' in fname:
+            assert 'bad' in raw.annotations.description[0]
+            assert_allclose(raw.annotations.onset, [2.15])
+            assert_allclose(raw.annotations.duration, [0.0225])
+
     pytest.raises(TypeError, read_raw_ctf, 1)
     pytest.raises(ValueError, read_raw_ctf, ctf_fname_continuous + 'foo.ds')
     # test ignoring of system clock

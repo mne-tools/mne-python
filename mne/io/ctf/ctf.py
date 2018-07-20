@@ -19,7 +19,7 @@ from .res4 import _read_res4, _make_ctf_name
 from .hc import _read_hc
 from .eeg import _read_eeg, _read_pos
 from .trans import _make_ctf_coord_trans_set
-from .info import _compose_meas_info
+from .info import _compose_meas_info, _read_bad_chans, _annotate_bad_segments
 from .constants import CTF
 
 
@@ -123,6 +123,7 @@ class RawCTF(BaseRaw):
         # Compose a structure which makes fiff writing a piece of cake
         info = _compose_meas_info(res4, coils, coord_trans, eeg)
         info['dig'] += digs
+        info['bads'] += _read_bad_chans(directory, info)
 
         # Determine how our data is distributed across files
         fnames = list()
@@ -150,6 +151,10 @@ class RawCTF(BaseRaw):
             last_samps=last_samps, filenames=fnames,
             raw_extras=raw_extras, orig_format='int',
             buffer_size_sec=buffer_size_sec, verbose=verbose)
+
+        # Add bad segments as Annotations (correct for start time)
+        start_time = -res4['pre_trig_pts'] / float(info['sfreq'])
+        self.annotations = _annotate_bad_segments(directory, start_time)
 
         if clean_names:
             self._clean_names()
