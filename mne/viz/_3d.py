@@ -1812,7 +1812,6 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         """Callback to manage click on the plot."""
         ax_x, ax_y, ax_z = params['ax_x'], params['ax_y'], params['ax_z']
         plot_map_callback = params['plot_map_callback']
-
         if event.inaxes is params['ax_time']:
             idx = params['stc'].time_as_index(event.xdata)
             if params['lx'] is None:
@@ -1877,10 +1876,13 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     plt.xlabel('Time (ms)')
     plt.ylabel('LCMV value')
 
+    # black_bg = True is needed because of some matplotlib
+    # peculiarity. See: https://stackoverflow.com/a/34730204
+    # Otherwise, event.inaxes does not work for ax_x and ax_z
     plot_map_callback = partial(
         plot_func, threshold=0.45, axes=[0.05, 0.55, 0.9, 0.4],
         resampling_interpolation='nearest', vmax=vmax, figure=fig,
-        colorbar=True, bg_img=bg_img)
+        colorbar=True, bg_img=bg_img, black_bg=True)
 
     params = {'stc': stc, 'ax_time': ax_time, 'lx': None,
               'plot_map_callback': plot_map_callback,
