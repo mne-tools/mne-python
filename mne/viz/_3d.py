@@ -1763,7 +1763,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                          'Got %s' % type(stc))
 
     def _cut_coords_to_idx(cut_coords, img_idx):
-        """Convert cut coords to index in stc.data."""
+        """Convert voxel coordinates to index in stc.data."""
         # XXX: check lines below
         cut_coords = apply_trans(linalg.inv(img.affine), cut_coords)
         cut_coords = np.array([int(round(c)) for c in cut_coords])
@@ -1777,6 +1777,36 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         dist_vertices = [abs(v - loc_idx) for v in stc.vertices]
         nearest_idx = np.argmin(dist_vertices)
         return int(round(nearest_idx))
+
+    def _get_cut_coords(event, params):
+        """Get voxel coordinates from mouse click."""
+        if event.inaxes is ax_x:
+            cut_coords = (params['ax_z'].lines[0].get_xdata()[0],
+                          event.xdata, event.ydata)
+        elif event.inaxes is ax_y:
+            cut_coords = (event.xdata,
+                          params['ax_x'].lines[0].get_xdata()[0],
+                          event.ydata)
+        else:
+            cut_coords = (event.xdata, event.ydata,
+                          params['ax_x'].lines[1].get_ydata()[0])
+        return cut_coords
+
+    def _maximum_intensity_projection(event, params):
+        """Get voxel coordinates with max intensity along plane of click."""
+        from nilearn.image import resample_to_img
+        img = resample_to_img(params['img_idx'], params['img_bg'])
+        img_data = img.get_data()[..., 0]
+        if event.inaxes is ax_x:
+            y, z = int(round(event.xdata)), int(round(event.ydata))
+            x = np.argmax(img_data[:, y, z])
+        elif event.inaxes is ax_y:
+            x, z = int(round(event.xdata)), int(round(event.ydata))
+            y = np.argmax(img_data[x, :, z])
+        else:
+            x, y = event.xdata, event.ydata
+            z = np.argmax(img_data[x, y, :])
+        return (x, y, z)
 
     def _onclick(event, params):
         """Callback to manage click on the plot."""
@@ -1806,21 +1836,11 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                 params['img_idx'], title=params['title'],
                 cut_coords=cut_coords)
 
-        if mode == 'glass_brain':
-            return fig
-
         if event.inaxes in [ax_x, ax_y, ax_z]:
-
-            if event.inaxes is ax_x:
-                cut_coords = (params['ax_z'].lines[0].get_xdata()[0],
-                              event.xdata, event.ydata)
-            elif event.inaxes is ax_y:
-                cut_coords = (event.xdata,
-                              params['ax_x'].lines[0].get_xdata()[0],
-                              event.ydata)
-            else:
-                cut_coords = (event.xdata, event.ydata,
-                              params['ax_x'].lines[1].get_ydata()[0])
+            if mode == 'stat_map':
+                cut_coords = _get_cut_coords(event, params)
+            elif mode == 'glass_brain':
+                cut_coords = _maximum_intensity_projection(event, params)
 
             params['ax_x'].clear()
             params['ax_y'].clear()
@@ -1828,7 +1848,6 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             plot_map_callback(
                 params['img_idx'], title=params['title'],
                 cut_coords=cut_coords)
-
             loc_idx = _cut_coords_to_idx(cut_coords, params['img_idx'])
             ax_time.lines[0].set_ydata(stc.data[loc_idx].T)
         params['fig'].canvas.draw()
@@ -1838,9 +1857,11 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     subject = _check_subject(stc.subject, subject, True)
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
 
-    img_bg = None
+    img_bg = nib.load(t1_fname)
     if mode == 'stat_map':
-        img_bg = nib.load(t1_fname)
+        bg_img = img_bg
+    else:
+        bg_img = None
     img = stc.as_volume(src, mri_resolution=False)
 
     vmax = np.abs(stc.data).max()
@@ -1859,13 +1880,13 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     plot_map_callback = partial(
         plot_func, threshold=0.45, axes=[0.05, 0.55, 0.9, 0.4],
         resampling_interpolation='nearest', vmax=vmax, figure=fig,
-        colorbar=True, bg_img=img_bg)
+        colorbar=True, bg_img=bg_img)
 
     params = {'stc': stc, 'ax_time': ax_time, 'lx': None,
               'plot_map_callback': plot_map_callback,
               'img_idx': img_idx,
               'title': 'Activation (t=%.3f s.)' % stc.times[idx],
-              'fig': fig}
+              'fig': fig, 'img_bg': img_bg}
 
     fig_anat = plot_map_callback(
         stat_map_img=params['img_idx'], title=params['title'],
