@@ -1794,16 +1794,20 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     def _maximum_intensity_projection(event, params):
         """Get voxel coordinates with max intensity along plane of click."""
-        img_data = params['img_idx_resampled'].get_data()[..., 0]
+        img_data = np.abs(params['img_idx_resampled'].get_data()[..., 0])
+        shape = img_data.shape
         if event.inaxes is ax_x:
             y, z = int(round(event.xdata)), int(round(event.ydata))
-            x = np.argmax(img_data[:, y, z])
+            x = np.argmax(img_data[:, y + shape[1] // 2, z + shape[2] // 2])
+            x -= shape[0] // 2
         elif event.inaxes is ax_y:
             x, z = int(round(event.xdata)), int(round(event.ydata))
-            y = np.argmax(img_data[x, :, z])
+            y = np.argmax(img_data[x + shape[0] // 2, :, z + shape[2] // 2])
+            y -= shape[1] // 2
         else:
             x, y = int(round(event.xdata)), int(round(event.ydata))
-            z = np.argmax(img_data[x, y, :])
+            z = np.argmax(img_data[x + shape[0] // 2, y + shape[1] // 2, :])
+            z -= shape[2] // 2
         return (x, y, z)
 
     def _resample(event, params):
@@ -1846,6 +1850,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             elif mode == 'glass_brain':
                 cut_coords = _maximum_intensity_projection(event, params)
 
+            x, y, z = cut_coords
             ax_x.clear()
             ax_y.clear()
             ax_z.clear()
@@ -1854,12 +1859,12 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                 cut_coords=cut_coords)
             loc_idx = _cut_coords_to_idx(cut_coords, params['img_idx'])
 
-            (x, y, z) = cut_coords
             marker_kwargs = dict(markersize=10, markerfacecolor='w',
                                  markeredgecolor='b', markeredgewidth=5)
-            ax_y.plot(x, z, 'wo', **marker_kwargs)
-            ax_x.plot(y, z, 'wo', **marker_kwargs)
-            ax_z.plot(x, y, 'wo', **marker_kwargs)
+            if mode == 'glass_brain':
+                ax_y.plot(x, z, 'wo', **marker_kwargs)
+                ax_x.plot(y, z, 'wo', **marker_kwargs)
+                ax_z.plot(x, y, 'wo', **marker_kwargs)
             ax_time.lines[0].set_ydata(stc.data[loc_idx].T)
         params['fig'].canvas.draw()
 
