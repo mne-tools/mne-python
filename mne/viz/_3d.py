@@ -1771,9 +1771,9 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         # the affine transformation can sometimes lead to corner
         # cases near the edges?
         shape = img_idx.shape
-        cut_coords = np.clip(cut_coords, 0, np.array(shape[:-1]) - 1)
+        cut_coords = np.clip(cut_coords, 0, np.array(shape) - 1)
         loc_idx = np.ravel_multi_index(
-            cut_coords, shape[:-1], order='F')
+            cut_coords, shape, order='F')
         dist_vertices = [abs(v - loc_idx) for v in stc.vertices]
         nearest_idx = np.argmin(dist_vertices)
         return int(round(nearest_idx))
@@ -1794,7 +1794,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     def _maximum_intensity_projection(event, params):
         """Get voxel coordinates with max intensity along plane of click."""
-        img_data = np.abs(params['img_idx_resampled'].get_data()[..., 0])
+        img_data = np.abs(params['img_idx_resampled'].get_data())
         shape = img_data.shape
         if event.inaxes is ax_x:
             y, z = int(round(event.xdata)), int(round(event.ydata))
@@ -1822,7 +1822,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         ax_x, ax_y, ax_z = params['ax_x'], params['ax_y'], params['ax_z']
         plot_map_callback = params['plot_map_callback']
         if event.inaxes is params['ax_time']:
-            idx = params['stc'].time_as_index(event.xdata)
+            idx = params['stc'].time_as_index(event.xdata)[0]
             if params['lx'] is None:
                 params['lx'] = params['ax_time'].axvline(
                     event.xdata, color='g')
