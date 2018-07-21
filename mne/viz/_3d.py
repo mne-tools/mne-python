@@ -1881,12 +1881,15 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     img = stc.as_volume(src, mri_resolution=False)
 
     vmax = np.abs(stc.data).max()
-    idx = stc.time_as_index(stc.times[0])
+    loc_idx, idx = np.unravel_index(np.abs(stc.data).argmax(),
+                                    stc.data.shape)
     img_idx = index_img(img, idx)
+    x, y, z = np.unravel_index(stc.vertices[loc_idx], img_idx.shape,
+                               order='F')
+    cut_coords = apply_trans(img.affine, (x, y, z))
 
     # Plot initial figure
     fig = plt.figure()
-    loc_idx = _cut_coords_to_idx((0, 0, 0), img_idx)
 
     ax_time = fig.add_axes([0.05, 0.1, 0.9, 0.4], ylim=(0, vmax))
     ax_time.plot(stc.times, stc.data[loc_idx].T)
@@ -1909,7 +1912,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     fig_anat = plot_map_callback(
         stat_map_img=params['img_idx'], title=params['title'],
-        cut_coords=(0, 0, 0))
+        cut_coords=cut_coords)
     if mode == 'glass_brain':
         img_resampled = resample_to_img(params['img_idx'],
                                         params['img_bg'])
