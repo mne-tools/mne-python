@@ -394,6 +394,7 @@ def test_snapshot_brain_montage():
 
 
 @testing.requires_testing_data
+@requires_nibabel()
 def test_plot_volume_source_estimates():
     """Test interactive plotting of volume source estimates."""
     forward = read_forward_solution(fwd_fname)
