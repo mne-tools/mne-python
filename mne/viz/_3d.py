@@ -1718,8 +1718,9 @@ def _get_ps_kwargs(initial_time, require='0.6'):
     return initial_time, ad_kwargs, sd_kwargs
 
 
+@verbose
 def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
-                                 mode='stat_map', show=True):
+                                 mode='stat_map', show=True, verbose=None):
     """Plot Nutmeg style volumetric source estimates using nilearn.
 
     Parameters
@@ -1739,6 +1740,9 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         The plotting mode to use. Either 'stat_map' (default) or 'glass_brain'.
     show : bool
         Show figures if True. Defaults to True.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     import matplotlib.pyplot as plt
     import nibabel as nib
@@ -1818,7 +1822,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             params.update({'img_idx_resampled': img_resampled})
 
     def _onclick(event, params):
-        """Callback to manage click on the plot."""
+        """Manage clicks on the plot."""
         ax_x, ax_y, ax_z = params['ax_x'], params['ax_y'], params['ax_z']
         plot_map_callback = params['plot_map_callback']
         if event.inaxes is params['ax_time']:

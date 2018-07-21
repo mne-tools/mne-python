@@ -405,8 +405,14 @@ def test_plot_volume_source_estimates():
     n_time = 5
     data = np.random.RandomState(0).rand(n_verts, n_time)
     vol_stc = VolSourceEstimate(data, vertices, 1, 1)
-    vol_stc.plot(sample_src, subject='sample', subjects_dir=subjects_dir)
 
+    for mode in ['glass_brain', 'stat_map']:
+        vol_stc.plot(sample_src, subject='sample',
+                     subjects_dir=subjects_dir,
+                     mode=mode)
+
+    pytest.raises(ValueError, vol_stc.plot, sample_src,
+                  'sample', subjects_dir, mode='abcd')
     vertices.append([])
     surface_stc = SourceEstimate(data, vertices, 1, 1)
     pytest.raises(ValueError, plot_volume_source_estimates,
