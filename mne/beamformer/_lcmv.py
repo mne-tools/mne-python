@@ -108,8 +108,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
                 Vertices for which the filter weights were computed.
             'is_free_ori' : bool
                 If True, the filter was computed with free source orientation.
-            'src' : list
-                The list of Source space information.
+            'src_type' : str
+                Type of source space.
 
     Notes
     -----
