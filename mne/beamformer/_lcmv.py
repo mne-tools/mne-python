@@ -5,8 +5,6 @@
 #          Britta Westner <britta.wstnr@gmail.com>
 #
 # License: BSD (3-clause)
-from copy import deepcopy
-
 import numpy as np
 from scipy import linalg
 
@@ -14,7 +12,7 @@ from ..io.pick import (pick_types, pick_channels_cov, pick_info)
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
-from ..source_estimate import _make_stc, SourceEstimate
+from ..source_estimate import _make_stc, SourceEstimate, _get_src_type
 from ..utils import logger, verbose, warn, estimate_rank, _validate_type
 from .. import Epochs
 from ..externals import six
@@ -283,12 +281,19 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         W = W[2::3]
         is_free_ori = False
 
+    # get src type to store with filters for _make_stc
+    src_type = _get_src_type(forward['src'], vertno)
+
+    # get subject to store with filters
+    subject_from = _subject_from_forward(forward)
+
     filters = dict(weights=W, data_cov=data_cov, noise_cov=noise_cov,
                    whitener=whitener, weight_norm=weight_norm,
                    pick_ori=pick_ori, ch_names=ch_names, proj=proj,
                    is_ssp=is_ssp, vertices=vertno, is_free_ori=is_free_ori,
-                   nsource=forward['nsource'], src=deepcopy(forward['src']),
-                   source_nn=forward['source_nn'].copy())
+                   nsource=forward['nsource'], src_type=src_type,
+                   source_nn=forward['source_nn'].copy(),
+                   subject=subject_from)
 
     return filters
 
@@ -307,7 +312,6 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
 
     W = filters['weights']
 
-    subject = _subject_from_forward(filters)
     for i, M in enumerate(data):
         if len(M) != len(filters['ch_names']):
             raise ValueError('data and picks must have the same length')
@@ -344,8 +348,9 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
                 sol = np.abs(sol)
 
         tstep = 1.0 / info['sfreq']
-        yield _make_stc(sol, vertices=filters['vertices'], src=filters['src'],
-                        tmin=tmin, tstep=tstep, subject=subject, vector=vector,
+        yield _make_stc(sol, vertices=filters['vertices'],
+                        src=filters['src_type'], tmin=tmin, tstep=tstep,
+                        subject=filters['subject'], vector=vector,
                         source_nn=filters['source_nn'])
 
     logger.info('[done]')
