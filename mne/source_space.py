@@ -91,6 +91,16 @@ class SourceSpaces(list):
             self.info = dict()
         else:
             self.info = dict(info)
+        self._check_consistency()
+
+    def _check_consistency(self):
+        for s in self:
+            assert s['inuse'].sum() == s['nuse'] == len(s['vertno'])
+            assert s['np'] == len(s['rr'])
+            if 'vertno_ord' in s:
+                assert set(s['vertno_ord']) == set(s['vertno'])
+                assert np.array_equal(s['vertno'][s['ord_pick']],
+                                      s['vertno_ord'])
 
     @verbose
     def plot(self, head=False, brain=None, skull=None, subjects_dir=None,
@@ -811,6 +821,20 @@ def _read_one_source_space(fid, this, verbose=None):
 
         res['vertno'] = np.where(res['inuse'])[0]
 
+        # Add vertno_ord and ord_pick fields to the source space structure
+        # (for morphed source spaces)
+        tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_VERTICES)
+        if tag is not None:
+            # vertno_ord is an order of the vertices in the source space,
+            # which satifies some desirable goal, e.g., corresponding vertices
+            # across the subjects being close to each other on the cortical
+            # surface.
+            res['vertno_ord'] = tag.data.astype(np.int)
+            # ord_pick contains the indices to the unordered source space
+            # vertices to get ordered data if needed, i.e.,
+            # vertno[ord_pick[k]] == vertno_ord[k]
+            res['ord_pick'] = np.searchsorted(res['vertno'], res['vertno_ord'])
+
     #   Use triangulation
     tag1 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NUSE_TRI)
     tag2 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_USE_TRIANGLES)
@@ -992,7 +1016,7 @@ def write_source_spaces(fname, src, overwrite=False, verbose=None):
         The name of the file, which should end with -src.fif or
         -src.fif.gz.
     src : SourceSpaces
-        The source spaces (as returned by read_source_spaces).
+        The source spaces (as returned by :func:`mne.read_source_spaces`).
     overwrite : bool
         If True, the destination file (if it exists) will be overwritten.
         If False (default), an error will be raised if the file exists.
@@ -1057,6 +1081,10 @@ def _write_one_source_space(fid, this, verbose=None):
     #   Which vertices are active
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_SELECTION, this['inuse'])
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NUSE, this['nuse'])
+    # Use FIFF_MNE_SOURCE_SPACE_VERTICES (3519) to store the ordered vertex
+    # list, if relevant
+    if 'vertno_ord' in this:
+        write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_VERTICES, this['vertno_ord'])
 
     if this['ntri'] > 0:
         write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NTRI, this['ntri'])
@@ -1786,10 +1814,11 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
     bads = np.where(np.logical_or(dists < exclude, dists > maxdist))[0]
     sp['inuse'][bads] = False
     sp['nuse'] -= len(bads)
+    sp['vertno'] = np.where(sp['inuse'])[0]
     logger.info('%d sources after omitting infeasible sources.', sp['nuse'])
 
     if 'rr' in surf:
-        _filter_source_spaces(surf, mindist, None, [sp], n_jobs)
+        _filter_source_spaces(surf, mindist, None, SourceSpaces([sp]), n_jobs)
     else:  # sphere
         vertno = np.where(sp['inuse'])[0]
         bads = (np.linalg.norm(sp['rr'][vertno] - surf['r0'], axis=-1) >=
@@ -2136,6 +2165,7 @@ def _add_interpolator(s, mri_name, add_interpolator):
 def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
                           verbose=None):
     """Remove all source space points closer than a given limit (in mm)."""
+    assert isinstance(src, SourceSpaces)
     if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD and mri_head_t is None:
         raise RuntimeError('Source spaces are in head coordinates and no '
                            'coordinate transform was provided!')
@@ -2176,8 +2206,12 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
             omit = np.sum(close)
             outside = np.logical_or(outside, close)
         s['inuse'][vertno[outside]] = False
+        inside = ~outside
         s['nuse'] -= (omit + omit_outside)
-        s['vertno'] = np.where(s['inuse'])[0]
+        s['vertno'] = vertno[inside]
+        if 'vertno_ord' in s:
+            s['ord_pick'] = s['ord_pick'][inside]
+            s['vertno_ord'] = vertno[s['ord_pick']]
 
         if omit_outside > 0:
             extras = [omit_outside]
@@ -2193,6 +2227,7 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
         # Adjust the patch inds as well if necessary
         if omit + omit_outside > 0:
             _adjust_patch_info(s)
+    src._check_consistency()
     logger.info('Thank you for waiting.')
 
 
@@ -2636,7 +2671,10 @@ def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
         for key in ('neighbor_tri', 'tri_area', 'tri_cent', 'tri_nn',
                     'use_tris'):
             del to[key]
-        to['vertno'] = np.sort(best[fro['vertno']])
+        # include the ordered vertex list in the source space
+        to['vertno_ord'] = best[fro['vertno']]
+        to['vertno'] = np.sort(to['vertno_ord'])
+        to['ord_pick'] = np.searchsorted(to['vertno'], to['vertno_ord'])
         to['inuse'] = np.zeros(len(to['rr']), int)
         to['inuse'][to['vertno']] = True
         to['use_tris'] = best[fro['use_tris']]
