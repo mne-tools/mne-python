@@ -845,14 +845,14 @@ def _merge_grad_data(data, method='rms'):
 
     Parameters
     ----------
-    data : array, shape = (n_channels, n_times) or (n_channels, n_freqs, n_times)  # noqa
+    data : array, shape = (n_channels, ..., n_times)
         Data for channels, ordered in pairs.
     method : str
         Can be 'rms' or 'mean'.
 
     Returns
     -------
-    data : array, shape = (n_channels / 2, n_times) or (n_channels / 2, n_freqs, n_times)  # noqa
+    data : array, shape = (n_channels / 2, ..., n_times)
         The root mean square or mean for each pair.
     """
     data, orig_shape = data.reshape((len(data) // 2, 2, -1)), data.shape
