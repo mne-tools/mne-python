@@ -203,7 +203,7 @@ def test_make_dics():
     assert not np.allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-2, atol=0)
 
     # Test whether spatial filter contains src
-    assert ('src' in filters.keys())
+    assert ('src_type' in filters.keys())
 
 
 @pytest.mark.slowtest
