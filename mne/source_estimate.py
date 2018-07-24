@@ -377,8 +377,8 @@ def _get_src_type(src, vertices):
     return src_type
 
 
-def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None, subject=None,
-              vector=False, source_nn=None):
+def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
+              subject=None, vector=False, source_nn=None):
     """Generate a surface, vector-surface, volume or mixed source estimate."""
     if src_type is None:
         src_type = _get_src_type(src, vertices)
