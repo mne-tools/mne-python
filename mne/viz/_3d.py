@@ -1720,7 +1720,8 @@ def _get_ps_kwargs(initial_time, require='0.6'):
 
 @verbose
 def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
-                                 mode='stat_map', show=True, verbose=None):
+                                 mode='stat_map', bg_img=None,
+                                 show=True, verbose=None):
     """Plot Nutmeg style volumetric source estimates using nilearn.
 
     Parameters
@@ -1738,6 +1739,9 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
     mode : str
         The plotting mode to use. Either 'stat_map' (default) or 'glass_brain'.
+    bg_img : Niimg-like object | None
+        The background image. If None, it is the T1.mgz file that is
+        found in the subjects_dir.
     show : bool
         Show figures if True. Defaults to True.
     verbose : bool, str, int, or None
@@ -1818,7 +1822,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         """Precompute the resampling as the mouse leaves the time axis."""
         if event.inaxes is params['ax_time'] and mode == 'glass_brain':
             img_resampled = resample_to_img(params['img_idx'],
-                                            params['img_bg'])
+                                            params['bg_img'])
             params.update({'img_idx_resampled': img_resampled})
 
     def _onclick(event, params):
@@ -1872,16 +1876,17 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             ax_time.lines[0].set_ydata(stc.data[loc_idx].T)
         params['fig'].canvas.draw()
 
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                    raise_error=True)
-    subject = _check_subject(stc.subject, subject, True)
-    t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+    if bg_img is None:
+        subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                        raise_error=True)
+        subject = _check_subject(stc.subject, subject, True)
+        t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+        bg_img = nib.load(t1_fname)
 
-    img_bg = nib.load(t1_fname)
-    if mode == 'stat_map':
-        bg_img = img_bg
-    else:
-        bg_img = None
+    bg_img_param = bg_img
+    if mode == 'glass_brain':
+        bg_img_param = None
+
     img = stc.as_volume(src, mri_resolution=False)
 
     vmax = np.abs(stc.data).max()
@@ -1906,20 +1911,20 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     plot_map_callback = partial(
         plot_func, threshold=0.45, axes=[0.05, 0.55, 0.9, 0.4],
         resampling_interpolation='nearest', vmax=vmax, figure=fig,
-        colorbar=True, bg_img=bg_img, black_bg=True)
+        colorbar=True, bg_img=bg_img_param, black_bg=True)
 
     params = {'stc': stc, 'ax_time': ax_time, 'lx': None,
               'plot_map_callback': plot_map_callback,
               'img_idx': img_idx,
               'title': 'Activation (t=%.3f s.)' % stc.times[idx],
-              'fig': fig, 'img_bg': img_bg}
+              'fig': fig, 'bg_img': bg_img}
 
     fig_anat = plot_map_callback(
         stat_map_img=params['img_idx'], title=params['title'],
         cut_coords=cut_coords)
     if mode == 'glass_brain':
         img_resampled = resample_to_img(params['img_idx'],
-                                        params['img_bg'])
+                                        params['bg_img'])
         params.update({'img_idx_resampled': img_resampled})
     ax_x = fig_anat.axes['x'].ax
     ax_y = fig_anat.axes['y'].ax
