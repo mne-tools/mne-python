@@ -6,15 +6,13 @@
 #          Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD (3-clause)
-from copy import deepcopy
-
 import numpy as np
 from scipy import linalg
 
 from ..utils import logger, verbose, warn
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
-from ..source_estimate import _make_stc
+from ..source_estimate import _make_stc, _get_src_type
 from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
 from ._compute_beamformer import (_reg_pinv, _eig_inv, _setup_picks,
                                   _pick_channels_spatial_filter,
@@ -329,11 +327,12 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     Ws = np.array(Ws)
 
     subject = _subject_from_forward(forward)
+    src_type = _get_src_type(forward['src'], vertices)
     filters = dict(weights=Ws, csd=csd, ch_names=ch_names, proj=proj,
                    vertices=vertices, subject=subject,
                    pick_ori=pick_ori, inversion=inversion,
                    weight_norm=weight_norm,
-                   normalize_fwd=normalize_fwd, src=deepcopy(forward['src']),
+                   normalize_fwd=normalize_fwd, src_type=src_type,
                    n_orient=n_orient if pick_ori is None else 1)
 
     return filters
@@ -372,7 +371,7 @@ def _apply_dics(data, filters, info, tmin):
             tstep = 1.0 / info['sfreq']
 
             stcs.append(_make_stc(sol, vertices=filters['vertices'],
-                                  src=filters['src'], tmin=tmin,
+                                  src_type=filters['src_type'], tmin=tmin,
                                   tstep=tstep, subject=subject))
         if one_freq:
             yield stcs[0]
@@ -572,7 +571,8 @@ def apply_dics_csd(csd, filters, verbose=None):
     logger.info('[done]')
 
     return (_make_stc(source_power.reshape(-1, n_freqs), vertices=vertices,
-                      src=filters['src'], tmin=0, tstep=1, subject=subject),
+                      src_type=filters['src_type'], tmin=0, tstep=1,
+                      subject=subject),
             frequencies)
 
 
@@ -660,9 +660,9 @@ def _apply_old_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
         if np.iscomplexobj(sol):
             sol = np.abs(sol)  # XXX : STC cannot contain (yet?) complex values
 
-        yield _make_stc(sol, vertices=vertno, src=forward['src'],
-                        tmin=tmin, tstep=tstep,
-                        subject=subject)
+        src_type = _get_src_type(forward['src_type'], vertno)
+        yield _make_stc(sol, vertices=vertno, src_type=src_type, tmin=tmin,
+                        tstep=tstep, subject=subject)
 
     logger.info('[done]')
 
