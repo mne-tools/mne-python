@@ -826,7 +826,7 @@ def _read_one_source_space(fid, this, verbose=None):
         tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_VERTICES)
         if tag is not None:
             # vertno_ord is an order of the vertices in the source space,
-            # which satifies some desirable goal, e.g., corresponding vertices
+            # which satisfies some desirable goal, e.g., corresponding vertices
             # across the subjects being close to each other on the cortical
             # surface.
             res['vertno_ord'] = tag.data.astype(np.int)
