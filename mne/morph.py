@@ -168,10 +168,10 @@ class SourceMorph(object):
 
     See Also
     --------
-    :meth:`mne.SourceEstimate.morph`
-    :meth:`mne.VolSourceEstimate.as_volume`
-    :ref:`sphx_glr_auto_examples_plot_use_source_morph.py`
-    :ref:`sphx_glr_auto_tutorials_plot_morph.py`
+    .. :meth::`stc.morph <mne.SourceEstimate.morph>`
+    .. :meth::`stc.as_volume <mne.VolSourceEstimate.as_volume>`
+    .. :ref::`example <sphx_glr_auto_examples_plot_use_sourcemorph.py>`
+    .. :ref::`tutorial <sphx_glr_auto_tutorials_plot_morph.py>`
     """
 
     def __init__(self, subject_from=None, subject_to='fsaverage',
@@ -673,7 +673,6 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
     if format != 'nifti1' and format != 'nifti2':
         raise ValueError("invalid format specifier %s. Must be 'nifti1' or"
                          " 'nifti2'" % format)
-    import nibabel as nib
     if format == 'nifti1':
         from nibabel import (Nifti1Image as NiftiImage,
                              Nifti1Header as NiftiHeader)
