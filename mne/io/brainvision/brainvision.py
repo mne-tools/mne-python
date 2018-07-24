@@ -14,11 +14,11 @@
 import os
 import os.path as op
 import re
-import time
 from datetime import datetime
 
 import numpy as np
 
+from ..write import DATE_NONE
 from ...utils import verbose, logger, warn
 from ..constants import FIFF
 from ..meas_info import _empty_info
@@ -469,24 +469,24 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     with open(mrk_fname, 'r') as tmp_mrk_f:
         lines = tmp_mrk_f.readlines()
 
-    matches = []
     for line in lines:
         match = re.findall(regexp, line)
+
+        # Always take first measurement date we find
         if match:
-            matches.append(match)
+            date_str = match[0]
+            meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
 
-    if matches:
-        # if we found several "New Segment" with measurement date, take first
-        date_str = matches[0][0]
-        meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
+            # We need list of unix time in milliseconds and as second entry
+            # the additional amount of microseconds
+            epoch = datetime.utcfromtimestamp(0)
+            unix_time_millis = (meas_date - epoch).total_seconds() * 1000.
+            info['meas_date'] = [int(t) for t in
+                                 str(unix_time_millis).split('.')]
+            break
 
-        # Convert to format for FIF meas_date
-        # We need list of unix time ... and unix time in microseconds
-        meas_date_unix = time.mktime(meas_date.timetuple())
-        meas_date_unix_micro = meas_date_unix * 1000000.
-        info['meas_date'] = [meas_date_unix, meas_date_unix_micro]
-    else:
-        info['meas_date'] = []
+    if not match:
+        info['meas_date'] = DATE_NONE
 
     # load channel labels
     nchan = cfg.getint('Common Infos', 'NumberOfChannels') + 1

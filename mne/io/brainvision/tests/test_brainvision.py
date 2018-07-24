@@ -21,6 +21,7 @@ from mne import pick_types, find_events
 from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
 from mne.io.tests.test_raw import _test_raw_reader
+from mne.io.write import DATE_NONE
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -66,15 +67,15 @@ def test_vmrk_meas_date():
     """Test successful extraction of measurement date."""
     # Test file that does have a specific date
     raw = read_raw_brainvision(vhdr_path)
-    assert raw.info['meas_date'] == [1384355643.0, 1384355643000000.0]
+    assert_allclose(raw.info['meas_date'], [1384359243794, 232])
 
     # Test file with multiple dates ... we should take the first
     raw = read_raw_brainvision(vhdr_old_path)
-    assert raw.info['meas_date'] == [1184581360.0, 1184581360000000.0]
+    assert_allclose(raw.info['meas_date'], [1184588560937, 454])
 
     # Test files with no date
     raw = read_raw_brainvision(vhdr_v2_path)
-    assert raw.info['meas_date'] == []
+    assert_allclose(raw.info['meas_date'], DATE_NONE)
 
 
 def test_vhdr_codepage_ansi():
