@@ -1786,7 +1786,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         nearest_idx = np.argmin(dist_vertices)
         return int(round(nearest_idx))
 
-    def _get_cut_coords(event, params):
+    def _get_cut_coords_stat_map(event, params):
         """Get voxel coordinates from mouse click."""
         if event.inaxes is ax_x:
             cut_coords = (params['ax_z'].lines[0].get_xdata()[0],
@@ -1800,8 +1800,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                           params['ax_x'].lines[1].get_ydata()[0])
         return cut_coords
 
-    def _maximum_intensity_projection(event, params):
-        """Get voxel coordinates with max intensity along plane of click."""
+    def _get_cut_coords_glass_brain(event, params):
+        """Get voxel coordinates with max intensity projection."""
         img_data = np.abs(params['img_idx_resampled'].get_data())
         shape = img_data.shape
         if event.inaxes is ax_x:
@@ -1854,9 +1854,9 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
         if event.inaxes in [ax_x, ax_y, ax_z]:
             if mode == 'stat_map':
-                cut_coords = _get_cut_coords(event, params)
+                cut_coords = _get_cut_coords_stat_map(event, params)
             elif mode == 'glass_brain':
-                cut_coords = _maximum_intensity_projection(event, params)
+                cut_coords = _get_cut_coords_glass_brain(event, params)
 
             x, y, z = cut_coords
             ax_x.clear()
