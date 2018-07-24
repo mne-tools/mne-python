@@ -2,6 +2,7 @@
 from __future__ import print_function
 
 # Author: Teon Brooks <teon.brooks@gmail.com>
+#         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -59,6 +60,21 @@ eog = ['HL', 'HR', 'Vb']
 event_id = {'Sync On': 5}
 
 warnings.simplefilter('always')
+
+
+def test_vmrk_meas_date():
+    """Test successful extraction of measurement date."""
+    # Test file that does have a specific date
+    raw = read_raw_brainvision(vhdr_path)
+    assert raw.info['meas_date'] == [1384355643.0, 1384355643000000.0]
+
+    # Test file with multiple dates ... we should take the first
+    raw = read_raw_brainvision(vhdr_old_path)
+    assert raw.info['meas_date'] == [1184581360.0, 1184581360000000.0]
+
+    # Test files with no date
+    raw = read_raw_brainvision(vhdr_v2_path)
+    assert raw.info['meas_date'] == []
 
 
 def test_vhdr_codepage_ansi():

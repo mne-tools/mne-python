@@ -11,7 +11,7 @@ DataFile=test.eeg
 ; <Size in data points>, <Channel number (0 = marker is related to all channels)>
 ; Fields are delimited by commas, some fields might be omitted (empty).
 ; Commas in type or description text are coded as "\1".
-Mk1=New Segment,,1,1,0,20131113161403794232
+Mk1=New Segment,,1,1,0
 Mk2=Stimulus,S253,487,1,0
 Mk3=Stimulus,S255,497,1,0
 Mk4=Stimulus,S254,1770,1,0

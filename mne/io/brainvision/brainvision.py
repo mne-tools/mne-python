@@ -15,6 +15,7 @@ import os
 import os.path as op
 import re
 import time
+from datetime import datetime
 
 import numpy as np
 
@@ -457,10 +458,35 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         fmt = dict((key, cfg.get('ASCII Infos', key))
                    for key in cfg.options('ASCII Infos'))
 
-    # locate EEG and marker files
+    # locate EEG binary file and marker file for the stim channel
     path = op.dirname(vhdr_fname)
     data_filename = op.join(path, cfg.get('Common Infos', 'DataFile'))
-    info['meas_date'] = int(time.time())
+    mrk_fname = op.join(path, cfg.get('Common Infos', 'MarkerFile'))
+
+    # Try to get measurement date from marker file
+    # Usually saved with a marker "New Segment", see BrainVision documentation
+    regexp = r'^Mk\d*=New Segment,[.*,]\d*.\d*,\d*,(\d{20})$'
+    with open(mrk_fname, 'r') as tmp_mrk_f:
+        lines = tmp_mrk_f.readlines()
+
+    matches = []
+    for line in lines:
+        match = re.findall(regexp, line)
+        if match:
+            matches.append(match)
+
+    if matches:
+        # if we found several "New Segment" with measurement date, take first
+        date_str = matches[0][0]
+        meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
+
+        # Convert to format for FIF meas_date
+        # We need list of unix time ... and unix time in microseconds
+        meas_date_unix = time.mktime(meas_date.timetuple())
+        meas_date_unix_micro = meas_date_unix * 1000000.
+        info['meas_date'] = [meas_date_unix, meas_date_unix_micro]
+    else:
+        info['meas_date'] = []
 
     # load channel labels
     nchan = cfg.getint('Common Infos', 'NumberOfChannels') + 1
@@ -747,8 +773,6 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             unit=unit, unit_mul=0.,  # always zero- mne manual pg. 273
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
-    # for stim channel
-    mrk_fname = op.join(path, cfg.get('Common Infos', 'MarkerFile'))
     info._update_redundant()
     info._check_consistency()
     return info, data_filename, fmt, order, mrk_fname, montage, n_samples
