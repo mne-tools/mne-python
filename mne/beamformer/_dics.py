@@ -976,7 +976,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
     stcs = []
     for i_freq in range(n_freq_bins):
         stc = _make_stc(sol_final[i_freq, :, :].T, vertices=stc.vertices,
-                        src=filters['src'], tmin=tmin, tstep=tstep,
+                        src_type=filters['src_type'], tmin=tmin, tstep=tstep,
                         subject=stc.subject)
         stcs.append(stc)
 
