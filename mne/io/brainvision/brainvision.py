@@ -480,7 +480,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             # We need list of unix time in milliseconds and as second entry
             # the additional amount of microseconds
             epoch = datetime.utcfromtimestamp(0)
-            unix_time_millis = (meas_date - epoch).total_seconds() * 1000.
+            unix_time_millis = (meas_date - epoch).total_seconds()
             info['meas_date'] = [int(t) for t in
                                  str(unix_time_millis).split('.')]
             break

@@ -67,15 +67,18 @@ def test_vmrk_meas_date():
     """Test successful extraction of measurement date."""
     # Test file that does have a specific date
     raw = read_raw_brainvision(vhdr_path)
-    assert_allclose(raw.info['meas_date'], [1384359243794, 232])
+    assert_allclose(raw.info['meas_date'], [1384359243, 794232])
+    assert '2013-11-13 16:14:03 GMT' in repr(raw.info)
 
-    # Test file with multiple dates ... we should take the first
+    # Test file with multiple dates ... we should only take the first
     raw = read_raw_brainvision(vhdr_old_path)
-    assert_allclose(raw.info['meas_date'], [1184588560937, 454])
+    assert_allclose(raw.info['meas_date'], [1184588560, 937454])
+    assert '2007-07-16 12:22:40 GMT' in repr(raw.info)
 
-    # Test files with no date
+    # Test files with no date, we should take DATE_NONE from mne.io.write
     raw = read_raw_brainvision(vhdr_v2_path)
     assert_allclose(raw.info['meas_date'], DATE_NONE)
+    assert '1970-01-01 00:35:47' in repr(raw.info)
 
 
 def test_vhdr_codepage_ansi():
