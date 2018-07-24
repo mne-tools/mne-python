@@ -485,8 +485,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                                  str(unix_time_millis).split('.')]
             break
 
-    if not match:
-        info['meas_date'] = DATE_NONE
+        else:
+            info['meas_date'] = DATE_NONE
 
     # load channel labels
     nchan = cfg.getint('Common Infos', 'NumberOfChannels') + 1
