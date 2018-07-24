@@ -263,7 +263,8 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
         txt = txt.decode('latin-1')
 
     # extract Marker Infos block
-    m = re.search(r"\[Marker Infos\]", txt)
+    m = re.search(r"\[Marker Infos\]", txt, re.IGNORECASE)
+    # updated to ignore case for NeurOne support
     if not m:
         return np.zeros((0, 3))
     mk_txt = txt[m.end():]
@@ -327,7 +328,9 @@ def _check_hdr_version(header):
 def _check_mrk_version(header):
     """Check the marker version."""
     tags = ['Brain Vision Data Exchange Marker File, Version 1.0',
+            'Brain Vision Data Exchange Marker File Version 1.0',
             'Brain Vision Data Exchange Marker File, Version 2.0']
+    # missing , for NeurOne workaround
     if header not in tags:
         raise ValueError("Currently only support %r, not %r"
                          "Contact MNE-Developers for support."
@@ -432,18 +435,23 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     else:
         cfg.readfp(StringIO(params))
 
+    # NeurOne BrainVision export workaround
+    cinfostr = 'Common Infos'
+    if not cfg.has_section(cinfostr):
+        cinfostr = 'Common infos'
+
     # get sampling info
     # Sampling interval is given in microsec
-    sfreq = 1e6 / cfg.getfloat('Common Infos', 'SamplingInterval')
+    sfreq = 1e6 / cfg.getfloat(cinfostr, 'SamplingInterval')
     info = _empty_info(sfreq)
 
-    order = cfg.get('Common Infos', 'DataOrientation')
+    order = cfg.get(cinfostr, 'DataOrientation')
     if order not in _orientation_dict:
         raise NotImplementedError('Data Orientation %s is not supported'
                                   % order)
     order = _orientation_dict[order]
 
-    data_format = cfg.get('Common Infos', 'DataFormat')
+    data_format = cfg.get(cinfostr, 'DataFormat')
     if data_format == 'BINARY':
         fmt = cfg.get('Binary Infos', 'BinaryFormat')
         if fmt not in _fmt_dict:
@@ -459,15 +467,15 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
     # locate EEG and marker files
     path = op.dirname(vhdr_fname)
-    data_filename = op.join(path, cfg.get('Common Infos', 'DataFile'))
+    data_filename = op.join(path, cfg.get(cinfostr, 'DataFile'))
     info['meas_date'] = int(time.time())
 
     # load channel labels
-    nchan = cfg.getint('Common Infos', 'NumberOfChannels') + 1
+    nchan = cfg.getint(cinfostr, 'NumberOfChannels') + 1
     n_samples = None
     if order == 'C':
         try:
-            n_samples = cfg.getint('Common Infos', 'DataPoints')
+            n_samples = cfg.getint(cinfostr, 'DataPoints')
         except configparser.NoOptionError:
             logger.warning('No info on DataPoints found. Inferring number of '
                            'samples from the data file size.')
@@ -748,7 +756,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
     # for stim channel
-    mrk_fname = op.join(path, cfg.get('Common Infos', 'MarkerFile'))
+    mrk_fname = op.join(path, cfg.get(cinfostr, 'MarkerFile'))
     info._update_redundant()
     info._check_consistency()
     return info, data_filename, fmt, order, mrk_fname, montage, n_samples
