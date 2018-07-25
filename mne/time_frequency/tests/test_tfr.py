@@ -1,6 +1,5 @@
 import numpy as np
 import os.path as op
-import warnings
 
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
@@ -240,9 +239,8 @@ def test_time_frequency():
     # When convolving in time, wavelets must not be longer than the data
     pytest.raises(ValueError, cwt, data[0, :, :Ws[0].size - 1], Ws,
                   use_fft=False)
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(UserWarning, match='one of the wavelets is longer'):
         cwt(data[0, :, :Ws[0].size - 1], Ws, use_fft=True)
-    assert_equal(len(w), 1)
 
     # Check for off-by-one errors when using wavelets with an even number of
     # samples
