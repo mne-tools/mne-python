@@ -168,15 +168,10 @@ class SourceMorph(object):
 
     See Also
     --------
-    stc.morph : Direct morph from data
-        This works only with :class:`mne.SourceEstimate` and
-        :class:`mne.VectorSourceEstimate`.
-    stc.as_volume : Convert data into volume
-        This works only with :class:`mne.VolSourceEstimate`.
-    Example : Example on how two use SourceMorph.
-        :ref:`sphx_glr_auto_examples_plot_use_sourcemorph.py`.
-    Background : Tutorial providing background information about morphing
-        :ref:`sphx_glr_auto_tutorials_plot_background_morph.py`.
+    stc.morph : Directly morph SourceEstimate or VectorSourceEstimate.
+    stc.as_volume : Convert VolSourceEstimate into NIfTI.
+    Example : :ref:`sphx_glr_auto_examples_inverse_plot_use_sourcemorph.py`.
+    Background : :ref:`sphx_glr_auto_tutorials_plot_background_morph.py`.
     """
 
     def __init__(self, subject_from=None, subject_to='fsaverage',
@@ -255,10 +250,11 @@ class SourceMorph(object):
 
         Returns
         -------
-        stc_to : VolSourceEstimate | SourceEstimate | VectorSourceEstimate | Nifti1Image | Nifti2Image
+        stc_to : VolSourceEstimate | SourceEstimate | VectorSourceEstimate |
+        Nifti1Image | Nifti2Image
             The morphed source estimate or a NIfTI image if as_volume=True.
             By default a Nifti1Image is returned. See 'format'.
-        """  # noqa: E501
+        """
         stc = copy.deepcopy(stc_from)
 
         if as_volume:

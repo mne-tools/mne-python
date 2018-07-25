@@ -391,7 +391,7 @@ Symmetric Diffeomorphic Image Registration is described in Avants *et al.* 2009
 [2]_.
 
 A map between two objects (manifolds that need to be differentiable) is
-diffeomorphic if it is invertable and so is its inverse. Hence it can be seen
+diffeomorphic if it is invertible and so is its inverse. Hence it can be seen
 as a locally linear, smooth map, that describes how each point on one object
 relates to the same point on a second object. Imagine a scrambled and an intact
 sheet of paper. There is a clear mapping between each point of the first, to
@@ -470,7 +470,7 @@ Here we will point out a special notion on the parameter ``spacing`` when
 attempting to morph surface data. In case of (Vector)
 :class:`mne.SourceEstimate` 'spacing' can be an integer a list of 2 np.array or
 None. The default is spacing=5. Spacing refers to what was known as grade in
-previous versions of MNE-Python. It defines the esolution of the icosahedral
+previous versions of MNE-Python. It defines the resolution of the icosahedral
 mesh (typically 5). If None, all vertices will be used (potentially filling the
 surface). If a list, then values will be morphed to the set of vertices
 specified in in spacing[0] and spacing[1]. Note that specifying the vertices
@@ -491,7 +491,7 @@ reference volumes will be resliced before computing the symmetric diffeomorphic
 volume. An integer or float value, will be interpreted as isotropic voxel size
 in mm. Setting a tuple allows for anisotropic voxel sizes e.g. (1., 1., 1.2).
 If None the full resolution of the MRIs will be used. Note, that this can cause
-long computation times. Futhermore, 'spacing' is not the resolution of the
+long computation times. Furthermore, 'spacing' is not the resolution of the
 output volume, if converted into a NIfTI file
 (except if ``mri_resolution=False``).
 
