@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from pytest import raises
 from numpy.testing import assert_array_equal, assert_allclose
 from os import path as op
@@ -533,13 +534,12 @@ def test_csd_morlet():
     assert_allclose(csd._data[[0, 3, 5]] * sfreq, power)
 
     # Test baselining warning
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='baseline'):
         warnings.simplefilter('always')
         epochs_nobase = epochs.copy()
         epochs_nobase.baseline = None
         epochs_nobase.info['highpass'] = 0
         csd = csd_morlet(epochs_nobase, frequencies=[10], decim=20)
-    assert len(w) == 1
 
 
 run_tests_if_main()
