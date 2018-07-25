@@ -410,8 +410,12 @@ class Info(dict):
                 if len(entr) >= 56:
                     entr = _summarize_str(entr)
             elif k == 'meas_date' and np.iterable(v):
-                # first entry in meas_date is meaningful
-                entr = _stamp_to_dt(v).strftime('%Y-%m-%d %H:%M:%S') + ' GMT'
+                if np.array_equal(v, DATE_NONE):
+                    entr = 'unspecified'
+                else:
+                    # first entry in meas_date is meaningful
+                    entr = (_stamp_to_dt(v).strftime('%Y-%m-%d %H:%M:%S') +
+                            ' GMT')
             elif k == 'kit_system_id' and v is not None:
                 from .kit.constants import KIT_SYSNAMES
                 entr = '%i (%s)' % (v, KIT_SYSNAMES.get(v, 'unknown'))

@@ -78,6 +78,7 @@ def test_vmrk_meas_date():
     # Test files with no date, we should get DATE_NONE from mne.io.write
     raw = read_raw_brainvision(vhdr_v2_path)
     assert_allclose(raw.info['meas_date'], DATE_NONE)
+    assert 'unspecified' in repr(raw.info)
 
 
 def test_vhdr_codepage_ansi():
