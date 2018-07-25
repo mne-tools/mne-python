@@ -1846,8 +1846,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             ax_y.clear()
             ax_z.clear()
             params.update({'img_idx': index_img(img, idx)})
-            params.update({'title':
-                           'LCMV (t=%.3f s.)' % params['stc'].times[idx]})
+            params.update({'title': 'Activation (t=%.3f s.)'
+                          % params['stc'].times[idx]})
             plot_map_callback(
                 params['img_idx'], title=params['title'],
                 cut_coords=cut_coords)
@@ -1900,16 +1900,16 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     # Plot initial figure
     fig = plt.figure()
 
-    ax_time = fig.add_axes([0.05, 0.1, 0.9, 0.4], ylim=(0, vmax))
+    ax_time = fig.add_axes([0.09, 0.1, 0.9, 0.4], ylim=(0, vmax))
     ax_time.plot(stc.times, stc.data[loc_idx].T)
     plt.xlabel('Time (ms)')
-    plt.ylabel('LCMV value')
+    plt.ylabel('Activation')
 
     # black_bg = True is needed because of some matplotlib
     # peculiarity. See: https://stackoverflow.com/a/34730204
     # Otherwise, event.inaxes does not work for ax_x and ax_z
     plot_map_callback = partial(
-        plot_func, threshold=0.45, axes=[0.05, 0.55, 0.9, 0.4],
+        plot_func, threshold=0.45, axes=[0.09, 0.55, 0.9, 0.4],
         resampling_interpolation='nearest', vmax=vmax, figure=fig,
         colorbar=True, bg_img=bg_img_param, black_bg=True)
 
