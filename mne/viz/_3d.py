@@ -1752,11 +1752,11 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     import nibabel as nib
     from ..source_estimate import VolSourceEstimate
 
-    try:
-        from nilearn.plotting import plot_stat_map, plot_glass_brain
-        from nilearn.image import index_img, resample_to_img
-    except ImportError:
-        raise ImportError('This function requires nilearn')
+    if not check_version('nilearn', '0.4'):
+        raise RuntimeError('This function requires nilearn >= 0.4')
+
+    from nilearn.plotting import plot_stat_map, plot_glass_brain
+    from nilearn.image import index_img, resample_to_img
 
     if mode == 'stat_map':
         plot_func = plot_stat_map
