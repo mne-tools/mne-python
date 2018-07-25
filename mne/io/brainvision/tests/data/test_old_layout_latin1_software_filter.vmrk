@@ -12,3 +12,4 @@ DataFile=test_old_layout_latin1_software_filter.eeg
 ; Fields are delimited by commas, some fields might be omitted (empty).
 ; Commas in type or description text are coded as "".
 Mk1=New Segment,,1,1,0,20070716122240937454
+Mk2=New Segment,,2,1,0,20070716122240937455

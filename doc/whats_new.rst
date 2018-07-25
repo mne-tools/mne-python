@@ -32,6 +32,8 @@ Changelog
 Bug
 ~~~
 
+- Fix bug with reading measurement dates from BrainVision files by `Stefan Appelhoff`_
+
 - Fix bug with ``mne flash_bem`` when ``flash30`` is not used by `Eric Larson`_
 
 - Fix bug with channel names in ``mgh70`` montage in :func:`mne.channels.read_montage` by `Eric Larson`_

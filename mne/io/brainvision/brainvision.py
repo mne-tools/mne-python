@@ -14,10 +14,12 @@
 import os
 import os.path as op
 import re
-import time
+from datetime import datetime
+from math import modf
 
 import numpy as np
 
+from ..write import DATE_NONE
 from ...utils import verbose, logger, warn
 from ..constants import FIFF
 from ..meas_info import _empty_info
@@ -457,10 +459,36 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         fmt = dict((key, cfg.get('ASCII Infos', key))
                    for key in cfg.options('ASCII Infos'))
 
-    # locate EEG and marker files
+    # locate EEG binary file and marker file for the stim channel
     path = op.dirname(vhdr_fname)
     data_filename = op.join(path, cfg.get('Common Infos', 'DataFile'))
-    info['meas_date'] = int(time.time())
+    mrk_fname = op.join(path, cfg.get('Common Infos', 'MarkerFile'))
+
+    # Try to get measurement date from marker file
+    # Usually saved with a marker "New Segment", see BrainVision documentation
+    regexp = r'^Mk\d+=New Segment,.*,\d+,\d+,\d+,(\d{20})$'
+    with open(mrk_fname, 'r') as tmp_mrk_f:
+        lines = tmp_mrk_f.readlines()
+
+    for line in lines:
+        match = re.findall(regexp, line.strip())
+
+        # Always take first measurement date we find
+        if match:
+            date_str = match[0]
+            meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
+
+            # We need list of unix time in milliseconds and as second entry
+            # the additional amount of microseconds
+            epoch = datetime.utcfromtimestamp(0)
+            unix_time = (meas_date - epoch).total_seconds()
+            unix_secs = int(modf(unix_time)[1])
+            microsecs = int(modf(unix_time)[0] * 1e6)
+            info['meas_date'] = [unix_secs, microsecs]
+            break
+
+    else:
+        info['meas_date'] = DATE_NONE
 
     # load channel labels
     nchan = cfg.getint('Common Infos', 'NumberOfChannels') + 1
@@ -747,8 +775,6 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             unit=unit, unit_mul=0.,  # always zero- mne manual pg. 273
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
-    # for stim channel
-    mrk_fname = op.join(path, cfg.get('Common Infos', 'MarkerFile'))
     info._update_redundant()
     info._check_consistency()
     return info, data_filename, fmt, order, mrk_fname, montage, n_samples

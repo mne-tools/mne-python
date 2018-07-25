@@ -147,9 +147,9 @@ class Info(dict):
     lowpass : float | None
         Lowpass corner frequency in Hertz.
     meas_date : list of int
-        The first element of this list is a POSIX timestamp (milliseconds since
+        The first element of this list is a UNIX timestamp (seconds since
         1970-01-01 00:00:00) denoting the date and time at which the
-        measurement was taken. The second element is the number of
+        measurement was taken. The second element is the additional number of
         microseconds.
     meas_id : dict | None
         The ID assigned to this measurement by the acquisition system or
@@ -410,8 +410,12 @@ class Info(dict):
                 if len(entr) >= 56:
                     entr = _summarize_str(entr)
             elif k == 'meas_date' and np.iterable(v):
-                # first entry in meas_date is meaningful
-                entr = _stamp_to_dt(v).strftime('%Y-%m-%d %H:%M:%S') + ' GMT'
+                if np.array_equal(v, DATE_NONE):
+                    entr = 'unspecified'
+                else:
+                    # first entry in meas_date is meaningful
+                    entr = (_stamp_to_dt(v).strftime('%Y-%m-%d %H:%M:%S') +
+                            ' GMT')
             elif k == 'kit_system_id' and v is not None:
                 from .kit.constants import KIT_SYSNAMES
                 entr = '%i (%s)' % (v, KIT_SYSNAMES.get(v, 'unknown'))
