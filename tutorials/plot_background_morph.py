@@ -51,7 +51,7 @@ complex operations than just shifting brains relative to each other.
 Nevertheless, this can be a first step of a successful subject to subject
 transformation.
 
-We can understand mapping as a mathematical function :math`f`. This function
+We can understand mapping as a mathematical function :math:`f`. This function
 can be seen as a description on how to move from one point in n-dimensional
 space to another. Like with a real maps, when attempting to reach a new real
 world location, we try to derive a set of actions (in the example directional
@@ -348,7 +348,7 @@ can be obtained through a random variable :math:`A`. It is formally defined as:
     I(A;B)=
     \sum_{a\in A}\sum_{b\in B}p(a,b)log\left(\frac{p(a,b)}{p(a)p(b)}\right)\ .
 
-:math:`A` and :math:`B` is our subject data, :math`p(a,b)` the joint and
+:math:`A` and :math:`B` is our subject data, :math:`p(a,b)` the joint and
 :math:`p(a)` and :math:`p(b)` the marginal probabilitiy. This means, that for
 independent variables :math:`p(a,b) = p(a)p(b)`, thus
 :math:`I(A;B)=\sum_{a\in A}\sum_{b\in B}p(a,b)log 1=0`.
