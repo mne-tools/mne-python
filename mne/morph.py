@@ -168,10 +168,15 @@ class SourceMorph(object):
 
     See Also
     --------
-    .. :meth::`stc.morph <mne.SourceEstimate.morph>`
-    .. :meth::`stc.as_volume <mne.VolSourceEstimate.as_volume>`
-    .. :ref::`example <sphx_glr_auto_examples_plot_use_sourcemorph.py>`
-    .. :ref::`tutorial <sphx_glr_auto_tutorials_plot_morph.py>`
+    stc.morph : Direct morph from data
+        This works only with :class:`mne.SourceEstimate` and
+        :class:`mne.VectorSourceEstimate`.
+    stc.as_volume : Convert data into volume
+        This works only with :class:`mne.VolSourceEstimate`.
+    Example : Example on how two use SourceMorph.
+        :ref:`sphx_glr_auto_examples_plot_use_sourcemorph.py`.
+    Background : Tutorial providing background information about morphing
+        :ref:`sphx_glr_auto_tutorials_plot_background_morph.py`.
     """
 
     def __init__(self, subject_from=None, subject_to='fsaverage',
@@ -221,7 +226,8 @@ class SourceMorph(object):
 
     # Forward verbose decorator to _apply_morph_data
     def __call__(self, stc_from, as_volume=False, mri_resolution=False,
-                 mri_space=False, apply_morph=True, verbose=None):
+                 mri_space=False, apply_morph=True, format='nifti1',
+                 verbose=None):
         """Morph data.
 
         Parameters
@@ -241,14 +247,17 @@ class SourceMorph(object):
         apply_morph : bool
             If as_volume=True and apply_morph=True, the input stc will be
             morphed and outputted as a volume.
+        format : str
+            Either 'nifti1' (default) or 'nifti2'.
         verbose : bool | str | int | None
             If not None, override default verbose level (see :func:`mne.
             verbose` and :ref:`Logging documentation <tut_logging>` for more).
 
         Returns
         -------
-        stc_to : VolSourceEstimate | SourceEstimate | VectorSourceEstimate | Nifti1Image
+        stc_to : VolSourceEstimate | SourceEstimate | VectorSourceEstimate | Nifti1Image | Nifti2Image
             The morphed source estimate or a NIfTI image if as_volume=True.
+            By default a Nifti1Image is returned. See 'format'.
         """  # noqa: E501
         stc = copy.deepcopy(stc_from)
 
@@ -256,7 +265,8 @@ class SourceMorph(object):
             return self.as_volume(stc, fname=None,
                                   mri_resolution=mri_resolution,
                                   mri_space=mri_space,
-                                  apply_morph=apply_morph)
+                                  apply_morph=apply_morph,
+                                  format=format)
 
         if stc.subject is None:
             stc.subject = self.subject_from

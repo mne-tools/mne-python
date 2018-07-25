@@ -99,7 +99,8 @@ stc_vol.crop(0.09, 0.1)  # our prepared volume source estimate
 # :class:`SourceMorph <mne.SourceMorph>` initialization - If src is not
 # provided, the morph will not be pre-computed but instead will be prepared for
 # morphing when calling. This works only with (Vector)
-# :class:`SourceEstimate <mne.SourceEstimate>`
+# :class:`SourceEstimate <mne.SourceEstimate>`. See :ref:`mne.SourceMorph` for
+# additional parameter settings.
 
 morph_surf = SourceMorph(subject_from='sample',  # Default: None
                          subject_to='fsaverage',  # Default
@@ -112,7 +113,8 @@ morph_surf = SourceMorph(subject_from='sample',  # Default: None
 # Ideally subject_from can be inferred from src, subject_to is 'fsaverage' by
 # default and subjects_dir is set in the environment. In that case
 # :class:`SourceMorph <mne.SourceMorph>` can be initialized taking only src as
-# argument (for better understanding more keyword arguments are defined).
+# argument (for better understanding more keyword arguments are defined). See
+# :ref:`mne.SourceMorph` for additional parameter settings.
 
 morph_vol = SourceMorph(subject_from='sample',  # Default: None
                         subject_to='fsaverage',  # Default

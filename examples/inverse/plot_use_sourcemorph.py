@@ -22,7 +22,6 @@ import os
 
 import matplotlib.pylab as plt
 import nibabel as nib
-import numpy as np
 from mne import read_evokeds, SourceMorph
 from mne.datasets import sample
 from mne.minimum_norm import apply_inverse, read_inverse_operator
@@ -65,10 +64,6 @@ source_morph = SourceMorph(subject_from='sample',
                            subjects_dir=subjects_dir,
                            src=inverse_operator['src'],
                            spacing=5)
-
-# Obtain absolute value for plotting
-# To not copy the data into a new memory location, out=stc.data is set
-np.abs(stc.data, out=stc.data)
 
 # Morph data
 stc_fsaverage = source_morph(stc)
