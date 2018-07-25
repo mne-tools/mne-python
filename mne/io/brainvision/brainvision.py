@@ -471,7 +471,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         lines = tmp_mrk_f.readlines()
 
     for line in lines:
-        match = re.findall(regexp, line)
+        match = re.findall(regexp, line.strip())
 
         # Always take first measurement date we find
         if match:
