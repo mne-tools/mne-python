@@ -466,7 +466,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
     # Try to get measurement date from marker file
     # Usually saved with a marker "New Segment", see BrainVision documentation
-    regexp = r'^Mk\d*=New Segment,[.*,]\d*.\d*,\d*,(\d{20})$'
+    regexp = r'^Mk\d+=New Segment,.*,\d+,\d+,\d+,(\d{20})$'
     with open(mrk_fname, 'r') as tmp_mrk_f:
         lines = tmp_mrk_f.readlines()
 
