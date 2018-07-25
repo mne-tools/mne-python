@@ -1720,7 +1720,7 @@ def _get_ps_kwargs(initial_time, require='0.6'):
 
 @verbose
 def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
-                                 mode='stat_map', bg_img=None,
+                                 mode='stat_map', bg_img=None, threshold=None,
                                  show=True, verbose=None):
     """Plot Nutmeg style volumetric source estimates using nilearn.
 
@@ -1740,8 +1740,16 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     mode : str
         The plotting mode to use. Either 'stat_map' (default) or 'glass_brain'.
     bg_img : Niimg-like object | None
-        The background image. If None, it is the T1.mgz file that is
-        found in the subjects_dir.
+        The background image used in the nilearn plotting function.
+        If None, it is the T1.mgz file that is found in the subjects_dir.
+    threshold : int | None | 'auto'
+        The threshold, passed to the nilearn plotting function.
+        - If None is given, the image is not thresholded.
+        - If a number is given, it is used to threshold the image:
+          values below the threshold (in absolute value) are plotted as
+          transparent.
+        - If 'auto' is given, the threshold is determined magically by
+          analysis of the image.
     show : bool
         Show figures if True. Defaults to True.
     verbose : bool, str, int, or None
@@ -1750,6 +1758,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     """
     import matplotlib.pyplot as plt
     import nibabel as nib
+    import scipy
     from ..source_estimate import VolSourceEstimate
 
     if not check_version('nilearn', '0.4'):
@@ -1783,8 +1792,11 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         loc_idx = np.ravel_multi_index(
             cut_coords, shape, order='F')
         dist_vertices = [abs(v - loc_idx) for v in stc.vertices]
-        nearest_idx = np.argmin(dist_vertices)
-        return int(round(nearest_idx))
+        nearest_idx = int(round(np.argmin(dist_vertices)))
+        if dist_vertices[nearest_idx] == 0:
+            return nearest_idx
+        else:
+            return None
 
     def _get_cut_coords_stat_map(event, params):
         """Get voxel coordinates from mouse click."""
@@ -1873,7 +1885,10 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                 ax_y.plot(x, z, 'wo', **marker_kwargs)
                 ax_x.plot(y, z, 'wo', **marker_kwargs)
                 ax_z.plot(x, y, 'wo', **marker_kwargs)
-            ax_time.lines[0].set_ydata(stc.data[loc_idx].T)
+            if loc_idx is not None:
+                ax_time.lines[0].set_ydata(stc.data[loc_idx].T)
+            else:
+                ax_time.lines[0].set_ydata(0.)
         params['fig'].canvas.draw()
 
     if bg_img is None:
@@ -1889,6 +1904,9 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     img = stc.as_volume(src, mri_resolution=False)
 
+    if threshold == 'auto':
+        threshold = scipy.stats.scoreatpercentile(np.abs(stc.data), 80) - 1e-5
+
     vmax = np.abs(stc.data).max()
     loc_idx, idx = np.unravel_index(np.abs(stc.data).argmax(),
                                     stc.data.shape)
@@ -1902,6 +1920,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     ax_time = fig.add_axes([0.09, 0.1, 0.9, 0.4], ylim=(0, vmax))
     ax_time.plot(stc.times, stc.data[loc_idx].T)
+    ax_time.axhline(threshold, linestyle='--', color='k')
     plt.xlabel('Time (ms)')
     plt.ylabel('Activation')
 
@@ -1909,7 +1928,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     # peculiarity. See: https://stackoverflow.com/a/34730204
     # Otherwise, event.inaxes does not work for ax_x and ax_z
     plot_map_callback = partial(
-        plot_func, threshold=0.45, axes=[0.09, 0.55, 0.9, 0.4],
+        plot_func, threshold=threshold, axes=[0.09, 0.55, 0.9, 0.4],
         resampling_interpolation='nearest', vmax=vmax, figure=fig,
         colorbar=True, bg_img=bg_img_param, black_bg=True)
 

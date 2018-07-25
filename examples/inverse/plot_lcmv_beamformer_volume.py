@@ -97,5 +97,5 @@ stc.data[:, :] = np.abs(stc.data)
 stc.save('lcmv-vol')
 
 stc.crop(0.0, 0.2)
-plot_volume_source_estimates(stc, src=forward['src'], subject='sample',
-                             subjects_dir=subjects_dir)
+stc.plot(src=forward['src'], subject='sample', subjects_dir=subjects_dir,
+         threshold=0.45)
