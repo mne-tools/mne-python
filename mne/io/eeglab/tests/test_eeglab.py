@@ -60,6 +60,7 @@ def _check_h5(fname):
 @pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
 def test_io_set_raw(fnames, tmpdir):
     """Test importing EEGLAB .set files."""
+    tmpdir = str(tmpdir)
     raw_fname, raw_fname_onefile = fnames
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -256,7 +257,7 @@ def test_io_set_raw(fnames, tmpdir):
 @requires_h5py
 @testing.requires_testing_data
 @pytest.mark.parametrize('fnames', [epochs_mat_fnames, epochs_h5_fnames])
-def test_io_set_epochs(fnames, tmpdir):
+def test_io_set_epochs(fnames):
     """Test importing EEGLAB .set epochs files."""
     epochs_fname, epochs_fname_onefile = fnames
     with warnings.catch_warnings(record=True) as w:
@@ -272,6 +273,7 @@ def test_io_set_epochs(fnames, tmpdir):
 @testing.requires_testing_data
 def test_io_set_epochs_events(tmpdir):
     """Test different combinations of events and event_ids."""
+    tmpdir = str(tmpdir)
     out_fname = op.join(tmpdir, 'test-eve.fif')
     events = np.array([[4, 0, 1], [12, 0, 2], [20, 0, 3], [26, 0,  3]])
     write_events(out_fname, events)
@@ -292,6 +294,7 @@ def test_io_set_epochs_events(tmpdir):
 def test_degenerate(tmpdir):
     """Test some degenerate conditions."""
     # test if .dat file raises an error
+    tmpdir = str(tmpdir)
     eeg = io.loadmat(epochs_fname_mat, struct_as_record=False,
                      squeeze_me=True)['EEG']
     eeg.data = 'epochs_fname.dat'
