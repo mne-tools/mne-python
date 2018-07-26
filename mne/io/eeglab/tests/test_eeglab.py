@@ -99,8 +99,8 @@ def test_io_set(fnames):
                            event_id=event_id, preload=False,
                            uint16_codec='ascii')
 
-    # test old EEGLAB version event import
-    eeg = io.loadmat(raw_fname, struct_as_record=False,
+    # test old EEGLAB version event import (read old version)
+    eeg = io.loadmat(raw_fname_mat, struct_as_record=False,
                      squeeze_me=True)['EEG']
     for event in eeg.event:  # old version allows integer events
         event.type = 1
@@ -133,8 +133,8 @@ def test_io_set(fnames):
     pytest.raises(ValueError, read_epochs_eeglab, epochs_fname,
                   epochs.events, None)
 
-    # test reading file with one event
-    eeg = io.loadmat(raw_fname, struct_as_record=False,
+    # test reading file with one event (read old version)
+    eeg = io.loadmat(raw_fname_mat, struct_as_record=False,
                      squeeze_me=True)['EEG']
     one_event_fname = op.join(temp_dir, 'test_one_event.set')
     io.savemat(one_event_fname, {'EEG':
@@ -290,7 +290,7 @@ def test_degenerate():
                {'trials': eeg.trials, 'srate': eeg.srate,
                 'nbchan': eeg.nbchan, 'data': eeg.data,
                 'epoch': eeg.epoch, 'event': eeg.event,
-                'chanlocs': eeg.chanlocs}}, appendmat=False)
+                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}}, appendmat=False)
     shutil.copyfile(op.join(base_dir, 'test_epochs.fdt'),
                     op.join(temp_dir, 'test_epochs.dat'))
     with warnings.catch_warnings(record=True) as w:

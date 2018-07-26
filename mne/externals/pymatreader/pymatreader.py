@@ -76,9 +76,10 @@ def read_mat(filename, variable_names=None, ignore_fields=None, uint16_codec=Non
     if ignore_fields is None:
         ignore_fields = []
     try:
-        hdf5_file = scipy.io.loadmat(filename, struct_as_record=False,
-                                     squeeze_me=True,
-                                     variable_names=variable_names, uint16_codec=uint16_codec)
+        with open(filename, 'rb') as fid:  # avoid open file warnings on error
+            hdf5_file = scipy.io.loadmat(fid, struct_as_record=False,
+                                         squeeze_me=True,
+                                         variable_names=variable_names, uint16_codec=uint16_codec)
         data = _check_for_scipy_mat_struct(hdf5_file)
         print("finished loading .mat file <v7.3")
     except NotImplementedError:
@@ -199,7 +200,7 @@ def _check_for_scipy_mat_struct(data):
 
 
 def _todict(matobj):
-    """private function to enhance scipy.io.loadmat. 
+    """private function to enhance scipy.io.loadmat.
     A recursive function which constructs from matobjects nested dictionaries. Idea taken from:
     <stackoverflow.com/questions/7008608/scipy-io-loadmat-nested-structures-i-e-dictionaries>"""
 

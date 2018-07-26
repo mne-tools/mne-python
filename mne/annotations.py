@@ -76,7 +76,9 @@ class Annotations(object):
 
         onset = np.array(onset, dtype=float)
         if onset.ndim != 1:
-            raise ValueError('Onset must be a one dimensional array.')
+            raise ValueError('Onset must be a one dimensional array, got %s '
+                             '(shape %s).'
+                             % (onset.ndim, onset.shape))
         duration = np.array(duration, dtype=float)
         if isinstance(description, string_types):
             description = np.repeat(description, len(onset))

@@ -45,6 +45,9 @@ def _check_load_mat(fname, uint16_codec):
     if 'EEG' not in eeg:
         raise ValueError('Could not find EEG array in the .set file.')
     eeg = Bunch(**eeg['EEG'])
+    eeg.trials = int(eeg.trials)
+    eeg.nbchan = int(eeg.nbchan)
+    eeg.pnts = int(eeg.pnts)
     return eeg
 
 
@@ -67,13 +70,28 @@ def _get_info(eeg, montage, eog=()):
     if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
         eeg.chanlocs = [eeg.chanlocs]
 
-    if len(eeg.chanlocs) > 0:
+    if isinstance(eeg.chanlocs, dict):
+        eeg.chanlocs = _dol_to_lod(eeg.chanlocs)
+
+    good = len(eeg.chanlocs) > 0
+
+    if good:
         pos_fields = ['X', 'Y', 'Z']
         if isinstance(eeg.chanlocs[0], io.matlab.mio5_params.mat_struct):
             has_pos = all(hasattr(eeg.chanlocs[0], fld)
                           for fld in pos_fields)
-        else:
+        elif isinstance(eeg.chanlocs[0], np.ndarray):
+            # Old files
+            has_pos = all(fld in eeg.chanlocs[0].dtype.names
+                          for fld in pos_fields)
+        elif isinstance(eeg.chanlocs[0], dict):
+            # new files
             has_pos = all(fld in eeg.chanlocs[0] for fld in pos_fields)
+        else:
+            good = False
+            has_pos = False  # unknown (sometimes we get [0, 0])
+
+    if good:
         get_pos = has_pos and montage is None
         pos_ch_names, ch_names, pos = list(), list(), list()
         kind = 'user_defined'
@@ -500,8 +518,7 @@ class EpochsEEGLAB(BaseEpochs):
                 if isinstance(ep.eventtype, int):
                     ep.eventtype = str(ep.eventtype)
                 if not isinstance(ep.eventtype, string_types):
-                    event_type = '/'.join([str(et) for et
-                                           in ep.eventtype.tolist()])
+                    event_type = '/'.join([str(et) for et in ep.eventtype])
                     event_name.append(event_type)
                     # store latency of only first event
                     event_latencies.append(events[ev_idx].latency)
@@ -703,6 +720,8 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
 
 
 def _bunchify(items):
+    if isinstance(items, dict):
+        items = _dol_to_lod(items)
     if len(items) > 0 and isinstance(items[0], dict):
         items = [Bunch(**item) for item in items]
     return items
@@ -711,20 +730,27 @@ def _bunchify(items):
 def _read_annotations_eeglab(eeg):
     if not hasattr(eeg, 'event'):
         events = []
+    elif isinstance(eeg.event, dict) and \
+            np.array(eeg.event['latency']).ndim > 0:
+        events = _dol_to_lod(eeg.event)
     elif not isinstance(eeg.event, np.ndarray):
         events = [eeg.event]
     else:
         events = eeg.event
-
     events = _bunchify(events)
     description = [str(event.type) for event in events]
     onset = [event.latency - 1 for event in events]
-    if (len(onset) > 0) and hasattr(events[0], 'duration'):
-        duration = [event.duration for event in events]
-    else:
-        duration = np.zeros(len(onset))
+    duration = np.zeros(len(onset))
+    if len(events) > 0 and hasattr(events[0], 'duration'):
+        duration[:] = [event.duration for event in events]
 
     return Annotations(onset=onset, duration=duration, description=description)
+
+
+def _dol_to_lod(dol):
+    """Convert a dict of lists to a list of dicts."""
+    return [dict((key, dol[key][ii]) for key in dol.keys())
+            for ii in range(len(dol[list(dol.keys())[0]]))]
 
 
 def read_annotations_eeglab(fname, uint16_codec=None):
