@@ -1757,8 +1757,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         and :ref:`Logging documentation <tut_logging>` for more).
     """
     import matplotlib.pyplot as plt
+    from scipy import stats
     import nibabel as nib
-    import scipy
     from ..source_estimate import VolSourceEstimate
 
     if not check_version('nilearn', '0.4'):
@@ -1905,7 +1905,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     img = stc.as_volume(src, mri_resolution=False)
 
     if threshold == 'auto':
-        threshold = scipy.stats.scoreatpercentile(np.abs(stc.data), 80) - 1e-5
+        threshold = stats.scoreatpercentile(np.abs(stc.data), 80) - 1e-5
 
     vmax = np.abs(stc.data).max()
     loc_idx, idx = np.unravel_index(np.abs(stc.data).argmax(),
@@ -1920,7 +1920,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     ax_time = fig.add_axes([0.09, 0.1, 0.9, 0.4], ylim=(0, vmax))
     ax_time.plot(stc.times, stc.data[loc_idx].T)
-    ax_time.axhline(threshold, linestyle='--', color='k')
+    ax_time.axhline(threshold, ls='--', color='k')
     plt.xlabel('Time (ms)')
     plt.ylabel('Activation')
 
