@@ -55,6 +55,7 @@ def _check_h5(fname):
             raise SkipTest('h5py module required')
 
 
+@requires_h5py
 @testing.requires_testing_data
 @pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
 def test_io_set_raw(fnames, tmpdir):
@@ -252,6 +253,7 @@ def test_io_set_raw(fnames, tmpdir):
                            np.array([np.nan, np.nan, np.nan]))
 
 
+@requires_h5py
 @testing.requires_testing_data
 @pytest.mark.parametrize('fnames', [epochs_mat_fnames, epochs_h5_fnames])
 def test_io_set_epochs(fnames, tmpdir):
