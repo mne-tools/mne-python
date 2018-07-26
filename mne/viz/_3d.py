@@ -1929,7 +1929,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         resampling_interpolation='nearest', vmax=vmax, figure=fig,
         colorbar=True, bg_img=bg_img_param, black_bg=True)
 
-    params = {'stc': stc, 'ax_time': ax_time, 'lx': None,
+    params = {'stc': stc, 'ax_time': ax_time,
               'plot_map_callback': plot_map_callback,
               'img_idx': img_idx,
               'title': 'Activation (t=%.3f s.)' % stc.times[idx],

@@ -16,7 +16,6 @@ import numpy as np
 import mne
 from mne.datasets import sample
 from mne.beamformer import make_lcmv, apply_lcmv
-from mne.viz import plot_volume_source_estimates
 
 print(__doc__)
 
