@@ -176,7 +176,7 @@ stc_vol_m = morph_vol(stc_vol)  # VolSourceEstimate
 # Plot results
 # ------------
 
-# Plot morphed volume source estiamte
+# Plot morphed volume source estimate
 
 # Load fsaverage anatomical image
 t1_fsaverage = nib.load(fname_t1_fsaverage)

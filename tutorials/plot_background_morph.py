@@ -398,8 +398,8 @@ independent variables :math:`p(a,b) = p(a)p(b)`, thus
 :math:`I(A;B)=\sum_{a\in A}\sum_{b\in B}p(a,b)log 1=0`.
 
 In general it can be stated, that: :math:`p(a,b) \geq p(a)p(b)` according to
-Jensen's inequality. Hence the more dependent :math:`A` and :math:`B` are, the
-higher :math:`I(A;B)` will be.
+`Jensen's inequality`_. Hence the more dependent :math:`A` and :math:`B` are,
+the higher :math:`I(A;B)` will be.
 
 It can further be expressed in terms of entropy. More precise, as the
 difference between the joined entropy of :math:`A` and :math:`B` and the
@@ -792,18 +792,21 @@ morph_surf = SourceMorph(subject_from='sample',  # Default: None
 # From :ref:`tut_volumetric_morphing` and :ref:`tut_sourcemorph` we know, that
 # src has to be provided when morphing a :class:`mne.VolSourceEstimate`.
 # Furthermore we can define the parameters of the in general very costly
-# computation. Below an example was chosen using a non-default spacing of
+# computation.
+#
+# Below an example was chosen, using a non-default spacing of
 # isotropic 3 mm. The default is 5 mm and you will experience a noticeable
 # difference in computation time, when changing this parameter. Ideally
 # subject_from can be inferred from src, subject_to is 'fsaverage' by default
 # and subjects_dir is set in the environment. In that case
-# :class:`mne.SourceMorph` can be initialized taking only src as parameter. For
-# demonstrative purposes all available keyword arguments were set nevertheless.
-# We use the default optimization parameters, that is 100, 100 and 10
-# iterations for the 1st, 2nd and 3rd level of optimization for all 3 steps
-# when computing the affine transform. In turn the Symmetric Diffeomorphic
-# transformation will use 5, 5 and 3 iterations for each level respectively
-#  (see :ref:`tut_sourcemorph_opt`).
+# :class:`mne.SourceMorph` can be initialized taking only src as parameter.
+#
+# For demonstrative purposes all available keyword arguments were set
+# nevertheless. We use the default optimization parameters, that is 100, 100
+# and 10 iterations for the 1st, 2nd and 3rd level of optimization for all 3
+# steps when computing the affine transform. In turn the Symmetric
+# Diffeomorphic transformation will use 5, 5 and 3 iterations for each level
+# respectively (see :ref:`tut_sourcemorph_opt`).
 
 morph_vol = SourceMorph(subject_from='sample',  # Default: None
                         subject_to='fsaverage',  # Default
@@ -820,11 +823,13 @@ morph_vol = SourceMorph(subject_from='sample',  # Default: None
 # Once we computed the morph for our respective dataset, we can morph the data
 # by giving it as an argument to the :class:`mne.SourceMorph` instance. This
 # operation applies pre-computed transforms to stc or computes the morph if
-# instantiated without providing :class:`src <mne.SourceSpaces>`. Default
-# keyword arguments are valid for both types of morph. However, changing the
-# default only makes real sense when morphing :class:`mne.VolSourceEstimate`
-# See :ref:`tut_sourcemorph_methods` and below for more information. The morph
-# will be applied to all sample points equally (time domain).
+# instantiated without providing :class:`src <mne.SourceSpaces>`.
+#
+# Default keyword arguments are valid for both types of morph. However,
+# changing the default only makes real sense when morphing
+# :class:`mne.VolSourceEstimate` See :ref:`tut_sourcemorph_methods` and below
+# for more information. The morph will be applied to all sample points equally
+# (time domain).
 
 stc_surf_m = morph_surf(stc_surf)  # SourceEstimate | VectorSourceEstimate
 
@@ -838,14 +843,17 @@ stc_vol_m = morph_vol(stc_vol)  # VolSourceEstimate
 # to output a volume of our data in the new space. We do this by calling the
 # :meth:`mne.SourceMorph.as_volume`. Note, that un-morphed source estimates
 # still can be converted into a NIfTI by using
-# :meth:`mne.VolSourceEstimate.as_volume`. The shape of the output volume can
-# be modified by providing the argument mri_resolution. This argument can be
-# boolean, a tuple or an int. If mri_resolution=True, the MRI resolution, that
-# was stored in src will be used. Setting mri_resolution to False, will export
-# the volume having voxel size corresponding to the spacing of the computed
-# morph. Setting a tuple or single value, will cause the output volume to
-# expose a voxel size of that values in mm. We can play around with those
-# parameters and see the difference.
+# :meth:`mne.VolSourceEstimate.as_volume`.
+#
+# The shape of the output volume can be modified by providing the argument
+# *mri_resolution*. This argument can be boolean, a tuple or an int. If
+# ``mri_resolution=True``, the MRI resolution, that was stored in ``src`` will
+# be used. Setting mri_resolution to False, will export the volume having voxel
+# size corresponding to the spacing of the computed morph. Setting a tuple or
+# single value, will cause the output volume to expose a voxel size of that
+# values in mm.
+#
+# We can play around with those parameters and see the difference.
 
 # Create full MRI resolution output volume
 img_mri_res = morph_vol.as_volume(stc_vol_m, mri_resolution=True)
@@ -856,7 +864,7 @@ img_morph_res = morph_vol.as_volume(stc_vol_m, mri_resolution=False)
 # Create output volume of manually defined voxel size directly from SourceMorph
 img_any_res = morph_vol(stc_vol,  # use un-morphed source estimate and
                         as_volume=True,  # output NIfTI with
-                        mri_resolution=2,  # isotropic voxel size of 2mm
+                        mri_resolution=7,  # isotropic voxel size of 2mm
                         mri_space=True,  # in MRI space
                         apply_morph=True,  # after applying the morph
                         format='nifti1')  # in NIfTI 1 format
@@ -864,8 +872,17 @@ img_any_res = morph_vol(stc_vol,  # use un-morphed source estimate and
 ###############################################################################
 # Plot results
 # ------------
-
-# Plot morphed volume source estiamte
+#
+# After plotting the results it is worth paying attention to the grid size of
+# the different results. We implicitly defined a voxel size of isotropic 1 mm
+# for the first volume, by defining ``mri_resolution=True``, which happens to
+# be 1 mm.
+#
+# The second volume has a voxel size of isotropic 3 mm, because computed the
+# transformation based on this value. It corresponds to *spacing*
+#
+# Lastly we defined the *mri_resolution* manually setting it to isotropic 7 mm.
+# The significantly increased voxel size pops directly out.
 
 # Load fsaverage anatomical image
 t1_fsaverage = nib.load(fname_t1_fsaverage)
@@ -875,9 +892,9 @@ fig, [axes1, axes2, axes3] = plt.subplots(1, 3)
 fig.subplots_adjust(top=0.8, left=0.1, right=0.9, hspace=0.5)
 fig.patch.set_facecolor('white')
 
+# Plot morphed volume source estimate for all different resolutions
 for axes, img, res in zip([axes1, axes2, axes3],
-                          [img_mri_res, img_morph_res,
-                           img_any_res],
+                          [img_mri_res, img_morph_res, img_any_res],
                           ['Full MRI\nresolution',
                            'Morph\nresolution',
                            'isotropic\n7 mm']):
@@ -954,3 +971,4 @@ brain.add_text(0.1, 0.9, 'Morphed to fsaverage', 'title', font_size=16)
 # .. _dipy affine example: http://nipy.org/dipy/examples_built/affine_registration_3d.html  # noqa
 # .. _dipy sdr example: http://nipy.org/dipy/examples_built/syn_registration_3d.html  # noqa
 # .. _Wikipedia article about transformation matrices: https://en.wikipedia.org/wiki/Transformation_matrix  # noqa
+# .. _Jensen's inequality: https://en.wikipedia.org/wiki/Jensen%27s_inequality  # noqa
