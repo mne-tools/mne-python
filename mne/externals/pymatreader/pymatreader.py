@@ -44,7 +44,7 @@ disregarding of the underlying .mat file version.
 """
 
 
-def read_mat(filename, variable_names=None, ignore_fields=None):
+def read_mat(filename, variable_names=None, ignore_fields=None, uint16_codec=None):
     """This function reads .mat files of version <7.3 or 7.3 and returns the contained data structure
     as a dictionary of nested substructure similar to scipy.io.loadmat style.
 
@@ -57,6 +57,12 @@ def read_mat(filename, variable_names=None, ignore_fields=None):
     ignore_fields: list of strings, optional
         Ignores every dict key/variable name specified in the list within the entire structure. Only works for .mat files
         v 7.3. Default is [].
+    uint16_codec : str | None
+        If your file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
 
     Returns
     -------
@@ -70,7 +76,9 @@ def read_mat(filename, variable_names=None, ignore_fields=None):
     if ignore_fields is None:
         ignore_fields = []
     try:
-        hdf5_file = scipy.io.loadmat(filename, struct_as_record=False, squeeze_me=True, variable_names=variable_names)
+        hdf5_file = scipy.io.loadmat(filename, struct_as_record=False,
+                                     squeeze_me=True,
+                                     variable_names=variable_names, uint16_codec=uint16_codec)
         data = _check_for_scipy_mat_struct(hdf5_file)
         print("finished loading .mat file <v7.3")
     except NotImplementedError:
@@ -79,6 +87,7 @@ def read_mat(filename, variable_names=None, ignore_fields=None):
             data = _hdf5todict(hdf5_file, variable_names=variable_names, ignore_fields=ignore_fields)
         print("finished loading .mat file v7.3")
     return data
+
 
 
 def _hdf5todict(hdf5_object, variable_names=None, ignore_fields=None):
@@ -117,7 +126,9 @@ def _hdf5todict(hdf5_object, variable_names=None, ignore_fields=None):
         data = hdf5_object.value
         if isinstance(data, numpy.ndarray) and data.dtype == numpy.dtype('object'):
             data = [hdf5_object.file[cur_data] for cur_data in data.flatten()]
-            data = numpy.squeeze(_hdf5todict(data)).T
+            data = _hdf5todict(data)
+            if isinstance(data, numpy.ndarray):
+                data = numpy.squeeze(data).T
 
         return _assign_types(data)
     elif isinstance(hdf5_object, (list, types.GeneratorType)):
@@ -133,7 +144,7 @@ def _assign_types(values):
         values = numpy.squeeze(values).T
         if values.dtype in ("uint8", "uint16", "uint32"):
             if values.size > 1:
-                assigned_values = u''.join(chr(c) for c in values)
+                assigned_values = u''.join(chr(c) for c in values.flatten())
             else:
                 assigned_values = chr(values)
         else:
