@@ -19,16 +19,17 @@ Problem statement
 Modern neuroimaging techniques such as source reconstruction or fMRI analyses,
 make use of advanced mathematical models and hardware to map brain activity
 patterns into a subject specific anatomical brain space.
-This enables the study of spatio-temporal brain activity. Amongst many others,
-the representation of spatio-temporal activation patterns is often achieved by
-overlaying the anatomical brain structure, with the respective activation at
-the respective anatomical location. Hereby volumetric anatomical MR images are
-often used as such or are transformed into an inflated surface.
 
-It becomes obvious that in order to compute group level statistics, data
-representations across subjects must be morphed to a common frame, such that
-anatomically and functional similar structures are represented at the same
-spatial location.
+This enables the study of spatio-temporal brain activity. Amongst many others,
+the representation of spatio-temporal brain data is often mapped onto the
+anatomical brain structure. Thereby activity patterns are overlaid with
+anatomical locations that supposedly produced the activity. Volumetric
+anatomical MR images are often used as such or are transformed into an
+inflated surface representations.
+
+In order to compute group level statistics, data representations across
+subjects must be morphed to a common frame, such that anatomically and
+functional similar structures are represented at the same spatial location.
 
 .. _tut_morphing_basics:
 
@@ -37,14 +38,16 @@ Morphing basics
 
 Morphing describes the procedure of transforming a data representation in n-
 dimensional space into another data representation in the same space. In the
-context of neuroimaging data this space will mostly be 3-dimensional data and
-is necessary to bring individual subject brain spaces into a common frame. Is
-it possible to just shift one brain image such that it is overlaying with a
-second?
+context of neuroimaging data this space will mostly be 3-dimensional. It is
+necessary to bring individual subject brain spaces into a common frame. So, is
+it possible to shift functional brain data such, that it matches the
+corresponding anatomical location of a different brain.
 
 Generally speaking yes, but it needs to be kept in mind, that in order to
 achieve a highly accurate overlay, morphological differences have to be
-accounted as well. Not just do sizes of brains vary, but also how cortical and
+accounted as well.
+
+Not just do sizes of brains vary, but also how cortical and
 subcortical structures are expressed in terms of size and their location
 relative to other structures. Thus it is inevitable to use slightly more
 complex operations than just shifting brains relative to each other.
@@ -53,7 +56,7 @@ transformation.
 
 We can understand mapping as a mathematical function :math:`f`. This function
 can be seen as a description on how to move from one point in n-dimensional
-space to another. Like with a real maps, when attempting to reach a new real
+space to another. Like with a real map, when attempting to reach a new real
 world location, we try to derive a set of actions (in the example directional
 decisions to reach the new location), to move from one point to another. This
 set of actions can also be described as a function of the current position
@@ -62,15 +65,22 @@ that computes the new location.
 In general morphing operations can be split into two different kinds of
 transformation: linear and non-linear morphs or mappings:
 
+.. _tut_morphing_linear:
+
+Linear morphs
+-------------
+
 A mapping is linear if it satisfies the following two conditions:
 
 .. math::    f(u + v) = f(u) + f(v)\ ,
 .. math::    f(cu) = cf(u)\ ,
 
 where :math:`u` and :math:`v` are from the same vector space and :math:`c` can
-be any scalar. This means that any linear transform can be described as a
-mixture of additive and multiplicative operations and hence is often
-represented in terms of a transformation matrix:
+be any scalar value.
+
+This means that any linear transform can be described as a mixture of additive
+and multiplicative operations and hence is often represented in terms of a
+transformation matrix :math:`M` multiplied with the data :math:`x`:
 
 .. math::
 
@@ -96,40 +106,75 @@ represented in terms of a transformation matrix:
 
 where :math:`x^{(A)}` is the data that is morphed (subject A) and
 :math:`x^{(B)}` the morphed data (data of subject A transformed into the space
-of subject B). :math:`M^{(AB)}` represents the transformation matrix. In that
-case the identity matrix does not cause any change such that
-:math:`x^{(A)} = x^{(B)}`\ .
+of subject B). :math:`M^{(AB)}` represents the transformation matrix
+transforming :math:`A` into :math:`B`. In the above example :math:`M` is an
+identity matrix :math:`I_4` that does not cause any change such that
+:math:`x^{(A)} = x^{(B)}`.
 
 The simplest example on how transformation matrices work, would be scaling. If
-we replace the :math:`1` in the second column of :math:`M^{(AB)}`\ , only
-:math:`y` will be multiplied with this value. Changing this value therefore
-scales all values :math:`y`\ .
+we replace the :math:`1` in the second column of :math:`M^{(AB)}` with
+:math:`s_y`, :math:`y` will be multiplied with this value and
+:math:`x^{(B)}` becomes:
 
-Other operations like rotation, shearing, reflection, etc. will not be
-explained here, however the general idea is the same as for scaling.
-Translation is a little bit of a special case and furthermore the reason, why
-an additional :math:`1` was added to :math:`\vec{d}`\ . It is mathematically
-impossible to translate data represented in in N dimensions within
-in :math:`R^N`. Thus, an additional dimension is added such that the space
-becomes :math:`R^{N+1}`. Now we can exploit the fact, that shearing in
-:math:`R^{N+1}` causes a translation in :math:`R^N`. By keeping the added
-dimension constant at :math:`1` our data that originally was in :math:`R^N`,
-will be sheared in :math:`R^{N+1}` - not affecting the additional dimension
-:math:`N+1`, but causing a translation in the respective other N dimensions.
+.. math::
 
-In turn, a non-linear mapping can include linear components, but furthermore
-functions that are not limited by the above constraints. However it needs to be
-understood that including non-linear operations will alter the relationship of
-data points within a vector and thus cannot be represented as a transformation
-matrix. If we go back to the example of scaling, we would no longer be forced
-to scale the :math:`y` coordinate for every point similarly, but could
-potentially scale each value of :math:`y` independent of the respective other.
+    x^{(B)}=
+    \begin{bmatrix}
+    x \\
+    s_y\cdot y \\
+    z \\
+    1 \end{bmatrix} =
+    \begin{bmatrix}
+    1 & 0 & 0 & 0 \\
+    0 & s_y & 0 & 0 \\
+    0 & 0 & 1 & 0 \\
+    0 & 0 & 0 & 1
+    \end{bmatrix}
+    \begin{bmatrix}
+    x \\
+    y \\
+    z \\
+    1
+    \end{bmatrix}\ ,
 
-Now every data point can be transformed independent of other data
-points. This becomes especially handy when morphing volumetric brain data. To
-achieve a mapping of structurally similar areas between subjects, it is
-inevitable to employ non-linear operations to account for morphological
-differences that cannot be represented by a linear transform.
+Please see the `Wikipedia article about transformation matrices`_ for more
+information.
+
+For completeness just a short note on translation. It is a special case and
+furthermore the reason, why an additional column was added to :math:`x` and
+:math:`M` even though the morphing was done in 3-dimensional space.
+
+It is mathematically impossible to translate data represented in in N
+dimensions in :math:`R^N`. Thus, an additional dimension is added such
+that :math:`R^{N}` becomes :math:`R^{N+1}`. Now we can exploit the fact, that
+shearing in :math:`R^{N+1}` causes a translation in the remaining :math:`R^N`.
+
+Keeping the added dimension constant at :math:`1` will shear our data in
+:math:`R^{N+1}` causing a translation in :math:`R^{N}`.
+
+Imagine a plane in 2D. It's impossible to find a "translation matrix" in
+:math:`R^{2}`. However, if we add a column of ones and move to :math:`R^{3}`,
+the plane becomes a cuboid heaving length :math:`1` in the added dimension.
+
+If we now apply a shearing to this object, the upper plane of the cuboid will
+move relative to the lower plane. If we now ignore the 3rd dimension again and
+go back to :math:`R^{2}`, then a translation happened.
+
+Non-linear morphs
+-----------------
+
+In turn, a non-linear mapping can include linear components, but as well
+functions that are not limited by linear constraints
+(see :ref:`tut_morphing_linear`).
+
+However it needs to be understood that including non-linear operations will
+alter the relationship of data points within a vector and thus cannot be
+represented as a transformation matrix.
+
+If we go back to the example of scaling, we can now not only multiply each
+value :math:`y` with the a constant :math:`s_y`, but instead :math:`s_y` can be
+variable for each point in :math:`x`. In fact each data point can be mapped
+(more) independently.
 
 In MNE-Python "brain space" data is represented as source estimate data,
 obtained by one of the implemented source reconstruction methods. See
@@ -141,14 +186,17 @@ of those.
 
 The data in the first two cases is represented as "surfaces". This means that
 the data is represented as vertices on an inflated brain surface
-representation. In the last case the data is represented in a 4-dimensional
-space, were the last dimension refers to the data's sample points.
+representation in form of a 3-dimensional mesh.
+
+In the last case the data is represented in a 4-dimensional space, were the
+last dimension refers to the data's sample points.
 
 Computing an inflated surface representation can be accomplished using
 FreeSurfer. Thereby, spherical morphing of the surfaces can be employed to
-bring data from different subjects into a common anatomical frame. When dealing
-with volumetric data, a non-linear morph map - or better morph volume - based
-on two different anatomical reference MRIs can be computed.
+bring data from different subjects into a common anatomical frame.
+
+When dealing with volumetric data, a non-linear morph map - or better "morph
+volume" - based on two different anatomical reference MRIs, can be computed.
 
 .. _tut_surface_morphing:
 
@@ -253,17 +301,17 @@ shows that the smudging (smoothing) operation is linear.
 Precomputing
 ------------
 
-The utility mne_make_morph_maps was
-created to assist mne_analyze and mne_make_movie in
-morphing. Since the morphing maps described above take a while to
-compute, it is beneficial to construct all necessary maps in advance
-before using mne_make_movie .
+The utility :ref:`mne_make_morph_maps` was created to assist mne_analyze and
+:ref:`mne_make_movie` in morphing. Since the morphing maps described above take
+a while to compute, it is beneficial to construct all necessary maps in advance
+before using mne_make_movie.
+
 The precomputed morphing maps are located in ``$SUBJECTS_DIR/morph-maps`` .
-mne_make_morph_maps creates this directory automatically if it does not exist.
-If this directory exists when mne_analyze or mne_make_movie is run
+mne_make_morph_maps creates this directory automatically if it does not
+exist. If this directory exists when mne_analyze or mne_make_movie is run
 and morphing is requested, the software first looks for already
-existing morphing maps there. Also, if mne_analyze or mne_make_movie have
-to recompute any morphing maps, they will be saved to
+existing morphing maps there. Also, if mne_analyze or :ref:`mne_make_movie`
+have to recompute any morphing maps, they will be saved to
 ``$SUBJECTS_DIR/morph-maps`` if this directory exists.
 
 The names of the files in ``$SUBJECTS_DIR/morph-maps`` are
@@ -287,43 +335,39 @@ use :ref:`mne_make_morph_maps`.
 Volumetric morphing
 ===================
 
-The key difference between volumetric morphing and morphing surfaces, is
-that the data is represented as a volume in a gridded space. A volume is a
+The key difference between volumetric morphing and surfaces transformations, is
+that the data is represented as a volume in a discrete space. A volume is a
 3-dimensional data representation, but it is necessary to understand that the
 difference to a mesh (what's commonly referred to as "3D model") is that the
 mesh is an "empty" surface, while the volume is "filled". Whereas the mesh is
 defined by the vertices of the outer hull, the volume is defined by that and
-the points it is containing. Hence morphing volumetric data does not only
-require to map the surface data, but also it's content in the correct way.
-Note, that since volumetric data "contains" something, the number of points,
-when increasing resolution scales exponentially. A sphere of 5 mm radius, would
-contain :math:`4\pi r^2 \approx 314` vertices, when sampled a 1 mm resolution.
+the points it is containing.
+
+Note, that since volumetric data "contains" something, the number of points
+will always be greater or equal when switching from surface to volume on the
+same resolution.
+
+For example, a sphere of 5 mm radius, would contain
+:math:`4\pi r^2 \approx 314` vertices, when sampled at 1 mm resolution.
+
 The number of volume points however would scale with :math:`\frac{4}{3}\pi r^3`
 and thus at the same resolution would contain :math:`\approx 524` data points.
+
 Hence the 3D-volume representation of a sphere will always contain
 :math:`\frac{r}{3}` times more data points than the 3D mesh if represented in
 unit space.
 
-Since volumetric data is often represented as n-dimensional matrices, rather
-than a 2-dimensional list of coordinates as common for meshes, the enclosing
-bounding box of the object actually determines the number of sample points
-needed to represent it. It is handy to keep the difference between surface and
-volume in mind. Further note that the brain is not a sphere and the above
-calculation does not really apply to complex shapes.
-
-Another way to understand this is when thinking about morphing one brain to
-another. We not only want the cortices to overlap anatomically as good as
-possible, but also all sub-cortical structures. If the cortex was surrounding a
-perfectly homogeneous space, then the result of the volumetric morph would be
-exactly the same as a surface morph. But since not only the surface needs to be
-matched, but also all it contains, the underlying transformation becomes
-significantly more complex.
+And since we have to deal with the surface *and* the content that needs to be
+morphed, we can directly link this and say, it's not only the cortices we want
+to overlap as good as possible, but sub-cortical structures as well. If the
+surface surrounds a perfectly homogeneous space, then the result of the
+volumetric morph would be exactly equal to the surface morph.
 
 In MNE-Python the implementation of volumetric morphing is achieved by wrapping
 the corresponding functionality from DiPy. See this `dipy example`_ for
 reference.
 
-The volumetric morphed is implemented as a two stage approach. First two
+The volumetric morphing is implemented as a two stage approach. First two
 reference brains are aligned using an :ref:`tut_volumetric_morphing_affine`
 and later a non-linear :ref:`tut_volumetric_morphing_sdr` in 3D.
 
@@ -357,15 +401,18 @@ In general it can be stated, that: :math:`p(a,b) \geq p(a)p(b)` according to
 Jensen's inequality. Hence the more dependent :math:`A` and :math:`B` are, the
 higher :math:`I(A;B)` will be.
 
-It can further be expressed in terms of entropy as the difference between the
-joined entropy of :math:`A` and :math:`B` and the respective conditional
-entropies. The higher the joint entropy, the lower the conditional and hence
-one variable is more predictive for the respective other. Aiming for maximizing
-the mutual information can thus be seen as reducing the conditional entropy and
-thus the amount of information required from a second variable, to describe the
-system. Or in other words, the higher the mutual information shared by
-:math:`A` and :math:`B` is, the more can be said about both, by only focusing
-on one.
+It can further be expressed in terms of entropy. More precise, as the
+difference between the joined entropy of :math:`A` and :math:`B` and the
+respective conditional entropies.
+
+The higher the joint entropy, the lower the conditional and hence one variable
+is more predictive for the respective other. Aiming for maximizing the mutual
+information can thus be seen as reducing the conditional entropy and thus the
+amount of information required from a second variable, to describe the system.
+
+Or in other words, the higher the mutual information is, that is shared by
+:math:`A` and :math:`B`, the more can be said about both, by only obtaining
+data from one.
 
 If we find a transformation such, that both volumes are overlapping as good as
 possible, then the location of a particular area in one brain, would be highly
@@ -390,22 +437,27 @@ See `dipy sdr example`_ for reference.
 Symmetric Diffeomorphic Image Registration is described in Avants *et al.* 2009
 [2]_.
 
-A map between two objects (manifolds that need to be differentiable) is
-diffeomorphic if it is invertible and so is its inverse. Hence it can be seen
-as a locally linear, smooth map, that describes how each point on one object
-relates to the same point on a second object. Imagine a scrambled and an intact
-sheet of paper. There is a clear mapping between each point of the first, to
-each point of the second object. However this map is not necessarily linear.
-See :ref:`tut_morphing_basics`.
+A smooth map between two manifolds that is invertible is diffeomorphic, if it
+is differentiable and so is it's inverse.
+
+Hence it can be seen as a locally linear, smooth map, that describes how each
+point on one object relates to the same point on a second object. Imagine a
+scrambled and an intact sheet of paper. There is a clear mapping between each
+point of the first, to each point of the second object. However this map is not
+necessarily linear. See :ref:`tut_morphing_basics`.
+
+In fact Symmetric Diffeomorphic mapping can be represented as bending the
+correspondence space smoothly. Since it is differentiable we can find a linear
+map at each point in space, while the map itself is non-linear.
 
 The introduced "symmetry" refers to symmetry after implementation. That is that
 :math:`A \rightarrow B` yields computationally the same result as
 :math:`B \rightarrow A`.
 
 As optimization criterion the cross-correlation was chosen, which is a
-deflection of similarity between two data series. It describes the normalized
-covariance between :math:`A` and :math:`B` at sample :math:`t` for each sample
-point :math:`\tau`\ . The result of computing the cross-correlation is a series
+deflection of similarity between two data series. It describes the correlation
+between :math:`A` and :math:`B` at sample :math:`t` for each sample
+point :math:`t+\tau`. The result of computing the cross-correlation is a series
 describing the correlation between :math:`A` and :math:`B` at all sample
 points:
 
@@ -431,16 +483,19 @@ estimates. This includes :class:`mne.SourceEstimate` and
 :class:`mne.VolSourceEstimate` for volumetric representations.
 
 The general idea is to use a single operator for both surface (
-:class:`mne.SourseEstimate`) and volumetric (:class:`mne.VolSourseEstimate`)
+:class:`mne.SourceEstimate`) and volumetric (:class:`mne.VolSourceEstimate`)
 data.
 
 SourceMorph can take general keyword arguments to indicate on which subjects
 the morph will be performed. Subjects are defined by setting
-``subject_from='subjectA'`` and ``subject_to='subjectB'``. Both subjects must
-be FreeSurfer directories located in ``SUBJECTS_DIR``, which can be redefined
-by setting ``subjects_dir='/subjects/dir'``. Furthermore
-:class:`mne.SourceSpaces` must be provided when dealing with volumetric data by
-setting ``src=src``. See :class:`mne.SourceMorph` for more information.
+``subject_from='subjectA'`` and ``subject_to='subjectB'``.
+
+Both subjects must be FreeSurfer directories located in ``SUBJECTS_DIR``, which
+can be redefined by setting ``subjects_dir='/subjects/dir'``.
+
+Furthermore :class:`mne.SourceSpaces` must be provided when dealing with
+volumetric data by setting ``src=src``. See :class:`mne.SourceMorph` for more
+information.
 
 A SourceMorph object can be created, by initializing an instance and setting
 desired key word arguments like so:
@@ -473,27 +528,24 @@ None. The default is spacing=5. Spacing refers to what was known as grade in
 previous versions of MNE-Python. It defines the resolution of the icosahedral
 mesh (typically 5). If None, all vertices will be used (potentially filling the
 surface). If a list, then values will be morphed to the set of vertices
-specified in in spacing[0] and spacing[1]. Note that specifying the vertices
-(e.g., spacing=[np.arange(10242), np.arange(10242)] for fsaverage on a standard
-grade 5 source space) can be substantially faster than computing vertex
-locations. Note that if subject='fsaverage' and 'spacing=5', this set of
-vertices will automatically be used (instead of computed) for speed, since this
-is a common morph.
+specified in in spacing[0] and spacing[1].
 
 In turn, when morphing :class:`mne.VolSourceEstimate` spacing can be an
 integer, float, tuple of integer or float or None. The default is spacing=5.
 Spacing refers to the voxel size that is used to compute the volumetric morph.
+
 Since two volumes are compared "point wise" the number of slices in each
 orthogonal direction has direct influence on the computation time and accuracy
 of the morph. See :ref:`tut_volumetric_morphing_sdr` to understand why this is
-the case. Spacing thus can also be seen as the voxel size to which both
-reference volumes will be resliced before computing the symmetric diffeomorphic
-volume. An integer or float value, will be interpreted as isotropic voxel size
-in mm. Setting a tuple allows for anisotropic voxel sizes e.g. (1., 1., 1.2).
-If None the full resolution of the MRIs will be used. Note, that this can cause
-long computation times. Furthermore, 'spacing' is not the resolution of the
-output volume, if converted into a NIfTI file
-(except if ``mri_resolution=False``).
+the case.
+
+Spacing thus can also be seen as the voxel size to which both reference volumes
+will be resliced before computing the symmetric diffeomorphic map. An
+integer or float value, will be interpreted as isotropic voxel size in mm.
+Setting a tuple allows for anisotropic voxel sizes e.g. (1., 1., 1.2). If None
+the full resolution of the MRIs will be used. Note, that this can cause long
+computation times. Furthermore, 'spacing' is not the resolution of the output
+volume, if converted into a NIfTI file (except if ``mri_resolution=False``).
 
 .. _tut_sourcemorph_opt:
 
@@ -507,22 +559,25 @@ behavior can be controlled by specifying the parameters ``niter_affine`` and
 
 The iterative optimization is performed in multiple levels and a number of
 iterations per level. A level is a stage of iterative refinement with a certain
-level of precision. The higher or later the level the more refined the
-iterative optimization will be, requiring more computation time. The number of
-levels and the number of iterations per level are defined as a tuple of
-integers, where the number of integers or the length of the tuple defines the
-number of levels, whereas the integer values themselves represent the number of
-iterations in that respective level. The default is niter_affine=(100, 100, 10)
-referring to a 3 stage optimization using 100, 100 and 10 iterations for the
-1st, 2nd and 3rd level. Note, that a 3 step approach is computed internally: A
-translation, followed by a rigid body transform (adding rotation), followed by
-an affine transform (adding scaling). Thereby the result of the first step will
-be the initial morph of the second and so on. Thus the defined number of
+level of precision. The higher (or later) the level the more refined the
+iterative optimization will be, requiring more computation time.
+
+The number of levels and the number of iterations per level are defined as a
+tuple of integers, where the number of integers or the length of the tuple
+defines the number of levels, whereas the integer values themselves represent
+the number of iterations in that respective level. The default for
+``niter_affine`` is (100, 100, 10) referring to a 3 stage optimization using
+100, 100 and 10 iterations for the 1st, 2nd and 3rd level.
+
+Note, that a 3 step approach is computed internally: A **translation**,
+followed by a **rigid body transform** (adding rotation), followed by an
+**affine transform** (adding scaling). Thereby the result of the first step
+will be the initial morph of the second and so on. Thus the defined number of
 iterations actually applies to 3 different computations.
 
-Similar to the affine registration, ``niter_sdr`` refers to a N level
-optimization using 5, 5 and 3 iterations for the 1st, 2nd and 3rd level by
-default.
+Similar to the affine registration, ``niter_sdr`` refers to N levels of
+optimization during Symmetric Diffeomorphic registration, using 5, 5 and 3
+iterations for the 1st, 2nd and 3rd level by default.
 
 .. _tut_sourcemorph_methods:
 
@@ -531,54 +586,79 @@ SourceMorph's methods explained
 
 Once an instance of :class:`mne.SourceMorph` was created, it exposes 3 methods:
 
-    * :meth:`my_morph() <mne.SourceMorph.__call__>` Calling an instance of
-      SourceMorph on :class:`mne.SourceEstimate`,
-      :class:`mne.VectorSourceEstimate` or :class:`mne.VolSourceEstimate`,
-      will apply the precomputed morph to the input data and return the morphed
-      source estimate (``stc_morphed = my_morph(stc)``). If a surface morph was
-      attempted and no :class:`mne.SourceSpaces` was provided during
-      instantiation of SourceMorph, then the actual computation of the morph
-      will take place, using the input data as reference data, rather then
-      precomputing it based on the source space data. Additionally the method
-      takes the same keyword arguments as
-      :meth:`my_morph.as_volume() <mne.SourceMorph.as_volume>`, given that
-      `as_volume=True`. This means that the result will not be a source
-      estimate, but instead NIfTI image representing the source estimate data
-      in the specified way. If `as_volume=False` all other volume related
-      arguments will be ignored.
-    * :meth:`my_morph.as_volume() <mne.SourceMorph.as_volume>` This method
-      only works with :class:`mne.VolSourceEstimate`. It returns a NIfTI image
-      of the source estimate. *mri_resolution* can be defined to change the
-      resolution of the output image.
-      ``mri_resolution=True`` will output an image in the same resolution as
-      the MRI information stored in :class:`src <mne.SourceSpaces>`. If
-      ``mri_resolution=False`` the output image will have the same resolution
-      as defined in 'spacing' when instantiating the morph (see
-      :ref:`tut_sourcemorph_opt`). Furthermore, mri_resolution can be defined
-      as integer, float or tuple of integer or float to refer to the desired
-      voxel size in mm. A single value will be interpreted as isotropic voxel
-      size, whereas anisotropic dimensions can be defined using a tuple. Note,
-      that a tuple must have a length of 3 referring to the 3 orthogonal
-      spatial dimensions. The default is mri_resolution=False.
-      The keyword argument *mri_space* asks, whether to use the same reference
-      space as the reference MRI of the reference space of the source estimate.
-      The default is mri_space=True.
-      Furthermore a keyword argument called *apply_morph* can be set,
-      indicating whether to apply the precomputed morph. In combination with
-      the keyword argument 'as_volume', this can be used to produce morphed and
-      unmorphed NIfTIs. The default is apply_morph=False.
-      If desired the output volume can be of type Nifti2Image. In that case
-      set format='nifti2'.
-    * :meth:`my_morph.save() <mne.SourceMorph.save>` Saves the morph object
-      to disk. The only input argument is the filename. Since the object is
-      stored in HDF5 ('.h5') format, the filename will be extended by
-      '-morph.h5' if no file extension was initially defined.
-    * :func:`mne.read_source_morph` can be used to read saved SourceMorph
-      instances.
-    * Shortcuts:
-        stc_fsaverage = SourceMorph(src=src)(stc)
+:meth:`my_morph() <mne.SourceMorph.__call__>`:
 
-        img = SourceMorph(src=src)(stc, as_volume=True)
+    Calling an instance of SourceMorph using :class:`mne.SourceEstimate`,
+    :class:`mne.VectorSourceEstimate` or :class:`mne.VolSourceEstimate` as an
+    input argument, will apply the precomputed morph to the input data and
+    return the morphed source estimate (``stc_morphed = my_morph(stc)``).
+
+    If a surface morph was attempted and no :class:`mne.SourceSpaces` was
+    provided during instantiation of SourceMorph, then the actual computation
+    of the morph will take place using the input data as reference data
+    (rather then precomputing it based on the source space data). Additionally
+    the method can take the same keyword arguments as
+    :meth:`my_morph.as_volume() <mne.SourceMorph.as_volume>`, given that
+    `as_volume=True`. This means that the result will not be a source estimate,
+    but instead a NIfTI image representing the source estimate data in the
+    specified way. If `as_volume=False` all other volume related arguments will
+    be ignored.
+
+:meth:`my_morph.as_volume() <mne.SourceMorph.as_volume>`:
+
+    This method
+    only works with :class:`mne.VolSourceEstimate`. It returns a NIfTI image
+    of the source estimate. *mri_resolution* can be defined to change the
+    resolution of the output image.
+
+    ``mri_resolution=True`` will output an image in the same resolution as
+    the MRI information stored in :class:`src <mne.SourceSpaces>`. If
+    ``mri_resolution=False`` the output image will have the same resolution
+    as defined in *spacing* when instantiating the morph (see
+    :ref:`tut_sourcemorph_opt`). Furthermore, *mri_resolution* can be defined
+    as integer, float or tuple of integer or float to refer to the desired
+    voxel size in mm. A single value will be interpreted as isotropic voxel
+    size, whereas anisotropic dimensions can be defined using a tuple. Note,
+    that a tuple must have a length of 3 referring to the 3 orthogonal
+    spatial dimensions. The default is mri_resolution=False.
+
+    The keyword argument *mri_space* asks, whether to use the same reference
+    space as the reference MRI of the reference space of the source estimate.
+    The default is ``mri_space=True``.
+
+    Furthermore a keyword argument called *apply_morph* can be set,
+    indicating whether to apply the precomputed morph. In combination with
+    the keyword argument 'as_volume', this can be used to produce morphed and
+    unmorphed NIfTIs. The default is apply_morph=False.
+
+    If desired the output volume can be of type ``Nifti2Image``. In that case
+    set ``format='nifti2'``.
+
+:meth:`my_morph.save() <mne.SourceMorph.save>`:
+
+    Saves the morph object to disk. The only input argument is the filename.
+    Since the object is stored in HDF5 ('.h5') format, the filename will be
+    extended by '-morph.h5' if no file extension was initially defined.
+
+Shortcuts:
+
+   ``stc_fsaverage = SourceMorph(src=src)(stc)``
+
+   ``img = SourceMorph(src=src)(stc, as_volume=True)``
+
+.. _tut_sourcemorph_read:
+
+Read SourceMorph from disk
+--------------------------
+
+:class:`mne.SourceMorph` objects can be read from disk using
+:func:`mne.read_source_morph`. Provide the file name (absolute or relative
+path) including the ``.h5`` extension:
+
+``my_morph = mne.read_source_morph('my-morph.h5')``
+
+See :ref:`tut_sourcemorph_methods` for how to use ``my_morph.save()`` to store
+a repsective SourceMorph object.
 
 .. _tut_sourcemorph_alternative:
 
@@ -600,7 +680,7 @@ the hood to perform the requested operation.
 
 .. _tut_sourcemorph_hands_on:
 
-Step by step hands on tutorial
+Step-by-step hands on tutorial
 ==============================
 
 Note that a compact version of the following tutorial can be found
@@ -873,3 +953,4 @@ brain.add_text(0.1, 0.9, 'Morphed to fsaverage', 'title', font_size=16)
 # .. _dipy example: http://nipy.org/dipy/examples_built/syn_registration_3d.html  # noqa
 # .. _dipy affine example: http://nipy.org/dipy/examples_built/affine_registration_3d.html  # noqa
 # .. _dipy sdr example: http://nipy.org/dipy/examples_built/syn_registration_3d.html  # noqa
+# .. _Wikipedia article about transformation matrices: https://en.wikipedia.org/wiki/Transformation_matrix  # noqa

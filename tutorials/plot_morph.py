@@ -112,7 +112,7 @@ morph_surf = SourceMorph(subject_from='sample',  # Default: None
 #
 # Ideally subject_from can be inferred from src, subject_to is 'fsaverage' by
 # default and subjects_dir is set in the environment. In that case
-# :class:`SourceMorph <mne.SourceMorph>` can be initialized taking only src as
+# :class:`mne.SourceMorph` can be initialized taking only src as
 # argument (for better understanding more keyword arguments are defined). See
 # :ref:`mne.SourceMorph` for additional parameter settings.
 
@@ -126,7 +126,7 @@ morph_vol = SourceMorph(subject_from='sample',  # Default: None
 # -----------------------------------
 #
 # Once we computed the morph for our respective dataset, we can morph the data,
-# by giving it as an argument to the :class:`SourceMorph <mne.SourceMorph>`
+# by giving it as an argument to the :class:`mne.SourceMorph`
 # instance. This operation applies pre-computed transforms to stc.
 
 stc_surf_m = morph_surf(stc_surf)  # SourceEstimate | VectorSourceEstimate

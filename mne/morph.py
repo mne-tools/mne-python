@@ -178,7 +178,7 @@ class SourceMorph(object):
                  subjects_dir=None, src=None, niter_affine=(100, 100, 10),
                  niter_sdr=(5, 5, 3), spacing=5, smooth=None, warn=True,
                  xhemi=False, precomputed=None, verbose=False):
-
+        super(SourceMorph, self).__init__()
         # it's impossible to use the class without passing this check, so it
         # only needs to be checked here
         if (not check_version('nibabel', '2.1.0') or
@@ -219,7 +219,6 @@ class SourceMorph(object):
             self._update_morph_data(_get_src_data(src))
             self._compute_morph_data(verbose=verbose)
 
-    # Forward verbose decorator to _apply_morph_data
     def __call__(self, stc_from, as_volume=False, mri_resolution=False,
                  mri_space=False, apply_morph=True, format='nifti1',
                  verbose=None):
@@ -238,26 +237,30 @@ class SourceMorph(object):
             huge.
         mri_space : bool
             Whether the image to world registration should be in mri space.
-            Default is False.
+            Default is mri_resolution.
         apply_morph : bool
             If as_volume=True and apply_morph=True, the input stc will be
             morphed and outputted as a volume.
         format : str
             Either 'nifti1' (default) or 'nifti2'.
         verbose : bool | str | int | None
-            If not None, override default verbose level (see :func:`mne.
-            verbose` and :ref:`Logging documentation <tut_logging>` for more).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
-        stc_to : VolSourceEstimate | SourceEstimate | VectorSourceEstimate |
-        Nifti1Image | Nifti2Image
+        stc_to : VolSourceEstimate | SourceEstimate | VectorSourceEstimate | Nifti1Image | Nifti2Image
             The morphed source estimate or a NIfTI image if as_volume=True.
             By default a Nifti1Image is returned. See 'format'.
-        """
+        """  # noqa: E501
         stc = copy.deepcopy(stc_from)
 
         if as_volume:
+
+            # if no mri resolution is desired, probably no mri space is wanted
+            # as well and vice versa
+            mri_space = mri_resolution if mri_space is None else mri_space
             return self.as_volume(stc, fname=None,
                                   mri_resolution=mri_resolution,
                                   mri_space=mri_space,
@@ -349,7 +352,7 @@ class SourceMorph(object):
 
         Returns
         -------
-        img : instance of Nifti1Image
+        img : Nifti1Image | Nifti2Image
             The image object.
         """
         if format != 'nifti1' and format != 'nifti2':
@@ -465,7 +468,7 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
 
     Returns
     -------
-    img : instance of Nifti1Image
+    img : Nifti1Image | Nifti2Image
         The image object.
     """
     import nibabel as nib
