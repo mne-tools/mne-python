@@ -1843,11 +1843,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         plot_map_callback = params['plot_map_callback']
         if event.inaxes is params['ax_time']:
             idx = params['stc'].time_as_index(event.xdata)[0]
-            if params['lx'] is None:
-                params['lx'] = params['ax_time'].axvline(
-                    event.xdata, color='g')
-            else:
-                params['lx'].set_xdata(event.xdata)
+            params['lx'].set_xdata(event.xdata)
 
             cut_coords = (0, 0, 0)
             if mode == 'stat_map':
@@ -1921,6 +1917,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     ax_time = fig.add_axes([0.09, 0.1, 0.9, 0.4], ylim=(0, vmax))
     ax_time.plot(stc.times, stc.data[loc_idx].T)
     ax_time.axhline(threshold, ls='--', color='k')
+    lx = ax_time.axvline(stc.times[idx], color='g')
     plt.xlabel('Time (ms)')
     plt.ylabel('Activation')
 
@@ -1936,7 +1933,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
               'plot_map_callback': plot_map_callback,
               'img_idx': img_idx,
               'title': 'Activation (t=%.3f s.)' % stc.times[idx],
-              'fig': fig, 'bg_img': bg_img}
+              'fig': fig, 'bg_img': bg_img, 'lx': lx}
 
     fig_anat = plot_map_callback(
         stat_map_img=params['img_idx'], title=params['title'],
