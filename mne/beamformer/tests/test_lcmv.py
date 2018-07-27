@@ -345,7 +345,7 @@ def test_lcmv():
     # applying that filter to the full data set should automatically exclude
     # this channel from the data
     # also test here that no warnings are thrown - implemented to check whether
-    # src_type is None warning occurs
+    # src should not be None warning occurs
     with warnings.catch_warnings(record=True) as wrn:
         stc = apply_lcmv(evoked, filters, max_ori_out='signed')
     assert len(wrn) == 0

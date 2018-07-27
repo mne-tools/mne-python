@@ -121,8 +121,8 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                 Number of source orientations defined in the forward model.
             'subject' : str
                 The subject ID.
-            'src' : list
-                The list of Source space information.
+            'src_type' : str
+                Type of source space.
 
     See Also
     --------
