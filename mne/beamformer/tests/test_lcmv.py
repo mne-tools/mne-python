@@ -344,10 +344,11 @@ def test_lcmv():
                         noise_cov=noise_cov)
     # applying that filter to the full data set should automatically exclude
     # this channel from the data
-    # also test here whether stc contains src
+    # also test here that no warnings are thrown - implemented to check whether
+    # src_type is None warning occurs
     with warnings.catch_warnings(record=True) as wrn:
         stc = apply_lcmv(evoked, filters, max_ori_out='signed')
-    assert not any('src should not be None' in str(ww.message) for ww in wrn)
+    assert len(wrn) == 0
     # the result should be equal to applying this filter to a dataset without
     # this channel:
     stc_ch = apply_lcmv(evoked_ch, filters, max_ori_out='signed')
@@ -367,6 +368,14 @@ def test_lcmv():
     pytest.raises(NotImplementedError, make_lcmv, evoked.info,
                   forward_surf_ori, data_cov, noise_cov=noise_cov,
                   pick_ori='normal', weight_norm='nai', reduce_rank=True)
+
+    # Test if spatial filter contains src_type
+    assert ('src_type' in filters.keys())
+
+    # check whether a filters object without src_type throws expected warning
+    del filters['src_type']  # emulate 0.16 behaviour to cause warning
+    with pytest.warns(RuntimeWarning, match='src should not be None'):
+        apply_lcmv(evoked, filters, max_ori_out='signed')
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
