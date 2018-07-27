@@ -350,6 +350,10 @@ def _apply_dics(data, filters, info, tmin):
     one_freq = len(Ws) == 1
 
     subject = filters['subject']
+    # compatibility with 0.16, add src_type as None if not present:
+    if 'src_type' not in filters.keys():
+        filters['src_type'] = None
+
     for i, M in enumerate(data):
         if not one_epoch:
             logger.info("Processing epoch : %d" % (i + 1))
@@ -569,6 +573,10 @@ def apply_dics_csd(csd, filters, verbose=None):
                 source_power[k, i] = np.abs(power)
 
     logger.info('[done]')
+
+    # compatibility with 0.16, add src_type as None if not present:
+    if 'src_type' not in filters.keys():
+        filters['src_type'] = None
 
     return (_make_stc(source_power.reshape(-1, n_freqs), vertices=vertices,
                       src_type=filters['src_type'], tmin=0, tstep=1,
@@ -974,6 +982,10 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
 
     # Creating stc objects containing all time points for each frequency bin
     stcs = []
+    # compatibility with 0.16, add src_type as None if not present:
+    if 'src_type' not in filters.keys():
+        filters['src_typ'] = None
+
     for i_freq in range(n_freq_bins):
         stc = _make_stc(sol_final[i_freq, :, :].T, vertices=stc.vertices,
                         src_type=filters['src_type'], tmin=tmin, tstep=tstep,
