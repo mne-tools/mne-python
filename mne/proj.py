@@ -179,7 +179,8 @@ def _compute_cov_epochs(epochs, n_jobs):
 
 
 @verbose
-def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, verbose=None):
+def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, desc_prefix=None,
+                        verbose=None):
     """Compute SSP (spatial space projection) vectors on Evoked.
 
     Parameters
@@ -192,6 +193,11 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, verbose=None):
         Number of vectors for magnetometers
     n_eeg : int
         Number of vectors for EEG channels
+    desc_prefix : str | None
+        The description prefix to use. If None, one will be created based on
+        tmin and tmax.
+
+        .. versionadded:: 0.17
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -206,7 +212,8 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, verbose=None):
     compute_proj_raw, compute_proj_epochs
     """
     data = np.dot(evoked.data, evoked.data.T)  # compute data covariance
-    desc_prefix = "%-.3f-%-.3f" % (evoked.times[0], evoked.times[-1])
+    if desc_prefix is None:
+        desc_prefix = "%-.3f-%-.3f" % (evoked.times[0], evoked.times[-1])
     return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, desc_prefix)
 
 
