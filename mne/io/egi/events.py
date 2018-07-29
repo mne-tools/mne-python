@@ -49,6 +49,18 @@ def _read_mff_events(filename, sfreq, nsamples):
         xml_type = splitext(basename(xml_file))[0]
         orig[xml_type] = _parse_xml(xml_file)
     xml_files = orig.keys()
+    epoch_times = []
+    for item in orig['epochs']:
+        epoch_times.append((int(item['beginTime']) / 1e6,
+                            int(item['endTime']) / 1e6))
+
+    epoch_times = sorted(epoch_times, key=lambda x: x[0])
+    epoch_offsets = [0]
+    for epoch in range(1, len(epoch_times)):
+        epoch_offsets.append(epoch_times[epoch][0] -
+                             epoch_times[epoch - 1][1] +
+                             epoch_offsets[epoch - 1])
+
     xml_events = [x for x in xml_files if x[:7] == 'Events_']
     for item in orig['info']:
         if 'recordTime' in item:
@@ -60,6 +72,12 @@ def _read_mff_events(filename, sfreq, nsamples):
         for event in orig[xml][2:]:
             event_start = _ns2py_time(event['beginTime'])
             start = (event_start - start_time).total_seconds()
+            # adjust the start to account for epochs
+            epoch = [i[0] for i in enumerate(epoch_times)
+                     if (i[1][0] <= start and i[1][1] >= start)]
+            if len(epoch) == 0:
+                continue
+            start = start - epoch_offsets[epoch[0]]
             if event['code'] not in code:
                 code.append(event['code'])
             marker = {'name': event['code'],
