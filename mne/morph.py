@@ -170,8 +170,9 @@ class SourceMorph(object):
     --------
     stc.morph : Directly morph SourceEstimate or VectorSourceEstimate.
     stc.as_volume : Convert VolSourceEstimate into NIfTI.
-    Example : :ref:`sphx_glr_auto_examples_inverse_plot_use_sourcemorph.py`.
-    Background : :ref:`sphx_glr_auto_tutorials_plot_background_morph.py`.
+    Example : :ref:`sphx_glr_auto_examples_inverse_plot_morph_volume_stc.py`.
+    Example : :ref:`sphx_glr_auto_examples_inverse_plot_morph_surface_stc.py`.
+    Tutorial : :ref:`sphx_glr_auto_tutorials_plot_morph_stc.py`.
     """
 
     def __init__(self, subject_from=None, subject_to='fsaverage',

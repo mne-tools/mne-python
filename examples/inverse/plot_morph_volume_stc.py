@@ -1,19 +1,21 @@
 """
 ================================
-Demonstrate usage of SourceMorph
+Morph volumetric source estimate
 ================================
 
-This example demonstrates how to morph an individual subject source estimate to
-a common reference space. It will be demonstrated using the SourceMorp class.
-Pre-computed data will be morphed based on an affine transformation and a
-nonlinear morph, estimated based on respective transformation from the
-subject's anatomical T1 (brain) to fsaverage T1 (brain).
-Afterwards the transformation will be applied to the
-source estimate. The result will be a plot showing the fsaverage T1 overlaid
-with the morphed source estimate. To see how morphing source estimates works,
-see :ref:`sphx_glr_auto_tutorials_plot_morph.py` or for a more detailed
-information :ref:`sphx_glr_auto_tutorials_plot_background_morph.py`
+This example demonstrates how to morph an individual subject **volumetric
+source estimate** to a common reference space. For this purpose we will use
+:class:`mne.SourceMorph`. Pre-computed data will be morphed based on an affine
+transformation and a nonlinear morph, estimated based on respective
+transformation from the subject's anatomical T1 (brain) to fsaverage T1
+(brain).
 
+Afterwards the transformation will be applied to the volumetric source
+estimate. The result will be a plot showing the fsaverage T1 overlaid with the
+morphed volumetric source estimate.
+
+.. note:: For a tutorial about morphing see:
+          :ref:`sphx_glr_auto_tutorials_plot_morph_stc.py`.
 """
 # Author: Tommy Clausner <tommy.clausner@gmail.com>
 #
@@ -53,20 +55,19 @@ inverse_operator = read_inverse_operator(fname_inv)
 stc = apply_inverse(evoked, inverse_operator, 1.0 / 3.0 ** 2, "dSPM")
 
 # To save memory
-stc.crop(0.087, 0.087)
+stc.crop(0.09, 0.09)
 
 ###############################################################################
 # Morph VolSourceEstimate
 
 # Initialize SourceMorph for VolSourceEstimate
-source_morph = SourceMorph(subject_from='sample',
-                           subject_to='fsaverage',
-                           subjects_dir=subjects_dir,
-                           src=inverse_operator['src'],
-                           spacing=5)
+morph = SourceMorph(subject_from='sample',
+                    subject_to='fsaverage',
+                    subjects_dir=subjects_dir,
+                    src=inverse_operator['src'])
 
 # Morph data
-stc_fsaverage = source_morph(stc)
+stc_fsaverage = morph(stc)
 
 ###############################################################################
 # Plot results
@@ -75,12 +76,14 @@ stc_fsaverage = source_morph(stc)
 t1_fsaverage = nib.load(fname_t1_fsaverage)
 
 # Create mri-resolution volume of results
-img_fsaverage = source_morph.as_volume(stc_fsaverage, mri_resolution=2)
+img_fsaverage = morph.as_volume(stc_fsaverage, mri_resolution=2)
 
+# Initialize figure
 fig, axes = plt.subplots()
 fig.subplots_adjust(top=0.8, left=0.1, right=0.9, hspace=0.5)
 fig.patch.set_facecolor('white')
 
+# Plot glass brain (change to plot_anat to display an overlaid anatomical T1)
 display = plot_glass_brain(t1_fsaverage, display_mode='ortho',
                            cut_coords=[0., 0., 0.],
                            draw_cross=False,
@@ -88,9 +91,15 @@ display = plot_glass_brain(t1_fsaverage, display_mode='ortho',
                            figure=fig,
                            annotate=False)
 
+# Add functional data as overlay
 display.add_overlay(img_fsaverage, alpha=0.75)
+
+# Add annotations and title
 display.annotate(size=8)
 axes.set_title('subject results to fsaverage', color='black', fontsize=12)
-
 plt.text(plt.xlim()[1], plt.ylim()[0], 't = 0.087s', color='black')
+
 plt.show()
+
+# Save memory
+del stc, stc_fsaverage, inverse_operator, morph
