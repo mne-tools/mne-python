@@ -1515,15 +1515,12 @@ class AverageTFR(_BaseTFR):
 
             data = tfr.data
 
-            if layout is None:
-                pos = find_layout(tfr.info).pos
-            else:
-                pos = layout.pos
+            pos = find_layout(tfr.info).pos if layout is None else layout.pos
 
             # merging grads here before rescaling makes ERDs visible
             if ch_type == 'grad':
-                info = tfr.info
-                picks, new_pos = _pair_grad_sensors(info, find_layout(info))
+                picks, new_pos = _pair_grad_sensors(tfr.info,
+                                                    find_layout(tfr.info))
                 if layout is None:
                     pos = new_pos
                 method = combine or 'rms'
@@ -1552,7 +1549,7 @@ class AverageTFR(_BaseTFR):
 
         for ax, title, data, pos in zip(map_ax, titles, all_data, all_pos):
             ax.set_title(title)
-            plot_topomap(data.mean(-1).mean(-1), pos,
+            plot_topomap(data.mean(axis=(-1, -2)), pos,
                          cmap=cmap[0], axes=ax, show=False,
                          **topomap_args_pass)
 
