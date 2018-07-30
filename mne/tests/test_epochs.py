@@ -304,6 +304,24 @@ def test_reject():
         raw.annotations = None
 
 
+def test_own_data():
+    """Test for epochs data ownership (gh-5346)."""
+    raw, events = _get_data()[:2]
+    n_epochs = 10
+    events = events[:n_epochs]
+    epochs = mne.Epochs(raw, events, preload=True)
+    assert epochs._data.flags['OWNDATA']
+
+    epochs.crop(tmin=-0.1, tmax=0.4)
+    assert len(epochs) == epochs._data.shape[0] == len(epochs.events)
+    assert len(epochs) == n_epochs
+    assert not epochs._data.flags['OWNDATA']
+
+    epochs.drop_bad(flat=dict(eeg=10000e-9))
+    assert 0 < len(epochs) < n_epochs
+    assert len(epochs) == epochs._data.shape[0] == len(epochs.events)
+
+
 def test_decim():
     """Test epochs decimation."""
     # First with EpochsArray
