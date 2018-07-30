@@ -52,6 +52,7 @@ def test_basics():
     assert ' segments' in repr(annot)
     raw2.annotations = annot
     assert_array_equal(raw2.annotations.onset, onset)
+    assert id(raw2.annotations) != id(annot)
     concatenate_raws([raw, raw2])
     raw.annotations.delete(-1)  # remove boundary annotations
     raw.annotations.delete(-1)
