@@ -670,7 +670,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
     if (latencies < -1).any():
         raise ValueError('At least one event sample index is negative. Please'
                          ' check if EEG.event.sample values are correct.')
-    if latencies == -1).any():
+    if (latencies == -1).any():
         warn("Some events have a sample index of -1. This may cause issues "
              "during, e.g., resampling.")
 
