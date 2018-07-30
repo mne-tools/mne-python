@@ -695,7 +695,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
     for tt, latency in zip(types, latencies):
         try:  # look up the event in event_id and if not, try event_id_func
             event_code = event_id[tt] if tt in event_id else event_id_func(tt)
-            events.append([int(latency), 1, event_code])
+            events.append([int(round(latency)), 1, event_code])
         except (ValueError, TypeError):  # if event_id_func fails
             pass  # We're already raising warnings above, so we just drop
 
