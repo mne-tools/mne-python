@@ -26,11 +26,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-# XXX we have modified this from upstream because nesting imports was rejected
-# as a change upstream, and we need it for a soft dependency on h5py.
-# We can't simply use try/except when reading because `pymatreader` modifies
-# the scipy.io.loadmat output.
-
 import sys
 if sys.version_info <= (2, 7):
     chr = unichr # This is needed for python 2 and 3 compatibility
@@ -121,7 +116,9 @@ def _hdf5todict(hdf5_object, variable_names=None, ignore_fields=None):
     dict
         Python dictionary
     """
+
     h5py = _import_h5py()
+
     if isinstance(hdf5_object, h5py.Group):
         all_keys = set(hdf5_object.keys())
         if ignore_fields:
