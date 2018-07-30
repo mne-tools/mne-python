@@ -11,6 +11,7 @@ import copy
 from copy import deepcopy
 import os
 import os.path as op
+import warnings
 
 import numpy as np
 
@@ -666,6 +667,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @annotations.setter
     def annotations(self, annotations, emit_warning=True):
+        warnings.warn('setting the annotations attribute by assignation is'
+                      ' deprecated since 0.17, and would be removed in 0.19.'
+                      ' Please use raw.set_annotations() instead.',
+                      category=DeprecationWarning)
+        self.set_annotations(annotations, emit_warning=emit_warning)
+
+    def set_annotations(self, annotations, emit_warning=True):
         """Setter for annotations.
 
         This setter checks if they are inside the data range.
@@ -677,19 +685,27 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         emit_warning : bool
             Whether to emit warnings when limiting or omitting annotations.
         """
+        new_annot = None
         if annotations is not None:
             if not isinstance(annotations, Annotations):
                 raise ValueError('Annotations must be an instance of '
                                  'mne.Annotations. Got %s.' % annotations)
+
+            new_annot = annotations.copy()
             meas_date = _handle_meas_date(self.info['meas_date'])
-            if annotations.orig_time is not None:
-                offset = (annotations.orig_time - meas_date -
+            if meas_date is None:
+                meas_date = 0
+            elif not np.isscalar(meas_date):
+                if len(meas_date) > 1:
+                    meas_date = meas_date[0] + meas_date[1] / 1000000.
+            if new_annot.orig_time is not None:
+                offset = (new_annot.orig_time - meas_date -
                           self.first_samp / self.info['sfreq'])
             else:
                 offset = 0
             omit_ind = list()
             omitted = limited = 0
-            for ind, onset in enumerate(annotations.onset):
+            for ind, onset in enumerate(new_annot.onset):
                 onset += offset
                 if onset > self.times[-1]:
                     omitted += 1
@@ -697,28 +713,28 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     logger.debug('Omitting %d @ %s > %s'
                                  % (ind, onset, self.times[-1]))
                 elif onset < self.times[0]:
-                    if onset + annotations.duration[ind] < self.times[0]:
+                    if onset + new_annot.duration[ind] < self.times[0]:
                         omitted += 1
                         omit_ind.append(ind)
                         logger.debug('Omitting %d @ %s < %s'
                                      % (ind, onset, self.times[0]))
                     else:
                         limited += 1
-                        duration = annotations.duration[ind] + onset
-                        annotations.duration[ind] = duration
-                        annotations.onset[ind] = self.times[0] - offset
-                elif (onset + annotations.duration[ind] >
+                        duration = new_annot.duration[ind] + onset
+                        new_annot.duration[ind] = duration
+                        new_annot.onset[ind] = self.times[0] - offset
+                elif (onset + new_annot.duration[ind] >
                       self.times[-1] + 1.1 / self.info['sfreq']):
                     # We have to permit onset+duration to appear to go one past
                     # the last sample in order to actually include the last
                     # sample...
                     limited += 1
-                    annotations.duration[ind] = (self.times[-1] +
+                    new_annot.duration[ind] = (self.times[-1] +
                                                  1. / self.info['sfreq'] -
                                                  onset)
-            annotations.onset = np.delete(annotations.onset, omit_ind)
-            annotations.duration = np.delete(annotations.duration, omit_ind)
-            annotations.description = np.delete(annotations.description,
+            new_annot.onset = np.delete(new_annot.onset, omit_ind)
+            new_annot.duration = np.delete(new_annot.duration, omit_ind)
+            new_annot.description = np.delete(new_annot.description,
                                                 omit_ind)
             if emit_warning:
                 if omitted > 0:
@@ -727,7 +743,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 if limited > 0:
                     warn('Limited %s annotation(s) that were expanding '
                          'outside the data range.' % limited)
-        self._annotations = annotations
+
+        self._annotations = new_annot
+
 
     def __del__(self):  # noqa: D105
         # remove file for memmap
