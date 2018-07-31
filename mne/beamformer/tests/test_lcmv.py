@@ -374,7 +374,8 @@ def test_lcmv():
 
     # check whether a filters object without src_type throws expected warning
     del filters['src_type']  # emulate 0.16 behaviour to cause warning
-    with pytest.warns(RuntimeWarning, match='src should not be None'):
+    with pytest.warns(RuntimeWarning, match='spatial filter does not contain '
+                      'src_type'):
         apply_lcmv(evoked, filters, max_ori_out='signed')
 
     # Now test single trial using fixed orientation forward solution
