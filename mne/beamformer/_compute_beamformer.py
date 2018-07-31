@@ -154,6 +154,16 @@ def _check_proj_match(info, filters):
                              'calculating the spatial filter.')
 
 
+def _check_src_type(filters):
+    """Check whether src_type is in filters and set custom warning."""
+    if 'src_type' not in filters.keys():
+        filters['src_type'] = None
+    warn_text = ('Filters does not contain src_type and a robust guess of '
+                 'src_type is not possible without src. Consider '
+                 'recomputing the filter.')
+    return filters, warn_text
+
+
 def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
                               fwd_norm=None):
     """Input preparation common for all beamformer functions.
