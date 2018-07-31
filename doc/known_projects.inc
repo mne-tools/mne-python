@@ -55,3 +55,6 @@
 
 .. Flake8
 .. _Flake8: http://flake8.pycqa.org/
+
+.. pymatreader
+.. _pymatreader: https://gitlab.com/obob/pymatreader

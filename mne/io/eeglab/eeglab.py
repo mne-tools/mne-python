@@ -9,10 +9,10 @@ import numpy as np
 
 from ..utils import (_read_segments_file, _find_channels,
                      _synthesize_stim_channel)
-from ..constants import FIFF
+from ..constants import FIFF, Bunch
 from ..meas_info import _empty_info, create_info
 from ..base import BaseRaw, _check_update_montage
-from ...utils import logger, verbose, check_version, warn
+from ...utils import logger, verbose, warn
 from ...channels.montage import Montage
 from ...epochs import BaseEpochs
 from ...event import read_events
@@ -34,21 +34,21 @@ def _check_fname(fname):
         raise IOError('Expected .fdt file format. Found %s format' % fmt)
 
 
-def _check_mat_struct(fname):
+def _check_load_mat(fname, uint16_codec):
     """Check if the mat struct contains 'EEG'."""
-    if not check_version('scipy', '0.12'):
-        raise RuntimeError('scipy >= 0.12 must be installed for reading EEGLAB'
-                           ' files.')
-    from scipy import io
-    mat = io.whosmat(fname, struct_as_record=False,
-                     squeeze_me=True)
-    if 'ALLEEG' in mat[0]:
+    from ...externals.pymatreader import read_mat
+    eeg = read_mat(fname, uint16_codec=uint16_codec)
+    if 'ALLEEG' in eeg:
         raise NotImplementedError(
             'Loading an ALLEEG array is not supported. Please contact'
             'mne-python developers for more information.')
-    elif 'EEG' not in mat[0]:
-        msg = ('Unknown array in the .set file.')
-        raise ValueError(msg)
+    if 'EEG' not in eeg:
+        raise ValueError('Could not find EEG array in the .set file.')
+    eeg = Bunch(**eeg['EEG'])
+    eeg.trials = int(eeg.trials)
+    eeg.nbchan = int(eeg.nbchan)
+    eeg.pnts = int(eeg.pnts)
+    return eeg
 
 
 def _to_loc(ll):
@@ -68,30 +68,43 @@ def _get_info(eeg, montage, eog=()):
     # add the ch_names and info['chs'][idx]['loc']
     path = None
     if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
-            eeg.chanlocs = [eeg.chanlocs]
+        eeg.chanlocs = [eeg.chanlocs]
 
-    if len(eeg.chanlocs) > 0:
+    if isinstance(eeg.chanlocs, dict):
+        eeg.chanlocs = _dol_to_lod(eeg.chanlocs)
+
+    good = len(eeg.chanlocs) > 0
+
+    if good:
         pos_fields = ['X', 'Y', 'Z']
-        if (isinstance(eeg.chanlocs, np.ndarray) and not isinstance(
-                eeg.chanlocs[0], io.matlab.mio5_params.mat_struct)):
-            has_pos = all(fld in eeg.chanlocs[0].dtype.names
-                          for fld in pos_fields)
-        else:
+        if isinstance(eeg.chanlocs[0], io.matlab.mio5_params.mat_struct):
             has_pos = all(hasattr(eeg.chanlocs[0], fld)
                           for fld in pos_fields)
+        elif isinstance(eeg.chanlocs[0], np.ndarray):
+            # Old files
+            has_pos = all(fld in eeg.chanlocs[0].dtype.names
+                          for fld in pos_fields)
+        elif isinstance(eeg.chanlocs[0], dict):
+            # new files
+            has_pos = all(fld in eeg.chanlocs[0] for fld in pos_fields)
+        else:
+            good = False
+            has_pos = False  # unknown (sometimes we get [0, 0])
+
+    if good:
         get_pos = has_pos and montage is None
         pos_ch_names, ch_names, pos = list(), list(), list()
         kind = 'user_defined'
         update_ch_names = False
         for chanloc in eeg.chanlocs:
-            ch_names.append(chanloc.labels)
+            ch_names.append(chanloc['labels'])
             if get_pos:
-                loc_x = _to_loc(chanloc.X)
-                loc_y = _to_loc(chanloc.Y)
-                loc_z = _to_loc(chanloc.Z)
+                loc_x = _to_loc(chanloc['X'])
+                loc_y = _to_loc(chanloc['Y'])
+                loc_z = _to_loc(chanloc['Z'])
                 locs = np.r_[-loc_y, loc_x, loc_z]
                 if not np.any(np.isnan(locs)):
-                    pos_ch_names.append(chanloc.labels)
+                    pos_ch_names.append(chanloc['labels'])
                     pos.append(locs)
         n_channels_with_pos = len(pos_ch_names)
         info = create_info(ch_names, eeg.srate, ch_types='eeg')
@@ -325,11 +338,8 @@ class RawEEGLAB(BaseRaw):
     def __init__(self, input_fname, montage, eog=(), event_id=None,
                  event_id_func='strip_to_integer', preload=False,
                  verbose=None, uint16_codec=None):  # noqa: D102
-        from scipy import io
         basedir = op.dirname(input_fname)
-        _check_mat_struct(input_fname)
-        eeg = io.loadmat(input_fname, struct_as_record=False,
-                         squeeze_me=True, uint16_codec=uint16_codec)['EEG']
+        eeg = _check_load_mat(input_fname, uint16_codec)
         if eeg.trials != 1:
             raise TypeError('The number of trials is %d. It must be 1 for raw'
                             ' files. Please use `mne.io.read_epochs_eeglab` if'
@@ -490,10 +500,7 @@ class EpochsEEGLAB(BaseEpochs):
                  baseline=None, reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, montage=None, eog=(), verbose=None,
                  uint16_codec=None):  # noqa: D102
-        from scipy import io
-        _check_mat_struct(input_fname)
-        eeg = io.loadmat(input_fname, struct_as_record=False,
-                         squeeze_me=True, uint16_codec=uint16_codec)['EEG']
+        eeg = _check_load_mat(input_fname, uint16_codec)
 
         if not ((events is None and event_id is None) or
                 (events is not None and event_id is not None)):
@@ -505,21 +512,22 @@ class EpochsEEGLAB(BaseEpochs):
             event_name, event_latencies, unique_ev = list(), list(), list()
             ev_idx = 0
             warn_multiple_events = False
-            for ep in eeg.epoch:
+            epochs = _bunchify(eeg.epoch)
+            events = _bunchify(eeg.event)
+            for ep in epochs:
                 if isinstance(ep.eventtype, int):
                     ep.eventtype = str(ep.eventtype)
                 if not isinstance(ep.eventtype, string_types):
-                    event_type = '/'.join([str(et) for et
-                                           in ep.eventtype.tolist()])
+                    event_type = '/'.join([str(et) for et in ep.eventtype])
                     event_name.append(event_type)
                     # store latency of only first event
-                    event_latencies.append(eeg.event[ev_idx].latency)
+                    event_latencies.append(events[ev_idx].latency)
                     ev_idx += len(ep.eventtype)
                     warn_multiple_events = True
                 else:
                     event_type = ep.eventtype
                     event_name.append(ep.eventtype)
-                    event_latencies.append(eeg.event[ev_idx].latency)
+                    event_latencies.append(events[ev_idx].latency)
                     ev_idx += 1
 
                 if event_type not in unique_ev:
@@ -711,25 +719,38 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
     return np.asarray(events)
 
 
+def _bunchify(items):
+    if isinstance(items, dict):
+        items = _dol_to_lod(items)
+    if len(items) > 0 and isinstance(items[0], dict):
+        items = [Bunch(**item) for item in items]
+    return items
+
+
 def _read_annotations_eeglab(eeg):
     if not hasattr(eeg, 'event'):
-        onset = []
-        duration = []
-        description = []
-    elif isinstance(eeg.event, np.ndarray):
-        description = [str(event.type) for event in eeg.event]
-        onset = [event.latency - 1 for event in eeg.event]
-        if (len(onset) > 0) and hasattr(eeg.event[0], 'duration'):
-            duration = [event.duration for event in eeg.event]
-        else:
-            duration = np.zeros(len(onset))
+        events = []
+    elif isinstance(eeg.event, dict) and \
+            np.array(eeg.event['latency']).ndim > 0:
+        events = _dol_to_lod(eeg.event)
+    elif not isinstance(eeg.event, np.ndarray):
+        events = [eeg.event]
     else:
-        # only one event - TypeError: 'mat_struct' object is not iterable
-        description = [str(eeg.event.type)]
-        onset = [eeg.event.latency - 1]
-        duration = getattr(eeg.event, 'duration', np.zeros(1))
+        events = eeg.event
+    events = _bunchify(events)
+    description = [str(event.type) for event in events]
+    onset = [event.latency - 1 for event in events]
+    duration = np.zeros(len(onset))
+    if len(events) > 0 and hasattr(events[0], 'duration'):
+        duration[:] = [event.duration for event in events]
 
     return Annotations(onset=onset, duration=duration, description=description)
+
+
+def _dol_to_lod(dol):
+    """Convert a dict of lists to a list of dicts."""
+    return [dict((key, dol[key][ii]) for key in dol.keys())
+            for ii in range(len(dol[list(dol.keys())[0]]))]
 
 
 def read_annotations_eeglab(fname, uint16_codec=None):
@@ -754,10 +775,7 @@ def read_annotations_eeglab(fname, uint16_codec=None):
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    from scipy import io
-    eeg = io.loadmat(fname, struct_as_record=False, squeeze_me=True,
-                     uint16_codec=uint16_codec)['EEG']
-
+    eeg = _check_load_mat(fname, uint16_codec=uint16_codec)
     return _read_annotations_eeglab(eeg)
 
 

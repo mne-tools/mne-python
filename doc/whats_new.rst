@@ -29,6 +29,8 @@ Changelog
 
 - Add helmet for Artemis123 for :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
+- Add support for reading MATLAB ``v7.3+`` files in :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` via `pymatreader`_ by `Steven Gutstein`_, `Eric Larson`_, and `Thomas Hartmann`_
+
 Bug
 ~~~
 
@@ -2806,3 +2808,7 @@ of commits):
 .. _Henrich Kolkhorst: https://github.com/hekolk
 
 .. _Steven Bethard: https://github.com/bethard
+
+.. _Thomas Hartmann: https://github.com/thht
+
+.. _Steven Gutstein: http://robust.cs.utep.edu/~gutstein
