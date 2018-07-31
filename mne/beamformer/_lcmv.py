@@ -18,7 +18,8 @@ from .. import Epochs
 from ..externals import six
 from ._compute_beamformer import (
     _reg_pinv, _eig_inv, _setup_picks, _pick_channels_spatial_filter,
-    _check_proj_match, _prepare_beamformer_input, _check_one_ch_type)
+    _check_proj_match, _prepare_beamformer_input, _check_one_ch_type,
+    _check_src_type)
 
 
 @verbose
@@ -350,13 +351,12 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
         tstep = 1.0 / info['sfreq']
 
         # compatibility with 0.16, add src_type as None if not present:
-        if 'src_type' not in filters.keys():
-            filters['src_type'] = None
+        filters, warn_text = _check_src_type(filters)
 
         yield _make_stc(sol, vertices=filters['vertices'], tmin=tmin,
                         tstep=tstep, subject=filters['subject'],
                         vector=vector, source_nn=filters['source_nn'],
-                        src_type=filters['src_type'])
+                        src_type=filters['src_type'], warn_text=warn_text)
 
     logger.info('[done]')
 

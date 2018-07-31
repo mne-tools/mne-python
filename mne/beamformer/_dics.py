@@ -16,7 +16,8 @@ from ..source_estimate import _make_stc, _get_src_type
 from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
 from ._compute_beamformer import (_reg_pinv, _eig_inv, _setup_picks,
                                   _pick_channels_spatial_filter,
-                                  _check_proj_match, _prepare_beamformer_input)
+                                  _check_proj_match, _prepare_beamformer_input,
+                                  _check_src_type)
 from ..externals import six
 
 
@@ -351,8 +352,7 @@ def _apply_dics(data, filters, info, tmin):
 
     subject = filters['subject']
     # compatibility with 0.16, add src_type as None if not present:
-    if 'src_type' not in filters.keys():
-        filters['src_type'] = None
+    filters, warn_text = _check_src_type(filters)
 
     for i, M in enumerate(data):
         if not one_epoch:
@@ -376,7 +376,8 @@ def _apply_dics(data, filters, info, tmin):
 
             stcs.append(_make_stc(sol, vertices=filters['vertices'],
                                   src_type=filters['src_type'], tmin=tmin,
-                                  tstep=tstep, subject=subject))
+                                  tstep=tstep, subject=subject,
+                                  warn_text=warn_text))
         if one_freq:
             yield stcs[0]
         else:
@@ -575,12 +576,11 @@ def apply_dics_csd(csd, filters, verbose=None):
     logger.info('[done]')
 
     # compatibility with 0.16, add src_type as None if not present:
-    if 'src_type' not in filters.keys():
-        filters['src_type'] = None
+    filters, warn_text = _check_src_type(filters)
 
     return (_make_stc(source_power.reshape(-1, n_freqs), vertices=vertices,
                       src_type=filters['src_type'], tmin=0, tstep=1,
-                      subject=subject),
+                      subject=subject, warn_text=warn_text),
             frequencies)
 
 
@@ -983,13 +983,12 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
     # Creating stc objects containing all time points for each frequency bin
     stcs = []
     # compatibility with 0.16, add src_type as None if not present:
-    if 'src_type' not in filters.keys():
-        filters['src_typ'] = None
+    filters, warn_text = _check_src_type(filters)
 
     for i_freq in range(n_freq_bins):
         stc = _make_stc(sol_final[i_freq, :, :].T, vertices=stc.vertices,
                         src_type=filters['src_type'], tmin=tmin, tstep=tstep,
-                        subject=stc.subject)
+                        subject=stc.subject, warn_text=warn_text)
         stcs.append(stc)
 
     return stcs
