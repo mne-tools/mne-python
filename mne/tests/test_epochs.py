@@ -310,6 +310,7 @@ def test_own_data():
     n_epochs = 10
     events = events[:n_epochs]
     epochs = mne.Epochs(raw, events, preload=True)
+    assert epochs._data.flags['C_CONTIGUOUS']
     assert epochs._data.flags['OWNDATA']
 
     epochs.crop(tmin=-0.1, tmax=0.4)
@@ -317,9 +318,18 @@ def test_own_data():
     assert len(epochs) == n_epochs
     assert not epochs._data.flags['OWNDATA']
 
-    epochs.drop_bad(flat=dict(eeg=10000e-9))
-    assert 0 < len(epochs) < n_epochs
+    # data ownership value error
+    epochs.drop_bad(flat=dict(eeg=8e-6))
+    n_now = len(epochs)
+    assert 5 < n_now < n_epochs
     assert len(epochs) == epochs._data.shape[0] == len(epochs.events)
+
+    good_chan = epochs.copy().pick_channels([epochs.ch_names[0]])
+    good_chan.rename_channels({good_chan.ch_names[0]: 'good'})
+    epochs.add_channels([good_chan])
+    # "ValueError: resize only works on single-segment arrays"
+    epochs.drop_bad(flat=dict(eeg=10e-6))
+    assert 1 < len(epochs) < n_now
 
 
 def test_decim():
