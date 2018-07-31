@@ -106,7 +106,15 @@ def test_make_sphere_model():
                   relative_radii=(1,))  # wrong number of radii
     # here we just make sure it works -- the functionality is actually
     # tested more extensively e.g. in the forward and dipole code
-    bem = make_sphere_model('auto', 'auto', info)
+    with catch_logging() as log:
+        bem = make_sphere_model('auto', 'auto', info, verbose=True)
+    log = log.getvalue()
+    assert ' RV = ' in log
+    for line in log.split('\n'):
+        if ' RV = ' in line:
+            val = float(line.split()[-2])
+            assert val < 0.01  # actually decent fitting
+            break
     assert '3 layers' in repr(bem)
     assert 'Sphere ' in repr(bem)
     assert ' mm' in repr(bem)
