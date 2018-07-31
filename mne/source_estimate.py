@@ -360,10 +360,13 @@ def read_source_estimate(fname, subject=None):
     return stc
 
 
-def _get_src_type(src, vertices):
+def _get_src_type(src, vertices, warn_text=None):
     src_type = None
     if src is None:
-        warn_("src should not be None for have a robust guess of stc type.")
+        if warn_text is None:
+            warn_("src should not be None for a robust guess of stc type.")
+        else:
+            warn_(warn_text)
         if isinstance(vertices, list) and len(vertices) == 2:
             src_type = 'surface'
         elif isinstance(vertices, np.ndarray) or isinstance(vertices, list)\
@@ -378,11 +381,12 @@ def _get_src_type(src, vertices):
 
 
 def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
-              subject=None, vector=False, source_nn=None):
+              subject=None, vector=False, source_nn=None, warn_text=None):
     """Generate a surface, vector-surface, volume or mixed source estimate."""
     if src_type is None:
         # attempt to guess from vertices
-        src_type = _get_src_type(src=None, vertices=vertices)
+        src_type = _get_src_type(src=None, vertices=vertices,
+                                 warn_text=warn_text)
 
     if src_type == 'surface':
         # make a surface source estimate
