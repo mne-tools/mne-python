@@ -143,3 +143,17 @@ def test_time_index():
     # Test new (rounding) indexing behavior
     new_inds = raw.time_as_index(raw.times, use_rounding=True)
     assert(len(set(new_inds)) == len(new_inds))
+
+
+
+def test_annotation_property_deprecation_warning():
+    from mne import create_info
+    from mne.io import RawArray
+    import pytest
+    # from mne.annotations import Annotations
+
+    with pytest.warns(None) as record:
+        raw = RawArray(np.random.rand(1,1), create_info(1,1))
+    assert len(record) is 0
+    with pytest.warns(DeprecationWarning, match='by assignation is deprecated'):
+        raw.annotations = None
