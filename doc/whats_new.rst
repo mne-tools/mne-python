@@ -50,6 +50,8 @@ Bug
 
 - Fix bug with IIR filtering axis in :func:`mne.filter.filter_data` by `Eric Larson`_
 
+- Fix bug in :func:`mne.minimum_norm.apply_inverse` where applying an MEG-only inverse would raise an error about needing an average EEG reference by `Eric Larson`_
+
 - Fix bug in ``inst.apply_proj()`` where an average EEG reference was always added by `Eric Larson`_
 
 - Fix bug in :func:`mne.time_frequency.tfr_morlet`, :func:`mne.time_frequency.tfr_multitaper`, and :func:`mne.time_frequency.tfr_stockwell` where not all data channels were picked by `Eric Larson`_

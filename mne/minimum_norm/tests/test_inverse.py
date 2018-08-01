@@ -470,10 +470,9 @@ def test_apply_inverse_operator():
     # Test that no errors are raised with loose inverse ops and picking normals
     noise_cov = read_cov(fname_cov)
     fwd = read_forward_solution_meg(fname_fwd)
-    inv_op2 = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1,
-                                    fixed='auto', depth=None)
-    apply_inverse(evoked, inv_op2, 1 / 9., method='MNE',
-                  pick_ori='normal')
+    inv_op_meg = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1,
+                                       fixed='auto', depth=None)
+    apply_inverse(evoked, inv_op_meg, 1 / 9., method='MNE', pick_ori='normal')
 
     # Test we get errors when using custom ref or no average proj is present
     evoked.info['custom_ref_applied'] = True
@@ -481,6 +480,9 @@ def test_apply_inverse_operator():
     evoked.info['custom_ref_applied'] = False
     evoked.info['projs'] = []  # remove EEG proj
     pytest.raises(ValueError, apply_inverse, evoked, inv_op, lambda2, "MNE")
+
+    # But test that we do not get EEG-related errors on MEG-only inv (gh-4650)
+    apply_inverse(evoked, inv_op_meg, 1. / 9.)
 
 
 @testing.requires_testing_data

@@ -395,7 +395,7 @@ def pick_info(info, sel=(), copy=True):
         raise ValueError('No channels match the selection.')
 
     # make sure required the compensation channels are present
-    if len(info['comps']) > 0:
+    if len(info.get('comps', [])) > 0:
         ch_names = [info['ch_names'][idx] for idx in sel]
         _, comps_missing = _bad_chans_comp(info, ch_names)
         current_comp = get_current_comp(info)
