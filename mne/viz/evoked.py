@@ -2110,8 +2110,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         upper_v, lower_v = -ymax_bound, ax.get_ylim()[-1]
     else:
         upper_v, lower_v = ax.get_ylim()[0], ymax_bound
-    ax.vlines(vlines, upper_v, lower_v, linestyles='--', colors='k',
-              linewidth=1., zorder=1)
+    if vlines:
+        ax.vlines(vlines, upper_v, lower_v, linestyles='--', colors='k',
+                  linewidth=1., zorder=1)
 
     _setup_ax_spines(ax, vlines, tmin, tmax, invert_y, ymax_bound, unit,
                      truncate_xaxis)
