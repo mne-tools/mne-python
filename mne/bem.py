@@ -615,39 +615,33 @@ def _fwd_eeg_get_multi_sphere_model_coeffs(m, n_terms):
 
 def _compose_linear_fitting_data(mu, u):
     """Get the linear fitting data."""
-    # y is the data to be fitted (nterms-1 x 1)
-    # M is the model matrix      (nterms-1 x nfit-1)
-    for k in range(u['nterms'] - 1):
-        k1 = k + 1
-        mu1n = np.power(mu[0], k1)
-        u['y'][k] = u['w'][k] * (u['fn'][k1] - mu1n * u['fn'][0])
-        for p in range(u['nfit'] - 1):
-            u['M'][k][p] = u['w'][k] * (np.power(mu[p + 1], k1) - mu1n)
+    k1 = np.arange(1, u['nterms'])
+    mu1ns = mu[0] ** k1
+    # data to be fitted
+    y = u['w'][:-1] * (u['fn'][1:] - mu1ns * u['fn'][0])
+    # model matrix
+    M = u['w'][:-1, np.newaxis] * (mu[1:] ** k1[:, np.newaxis] -
+                                   mu1ns[:, np.newaxis])
+    uu, sing, vv = linalg.svd(M, full_matrices=False)
+    ncomp = u['nfit'] - 1
+    uu, sing, vv = uu[:, :ncomp], sing[:ncomp], vv[:ncomp]
+    return y, uu, sing, vv
 
 
 def _compute_linear_parameters(mu, u):
     """Compute the best-fitting linear parameters."""
-    _compose_linear_fitting_data(mu, u)
-    uu, sing, vv = linalg.svd(u['M'], full_matrices=False)
+    y, uu, sing, vv = _compose_linear_fitting_data(mu, u)
 
     # Compute the residuals
-    u['resi'] = u['y'].copy()
-
-    vec = np.empty(u['nfit'] - 1)
-    for p in range(u['nfit'] - 1):
-        vec[p] = np.dot(uu[:, p], u['y'])
-        for k in range(u['nterms'] - 1):
-            u['resi'][k] -= uu[k, p] * vec[p]
-        vec[p] = vec[p] / sing[p]
+    resi = y.copy()
+    vec = np.dot(y, uu)
+    resi = y - np.dot(uu, vec)
+    vec /= sing
 
     lambda_ = np.zeros(u['nfit'])
-    for p in range(u['nfit'] - 1):
-        sum_ = 0.
-        for q in range(u['nfit'] - 1):
-            sum_ += vv[q, p] * vec[q]
-        lambda_[p + 1] = sum_
+    lambda_[1:] = np.dot(vec, vv)
     lambda_[0] = u['fn'][0] - np.sum(lambda_[1:])
-    rv = np.dot(u['resi'], u['resi']) / np.dot(u['y'], u['y'])
+    rv = np.dot(resi, resi) / np.dot(y, y)
     return rv, lambda_
 
 
@@ -657,24 +651,16 @@ def _one_step(mu, u):
         return 1.0
 
     # Compose the data for the linear fitting, compute SVD, then residuals
-    _compose_linear_fitting_data(mu, u)
-    u['uu'], u['sing'], u['vv'] = linalg.svd(u['M'])
-    u['resi'][:] = u['y'][:]
-    for p in range(u['nfit'] - 1):
-        dot = np.dot(u['uu'][p], u['y'])
-        for k in range(u['nterms'] - 1):
-            u['resi'][k] = u['resi'][k] - u['uu'][p, k] * dot
-
-    # Return their sum of squares
-    return np.dot(u['resi'], u['resi'])
+    y, uu, sing, vv = _compose_linear_fitting_data(mu, u)
+    resi = y - np.dot(uu, np.dot(y, uu))
+    return np.dot(resi, resi)
 
 
 def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
     """Fit the Berg-Scherg equivalent spherical model dipole parameters."""
     from scipy.optimize import fmin_cobyla
     assert nfit >= 2
-    u = dict(y=np.zeros(nterms - 1), resi=np.zeros(nterms - 1),
-             nfit=nfit, nterms=nterms, M=np.zeros((nterms - 1, nfit - 1)))
+    u = dict(nfit=nfit, nterms=nterms)
 
     # (1) Calculate the coefficients of the true expansion
     u['fn'] = _fwd_eeg_get_multi_sphere_model_coeffs(m, nterms + 1)
@@ -690,11 +676,11 @@ def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
     u['w'][-1] = 0
 
     # Do the nonlinear minimization, constraining mu to the interval [-1, +1]
-    mu_0 = np.random.RandomState(0).rand(nfit) * f
+    mu_0 = np.zeros(3)
     fun = partial(_one_step, u=u)
     max_ = 1. - 2e-4  # adjust for fmin_cobyla "catol" that not all scipy have
     cons = [(lambda x: max_ - np.abs(x[ii])) for ii in range(nfit)]
-    mu = fmin_cobyla(fun, mu_0, cons, rhobeg=0.5, rhoend=5e-3, disp=0)
+    mu = fmin_cobyla(fun, mu_0, cons, rhobeg=0.5, rhoend=1e-5, disp=0)
 
     # (6) Do the final step: calculation of the linear parameters
     rv, lambda_ = _compute_linear_parameters(mu, u)
