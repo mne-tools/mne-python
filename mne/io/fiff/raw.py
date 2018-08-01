@@ -123,7 +123,7 @@ class Raw(BaseRaw):
             for skip in extra:
                 if skip['ent'] is None:  # these are skips
                     if self.annotations is None:
-                        self.annotations = Annotations((), (), ())
+                        self.set_annotations(Annotations((), (), ()))
                     start = skip['first'] - first_samp + offset
                     stop = skip['last'] - first_samp + offset
                     self.annotations.append(

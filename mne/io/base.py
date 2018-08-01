@@ -2054,7 +2054,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._update_times()
         if annotations is None:
             annotations = Annotations([], [], [])
-        self.annotations = annotations
+        self.set_annotations(annotations)
         for edge_samp in edge_samps:
             onset = _sync_onset(self, (edge_samp) / self.info['sfreq'], True)
             self.annotations.append(onset, 0., 'BAD boundary')

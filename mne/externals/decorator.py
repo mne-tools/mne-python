@@ -81,6 +81,7 @@ class FunctionMaker(object):
             if inspect.isfunction(func):
                 argspec = getfullargspec(func)
                 self.annotations = getattr(func, '__annotations__', {})
+                #XXX self.set_annotations(getattr(func, '__annotations__', {}))
                 for a in ('args', 'varargs', 'varkw', 'defaults', 'kwonlyargs',
                           'kwonlydefaults'):
                     setattr(self, a, getattr(argspec, a))

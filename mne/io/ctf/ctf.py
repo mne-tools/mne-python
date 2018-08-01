@@ -154,7 +154,7 @@ class RawCTF(BaseRaw):
 
         # Add bad segments as Annotations (correct for start time)
         start_time = -res4['pre_trig_pts'] / float(info['sfreq'])
-        self.annotations = _annotate_bad_segments(directory, start_time)
+        self.set_annotations(_annotate_bad_segments(directory, start_time))
 
         if clean_names:
             self._clean_names()
