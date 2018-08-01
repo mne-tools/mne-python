@@ -304,6 +304,34 @@ def test_reject():
         raw.annotations = None
 
 
+def test_own_data():
+    """Test for epochs data ownership (gh-5346)."""
+    raw, events = _get_data()[:2]
+    n_epochs = 10
+    events = events[:n_epochs]
+    epochs = mne.Epochs(raw, events, preload=True)
+    assert epochs._data.flags['C_CONTIGUOUS']
+    assert epochs._data.flags['OWNDATA']
+
+    epochs.crop(tmin=-0.1, tmax=0.4)
+    assert len(epochs) == epochs._data.shape[0] == len(epochs.events)
+    assert len(epochs) == n_epochs
+    assert not epochs._data.flags['OWNDATA']
+
+    # data ownership value error
+    epochs.drop_bad(flat=dict(eeg=8e-6))
+    n_now = len(epochs)
+    assert 5 < n_now < n_epochs
+    assert len(epochs) == epochs._data.shape[0] == len(epochs.events)
+
+    good_chan = epochs.copy().pick_channels([epochs.ch_names[0]])
+    good_chan.rename_channels({good_chan.ch_names[0]: 'good'})
+    epochs.add_channels([good_chan])
+    # "ValueError: resize only works on single-segment arrays"
+    epochs.drop_bad(flat=dict(eeg=10e-6))
+    assert 1 < len(epochs) < n_now
+
+
 def test_decim():
     """Test epochs decimation."""
     # First with EpochsArray

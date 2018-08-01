@@ -1251,7 +1251,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             # adjust the data size if there is a reason to (output or update)
             if out or self.preload:
-                data.resize((n_out,) + data.shape[1:], refcheck=False)
+                if data.flags['OWNDATA'] and data.flags['C_CONTIGUOUS']:
+                    data.resize((n_out,) + data.shape[1:], refcheck=False)
+                else:
+                    data = data[:n_out]
+                    if self.preload:
+                        self._data = data
 
         return data if out else None
 
