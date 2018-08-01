@@ -787,12 +787,17 @@ def _check_loose_forward(loose, forward):
     return loose, forward
 
 
-def _check_reference(inst):
+def _check_reference(inst, ch_names=None):
     """Check for EEG ref."""
-    if _needs_eeg_average_ref_proj(inst.info):
+    info = inst.info
+    if ch_names is not None:
+        picks = [ci for ci, ch_name in enumerate(info['ch_names'])
+                 if ch_name in ch_names]
+        info = pick_info(info, picks)
+    if _needs_eeg_average_ref_proj(info):
         raise ValueError('EEG average reference is mandatory for inverse '
                          'modeling, use set_eeg_reference method.')
-    if inst.info['custom_ref_applied']:
+    if info['custom_ref_applied']:
         raise ValueError('Custom EEG reference is not allowed for inverse '
                          'modeling.')
 
@@ -903,7 +908,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
            methods of electric neuronal activity. Part 1: exact, zero error
            localization. arXiv:0710.3341
     """
-    _check_reference(evoked)
+    _check_reference(evoked, inverse_operator['info']['ch_names'])
     _check_method(method)
     _check_ori(pick_ori, inverse_operator['source_ori'])
     #
@@ -1019,7 +1024,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     apply_inverse_epochs : Apply inverse operator to epochs object
     apply_inverse : Apply inverse operator to evoked object
     """
-    _check_reference(raw)
+    _check_reference(raw, inverse_operator['info']['ch_names'])
     _check_method(method)
     _check_ori(pick_ori, inverse_operator['source_ori'])
 
@@ -1715,7 +1720,7 @@ def estimate_snr(evoked, inv, verbose=None):
     .. versionadded:: 0.9.0
     """  # noqa: E501
     from scipy.stats import chi2
-    _check_reference(evoked)
+    _check_reference(evoked, inv['info']['ch_names'])
     _check_ch_names(inv, evoked.info)
     inv = prepare_inverse_operator(inv, evoked.nave, 1. / 9., 'MNE')
     sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
