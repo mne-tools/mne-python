@@ -370,7 +370,7 @@ def test_lcmv():
                   pick_ori='normal', weight_norm='nai', reduce_rank=True)
 
     # Test if spatial filter contains src_type
-    assert ('src_type' in filters.keys())
+    assert 'src_type' in filters
 
     # check whether a filters object without src_type throws expected warning
     del filters['src_type']  # emulate 0.16 behaviour to cause warning
