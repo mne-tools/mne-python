@@ -289,7 +289,7 @@ def test_lcmv():
     assert 0.4 < np.max(max_stc) < 2., np.max(max_stc)
 
     # Test if spatial filter contains src_type
-    assert ('src_type' in filters.keys())
+    assert 'src_type' in filters
 
     # Test if fixed forward operator is detected when picking normal or
     # max-power orientation
