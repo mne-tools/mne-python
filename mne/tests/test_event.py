@@ -71,6 +71,9 @@ def test_add_events():
     raw.add_events(events, 'STI 014')
     new_events = find_events(raw, 'STI 014')
     assert_array_equal(new_events, np.concatenate((events, orig_events)))
+    raw.add_events(events, 'STI 014', replace=True)
+    new_events = find_events(raw, 'STI 014')
+    assert_array_equal(new_events, events)
 
 
 def test_merge_events():
