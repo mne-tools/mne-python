@@ -790,13 +790,20 @@ def _check_loose_forward(loose, forward):
 def _check_reference(inst, ch_names=None):
     """Check for EEG ref."""
     info = inst.info
+    # XXX : ugly hack to avoid picking subset of info with applied comps
+    comps = info.get('comps', None)
     if ch_names is not None:
         picks = [ci for ci, ch_name in enumerate(info['ch_names'])
                  if ch_name in ch_names]
-        info = pick_info(info, picks)
+        info['comps'] = []
+        info = pick_info(info, sel=picks)
     if _needs_eeg_average_ref_proj(info):
         raise ValueError('EEG average reference is mandatory for inverse '
                          'modeling, use set_eeg_reference method.')
+    if comps is None:
+        del info['comps']
+    else:
+        info['comps'] = comps
     if info['custom_ref_applied']:
         raise ValueError('Custom EEG reference is not allowed for inverse '
                          'modeling.')
