@@ -71,10 +71,10 @@ def test_basics():
     for first_samp in [12300, 100, 12]:
         raw = RawArray(data.copy(), info, first_samp=first_samp)
         ants = Annotations([1., 2.], [.5, .5], 'x', np.pi + first_samp / sfreq)
-        raw.annotations = ants
+        raw.set_annotations(ants)
         raws.append(raw)
     raw = RawArray(data.copy(), info)
-    raw.annotations = Annotations([1.], [.5], 'x', None)
+    raw.set_annotations(Annotations([1.], [.5], 'x', None))
     raws.append(raw)
     raw = concatenate_raws(raws, verbose='debug')
     boundary_idx = np.where(raw.annotations.description == 'BAD boundary')[0]
@@ -101,8 +101,9 @@ def test_crop():
     onset = events[events[:, 2] == 1, 0] / raw.info['sfreq']
     duration = np.full_like(onset, 0.5)
     description = ['bad %d' % k for k in range(len(onset))]
-    raw.annotations = mne.Annotations(onset, duration, description,
-                                      orig_time=raw.info['meas_date'])
+    annot = mne.Annotations(onset, duration, description,
+                            orig_time=raw.info['meas_date'])
+    raw.set_annotations(annot)
 
     split_time = raw.times[-1] / 2. + 2.
     split_idx = len(onset) // 2 + 1
@@ -135,13 +136,13 @@ def test_crop():
                         getattr(raw.annotations, attr),
                         err_msg='Failed for %s:' % (attr,))
 
-    raw.annotations = None  # undo
+    raw.set_annotations(None)  # undo
 
     # Test concatenating annotations with and without orig_time.
     last_time = raw.last_samp / raw.info['sfreq']
     raw2 = raw.copy()
-    raw.annotations = Annotations([45.], [3], 'test', raw.info['meas_date'])
-    raw2.annotations = Annotations([2.], [3], 'BAD', None)
+    raw.set_annotations(Annotations([45.], [3], 'test', raw.info['meas_date']))
+    raw2.set_annotations(Annotations([2.], [3], 'BAD', None))
     raw = concatenate_raws([raw, raw2])
     raw.annotations.delete(-1)  # remove boundary annotations
     raw.annotations.delete(-1)
@@ -165,12 +166,12 @@ def test_crop():
     assert len(annot) == 0
     # Test that empty annotations can be saved with an object
     fname = op.join(tempdir, 'test_raw.fif')
-    raw.annotations = annot
+    raw.set_annotations(annot)
     raw.save(fname)
     raw_read = read_raw_fif(fname)
     assert isinstance(raw_read.annotations, Annotations)
     assert len(raw_read.annotations) == 0
-    raw.annotations = None
+    raw.set_annotations(None)
     raw.save(fname, overwrite=True)
     raw_read = read_raw_fif(fname)
     assert raw_read.annotations is None
@@ -183,7 +184,7 @@ def test_crop_more():
     onset = np.array([0.47058824, 2.49773765, 6.67873287, 9.15837097])
     duration = np.array([0.89592767, 1.13574672, 1.09954739, 0.48868752])
     annotations = mne.Annotations(onset, duration, 'BAD')
-    raw.annotations = annotations
+    raw.set_annotations(annotations)
     assert len(raw.annotations) == 4
     delta = 1. / raw.info['sfreq']
     raw_concat = mne.concatenate_raws(
@@ -233,7 +234,8 @@ def test_raw_reject():
     info = create_info(['a', 'b', 'c', 'd', 'e'], sfreq, ch_types='eeg')
     raw = RawArray(np.ones((5, 15000)), info)
     with warnings.catch_warnings(record=True):  # one outside range
-        raw.annotations = Annotations([2, 100, 105, 148], [2, 8, 5, 8], 'BAD')
+        raw.set_annotations(Annotations([2, 100, 105, 148],
+                                        [2, 8, 5, 8], 'BAD'))
     data, times = raw.get_data([0, 1, 3, 4], 100, 11200,  # 1-112 sec
                                'omit', return_times=True)
     bad_times = np.concatenate([np.arange(200, 400),
@@ -245,8 +247,8 @@ def test_raw_reject():
     # with orig_time and complete overlap
     raw = read_raw_fif(fif_fname)
     t_0 = raw.first_samp / raw.info['sfreq']
-    raw.annotations = Annotations([t_0 + 1, t_0 + 4, t_0 + 5], [1, 3, 1],
-                                  'BAD', raw.info['meas_date'])
+    raw.set_annotations(Annotations([t_0 + 1, t_0 + 4, t_0 + 5], [1, 3, 1],
+                                    'BAD', raw.info['meas_date']))
     t_stop = 18.
     assert raw.times[-1] > t_stop
     n_stop = int(round(t_stop * raw.info['sfreq']))
@@ -315,7 +317,7 @@ def test_annotation_filtering():
 
     # Let's try another one
     raw = raws[0].copy()
-    raw.annotations = Annotations([0.], [0.5], ['BAD_ACQ_SKIP'])
+    raw.set_annotations(Annotations([0.], [0.5], ['BAD_ACQ_SKIP']))
     my_data, times = raw.get_data(reject_by_annotation='omit',
                                   return_times=True)
     assert_allclose(times, raw.times[500:])
@@ -327,7 +329,7 @@ def test_annotation_filtering():
     assert_allclose(raw_filt[:][0], expected, atol=1e-14)
 
     raw = raws[0].copy()
-    raw.annotations = Annotations([0.5], [0.5], ['BAD_ACQ_SKIP'])
+    raw.set_annotations(Annotations([0.5], [0.5], ['BAD_ACQ_SKIP']))
     my_data, times = raw.get_data(reject_by_annotation='omit',
                                   return_times=True)
     assert_allclose(times, raw.times[:500])
@@ -344,7 +346,7 @@ def test_annotation_omit():
     data = np.concatenate([np.ones((1, 1000)), 2 * np.ones((1, 1000))], -1)
     info = create_info(1, 1000., 'eeg')
     raw = RawArray(data, info)
-    raw.annotations = Annotations([0.5], [1], ['bad'])
+    raw.set_annotations(Annotations([0.5], [1], ['bad']))
     expected = raw[0][0]
     assert_allclose(raw.get_data(reject_by_annotation=None), expected)
     # nan

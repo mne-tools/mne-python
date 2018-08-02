@@ -146,11 +146,10 @@ def test_time_index():
     assert(len(set(new_inds)) == len(new_inds))
 
 
-
 def test_annotation_property_deprecation_warning():
-    """Test that assigning annotations warns and nowhere else"""
+    """Test that assigning annotations warns and nowhere else."""
     with pytest.warns(None) as record:
-        raw = RawArray(np.random.rand(1,1), create_info(1,1))
+        raw = RawArray(np.random.rand(1 ,1), create_info(1 ,1))
     assert len(record) is 0
-    with pytest.warns(DeprecationWarning, match='by assignation is deprecated'):
+    with pytest.warns(DeprecationWarning, match='assignation is deprecated'):
         raw.annotations = None

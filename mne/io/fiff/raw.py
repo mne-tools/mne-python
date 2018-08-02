@@ -196,7 +196,7 @@ class Raw(BaseRaw):
             raw = _RawShell()
             raw.filename = fname
             raw.first_samp = first_samp
-            raw.annotations = annotations
+            raw.set_annotations(annotations)
 
             #   Go through the remaining tags in the directory
             raw_extras = list()

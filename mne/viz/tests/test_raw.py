@@ -197,7 +197,7 @@ def test_plot_raw():
         pytest.raises(TypeError, raw.plot, event_color={'foo': 'r'})
         annot = Annotations([10, 10 + raw.first_samp / raw.info['sfreq']],
                             [10, 10], ['test', 'test'], raw.info['meas_date'])
-        raw.annotations = annot
+        raw.set_annotations(annot)
         fig = plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
         plt.close('all')
         for group_by, order in zip(['position', 'selection'],
@@ -229,8 +229,9 @@ def test_plot_raw():
         # test if meas_date has only one element
         raw.info['meas_date'] = np.array([raw.info['meas_date'][0]],
                                          dtype=np.int32)
-        raw.annotations = Annotations([1 + raw.first_samp / raw.info['sfreq']],
-                                      [5], ['bad'])
+        annot = Annotations([1 + raw.first_samp / raw.info['sfreq']],
+                            [5], ['bad'])
+        raw.set_annotations(annot)
         raw.plot(group_by='position', order=np.arange(8))
         for fig_num in plt.get_fignums():
             fig = plt.figure(fig_num)
@@ -268,7 +269,7 @@ def test_plot_annotations():
     _annotation_helper(raw, events=True)
 
     with warnings.catch_warnings(record=True):  # cut off
-        raw.annotations = Annotations([42], [1], 'test', raw.info['meas_date'])
+        raw.set_annotations(Annotations([42], [1], 'test', raw.info['meas_date']))
     _annotation_helper(raw)
 
 
@@ -330,7 +331,7 @@ def test_plot_raw_psd():
     assert len(w) == 4
     # test reject_by_annotation
     raw = _get_raw()
-    raw.annotations = Annotations([1, 5], [3, 3], ['test', 'test'])
+    raw.set_annotations(Annotations([1, 5], [3, 3], ['test', 'test']))
     raw.plot_psd(reject_by_annotation=True)
     raw.plot_psd(reject_by_annotation=False)
 

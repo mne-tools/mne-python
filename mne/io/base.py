@@ -730,12 +730,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     # sample...
                     limited += 1
                     new_annot.duration[ind] = (self.times[-1] +
-                                                 1. / self.info['sfreq'] -
-                                                 onset)
+                                               1. / self.info['sfreq'] -
+                                               onset)
             new_annot.onset = np.delete(new_annot.onset, omit_ind)
             new_annot.duration = np.delete(new_annot.duration, omit_ind)
-            new_annot.description = np.delete(new_annot.description,
-                                                omit_ind)
+            new_annot.description = np.delete(new_annot.description, omit_ind)
             if emit_warning:
                 if omitted > 0:
                     warn('Omitted %s annotation(s) that were outside data '
@@ -745,7 +744,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                          'outside the data range.' % limited)
 
         self._annotations = new_annot
-
 
     def __del__(self):  # noqa: D105
         # remove file for memmap
@@ -2180,6 +2178,9 @@ class _RawShell():
     @property
     def n_times(self):  # noqa: D102
         return self.last_samp - self.first_samp + 1
+
+    def set_annotations(self, annotations):
+        self.annotations = annotations
 
 
 ###############################################################################

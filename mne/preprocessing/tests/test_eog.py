@@ -13,7 +13,7 @@ proj_fname = op.join(data_path, 'test-proj.fif')
 def test_find_eog():
     """Test find EOG peaks."""
     raw = read_raw_fif(raw_fname)
-    raw.annotations = Annotations([14, 21], [1, 1], 'BAD_blink')
+    raw.set_annotations(Annotations([14, 21], [1, 1], 'BAD_blink'))
     events = find_eog_events(raw)
     assert len(events) == 4
     assert not all(events[:, 0] < 29000)
