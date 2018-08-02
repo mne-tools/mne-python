@@ -1629,11 +1629,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._update_times()
 
         if self.annotations is not None:
-            annotations = self.annotations
-            # XXX there might be a cleaner way to do this someday
             if self.annotations.orig_time is None:
                 self.annotations.onset -= tmin
-            BaseRaw.annotations.fset(self, annotations, emit_warning=False)
+            # now call setter to filter out annotations outside of interval
+            self.set_annotations(self.annotations, False)
 
         return self
 

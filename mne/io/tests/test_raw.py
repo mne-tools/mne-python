@@ -2,13 +2,14 @@
 from os import path as op
 import math
 
+import pytest
 import numpy as np
 from numpy.testing import (assert_allclose, assert_array_almost_equal,
                            assert_equal, assert_array_equal)
 
-from mne import concatenate_raws
+from mne import concatenate_raws, create_info
 from mne.datasets import testing
-from mne.io import read_raw_fif
+from mne.io import read_raw_fif, RawArray
 from mne.utils import _TempDir
 
 
@@ -147,11 +148,7 @@ def test_time_index():
 
 
 def test_annotation_property_deprecation_warning():
-    from mne import create_info
-    from mne.io import RawArray
-    import pytest
-    # from mne.annotations import Annotations
-
+    """Test that assigning annotations warns and nowhere else"""
     with pytest.warns(None) as record:
         raw = RawArray(np.random.rand(1,1), create_info(1,1))
     assert len(record) is 0

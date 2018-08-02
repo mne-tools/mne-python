@@ -1241,7 +1241,7 @@ def test_save():
     annot = Annotations([10], [5], ['test'],
                         raw.info['meas_date'] +
                         raw.first_samp / raw.info['sfreq'])
-    raw.annotations = annot
+    raw.set_annotations(annot)
     new_fname = op.join(op.abspath(op.curdir), 'break_raw.fif')
     raw.save(op.join(tempdir, new_fname), overwrite=True)
     new_raw = read_raw_fif(op.join(tempdir, new_fname), preload=False)
@@ -1259,7 +1259,7 @@ def test_annotation_crop():
     new_fname = op.join(op.abspath(op.curdir), 'break_raw.fif')
     annot = Annotations([5., 11., 15.], [2., 1., 3.], ['test', 'test', 'test'])
     raw = read_raw_fif(fif_fname, preload=False)
-    raw.annotations = annot
+    raw.set_annotations(annot)
     with warnings.catch_warnings(record=True) as w:
         r1 = raw.copy().crop(2.5, 7.5)
         r2 = raw.copy().crop(12.5, 17.5)
@@ -1277,7 +1277,7 @@ def test_annotation_crop():
     annot = Annotations([0., raw.times[-1]], [2., 2.], 'test',
                         raw.info['meas_date'] + raw.first_samp / sfreq - 1.)
     with warnings.catch_warnings(record=True) as w:  # outside range
-        raw.annotations = annot
+        raw.set_annotations(annot)
     assert (all('data range' in str(ww.message) for ww in w))
     assert_allclose(raw.annotations.duration,
                     [1., 1. + 1. / raw.info['sfreq']], atol=1e-3)
