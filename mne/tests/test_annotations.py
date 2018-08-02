@@ -50,7 +50,7 @@ def test_basics():
                  raw2.first_samp / raw2.info['sfreq'])
     annot = Annotations(onset, duration, description, orig_time)
     assert ' segments' in repr(annot)
-    raw2.annotations = annot
+    raw2.set_annotations(annot)
     assert_array_equal(raw2.annotations.onset, onset)
     assert id(raw2.annotations) != id(annot)
     concatenate_raws([raw, raw2])

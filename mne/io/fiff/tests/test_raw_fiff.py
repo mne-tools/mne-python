@@ -404,7 +404,7 @@ def test_split_files():
 
     assert_allclose(raw_1.buffer_size_sec, 10., atol=1e-2)  # samp rate
     split_fname = op.join(tempdir, 'split_raw.fif')
-    raw_1.annotations = Annotations([2.], [5.5], 'test')
+    raw_1.set_annotations(Annotations([2.], [5.5], 'test'))
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
 
     raw_2 = read_raw_fif(split_fname)
