@@ -2067,7 +2067,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 size_str))
         return "<%s  |  %s>" % (self.__class__.__name__, s)
 
-    def add_events(self, events, stim_channel=None):
+    def add_events(self, events, stim_channel=None, replace=False):
         """Add events to stim channel.
 
         Parameters
@@ -2082,6 +2082,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Name of the stim channel to add to. If None, the config variable
             'MNE_STIM_CHANNEL' is used. If this is not found, it will default
             to 'STI 014'.
+        replace : bool
+            If True the old events on the stim channel are removed before
+            adding the new ones.
 
         Notes
         -----
@@ -2102,6 +2105,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                              % (self.first_samp, self.last_samp))
         if not all(idx == events[:, 0]):
             raise ValueError('event sample numbers must be integers')
+        if replace:
+            self._data[pick, :] = 0.
         self._data[pick, idx - self.first_samp] += events[:, 2]
 
     def _get_buffer_size(self, buffer_size_sec=None):
