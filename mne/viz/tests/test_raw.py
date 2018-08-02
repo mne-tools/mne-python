@@ -269,7 +269,8 @@ def test_plot_annotations():
     _annotation_helper(raw, events=True)
 
     with warnings.catch_warnings(record=True):  # cut off
-        raw.set_annotations(Annotations([42], [1], 'test', raw.info['meas_date']))
+        annot = Annotations([42], [1], 'test', raw.info['meas_date'])
+        raw.set_annotations(annot)
     _annotation_helper(raw)
 
 
