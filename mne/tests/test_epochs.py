@@ -292,8 +292,8 @@ def test_reject():
         first_time = (raw.info['meas_date'][0] + raw.info['meas_date'][1] *
                       0.000001 + raw.first_samp / sfreq)
         for orig_time in [None, first_time]:
-            raw.annotations = Annotations(onsets, [0.5, 0.5, 0.5], 'BAD',
-                                          orig_time)
+            annot = Annotations(onsets, [0.5, 0.5, 0.5], 'BAD', orig_time)
+            raw.set_annotations(annot)
             epochs = Epochs(raw, events, event_id, tmin, tmax, picks=[0],
                             reject=None, preload=preload)
             epochs.drop_bad()
@@ -301,7 +301,7 @@ def test_reject():
             assert_equal(epochs.drop_log[0][0], 'BAD')
             assert_equal(epochs.drop_log[2][0], 'BAD')
             assert_equal(epochs.drop_log[4][0], 'BAD')
-        raw.annotations = None
+        raw.set_annotations(None)
 
 
 def test_own_data():

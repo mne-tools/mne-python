@@ -34,7 +34,7 @@ class Annotations(object):
         >>> duration = np.repeat(0.5, n_blinks)  # doctest: +SKIP
         >>> description = ['bad blink'] * n_blinks  # doctest: +SKIP
         >>> annotations = mne.Annotations(onset, duration, description)  # doctest: +SKIP
-        >>> raw.annotations = annotations  # doctest: +SKIP
+        >>> raw.set_annotations(annotations)  # doctest: +SKIP
         >>> epochs = mne.Epochs(raw, events, event_id, tmin, tmax)  # doctest: +SKIP
 
     Parameters

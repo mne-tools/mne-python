@@ -555,7 +555,7 @@ class RawMff(BaseRaw):
                         data_view = data[n_data1_channels:, -1] = 0
                         warn('This file has the EGI PSG sample bug')
                         if self.annotations is None:
-                            self.annotations = Annotations((), (), ())
+                            self.set_annotations(Annotations((), (), ()))
                         an_start = current_data_sample
                         self.annotations.append(
                             _sync_onset(self, an_start / self.info['sfreq']),

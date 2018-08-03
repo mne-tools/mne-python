@@ -28,14 +28,14 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.filter(1, None, fir_design='firwin')  # already lowpassed @ 40
-raw.annotations = mne.Annotations([1], [10], 'BAD')
+raw.set_annotations(mne.Annotations([1], [10], 'BAD'))
 raw.plot(block=True)
 
 # For the sake of example we annotate first 10 seconds of the recording as
 # 'BAD'. This part of data is excluded from the ICA decomposition by default.
 # To turn this behavior off, pass ``reject_by_annotation=False`` to
 # :meth:`mne.preprocessing.ICA.fit`.
-raw.annotations = mne.Annotations([0], [10], 'BAD')
+raw.set_annotations(mne.Annotations([0], [10], 'BAD'))
 
 ###############################################################################
 # 1) Fit ICA model using the FastICA algorithm.

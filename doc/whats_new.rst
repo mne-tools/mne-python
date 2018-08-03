@@ -98,6 +98,8 @@ API
 
 - `src.kind` now equals to `'mixed'` (and not `'combined'`) for a mixed source space (made of surfaces and volume grids) by `Alex Gramfort`_
 
+- Deprecation of :meth:`mne.io.BaseRaw.annotations` property in favor of :meth:`mne.io.BaseRaw.set_annotations` by `Joan Massich`_
+
 .. _changes_0_16:
 
 Version 0.16
