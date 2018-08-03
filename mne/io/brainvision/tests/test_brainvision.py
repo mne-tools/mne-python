@@ -347,7 +347,8 @@ def test_brainvision_data():
 
     # test loading v2
     read_raw_brainvision(vhdr_v2_path, eog=eog, preload=True,
-                         response_trig_shift=1000, verbose='error')
+                         trig_shift_by_type={'response': 1000},
+                         verbose='error')
     # For the nanovolt unit test we use the same data file with a different
     # header file.
     raw_nV = _test_raw_reader(
@@ -420,14 +421,15 @@ def test_events():
                                 [4945, 1, 255],
                                 [5999, 1, 255],
                                 [6619, 1, 254],
-                                [6629, 1, 255]])
+                                [6629, 1, 255],
+                                [7699, 1, 1]])
 
     # check that events are read and stim channel is synthesized correctly and
-    # response triggers are shifted like they're supposed to be.
-    raw = read_raw_brainvision(vhdr_path, eog=eog,
-                               response_trig_shift=1000, event_id=event_id)
+    # response triggers are shifted using the deprecated response_trig_shift.
+    with pytest.warns(DeprecationWarning):
+        raw = read_raw_brainvision(vhdr_path, eog=eog,
+                                   response_trig_shift=1000, event_id=event_id)
     events = raw._get_brainvision_events()
-    events = events[events[:, 2] != event_id['Sync On']]
     assert_array_equal(events, [[486, 0, 253],
                                 [496, 1, 255],
                                 [1769, 1, 254],
@@ -438,13 +440,35 @@ def test_events():
                                 [4945, 1, 255],
                                 [5999, 1, 1255],
                                 [6619, 1, 254],
-                                [6629, 1, 255]])
+                                [6629, 1, 255],
+                                [7629, 1, 5],
+                                [7699, 1, 1]])
+
+    # check that trig_shift_by_type works as well
+    raw = read_raw_brainvision(vhdr_path, eog=eog,
+                               trig_shift_by_type={'response': 1000,
+                                                   'Optic': 2000},
+                               event_id=event_id)
+    events = raw._get_brainvision_events()
+    assert_array_equal(events, [[486, 0, 253],
+                                [496, 1, 255],
+                                [1769, 1, 254],
+                                [1779, 1, 255],
+                                [3252, 1, 254],
+                                [3262, 1, 255],
+                                [4935, 1, 253],
+                                [4945, 1, 255],
+                                [5999, 1, 1255],
+                                [6619, 1, 254],
+                                [6629, 1, 255],
+                                [7629, 1, 5],
+                                [7699, 1, 2001]])
 
     # check that events are read and stim channel is synthesized correctly and
     # response triggers are ignored.
     with warnings.catch_warnings(record=True):  # ignored events
         raw = read_raw_brainvision(vhdr_path, eog=eog,
-                                   response_trig_shift=None)
+                                   trig_shift_by_type={'response': None})
     events = raw._get_brainvision_events()
     events = events[events[:, 2] != event_id['Sync On']]
     assert_array_equal(events, [[486, 0, 253],
@@ -456,13 +480,30 @@ def test_events():
                                 [4935, 1, 253],
                                 [4945, 1, 255],
                                 [6619, 1, 254],
-                                [6629, 1, 255]])
+                                [6629, 1, 255],
+                                [7699, 1, 1]])
+
+    # Error handling of trig_shift_by_type
+
+    pytest.raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
+                  preload=True, trig_shift_by_type=1)
+    pytest.raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
+                  preload=True, trig_shift_by_type={'response': 0.1})
+    pytest.raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
+                  preload=True, trig_shift_by_type={'response': np.nan})
+    pytest.raises(ValueError, read_raw_brainvision, vhdr_path, eog=eog,
+                  preload=True, trig_shift_by_type={'response': 1000,
+                                                    'Response': 1001})
+    with pytest.warns(DeprecationWarning):
+        pytest.raises(ValueError, read_raw_brainvision, vhdr_path, eog=eog,
+                      preload=True, trig_shift_by_type={'response': 1000},
+                      response_trig_shift=1001)
 
     # check that events are read properly when event_id is specified for
     # auxiliary events
     with warnings.catch_warnings(record=True):  # dropped events
         raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
-                                   response_trig_shift=None,
+                                   trig_shift_by_type={'response': None},
                                    event_id=event_id)
     events = raw._get_brainvision_events()
     assert_array_equal(events, [[486, 0, 253],
@@ -475,12 +516,8 @@ def test_events():
                                 [4945, 1, 255],
                                 [6619, 1, 254],
                                 [6629, 1, 255],
-                                [7629, 1, 5]])
-
-    pytest.raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
-                  preload=True, response_trig_shift=0.1)
-    pytest.raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
-                  preload=True, response_trig_shift=np.nan)
+                                [7629, 1, 5],
+                                [7699, 1, 1]])
 
     # to handle the min duration = 1 of stim trig (re)construction ...
     events = np.array([[486, 1, 253],
@@ -493,11 +530,13 @@ def test_events():
                        [4945, 1, 255],
                        [6619, 1, 254],
                        [6629, 1, 255],
-                       [7629, 1, 5]])
+                       [7629, 1, 5],
+                       [7699, 1, 1]])
 
-    # Test that both response_trig_shit and event_id can be set
+    # Test that both trig_shift_by_type and event_id can be set
     read_raw_brainvision(vhdr_path, eog=eog, preload=False,
-                         response_trig_shift=100, event_id=event_id)
+                         trig_shift_by_type={'response': 100},
+                         event_id=event_id)
     mne_events = find_events(raw, stim_channel='STI 014')
     assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
 

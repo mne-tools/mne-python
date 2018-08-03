@@ -33,6 +33,8 @@ Changelog
 
 - Add support for reading MATLAB ``v7.3+`` files in :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` via `pymatreader`_ by `Steven Gutstein`_, `Eric Larson`_, and `Thomas Hartmann`_
 
+- Add `trig_shift_by_type` parameter in :func:`mne.io.read_raw_brainvision` to allow to specify offsets for arbitrary marker types by `Henrich Kolkhorst`_
+
 Bug
 ~~~
 
