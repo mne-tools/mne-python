@@ -860,19 +860,15 @@ def test_inverse_ctf_comp():
     """Test interpolation with compensated CTF data."""
     ctf_dir = op.join(testing.data_path(download=False), 'CTF')
     raw_fname = op.join(ctf_dir, 'somMDYO-18av.ds')
-    raw = mne.io.read_raw_ctf(raw_fname, preload=True)
-
-    events = mne.make_fixed_length_events(raw, duration=0.2)[:2]
-    epochs = mne.Epochs(raw, events, tmin=0., tmax=0.2)
-    evoked = epochs.average()
-
-    with warnings.catch_warnings(record=True):
-        noise_cov = mne.compute_covariance(epochs)
-    fwd = mne.make_forward_solution(evoked.info, None,
-                                    mne.setup_volume_source_space(pos=15.0),
-                                    mne.make_sphere_model())
-    inv = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1.)
-    apply_inverse(evoked, inv, lambda2, 'dSPM')
+    raw = mne.io.read_raw_ctf(raw_fname)
+    raw.apply_gradient_compensation(1)
+    sphere = make_sphere_model()
+    cov = make_ad_hoc_cov(raw.info)
+    src = mne.setup_volume_source_space(
+        pos=dict(rr=[[0., 0., 0.01]], nn=[[0., 1., 0.]]))
+    fwd = make_forward_solution(raw.info, None, src, sphere, eeg=False)
+    inv = make_inverse_operator(raw.info, fwd, cov, loose=1.)
+    apply_inverse_raw(raw, inv, 1. / 9.)
 
 
 run_tests_if_main()
