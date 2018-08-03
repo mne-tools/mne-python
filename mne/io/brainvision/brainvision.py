@@ -61,11 +61,11 @@ class RawBrainVision(BaseRaw):
         If False, data are not read until save.
     response_trig_shift : int | None
         An integer that will be added to all response triggers when reading
-        events (stimulus triggers will be unaffected). This parameter is
-        deprecated and ``trig_shift_by_type={'response': 1000}`` should be
-        used. If None, response triggers will be ignored. Default is 0 for
-        backwards compatibility, but typically another value or None will
-        be necessary.
+        events (stimulus triggers will be unaffected). This parameter was
+        deprecated in version 0.17 and will be removed in 0.19. Use
+        ``trig_shift_by_type={'response': ...}`` instead. If None, response
+        triggers will be ignored. Default is 0 for backwards compatibility,
+        but typically another value or None will be necessary.
     event_id : dict | None
         The id of special events to consider in addition to those that
         follow the normal Brainvision trigger format ('S###').
@@ -84,10 +84,6 @@ class RawBrainVision(BaseRaw):
         all markers of this type will be ignored. If None (default), no offset
         is added, which may lead to different marker types being mapped to the
         same event id.
-
-    .. deprecated:: 0.17
-        ``response_trig_shift`` was replaced with the more general
-        ``trig_shift_by_type`` in version 0.17 and will be removed in 0.19.
 
     See Also
     --------
@@ -859,11 +855,11 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         If False, data are not read until save.
     response_trig_shift : int | None
         An integer that will be added to all response triggers when reading
-        events (stimulus triggers will be unaffected). This parameter is
-        deprecated and ``trig_shift_by_type={'response': 1000}`` should be
-        used. If None, response triggers will be ignored. Default is 0 for
-        backwards compatibility, but typically another value or None will be
-        necessary.
+        events (stimulus triggers will be unaffected). This parameter was
+        deprecated in version 0.17 and will be removed in 0.19. Use
+        ``trig_shift_by_type={'response': ...}`` instead. If None, response
+        triggers will be ignored. Default is 0 for backwards compatibility,
+        but typically another value or None will be necessary.
     event_id : dict | None
         The id of special events to consider in addition to those that
         follow the normal Brainvision trigger format ('S###').
@@ -887,10 +883,6 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     -------
     raw : instance of RawBrainVision
         A Raw object containing BrainVision data.
-
-    .. deprecated:: 0.17
-        ``response_trig_shift`` was replaced with the more general
-        ``trig_shift_by_type`` in version 0.17 and will be removed in 0.19.
 
     See Also
     --------
