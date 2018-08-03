@@ -14,6 +14,7 @@
 import os
 import os.path as op
 import re
+import warnings
 from datetime import datetime
 from math import modf
 
@@ -60,9 +61,11 @@ class RawBrainVision(BaseRaw):
         If False, data are not read until save.
     response_trig_shift : int | None
         An integer that will be added to all response triggers when reading
-        events (stimulus triggers will be unaffected). If None, response
-        triggers will be ignored. Default is 0 for backwards compatibility, but
-        typically another value or None will be necessary.
+        events (stimulus triggers will be unaffected). This parameter is
+        deprecated and ``trig_shift_by_type={'response': 1000}`` should be
+        used. If None, response triggers will be ignored. Default is 0 for
+        backwards compatibility, but typically another value or None will
+        be necessary.
     event_id : dict | None
         The id of special events to consider in addition to those that
         follow the normal Brainvision trigger format ('S###').
@@ -73,6 +76,18 @@ class RawBrainVision(BaseRaw):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+    trig_shift_by_type: dict | None
+        The names of marker types to which an offset should be added.
+        If dict, the keys specify marker types (case is ignored), so that the
+        corresponding value (an integer) will be added to the trigger value of
+        all events of this type. If the value for a key is in the dict is None,
+        all markers of this type will be ignored. If None (default), no offset
+        is added, which may lead to different marker types being mapped to the
+        same event id.
+
+    .. deprecated:: 0.17
+        ``response_trig_shift`` was replaced with the more general
+        ``trig_shift_by_type`` in version 0.17 and will be removed in 0.19.
 
     See Also
     --------
@@ -84,7 +99,24 @@ class RawBrainVision(BaseRaw):
     def __init__(self, vhdr_fname, montage=None,
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                  scale=1., preload=False, response_trig_shift=0,
-                 event_id=None, verbose=None):  # noqa: D107
+                 event_id=None, verbose=None,
+                 trig_shift_by_type=None):  # noqa: D107
+        if response_trig_shift != 0:
+            warnings.warn(
+                "'response_trig_shift' was deprecated in version "
+                "0.17 and will be removed in 0.19. Use "
+                "trig_shift_by_type={{'response': {} }} instead".format(
+                    response_trig_shift), DeprecationWarning)
+            if trig_shift_by_type and 'response' in (
+                    key.lower() for key in trig_shift_by_type):
+                raise ValueError(
+                    'offset for response markers has been specified twice, '
+                    'both using "trig_shift_by_type" and '
+                    '"response_trig_shift"')
+            else:
+                if trig_shift_by_type is None:
+                    trig_shift_by_type = dict()
+                trig_shift_by_type['response'] = response_trig_shift
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = op.abspath(vhdr_fname)
@@ -92,7 +124,7 @@ class RawBrainVision(BaseRaw):
             _get_vhdr_info(vhdr_fname, eog, misc, scale, montage)
         self._order = order
         self._n_samples = n_samples
-        events = _read_vmrk_events(mrk_fname, event_id, response_trig_shift)
+        events = _read_vmrk_events(mrk_fname, event_id, trig_shift_by_type)
         _check_update_montage(info, montage)
         with open(data_filename, 'rb') as f:
             if isinstance(fmt, dict):  # ASCII, this will be slow :(
@@ -198,7 +230,7 @@ def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
         _mult_cal_one(data, block, idx, cals, mult)
 
 
-def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
+def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
     """Read events from a vmrk file.
 
     Parameters
@@ -224,6 +256,23 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     """
     if event_id is None:
         event_id = dict()
+    if trig_shift_by_type is None:
+        trig_shift_by_type = dict()
+    if not isinstance(trig_shift_by_type, dict):
+        raise TypeError("'trig_shift_by_type' must be None or dict")
+    for mrk_type in list(trig_shift_by_type.keys()):
+        cur_shift = trig_shift_by_type[mrk_type]
+        if not isinstance(cur_shift, int) and cur_shift is not None:
+            raise TypeError('shift for type {} must be int or None'.format(
+                mrk_type
+            ))
+        mrk_type_lc = mrk_type.lower()
+        if mrk_type_lc != mrk_type:
+            if mrk_type_lc in trig_shift_by_type:
+                raise ValueError('marker type {} specified twice with'
+                                 'different case'.format(mrk_type_lc))
+            trig_shift_by_type[mrk_type_lc] = cur_shift
+            del trig_shift_by_type[mrk_type]
     # read vmrk file
     with open(fname, 'rb') as fid:
         txt = fid.read()
@@ -233,9 +282,6 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     # same in Latin-1 and UTF-8
     header = txt.decode('ascii', 'ignore').split('\n')[0].strip()
     _check_mrk_version(header)
-    if (response_trig_shift is not None and
-            not isinstance(response_trig_shift, int)):
-        raise TypeError("response_trig_shift must be an integer or None")
 
     # although the markers themselves are guaranteed to be ASCII (they
     # consist of numbers and a few reserved words), we should still
@@ -287,9 +333,10 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
                 trigger = int(re.findall(r'[A-Za-z]*\s*?(\d+)', mdesc)[0])
             except IndexError:
                 trigger = None
-            if mtype.lower().startswith('response'):
-                if response_trig_shift is not None:
-                    trigger += response_trig_shift
+            if mtype.lower() in trig_shift_by_type:
+                cur_shift = trig_shift_by_type[mtype.lower()]
+                if cur_shift is not None:
+                    trigger += cur_shift
                 else:
                     trigger = None
         # FIXME: ideally, we would not use the middle column of the events
@@ -783,7 +830,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 def read_raw_brainvision(vhdr_fname, montage=None,
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                          scale=1., preload=False, response_trig_shift=0,
-                         event_id=None, verbose=None):
+                         event_id=None, verbose=None,
+                         trig_shift_by_type=None):
     """Reader for Brain Vision EEG file.
 
     Parameters
@@ -811,9 +859,11 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         If False, data are not read until save.
     response_trig_shift : int | None
         An integer that will be added to all response triggers when reading
-        events (stimulus triggers will be unaffected). If None, response
-        triggers will be ignored. Default is 0 for backwards compatibility, but
-        typically another value or None will be necessary.
+        events (stimulus triggers will be unaffected). This parameter is
+        deprecated and ``trig_shift_by_type={'response': 1000}`` should be
+        used. If None, response triggers will be ignored. Default is 0 for
+        backwards compatibility, but typically another value or None will be
+        necessary.
     event_id : dict | None
         The id of special events to consider in addition to those that
         follow the normal Brainvision trigger format ('S###').
@@ -824,11 +874,23 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+    trig_shift_by_type: dict | None
+        The names of marker types to which an offset should be added.
+        If dict, the keys specify marker types (case is ignored), so that the
+        corresponding value (an integer) will be added to the trigger value of
+        all events of this type. If the value for a key is in the dict is None,
+        all markers of this type will be ignored. If None (default), no offset
+        is added, which may lead to different marker types being mapped to the
+        same event id.
 
     Returns
     -------
     raw : instance of RawBrainVision
         A Raw object containing BrainVision data.
+
+    .. deprecated:: 0.17
+        ``response_trig_shift`` was replaced with the more general
+        ``trig_shift_by_type`` in version 0.17 and will be removed in 0.19.
 
     See Also
     --------
@@ -838,4 +900,5 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     return RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
                           misc=misc, scale=scale, preload=preload,
                           response_trig_shift=response_trig_shift,
-                          event_id=event_id, verbose=verbose)
+                          event_id=event_id, verbose=verbose,
+                          trig_shift_by_type=trig_shift_by_type)
