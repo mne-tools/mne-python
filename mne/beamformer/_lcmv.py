@@ -5,8 +5,6 @@
 #          Britta Westner <britta.wstnr@gmail.com>
 #
 # License: BSD (3-clause)
-from copy import deepcopy
-
 import numpy as np
 from scipy import linalg
 
@@ -14,13 +12,14 @@ from ..io.pick import (pick_types, pick_channels_cov, pick_info)
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
-from ..source_estimate import _make_stc, SourceEstimate
+from ..source_estimate import _make_stc, SourceEstimate, _get_src_type
 from ..utils import logger, verbose, warn, estimate_rank, _validate_type
 from .. import Epochs
 from ..externals import six
 from ._compute_beamformer import (
     _reg_pinv, _eig_inv, _setup_picks, _pick_channels_spatial_filter,
-    _check_proj_match, _prepare_beamformer_input, _check_one_ch_type)
+    _check_proj_match, _prepare_beamformer_input, _check_one_ch_type,
+    _check_src_type)
 
 
 @verbose
@@ -85,33 +84,33 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         Dictionary containing filter weights from LCMV beamformer.
         Contains the following keys:
 
-            'weights' : {array}
+            'weights' : array
                 The filter weights of the beamformer.
-            'data_cov' : {instance of Covariance}
+            'data_cov' : instance of Covariance
                 The data covariance matrix used to compute the beamformer.
-            'noise_cov' : {instance of Covariance | None}
+            'noise_cov' : instance of Covariance | None
                 The noise covariance matrix used to compute the beamformer.
-            'whitener' : {None | array}
+            'whitener' : None | array
                 Whitening matrix, provided if whitening was applied to the
                 covariance matrix and leadfield during computation of the
                 beamformer weights.
-            'weight_norm' : {'unit-noise-gain'| 'nai' | None}
+            'weight_norm' : 'unit-noise-gain'| 'nai' | None
                 Type of weight normalization used to compute the filter
                 weights.
-            'pick_ori' : {None | 'normal'}
+            'pick_ori' : None | 'normal'
                 Orientation selection used in filter computation.
-            'ch_names' : {list}
+            'ch_names' : list
                 Channels used to compute the beamformer.
-            'proj' : {array}
+            'proj' : array
                 Projections used to compute the beamformer.
-            'is_ssp' : {bool}
+            'is_ssp' : bool
                 If True, projections were applied prior to filter computation.
-            'vertices' : {list}
+            'vertices' : list
                 Vertices for which the filter weights were computed.
-            'is_free_ori' : {bool}
+            'is_free_ori' : bool
                 If True, the filter was computed with free source orientation.
-            'src' : {instance of SourceSpaces}
-                Source space information.
+            'src_type' : str
+                Type of source space.
 
     Notes
     -----
@@ -283,12 +282,19 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         W = W[2::3]
         is_free_ori = False
 
+    # get src type to store with filters for _make_stc
+    src_type = _get_src_type(forward['src'], vertno)
+
+    # get subject to store with filters
+    subject_from = _subject_from_forward(forward)
+
     filters = dict(weights=W, data_cov=data_cov, noise_cov=noise_cov,
                    whitener=whitener, weight_norm=weight_norm,
                    pick_ori=pick_ori, ch_names=ch_names, proj=proj,
                    is_ssp=is_ssp, vertices=vertno, is_free_ori=is_free_ori,
-                   nsource=forward['nsource'], src=deepcopy(forward['src']),
-                   source_nn=forward['source_nn'].copy())
+                   nsource=forward['nsource'], src_type=src_type,
+                   source_nn=forward['source_nn'].copy(),
+                   subject=subject_from)
 
     return filters
 
@@ -307,7 +313,6 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
 
     W = filters['weights']
 
-    subject = _subject_from_forward(filters)
     for i, M in enumerate(data):
         if len(M) != len(filters['ch_names']):
             raise ValueError('data and picks must have the same length')
@@ -344,10 +349,14 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
                 sol = np.abs(sol)
 
         tstep = 1.0 / info['sfreq']
-        # XXX we should pass src to _make_stc
+
+        # compatibility with 0.16, add src_type as None if not present:
+        filters, warn_text = _check_src_type(filters)
+
         yield _make_stc(sol, vertices=filters['vertices'], tmin=tmin,
-                        tstep=tstep, subject=subject, vector=vector,
-                        source_nn=filters['source_nn'])
+                        tstep=tstep, subject=filters['subject'],
+                        vector=vector, source_nn=filters['source_nn'],
+                        src_type=filters['src_type'], warn_text=warn_text)
 
     logger.info('[done]')
 

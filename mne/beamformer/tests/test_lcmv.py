@@ -289,6 +289,9 @@ def test_lcmv():
     assert 0.08 < tmax < 0.15, tmax
     assert 0.4 < np.max(max_stc) < 2., np.max(max_stc)
 
+    # Test if spatial filter contains src_type
+    assert 'src_type' in filters
+
     # Test if fixed forward operator is detected when picking normal or
     # max-power orientation
     pytest.raises(ValueError, make_lcmv, evoked.info, forward_fixed, data_cov,
@@ -342,7 +345,11 @@ def test_lcmv():
                         noise_cov=noise_cov)
     # applying that filter to the full data set should automatically exclude
     # this channel from the data
-    stc = apply_lcmv(evoked, filters, max_ori_out='signed')
+    # also test here that no warnings are thrown - implemented to check whether
+    # src should not be None warning occurs
+    with warnings.catch_warnings(record=True) as wrn:
+        stc = apply_lcmv(evoked, filters, max_ori_out='signed')
+    assert len(wrn) == 0
     # the result should be equal to applying this filter to a dataset without
     # this channel:
     stc_ch = apply_lcmv(evoked_ch, filters, max_ori_out='signed')
@@ -362,6 +369,15 @@ def test_lcmv():
     pytest.raises(NotImplementedError, make_lcmv, evoked.info,
                   forward_surf_ori, data_cov, noise_cov=noise_cov,
                   pick_ori='normal', weight_norm='nai', reduce_rank=True)
+
+    # Test if spatial filter contains src_type
+    assert 'src_type' in filters
+
+    # check whether a filters object without src_type throws expected warning
+    del filters['src_type']  # emulate 0.16 behaviour to cause warning
+    with pytest.warns(RuntimeWarning, match='spatial filter does not contain '
+                      'src_type'):
+        apply_lcmv(evoked, filters, max_ori_out='signed')
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution

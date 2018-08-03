@@ -205,6 +205,9 @@ def test_make_dics():
     w = filters['weights'][0][:3]
     assert not np.allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-2, atol=0)
 
+    # Test whether spatial filter contains src_type
+    assert 'src_type' in filters
+
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
@@ -273,7 +276,12 @@ def test_apply_dics_csd():
     # Test using a real-valued filter
     filters_real = make_dics(epochs.info, fwd_surf, csd, label=label, reg=reg,
                              real_filter=True)
-    power, f = apply_dics_csd(csd, filters_real)
+    # Also test here that no warings are thrown - implemented to check whether
+    # src should not be None warning occurs:
+    with warnings.catch_warnings(record=True) as wrn:
+        power, f = apply_dics_csd(csd, filters_real)
+    assert len(wrn) == 0
+
     assert f == [10, 20]
     assert np.argmax(power.data[:, 1]) == source_ind
     assert power.data[source_ind, 1] > power.data[source_ind, 0]
@@ -294,6 +302,12 @@ def test_apply_dics_csd():
     assert f == [10, 20]
     assert np.argmax(power.data[:, 1]) == vol_source_ind
     assert power.data[vol_source_ind, 1] > power.data[vol_source_ind, 0]
+
+    # check whether a filters object without src_type throws expected warning
+    del filters_vol['src_type']  # emulate 0.16 behaviour to cause warning
+    with pytest.warns(RuntimeWarning, match='spatial filter does not contain '
+                      'src_type'):
+        apply_dics_csd(csd, filters_vol)
 
 
 @testing.requires_testing_data
@@ -324,7 +338,12 @@ def test_apply_dics_timeseries():
     filters = make_dics(evoked.info, fwd_surf, csd20, label=label, reg=reg)
 
     # Sanity checks on the resulting STC after applying DICS on epochs.
-    stcs = apply_dics_epochs(epochs, filters)
+    # Also test here that no warnings are thrown - implemented to check whether
+    # src should not be None warning occurs
+    with warnings.catch_warnings(record=True) as wrn:
+        stcs = apply_dics_epochs(epochs, filters)
+    assert len(wrn) == 0
+
     assert isinstance(stcs, list)
     assert len(stcs) == 1
     assert_array_equal(stcs[0].vertices[0], filters['vertices'][0])
@@ -371,6 +390,12 @@ def test_apply_dics_timeseries():
     stc = apply_dics(evoked, filters_vol)
     stc = (stc ** 2).mean()
     assert np.argmax(stc.data) == 3851  # TODO: don't make this hard coded
+
+    # check whether a filters object without src_type throws expected warning
+    del filters_vol['src_type']  # emulate 0.16 behaviour to cause warning
+    with pytest.warns(RuntimeWarning, match='spatial filter does not contain '
+                      'src_type'):
+        apply_dics_epochs(epochs, filters_vol)
 
 
 @pytest.mark.slowtest

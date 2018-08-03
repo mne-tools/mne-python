@@ -32,7 +32,7 @@ from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _get_vertno,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
 from ..transforms import _ensure_trans, transform_surface_to
-from ..source_estimate import _make_stc
+from ..source_estimate import _make_stc, _get_src_type
 from ..utils import check_fname, logger, verbose, warn
 
 
@@ -951,9 +951,10 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     tmin = float(evoked.times[0])
     subject = _subject_from_inverse(inverse_operator)
 
+    src_type = _get_src_type(inverse_operator['src'], vertno)
     stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
                     vector=(pick_ori == 'vector'), source_nn=source_nn,
-                    src=inverse_operator['src'])
+                    src_type=src_type)
     logger.info('[done]')
 
     return stc
@@ -1091,9 +1092,10 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     tmin = float(times[0])
     tstep = 1.0 / raw.info['sfreq']
     subject = _subject_from_inverse(inverse_operator)
+    src_type = _get_src_type(inverse_operator['src'], vertno)
     stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
                     vector=(pick_ori == 'vector'), source_nn=source_nn,
-                    src=inverse_operator['src'])
+                    src_type=src_type)
     logger.info('[done]')
 
     return stc
@@ -1159,9 +1161,10 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
             else:
                 sol = np.dot(K, e[sel])
 
+        src_type = _get_src_type(inverse_operator['src'], vertno)
         stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
                         vector=(pick_ori == 'vector'), source_nn=source_nn,
-                        src=inverse_operator['src'])
+                        src_type=src_type)
 
         yield stc
 

@@ -6,18 +6,18 @@
 #          Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD (3-clause)
-
 import numpy as np
 from scipy import linalg
 
 from ..utils import logger, verbose, warn
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
-from ..source_estimate import _make_stc
+from ..source_estimate import _make_stc, _get_src_type
 from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
 from ._compute_beamformer import (_reg_pinv, _eig_inv, _setup_picks,
                                   _pick_channels_spatial_filter,
-                                  _check_proj_match, _prepare_beamformer_input)
+                                  _check_proj_match, _prepare_beamformer_input,
+                                  _check_src_type)
 from ..externals import six
 
 
@@ -122,6 +122,8 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                 Number of source orientations defined in the forward model.
             'subject' : str
                 The subject ID.
+            'src_type' : str
+                Type of source space.
 
     See Also
     --------
@@ -326,12 +328,13 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     Ws = np.array(Ws)
 
     subject = _subject_from_forward(forward)
+    src_type = _get_src_type(forward['src'], vertices)
     filters = dict(weights=Ws, csd=csd, ch_names=ch_names, proj=proj,
                    vertices=vertices, subject=subject,
                    pick_ori=pick_ori, inversion=inversion,
                    weight_norm=weight_norm,
-                   normalize_fwd=normalize_fwd, n_orient=n_orient
-                   if pick_ori is None else 1)
+                   normalize_fwd=normalize_fwd, src_type=src_type,
+                   n_orient=n_orient if pick_ori is None else 1)
 
     return filters
 
@@ -348,6 +351,9 @@ def _apply_dics(data, filters, info, tmin):
     one_freq = len(Ws) == 1
 
     subject = filters['subject']
+    # compatibility with 0.16, add src_type as None if not present:
+    filters, warn_text = _check_src_type(filters)
+
     for i, M in enumerate(data):
         if not one_epoch:
             logger.info("Processing epoch : %d" % (i + 1))
@@ -368,9 +374,10 @@ def _apply_dics(data, filters, info, tmin):
 
             tstep = 1.0 / info['sfreq']
 
-            # XXX we should pass src to _make_stc
-            stcs.append(_make_stc(sol, vertices=filters['vertices'], tmin=tmin,
-                                  tstep=tstep, subject=subject))
+            stcs.append(_make_stc(sol, vertices=filters['vertices'],
+                                  src_type=filters['src_type'], tmin=tmin,
+                                  tstep=tstep, subject=subject,
+                                  warn_text=warn_text))
         if one_freq:
             yield stcs[0]
         else:
@@ -568,9 +575,13 @@ def apply_dics_csd(csd, filters, verbose=None):
 
     logger.info('[done]')
 
-    # XXX we should pass src to _make_stc
+    # compatibility with 0.16, add src_type as None if not present:
+    filters, warn_text = _check_src_type(filters)
+
     return (_make_stc(source_power.reshape(-1, n_freqs), vertices=vertices,
-                      tmin=0, tstep=1, subject=subject), frequencies)
+                      src_type=filters['src_type'], tmin=0, tstep=1,
+                      subject=subject, warn_text=warn_text),
+            frequencies)
 
 
 def _apply_old_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
@@ -656,9 +667,10 @@ def _apply_old_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
         tstep = 1.0 / info['sfreq']
         if np.iscomplexobj(sol):
             sol = np.abs(sol)  # XXX : STC cannot contain (yet?) complex values
-        # XXX we should pass src to _make_stc
-        yield _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
-                        subject=subject)
+
+        src_type = _get_src_type(forward['src_type'], vertno)
+        yield _make_stc(sol, vertices=vertno, src_type=src_type, tmin=tmin,
+                        tstep=tstep, subject=subject)
 
     logger.info('[done]')
 
@@ -970,9 +982,13 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
 
     # Creating stc objects containing all time points for each frequency bin
     stcs = []
+    # compatibility with 0.16, add src_type as None if not present:
+    filters, warn_text = _check_src_type(filters)
+
     for i_freq in range(n_freq_bins):
         stc = _make_stc(sol_final[i_freq, :, :].T, vertices=stc.vertices,
-                        tmin=tmin, tstep=tstep, subject=stc.subject)
+                        src_type=filters['src_type'], tmin=tmin, tstep=tstep,
+                        subject=stc.subject, warn_text=warn_text)
         stcs.append(stc)
 
     return stcs
