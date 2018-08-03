@@ -699,6 +699,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                           self.first_samp / self.info['sfreq'])
             else:
                 offset = 0
+
             omit_ind = list()
             omitted = limited = 0
             for ind, onset in enumerate(new_annot.onset):
@@ -2175,8 +2176,12 @@ class _RawShell():
     def n_times(self):  # noqa: D102
         return self.last_samp - self.first_samp + 1
 
+    @property
+    def annotations(self):  # noqa: D102
+        return self._annotations
+
     def set_annotations(self, annotations):
-        self.annotations = annotations
+        self._annotations = annotations
 
 
 ###############################################################################
