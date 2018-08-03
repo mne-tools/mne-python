@@ -9,6 +9,7 @@ import pytest
 import copy
 import warnings
 
+import mne
 from mne.datasets import testing
 from mne.label import read_label, label_sign_flip
 from mne.event import read_events
@@ -852,6 +853,22 @@ def test_make_inverse_operator_bads():
 
     assert (len(set(inv_['info']['ch_names']) - union_good) == 0)
     assert (len(set(inv_['info']['bads']) - union_bads) == 0)
+
+
+@testing.requires_testing_data
+def test_inverse_ctf_comp():
+    """Test interpolation with compensated CTF data."""
+    ctf_dir = op.join(testing.data_path(download=False), 'CTF')
+    raw_fname = op.join(ctf_dir, 'somMDYO-18av.ds')
+    raw = mne.io.read_raw_ctf(raw_fname)
+    raw.apply_gradient_compensation(1)
+    sphere = make_sphere_model()
+    cov = make_ad_hoc_cov(raw.info)
+    src = mne.setup_volume_source_space(
+        pos=dict(rr=[[0., 0., 0.01]], nn=[[0., 1., 0.]]))
+    fwd = make_forward_solution(raw.info, None, src, sphere, eeg=False)
+    inv = make_inverse_operator(raw.info, fwd, cov, loose=1.)
+    apply_inverse_raw(raw, inv, 1. / 9.)
 
 
 run_tests_if_main()
