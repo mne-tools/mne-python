@@ -693,11 +693,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             new_annot = annotations.copy()
             meas_date = _handle_meas_date(self.info['meas_date'])
-            if meas_date is None:
-                meas_date = 0
-            elif not np.isscalar(meas_date):
-                if len(meas_date) > 1:
-                    meas_date = meas_date[0] + meas_date[1] / 1000000.
+
             if new_annot.orig_time is not None:
                 offset = (new_annot.orig_time - meas_date -
                           self.first_samp / self.info['sfreq'])
