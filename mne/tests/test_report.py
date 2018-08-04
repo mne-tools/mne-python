@@ -136,6 +136,18 @@ def test_render_report():
     # ndarray support smoke test
     report.add_figs_to_section(np.zeros((2, 3, 3)), 'caption', 'section')
 
+    # PSD functionality
+    with pytest.raises(TypeError, match='dict'):
+        Report(raw_psd='foo')
+
+    tempdir = _TempDir()
+    raw_fname_new = op.join(tempdir, 'temp_raw.fif')
+    shutil.copyfile(raw_fname, raw_fname_new)
+    report = Report(raw_psd=dict(tmax=2.))
+    report.parse_folder(data_path=tempdir, on_error='raise')
+    assert isinstance(report.html, list)
+    assert 'PSD' in ''.join(report.html)
+
 
 @testing.requires_testing_data
 @requires_mayavi

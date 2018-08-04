@@ -27,6 +27,7 @@ from .forward import read_forward_solution
 from .epochs import read_epochs
 from .minimum_norm import read_inverse_operator
 from .parallel import parallel_func, check_n_jobs
+from .viz.raw import _data_types
 
 from .externals.tempita import HTMLTemplate, Template
 from .externals.six import BytesIO
@@ -46,11 +47,8 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
 
 def _ndarray_to_fig(img):
     """Convert to MPL figure, adapted from matplotlib.image.imsave."""
-    from matplotlib.figure import Figure
-    from matplotlib.backends.backend_agg import FigureCanvasAgg
     figsize = np.array(img.shape[:2][::-1]) / 100.
-    fig = Figure(dpi=100, figsize=figsize, frameon=False)
-    FigureCanvasAgg(fig)
+    fig = _figure_agg(dpi=100, figsize=figsize, frameon=False)
     fig.figimage(img)
     return fig
 
@@ -315,26 +313,31 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
 
     return htmls, report_fnames, report_sectionlabels
 
+
 ###############################################################################
 # IMAGE FUNCTIONS
+
+def _figure_agg(**kwargs):
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+    fig = Figure(**kwargs)
+    FigureCanvas(fig)
+    return fig
 
 
 def _build_image_png(data, cmap='gray'):
     """Build an image encoded in base64."""
     import matplotlib.pyplot as plt
-    from matplotlib.figure import Figure
-    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
     figsize = data.shape[::-1]
     if figsize[0] == 1:
         figsize = tuple(figsize[1:])
         data = data[:, :, 0]
-    fig = Figure(figsize=figsize, dpi=1.0, frameon=False)
-    FigureCanvas(fig)
+    fig = _figure_agg(figsize=figsize, dpi=92, frameon=False)
     cmap = getattr(plt.cm, cmap, plt.cm.gray)
     fig.figimage(data, cmap=cmap)
     output = BytesIO()
-    fig.savefig(output, dpi=1.0, format='png')
+    fig.savefig(output, dpi=92, format='png')
     return base64.b64encode(output.getvalue()).decode('ascii')
 
 
@@ -808,6 +811,12 @@ class Report(object):
 
         .. versionadded:: 0.15
 
+    raw_psd : bool | dict
+        If True, include PSD plots for raw files. Can be False (default) to
+        omit, True to plot, or a dict to pass as ``kwargs`` to
+        :meth:`mne.io.Raw.plot_psd`.
+
+        .. versionadded:: 0.17
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -821,7 +830,7 @@ class Report(object):
 
     def __init__(self, info_fname=None, subjects_dir=None,
                  subject=None, title=None, cov_fname=None, baseline=None,
-                 image_format='png', verbose=None):  # noqa: D102
+                 image_format='png', raw_psd=False, verbose=None):
         self.info_fname = info_fname
         self.cov_fname = cov_fname
         self.baseline = baseline
@@ -840,7 +849,11 @@ class Report(object):
         # boolean to specify if sections should be ordered in natural
         # order of processing (raw -> events ... -> inverse)
         self._sort_sections = False
-
+        raw_psd = {} if raw_psd is True else raw_psd
+        if raw_psd is not False and not isinstance(raw_psd, dict):
+            raise TypeError('raw_psd must be bool or dict, got %s'
+                            % (type(raw_psd),))
+        self._raw_psd = raw_psd
         self._init_render()  # Initialize the renderer
 
     def __repr__(self):
@@ -1558,6 +1571,7 @@ class Report(object):
 
     def _render_raw(self, raw_fname):
         """Render raw (only text)."""
+        import matplotlib.pyplot as plt
         global_id = self._get_id()
 
         raw = read_raw_fif(raw_fname, allow_maxshield='yes')
@@ -1587,6 +1601,19 @@ class Report(object):
             div_klass='raw', id=global_id, caption=caption, info=raw.info,
             meas_date=meas_date, n_eeg=n_eeg, n_grad=n_grad, n_mag=n_mag,
             eog=eog, ecg=ecg, tmin=tmin, tmax=tmax)
+
+        if isinstance(self._raw_psd, dict):
+            from matplotlib.backends.backend_agg import FigureCanvasAgg
+            n_ax = sum(kind in raw for kind in _data_types)
+            fig, axes = plt.subplots(n_ax, 1, figsize=(6, 1 + 1.5 * n_ax),
+                                     dpi=92)
+            FigureCanvasAgg(fig)
+            img = _fig_to_img(raw.plot_psd, self.image_format,
+                              ax=axes, **self._raw_psd)
+            new_html = image_template.substitute(
+                img=img, div_klass='raw', img_klass='raw',
+                caption='PSD', show=True, image_format=self.image_format)
+            html += '\n\n' + new_html
         return html
 
     def _render_forward(self, fwd_fname):

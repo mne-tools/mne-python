@@ -1043,11 +1043,11 @@ Realtime
 MNE-Report
 ==========
 
-:py:mod:`mne.report`:
+:py:mod:`mne`:
 
-.. currentmodule:: mne.report
+.. currentmodule:: mne
 
-.. automodule:: mne.report
+.. automodule:: mne
    :no-members:
    :no-inherited-members:
 

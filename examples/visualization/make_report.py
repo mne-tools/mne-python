@@ -26,7 +26,7 @@ evoked_fname = meg_path + '/sample_audvis-ave.fif'
 # Do standard folder parsing (this can take a couple of minutes):
 
 report = Report(image_format='png', subjects_dir=subjects_dir,
-                info_fname=evoked_fname, subject='sample')
+                info_fname=evoked_fname, subject='sample', raw_psd=True)
 report.parse_folder(meg_path)
 
 ###############################################################################

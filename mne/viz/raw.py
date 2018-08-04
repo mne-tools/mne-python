@@ -538,6 +538,9 @@ def _label_clicked(pos, params):
     _plot_update_raw_proj(params, None)
 
 
+_data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog')
+
+
 def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     """Set PSD plot params."""
     import matplotlib.pyplot as plt
@@ -545,11 +548,11 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
         raise ValueError('"area_mode" must be "std", "range", or None')
 
     # XXX this could be refactored more with e.g., plot_evoked
+    # XXX when it's refactored, Report._render_raw will need to be updated
     megs = ['mag', 'grad', False, False, False]
     eegs = [False, False, True, False, False]
     seegs = [False, False, False, True, False]
     ecogs = [False, False, False, False, True]
-    names = ['mag', 'grad', 'eeg', 'seeg', 'ecog']
     titles = _handle_default('titles', None)
     units = _handle_default('units', None)
     scalings = _handle_default('scalings', None)
@@ -557,7 +560,8 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     titles_list = list()
     units_list = list()
     scalings_list = list()
-    for meg, eeg, seeg, ecog, name in zip(megs, eegs, seegs, ecogs, names):
+    for meg, eeg, seeg, ecog, name in zip(megs, eegs, seegs, ecogs,
+                                          _data_types):
         these_picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
                                  ref_meg=False)
         if picks is not None:
@@ -579,7 +583,6 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
         ax_list = ax
     del picks
 
-    make_label = False
     fig = None
     if ax is None:
         fig = plt.figure()
@@ -594,6 +597,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
         make_label = True
     else:
         fig = ax_list[0].get_figure()
+        make_label = len(ax_list) == len(fig.axes)
 
     return (fig, picks_list, titles_list, units_list, scalings_list,
             ax_list, make_label)

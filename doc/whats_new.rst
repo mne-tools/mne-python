@@ -33,6 +33,8 @@ Changelog
 
 - Add support for reading MATLAB ``v7.3+`` files in :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` via `pymatreader`_ by `Steven Gutstein`_, `Eric Larson`_, and `Thomas Hartmann`_
 
+- Add support for raw PSD plots in :meth:`mne.Report.parse_folder` via ``raw_psd`` argument of :class:`mne.Report` by `Eric Larson`_
+
 - Add `trig_shift_by_type` parameter in :func:`mne.io.read_raw_brainvision` to allow to specify offsets for arbitrary marker types by `Henrich Kolkhorst`_
 
 Bug
@@ -124,7 +126,7 @@ Changelog
 
 - Reduce memory consumption and do not require data to be loaded in :meth:`mne.Epochs.apply_baseline` by `Eric Larson`_
 
-- Add option ``render_bem`` to :meth:`mne.report.Report.parse_folder` by `Eric Larson`_
+- Add option ``render_bem`` to :meth:`mne.Report.parse_folder` by `Eric Larson`_
 
 - Add to :func:`mne.viz.plot_alignment` plotting of coordinate frame axes via ``show_axes`` and terrain-style interaction via ``interaction``, by `Eric Larson`_
 
@@ -136,7 +138,7 @@ Changelog
 
 - Add possibility to concatenate `mne.Annotations` objects with ``+`` or ``+=`` operators by `Clemens Brunner`_
 
-- Add support for MaxShield raw files in :class:`mne.report.Report` by `Eric Larson`_
+- Add support for MaxShield raw files in :class:`mne.Report` by `Eric Larson`_
 
 - Add ability to plot whitened data in :meth:`mne.io.Raw.plot`, :meth:`mne.Epochs.plot`, :meth:`mne.Evoked.plot`, and :meth:`mne.Evoked.plot_topo` by `Eric Larson`_
 
@@ -243,9 +245,9 @@ Bug
 
 - Fix bug in :class:`mne.Epochs` when passing events as list with ``event_id=None``  by `Alex Gramfort`_
 
-- Fix bug in :meth:`mne.report.Report.add_figs_to_section` when passing :class:`numpy.ndarray` by `Eric Larson`_
+- Fix bug in :meth:`mne.Report.add_figs_to_section` when passing :class:`numpy.ndarray` by `Eric Larson`_
 
-- Fix bug in CSS class setting in `mne.report.Report` BEM section by `Eric Larson`_
+- Fix bug in CSS class setting in `mne.Report` BEM section by `Eric Larson`_
 
 - Fix bug in :class:`Annotations` where annotations that extend to the end of a recording were not extended properly by `Eric Larson`_
 
@@ -429,7 +431,7 @@ Changelog
 
 - Add MGH 60- and 70-channel standard montages to :func:`mne.channels.read_montage` by `Eric Larson`_
 
-- Add option for embedding SVG instead of PNG in HTML for :class:`mne.report.Report` by `Eric Larson`_
+- Add option for embedding SVG instead of PNG in HTML for :class:`mne.Report` by `Eric Larson`_
 
 - Add confidence intervals, number of free parameters, and χ² to :func:`mne.fit_dipole` and :func:`mne.read_dipole` by `Eric Larson`_
 
@@ -1515,7 +1517,7 @@ Changelog
 
 - Add support for scaling and adjusting the number of channels/time per view by `Jaakko Leppakangas`_
 
-- Add support to toggle the show/hide state of all sections with a single keypress ('t') in :class:`mne.report.Report` by `Mainak Jas`_
+- Add support to toggle the show/hide state of all sections with a single keypress ('t') in :class:`mne.Report` by `Mainak Jas`_
 
 - Add support for BEM model creation :func:`mne.make_bem_model` by `Eric Larson`_
 
@@ -1573,7 +1575,7 @@ Changelog
 
 - New gfp parameter in :func:`mne.Evoked.plot` method to display Global Field Power (GFP) by `Eric Larson`_.
 
-- Add :meth:`mne.report.Report.add_slider_to_section` methods to :class:`mne.report.Report` by `Teon Brooks`_
+- Add :meth:`mne.Report.add_slider_to_section` methods to :class:`mne.Report` by `Teon Brooks`_
 
 BUG
 ~~~
@@ -1734,7 +1736,7 @@ Changelog
 
 - Add ``evoked.as_type`` to  allow remapping data in MEG channels to virtual magnetometer or gradiometer channels by `Mainak Jas`_
 
-- Add :meth:`mne.report.Report.add_bem_to_section`, :meth:`mne.report.Report.add_htmls_to_section` methods to :class:`mne.report.Report` by `Teon Brooks`_
+- Add :meth:`mne.Report.add_bem_to_section`, :meth:`mne.Report.add_htmls_to_section` methods to :class:`mne.Report` by `Teon Brooks`_
 
 - Add support for KIT epochs files with ``read_epochs_kit`` by `Teon Brooks`_
 
