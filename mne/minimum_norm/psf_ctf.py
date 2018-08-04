@@ -240,9 +240,6 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
     # convert identity matrix to evoked data type (pretending it's an epoch)
     ev_id = EvokedArray(id_mat, info=info, tmin=0.)
 
-    snr = 3.0
-    lambda2 = 1.0 / snr ** 2
-
     # apply inverse operator to identity matrix in order to get inverse matrix
     # free orientation constraint not possible because apply_inverse would
     # combined components
