@@ -250,4 +250,4 @@ def test_cross_val_predict():
 
     base_estimator = LogisticRegression()
     cross_val_predict(SlidingEstimator(base_estimator), X, y,
-                                 method='predict_proba')
+                      method='predict_proba')
