@@ -85,15 +85,12 @@ print(epochs['Right', 'Left'])
 
 
 ###############################################################################
-# Note that MNE will not complain if you ask for tags not present in the object.
-# If none of your tags match any of the conditions, it might even return an
-# empty object!
+# Note that MNE will not complain if you ask for tags not present in the object,
+# as long as it can find some match.
 
 epochs_r = epochs['Right']
 epochs_still_only_r = epochs_r[['Right', 'Left']]
 print(epochs_still_only_r)
-
-print(epochs["Not_included"])
 
 ###############################################################################
 # It is also possible to iterate through :class:`Epochs <mne.Epochs>` objects
