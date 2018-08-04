@@ -76,6 +76,14 @@ print(epochs[1:5])
 print(epochs['Auditory/Right'])
 
 ###############################################################################
+# Note the '/'s in the event code labels. These separators allow tag-based
+# selection of epoch sets; every string separated by '/' can be entered, and
+# returns the subset of epochs matching any of the strings. E.g.,
+
+print(epochs['Right'])
+print(epochs['Right', 'Left'])
+
+###############################################################################
 # It is also possible to iterate through :class:`Epochs <mne.Epochs>` objects
 # in this way. Note that behavior is different if you iterate on `Epochs`
 # directly rather than indexing:
