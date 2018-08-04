@@ -409,6 +409,8 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
         if len(idx) > 0:
             # Set amplitude scaling
             D = this_scaling * data[idx, :]
+            if (D != D).any():
+                raise ValueError("Some of the values to be plotted are NaN.")
             gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
             if not gfp_only:
                 chs = [info['chs'][i] for i in idx]
@@ -576,6 +578,9 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         vmin = -vmax
     else:
         vmin, vmax = ylim[this_type]
+
+    if (data != data).any():
+        raise ValueError("Some of the values to be plotted are NaN.")
 
     im, t_end = _plot_masked_image(
         ax, data, times, mask, picks=None, yvals=None, cmap=cmap[0],
@@ -1989,7 +1994,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         if _ci_fun is not None:  # compute CI if requested:
             ci_dict[cond] = _ci_fun(data)
         # average across conditions:
-        data_dict[cond] = np.mean(data, axis=0)
+        data_dict[cond] = data = np.mean(data, axis=0)
+        if (data != data).any():
+            raise ValueError("Some of the values to be plotted are NaN.")
 
     del evokeds
 
