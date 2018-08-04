@@ -236,3 +236,18 @@ def test_generalization_light():
         features_shape = pipe.estimators_[0].steps[0][1].features_shape_
         assert_array_equal(features_shape, [3, 4])
     assert_array_equal(y_preds[0], y_preds[1])
+
+
+@requires_version('sklearn', '0.17')
+def test_cross_val_predict():
+    from sklearn.linear_model import LogisticRegression, LinearRegression
+    from sklearn.model_selection import cross_val_predict
+    X = np.random.randn(10, 5, 3)
+    y = np.random.randint(0, 2, 10)
+
+    base_estimator = LinearRegression()
+    cross_val_predict(SlidingEstimator(base_estimator), X, y)
+
+    base_estimator = LogisticRegression()
+    cross_val_predict(SlidingEstimator(base_estimator), X, y,
+                                 method='predict_proba')
