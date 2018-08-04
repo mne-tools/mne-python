@@ -813,14 +813,21 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Provide a wrapper for Py3k."""
         return self.next(*args, **kwargs)
 
-    def average(self, picks=None):
-        """Compute average of epochs.
+    def average(self, picks=None, method="mean"):
+        """Compute an aggregate over epochs. Defaults to the mean.
 
         Parameters
         ----------
         picks : array-like of int | None
             If None only MEG, EEG, SEEG, ECoG, and fNIRS channels are kept
             otherwise the channels indices in picks are kept.
+        method : str | callable
+            How to combine the data. If "mean", "std" or "gfp", the mean,
+            standard deviation or global field power are returned.
+            Otherwise, must be a callable which, when passed an (a x b x c)
+            array of floats, returns a (b x c) array of floats; e.g.:
+            
+                epochs.average(method=lambda x: np.median(x, axis=0))
 
         Returns
         -------
@@ -838,7 +845,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         are not considered data channels (they are of misc type) and only data
         channels are selected when picks is None.
         """
-        return self._compute_mean_or_stderr(picks, 'ave')
+        return self._compute_aggregate(picks, method)
 
     def standard_error(self, picks=None):
         """Compute standard error over epochs.
@@ -854,12 +861,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         evoked : instance of Evoked
             The standard error over epochs.
         """
-        return self._compute_mean_or_stderr(picks, 'stderr')
+        return self._compute_aggregate(picks, "std")
 
-    def _compute_mean_or_stderr(self, picks, mode='ave'):
+    def _compute_aggregate(self, picks, mode='mean'):
         """Compute the mean or std over epochs and return Evoked."""
-        _do_std = True if mode == 'stderr' else False
-
         # if instance contains ICA channels they won't be included unless picks
         # is specified
         if picks is None:
@@ -876,10 +881,22 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if self.preload:
             n_events = len(self.events)
-            fun = np.std if _do_std else np.mean
-            data = fun(self._data, axis=0)
+            modes = {"mean": lambda x: np.mean(x, axis=0),
+                     "std": lambda x: np.std(x, axis=0),
+                     "gfp": lambda x: np.sqrt((x * x).mean(axis=0))
+                     }
+            if mode in modes:
+                fun = modes[mode]
+            elif callable(mode):
+                pass
+            else:
+                raise ValueError("mode must be mean, std, gfp, or a callable.")
+            data = fun(self._data)
             assert len(self.events) == len(self._data)
         else:
+            if mode not in {"mean", "std"}:
+                raise ValueError("If data are not preloaded, can only compute "
+                                 "mean or standard deviation.")
             data = np.zeros((n_channels, n_times))
             n_events = 0
             for e in self:
@@ -893,18 +910,23 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             # convert to stderr if requested, could do in one pass but do in
             # two (slower) in case there are large numbers
-            if _do_std:
+            if mode == "std":
                 data_mean = data.copy()
                 data.fill(0.)
                 for e in self:
                     data += (e - data_mean) ** 2
                 data = np.sqrt(data / n_events)
 
-        if not _do_std:
+        if mode == "mean":
             kind = 'average'
-        else:
+        elif mode == "std":
             kind = 'standard_error'
             data /= np.sqrt(n_events)
+        else:
+            if isinstance(mode, str):
+                kind = mode
+            else:
+                kind = "custom"
 
         return self._evoked_from_epoch_data(data, self.info, picks, n_events,
                                             kind, self._name)
