@@ -476,7 +476,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         match = re.findall(regexp, line.strip())
 
         # Always take first measurement date we find
-        if match:
+        if match and match[0] != '00000000000000000000':
             date_str = match[0]
             meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
 
