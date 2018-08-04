@@ -5,10 +5,9 @@
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#          Phillip Alday <phillip.alday@mpi.nl>
+#          Phillip Alday <phillip.alday@unisa.edu.au>
 #          Okba Bekhelifi <okba.bekhelifi@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#
 # License: BSD (3-clause)
 
 import os
@@ -32,7 +31,7 @@ from ...externals.six.moves import configparser
 
 
 class RawBrainVision(BaseRaw):
-    """Raw object from a Brain Vision EEG file.
+    """Raw object from Brain Vision EEG file.
 
     Parameters
     ----------
@@ -77,7 +76,6 @@ class RawBrainVision(BaseRaw):
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
-
     """
 
     @verbose
@@ -148,7 +146,6 @@ class RawBrainVision(BaseRaw):
         events : array, shape (n_events, 3)
             Events, each row consisting of an (onset, duration, trigger)
             sequence.
-
         """
         return self._events.copy()
 
@@ -160,7 +157,6 @@ class RawBrainVision(BaseRaw):
         events : array, shape (n_events, 3)
             Events, each row consisting of an (onset, duration, trigger)
             sequence.
-
         """
         self._create_event_ch(events)
 
@@ -169,6 +165,7 @@ class RawBrainVision(BaseRaw):
         if n_samp is None:
             n_samp = self.last_samp - self.first_samp + 1
         events = np.array(events, int)
+
         if events.ndim != 2 or events.shape[1] != 3:
             raise ValueError("[n_events x 3] shaped array required")
         # update events
@@ -220,7 +217,6 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     events : array, shape (n_events, 3)
         An array containing the whole recording's events, each row representing
         an event as (onset, duration, trigger) sequence.
-
     """
     if event_id is None:
         event_id = dict()
@@ -265,7 +261,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
         txt = txt.decode('latin-1')
 
     # extract Marker Infos block
-    m = re.search(r"\[Marker Infos\]", txt)
+    m = re.search(r"\[Marker Infos\]", txt, re.IGNORECASE)
     if not m:
         return np.zeros((0, 3))
     mk_txt = txt[m.end():]
@@ -329,6 +325,7 @@ def _check_hdr_version(header):
 def _check_mrk_version(header):
     """Check the marker version."""
     tags = ['Brain Vision Data Exchange Marker File, Version 1.0',
+            'Brain Vision Data Exchange Marker File Version 1.0',
             'Brain Vision Data Exchange Marker File, Version 2.0']
     if header not in tags:
         raise ValueError("Currently only support %r, not %r"
@@ -386,7 +383,6 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         A dict containing Brain Vision specific parameters.
     events : array, shape (n_events, 3)
         Events from the corresponding vmrk file.
-
     """
     scale = float(scale)
     ext = op.splitext(vhdr_fname)[-1]
@@ -436,16 +432,22 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
     # get sampling info
     # Sampling interval is given in microsec
-    sfreq = 1e6 / cfg.getfloat('Common Infos', 'SamplingInterval')
+    cinfostr = 'Common Infos'
+    if not cfg.has_section(cinfostr):
+        cinfostr = 'Common infos'  # NeurOne BrainVision export workaround
+
+    # get sampling info
+    # Sampling interval is given in microsec
+    sfreq = 1e6 / cfg.getfloat(cinfostr, 'SamplingInterval')
     info = _empty_info(sfreq)
 
-    order = cfg.get('Common Infos', 'DataOrientation')
+    order = cfg.get(cinfostr, 'DataOrientation')
     if order not in _orientation_dict:
         raise NotImplementedError('Data Orientation %s is not supported'
                                   % order)
     order = _orientation_dict[order]
 
-    data_format = cfg.get('Common Infos', 'DataFormat')
+    data_format = cfg.get(cinfostr, 'DataFormat')
     if data_format == 'BINARY':
         fmt = cfg.get('Binary Infos', 'BinaryFormat')
         if fmt not in _fmt_dict:
@@ -461,8 +463,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
     # locate EEG binary file and marker file for the stim channel
     path = op.dirname(vhdr_fname)
-    data_filename = op.join(path, cfg.get('Common Infos', 'DataFile'))
-    mrk_fname = op.join(path, cfg.get('Common Infos', 'MarkerFile'))
+    data_filename = op.join(path, cfg.get(cinfostr, 'DataFile'))
+    mrk_fname = op.join(path, cfg.get(cinfostr, 'MarkerFile'))
 
     # Try to get measurement date from marker file
     # Usually saved with a marker "New Segment", see BrainVision documentation
@@ -491,11 +493,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         info['meas_date'] = DATE_NONE
 
     # load channel labels
-    nchan = cfg.getint('Common Infos', 'NumberOfChannels') + 1
+    nchan = cfg.getint(cinfostr, 'NumberOfChannels') + 1
     n_samples = None
     if order == 'C':
         try:
-            n_samples = cfg.getint('Common Infos', 'DataPoints')
+            n_samples = cfg.getint(cinfostr, 'DataPoints')
         except configparser.NoOptionError:
             logger.warning('No info on DataPoints found. Inferring number of '
                            'samples from the data file size.')
