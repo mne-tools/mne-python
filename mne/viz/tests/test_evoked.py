@@ -135,6 +135,13 @@ def test_plot_evoked():
 
     evoked.plot_image(proj=True, time_unit='ms')
 
+    # fail nicely on NaN
+    evoked_nan = evoked.copy()
+    evoked_nan.data[:, 0] = np.nan
+    pytest.raises(ValueError, evoked_nan.plot)
+    pytest.raises(ValueError, evoked_nan.plot_image)
+    pytest.raises(ValueError, evoked_nan.plot_joint)
+
     # test mask
     evoked.plot_image(picks=[1, 2], mask=evoked.data > 0, time_unit='s')
     evoked.plot_image(picks=[1, 2], mask_cmap=None, colorbar=False,
