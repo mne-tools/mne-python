@@ -377,10 +377,7 @@ def fft_resample(x, W, new_len, npads, to_removes, cuda_dict=None,
 
     # now let's trim it back to the correct size (if there was padding)
     if (to_removes > 0).any():
-        keep = np.ones((new_len), dtype='bool')
-        keep[:to_removes[0]] = False
-        keep[-to_removes[1]:] = False
-        y = np.compress(keep, y)
+        y = y[to_removes[0]:y.shape[0] - to_removes[1]]
 
     return y
 
