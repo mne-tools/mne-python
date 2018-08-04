@@ -240,6 +240,7 @@ def test_generalization_light():
 
 @requires_version('sklearn', '0.17')
 def test_cross_val_predict():
+    """Test cross_val_predict with predict_proba."""
     from sklearn.linear_model import LogisticRegression, LinearRegression
     from sklearn.model_selection import cross_val_predict
     X = np.random.randn(10, 5, 3)
