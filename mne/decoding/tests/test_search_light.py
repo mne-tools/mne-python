@@ -252,7 +252,8 @@ def test_cross_val_predict():
     cross_val_predict(estimator, X, y, cv=2)
 
     class Classifier(BaseEstimator):
-        """Moch class that does not have classes_ attribute"""
+        """Moch class that does not have classes_ attribute."""
+
         def __init__(self):
             self.base_estimator = LinearDiscriminantAnalysis()
 
