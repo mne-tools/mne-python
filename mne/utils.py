@@ -2825,5 +2825,5 @@ def linkcode_resolve(domain, info):
 
 def _check_if_nan(data, msg=" to be plotted"):
     """Raise if any of the values are NaN."""
-    if (data != data).any():
+    if not np.isfinite(data).all():
         raise ValueError("Some of the values {} are NaN.".format(msg))
