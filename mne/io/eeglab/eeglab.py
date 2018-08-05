@@ -675,9 +675,12 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
         logger.info('No events found, returning empty stim channel ...')
         return np.zeros((0, 3))
 
-    if (latencies < 0).any():
+    if (latencies < -1).any():
         raise ValueError('At least one event sample index is negative. Please'
                          ' check if EEG.event.sample values are correct.')
+    if (latencies == -1).any():
+        warn("Some events have a sample index of -1. This may cause issues "
+             "during, e.g., resampling.")
 
     not_in_event_id = set(x for x in types if x not in event_id)
     not_purely_numeric = set(x for x in not_in_event_id if not x.isdigit())
@@ -703,7 +706,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
     for tt, latency in zip(types, latencies):
         try:  # look up the event in event_id and if not, try event_id_func
             event_code = event_id[tt] if tt in event_id else event_id_func(tt)
-            events.append([int(latency), 1, event_code])
+            events.append([int(round(latency)), 1, event_code])
         except (ValueError, TypeError):  # if event_id_func fails
             pass  # We're already raising warnings above, so we just drop
 
