@@ -897,7 +897,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     raise RuntimeError("You passed a function that resulted "
                                        "in data of shape {}, but it should be "
                                        "{}.".format(data.shape,
-                                                    self._data.shape[1:])
+                                                    self._data.shape[1:]))
         else:
             if mode not in {"mean", "std"}:
                 raise ValueError("If data are not preloaded, can only compute "
