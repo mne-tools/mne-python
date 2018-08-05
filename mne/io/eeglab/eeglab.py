@@ -675,7 +675,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
         logger.info('No events found, returning empty stim channel ...')
         return np.zeros((0, 3))
 
-    if (latencies < -1).any()::
+    if (latencies < -1).any():
         raise ValueError('At least one event sample index is negative. Please'
                          ' check if EEG.event.sample values are correct.')
     if (latencies == -1).any():
