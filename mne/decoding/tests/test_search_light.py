@@ -2,7 +2,6 @@
 #
 # License: BSD (3-clause)
 
-import warnings
 import numpy as np
 from numpy.testing import assert_array_equal, assert_equal
 import pytest
@@ -241,11 +240,13 @@ def test_generalization_light():
 @requires_version('sklearn', '0.17')
 def test_cross_val_predict():
     """Test cross_val_predict with predict_proba."""
-    from sklearn.linear_model import LogisticRegression, LinearRegression
+    from sklearn.linear_model import LinearRegression
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
     from sklearn.base import BaseEstimator, clone
     from sklearn.model_selection import cross_val_predict
-    X = np.random.randn(10, 5, 3)
-    y = np.random.randint(0, 2, 10)
+    rng = np.random.RandomState(42)
+    X = rng.randn(10, 1, 3)
+    y = rng.randint(0, 2, 10)
 
     estimator = SlidingEstimator(LinearRegression())
     cross_val_predict(estimator, X, y, cv=2)
@@ -253,7 +254,7 @@ def test_cross_val_predict():
     class Classifier(BaseEstimator):
         """Moch class that does not have classes_ attribute"""
         def __init__(self):
-            self.base_estimator = LogisticRegression()
+            self.base_estimator = LinearDiscriminantAnalysis()
 
         def fit(self, X, y):
             self.estimator_ = clone(self.base_estimator).fit(X, y)
@@ -262,10 +263,9 @@ def test_cross_val_predict():
         def predict_proba(self, X):
             return self.estimator_.predict_proba(X)
 
-    with warnings.catch_warnings(record=True):
-        with pytest.raises(AttributeError, match="classes_ attribute"):
-            estimator = SlidingEstimator(Classifier())
-            cross_val_predict(estimator, X, y, method='predict_proba', cv=2)
-
-        estimator = SlidingEstimator(LogisticRegression())
+    with pytest.raises(AttributeError, match="classes_ attribute"):
+        estimator = SlidingEstimator(Classifier())
         cross_val_predict(estimator, X, y, method='predict_proba', cv=2)
+
+    estimator = SlidingEstimator(LinearDiscriminantAnalysis())
+    cross_val_predict(estimator, X, y, method='predict_proba', cv=2)
