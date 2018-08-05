@@ -8,7 +8,6 @@ from scipy.spatial.distance import cdist
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_almost_equal, assert_allclose,
                            assert_array_less)
-import warnings
 
 import mne
 from mne.datasets import testing
@@ -32,9 +31,6 @@ fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
 fname_event = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc_raw-eve.fif')
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
-
 
 reject = dict(grad=4000e-13, mag=4e-12)
 
@@ -92,11 +88,10 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
 
     noise_cov = mne.read_cov(fname_cov)
     noise_cov['projs'] = []  # avoid warning
-    with warnings.catch_warnings(record=True):  # bad proj
-        noise_cov = mne.cov.regularize(noise_cov, info, mag=0.05, grad=0.05,
-                                       eeg=0.1, proj=True)
+    noise_cov = mne.cov.regularize(noise_cov, info, mag=0.05, grad=0.05,
+                                   eeg=0.1, proj=True)
     if data_cov:
-        with warnings.catch_warnings(record=True):  # too few samples
+        with pytest.warns(RuntimeWarning, match='samples'):
             data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.145)
     else:
         data_cov = None
@@ -347,7 +342,7 @@ def test_lcmv():
     # this channel from the data
     # also test here that no warnings are thrown - implemented to check whether
     # src should not be None warning occurs
-    with warnings.catch_warnings(record=True) as wrn:
+    with pytest.warns(None) as wrn:
         stc = apply_lcmv(evoked, filters, max_ori_out='signed')
     assert len(wrn) == 0
     # the result should be equal to applying this filter to a dataset without
@@ -521,7 +516,7 @@ def test_tf_lcmv():
         epochs_band = mne.Epochs(
             raw_band, epochs.events, epochs.event_id, tmin=tmin, tmax=tmax,
             baseline=None, proj=True)
-        with warnings.catch_warnings(record=True):  # not enough samples
+        with pytest.warns(RuntimeWarning, match='samples'):
             noise_cov = mne.compute_covariance(
                 epochs_band, tmin=tmin, tmax=tmin + win_length)
         noise_cov = mne.cov.regularize(
@@ -534,10 +529,10 @@ def test_tf_lcmv():
         # time windows to compare to tf_lcmv results and test overlapping
         if (l_freq, h_freq) == freq_bins[0]:
             for time_window in time_windows:
-                with warnings.catch_warnings(record=True):  # bad samples
+                with pytest.warns(RuntimeWarning, match='samples'):
                     data_cov = mne.compute_covariance(
                         epochs_band, tmin=time_window[0], tmax=time_window[1])
-                with warnings.catch_warnings(record=True):  # bad proj
+                with pytest.warns(RuntimeWarning, match='projection'):
                     stc_source_power = _lcmv_source_power(
                         epochs.info, forward, noise_cov, data_cov,
                         reg=reg, label=label, weight_norm='unit-noise-gain')
@@ -597,11 +592,11 @@ def test_tf_lcmv():
     epochs_preloaded = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                                   baseline=(None, 0), preload=True)
     epochs_preloaded._raw = None
-    with warnings.catch_warnings(record=True):  # not enough samples
+    with pytest.warns(RuntimeWarning, match='samples'):
         pytest.raises(ValueError, tf_lcmv, epochs_preloaded, forward,
                       noise_covs, tmin, tmax, tstep, win_lengths, freq_bins)
 
-    with warnings.catch_warnings(record=True):  # not enough samples
+    with pytest.warns(RuntimeWarning, match='samples'):
         # Pass only one epoch to test if subtracting evoked
         # responses yields zeros
         stcs = tf_lcmv(epochs[0], forward, noise_covs, tmin, tmax, tstep,
@@ -618,9 +613,8 @@ def test_reg_pinv():
 
     # Test if rank-deficient matrix without regularization throws
     # specific warning
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='deficient'):
         _reg_pinv(a, reg=0.)
-    assert (any('deficient' in str(ww.message) for ww in w))
 
 
 def test_eig_inv():
@@ -646,12 +640,13 @@ def test_lcmv_ctf_comp():
     epochs = mne.Epochs(raw, events, tmin=0., tmax=0.2)
     evoked = epochs.average()
 
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='samples'):
         data_cov = mne.compute_covariance(epochs)
     fwd = mne.make_forward_solution(evoked.info, None,
                                     mne.setup_volume_source_space(pos=15.0),
                                     mne.make_sphere_model())
     filters = mne.beamformer.make_lcmv(evoked.info, fwd, data_cov)
     assert 'weights' in filters
+
 
 run_tests_if_main()
