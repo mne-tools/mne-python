@@ -333,11 +333,11 @@ def _build_image_png(data, cmap='gray'):
     if figsize[0] == 1:
         figsize = tuple(figsize[1:])
         data = data[:, :, 0]
-    fig = _figure_agg(figsize=figsize, dpi=92, frameon=False)
+    fig = _figure_agg(figsize=figsize, dpi=1.0, frameon=False)
     cmap = getattr(plt.cm, cmap, plt.cm.gray)
     fig.figimage(data, cmap=cmap)
     output = BytesIO()
-    fig.savefig(output, dpi=92, format='png')
+    fig.savefig(output, dpi=fig.get_dpi(), format='png')
     return base64.b64encode(output.getvalue()).decode('ascii')
 
 
@@ -1303,8 +1303,16 @@ class Report(object):
             info = read_info(self.info_fname, verbose=False)
             sfreq = info['sfreq']
         else:
-            warn('`info_fname` not provided. Cannot render -cov.fif(.gz) and '
-                 '-trans.fif(.gz) files.')
+            # only warn if relevant
+            if any(fname.endswith(('-cov.fif', '-cov.fif.gz'))
+                   for fname in fnames):
+                warn('`info_fname` not provided. Cannot render '
+                     '-cov.fif(.gz) files.')
+            if any(fname.endswith(('-trans.fif', '-trans.fif.gz'))
+                   for fname in fnames):
+                warn('`info_fname` not provided. Cannot render '
+                     '-trans.fif(.gz) files.')
+                raise RuntimeError
             info, sfreq = None, None
 
         cov = None

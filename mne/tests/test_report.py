@@ -136,17 +136,34 @@ def test_render_report():
     # ndarray support smoke test
     report.add_figs_to_section(np.zeros((2, 3, 3)), 'caption', 'section')
 
-    # PSD functionality
+
+@testing.requires_testing_data
+def test_report_raw_psd_and_date():
+    """Test report raw PSD and DATE_NONE functionality."""
     with pytest.raises(TypeError, match='dict'):
         Report(raw_psd='foo')
 
     tempdir = _TempDir()
+    raw = read_raw_fif(raw_fname).crop(0, 1.).load_data()
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
-    shutil.copyfile(raw_fname, raw_fname_new)
-    report = Report(raw_psd=dict(tmax=2.))
-    report.parse_folder(data_path=tempdir, on_error='raise')
+    raw.save(raw_fname_new)
+    report = Report(raw_psd=True)
+    with warnings.catch_warnings(record=True) as w:
+        report.parse_folder(data_path=tempdir, render_bem=False,
+                            on_error='raise')
+    assert len(w) == 0
     assert isinstance(report.html, list)
     assert 'PSD' in ''.join(report.html)
+    assert 'GMT' in ''.join(report.html)
+
+    # DATE_NONE functionality
+    report = Report()
+    raw.anonymize()
+    raw.save(raw_fname_new, overwrite=True)
+    report.parse_folder(data_path=tempdir, render_bem=False,
+                        on_error='raise')
+    assert isinstance(report.html, list)
+    assert 'GMT' not in ''.join(report.html)
 
 
 @testing.requires_testing_data
