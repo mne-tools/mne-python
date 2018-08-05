@@ -824,10 +824,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         method : str | callable
             How to combine the data. If "mean", "std" or "gfp", the mean,
             standard deviation or global field power are returned.
-            Otherwise, must be a callable which, when passed an (a x b x c)
-            array of floats, returns a (b x c) array of floats; e.g.:
-            
-                epochs.average(method=lambda x: np.median(x, axis=0))
+            Otherwise, must be a callable which, when passed an array of shape 
+            (n_epochs, n_channels, n_time) returns an array of shape
+            (n_channels, n_time).
+
+            e.g.::    epochs.average(method=lambda x: np.median(x, axis=0))
 
         Returns
         -------
@@ -836,7 +837,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Notes
         -----
-        Computes an average of all epochs in the instance, even if
+        Computes an aggregate of all epochs in the instance, even if
         they correspond to different conditions. To average by condition,
         do ``epochs[condition].average()`` for each condition separately.
 
@@ -888,11 +889,17 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if mode in modes:
                 fun = modes[mode]
             elif callable(mode):
-                pass
+                fun = mode
             else:
-                raise ValueError("mode must be mean, std, gfp, or a callable.")
+                raise ValueError("mode must be mean, std, gfp, or a callable, "
+                                 "got %s (type %s)." % (mode, type(mode))
             data = fun(self._data)
             assert len(self.events) == len(self._data)
+            if data.shape != self._data.shape[1:] and callable(mode):
+                    raise RuntimeError("You passed a function that resulted "
+                                       "in data of shape {}, but it should be "
+                                       "{}.".format(data.shape,
+                                                    self._data.shape[1:])
         else:
             if mode not in {"mean", "std"}:
                 raise ValueError("If data are not preloaded, can only compute "
