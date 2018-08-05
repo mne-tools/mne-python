@@ -68,3 +68,8 @@ examples/visualization/foobar.html
 
 # Visual Studio Code
 .vscode
+
+# Emacs
+*.py#
+*.rst#
+
