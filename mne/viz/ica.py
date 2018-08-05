@@ -350,7 +350,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
         # the actual plot
         fig = _plot_ica_properties(
-            pick, ica, inst, psds_mean, freqs, len(picks),
+            pick, ica, inst, psds_mean, freqs, ica_data.shape[1],
             np.var(ica_data[idx], axis=1), plot_lowpass_edge,
             epochs_src, set_title_and_labels, plot_std, psd_ylabel,
             spectrum_std, topomap_args, image_args, fig, axes)
