@@ -107,7 +107,7 @@ def test_io_set_raw(fnames, tmpdir):
     for event in eeg.event:  # old version allows integer events
         event.type = 1
     assert_equal(read_events_eeglab(eeg)[-1, -1], 1)
-    eeg.event = eeg.event[0]  # single event
+    eeg.event = eeg.event[0] -.1  # single event
     assert_equal(read_events_eeglab(eeg)[-1, -1], 1)
 
     # test reading file with one event (read old version)
