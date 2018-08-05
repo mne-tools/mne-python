@@ -822,8 +822,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             If None only MEG, EEG, SEEG, ECoG, and fNIRS channels are kept
             otherwise the channels indices in picks are kept.
         method : str | callable
-            How to combine the data. If "mean", "std" or "gfp", the mean,
-            standard deviation or global field power are returned.
+            How to combine the data. If "mean", "median" or "std", the mean,
+            median or standard deviation are returned.
             Otherwise, must be a callable which, when passed an array of shape 
             (n_epochs, n_channels, n_time) returns an array of shape
             (n_channels, n_time).
@@ -882,17 +882,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if self.preload:
             n_events = len(self.events)
-            modes = {"mean": lambda x: np.mean(x, axis=0),
-                     "std": lambda x: np.std(x, axis=0),
-                     "gfp": lambda x: np.sqrt((x * x).mean(axis=0))
-                     }
+            modes = {mode: lambda data: getattr(np, mode)(data, axis=0)
+                     for mode in {"mean", "median", "std"}}
             if mode in modes:
                 fun = modes[mode]
             elif callable(mode):
                 fun = mode
             else:
-                raise ValueError("mode must be mean, std, gfp, or a callable, "
-                                 "got %s (type %s)." % (mode, type(mode))
+                raise ValueError("mode must be mean, median, std, or callable"
+                                 ", got %s (type %s)." % (mode, type(mode))
             data = fun(self._data)
             assert len(self.events) == len(self._data)
             if data.shape != self._data.shape[1:] and callable(mode):
