@@ -284,6 +284,16 @@ def test_resample_stim_channel():
         assert new_data.shape[1] == new_data_len
 
 
+def test_resample_raw():
+    """Test resampling using RawArray."""
+    x = np.zeros((1, 1001))
+    sfreq = 2048.
+    raw = RawArray(x, create_info(1, sfreq, 'eeg'))
+    raw.resample(128, npad=10)
+    data = raw.get_data()
+    assert data.shape == (1, 63)
+
+
 @requires_version('scipy', '0.16')
 @pytest.mark.slowtest
 def test_filters():
