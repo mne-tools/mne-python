@@ -846,7 +846,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         are not considered data channels (they are of misc type) and only data
         channels are selected when picks is None.
         """
-        return self._compute_aggregate(picks, method)
+        return self._compute_aggregate(picks=picks, mode=method)
 
     def standard_error(self, picks=None):
         """Compute standard error over epochs.
@@ -1599,7 +1599,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             return epochs
 
     def crop(self, tmin=None, tmax=None):
-        """Crop a time interval from epochs object.
+        """Crop a time interval from the epochs, which is modified in-place.
 
         Parameters
         ----------

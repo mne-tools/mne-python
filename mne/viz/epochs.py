@@ -313,14 +313,14 @@ def _get_picks_and_types(picks, ch_types, group_by, combine):
             n_picks = len(picks_)
             if n_picks < 2:
                 raise ValueError(" ".join(
-                    (name, "has only ", str(n_picks), "sensors.")))
+                    (name, "has only ", str(n_picks), "sensor(ss).")))
         all_ch_types = list()
         for picks_, name in zip(all_picks, names):
             this_ch_type = list(set((ch_types[pick] for pick in picks_)))
             n_types = len(this_ch_type)
             if n_types > 1:  # we can only scale properly with 1 type
                 raise ValueError(
-                    "Roi {} contains {} sensor types!".format(
+                    "Roi {} contains > 1 sensor types ({})!".format(
                         name, n_types))
             all_ch_types.append(this_ch_type[0])
             names.append(name)
