@@ -890,7 +890,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 fun = mode
             else:
                 raise ValueError("mode must be mean, median, std, or callable"
-                                 ", got %s (type %s)." % (mode, type(mode))
+                                 ", got %s (type %s)." % (mode, type(mode)))
             data = fun(self._data)
             assert len(self.events) == len(self._data)
             if data.shape != self._data.shape[1:] and callable(mode):
