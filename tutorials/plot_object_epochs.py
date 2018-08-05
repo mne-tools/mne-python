@@ -76,6 +76,30 @@ print(epochs[1:5])
 print(epochs['Auditory/Right'])
 
 ###############################################################################
+# Note the '/'s in the event code labels. These separators allow tag-based
+# selection of epoch sets; every string separated by '/' can be entered, and
+# returns the subset of epochs matching any of the strings. E.g.,
+
+print(epochs['Right'])
+print(epochs['Right', 'Left'])
+
+
+###############################################################################
+# Note that MNE will not complain if you ask for tags not present in the
+# object, as long as it can find some match: the below example is parsed as
+# (inclusive) 'Right' OR 'Left'. However, if no match is found, an error is
+# returned.
+
+epochs_r = epochs['Right']
+epochs_still_only_r = epochs_r[['Right', 'Left']]
+print(epochs_still_only_r)
+
+try:
+    epochs_still_only_r["Left"]
+except KeyError:
+    print("Tag-based selection without any matches raises a KeyError!")
+
+###############################################################################
 # It is also possible to iterate through :class:`Epochs <mne.Epochs>` objects
 # in this way. Note that behavior is different if you iterate on `Epochs`
 # directly rather than indexing:
