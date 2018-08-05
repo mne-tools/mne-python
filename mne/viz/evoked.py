@@ -31,7 +31,8 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _setup_plot_projector, _prepare_joint_axes,
                     _set_title_multiple_electrodes, _check_time_unit,
                     _plot_masked_image)
-from ..utils import logger, _clean_names, warn, _pl, verbose, _validate_type
+from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
+                     _check_if_nan)
 
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
@@ -409,8 +410,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
         if len(idx) > 0:
             # Set amplitude scaling
             D = this_scaling * data[idx, :]
-            if (D != D).any():
-                raise ValueError("Some of the values to be plotted are NaN.")
+            _check_if_nan(D)
             gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
             if not gfp_only:
                 chs = [info['chs'][i] for i in idx]
@@ -579,8 +579,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
     else:
         vmin, vmax = ylim[this_type]
 
-    if (data != data).any():
-        raise ValueError("Some of the values to be plotted are NaN.")
+    _check_if_nan(data)
 
     im, t_end = _plot_masked_image(
         ax, data, times, mask, picks=None, yvals=None, cmap=cmap[0],
@@ -1995,8 +1994,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             ci_dict[cond] = _ci_fun(data)
         # average across conditions:
         data_dict[cond] = data = np.mean(data, axis=0)
-        if (data != data).any():
-            raise ValueError("Some of the values to be plotted are NaN.")
+        _check_if_nan(data)
 
     del evokeds
 

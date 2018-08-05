@@ -2821,3 +2821,9 @@ def linkcode_resolve(domain, info):
         kind = 'maint/%s' % ('.'.join(mne.__version__.split('.')[:2]))
     return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (  # noqa
        kind, fn, linespec)
+
+
+def _check_if_nan(data, msg=" to be plotted"):
+    """Raise if any of the values are NaN."""
+    if (data != data).any():
+        raise ValueError("Some of the values {} are NaN.".format(msg))
