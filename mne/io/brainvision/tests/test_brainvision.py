@@ -22,6 +22,7 @@ from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.write import DATE_NONE
+from mne.datasets import testing
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -51,6 +52,10 @@ vhdr_lowpass_path = op.join(data_dir, 'test_highpass.vhdr')
 vhdr_mixed_lowpass_path = op.join(data_dir, 'test_mixed_lowpass.vhdr')
 vhdr_lowpass_s_path = op.join(data_dir, 'test_lowpass_s.vhdr')
 vhdr_mixed_lowpass_s_path = op.join(data_dir, 'test_mixed_lowpass_s.vhdr')
+
+# VHDR exported with neuroone
+data_path = testing.data_path(download=False)
+neuroone_vhdr = op.join(data_path, 'Brainvision', 'test_NO.vhdr')
 
 # Test for nanovolts as unit
 vhdr_nV_path = op.join(data_dir, 'test_nV.vhdr')
@@ -581,6 +586,15 @@ def test_brainvision_with_montage():
     for r, n in zip(raw.info['chs'], raw_none.info['chs']):
         if r['kind'] != n['kind']:
             assert_array_equal(r['loc'], n['loc'])
+
+
+@testing.requires_testing_data
+def test_brainvision_neuroone_export():
+    """Test Brainvision file exported with neuroone system."""
+    raw = read_raw_brainvision(neuroone_vhdr, verbose='error')
+    assert raw.info['meas_date'] == DATE_NONE
+    assert len(raw.info['chs']) == 66
+    assert raw.info['sfreq'] == 5000.
 
 
 run_tests_if_main()
