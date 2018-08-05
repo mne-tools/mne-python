@@ -9,7 +9,6 @@ from __future__ import print_function
 import inspect
 import os.path as op
 import shutil
-import warnings
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -65,23 +64,24 @@ eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 eog = ['HL', 'HR', 'Vb']
 event_id = {'Sync On': 5}
 
-warnings.simplefilter('always')
-
 
 def test_vmrk_meas_date():
     """Test successful extraction of measurement date."""
     # Test file that does have a specific date
-    raw = read_raw_brainvision(vhdr_path)
+    with pytest.warns(RuntimeWarning, match='will be dropped'):
+        raw = read_raw_brainvision(vhdr_path)
     assert_allclose(raw.info['meas_date'], [1384359243, 794231])
     assert '2013-11-13 16:14:03 GMT' in repr(raw.info)
 
     # Test file with multiple dates ... we should only take the first
-    raw = read_raw_brainvision(vhdr_old_path)
+    with pytest.warns(RuntimeWarning, match='software filter'):
+        raw = read_raw_brainvision(vhdr_old_path)
     assert_allclose(raw.info['meas_date'], [1184588560, 937453])
     assert '2007-07-16 12:22:40 GMT' in repr(raw.info)
 
     # Test files with no date, we should get DATE_NONE from mne.io.write
-    raw = read_raw_brainvision(vhdr_v2_path)
+    with pytest.warns(RuntimeWarning, match='coordinate information'):
+        raw = read_raw_brainvision(vhdr_v2_path)
     assert_allclose(raw.info['meas_date'], DATE_NONE)
     assert 'unspecified' in repr(raw.info)
 
@@ -159,17 +159,16 @@ def test_ascii():
 def test_brainvision_data_highpass_filters():
     """Test reading raw Brain Vision files with amplifier filter settings."""
     # Homogeneous highpass in seconds (default measurement unit)
-    with warnings.catch_warnings(record=True) as w:  # event parsing
+    with pytest.warns(RuntimeWarning, match='parse triggers that'):
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_highpass_path,
             montage=montage, eog=eog)
-    assert (all('parse triggers that' in str(ww.message) for ww in w))
 
     assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
     assert_equal(raw.info['lowpass'], 250.)
 
     # Heterogeneous highpass in seconds (default measurement unit)
-    with warnings.catch_warnings(record=True) as w:  # event parsing
+    with pytest.warns(RuntimeWarning) as w:
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_path,
             montage=montage, eog=eog, event_id=event_id)
@@ -187,16 +186,15 @@ def test_brainvision_data_highpass_filters():
     assert_equal(raw.info['lowpass'], 250.)
 
     # Homogeneous highpass in Hertz
-    with warnings.catch_warnings(record=True):  # filter settings
-        raw = _test_raw_reader(
-            read_raw_brainvision, vhdr_fname=vhdr_highpass_hz_path,
-            montage=montage, eog=eog, event_id=event_id)
+    raw = _test_raw_reader(
+        read_raw_brainvision, vhdr_fname=vhdr_highpass_hz_path,
+        montage=montage, eog=eog, event_id=event_id)
 
     assert_equal(raw.info['highpass'], 10.)
     assert_equal(raw.info['lowpass'], 250.)
 
     # Heterogeneous highpass in Hertz
-    with warnings.catch_warnings(record=True):  # filter settings
+    with pytest.warns(RuntimeWarning) as w:  # filter settings
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_hz_path,
             montage=montage, eog=eog, event_id=event_id)
@@ -227,7 +225,7 @@ def test_brainvision_data_lowpass_filters():
     assert_equal(raw.info['lowpass'], 250.)
 
     # Heterogeneous lowpass in Hertz (default measurement unit)
-    with warnings.catch_warnings(record=True) as w:  # event parsing
+    with pytest.warns(RuntimeWarning) as w:  # event parsing
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_path,
             montage=montage, eog=eog, event_id=event_id)
@@ -253,7 +251,7 @@ def test_brainvision_data_lowpass_filters():
     assert_equal(raw.info['lowpass'], 1. / (2 * np.pi * 0.004))
 
     # Heterogeneous lowpass in seconds
-    with warnings.catch_warnings(record=True) as w:  # filter settings
+    with pytest.warns(RuntimeWarning) as w:  # filter settings
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_s_path,
             montage=montage, eog=eog, event_id=event_id)
@@ -273,7 +271,7 @@ def test_brainvision_data_lowpass_filters():
 
 def test_brainvision_data_partially_disabled_hw_filters():
     """Test heterogeneous filter settings including non-numeric values."""
-    with warnings.catch_warnings(record=True) as w:  # event parsing
+    with pytest.warns(RuntimeWarning) as w:  # event parsing
         raw = _test_raw_reader(
             read_raw_brainvision,
             vhdr_fname=vhdr_partially_disabled_hw_filter_path,
@@ -296,11 +294,10 @@ def test_brainvision_data_partially_disabled_hw_filters():
 
 def test_brainvision_data_software_filters_latin1_global_units():
     """Test reading raw Brain Vision files."""
-    with warnings.catch_warnings(record=True) as w:  # event parsing
+    with pytest.warns(RuntimeWarning, match='software filter'):
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_old_path,
             eog=("VEOGo", "VEOGu", "HEOGli", "HEOGre"), misc=("A2",))
-    assert (all('software filter detected' in str(ww.message) for ww in w))
 
     assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 0.9))
     assert_equal(raw.info['lowpass'], 50.)
@@ -367,7 +364,7 @@ def test_brainvision_data():
 
 def test_brainvision_vectorized_data():
     """Test reading BrainVision data files with vectorized data."""
-    with warnings.catch_warnings(record=True):  # software filter settings
+    with pytest.warns(RuntimeWarning):  # software filter settings
         raw = read_raw_brainvision(vhdr_old_path, preload=True)
 
     assert_array_equal(raw._data.shape, (30, 251))
@@ -471,7 +468,7 @@ def test_events():
 
     # check that events are read and stim channel is synthesized correctly and
     # response triggers are ignored.
-    with warnings.catch_warnings(record=True):  # ignored events
+    with pytest.warns(RuntimeWarning):  # ignored events
         raw = read_raw_brainvision(vhdr_path, eog=eog,
                                    trig_shift_by_type={'response': None})
     events = raw._get_brainvision_events()
@@ -506,7 +503,7 @@ def test_events():
 
     # check that events are read properly when event_id is specified for
     # auxiliary events
-    with warnings.catch_warnings(record=True):  # dropped events
+    with pytest.warns(RuntimeWarning):  # dropped events
         raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
                                    trig_shift_by_type={'response': None},
                                    event_id=event_id)
