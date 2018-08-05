@@ -2,7 +2,7 @@
 #
 # License: BSD (3-clause)
 
-
+import warnings
 import numpy as np
 from numpy.testing import assert_array_equal, assert_equal
 import pytest
@@ -242,13 +242,30 @@ def test_generalization_light():
 def test_cross_val_predict():
     """Test cross_val_predict with predict_proba."""
     from sklearn.linear_model import LogisticRegression, LinearRegression
+    from sklearn.base import BaseEstimator, clone
     from sklearn.model_selection import cross_val_predict
     X = np.random.randn(10, 5, 3)
     y = np.random.randint(0, 2, 10)
 
-    base_estimator = LinearRegression()
-    cross_val_predict(SlidingEstimator(base_estimator), X, y)
+    estimator = SlidingEstimator(LinearRegression())
+    cross_val_predict(estimator, X, y, cv=2)
 
-    base_estimator = LogisticRegression()
-    cross_val_predict(SlidingEstimator(base_estimator), X, y,
-                      method='predict_proba')
+    class Classifier(BaseEstimator):
+        """Moch class that does not have classes_ attribute"""
+        def __init__(self):
+            self.base_estimator = LogisticRegression()
+
+        def fit(self, X, y):
+            self.estimator_ = clone(self.base_estimator).fit(X, y)
+            return self
+
+        def predict_proba(self, X):
+            return self.estimator_.predict_proba(X)
+
+    with warnings.catch_warnings(record=True):
+        with pytest.raises(AttributeError, match="classes_ attribute"):
+            estimator = SlidingEstimator(Classifier())
+            cross_val_predict(estimator, X, y, method='predict_proba', cv=2)
+
+        estimator = SlidingEstimator(LogisticRegression())
+        cross_val_predict(estimator, X, y, method='predict_proba', cv=2)
