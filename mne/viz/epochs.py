@@ -354,9 +354,10 @@ def _pick_and_combine(epochs, combine, all_picks, all_ch_types, names):
     if combine == "gfp":
         def combine(data):
             return np.sqrt((data * data).mean(axis=1))
-    if combine in (mean, median, std):
+    elif combine in {"mean", "median", "std"}:
+        func = getattr(np, combine)
         def combine(data):
-            return getattr(np, combine)(data, axis=1)
+            return func(data, axis=1)
     elif not callable(combine):
         raise ValueError(
             "``combine`` must be None, a callable or one out of 'mean' "
