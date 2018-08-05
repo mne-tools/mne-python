@@ -117,13 +117,12 @@ def _create_properties_layout(figsize=None):
         figsize = [7., 6.]
     fig = plt.figure(figsize=figsize, facecolor=[0.95] * 3)
 
-    axes_params = {'topomap': [0.08, 0.5, 0.3, 0.45],
-                   'image': [0.5, 0.6, 0.45, 0.35],
-                   'erp': [0.5, 0.5, 0.45, 0.1],
-                   'spectrum': [0.08, 0.1, 0.32, 0.3],
-                   'variance': [0.5, 0.1, 0.45, 0.25]}
-    axes = [fig.add_axes(axes_params[name], label=name)
-            for name in sorted(axes_params)]
+    axes_params = (('topomap', [0.08, 0.5, 0.3, 0.45]),
+                   ('image', [0.5, 0.6, 0.45, 0.35]),
+                   ('erp', [0.5, 0.5, 0.45, 0.1]),
+                   ('spectrum', [0.08, 0.1, 0.32, 0.3]),
+                   ('variance', [0.5, 0.1, 0.45, 0.25]))
+    axes = [fig.add_axes(loc, label=name) for name, loc in axes_params]
 
     return fig, axes
 
@@ -133,7 +132,7 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
                          set_title_and_labels, plot_std, psd_ylabel,
                          spectrum_std, topomap_args, image_args, fig, axes):
     """Plot ICA properties (helper)."""
-    erp_ax, image_ax, spec_ax, topo_ax, var_ax = axes
+    topo_ax, image_ax, erp_ax, spec_ax, var_ax = axes
 
     # plotting
     # --------
