@@ -70,7 +70,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     # Set up pick list: MEG - bad channels
     left_temporal_channels = mne.read_selection('Left-temporal')
     picks = mne.pick_types(raw.info, selection=left_temporal_channels)
-    picks = picks[::4]  # decimate for speed
+    picks = picks[::2]  # decimate for speed
     raw.pick_channels([raw.ch_names[ii] for ii in picks])
     del picks
     raw.info.normalize_proj()  # avoid projection warnings
@@ -496,7 +496,7 @@ def test_tf_lcmv():
     # Set up pick list: MEG - bad channels
     left_temporal_channels = mne.read_selection('Left-temporal')
     picks = mne.pick_types(raw.info, selection=left_temporal_channels)
-    picks = picks[::4]  # decimate for speed
+    picks = picks[::2]  # decimate for speed
     raw.pick_channels([raw.ch_names[ii] for ii in picks])
     raw.info.normalize_proj()  # avoid projection warnings
     del picks
