@@ -928,7 +928,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             kind = 'standard_error'
             data /= np.sqrt(n_events)
         else:
-            if isinstance(mode, str):
+            if isinstance(mode, string_types):
                 kind = mode
             else:
                 kind = "custom"
