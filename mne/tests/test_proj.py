@@ -45,7 +45,7 @@ def test_bad_proj():
     events = read_events(event_fname)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
-    picks = picks[2:9:3]
+    picks = picks[2:18:3]
     _check_warnings(raw, events, picks)
     # still bad
     raw.pick_channels([raw.ch_names[ii] for ii in picks])
