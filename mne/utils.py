@@ -2751,7 +2751,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
 
 
 def linkcode_resolve(domain, info):
-    """Determine the URL corresponding to Python object.
+    """Determine the URL corresponding to a Python object.
 
     Parameters
     ----------
