@@ -4,7 +4,6 @@
 
 
 import os.path as op
-import warnings
 import inspect
 
 import numpy as np
@@ -19,8 +18,6 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.egi.egi import _combine_triggers
 from mne.utils import run_tests_if_main
 from mne.datasets.testing import data_path, requires_testing_data
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 FILE = inspect.getfile(inspect.currentframe())
 base_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -69,22 +66,16 @@ def test_io_egi():
     data = data[1:]
     data *= 1e-6  # μV
 
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='Did not find any event code'):
         raw = read_raw_egi(egi_fname, include=None)
-        assert ('RawEGI' in repr(raw))
-        assert_equal(len(w), 1)
-        assert (w[0].category == RuntimeWarning)
-        msg = 'Did not find any event code with more than one event.'
-        assert (msg in '%s' % w[0].message)
+    assert 'RawEGI' in repr(raw)
     data_read, t_read = raw[:256]
     assert_allclose(t_read, t)
     assert_allclose(data_read, data, atol=1e-10)
 
     include = ['TRSP', 'XXX1']
-    with warnings.catch_warnings(record=True):  # preload=None
-        raw = _test_raw_reader(read_raw_egi, input_fname=egi_fname,
-                               include=include)
+    raw = _test_raw_reader(read_raw_egi, input_fname=egi_fname,
+                           include=include)
 
     assert_equal('eeg' in raw, True)
 
@@ -161,10 +152,9 @@ def test_io_egi_pns_mff():
 def test_io_egi_pns_mff_bug():
     """Test importing EGI MFF with PNS data (BUG)."""
     egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi_pns_bug.mff')
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='EGI PSG sample bug'):
         raw = read_raw_egi(egi_fname_mff, include=None, preload=True,
                            verbose='warning')
-    assert any('EGI PSG sample bug' in str(ww.message) for ww in w)
     egi_fname_mat = op.join(data_path(), 'EGI', 'test_egi_pns.mat')
     mc = sio.loadmat(egi_fname_mat)
     pns_chans = pick_types(raw.info, ecg=True, bio=True, emg=True)

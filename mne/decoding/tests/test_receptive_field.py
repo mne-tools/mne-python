@@ -1,7 +1,6 @@
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #
 # License: BSD (3-clause)
-import warnings
 import os.path as op
 
 import pytest
@@ -11,7 +10,7 @@ from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
 from mne import io, pick_types
 from mne.fixes import einsum
-from mne.utils import requires_version, run_tests_if_main, check_version
+from mne.utils import requires_version, run_tests_if_main
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
                                           _times_to_delays, _delays_to_slice)
@@ -27,8 +26,6 @@ rng = np.random.RandomState(1337)
 
 tmin, tmax = -0.1, 0.5
 event_id = dict(aud_l=1, vis_l=3)
-
-warnings.simplefilter('always')
 
 # Loading raw data
 raw = io.read_raw_fif(raw_fname, preload=True)
@@ -517,14 +514,9 @@ def test_inverse_coef():
     X, y = make_data(n_feats, n_targets, n_samples, tmin, tmax)
     for estimator in (0., Ridge(alpha=0.)):
         rf = ReceptiveField(tmin, tmax, 1., estimator=estimator, patterns=True)
-        with warnings.catch_warnings(record=True) as w:
+        with pytest.warns(RuntimeWarning,
+                          match='[singular|scipy.linalg.solve]'):
             rf.fit(y, X)
-            # For some reason there is no warning
-            if estimator and not check_version('numpy', '1.13'):
-                continue
-            assert_equal(len(w), 1)
-            assert any(x in str(w[0].message).lower()
-                       for x in ('singular', 'scipy.linalg.solve'))
 
 
 run_tests_if_main()

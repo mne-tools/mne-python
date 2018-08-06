@@ -3,8 +3,8 @@
 #
 # License: Simplified BSD
 
+import pytest
 import numpy as np
-import warnings
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose, assert_array_less)
 
@@ -14,8 +14,6 @@ from mne.inverse_sparse.mxne_optim import (mixed_norm_solver,
                                            norm_epsilon_inf, norm_epsilon,
                                            _Phi, _PhiT, dgap_l21l1)
 from mne.time_frequency.stft import stft_norm2
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
 def _generate_tf_data():
@@ -85,7 +83,7 @@ def test_l21_mxne():
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
 
     # suppress a coordinate-descent warning here
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='descent'):
         X_hat_cd, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, n_orient=2, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
@@ -98,7 +96,7 @@ def test_l21_mxne():
     X_hat_prox, active_set, _ = mixed_norm_solver(
         *args, active_set_size=2, debias=True, n_orient=5, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
-    with warnings.catch_warnings(record=True):  # coordinate-ascent warning
+    with pytest.warns(RuntimeWarning, match='descent'):
         X_hat_cd, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, n_orient=5, solver='cd')
 
@@ -252,7 +250,7 @@ def test_iterative_reweighted_mxne():
         debias=True, n_orient=2, solver='bcd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
     # suppress a coordinate-descent warning here
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='descent'):
         X_hat_cd, active_set, _ = iterative_mixed_norm_solver(
             M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2,
             debias=True, n_orient=2, solver='cd')
@@ -263,7 +261,7 @@ def test_iterative_reweighted_mxne():
         M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2, debias=True,
         n_orient=5)
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
-    with warnings.catch_warnings(record=True):  # coordinate-ascent warning
+    with pytest.warns(RuntimeWarning, match='descent'):
         X_hat_cd, active_set, _ = iterative_mixed_norm_solver(
             M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2,
             debias=True, n_orient=5, solver='cd')

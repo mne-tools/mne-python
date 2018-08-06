@@ -13,7 +13,6 @@
 import os
 import os.path as op
 import re
-import warnings
 from datetime import datetime
 from math import modf
 
@@ -96,9 +95,9 @@ class RawBrainVision(BaseRaw):
                  event_id=None, verbose=None,
                  trig_shift_by_type=None):  # noqa: D107
         if response_trig_shift != 0:
-            warnings.warn(
+            warn(
                 "'response_trig_shift' was deprecated in version "
-                "0.17 and will be removed in 0.19. Use "
+                "0.17 and will be removed in 0.18. Use "
                 "trig_shift_by_type={{'response': {} }} instead".format(
                     response_trig_shift), DeprecationWarning)
             if trig_shift_by_type and 'response' in (

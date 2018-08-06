@@ -3,7 +3,6 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import warnings
 import numpy as np
 
 from numpy.testing import assert_equal, assert_allclose, assert_array_equal
@@ -25,8 +24,6 @@ from mne.fixes import _get_sph_harm
 from mne.tests.common import assert_meg_snr
 from mne.utils import (_TempDir, run_tests_if_main, catch_logging,
                        requires_version, object_diff, buggy_mkl_svd)
-
-warnings.simplefilter('always')  # Always throw warnings
 
 data_path = testing.data_path(download=False)
 sss_path = op.join(data_path, 'SSS')
@@ -154,12 +151,10 @@ def test_movement_compensation():
     # Movement compensation,    regularization,    tSSS at the end
     #
     raw_nohpi = filter_chpi(raw.copy())
-    with warnings.catch_warnings(record=True) as w:  # untested feature
+    with pytest.warns(RuntimeWarning, match='untested'):
         raw_sss_mv = maxwell_filter(raw_nohpi, head_pos=head_pos,
                                     st_duration=4., origin=mf_head_origin,
                                     st_fixed=False)
-    assert_equal(len(w), 1)
-    assert ('is untested' in str(w[0].message))
     # Neither match is particularly good because our algorithm actually differs
     assert_meg_snr(raw_sss_mv, read_crop(sss_movecomp_reg_in_st4s_fname, lims),
                    0.6, 1.3)
@@ -192,10 +187,9 @@ def test_movement_compensation():
 
     head_pos_bad = head_pos.copy()
     head_pos_bad[0, 4] = 1.  # off by more than 1 m
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='greater than 1 m'):
         maxwell_filter(raw.copy().crop(0, 0.1), head_pos=head_pos_bad,
                        bad_condition='ignore')
-    assert (any('greater than 1 m' in str(ww.message) for ww in w))
 
     # make sure numerical error doesn't screw it up, though
     head_pos_bad = head_pos.copy()
@@ -216,7 +210,7 @@ def test_other_systems():
     elp_path = op.join(kit_dir, 'test_elp.txt')
     hsp_path = op.join(kit_dir, 'test_hsp.txt')
     raw_kit = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
-    with warnings.catch_warnings(record=True):  # head fit
+    with pytest.warns(RuntimeWarning, match='fit'):
         pytest.raises(RuntimeError, maxwell_filter, raw_kit)
     with catch_logging() as log:
         raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
@@ -228,7 +222,7 @@ def test_other_systems():
     assert_allclose(raw_sss._data, raw_sss_auto._data)
     # XXX this KIT origin fit is terrible! Eventually we should get a
     # corrected HSP file with proper coverage
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='more than 20 mm'):
         with catch_logging() as log:
             pytest.raises(RuntimeError, maxwell_filter, raw_kit,
                           ignore_ref=True, regularize=None)  # bad condition
@@ -241,7 +235,7 @@ def test_other_systems():
     # fits can differ slightly based on scipy version, so be lenient here
     _assert_n_free(raw_sss, 28, 34)  # bad origin == brutal reg
     # Let's set the origin
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='badly conditioned'):
         with catch_logging() as log:
             raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
                                      ignore_ref=True, bad_condition='warning',
@@ -251,10 +245,9 @@ def test_other_systems():
     assert '80/80 in, 12/15 out' in log
     _assert_n_free(raw_sss, 80)
     # Now with reg
-    with warnings.catch_warnings(record=True):
-        with catch_logging() as log:
-            raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
-                                     ignore_ref=True, verbose=True)
+    with catch_logging() as log:
+        raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
+                                 ignore_ref=True, verbose=True)
     log = log.getvalue()
     assert 'badly conditioned' not in log
     assert '12/15 out' in log
@@ -265,8 +258,7 @@ def test_other_systems():
     bti_pdf = op.join(bti_dir, 'test_pdf_linux')
     bti_config = op.join(bti_dir, 'test_config_linux')
     bti_hs = op.join(bti_dir, 'test_hs_linux')
-    with warnings.catch_warnings(record=True):  # weght table
-        raw_bti = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False)
+    raw_bti = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False)
     picks = pick_types(raw_bti.info, meg='mag', exclude=())
     power = np.sqrt(np.sum(raw_bti[picks][0] ** 2))
     raw_sss = maxwell_filter(raw_bti)
@@ -448,10 +440,8 @@ def test_basic():
     raw_missing.info['bads'] = ['MEG0111']
     raw_missing.pick_types(meg=True)  # will be missing the bad
     maxwell_filter(raw_missing)
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='not in data'):
         maxwell_filter(raw_missing, calibration=fine_cal_fname)
-    assert_equal(len(w), 1)
-    assert ('not in data' in str(w[0].message))
 
 
 @testing.requires_testing_data
@@ -579,7 +569,7 @@ def test_spatiotemporal_only():
                               head_pos=head_pos)
     assert_equal(raw_tsss.estimate_rank(), len(picks))
     _assert_shielding(raw_tsss, power, 9)
-    with warnings.catch_warnings(record=True):  # st_fixed False
+    with pytest.warns(RuntimeWarning, match='st_fixed'):
         raw_tsss = maxwell_filter(raw, st_duration=tmax / 2., st_only=True,
                                   head_pos=head_pos, st_fixed=False)
     assert_equal(raw_tsss.estimate_rank(), len(picks))
@@ -640,7 +630,7 @@ def test_fine_calibration():
         regularize=None, bad_condition='ignore')
     raw_missing.pick_types()  # actually remove bads
     raw_sss_bad.pick_channels(raw_missing.ch_names)  # remove them here, too
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='cal channels not in data'):
         raw_sss_missing = maxwell_filter(
             raw_missing, calibration=fine_cal_fname, origin=mf_head_origin,
             regularize=None, bad_condition='ignore')
@@ -739,10 +729,8 @@ def test_cross_talk():
     raw_missing = raw.copy().crop(0, 0.1).load_data().pick_channels(
         [raw.ch_names[pi] for pi in pick_types(raw.info, meg=True,
                                                exclude=())[3:]])
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='Not all cross-talk channels'):
         maxwell_filter(raw_missing, cross_talk=ctc_fname)
-    assert_equal(len(w), 1)
-    assert ('Not all cross-talk channels in raw' in str(w[0].message))
     # MEG channels not in cross-talk
     pytest.raises(RuntimeError, maxwell_filter, raw_ctf, origin=(0., 0., 0.04),
                   cross_talk=ctc_fname)
@@ -758,7 +746,7 @@ def test_head_translation():
                              bad_condition='ignore')
     assert_meg_snr(raw_sss, read_crop(sss_std_fname, (0., 1.)), 200.)
     # Now with default
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='over 25 mm'):
         with catch_logging() as log:
             raw_sss = maxwell_filter(raw, destination=mf_head_origin,
                                      origin=mf_head_origin, regularize=None,
@@ -769,7 +757,7 @@ def test_head_translation():
     destination[2, 3] = 0.04
     assert_allclose(raw_sss.info['dev_head_t']['trans'], destination)
     # Now to sample's head pos
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='= 25.6 mm'):
         with catch_logging() as log:
             raw_sss = maxwell_filter(raw, destination=sample_fname,
                                      origin=mf_head_origin, regularize=None,
@@ -946,7 +934,7 @@ def test_all():
                mf_head_origin)
     for ii, rf in enumerate(raw_fnames):
         raw = read_crop(rf, (0., 1.))
-        with warnings.catch_warnings(record=True):  # head fit off-center
+        with pytest.warns(None):  # sometimes the fit is bad
             sss_py = maxwell_filter(
                 raw, calibration=fine_cals[ii], cross_talk=ctcs[ii],
                 st_duration=st_durs[ii], coord_frame=coord_frames[ii],

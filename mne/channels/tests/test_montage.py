@@ -4,7 +4,6 @@
 
 import os
 import os.path as op
-import warnings
 
 import pytest
 
@@ -289,32 +288,27 @@ def test_montage():
         assert_equal(montage.ch_names, evoked.info['ch_names'])
 
         # Warning should be raised when some EEG are not specified in montage
-        with warnings.catch_warnings(record=True) as w:
-            info = create_info(montage.ch_names + ['foo', 'bar'], 1e3,
-                               ['eeg'] * (len(montage.ch_names) + 2))
+        info = create_info(montage.ch_names + ['foo', 'bar'], 1e3,
+                           ['eeg'] * (len(montage.ch_names) + 2))
+        with pytest.warns(RuntimeWarning, match='position specified'):
             _set_montage(info, montage)
-            assert (len(w) == 1)
 
     # Channel names can be treated case insensitive
-    with warnings.catch_warnings(record=True) as w:
-        info = create_info(['FP1', 'af7', 'AF3'], 1e3, ['eeg'] * 3)
-        _set_montage(info, montage)
-        assert (len(w) == 0)
+    info = create_info(['FP1', 'af7', 'AF3'], 1e3, ['eeg'] * 3)
+    _set_montage(info, montage)
 
     # Unless there is a collision in names
-    with warnings.catch_warnings(record=True) as w:
-        info = create_info(['FP1', 'Fp1', 'AF3'], 1e3, ['eeg'] * 3)
-        assert (info['dig'] is None)
+    info = create_info(['FP1', 'Fp1', 'AF3'], 1e3, ['eeg'] * 3)
+    assert (info['dig'] is None)
+    with pytest.warns(RuntimeWarning, match='position specified'):
         _set_montage(info, montage)
-        assert_equal(len(info['dig']), 5)  # 2 EEG w/pos, 3 fiducials
-        assert (len(w) == 1)
-    with warnings.catch_warnings(record=True) as w:
-        montage.ch_names = ['FP1', 'Fp1', 'AF3']
-        info = create_info(['fp1', 'AF3'], 1e3, ['eeg', 'eeg'])
-        assert (info['dig'] is None)
+    assert len(info['dig']) == 5  # 2 EEG w/pos, 3 fiducials
+    montage.ch_names = ['FP1', 'Fp1', 'AF3']
+    info = create_info(['fp1', 'AF3'], 1e3, ['eeg', 'eeg'])
+    assert (info['dig'] is None)
+    with pytest.warns(RuntimeWarning, match='position specified'):
         _set_montage(info, montage, set_dig=False)
-        assert (info['dig'] is None)
-        assert (len(w) == 1)
+    assert (info['dig'] is None)
 
     # test get_pos2d method
     montage = read_montage("standard_1020")
@@ -402,9 +396,8 @@ def test_read_dig_montage():
                 else:
                     # extra column
                     fout.write(line.rstrip() + b' 0.0 0.0 0.0\n')
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='columns'):
         montage_extra = read_dig_montage(extra_hsp, hpi, elp, names)
-    assert (len(w) == 1 and all('columns' in str(ww.message) for ww in w))
     assert_allclose(montage_extra.hsp, montage.hsp)
     assert_allclose(montage_extra.elp, montage.elp)
 
@@ -430,9 +423,8 @@ def test_set_dig_montage():
     montage_read = read_dig_montage(fif=fname_temp)
     for use_mon in (montage, montage_read):
         info = create_info(['Test Ch'], 1e3, ['eeg'])
-        with warnings.catch_warnings(record=True) as w:  # test ch pos not set
+        with pytest.warns(None):  # warns on one run about not all positions
             _set_montage(info, use_mon)
-        assert (all('not set' in str(ww.message) for ww in w))
         hs = np.array([p['r'] for i, p in enumerate(info['dig'])
                        if p['kind'] == FIFF.FIFFV_POINT_EXTRA])
         nasion_dig = np.array([p['r'] for p in info['dig']
@@ -465,9 +457,8 @@ def test_fif_dig_montage():
     _check_roundtrip(dig_montage, fname_temp)
 
     # Make a BrainVision file like the one the user would have had
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='will be dropped'):
         raw_bv = read_raw_brainvision(bv_fname, preload=True)
-    assert (any('will be dropped' in str(ww.message) for ww in w))
     raw_bv_2 = raw_bv.copy()
     mapping = dict()
     for ii, ch_name in enumerate(raw_bv.ch_names[:-1]):

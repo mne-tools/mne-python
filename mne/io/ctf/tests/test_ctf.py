@@ -6,7 +6,6 @@ import copy
 import os
 from os import path as op
 import shutil
-import warnings
 
 import numpy as np
 from numpy import array_equal
@@ -58,9 +57,8 @@ def test_read_ctf():
     os.mkdir(op.join(temp_dir, 'randpos'))
     ctf_eeg_fname = op.join(temp_dir, 'randpos', ctf_fname_catch)
     shutil.copytree(op.join(ctf_dir, ctf_fname_catch), ctf_eeg_fname)
-    with warnings.catch_warnings(record=True) as w:  # reclassified ch
+    with pytest.warns(RuntimeWarning, match='MISC channel'):
         raw = _test_raw_reader(read_raw_ctf, directory=ctf_eeg_fname)
-    assert all('MISC channel' in str(ww.message) for ww in w)
     picks = pick_types(raw.info, meg=False, eeg=True)
     pos = np.random.RandomState(42).randn(len(picks), 3)
     fake_eeg_fname = op.join(ctf_eeg_fname, 'catch-alp-good-f.eeg')
@@ -75,9 +73,8 @@ def test_read_ctf():
                 '%0.5f' % x for x in 100 * pos[ii])  # convert to cm
             fid.write(('\t'.join(args) + '\n').encode('ascii'))
     pos_read_old = np.array([raw.info['chs'][p]['loc'][:3] for p in picks])
-    with warnings.catch_warnings(record=True) as w:  # reclassified channel
+    with pytest.warns(RuntimeWarning, match='MISC channel'):
         raw = read_raw_ctf(ctf_eeg_fname)  # read modified data
-    assert all('MISC channel' in str(ww.message) for ww in w)
     pos_read = np.array([raw.info['chs'][p]['loc'][:3] for p in picks])
     assert_allclose(apply_trans(raw.info['ctf_head_t'], pos), pos_read,
                     rtol=1e-5, atol=1e-5)
@@ -91,7 +88,7 @@ def test_read_ctf():
     shutil.copytree(ctf_eeg_fname, ctf_no_hc_fname)
     remove_base = op.join(ctf_no_hc_fname, op.basename(ctf_fname_catch[:-3]))
     os.remove(remove_base + '.hc')
-    with warnings.catch_warnings(record=True):  # no coord tr
+    with pytest.warns(RuntimeWarning, match='MISC channel'):
         pytest.raises(RuntimeError, read_raw_ctf, ctf_no_hc_fname)
     os.remove(remove_base + '.eeg')
     shutil.copy(op.join(ctf_dir, 'catch-alp-good-f.ds_nohc_raw.fif'),
@@ -101,9 +98,8 @@ def test_read_ctf():
     use_fnames = [op.join(ctf_dir, c) for c in ctf_fnames]
     for fname in use_fnames:
         raw_c = read_raw_fif(fname + '_raw.fif', preload=True)
-        with warnings.catch_warnings(record=True) as w:  # reclassified ch
+        with pytest.warns(None):  # sometimes matches "MISC channel"
             raw = read_raw_ctf(fname)
-        assert all('MISC channel' in str(ww.message) for ww in w)
 
         # check info match
         assert_array_equal(raw.ch_names, raw_c.ch_names)
@@ -201,9 +197,8 @@ def test_read_ctf():
             assert_allclose(raw_read[pick_ch, sl_time][0],
                             raw_c[pick_ch, sl_time][0])
         # all data / preload
-        with warnings.catch_warnings(record=True) as w:  # reclassified ch
+        with pytest.warns(RuntimeWarning, match='MISC channel'):
             raw = read_raw_ctf(fname, preload=True)
-        assert all('MISC channel' in str(ww.message) for ww in w)
         assert_allclose(raw[:][0], raw_c[:][0], atol=1e-15)
         # test bad segment annotations
         if 'testdata_ctf_short.ds' in fname:
@@ -223,11 +218,10 @@ def test_read_ctf():
 def test_rawctf_clean_names():
     """Test RawCTF _clean_names method."""
     # read test data
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='ref channel RMSP did not'):
         raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_catch))
         raw_cleaned = read_raw_ctf(op.join(ctf_dir, ctf_fname_catch),
                                    clean_names=True)
-    assert any('MEG ref channel RMSP did not' in str(ww.message) for ww in w)
     test_channel_names = _clean_names(raw.ch_names)
     test_info_comps = copy.deepcopy(raw.info['comps'])
 

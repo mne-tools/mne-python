@@ -1,7 +1,6 @@
 from itertools import product
 import os
 import os.path as op
-import warnings
 
 import pytest
 import numpy as np
@@ -172,7 +171,7 @@ def test_make_forward_solution_kit():
     fwd = _do_forward_solution('sample', fname_bti_raw, src=fname_src_small,
                                bem=fname_bem_meg, mri=trans_path,
                                eeg=False, meg=True, subjects_dir=subjects_dir)
-    with warnings.catch_warnings(record=True):  # weight tables
+    with pytest.warns(RuntimeWarning, match='tables'):
         raw_py = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False)
     fwd_py = make_forward_solution(raw_py.info, src=src, eeg=False, meg=True,
                                    bem=fname_bem_meg, trans=trans_path)
@@ -194,7 +193,7 @@ def test_make_forward_solution_kit():
 
     fwd_py = make_forward_solution(ctf_raw.info, fname_trans, src,
                                    fname_bem_meg, eeg=False, meg=True)
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='samples'):
         fwd = _do_forward_solution('sample', ctf_raw, mri=fname_trans,
                                    src=fname_src_small, bem=fname_bem_meg,
                                    eeg=False, meg=True,
@@ -353,10 +352,9 @@ def test_make_forward_dipole():
     sphere = make_sphere_model(head_radius=0.1)
 
     # Warning emitted due to uneven sampling in time
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='unevenly spaced'):
         fwd, stc = make_forward_dipole(dip_test, sphere, info,
                                        trans=fname_trans)
-        assert (issubclass(w[-1].category, RuntimeWarning))
 
     # stc is list of VolSourceEstimate's
     assert isinstance(stc, list)

@@ -5,13 +5,12 @@
 #
 # License: BSD (3-clause)
 
-import warnings
-
 import numpy as np
 from scipy import linalg
 
 from .base import BaseEstimator
 from ..filter import next_fast_len
+from ..utils import warn
 from ..externals.six import string_types
 
 
@@ -199,8 +198,8 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
         #       is raised
         w = linalg.solve(mat, x_y, sym_pos=True, overwrite_a=False)
     except np.linalg.LinAlgError:
-        warnings.warn('Singular matrix in solving dual problem. Using '
-                      'least-squares solution instead.')
+        warn('Singular matrix in solving dual problem. Using '
+             'least-squares solution instead.')
         w = linalg.lstsq(mat, x_y, lapack_driver='gelsy')[0]
     w = w.T.reshape([n_ch_out, n_ch_in, n_delays])
     return w

@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import warnings
 from copy import deepcopy
 
 import numpy as np
@@ -27,8 +26,6 @@ from mne.io import read_raw_fif, RawArray
 from mne.time_frequency import psd_welch
 from mne.utils import _TempDir, run_tests_if_main
 
-
-warnings.simplefilter('always')
 
 data_path = testing.data_path(download=False)
 raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')

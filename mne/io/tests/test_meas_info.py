@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import hashlib
 import os.path as op
-import warnings
 
 import pytest
 import numpy as np
@@ -23,8 +22,6 @@ from mne.io.meas_info import (Info, create_info, _write_dig_points,
 from mne.io import read_raw_ctf
 from mne.utils import _TempDir, run_tests_if_main
 from mne.channels.montage import read_montage, read_dig_montage
-
-warnings.simplefilter("always")  # ensure we can verify expected warnings
 
 base_dir = op.join(op.dirname(__file__), 'data')
 fiducials_fname = op.join(base_dir, 'fsaverage-fiducials.fif')
@@ -387,10 +384,8 @@ def test_check_consistency():
 
     info2 = info.copy()
     info2['filename'] = 'foo'
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='filename'):
         info2._check_consistency()
-    assert len(w) == 1
-    assert (all('filename' in str(ww.message) for ww in w))
 
     # Silent type conversion to float
     info2 = info.copy()
@@ -408,10 +403,8 @@ def test_check_consistency():
     pytest.raises(RuntimeError, info2._check_consistency)
 
     # Duplicates appended with running numbers
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='Channel names are not'):
         info3 = create_info(ch_names=['a', 'b', 'b', 'c', 'b'], sfreq=1000.)
-    assert len(w) == 1
-    assert (all('Channel names are not' in '%s' % ww.message for ww in w))
     assert_array_equal(info3['ch_names'], ['a', 'b-0', 'b-1', 'c', 'b-2'])
 
 

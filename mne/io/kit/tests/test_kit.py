@@ -4,7 +4,6 @@
 
 import inspect
 import os.path as op
-import warnings
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -237,9 +236,8 @@ def test_decimate():
     np.savetxt(sphere_hsp_path, hsp_mm)
 
     # read in raw data using spherical hsp, and extract new hsp
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='more than'):
         raw = read_raw_kit(sqd_path, mrk_path, elp_txt_path, sphere_hsp_path)
-    assert any('more than' in str(ww.message) for ww in w)
     # collect headshape from raw (should now be in m)
     hsp_dec = np.array([dig['r'] for dig in raw.info['dig']])[8:]
 

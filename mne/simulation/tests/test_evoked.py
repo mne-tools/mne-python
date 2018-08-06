@@ -8,7 +8,6 @@ import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
 import pytest
-import warnings
 
 from mne import (read_cov, read_forward_solution, convert_forward_solution,
                  pick_types_forward, read_evokeds)
@@ -17,8 +16,6 @@ from mne.simulation import simulate_sparse_stc, simulate_evoked
 from mne.io import read_raw_fif
 from mne.cov import regularize
 from mne.utils import run_tests_if_main
-
-warnings.simplefilter('always')
 
 data_path = testing.data_path(download=False)
 fwd_fname = op.join(data_path, 'MEG', 'sample',

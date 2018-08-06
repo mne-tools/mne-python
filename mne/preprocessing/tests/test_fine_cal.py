@@ -3,14 +3,11 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import warnings
 
 from mne.datasets import testing
 from mne.preprocessing._fine_cal import (read_fine_calibration,
                                          write_fine_calibration)
 from mne.utils import _TempDir, object_hash, run_tests_if_main
-
-warnings.simplefilter('always')  # Always throw warnings
 
 # Define fine calibration filepaths
 data_path = testing.data_path(download=False)

@@ -7,8 +7,6 @@
 
 import copy
 import os.path as op
-import warnings
-# Set our plotters to test mode
 import matplotlib
 
 import numpy as np
@@ -27,8 +25,6 @@ from mne.io.constants import FIFF
 from mne.bem import fit_sphere_to_headshape
 from mne.utils import _TempDir
 matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')

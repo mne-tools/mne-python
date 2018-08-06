@@ -7,7 +7,6 @@ import os.path as op
 
 from copy import deepcopy
 from functools import partial
-import warnings
 
 import pytest
 import numpy as np
@@ -27,8 +26,6 @@ from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
-
-warnings.simplefilter('always')
 
 
 def test_reorder_channels():
@@ -102,14 +99,10 @@ def test_set_channel_types():
     # Test type change
     raw2 = read_raw_fif(raw_fname)
     raw2.info['bads'] = ['EEG 059', 'EEG 060', 'EOG 061']
-    with warnings.catch_warnings(record=True):  # MEG channel change
-        pytest.raises(RuntimeError, raw2.set_channel_types, mapping)  # has prj
+    pytest.raises(RuntimeError, raw2.set_channel_types, mapping)  # has prj
     raw2.add_proj([], remove_existing=True)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='The unit for channel'):
         raw2.set_channel_types(mapping)
-    assert len(w) >= 1, [str(ww.message) for ww in w]
-    assert all('The unit for channel' in str(ww.message) for ww in w)
     info = raw2.info
     assert info['chs'][372]['ch_name'] == 'EEG 058'
     assert info['chs'][372]['kind'] == FIFF.FIFFV_ECOG_CH
@@ -243,7 +236,8 @@ def test_1020_selection():
     base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
     raw_fname = op.join(base_dir, 'test_raw.set')
     loc_fname = op.join(base_dir, 'test_chans.locs')
-    raw = read_raw_eeglab(raw_fname, montage=loc_fname)
+    with pytest.warns(RuntimeWarning, match='Events .* dropped'):
+        raw = read_raw_eeglab(raw_fname, montage=loc_fname)
 
     for input in ("a_string", 100, raw, [1, 2]):
         pytest.raises(TypeError, make_1020_channel_selections, input)

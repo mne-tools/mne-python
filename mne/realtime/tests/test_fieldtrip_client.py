@@ -6,7 +6,6 @@ import time
 import os
 import threading
 import subprocess
-import warnings
 import os.path as op
 import contextlib
 import socket
@@ -31,8 +30,6 @@ matplotlib.use('Agg')  # for testing don't use X server
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.realpath(op.join(base_dir, 'test_raw.fif'))
 
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
-
 
 @pytest.fixture
 def free_tcp_port():
@@ -56,7 +53,7 @@ def _run_buffer(kill_signal, server_port):
     # Let measurement continue for the entire duration
     kill_signal.get(timeout=40.0)
     process.terminate()
-    with warnings.catch_warnings(record=True):  # still running
+    with pytest.warns(None):  # still running
         process.stderr.close()
         process.stdout.close()
         del process
@@ -138,18 +135,15 @@ def test_fieldtrip_client(free_tcp_port):
 
     try:
         # Start the FieldTrip buffer
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with pytest.warns(RuntimeWarning):
             with FieldTripClient(host='localhost', port=free_tcp_port,
                                  tmax=5, wait_max=2) as rt_client:
                 tmin_samp1 = rt_client.tmin_samp
 
         time.sleep(1)  # Pause measurement
-        assert len(w) >= 1
 
         # Start the FieldTrip buffer again
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with pytest.warns(RuntimeWarning):
             with FieldTripClient(host='localhost', port=free_tcp_port,
                                  tmax=5, wait_max=2) as rt_client:
                 raw_info = rt_client.get_measurement_info()
@@ -167,7 +161,6 @@ def test_fieldtrip_client(free_tcp_port):
                 epoch = rt_client.get_data_as_epoch(n_samples=5)
 
         assert tmin_samp2 > tmin_samp1
-        assert len(w) >= 1
         assert n_samples == 5
         assert n_samples2 == 5
         assert n_channels == len(picks)
