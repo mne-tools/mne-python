@@ -2751,7 +2751,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
 
 
 def linkcode_resolve(domain, info):
-    """Determine the URL corresponding to Python object.
+    """Determine the URL corresponding to a Python object.
 
     Parameters
     ----------
@@ -2821,3 +2821,9 @@ def linkcode_resolve(domain, info):
         kind = 'maint/%s' % ('.'.join(mne.__version__.split('.')[:2]))
     return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (  # noqa
        kind, fn, linespec)
+
+
+def _check_if_nan(data, msg=" to be plotted"):
+    """Raise if any of the values are NaN."""
+    if not np.isfinite(data).all():
+        raise ValueError("Some of the values {} are NaN.".format(msg))
