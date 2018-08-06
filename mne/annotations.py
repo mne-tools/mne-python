@@ -370,3 +370,67 @@ def _read_annotations(fid, tree):
         annotations = Annotations(onset, duration, description,
                                   orig_time)
     return annotations
+
+def _ensure_annotation_object(obj):
+    """Check that the object is an Annotations instance. Raise error
+    otherwise."""
+    if isinstance(obj, Annotations):
+        pass
+    else:
+        raise ValueError('Annotations must be an instance of '
+                         'mne.Annotations. Got %s.' % obj)
+
+
+def _xxx(annotations, raw, emit_warning=True):
+    """xxxx"""
+    from mne.utils import logger, warn
+    new_annot = annotations.copy()
+    meas_date = _handle_meas_date(raw.info['meas_date'])
+
+    if new_annot.orig_time is not None:
+        offset = (new_annot.orig_time - meas_date -
+                    raw.first_samp / raw.info['sfreq'])
+    else:
+        offset = 0
+
+    omit_ind = list()
+    omitted = limited = 0
+    for ind, onset in enumerate(new_annot.onset):
+        onset += offset
+        if onset > raw.times[-1]:
+            omitted += 1
+            omit_ind.append(ind)
+            logger.debug('Omitting %d @ %s > %s'
+                            % (ind, onset, raw.times[-1]))
+        elif onset < raw.times[0]:
+            if onset + new_annot.duration[ind] < raw.times[0]:
+                omitted += 1
+                omit_ind.append(ind)
+                logger.debug('Omitting %d @ %s < %s'
+                                % (ind, onset, raw.times[0]))
+            else:
+                limited += 1
+                duration = new_annot.duration[ind] + onset
+                new_annot.duration[ind] = duration
+                new_annot.onset[ind] = raw.times[0] - offset
+        elif (onset + new_annot.duration[ind] >
+                raw.times[-1] + 1.1 / raw.info['sfreq']):
+            # We have to permit onset+duration to appear to go one past
+            # the last sample in order to actually include the last
+            # sample...
+            limited += 1
+            new_annot.duration[ind] = (raw.times[-1] +
+                                        1. / raw.info['sfreq'] -
+                                        onset)
+    new_annot.onset = np.delete(new_annot.onset, omit_ind)
+    new_annot.duration = np.delete(new_annot.duration, omit_ind)
+    new_annot.description = np.delete(new_annot.description, omit_ind)
+    if emit_warning:
+        if omitted > 0:
+            warn('Omitted %s annotation(s) that were outside data '
+                    'range.' % omitted)
+        if limited > 0:
+            warn('Limited %s annotation(s) that were expanding '
+                    'outside the data range.' % limited)
+
+    return new_annot
