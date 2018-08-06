@@ -882,10 +882,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if self.preload:
             n_events = len(self.events)
-            modes = {mode: lambda data: getattr(np, mode)(data, axis=0)
-                     for mode in {"mean", "median", "std"}}
-            if mode in modes:
-                fun = modes[mode]
+
+#            modes = {mode: lambda data: getattr(np, mode)(data, axis=0)
+#                     for mode in {"mean", "median", "std"}}
+            if mode == "mean":
+                fun = lambda data: np.mean(data, axis=0)
+            elif mode == "std":
+                fun = lambda data: np.std(data, axis=0)
+#            if mode in modes:
+#                fun = modes[mode]
             elif callable(mode):
                 fun = mode
             else:

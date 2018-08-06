@@ -313,7 +313,7 @@ def _get_picks_and_types(picks, ch_types, group_by, combine):
             n_picks = len(picks_)
             if n_picks < 2:
                 raise ValueError(" ".join(
-                    (name, "has only ", str(n_picks), "sensor(ss).")))
+                    (name, "has only ", str(n_picks), "sensor(s).")))
         all_ch_types = list()
         for picks_, name in zip(all_picks, names):
             this_ch_type = list(set((ch_types[pick] for pick in picks_)))
