@@ -117,12 +117,12 @@ def _create_properties_layout(figsize=None):
         figsize = [7., 6.]
     fig = plt.figure(figsize=figsize, facecolor=[0.95] * 3)
 
-    axes_params = {'topomap': [0.08, 0.5, 0.3, 0.45],
-                   'image': [0.5, 0.6, 0.45, 0.35],
-                   'erp': [0.5, 0.5, 0.45, 0.1],
-                   'spectrum': [0.08, 0.1, 0.32, 0.3],
-                   'variance': [0.5, 0.1, 0.45, 0.25]}
-    axes = [fig.add_axes(pos, label=name) for name, pos in axes_params.items()]
+    axes_params = (('topomap', [0.08, 0.5, 0.3, 0.45]),
+                   ('image', [0.5, 0.6, 0.45, 0.35]),
+                   ('erp', [0.5, 0.5, 0.45, 0.1]),
+                   ('spectrum', [0.08, 0.1, 0.32, 0.3]),
+                   ('variance', [0.5, 0.1, 0.45, 0.25]))
+    axes = [fig.add_axes(loc, label=name) for name, loc in axes_params]
 
     return fig, axes
 
@@ -349,7 +349,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
         # the actual plot
         fig = _plot_ica_properties(
-            pick, ica, inst, psds_mean, freqs, len(picks),
+            pick, ica, inst, psds_mean, freqs, ica_data.shape[1],
             np.var(ica_data[idx], axis=1), plot_lowpass_edge,
             epochs_src, set_title_and_labels, plot_std, psd_ylabel,
             spectrum_std, topomap_args, image_args, fig, axes)
