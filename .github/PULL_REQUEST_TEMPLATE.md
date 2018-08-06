@@ -1,6 +1,6 @@
 <!--
 Thanks for contributing a pull request! Please ensure you have taken a look at
-the contribution guidelines: https://github.com/scikit-learn-contrib/imbalanced-learn/blob/master/CONTRIBUTING.md#contributing-pull-requests
+the contribution guidelines: https://martinos.org/mne/stable/contributing.html
 -->
 #### Reference Issue
 <!-- Example: Fixes #1234 -->

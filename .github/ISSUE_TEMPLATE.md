@@ -1,9 +1,9 @@
 <!--
 If your issue is a usage question, submit it here instead:
-- The imbalanced learn gitter: https://gitter.im/scikit-learn-contrib/imbalanced-learn
+- The imbalanced learn gitter: https://gitter.im/mne-tools/mne-python
 -->
 
-<!-- Instructions For Filing a Bug: https://github.com/scikit-learn-contrib/imbalanced-learn/blob/master/CONTRIBUTING.md#filing-bugs -->
+<!-- Instructions For Filing a Bug: https://martinos.org/mne/stable/faq.html#i-think-i-found-a-bug-what-do-i-do -->
 
 #### Description
 <!-- Example: Joblib Error thrown when calling fit on LatentDirichletAllocation with evaluate_every > 0-->
@@ -38,16 +38,13 @@ it in the issue: https://gist.github.com
 #### Actual Results
 <!-- Please paste or specifically describe the actual output or traceback. -->
 
-#### Versions
+#### Versions (``mne.sys_info()`` output)
+<details>
 <!--
-Please run the following snippet and paste the output below.
-import platform; print(platform.platform())
-import sys; print("Python", sys.version)
-import numpy; print("NumPy", numpy.__version__)
-import scipy; print("SciPy", scipy.__version__)
-import sklearn; print("Scikit-Learn", sklearn.__version__)
-import imblearn; print("Imbalanced-Learn", imblearn.__version__)
+[paste the output of ``mne.sys_info()`` here below this line]
 -->
+
+</details>
 
 
 <!-- Thanks for contributing! -->
