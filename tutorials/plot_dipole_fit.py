@@ -21,6 +21,9 @@ from mne.forward import make_forward_dipole
 from mne.evoked import combine_evoked
 from mne.simulation import simulate_evoked
 
+from nilearn.plotting import plot_anat
+from nilearn.datasets import load_mni152_template
+
 data_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 fname_ave = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
@@ -44,40 +47,23 @@ dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
 # Plot the result in 3D brain with the MRI image.
 dip.plot_locations(fname_trans, 'sample', subjects_dir, mode='orthoview')
 
-# xxxxxxxx
+# Plot the result in 3D brain with the MRI image using Nilearn
+# In MRI coordinates and in MNI coordinates (template brain)
 
-# Finally, explore several points in time
-field_map = evoked_dip.plot_field(maps, time=t_max)
-field_map.scene.x_minus_view()
-mlab.savefig(fig_folder + '/%s_ica_comp_topo.png' % subject)
-
-dip, _ = mne.fit_dipole(evoked_dip,
-                               noise_cov, bem_fname, trans_fname)
-fig = dip.plot_locations(trans_fname, subject=subject, subjects_dir=subjects_dir)
-fig.savefig(fig_folder + '/%s_dip_fit.png' % subject)
-
-trans = mne.read_trans(trans_fname)
+trans = mne.read_trans(fname_trans)
+subject = 'sample'
 mni_pos = mne.head_to_mni(dip.pos, mri_head_t=trans,
                           subject=subject, subjects_dir=subjects_dir)
 
-mri_pos = mne.transforms.apply_trans(trans, dip.pos) * 1e3
-t1_fname = os.path.join(subjects_dir, subject, 'mri', 'T1.mgz')
-t1 = nib.load(t1_fname)
-vox2ras_tkr = t1.header.get_vox2ras_tkr()
-ras2vox_tkr = linalg.inv(vox2ras_tkr)
-vox2ras = t1.header.get_vox2ras()
-mri_pos = mne.transforms.apply_trans(ras2vox_tkr, mri_pos)  # in vox
-mri_pos = mne.transforms.apply_trans(vox2ras, mri_pos)  # in RAS
+mri_pos = mne.head_to_mri(dip.pos, mri_head_t=trans,
+                          subject=subject, subjects_dir=subjects_dir)
 
-from nilearn.plotting import plot_anat
-from nilearn.datasets import load_mni152_template
-
-fig = plot_anat(t1_fname, cut_coords=mri_pos[0], title='Subj: %s' % subject)
-fig.savefig(fig_folder + '/%s_mri_coord.png' % subject)
+t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+fig = plot_anat(t1_fname, cut_coords=mri_pos[0], title='Dipole loc.')
 
 template = load_mni152_template()
-fig = plot_anat(template, cut_coords=mni_pos[0], title='Subj: %s (MNI Space)' % subject)
-fig.savefig(fig_folder + '/%s_mni_coord.png' % subject)
+fig = plot_anat(template, cut_coords=mni_pos[0],
+                title='Dipole loc. (MNI Space)')
 
 ###############################################################################
 # Calculate and visualise magnetic field predicted by dipole with maximum GOF
