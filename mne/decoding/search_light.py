@@ -279,6 +279,14 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         score = np.concatenate(score, axis=0)
         return score
 
+    @property
+    def classes_(self):
+        if not hasattr(self.estimators_[0], 'classes_'):
+            raise AttributeError('classes_ attribute available only if '
+                                 'base_estimator has it, and estimator %s does'
+                                 ' not' % (self.estimators_[0],))
+        return self.estimators_[0].classes_
+
 
 def _sl_fit(estimator, X, y, **fit_params):
     """Aux. function to fit SlidingEstimator in parallel.
