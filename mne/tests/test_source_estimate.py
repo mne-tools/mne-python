@@ -602,13 +602,9 @@ def test_morph_data():
     assert_array_almost_equal(stc_to.data, stc_to1.data, 5)
     assert_array_almost_equal(stc_to1.data, stc_to2.data)
     # make sure precomputed morph matrices work
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        morph_mat = compute_morph_matrix(subject_from, subject_to,
-                                         stc_from.vertices, vertices_to,
-                                         smooth=12, subjects_dir=subjects_dir)
-    # compute_morph_matrix is deprecated
-    assert sum('deprecated' in str(ww.message) for ww in w) == 1
+    morph_mat = compute_morph_matrix(subject_from, subject_to,
+                                     stc_from.vertices, vertices_to,
+                                     smooth=12, subjects_dir=subjects_dir)
 
     with warnings.catch_warnings(record=True) as w:
         stc_to2 = stc_from.morph_precomputed(subject_to, vertices_to,

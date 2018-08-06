@@ -174,7 +174,8 @@ Cortical surface reconstruction with FreeSurfer
 
 The first processing stage is the creation of various surface
 reconstructions with FreeSurfer. The recommended FreeSurfer workflow
-is summarized on the `FreeSurfer wiki pages <https://surfer.nmr.mgh.harvard.edu/fswiki/RecommendedReconstruction>`_.
+is summarized on the `FreeSurfer wiki pages <https://surfer.nmr.mgh.harvard.edu/fswiki/RecommendedReconstruction>`_. See also this 
+information :ref:`sphx_glr_auto_tutorials_plot_background_freesurfer.py`.
 
 .. _setting_up_source_space:
 

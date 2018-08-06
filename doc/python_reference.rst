@@ -770,21 +770,19 @@ Source Space Data
    :template: function.rst
 
    head_to_mni
-   compute_morph_matrix
    extract_label_time_course
    grade_to_tris
    grade_to_vertices
    grow_labels
    label_sign_flip
    morph_data
-   morph_data_precomputed
+   compute_morph_matrix
    random_parcellation
    read_labels_from_annot
    read_dipole
    read_label
    read_source_estimate
    read_source_morph
-   save_stc_as_volume
    split_label
    stc_to_label
    transform_surface_to

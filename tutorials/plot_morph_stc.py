@@ -10,7 +10,9 @@ For group level statistical analyses subject specific results have to be mapped
 to a common space.
 
 We will use precomputed data and morph surface and volume source estimates to a
-common space. The common space of choice will be FreeSurfer's "fsaverage".
+common space. The common space of choice will be FreeSurfer's "fsaverage" See
+:ref:`sphx_glr_auto_tutorials_plot_background_freesurfer.py` for more
+information.
 
 Furthermore we will convert our volume source estimate into a NIfTI image using
 :meth:`morph.as_volume <mne.SourceMorph.as_volume>`.
@@ -83,10 +85,10 @@ using FreeSurfer to compute the morph map. In order tell SourceMorph which
 MRIs to use, ``subject_from`` and ``subject_to`` need to be defined as the
 name of the respective folder in the FreeSurfer's home directory.
 
-subject_from can also be inferred from src, subject_to set is to 'fsaverage'
-by default and subjects_dir can be None when set in the environment. In that
-case SourceMorph can be initialized taking src as only argument (for better
-understanding more keyword arguments are defined here).
+``subject_from`` can also be inferred from src, subject_to set is to
+'fsaverage' by default and subjects_dir can be None when set in the
+environment. In that case SourceMorph can be initialized taking src as only
+argument (for better understanding more keyword arguments are defined here).
 
 The default parameter setting for *spacing* will cause the reference volumes
 to be resliced before computing the transform. A value of '5' would cause
@@ -114,18 +116,16 @@ Convert morphed VolSourceEstimate into NIfTI
 --------------------------------------------
 
 We can convert our morphed source estimate into a NIfTI volume using
-morph.as_volume(). We provided our morphed source estimate as first argument.
-All following keyword arguments can be used to modify the output image.
+:meth:`morph.as_volume() <mne.SourceMorph.as_volume>`. We provided our
+morphed source estimate as first argument. All following keyword arguments can
+be used to modify the output image.
 
-See :meth:`morph.as_volume() <mne.SourceMorph.as_volume>` for more
-information.
-
-Note that apply_morph=False, that is the morph will no be applied because the
+Note that ``apply_morph=False``, that is the morph will not be applied because
 the data has already been morphed. Set ``apply_morph=True`` to output
-unmorphed as a volume. Further :meth:`morph() <mne.SourceMorph.__call__>` can
-be used to output a volume as well, taking the same input arguments. Provide
-``as_volume=True`` when calling the :class:`mne.SourceMorph` instance. In
-that case however apply_morph will of course be True by default.
+unmorphed data as a volume. Further :meth:`morph() <mne.SourceMorph.__call__>`
+can be used to output a volume as well, taking the same input arguments.
+Provide ``as_volume=True`` when calling the :class:`mne.SourceMorph` instance.
+In that case however apply_morph will of course be True by default.
 
     >>> img = morph.as_volume(stc_fsaverage,  # morphed VolSourceEstimate
     >>>                       mri_resolution=True,  # Default: False
@@ -164,7 +164,10 @@ example of such a morph.
 Setting up SourceMorph for SourceEstimate
 -----------------------------------------
 
-We know that surface source estimates are represented as lists of vertices.
+We know that surface source estimates are represented as lists of vertices. If
+that is not entirely clear, we ask ourselves
+:ref:`sphx_glr_auto_tutorials_plot_object_sourceestimate.py`
+
 The respective list of our data can either be obtained from
 :class:`mne.SourceSpaces` (src) or from the data we want to morph itself. If
 src is not provided, the morph will not be precomputed but instead will be

@@ -3,10 +3,10 @@
 Morph volumetric source estimate
 ================================
 
-This example demonstrates how to morph an individual subject **volumetric
-source estimate** to a common reference space. For this purpose we will use
-:class:`mne.SourceMorph`. Pre-computed data will be morphed based on an affine
-transformation and a nonlinear morph, estimated based on respective
+This example demonstrates how to morph an individual subject
+:class:`mne.SourceEstimate` to a common reference space. For this purpose we
+will use :class:`mne.SourceMorph`. Pre-computed data will be morphed based on
+an affine transformation and a nonlinear morph, estimated based on respective
 transformation from the subject's anatomical T1 (brain) to fsaverage T1
 (brain).
 
@@ -21,8 +21,8 @@ morphed volumetric source estimate.
 #
 # License: BSD (3-clause)
 import os
+import warnings
 
-import matplotlib.pylab as plt
 import nibabel as nib
 from mne import read_evokeds, SourceMorph
 from mne.datasets import sample
@@ -73,33 +73,17 @@ stc_fsaverage = morph(stc)
 # Plot results
 
 # Load fsaverage anatomical image
-t1_fsaverage = nib.load(fname_t1_fsaverage)
+with warnings.catch_warnings(record=False):  # nib<->numpy
+    t1_fsaverage = nib.load(fname_t1_fsaverage)
 
 # Create mri-resolution volume of results
 img_fsaverage = morph.as_volume(stc_fsaverage, mri_resolution=2)
 
-# Initialize figure
-fig, axes = plt.subplots()
-fig.subplots_adjust(top=0.8, left=0.1, right=0.9, hspace=0.5)
-fig.patch.set_facecolor('white')
-
 # Plot glass brain (change to plot_anat to display an overlaid anatomical T1)
-display = plot_glass_brain(t1_fsaverage, display_mode='ortho',
-                           cut_coords=[0., 0., 0.],
+display = plot_glass_brain(t1_fsaverage,
+                           title='subject results to fsaverage',
                            draw_cross=False,
-                           axes=axes,
-                           figure=fig,
-                           annotate=False)
+                           annotate=True)
 
 # Add functional data as overlay
 display.add_overlay(img_fsaverage, alpha=0.75)
-
-# Add annotations and title
-display.annotate(size=8)
-axes.set_title('subject results to fsaverage', color='black', fontsize=12)
-plt.text(plt.xlim()[1], plt.ylim()[0], 't = 0.087s', color='black')
-
-plt.show()
-
-# Save memory
-del stc, stc_fsaverage, inverse_operator, morph

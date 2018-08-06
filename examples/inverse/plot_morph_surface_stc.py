@@ -3,11 +3,12 @@
 Morph surface source estimate
 =============================
 
-This example demonstrates how to morph an individual subject **surface source
-estimate** to a common reference space. For this purpose we will use
-:class:`mne.SourceMorph`. Pre-computed data will be morphed based on an affine
-transformation on the surface vertices towards the reference vertices, which in
-this example will be 'fsaverage'.
+This example demonstrates how to morph an individual subject
+:class:`mne.SourceEstimate` to a common reference space. For this purpose we
+will use :class:`mne.SourceMorph`. Pre-computed data will be morphed based on
+an affine transformation on the surface vertices towards the reference
+vertices. Here we will use 'fsaverage' as a reference space (see
+`https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage`).
 
 The transformation will be applied to the surface source estimate. The result
 will be a plot showing the inflated surface representation of 'fsaverage',
@@ -67,6 +68,3 @@ brain = stc_fsaverage.plot(**surfer_kwargs)
 
 # Add title
 brain.add_text(0.1, 0.9, 'Morphed to fsaverage', 'title', font_size=16)
-
-# Save memory
-del stc, stc_fsaverage, morph

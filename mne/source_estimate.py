@@ -1338,8 +1338,8 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             return morph_data(subject_from, subject_to, self, grade, smooth,
                               subjects_dir, buffer_size, n_jobs, verbose)
 
-    @deprecated("This function is deprecated and might be removed in a future "
-                "release. Use morph = mne.SourceMorph and morph(stc)")
+    @deprecated("This function is deprecated and will be removed in version "
+                "0.19. Use morph = mne.SourceMorph and morph(stc)")
     def morph_precomputed(self, subject_to, vertices_to, morph_mat,
                           subject_from=None):
         """Morph source estimate between subjects using a precomputed matrix.
@@ -1796,7 +1796,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
             the original T1 image. If 'surf' the coordinate system
             of the FreeSurfer surface is used (Surface RAS).
         mri_resolution : bool
-            Whether to use MRI resolution.
+            Whether to use MRI resolution when saving.
             WARNING: if you have many time points the file produced can be
             huge.
 
@@ -1840,9 +1840,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
         -----
         .. versionadded:: 0.9.0
         """
-        return _save_stc_as_volume(None, self,
-                                   src,
-                                   dest=dest,
+        return _save_stc_as_volume(None, self, src, dest=dest,
                                    mri_resolution=mri_resolution,
                                    format=format)
 
@@ -2268,8 +2266,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
                        warn=warn, verbose=verbose)(stc_from)
 
 
-@deprecated("This function is deprecated and might be removed in a future "
-            "release. Use morph = mne.SourceMorph and morph(stc).")
+@deprecated("This function is deprecated and will be removed in version 0.19. "
+            "Use morph = mne.SourceMorph and morph(stc).")
 def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
                            morph_mat):
     """Morph source estimate between subjects using a precomputed matrix.

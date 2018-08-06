@@ -17,7 +17,7 @@ from .source_estimate import (VolSourceEstimate, SourceEstimate,
 from .source_space import SourceSpaces
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
-                    warn as warn_, deprecated)
+                    warn as warn_)
 from .externals.h5io import read_hdf5, write_hdf5
 
 
@@ -28,35 +28,36 @@ class SourceMorph(object):
     ----------
     subject_from : str | None
         Name of the original subject as named in the SUBJECTS_DIR.
-        If None src[0]['subject_his_id]' will be used. The default is None.
+        If None src[0]['subject_his_id]' will be used (default).
     subject_to : str | array | list of two arrays
-        Name of the subject on which to morph as named in the SUBJECTS_DIR
-        The default is 'fsaverage'. If morphing a surface source extimate,
-        subject_to can also be an array of vertices or a list of two arrays of
-        vertices to morph to. If morphing a volume source space, subject_to can
-        be the path to a MRI volume.
+        Name of the subject to which to morph as named in the SUBJECTS_DIR.
+        If morphing a surface source estimate, subject_to can also be an array
+        of vertices or a list of two arrays of vertices to morph to. If
+        morphing a volume source space, subject_to can be the path to a MRI
+        volume. The default is 'fsaverage'.
     subjects_dir : str | None
         Path to SUBJECTS_DIR if it is not set in the environment. The default
         is None.
-    src : instance of SourceSpaces
-        The list of SourceSpaces corresponding subject_from
+    src : instance of SourceSpaces | None
+        The list of SourceSpaces corresponding subject_from. Note that src must
+        be provided when morphing VolSourceEstimate. The default is None.
     niter_affine : tuple of int
         Number of levels (``len(niter_affine)``) and number of
         iterations per level - for each successive stage of iterative
         refinement - to perform the affine transform.
-        Default is niter_affine=(100, 100, 10)
+        Default is niter_affine=(100, 100, 10).
     niter_sdr : tuple of int
         Number of levels (``len(niter_sdr)``) and number of
         iterations per level - for each successive stage of iterative
         refinement - to perform the Symmetric Diffeomorphic Registration (sdr)
-        transform. Default is niter_sdr=(5, 5, 3)
+        transform. Default is niter_sdr=(5, 5, 3).
     spacing : tuple | int | float | list | None
         If morphing VolSourceEstimate, spacing is a tuple carrying the voxel
         size of volume for each spatial dimension in mm.
         If spacing is None, MRIs won't be resliced. Note that in this case
         both volumes (used to compute the morph) must have the same number of
         spatial dimensions.
-        If morphing SourceEstimate or Vector SourceEstimate, spacing can be
+        If morphing SourceEstimate or VectorSourceEstimate, spacing can be
         int, list (of two arrays), or None, defining the resolution of the
         icosahedral mesh (typically 5). If None, all vertices will be used
         (potentially filling the surface). If a list, then values will be
@@ -64,39 +65,39 @@ class SourceMorph(object):
         spacing[1].
         Note that specifying the vertices (e.g., spacing=[np.arange(10242)] * 2
         for fsaverage on a standard spacing 5 source space) can be
-        substantially faster than computing vertex locations.
+        substantially faster than computing vertex locations. The default is
+        spacing=5.
     smooth : int | None
         Number of iterations for the smoothing of the surface data.
         If None, smooth is automatically defined to fill the surface
-        with non-zero values.
+        with non-zero values. The default is spacing=None.
     warn : bool
-        If True, warn if not all vertices were used.
+        If True, warn if not all vertices were used. The default is warn=True.
     xhemi : bool
         Morph across hemisphere. Currently only implemented for
         ``subject_to == subject_from``. See notes below.
+        The default is xhemi=False.
     precomputed : dict | None
-        Precomputed morphing data. For (Vector)SourceEstimates it contains
-        of 'morph_mat' and 'vertno' where morph_mat is the respective
-        transformation and vertno the corresponding vertices. For
-        VolSourceEstimates it should contain 'DiffeomorphicMap' and
-        'AffineMap' data, as well as 'morph_shape', 'morph_zooms' and
-        'morph_affine', referring to the respective volume parameters.
+        Precomputed morphing data. Usually obtained by computing
+        ``morph = mne.SourceMorph()`` and retrieving the dict stored in morph
+        params ``precomputed = morph.params``. The default is precomputed=None.
     verbose : bool | str | int | None
         If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+        and :ref:`Logging documentation <tut_logging>` for more). The default
+        is verbose=None.
 
 
     Attributes
     ----------
     kind : str | None
-        Kind of source estimate. E.g. 'volume' or 'surface'
+        Kind of source estimate. E.g. 'volume' or 'surface'.
     subjects_dir : str | None
         The path to the FreeSurfer subjects reconstructions.
         It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
     subject_from : str | None
         Name of the subject from which to morph as named in the SUBJECTS_DIR
     subject_to : str | array | list of two arrays
-        Name of the subject on which to morph as named in the SUBJECTS_DIR
+        Name of the subject on which to morph as named in the SUBJECTS_DIR.
         The default is 'fsaverage'. If morphing a surface source extimate,
         subject_to can also be an array of vertices or a list of two arrays of
         vertices to morph to. If morphing a volume source space, subject_to can
@@ -112,12 +113,13 @@ class SourceMorph(object):
         refinement - to perform the Symmetric Diffeomorphic Registration (sdr)
         transform. Default is niter_sdr=(5, 5, 3)
     spacing : tuple | int | float | list | None
-        If morphing VolSourceEstimate, spacing is a tuple carrying the voxel
-        size of volume for each spatial dimension in mm.
+        If morphing VolSourceEstimate, spacing is a tuple, carrying the
+        voxel size of the MRI volume for each spatial dimension in mm or int
+        for isotropic voxel size in mm.
         If spacing is None, MRIs won't be resliced. Note that in this case
         both volumes (used to compute the morph) must have the same number of
-        spatial dimensions.
-        If morphing SourceEstimate or Vector SourceEstimate, spacing can be
+        slices for each spatial dimensions.
+        If morphing SourceEstimate or VectorSourceEstimate, spacing can be
         int, list (of two arrays), or None, defining the resolution of the
         icosahedral mesh (typically 5). If None, all vertices will be used
         (potentially filling the surface). If a list, then values will be
@@ -165,14 +167,6 @@ class SourceMorph(object):
            R., Fischl B., Brysbaert M.
            A Surface-based Analysis of Language Lateralization and Cortical
            Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
-
-    See Also
-    --------
-    stc.morph : Directly morph SourceEstimate or VectorSourceEstimate.
-    stc.as_volume : Convert VolSourceEstimate into NIfTI.
-    Example : :ref:`sphx_glr_auto_examples_inverse_plot_morph_volume_stc.py`.
-    Example : :ref:`sphx_glr_auto_examples_inverse_plot_morph_surface_stc.py`.
-    Tutorial : :ref:`sphx_glr_auto_tutorials_plot_morph_stc.py`.
     """
 
     def __init__(self, subject_from=None, subject_to='fsaverage',
@@ -189,8 +183,7 @@ class SourceMorph(object):
                 'installed and accessible from Python')
 
         if src is not None and not isinstance(src, SourceSpaces):
-            raise ValueError('src must be an instance of SourceSpaces or a '
-                             'path to a saved instance of SourceSpaces')
+            raise ValueError('src must be an instance of SourceSpaces')
         # Params
         self.kind = 'surface' if src is None else src.kind
         self.subject_from = _check_subject_from(subject_from, src)
@@ -220,6 +213,7 @@ class SourceMorph(object):
             self._update_morph_data(_get_src_data(src))
             self._compute_morph_data(verbose=verbose)
 
+    @verbose
     def __call__(self, stc_from, as_volume=False, mri_resolution=False,
                  mri_space=False, apply_morph=True, format='nifti1',
                  verbose=None):
@@ -231,23 +225,23 @@ class SourceMorph(object):
             The source estimate to morph.
         as_volume : bool
             Whether to output a NIfTI volume. stc_from has to be a
-            VolSourceEstimate. Default is False.
+            VolSourceEstimate. The default is as_volume=False.
         mri_resolution: bool | tuple | int | float
             If True the image is saved in MRI resolution. Default False.
             WARNING: if you have many time points the file produced can be
-            huge.
+            huge. The default is mri_resolution=False.
         mri_space : bool
-            Whether the image to world registration should be in mri space.
-            Default is mri_resolution.
+            Whether the image to world registration should be in mri space. The
+            default is mri_space=mri_resolution.
         apply_morph : bool
             If as_volume=True and apply_morph=True, the input stc will be
-            morphed and outputted as a volume.
+            morphed and outputted as a volume. The default is as_volume=True.
         format : str
             Either 'nifti1' (default) or 'nifti2'.
         verbose : bool | str | int | None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+            for more). The default is verbose=None.
 
         Returns
         -------
@@ -258,7 +252,6 @@ class SourceMorph(object):
         stc = copy.deepcopy(stc_from)
 
         if as_volume:
-
             # if no mri resolution is desired, probably no mri space is wanted
             # as well and vice versa
             mri_space = mri_resolution if mri_space is None else mri_space
@@ -315,9 +308,8 @@ class SourceMorph(object):
             not end with '.h5'
         verbose : bool | str | int | None
             If not None, override default verbose level (see
-            :func:`mne.verbose` and
-            :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
         """
         logger.info('saving morph...')
         if not fname.endswith('.h5'):
@@ -340,14 +332,16 @@ class SourceMorph(object):
         mri_resolution: bool | tuple | int | float
             Whether to use MRI resolution. If False the morph's resolution
             will be used. If tuple the voxel size must be given in float values
-            in mm. E.g. mri_resolution=(3., 3., 3.)
+            in mm. E.g. mri_resolution=(3., 3., 3.). The default is
+            mri_resolution=False.
             WARNING: if you have many time points the file produced can be
             huge.
         mri_space : bool
-            Whether the image to world registration should be in MRI space.
+            Whether the image to world registration should be in MRI space. The
+            default is mri_space=True.
         apply_morph : bool
-            Whether to apply the precomputed morph to stc or not. Default is
-            False.
+            Whether to apply the precomputed morph to stc or not. The default
+            is apply_morph=False.
         format : str
             Either 'nifti1' (default) or 'nifti2'
 
@@ -415,7 +409,7 @@ def read_source_morph(fname, verbose=None):
     verbose : bool | str | int | None
         If not None, override default verbose level (see
         :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more). Defaults to self.verbose.
+        for more). The default is verbose=False.
 
     Returns
     -------
@@ -461,9 +455,10 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
         will be used. If tuple the voxel size must be given in float values
         in mm. E.g. mri_resolution=(3., 3., 3.)
         WARNING: if you have many time points the file produced can be
-        huge.
+        huge. The default is mri_resolution=False.
     mri_space : bool
-        Whether the image to world registration should be in MRI space.
+        Whether the image to world registration should be in MRI space. The
+        default is mri_space=True.
     format : str
         Either 'nifti1' (default) or 'nifti2'
 
@@ -485,7 +480,8 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
                                 mri_space=mri_space,
                                 format=format)
         if fname is not None:
-            nib.save(img, fname)
+            with warnings.catch_warnings():
+                nib.save(img, fname)
         return img
 
     if format == 'nifti1':
@@ -530,7 +526,7 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
     img = img.reshape(shape + (-1,))
 
     # make nifti from data
-    with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
+    with warnings.catch_warnings():  # nibabel<->numpy warning
         img = NiftiImage(img, affine, header=hdr)
 
     # reslice in case of manually defined voxel size
@@ -540,7 +536,7 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
                               img.affine,  # MRI to world registration
                               zooms,  # old voxel size in mm
                               new_zooms)  # new voxel size in mm
-        with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
+        with warnings.catch_warnings():  # nibabel<->numpy warning
             img = NiftiImage(img, affine)
         zooms = new_zooms
 
@@ -549,7 +545,8 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
 
     # save if fname is provided
     if fname is not None:
-        nib.save(img, fname)
+        with warnings.catch_warnings():
+            nib.save(img, fname)
 
     return img
 
@@ -588,7 +585,7 @@ def _get_src_data(src):
 
 
 def _compute_morph_data(morph, verbose=None):
-    """Compute source estimate specific morph."""
+    """Computes morph depending on the underlying type of source estimate."""
     data = dict()
 
     # get data currently present in morph
@@ -608,7 +605,8 @@ def _compute_morph_data(morph, verbose=None):
                                      mri_subpath)
 
         logger.info('loading %s as moving volume' % mri_path_from)
-        mri_from = nib.load(mri_path_from)
+        with warnings.catch_warnings():
+            mri_from = nib.load(mri_path_from)
 
         # load static MRI
         static_path = os.path.join(subjects_dir, morph.subject_to)
@@ -620,7 +618,8 @@ def _compute_morph_data(morph, verbose=None):
 
         if os.path.isfile(mri_path_to):
             logger.info('loading %s as static volume' % mri_path_to)
-            mri_to = nib.load(mri_path_to)
+            with warnings.catch_warnings():
+                mri_to = nib.load(mri_path_to)
         else:
             raise IOError('cannot read file: %s' % mri_path_to)
 
@@ -695,7 +694,7 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
     n_times = stc.data.shape[1]
     shape3d = morph_data['src_shape']
     shape = (n_times,) + shape3d
-    vol = np.zeros(shape)
+    vols = np.zeros(shape)
 
     voxel_size_defined = False
 
@@ -717,29 +716,29 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
             "Cannot infer original voxel size for reslicing... "
             "set mri_resolution to boolean value or apply morph first.")
 
+    mask3d = morph_data['inuse'].reshape(shape3d).astype(np.bool)
+    n_vertices = np.sum(mask3d)
+
+    n_vertices_seen = 0
+    for k, vol in enumerate(vols):  # loop over time instants
+        stc_slice = slice(n_vertices_seen, n_vertices_seen + n_vertices)
+        vol[mask3d] = stc.data[stc_slice, k]
+
+    n_vertices_seen += n_vertices
+
     # use mri resolution as represented in src
     if mri_resolution:
         mri_shape3d = morph_data['src_shape_full']
         mri_shape = (n_times,) + mri_shape3d
         mri_vol = np.zeros(mri_shape)
+
         interpolator = morph_data['interpolator']
 
-    mask3d = morph_data['inuse'].reshape(shape3d).astype(np.bool)
-    n_vertices = np.sum(mask3d)
+        for k, vol in enumerate(vols):
+            mri_vol[k] = (interpolator * vol.ravel()).reshape(mri_shape3d)
+        vols = mri_vol
 
-    n_vertices_seen = 0
-    for k, v in enumerate(vol):  # loop over time instants
-        stc_slice = slice(n_vertices_seen, n_vertices_seen + n_vertices)
-        v[mask3d] = stc.data[stc_slice, k]
-
-    n_vertices_seen += n_vertices
-
-    if mri_resolution:
-        for k, v in enumerate(vol):
-            mri_vol[k] = (interpolator * v.ravel()).reshape(mri_shape3d)
-        vol = mri_vol
-
-    vol = vol.T
+    vols = vols.T
 
     # set correct space
     affine = morph_data['src_affine_vox']
@@ -757,8 +756,8 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
     header.set_xyzt_units('mm', 'msec')
     header['pixdim'][4] = 1e3 * stc.tstep
 
-    with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
-        img = NiftiImage(vol, affine, header=header)
+    with warnings.catch_warnings():  # nibabel<->numpy warning
+        img = NiftiImage(vols, affine, header=header)
 
     # if a specific voxel size was targeted (only possible after morphing)
     if voxel_size_defined:
@@ -768,7 +767,7 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
             img.affine,
             _get_zooms_orig(morph_data),
             voxel_size)
-        with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
+        with warnings.catch_warnings():  # nibabel<->numpy warning
             img = NiftiImage(img, img_affine, header=header)
 
     return img
@@ -789,26 +788,27 @@ def _compute_morph_sdr(mri_from, mri_to,
     mri_from : str | Nifti1Image
         Path to source subject's anatomical MRI or Nifti1Image
     mri_to : str | Nifti1Image
-        Path to destination subject's anatomical MRI or Nifti1Image
+        Path to reference subject's anatomical MRI or Nifti1Image
     niter_affine : tuple of int
         Number of levels (``len(niter_affine)``) and number of
         iterations per level - for each successive stage of iterative
-        refinement - to perform the affine transform.
-        Default is niter_affine=(100, 100, 10)
+        refinement - to perform the affine transform. The default is
+        niter_affine=(100, 100, 10).
     niter_sdr : tuple of int
         Number of levels (``len(niter_sdr)``) and number of
         iterations per level - for each successive stage of iterative
         refinement - to perform the Symmetric Diffeomorphic Registration (sdr)
-        transform. Default is niter_sdr=(5, 5, 3)
+        transform. The default is niter_sdr=(5, 5, 3).
     spacing : tuple | int | float | None
         Voxel size of volume for each spatial dimension separately (tuple) or
-        isometric (int).
+        isometric (int). The default is spacing=5
         If spacing is None, MRIs won't be resliced. Note that in this case
         both volumes must have the same number of slices in every
         spatial dimension.
     verbose : bool | str | int | None
         If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+        and :ref:`Logging documentation <tut_logging>` for more). The default
+        is verbose=None.
 
     Returns
     -------
@@ -821,12 +821,12 @@ def _compute_morph_sdr(mri_from, mri_to,
     This function will be used to morph VolSourceEstimate based on an
     affine transformation and a nonlinear morph, estimated based on
     respective transformation from the subject's anatomical T1 (brain) to
-    a destination subject's anatomical T1 (e.g. fsaverage). Afterwards the
+    a reference subject's anatomical T1 (e.g. fsaverage). Afterwards the
     transformation can be applied. Affine transformations are computed
     based on the mutual information. This metric relates structural changes
-    in image intensity values. Because different still brains expose high
-    structural similarities this method works quite well to relate
-    corresponding features [1]_.
+    in image intensity values. Because different brains expose high structural
+    similarities, this method works quite well to relate corresponding features
+    [1]_.
     The nonlinear transformations will be performed as Symmetric
     Diffeomorphic Registration using the cross-correlation metric [2]_.
 
@@ -866,7 +866,7 @@ def _compute_morph_sdr(mri_from, mri_to,
         mri_from.header.get_zooms()[:3],
         spacing)
 
-    with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
+    with warnings.catch_warnings():  # nibabel<->numpy warning
         mri_from = nib.Nifti1Image(mri_from_res, mri_from_res_affine)
 
     # reslice mri_to
@@ -876,7 +876,7 @@ def _compute_morph_sdr(mri_from, mri_to,
         mri_to.header.get_zooms()[:3],
         spacing)
 
-    with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
+    with warnings.catch_warnings():  # nibabel<->numpy warning
         mri_to = nib.Nifti1Image(mri_to_res, mri_to_res_affine)
 
     # get mri_to to world transform
@@ -902,11 +902,9 @@ def _compute_morph_sdr(mri_from, mri_to,
                                                    mri_from,
                                                    mri_from_grid2world)
 
-    nbins = 32
-
     # set up Affine Registration
     affreg = imaffine.AffineRegistration(
-        metric=imaffine.MutualInformationMetric(nbins, None),
+        metric=imaffine.MutualInformationMetric(nbins=32),
         level_iters=list(niter_affine),
         sigmas=[3.0, 1.0, 0.0],
         factors=[4, 2, 1])
@@ -952,22 +950,10 @@ def _compute_morph_sdr(mri_from, mri_to,
 
 ###############################################################################
 # Morph for SourceEstimate |  VectorSourceEstimate
-@deprecated("This function is deprecated and might be removed in a future "
-            "release. Use morph = mne.SourceMorph and morph(stc). Access the "
-            "morph matrix via morph.params['morph_mat']")
+@verbose
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
                          smooth=None, subjects_dir=None, warn=True,
                          xhemi=False, verbose=None):
-    """Wrapper for _compute_morph_matrix to assure backwards compatibility."""
-    return _compute_morph_matrix(subject_from, subject_to, vertices_from,
-                                 vertices_to, smooth, subjects_dir, warn,
-                                 xhemi, verbose)
-
-
-@verbose
-def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
-                          smooth=None, subjects_dir=None, warn=True,
-                          xhemi=False, verbose=None):
     """Get a matrix that morphs data from one subject to another.
 
     Parameters
@@ -983,17 +969,20 @@ def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     smooth : int or None
         Number of iterations for the smoothing of the surface data.
         If None, smooth is automatically defined to fill the surface
-        with non-zero values.
+        with non-zero values. The default is smooth=None.
     subjects_dir : str
-        Path to SUBJECTS_DIR is not set in the environment.
+        Path to SUBJECTS_DIR is not set in the environment. The default is
+        subjects_dir=None.
     warn : bool
-        If True, warn if not all vertices were used.
+        If True, warn if not all vertices were used. warn
     xhemi : bool
         Morph across hemisphere. Currently only implemented for
-        ``subject_to == subject_from``. See notes below.
+        ``subject_to == subject_from``. See notes below. The default is
+        xhemi=False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+        and :ref:`Logging documentation <tut_logging>` for more). The default
+        is verbose=None.
 
     Returns
     -------
@@ -1026,6 +1015,16 @@ def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
            A Surface-based Analysis of Language Lateralization and Cortical
            Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
     """
+    return _compute_morph_matrix(subject_from, subject_to, vertices_from,
+                                 vertices_to, smooth, subjects_dir, warn,
+                                 xhemi, verbose)
+
+
+@verbose
+def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
+                          smooth=None, subjects_dir=None, warn=True,
+                          xhemi=False, verbose=None):
+    """Compute morph matrix."""
     logger.info('Computing morph matrix...')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
@@ -1084,7 +1083,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     subjects_dir : str | None
         Path to SUBJECTS_DIR if it is not set in the environment
     n_jobs : int
-        Number of jobs to run in parallel
+        Number of jobs to run in parallel. The default is n_jobs=1.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1157,14 +1156,15 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     n_vertices : int
         Number of vertices.
     nearest : array of int
-        Vertices on the destination surface to use.
+        Vertices on the reference surface to use.
     maps : sparse matrix
         Morph map from one subject to the other.
     warn : bool
         If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+        and :ref:`Logging documentation <tut_logging>` for more). The default
+        is verbose=None.
 
     Returns
     -------
@@ -1301,7 +1301,8 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
     subject_to : str
         The target subject.
     subjects_dir : str
-        Path to SUBJECTS_DIR if it is not set in the environment.
+        Path to SUBJECTS_DIR if it is not set in the environment. The default
+        is subjects_dir=None.
 
     Returns
     -------
@@ -1361,12 +1362,13 @@ def _apply_morph_data(morph, stc_from, verbose=None):
         Data to be morphed
     verbose : bool | str | int | None
         If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+        and :ref:`Logging documentation <tut_logging>` for more). The default
+        is verbose=None.
 
     Returns
     -------
     stc_to : VolSourceEstimate | VectorSourceEstimate | SourceEstimate
-        Source estimate for the destination subject.
+        Source estimate for the reference subject.
     """
     if morph.kind == 'volume':
 
