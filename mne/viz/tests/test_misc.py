@@ -157,8 +157,8 @@ def test_plot_source_spectrogram():
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_plot_snr():
-    import matplotlib.pyplot as plt
     """Test plotting SNR estimate."""
+    import matplotlib.pyplot as plt
     inv = read_inverse_operator(inv_fname)
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
     plot_snr_estimate(evoked, inv)

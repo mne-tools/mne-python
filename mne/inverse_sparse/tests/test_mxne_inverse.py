@@ -79,10 +79,11 @@ def test_mxne_inverse():
                           depth=depth, maxit=300, tol=1e-8,
                           active_set_size=10, weights=stc_dspm,
                           weights_min=weights_min, solver='prox')
-    stc_cd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                        depth=depth, maxit=300, tol=1e-8, active_set_size=10,
-                        weights=stc_dspm, weights_min=weights_min,
-                        solver='cd')
+    with pytest.warns(None):  # CD
+        stc_cd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
+                            depth=depth, maxit=300, tol=1e-8,
+                            active_set_size=10, weights=stc_dspm,
+                            weights_min=weights_min, solver='cd')
     stc_bcd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                          depth=depth, maxit=300, tol=1e-8, active_set_size=10,
                          weights=stc_dspm, weights_min=weights_min,

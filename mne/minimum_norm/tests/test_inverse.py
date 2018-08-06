@@ -402,7 +402,7 @@ def test_apply_inverse_sphere():
     write_inverse_operator(temp_fname, inv)
     inv = read_inverse_operator(temp_fname)
     stc = apply_inverse(evoked, inv, method='eLORETA',
-                        method_params=dict(eps=1e-3))
+                        method_params=dict(eps=1e-2))
     # assert zero localization bias
     assert_array_equal(np.argmax(stc.data, axis=0),
                        np.repeat(np.arange(101), 3))

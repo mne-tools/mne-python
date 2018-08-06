@@ -90,8 +90,10 @@ def test_fieldtrip_rtepochs(free_tcp_port, tmpdir):
     try:
         data_rt = None
         events_ids_rt = None
-        with FieldTripClient(host='localhost', port=free_tcp_port,
-                             tmax=raw_tmax, wait_max=2) as rt_client:
+        with pytest.warns(RuntimeWarning, match='Trying to guess it'):
+            rt_client = FieldTripClient(host='localhost', port=free_tcp_port,
+                                        tmax=raw_tmax, wait_max=2)
+        with rt_client:
             # get measurement info guessed by MNE-Python
             raw_info = rt_client.get_measurement_info()
             assert ([ch['ch_name'] for ch in raw_info['chs']] ==

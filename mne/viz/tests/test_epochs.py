@@ -9,7 +9,6 @@
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_equal
 import pytest
 
 from mne import read_events, Epochs, pick_types, read_cov

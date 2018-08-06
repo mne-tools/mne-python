@@ -135,7 +135,7 @@ def test_dipole_fitting():
 
     # Run mne-python version
     sphere = make_sphere_model(head_radius=0.1)
-    with pytest.warns(RuntimeWarning, match='foo'):
+    with pytest.warns(RuntimeWarning, match='projection'):
         dip, residuals = fit_dipole(evoked, cov, sphere, fname_fwd)
 
     # Sanity check: do our residuals have less power than orig data?
