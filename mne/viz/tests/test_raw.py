@@ -268,8 +268,8 @@ def test_plot_annotations():
     _annotation_helper(raw)
     _annotation_helper(raw, events=True)
 
-    with pytest.warns(RuntimeWarning, match='units'):
-        annot = Annotations([42], [1], 'test', raw.info['meas_date'])
+    annot = Annotations([42], [1], 'test', raw.info['meas_date'])
+    with pytest.warns(RuntimeWarning, match='expanding outside'):
         raw.set_annotations(annot)
     _annotation_helper(raw)
 
