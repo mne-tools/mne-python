@@ -1777,8 +1777,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     vlines : "auto" | list of float
         A list in seconds at which to plot dashed vertical lines.
         If "auto" and the supplied data includes 0, it is set to [0.]
-        and a vertical bar is plotted at time 0. If an empty list, no
-        vlines are plotted.
+        and a vertical bar is plotted at time 0. If an empty list is passed,
+        no vertical lines are plotted.
     ci : float | callable | None | bool
         If not None and ``evokeds`` is a [list/dict] of lists, a shaded
         confidence interval is drawn around the individual time series. If
