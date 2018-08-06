@@ -43,7 +43,7 @@ def test_stockwell_check_input():
 
     for last_dim in (127, 128):
         data = np.zeros((2, 10, last_dim))
-        with pytest.warns(RuntimeWarning, match='n_fft'):
+        with pytest.warns(None):  # n_fft sometimes
             x_in, n_fft, zero_pad = _check_input_st(data, None)
 
         assert_equal(x_in.shape, (2, 10, 128))
