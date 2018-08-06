@@ -7,7 +7,6 @@
 # License: Simplified BSD
 
 import os.path as op
-import warnings
 
 import numpy as np
 from numpy.testing import assert_equal
@@ -23,8 +22,6 @@ from mne.viz.utils import _fake_click
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -45,7 +42,7 @@ def _get_epochs():
                        ecg=False, eog=False, exclude='bads')
     # Use a subset of channels for plotting speed
     picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
-    with warnings.catch_warnings(record=True):  # bad proj
+    with pytest.warns(RuntimeWarning, match='projection'):
         epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                         proj=False)
     epochs.info.normalize_proj()  # avoid warnings
@@ -64,23 +61,23 @@ def test_plot_epochs():
     assert len(cov['names']) == 366  # all channels
     assert cov['bads'] == []
     assert epochs.info['bads'] == []  # all good
-    with warnings.catch_warnings(record=True):  # projectors
+    with pytest.warns(RuntimeWarning, match='projection'):
         epochs.plot(noise_cov=cov)
     plt.close('all')
     # add a channel to the epochs.info['bads']
     epochs.info['bads'] = [epochs.ch_names[0]]
-    with warnings.catch_warnings(record=True):  # projectors
+    with pytest.warns(RuntimeWarning, match='projection'):
         epochs.plot(noise_cov=cov)
     plt.close('all')
     # add a channel to cov['bads']
     cov['bads'] = [epochs.ch_names[1]]
-    with warnings.catch_warnings(record=True):  # projectors
+    with pytest.warns(RuntimeWarning, match='projection'):
         epochs.plot(noise_cov=cov)
     plt.close('all')
     # have a data channels missing from the covariance
     cov['names'] = cov['names'][:306]
     cov['data'] = cov['data'][:306][:306]
-    with warnings.catch_warnings(record=True):  # projectors
+    with pytest.warns(RuntimeWarning, match='projection'):
         epochs.plot(noise_cov=cov)
     plt.close('all')
     # other options
@@ -111,23 +108,22 @@ def test_plot_epochs():
     plt.close('all')
     pytest.raises(RuntimeError, epochs.plot, picks=[])
     plt.close('all')
-    with warnings.catch_warnings(record=True):
-        fig = epochs.plot(events=epochs.events)
-        # test mouse clicks
-        x = fig.get_axes()[0].get_xlim()[1] / 2
-        y = fig.get_axes()[0].get_ylim()[0] / 2
-        data_ax = fig.get_axes()[0]
-        n_epochs = len(epochs)
-        _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad epoch
-        _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad epoch
-        _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
-        _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
-        _fake_click(fig, data_ax, [-0.1, 0.9], button=3)
-        _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change epochs
-        _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # change channels
-        fig.canvas.close_event()  # closing and epoch dropping
-        assert(n_epochs - 1 == len(epochs))
-        plt.close('all')
+    fig = epochs.plot(events=epochs.events)
+    # test mouse clicks
+    x = fig.get_axes()[0].get_xlim()[1] / 2
+    y = fig.get_axes()[0].get_ylim()[0] / 2
+    data_ax = fig.get_axes()[0]
+    n_epochs = len(epochs)
+    _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad epoch
+    _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad epoch
+    _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
+    _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
+    _fake_click(fig, data_ax, [-0.1, 0.9], button=3)
+    _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change epochs
+    _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # change channels
+    fig.canvas.close_event()  # closing and epoch dropping
+    assert(n_epochs - 1 == len(epochs))
+    plt.close('all')
     epochs.plot_sensors()  # Test plot_sensors
     plt.close('all')
 
@@ -157,18 +153,15 @@ def test_plot_epochs_image():
                   scalings={"ho": 1})
     epochs.load_data().pick_types(meg='mag')
     epochs.info.normalize_proj()
-    with warnings.catch_warnings(record=True):  # projs
-        epochs.plot_image(group_by='type', combine='mean')
-        epochs.plot_image(group_by={"1": [1, 2], "2": [1, 2]}, combine='mean')
-        epochs.plot_image(vmin=lambda x: x.min())
-        pytest.raises(ValueError, epochs.plot_image, axes=1, fig=2)
+    epochs.plot_image(group_by='type', combine='mean')
+    epochs.plot_image(group_by={"1": [1, 2], "2": [1, 2]}, combine='mean')
+    epochs.plot_image(vmin=lambda x: x.min())
+    pytest.raises(ValueError, epochs.plot_image, axes=1, fig=2)
     ts_args = dict(show_sensors=False)
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='fall outside'):
         epochs.plot_image(overlay_times=[1.1], combine="gfp", ts_args=ts_args)
-        pytest.raises(ValueError, epochs.plot_image, combine='error',
-                      ts_args=ts_args)
-        warnings.simplefilter('always')
-    assert_equal(len(w), 1)
+    pytest.raises(ValueError, epochs.plot_image, combine='error',
+                  ts_args=ts_args)
     with pytest.raises(NotImplementedError, match='currently'):
         epochs.plot_image(ts_args=dict(invert_y=True))
 
@@ -181,14 +174,10 @@ def test_plot_drop_log():
     epochs = _get_epochs()
     pytest.raises(ValueError, epochs.plot_drop_log)
     epochs.drop_bad()
-
-    warnings.simplefilter('always', UserWarning)
-    with warnings.catch_warnings(record=True):
-        epochs.plot_drop_log()
-
-        plot_drop_log([['One'], [], []])
-        plot_drop_log([['One'], ['Two'], []])
-        plot_drop_log([['One'], ['One', 'Two'], []])
+    epochs.plot_drop_log()
+    plot_drop_log([['One'], [], []])
+    plot_drop_log([['One'], ['Two'], []])
+    plot_drop_log([['One'], ['One', 'Two'], []])
     plt.close('all')
 
 

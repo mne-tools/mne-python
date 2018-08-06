@@ -4,7 +4,6 @@
 # License: Simplified BSD
 
 import os.path as op
-import warnings
 
 from numpy.testing import assert_equal, assert_array_equal
 import pytest
@@ -19,8 +18,6 @@ from mne.viz.utils import _fake_click
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -51,7 +48,7 @@ def _get_epochs():
     raw = _get_raw()
     events = _get_events()
     picks = _get_picks(raw)
-    with warnings.catch_warnings(record=True):  # bad proj
+    with pytest.warns(RuntimeWarning, match='projection'):
         epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks)
     return epochs
 
@@ -66,46 +63,45 @@ def test_plot_ica_components():
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
     ica_picks = _get_picks(raw)
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw, picks=ica_picks)
-    warnings.simplefilter('always', UserWarning)
-    with warnings.catch_warnings(record=True):
-        for components in [0, [0], [0, 1], [0, 1] * 2, None]:
-            ica.plot_components(components, image_interp='bilinear',
-                                colorbar=True, **fast_test)
-        plt.close('all')
 
-        # test interactive mode (passing 'inst' arg)
-        ica.plot_components([0, 1], image_interp='bilinear', inst=raw, res=16)
-        fig = plt.gcf()
+    for components in [0, [0], [0, 1], [0, 1] * 2, None]:
+        ica.plot_components(components, image_interp='bilinear',
+                            colorbar=True, **fast_test)
+    plt.close('all')
 
-        # test title click
-        # ----------------
-        lbl = fig.axes[1].get_label()
-        ica_idx = int(lbl[-3:])
-        titles = [ax.title for ax in fig.axes]
-        title_pos_midpoint = (titles[1].get_window_extent().extents
-                              .reshape((2, 2)).mean(axis=0))
-        # first click adds to exclude
-        _fake_click(fig, fig.axes[1], title_pos_midpoint, xform='pix')
-        assert ica_idx in ica.exclude
-        # clicking again removes from exclude
-        _fake_click(fig, fig.axes[1], title_pos_midpoint, xform='pix')
-        assert ica_idx not in ica.exclude
+    # test interactive mode (passing 'inst' arg)
+    ica.plot_components([0, 1], image_interp='bilinear', inst=raw, res=16)
+    fig = plt.gcf()
 
-        # test topo click
-        # ---------------
-        _fake_click(fig, fig.axes[1], (0., 0.), xform='data')
+    # test title click
+    # ----------------
+    lbl = fig.axes[1].get_label()
+    ica_idx = int(lbl[-3:])
+    titles = [ax.title for ax in fig.axes]
+    title_pos_midpoint = (titles[1].get_window_extent().extents
+                          .reshape((2, 2)).mean(axis=0))
+    # first click adds to exclude
+    _fake_click(fig, fig.axes[1], title_pos_midpoint, xform='pix')
+    assert ica_idx in ica.exclude
+    # clicking again removes from exclude
+    _fake_click(fig, fig.axes[1], title_pos_midpoint, xform='pix')
+    assert ica_idx not in ica.exclude
 
-        c_fig = plt.gcf()
-        labels = [ax.get_label() for ax in c_fig.axes]
+    # test topo click
+    # ---------------
+    _fake_click(fig, fig.axes[1], (0., 0.), xform='data')
 
-        for l in ['topomap', 'image', 'erp', 'spectrum', 'variance']:
-            assert (l in labels)
+    c_fig = plt.gcf()
+    labels = [ax.get_label() for ax in c_fig.axes]
 
-        topomap_ax = c_fig.axes[labels.index('topomap')]
-        title = topomap_ax.get_title()
-        assert (lbl == title)
+    for l in ['topomap', 'image', 'erp', 'spectrum', 'variance']:
+        assert (l in labels)
+
+    topomap_ax = c_fig.axes[labels.index('topomap')]
+    title = topomap_ax.get_title()
+    assert (lbl == title)
 
     ica.info = None
     pytest.raises(ValueError, ica.plot_components, 1)
@@ -126,13 +122,12 @@ def test_plot_ica_properties():
     pick_names = [raw.ch_names[k] for k in picks]
     raw.pick_channels(pick_names)
 
-    with warnings.catch_warnings(record=True):  # bad proj
-        epochs = Epochs(raw, events[:10], event_id, tmin, tmax,
-                        baseline=(None, 0), preload=True)
+    epochs = Epochs(raw, events[:10], event_id, tmin, tmax,
+                    baseline=(None, 0), preload=True)
 
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=2, n_pca_components=2)
-    with warnings.catch_warnings(record=True):  # bad proj
+    with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw)
 
     # test _create_properties_layout
@@ -204,24 +199,23 @@ def test_plot_ica_sources():
     epochs.info['bads'] = ['MEG 0113']
     pytest.raises(RuntimeError, ica.plot_sources, inst=epochs)
     epochs.info['bads'] = []
-    with warnings.catch_warnings(record=True):  # no labeled objects mpl
-        ica.plot_sources(epochs.average())
-        evoked = epochs.average()
-        fig = ica.plot_sources(evoked)
-        # Test a click
-        ax = fig.get_axes()[0]
-        line = ax.lines[0]
-        _fake_click(fig, ax,
-                    [line.get_xdata()[0], line.get_ydata()[0]], 'data')
-        _fake_click(fig, ax,
-                    [ax.get_xlim()[0], ax.get_ylim()[1]], 'data')
-        # plot with bad channels excluded
-        ica.plot_sources(evoked, exclude=[0])
-        ica.exclude = [0]
-        ica.plot_sources(evoked)  # does the same thing
-        ica.labels_ = dict(eog=[0])
-        ica.labels_['eog/0/crazy-channel'] = [0]
-        ica.plot_sources(evoked)  # now with labels
+    ica.plot_sources(epochs.average())
+    evoked = epochs.average()
+    fig = ica.plot_sources(evoked)
+    # Test a click
+    ax = fig.get_axes()[0]
+    line = ax.lines[0]
+    _fake_click(fig, ax,
+                [line.get_xdata()[0], line.get_ydata()[0]], 'data')
+    _fake_click(fig, ax,
+                [ax.get_xlim()[0], ax.get_ylim()[1]], 'data')
+    # plot with bad channels excluded
+    ica.plot_sources(evoked, exclude=[0])
+    ica.exclude = [0]
+    ica.plot_sources(evoked)  # does the same thing
+    ica.labels_ = dict(eog=[0])
+    ica.labels_['eog/0/crazy-channel'] = [0]
+    ica.plot_sources(evoked)  # now with labels
     pytest.raises(ValueError, ica.plot_sources, 'meeow')
     plt.close('all')
 
@@ -236,13 +230,13 @@ def test_plot_ica_overlay():
               max_pca_components=3, n_pca_components=3)
     # can't use info.normalize_proj here because of how and when ICA and Epochs
     # objects do picking of Raw data
-    with warnings.catch_warnings(record=True):  # bad proj
+    with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw, picks=picks)
     # don't test raw, needs preload ...
-    with warnings.catch_warnings(record=True):  # bad proj
+    with pytest.warns(RuntimeWarning, match='projection'):
         ecg_epochs = create_ecg_epochs(raw, picks=picks)
     ica.plot_overlay(ecg_epochs.average())
-    with warnings.catch_warnings(record=True):  # bad proj
+    with pytest.warns(RuntimeWarning, match='projection'):
         eog_epochs = create_eog_epochs(raw, picks=picks)
     ica.plot_overlay(eog_epochs.average())
     pytest.raises(TypeError, ica.plot_overlay, raw[:2, :3][0])
@@ -255,7 +249,8 @@ def test_plot_ica_overlay():
     picks = pick_types(raw.info, meg=True, ref_meg=False)
     ica = ICA(n_components=2, max_pca_components=3, n_pca_components=3)
     ica.fit(raw, picks=picks)
-    ecg_epochs = create_ecg_epochs(raw)
+    with pytest.warns(RuntimeWarning, match='longer than'):
+        ecg_epochs = create_ecg_epochs(raw)
     ica.plot_overlay(ecg_epochs.average())
     plt.close('all')
 
@@ -268,7 +263,7 @@ def test_plot_ica_scores():
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
-    with warnings.catch_warnings(record=True):  # bad proj
+    with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw, picks=picks)
     ica.labels_ = dict()
     ica.labels_['eog/0/foo'] = 0
@@ -294,7 +289,7 @@ def test_plot_instance_components():
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
-    with warnings.catch_warnings(record=True):  # bad proj
+    with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw, picks=picks)
     fig = ica.plot_sources(raw, exclude=[0], title='Components')
     for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=', 'pageup',
@@ -302,9 +297,8 @@ def test_plot_instance_components():
         fig.canvas.key_press_event(key)
     ax = fig.get_axes()[0]
     line = ax.lines[0]
-    with warnings.catch_warnings(record=True):  # Can only plot ICA components
-        _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]],
-                    'data')
+    _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]],
+                'data')
     _fake_click(fig, ax, [-0.1, 0.9])  # click on y-label
     fig.canvas.key_press_event('escape')
     plt.close('all')

@@ -8,7 +8,6 @@
 # License: Simplified BSD
 
 import os.path as op
-import warnings
 
 import numpy as np
 import pytest
@@ -52,7 +51,6 @@ pdf_fname = op.join(base_dir, 'test_pdf_linux')
 config_fname = op.join(base_dir, 'test_config_linux')
 hs_fname = op.join(base_dir, 'test_hs_linux')
 sqd_fname = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
 def test_plot_head_positions():
@@ -62,7 +60,7 @@ def test_plot_head_positions():
     pos = np.random.RandomState(0).randn(4, 10)
     pos[:, 0] = np.arange(len(pos))
     destination = (0., 0., 0.04)
-    with warnings.catch_warnings(record=True):  # old MPL will cause a warning
+    with pytest.warns(None):  # old MPL will cause a warning
         plot_head_positions(pos)
         if check_version('matplotlib', '1.4'):
             plot_head_positions(pos, mode='field', info=info,
@@ -128,7 +126,7 @@ def test_plot_evoked_field():
                           baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
     for t in ['meg', None]:
-        with warnings.catch_warnings(record=True):  # bad proj
+        with pytest.warns(RuntimeWarning, match='projection'):
             maps = make_field_map(evoked, trans_fname, subject='sample',
                                   subjects_dir=subjects_dir, n_jobs=1,
                                   ch_type=t)
@@ -154,9 +152,8 @@ def test_plot_alignment():
     mlab = _import_mlab()
     evoked = read_evokeds(evoked_fname)[0]
     sample_src = read_source_spaces(src_fname)
-    with warnings.catch_warnings(record=True):  # 4D weight tables
-        bti = read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
-                           preload=False).info
+    bti = read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
+                       preload=False).info
     infos = dict(
         Neuromag=evoked.info,
         CTF=read_raw_ctf(ctf_fname).info,
@@ -199,14 +196,13 @@ def test_plot_alignment():
     evoked_eeg_ecog_seeg.info['projs'] = []  # "remove" avg proj
     evoked_eeg_ecog_seeg.set_channel_types({'EEG 001': 'ecog',
                                             'EEG 002': 'seeg'})
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='Cannot plot MEG'):
         plot_alignment(evoked_eeg_ecog_seeg.info, subject='sample',
                        trans=trans_fname, subjects_dir=subjects_dir,
                        surfaces=['white', 'outer_skin', 'outer_skull'],
                        meg=['helmet', 'sensors'],
                        eeg=['original', 'projected'], ecog=True, seeg=True)
     mlab.close(all=True)
-    assert any('Cannot plot MEG' in str(ww.message) for ww in w)
 
     sphere = make_sphere_model(info=evoked.info, r0='auto', head_radius='auto')
     bem_sol = read_bem_solution(op.join(subjects_dir, 'sample', 'bem',
@@ -305,13 +301,10 @@ def test_limits_to_control_points():
                   **kwargs)
     pytest.raises(ValueError, stc.plot, hemi='foo', clim='auto', **kwargs)
 
-    # Test handling of degenerate data
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        # thresholded maps
-        stc._data.fill(0.)
+    # Test handling of degenerate data: thresholded maps
+    stc._data.fill(0.)
+    with pytest.warns(RuntimeWarning, match='All data were zero'):
         plot_source_estimates(stc, **kwargs)
-        assert any('All data were zero' in str(ww.message) for ww in w)
     mlab.close(all=True)
 
 
@@ -328,7 +321,7 @@ def test_stc_mpl():
     stc_data = np.ones((n_verts * n_time))
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
-    with warnings.catch_warnings(record=True):  # vertices not included
+    with pytest.warns(RuntimeWarning, match='not included'):
         stc.plot(subjects_dir=subjects_dir, time_unit='s', views='ven',
                  hemi='rh', smoothing_steps=2, subject='sample',
                  backend='matplotlib', spacing='oct1', initial_time=0.001,
@@ -409,15 +402,11 @@ def test_plot_vec_source_estimates():
     data = np.random.RandomState(0).rand(n_verts, 3, n_time)
     stc = VectorSourceEstimate(data, vertices, 1, 1)
 
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        stc.plot('sample', subjects_dir=subjects_dir)
-        assert len(w) == 0  # not using deprecated params
+    stc.plot('sample', subjects_dir=subjects_dir)
 
-        with pytest.raises(ValueError, match='use "pos_lims"'):
-            stc.plot('sample', subjects_dir=subjects_dir,
-                     clim=dict(pos_lims=[1, 2, 3]))
-        assert len(w) == 0
+    with pytest.raises(ValueError, match='use "pos_lims"'):
+        stc.plot('sample', subjects_dir=subjects_dir,
+                 clim=dict(pos_lims=[1, 2, 3]))
 
 
 run_tests_if_main()

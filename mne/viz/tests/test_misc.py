@@ -8,7 +8,6 @@
 # License: Simplified BSD
 
 import os.path as op
-import warnings
 
 import numpy as np
 import pytest
@@ -26,10 +25,7 @@ from mne.time_frequency import CrossSpectralDensity
 
 # Set our plotters to test mode
 import matplotlib
-from matplotlib import pyplot as plt
 matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -83,9 +79,10 @@ def test_plot_filter():
 
 def test_plot_cov():
     """Test plotting of covariances."""
+    import matplotlib.pyplot as plt
     raw = _get_raw()
     cov = read_cov(cov_fname)
-    with warnings.catch_warnings(record=True):  # bad proj
+    with pytest.warns(RuntimeWarning, match='projection'):
         fig1, fig2 = cov.plot(raw.info, proj=True, exclude=raw.ch_names[6:])
     plt.close('all')
 
@@ -109,6 +106,7 @@ def test_plot_bem():
 
 def test_plot_events():
     """Test plotting events."""
+    import matplotlib.pyplot as plt
     event_labels = {'aud_l': 1, 'aud_r': 2, 'vis_l': 3, 'vis_r': 4}
     color = {1: 'green', 2: 'yellow', 3: 'red', 4: 'c'}
     raw = _get_raw()
@@ -117,24 +115,27 @@ def test_plot_events():
     plot_events(events, raw.info['sfreq'], raw.first_samp, equal_spacing=False)
     # Test plotting events without sfreq
     plot_events(events, first_samp=raw.first_samp)
-    warnings.simplefilter('always', UserWarning)
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='will be ignored'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     event_id=event_labels)
+    with pytest.warns(RuntimeWarning, match='Color is not available'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     color=color)
+    with pytest.warns(RuntimeWarning, match='event .* missing'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     event_id=event_labels, color=color)
+    with pytest.warns(RuntimeWarning, match='event .* missing'):
         pytest.raises(ValueError, plot_events, events, raw.info['sfreq'],
                       raw.first_samp, event_id={'aud_l': 1}, color=color)
-        pytest.raises(ValueError, plot_events, events, raw.info['sfreq'],
-                      raw.first_samp, event_id={'aud_l': 111}, color=color)
+    pytest.raises(ValueError, plot_events, events, raw.info['sfreq'],
+                  raw.first_samp, event_id={'aud_l': 111}, color=color)
     plt.close('all')
 
 
 @testing.requires_testing_data
 def test_plot_source_spectrogram():
     """Test plotting of source spectrogram."""
+    import matplotlib.pyplot as plt
     sample_src = read_source_spaces(op.join(subjects_dir, 'sample',
                                             'bem', 'sample-oct-6-src.fif'))
 
@@ -156,6 +157,7 @@ def test_plot_source_spectrogram():
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_plot_snr():
+    import matplotlib.pyplot as plt
     """Test plotting SNR estimate."""
     inv = read_inverse_operator(inv_fname)
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
@@ -166,6 +168,7 @@ def test_plot_snr():
 @testing.requires_testing_data
 def test_plot_dipole_amplitudes():
     """Test plotting dipole amplitudes."""
+    import matplotlib.pyplot as plt
     dipoles = read_dipole(dip_fname)
     dipoles.plot_amplitudes(show=False)
     plt.close('all')
@@ -173,6 +176,7 @@ def test_plot_dipole_amplitudes():
 
 def test_plot_csd():
     """Test plotting of CSD matrices."""
+    import matplotlib.pyplot as plt
     csd = CrossSpectralDensity([1, 2, 3], ['CH1', 'CH2'],
                                frequencies=[(10, 20)], n_fft=1,
                                tmin=0, tmax=1,)

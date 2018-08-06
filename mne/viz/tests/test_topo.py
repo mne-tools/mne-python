@@ -6,7 +6,6 @@
 # License: Simplified BSD
 
 import os.path as op
-import warnings
 from collections import namedtuple
 
 import numpy as np
@@ -27,8 +26,6 @@ from mne.viz.topo import (_plot_update_evoked_topo_proj, iter_topography,
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -67,9 +64,10 @@ def _get_epochs_delayed_ssp():
     events = _get_events()
     picks = _get_picks(raw)
     reject = dict(mag=4e-12)
-    epochs_delayed_ssp = Epochs(
-        raw, events[:10], event_id, tmin, tmax, picks=picks,
-        proj='delayed', reject=reject)
+    with pytest.warns(RuntimeWarning, match='projection'):
+        epochs_delayed_ssp = Epochs(
+            raw, events[:10], event_id, tmin, tmax, picks=picks,
+            proj='delayed', reject=reject)
     return epochs_delayed_ssp
 
 
@@ -100,36 +98,36 @@ def test_plot_topo():
     pytest.raises(ValueError, evoked.plot_joint, picks=[6, 7, 8],
                   ts_args=dict(axes=axes[0]), topomap_args=dict(axes=axes[2:]))
 
-    warnings.simplefilter('always', UserWarning)
     picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])
     picked_evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
     picked_evoked_eeg.pick_channels(picked_evoked_eeg.ch_names[:3])
 
     # test scaling
-    with warnings.catch_warnings(record=True):
-        for ylim in [dict(mag=[-600, 600]), None]:
-            plot_evoked_topo([picked_evoked] * 2, layout, ylim=ylim)
+    for ylim in [dict(mag=[-600, 600]), None]:
+        plot_evoked_topo([picked_evoked] * 2, layout, ylim=ylim)
 
-        for evo in [evoked, [evoked, picked_evoked]]:
-            pytest.raises(ValueError, plot_evoked_topo, evo, layout,
-                          color=['y', 'b'])
+    for evo in [evoked, [evoked, picked_evoked]]:
+        pytest.raises(ValueError, plot_evoked_topo, evo, layout,
+                      color=['y', 'b'])
 
-        evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
-        ch_names = evoked_delayed_ssp.ch_names[:3]  # make it faster
-        picked_evoked_delayed_ssp = pick_channels_evoked(evoked_delayed_ssp,
-                                                         ch_names)
-        fig = plot_evoked_topo(picked_evoked_delayed_ssp, layout,
-                               proj='interactive')
-        func = _get_presser(fig)
-        event = namedtuple('Event', ['inaxes', 'xdata', 'ydata'])
-        func(event(inaxes=fig.axes[0], xdata=fig.axes[0]._mne_axs[0].pos[0],
-                   ydata=fig.axes[0]._mne_axs[0].pos[1]))
-        func(event(inaxes=fig.axes[0], xdata=0, ydata=0))
-        params = dict(evokeds=[picked_evoked_delayed_ssp],
-                      times=picked_evoked_delayed_ssp.times,
-                      fig=fig, projs=picked_evoked_delayed_ssp.info['projs'])
-        bools = [True] * len(params['projs'])
+    evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
+    ch_names = evoked_delayed_ssp.ch_names[:3]  # make it faster
+    picked_evoked_delayed_ssp = pick_channels_evoked(evoked_delayed_ssp,
+                                                     ch_names)
+    fig = plot_evoked_topo(picked_evoked_delayed_ssp, layout,
+                           proj='interactive')
+    func = _get_presser(fig)
+    event = namedtuple('Event', ['inaxes', 'xdata', 'ydata'])
+    func(event(inaxes=fig.axes[0], xdata=fig.axes[0]._mne_axs[0].pos[0],
+               ydata=fig.axes[0]._mne_axs[0].pos[1]))
+    func(event(inaxes=fig.axes[0], xdata=0, ydata=0))
+    params = dict(evokeds=[picked_evoked_delayed_ssp],
+                  times=picked_evoked_delayed_ssp.times,
+                  fig=fig, projs=picked_evoked_delayed_ssp.info['projs'])
+    bools = [True] * len(params['projs'])
+    with pytest.warns(RuntimeWarning, match='projection'):
         _plot_update_evoked_topo_proj(params, bools)
+
     # should auto-generate layout
     plot_evoked_topo(picked_evoked_eeg.copy(),
                      fig_background=np.zeros((4, 3, 3)), proj=True,
@@ -219,26 +217,29 @@ def test_plot_tfr_topo():
     # one timesample
     tfr = AverageTFR(epochs.info, data[:, :, [0]], epochs.times[[1]],
                      freqs, nave)
-    tfr.plot([4], baseline=None, vmax=14., show=False, yscale='linear')
+    with pytest.warns(None):  # matplotlib equal left/right
+        tfr.plot([4], baseline=None, vmax=14., show=False, yscale='linear')
 
     # one frequency bin, log scale required: as it doesn't make sense
     # to plot log scale for one value, we test whether yscale is set to linear
     vmin, vmax = 0., 2.
     fig, ax = plt.subplots()
     tmin, tmax = epochs.times[0], epochs.times[-1]
-    _imshow_tfr(ax, 3, tmin, tmax, vmin, vmax, None, tfr=data[:, [0], :],
-                freq=freqs[[-1]], x_label=None, y_label=None,
-                colorbar=False, cmap=('RdBu_r', True), yscale='log')
+    with pytest.warns(RuntimeWarning, match='not masking'):
+        _imshow_tfr(ax, 3, tmin, tmax, vmin, vmax, None, tfr=data[:, [0], :],
+                    freq=freqs[[-1]], x_label=None, y_label=None,
+                    colorbar=False, cmap=('RdBu_r', True), yscale='log')
     fig = plt.gcf()
     assert fig.axes[0].get_yaxis().get_scale() == 'linear'
 
     # ValueError when freq[0] == 0 and yscale == 'log'
     these_freqs = freqs[:3].copy()
     these_freqs[0] = 0
-    pytest.raises(ValueError, _imshow_tfr, ax, 3, tmin, tmax, vmin, vmax,
-                  None, tfr=data[:, :3, :], freq=these_freqs, x_label=None,
-                  y_label=None, colorbar=False, cmap=('RdBu_r', True),
-                  yscale='log')
+    with pytest.warns(RuntimeWarning, match='not masking'):
+        pytest.raises(ValueError, _imshow_tfr, ax, 3, tmin, tmax, vmin, vmax,
+                      None, tfr=data[:, :3, :], freq=these_freqs, x_label=None,
+                      y_label=None, colorbar=False, cmap=('RdBu_r', True),
+                      yscale='log')
 
 
 run_tests_if_main()

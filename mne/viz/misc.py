@@ -732,6 +732,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
                 this_H = freqz(section[:3], section[3:], omega)[1]
                 H *= this_H
                 with warnings.catch_warnings(record=True):  # singular GD
+                    warnings.simplefilter('ignore')
                     gd += group_delay((section[:3], section[3:]), omega)[1]
             n = estimate_ringing_samples(h)
             delta = np.zeros(n)
@@ -744,12 +745,14 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
             delta[0] = 1
             H = freqz(h['b'], h['a'], omega)[1]
             with warnings.catch_warnings(record=True):  # singular GD
+                warnings.simplefilter('ignore')
                 gd = group_delay((h['b'], h['a']), omega)[1]
             h = lfilter(h['b'], h['a'], delta)
         title = 'SOS (IIR) filter' if title is None else title
     else:
         H = freqz(h, worN=omega)[1]
         with warnings.catch_warnings(record=True):  # singular GD
+            warnings.simplefilter('ignore')
             gd = group_delay((h, [1.]), omega)[1]
         title = 'FIR filter' if title is None else title
     gd /= sfreq

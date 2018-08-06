@@ -197,7 +197,7 @@ def test_read_ctf():
             assert_allclose(raw_read[pick_ch, sl_time][0],
                             raw_c[pick_ch, sl_time][0])
         # all data / preload
-        with pytest.warns(RuntimeWarning, match='MISC channel'):
+        with pytest.warns(None):  # sometimes MISC
             raw = read_raw_ctf(fname, preload=True)
         assert_allclose(raw[:][0], raw_c[:][0], atol=1e-15)
         # test bad segment annotations

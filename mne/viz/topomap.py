@@ -13,6 +13,7 @@ import copy
 from functools import partial
 import itertools
 from numbers import Integral
+import warnings
 
 import numpy as np
 
@@ -709,8 +710,10 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     if (Zi == Zi[0, 0]).all():
         cont = None  # can't make contours for constant-valued functions
     else:
-        cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
-                          linewidths=linewidth / 2.)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('ignore')
+            cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
+                              linewidths=linewidth / 2.)
     if no_contours and cont is not None:
         for col in cont.collections:
             col.set_visible(False)
