@@ -33,7 +33,7 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 event_id, tmin, tmax = 1, -0.1, 1.0
-n_chan = 15
+n_chan = 20
 layout = read_layout('Vectorview-all')
 
 
@@ -68,14 +68,12 @@ def test_plot_epochs():
         epochs.plot(noise_cov=cov)
     plt.close('all')
     # add a channel to the epochs.info['bads']
-    assert 'MEG 0242' in epochs.ch_names
-    epochs.info['bads'] = ['MEG 0242']
+    epochs.info['bads'] = [epochs.ch_names[0]]
     with warnings.catch_warnings(record=True):  # projectors
         epochs.plot(noise_cov=cov)
     plt.close('all')
     # add a channel to cov['bads']
-    assert 'MEG 0431' in epochs.ch_names
-    cov['bads'] = ['MEG 0431']
+    cov['bads'] = [epochs.ch_names[1]]
     with warnings.catch_warnings(record=True):  # projectors
         epochs.plot(noise_cov=cov)
     plt.close('all')
