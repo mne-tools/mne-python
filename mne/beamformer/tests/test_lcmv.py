@@ -91,8 +91,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     noise_cov = mne.cov.regularize(noise_cov, info, mag=0.05, grad=0.05,
                                    eeg=0.1, proj=True)
     if data_cov:
-        with pytest.warns(RuntimeWarning, match='samples'):
-            data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.145)
+        data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.145)
     else:
         data_cov = None
 
@@ -516,9 +515,8 @@ def test_tf_lcmv():
         epochs_band = mne.Epochs(
             raw_band, epochs.events, epochs.event_id, tmin=tmin, tmax=tmax,
             baseline=None, proj=True)
-        with pytest.warns(RuntimeWarning, match='samples'):
-            noise_cov = mne.compute_covariance(
-                epochs_band, tmin=tmin, tmax=tmin + win_length)
+        noise_cov = mne.compute_covariance(
+            epochs_band, tmin=tmin, tmax=tmin + win_length)
         noise_cov = mne.cov.regularize(
             noise_cov, epochs_band.info, mag=reg, grad=reg, eeg=reg,
             proj=True)
@@ -529,13 +527,11 @@ def test_tf_lcmv():
         # time windows to compare to tf_lcmv results and test overlapping
         if (l_freq, h_freq) == freq_bins[0]:
             for time_window in time_windows:
-                with pytest.warns(RuntimeWarning, match='samples'):
-                    data_cov = mne.compute_covariance(
-                        epochs_band, tmin=time_window[0], tmax=time_window[1])
-                with pytest.warns(RuntimeWarning, match='projection'):
-                    stc_source_power = _lcmv_source_power(
-                        epochs.info, forward, noise_cov, data_cov,
-                        reg=reg, label=label, weight_norm='unit-noise-gain')
+                data_cov = mne.compute_covariance(
+                    epochs_band, tmin=time_window[0], tmax=time_window[1])
+                stc_source_power = _lcmv_source_power(
+                    epochs.info, forward, noise_cov, data_cov,
+                    reg=reg, label=label, weight_norm='unit-noise-gain')
                 source_power.append(stc_source_power.data)
 
     pytest.raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
@@ -592,13 +588,12 @@ def test_tf_lcmv():
     epochs_preloaded = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                                   baseline=(None, 0), preload=True)
     epochs_preloaded._raw = None
-    with pytest.warns(RuntimeWarning, match='samples'):
-        pytest.raises(ValueError, tf_lcmv, epochs_preloaded, forward,
-                      noise_covs, tmin, tmax, tstep, win_lengths, freq_bins)
+    pytest.raises(ValueError, tf_lcmv, epochs_preloaded, forward,
+                  noise_covs, tmin, tmax, tstep, win_lengths, freq_bins)
 
+    # Pass only one epoch to test if subtracting evoked
+    # responses yields zeros
     with pytest.warns(RuntimeWarning, match='samples'):
-        # Pass only one epoch to test if subtracting evoked
-        # responses yields zeros
         stcs = tf_lcmv(epochs[0], forward, noise_covs, tmin, tmax, tstep,
                        win_lengths, freq_bins, subtract_evoked=True, reg=reg,
                        label=label, raw=raw)

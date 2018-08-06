@@ -1,5 +1,4 @@
 import os.path as op
-import warnings
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
@@ -19,7 +18,6 @@ from mne.utils import (sum_squared, run_tests_if_main,
                        catch_logging, requires_version, _TempDir,
                        requires_mne, run_subprocess)
 
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 rng = np.random.RandomState(0)
 
 
@@ -225,7 +223,7 @@ def test_notch_filters():
     tols = [2, 1, 1, 1]
     for meth, lf, fl, tol in zip(methods, line_freqs, filter_lengths, tols):
         with catch_logging() as log_file:
-            with warnings.catch_warnings(record=True):
+            with pytest.warns(None):
                 b = notch_filter(a, sfreq, lf, fl, method=meth,
                                  fir_design='firwin', verbose=True)
         if lf is None:
@@ -417,7 +415,7 @@ def test_filters():
 
     # check for n-dimensional case
     a = rng.randn(2, 2, 2, 2)
-    with warnings.catch_warnings(record=True):  # filter too long
+    with pytest.warns(RuntimeWarning, match='longer'):
         pytest.raises(ValueError, filter_data, a, sfreq, 4, 8,
                       np.array([0, 1]), 100, 1.0, 1.0)
 

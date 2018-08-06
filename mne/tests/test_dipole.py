@@ -1,6 +1,5 @@
 import os
 import os.path as op
-import warnings
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
@@ -29,7 +28,6 @@ from mne.transforms import apply_trans, _get_trans
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
 
-warnings.simplefilter('always')
 data_path = testing.data_path(download=False)
 meg_path = op.join(data_path, 'MEG', 'sample')
 fname_dip_xfit = op.join(meg_path, 'sample_audvis-ave_xfit.dip')
@@ -137,7 +135,7 @@ def test_dipole_fitting():
 
     # Run mne-python version
     sphere = make_sphere_model(head_radius=0.1)
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='foo'):
         dip, residuals = fit_dipole(evoked, cov, sphere, fname_fwd)
 
     # Sanity check: do our residuals have less power than orig data?
@@ -362,12 +360,11 @@ def test_dipole_fixed():
     print(dip)
 
     _check_roundtrip_fixed(dip)
-    with warnings.catch_warnings(record=True) as w:  # unused fields
+    with pytest.warns(RuntimeWarning, match='extra fields'):
         dip_txt = read_dipole(fname_xfit_dip_txt)
-    assert (any('extra fields' in str(ww.message) for ww in w))
     assert_allclose(dip.info['chs'][0]['loc'][:3], dip_txt.pos[0])
     assert_allclose(dip_txt.amplitude[0], 12.1e-9)
-    with warnings.catch_warnings(record=True):  # unused fields
+    with pytest.warns(RuntimeWarning, match='extra fields'):
         dip_txt_seq = read_dipole(fname_xfit_seq_txt)
     assert_allclose(dip_txt_seq.gof, [27.3, 46.4, 43.7, 41., 37.3, 32.5])
 
@@ -410,10 +407,8 @@ def test_confidence():
     fname_test = op.join(tempdir, 'temp-dip.txt')
     dip_py.save(fname_test)
     dip_read = read_dipole(fname_test)
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match="'noise/ft/cm', 'prob'"):
         dip_xfit = read_dipole(fname_dip_xfit)
-    assert_equal(len(w), 1)
-    assert ("['noise/ft/cm', 'prob']" in str(w[0].message))
     for dip_check in (dip_py, dip_read):
         assert_allclose(dip_check.pos, dip_xfit.pos, atol=5e-4)  # < 0.5 mm
         assert_allclose(dip_check.gof, dip_xfit.gof, atol=5e-1)  # < 0.5%
