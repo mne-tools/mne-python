@@ -35,6 +35,9 @@ Changelog
 
 - Add `trig_shift_by_type` parameter in :func:`mne.io.read_raw_brainvision` to allow to specify offsets for arbitrary marker types by `Henrich Kolkhorst`_
 
+- Add :func:`mne.head_to_mri` to convert positions from head coordinates to MRI RAS coordinates, by `Joan Massich`_ and `Alex Gramfort`_
+
+
 Bug
 ~~~
 
