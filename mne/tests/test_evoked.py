@@ -7,7 +7,6 @@
 
 import os.path as op
 from copy import deepcopy
-import warnings
 
 import numpy as np
 from scipy import fftpack
@@ -20,12 +19,9 @@ from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
                  Epochs, EpochsArray)
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.io import read_raw_fif
-from mne.tests.common import assert_naming
 from mne.utils import (_TempDir, requires_pandas, requires_version,
                        run_tests_if_main)
 from mne.externals.six.moves import cPickle as pickle
-
-warnings.simplefilter('always')
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname = op.join(base_dir, 'test-ave.fif')
@@ -159,11 +155,10 @@ def test_io_evoked():
 
     # test warnings on bad filenames
     fname2 = op.join(tempdir, 'test-bad-name.fif')
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='-ave.fif'):
         write_evokeds(fname2, ave)
+    with pytest.warns(RuntimeWarning, match='-ave.fif'):
         read_evokeds(fname2)
-    assert_naming(w, 'test_evoked.py', 2)
 
     # constructor
     pytest.raises(TypeError, Evoked, fname)
@@ -174,13 +169,10 @@ def test_io_evoked():
     ave.info['maxshield'] = True
     ave.save(fname_ms)
     pytest.raises(ValueError, read_evokeds, fname_ms)
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='Elekta'):
         aves = read_evokeds(fname_ms, allow_maxshield=True)
-    assert (all('Elekta' in str(ww.message) for ww in w))
-    assert (all(ave.info['maxshield'] is True for ave in aves))
-    with warnings.catch_warnings(record=True) as w:
-        aves = read_evokeds(fname_ms, allow_maxshield='yes')
-    assert_equal(len(w), 0)
+    assert all(ave.info['maxshield'] is True for ave in aves)
+    aves = read_evokeds(fname_ms, allow_maxshield='yes')
     assert (all(ave.info['maxshield'] is True for ave in aves))
 
 

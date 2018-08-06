@@ -5,7 +5,6 @@
 
 import os.path as op
 import itertools as itt
-import warnings
 
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal, assert_allclose)
@@ -24,15 +23,13 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  pick_channels_cov, pick_types, pick_info, make_ad_hoc_cov)
 from mne.fixes import _get_args
 from mne.io import read_raw_fif, RawArray, read_info, read_raw_ctf
-from mne.tests.common import assert_naming, assert_snr
+from mne.tests.common import assert_snr
 from mne.utils import _TempDir, requires_version, run_tests_if_main
 from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import channel_type, _picks_by_type, _DATA_CH_TYPES_SPLIT
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 cov_fname = op.join(base_dir, 'test-cov.fif')
@@ -57,21 +54,17 @@ def test_cov_mismatch():
     for kind in ('shift', 'None'):
         epochs_2 = epochs.copy()
         # This should be fine
-        with warnings.catch_warnings(record=True) as w:
-            compute_covariance([epochs, epochs_2])
-            assert_equal(len(w), 0)
-            if kind == 'shift':
-                epochs_2.info['dev_head_t']['trans'][:3, 3] += 0.001
-            else:  # None
-                epochs_2.info['dev_head_t'] = None
-            pytest.raises(ValueError, compute_covariance, [epochs, epochs_2])
-            assert_equal(len(w), 0)
-            compute_covariance([epochs, epochs_2], on_mismatch='ignore')
-            assert_equal(len(w), 0)
+        compute_covariance([epochs, epochs_2])
+        if kind == 'shift':
+            epochs_2.info['dev_head_t']['trans'][:3, 3] += 0.001
+        else:  # None
+            epochs_2.info['dev_head_t'] = None
+        pytest.raises(ValueError, compute_covariance, [epochs, epochs_2])
+        compute_covariance([epochs, epochs_2], on_mismatch='ignore')
+        with pytest.raises(RuntimeWarning, match='transform mismatch'):
             compute_covariance([epochs, epochs_2], on_mismatch='warn')
-            pytest.raises(ValueError, compute_covariance, epochs,
-                          on_mismatch='x')
-        assert any('transform mismatch' in str(ww.message) for ww in w)
+        pytest.raises(ValueError, compute_covariance, epochs,
+                      on_mismatch='x')
     # This should work
     epochs.info['dev_head_t'] = None
     epochs_2.info['dev_head_t'] = None
@@ -177,12 +170,11 @@ def test_io_cov():
     assert_array_almost_equal(cov.data, cov2.data)
 
     # test warnings on bad filenames
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        cov_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+    cov_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+    with pytest.warns(RuntimeWarning, match='-cov.fif'):
         write_cov(cov_badname, cov)
+    with pytest.warns(RuntimeWarning, match='-cov.fif'):
         read_cov(cov_badname)
-    assert_naming(w, 'test_cov.py', 2)
 
 
 def test_cov_estimation_on_raw():
@@ -221,10 +213,8 @@ def test_cov_estimation_on_raw():
         assert_snr(cov.data, cov_mne.data[:5, :5], 90)  # cutoff samps
         # make sure we get a warning with too short a segment
         raw_2 = read_raw_fif(raw_fname).crop(0, 1)
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with pytest.warns(RuntimeWarning, match='Too few samples'):
             cov = compute_raw_covariance(raw_2, method=method)
-        assert any('Too few samples' in str(ww.message) for ww in w)
         # no epochs found due to rejection
         pytest.raises(ValueError, compute_raw_covariance, raw, tstep=None,
                       method='empirical', reject=dict(eog=200e-6))
@@ -242,8 +232,7 @@ def test_cov_estimation_on_raw_reg():
     raw.info['sfreq'] /= 10.
     raw = RawArray(raw._data[:, ::10].copy(), raw.info)  # decimate for speed
     cov_mne = read_cov(erm_cov_fname)
-    with warnings.catch_warnings(record=True):  # too few samples
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
         # XXX don't use "shrunk" here, for some reason it makes Travis 2.7
         # hang... "diagonal_fixed" is much faster. Use long epochs for speed.
         cov = compute_raw_covariance(raw, tstep=5., method='diagonal_fixed')
@@ -317,19 +306,17 @@ def test_cov_estimation_with_triggers():
     pytest.raises(ValueError, compute_covariance, epochs)
     pytest.raises(ValueError, compute_covariance, epochs, projs=None)
     # these should work, but won't be equal to above
-    with warnings.catch_warnings(record=True) as w:  # too few samples warning
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
         cov = compute_covariance(epochs, projs=epochs[0].info['projs'])
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
         cov = compute_covariance(epochs, projs=[])
-    assert_equal(len(w), 2)
 
     # test new dict support
     epochs = Epochs(raw, events, dict(a=1, b=2, c=3, d=4), tmin=-0.01, tmax=0,
                     proj=True, reject=reject, preload=True)
-    with warnings.catch_warnings(record=True):  # samples
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
         compute_covariance(epochs)
-
-        # projs checking
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
         compute_covariance(epochs, projs=[])
     pytest.raises(TypeError, compute_covariance, epochs, projs='foo')
     pytest.raises(TypeError, compute_covariance, epochs, projs=['foo'])
@@ -544,13 +531,10 @@ def test_auto_low_rank():
                  sigma=sigma)
     method_params = {'iter_n_components': [n_features + 5]}
     msg = ('You are trying to estimate %i components on matrix '
-           'with %i features.')
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+           'with %i features.') % (n_features + 5, n_features)
+    with pytest.warns(RuntimeWarning, match=msg):
         _auto_low_rank_model(X, mode=mode, n_jobs=n_jobs,
                              method_params=method_params, cv=cv)
-        assert_equal(len(w), 1)
-        assert_equal(msg % (n_features + 5, n_features), '%s' % w[0].message)
 
     method_params = {'iter_n_components': [n_features + 5]}
     pytest.raises(ValueError, _auto_low_rank_model, X, mode='foo',
@@ -654,12 +638,15 @@ def test_cov_ctf():
     for comp in [0, 1]:
         raw.apply_gradient_compensation(comp)
         epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
-        noise_cov = compute_covariance(epochs, tmax=0., method=['empirical'])
+        with pytest.warns(RuntimeWarning, match='Too few samples'):
+            noise_cov = compute_covariance(epochs, tmax=0.,
+                                           method=['empirical'])
         prepare_noise_cov(noise_cov, raw.info, ch_names)
 
     raw.apply_gradient_compensation(0)
     epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
-    noise_cov = compute_covariance(epochs, tmax=0., method=['empirical'])
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
+        noise_cov = compute_covariance(epochs, tmax=0., method=['empirical'])
     raw.apply_gradient_compensation(1)
 
     # TODO This next call in principle should fail.
