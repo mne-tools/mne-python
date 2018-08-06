@@ -307,7 +307,7 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
     if not m:
         return np.zeros((0, 3))
     mk_txt = txt[m.end():]
-    m = re.search(r"\[.*\]", mk_txt)
+    m = re.search(r"^\[.*\]$", mk_txt)
     if m:
         mk_txt = mk_txt[:m.start()]
 
