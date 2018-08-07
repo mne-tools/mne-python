@@ -582,9 +582,10 @@ def test_morph_data():
                          subjects_dir=subjects_dir)
 
     # make sure we get a warning about # of steps
-    morph_data(subject_from, subject_to, stc_from,
-               grade=vertices_to, smooth=1,
-               subjects_dir=subjects_dir)
+    with pytest.warns(RuntimeWarning, match='consider increasing'):
+        morph_data(subject_from, subject_to, stc_from,
+                   grade=vertices_to, smooth=1, buffer_size=3,
+                   subjects_dir=subjects_dir)
 
     assert_array_almost_equal(stc_to.data, stc_to1.data, 5)
     assert_array_almost_equal(stc_to1.data, stc_to2.data)
@@ -600,19 +601,18 @@ def test_morph_data():
 
     assert sum('deprecated' in str(ww.message) for ww in w) == 2
 
-    with pytest.warns(DeprecationWarning):
-        stc_to3 = stc_from.morph_precomputed(subject_to, vertices_to,
-                                             morph_mat)
-        assert_array_almost_equal(stc_to1.data, stc_to3.data)
-        pytest.raises(ValueError, stc_from.morph_precomputed,
-                      subject_to, vertices_to, 'foo')
-        pytest.raises(ValueError, stc_from.morph_precomputed,
-                      subject_to, [vertices_to[0]], morph_mat)
-        pytest.raises(ValueError, stc_from.morph_precomputed,
-                      subject_to, [vertices_to[0][:-1], vertices_to[1]],
-                      morph_mat)
-        pytest.raises(ValueError, stc_from.morph_precomputed, subject_to,
-                      vertices_to, morph_mat, subject_from='foo')
+    stc_to3 = stc_from.morph_precomputed(subject_to, vertices_to,
+                                         morph_mat)
+    assert_array_almost_equal(stc_to1.data, stc_to3.data)
+    pytest.raises(ValueError, stc_from.morph_precomputed,
+                  subject_to, vertices_to, 'foo')
+    pytest.raises(ValueError, stc_from.morph_precomputed,
+                  subject_to, [vertices_to[0]], morph_mat)
+    pytest.raises(ValueError, stc_from.morph_precomputed,
+                  subject_to, [vertices_to[0][:-1], vertices_to[1]],
+                  morph_mat)
+    pytest.raises(ValueError, stc_from.morph_precomputed, subject_to,
+                  vertices_to, morph_mat, subject_from='foo')
 
     # steps warning
     with pytest.warns(RuntimeWarning, match='steps'):
