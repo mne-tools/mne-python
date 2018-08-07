@@ -696,7 +696,6 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
     elif format == 'nifti2':
         from nibabel import (Nifti2Image as NiftiImage,
                              Nifti2Header as NiftiHeader)
-    from dipy.align.reslice import reslice
 
     # setup volume parameters
     n_times = stc.data.shape[1]
@@ -712,6 +711,9 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
         mri_resolution = (float(mri_resolution),) * 3
 
     if isinstance(mri_resolution, tuple):
+        _check_dep(nibabel='2.1.0', dipy='0.10.1')
+        from dipy.align.reslice import reslice
+        
         voxel_size = mri_resolution
         voxel_size_defined = True
         mri_resolution = True

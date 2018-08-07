@@ -12,7 +12,7 @@ from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
 from mne.datasets import sample, testing
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.utils import (run_tests_if_main, requires_nibabel, _TempDir,
-                       requires_dipy, string_types)
+                       requires_dipy, string_types, requires_h5py)
 
 # Setup paths
 tempdir = _TempDir()
@@ -70,6 +70,7 @@ def test_stc_as_volume():
         stc_vol.as_volume(inverse_operator_vol['src'], mri_resolution=4)
 
 
+@requires_h5py()
 @testing.requires_testing_data
 def test_surface_vector_source_morph():
     """Test surface and vector source estimate morph."""
@@ -115,6 +116,7 @@ def test_surface_vector_source_morph():
     assert isinstance(source_morph_surf(stc_surf), SourceEstimate)
 
 
+@requires_h5py()
 @requires_nibabel()
 @requires_dipy()
 @pytest.mark.slowtest
@@ -158,7 +160,7 @@ def test_volume_source_morph():
     # the brain used in sample data has shape (255, 255, 255)
     assert (tuple(
         source_morph_vol.params['DiffeomorphicMap']['domain_shape']) ==
-        (37, 37, 37))
+            (37, 37, 37))
 
     assert (tuple(source_morph_vol.params['AffineMap']['domain_shape']) ==
             (37, 37, 37))
