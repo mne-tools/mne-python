@@ -845,24 +845,24 @@ def _merge_grad_data(data, method='rms'):
 
     Parameters
     ----------
-    data : array, shape = (n_channels, n_times)
+    data : array, shape = (n_channels, ..., n_times)
         Data for channels, ordered in pairs.
     method : str
         Can be 'rms' or 'mean'.
 
     Returns
     -------
-    data : array, shape = (n_channels / 2, n_times)
+    data : array, shape = (n_channels / 2, ..., n_times)
         The root mean square or mean for each pair.
     """
-    data = data.reshape((len(data) // 2, 2, -1))
+    data, orig_shape = data.reshape((len(data) // 2, 2, -1)), data.shape
     if method == 'mean':
         data = np.mean(data, axis=1)
     elif method == 'rms':
         data = np.sqrt(np.sum(data ** 2, axis=1) / 2)
     else:
         raise ValueError('method must be "rms" or "mean, got %s.' % method)
-    return data
+    return data.reshape(data.shape[:1] + orig_shape[1:])
 
 
 def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,

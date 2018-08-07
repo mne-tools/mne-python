@@ -38,6 +38,8 @@ Changelog
 Bug
 ~~~
 
+- Fix bug of not showing ERD's in baseline rescaled tfr topomaps if grads are combined by `Erkka Heinila`_
+
 - Fix bug with reading measurement dates from BrainVision files by `Stefan Appelhoff`_
 
 - Fix bug with ``mne flash_bem`` when ``flash30`` is not used by `Eric Larson`_
