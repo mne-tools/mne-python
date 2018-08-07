@@ -113,7 +113,7 @@ def test_io_set_raw(fnames, tmpdir):
                 'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
                 'epoch': eeg.epoch, 'event': eeg.event[0],
                 'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
-               appendmat=False)
+               appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     one_event_fname.replace('.set', '.fdt'))
     event_id = {eeg.event[0].type: 1}
@@ -131,7 +131,8 @@ def test_io_set_raw(fnames, tmpdir):
                {'trials': eeg.trials, 'srate': eeg.srate,
                 'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
                 'epoch': eeg.epoch, 'event': evnts,
-                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}}, appendmat=False)
+                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
+               appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     negative_latency_fname.replace('.set', '.fdt'))
     event_id = {eeg.event[0].type: 1}
@@ -145,7 +146,7 @@ def test_io_set_raw(fnames, tmpdir):
                 'nbchan': eeg.nbchan, 'data': 'test_overlap_event.fdt',
                 'epoch': eeg.epoch, 'event': [eeg.event[0], eeg.event[0]],
                 'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
-               appendmat=False)
+               appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     overlap_fname.replace('.set', '.fdt'))
     event_id = {'rt': 1, 'square': 2}
@@ -166,7 +167,8 @@ def test_io_set_raw(fnames, tmpdir):
                 'epoch': eeg.epoch, 'event': eeg.epoch,
                 'chanlocs': {'labels': 'E1', 'Y': -6.6069,
                              'X': 6.3023, 'Z': -2.9423},
-                'times': eeg.times[:3], 'pnts': 3}}, appendmat=False)
+                'times': eeg.times[:3], 'pnts': 3}},
+               appendmat=False, oned_as='row')
     with pytest.warns(None) as w:
         read_raw_eeglab(input_fname=one_chan_fname, preload=True)
     # no warning for 'no events found'
@@ -194,7 +196,7 @@ def test_io_set_raw(fnames, tmpdir):
                 'nbchan': 3, 'data': np.random.random((3, 3)),
                 'epoch': eeg.epoch, 'event': eeg.epoch,
                 'chanlocs': chanlocs, 'times': eeg.times[:3], 'pnts': 3}},
-               appendmat=False)
+               appendmat=False, oned_as='row')
     # load it
     with pytest.warns(RuntimeWarning, match='did not have a position'):
         raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
@@ -227,7 +229,8 @@ def test_io_set_raw(fnames, tmpdir):
                {'trials': eeg.trials, 'srate': eeg.srate, 'nbchan': 3,
                 'data': np.random.random((3, 2)), 'epoch': eeg.epoch,
                 'event': eeg.epoch, 'chanlocs': nopos_chanlocs,
-                'times': eeg.times[:2], 'pnts': 2}}, appendmat=False)
+                'times': eeg.times[:2], 'pnts': 2}},
+               appendmat=False, oned_as='row')
     # load the file
     raw = read_raw_eeglab(input_fname=nopos_fname, preload=True)
     # test that channel names have been loaded but not channel positions
@@ -285,7 +288,8 @@ def test_degenerate(tmpdir):
                {'trials': eeg.trials, 'srate': eeg.srate,
                 'nbchan': eeg.nbchan, 'data': eeg.data,
                 'epoch': eeg.epoch, 'event': eeg.event,
-                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}}, appendmat=False)
+                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
+               appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_epochs.fdt'),
                     op.join(tmpdir, 'test_epochs.dat'))
     with pytest.warns(RuntimeWarning, match='multiple events'):

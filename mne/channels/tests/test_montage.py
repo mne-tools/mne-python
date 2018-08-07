@@ -379,7 +379,7 @@ def test_read_dig_montage():
     # test unit parameter and .mat support
     tempdir = _TempDir()
     mat_hsp = op.join(tempdir, 'test.mat')
-    savemat(mat_hsp, dict(Points=(1000 * hsp_points).T))
+    savemat(mat_hsp, dict(Points=(1000 * hsp_points).T), oned_as='row')
     montage_cm = read_dig_montage(mat_hsp, hpi, elp, names, unit='cm')
     assert_allclose(montage_cm.hsp, montage.hsp * 10.)
     assert_allclose(montage_cm.elp, montage.elp * 10.)

@@ -73,7 +73,8 @@ def test_plot_head_positions():
         pytest.raises(ValueError, plot_head_positions, pos[:, :9])
     pytest.raises(ValueError, plot_head_positions, pos, 'foo')
     with pytest.raises(ValueError, match='shape'):
-        plot_head_positions(pos, axes=1.)
+        with pytest.warns(None):  # old mpl no viridis warning
+            plot_head_positions(pos, axes=1.)
     plt.close('all')
 
 

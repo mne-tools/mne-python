@@ -64,7 +64,8 @@ def _annotation_helper(raw, events=False):
     fig = raw.plot(events=events)
     assert len(plt.get_fignums()) == 1
     data_ax = fig.axes[0]
-    fig.canvas.key_press_event('a')  # annotation mode
+    with pytest.warns(None):  # on old mpl we warns about no modifications
+        fig.canvas.key_press_event('a')  # annotation mode
     assert len(plt.get_fignums()) == 2
     assert len(fig.axes[0].texts) == n_anns + n_events
     # modify description
@@ -231,7 +232,7 @@ def test_plot_raw():
                         [5], ['bad'])
     with pytest.warns(RuntimeWarning, match='outside data range'):
         raw.set_annotations(annot)
-    with pytest.warns(RuntimeWarning, match='projection'):
+    with pytest.warns(None):  # sometimes projection
         raw.plot(group_by='position', order=np.arange(8))
     for fig_num in plt.get_fignums():
         fig = plt.figure(fig_num)

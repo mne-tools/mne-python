@@ -491,7 +491,7 @@ def test_tf_dics():
 
     # Test if subtracting evoked responses yields NaN's, since we only have one
     # epoch. Suppress division warnings.
-    with pytest.warns(RuntimeWarning, match='invalid value'):
+    with pytest.warns(RuntimeWarning, match='[invalid|empty]'):
         stcs = tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
                        mode='cwt_morlet', frequencies=frequencies,
                        subtract_evoked=True, reg=reg, label=label, decim=20)
