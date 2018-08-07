@@ -489,7 +489,6 @@ def test_events():
                                 [7699, 1, 1]])
 
     # Error handling of trig_shift_by_type
-
     pytest.raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
                   preload=True, trig_shift_by_type=1)
     pytest.raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
@@ -503,6 +502,20 @@ def test_events():
         pytest.raises(ValueError, read_raw_brainvision, vhdr_path, eog=eog,
                       preload=True, trig_shift_by_type={'response': 1000},
                       response_trig_shift=1001)
+
+    # Check that events of type "Comment" are read if they contain square
+    # brackets (which usually signify a new section within a BrainVision file)
+    # If no event_id specified, skip the marker and continue as planned
+    raw = read_raw_brainvision(vhdr_v2_path)
+    events = raw._get_brainvision_events()
+    assert events.shape == (11, 3)  # shape of events without the comment
+
+    # with event_id specified, get that comment and assert it's there
+    tmp_event_id = {'comment using [square] brackets': 999}
+    raw = read_raw_brainvision(vhdr_v2_path, event_id=tmp_event_id)
+    events = raw._get_brainvision_events()
+    assert 999 in events[:, -1]
+    assert events.shape == (12, 3)
 
     # check that events are read properly when event_id is specified for
     # auxiliary events
