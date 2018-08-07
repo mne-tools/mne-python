@@ -98,26 +98,29 @@ def test_mxne_inverse():
     assert stc_cd.vertices[1][0] in label.vertices
     assert stc_bcd.vertices[1][0] in label.vertices
 
-    dips = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                      depth=depth, maxit=300, tol=1e-8, active_set_size=10,
-                      weights=stc_dspm, weights_min=weights_min,
-                      solver='cd', return_as_dipoles=True)
+    with pytest.warns(None):  # CD
+        dips = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
+                          depth=depth, maxit=300, tol=1e-8, active_set_size=10,
+                          weights=stc_dspm, weights_min=weights_min,
+                          solver='cd', return_as_dipoles=True)
     stc_dip = make_stc_from_dipoles(dips, forward['src'])
     assert isinstance(dips[0], Dipole)
     _check_stcs(stc_cd, stc_dip)
 
-    stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                        depth=depth, maxit=300, tol=1e-8,
-                        active_set_size=10, return_residual=True,
-                        solver='cd')
+    with pytest.warns(None):  # CD
+        stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
+                            depth=depth, maxit=300, tol=1e-8,
+                            active_set_size=10, return_residual=True,
+                            solver='cd')
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert stc.vertices[1][0] in label.vertices
 
     # irMxNE tests
-    stc = mixed_norm(evoked_l21, forward, cov, alpha,
-                     n_mxne_iter=5, loose=loose, depth=depth,
-                     maxit=300, tol=1e-8, active_set_size=10,
-                     solver='cd')
+    with pytest.warns(None):  # CD
+        stc = mixed_norm(evoked_l21, forward, cov, alpha,
+                         n_mxne_iter=5, loose=loose, depth=depth,
+                         maxit=300, tol=1e-8, active_set_size=10,
+                         solver='cd')
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert stc.vertices[1][0] in label.vertices
     assert stc.vertices == [[63152], [79017]]

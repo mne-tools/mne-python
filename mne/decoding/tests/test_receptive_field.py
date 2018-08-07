@@ -514,7 +514,7 @@ def test_inverse_coef():
     X, y = make_data(n_feats, n_targets, n_samples, tmin, tmax)
     for estimator in (0., Ridge(alpha=0.)):
         rf = ReceptiveField(tmin, tmax, 1., estimator=estimator, patterns=True)
-        with pytest.warns(RuntimeWarning,
+        with pytest.warns((RuntimeWarning, UserWarning),
                           match='[Singular|scipy.linalg.solve]'):
             rf.fit(y, X)
 
