@@ -17,12 +17,13 @@ Mk3=Stimulus,S255,497,1,0
 Mk4=Stimulus,S254,1770,1,0
 Mk5=Stimulus,S255,1780,1,0
 Mk6=Stimulus,S254,3253,1,0
-Mk7=Stimulus,S255,3263,1,0
-Mk8=Stimulus,S253,4936,1,0
-Mk9=Stimulus,S255,4946,1,0
-Mk10=Response,R255,6000,1,0
-Mk11=Stimulus,S254,6620,1,0
-Mk12=Stimulus,S255,6630,1,0
+Mk7=Comment,comment using [square] brackets,3254,1,0
+Mk8=Stimulus,S255,3263,1,0
+Mk9=Stimulus,S253,4936,1,0
+Mk10=Stimulus,S255,4946,1,0
+Mk11=Response,R255,6000,1,0
+Mk12=Stimulus,S254,6620,1,0
+Mk13=Stimulus,S255,6630,1,0
 
 [Marker User Infos]
 ; Each entry: Prop<Number>=Mk<Marker number>,<Type>,<Name>,<Value>,<Value2>,...,<ValueN>
