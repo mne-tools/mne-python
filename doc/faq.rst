@@ -4,9 +4,9 @@
 
 .. _faq:
 
-==========================
-Frequently Asked Questions
-==========================
+================================
+Frequently Asked Questions (FAQ)
+================================
 
 .. contents:: Contents
    :local:
