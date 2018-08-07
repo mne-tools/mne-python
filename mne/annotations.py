@@ -176,6 +176,49 @@ class Annotations(object):
         with start_file(fname) as fid:
             _write_annotations(fid, self)
 
+    def crop(self, tmin=None, tmax=None):
+        """Remove all annotation that are outside of [tmin, tmax].
+        Operates inplace.
+
+        Parameters
+        ----------
+        tmin : float | None
+            Start time of selection in seconds.
+        tmax : float | None
+            End time of selection in seconds.
+        """
+
+        offset = 0 if self.orig_time is None else self.orig_time
+        absolute_onset = self.onset + offset
+        absolute_offset = absolute_onset + self.duration
+
+        tmin = tmin if tmin is not None else absolute_onset.min()
+        tmax = tmax if tmax is not None else absolute_offset.max()
+
+        if tmin > tmax:
+            raise ValueError('tmax should be greater than tmin')
+
+        if tmin < 0:
+            raise ValueError('tmin should be positive')
+
+        out_of_bounds = (absolute_onset > tmax) | (absolute_offset < tmin)
+
+        # clip the left side
+        elements = (absolute_onset < tmin) & ~out_of_bounds
+        self.onset[elements] = tmin - offset
+        diff = tmin - absolute_onset[elements]
+        self.duration[elements] = self.duration[elements] - diff
+
+        # clip the right side
+        elements = (absolute_offset > tmax) & ~out_of_bounds
+        diff = absolute_offset[elements] - tmax
+        self.duration[elements] = self.duration[elements] - diff
+
+        # remove out of bounds
+        self.onset = self.onset.compress(~out_of_bounds)
+        self.duration = self.duration.compress(~out_of_bounds)
+        self.description = self.description.compress(~out_of_bounds)
+
 
 def _combine_annotations(one, two, one_n_samples, one_first_samp,
                          two_first_samp, sfreq, meas_date):
@@ -384,6 +427,7 @@ def _ensure_annotation_object(obj):
 def _xxx(annotations, raw, emit_warning=True):
     """xxxx"""
     from mne.utils import logger, warn
+
     new_annot = annotations.copy()
     meas_date = _handle_meas_date(raw.info['meas_date'])
 
