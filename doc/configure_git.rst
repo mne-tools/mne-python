@@ -117,7 +117,6 @@ These steps can be broken out to be more explicit as:
 
    .. code-block:: console
 
-      $ cd mne-python
       $ git remote add upstream git://github.com/mne-tools/mne-python.git
 
    ``upstream`` here is just the arbitrary name we're using to refer to the
