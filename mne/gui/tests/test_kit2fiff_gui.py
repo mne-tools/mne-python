@@ -4,7 +4,6 @@
 
 import os
 import sys
-import warnings
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
@@ -22,8 +21,6 @@ sqd_path = os.path.join(kit_data_dir, 'test.sqd')
 hsp_path = os.path.join(kit_data_dir, 'test_hsp.txt')
 fid_path = os.path.join(kit_data_dir, 'test_elp.txt')
 fif_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
-
-warnings.simplefilter('always')
 
 
 def _check_ci():

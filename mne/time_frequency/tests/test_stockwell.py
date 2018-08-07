@@ -4,8 +4,8 @@
 # License : BSD 3-clause
 
 import os.path as op
-import warnings
 
+import pytest
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
                            assert_equal)
@@ -43,7 +43,7 @@ def test_stockwell_check_input():
 
     for last_dim in (127, 128):
         data = np.zeros((2, 10, last_dim))
-        with warnings.catch_warnings(record=True):  # 127 < n_fft
+        with pytest.warns(None):  # n_fft sometimes
             x_in, n_fft, zero_pad = _check_input_st(data, None)
 
         assert_equal(x_in.shape, (2, 10, 128))
@@ -112,12 +112,12 @@ def test_stockwell_api():
     epochs = Epochs(raw, events,  # XXX pick 2 has epochs of zeros.
                     event_id, tmin, tmax, picks=[0, 1, 3])
     for fmin, fmax in [(None, 50), (5, 50), (5, None)]:
-        with warnings.catch_warnings(record=True):  # zero papdding
+        with pytest.warns(RuntimeWarning, match='padding'):
             power, itc = tfr_stockwell(epochs, fmin=fmin, fmax=fmax,
                                        return_itc=True)
         if fmax is not None:
             assert (power.freqs.max() <= fmax)
-        with warnings.catch_warnings(record=True):  # padding
+        with pytest.warns(RuntimeWarning, match='padding'):
             power_evoked = tfr_stockwell(epochs.average(), fmin=fmin,
                                          fmax=fmax, return_itc=False)
         # for multitaper these don't necessarily match, but they seem to

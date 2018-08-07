@@ -1,7 +1,7 @@
 import os.path as op
-import warnings
 
-from numpy.testing import assert_array_almost_equal, assert_equal
+import pytest
+from numpy.testing import assert_array_almost_equal
 import numpy as np
 
 from mne.io import read_raw_fif, read_raw_ctf
@@ -10,8 +10,6 @@ from mne.preprocessing.ssp import compute_proj_ecg, compute_proj_eog
 from mne.utils import run_tests_if_main
 from mne.datasets import testing
 from mne import pick_types
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_path, 'test_raw.fif')
@@ -51,13 +49,11 @@ def test_compute_proj_ecg():
         # XXX: better tests
 
         # without setting a bad channel, this should throw a warning
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with pytest.warns(RuntimeWarning, match='No good epochs found'):
             projs, events, drop_log = compute_proj_ecg(
                 raw, n_mag=2, n_grad=2, n_eeg=2, ch_name='MEG 1531', bads=[],
                 average=average, avg_ref=True, no_proj=True, l_freq=None,
                 h_freq=None, tmax=dur_use, return_drop_log=True)
-        assert len(w) >= 1
         assert projs is None
         assert len(events) == len(drop_log)
 
@@ -90,16 +86,13 @@ def test_compute_proj_eog():
                 assert (proj['explained_var'] > thresh_eeg)
         # XXX: better tests
 
-        # This will throw a warning b/c simplefilter('always')
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with pytest.warns(RuntimeWarning, match='longer'):
             projs, events = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
                                              average=average, bads=[],
                                              avg_ref=True, no_proj=False,
                                              l_freq=None, h_freq=None,
                                              tmax=dur_use)
-        assert (len(w) >= 1)
-        assert_equal(projs, None)
+        assert projs is None
 
 
 def test_compute_proj_parallel():

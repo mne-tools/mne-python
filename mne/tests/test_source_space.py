@@ -6,7 +6,6 @@ from unittest import SkipTest
 import pytest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
-import warnings
 
 from mne.datasets import testing
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
@@ -25,10 +24,7 @@ from mne.externals.six.moves import zip
 from mne.source_space import (get_volume_labels_from_aseg, SourceSpaces,
                               get_volume_labels_from_src,
                               _compare_source_spaces)
-from mne.tests.common import assert_naming
 from mne.io.constants import FIFF
-
-warnings.simplefilter('always')
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -361,8 +357,7 @@ def test_setup_source_space():
 
     # ico 5 (fsaverage) - write to temp file
     src = read_source_spaces(fname_ico)
-    with warnings.catch_warnings(record=True):  # sklearn equiv neighbors
-        warnings.simplefilter('always')
+    with pytest.warns(None):  # sklearn equiv neighbors
         src_new = setup_source_space('fsaverage', spacing='ico5',
                                      subjects_dir=subjects_dir, add_dist=False)
     _compare_source_spaces(src, src_new, mode='approx')
@@ -374,8 +369,7 @@ def test_setup_source_space():
     # oct-6 (sample) - auto filename + IO
     src = read_source_spaces(fname)
     temp_name = op.join(tempdir, 'temp-src.fif')
-    with warnings.catch_warnings(record=True):  # sklearn equiv neighbors
-        warnings.simplefilter('always')
+    with pytest.warns(None):  # sklearn equiv neighbors
         src_new = setup_source_space('sample', spacing='oct6',
                                      subjects_dir=subjects_dir, add_dist=False)
         write_source_spaces(temp_name, src_new, overwrite=True)
@@ -429,12 +423,11 @@ def test_write_source_space():
     _compare_source_spaces(src0, src1)
 
     # test warnings on bad filenames
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        src_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+    src_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+    with pytest.warns(RuntimeWarning, match='-src.fif'):
         write_source_spaces(src_badname, src0)
+    with pytest.warns(RuntimeWarning, match='-src.fif'):
         read_source_spaces(src_badname)
-    assert_naming(w, 'test_source_space.py', 2)
 
 
 @testing.requires_testing_data

@@ -3,7 +3,6 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import warnings
 import matplotlib
 
 import numpy as np
@@ -19,8 +18,6 @@ from mne.io.meas_info import create_info, _kind_dict
 from mne.utils import requires_version, run_tests_if_main
 
 matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')  # enable b/c these tests might throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
 fif_fname = op.join(base_dir, 'test_raw.fif')

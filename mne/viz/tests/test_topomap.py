@@ -6,7 +6,6 @@
 # License: Simplified BSD
 
 import os.path as op
-import warnings
 from functools import partial
 
 import numpy as np
@@ -34,9 +33,6 @@ from mne.viz.utils import _find_peaks, _fake_click
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
-
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
@@ -109,9 +105,7 @@ def test_plot_topomap_interactive():
 def test_plot_projs_topomap():
     """Test plot_projs_topomap."""
     import matplotlib.pyplot as plt
-    with warnings.catch_warnings(record=True):  # file conventions
-        warnings.simplefilter('always')
-        projs = read_proj(ecg_fname)
+    projs = read_proj(ecg_fname)
     info = read_info(raw_fname)
     fast_test = {"res": 8, "contours": 0, "sensors": False}
     plot_projs_topomap(projs, info=info, colorbar=True, **fast_test)
@@ -137,7 +131,6 @@ def test_plot_topomap():
     import matplotlib.pyplot as plt
     from matplotlib.patches import Circle
     # evoked
-    warnings.simplefilter('always')
     res = 8
     fast_test = dict(res=res, contours=0, sensors=False, time_unit='s')
     fast_test_noscale = dict(res=res, contours=0, sensors=False)
@@ -227,9 +220,7 @@ def test_plot_topomap():
     plt.close('all')
 
     # delaunay triangulation warning
-    with warnings.catch_warnings(record=True):  # can't show
-        warnings.simplefilter('always')
-        plt_topomap(times, ch_type='mag', layout=None)
+    plt_topomap(times, ch_type='mag', layout=None)
     # projs have already been applied
     pytest.raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
                   proj='interactive', time_unit='s')
@@ -237,11 +228,9 @@ def test_plot_topomap():
     # change to no-proj mode
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0), proj=False)
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('always')
-        fig1 = evoked.plot_topomap('interactive', 'mag', proj='interactive',
-                                   **fast_test)
-        _fake_click(fig1, fig1.axes[1], (0.5, 0.5))  # click slider
+    fig1 = evoked.plot_topomap('interactive', 'mag', proj='interactive',
+                               **fast_test)
+    _fake_click(fig1, fig1.axes[1], (0.5, 0.5))  # click slider
     data_max = np.max(fig1.axes[0].images[0]._A)
     fig2 = plt.gcf()
     _fake_click(fig2, fig2.axes[0], (0.075, 0.775))  # toggle projector
@@ -353,8 +342,7 @@ def test_plot_topomap():
 
     # Test peak finder
     axes = [plt.subplot(131), plt.subplot(132)]
-    with warnings.catch_warnings(record=True):  # rightmost column
-        evoked.plot_topomap(times='peaks', axes=axes, **fast_test)
+    evoked.plot_topomap(times='peaks', axes=axes, **fast_test)
     plt.close('all')
     evoked.data = np.zeros(evoked.data.shape)
     evoked.data[50][1] = 1

@@ -6,6 +6,7 @@
 #
 # License: BSD (3-clause)
 
+import base64
 import os
 import os.path as op
 import fnmatch
@@ -13,7 +14,7 @@ import re
 import codecs
 import time
 from glob import glob
-import base64
+import warnings
 
 import numpy as np
 
@@ -445,12 +446,14 @@ def _build_html_slider(slices_range, slides_klass, slider_id,
     """Build an html slider for a given slices range and a slices klass."""
     if start_value is None:
         start_value = slices_range[len(slices_range) // 2]
-    return slider_template.substitute(slider_id=slider_id,
-                                      klass=slides_klass,
-                                      step=slices_range[1] - slices_range[0],
-                                      minvalue=slices_range[0],
-                                      maxvalue=slices_range[-1],
-                                      startvalue=start_value)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        out = slider_template.substitute(
+            slider_id=slider_id, klass=slides_klass,
+            step=slices_range[1] - slices_range[0],
+            minvalue=slices_range[0], maxvalue=slices_range[-1],
+            startvalue=start_value)
+    return out
 
 
 ###############################################################################
@@ -1353,8 +1356,10 @@ class Report(object):
 
         self._render_toc()
 
-        html = footer_template.substitute(date=time.strftime("%B %d, %Y"),
-                                          current_year=time.strftime("%Y"))
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('ignore')
+            html = footer_template.substitute(date=time.strftime("%B %d, %Y"),
+                                              current_year=time.strftime("%Y"))
         self.html.append(html)
 
         if not overwrite and op.isfile(fname):

@@ -2,7 +2,6 @@ from copy import deepcopy
 import os.path as op
 import os
 import sys
-import warnings
 import webbrowser
 
 import numpy as np
@@ -33,8 +32,6 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        linkcode_resolve)
 
 
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
-
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname_evoked = op.join(base_dir, 'test-ave.fif')
 fname_raw = op.join(base_dir, 'test_raw.fif')
@@ -58,9 +55,8 @@ def test_buggy_mkl():
     @buggy_mkl_svd
     def foo(a, b):
         raise np.linalg.LinAlgError('SVD did not converge')
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='convergence error'):
         pytest.raises(SkipTest, foo, 1, 2)
-    assert (all('convergence error' in str(ww.message) for ww in w))
 
     @buggy_mkl_svd
     def bar(c, d, e):
@@ -369,13 +365,9 @@ def test_logging():
         new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines)
     # check to make sure appending works (and as default, raises a warning)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        set_log_file(test_name, overwrite=False)
-        assert_equal(len(w), 0)
+    set_log_file(test_name, overwrite=False)
+    with pytest.warns(RuntimeWarning, match='appended to the file'):
         set_log_file(test_name)
-    assert_equal(len(w), 1)
-    assert ('test_utils.py' in w[0].filename)
     evoked = read_evokeds(fname_evoked, condition=1)
     with open(test_name, 'r') as new_log_file:
         new_lines = clean_lines(new_log_file.readlines())
@@ -412,29 +404,27 @@ def test_config():
     del os.environ[key]
     # catch the warning about it being a non-standard config key
     assert (len(set_config(None, None)) > 10)  # tuple of valid keys
-    with warnings.catch_warnings(record=True) as w:  # non-standard key
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='non-standard'):
         set_config(key, None, home_dir=tempdir, set_env=False)
-    assert (len(w) == 1)
     assert (get_config(key, home_dir=tempdir) is None)
     pytest.raises(KeyError, get_config, key, raise_error=True)
-    with warnings.catch_warnings(record=True):  # non-standard key
-        warnings.simplefilter('always')
-        assert (key not in os.environ)
+    assert (key not in os.environ)
+    with pytest.warns(RuntimeWarning, match='non-standard'):
         set_config(key, value, home_dir=tempdir, set_env=True)
-        assert (key in os.environ)
-        assert (get_config(key, home_dir=tempdir) == value)
+    assert (key in os.environ)
+    assert (get_config(key, home_dir=tempdir) == value)
+    with pytest.warns(RuntimeWarning, match='non-standard'):
         set_config(key, None, home_dir=tempdir, set_env=True)
-        assert (key not in os.environ)
+    assert (key not in os.environ)
+    with pytest.warns(RuntimeWarning, match='non-standard'):
         set_config(key, None, home_dir=tempdir, set_env=True)
-        assert (key not in os.environ)
+    assert (key not in os.environ)
     if old_val is not None:
         os.environ[key] = old_val
     # Check if get_config with key=None returns all config
     key = 'MNE_PYTHON_TESTING_KEY'
     assert key not in get_config(home_dir=tempdir)
-    with warnings.catch_warnings(record=True):  # non-standard key
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='non-standard'):
         set_config(key, value, home_dir=tempdir)
     assert_equal(get_config(home_dir=tempdir)[key], value)
     old_val = os.environ.get(key)
@@ -450,10 +440,9 @@ def test_config():
     json_fname = get_config_path(home_dir=tempdir)
     with open(json_fname, 'w') as fid:
         fid.write('foo{}')
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='not a valid JSON'):
         assert key not in get_config(home_dir=tempdir)
-    assert (any('not a valid JSON' in str(ww.message) for ww in w))
-    with warnings.catch_warnings(record=True):  # non-standard key
+    with pytest.warns(RuntimeWarning, match='non-standard'):
         pytest.raises(RuntimeError, set_config, key, 'true', home_dir=tempdir)
 
 
@@ -484,14 +473,8 @@ class deprecated_class(object):
 
 def test_deprecated():
     """Test deprecated function."""
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        deprecated_func()
-    assert (len(w) == 1)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        deprecated_class()
-    assert (len(w) == 1)
+    pytest.deprecated_call(deprecated_func)
+    pytest.deprecated_call(deprecated_class)
 
 
 def _test_fetch(url):

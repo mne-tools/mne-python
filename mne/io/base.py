@@ -11,7 +11,6 @@ import copy
 from copy import deepcopy
 import os
 import os.path as op
-import warnings
 
 import numpy as np
 
@@ -667,10 +666,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @annotations.setter
     def annotations(self, annotations, emit_warning=True):
-        warnings.warn('setting the annotations attribute by assignation is'
-                      ' deprecated since 0.17, and would be removed in 0.19.'
-                      ' Please use raw.set_annotations() instead.',
-                      category=DeprecationWarning)
+        warn('setting the annotations attribute by assignment is'
+             ' deprecated since 0.17, and will be removed in 0.18.'
+             ' Please use raw.set_annotations() instead.',
+             category=DeprecationWarning)
         self.set_annotations(annotations, emit_warning=emit_warning)
 
     def set_annotations(self, annotations, emit_warning=True):

@@ -3,7 +3,6 @@
 # License: Simplified BSD
 
 import os.path as op
-import warnings
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -20,8 +19,6 @@ from mne.epochs import Epochs
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')

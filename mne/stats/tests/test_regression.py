@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
@@ -19,8 +18,6 @@ from mne.datasets import testing
 from mne.stats.regression import linear_regression, linear_regression_raw
 from mne.io import RawArray
 from mne.utils import requires_sklearn, run_tests_if_main
-
-warnings.simplefilter('always')
 
 data_path = testing.data_path(download=False)
 stc_fname = op.join(data_path, 'MEG', 'sample',
@@ -47,11 +44,8 @@ def test_regression():
     design_matrix[:, 0] = 1
     # creates contrast: aud_l=0, aud_r=1
     design_matrix[:, 1] -= 1
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='non-data'):
         lm = linear_regression(epochs, design_matrix, ['intercept', 'aud'])
-        assert (w[0].category == RuntimeWarning)
-        assert ('non-data' in '%s' % w[0].message)
 
     for predictor, parameters in lm.items():
         for value in parameters:
@@ -63,8 +57,7 @@ def test_regression():
     stc = read_source_estimate(stc_fname).crop(0, 0.02)
     stc_list = [stc, stc, stc]
     stc_gen = (s for s in stc_list)
-    with warnings.catch_warnings(record=True):  # divide by zero
-        warnings.simplefilter('always')
+    with np.errstate(invalid='ignore'):  # divide by zero
         lm1 = linear_regression(stc_list, design_matrix[:len(stc_list)])
     lm2 = linear_regression(stc_gen, design_matrix[:len(stc_list)])
     for val in lm2.values():
@@ -149,17 +142,18 @@ def test_continuous_regression_with_overlap():
     def solver(X, y):
         return ridge_regression(X, y, alpha=0.)
 
-    with warnings.catch_warnings(record=True):  # transpose
+    with pytest.warns(RuntimeWarning, match='transposed'):
         assert_allclose(effect, linear_regression_raw(
             raw, events, tmin=0, solver=solver)['1'].data.flatten())
 
     # test bad solvers
     def solT(X, y):
         return ridge_regression(X, y, alpha=0.).T
-    with warnings.catch_warnings(record=True):  # transpose
+    with pytest.warns(RuntimeWarning, match='transposed'):
         pytest.raises(ValueError, linear_regression_raw, raw, events,
                       solver=solT)
     pytest.raises(ValueError, linear_regression_raw, raw, events, solver='err')
     pytest.raises(TypeError, linear_regression_raw, raw, events, solver=0)
+
 
 run_tests_if_main()

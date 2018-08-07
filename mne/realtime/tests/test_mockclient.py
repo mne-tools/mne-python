@@ -38,6 +38,7 @@ def _call_base_epochs_public_api(epochs, tmpdir):
     epochs_copy = epochs.copy()
     epochs_copy.decimate(1)
     assert epochs_copy.get_data().shape == orig_data.shape
+    epochs_copy.info['lowpass'] = 10  # avoid warning
     epochs_copy.decimate(10)
     assert np.abs(10.0 - orig_data.shape[2] /
                   epochs_copy.get_data().shape[2]) <= 1

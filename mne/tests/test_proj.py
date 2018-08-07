@@ -1,5 +1,4 @@
 import os.path as op
-import warnings
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
@@ -18,10 +17,7 @@ from mne.io.proj import (make_projector, activate_proj,
                          _needs_eeg_average_ref_proj)
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
-from mne.tests.common import assert_naming
 from mne.utils import _TempDir, run_tests_if_main
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -82,21 +78,17 @@ def test_bad_proj():
         idx = [ch_names.index(ch_name) for ch_name in p['data']['col_names']]
         data[:, idx] = p['data']['data']
         p['data'].update(ncol=len(meg_picks), col_names=ch_names, data=data)
-    with warnings.catch_warnings(record=True) as w:
-        mne.cov.regularize(mne.compute_raw_covariance(raw, verbose='error'),
-                           raw.info)
-    assert_equal(len(w), 0)
+    mne.cov.regularize(mne.compute_raw_covariance(raw, verbose='error'),
+                       raw.info)
 
 
 def _check_warnings(raw, events, picks=None, count=3):
     """Count warnings."""
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(None) as w:
         Epochs(raw, events, dict(aud_l=1, vis_l=3),
                -0.2, 0.5, picks=picks, preload=True, proj=True)
-    assert_equal(len(w), count)
-    for ww in w:
-        assert 'dangerous' in str(ww.message)
+    assert len(w) == count
+    assert all('dangerous' in str(ww.message) for ww in w)
 
 
 @testing.requires_testing_data
@@ -104,10 +96,8 @@ def test_sensitivity_maps():
     """Test sensitivity map computation."""
     fwd = mne.read_forward_solution(fwd_fname)
     fwd = mne.convert_forward_solution(fwd, surf_ori=True)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        projs = read_proj(eog_fname)
-        projs.extend(read_proj(ecg_fname))
+    projs = read_proj(eog_fname)
+    projs.extend(read_proj(ecg_fname))
     decim = 6
     for ch_type in ['eeg', 'grad', 'mag']:
         w = read_source_estimate(sensmap_fname % (ch_type, 'lh')).data
@@ -218,12 +208,11 @@ def test_compute_proj_epochs():
     assert_allclose(proj, proj_par, rtol=1e-8, atol=1e-16)
 
     # test warnings on bad filenames
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        proj_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+    proj_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+    with pytest.warns(RuntimeWarning, match='-proj.fif'):
         write_proj(proj_badname, projs)
+    with pytest.warns(RuntimeWarning, match='-proj.fif'):
         read_proj(proj_badname)
-    assert_naming(w, 'test_proj.py', 2)
 
 
 @pytest.mark.slowtest
@@ -235,11 +224,9 @@ def test_compute_proj_raw():
     raw = read_raw_fif(raw_fname).crop(0, raw_time)
     raw.load_data()
     for ii in (0.25, 0.5, 1, 2):
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with pytest.warns(RuntimeWarning, match='Too few samples'):
             projs = compute_proj_raw(raw, duration=ii - 0.1, stop=raw_time,
                                      n_grad=1, n_mag=1, n_eeg=0)
-            assert len(w) == 1
 
         # test that you can compute the projection matrix
         projs = activate_proj(projs)
@@ -253,11 +240,9 @@ def test_compute_proj_raw():
         raw.save(op.join(tempdir, 'foo_%d_raw.fif' % ii), overwrite=True)
 
     # Test that purely continuous (no duration) raw projection works
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
         projs = compute_proj_raw(raw, duration=None, stop=raw_time,
                                  n_grad=1, n_mag=1, n_eeg=0)
-        assert_equal(len(w), 1)
 
     # test that you can compute the projection matrix
     projs = activate_proj(projs)
@@ -274,18 +259,15 @@ def test_compute_proj_raw():
     # here to save an extra filtering (raw would have to be LP'ed to be equiv)
     raw_resamp = cp.deepcopy(raw)
     raw_resamp.resample(raw.info['sfreq'] * 2, n_jobs=2, npad='auto')
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        projs = compute_proj_raw(raw_resamp, duration=None, stop=raw_time,
-                                 n_grad=1, n_mag=1, n_eeg=0)
+    projs = compute_proj_raw(raw_resamp, duration=None, stop=raw_time,
+                             n_grad=1, n_mag=1, n_eeg=0)
     projs = activate_proj(projs)
     proj_new, _, _ = make_projector(projs, raw.ch_names, bads=[])
     assert_array_almost_equal(proj_new, proj, 4)
 
     # test with bads
     raw.load_bad_channels(bads_fname)  # adds 2 bad mag channels
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
         projs = compute_proj_raw(raw, n_grad=0, n_mag=0, n_eeg=1)
 
     # test that bad channels can be excluded

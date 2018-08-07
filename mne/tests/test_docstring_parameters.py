@@ -1,14 +1,14 @@
 from __future__ import print_function
 
 import inspect
+from inspect import getsource
 import os.path as op
+from pkgutil import walk_packages
 import re
 import sys
 from unittest import SkipTest
-import warnings
 
-from pkgutil import walk_packages
-from inspect import getsource
+import pytest
 
 import mne
 from mne.utils import (run_tests_if_main, _doc_special_members,
@@ -85,7 +85,7 @@ def check_parameters_match(func, doc=None):
         args = args[1:]
 
     if doc is None:
-        with warnings.catch_warnings(record=True) as w:
+        with pytest.warns(None) as w:
             try:
                 doc = docscrape.FunctionDoc(func)
             except Exception as exp:
@@ -126,7 +126,7 @@ def test_docstring_parameters():
 
     incorrect = []
     for name in public_modules_:
-        with warnings.catch_warnings(record=True):  # traits warnings
+        with pytest.warns(None):  # traits warnings
             module = __import__(name, globals())
         for submod in name.split('.')[1:]:
             module = getattr(module, submod)
@@ -134,7 +134,7 @@ def test_docstring_parameters():
         for cname, cls in classes:
             if cname.startswith('_') and cname not in _doc_special_members:
                 continue
-            with warnings.catch_warnings(record=True) as w:
+            with pytest.warns(None) as w:
                 cdoc = docscrape.ClassDoc(cls)
             if len(w):
                 raise RuntimeError('Error for __init__ of %s in %s:\n%s'
@@ -172,7 +172,7 @@ def test_tabs():
         if not ispkg and modname not in ignore:
             # mod = importlib.import_module(modname)  # not py26 compatible!
             try:
-                with warnings.catch_warnings(record=True):  # traits
+                with pytest.warns(None):
                     __import__(modname)
             except Exception:  # can't import properly
                 continue
@@ -279,7 +279,7 @@ def test_documented():
 
     missing = []
     for name in public_modules_:
-        with warnings.catch_warnings(record=True):  # traits warnings
+        with pytest.warns(None):  # traits warnings
             module = __import__(name, globals())
         for submod in name.split('.')[1:]:
             module = getattr(module, submod)

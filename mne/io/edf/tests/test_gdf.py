@@ -4,19 +4,17 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import warnings
 
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
 import numpy as np
 import scipy.io as sio
+import pytest
 
 from mne.datasets import testing
 from mne.io import read_raw_edf
 from mne.utils import run_tests_if_main
 from mne import pick_types, find_events
-
-warnings.simplefilter('always')
 
 data_path = testing.data_path(download=False)
 gdf1_path = op.join(data_path, 'GDF', 'test_gdf_1.25')
@@ -26,7 +24,7 @@ gdf2_path = op.join(data_path, 'GDF', 'test_gdf_2.20')
 @testing.requires_testing_data
 def test_gdf_data():
     """Test reading raw GDF 1.x files."""
-    with warnings.catch_warnings(record=True):  # interpolate / overlap events
+    with pytest.warns(RuntimeWarning, match='Overlapping events'):
         raw = read_raw_edf(gdf1_path + '.gdf', eog=None,
                            misc=None, preload=True, stim_channel='auto')
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
@@ -76,11 +74,9 @@ def test_gdf2_data():
     assert_equal(events.shape[0], 2)  # 2 events in file
     assert_array_equal(events[:, 2], [20, 28])
 
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='No events found'):
         # header contains no events
         raw = read_raw_edf(gdf2_path + '.gdf', stim_channel='auto')
-        assert_equal(len(w), 1)
-        assert (str(w[0].message).startswith('No events found.'))
     assert_equal(nchan, raw.info['nchan'])  # stim channel not constructed
     assert_array_equal(ch_names[1:], raw.ch_names[1:])
 

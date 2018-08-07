@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 import pytest
@@ -10,8 +8,6 @@ from mne.connectivity.spectral import _CohEst, _get_n_epochs
 from mne import SourceEstimate
 from mne.utils import run_tests_if_main
 from mne.filter import filter_data
-
-warnings.simplefilter('always')
 
 
 def _stc_gen(data, sfreq, tmin, combo=False):

@@ -8,7 +8,6 @@ import glob
 import os
 import os.path as op
 import shutil
-import warnings
 
 import numpy as np
 from numpy.testing import assert_equal
@@ -41,10 +40,6 @@ mri_fname = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
 base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
                                'data'))
 evoked_fname = op.join(base_dir, 'test-ave.fif')
-
-# Set our plotters to test mode
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
 @pytest.mark.slowtest
@@ -80,11 +75,9 @@ def test_render_report():
     epochs.average().crop(0.1, 0.2).save(evoked_fname)
 
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
         report.parse_folder(data_path=tempdir, on_error='raise')
-    assert (len(w) >= 1)
-    assert (repr(report))
+    assert repr(report)
 
     # Check correct paths and filenames
     fnames = glob.glob(op.join(tempdir, '*.fif'))
@@ -120,10 +113,8 @@ def test_render_report():
 
     # Check pattern matching with multiple patterns
     pattern = ['*raw.fif', '*eve.fif']
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
         report.parse_folder(data_path=tempdir, pattern=pattern)
-    assert (len(w) >= 1)
     assert (repr(report))
 
     fnames = glob.glob(op.join(tempdir, '*.raw')) + \
@@ -139,8 +130,7 @@ def test_render_report():
     # SVG rendering
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
                     image_format='svg')
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
         report.parse_folder(data_path=tempdir, on_error='raise')
 
     # ndarray support smoke test
@@ -207,12 +197,11 @@ def test_render_mri():
         shutil.copyfile(a, b)
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('always')
+    with pytest.warns(None):  # contours
         report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*',
                             n_jobs=2)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
-    assert (repr(report))
+    assert repr(report)
 
 
 @testing.requires_testing_data
@@ -225,10 +214,8 @@ def test_render_mri_without_bem():
     shutil.copyfile(mri_fname, op.join(tempdir, 'sample', 'mri', 'T1.mgz'))
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=tempdir)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='bem directory .* does not exist'):
         report.parse_folder(tempdir)
-    assert (len(w) >= 1)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 
