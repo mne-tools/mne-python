@@ -145,13 +145,16 @@ def test_save_vol_stc_as_nifti():
 
     stc.save_as_volume(vol_fname, src,
                        dest='surf', mri_resolution=False)
-    img = nib.load(vol_fname)
+    with pytest.warns(None):  # nib<->numpy
+        img = nib.load(vol_fname)
     assert (img.shape == src[0]['shape'] + (len(stc.times),))
 
-    t1_img = nib.load(fname_t1)
+    with pytest.warns(None):  # nib<->numpy
+        t1_img = nib.load(fname_t1)
     stc.save_as_volume(op.join(tempdir, 'stc.nii.gz'), src,
                        dest='mri', mri_resolution=True)
-    img = nib.load(vol_fname)
+    with pytest.warns(None):  # nib<->numpy
+        img = nib.load(vol_fname)
     assert (img.shape == t1_img.shape + (len(stc.times),))
     assert_allclose(img.affine, t1_img.affine, atol=1e-5)
 
@@ -579,12 +582,9 @@ def test_morph_data():
                          subjects_dir=subjects_dir)
 
     # make sure we get a warning about # of steps
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        morph_data(subject_from, subject_to, stc_from,
-                   grade=vertices_to, smooth=1,
-                   subjects_dir=subjects_dir)
-    assert sum('vertices not included' in str(ww.message) for ww in w) == 2
+    morph_data(subject_from, subject_to, stc_from,
+               grade=vertices_to, smooth=1,
+               subjects_dir=subjects_dir)
 
     assert_array_almost_equal(stc_to.data, stc_to1.data, 5)
     assert_array_almost_equal(stc_to1.data, stc_to2.data)
@@ -600,8 +600,10 @@ def test_morph_data():
 
     assert sum('deprecated' in str(ww.message) for ww in w) == 2
 
-    # Just avoid raising - warnings are checked above
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(DeprecationWarning):
+        stc_to3 = stc_from.morph_precomputed(subject_to, vertices_to,
+                                             morph_mat)
+        assert_array_almost_equal(stc_to1.data, stc_to3.data)
         pytest.raises(ValueError, stc_from.morph_precomputed,
                       subject_to, vertices_to, 'foo')
         pytest.raises(ValueError, stc_from.morph_precomputed,
@@ -612,9 +614,8 @@ def test_morph_data():
         pytest.raises(ValueError, stc_from.morph_precomputed, subject_to,
                       vertices_to, morph_mat, subject_from='foo')
 
-    # vertices not included warning
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('always')
+    # steps warning
+    with pytest.warns(RuntimeWarning, match='steps'):
         compute_morph_matrix(subject_from, subject_to,
                              stc_from.vertices, vertices_to,
                              smooth=1, subjects_dir=subjects_dir)
