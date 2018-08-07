@@ -16,8 +16,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  head_to_mni, read_trans)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
-                       requires_mne, requires_version, run_tests_if_main,
-                       requires_dipy)
+                       requires_mne, requires_version, run_tests_if_main)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mri_header, _get_mgz_header, _read_talxfm
 from mne.source_estimate import _get_src_type
@@ -657,7 +656,6 @@ def test_morph_source_spaces():
 
 
 @requires_nibabel()
-@requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_morphed_source_space_return():

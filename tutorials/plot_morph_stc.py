@@ -71,6 +71,8 @@ anatomical data of Subject B, in the same way it does for Subject A.
 See :ref:`sphx_glr_auto_examples_inverse_plot_morph_volume_stc.py` for an
 example of such a morph.
 
+Volumetric morphing is performed using dipy_.
+
 Setting up SourceMorph for VolSourceEstimate
 --------------------------------------------
 
@@ -149,7 +151,9 @@ A surface source estimate represents data relative to a 3-dimensional mesh of
 the inflated brain surface computed using FreeSurfer. This mesh is defined by
 its vertices. If we want to morph our data from one brain to another, then
 this translates to finding the correct transformation to transform each
-vertex from Subject A into a corresponding vertex of Subject B.
+vertex from Subject A into a corresponding vertex of Subject B. Under the hood
+:ref:`FreeSurfer <sphx_glr_auto_tutorials_plot_background_freesurfer.py>`
+uses spherical representations to compute the morph.
 
 In MNE-Python, surface source estimates are represented as
 :class:`mne.SourceEstimate` or :class:`mne.VectorSourceEstimate`. Those can
@@ -161,12 +165,14 @@ anatomical surface data of Subject B, in the same way it does for Subject A.
 See :ref:`sphx_glr_auto_examples_inverse_plot_morph_surface_stc.py` for an
 example of such a morph.
 
+Please see also Gramfort *et al.* (2013) [1]_.
+
 Setting up SourceMorph for SourceEstimate
 -----------------------------------------
 
 We know that surface source estimates are represented as lists of vertices. If
 that is not entirely clear, we ask ourselves
-:ref:`sphx_glr_auto_tutorials_plot_object_sourceestimate.py`
+:ref:`sphx_glr_auto_tutorials_plot_object_source_estimate.py`
 
 The respective list of our data can either be obtained from
 :class:`mne.SourceSpaces` (src) or from the data we want to morph itself. If
@@ -225,8 +231,8 @@ In turn, reading a saved source morph can be achieved by using
     >>> from mne import read_source_morph
     >>> morph = read_source_morph('my-file-name-morph.h5')
 
-Shortcuts
-=========
+Additional Info
+===============
 
 In addition to the functionality, demonstrated above, SourceMorph can be used
 slightly different as well, in order to enhance user comfort.
@@ -236,16 +242,28 @@ the SourceMorph instance, but setting 'as_volume=True'. If so, the __call__()
 function takes the same input arguments as
 :meth:`morph.as_volume <mne.SourceMorph.as_volume>`.
 
-Moreover it can be decided whether to actually apply the morph or not by
-setting the 'apply_morph' argument to True in order to morph the source
-estimate and convert it into a volume in one go:
+Moreover it can be decided whether to actually apply the morph or not. This way
+ SourceMorph can be used to output un-morphed data as well. By
+setting 'apply_morph' and 'as_volume' to True, the source estimate will be
+morphed and convert it into a volume in one go:
 
     >>> img = morph(stc, as_volume=True, apply_morph=True)
 
-Once the environment is set up correctly, SourceMorph can be used without
-creating an instance and assigning it to a variable. Instead the __init__
-and __call__ methods of SourceMorph can be daisy chained into a handy
-one-liner:
+Once the environment is set up correctly, no information such as 'subject_from'
+or 'subjects_dir' must be provided, since it can be inferred from the data and
+use morph to 'fsaverage' by default. SourceMorph can further be used without
+creating an instance and assigning it to a variable. Instead the
+:class:`__init__ <mne.SourceMorph>` and
+:meth:`__call__ <mne.SourceMorph.__call__>` methods of SourceMorph can be daisy
+chained into a handy one-liner. Taking this together the shortest possible way
+to morph data directly would be:
 
     >>> stc_fsaverage = mne.SourceMorph(src=src)(stc)
+
+References
+==========
+.. [1] Gramfort, A., Luessi, M., Larson, E., Engemann, D. A., Strohmeier, D.,
+       Brodbeck, C., ... & Hämäläinen, M. (2013). MEG and EEG data analysis
+       with MNE-Python. Frontiers in neuroscience, 7, 267.
+.. _dipy: http://nipy.org/dipy/
 """

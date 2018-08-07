@@ -7,8 +7,8 @@ This example demonstrates how to morph an individual subject
 :class:`mne.SourceEstimate` to a common reference space. For this purpose we
 will use :class:`mne.SourceMorph`. Pre-computed data will be morphed based on
 an affine transformation and a nonlinear morph, estimated based on respective
-transformation from the subject's anatomical T1 (brain) to fsaverage T1
-(brain).
+transformation from the subject's anatomical T1 weighted MRI (brain) to
+fsaverage T1 weighted MRI (brain).
 
 Afterwards the transformation will be applied to the volumetric source
 estimate. The result will be a plot showing the fsaverage T1 overlaid with the
@@ -21,7 +21,6 @@ morphed volumetric source estimate.
 #
 # License: BSD (3-clause)
 import os
-import warnings
 
 import nibabel as nib
 from mne import read_evokeds, SourceMorph
@@ -73,8 +72,7 @@ stc_fsaverage = morph(stc)
 # Plot results
 
 # Load fsaverage anatomical image
-with warnings.catch_warnings(record=False):  # nib<->numpy
-    t1_fsaverage = nib.load(fname_t1_fsaverage)
+t1_fsaverage = nib.load(fname_t1_fsaverage)
 
 # Create mri-resolution volume of results
 img_fsaverage = morph.as_volume(stc_fsaverage, mri_resolution=2)

@@ -6,9 +6,13 @@ Morph surface source estimate
 This example demonstrates how to morph an individual subject
 :class:`mne.SourceEstimate` to a common reference space. For this purpose we
 will use :class:`mne.SourceMorph`. Pre-computed data will be morphed based on
-an affine transformation on the surface vertices towards the reference
+a spherical representation of the cortex. This is based on the spherical
+registration of
+:ref:`FreeSurfer <sphx_glr_auto_tutorials_plot_background_freesurfer.py>`
+(https://surfer.nmr.mgh.harvard.edu/fswiki/SurfaceRegAndTemplates). This will
+transform will be used to morph the surface vertices towards the reference
 vertices. Here we will use 'fsaverage' as a reference space (see
-`https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage`).
+https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage).
 
 The transformation will be applied to the surface source estimate. The result
 will be a plot showing the inflated surface representation of 'fsaverage',
@@ -63,8 +67,18 @@ surfer_kwargs = dict(
     initial_time=0.09, time_unit='s', size=(800, 800),
     smoothing_steps=5)
 
-# Plot surface
-brain = stc_fsaverage.plot(**surfer_kwargs)
+###############################################################################
+# As spherical surface
+brain = stc_fsaverage.plot(surface='sphere', **surfer_kwargs)
 
 # Add title
-brain.add_text(0.1, 0.9, 'Morphed to fsaverage', 'title', font_size=16)
+brain.add_text(0.1, 0.9, 'Morphed to fsaverage (spherical)', 'title',
+               font_size=16)
+
+###############################################################################
+# As inflated surface
+brain_inf = stc_fsaverage.plot(surface='inflated', **surfer_kwargs)
+
+# Add title
+brain_inf.add_text(0.1, 0.9, 'Morphed to fsaverage (inflated)', 'title',
+                   font_size=16)

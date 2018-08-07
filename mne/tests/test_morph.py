@@ -3,7 +3,6 @@
 #
 # License: BSD (3-clause)
 import os
-import warnings
 
 import pytest
 import numpy as np
@@ -45,7 +44,6 @@ def _real_vec_stc():
 
 
 @requires_nibabel()
-@requires_dipy()
 @testing.requires_testing_data
 def test_stc_as_volume():
     """Test previous volume source estimate morph."""
@@ -57,8 +55,7 @@ def test_stc_as_volume():
 
     img = stc_vol.as_volume(inverse_operator_vol['src'], mri_resolution=True,
                             dest='42')
-    with warnings.catch_warnings(record=True):  # nib<->numpy
-        t1_img = nib.load(fname_t1)
+    t1_img = nib.load(fname_t1)
     # always assure nifti and dimensionality
     assert isinstance(img, nib.Nifti1Image)
     assert img.header.get_zooms()[:3] == t1_img.header.get_zooms()[:3]
@@ -73,8 +70,6 @@ def test_stc_as_volume():
         stc_vol.as_volume(inverse_operator_vol['src'], mri_resolution=4)
 
 
-@requires_nibabel()
-@requires_dipy()
 @testing.requires_testing_data
 def test_surface_vector_source_morph():
     """Test surface and vector source estimate morph."""
@@ -175,13 +170,6 @@ def test_volume_source_morph():
     assert source_morph_vol.params['src_shape_full'] == (
         src[0]['mri_height'], src[0]['mri_depth'], src[0]['mri_width'])
 
-    # check full mri resolution registration (takes very long)
-    # source_morph_vol = SourceMorph(
-    #     os.path.join(sample_dir, 'sample_audvis-meg-vol-7-fwd.fif'),
-    #     subject_from='sample',
-    #     subjects_dir=os.path.join(data_path, 'subjects'),
-    #     grid_spacing=None)
-
     fwd = read_forward_solution(
         os.path.join(sample_dir, 'sample_audvis-meg-vol-7-fwd.fif'))
     # check input via path to src and path to subject_to
@@ -200,10 +188,10 @@ def test_volume_source_morph():
 
     # two different ways of saving
     source_morph_vol.save(os.path.join(tempdir, 'vol'))
-    source_morph_vol.save(os.path.join(tempdir, 'vol.h5'))
 
     # check loading
-    source_morph_vol_r = read_source_morph(os.path.join(tempdir, 'vol.h5'))
+    source_morph_vol_r = read_source_morph(
+        os.path.join(tempdir, 'vol-morph.h5'))
 
     # check for invalid file name handling ()
     with pytest.raises(IOError, match='file .* not found'):

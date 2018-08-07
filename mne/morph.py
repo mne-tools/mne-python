@@ -174,13 +174,6 @@ class SourceMorph(object):
                  niter_sdr=(5, 5, 3), spacing=5, smooth=None, warn=True,
                  xhemi=False, precomputed=None, verbose=False):
         super(SourceMorph, self).__init__()
-        # it's impossible to use the class without passing this check, so it
-        # only needs to be checked here
-        if (not check_version('nibabel', '2.1.0') or
-                not check_version('dipy', '0.10.1')):
-            raise ImportError(
-                'NiBabel 2.1.0 and DiPy 0.10.1 or higher must be correctly '
-                'installed and accessible from Python')
 
         if src is not None and not isinstance(src, SourceSpaces):
             raise ValueError('src must be an instance of SourceSpaces')
@@ -427,6 +420,20 @@ def read_source_morph(fname, verbose=None):
 
 ###############################################################################
 # Helper functions for SourceMorph methods
+def _check_dep(nibabel='2.1.0', dipy='0.10.1'):
+    """Wrapper to allow more precise checking instead of one check in
+    __init__. Exclude check by setting argument to False.
+    """
+    for lib, ver in zip(['nibabel', 'dipy'],
+                        [nibabel, dipy]):
+        passed = True if not ver else check_version(lib, ver)
+
+        if not passed:
+            raise ImportError('%s %s or higher must be correctly '
+                              'installed and accessible from Python' % (lib,
+                                                                        ver))
+
+
 def _check_hemi_data(data_in, data_ref):
     """Check and setup correct data for hemispheres."""
     return [np.array([], int) if
@@ -467,6 +474,7 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
     img : Nifti1Image | Nifti2Image
         The image object.
     """
+    _check_dep(nibabel='2.1.0', dipy=False)
     import nibabel as nib
     if not isinstance(stc, VolSourceEstimate):
         raise ValueError('Only volume source estimates can be converted to '
@@ -596,6 +604,8 @@ def _compute_morph_data(morph, verbose=None):
     # VolSourceEstimate
     if morph.kind == 'volume' and morph.subject_to is not None:
 
+        _check_dep(nibabel='2.1.0', dipy=False)
+
         logger.info('volume source space inferred...')
         import nibabel as nib
 
@@ -679,6 +689,7 @@ def _compute_morph_data(morph, verbose=None):
 def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
                       format='nifti1'):
     """Interpolate source estimate data to MRI."""
+    _check_dep(nibabel='2.1.0', dipy=False)
     if format != 'nifti1' and format != 'nifti2':
         raise ValueError("invalid format specifier %s. Must be 'nifti1' or"
                          " 'nifti2'" % format)
@@ -843,6 +854,7 @@ def _compute_morph_sdr(mri_from, mri_to,
     12(1), 26-41. Asymmetry. Journal of Cognitive Neuroscience 25(9),
     1477-1492, 2013.
     """
+    _check_dep(nibabel='2.1.0', dipy='0.10.1')
     import nibabel as nib
     from dipy.align import imaffine, imwarp, metrics, transforms
     from dipy.align.reslice import reslice

@@ -11,7 +11,7 @@ from https://surfer.nmr.mgh.harvard.edu/
 In MNE-Python, FreeSurfer is used to provide structural information of various
 kinds, for :ref:`source estimation
 <sphx_glr_auto_tutorials_plot_mne_dspm_source_localization.py>`. Thereby a
-subject specific structural MRI will be transformed into various
+subject specific structural MRI will be used to obtain various structural
 representations like spherical or inflated brain surfaces. Furthermore features
 like curvature as well as various labels for areas of interest (such as V1) are
 computed.
@@ -20,7 +20,7 @@ Thus FreeSurfer provides an easy way to shift anatomically related
 data between different representations and spaces. See e.g.
 :ref:`sphx_glr_auto_tutorials_plot_morph_stc.py` for information about how to
 use FreeSurfer surface representations to allow functional data to morph
-between different brain maps.
+between different subjects.
 
 .. contents::
     :local:
@@ -28,12 +28,13 @@ between different brain maps.
 First steps
 ===========
 
-After downloading and installing the environment needs to be set up correctly.
+After downloading and installing, the environment needs to be set up correctly.
 This can be done by setting the FreeSurfer's root directory correctly and
 sourcing the setup file:
 
-    >>> export FREESURFER_HOME=/path/to/FreeSurfer
-    >>> source $FREESURFER_HOME/SetUpFreeSurfer.sh
+    $ export FREESURFER_HOME=/path/to/FreeSurfer
+
+    $ source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 .. note::
     The FreeSurfer home directory might vary depending on your operating
@@ -46,7 +47,7 @@ subject's reconstructions in separate sub-folders. Those sub-folders will be
 created upon the reconstruction of the anatomical data. Nevertheless the parent
 directory has to be set beforehand:
 
-    >>> export SUBJECTS_DIR=~/subjects
+    $ export SUBJECTS_DIR=~/subjects
 
 Again see the `FreeSurfer installation guide
 <https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall>`_ for more.
@@ -63,12 +64,14 @@ and setting up the corresponding :class:`source space <mne.SourceSpaces>`. See
 reconstruction is obtained by prompting the following command to a bash
 console (e.g. Linux or MacOS Terminal):
 
-    >>> my_subject=sample
-    >>> my_NIfTI=/path/to/NIfTI.nii.gz
-    >>> recon-all -i $my_NIfTI -s $my_subject -all
+    $ my_subject=sample
+
+    $ my_NIfTI=/path/to/NIfTI.nii.gz
+
+    $ recon-all -i $my_NIfTI -s $my_subject -all
 
 , where :math:`i` stands for "input" and :math:`s` for "subject". Executing
-this, will create the folder "~/subjects/sample", were all
+this, will create the folder "~/subjects/sample", where all
 results are stored.
 
 .. note::
@@ -83,7 +86,7 @@ in a left and right hemisphere version. This is often indicated by the
 prefix ``lh`` or ``rh`` to refer to the aforementioned. For that reason
 data representations such as :class:`mne.SourceEstimate` carry two sets of
 spatial locations (vertices) for both hemispheres separately. See also
-:ref:`sphx_glr_auto_tutorials_plot_object_sourceestimate.py`.
+:ref:`sphx_glr_auto_tutorials_plot_object_source_estimate.py`.
 
 'fsaverage'
 ===========

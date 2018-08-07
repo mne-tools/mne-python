@@ -12,16 +12,16 @@ objects:
 
 
 :class:`mne.SourceEstimate` is the result of a source analysis. MNE-Python
-provides different methods for solving the so called 'inverse problem'. Thereby
+provides different methods for solving the so-called 'inverse problem'. Thereby
 sensor level data will be projected into a 3-dimensional 'source space'
 representing the individual subject's brain anatomy. Hence the data is
 transformed such that the recorded time series at each sensor location maps to
 a time series at each spatial location of the brain representation.
 
 Knowing this the :class:`mne.SourceEstimate` (within the MNE ecosystem mostly
-called **stc**) represents the carrier of the new time series data, whereas
-:class:`mne.SourceSpaces` (mostly called **src**) the mapping towards the
-anatomical representation.
+called **stc**, which is short for source time courses) represents
+the carrier of the new time series data, whereas :class:`mne.SourceSpaces`
+(mostly called **src**) the mapping towards the anatomical representation.
 
 For an example on how to compute different kinds of source estimates see
 :ref:`sphx_glr_auto_tutorials_plot_mne_dspm_source_localization.py`.
@@ -98,7 +98,7 @@ print('The data has %s vertex locations with %s sample points each.' % shape)
 #
 # Since both hemispheres are always represented separately, both attributes
 # introduced above, can also be obtained by selecting the respective
-# hemisphere. This is done by adding the correct prefix ('lh_' or 'rh_').
+# hemisphere. This is done by adding the correct prefix ('lh' or 'rh').
 
 shape_lh = stc.lh_data.shape
 
