@@ -421,9 +421,7 @@ def read_source_morph(fname, verbose=None):
 ###############################################################################
 # Helper functions for SourceMorph methods
 def _check_dep(nibabel='2.1.0', dipy='0.10.1'):
-    """Wrapper to allow more precise checking instead of one check in
-    __init__. Exclude check by setting argument to False.
-    """
+    """Check dependencies."""
     for lib, ver in zip(['nibabel', 'dipy'],
                         [nibabel, dipy]):
         passed = True if not ver else check_version(lib, ver)
@@ -474,12 +472,11 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
     img : Nifti1Image | Nifti2Image
         The image object.
     """
-    _check_dep(nibabel='2.1.0', dipy=False)
-    import nibabel as nib
     if not isinstance(stc, VolSourceEstimate):
         raise ValueError('Only volume source estimates can be converted to '
                          'volumes')
-
+    _check_dep(nibabel='2.1.0', dipy=False)
+    import nibabel as nib
     # this is a special case when as_volume is called without having done a
     # morph beforehand (to assure compatibility to previous versions)
     if 'morph_shape' not in morph.params:
@@ -593,7 +590,7 @@ def _get_src_data(src):
 
 
 def _compute_morph_data(morph, verbose=None):
-    """Computes morph depending on the underlying type of source estimate."""
+    """Compute morph depending on the underlying type of source estimate."""
     data = dict()
 
     # get data currently present in morph
