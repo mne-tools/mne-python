@@ -86,8 +86,10 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         _scale_mpl_figure(fig, scale)
     logger.debug('Saving figure %s with dpi %s'
                  % (fig.get_size_inches(), fig.get_dpi()))
-    fig.savefig(output, format=image_format, dpi=fig.get_dpi(),
-                bbox_to_inches='tight')
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')  # incompatible axes
+        fig.savefig(output, format=image_format, dpi=fig.get_dpi(),
+                    bbox_to_inches='tight')
     plt.close(fig)
     output = output.getvalue()
     return (output.decode('utf-8') if image_format == 'svg' else

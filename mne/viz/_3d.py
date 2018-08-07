@@ -536,6 +536,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
         # and then plot the contours on top
         for surf in surfs:
             with warnings.catch_warnings(record=True):  # no contours
+                warnings.simplefilter('ignore')
                 ax.tricontour(surf['rr'][:, inds[0]], surf['rr'][:, inds[1]],
                               surf['tris'], surf['rr'][:, inds[2]],
                               levels=[sl], colors='yellow', linewidths=2.0)
