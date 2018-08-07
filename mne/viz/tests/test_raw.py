@@ -72,7 +72,8 @@ def _annotation_helper(raw, events=False):
     ann_fig = plt.gcf()
     for key in ' test':
         ann_fig.canvas.key_press_event(key)
-    ann_fig.canvas.key_press_event('enter')
+    with pytest.warns(None):  # old mpl
+        ann_fig.canvas.key_press_event('enter')
 
     ann_fig = plt.gcf()
     # XXX: _fake_click raises an error on Agg backend
@@ -135,13 +136,17 @@ def _annotation_helper(raw, events=False):
         assert_allclose(raw.annotations.duration[n_anns], 5.0)
     assert len(fig.axes[0].texts) == n_anns + 1 + n_events
     # Delete
-    _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3, kind='press')
-    fig.canvas.key_press_event('a')  # exit annotation mode
+    with pytest.warns(None):  # old mpl
+        _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3,
+                    kind='press')
+        fig.canvas.key_press_event('a')  # exit annotation mode
     assert len(raw.annotations.onset) == n_anns
     assert len(fig.axes[0].texts) == n_anns + n_events
-    fig.canvas.key_press_event('shift+right')
+    with pytest.warns(None):  # old mpl
+        fig.canvas.key_press_event('shift+right')
     assert len(fig.axes[0].texts) == 0
-    fig.canvas.key_press_event('shift+left')
+    with pytest.warns(None):  # old mpl
+        fig.canvas.key_press_event('shift+left')
     assert len(fig.axes[0].texts) == n_anns + n_events
     plt.close('all')
 
