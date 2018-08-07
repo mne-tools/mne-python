@@ -5,8 +5,8 @@ about: Suggest an idea for this project
 ---
 <!--
 If your issue is a usage question, submit it here instead:
-- The mne-python gitter: https://gitter.im/mne-tools/mne-python
-- The mne-analysis mailing list: https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
+- The MNE-Python gitter: https://gitter.im/mne-tools/mne-python
+- The MNE-Python mailing list: https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
 -->
 
 #### Problem Description
