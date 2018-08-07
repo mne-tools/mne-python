@@ -340,6 +340,9 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
             if len(mdesc) > 0:
                 dropped.append(mdesc)
 
+    # Drop all markers with no description from the dropped markers
+    # For example, the "New Segment" markers will be dropped from the list
+    # of dropped markers because they usually look like: Mk1=New Segment,,1,1,0
     if len(dropped) > 0:
         dropped = list(set(dropped))
         examples = ", ".join(dropped[:5])
