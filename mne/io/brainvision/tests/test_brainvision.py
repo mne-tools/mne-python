@@ -364,7 +364,7 @@ def test_brainvision_data():
 
 def test_brainvision_vectorized_data():
     """Test reading BrainVision data files with vectorized data."""
-    with pytest.warns(RuntimeWarning):  # software filter settings
+    with pytest.warns(RuntimeWarning, match='software filter'):
         raw = read_raw_brainvision(vhdr_old_path, preload=True)
 
     assert_array_equal(raw._data.shape, (30, 251))
@@ -468,7 +468,7 @@ def test_events():
 
     # check that events are read and stim channel is synthesized correctly and
     # response triggers are ignored.
-    with pytest.warns(RuntimeWarning):  # ignored events
+    with pytest.warns(RuntimeWarning, match='to parse triggers'):
         raw = read_raw_brainvision(vhdr_path, eog=eog,
                                    trig_shift_by_type={'response': None})
     events = raw._get_brainvision_events()
@@ -503,20 +503,22 @@ def test_events():
     # Check that events of type "Comment" are read if they contain square
     # brackets (which usually signify a new section within a BrainVision file)
     # If no event_id specified, skip the marker and continue as planned
-    raw = read_raw_brainvision(vhdr_v2_path)
+    with pytest.warns(RuntimeWarning, match='channel types to misc'):
+        raw = read_raw_brainvision(vhdr_v2_path)
     events = raw._get_brainvision_events()
     assert events.shape == (11, 3)  # shape of events without the comment
 
     # with event_id specified, get that comment and assert it's there
     tmp_event_id = {'comment using [square] brackets': 999}
-    raw = read_raw_brainvision(vhdr_v2_path, event_id=tmp_event_id)
+    with pytest.warns(RuntimeWarning, match='channel types to misc'):
+        raw = read_raw_brainvision(vhdr_v2_path, event_id=tmp_event_id)
     events = raw._get_brainvision_events()
     assert 999 in events[:, -1]
     assert events.shape == (12, 3)
 
     # check that events are read properly when event_id is specified for
     # auxiliary events
-    with pytest.warns(RuntimeWarning):  # dropped events
+    with pytest.warns(RuntimeWarning, match='dropped'):
         raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
                                    trig_shift_by_type={'response': None},
                                    event_id=event_id)
@@ -585,7 +587,8 @@ def test_events():
 
 def test_brainvision_with_montage():
     """Test reading embedded montage information."""
-    raw = read_raw_brainvision(vhdr_v2_path, eog=eog, misc=['ReRef'])
+    with pytest.warns(RuntimeWarning, match='will be dropped'):
+        raw = read_raw_brainvision(vhdr_v2_path, eog=eog, misc=['ReRef'])
     for i, d in enumerate(raw.info['dig'], 1):
         assert_equal(d['coord_frame'], FIFF.FIFFV_COORD_HEAD)
         assert_equal(d['ident'], i)
