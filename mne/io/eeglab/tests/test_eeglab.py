@@ -142,11 +142,9 @@ def test_io_set_raw(fnames, tmpdir):
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     negative_latency_fname.replace('.set', '.fdt'))
     event_id = {eeg.event[0].type: 1}
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match="have a sample index of -1."):
         read_raw_eeglab(input_fname=negative_latency_fname, preload=True,
                         event_id=event_id, montage=montage)
-    assert (len(w) == 1)
 
     # test overlapping events
     overlap_fname = op.join(tmpdir, 'test_overlap_event.set')
