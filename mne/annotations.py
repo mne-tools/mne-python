@@ -219,6 +219,8 @@ class Annotations(object):
         self.duration = self.duration.compress(~out_of_bounds)
         self.description = self.description.compress(~out_of_bounds)
 
+        return self
+
 
 def _combine_annotations(one, two, one_n_samples, one_first_samp,
                          two_first_samp, sfreq, meas_date):

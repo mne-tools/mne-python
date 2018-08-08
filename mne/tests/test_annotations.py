@@ -412,38 +412,31 @@ def test_annotations_crop():
                     description=description,
                     orig_time=0)
 
-    # I don't understand why this does not work
-    # a_ = a.copy().crop(tmin=11,tmax=12)
 
     # cropping window larger than annotations --> do not modify
-    a_ = a.copy()
-    a_.crop(tmin=0,tmax=42)
+    a_ = a.copy().crop(tmin=0,tmax=42)
     assert_array_equal(a_.onset, a.onset)
     assert_array_equal(a_.duration, a.duration)
 
     # cropping with left shifted window
-    a_ = a.copy()
-    a_.crop(tmin=0,tmax=4.2)
+    a_ = a.copy().crop(tmin=0,tmax=4.2)
     assert_array_equal(a_.onset, [1., 2., 3., 4.])
     # assert_array_equal(a_.duration, [3.2, 2.2, 1.2, 0.2])
     assert_allclose(a_.duration, [3.2, 2.2, 1.2, 0.2], atol=1e-30)
 
     # cropping with right shifted window
-    a_ = a.copy()
-    a_.crop(tmin=17.8,tmax=22)
+    a_ = a.copy().crop(tmin=17.8,tmax=22)
     assert_array_equal(a_.onset, [17.8, 17.8])
     # assert_array_equal(a_.duration, [0.2, 1.2])
     assert_allclose(a_.duration, [0.2, 1.2], atol=1e-30)
 
     # cropping with centered small window
-    a_ = a.copy()
-    a_.crop(tmin=11,tmax=12)
+    a_ = a.copy().crop(tmin=11,tmax=12)
     assert_array_equal(a_.onset, [11, 11, 11, 11, 11, 11, 11, 11, 11])
     assert_array_equal(a_.duration, [0, 1, 1, 1, 1, 1, 1, 1, 1])
 
     # cropping with out-of-bounds window
-    a_ = a.copy()
-    a_.crop(tmin=42,tmax=100)
+    a_ = a.copy().crop(tmin=42,tmax=100)
     assert_array_equal(a_.onset, [])
     assert_array_equal(a_.duration, [])
 
