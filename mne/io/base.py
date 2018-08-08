@@ -694,10 +694,22 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._annotations = None
         else:
             _ensure_annotation_object(annotations)
-            # self._annotations = _xxx(annotations, raw=self, emit_warning=emit_warning)
+            time_of_frist_sample = (_handle_meas_date(self.info['meas_date'])
+                                    + (self.first_samp / self.info['sfreq']))
+
             new_annotations = annotations.copy()
-            self._annotations = new_annotations.crop(tmin=self.times[0],
-                                                     tmax=self.times[-1])
+            if annotations.orig_time is None:
+                # Asume annotations to be relative to the data
+                new_annotations.orig_time = time_of_frist_sample
+
+            tmin = time_of_frist_sample
+            tmax = tmin + self.times[-1]
+            new_annotations.crop(tmin=tmin, tmax=tmax)
+
+            if annotations.orig_time is None:
+                new_annotations.orig_time = None
+
+            self._annotations = new_annotations
 
         return self
 
