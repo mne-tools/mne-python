@@ -684,6 +684,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Annotations to set.
         emit_warning : bool
             Whether to emit warnings when limiting or omitting annotations.
+
+        Returns
+        -------
+        self : instance of Raw
+            The raw object with annotations.
         """
         if annotations is None:
             self._annotations = None
@@ -693,6 +698,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             new_annotations = annotations.copy()
             self._annotations = new_annotations.crop(tmin=self.times[0],
                                                      tmax=self.times[-1])
+
+        return self
 
     def __del__(self):  # noqa: D105
         # remove file for memmap
