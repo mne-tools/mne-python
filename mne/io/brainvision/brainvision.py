@@ -66,11 +66,11 @@ class RawBrainVision(BaseRaw):
         but typically another value or None will be necessary.
     event_id : dict | None
         The id of special events to consider in addition to those that
-        follow the normal Brainvision trigger format ('S###').
+        follow the normal Brainvision trigger format ('S###' or 'R###').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
-        or an empty dict (default), only stimulus events are added to the
-        stimulus channel. Keys are case sensitive.
+        or an empty dict (default), only stimulus and response events are added
+        to the stimulus channel. Keys are case sensitive.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -231,11 +231,11 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
         vmrk file to be read.
     event_id : dict | None
         The id of special events to consider in addition to those that
-        follow the normal Brainvision trigger format ('S###').
+        follow the normal Brainvision trigger format ('S###' or 'R###').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
-        or an empty dict (default), only stimulus events are added to the
-        stimulus channel. Keys are case sensitive.
+        or an empty dict (default), only stimulus and response events are added
+        to the stimulus channel. Keys are case sensitive.
     response_trig_shift : int | None
         Integer to shift response triggers by. None ignores response triggers.
 
@@ -349,7 +349,7 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
             examples += ", ..."
         warn("Currently, {0} trigger(s) will be dropped, such as [{1}]. "
              "Consider using ``event_id`` to parse triggers that "
-             "do not follow the 'S###' pattern.".format(
+             "do not follow the 'S###' or 'R###' pattern.".format(
                  len(dropped), examples))
 
     events = np.array(events).reshape(-1, 3)
@@ -866,11 +866,11 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         but typically another value or None will be necessary.
     event_id : dict | None
         The id of special events to consider in addition to those that
-        follow the normal Brainvision trigger format ('S###').
+        follow the normal Brainvision trigger format ('S###' or 'R###').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
-        or an empty dict (default), only stimulus events are added to the
-        stimulus channel. Keys are case sensitive.
+        or an empty dict (default), only stimulus and response events are added
+        to the stimulus channel. Keys are case sensitive.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
