@@ -432,7 +432,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     for ii, p in enumerate(projs):
         if p['active']:
             for x in proj_checks.lines[ii]:
-                x.set_color('ff0000')
+                x.set_color('#ff0000')
     # make minimal size
     # pass key presses from option dialog over
 
@@ -857,7 +857,7 @@ def _setup_annotation_fig(params):
         circle.set_radius(radius / (len(labels)))
         label.set_x(circle.center[0] + (radius + 0.1) / len(labels))
     if len(fig.radio.circles) < 1:
-        col = 'ff0000'
+        col = '#ff0000'
     else:
         col = circles[0].get_edgecolor()
     fig.canvas.mpl_connect('key_press_event', partial(
@@ -1155,10 +1155,10 @@ class ClickableImage(object):
         ax.imshow(self.imdata, extent=(0, self.xmax, 0, self.ymax), **kwargs)
         xlim, ylim = [ax.get_xlim(), ax.get_ylim()]
         xcoords, ycoords = zip(*self.coords)
-        ax.scatter(xcoords, ycoords, c='ff0000')
+        ax.scatter(xcoords, ycoords, c='#ff0000')
         ann_text = np.arange(len(self.coords)).astype(str)
         for txt, coord in zip(ann_text, self.coords):
-            ax.annotate(txt, coord, fontsize=20, color='ff0000')
+            ax.annotate(txt, coord, fontsize=20, color='#ff0000')
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
         plt_show()
@@ -1954,13 +1954,13 @@ def _setup_annotation_colors(params):
     color_keys = np.union1d(descriptions, params['added_label'])
     color_cycle = cycle(_get_color_list(annotations=True))  # no red
     for key, color in segment_colors.items():
-        if color != 'ff0000' and key in color_keys:
+        if color != '#ff0000' and key in color_keys:
             next(color_cycle)
     for idx, key in enumerate(color_keys):
         if key in segment_colors:
             continue
         elif key.lower().startswith('bad') or key.lower().startswith('edge'):
-            segment_colors[key] = 'ff0000'
+            segment_colors[key] = '#ff0000'
         else:
             segment_colors[key] = next(color_cycle)
     params['segment_colors'] = segment_colors
