@@ -62,7 +62,7 @@ vhdr_nV_path = op.join(data_dir, 'test_nV.vhdr')
 montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 eog = ['HL', 'HR', 'Vb']
-event_id = {'Sync On': 5, 'O  1': 6}
+event_id = {'Sync On': 5, 'O  1': 1}
 
 
 def test_vmrk_meas_date():
@@ -469,7 +469,7 @@ def test_events():
     # check that events are read and stim channel is synthesized correctly and
     # response triggers are ignored.
     with pytest.warns(RuntimeWarning, match='to parse triggers'):
-        raw = read_raw_brainvision(vhdr_path, eog=eog,
+        raw = read_raw_brainvision(vhdr_path, eog=eog, event_id=event_id,
                                    trig_shift_by_type={'response': None})
     events = raw._get_brainvision_events()
     events = events[events[:, 2] != event_id['Sync On']]
