@@ -45,7 +45,7 @@ from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
-from ..annotations import _xxx, _ensure_annotation_object
+from ..annotations import _ensure_annotation_object
 
 
 class ToDataFrameMixin(object):
