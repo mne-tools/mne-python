@@ -31,7 +31,7 @@ from ..source_space import read_source_spaces, SourceSpaces
 from ..utils import logger, verbose, get_subjects_dir, warn
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
-from .utils import tight_layout, COLORS, _prepare_trellis, plt_show
+from .utils import tight_layout, _get_color_cycle, _prepare_trellis, plt_show
 
 
 @verbose
@@ -593,7 +593,7 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
     """
     import matplotlib.pyplot as plt
     if colors is None:
-        colors = cycle(COLORS)
+        colors = cycle(_get_color_cycle())
     fig, ax = plt.subplots(1, 1)
     xlim = [np.inf, -np.inf]
     for dip, color in zip(dipoles, colors):
@@ -891,10 +891,10 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
 def _handle_event_colors(unique_events, color, unique_events_id):
     """Handle event colors."""
     if color is None:
-        if len(unique_events) > len(COLORS):
+        if len(unique_events) > len(_get_color_cycle()):
             warn('More events than colors available. You should pass a list '
                  'of unique colors.')
-        colors = cycle(COLORS)
+        colors = cycle(_get_color_cycle())
         color = dict()
         for this_event, this_color in zip(sorted(unique_events_id), colors):
             color[this_event] = this_color

@@ -1928,8 +1928,7 @@ def _get_color_cycle(annotations=False):
 
     Returns
     -------
-    color_cycle : itertools.cycle
-        The color cycle
+    colors : list
 
     """
     import matplotlib.pyplot as plt
@@ -1939,8 +1938,7 @@ def _get_color_cycle(annotations=False):
     if annotations and '#ff0000' in colors:
         colors.remove('#ff0000')
 
-    color_cycle = cycle(colors)
-    return color_cycle
+    return colors
 
 
 def _setup_annotation_colors(params):
@@ -1954,7 +1952,7 @@ def _setup_annotation_colors(params):
     else:
         descriptions = list()
     color_keys = np.union1d(descriptions, params['added_label'])
-    color_cycle = _get_color_cycle(annotations=True)  # no red
+    color_cycle = cycle(_get_color_cycle(annotations=True))  # no red
     for key, color in segment_colors.items():
         if color != 'ff0000' and key in color_keys:
             next(color_cycle)
