@@ -6,6 +6,7 @@ from __future__ import print_function
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: Simplified BSD
 
@@ -36,9 +37,6 @@ from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
 from ..annotations import Annotations, _sync_onset
 
-
-COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
-          '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
 
 _channel_type_prettyprint = {'eeg': "EEG channel",  'grad': "Gradiometer",
                              'mag': "Magnetometer", 'seeg': "sEEG channel",
@@ -81,6 +79,7 @@ def plt_show(show=True, fig=None, **kwargs):
         If non-None, use fig.show().
     **kwargs : dict
         Extra arguments for :func:`matplotlib.pyplot.show`.
+
     """
     import matplotlib
     import matplotlib.pyplot as plt
@@ -107,6 +106,7 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
         Defaults to `pad_inches`.
     fig : instance of Figure
         Figure to apply changes to.
+
     """
     import matplotlib.pyplot as plt
     fig = plt.gcf() if fig is None else fig
@@ -432,7 +432,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     for ii, p in enumerate(projs):
         if p['active']:
             for x in proj_checks.lines[ii]:
-                x.set_color('r')
+                x.set_color('ff0000')
     # make minimal size
     # pass key presses from option dialog over
 
@@ -535,6 +535,7 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
     fname_out : str
         The filename used for storing the diff. Could be useful for
         when a temporary file is used.
+
     """
     file_1 = show_fiff(fname_1, output=list, indent=indent,
                        read_limit=read_limit, max_str=max_str)
@@ -855,7 +856,10 @@ def _setup_annotation_fig(params):
         circle.set_linewidth(4)
         circle.set_radius(radius / (len(labels)))
         label.set_x(circle.center[0] + (radius + 0.1) / len(labels))
-    col = 'r' if len(fig.radio.circles) < 1 else circles[0].get_edgecolor()
+    if len(fig.radio.circles) < 1:
+        col = 'ff0000'
+    else:
+        col = circles[0].get_edgecolor()
     fig.canvas.mpl_connect('key_press_event', partial(
         _change_annotation_description, params=params))
     fig.button = Button(button_ax, 'Add label')
@@ -1106,7 +1110,7 @@ class ClickableImage(object):
 
     """
 
-    def __init__(self, imdata, **kwargs):  # noqa: D102
+    def __init__(self, imdata, **kwargs):
         """Display the image for clicking."""
         from matplotlib.pyplot import figure
         self.coords = []
@@ -1129,6 +1133,7 @@ class ClickableImage(object):
         ----------
         event : matplotlib event object
             The matplotlib object that we use to get x/y position.
+
         """
         mouseevent = event.mouseevent
         self.coords.append((mouseevent.xdata, mouseevent.ydata))
@@ -1140,6 +1145,7 @@ class ClickableImage(object):
         ----------
         **kwargs : dict
             Arguments are passed to imshow in displaying the bg image.
+
         """
         from matplotlib.pyplot import subplots
         if len(self.coords) == 0:
@@ -1149,10 +1155,10 @@ class ClickableImage(object):
         ax.imshow(self.imdata, extent=(0, self.xmax, 0, self.ymax), **kwargs)
         xlim, ylim = [ax.get_xlim(), ax.get_ylim()]
         xcoords, ycoords = zip(*self.coords)
-        ax.scatter(xcoords, ycoords, c='r')
+        ax.scatter(xcoords, ycoords, c='ff0000')
         ann_text = np.arange(len(self.coords)).astype(str)
         for txt, coord in zip(ann_text, self.coords):
-            ax.annotate(txt, coord, fontsize=20, color='r')
+            ax.annotate(txt, coord, fontsize=20, color='ff0000')
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
         plt_show()
@@ -1166,6 +1172,7 @@ class ClickableImage(object):
         ----------
         **kwargs : dict
             Arguments are passed to generate_2d_layout
+
         """
         from ..channels.layout import generate_2d_layout
         coords = np.array(self.coords)
@@ -1576,6 +1583,7 @@ def _compute_scalings(scalings, inst):
     -------
     scalings : dict
         A scalings dictionary with updated values
+
     """
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
@@ -1660,6 +1668,7 @@ def _prepare_joint_axes(n_maps, figsize=None):
         List of axes for each topomap
     cbar_ax: matplotlib.axes._subplots.AxesSubplot
         Axes for colorbar next to topomaps
+
     """
     import matplotlib.pyplot as plt
     fig = plt.figure(figsize=figsize)
@@ -1680,7 +1689,7 @@ class DraggableColorbar(object):
     See http://www.ster.kuleuven.be/~pieterd/python/html/plotting/interactive_colorbar.html
     """  # noqa: E501
 
-    def __init__(self, cbar, mappable):  # noqa: D102
+    def __init__(self, cbar, mappable):  # noqa: D107
         import matplotlib.pyplot as plt
         self.cbar = cbar
         self.mappable = mappable
@@ -1790,10 +1799,11 @@ class SelectFromCollection(object):
     -----
     This tool selects collection objects based on their *origins*
     (i.e., `offsets`). Emits mpl event 'lasso_event' when selection is ready.
+
     """
 
     def __init__(self, ax, collection, ch_names,
-                 alpha_other=0.3):  # noqa: D102
+                 alpha_other=0.3):  # noqa: D107
         import matplotlib as mpl
         if LooseVersion(mpl.__version__) < LooseVersion('1.2.1'):
             raise ImportError('Interactive selection not possible for '
@@ -1907,6 +1917,32 @@ def _plot_annotations(raw, params):
     params['annot_description'] = descriptions
 
 
+def _get_color_cycle(annotations=False):
+    """Get the current color cycle from matplotlib rcParams.
+
+    Parameters
+    ----------
+    annotations : boolean
+        If false, do nothing. If true, check if color "red"
+        is in the cycle and remove it if necessary.
+
+    Returns
+    -------
+    color_cycle : itertools.cycle
+        The color cycle
+
+    """
+    import matplotlib.pyplot as plt
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
+    # Add red if we want to do annotations
+    if annotations and '#ff0000' in colors:
+        colors.remove('#ff0000')
+
+    color_cycle = cycle(colors)
+    return color_cycle
+
+
 def _setup_annotation_colors(params):
     """Set up colors for annotations."""
     raw = params['raw']
@@ -1918,16 +1954,15 @@ def _setup_annotation_colors(params):
     else:
         descriptions = list()
     color_keys = np.union1d(descriptions, params['added_label'])
-    color_cycle = cycle(np.delete(COLORS, COLORS.index('r')))  # no red
+    color_cycle = _get_color_cycle(annotations=True)  # no red
     for key, color in segment_colors.items():
-        assert color in COLORS
-        if color != 'r' and key in color_keys:
+        if color != 'ff0000' and key in color_keys:
             next(color_cycle)
     for idx, key in enumerate(color_keys):
         if key in segment_colors:
             continue
         elif key.lower().startswith('bad') or key.lower().startswith('edge'):
-            segment_colors[key] = 'r'
+            segment_colors[key] = 'ff0000'
         else:
             segment_colors[key] = next(color_cycle)
     params['segment_colors'] = segment_colors
@@ -2182,9 +2217,10 @@ class DraggableLine(object):
         Line to add interactivity to.
     callback : function
         Callback to call when line is released.
+
     """
 
-    def __init__(self, line, modify_callback, drag_callback):  # noqa: D102
+    def __init__(self, line, modify_callback, drag_callback):  # noqa: D107
         self.line = line
         self.press = None
         self.x0 = line.get_xdata()[0]
