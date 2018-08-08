@@ -60,7 +60,7 @@ class RawBrainVision(BaseRaw):
     response_trig_shift : int | None
         An integer that will be added to all response triggers when reading
         events (stimulus triggers will be unaffected). This parameter was
-        deprecated in version 0.17 and will be removed in 0.19. Use
+        deprecated in version 0.17 and will be removed in 0.18. Use
         ``trig_shift_by_type={'response': ...}`` instead. If None, response
         triggers will be ignored. Default is 0 for backwards compatibility,
         but typically another value or None will be necessary.
