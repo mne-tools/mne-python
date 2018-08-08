@@ -684,7 +684,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
               "resampling - especially when you had a boundary event at the "
               "beginning of the file. Please make sure that the events at "
               "the very beginning of your EEGLAB file can be safely dropped "
-              "(e.g., because they are boundary events)."
+              "(e.g., because they are boundary events).")
     not_in_event_id = set(x for x in types if x not in event_id)
     not_purely_numeric = set(x for x in not_in_event_id if not x.isdigit())
     no_numbers = set([x for x in not_purely_numeric
