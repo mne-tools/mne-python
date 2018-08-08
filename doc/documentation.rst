@@ -80,7 +80,6 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_configuration.rst
     cited.rst
     faq.rst
-    glossary.rst
 
 **More help**
 
