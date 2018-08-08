@@ -1917,8 +1917,8 @@ def _plot_annotations(raw, params):
     params['annot_description'] = descriptions
 
 
-def _get_color_cycle(annotations=False):
-    """Get the current color cycle from matplotlib rcParams.
+def _get_color_list(annotations=False):
+    """Get the current color list from matplotlib rcParams.
 
     Parameters
     ----------
@@ -1952,7 +1952,7 @@ def _setup_annotation_colors(params):
     else:
         descriptions = list()
     color_keys = np.union1d(descriptions, params['added_label'])
-    color_cycle = cycle(_get_color_cycle(annotations=True))  # no red
+    color_cycle = cycle(_get_color_list(annotations=True))  # no red
     for key, color in segment_colors.items():
         if color != 'ff0000' and key in color_keys:
             next(color_cycle)

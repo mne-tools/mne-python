@@ -40,7 +40,7 @@ from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      _import_mlab, SilenceStdout, has_nibabel, check_version,
                      _ensure_int, _validate_type)
-from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_cycle, plt_show,
+from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_list, plt_show,
                     tight_layout, figure_nobar, _check_time_unit)
 from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
                    read_bem_surfaces)
@@ -1970,7 +1970,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         labels = [labels]
 
     if colors is None:
-        colors = _get_color_cycle()
+        colors = _get_color_list()
 
     linestyles = ['-', '--', ':']
 

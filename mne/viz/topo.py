@@ -19,7 +19,7 @@ from ..io.pick import channel_type, pick_types
 from ..utils import _clean_names, warn
 from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
-from .utils import (_check_delayed_ssp, _get_color_cycle, _draw_proj_checkbox,
+from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
                     add_background_image, plt_show, _setup_vmin_vmax,
                     DraggableColorbar, _set_ax_facecolor, _setup_ax_spines,
                     _check_cov, _plot_masked_image)
@@ -622,7 +622,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
             raise ValueError('Lists of evoked objects and colors'
                              ' must have the same length')
     elif color is None:
-        colors = ['w'] + _get_color_cycle
+        colors = ['w'] + _get_color_list
         stop = (slice(len(evoked)) if len(evoked) < len(colors)
                 else slice(len(colors)))
         color = cycle(colors[stop])
