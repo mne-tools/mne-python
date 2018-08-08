@@ -47,7 +47,7 @@ forward = mne.read_forward_solution(fwd_fname)
 # Auxiliary function to run the solver
 
 def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
-    """Function to call a custom solver on evoked data
+    """Call a custom solver on evoked data.
 
     This function does all the necessary computation:
 
@@ -87,6 +87,7 @@ def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
     -------
     stc : instance of SourceEstimate
         The source estimates.
+
     """
     # Import the necessary private functions
     from mne.inverse_sparse.mxne_inverse import \
@@ -123,9 +124,7 @@ def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
 # Define your solver
 
 def solver(M, G, n_orient):
-    """Dummy solver
-
-    It just runs L2 penalized regression and keep the 10 strongest locations
+    """Run L2 penalized regression and keep 10 strongest locations.
 
     Parameters
     ----------
@@ -148,6 +147,7 @@ def solver(M, G, n_orient):
         Array of bool. Entry j is True if dipole j is in the active set.
         We have ``X_full[active_set] == X`` where X_full is the full X matrix
         such that ``M = G X_full``.
+
     """
     K = linalg.solve(np.dot(G, G.T) + 1e15 * np.eye(G.shape[0]), G).T
     K /= np.linalg.norm(K, axis=1)[:, None]
