@@ -689,7 +689,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._annotations = None
         else:
             _ensure_annotation_object(annotations)
-            self._annotations = _xxx(annotations, raw=self, emit_warning=emit_warning)
+            # self._annotations = _xxx(annotations, raw=self, emit_warning=emit_warning)
+            new_annotations = annotations.copy()
+            self._annotations = new_annotations.crop(tmin=self.times[0],
+                                                     tmax=self.times[-1])
 
     def __del__(self):  # noqa: D105
         # remove file for memmap
