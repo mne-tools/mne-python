@@ -62,7 +62,7 @@ vhdr_nV_path = op.join(data_dir, 'test_nV.vhdr')
 montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 eog = ['HL', 'HR', 'Vb']
-event_id = {'Sync On': 5}
+event_id = {'Sync On': 5, 'O  1': 6}
 
 
 def test_vmrk_meas_date():
