@@ -70,7 +70,8 @@ class RawBrainVision(BaseRaw):
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
         or an empty dict (default), only stimulus and response events are added
-        to the stimulus channel. Keys are case sensitive.
+        to the stimulus channel. Keys are case sensitive. "New Segment" markers
+        are always dropped.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -235,7 +236,8 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
         or an empty dict (default), only stimulus and response events are added
-        to the stimulus channel. Keys are case sensitive.
+        to the stimulus channel. Keys are case sensitive. "New Segment" markers
+        are always dropped.
     response_trig_shift : int | None
         Integer to shift response triggers by. None ignores response triggers.
 
@@ -870,7 +872,8 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
         or an empty dict (default), only stimulus and response events are added
-        to the stimulus channel. Keys are case sensitive.
+        to the stimulus channel. Keys are case sensitive. "New Segment" markers
+        are always dropped.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
