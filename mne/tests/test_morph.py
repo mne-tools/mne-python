@@ -70,7 +70,7 @@ def test_stc_as_volume():
         stc_vol.as_volume(inverse_operator_vol['src'], mri_resolution=4)
 
 
-@requires_h5py()
+@requires_h5py
 @testing.requires_testing_data
 def test_surface_vector_source_morph():
     """Test surface and vector source estimate morph."""
@@ -116,7 +116,7 @@ def test_surface_vector_source_morph():
     assert isinstance(source_morph_surf(stc_surf), SourceEstimate)
 
 
-@requires_h5py()
+@requires_h5py
 @requires_nibabel()
 @requires_dipy()
 @pytest.mark.slowtest

@@ -3,16 +3,16 @@
 Morph volumetric source estimate
 ================================
 
-This example demonstrates how to morph an individual subject
-:class:`mne.SourceEstimate` to a common reference space. For this purpose we
-will use :class:`mne.SourceMorph`. Pre-computed data will be morphed based on
-an affine transformation and a nonlinear morph, estimated based on respective
+This example demonstrates how to morph an individual subject's
+:class:`mne.VolSourceEstimate` to a common reference space. We achieve this
+using :class:`mne.SourceMorph`. Pre-computed data will be morphed based on
+an affine transformation and a nonlinear morph, estimated on the respective
 transformation from the subject's anatomical T1 weighted MRI (brain) to
 fsaverage T1 weighted MRI (brain).
 
 Afterwards the transformation will be applied to the volumetric source
-estimate. The result will be a plot showing the fsaverage T1 overlaid with the
-morphed volumetric source estimate.
+estimate. The result will be plotted, showing the fsaverage T1 weighted
+anatomical MRI, overlaid with the morphed volumetric source estimate.
 
 .. note:: For a tutorial about morphing see:
           :ref:`sphx_glr_auto_tutorials_plot_morph_stc.py`.

@@ -6,7 +6,7 @@ Source estimations in MNE-Python are represented using two different types of
 objects:
 
     - :class:`mne.SourceEstimate` or :class:`mne.VectorSourceEstimate` (which
-        will in the following be substituted by 'SourceEstimate')
+            will in the following be substituted by 'SourceEstimate')
 
     - :class:`mne.SourceSpaces`
 
@@ -18,13 +18,16 @@ representing the individual subject's brain anatomy. Hence the data is
 transformed such that the recorded time series at each sensor location maps to
 a time series at each spatial location of the brain representation.
 
-Knowing this the :class:`mne.SourceEstimate` (within the MNE ecosystem mostly
+Knowing this :class:`mne.SourceEstimate` (within the MNE ecosystem mostly
 called **stc**, which is short for source time courses) represents
 the carrier of the new time series data, whereas :class:`mne.SourceSpaces`
 (mostly called **src**) the mapping towards the anatomical representation.
 
 For an example on how to compute different kinds of source estimates see
 :ref:`sphx_glr_auto_tutorials_plot_mne_dspm_source_localization.py`.
+
+But let's get ourselves an idea of what a :class:`mne.SourceEstimate` really
+is. We first set up the environment and load some data:
 """
 import os
 
@@ -71,10 +74,10 @@ brain.add_text(0.1, 0.9, 'SourceEstimate', 'title', font_size=16)
 # --------------------------
 #
 # We know that source estimate data is represented as a time series of a signal
-# at a spatial location. In the context of a FreeSurfer surface, we could call
-# each data point on the inflated brain representation a *vertex*, since it
-# resembles a 3D mesh. If every vertex represents the spatial location of a
-# time series, the time series and spatial location can be written into a
+# at a spatial location. In the context of a FreeSurfer surfaces - which
+# resembles a 3D mesh - we could call each data point on the inflated brain
+# representation a *vertex* . If every vertex represents the spatial location
+# of a time series, the time series and spatial location can be written into a
 # matrix, where to each vertex (rows) at multiple time points (columns) a value
 # can be assigned. This value is the strength of our signal at a given point in
 # space and time. Exactly this matrix is stored in ``stc.data``.
@@ -98,7 +101,7 @@ print('The data has %s vertex locations with %s sample points each.' % shape)
 #
 # Since both hemispheres are always represented separately, both attributes
 # introduced above, can also be obtained by selecting the respective
-# hemisphere. This is done by adding the correct prefix ('lh' or 'rh').
+# hemisphere. This is done by adding the correct prefix (``lh`` or ``rh``).
 
 shape_lh = stc.lh_data.shape
 
@@ -107,8 +110,9 @@ print('The left hemisphere has %s vertex locations with %s sample points each.'
 
 ###############################################################################
 # Since we did not change the time representation, only the selected subset of
-# vertices and hence the size of the matrix changed. We can check if the rows
-# of ``stc.lh_data`` and ``stc.rh_data`` sum up to the value we had before.
+# vertices and hence only the row size of the matrix changed. We can check if
+# the rows of ``stc.lh_data`` and ``stc.rh_data`` sum up to the value we had
+# before.
 
 is_equal = stc.lh_data.shape[0] + stc.rh_data.shape[0] == stc.data.shape[0]
 
@@ -126,12 +130,14 @@ print('\nThe number of vertices in stc.lh_data and stc.rh_data do ' +
 # ------------------------
 #
 # As mentioned above, :class:`src <mne.SourceSpaces>` carries the mapping from
-# stc to the surface. The surface is built up from a triangulated mesh for each
-# hemisphere. Each triangle building up a face consists of 3 vertices. Since
-# src is a list of two source spaces (left and right hemisphere), we can access
-# the respective data by selecting the source space first. Faces building up
-# the left hemisphere can be accessed via ``src[0]['tris']``, where the index
-# :math:`0` stands for the left and :math:`1` for the right hemisphere.
+# stc to the surface. The surface is built up from a
+# `triangulated mesh <https://en.wikipedia.org/wiki/Surface_triangulation>`_
+# for each hemisphere. Each triangle building up a face consists of 3 vertices.
+# Since src is a list of two source spaces (left and right hemisphere), we can
+# access the respective data by selecting the source space first. Faces
+# building up the left hemisphere can be accessed via ``src[0]['tris']``, where
+# the index :math:`0` stands for the left and :math:`1` for the right
+# hemisphere.
 #
 # The values in src[0]['tris'] refer to row indices in ``src[0]['rr']``.
 # Here we find the actual coordinates of the surface mesh. Hence every index
@@ -152,16 +158,17 @@ peak_vertex, peak_time = stc.get_peak(hemi='lh', vert_as_index=True,
 
 ###############################################################################
 # The first value thereby indicates which vertex and the second which time
-# point index from within stc.lh_vertno stc.lh_data is used. We can use the
-# respective information to get the index of the surface vertex resembling the
-# peak and its value.
+# point index from within ``stc.lh_vertno`` or ``stc.lh_data`` is used. We can
+# use the respective information to get the index of the surface vertex
+# resembling the peak and its value.
 
 peak_vertex_surf = stc.lh_vertno[peak_vertex]
 
 peak_value = stc.lh_data[peak_vertex, peak_time]
 
 ###############################################################################
-# Let's visualize this as well using the same 'surfer_kwargs' in the beginning.
+# Let's visualize this as well, using the same ``surfer_kwargs`` as in the
+# beginning.
 
 brain = stc.plot(**surfer_kwargs)
 

@@ -6,11 +6,11 @@ Morphing source estimates using SourceMorph
 
 In this tutorial we will morph different kinds of source estimation results
 between individual subject spaces using :class:`mne.SourceMorph`.
-For group level statistical analyses subject specific results have to be mapped
-to a common space.
+For group level statistical analyses, subject specific results have to be
+mapped to a common space.
 
 We will use precomputed data and morph surface and volume source estimates to a
-common space. The common space of choice will be FreeSurfer's "fsaverage" See
+common space. The common space of choice will be FreeSurfer's 'fsaverage' See
 :ref:`sphx_glr_auto_tutorials_plot_background_freesurfer.py` for more
 information.
 
@@ -40,8 +40,8 @@ subjects must be morphed to a common frame, such that anatomically and
 functional similar structures are represented at the same spatial location for
 *all subjects equally*.
 
-Since brains vary, morphing comes into play, to tell us how the data
-produced by subject A would be represented on the brain of subject B.
+Since brains vary, morphing comes into play to tell us how the data
+produced by subject A, would be represented on the brain of subject B.
 
 See also this :ref:`tutorial on surface source estimation
 <sphx_glr_auto_tutorials_plot_mne_solutions.py>`
@@ -83,14 +83,16 @@ of a morph volume. The respective morphing operation will be non-linear and
 this is why a single transformation matrix would not be sufficient.
 
 :class:`mne.SourceMorph` will use segmented anatomical MR images computed
-using FreeSurfer to compute the morph map. In order tell SourceMorph which
-MRIs to use, ``subject_from`` and ``subject_to`` need to be defined as the
-name of the respective folder in the FreeSurfer's home directory.
+using :ref:`FreeSurfer <sphx_glr_auto_tutorials_plot_background_freesurfer.py>`
+to compute the morph map. In order tell SourceMorph which MRIs to use,
+``subject_from`` and ``subject_to`` need to be defined as the name of the
+respective folder in FreeSurfer's home directory.
 
-``subject_from`` can also be inferred from src, subject_to set is to
-'fsaverage' by default and subjects_dir can be None when set in the
-environment. In that case SourceMorph can be initialized taking src as only
-argument (for better understanding more keyword arguments are defined here).
+``subject_from`` can also be inferred from :class:`src <mne.SourceSpaces>`,
+subject_to set is to 'fsaverage' by default and ``subjects_dir`` can be None
+when set in the environment. In that case SourceMorph can be initialized taking
+src as only argument (for better understanding more keyword arguments are
+defined here).
 
 The default parameter setting for *spacing* will cause the reference volumes
 to be resliced before computing the transform. A value of '5' would cause
@@ -124,10 +126,11 @@ be used to modify the output image.
 
 Note that ``apply_morph=False``, that is the morph will not be applied because
 the data has already been morphed. Set ``apply_morph=True`` to output
-unmorphed data as a volume. Further :meth:`morph() <mne.SourceMorph.__call__>`
-can be used to output a volume as well, taking the same input arguments.
-Provide ``as_volume=True`` when calling the :class:`mne.SourceMorph` instance.
-In that case however apply_morph will of course be True by default.
+un-morphed data as a morphed volume. Further
+:meth:`morph() <mne.SourceMorph.__call__>` can be used to output a volume as
+well, taking the same input arguments. Provide ``as_volume=True`` when calling
+the :class:`mne.SourceMorph` instance. In that case however apply_morph will of
+course be True by default.
 
     >>> img = morph.as_volume(stc_fsaverage,  # morphed VolSourceEstimate
     >>>                       mri_resolution=True,  # Default: False
@@ -234,26 +237,26 @@ In turn, reading a saved source morph can be achieved by using
 Additional Info
 ===============
 
-In addition to the functionality, demonstrated above, SourceMorph can be used
-slightly different as well, in order to enhance user comfort.
+In addition to the functionality, demonstrated above, :class:`mne.SourceMorph`
+can be used slightly different as well, in order to enhance user comfort.
 
 For instance, it is possible to directly obtain a NIfTI image when calling
-the SourceMorph instance, but setting 'as_volume=True'. If so, the __call__()
-function takes the same input arguments as
-:meth:`morph.as_volume <mne.SourceMorph.as_volume>`.
+the SourceMorph instance, but setting ``as_volume=True``. If so, the
+:meth:`__call__() <mne.SourceMorph.__call__>` function takes the same input
+arguments as :meth:`morph.as_volume <mne.SourceMorph.as_volume>`.
 
 Moreover it can be decided whether to actually apply the morph or not. This way
- SourceMorph can be used to output un-morphed data as well. By
-setting 'apply_morph' and 'as_volume' to True, the source estimate will be
+SourceMorph can be used to output un-morphed data as a volume as well. By
+setting ``apply_morph`` and ``as_volume`` to True, the source estimate will be
 morphed and convert it into a volume in one go:
 
     >>> img = morph(stc, as_volume=True, apply_morph=True)
 
-Once the environment is set up correctly, no information such as 'subject_from'
-or 'subjects_dir' must be provided, since it can be inferred from the data and
-use morph to 'fsaverage' by default. SourceMorph can further be used without
-creating an instance and assigning it to a variable. Instead the
-:class:`__init__ <mne.SourceMorph>` and
+Once the environment is set up correctly, no information such as
+``subject_from`` or ``subjects_dir`` must be provided, since it can be inferred
+from the data and use morph to 'fsaverage' by default. SourceMorph can further
+be used without creating an instance and assigning it to a variable. Instead
+the :class:`__init__ <mne.SourceMorph>` and
 :meth:`__call__ <mne.SourceMorph.__call__>` methods of SourceMorph can be daisy
 chained into a handy one-liner. Taking this together the shortest possible way
 to morph data directly would be:

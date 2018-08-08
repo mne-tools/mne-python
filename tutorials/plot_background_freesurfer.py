@@ -30,7 +30,7 @@ First steps
 
 After downloading and installing, the environment needs to be set up correctly.
 This can be done by setting the FreeSurfer's root directory correctly and
-sourcing the setup file:
+sourcing the setup file::
 
     $ export FREESURFER_HOME=/path/to/FreeSurfer
 
@@ -45,7 +45,7 @@ Another important step is to define the subject directory correctly.
 ``SUBJECTS_DIR`` must be defined such, that it contains the individual
 subject's reconstructions in separate sub-folders. Those sub-folders will be
 created upon the reconstruction of the anatomical data. Nevertheless the parent
-directory has to be set beforehand:
+directory has to be set beforehand::
 
     $ export SUBJECTS_DIR=~/subjects
 
@@ -62,7 +62,7 @@ MNE-Python works together with FreeSurfer in order to compute the forward model
 and setting up the corresponding :class:`source space <mne.SourceSpaces>`. See
 :ref:`setting_up_source_space` for more information. Usually a full FreeSurfer
 reconstruction is obtained by prompting the following command to a bash
-console (e.g. Linux or MacOS Terminal):
+console (e.g. Linux or MacOS Terminal)::
 
     $ my_subject=sample
 
@@ -91,10 +91,9 @@ spatial locations (vertices) for both hemispheres separately. See also
 'fsaverage'
 ===========
 
-During installation, FreeSurfer installs a "default" subject, called
-``'fsaverage'``. The respective data is located in
-``$FREESURFER_HOME/subjects/fsaverage``. It contains all data types that a
-subject reconstruction would yield.
+During installation, FreeSurfer copies a "default" subject, called
+``'fsaverage'``to ``$FREESURFER_HOME/subjects/fsaverage``. It contains all data
+types that a subject reconstruction would yield and is required by MNE-Python.
 
 See https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage for more
 information. Furthermore a copy of 'fsaverage' can be found in
@@ -102,10 +101,10 @@ information. Furthermore a copy of 'fsaverage' can be found in
 
 When using ``'fsaverage'`` as value for the definition
 of a subject when calling a function, the corresponding data will be read (e.g.
-``subject='sample'``) from '~/subjects/sample'. This becomes especially handy,
-when attempting statistical analyses on group level, based on individual's
-brain space data. In that case 'fsaverage' will by default act as reference
-space for :ref:`source estimate transformations
+``subject='fsaverage'``) from '~/subjects/fsaverage'. This becomes especially
+handy, when attempting statistical analyses on group level, based on
+individual's brain space data. In that case ``'fsaverage'`` will by default act
+as reference space for :ref:`source estimate transformations
 <sphx_glr_auto_tutorials_plot_morph_stc.py>`.
 
 Use with MNE-Python
@@ -113,8 +112,8 @@ Use with MNE-Python
 
 For source localization analyses to work properly, it is important, that the
 FreeSurfer reconstruction has completed beforehand. Furthermore, when using
-related functions, such as :func:`mne.setup_source_space` ``SUBJECTS_DIR`` has
-to be defined either globally, by setting via :func:`mne.set_config` or for
+related functions, such as :func:`mne.setup_source_space`, ``SUBJECTS_DIR`` has
+to be defined either globally by setting :func:`mne.set_config` or for
 each function separately, by passing the respective keyword argument
 ``subjects_dir='~/subjects'``. See also :ref:`setting_up_source_space` to get
 an idea of how this works.
