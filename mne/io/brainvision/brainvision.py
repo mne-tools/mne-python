@@ -324,12 +324,12 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
                 trigger = int(re.findall(r'[SR]([\s\d]{2}\d{1})', mdesc)[0])
             except IndexError:
                 trigger = None
-            if mtype.lower() in trig_shift_by_type:
-                cur_shift = trig_shift_by_type[mtype.lower()]
-                if cur_shift is not None:
-                    trigger += cur_shift
-                else:
-                    trigger = None
+        if mtype.lower() in trig_shift_by_type:
+            cur_shift = trig_shift_by_type[mtype.lower()]
+            if cur_shift is not None:
+                trigger += cur_shift
+            else:
+                trigger = None
         # FIXME: ideally, we would not use the middle column of the events
         # array to store the duration. A better solution would be using
         # annotations.
