@@ -423,8 +423,10 @@ def _read_annotations(fid, tree):
 
 
 def _ensure_annotation_object(obj):
-    """Check that the object is an Annotations instance. Raise error
-    otherwise."""
+    """Check that the object is an Annotations instance.
+
+    Raise error otherwise.
+    """
     if isinstance(obj, Annotations):
         pass
     else:

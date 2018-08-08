@@ -403,6 +403,7 @@ def test_annotation_concat():
 
 
 def test_annotations_crop():
+    """test basic functionality of annotation crop."""
     onset = np.arange(1, 10)
     duration = np.full_like(onset, 10)
     description = ["yy"] * onset.shape[0]

@@ -694,8 +694,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._annotations = None
         else:
             _ensure_annotation_object(annotations)
-            time_of_frist_sample = (_handle_meas_date(self.info['meas_date'])
-                                    + (self.first_samp / self.info['sfreq']))
+            time_of_frist_sample = (
+                _handle_meas_date(self.info['meas_date']) +
+                (self.first_samp / self.info['sfreq']))
             delta = 1. / self.info['sfreq']
 
             new_annotations = annotations.copy()
