@@ -466,11 +466,13 @@ def test_events():
                                 [7629, 1, 5],
                                 [7699, 1, 2001]])
 
+    # Check that we warn if a trigger is dropped
+    with pytest.warns(RuntimeWarning, match='to parse triggers'):
+        raw = read_raw_brainvision(vhdr_path)
     # check that events are read and stim channel is synthesized correctly and
     # response triggers are ignored.
-    with pytest.warns(RuntimeWarning, match='to parse triggers'):
-        raw = read_raw_brainvision(vhdr_path, eog=eog, event_id=event_id,
-                                   trig_shift_by_type={'response': None})
+    raw = read_raw_brainvision(vhdr_path, eog=eog, event_id=event_id,
+                               trig_shift_by_type={'response': None})
     events = raw._get_brainvision_events()
     events = events[events[:, 2] != event_id['Sync On']]
     assert_array_equal(events, [[486, 0, 253],
@@ -518,10 +520,9 @@ def test_events():
 
     # check that events are read properly when event_id is specified for
     # auxiliary events
-    with pytest.warns(RuntimeWarning, match='dropped'):
-        raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
-                                   trig_shift_by_type={'response': None},
-                                   event_id=event_id)
+    raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
+                               trig_shift_by_type={'response': None},
+                               event_id=event_id)
     events = raw._get_brainvision_events()
     assert_array_equal(events, [[486, 0, 253],
                                 [496, 1, 255],

@@ -331,19 +331,24 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
             if cur_shift is not None:
                 trigger += cur_shift
             else:
+                # The trigger has been deliberately shifted to None. Do not
+                # add this to "dropped" so we do not warn about something
+                # that was done deliberately. Just continue with next item.
                 trigger = None
+                continue
         # FIXME: ideally, we would not use the middle column of the events
         # array to store the duration. A better solution would be using
         # annotations.
         if trigger:
             events.append((onset, duration, trigger))
         else:
+            # Markers with no description are not regarded as dropped but
+            # instead are simply ignored. For example, the "New Segment"
+            # markers are ignored, because they usually look like:
+            # Mk1=New Segment,,1,1,0
             if len(mdesc) > 0:
                 dropped.append(mdesc)
 
-    # Drop all markers with no description from the dropped markers
-    # For example, the "New Segment" markers will be dropped from the list
-    # of dropped markers because they usually look like: Mk1=New Segment,,1,1,0
     if len(dropped) > 0:
         dropped = list(set(dropped))
         examples = ", ".join(dropped[:5])
