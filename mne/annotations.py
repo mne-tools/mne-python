@@ -178,7 +178,8 @@ class Annotations(object):
 
     def crop(self, tmin=None, tmax=None):
         """Remove all annotation that are outside of [tmin, tmax].
-        Operates inplace.
+
+        The method operates inplace.
 
         Parameters
         ----------
@@ -186,8 +187,12 @@ class Annotations(object):
             Start time of selection in seconds.
         tmax : float | None
             End time of selection in seconds.
-        """
 
+        Returns
+        -------
+        self : instance of Annotations
+            The cropped Annotations object.
+        """
         offset = 0 if self.orig_time is None else self.orig_time
         absolute_onset = self.onset + offset
         absolute_offset = absolute_onset + self.duration
@@ -415,6 +420,7 @@ def _read_annotations(fid, tree):
         annotations = Annotations(onset, duration, description,
                                   orig_time)
     return annotations
+
 
 def _ensure_annotation_object(obj):
     """Check that the object is an Annotations instance. Raise error
