@@ -92,8 +92,9 @@ spatial locations (vertices) for both hemispheres separately. See also
 ===========
 
 During installation, FreeSurfer copies a "default" subject, called
-``'fsaverage'``to ``$FREESURFER_HOME/subjects/fsaverage``. It contains all data
-types that a subject reconstruction would yield and is required by MNE-Python.
+``'fsaverage'`` to ``$FREESURFER_HOME/subjects/fsaverage``. It contains all
+data types that a subject reconstruction would yield and is required by
+MNE-Python.
 
 See https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage for more
 information. Furthermore a copy of 'fsaverage' can be found in

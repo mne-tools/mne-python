@@ -577,10 +577,6 @@ def test_morph_data():
     vertices_to = grade_to_vertices(subject_to, grade=3,
                                     subjects_dir=subjects_dir)
 
-    stc_to2 = morph_data(subject_from, subject_to, stc_from,
-                         grade=vertices_to, smooth=12,
-                         subjects_dir=subjects_dir)
-
     # make sure we get a warning about # of steps
     with pytest.warns(RuntimeWarning, match='consider increasing'):
         morph_data(subject_from, subject_to, stc_from,
@@ -588,18 +584,15 @@ def test_morph_data():
                    subjects_dir=subjects_dir)
 
     assert_array_almost_equal(stc_to.data, stc_to1.data, 5)
-    assert_array_almost_equal(stc_to1.data, stc_to2.data)
     # make sure precomputed morph matrices work
     morph_mat = compute_morph_matrix(subject_from, subject_to,
                                      stc_from.vertices, vertices_to,
                                      smooth=12, subjects_dir=subjects_dir)
 
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(DeprecationWarning, match='deprecated'):
         stc_to2 = stc_from.morph_precomputed(subject_to, vertices_to,
                                              morph_mat)
     assert_array_almost_equal(stc_to1.data, stc_to2.data)
-
-    assert sum('deprecated' in str(ww.message) for ww in w) == 2
 
     stc_to3 = stc_from.morph_precomputed(subject_to, vertices_to,
                                          morph_mat)
@@ -625,7 +618,7 @@ def test_morph_data():
     assert (np.corrcoef(mean_to, mean_from).min() > 0.999)
 
     # make sure we can fill by morphing (deprecation warning)
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(DeprecationWarning, match='deprecated'):
         stc_to5 = morph_data(subject_from, subject_to, stc_from, grade=None,
                              smooth=12, subjects_dir=subjects_dir)
     assert (stc_to5.data.shape[0] == 10242 + 10242)
@@ -670,7 +663,7 @@ def test_morph_data():
                                 subjects_dir=subjects_dir)
 
     # Ignore deprecated warning
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(DeprecationWarning, match='deprecated'):
         stc_vec_to2 = stc_vec.morph_precomputed(subject_to, vertices_to,
                                                 morph_mat)
     assert_array_almost_equal(stc_vec_to1.data, stc_vec_to2.data)

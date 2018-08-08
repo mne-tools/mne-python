@@ -160,7 +160,7 @@ def test_volume_source_morph():
     # the brain used in sample data has shape (255, 255, 255)
     assert (tuple(
         source_morph_vol.params['DiffeomorphicMap']['domain_shape']) ==
-            (37, 37, 37))
+        (37, 37, 37))
 
     assert (tuple(source_morph_vol.params['AffineMap']['domain_shape']) ==
             (37, 37, 37))

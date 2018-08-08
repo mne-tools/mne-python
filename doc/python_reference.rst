@@ -775,7 +775,6 @@ Source Space Data
    grade_to_vertices
    grow_labels
    label_sign_flip
-   morph_data
    compute_morph_matrix
    random_parcellation
    read_labels_from_annot

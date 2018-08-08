@@ -2210,7 +2210,8 @@ class MixedSourceEstimate(_BaseSourceEstimate):
 
 ###############################################################################
 # Morphing
-@verbose
+@deprecated("This function is deprecated and will be removed in version 0.19. "
+            "Use morph = mne.SourceMorph and morph(stc).")
 def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
                subjects_dir=None, buffer_size=64, n_jobs=1, warn=True,
                verbose=None):
