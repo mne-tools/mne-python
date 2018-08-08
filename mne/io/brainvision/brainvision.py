@@ -321,7 +321,7 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
             trigger = event_id[mdesc]
         else:
             try:
-                trigger = int(re.findall(r'[A-Za-z]*\s*?(\d+)', mdesc)[0])
+                trigger = int(re.findall(r'[SR]([\s\d]{2}\d{1})', mdesc)[0])
             except IndexError:
                 trigger = None
             if mtype.lower() in trig_shift_by_type:
