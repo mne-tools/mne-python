@@ -648,6 +648,7 @@ def test_morph_source_spaces():
     _compare_source_spaces(src_morph, src_morph_py, mode='approx')
 
 
+@requires_nibabel()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_morphed_source_space_return():
