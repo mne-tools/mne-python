@@ -1330,8 +1330,6 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         """
         subject_from = _check_subject(self.subject, subject_from)
         if sparse:
-            if grade is not None:
-                raise RuntimeError('grade must be set to None if sparse=True.')
             from mne.morph import _morph_sparse
             return _morph_sparse(self, subject_from, subject_to, subjects_dir)
         else:
@@ -2256,7 +2254,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     stc_to : SourceEstimate | VectorSourceEstimate
         Source estimate for the destination subject.
     """
-    from mne.morph import SourceMorph
+    from mne import SourceMorph
     if not isinstance(stc_from, _BaseSurfaceSourceEstimate):
         raise ValueError('Morphing is only possible with surface or vector '
                          'source estimates')

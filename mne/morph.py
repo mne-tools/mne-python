@@ -81,6 +81,10 @@ class SourceMorph(object):
         Precomputed morphing data. Usually obtained by computing
         ``morph = mne.SourceMorph()`` and retrieving the dict stored in morph
         params ``precomputed = morph.params``. The default is precomputed=None.
+    sparse : bool
+        Morph as a sparse source estimate. Works only with (Vector)
+        SourceEstimate. If True the only parameters used are subject_to and
+        subject_from, and spacing has to be None. Default is sparse=False.
     verbose : bool | str | int | None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more). The default
@@ -172,7 +176,7 @@ class SourceMorph(object):
     def __init__(self, subject_from=None, subject_to='fsaverage',
                  subjects_dir=None, src=None, niter_affine=(100, 100, 10),
                  niter_sdr=(5, 5, 3), spacing=5, smooth=None, warn=True,
-                 xhemi=False, precomputed=None, verbose=False):
+                 xhemi=False, precomputed=None, sparse=False, verbose=False):
         super(SourceMorph, self).__init__()
 
         if src is not None and not isinstance(src, SourceSpaces):
@@ -193,7 +197,7 @@ class SourceMorph(object):
         self.smooth = smooth
         self.warn = warn
         self.xhemi = xhemi
-
+        self.sparse = sparse
         self.params = dict()
 
         # apply precomputed data and return
@@ -272,6 +276,12 @@ class SourceMorph(object):
                                      'hemis': [0, 1]},
                                     kind='surface')
             self._compute_morph_data(verbose=verbose)
+
+        if self.sparse:
+            if self.spacing is not None:
+                raise RuntimeError('grade must be set to None if sparse=True.')
+            return _morph_sparse(stc, self.subject_from, self.subject_to,
+                                 self.subjects_dir)
 
         return _apply_morph_data(self, stc, verbose=verbose)
 
@@ -713,7 +723,7 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
     if isinstance(mri_resolution, tuple):
         _check_dep(nibabel='2.1.0', dipy='0.10.1')
         from dipy.align.reslice import reslice
-        
+
         voxel_size = mri_resolution
         voxel_size_defined = True
         mri_resolution = True

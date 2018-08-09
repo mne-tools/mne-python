@@ -6,11 +6,9 @@ import warnings
 
 import numpy as np
 from scipy import sparse
-
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_equal)
 import pytest
-
 from mne.datasets import testing
 from mne import (read_label, stc_to_label, read_source_estimate,
                  read_source_spaces, grow_labels, read_labels_from_annot,
@@ -25,7 +23,6 @@ from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
 from mne.externals.six import string_types
 from mne.externals.six.moves import cPickle as pickle
-
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -49,6 +46,7 @@ label_dir = op.join(subjects_dir, 'sample', 'label', 'aparc')
 test_path = op.join(op.split(__file__)[0], '..', 'io', 'tests', 'data')
 label_fname = op.join(test_path, 'test-lh.label')
 label_rh_fname = op.join(test_path, 'test-rh.label')
+
 
 # This code was used to generate the "fake" test labels:
 # for hemi in ['lh', 'rh']:
@@ -95,9 +93,9 @@ def _stc_to_label(stc, src, smooth, subjects_dir=None):
         subjects_dir = get_subjects_dir(subjects_dir)
         surf_path_from = op.join(subjects_dir, src, 'surf')
         rr_lh, tris_lh = read_surface(op.join(surf_path_from,
-                                      'lh.white'))
+                                              'lh.white'))
         rr_rh, tris_rh = read_surface(op.join(surf_path_from,
-                                      'rh.white'))
+                                              'rh.white'))
         rr = [rr_lh, rr_rh]
         tris = [tris_lh, tris_rh]
     else:
@@ -493,7 +491,7 @@ def test_write_labels_to_annot():
     fnames = [op.join(tempdir, hemi + '-myparc') for hemi in ['lh', 'rh']]
     with warnings.catch_warnings(record=True):  # specify subject_dir param
         for fname in fnames:
-                write_labels_to_annot(labels, annot_fname=fname)
+            write_labels_to_annot(labels, annot_fname=fname)
 
     # read it back
     labels2 = read_labels_from_annot('sample', subjects_dir=subjects_dir,
@@ -815,8 +813,8 @@ def test_label_sign_flip():
     label = Label(vertices=src[0]['vertno'][:5], hemi='lh')
     src[0]['nn'][label.vertices] = np.array(
         [[1., 0., 0.],
-         [0.,  1., 0.],
-         [0,  0, 1.],
+         [0., 1., 0.],
+         [0, 0, 1.],
          [1. / np.sqrt(2), 1. / np.sqrt(2), 0.],
          [1. / np.sqrt(2), 1. / np.sqrt(2), 0.]])
     known_flips = np.array([1, 1, np.nan, 1, 1])

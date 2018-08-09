@@ -13,7 +13,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
                  add_source_space_distances, read_bem_surfaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
-                 head_to_mni, read_trans)
+                 head_to_mni, read_trans, SourceMorph)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
                        requires_mne, requires_version, run_tests_if_main)
@@ -672,8 +672,9 @@ def test_morphed_source_space_return():
                                     subjects_dir=subjects_dir)
 
     # Morph the data over using standard methods
-    stc_morph = stc_fs.morph('sample', [s['vertno'] for s in src_morph],
-                             smooth=1, subjects_dir=subjects_dir)
+    stc_morph = SourceMorph(subject_to='sample', subject_from='fsaverage',
+                            spacing=[s['vertno'] for s in src_morph],
+                            smooth=1, subjects_dir=subjects_dir)(stc_fs)
 
     # We can now pretend like this was real data we got e.g. from an inverse.
     # To be complete, let's remove some vertices
@@ -690,8 +691,11 @@ def test_morphed_source_space_return():
         src_fs, subjects_dir=subjects_dir)
 
     # Compare to the original data
-    stc_morph_morph = stc_morph.morph('fsaverage', stc_morph_return.vertices,
-                                      smooth=1, subjects_dir=subjects_dir)
+    stc_morph_morph = SourceMorph(subject_to='fsaverage',
+                                  spacing=stc_morph_return.vertices,
+                                  smooth=1,
+                                  subjects_dir=subjects_dir)(stc_morph)
+
     assert_equal(stc_morph_return.subject, stc_morph_morph.subject)
     for ii in range(2):
         assert_array_equal(stc_morph_return.vertices[ii],

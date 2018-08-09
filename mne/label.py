@@ -14,9 +14,9 @@ import re
 import numpy as np
 from scipy import linalg, sparse
 
-from .utils import get_subjects_dir, _check_subject, logger, verbose, warn,\
-    check_random_state
-from .source_estimate import (morph_data, SourceEstimate, _center_of_mass,
+from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
+                    check_random_state)
+from .source_estimate import (SourceEstimate, _center_of_mass,
                               spatial_src_connectivity)
 from .source_space import add_source_space_distances
 from .surface import read_surface, fast_cross_3d, mesh_edges, mesh_dist
@@ -507,8 +507,11 @@ class Label(object):
         with label.vertices.
         """
         subject = _check_subject(self.subject, subject)
-        return self.morph(subject, subject, smooth, grade, subjects_dir,
-                          n_jobs)
+
+        return self.morph(subject_from=subject, subject_to=subject,
+                          smooth=smooth, grade=grade,
+                          subjects_dir=subjects_dir,
+                          verbose=verbose)
 
     @verbose
     def morph(self, subject_from=None, subject_to=None, smooth=5, grade=None,
@@ -559,6 +562,7 @@ class Label(object):
         on the new surface are required, consider using `mne.read_surface`
         with `label.vertices`.
         """
+        from .morph import SourceMorph
         subject_from = _check_subject(self.subject, subject_from)
         if not isinstance(subject_to, string_types):
             raise TypeError('"subject_to" must be entered as a string')
@@ -568,7 +572,7 @@ class Label(object):
             raise ValueError('Morphing label with all zero values will result '
                              'in the label having no vertices. Consider using '
                              'something like label.values.fill(1.0).')
-        if(isinstance(grade, np.ndarray)):
+        if (isinstance(grade, np.ndarray)):
             if self.hemi == 'lh':
                 grade = [grade, np.array([], int)]
             else:
@@ -580,9 +584,13 @@ class Label(object):
         data = self.values[:, np.newaxis]
         stc = SourceEstimate(data, vertices, tmin=1, tstep=1,
                              subject=subject_from)
-        stc = morph_data(subject_from, subject_to, stc, grade=grade,
-                         smooth=smooth, subjects_dir=subjects_dir,
-                         warn=False, n_jobs=n_jobs)
+        stc = SourceMorph(subject_from=subject_from,
+                          subject_to=subject_to,
+                          spacing=grade,
+                          smooth=smooth,
+                          subjects_dir=subjects_dir,
+                          warn=False)(stc)
+
         inds = np.nonzero(stc.data)[0]
         self.values = stc.data[inds, :].ravel()
         self.pos = np.zeros((len(inds), 3))
@@ -1974,7 +1982,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     if regexp is not None:
         # allow for convenient substring match
         r_ = (re.compile('.*%s.*' % regexp if regexp.replace('_', '').isalnum()
-              else regexp))
+                         else regexp))
 
     # now we are ready to create the labels
     n_read = 0
@@ -1990,7 +1998,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
                              '%s.%s' % (hemi, surf_name))
         vert_pos, _ = read_surface(fname_surf)
         vert_pos /= 1e3  # the positions in labels are in meters
-        for label_id, label_name, label_rgba in\
+        for label_id, label_name, label_rgba in \
                 zip(label_ids, label_names, label_rgbas):
             vertices = np.where(annot == label_id)[0]
             if len(vertices) == 0:
