@@ -1932,7 +1932,9 @@ def _get_color_list(annotations=False):
 
     """
     import matplotlib.pyplot as plt
-    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    # Use deprecated color_cycle to avoid KeyErrors in environments
+    # with Python 2.7 and Matplotlib < 1.5
+    colors = plt.rcParams['axes.color_cycle'].by_key()['color']
 
     # Add red if we want to do annotations
     if annotations and '#ff0000' in colors:
