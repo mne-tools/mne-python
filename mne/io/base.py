@@ -779,7 +779,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 new_annotations.orig_time = meas_date
                 new_annotations.onset -= (meas_date - orig_time)
 
-            self._annotations = new_annotations
+            if new_annotations.onset.size == 0:
+                self._annotations = None
+            else:
+                self._annotations = new_annotations
 
         return self
 
