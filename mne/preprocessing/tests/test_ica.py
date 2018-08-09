@@ -428,7 +428,7 @@ def test_ica_additional(method):
     for cov in (None, test_cov):
         ica = ICA(noise_cov=cov, n_components=2, max_pca_components=4,
                   n_pca_components=4, method=method, max_iter=1)
-        with pytest.warns(None):
+        with pytest.warns(None):  # ICA does not converge
             ica.fit(raw, picks=picks[:10], start=start, stop=stop2)
         sources = ica.get_sources(epochs).get_data()
         assert (ica.mixing_matrix_.shape == (2, 2))

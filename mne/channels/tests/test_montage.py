@@ -396,7 +396,7 @@ def test_read_dig_montage():
                 else:
                     # extra column
                     fout.write(line.rstrip() + b' 0.0 0.0 0.0\n')
-    with pytest.warns(RuntimeWarning, match='columns'):
+    with pytest.warns(RuntimeWarning, match='Found .* columns instead of 3'):
         montage_extra = read_dig_montage(extra_hsp, hpi, elp, names)
     assert_allclose(montage_extra.hsp, montage.hsp)
     assert_allclose(montage_extra.elp, montage.elp)

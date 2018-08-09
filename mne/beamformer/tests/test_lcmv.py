@@ -593,7 +593,8 @@ def test_tf_lcmv():
 
     # Pass only one epoch to test if subtracting evoked
     # responses yields zeros
-    with pytest.warns(RuntimeWarning, match='samples'):
+    with pytest.warns(RuntimeWarning,
+                      match='Too few samples .* estimate may be unreliable'):
         stcs = tf_lcmv(epochs[0], forward, noise_covs, tmin, tmax, tstep,
                        win_lengths, freq_bins, subtract_evoked=True, reg=reg,
                        label=label, raw=raw)
@@ -635,7 +636,8 @@ def test_lcmv_ctf_comp():
     epochs = mne.Epochs(raw, events, tmin=0., tmax=0.2)
     evoked = epochs.average()
 
-    with pytest.warns(RuntimeWarning, match='samples'):
+    with pytest.warns(RuntimeWarning,
+                      match='Too few samples .* estimate may be unreliable'):
         data_cov = mne.compute_covariance(epochs)
     fwd = mne.make_forward_solution(evoked.info, None,
                                     mne.setup_volume_source_space(pos=15.0),

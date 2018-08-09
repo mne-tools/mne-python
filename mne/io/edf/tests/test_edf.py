@@ -100,7 +100,7 @@ def test_bdf_stim_channel():
 @testing.requires_testing_data
 def test_edf_overlapping_annotations():
     """Test EDF with overlapping annotations."""
-    with pytest.warns(RuntimeWarning, match='overlapping'):
+    with pytest.warns(RuntimeWarning, match='overlapping .* not fully supported'):
         read_raw_edf(edf_overlap_annot_path, preload=True, stim_channel='auto',
                      verbose=True)
 
@@ -156,7 +156,8 @@ def test_edf_data():
         fid_out.write(rbytes[:236])
         fid_out.write(bytes('-1      '.encode()))
         fid_out.write(rbytes[244:])
-    with pytest.warns(RuntimeWarning, match='record'):
+    with pytest.warns(RuntimeWarning,
+                      match='records .* not match the file size'):
         raw = read_raw_edf(broken_fname, preload=True, stim_channel='auto')
         read_raw_edf(broken_fname, exclude=raw.ch_names[:132], preload=True,
                      stim_channel='auto')
@@ -200,7 +201,7 @@ def test_stim_channel():
     pytest.raises(RuntimeError, read_raw_edf, edf_path, preload=False,
                   stim_channel=-1)
 
-    with pytest.warns(RuntimeWarning, match='jitter'):
+    with pytest.warns(RuntimeWarning, match='Interpolating stim .* Events may jitter'):
         raw = read_raw_edf(edf_stim_resamp_path, verbose=True, stim_channel=-1)
     with pytest.warns(None) as record:
         raw[:]
