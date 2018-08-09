@@ -701,7 +701,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             new_annotations = annotations.copy()
             if annotations.orig_time is None:
-                # Asume annotations to be relative to the data
+                # Assume annotations to be relative to the data
                 new_annotations.orig_time = time_of_frist_sample
 
             tmin = time_of_frist_sample
