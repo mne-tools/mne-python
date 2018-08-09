@@ -706,7 +706,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             tmin = time_of_frist_sample
             tmax = tmin + self.times[-1] + delta
-            new_annotations.crop(tmin=tmin, tmax=tmax)
+            new_annotations.crop(tmin=tmin, tmax=tmax,
+                                 emit_warning=emit_warning)
 
             if annotations.orig_time is None:
                 new_annotations.orig_time = None

@@ -8,7 +8,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from .utils import _pl, check_fname, _validate_type
+from .utils import _pl, check_fname, _validate_type, warn
 from .externals.six import string_types
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
@@ -176,7 +176,7 @@ class Annotations(object):
         with start_file(fname) as fid:
             _write_annotations(fid, self)
 
-    def crop(self, tmin=None, tmax=None):
+    def crop(self, tmin=None, tmax=None, emit_warning=False):
         """Remove all annotation that are outside of [tmin, tmax].
 
         The method operates inplace.
@@ -187,6 +187,9 @@ class Annotations(object):
             Start time of selection in seconds.
         tmax : float | None
             End time of selection in seconds.
+        emit_warning : bool
+            Whether to emit warnings when limiting or omitting annotations.
+            Defaults to False.
 
         Returns
         -------
@@ -209,20 +212,30 @@ class Annotations(object):
         out_of_bounds = (absolute_onset > tmax) | (absolute_offset < tmin)
 
         # clip the left side
-        elements = (absolute_onset < tmin) & ~out_of_bounds
-        self.onset[elements] = tmin - offset
-        diff = tmin - absolute_onset[elements]
-        self.duration[elements] = self.duration[elements] - diff
+        clip_left_elem = (absolute_onset < tmin) & ~out_of_bounds
+        self.onset[clip_left_elem] = tmin - offset
+        diff = tmin - absolute_onset[clip_left_elem]
+        self.duration[clip_left_elem] = self.duration[clip_left_elem] - diff
 
         # clip the right side
-        elements = (absolute_offset > tmax) & ~out_of_bounds
-        diff = absolute_offset[elements] - tmax
-        self.duration[elements] = self.duration[elements] - diff
+        clip_right_elem = (absolute_offset > tmax) & ~out_of_bounds
+        diff = absolute_offset[clip_right_elem] - tmax
+        self.duration[clip_right_elem] = self.duration[clip_right_elem] - diff
 
         # remove out of bounds
         self.onset = self.onset.compress(~out_of_bounds)
         self.duration = self.duration.compress(~out_of_bounds)
         self.description = self.description.compress(~out_of_bounds)
+
+        if emit_warning:
+            omitted = out_of_bounds.sum()
+            if omitted > 0:
+                warn('Omitted %s annotation(s) that were outside data '
+                        'range.' % omitted)
+            limited = clip_left_elem.sum() + clip_right_elem.sum()
+            if limited > 0:
+                warn('Limited %s annotation(s) that were expanding '
+                        'outside the data range.' % limited)
 
         return self
 
