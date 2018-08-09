@@ -66,7 +66,7 @@ class RawBrainVision(BaseRaw):
         but typically another value or None will be necessary.
     event_id : dict | None
         The id of special events to consider in addition to those that
-        follow the normal Brainvision trigger format ('S###' or 'R###').
+        follow the normal Brainvision trigger format ('S###').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
         or an empty dict (default), only stimulus and response events are added
@@ -232,7 +232,7 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
         vmrk file to be read.
     event_id : dict | None
         The id of special events to consider in addition to those that
-        follow the normal Brainvision trigger format ('S###' or 'R###').
+        follow the normal Brainvision trigger format ('S###').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
         or an empty dict (default), only stimulus and response events are added
@@ -323,7 +323,7 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
             trigger = event_id[mdesc]
         else:
             try:
-                trigger = int(re.findall(r'[SR]([\s\d]{2}\d{1})', mdesc)[0])
+                trigger = int(re.findall(r'S([\s\d]{2}\d{1})', mdesc)[0])
             except IndexError:
                 trigger = None
         if mtype.lower() in trig_shift_by_type:
@@ -356,7 +356,7 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
             examples += ", ..."
         warn("Currently, {0} trigger(s) will be dropped, such as [{1}]. "
              "Consider using ``event_id`` to parse triggers that "
-             "do not follow the 'S###' or 'R###' pattern.".format(
+             "do not follow the 'S###' pattern.".format(
                  len(dropped), examples))
 
     events = np.array(events).reshape(-1, 3)
@@ -873,7 +873,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         but typically another value or None will be necessary.
     event_id : dict | None
         The id of special events to consider in addition to those that
-        follow the normal Brainvision trigger format ('S###' or 'R###').
+        follow the normal Brainvision trigger format ('S###').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
         or an empty dict (default), only stimulus and response events are added
