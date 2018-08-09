@@ -645,6 +645,10 @@ def test_morph_source_spaces():
     src_morph = read_source_spaces(fname_morph)
     src_morph_py = morph_source_spaces(src, 'sample',
                                        subjects_dir=subjects_dir)
+    for si in range(2):
+        for key in ('vertno_ord', 'ord_pick'):
+            assert key in src_morph[si]
+            assert key in src_morph_py[si]
     _compare_source_spaces(src_morph, src_morph_py, mode='approx')
 
 
@@ -659,16 +663,19 @@ def test_morphed_source_space_return():
     stc_fs = SourceEstimate(data, [s['vertno'] for s in src_fs],
                             tmin, tstep, 'fsaverage')
 
-    # Create our morph source space
+    # Create our morph source space, emulating the old style
     src_morph = morph_source_spaces(src_fs, 'sample',
                                     subjects_dir=subjects_dir)
+    for si in range(2):
+        for key in ('vertno_ord', 'ord_pick'):
+            del src_morph[si][key]
 
     # Morph the data over using standard methods
     stc_morph = stc_fs.morph('sample', [s['vertno'] for s in src_morph],
                              smooth=1, subjects_dir=subjects_dir)
 
-    # We can now pretend like this was real data we got e.g. from an inverse.
-    # To be complete, let's remove some vertices
+    # We can now pretend like this was real data we got e.g. from an
+    # inverse. To be complete, let's remove some vertices
     keeps = [np.sort(rng.permutation(np.arange(len(v)))[:len(v) - 10])
              for v in stc_morph.vertices]
     stc_morph = SourceEstimate(
@@ -682,8 +689,9 @@ def test_morphed_source_space_return():
         src_fs, subjects_dir=subjects_dir)
 
     # Compare to the original data
-    stc_morph_morph = stc_morph.morph('fsaverage', stc_morph_return.vertices,
-                                      smooth=1, subjects_dir=subjects_dir)
+    stc_morph_morph = stc_morph.morph(
+        'fsaverage', stc_morph_return.vertices, smooth=1,
+        subjects_dir=subjects_dir)
     assert_equal(stc_morph_return.subject, stc_morph_morph.subject)
     for ii in range(2):
         assert_array_equal(stc_morph_return.vertices[ii],
@@ -704,18 +712,20 @@ def test_morphed_source_space_return():
     # Degenerate cases
     stc_morph.subject = None  # no .subject provided
     pytest.raises(ValueError, stc_morph.to_original_src,
-                  src_fs, subject_orig='fsaverage', subjects_dir=subjects_dir)
+                  src_fs, subject_orig='fsaverage',
+                  subjects_dir=subjects_dir)
     stc_morph.subject = 'sample'
-    del src_fs[0]['subject_his_id']  # no name in src_fsaverage
-    pytest.raises(ValueError, stc_morph.to_original_src,
-                  src_fs, subjects_dir=subjects_dir)
-    src_fs[0]['subject_his_id'] = 'fsaverage'  # name mismatch
-    pytest.raises(ValueError, stc_morph.to_original_src,
-                  src_fs, subject_orig='foo', subjects_dir=subjects_dir)
-    src_fs[0]['subject_his_id'] = 'sample'
+    src_fs2 = src_fs.copy()
+    del src_fs2[0]['subject_his_id']
+    with pytest.raises(ValueError, match='source space is too old'):
+        stc_morph.to_original_src(src_fs2, subjects_dir=subjects_dir)
+    src_fs2[0]['subject_his_id'] = 'fsaverage'
+    with pytest.raises(ValueError, match='Mismatch between provided'):
+        stc_morph.to_original_src(src_fs2, subject_orig='foo',
+                                  subjects_dir=subjects_dir)
     src = read_source_spaces(fname)  # wrong source space
-    pytest.raises(RuntimeError, stc_morph.to_original_src,
-                  src, subjects_dir=subjects_dir)
+    with pytest.raises(RuntimeError, match='perhaps the wrong subject'):
+        stc_morph.to_original_src(src, subjects_dir=subjects_dir)
 
 
 run_tests_if_main()

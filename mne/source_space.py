@@ -93,6 +93,16 @@ class SourceSpaces(list):
             self.info = dict(info)
         self._check_consistency()
 
+    def copy(self):
+        """Copy the SourceSpaces.
+
+        Returns
+        -------
+        src_copy : instance of SourceSpaces
+            A copy of the source spaces.
+        """
+        return deepcopy(self)
+
     def _check_consistency(self):
         for s in self:
             assert s['inuse'].sum() == s['nuse'] == len(s['vertno'])
@@ -2818,23 +2828,34 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
                 if s0[name] is not None:
                     assert_equal(s1[name].shape, s0[name].shape)
                     assert_(len((s0['dist'] - s1['dist']).data) == 0)
+            # we don't have any exact tests for these ATM
+            assert 'vertno_ord' not in s0
+            assert 'vertno_ord' not in s1
         else:  # 'approx' in mode:
             # deal with vertno, inuse, and use_tris carefully
+            for key in ('vertno_ord', 'ord_pick'):
+                assert (key in s0) == (key in s1), key
             for ii, s in enumerate((s0, s1)):
                 assert_array_equal(s['vertno'], np.where(s['inuse'])[0],
                                    'src%s[%s]["vertno"] != '
                                    'np.where(src%s[%s]["inuse"])[0]'
                                    % (ii, si, ii, si))
-            assert_equal(len(s0['vertno']), len(s1['vertno']))
+                if 'vertno_ord' in s:
+                    assert_array_equal(s['vertno'], np.sort(s['vertno_ord']))
+            assert len(s0['vertno']) == len(s1['vertno'])
             agreement = np.mean(s0['inuse'] == s1['inuse'])
             assert_(agreement >= 0.99, "%s < 0.99" % agreement)
             if agreement < 1.0:
-                # make sure mismatched vertno are within 1.5mm
-                v0 = np.setdiff1d(s0['vertno'], s1['vertno'])
-                v1 = np.setdiff1d(s1['vertno'], s0['vertno'])
-                dists = cdist(s0['rr'][v0], s1['rr'][v1])
-                assert_allclose(np.min(dists, axis=1), np.zeros(len(v0)),
-                                atol=dist_tol, err_msg='mismatched vertno')
+                for key in ('vertno', 'vertno_ord'):
+                    if key not in s0:
+                        continue
+                    # make sure mismatched vertno are within 1.5mm
+                    v0 = np.setdiff1d(s0[key], s1[key])
+                    v1 = np.setdiff1d(s1[key], s0[key])
+                    dists = cdist(s0['rr'][v0], s1['rr'][v1])
+                    assert_allclose(np.min(dists, axis=1), np.zeros(len(v0)),
+                                    atol=dist_tol,
+                                    err_msg='mismatched %s' % key)
             if s0['use_tris'] is not None:  # for "spacing"
                 assert_array_equal(s0['use_tris'].shape, s1['use_tris'].shape)
             else:
