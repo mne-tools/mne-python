@@ -78,7 +78,4 @@ ValueError: The truth value of an array with more than one element is ambiguous.
 ```
 
 #### Additional information
-<details>
 paste the output of `mne.sys_info()` here below this line
-
-</details>
