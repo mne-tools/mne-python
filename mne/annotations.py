@@ -230,12 +230,12 @@ class Annotations(object):
         if emit_warning:
             omitted = out_of_bounds.sum()
             if omitted > 0:
-                warn('Omitted %s annotation(s) that were outside data '
-                        'range.' % omitted)
+                warn('Omitted %s annotation(s) that were outside data'
+                     ' range.' % omitted)
             limited = clip_left_elem.sum() + clip_right_elem.sum()
             if limited > 0:
-                warn('Limited %s annotation(s) that were expanding '
-                        'outside the data range.' % limited)
+                warn('Limited %s annotation(s) that were expanding outside the'
+                     ' data range.' % limited)
 
         return self
 
