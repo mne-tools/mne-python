@@ -1923,8 +1923,8 @@ def _get_color_list(annotations=False):
     Parameters
     ----------
     annotations : boolean
-        If false, do nothing. If true, check if color "red"
-        is in the cycle and remove it if necessary.
+        Has no influence on the function if false. If true, check if color
+        "red" (#ff0000) is in the cycle and remove it.
 
     Returns
     -------
@@ -1937,11 +1937,13 @@ def _get_color_list(annotations=False):
     if not color_cycle:
         # Use deprecated color_cycle to avoid KeyErrors in environments
         # with Python 2.7 and Matplotlib < 1.5
+        # this will already be a list
         colors = plt.rcParams.get('axes.color_cycle')
     else:
+        # we were able to use the prop_cycle. Now just convert to list
         colors = color_cycle.by_key()['color']
 
-    # Add red if we want to do annotations
+    # If we want annotations, red is reserved ... remove if present
     if annotations and '#ff0000' in colors:
         colors.remove('#ff0000')
 
