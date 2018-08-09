@@ -62,7 +62,7 @@ vhdr_nV_path = op.join(data_dir, 'test_nV.vhdr')
 montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 eog = ['HL', 'HR', 'Vb']
-event_id = {'Sync On': 5}
+event_id = {'Sync On': 5, 'O  1': 1, 'R255': 255}
 
 
 def test_vmrk_meas_date():
@@ -349,6 +349,7 @@ def test_brainvision_data():
 
     # test loading v2
     read_raw_brainvision(vhdr_v2_path, eog=eog, preload=True,
+                         event_id=event_id,
                          trig_shift_by_type={'response': 1000},
                          verbose='error')
     # For the nanovolt unit test we use the same data file with a different
@@ -466,11 +467,13 @@ def test_events():
                                 [7629, 1, 5],
                                 [7699, 1, 2001]])
 
+    # Check that we warn if a trigger is dropped
+    with pytest.warns(RuntimeWarning, match='to parse triggers'):
+        raw = read_raw_brainvision(vhdr_path)
     # check that events are read and stim channel is synthesized correctly and
     # response triggers are ignored.
-    with pytest.warns(RuntimeWarning, match='to parse triggers'):
-        raw = read_raw_brainvision(vhdr_path, eog=eog,
-                                   trig_shift_by_type={'response': None})
+    raw = read_raw_brainvision(vhdr_path, eog=eog, event_id=event_id,
+                               trig_shift_by_type={'response': None})
     events = raw._get_brainvision_events()
     events = events[events[:, 2] != event_id['Sync On']]
     assert_array_equal(events, [[486, 0, 253],
@@ -506,7 +509,7 @@ def test_events():
     with pytest.warns(RuntimeWarning, match='channel types to misc'):
         raw = read_raw_brainvision(vhdr_v2_path)
     events = raw._get_brainvision_events()
-    assert events.shape == (11, 3)  # shape of events without the comment
+    assert events.shape == (10, 3)  # shape of events without comment/response
 
     # with event_id specified, get that comment and assert it's there
     tmp_event_id = {'comment using [square] brackets': 999}
@@ -514,14 +517,13 @@ def test_events():
         raw = read_raw_brainvision(vhdr_v2_path, event_id=tmp_event_id)
     events = raw._get_brainvision_events()
     assert 999 in events[:, -1]
-    assert events.shape == (12, 3)
+    assert events.shape == (11, 3)  # shape of events without response
 
     # check that events are read properly when event_id is specified for
     # auxiliary events
-    with pytest.warns(RuntimeWarning, match='dropped'):
-        raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
-                                   trig_shift_by_type={'response': None},
-                                   event_id=event_id)
+    raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
+                               trig_shift_by_type={'response': None},
+                               event_id=event_id)
     events = raw._get_brainvision_events()
     assert_array_equal(events, [[486, 0, 253],
                                 [496, 1, 255],

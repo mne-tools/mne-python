@@ -60,7 +60,7 @@ class RawBrainVision(BaseRaw):
     response_trig_shift : int | None
         An integer that will be added to all response triggers when reading
         events (stimulus triggers will be unaffected). This parameter was
-        deprecated in version 0.17 and will be removed in 0.19. Use
+        deprecated in version 0.17 and will be removed in 0.18. Use
         ``trig_shift_by_type={'response': ...}`` instead. If None, response
         triggers will be ignored. Default is 0 for backwards compatibility,
         but typically another value or None will be necessary.
@@ -69,8 +69,9 @@ class RawBrainVision(BaseRaw):
         follow the normal Brainvision trigger format ('S###').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
-        or an empty dict (default), only stimulus events are added to the
-        stimulus channel. Keys are case sensitive.
+        or an empty dict (default), only stimulus and response events are added
+        to the stimulus channel. Keys are case sensitive. "New Segment" markers
+        are always dropped.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -234,8 +235,9 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
         follow the normal Brainvision trigger format ('S###').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
-        or an empty dict (default), only stimulus events are added to the
-        stimulus channel. Keys are case sensitive.
+        or an empty dict (default), only stimulus and response events are added
+        to the stimulus channel. Keys are case sensitive. "New Segment" markers
+        are always dropped.
     response_trig_shift : int | None
         Integer to shift response triggers by. None ignores response triggers.
 
@@ -321,27 +323,32 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
             trigger = event_id[mdesc]
         else:
             try:
-                trigger = int(re.findall(r'[A-Za-z]*\s*?(\d+)', mdesc)[0])
+                trigger = int(re.findall(r'S([\s\d]{2}\d{1})', mdesc)[0])
             except IndexError:
                 trigger = None
-            if mtype.lower() in trig_shift_by_type:
-                cur_shift = trig_shift_by_type[mtype.lower()]
-                if cur_shift is not None:
-                    trigger += cur_shift
-                else:
-                    trigger = None
+        if mtype.lower() in trig_shift_by_type:
+            cur_shift = trig_shift_by_type[mtype.lower()]
+            if cur_shift is not None:
+                trigger += cur_shift
+            else:
+                # The trigger has been deliberately shifted to None. Do not
+                # add this to "dropped" so we do not warn about something
+                # that was done deliberately. Just continue with next item.
+                trigger = None
+                continue
         # FIXME: ideally, we would not use the middle column of the events
         # array to store the duration. A better solution would be using
         # annotations.
         if trigger:
             events.append((onset, duration, trigger))
         else:
+            # Markers with no description are not regarded as dropped but
+            # instead are simply ignored. For example, the "New Segment"
+            # markers are ignored, because they usually look like:
+            # Mk1=New Segment,,1,1,0
             if len(mdesc) > 0:
                 dropped.append(mdesc)
 
-    # Drop all markers with no description from the dropped markers
-    # For example, the "New Segment" markers will be dropped from the list
-    # of dropped markers because they usually look like: Mk1=New Segment,,1,1,0
     if len(dropped) > 0:
         dropped = list(set(dropped))
         examples = ", ".join(dropped[:5])
@@ -869,8 +876,9 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         follow the normal Brainvision trigger format ('S###').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
-        or an empty dict (default), only stimulus events are added to the
-        stimulus channel. Keys are case sensitive.
+        or an empty dict (default), only stimulus and response events are added
+        to the stimulus channel. Keys are case sensitive. "New Segment" markers
+        are always dropped.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
