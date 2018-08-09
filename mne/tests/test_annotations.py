@@ -419,16 +419,18 @@ def test_annotations_crop():
     assert_array_equal(a_.duration, a.duration)
 
     # cropping with left shifted window
-    a_ = a.copy().crop(tmin=0, tmax=4.2)
+    with pytest.warns(None) as w:
+        a_ = a.copy().crop(tmin=0, tmax=4.2)
     assert_array_equal(a_.onset, [1., 2., 3., 4.])
-    # assert_array_equal(a_.duration, [3.2, 2.2, 1.2, 0.2])
-    assert_allclose(a_.duration, [3.2, 2.2, 1.2, 0.2], atol=1e-30)
+    assert_allclose(a_.duration, [3.2, 2.2, 1.2, 0.2])
+    assert len(w) == 0
 
     # cropping with right shifted window
-    a_ = a.copy().crop(tmin=17.8, tmax=22)
+    with pytest.warns(None) as w:
+        a_ = a.copy().crop(tmin=17.8, tmax=22)
     assert_array_equal(a_.onset, [17.8, 17.8])
-    # assert_array_equal(a_.duration, [0.2, 1.2])
-    assert_allclose(a_.duration, [0.2, 1.2], atol=1e-30)
+    assert_allclose(a_.duration, [0.2, 1.2])
+    assert len(w) == 0
 
     # cropping with centered small window
     a_ = a.copy().crop(tmin=11, tmax=12)
@@ -436,9 +438,22 @@ def test_annotations_crop():
     assert_array_equal(a_.duration, [0, 1, 1, 1, 1, 1, 1, 1, 1])
 
     # cropping with out-of-bounds window
-    a_ = a.copy().crop(tmin=42, tmax=100)
+    with pytest.warns(None) as w:
+        a_ = a.copy().crop(tmin=42, tmax=100)
     assert_array_equal(a_.onset, [])
     assert_array_equal(a_.duration, [])
+    assert len(w) == 0
 
+    # test error raising
+    with pytest.raises(ValueError, match='tmax should be greater than tmin'):
+        a_ = a.copy().crop(tmin=42, tmax=0)
+    with pytest.raises(ValueError, match='tmin should be positive'):
+        a_ = a.copy().crop(tmin=-10, tmax=0)
+
+    # test warnings
+    with pytest.warns(RuntimeWarning, match='Omitted .* were outside'):
+        a_ = a.copy().crop(tmin=42, tmax=100, emit_warning=True)
+    with pytest.warns(RuntimeWarning, match='Limited .* expanding outside'):
+        a_ = a.copy().crop(tmin=0, tmax=12, emit_warning=True)
 
 run_tests_if_main()

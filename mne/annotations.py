@@ -204,10 +204,10 @@ class Annotations(object):
         tmax = tmax if tmax is not None else absolute_offset.max()
 
         if tmin > tmax:
-            raise ValueError('tmax should be greater than tmin')
+            raise ValueError('tmax should be greater than tmin.')
 
         if tmin < 0:
-            raise ValueError('tmin should be positive')
+            raise ValueError('tmin should be positive.')
 
         out_of_bounds = (absolute_onset > tmax) | (absolute_offset < tmin)
 
