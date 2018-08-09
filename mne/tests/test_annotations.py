@@ -446,14 +446,14 @@ def test_annotations_crop():
 
     # test error raising
     with pytest.raises(ValueError, match='tmax should be greater than tmin'):
-        a_ = a.copy().crop(tmin=42, tmax=0)
+        a.copy().crop(tmin=42, tmax=0)
     with pytest.raises(ValueError, match='tmin should be positive'):
-        a_ = a.copy().crop(tmin=-10, tmax=0)
+        a.copy().crop(tmin=-10, tmax=0)
 
     # test warnings
     with pytest.warns(RuntimeWarning, match='Omitted .* were outside'):
-        a_ = a.copy().crop(tmin=42, tmax=100, emit_warning=True)
+        a.copy().crop(tmin=42, tmax=100, emit_warning=True)
     with pytest.warns(RuntimeWarning, match='Limited .* expanding outside'):
-        a_ = a.copy().crop(tmin=0, tmax=12, emit_warning=True)
+        a.copy().crop(tmin=0, tmax=12, emit_warning=True)
 
 run_tests_if_main()

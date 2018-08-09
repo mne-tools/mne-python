@@ -440,8 +440,6 @@ def _ensure_annotation_object(obj):
 
     Raise error otherwise.
     """
-    if isinstance(obj, Annotations):
-        pass
-    else:
+    if not isinstance(obj, Annotations):
         raise ValueError('Annotations must be an instance of '
                          'mne.Annotations. Got %s.' % obj)
