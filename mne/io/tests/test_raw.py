@@ -234,3 +234,34 @@ def test_deprecated_meas_date_orig_time():
         raw = _raw_annot(1, None, sync_orig=False)
     assert raw.annotations.orig_time == 2
     assert raw.annotations.onset[0] == 0.5
+
+
+@pytest.fixture
+def dummy_raw():
+    info = create_info(ch_names=10, sfreq=1000., ch_types=None, montage=None,
+                       verbose=None)
+    raw = RawArray(data=np.random.RandomState(0).randn(10, 10),
+                   info=info, first_samp=0)
+    return raw
+
+
+@pytest.fixture
+def dummy_annotation():
+    from mne import Annotations
+    onset = np.arange(1, 10)
+    duration = np.full_like(onset, 10)
+    description = ["yy"] * onset.shape[0]
+
+    return Annotations(onset=onset,
+                       duration=duration,
+                       description=description,
+                       orig_time=0)
+
+
+def test_empty_annotation_is_none(raw=dummy_raw(), annot=dummy_annotation()):
+    # make sure raw and annot do not overlap
+    annot.orig_time = raw.times[-1]
+    with pytest.warns(RuntimeWarning, match='Omitted .* were outside'):
+        raw.set_annotations(annot)
+
+    assert raw.annotations is None
