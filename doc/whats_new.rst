@@ -19,6 +19,10 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add :class:`mne.SourceMorph` with :meth:`mne.SourceMorph.__call__`, :meth:`mne.SourceMorph.save` and :meth:`mne.SourceMorph.as_volume`, :func:`mne.read_source_morph`, by `Tommy Clausner`_
+
+- Deprecated :meth:`mne.SourceEstimate.morph_precomputed` and :func:`mne.morph_data`in favor of :class:`mne.SourceMorph` by `Tommy Clausner`_
+
 - Add possibility to save :class:`mne.VolSourceEstimate` and :class:`mne.MixedSourceEstimate` to HDF5 format (file extension .h5) with :meth:`mne.VolSourceEstimate.save` and :meth:`mne.MixedSourceEstimate.save` by `Alex Gramfort`_
 
 - Add `replace` parameter to :meth:`mne.io.Raw.add_events` to allow adding events while removing the old ones on the stim channel by `Alex Gramfort`_

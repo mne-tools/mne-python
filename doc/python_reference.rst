@@ -763,6 +763,7 @@ Source Space Data
    SourceEstimate
    VectorSourceEstimate
    VolSourceEstimate
+   SourceMorph
 
 .. autosummary::
    :toctree: generated/
@@ -775,14 +776,12 @@ Source Space Data
    grade_to_vertices
    grow_labels
    label_sign_flip
-   morph_data
-   morph_data_precomputed
    random_parcellation
    read_labels_from_annot
    read_dipole
    read_label
    read_source_estimate
-   save_stc_as_volume
+   read_source_morph
    split_label
    stc_to_label
    transform_surface_to
