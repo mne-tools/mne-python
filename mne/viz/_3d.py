@@ -40,8 +40,8 @@ from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      _import_mlab, SilenceStdout, has_nibabel, check_version,
                      _ensure_int, _validate_type)
-from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_list, plt_show,
-                    tight_layout, figure_nobar, _check_time_unit)
+from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_list,
+                    plt_show, tight_layout, figure_nobar, _check_time_unit)
 from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
                    read_bem_surfaces)
 
