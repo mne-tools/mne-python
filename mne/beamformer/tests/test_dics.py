@@ -335,9 +335,9 @@ def test_apply_dics_timeseries():
     # Sanity checks on the resulting STC after applying DICS on epochs.
     # Also test here that no warnings are thrown - implemented to check whether
     # src should not be None warning occurs
-    with pytest.warns(None) as wrn:
+    with pytest.warns(None) as w:
         stcs = apply_dics_epochs(epochs, filters)
-    assert len(wrn) == 0
+    assert len(w) == 0
 
     assert isinstance(stcs, list)
     assert len(stcs) == 1

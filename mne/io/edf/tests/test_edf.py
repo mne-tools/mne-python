@@ -203,9 +203,9 @@ def test_stim_channel():
 
     with pytest.warns(RuntimeWarning, match='Interpolating stim .* Events may jitter'):
         raw = read_raw_edf(edf_stim_resamp_path, verbose=True, stim_channel=-1)
-    with pytest.warns(None) as record:
+    with pytest.warns(None) as w:
         raw[:]
-    assert len(record) == 0
+    assert len(w) == 0
 
     events = raw_py.find_edf_events()
     assert (len(events) == 0)

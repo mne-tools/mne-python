@@ -341,9 +341,9 @@ def test_lcmv():
     # this channel from the data
     # also test here that no warnings are thrown - implemented to check whether
     # src should not be None warning occurs
-    with pytest.warns(None) as wrn:
+    with pytest.warns(None) as w:
         stc = apply_lcmv(evoked, filters, max_ori_out='signed')
-    assert len(wrn) == 0
+    assert len(w) == 0
     # the result should be equal to applying this filter to a dataset without
     # this channel:
     stc_ch = apply_lcmv(evoked_ch, filters, max_ori_out='signed')
