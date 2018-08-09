@@ -102,6 +102,7 @@ def test_io_set_raw(fnames, tmpdir):
         event.type = 1
     assert_equal(read_events_eeglab(eeg)[-1, -1], 1)
     eeg.event = eeg.event[0]  # single event
+    eeg.event.latency = float(eeg.event.latency) - .1  # test rounding
     assert_equal(read_events_eeglab(eeg)[-1, -1], 1)
 
     # test reading file with one event (read old version)
@@ -136,8 +137,9 @@ def test_io_set_raw(fnames, tmpdir):
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     negative_latency_fname.replace('.set', '.fdt'))
     event_id = {eeg.event[0].type: 1}
-    pytest.raises(ValueError, read_raw_eeglab, montage=montage, preload=True,
-                  event_id=event_id, input_fname=negative_latency_fname)
+    with pytest.warns(RuntimeWarning, match="has a sample index of -1."):
+        read_raw_eeglab(input_fname=negative_latency_fname, preload=True,
+                        event_id=event_id, montage=montage)
 
     # test overlapping events
     overlap_fname = op.join(tmpdir, 'test_overlap_event.set')
