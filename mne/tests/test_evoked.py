@@ -485,6 +485,16 @@ def test_arithmetic():
     assert_equal(gave.nave, 2)
     pytest.raises(TypeError, grand_average, [1, evoked1])
 
+    # test channel (re)ordering
+    evoked1, evoked2 = read_evokeds(fname, condition=[0, 1], proj=True)
+    data2 = evoked2.data  # assumes everything is ordered to the first evoked
+    data = (evoked1.data + evoked2.data) / 2
+    evoked2.reorder_channels(evoked2.ch_names[::-1])
+    assert not np.allclose(data2, evoked2.data)
+    with pytest.warns(RuntimeWarning, match='reordering'):
+        ev3 = grand_average((evoked1, evoked2))
+    assert np.allclose(ev3.data, data)
+
 
 def test_array_epochs():
     """Test creating evoked from array."""

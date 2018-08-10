@@ -834,13 +834,17 @@ def _check_evokeds_ch_names_times(all_evoked, reorder=False):
                 raise ValueError(
                     "%s and %s do not contain the same channels" % (evoked, ev))
             else:
-                warn("Order of channels differs, reordering channels ...")
-                ev = ev.copy()
-                ev.reorder_channels(ch_names)
-                all_evoked[ii + 1] = ev
+                if reorder is True:
+                    warn("Order of channels differs, reordering channels ...")
+                    ev = ev.copy()
+                    ev.reorder_channels(ch_names)
+                    all_evoked[ii + 1] = ev
+                else:
+                    raise ValueError("Channels are not in the same order.")
         if not np.max(np.abs(ev.times - evoked.times)) < 1e-7:
             raise ValueError("%s and %s do not contain the same time instants"
                              % (evoked, ev))
+    return all_evoked
 
 
 def combine_evoked(all_evoked, weights):
