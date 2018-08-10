@@ -45,6 +45,7 @@ from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
+from ..annotations import _ensure_annotation_object
 
 
 class ToDataFrameMixin(object):
@@ -683,63 +684,37 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Annotations to set.
         emit_warning : bool
             Whether to emit warnings when limiting or omitting annotations.
+
+        Returns
+        -------
+        self : instance of Raw
+            The raw object with annotations.
         """
-        new_annot = None
-        if annotations is not None:
-            if not isinstance(annotations, Annotations):
-                raise ValueError('Annotations must be an instance of '
-                                 'mne.Annotations. Got %s.' % annotations)
+        if annotations is None:
+            self._annotations = None
+        else:
+            _ensure_annotation_object(annotations)
+            time_of_first_sample = (
+                _handle_meas_date(self.info['meas_date']) +
+                (self.first_samp / self.info['sfreq']))
+            delta = 1. / self.info['sfreq']
 
-            new_annot = annotations.copy()
-            meas_date = _handle_meas_date(self.info['meas_date'])
+            new_annotations = annotations.copy()
+            if annotations.orig_time is None:
+                # Assume annotations to be relative to the data
+                new_annotations.orig_time = time_of_first_sample
 
-            if new_annot.orig_time is not None:
-                offset = (new_annot.orig_time - meas_date -
-                          self.first_samp / self.info['sfreq'])
-            else:
-                offset = 0
+            tmin = time_of_first_sample
+            tmax = tmin + self.times[-1] + delta
+            new_annotations.crop(tmin=tmin, tmax=tmax,
+                                 emit_warning=emit_warning)
 
-            omit_ind = list()
-            omitted = limited = 0
-            for ind, onset in enumerate(new_annot.onset):
-                onset += offset
-                if onset > self.times[-1]:
-                    omitted += 1
-                    omit_ind.append(ind)
-                    logger.debug('Omitting %d @ %s > %s'
-                                 % (ind, onset, self.times[-1]))
-                elif onset < self.times[0]:
-                    if onset + new_annot.duration[ind] < self.times[0]:
-                        omitted += 1
-                        omit_ind.append(ind)
-                        logger.debug('Omitting %d @ %s < %s'
-                                     % (ind, onset, self.times[0]))
-                    else:
-                        limited += 1
-                        duration = new_annot.duration[ind] + onset
-                        new_annot.duration[ind] = duration
-                        new_annot.onset[ind] = self.times[0] - offset
-                elif (onset + new_annot.duration[ind] >
-                      self.times[-1] + 1.1 / self.info['sfreq']):
-                    # We have to permit onset+duration to appear to go one past
-                    # the last sample in order to actually include the last
-                    # sample...
-                    limited += 1
-                    new_annot.duration[ind] = (self.times[-1] +
-                                               1. / self.info['sfreq'] -
-                                               onset)
-            new_annot.onset = np.delete(new_annot.onset, omit_ind)
-            new_annot.duration = np.delete(new_annot.duration, omit_ind)
-            new_annot.description = np.delete(new_annot.description, omit_ind)
-            if emit_warning:
-                if omitted > 0:
-                    warn('Omitted %s annotation(s) that were outside data '
-                         'range.' % omitted)
-                if limited > 0:
-                    warn('Limited %s annotation(s) that were expanding '
-                         'outside the data range.' % limited)
+            if annotations.orig_time is None:
+                new_annotations.orig_time = None
 
-        self._annotations = new_annot
+            self._annotations = new_annotations
+
+        return self
 
     def __del__(self):  # noqa: D105
         # remove file for memmap

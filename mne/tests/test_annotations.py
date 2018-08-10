@@ -402,4 +402,58 @@ def test_annotation_concat():
     assert_equal(len(b), 3)
 
 
+def test_annotations_crop():
+    """Test basic functionality of annotation crop."""
+    onset = np.arange(1, 10)
+    duration = np.full_like(onset, 10)
+    description = ["yy"] * onset.shape[0]
+
+    a = Annotations(onset=onset,
+                    duration=duration,
+                    description=description,
+                    orig_time=0)
+
+    # cropping window larger than annotations --> do not modify
+    a_ = a.copy().crop(tmin=0, tmax=42)
+    assert_array_equal(a_.onset, a.onset)
+    assert_array_equal(a_.duration, a.duration)
+
+    # cropping with left shifted window
+    with pytest.warns(None) as w:
+        a_ = a.copy().crop(tmin=0, tmax=4.2)
+    assert_array_equal(a_.onset, [1., 2., 3., 4.])
+    assert_allclose(a_.duration, [3.2, 2.2, 1.2, 0.2])
+    assert len(w) == 0
+
+    # cropping with right shifted window
+    with pytest.warns(None) as w:
+        a_ = a.copy().crop(tmin=17.8, tmax=22)
+    assert_array_equal(a_.onset, [17.8, 17.8])
+    assert_allclose(a_.duration, [0.2, 1.2])
+    assert len(w) == 0
+
+    # cropping with centered small window
+    a_ = a.copy().crop(tmin=11, tmax=12)
+    assert_array_equal(a_.onset, [11, 11, 11, 11, 11, 11, 11, 11, 11])
+    assert_array_equal(a_.duration, [0, 1, 1, 1, 1, 1, 1, 1, 1])
+
+    # cropping with out-of-bounds window
+    with pytest.warns(None) as w:
+        a_ = a.copy().crop(tmin=42, tmax=100)
+    assert_array_equal(a_.onset, [])
+    assert_array_equal(a_.duration, [])
+    assert len(w) == 0
+
+    # test error raising
+    with pytest.raises(ValueError, match='tmax should be greater than tmin'):
+        a.copy().crop(tmin=42, tmax=0)
+    with pytest.raises(ValueError, match='tmin should be positive'):
+        a.copy().crop(tmin=-10, tmax=0)
+
+    # test warnings
+    with pytest.warns(RuntimeWarning, match='Omitted .* were outside'):
+        a.copy().crop(tmin=42, tmax=100, emit_warning=True)
+    with pytest.warns(RuntimeWarning, match='Limited .* expanding outside'):
+        a.copy().crop(tmin=0, tmax=12, emit_warning=True)
+
 run_tests_if_main()
