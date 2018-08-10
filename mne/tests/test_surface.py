@@ -1,9 +1,9 @@
 from __future__ import print_function
 import os
 import os.path as op
-import numpy as np
-import warnings
 from shutil import copyfile
+
+import numpy as np
 from scipy import sparse
 
 import pytest
@@ -24,7 +24,6 @@ subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(subjects_dir, 'sample', 'bem',
                 'sample-1280-1280-1280-bem-sol.fif')
 
-warnings.simplefilter('always')
 rng = np.random.RandomState(0)
 
 
@@ -111,7 +110,7 @@ def test_make_morph_maps():
             ('fsaverage_ds', 'sample_ds', False),
             ('fsaverage_ds', 'fsaverage_ds', True)):
         # trigger the creation of morph-maps dir and create the map
-        with warnings.catch_warnings(record=True):
+        with pytest.warns(None):
             mmap = read_morph_map(subject_from, subject_to, tempdir,
                                   xhemi=xhemi)
         mmap2 = read_morph_map(subject_from, subject_to, subjects_dir,
@@ -123,7 +122,7 @@ def test_make_morph_maps():
             assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
 
     # This will also trigger creation, but it's trivial
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(None):
         mmap = read_morph_map('sample', 'sample', subjects_dir=tempdir)
     for mm in mmap:
         assert (mm - sparse.eye(mm.shape[0], mm.shape[0])).sum() == 0
@@ -138,11 +137,10 @@ def test_io_surface():
     fname_tri = op.join(data_path, 'subjects', 'fsaverage', 'surf',
                         'lh.inflated')
     for fname in (fname_quad, fname_tri):
-        with warnings.catch_warnings(record=True) as w:
+        with pytest.warns(None):  # no volume info
             pts, tri, vol_info = read_surface(fname, read_metadata=True)
-        assert all('No volume info' in str(ww.message) for ww in w)
         write_surface(op.join(tempdir, 'tmp'), pts, tri, volume_info=vol_info)
-        with warnings.catch_warnings(record=True) as w:  # No vol info
+        with pytest.warns(None):  # no volume info
             c_pts, c_tri, c_vol_info = read_surface(op.join(tempdir, 'tmp'),
                                                     read_metadata=True)
         assert_array_equal(pts, c_pts)

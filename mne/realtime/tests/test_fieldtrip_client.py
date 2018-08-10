@@ -6,7 +6,6 @@ import time
 import os
 import threading
 import subprocess
-import warnings
 import os.path as op
 import contextlib
 import socket
@@ -31,8 +30,6 @@ matplotlib.use('Agg')  # for testing don't use X server
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.realpath(op.join(base_dir, 'test_raw.fif'))
 
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
-
 
 @pytest.fixture
 def free_tcp_port():
@@ -56,7 +53,7 @@ def _run_buffer(kill_signal, server_port):
     # Let measurement continue for the entire duration
     kill_signal.get(timeout=40.0)
     process.terminate()
-    with warnings.catch_warnings(record=True):  # still running
+    with pytest.warns(None):  # still running
         process.stderr.close()
         process.stdout.close()
         del process
@@ -93,31 +90,33 @@ def test_fieldtrip_rtepochs(free_tcp_port, tmpdir):
     try:
         data_rt = None
         events_ids_rt = None
-        with FieldTripClient(host='localhost', port=free_tcp_port,
-                             tmax=raw_tmax, wait_max=2) as rt_client:
-            # get measurement info guessed by MNE-Python
-            raw_info = rt_client.get_measurement_info()
-            assert ([ch['ch_name'] for ch in raw_info['chs']] ==
-                    [ch['ch_name'] for ch in raw.info['chs']])
+        with pytest.warns(RuntimeWarning, match='Trying to guess it'):
+            with FieldTripClient(host='localhost', port=free_tcp_port,
+                                 tmax=raw_tmax, wait_max=2) as rt_client:
+                # get measurement info guessed by MNE-Python
+                raw_info = rt_client.get_measurement_info()
+                assert ([ch['ch_name'] for ch in raw_info['chs']] ==
+                        [ch['ch_name'] for ch in raw.info['chs']])
 
-            # create the real-time epochs object
-            epochs_rt = RtEpochs(rt_client, event_id, tmin, tmax,
-                                 stim_channel='STI 014', isi_max=isi_max)
-            epochs_rt.start()
+                # create the real-time epochs object
+                epochs_rt = RtEpochs(rt_client, event_id, tmin, tmax,
+                                     stim_channel='STI 014', isi_max=isi_max)
+                epochs_rt.start()
 
-            time.sleep(0.5)
-            for ev_num, ev in enumerate(epochs_rt.iter_evoked()):
-                if ev_num == 0:
-                    data_rt = ev.data[None, :, :]
-                    events_ids_rt = int(
-                        ev.comment)  # comment attribute contains the event_id
-                else:
-                    data_rt = np.concatenate((data_rt, ev.data[None, :, :]),
-                                             axis=0)
-                    events_ids_rt = np.append(events_ids_rt, int(ev.comment))
+                time.sleep(0.5)
+                for ev_num, ev in enumerate(epochs_rt.iter_evoked()):
+                    if ev_num == 0:
+                        data_rt = ev.data[None, :, :]
+                        events_ids_rt = int(
+                            ev.comment)  # comment attribute contains event_id
+                    else:
+                        data_rt = np.concatenate(
+                            (data_rt, ev.data[None, :, :]), axis=0)
+                        events_ids_rt = np.append(events_ids_rt,
+                                                  int(ev.comment))
 
-            _call_base_epochs_public_api(epochs_rt, tmpdir)
-            epochs_rt.stop()
+                _call_base_epochs_public_api(epochs_rt, tmpdir)
+                epochs_rt.stop()
 
         assert_array_equal(events_ids_rt, epochs_rt.events[:, 2])
         assert_array_equal(data_rt, epochs_rt.get_data())
@@ -138,18 +137,15 @@ def test_fieldtrip_client(free_tcp_port):
 
     try:
         # Start the FieldTrip buffer
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with pytest.warns(RuntimeWarning):
             with FieldTripClient(host='localhost', port=free_tcp_port,
                                  tmax=5, wait_max=2) as rt_client:
                 tmin_samp1 = rt_client.tmin_samp
 
         time.sleep(1)  # Pause measurement
-        assert len(w) >= 1
 
         # Start the FieldTrip buffer again
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with pytest.warns(RuntimeWarning):
             with FieldTripClient(host='localhost', port=free_tcp_port,
                                  tmax=5, wait_max=2) as rt_client:
                 raw_info = rt_client.get_measurement_info()
@@ -167,7 +163,6 @@ def test_fieldtrip_client(free_tcp_port):
                 epoch = rt_client.get_data_as_epoch(n_samples=5)
 
         assert tmin_samp2 > tmin_samp1
-        assert len(w) >= 1
         assert n_samples == 5
         assert n_samples2 == 5
         assert n_channels == len(picks)

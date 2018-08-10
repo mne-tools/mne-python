@@ -1,6 +1,5 @@
 import os.path as op
 import os
-import warnings
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -11,12 +10,9 @@ from mne import (read_events, write_events, make_fixed_length_events,
                  find_events, pick_events, find_stim_steps, pick_channels,
                  read_evokeds, Epochs, create_info, compute_raw_covariance)
 from mne.io import read_raw_fif, RawArray
-from mne.tests.common import assert_naming
 from mne.utils import _TempDir, run_tests_if_main
 from mne.event import define_target_events, merge_events, AcqParserFIF
 from mne.datasets import testing
-
-warnings.simplefilter('always')
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname = op.join(base_dir, 'test-eve.fif')
@@ -41,10 +37,8 @@ def test_fix_stim():
     raw = read_raw_fif(raw_fname, preload=True)
     # 32768 (016) + 3 (002+001) bits gets incorrectly coded during acquisition
     raw._data[raw.ch_names.index('STI 014'), :3] = [0, -32765, 0]
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='STI016'):
         events = find_events(raw, 'STI 014')
-    assert (len(w) >= 1)
-    assert (any('STI016' in str(ww.message) for ww in w))
     assert_array_equal(events[0], [raw.first_samp + 1, 0, 32765])
     events = find_events(raw, 'STI 014', uint_cast=True)
     assert_array_equal(events[0], [raw.first_samp + 1, 0, 32771])
@@ -128,10 +122,8 @@ def test_io_events():
     write_events(op.join(tempdir, 'events.eve'), events)
     events2 = read_events(op.join(tempdir, 'events.eve'))
     assert_array_almost_equal(events, events2)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='first row of'):
         events2 = read_events(fname_txt_mpr, mask=0, mask_type='not_and')
-        assert (sum('first row of' in str(ww.message) for ww in w) == 1)
     assert_array_almost_equal(events, events2)
 
     # Test old format text file IO
@@ -171,12 +163,11 @@ def test_io_events():
     assert_array_almost_equal(events, events2)
 
     # test warnings on bad filenames
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        fname2 = op.join(tempdir, 'test-bad-name.fif')
+    fname2 = op.join(tempdir, 'test-bad-name.fif')
+    with pytest.warns(RuntimeWarning, match='-eve.fif'):
         write_events(fname2, events)
+    with pytest.warns(RuntimeWarning, match='-eve.fif'):
         read_events(fname2)
-    assert_naming(w, 'test_event.py', 2)
 
 
 def test_find_events():
@@ -193,10 +184,8 @@ def test_find_events():
     assert_array_almost_equal(events, events2)
     # now test with mask
     events11 = find_events(raw, mask=3, mask_type='not_and')
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='events masked'):
         events22 = read_events(fname, mask=3, mask_type='not_and')
-        assert (sum('events masked' in str(ww.message) for ww in w) == 1)
     assert_array_equal(events11, events22)
 
     # Reset some data for ease of comparison

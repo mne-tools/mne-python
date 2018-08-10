@@ -37,6 +37,8 @@ sample_data:
 testing_data:
 	@python -c "import mne; mne.datasets.testing.data_path(verbose=True);"
 
+pytest: test
+
 test: in
 	rm -f .coverage
 	$(PYTESTS) -m 'not ultraslowtest' mne

@@ -3,10 +3,10 @@ import os
 from os import path as op
 import shutil
 import glob
-import warnings
 
 import pytest
 from numpy.testing import assert_equal, assert_allclose
+import matplotlib
 
 from mne import concatenate_raws, read_bem_surfaces
 from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
@@ -22,13 +22,12 @@ from mne.utils import (run_tests_if_main, _TempDir, requires_mne,
                        requires_mayavi, requires_tvtk, requires_freesurfer,
                        traits_test, ArgvSetter)
 
+matplotlib.use('Agg')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
 subjects_dir = op.join(testing.data_path(download=False), 'subjects')
-
-warnings.simplefilter('always')
 
 
 def check_usage(module, force_help=False):
@@ -100,7 +99,7 @@ def test_compute_proj_ecg_eog():
         shutil.copyfile(raw_fname, use_fname)
         with ArgvSetter(('-i', use_fname, '--bad=' + bad_fname,
                          '--rej-eeg', '150')):
-            with warnings.catch_warnings(record=True):  # too few samples
+            with pytest.warns(None):  # samples, sometimes
                 fun.run()
         fnames = glob.glob(op.join(tempdir, '*proj.fif'))
         assert len(fnames) == 1
@@ -169,14 +168,12 @@ def test_maxfilter():
     check_usage(mne_maxfilter)
     with ArgvSetter(('-i', raw_fname, '--st', '--movecomp', '--linefreq', '60',
                      '--trans', raw_fname)) as out:
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with pytest.warns(RuntimeWarning, match="Don't use"):
             os.environ['_MNE_MAXFILTER_TEST'] = 'true'
             try:
                 mne_maxfilter.run()
             finally:
                 del os.environ['_MNE_MAXFILTER_TEST']
-        assert len(w) == 1
         for check in ('maxfilter', '-trans', '-movecomp'):
             assert check in out.stdout.getvalue(), check
 
@@ -193,7 +190,8 @@ def test_report():
     shutil.copyfile(raw_fname, use_fname)
     with ArgvSetter(('-p', tempdir, '-i', use_fname, '-d', subjects_dir,
                      '-s', 'sample', '--no-browser', '-m', '30')):
-        mne_report.run()
+        with pytest.warns(None):  # contour levels
+            mne_report.run()
     fnames = glob.glob(op.join(tempdir, '*.html'))
     assert len(fnames) == 1
 

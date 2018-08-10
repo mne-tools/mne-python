@@ -9,7 +9,6 @@
 # License: Simplified BSD
 
 import os.path as op
-import warnings
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -29,8 +28,6 @@ from mne.datasets import testing
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -91,10 +88,9 @@ def test_plot_evoked_cov():
     epochs = Epochs(raw, events)
     cov = compute_covariance(epochs)
     evoked_sss = epochs.average()
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='relative scaling'):
         evoked_sss.plot(noise_cov=cov, time_unit='s')
     plt.close('all')
-    assert any('relative scal' in str(ww.message) for ww in w)
 
 
 @pytest.mark.slowtest
@@ -139,8 +135,9 @@ def test_plot_evoked():
     evoked_nan = evoked.copy()
     evoked_nan.data[:, 0] = np.nan
     pytest.raises(ValueError, evoked_nan.plot)
-    pytest.raises(ValueError, evoked_nan.plot_image)
-    pytest.raises(ValueError, evoked_nan.plot_joint)
+    with np.errstate(invalid='ignore'):
+        pytest.raises(ValueError, evoked_nan.plot_image)
+        pytest.raises(ValueError, evoked_nan.plot_joint)
 
     # test mask
     evoked.plot_image(picks=[1, 2], mask=evoked.data > 0, time_unit='s')
@@ -148,10 +145,9 @@ def test_plot_evoked():
                       mask=np.ones(evoked.data.shape).astype(bool),
                       time_unit='s')
 
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='not adding contour'):
         evoked.plot_image(picks=[1, 2], mask=None, mask_style="both",
                           time_unit='s')
-    assert len(w) == 2
     pytest.raises(ValueError, evoked.plot_image, mask=evoked.data[1:, 1:] > 0,
                   time_unit='s')
 

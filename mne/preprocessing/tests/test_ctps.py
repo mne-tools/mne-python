@@ -1,7 +1,6 @@
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD 3 clause
-import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -35,8 +34,7 @@ def get_data(n_trials, j_extent):
     ground_truth = np.tile(single_trial,  n_trials)
     my_shape = n_trials, 1, 600
     random_data = rng.random_sample(my_shape)
-    with warnings.catch_warnings(record=True):  # weight tables
-        rand_ints = rng.random_integers(-j_extent, j_extent, n_trials)
+    rand_ints = rng.randint(-j_extent, j_extent, n_trials)
     jittered_data = np.array([np.roll(single_trial, i) for i in rand_ints])
     data = np.concatenate([ground_truth.reshape(my_shape),
                            jittered_data.reshape(my_shape),

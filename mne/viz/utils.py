@@ -818,7 +818,7 @@ def _setup_annotation_fig(params):
     if params['fig_annotation'] is not None:
         params['fig_annotation'].canvas.close_event()
     if params['raw'].annotations is None:
-        params['raw'].annotations = Annotations(list(), list(), list())
+        params['raw'].set_annotations(Annotations(list(), list(), list()))
     annotations = params['raw'].annotations
     labels = list(set(annotations.description))
     labels = np.union1d(labels, params['added_label'])

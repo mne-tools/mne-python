@@ -4,7 +4,6 @@
 
 from datetime import datetime
 import os.path as op
-import warnings
 
 import pytest
 from numpy.testing import (assert_equal, assert_array_equal,
@@ -233,7 +232,7 @@ def test_raw_reject():
     sfreq = 100.
     info = create_info(['a', 'b', 'c', 'd', 'e'], sfreq, ch_types='eeg')
     raw = RawArray(np.ones((5, 15000)), info)
-    with warnings.catch_warnings(record=True):  # one outside range
+    with pytest.warns(RuntimeWarning, match='outside the data range'):
         raw.set_annotations(Annotations([2, 100, 105, 148],
                                         [2, 8, 5, 8], 'BAD'))
     data, times = raw.get_data([0, 1, 3, 4], 100, 11200,  # 1-112 sec

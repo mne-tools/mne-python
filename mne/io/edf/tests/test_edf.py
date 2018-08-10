@@ -7,7 +7,6 @@
 
 import os.path as op
 import inspect
-import warnings
 
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
@@ -25,8 +24,6 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.pick import channel_type
 from mne.io.edf.edf import _parse_tal_channel, find_edf_events
 from mne.event import find_events
-
-warnings.simplefilter('always')
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -103,12 +100,9 @@ def test_bdf_stim_channel():
 @testing.requires_testing_data
 def test_edf_overlapping_annotations():
     """Test EDF with overlapping annotations."""
-    n_warning = 2
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='overlapping'):
         read_raw_edf(edf_overlap_annot_path, preload=True, stim_channel='auto',
                      verbose=True)
-        assert_equal(sum('overlapping' in str(ww.message) for ww in w),
-                     n_warning)
 
 
 @testing.requires_testing_data
@@ -162,7 +156,7 @@ def test_edf_data():
         fid_out.write(rbytes[:236])
         fid_out.write(bytes('-1      '.encode()))
         fid_out.write(rbytes[244:])
-    with warnings.catch_warnings(record=True):  # record mismatches
+    with pytest.warns(RuntimeWarning, match='record'):
         raw = read_raw_edf(broken_fname, preload=True, stim_channel='auto')
         read_raw_edf(broken_fname, exclude=raw.ch_names[:132], preload=True,
                      stim_channel='auto')
@@ -206,16 +200,11 @@ def test_stim_channel():
     pytest.raises(RuntimeError, read_raw_edf, edf_path, preload=False,
                   stim_channel=-1)
 
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='jitter'):
         raw = read_raw_edf(edf_stim_resamp_path, verbose=True, stim_channel=-1)
-    assert_equal(len(w), 2)
-    assert (any('Events may jitter' in str(ww.message) for ww in w))
-    assert (any('truncated' in str(ww.message) for ww in w))
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(None) as record:
         raw[:]
-    assert_equal(len(w), 0)
+    assert len(record) == 0
 
     events = raw_py.find_edf_events()
     assert (len(events) == 0)

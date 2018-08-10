@@ -9,14 +9,11 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_almost_equal
 import pytest
-import warnings
 
 from mne import read_source_spaces
 from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, source_estimate_quantification
 from mne.utils import run_tests_if_main
-
-warnings.simplefilter('always')
 
 data_path = testing.data_path(download=False)
 src_fname = op.join(data_path, 'subjects', 'sample', 'bem',

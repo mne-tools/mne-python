@@ -33,7 +33,7 @@ Before running this script do the following:
 
 Example usage:
 
-$ mne flash_bem --subject sample
+$ mne flash_bem --subject=sample
 """
 from __future__ import print_function
 

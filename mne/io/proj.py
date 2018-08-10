@@ -644,6 +644,9 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
 
     # Here is the celebrated result
     proj = np.eye(nchan, nchan) - np.dot(U, U.T)
+    if nproj >= nchan:  # e.g., 3 channels and 3 projectors
+        raise RuntimeError('Application of %d projectors for %d channels '
+                           'will yield no components.' % (nproj, nchan))
 
     return proj, nproj, U
 

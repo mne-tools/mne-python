@@ -29,7 +29,8 @@ def test_search_light():
     from sklearn.linear_model import Ridge, LogisticRegression
     from sklearn.pipeline import make_pipeline
     from sklearn.metrics import roc_auc_score, make_scorer
-    from sklearn.ensemble import BaggingClassifier
+    with pytest.warns(None):  # NumPy module import
+        from sklearn.ensemble import BaggingClassifier
     from sklearn.base import is_classifier
 
     X, y = make_data()

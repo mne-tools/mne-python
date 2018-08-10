@@ -92,8 +92,9 @@ def test_scale_mri():
     # scale fsaverage
     for scale in (.9, [1, .2, .8]):
         os.environ['_MNE_FEW_SURFACES'] = 'true'
-        scale_mri('fsaverage', 'flachkopf', scale, True, subjects_dir=tempdir,
-                  verbose='debug')
+        with pytest.warns(None):  # sometimes missing nibabel
+            scale_mri('fsaverage', 'flachkopf', scale, True,
+                      subjects_dir=tempdir, verbose='debug')
         del os.environ['_MNE_FEW_SURFACES']
         assert _is_mri_subject('flachkopf', tempdir), "Scaling failed"
         spath = op.join(tempdir, 'flachkopf', 'bem', 'flachkopf-%s-src.fif')

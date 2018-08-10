@@ -3,8 +3,8 @@
 #
 # License: Simplified BSD
 
+import pytest
 import numpy as np
-import warnings
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose, assert_array_less)
 
@@ -14,8 +14,6 @@ from mne.inverse_sparse.mxne_optim import (mixed_norm_solver,
                                            norm_epsilon_inf, norm_epsilon,
                                            _Phi, _PhiT, dgap_l21l1)
 from mne.time_frequency.stft import stft_norm2
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
 def _generate_tf_data():
@@ -47,58 +45,68 @@ def test_l21_mxne():
     M = np.dot(G, X)
 
     args = (M, G, alpha, 1000, 1e-8)
-    X_hat_prox, active_set, _ = mixed_norm_solver(
-        *args, active_set_size=None,
-        debias=True, solver='prox')
+    with pytest.warns(None):  # CD
+        X_hat_prox, active_set, _ = mixed_norm_solver(
+            *args, active_set_size=None,
+            debias=True, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    X_hat_cd, active_set, _, gap_cd = mixed_norm_solver(
-        *args, active_set_size=None,
-        debias=True, solver='cd', return_gap=True)
+    with pytest.warns(None):  # CD
+        X_hat_cd, active_set, _, gap_cd = mixed_norm_solver(
+            *args, active_set_size=None,
+            debias=True, solver='cd', return_gap=True)
     assert_array_less(gap_cd, 1e-8)
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    X_hat_bcd, active_set, E, gap_bcd = mixed_norm_solver(
-        M, G, alpha, maxit=1000, tol=1e-8, active_set_size=None,
-        debias=True, solver='bcd', return_gap=True)
+    with pytest.warns(None):  # CD
+        X_hat_bcd, active_set, E, gap_bcd = mixed_norm_solver(
+            M, G, alpha, maxit=1000, tol=1e-8, active_set_size=None,
+            debias=True, solver='bcd', return_gap=True)
     assert_array_less(gap_bcd, 9.6e-9)
     assert_array_equal(np.where(active_set)[0], [0, 4])
     assert_allclose(X_hat_prox, X_hat_cd, rtol=1e-2)
     assert_allclose(X_hat_prox, X_hat_bcd, rtol=1e-2)
     assert_allclose(X_hat_bcd, X_hat_cd, rtol=1e-2)
 
-    X_hat_prox, active_set, _ = mixed_norm_solver(
-        *args, active_set_size=2, debias=True, solver='prox')
+    with pytest.warns(None):  # CD
+        X_hat_prox, active_set, _ = mixed_norm_solver(
+            *args, active_set_size=2, debias=True, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    X_hat_cd, active_set, _ = mixed_norm_solver(
-        *args, active_set_size=2, debias=True, solver='cd')
+    with pytest.warns(None):  # CD
+        X_hat_cd, active_set, _ = mixed_norm_solver(
+            *args, active_set_size=2, debias=True, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    X_hat_bcd, active_set, _ = mixed_norm_solver(
-        *args, active_set_size=2, debias=True, solver='bcd')
+    with pytest.warns(None):  # CD
+        X_hat_bcd, active_set, _ = mixed_norm_solver(
+            *args, active_set_size=2, debias=True, solver='bcd')
     assert_array_equal(np.where(active_set)[0], [0, 4])
     assert_allclose(X_hat_bcd, X_hat_cd, rtol=1e-2)
     assert_allclose(X_hat_bcd, X_hat_prox, rtol=1e-2)
 
-    X_hat_prox, active_set, _ = mixed_norm_solver(
-        *args, active_set_size=2, debias=True, n_orient=2, solver='prox')
+    with pytest.warns(None):  # CD
+        X_hat_prox, active_set, _ = mixed_norm_solver(
+            *args, active_set_size=2, debias=True, n_orient=2, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
-    X_hat_bcd, active_set, _ = mixed_norm_solver(
-        *args, active_set_size=2, debias=True, n_orient=2, solver='bcd')
+    with pytest.warns(None):  # CD
+        X_hat_bcd, active_set, _ = mixed_norm_solver(
+            *args, active_set_size=2, debias=True, n_orient=2, solver='bcd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
 
     # suppress a coordinate-descent warning here
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='descent'):
         X_hat_cd, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, n_orient=2, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
     assert_allclose(X_hat_bcd, X_hat_prox, rtol=1e-2)
     assert_allclose(X_hat_bcd, X_hat_cd, rtol=1e-2)
 
-    X_hat_bcd, active_set, _ = mixed_norm_solver(
-        *args, active_set_size=2, debias=True, n_orient=5, solver='bcd')
+    with pytest.warns(None):  # CD
+        X_hat_bcd, active_set, _ = mixed_norm_solver(
+            *args, active_set_size=2, debias=True, n_orient=5, solver='bcd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
-    X_hat_prox, active_set, _ = mixed_norm_solver(
-        *args, active_set_size=2, debias=True, n_orient=5, solver='prox')
+    with pytest.warns(None):  # CD
+        X_hat_prox, active_set, _ = mixed_norm_solver(
+            *args, active_set_size=2, debias=True, n_orient=5, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
-    with warnings.catch_warnings(record=True):  # coordinate-ascent warning
+    with pytest.warns(RuntimeWarning, match='descent'):
         X_hat_cd, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, n_orient=5, solver='cd')
 
@@ -114,9 +122,10 @@ def test_tf_mxne():
 
     M, G, active_set = _generate_tf_data()
 
-    X_hat_tf, active_set_hat_tf, E, gap_tfmxne = tf_mixed_norm_solver(
-        M, G, alpha_space, alpha_time, maxit=200, tol=1e-8, verbose=True,
-        n_orient=1, tstep=4, wsize=32, return_gap=True)
+    with pytest.warns(None):  # CD
+        X_hat_tf, active_set_hat_tf, E, gap_tfmxne = tf_mixed_norm_solver(
+            M, G, alpha_space, alpha_time, maxit=200, tol=1e-8, verbose=True,
+            n_orient=1, tstep=4, wsize=32, return_gap=True)
     assert_array_less(gap_tfmxne, 1e-8)
     assert_array_equal(np.where(active_set_hat_tf)[0], active_set)
 
@@ -220,39 +229,46 @@ def test_iterative_reweighted_mxne():
     X[4] = -2
     M = np.dot(G, X)
 
-    X_hat_l21, _, _ = mixed_norm_solver(
-        M, G, alpha, maxit=1000, tol=1e-8, verbose=False, n_orient=1,
-        active_set_size=None, debias=False, solver='bcd')
-    X_hat_bcd, active_set, _ = iterative_mixed_norm_solver(
-        M, G, alpha, 1, maxit=1000, tol=1e-8, active_set_size=None,
-        debias=False, solver='bcd')
-    X_hat_prox, active_set, _ = iterative_mixed_norm_solver(
-        M, G, alpha, 1, maxit=1000, tol=1e-8, active_set_size=None,
-        debias=False, solver='prox')
+    with pytest.warns(None):  # CD
+        X_hat_l21, _, _ = mixed_norm_solver(
+            M, G, alpha, maxit=1000, tol=1e-8, verbose=False, n_orient=1,
+            active_set_size=None, debias=False, solver='bcd')
+    with pytest.warns(None):  # CD
+        X_hat_bcd, active_set, _ = iterative_mixed_norm_solver(
+            M, G, alpha, 1, maxit=1000, tol=1e-8, active_set_size=None,
+            debias=False, solver='bcd')
+    with pytest.warns(None):  # CD
+        X_hat_prox, active_set, _ = iterative_mixed_norm_solver(
+            M, G, alpha, 1, maxit=1000, tol=1e-8, active_set_size=None,
+            debias=False, solver='prox')
     assert_allclose(X_hat_bcd, X_hat_l21, rtol=1e-3)
     assert_allclose(X_hat_prox, X_hat_l21, rtol=1e-3)
 
-    X_hat_prox, active_set, _ = iterative_mixed_norm_solver(
-        M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=None,
-        debias=True, solver='prox')
+    with pytest.warns(None):  # CD
+        X_hat_prox, active_set, _ = iterative_mixed_norm_solver(
+            M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=None,
+            debias=True, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    X_hat_bcd, active_set, _ = iterative_mixed_norm_solver(
-        M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2,
-        debias=True, solver='bcd')
+    with pytest.warns(None):  # CD
+        X_hat_bcd, active_set, _ = iterative_mixed_norm_solver(
+            M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2,
+            debias=True, solver='bcd')
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    X_hat_cd, active_set, _ = iterative_mixed_norm_solver(
-        M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=None,
-        debias=True, solver='cd')
+    with pytest.warns(None):  # CD
+        X_hat_cd, active_set, _ = iterative_mixed_norm_solver(
+            M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=None,
+            debias=True, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 4])
     assert_array_almost_equal(X_hat_prox, X_hat_cd, 5)
     assert_array_almost_equal(X_hat_bcd, X_hat_cd, 5)
 
-    X_hat_bcd, active_set, _ = iterative_mixed_norm_solver(
-        M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2,
-        debias=True, n_orient=2, solver='bcd')
+    with pytest.warns(None):  # CD
+        X_hat_bcd, active_set, _ = iterative_mixed_norm_solver(
+            M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2,
+            debias=True, n_orient=2, solver='bcd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
     # suppress a coordinate-descent warning here
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='descent'):
         X_hat_cd, active_set, _ = iterative_mixed_norm_solver(
             M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2,
             debias=True, n_orient=2, solver='cd')
@@ -263,7 +279,7 @@ def test_iterative_reweighted_mxne():
         M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2, debias=True,
         n_orient=5)
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
-    with warnings.catch_warnings(record=True):  # coordinate-ascent warning
+    with pytest.warns(RuntimeWarning, match='descent'):
         X_hat_cd, active_set, _ = iterative_mixed_norm_solver(
             M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2,
             debias=True, n_orient=5, solver='cd')

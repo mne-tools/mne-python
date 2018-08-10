@@ -5,7 +5,6 @@
 import os
 import sys
 from unittest import SkipTest
-import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -18,8 +17,6 @@ from mne.utils import (_TempDir, requires_mayavi, run_tests_if_main,
 mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')
 mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
 mrk_avg_path = os.path.join(kit_data_dir, 'test_mrk.sqd')
-
-warnings.simplefilter('always')
 
 
 def _check_ci():
@@ -83,9 +80,7 @@ def test_combine_markers_model():
     _check_ci()
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     try:
-        with warnings.catch_warnings(record=True):  # traits warnings
-            warnings.simplefilter('always')
-            CombineMarkersPanel()
+        CombineMarkersPanel()
     finally:
         del os.environ['_MNE_GUI_TESTING_MODE']
 

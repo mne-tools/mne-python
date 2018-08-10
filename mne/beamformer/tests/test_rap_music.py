@@ -7,7 +7,6 @@ import os.path as op
 import numpy as np
 from scipy import linalg
 
-import warnings
 from numpy.testing import assert_array_equal, assert_equal
 
 import mne
@@ -22,8 +21,6 @@ fname_ave = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
 def _get_data(ch_decim=1):

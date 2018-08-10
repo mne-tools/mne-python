@@ -7,7 +7,6 @@ from scipy import sparse
 
 import pytest
 import copy
-import warnings
 
 import mne
 from mne.datasets import testing
@@ -27,7 +26,6 @@ from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       write_inverse_operator,
                                       compute_rank_inverse,
                                       prepare_inverse_operator)
-from mne.tests.common import assert_naming
 from mne.utils import _TempDir, run_tests_if_main
 from mne.externals import six
 
@@ -211,9 +209,8 @@ def test_warn_inverse_operator():
                                       surf_ori=True, copy=False)
     noise_cov = read_cov(fname_cov)
     noise_cov['projs'].pop(-1)  # get rid of avg EEG ref proj
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='reference'):
         make_inverse_operator(bad_info, fwd_op, noise_cov)
-    assert_equal(len(w), 1)
 
 
 @pytest.mark.slowtest
@@ -405,7 +402,7 @@ def test_apply_inverse_sphere():
     write_inverse_operator(temp_fname, inv)
     inv = read_inverse_operator(temp_fname)
     stc = apply_inverse(evoked, inv, method='eLORETA',
-                        method_params=dict(eps=1e-3))
+                        method_params=dict(eps=1e-2))
     # assert zero localization bias
     assert_array_equal(np.argmax(stc.data, axis=0),
                        np.repeat(np.arange(101), 3))
@@ -671,12 +668,11 @@ def test_io_inverse_operator():
     _compare_io(inverse_operator, '.gz')
 
     # test warnings on bad filenames
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        inv_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+    inv_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+    with pytest.warns(RuntimeWarning, match='-inv.fif'):
         write_inverse_operator(inv_badname, inverse_operator)
+    with pytest.warns(RuntimeWarning, match='-inv.fif'):
         read_inverse_operator(inv_badname)
-    assert_naming(w, 'test_inverse.py', 2)
 
     # make sure we can write and read
     inv_fname = op.join(tempdir, 'test-inv.fif')

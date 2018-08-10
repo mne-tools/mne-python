@@ -1,6 +1,5 @@
 import inspect
 import os.path as op
-import warnings
 
 from numpy.testing import assert_array_equal, assert_equal
 import pytest
@@ -41,8 +40,7 @@ def test_pick_refs():
     bti_pdf = op.join(bti_dir, 'test_pdf_linux')
     bti_config = op.join(bti_dir, 'test_config_linux')
     bti_hs = op.join(bti_dir, 'test_hs_linux')
-    with warnings.catch_warnings(record=True):  # weight tables
-        raw_bti = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False)
+    raw_bti = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False)
     infos.append(raw_bti.info)
     # CTF
     fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')

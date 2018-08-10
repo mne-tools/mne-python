@@ -13,7 +13,6 @@
 import os
 import os.path as op
 import re
-import warnings
 from datetime import datetime
 from math import modf
 
@@ -96,9 +95,9 @@ class RawBrainVision(BaseRaw):
                  event_id=None, verbose=None,
                  trig_shift_by_type=None):  # noqa: D107
         if response_trig_shift != 0:
-            warnings.warn(
+            warn(
                 "'response_trig_shift' was deprecated in version "
-                "0.17 and will be removed in 0.19. Use "
+                "0.17 and will be removed in 0.18. Use "
                 "trig_shift_by_type={{'response': {} }} instead".format(
                     response_trig_shift), DeprecationWarning)
             if trig_shift_by_type and 'response' in (
@@ -307,7 +306,7 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
     if not m:
         return np.zeros((0, 3))
     mk_txt = txt[m.end():]
-    m = re.search(r"\[.*\]", mk_txt)
+    m = re.search(r"^\[.*\]$", mk_txt)
     if m:
         mk_txt = mk_txt[:m.start()]
 
@@ -340,6 +339,9 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
             if len(mdesc) > 0:
                 dropped.append(mdesc)
 
+    # Drop all markers with no description from the dropped markers
+    # For example, the "New Segment" markers will be dropped from the list
+    # of dropped markers because they usually look like: Mk1=New Segment,,1,1,0
     if len(dropped) > 0:
         dropped = list(set(dropped))
         examples = ", ".join(dropped[:5])

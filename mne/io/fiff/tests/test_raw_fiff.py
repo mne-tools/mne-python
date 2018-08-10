@@ -7,7 +7,6 @@ from copy import deepcopy
 from functools import partial
 import itertools as itt
 import os.path as op
-import warnings
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -27,9 +26,6 @@ from mne.externals.six.moves import zip, cPickle as pickle
 from mne.io.proc_history import _get_rank_sss
 from mne.io.pick import _picks_by_type
 from mne.annotations import Annotations
-from mne.tests.common import assert_naming
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 testing_path = testing.data_path(download=False)
 data_dir = op.join(testing_path, 'MEG', 'sample')
@@ -161,10 +157,8 @@ def test_hash_raw():
 @testing.requires_testing_data
 def test_maxshield():
     """Test maxshield warning."""
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='Internal Active Shielding') as w:
         read_raw_fif(ms_fname, allow_maxshield=True)
-    assert_equal(len(w), 1)
     assert ('test_raw_fiff.py' in w[0].filename)
 
 
@@ -498,15 +492,12 @@ def test_load_bad_channels():
     pytest.raises(ValueError, raw.load_bad_channels, bad_file_wrong)
 
     # Test forcing the bad case
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='1 bad channel'):
         raw.load_bad_channels(bad_file_wrong, force=True)
-        n_found = sum(['1 bad channel' in str(ww.message) for ww in w])
-        assert_equal(n_found, 1)  # there could be other irrelevant errors
         # write it out, read it in, and check
-        raw.save(op.join(tempdir, 'foo_raw.fif'), overwrite=True)
-        raw_new = read_raw_fif(op.join(tempdir, 'foo_raw.fif'))
-        assert_equal(correct_bads, raw_new.info['bads'])
+    raw.save(op.join(tempdir, 'foo_raw.fif'), overwrite=True)
+    raw_new = read_raw_fif(op.join(tempdir, 'foo_raw.fif'))
+    assert correct_bads == raw_new.info['bads']
 
     # Check that bad channels are cleared
     raw.load_bad_channels(None)
@@ -623,12 +614,11 @@ def test_io_raw():
             assert_allclose(raw.info['dig'][0]['r'], raw2.info['dig'][0]['r'])
 
     # test warnings on bad filenames
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        raw_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+    raw_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+    with pytest.warns(RuntimeWarning, match='raw.fif'):
         raw.save(raw_badname)
+    with pytest.warns(RuntimeWarning, match='raw.fif'):
         read_raw_fif(raw_badname)
-    assert_naming(w, 'test_raw_fiff.py', 2)
 
 
 @testing.requires_testing_data
@@ -652,13 +642,9 @@ def test_io_complex():
         raw_cp = raw.copy()
         raw_cp._data = np.array(raw_cp._data, dtype)
         raw_cp._data[picks, start:stop] += imag_rand
-        # this should throw an error because it's complex
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with pytest.warns(RuntimeWarning, match='complex'):
             raw_cp.save(op.join(tempdir, 'raw.fif'), picks, tmin=0, tmax=5,
                         overwrite=True)
-            # warning gets thrown on every instance b/c simplifilter('always')
-            assert_equal(len(w), 1)
 
         raw2 = read_raw_fif(op.join(tempdir, 'raw.fif'))
         raw2_data, _ = raw2[picks, :]
@@ -865,13 +851,11 @@ def test_filter():
                  raw_copy._data)
 
     # do a very simple check on line filtering
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('always')
-        raw_bs = raw.copy().filter(60.0 + trans, 60.0 - trans, **filter_params)
-        data_bs, _ = raw_bs[picks, :]
-        raw_notch = raw.copy().notch_filter(
-            60.0, picks=picks, n_jobs=2, method='fir',
-            trans_bandwidth=2 * trans)
+    raw_bs = raw.copy().filter(60.0 + trans, 60.0 - trans, **filter_params)
+    data_bs, _ = raw_bs[picks, :]
+    raw_notch = raw.copy().notch_filter(
+        60.0, picks=picks, n_jobs=2, method='fir',
+        trans_bandwidth=2 * trans)
     data_notch, _ = raw_notch[picks, :]
     assert_array_almost_equal(data_bs, data_notch, sig_dec_notch)
 
@@ -1069,18 +1053,14 @@ def test_resample():
     # two events are merged in this case (warning)
     stim = [0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='become unreliable'):
         raw.resample(8., npad='auto')
-        assert (len(w) == 1)
 
     # events are dropped in this case (warning)
     stim = [0, 1, 1, 0, 0, 1, 1, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='become unreliable'):
         raw.resample(4., npad='auto')
-        assert (len(w) == 1)
 
     # test resampling events: this should no longer give a warning
     # we often have first_samp != 0, include it here too
@@ -1260,11 +1240,9 @@ def test_annotation_crop():
     annot = Annotations([5., 11., 15.], [2., 1., 3.], ['test', 'test', 'test'])
     raw = read_raw_fif(fif_fname, preload=False)
     raw.set_annotations(annot)
-    with warnings.catch_warnings(record=True) as w:
-        r1 = raw.copy().crop(2.5, 7.5)
-        r2 = raw.copy().crop(12.5, 17.5)
-        r3 = raw.copy().crop(10., 12.)
-    assert (all('data range' in str(ww.message) for ww in w))
+    r1 = raw.copy().crop(2.5, 7.5)
+    r2 = raw.copy().crop(12.5, 17.5)
+    r3 = raw.copy().crop(10., 12.)
     raw = concatenate_raws([r1, r2, r3])  # segments reordered
     onsets = raw.annotations.onset
     durations = raw.annotations.duration
@@ -1276,9 +1254,8 @@ def test_annotation_crop():
     sfreq = raw.info['sfreq']
     annot = Annotations([0., raw.times[-1]], [2., 2.], 'test',
                         raw.info['meas_date'] + raw.first_samp / sfreq - 1.)
-    with warnings.catch_warnings(record=True) as w:  # outside range
+    with pytest.warns(RuntimeWarning, match='data range'):
         raw.set_annotations(annot)
-    assert (all('data range' in str(ww.message) for ww in w))
     assert_allclose(raw.annotations.duration,
                     [1., 1. + 1. / raw.info['sfreq']], atol=1e-3)
 

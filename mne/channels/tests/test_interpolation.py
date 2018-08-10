@@ -1,5 +1,4 @@
 import os.path as op
-import warnings
 
 import numpy as np
 from numpy.testing import (assert_allclose, assert_array_equal)
@@ -30,15 +29,15 @@ def _load_data():
     picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude=[])[1::2]
     picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
 
-    with warnings.catch_warnings(record=True):  # proj
-        epochs_eeg = Epochs(raw, events, event_id, tmin, tmax, picks=picks_eeg,
-                            preload=True, reject=dict(eeg=80e-6))
+    epochs_eeg = Epochs(raw, events, event_id, tmin, tmax, picks=picks_eeg,
+                        preload=True, reject=dict(eeg=80e-6))
+    with pytest.warns(RuntimeWarning, match='projection'):
         epochs_meg = Epochs(raw, events, event_id, tmin, tmax, picks=picks_meg,
                             preload=True,
                             reject=dict(grad=1000e-12, mag=4e-12))
-        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        preload=True, reject=dict(eeg=80e-6, grad=1000e-12,
-                                                  mag=4e-12))
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    preload=True, reject=dict(eeg=80e-6, grad=1000e-12,
+                                              mag=4e-12))
     return raw, epochs, epochs_eeg, epochs_meg
 
 
@@ -55,9 +54,8 @@ def test_interpolation():
     # check that interpolation does nothing if no bads are marked
     epochs_eeg.info['bads'] = []
     evoked_eeg = epochs_eeg.average()
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='Doing nothing'):
         evoked_eeg.interpolate_bads()
-    assert any('Doing nothing' in str(ww.message) for ww in w)
 
     # create good and bad channels for EEG
     epochs_eeg.info['bads'] = []
@@ -107,7 +105,7 @@ def test_interpolation():
     raw_few.del_proj()
     raw_few.info['bads'] = [raw_few.ch_names[-1]]
     orig_data = raw_few[1][0]
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(None) as w:
         raw_few.interpolate_bads(reset_bads=False)
     assert len(w) == 0
     new_data = raw_few[1][0]
@@ -116,12 +114,12 @@ def test_interpolation():
 
     # check that interpolation works when non M/EEG channels are present
     # before MEG channels
-    with warnings.catch_warnings(record=True):  # change of units
-        raw.rename_channels({'MEG 0113': 'TRIGGER'})
+    raw.rename_channels({'MEG 0113': 'TRIGGER'})
+    with pytest.warns(RuntimeWarning, match='unit'):  # change of units
         raw.set_channel_types({'TRIGGER': 'stim'})
-        raw.info['bads'] = [raw.info['ch_names'][1]]
-        raw.load_data()
-        raw.interpolate_bads()
+    raw.info['bads'] = [raw.info['ch_names'][1]]
+    raw.load_data()
+    raw.interpolate_bads()
 
     # check that interpolation works for MEG
     epochs_meg.info['bads'] = ['MEG 0141']

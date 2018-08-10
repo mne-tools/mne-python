@@ -1,6 +1,5 @@
-import os.path as op
-import warnings
 from copy import deepcopy
+import os.path as op
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -27,8 +26,6 @@ from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
                        requires_h5py, run_tests_if_main, requires_nibabel)
 from mne.io import read_raw_fif
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -136,9 +133,7 @@ def test_save_vol_stc_as_nifti():
     """Save the stc as a nifti file and export."""
     import nibabel as nib
     tempdir = _TempDir()
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('always')
-        src = read_source_spaces(fname_vsrc)
+    src = read_source_spaces(fname_vsrc)
     vol_fname = op.join(tempdir, 'stc.nii.gz')
 
     # now let's actually read a MNE-C processed file
@@ -147,15 +142,15 @@ def test_save_vol_stc_as_nifti():
 
     stc.save_as_volume(vol_fname, src,
                        dest='surf', mri_resolution=False)
-    with warnings.catch_warnings(record=True):  # nib<->numpy
+    with pytest.warns(None):  # nib<->numpy
         img = nib.load(vol_fname)
     assert (img.shape == src[0]['shape'] + (len(stc.times),))
 
-    with warnings.catch_warnings(record=True):  # nib<->numpy
+    with pytest.warns(None):  # nib<->numpy
         t1_img = nib.load(fname_t1)
     stc.save_as_volume(op.join(tempdir, 'stc.nii.gz'), src,
                        dest='mri', mri_resolution=True)
-    with warnings.catch_warnings(record=True):  # nib<->numpy
+    with pytest.warns(None):  # nib<->numpy
         img = nib.load(vol_fname)
     assert (img.shape == t1_img.shape + (len(stc.times),))
     assert_allclose(img.affine, t1_img.affine, atol=1e-5)
@@ -346,8 +341,7 @@ def test_stc_arithmetic():
 
         a += a
         a -= a
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter('always')
+        with np.errstate(invalid='ignore'):
             a /= 2 * a
         a *= -a
 
@@ -359,8 +353,7 @@ def test_stc_arithmetic():
         b = 2 - a
         b = +a
         assert_array_equal(b.data, a.data)
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter('always')
+        with np.errstate(invalid='ignore'):
             a **= 3
         out.append(a)
 
@@ -507,7 +500,7 @@ def test_extract_label_time_course():
                   src, mode='mean')
 
     # but this works:
-    with warnings.catch_warnings(record=True):  # empty label
+    with pytest.warns(RuntimeWarning, match='does not contain any vertices'):
         tc = extract_label_time_course(stcs, empty_label, src, mode='mean',
                                        allow_empty=True)
     for arr in tc:
@@ -578,12 +571,10 @@ def test_morph_data():
                          grade=vertices_to, smooth=12, buffer_size=3,
                          subjects_dir=subjects_dir)
     # make sure we get a warning about # of steps
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='consider increasing'):
         morph_data(subject_from, subject_to, stc_from,
                    grade=vertices_to, smooth=1, buffer_size=3,
                    subjects_dir=subjects_dir)
-    assert sum('consider increasing' in str(ww.message) for ww in w) == 2
 
     assert_array_almost_equal(stc_to.data, stc_to1.data, 5)
     assert_array_almost_equal(stc_to1.data, stc_to2.data)
@@ -604,12 +595,10 @@ def test_morph_data():
                   vertices_to, morph_mat, subject_from='foo')
 
     # steps warning
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='steps'):
         compute_morph_matrix(subject_from, subject_to,
                              stc_from.vertices, vertices_to,
                              smooth=1, subjects_dir=subjects_dir)
-    assert_equal(len(w), 2)
 
     mean_from = stc_from.data.mean(axis=0)
     mean_to = stc_to1.data.mean(axis=0)
@@ -795,11 +784,9 @@ def test_spatio_temporal_src_connectivity():
     assert_array_equal(connectivity.todense(), connectivity3.todense())
     # add test for source space connectivity with omitted vertices
     inverse_operator = read_inverse_operator(fname_inv)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        src_ = inverse_operator['src']
+    src_ = inverse_operator['src']
+    with pytest.warns(RuntimeWarning, match='will have holes'):
         connectivity = spatio_temporal_src_connectivity(src_, n_times=2)
-    assert_equal(len(w), 1)
     a = connectivity.shape[0] / 2
     b = sum([s['nuse'] for s in inverse_operator['src']])
     assert (a == b)
@@ -976,7 +963,8 @@ def test_spatial_src_connectivity():
     # oct
     src = read_source_spaces(fname_src)
     assert src[0]['dist'] is not None  # distance info
-    con = spatial_src_connectivity(src).toarray()
+    with pytest.warns(RuntimeWarning, match='will have holes'):
+        con = spatial_src_connectivity(src).toarray()
     con_dist = spatial_src_connectivity(src, dist=0.01).toarray()
     assert (con == con_dist).mean() > 0.75
     # ico

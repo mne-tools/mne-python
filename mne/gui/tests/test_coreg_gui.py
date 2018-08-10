@@ -8,7 +8,6 @@ import re
 import shutil
 import sys
 from unittest import SkipTest
-import warnings
 
 import numpy as np
 from numpy.testing import (assert_allclose, assert_equal,
@@ -37,7 +36,6 @@ fname_trans = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
 kit_raw_path = op.join(kit_data_dir, 'test_bin_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')
-warnings.simplefilter('always')
 
 
 @testing.requires_testing_data
@@ -56,10 +54,9 @@ def test_coreg_model_decimation():
         os.remove(op.join(subject_dir, 'bem', fname))
 
     model = CoregModel(guess_mri_subject=False)
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='No low-resolution'):
         model.mri.subjects_dir = tempdir
     assert model.mri.subject == 'sample'  # already set by setting subjects_dir
-    assert any('No low-resolution' in str(ww.message) for ww in w)
     assert model.mri.bem_low_res.file == ''
     assert len(model.mri.bem_low_res.surf.rr) == 2562
     assert len(model.mri.bem_high_res.surf.rr) == 2562  # because we moved it
@@ -325,8 +322,7 @@ def test_coreg_model_with_fsaverage():
 
     # test switching raw disables point omission
     assert_equal(model.hsp.n_omitted, 1)
-    with warnings.catch_warnings(record=True):
-        model.hsp.file = kit_raw_path
+    model.hsp.file = kit_raw_path
     assert_equal(model.hsp.n_omitted, 0)
 
 

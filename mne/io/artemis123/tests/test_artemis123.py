@@ -4,10 +4,10 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import warnings
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
+import pytest
 
 from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_artemis123
@@ -72,7 +72,7 @@ def test_data():
     assert_equal(raw.info['sfreq'], 5000.0)
 
     # test with head loc and digitization
-    with warnings.catch_warnings(record=True):  # bad dig
+    with pytest.warns(RuntimeWarning, match='Large difference'):
         raw = read_raw_artemis123(short_HPI_dip_fname,  add_head_trans=True,
                                   pos_fname=dig_fname)
     _assert_trans(raw.info['dev_head_t']['trans'], dev_head_t_1)

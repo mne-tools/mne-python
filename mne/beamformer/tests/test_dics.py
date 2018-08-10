@@ -3,7 +3,6 @@
 #
 # License: BSD 3 clause
 
-import warnings
 import os.path as op
 import copy as cp
 
@@ -20,10 +19,6 @@ from mne.time_frequency import csd_morlet
 from mne.utils import run_tests_if_main
 from mne.externals.six import advance_iterator
 from mne.proj import compute_proj_evoked, make_projector
-
-# Note that if this is the first test file, this will apply to all subsequent
-# tests in a full test:
-warnings.simplefilter('always')  # ensure we can verify expected warnings
 
 data_path = testing.data_path(download=False)
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -278,9 +273,9 @@ def test_apply_dics_csd():
                              real_filter=True)
     # Also test here that no warings are thrown - implemented to check whether
     # src should not be None warning occurs:
-    with warnings.catch_warnings(record=True) as wrn:
+    with pytest.warns(None) as w:
         power, f = apply_dics_csd(csd, filters_real)
-    assert len(wrn) == 0
+    assert len(w) == 0
 
     assert f == [10, 20]
     assert np.argmax(power.data[:, 1]) == source_ind
@@ -340,7 +335,7 @@ def test_apply_dics_timeseries():
     # Sanity checks on the resulting STC after applying DICS on epochs.
     # Also test here that no warnings are thrown - implemented to check whether
     # src should not be None warning occurs
-    with warnings.catch_warnings(record=True) as wrn:
+    with pytest.warns(None) as wrn:
         stcs = apply_dics_epochs(epochs, filters)
     assert len(wrn) == 0
 
@@ -496,7 +491,7 @@ def test_tf_dics():
 
     # Test if subtracting evoked responses yields NaN's, since we only have one
     # epoch. Suppress division warnings.
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='[invalid|empty]'):
         stcs = tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
                        mode='cwt_morlet', frequencies=frequencies,
                        subtract_evoked=True, reg=reg, label=label, decim=20)

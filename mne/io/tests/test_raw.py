@@ -151,5 +151,5 @@ def test_annotation_property_deprecation_warning():
     with pytest.warns(None) as record:
         raw = RawArray(np.random.rand(1, 1), create_info(1, 1))
     assert len(record) is 0
-    with pytest.warns(DeprecationWarning, match='assignation is deprecated'):
+    with pytest.warns(DeprecationWarning, match='by assignment is deprecated'):
         raw.annotations = None

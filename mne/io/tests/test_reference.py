@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-import warnings
 import os.path as op
 import numpy as np
 
@@ -21,8 +20,6 @@ from mne.io.proj import _has_eeg_average_ref_proj, Projection
 from mne.io.reference import _apply_reference
 from mne.datasets import testing
 from mne.utils import run_tests_if_main
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
@@ -155,9 +152,9 @@ def test_set_eeg_reference():
                     [ch for ch in eeg_chans if ch not in raw.info['bads']])
 
     # Test setting an average reference when one was already present
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='untouched'):
         reref, ref_data = set_eeg_reference(raw, copy=False, projection=True)
-    assert (ref_data is None)
+    assert ref_data is None
 
     # Test setting an average reference on non-preloaded data
     raw_nopreload = read_raw_fif(fif_fname, preload=False)
@@ -418,7 +415,7 @@ def test_add_reference():
     # create epochs in delayed mode, allowing removal of CAR when re-reffing
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True, proj='delayed')
-    with warnings.catch_warnings(record=True):  # multiple set zero
+    with pytest.warns(RuntimeWarning, match='ignored'):
         epochs_ref = add_reference_channels(epochs, ['M1', 'M2'], copy=True)
     assert_equal(epochs_ref._data.shape[1], epochs._data.shape[1] + 2)
     _check_channel_names(epochs_ref, ['M1', 'M2'])
@@ -458,7 +455,7 @@ def test_add_reference():
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True, proj='delayed')
     evoked = epochs.average()
-    with warnings.catch_warnings(record=True):  # multiple set zero
+    with pytest.warns(RuntimeWarning, match='ignored'):
         evoked_ref = add_reference_channels(evoked, ['M1', 'M2'], copy=True)
     assert_equal(evoked_ref.data.shape[0], evoked.data.shape[0] + 2)
     _check_channel_names(evoked_ref, ['M1', 'M2'])

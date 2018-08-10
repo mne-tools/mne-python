@@ -3,7 +3,6 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
 import pytest
-import warnings
 
 from mne.datasets import testing
 from mne import find_events, Epochs, pick_types
@@ -28,7 +27,6 @@ fname_inv = op.join(data_path, 'MEG', 'sample',
 fname_data = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc_raw.fif')
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
-warnings.simplefilter('always')
 
 
 @testing.requires_testing_data

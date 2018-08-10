@@ -5,7 +5,6 @@
 
 from functools import partial
 import os
-import warnings
 
 import numpy as np
 from scipy import sparse, linalg, stats
@@ -20,8 +19,6 @@ from mne.stats.cluster_level import (permutation_cluster_test,
                                      spatio_temporal_cluster_1samp_test,
                                      ttest_1samp_no_p, summarize_clusters_stc)
 from mne.utils import run_tests_if_main, _TempDir, catch_logging
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
 n_space = 50
@@ -65,14 +62,13 @@ def test_cache_dir():
             permutation_cluster_1samp_test(
                 X, buffer_size=None, n_jobs=2, n_permutations=1,
                 seed=0, stat_fun=ttest_1samp_no_p, verbose=False)
-            # ensure that non-independence yields warning
-            stat_fun = partial(ttest_1samp_no_p, sigma=1e-3)
-            assert 'independently' not in log_file.getvalue()
-            with warnings.catch_warnings(record=True):  # independently
-                permutation_cluster_1samp_test(
-                    X, buffer_size=10, n_jobs=2, n_permutations=1,
-                    seed=0, stat_fun=stat_fun, verbose=False)
-            assert 'independently' in log_file.getvalue()
+        assert 'independently' not in log_file.getvalue()
+        # ensure that non-independence yields warning
+        stat_fun = partial(ttest_1samp_no_p, sigma=1e-3)
+        with pytest.warns(RuntimeWarning, match='independently'):
+            permutation_cluster_1samp_test(
+                X, buffer_size=10, n_jobs=2, n_permutations=1,
+                seed=0, stat_fun=stat_fun, verbose=False)
     finally:
         if orig_dir is not None:
             os.environ['MNE_CACHE_DIR'] = orig_dir
@@ -155,11 +151,9 @@ def test_cluster_permutation_test():
     def stat_fun(X, Y):
         return stats.f_oneway(X, Y)[0]
 
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='is only valid'):
         permutation_cluster_test([condition1, condition2], n_permutations=1,
                                  stat_fun=stat_fun)
-    assert_equal(len(w), 1)
-    assert 'is only valid' in str(w[0].message)
 
 
 def test_cluster_permutation_t_test():
@@ -197,7 +191,7 @@ def test_cluster_permutation_t_test():
 
             # test with 2 jobs and buffer_size enabled
             buffer_size = condition1.shape[1] // 10
-            with warnings.catch_warnings(record=True):  # independently
+            with pytest.warns(None):  # sometimes "independently"
                 T_obs_neg_buff, _, cluster_p_values_neg_buff, _ = \
                     permutation_cluster_1samp_test(
                         -condition1, n_permutations=100, tail=-1,
@@ -320,7 +314,7 @@ def test_cluster_permutation_with_connectivity():
                       connectivity=connectivity, threshold=dict(me='hello'))
 
         # too extreme a start threshold
-        with warnings.catch_warnings(record=True) as w:
+        with pytest.warns(None) as w:
             spatio_temporal_func(X1d_3, connectivity=connectivity,
                                  threshold=dict(start=10, step=1))
         if not did_warn:
@@ -503,11 +497,9 @@ def test_permutation_test_H0():
     """Test that H0 is populated properly during testing."""
     rng = np.random.RandomState(0)
     data = rng.rand(7, 10, 1) - 0.5
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='No clusters found'):
         t, clust, p, h0 = spatio_temporal_cluster_1samp_test(
             data, threshold=100, n_permutations=1024, seed=rng)
-    assert_equal(len(w), 1)
-    assert 'No clusters found' in str(w[0].message)
     assert_equal(len(h0), 0)
 
     for n_permutations in (1024, 65, 64, 63):
@@ -516,10 +508,8 @@ def test_permutation_test_H0():
         assert_equal(len(h0), min(n_permutations, 64))
         assert isinstance(clust[0], tuple)  # sets of indices
     for tail, thresh in zip((-1, 0, 1), (-0.1, 0.1, 0.1)):
-        with warnings.catch_warnings(record=True) as w:
-            t, clust, p, h0 = spatio_temporal_cluster_1samp_test(
-                data, threshold=thresh, seed=rng, tail=tail, out_type='mask')
-        assert_equal(len(w), 0)
+        t, clust, p, h0 = spatio_temporal_cluster_1samp_test(
+            data, threshold=thresh, seed=rng, tail=tail, out_type='mask')
         assert isinstance(clust[0], np.ndarray)  # bool mask
         # same as "128 if tail else 64"
         assert_equal(len(h0), 2 ** (7 - (tail == 0)))  # exact test

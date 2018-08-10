@@ -6,7 +6,6 @@ from copy import deepcopy
 from os import remove
 import os.path as op
 from shutil import copy
-import warnings
 
 import numpy as np
 import pytest
@@ -29,8 +28,6 @@ from mne.io import read_info
 
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')
 
 fname_raw = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                     'test_raw.fif')
@@ -263,7 +260,7 @@ def test_fit_sphere_to_headshape():
 
     #  # Test with 4 points that match a perfect sphere
     dig_kinds = (FIFF.FIFFV_POINT_CARDINAL, FIFF.FIFFV_POINT_EXTRA)
-    with warnings.catch_warnings(record=True):  # not enough points
+    with pytest.warns(RuntimeWarning, match='Only .* head digitization'):
         r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds,
                                             units='m')
     kwargs = dict(rtol=1e-3, atol=1e-5)
@@ -274,7 +271,7 @@ def test_fit_sphere_to_headshape():
     # Test with all points
     dig_kinds = ('cardinal', FIFF.FIFFV_POINT_EXTRA, 'eeg')
     kwargs = dict(rtol=1e-3, atol=1e-3)
-    with warnings.catch_warnings(record=True):  # not enough points
+    with pytest.warns(RuntimeWarning, match='Only .* head digitization'):
         r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds,
                                             units='m')
     assert_allclose(r, rad, **kwargs)
@@ -283,7 +280,7 @@ def test_fit_sphere_to_headshape():
 
     # Test with some noisy EEG points only.
     dig_kinds = 'eeg'
-    with warnings.catch_warnings(record=True):  # not enough points
+    with pytest.warns(RuntimeWarning, match='Only .* head digitization'):
         r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds,
                                             units='m')
     kwargs = dict(rtol=1e-3, atol=1e-2)
@@ -298,13 +295,9 @@ def test_fit_sphere_to_headshape():
         d['r'] -= center
         d['r'] *= big_rad / rad
         d['r'] += center
-    with warnings.catch_warnings(record=True):  # fit
-        with catch_logging() as log_file:
-            r, oh, od = fit_sphere_to_headshape(info_big, dig_kinds=dig_kinds,
-                                                verbose='warning', units='mm')
-    log_file = log_file.getvalue().strip()
-    assert_equal(len(log_file.split('\n')), 2)
-    assert 'Estimated head size' in log_file
+    with pytest.warns(RuntimeWarning, match='Estimated head size'):
+        r, oh, od = fit_sphere_to_headshape(info_big, dig_kinds=dig_kinds,
+                                            units='mm')
     assert_allclose(oh, center * 1000, atol=1e-3)
     assert_allclose(r, big_rad * 1000, atol=1e-3)
     del info_big
@@ -316,32 +309,28 @@ def test_fit_sphere_to_headshape():
     for d in info_shift['dig']:
         d['r'] -= center
         d['r'] += shift_center
-    with warnings.catch_warnings(record=True):
-        with catch_logging() as log_file:
-            r, oh, od = fit_sphere_to_headshape(
-                info_shift, dig_kinds=dig_kinds, verbose='warning', units='m')
-    log_file = log_file.getvalue().strip()
-    assert_equal(len(log_file.split('\n')), 2)
-    assert 'from head frame origin' in log_file
+    with pytest.warns(RuntimeWarning, match='from head frame origin'):
+        r, oh, od = fit_sphere_to_headshape(
+            info_shift, dig_kinds=dig_kinds, units='m')
     assert_allclose(oh, shift_center, atol=1e-6)
     assert_allclose(r, rad, atol=1e-6)
 
     # Test "auto" mode (default)
     # Should try "extra", fail, and go on to EEG
-    with warnings.catch_warnings(record=True):  # not enough points
+    with pytest.warns(RuntimeWarning, match='Only .* head digitization'):
         r, oh, od = fit_sphere_to_headshape(info, units='m')
     kwargs = dict(rtol=1e-3, atol=1e-3)
     assert_allclose(r, rad, **kwargs)
     assert_allclose(oh, center, **kwargs)
     assert_allclose(od, dev_center, **kwargs)
-    with warnings.catch_warnings(record=True):  # not enough points
+    with pytest.warns(RuntimeWarning, match='Only .* head digitization'):
         r2, oh2, od2 = fit_sphere_to_headshape(info, units='m')
     assert_allclose(r, r2, atol=1e-7)
     assert_allclose(oh, oh2, atol=1e-7)
     assert_allclose(od, od2, atol=1e-7)
     # this one should pass, 1 EXTRA point and 3 EEG (but the fit is terrible)
     info = Info(dig=dig[:7], dev_head_t=dev_head_t)
-    with warnings.catch_warnings(record=True):  # bad fit
+    with pytest.warns(RuntimeWarning, match='Only .* head digitization'):
         r, oh, od = fit_sphere_to_headshape(info, units='m')
     # this one should fail, 1 EXTRA point and 3 EEG (but the fit is terrible)
     info = Info(dig=dig[:6], dev_head_t=dev_head_t)

@@ -3,7 +3,6 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import warnings
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -46,8 +45,6 @@ art_fname = op.join(data_path, 'ARTEMIS123', 'Artemis_Data_2017-04-04' +
                     '-15h-44m-22s_Motion_Translation-z.bin')
 art_mc_fname = op.join(data_path, 'ARTEMIS123', 'Artemis_Data_2017-04-04' +
                        '-15h-44m-22s_Motion_Translation-z_mc.pos')
-
-warnings.simplefilter('always')
 
 
 @testing.requires_testing_data
@@ -213,7 +210,7 @@ def test_calculate_chpi_positions():
     picks = np.concatenate([np.arange(306, len(raw_bad.ch_names)),
                             pick_types(raw_bad.info, meg=True)[::16]])
     raw_bad.pick_channels([raw_bad.ch_names[pick] for pick in picks])
-    with warnings.catch_warnings(record=True):  # bad pos
+    with pytest.warns(RuntimeWarning, match='Discrepancy'):
         with catch_logging() as log_file:
             _calculate_chpi_positions(raw_bad, t_step_min=1., verbose=True)
     # ignore HPI info header and [done] footer
@@ -402,8 +399,7 @@ def test_chpi_subtraction():
     #           -o test_move_anon_ds2_raw.fif
     # it can strip out some values of info, which we emulate here:
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
-    with warnings.catch_warnings(record=True):  # uint cast suggestion
-        raw = raw.crop(0, 1).load_data().resample(600., npad='auto')
+    raw = raw.crop(0, 1).load_data().resample(600., npad='auto')
     raw.info['lowpass'] = 200.
     del raw.info['maxshield']
     del raw.info['hpi_results'][0]['moments']

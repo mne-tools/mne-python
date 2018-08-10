@@ -2,7 +2,6 @@ import os
 import os.path as op
 import shutil
 import glob
-import warnings
 
 import numpy as np
 from scipy import sparse
@@ -26,8 +25,6 @@ from mne.source_estimate import mesh_edges
 from mne.externals.six import string_types
 from mne.externals.six.moves import cPickle as pickle
 
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -491,9 +488,9 @@ def test_write_labels_to_annot():
 
     # write left and right hemi labels with filenames:
     fnames = [op.join(tempdir, hemi + '-myparc') for hemi in ['lh', 'rh']]
-    with warnings.catch_warnings(record=True):  # specify subject_dir param
-        for fname in fnames:
-                write_labels_to_annot(labels, annot_fname=fname)
+    for fname in fnames:
+        with pytest.warns(RuntimeWarning, match='subjects_dir'):
+            write_labels_to_annot(labels, annot_fname=fname)
 
     # read it back
     labels2 = read_labels_from_annot('sample', subjects_dir=subjects_dir,
@@ -635,9 +632,7 @@ def test_split_label():
 @requires_sklearn
 def test_stc_to_label():
     """Test stc_to_label."""
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        src = read_source_spaces(fwd_fname)
+    src = read_source_spaces(fwd_fname)
     src_bad = read_source_spaces(src_bad_fname)
     stc = read_source_estimate(stc_fname, 'sample')
     os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
@@ -647,12 +642,10 @@ def test_stc_to_label():
     for l1, l2 in zip(labels1, labels2):
         assert_labels_equal(l1, l2, decimal=4)
 
-    with warnings.catch_warnings(record=True) as w:  # connectedness warning
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='have holes'):
         labels_lh, labels_rh = stc_to_label(stc, src=src, smooth=True,
                                             connected=True)
 
-    assert (len(w) > 0)
     pytest.raises(ValueError, stc_to_label, stc, 'sample', smooth=True,
                   connected=True)
     pytest.raises(RuntimeError, stc_to_label, stc, smooth=True, src=src_bad,
@@ -683,11 +676,9 @@ def test_stc_to_label():
     assert (len(labels_rh) > 1)
 
     # with smooth='patch'
-    with warnings.catch_warnings(record=True) as w:  # connectedness warning
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='have holes'):
         labels_patch = stc_to_label(stc, src=src, smooth=True)
-    assert_equal(len(w), 1)
-    assert_equal(len(labels_patch), len(labels1))
+    assert len(labels_patch) == len(labels1)
     for l1, l2 in zip(labels1, labels2):
         assert_labels_equal(l1, l2, decimal=4)
 
@@ -717,13 +708,13 @@ def test_morph():
     verts = [np.arange(10242), np.arange(10242)]
     for hemi in ['lh', 'rh']:
         label.hemi = hemi
-        with warnings.catch_warnings(record=True):  # morph map maybe missing
+        with pytest.warns(None):  # morph map maybe missing
             label.morph(None, 'fsaverage', 5, verts, subjects_dir, 2)
     pytest.raises(TypeError, label.morph, None, 1, 5, verts,
                   subjects_dir, 2)
     pytest.raises(TypeError, label.morph, None, 'fsaverage', 5.5, verts,
                   subjects_dir, 2)
-    with warnings.catch_warnings(record=True):  # morph map could be missing
+    with pytest.warns(None):  # morph map maybe missing
         label.smooth(subjects_dir=subjects_dir)  # make sure this runs
 
 

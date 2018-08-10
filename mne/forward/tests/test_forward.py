@@ -1,6 +1,5 @@
 import os
 import os.path as op
-import warnings
 import gc
 
 import pytest
@@ -13,7 +12,6 @@ from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  average_forward_solutions, write_forward_solution,
                  convert_forward_solution, SourceEstimate, pick_types_forward,
                  read_evokeds)
-from mne.tests.common import assert_naming
 from mne.label import read_label
 from mne.utils import (requires_mne, run_subprocess, _TempDir,
                        run_tests_if_main)
@@ -106,8 +104,7 @@ def test_io_forward():
     assert_equal(leadfield.shape, (n_channels, n_src))
     assert_equal(len(fwd['sol']['row_names']), n_channels)
     fname_temp = op.join(temp_dir, 'test-fwd.fif')
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='stored on disk'):
         write_forward_solution(fname_temp, fwd, overwrite=True)
 
     fwd = read_forward_solution(fname_meeg_grad)
@@ -125,8 +122,7 @@ def test_io_forward():
     fwd = read_forward_solution(fname_meeg)
     fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
                                    use_cps=False)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='stored on disk'):
         write_forward_solution(fname_temp, fwd, overwrite=True)
     fwd_read = read_forward_solution(fname_temp)
     fwd_read = convert_forward_solution(fwd_read, surf_ori=True,
@@ -145,8 +141,7 @@ def test_io_forward():
     assert ('dev_head_t' in fwd['info'])
     assert ('mri_head_t' in fwd)
     assert (fwd['surf_ori'])
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='stored on disk'):
         write_forward_solution(fname_temp, fwd, overwrite=True)
     fwd_read = read_forward_solution(fname_temp)
     fwd_read = convert_forward_solution(fwd_read, surf_ori=True,
@@ -166,8 +161,7 @@ def test_io_forward():
     assert ('dev_head_t' in fwd['info'])
     assert ('mri_head_t' in fwd)
     assert (fwd['surf_ori'])
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='stored on disk'):
         write_forward_solution(fname_temp, fwd, overwrite=True)
     fwd_read = read_forward_solution(fname_temp)
     fwd_read = convert_forward_solution(fwd_read, surf_ori=True,
@@ -179,12 +173,11 @@ def test_io_forward():
 
     # test warnings on bad filenames
     fwd = read_forward_solution(fname_meeg_grad)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        fwd_badname = op.join(temp_dir, 'test-bad-name.fif.gz')
+    fwd_badname = op.join(temp_dir, 'test-bad-name.fif.gz')
+    with pytest.warns(RuntimeWarning, match='end with'):
         write_forward_solution(fwd_badname, fwd)
+    with pytest.warns(RuntimeWarning, match='end with'):
         read_forward_solution(fwd_badname)
-    assert_naming(w, 'test_forward.py', 2)
 
     fwd = read_forward_solution(fname_meeg)
     write_forward_solution(fname_temp, fwd, overwrite=True)
@@ -214,32 +207,32 @@ def test_apply_forward():
     gain_sum = np.sum(fwd['sol']['data'], axis=1)
 
     # Evoked
-    with warnings.catch_warnings(record=True) as w:
-        evoked = read_evokeds(fname_evoked, condition=0)
-        evoked.pick_types(meg=True)
+    evoked = read_evokeds(fname_evoked, condition=0)
+    evoked.pick_types(meg=True)
+    with pytest.warns(RuntimeWarning, match='only .* positive values'):
         evoked = apply_forward(fwd, stc, evoked.info, start=start, stop=stop)
-        assert_equal(len(w), 2)
-        data = evoked.data
-        times = evoked.times
+    data = evoked.data
+    times = evoked.times
 
-        # do some tests
-        assert_array_almost_equal(evoked.info['sfreq'], sfreq)
-        assert_array_almost_equal(np.sum(data, axis=1), n_times * gain_sum)
-        assert_array_almost_equal(times[0], t_start)
-        assert_array_almost_equal(times[-1], t_start + (n_times - 1) / sfreq)
+    # do some tests
+    assert_array_almost_equal(evoked.info['sfreq'], sfreq)
+    assert_array_almost_equal(np.sum(data, axis=1), n_times * gain_sum)
+    assert_array_almost_equal(times[0], t_start)
+    assert_array_almost_equal(times[-1], t_start + (n_times - 1) / sfreq)
 
-        # Raw
+    # Raw
+    with pytest.warns(RuntimeWarning, match='only .* positive values'):
         raw_proj = apply_forward_raw(fwd, stc, evoked.info, start=start,
                                      stop=stop)
-        data, times = raw_proj[:, :]
+    data, times = raw_proj[:, :]
 
-        # do some tests
-        assert_array_almost_equal(raw_proj.info['sfreq'], sfreq)
-        assert_array_almost_equal(np.sum(data, axis=1), n_times * gain_sum)
-        atol = 1. / sfreq
-        assert_allclose(raw_proj.first_samp / sfreq, t_start, atol=atol)
-        assert_allclose(raw_proj.last_samp / sfreq,
-                        t_start + (n_times - 1) / sfreq, atol=atol)
+    # do some tests
+    assert_array_almost_equal(raw_proj.info['sfreq'], sfreq)
+    assert_array_almost_equal(np.sum(data, axis=1), n_times * gain_sum)
+    atol = 1. / sfreq
+    assert_allclose(raw_proj.first_samp / sfreq, t_start, atol=atol)
+    assert_allclose(raw_proj.last_samp / sfreq,
+                    t_start + (n_times - 1) / sfreq, atol=atol)
 
 
 @testing.requires_testing_data
@@ -289,8 +282,7 @@ def test_restrict_forward_to_stc():
     # are properly accounted for.
     temp_dir = _TempDir()
     fname_copy = op.join(temp_dir, 'copy-fwd.fif')
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='stored on disk'):
         write_forward_solution(fname_copy, fwd_out, overwrite=True)
     fwd_out_read = read_forward_solution(fname_copy)
     fwd_out_read = convert_forward_solution(fwd_out_read, surf_ori=True,

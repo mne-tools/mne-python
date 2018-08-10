@@ -14,7 +14,6 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose, assert_equal)
 import numpy as np
 import copy as cp
-import warnings
 import matplotlib
 
 import mne
@@ -39,11 +38,9 @@ from mne.io.constants import FIFF
 from mne.externals.six import text_type
 from mne.externals.six.moves import zip, cPickle as pickle
 from mne.datasets import testing
-from mne.tests.common import assert_meg_snr, assert_naming
+from mne.tests.common import assert_meg_snr
 
 matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 data_path = testing.data_path(download=False)
 fname_raw_move = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
@@ -522,15 +519,10 @@ def test_epochs_hash():
 def test_event_ordering():
     """Test event order."""
     raw, events = _get_data()[:2]
-    events2 = events.copy()
-    rng.shuffle(events2)
-    for ii, eve in enumerate([events, events2]):
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
-            Epochs(raw, eve, event_id, tmin, tmax, reject=reject, flat=flat)
-            assert_equal(len(w), ii)
-            if ii > 0:
-                assert ('chronologically' in '%s' % w[-1].message)
+    events2 = events.copy()[::-1]
+    Epochs(raw, events, event_id, tmin, tmax, reject=reject, flat=flat)
+    with pytest.warns(RuntimeWarning, match='chronologically'):
+        Epochs(raw, events2, event_id, tmin, tmax, reject=reject, flat=flat)
     # Duplicate events should be an error...
     events2 = events[[0, 0]]
     events2[:, 2] = [1, 2]
@@ -639,7 +631,7 @@ def test_read_epochs_bad_events():
     # Event at the beginning
     epochs = Epochs(raw, np.array([[raw.first_samp, 0, event_id]]),
                     event_id, tmin, tmax, picks=picks)
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='empty'):
         evoked = epochs.average()
 
     epochs = Epochs(raw, np.array([[raw.first_samp, 0, event_id]]),
@@ -647,17 +639,16 @@ def test_read_epochs_bad_events():
     assert (repr(epochs))  # test repr
     epochs.drop_bad()
     assert (repr(epochs))
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='empty'):
         evoked = epochs.average()
 
     # Event at the end
     epochs = Epochs(raw, np.array([[raw.last_samp, 0, event_id]]),
                     event_id, tmin, tmax, picks=picks)
 
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='empty'):
         evoked = epochs.average()
-        assert evoked
-    warnings.resetwarnings()
+    assert evoked
 
 
 @pytest.mark.slowtest
@@ -695,17 +686,14 @@ def test_read_write_epochs():
     assert (data.shape[1] == (data_no_eog.shape[1] + len(eog_picks)))
 
     # test decim kwarg
-    with warnings.catch_warnings(record=True) as w:
-        # decim with lowpass
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='aliasing'):
         epochs_dec = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                             decim=2)
-        assert_equal(len(w), 1)
 
-        # decim without lowpass
-        epochs_dec.info['lowpass'] = None
+    # decim without lowpass
+    epochs_dec.info['lowpass'] = None
+    with pytest.warns(RuntimeWarning, match='aliasing'):
         epochs_dec.decimate(2)
-        assert_equal(len(w), 2)
 
     data_dec = epochs_dec.get_data()
     assert_allclose(data[:, :, epochs_dec._decim_slice], data_dec, rtol=1e-7,
@@ -753,9 +741,7 @@ def test_read_write_epochs():
     epochs_copy = epochs_read.copy()
     del epochs_read
     epochs_copy.get_data()
-    with warnings.catch_warnings(record=True) as w:
-        del epochs_copy
-    assert_equal(len(w), 0)
+    del epochs_copy
 
     # test IO
     for preload in (False, True):
@@ -828,12 +814,11 @@ def test_read_write_epochs():
             epochs_read5.drop_channels(epochs_read5.ch_names[:1])
 
         # test warnings on bad filenames
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
-            epochs_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+        epochs_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+        with pytest.warns(RuntimeWarning, match='-epo.fif'):
             epochs.save(epochs_badname)
+        with pytest.warns(RuntimeWarning, match='-epo.fif'):
             read_epochs(epochs_badname, preload=preload)
-        assert_naming(w, 'test_epochs.py', 2)
 
         # test loading epochs with missing events
         epochs = Epochs(raw, events, dict(foo=1, bar=999), tmin, tmax,
@@ -988,12 +973,10 @@ def test_evoked_io_from_epochs():
     """Test IO of evoked data made from epochs."""
     tempdir = _TempDir()
     raw, events, picks = _get_data()
+    raw.info['lowpass'] = 40  # avoid aliasing warnings
     # offset our tmin so we don't get exactly a zero value when decimating
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        epochs = Epochs(raw, events[:4], event_id, tmin + 0.011, tmax,
-                        picks=picks, decim=5)
-    assert (len(w) == 1)
+    epochs = Epochs(raw, events[:4], event_id, tmin + 0.011, tmax,
+                    picks=picks, decim=5)
     evoked = epochs.average()
     evoked.info['proj_name'] = ''  # Test that empty string shortcuts to None.
     evoked.save(op.join(tempdir, 'evoked-ave.fif'))
@@ -1004,10 +987,8 @@ def test_evoked_io_from_epochs():
                     atol=1 / evoked.info['sfreq'])
 
     # now let's do one with negative time
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        epochs = Epochs(raw, events[:4], event_id, 0.1, tmax,
-                        picks=picks, baseline=(0.1, 0.2), decim=5)
+    epochs = Epochs(raw, events[:4], event_id, 0.1, tmax,
+                    picks=picks, baseline=(0.1, 0.2), decim=5)
     evoked = epochs.average()
     evoked.save(op.join(tempdir, 'evoked-ave.fif'))
     evoked2 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'))[0]
@@ -1015,10 +996,8 @@ def test_evoked_io_from_epochs():
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
 
     # should be equivalent to a cropped original
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        epochs = Epochs(raw, events[:4], event_id, -0.2, tmax,
-                        picks=picks, baseline=(0.1, 0.2), decim=5)
+    epochs = Epochs(raw, events[:4], event_id, -0.2, tmax,
+                    picks=picks, baseline=(0.1, 0.2), decim=5)
     evoked = epochs.average()
     evoked.crop(0.099, None)
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
@@ -1205,9 +1184,8 @@ def test_crop():
 
     epochs2 = Epochs(raw, events[:5], event_id, tmin, tmax,
                      picks=picks, preload=True, reject=reject, flat=flat)
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='tmax is set to'):
         epochs2.crop(-20, 200)
-    assert (len(w) == 2)
 
     # indices for slicing
     tmin_window = tmin + 0.1
@@ -1232,7 +1210,7 @@ def test_crop():
                          np.ones((1, 3), int), tmin=-0.2)
     epochs.crop(-.200, .700)
     last_time = epochs.times[-1]
-    with warnings.catch_warnings(record=True):  # not LP filtered
+    with pytest.warns(RuntimeWarning, match='aliasing'):
         epochs.decimate(10)
     assert_allclose(last_time, epochs.times[-1])
 
@@ -1244,7 +1222,7 @@ def test_crop():
     epochs_crop = epochs.copy().crop(-1, 1)
     assert_allclose(epochs.times, epochs_crop.times, rtol=1e-12)
     # Ensure we don't allow silly crops
-    with warnings.catch_warnings(record=True):  # tmin/tmax out of bounds
+    with pytest.warns(RuntimeWarning, match='is set to'):
         pytest.raises(ValueError, epochs.crop, 1000, 2000)
         pytest.raises(ValueError, epochs.crop, 0.1, 0)
 
@@ -1549,13 +1527,9 @@ def test_access_by_name():
     # Test on_missing
     pytest.raises(ValueError, Epochs, raw, events, 1, tmin, tmax,
                   on_missing='foo')
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='No matching events'):
         Epochs(raw, events, event_id_illegal, tmin, tmax, on_missing='warning')
-        nw = len(w)
-        assert (1 <= nw <= 2)
-        Epochs(raw, events, event_id_illegal, tmin, tmax, on_missing='ignore')
-        assert_equal(len(w), nw)
+    Epochs(raw, events, event_id_illegal, tmin, tmax, on_missing='ignore')
 
     # Test constructing epochs with a list of ints as events
     epochs = Epochs(raw, events, [1, 2], tmin, tmax, picks=picks)
@@ -1995,7 +1969,7 @@ def test_add_channels_epochs():
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['chs'][1]['ch_name'] = epochs_meg2.info['ch_names'][0]
     epochs_meg2.info._update_redundant()
-    with warnings.catch_warnings(record=True):  # duplicate names
+    with pytest.warns(RuntimeWarning, match='not unique'):
         pytest.raises(RuntimeError, add_channels_epochs,
                       [epochs_meg2, epochs_eeg])
 

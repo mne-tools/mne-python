@@ -9,7 +9,6 @@ import os.path as op
 import shutil
 from unittest import SkipTest
 
-import warnings
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_equal)
@@ -44,8 +43,6 @@ raw_fnames = [raw_fname_mat, raw_fname_onefile_mat,
               raw_fname_h5, raw_fname_onefile_h5]
 montage = op.join(base_dir, 'test_chans.locs')
 
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
-
 
 def _check_h5(fname):
     if fname.endswith('_h5.set'):
@@ -62,9 +59,7 @@ def test_io_set_raw(fnames, tmpdir):
     """Test importing EEGLAB .set files."""
     tmpdir = str(tmpdir)
     raw_fname, raw_fname_onefile = fnames
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        # main tests, and test missing event_id
+    with pytest.warns(RuntimeWarning) as w:
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
                          montage=montage)
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
@@ -72,8 +67,7 @@ def test_io_set_raw(fnames, tmpdir):
     for want in ('Events like', 'consist entirely', 'could not be mapped',
                  'string preload is not supported'):
         assert (any(want in str(ww.message) for ww in w))
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning) as w:
         # test finding events in continuous data
         event_id = {'rt': 1, 'square': 2}
         raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
@@ -108,6 +102,7 @@ def test_io_set_raw(fnames, tmpdir):
         event.type = 1
     assert_equal(read_events_eeglab(eeg)[-1, -1], 1)
     eeg.event = eeg.event[0]  # single event
+    eeg.event.latency = float(eeg.event.latency) - .1  # test rounding
     assert_equal(read_events_eeglab(eeg)[-1, -1], 1)
 
     # test reading file with one event (read old version)
@@ -119,7 +114,7 @@ def test_io_set_raw(fnames, tmpdir):
                 'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
                 'epoch': eeg.epoch, 'event': eeg.event[0],
                 'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
-               appendmat=False)
+               appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     one_event_fname.replace('.set', '.fdt'))
     event_id = {eeg.event[0].type: 1}
@@ -137,12 +132,14 @@ def test_io_set_raw(fnames, tmpdir):
                {'trials': eeg.trials, 'srate': eeg.srate,
                 'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
                 'epoch': eeg.epoch, 'event': evnts,
-                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}}, appendmat=False)
+                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
+               appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     negative_latency_fname.replace('.set', '.fdt'))
     event_id = {eeg.event[0].type: 1}
-    pytest.raises(ValueError, read_raw_eeglab, montage=montage, preload=True,
-                  event_id=event_id, input_fname=negative_latency_fname)
+    with pytest.warns(RuntimeWarning, match="has a sample index of -1."):
+        read_raw_eeglab(input_fname=negative_latency_fname, preload=True,
+                        event_id=event_id, montage=montage)
 
     # test overlapping events
     overlap_fname = op.join(tmpdir, 'test_overlap_event.set')
@@ -151,16 +148,14 @@ def test_io_set_raw(fnames, tmpdir):
                 'nbchan': eeg.nbchan, 'data': 'test_overlap_event.fdt',
                 'epoch': eeg.epoch, 'event': [eeg.event[0], eeg.event[0]],
                 'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
-               appendmat=False)
+               appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     overlap_fname.replace('.set', '.fdt'))
     event_id = {'rt': 1, 'square': 2}
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='will be dropped'):
         raw = read_raw_eeglab(input_fname=overlap_fname,
                               montage=montage, event_id=event_id,
                               preload=True)
-    assert_equal(len(w), 1)  # one warning for the dropped event
     events_stimchan = find_events(raw)
     events_read_events_eeglab = read_events_eeglab(overlap_fname, event_id)
     assert (len(events_stimchan) == 1)
@@ -174,12 +169,12 @@ def test_io_set_raw(fnames, tmpdir):
                 'epoch': eeg.epoch, 'event': eeg.epoch,
                 'chanlocs': {'labels': 'E1', 'Y': -6.6069,
                              'X': 6.3023, 'Z': -2.9423},
-                'times': eeg.times[:3], 'pnts': 3}}, appendmat=False)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+                'times': eeg.times[:3], 'pnts': 3}},
+               appendmat=False, oned_as='row')
+    with pytest.warns(None) as w:
         read_raw_eeglab(input_fname=one_chan_fname, preload=True)
     # no warning for 'no events found'
-    assert_equal(len(w), 0)
+    assert len(w) == 0
 
     # test reading file with 3 channels - one without position information
     # first, create chanlocs structured array
@@ -203,13 +198,10 @@ def test_io_set_raw(fnames, tmpdir):
                 'nbchan': 3, 'data': np.random.random((3, 3)),
                 'epoch': eeg.epoch, 'event': eeg.epoch,
                 'chanlocs': chanlocs, 'times': eeg.times[:3], 'pnts': 3}},
-               appendmat=False)
+               appendmat=False, oned_as='row')
     # load it
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='did not have a position'):
         raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
-    # one warning because some channels are not found in Montage
-    assert_equal(len(w), 1)
     # position should be present for first two channels
     for i in range(2):
         assert_array_equal(raw.info['chs'][i]['loc'][:3],
@@ -220,12 +212,9 @@ def test_io_set_raw(fnames, tmpdir):
     assert_array_equal(raw.info['chs'][-1]['loc'][:3], [np.nan] * 3)
 
     # test reading channel names from set and positions from montage
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='did not have a position'):
         raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True,
                               montage=montage)
-    # one warning because some channels are not found in Montage
-    assert_equal(len(w), 1)
 
     # when montage was passed - channel positions should be taken from there
     correct_pos = [[-0.56705965, 0.67706631, 0.46906776], [np.nan] * 3,
@@ -242,11 +231,10 @@ def test_io_set_raw(fnames, tmpdir):
                {'trials': eeg.trials, 'srate': eeg.srate, 'nbchan': 3,
                 'data': np.random.random((3, 2)), 'epoch': eeg.epoch,
                 'event': eeg.epoch, 'chanlocs': nopos_chanlocs,
-                'times': eeg.times[:2], 'pnts': 2}}, appendmat=False)
+                'times': eeg.times[:2], 'pnts': 2}},
+               appendmat=False, oned_as='row')
     # load the file
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        raw = read_raw_eeglab(input_fname=nopos_fname, preload=True)
+    raw = read_raw_eeglab(input_fname=nopos_fname, preload=True)
     # test that channel names have been loaded but not channel positions
     for i in range(3):
         assert_equal(raw.info['chs'][i]['ch_name'], ch_names[i])
@@ -260,13 +248,12 @@ def test_io_set_raw(fnames, tmpdir):
 def test_io_set_epochs(fnames):
     """Test importing EEGLAB .set epochs files."""
     epochs_fname, epochs_fname_onefile = fnames
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='multiple events'):
         epochs = read_epochs_eeglab(epochs_fname)
+    with pytest.warns(RuntimeWarning, match='multiple events'):
         epochs2 = read_epochs_eeglab(epochs_fname_onefile)
     # one warning for each read_epochs_eeglab because both files have epochs
     # associated with multiple events
-    assert_equal(len(w), 2)
     assert_array_equal(epochs.get_data(), epochs2.get_data())
 
 
@@ -303,14 +290,13 @@ def test_degenerate(tmpdir):
                {'trials': eeg.trials, 'srate': eeg.srate,
                 'nbchan': eeg.nbchan, 'data': eeg.data,
                 'epoch': eeg.epoch, 'event': eeg.event,
-                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}}, appendmat=False)
+                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
+               appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_epochs.fdt'),
                     op.join(tmpdir, 'test_epochs.dat'))
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='multiple events'):
         pytest.raises(NotImplementedError, read_epochs_eeglab,
                       bad_epochs_fname)
-    assert_equal(len(w), 1)
 
 
 @pytest.mark.parametrize("fname", raw_fnames)

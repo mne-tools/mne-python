@@ -3,7 +3,6 @@
 #
 # License: BSD (3-clause)
 
-import warnings
 import os.path as op
 import numpy as np
 
@@ -16,8 +15,6 @@ from mne.decoding import (Scaler, FilterEstimator, PSDEstimator, Vectorizer,
                           UnsupervisedSpatialFilter, TemporalFilter)
 from mne.defaults import DEFAULTS
 from mne.utils import requires_version, run_tests_if_main, check_version
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
@@ -103,28 +100,25 @@ def test_filterestimator():
     # Add tests for different combinations of l_freq and h_freq
     filt = FilterEstimator(epochs.info, l_freq=40, h_freq=80)
     y = epochs.events[:, -1]
-    with warnings.catch_warnings(record=True):  # stop freq attenuation warning
-        X = filt.fit_transform(epochs_data, y)
-        assert (X.shape == epochs_data.shape)
-        assert_array_equal(filt.fit(epochs_data, y).transform(epochs_data), X)
+    X = filt.fit_transform(epochs_data, y)
+    assert (X.shape == epochs_data.shape)
+    assert_array_equal(filt.fit(epochs_data, y).transform(epochs_data), X)
 
     filt = FilterEstimator(epochs.info, l_freq=None, h_freq=40,
                            filter_length='auto',
                            l_trans_bandwidth='auto', h_trans_bandwidth='auto')
     y = epochs.events[:, -1]
-    with warnings.catch_warnings(record=True):  # stop freq attenuation warning
-        X = filt.fit_transform(epochs_data, y)
+    X = filt.fit_transform(epochs_data, y)
 
     filt = FilterEstimator(epochs.info, l_freq=1, h_freq=1)
     y = epochs.events[:, -1]
-    with warnings.catch_warnings(record=True):  # stop freq attenuation warning
+    with pytest.warns(RuntimeWarning, match='longer than'):
         pytest.raises(ValueError, filt.fit_transform, epochs_data, y)
 
     filt = FilterEstimator(epochs.info, l_freq=40, h_freq=None,
                            filter_length='auto',
                            l_trans_bandwidth='auto', h_trans_bandwidth='auto')
-    with warnings.catch_warnings(record=True):  # stop freq attenuation warning
-        X = filt.fit_transform(epochs_data, y)
+    X = filt.fit_transform(epochs_data, y)
 
     # Test init exception
     pytest.raises(ValueError, filt.fit, epochs, y)
@@ -233,7 +227,7 @@ def test_temporal_filter():
         assert (X.shape == Xt.shape)
 
     # Test fit and transform numpy type check
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='longer than the signal'):
         pytest.raises(TypeError, filt.transform, [1, 2])
 
     # Test with 2 dimensional data array
