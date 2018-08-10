@@ -172,7 +172,7 @@ def test_cluster_permutation_test():
         assert_equal(np.sum(cluster_p_values < 0.05), 1)
 
         T_obs, clusters, cluster_p_values, hist = permutation_cluster_test(
-            [condition1, condition2], n_permutations=100, tail=0, seed=1,
+            [condition1, condition2], n_permutations=100, tail=1, seed=1,
             buffer_size=None)
         assert_equal(np.sum(cluster_p_values < 0.05), 1)
 
@@ -180,7 +180,7 @@ def test_cluster_permutation_test():
         buffer_size = condition1.shape[1] // 10
         T_obs, clusters, cluster_p_values_buff, hist =\
             permutation_cluster_test([condition1, condition2],
-                                     n_permutations=100, tail=0, seed=1,
+                                     n_permutations=100, tail=1, seed=1,
                                      n_jobs=2, buffer_size=buffer_size)
         assert_array_equal(cluster_p_values, cluster_p_values_buff)
 
@@ -374,8 +374,9 @@ def test_cluster_permutation_with_connectivity():
                       connectivity=connectivity, threshold=[])
 
         # wrong value for tail
-        pytest.raises(ValueError, spatio_temporal_func, X1d_3,
-                      connectivity=connectivity, tail=2)
+        with pytest.warns(None):  # sometimes ignoring tail
+            pytest.raises(ValueError, spatio_temporal_func, X1d_3,
+                          connectivity=connectivity, tail=2)
 
         # make sure it actually found a significant point
         out_connectivity_6 = spatio_temporal_func(X1d_3, n_permutations=50,
