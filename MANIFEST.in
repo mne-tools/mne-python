@@ -1,5 +1,4 @@
 include *.rst
-include CODE_OF_CONDUCT.md
 include LICENSE.txt
 include requirements.txt
 include mne/__init__.py
@@ -43,7 +42,9 @@ recursive-exclude mne *.pyc
 recursive-exclude doc *
 recursive-exclude logo *
 
+exclude CODE_OF_CONDUCT.md
 exclude .github
+exclude .github/CONTRIBUTING.md
 exclude .github/ISSUE_TEMPLATE
 exclude .github/ISSUE_TEMPLATE/blank.md
 exclude .github/ISSUE_TEMPLATE/bug_report.md
