@@ -1,6 +1,5 @@
 include *.rst
 include CODE_OF_CONDUCT.md
-include CONTRIBUTING.md
 include LICENSE.txt
 include requirements.txt
 include mne/__init__.py
