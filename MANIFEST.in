@@ -4,6 +4,7 @@ include CONTRIBUTING.md
 include LICENSE.txt
 include requirements.txt
 include mne/__init__.py
+include .github/*
 
 recursive-include examples *.py
 recursive-include examples *.txt
