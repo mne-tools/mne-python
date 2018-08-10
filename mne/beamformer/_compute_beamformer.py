@@ -114,7 +114,7 @@ def _compare_ch_names(names1, names2, bads):
     return ch_names
 
 
-def _check_one_ch_type(info, picks, noise_cov, beamformer):
+def _check_one_ch_type(info, picks, noise_cov, method):
     """Check number of sensor types and presence of noise covariance matrix."""
     # XXX : ugly hack to avoid picking subset of info with applied comps
     comps = info['comps']
@@ -123,11 +123,11 @@ def _check_one_ch_type(info, picks, noise_cov, beamformer):
     info['comps'] = comps
     ch_types =\
         [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
-    if beamformer == 'lcmv' and sum(ch_types) > 1 and noise_cov is None:
+    if method == 'lcmv' and sum(ch_types) > 1 and noise_cov is None:
         raise ValueError('Source reconstruction with several sensor types '
                          'requires a noise covariance matrix to be '
                          'able to apply whitening.')
-    elif beamformer == 'dics' and sum(ch_types) > 1:
+    elif method == 'dics' and sum(ch_types) > 1:
         warn('The use of several sensor types with the DICS beamformer is '
              'not heavily tested yet.')
 
@@ -252,15 +252,15 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
     return is_free_ori, ch_names, proj, vertno, G
 
 
-def _compute_beamformer(beamformer, G, Cm, reg, n_orient, weight_norm,
+def _compute_beamformer(method, G, Cm, reg, n_orient, weight_norm,
                         pick_ori, reduce_rank, rank, is_free_ori,
                         inversion=None):
     """Compute a spatial filter (LCMV or DICS)."""
     # Tikhonov regularization using reg parameter d to control for
     # trade-off between spatial resolution and noise sensitivity
-    if beamformer == 'lcmv':
+    if method == 'lcmv':
         Cm_inv, d = _reg_pinv(Cm.copy(), reg)
-    elif beamformer == 'dics':
+    elif method == 'dics':
         Cm_inv, _ = _reg_pinv(Cm, reg, rcond='auto')
 
     if weight_norm is not None and inversion is not 'single':
@@ -288,11 +288,11 @@ def _compute_beamformer(beamformer, G, Cm, reg, n_orient, weight_norm,
     for k in range(n_sources):
         Wk = W[n_orient * k: n_orient * k + n_orient]
         Gk = G[:, n_orient * k: n_orient * k + n_orient]
-        if beamformer == 'lcmv' and np.all(Gk == 0.):
+        if method == 'lcmv' and np.all(Gk == 0.):
             continue
         Ck = np.dot(Wk, Gk)
 
-        if beamformer == 'dics':
+        if method == 'dics':
             # Normalize the spatial filters:
             if Wk.ndim == 2 and len(Wk) > 1:
                 # Free source orientation
@@ -340,11 +340,11 @@ def _compute_beamformer(beamformer, G, Cm, reg, n_orient, weight_norm,
                 power = Wk_norm.dot(Cm).dot(Wk_norm.T)
 
             else:
-                if beamformer == 'dics':
+                if method == 'dics':
                     # Compute spectral power by applying the spatial filters to
                     # the CSD matrix.
                     power = Wk.dot(Cm).dot(Wk.T)
-                elif beamformer == 'lcmv':
+                elif method == 'lcmv':
                     # no weight-normalization and max-power is not implemented
                     # yet for lcmv beamformer:
                     raise NotImplementedError('The max-power orientation '
@@ -353,7 +353,7 @@ def _compute_beamformer(beamformer, G, Cm, reg, n_orient, weight_norm,
                                               'set to None.')
 
             # compute the orientation:
-            if beamformer == 'lcmv':
+            if method == 'lcmv':
                 eig_vals, eig_vecs = linalg.eig(power)
 
                 if np.iscomplex(eig_vecs).any():
@@ -376,7 +376,7 @@ def _compute_beamformer(beamformer, G, Cm, reg, n_orient, weight_norm,
 
                 is_free_ori = False
 
-            elif beamformer == 'dics':
+            elif method == 'dics':
                 # Compute the direction of max power
                 u, s, _ = np.linalg.svd(power.real)
                 max_ori = u[:, 0]
@@ -384,7 +384,7 @@ def _compute_beamformer(beamformer, G, Cm, reg, n_orient, weight_norm,
                 Wk[:] = np.dot(max_ori, Wk)
 
         else:  # do vector beamformer
-            if beamformer == 'lcmv':
+            if method == 'lcmv':
                 # compute the filters:
                 if is_free_ori:
                     # Free source orientation
@@ -419,7 +419,7 @@ def _compute_beamformer(beamformer, G, Cm, reg, n_orient, weight_norm,
         W = W[2::3]
         is_free_ori = False
 
-    if beamformer == 'dics':
+    if method == 'dics':
         if weight_norm == 'unit-noise-gain':
             # Scale weights so that W @ I @ W.T == I
             if pick_ori is None and n_orient > 1:
