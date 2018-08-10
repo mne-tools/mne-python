@@ -13,7 +13,7 @@ from numpy.testing import (assert_equal, assert_array_equal,
 import pytest
 
 from mne.parallel import _force_serial
-from mne.stats.cluster_level import (permutation_cluster_test,
+from mne.stats.cluster_level import (permutation_cluster_test, f_oneway,
                                      permutation_cluster_1samp_test,
                                      spatio_temporal_cluster_test,
                                      spatio_temporal_cluster_1samp_test,
@@ -54,8 +54,11 @@ def test_thresholds():
     X = rng.randn(10, 1, 1) + 0.08
     want_thresh = -stats.t.ppf(0.025, len(X) - 1)
     assert 0.03 < stats.ttest_1samp(X[:, 0, 0], 0)[1] < 0.05
+    my_fun = partial(ttest_1samp_no_p)
     with catch_logging() as log:
-        out = permutation_cluster_1samp_test(X, verbose=True)
+        with pytest.warns(RuntimeWarning, match='threshold is only valid'):
+            out = permutation_cluster_1samp_test(X, stat_fun=my_fun,
+                                                 verbose=True)
     log = log.getvalue()
     assert str(want_thresh)[:6] in log
     assert len(out[1]) == 1  # 1 cluster
@@ -67,12 +70,17 @@ def test_thresholds():
     want_thresh = stats.f.ppf(1. - 0.05, 2, sum(len(a) for a in X) - len(X))
     p = stats.f_oneway(*X)[1]
     assert 0.03 < p < 0.05
+    my_fun = partial(f_oneway)  # just to make the check fail
     with catch_logging() as log:
-        out = permutation_cluster_test(X, verbose=True)
+        with pytest.warns(RuntimeWarning, match='threshold is only valid'):
+            out = permutation_cluster_test(X, tail=1, stat_fun=my_fun,
+                                           verbose=True)
     log = log.getvalue()
     assert str(want_thresh)[:6] in log
     assert len(out[1]) == 1  # 1 cluster
     assert 0.03 < out[2] < 0.05
+    with pytest.warns(RuntimeWarning, match='Ignoring argument "tail"'):
+        permutation_cluster_test(X, tail=0)
 
 
 def test_cache_dir():
