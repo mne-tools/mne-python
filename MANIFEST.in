@@ -3,8 +3,6 @@ include CODE_OF_CONDUCT.md
 include LICENSE.txt
 include requirements.txt
 include mne/__init__.py
-include .github/*
-include .github/ISSUE_TEMPLATE/*
 
 recursive-include examples *.py
 recursive-include examples *.txt
@@ -41,6 +39,7 @@ exclude *.yml
 exclude ignore_words.txt
 exclude .mailmap
 recursive-exclude mne *.pyc
+exclude .github *
 
 recursive-exclude doc *
 recursive-exclude logo *
