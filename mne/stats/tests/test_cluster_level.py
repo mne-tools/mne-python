@@ -47,6 +47,34 @@ def _get_conditions():
     return condition1_1d, condition2_1d, condition1_2d, condition2_2d
 
 
+def test_thresholds():
+    """Test automatic threshold calculations."""
+    # within subjects
+    rng = np.random.RandomState(0)
+    X = rng.randn(10, 1, 1) + 0.08
+    want_thresh = -stats.t.ppf(0.025, len(X) - 1)
+    assert 0.03 < stats.ttest_1samp(X[:, 0, 0], 0)[1] < 0.05
+    with catch_logging() as log:
+        out = permutation_cluster_1samp_test(X, verbose=True)
+    log = log.getvalue()
+    assert str(want_thresh)[:6] in log
+    assert len(out[1]) == 1  # 1 cluster
+    assert 0.03 < out[2] < 0.05
+    # between subjects
+    Y = rng.randn(10, 1, 1)
+    Z = rng.randn(10, 1, 1) - 0.7
+    X = [X, Y, Z]
+    want_thresh = stats.f.ppf(1. - 0.05, 2, sum(len(a) for a in X) - len(X))
+    p = stats.f_oneway(*X)[1]
+    assert 0.03 < p < 0.05
+    with catch_logging() as log:
+        out = permutation_cluster_test(X, verbose=True)
+    log = log.getvalue()
+    assert str(want_thresh)[:6] in log
+    assert len(out[1]) == 1  # 1 cluster
+    assert 0.03 < out[2] < 0.05
+
+
 def test_cache_dir():
     """Test use of cache dir."""
     tempdir = _TempDir()
