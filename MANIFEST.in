@@ -4,6 +4,7 @@ include LICENSE.txt
 include requirements.txt
 include mne/__init__.py
 include .github/*
+include .github/ISSUE_TEMPLATE/*
 
 recursive-include examples *.py
 recursive-include examples *.txt
