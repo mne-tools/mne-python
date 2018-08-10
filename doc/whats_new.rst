@@ -38,7 +38,6 @@ Changelog
 - Add :func:`mne.head_to_mri` to convert positions from head coordinates to MRI RAS coordinates, by `Joan Massich`_ and `Alex Gramfort`_
 
   
->>>>>>> adjust parameter names to match MNE solvers
 Bug
 ~~~
 
