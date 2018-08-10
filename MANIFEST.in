@@ -39,10 +39,16 @@ exclude *.yml
 exclude ignore_words.txt
 exclude .mailmap
 recursive-exclude mne *.pyc
-exclude .github *
 
 recursive-exclude doc *
 recursive-exclude logo *
+
+exclude .github
+exclude .github/ISSUE_TEMPLATE
+exclude .github/ISSUE_TEMPLATE/blank.md
+exclude .github/ISSUE_TEMPLATE/bug_report.md
+exclude .github/ISSUE_TEMPLATE/feature_request.md
+exclude .github/PULL_REQUEST_TEMPLATE.md
 
 # Test files
 

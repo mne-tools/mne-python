@@ -15,10 +15,10 @@ Please provide a clear and concise description of the bug.
 
 #### Steps and/or code to reproduce
 Please provide a code snippet or [minimal working example (MWE)](https://en.wikipedia.org/wiki/Minimal_Working_Example)
-to replicate your problem. 
+to replicate your problem.
 
 This MWE should be self-contained, which means that other MNE-Python contributors
-should be able to copy and paste the provided snippet and replicate the bug. 
+should be able to copy and paste the provided snippet and replicate the bug.
 If possible, use MNE-Python testing examples to reproduce the error. Otherwise,
 provide a small and anonymized portion of your data required to reproduce the bug.
 
@@ -43,7 +43,7 @@ Provide a clear and concise description of what you expected to happen.
 
 
 #### Actual results
-Please paste or specifically describe the actual output or traceback. 
+Please paste or specifically describe the actual output or traceback.
 
 
 #### Additional information
