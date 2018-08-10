@@ -115,7 +115,7 @@ def test_interpolation():
     # check that interpolation works when non M/EEG channels are present
     # before MEG channels
     raw.rename_channels({'MEG 0113': 'TRIGGER'})
-    with pytest.warns(RuntimeWarning, match='unit'):  # change of units
+    with pytest.warns(RuntimeWarning, match='unit .* changed from .* to .*'):
         raw.set_channel_types({'TRIGGER': 'stim'})
     raw.info['bads'] = [raw.info['ch_names'][1]]
     raw.load_data()

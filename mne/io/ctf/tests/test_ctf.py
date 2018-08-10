@@ -57,7 +57,7 @@ def test_read_ctf():
     os.mkdir(op.join(temp_dir, 'randpos'))
     ctf_eeg_fname = op.join(temp_dir, 'randpos', ctf_fname_catch)
     shutil.copytree(op.join(ctf_dir, ctf_fname_catch), ctf_eeg_fname)
-    with pytest.warns(RuntimeWarning, match='MISC channel'):
+    with pytest.warns(RuntimeWarning, match='RMSP .* changed to a MISC ch'):
         raw = _test_raw_reader(read_raw_ctf, directory=ctf_eeg_fname)
     picks = pick_types(raw.info, meg=False, eeg=True)
     pos = np.random.RandomState(42).randn(len(picks), 3)
@@ -73,7 +73,7 @@ def test_read_ctf():
                 '%0.5f' % x for x in 100 * pos[ii])  # convert to cm
             fid.write(('\t'.join(args) + '\n').encode('ascii'))
     pos_read_old = np.array([raw.info['chs'][p]['loc'][:3] for p in picks])
-    with pytest.warns(RuntimeWarning, match='MISC channel'):
+    with pytest.warns(RuntimeWarning, match='RMSP .* changed to a MISC ch'):
         raw = read_raw_ctf(ctf_eeg_fname)  # read modified data
     pos_read = np.array([raw.info['chs'][p]['loc'][:3] for p in picks])
     assert_allclose(apply_trans(raw.info['ctf_head_t'], pos), pos_read,

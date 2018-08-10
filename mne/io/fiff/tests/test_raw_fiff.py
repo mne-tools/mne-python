@@ -642,7 +642,7 @@ def test_io_complex():
         raw_cp = raw.copy()
         raw_cp._data = np.array(raw_cp._data, dtype)
         raw_cp._data[picks, start:stop] += imag_rand
-        with pytest.warns(RuntimeWarning, match='complex'):
+        with pytest.warns(RuntimeWarning, match='Saving .* complex data.'):
             raw_cp.save(op.join(tempdir, 'raw.fif'), picks, tmin=0, tmax=5,
                         overwrite=True)
 
@@ -1254,7 +1254,7 @@ def test_annotation_crop():
     sfreq = raw.info['sfreq']
     annot = Annotations([0., raw.times[-1]], [2., 2.], 'test',
                         raw.info['meas_date'] + raw.first_samp / sfreq - 1.)
-    with pytest.warns(RuntimeWarning, match='data range'):
+    with pytest.warns(RuntimeWarning, match='Limited .* expanding outside'):
         raw.set_annotations(annot)
     assert_allclose(raw.annotations.duration,
                     [1., 1. + 1. / raw.info['sfreq']], atol=1e-3)

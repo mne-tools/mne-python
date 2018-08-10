@@ -112,7 +112,7 @@ def test_filterestimator():
 
     filt = FilterEstimator(epochs.info, l_freq=1, h_freq=1)
     y = epochs.events[:, -1]
-    with pytest.warns(RuntimeWarning, match='longer than'):
+    with pytest.warns(RuntimeWarning, match='longer than the signal'):
         pytest.raises(ValueError, filt.fit_transform, epochs_data, y)
 
     filt = FilterEstimator(epochs.info, l_freq=40, h_freq=None,
