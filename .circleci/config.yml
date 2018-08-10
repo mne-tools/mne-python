@@ -15,7 +15,8 @@ jobs:
            command: |
              if [[ $(cat merge.txt) != "" ]]; then
                echo "Merging $(cat merge.txt)";
-               git pull --ff-only origin "refs/pull/$(cat merge.txt)/merge";
+               git remote add upstream git://github.com/mne-tools/mne-python.git
+               git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
              fi
 
         # Load our data
