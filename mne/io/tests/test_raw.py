@@ -153,3 +153,107 @@ def test_annotation_property_deprecation_warning():
     assert len(w) is 0
     with pytest.warns(DeprecationWarning, match='by assignment is deprecated'):
         raw.annotations = None
+
+
+@pytest.fixture
+def dummy_raw():
+    info = create_info(ch_names=10, sfreq=10., ch_types=None, montage=None,
+                       verbose=None)
+    raw = RawArray(data=np.random.RandomState(0).randn(10, 10),
+                   info=info, first_samp=10)
+    raw.info['meas_date'] = 1
+    return raw
+
+
+@pytest.fixture
+def dummy_annotation():
+    from mne import Annotations
+    return Annotations(onset=[.5],
+                       duration=[.2],
+                       description=['dummy'],
+                       orig_time=1.5)
+
+
+def test_relation_between_raw_meas_date_and_annotations_orig_time_A(
+        raw=dummy_raw(), annot=dummy_annotation()):
+    """Test meas_time is set and orig_time is set"""
+
+    raw.set_annotations(annot)
+
+    # Actual behaviour
+    # clips the annotations based on raw.data
+    #
+    assert raw.annotations.orig_time == 1.5
+    assert raw.annotations.onset[0] == 0.5
+
+    # Desired behaviour
+    # clips the annotations based on raw.data
+    #  and resets the annotation based on raw.info['meas_date]
+    #
+    # assert raw.annotations.orig_time == 1
+    # assert raw.annotations.onset[0] == 1
+
+
+def test_relation_between_raw_meas_date_and_annotations_orig_time_B(
+        raw=dummy_raw(), annot=dummy_annotation()):
+    """Test meas_time is set and orig_time is None"""
+
+    annot.orig_time = None
+    raw.set_annotations(annot)
+
+    # Actual behaviour
+    # Consider annot.orig_time to be raw.frist_sample and clip
+    #
+    assert raw.annotations.orig_time is None
+    assert raw.annotations.onset[0] == 0.5
+
+    # Desired behaviour
+    # Consider annot.orig_time to be raw.frist_sample, clip and reset
+    # annotations to have the raw.annotations.orig_time == raw.info['meas_date]
+    #
+    # assert raw.annotations.orig_time == 1
+    # assert raw.annotations.onset[0] == 1
+
+    assert True
+
+
+def test_relation_between_raw_meas_date_and_annotations_orig_time_C(
+        raw=dummy_raw(), annot=dummy_annotation()):
+    """Test meas_time is None and orig_time is set"""
+
+    raw.info['meas_date'] = None
+    with pytest.warns(RuntimeWarning, match='Limited .* expanding outside'):
+        raw.set_annotations(annot)
+
+    # Actual behaviour
+    # assumes raw meas_date to be 0 and clip annot
+    #
+    assert raw.annotations.orig_time == 1.5
+    assert raw.annotations.onset[0] == 0.5
+    assert raw.annotations.duration[0] == pytest.approx(-1.6e-16)  # should be0
+
+    # Desired behaviour
+    # I'm not sure if we should consider meas_date 0
+    # or consider annot.orig_time to be raw.first_sample
+    #
+    # warn something?
+
+
+def test_relation_between_raw_meas_date_and_annotations_orig_time_D(
+        raw=dummy_raw(), annot=dummy_annotation()):
+    """Test meas_time is None and orig_time is None"""
+
+    annot.orig_time = None
+    raw.info['meas_date'] = None
+    raw.set_annotations(annot)
+
+    # Actual behaviour
+    # Consider annot.orig_time to be raw.frist_sample and clip
+    #
+    assert raw.annotations.orig_time is None
+    assert raw.annotations.onset[0] == 0.5
+    assert raw.annotations.duration[0] == .2
+
+    # Desired behaviour
+    #
+    # warn something?
