@@ -1124,6 +1124,59 @@ def _write_one_source_space(fid, this, verbose=None):
 
 
 ##############################################################################
+# Head to MRI volume conversion
+
+
+@verbose
+def head_to_mri(pos, subject, mri_head_t, subjects_dir=None,
+                verbose=None):
+    """Convert pos from head coordinate system to MRI ones.
+
+    This function converts to MRI RAS coordinates and not to surface
+    RAS.
+
+    Parameters
+    ----------
+    pos : array, shape (n_pos, 3)
+        The  coordinates (in m) in head coordinate system
+    subject : string
+        Name of the subject.
+    mri_head_t: instance of Transform
+        MRI<->Head coordinate transformation
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    coordinates : array, shape (n_pos, 3)
+        The MNI coordinates (in mm) of pos
+
+    Notes
+    -----
+    This function requires either nibabel (in Python) or Freesurfer
+    (with utility "mri_info") to be correctly installed.
+    """
+    import nibabel as nib
+
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+
+    head_mri_t = _ensure_trans(mri_head_t, 'head', 'mri')
+    mri_pos = apply_trans(head_mri_t, pos) * 1e3
+    t1 = nib.load(t1_fname)
+    vox2ras_tkr = t1.header.get_vox2ras_tkr()
+    ras2vox_tkr = linalg.inv(vox2ras_tkr)
+    vox2ras = t1.header.get_vox2ras()
+    mri_pos = apply_trans(ras2vox_tkr, mri_pos)  # in vox
+    mri_pos = apply_trans(vox2ras, mri_pos)  # in RAS
+
+    return mri_pos
+
+
+##############################################################################
 # Surface to MNI conversion
 
 @verbose

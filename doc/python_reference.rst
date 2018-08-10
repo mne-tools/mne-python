@@ -769,6 +769,7 @@ Source Space Data
    :template: function.rst
 
    head_to_mni
+   head_to_mri
    compute_morph_matrix
    extract_label_time_course
    grade_to_tris

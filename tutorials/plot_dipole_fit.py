@@ -21,6 +21,9 @@ from mne.forward import make_forward_dipole
 from mne.evoked import combine_evoked
 from mne.simulation import simulate_evoked
 
+from nilearn.plotting import plot_anat
+from nilearn.datasets import load_mni152_template
+
 data_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 fname_ave = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
@@ -43,6 +46,24 @@ dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
 
 # Plot the result in 3D brain with the MRI image.
 dip.plot_locations(fname_trans, 'sample', subjects_dir, mode='orthoview')
+
+# Plot the result in 3D brain with the MRI image using Nilearn
+# In MRI coordinates and in MNI coordinates (template brain)
+
+trans = mne.read_trans(fname_trans)
+subject = 'sample'
+mni_pos = mne.head_to_mni(dip.pos, mri_head_t=trans,
+                          subject=subject, subjects_dir=subjects_dir)
+
+mri_pos = mne.head_to_mri(dip.pos, mri_head_t=trans,
+                          subject=subject, subjects_dir=subjects_dir)
+
+t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+fig = plot_anat(t1_fname, cut_coords=mri_pos[0], title='Dipole loc.')
+
+template = load_mni152_template()
+fig = plot_anat(template, cut_coords=mni_pos[0],
+                title='Dipole loc. (MNI Space)')
 
 ###############################################################################
 # Calculate and visualise magnetic field predicted by dipole with maximum GOF
