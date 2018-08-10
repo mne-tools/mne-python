@@ -255,7 +255,25 @@ def test_resample():
     assert_array_equal(resample([0, 0], 2, 1), [0., 0., 0., 0.])
 
 
-def test_resample_stim_channel():
+@pytest.mark.parametrize('n_jobs', (1, 'cuda'))
+def test_resample_scipy(n_jobs):
+    """Test resampling against SciPy."""
+    for window in ('boxcar', 'hann'):
+        for N in (100, 101, 102, 103):
+            x = np.arange(N).astype(float)
+            err_msg = '%s: %s' % (N, window)
+            x_2 = resample(x, 2, 1, 0, window=window, n_jobs=n_jobs)
+            assert x_2.shape == (2 * N,)
+            x_2_sp = sp_resample(x, 2 * N, window=window)
+            assert_allclose(x_2, x_2_sp, atol=1e-12, err_msg=err_msg)
+            x_p5 = resample(x, 1, 2, 0, window=window, n_jobs=n_jobs)
+            new_len = int(round(len(x) * (1. / 2.)))
+            assert x_p5.shape == (new_len,)
+            x_p5_sp = sp_resample(x, new_len, window=window)
+            assert_allclose(x_p5, x_p5_sp, atol=1e-12, err_msg=err_msg)
+
+
+def test_resamp_stim_channel():
     """Test resampling of stim channels."""
     # Downsampling
     assert_array_equal(
