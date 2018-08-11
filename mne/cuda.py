@@ -116,6 +116,8 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft):
         FFT multiplication.
     h : array
         The filtering function that will be used repeatedly.
+    n_fft : int
+        The number of points in the FFT.
 
     Returns
     -------
@@ -182,6 +184,8 @@ def fft_multiply_repeated(h_fft, x, n_fft, cuda_dict):
         The filtering array to apply.
     x : 1-d array
         The array to filter.
+    n_fft : int
+        The number of points in the FFT.
     cuda_dict : dict
         Dictionary constructed using setup_cuda_multiply_repeated().
 
