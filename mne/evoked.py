@@ -832,7 +832,8 @@ def _check_evokeds_ch_names_times(all_evoked, reorder=False):
         if ev.ch_names != ch_names:
             if set(ev.ch_names) != set(ch_names):
                 raise ValueError(
-                    "%s and %s do not contain the same channels" % (evoked, ev))
+                    "%s and %s do not contain the same channels." % (evoked,
+                                                                     ev))
             else:
                 if reorder is True:
                     warn("Order of channels differs, reordering channels ...")
