@@ -259,9 +259,10 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
     n_fft_x, n_fft_y = len(W), new_len
     rfft_len_x = n_fft_x // 2 + 1
     rfft_len_y = n_fft_y // 2 + 1
-    # fold the window onto inself (should be symmetric)
-    W = (W[:rfft_len_x] +
-         np.concatenate([[W[0]], W[::-1][:rfft_len_x - 1]])) / 2.
+    # fold the window onto inself (should be symmetric) and truncate
+    W = W.copy()
+    W[1:rfft_len_x] = (W[1:rfft_len_x] + W[::-1][:rfft_len_x - 1]) / 2.
+    W = W[:rfft_len_x]
     if n_jobs == 'cuda':
         n_jobs = 1
         init_cuda()
@@ -355,7 +356,7 @@ def fft_resample(x, W, new_len, npads, to_removes, cuda_dict=None,
             func(cuda_dict['x_fft'], slice=slice(nyq, nyq + 1))
         cudafft.ifft(cuda_dict['x_fft'], cuda_dict['x'],
                      cuda_dict['ifft_plan'], scale=False)
-        y = cuda_dict['x'].get()[:use_len]
+        y = cuda_dict['x'].get()[:new_len]
 
     # now let's trim it back to the correct size (if there was padding)
     if (to_removes > 0).any():
