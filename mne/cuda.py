@@ -157,7 +157,7 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft):
             # try setting up for float64
             try:
                 # do the IFFT normalization now so we don't have to later
-                h_fft = gpuarray.to_gpu(h_fft.astype('complex_') / len(h_fft))
+                h_fft = gpuarray.to_gpu(h_fft.astype('complex_') / n_fft)
                 cuda_dict.update(
                     use_cuda=True,
                     fft_plan=cudafft.Plan(n_fft, np.float64, np.complex128),
