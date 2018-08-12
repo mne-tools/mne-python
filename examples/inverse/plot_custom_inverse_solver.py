@@ -47,7 +47,7 @@ forward = mne.read_forward_solution(fwd_fname)
 # Auxiliary function to run the solver
 
 def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
-    """Function to call a custom solver on evoked data
+    """Call a custom solver on evoked data.
 
     This function does all the necessary computation:
 
@@ -123,9 +123,7 @@ def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
 # Define your solver
 
 def solver(M, G, n_orient):
-    """Dummy solver
-
-    It just runs L2 penalized regression and keep the 10 strongest locations
+    """Run L2 penalized regression and keep 10 strongest locations.
 
     Parameters
     ----------

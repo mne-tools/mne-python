@@ -9,7 +9,7 @@ from numpy.testing import assert_allclose
 import pytest
 
 from mne.viz.utils import (compare_fiff, _fake_click, _compute_scalings,
-                           _validate_if_list_of_axes)
+                           _validate_if_list_of_axes, _get_color_list)
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.utils import run_tests_if_main
 from mne.io import read_raw_fif
@@ -24,6 +24,14 @@ base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 ev_fname = op.join(base_dir, 'test_raw-eve.fif')
+
+
+def test_get_color_list():
+    """Test getting a colormap from rcParams."""
+    colors = _get_color_list()
+    assert isinstance(colors, list)
+    colors_no_red = _get_color_list(annotations=True)
+    assert '#ff0000' not in colors_no_red
 
 
 def test_mne_analyze_colormap():
