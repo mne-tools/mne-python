@@ -1141,7 +1141,6 @@ class ClickableImage(object):
         ----------
         **kwargs : dict
             Arguments are passed to imshow in displaying the bg image.
-
         """
         from matplotlib.pyplot import subplots
         if len(self.coords) == 0:
@@ -1578,7 +1577,6 @@ def _compute_scalings(scalings, inst):
     -------
     scalings : dict
         A scalings dictionary with updated values
-
     """
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
@@ -1922,7 +1920,6 @@ def _get_color_list(annotations=False):
     Returns
     -------
     colors : list
-
     """
     import matplotlib.pyplot as plt
     color_cycle = plt.rcParams.get('axes.prop_cycle')
