@@ -79,7 +79,6 @@ def plt_show(show=True, fig=None, **kwargs):
         If non-None, use fig.show().
     **kwargs : dict
         Extra arguments for :func:`matplotlib.pyplot.show`.
-
     """
     import matplotlib
     import matplotlib.pyplot as plt
@@ -106,7 +105,6 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
         Defaults to `pad_inches`.
     fig : instance of Figure
         Figure to apply changes to.
-
     """
     import matplotlib.pyplot as plt
     fig = plt.gcf() if fig is None else fig
@@ -535,7 +533,6 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
     fname_out : str
         The filename used for storing the diff. Could be useful for
         when a temporary file is used.
-
     """
     file_1 = show_fiff(fname_1, output=list, indent=indent,
                        read_limit=read_limit, max_str=max_str)
@@ -1133,7 +1130,6 @@ class ClickableImage(object):
         ----------
         event : matplotlib event object
             The matplotlib object that we use to get x/y position.
-
         """
         mouseevent = event.mouseevent
         self.coords.append((mouseevent.xdata, mouseevent.ydata))
@@ -1172,7 +1168,6 @@ class ClickableImage(object):
         ----------
         **kwargs : dict
             Arguments are passed to generate_2d_layout
-
         """
         from ..channels.layout import generate_2d_layout
         coords = np.array(self.coords)
@@ -1668,7 +1663,6 @@ def _prepare_joint_axes(n_maps, figsize=None):
         List of axes for each topomap
     cbar_ax: matplotlib.axes._subplots.AxesSubplot
         Axes for colorbar next to topomaps
-
     """
     import matplotlib.pyplot as plt
     fig = plt.figure(figsize=figsize)
@@ -1799,7 +1793,6 @@ class SelectFromCollection(object):
     -----
     This tool selects collection objects based on their *origins*
     (i.e., `offsets`). Emits mpl event 'lasso_event' when selection is ready.
-
     """
 
     def __init__(self, ax, collection, ch_names,
@@ -2224,7 +2217,6 @@ class DraggableLine(object):
         Line to add interactivity to.
     callback : function
         Callback to call when line is released.
-
     """
 
     def __init__(self, line, modify_callback, drag_callback):  # noqa: D107

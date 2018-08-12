@@ -87,7 +87,6 @@ def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
     -------
     stc : instance of SourceEstimate
         The source estimates.
-
     """
     # Import the necessary private functions
     from mne.inverse_sparse.mxne_inverse import \
@@ -147,7 +146,6 @@ def solver(M, G, n_orient):
         Array of bool. Entry j is True if dipole j is in the active set.
         We have ``X_full[active_set] == X`` where X_full is the full X matrix
         such that ``M = G X_full``.
-
     """
     K = linalg.solve(np.dot(G, G.T) + 1e15 * np.eye(G.shape[0]), G).T
     K /= np.linalg.norm(K, axis=1)[:, None]
