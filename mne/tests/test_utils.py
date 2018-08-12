@@ -800,14 +800,14 @@ def test_progressbar_parallel_advanced(capsys):
     # This must be "1" because "capsys" won't get stdout properly otherwise
     parallel, p_fun, _ = parallel_func(identity_block, n_jobs=1, verbose=False)
     arr = np.arange(10)
-    pb = ProgressBar(len(arr), verbose_bool=True)
-    out = parallel(p_fun(x, pb, pb_idx)
-                   for pb_idx, x in array_split_idx(arr, 2))
-    assert op.isfile(pb._mmap_fname)
-    sum_ = np.memmap(pb._mmap_fname, dtype='bool', mode='r', shape=10).sum()
-    assert sum_ == len(arr)
-    pb.cleanup()
-    assert not op.isfile(pb._mmap_fname)
+    with ProgressBar(len(arr), verbose_bool=True) as pb:
+        out = parallel(p_fun(x, pb, pb_idx)
+                       for pb_idx, x in array_split_idx(arr, 2))
+        assert op.isfile(pb._mmap_fname)
+        sum_ = np.memmap(pb._mmap_fname, dtype='bool', mode='r',
+                         shape=10).sum()
+        assert sum_ == len(arr)
+    assert not op.isfile(pb._mmap_fname), '__exit__ not called?'
     out = np.concatenate(out)
     assert_array_equal(out, arr)
     assert '100.00%' in capsys.readouterr().out
@@ -827,18 +827,17 @@ def test_progressbar_parallel_more(capsys):
     parallel, p_fun, _ = parallel_func(identity_block_wide, n_jobs=1,
                                        verbose=False)
     arr = np.arange(10)
-    pb = ProgressBar(len(arr) * 2, verbose_bool=True)
-    out = parallel(p_fun(x, pb, pb_idx)
-                   for pb_idx, x in array_split_idx(arr, 2, n_per_split=2))
-    idxs = np.concatenate([o[1] for o in out])
-    assert_array_equal(idxs, np.arange(len(arr) * 2))
-    out = np.concatenate([o[0] for o in out])
-    assert op.isfile(pb._mmap_fname)
-    sum_ = np.memmap(pb._mmap_fname, dtype='bool', mode='r',
-                     shape=len(arr) * 2).sum()
-    assert sum_ == len(arr) * 2
-    pb.cleanup()
-    assert not op.isfile(pb._mmap_fname)
+    with ProgressBar(len(arr) * 2, verbose_bool=True) as pb:
+        out = parallel(p_fun(x, pb, pb_idx)
+                       for pb_idx, x in array_split_idx(arr, 2, n_per_split=2))
+        idxs = np.concatenate([o[1] for o in out])
+        assert_array_equal(idxs, np.arange(len(arr) * 2))
+        out = np.concatenate([o[0] for o in out])
+        assert op.isfile(pb._mmap_fname)
+        sum_ = np.memmap(pb._mmap_fname, dtype='bool', mode='r',
+                         shape=len(arr) * 2).sum()
+        assert sum_ == len(arr) * 2
+    assert not op.isfile(pb._mmap_fname), '__exit__ not called?'
     assert '100.00%' in capsys.readouterr().out
 
 

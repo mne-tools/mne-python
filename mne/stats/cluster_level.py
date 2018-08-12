@@ -868,50 +868,50 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     n_step_downs = 0
 
     while n_removed > 0:
-        pb = ProgressBar(len(orders), verbose_bool='auto')
-        # actually do the clustering for each partition
-        if include is not None:
-            if step_down_include is not None:
-                this_include = np.logical_and(include, step_down_include)
+        with ProgressBar(len(orders), verbose_bool='auto') as pb:
+            # actually do the clustering for each partition
+            if include is not None:
+                if step_down_include is not None:
+                    this_include = np.logical_and(include, step_down_include)
+                else:
+                    this_include = include
             else:
-                this_include = include
-        else:
-            this_include = step_down_include
-        logger.info('Permuting %d times%s...' % (len(orders), extra))
-        H0 = parallel(my_do_perm_func(X_full, slices, threshold, tail,
-                      connectivity, stat_fun, max_step, this_include,
-                      partitions, t_power, order, sample_shape, buffer_size,
-                      pb, idx)
-                      for idx, order in split_list(orders, n_jobs, idx=True))
-        # include original (true) ordering
-        if tail == -1:  # up tail
-            orig = cluster_stats.min()
-        elif tail == 1:
-            orig = cluster_stats.max()
-        else:
-            orig = abs(cluster_stats).max()
-        H0.insert(0, [orig])
-        H0 = np.concatenate(H0)
-        logger.info('Computing cluster p-values')
-        cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
+                this_include = step_down_include
+            logger.info('Permuting %d times%s...' % (len(orders), extra))
+            H0 = parallel(my_do_perm_func(X_full, slices, threshold, tail,
+                          connectivity, stat_fun, max_step, this_include,
+                          partitions, t_power, order, sample_shape,
+                          buffer_size, pb, idx)
+                          for idx, order in split_list(
+                              orders, n_jobs, idx=True))
+            # include original (true) ordering
+            if tail == -1:  # up tail
+                orig = cluster_stats.min()
+            elif tail == 1:
+                orig = cluster_stats.max()
+            else:
+                orig = abs(cluster_stats).max()
+            H0.insert(0, [orig])
+            H0 = np.concatenate(H0)
+            logger.info('Computing cluster p-values')
+            cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
 
-        # figure out how many new ones will be removed for step-down
-        to_remove = np.where(cluster_pv < step_down_p)[0]
-        n_removed = to_remove.size - total_removed
-        total_removed = to_remove.size
-        step_down_include = np.ones(n_tests, dtype=bool)
-        for ti in to_remove:
-            step_down_include[clusters[ti]] = False
-        if connectivity is None and connectivity is not False:
-            step_down_include.shape = sample_shape
-        n_step_downs += 1
-        if step_down_p > 0:
-            a_text = 'additional ' if n_step_downs > 1 else ''
-            logger.info('Step-down-in-jumps iteration #%i found %i %s'
-                        'cluster%s to exclude from subsequent iterations'
-                        % (n_step_downs, n_removed, a_text,
-                           _pl(n_removed)))
-        pb.cleanup()
+            # figure out how many new ones will be removed for step-down
+            to_remove = np.where(cluster_pv < step_down_p)[0]
+            n_removed = to_remove.size - total_removed
+            total_removed = to_remove.size
+            step_down_include = np.ones(n_tests, dtype=bool)
+            for ti in to_remove:
+                step_down_include[clusters[ti]] = False
+            if connectivity is None and connectivity is not False:
+                step_down_include.shape = sample_shape
+            n_step_downs += 1
+            if step_down_p > 0:
+                a_text = 'additional ' if n_step_downs > 1 else ''
+                logger.info('Step-down-in-jumps iteration #%i found %i %s'
+                            'cluster%s to exclude from subsequent iterations'
+                            % (n_step_downs, n_removed, a_text,
+                               _pl(n_removed)))
     logger.info('Done.')
     # The clusters should have the same shape as the samples
     clusters = _reshape_clusters(clusters, sample_shape)

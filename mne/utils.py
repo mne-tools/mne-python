@@ -1856,7 +1856,10 @@ class ProgressBar(object):
         self._mmap[idx] = True
         self.update(self._mmap.sum())
 
-    def cleanup(self):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):  # noqa: D105
         """Clean up memmapped file."""
         # we can't put this in __del__ b/c then each worker will delete the
         # file, which is not so good

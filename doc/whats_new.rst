@@ -16,8 +16,6 @@ What's new
 Current
 -------
 
-- Add progress bar support to :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` by `Eric Larson`_
-
 Changelog
 ~~~~~~~~~
 
@@ -40,6 +38,8 @@ Changelog
 - Add support for raw PSD plots in :meth:`mne.Report.parse_folder` via ``raw_psd`` argument of :class:`mne.Report` by `Eric Larson`_
 
 - Add `trig_shift_by_type` parameter in :func:`mne.io.read_raw_brainvision` to allow to specify offsets for arbitrary marker types by `Henrich Kolkhorst`_
+
+- Add progress bar support to :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` by `Eric Larson`_
 
 - Add :func:`mne.head_to_mri` to convert positions from head coordinates to MRI RAS coordinates, by `Joan Massich`_ and `Alex Gramfort`_
 

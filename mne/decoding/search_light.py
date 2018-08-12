@@ -89,12 +89,11 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         parallel, p_func, n_jobs = parallel_func(_sl_fit, self.n_jobs,
                                                  verbose=False)
         n_jobs = min(n_jobs, X.shape[-1])
-        pb = ProgressBar(X.shape[-1], verbose_bool='auto',
-                         mesg='Fitting %s' % (self.__class__.__name__,))
-        estimators = parallel(
-            p_func(self.base_estimator, split, y, pb, pb_idx, **fit_params)
-            for pb_idx, split in array_split_idx(X, n_jobs, axis=-1))
-        pb.cleanup()
+        with ProgressBar(X.shape[-1], verbose_bool='auto',
+                         mesg='Fitting %s' % (self.__class__.__name__,)) as pb:
+            estimators = parallel(
+                p_func(self.base_estimator, split, y, pb, pb_idx, **fit_params)
+                for pb_idx, split in array_split_idx(X, n_jobs, axis=-1))
 
         # Each parallel job can have a different number of training estimators
         # We can't directly concatenate them because of sklearn's Bagging API
