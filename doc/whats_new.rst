@@ -61,6 +61,8 @@ Bug
 
 - Fix bug with IIR filtering axis in :func:`mne.filter.filter_data` by `Eric Larson`_
 
+- Fix bug with non-boxcar windows in :meth:`mne.Raw.resample` and :func:`mne.filter.resample` by `Eric Larson`_
+
 - Fix bug in :func:`mne.minimum_norm.apply_inverse` where applying an MEG-only inverse would raise an error about needing an average EEG reference by `Eric Larson`_
 
 - Fix bug in ``inst.apply_proj()`` where an average EEG reference was always added by `Eric Larson`_

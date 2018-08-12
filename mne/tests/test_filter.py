@@ -255,7 +255,26 @@ def test_resample():
     assert_array_equal(resample([0, 0], 2, 1), [0., 0., 0., 0.])
 
 
-def test_resample_stim_channel():
+@requires_version('scipy', '0.13')  # 0.12 at least has a Nyquist bug
+def test_resample_scipy():
+    """Test resampling against SciPy."""
+    n_jobs_test = (1, 'cuda')
+    for window in ('boxcar', 'hann'):
+        for N in (100, 101, 102, 103):
+            x = np.arange(N).astype(float)
+            err_msg = '%s: %s' % (N, window)
+            x_2_sp = sp_resample(x, 2 * N, window=window)
+            for n_jobs in n_jobs_test:
+                x_2 = resample(x, 2, 1, 0, window=window, n_jobs=n_jobs)
+                assert_allclose(x_2, x_2_sp, atol=1e-12, err_msg=err_msg)
+            new_len = int(round(len(x) * (1. / 2.)))
+            x_p5_sp = sp_resample(x, new_len, window=window)
+            for n_jobs in n_jobs_test:
+                x_p5 = resample(x, 1, 2, 0, window=window, n_jobs=n_jobs)
+                assert_allclose(x_p5, x_p5_sp, atol=1e-12, err_msg=err_msg)
+
+
+def test_resamp_stim_channel():
     """Test resampling of stim channels."""
     # Downsampling
     assert_array_equal(
