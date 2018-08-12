@@ -1845,6 +1845,21 @@ class ProgressBar(object):
             else:
                 self.update_with_increment_value(1)
 
+    def subset(self, idx):
+        """Make a joblib-friendly index subset updater.
+
+        Parameters
+        ----------
+        idx : ndarray
+            List of indices for this subset.
+
+        Returns
+        -------
+        updater : instance of PBSubsetUpdater
+            Class with a ``.update(ii)`` method.
+        """
+        return _PBSubsetUpdater(self, idx)
+
     def __setitem__(self, idx, val):
         """Use alternative, mmap-based incrementing (max_value must be int)."""
         if not self._do_print:
@@ -1856,7 +1871,7 @@ class ProgressBar(object):
         self._mmap[idx] = True
         self.update(self._mmap.sum())
 
-    def __enter__(self):
+    def __enter__(self):  # noqa: D105
         return self
 
     def __exit__(self, type, value, traceback):  # noqa: D105
@@ -1866,6 +1881,16 @@ class ProgressBar(object):
         if self._mmap is not None:
             self._mmap = None
             os.remove(self._mmap_fname)
+
+
+class _PBSubsetUpdater(object):
+
+    def __init__(self, pb, idx):
+        self.pb = pb
+        self.idx = idx
+
+    def finished(self, ii):
+        self.pb[self.idx[ii]] = True
 
 
 def _get_terminal_width():

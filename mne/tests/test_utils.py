@@ -774,23 +774,23 @@ def myfun(x):
     assert 'martinos' in x
 
 
-def identity(x):
+def _identity(x):
     return x
 
 
 def test_progressbar_parallel_basic(capsys):
     """Test ProgressBar with parallel computing, basic version."""
     assert capsys.readouterr().out == ''
-    parallel, p_fun, _ = parallel_func(identity, total=10, n_jobs=2,
+    parallel, p_fun, _ = parallel_func(_identity, total=10, n_jobs=2,
                                        verbose=True)
     out = parallel(p_fun(x) for x in range(10))
     assert out == list(range(10))
     assert '100.00%' in capsys.readouterr().out
 
 
-def identity_block(x, pb, pb_idx):
+def _identity_block(x, pb):
     for ii in range(len(x)):
-        pb[pb_idx[ii]] = True
+        pb.finished(ii)
     return x
 
 
@@ -798,10 +798,11 @@ def test_progressbar_parallel_advanced(capsys):
     """Test ProgressBar with parallel computing, advanced version."""
     assert capsys.readouterr().out == ''
     # This must be "1" because "capsys" won't get stdout properly otherwise
-    parallel, p_fun, _ = parallel_func(identity_block, n_jobs=1, verbose=False)
+    parallel, p_fun, _ = parallel_func(_identity_block, n_jobs=1,
+                                       verbose=False)
     arr = np.arange(10)
     with ProgressBar(len(arr), verbose_bool=True) as pb:
-        out = parallel(p_fun(x, pb, pb_idx)
+        out = parallel(p_fun(x, pb.subset(pb_idx))
                        for pb_idx, x in array_split_idx(arr, 2))
         assert op.isfile(pb._mmap_fname)
         sum_ = np.memmap(pb._mmap_fname, dtype='bool', mode='r',
@@ -813,22 +814,22 @@ def test_progressbar_parallel_advanced(capsys):
     assert '100.00%' in capsys.readouterr().out
 
 
-def identity_block_wide(x, pb, pb_idx):
+def _identity_block_wide(x, pb):
     for ii in range(len(x)):
         for jj in range(2):
-            pb[pb_idx[ii * 2 + jj]] = True
-    return x, pb_idx
+            pb.finished(ii * 2 + jj)
+    return x, pb.idx
 
 
 def test_progressbar_parallel_more(capsys):
     """Test ProgressBar with parallel computing, advanced version."""
     assert capsys.readouterr().out == ''
     # This must be "1" because "capsys" won't get stdout properly otherwise
-    parallel, p_fun, _ = parallel_func(identity_block_wide, n_jobs=1,
+    parallel, p_fun, _ = parallel_func(_identity_block_wide, n_jobs=1,
                                        verbose=False)
     arr = np.arange(10)
     with ProgressBar(len(arr) * 2, verbose_bool=True) as pb:
-        out = parallel(p_fun(x, pb, pb_idx)
+        out = parallel(p_fun(x, pb.subset(pb_idx))
                        for pb_idx, x in array_split_idx(arr, 2, n_per_split=2))
         idxs = np.concatenate([o[1] for o in out])
         assert_array_equal(idxs, np.arange(len(arr) * 2))
