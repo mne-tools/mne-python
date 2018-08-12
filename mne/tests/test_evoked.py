@@ -17,7 +17,8 @@ import pytest
 from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
                  grand_average, combine_evoked, create_info, read_events,
                  Epochs, EpochsArray)
-from mne.evoked import _get_peak, Evoked, EvokedArray
+from mne.evoked import (_get_peak, Evoked, EvokedArray,
+                        _check_evokeds_ch_names_times)
 from mne.io import read_raw_fif
 from mne.utils import (_TempDir, requires_pandas, requires_version,
                        run_tests_if_main)
@@ -494,6 +495,10 @@ def test_arithmetic():
     with pytest.warns(RuntimeWarning, match='reordering'):
         ev3 = grand_average((evoked1, evoked2))
     assert np.allclose(ev3.data, data)
+    assert evoked1.ch_names != evoked2.ch_names
+    assert evoked1.ch_names == ev3.ch_names
+    pytest.raises(ValueError, _check_evokeds_ch_names_times,
+                  [evoked1, evoked2], reorder=False)
 
 
 def test_array_epochs():
