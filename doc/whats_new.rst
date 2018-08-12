@@ -93,6 +93,8 @@ API
 
 - Prepare transition to Python 3. This release will be the last release compatible with Python 2. The next version will be Python 3 only.
 
+- func:`mne.viz.plot_evoked_topo` and other functions requiring a color cycle will now default to Matplotlib rcParams colors through :func:`mne.viz.utils._get_color_list`: by `Stefan Appelhoff`_
+
 - :meth:`mne.Evoked.plot_image` has gained the ability to ``show_names``, and if a selection is provided to ``group_by``, ``axes`` can now receive a `dict`, by `Jona Sassenhagen`_
 
 - Calling :meth:`mne.Epochs.decimate` with ``decim=1`` no longer copies the data by `Henrich Kolkhorst`_
