@@ -851,11 +851,10 @@ class Report(object):
         # boolean to specify if sections should be ordered in natural
         # order of processing (raw -> events ... -> inverse)
         self._sort_sections = False
-        raw_psd = {} if raw_psd is True else raw_psd
-        if raw_psd is not False and not isinstance(raw_psd, dict):
+        if not isinstance(raw_psd, bool) and not isinstance(raw_psd, dict):
             raise TypeError('raw_psd must be bool or dict, got %s'
                             % (type(raw_psd),))
-        self._raw_psd = raw_psd
+        self.raw_psd = raw_psd
         self._init_render()  # Initialize the renderer
 
     def __repr__(self):
@@ -1314,7 +1313,6 @@ class Report(object):
                    for fname in fnames):
                 warn('`info_fname` not provided. Cannot render '
                      '-trans.fif(.gz) files.')
-                raise RuntimeError
             info, sfreq = None, None
 
         cov = None
@@ -1612,14 +1610,15 @@ class Report(object):
             meas_date=meas_date, n_eeg=n_eeg, n_grad=n_grad, n_mag=n_mag,
             eog=eog, ecg=ecg, tmin=tmin, tmax=tmax)
 
-        if isinstance(self._raw_psd, dict):
+        raw_psd = {} if self.raw_psd is True else self.raw_psd
+        if isinstance(raw_psd, dict):
             from matplotlib.backends.backend_agg import FigureCanvasAgg
             n_ax = sum(kind in raw for kind in _data_types)
             fig, axes = plt.subplots(n_ax, 1, figsize=(6, 1 + 1.5 * n_ax),
                                      dpi=92)
             FigureCanvasAgg(fig)
             img = _fig_to_img(raw.plot_psd, self.image_format,
-                              ax=axes, **self._raw_psd)
+                              ax=axes, **raw_psd)
             new_html = image_template.substitute(
                 img=img, div_klass='raw', img_klass='raw',
                 caption='PSD', show=True, image_format=self.image_format)
