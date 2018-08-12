@@ -253,11 +253,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                 return linalg.solve(a, X.T * y, sym_pos=True,
                                     overwrite_a=True, overwrite_b=True).T
     elif callable(solver):
-        warn("When using a custom solver, note that since MNE 0.15, this "
-             "function will pass the transposed data (n_channels, n_times) "
-             "to the solver. If you are using a solver that expects a "
-             "different format, it will give wrong results and might in "
-             "extreme cases crash your session.")
+        pass
     else:
         raise TypeError("The solver must be a str or a callable.")
 
