@@ -140,18 +140,15 @@ def test_continuous_regression_with_overlap():
     from sklearn.linear_model.ridge import ridge_regression
 
     def solver(X, y):
-        return ridge_regression(X, y, alpha=0.)
-
-    with pytest.warns(RuntimeWarning, match='transposed'):
-        assert_allclose(effect, linear_regression_raw(
-            raw, events, tmin=0, solver=solver)['1'].data.flatten())
+        return ridge_regression(X, y, alpha=0., solver="cholesky")
+    assert_allclose(effect, linear_regression_raw(
+        raw, events, tmin=0, solver=solver)['1'].data.flatten())
 
     # test bad solvers
     def solT(X, y):
-        return ridge_regression(X, y, alpha=0.).T
-    with pytest.warns(RuntimeWarning, match='transposed'):
-        pytest.raises(ValueError, linear_regression_raw, raw, events,
-                      solver=solT)
+        return ridge_regression(X, y, alpha=0., solver="cholesky").T
+    pytest.raises(ValueError, linear_regression_raw, raw, events,
+                  solver=solT)
     pytest.raises(ValueError, linear_regression_raw, raw, events, solver='err')
     pytest.raises(TypeError, linear_regression_raw, raw, events, solver=0)
 
