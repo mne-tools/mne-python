@@ -1681,7 +1681,7 @@ class DraggableColorbar(object):
     See http://www.ster.kuleuven.be/~pieterd/python/html/plotting/interactive_colorbar.html
     """  # noqa: E501
 
-    def __init__(self, cbar, mappable):  # noqa: D107
+    def __init__(self, cbar, mappable):
         import matplotlib.pyplot as plt
         self.cbar = cbar
         self.mappable = mappable
@@ -1794,7 +1794,7 @@ class SelectFromCollection(object):
     """
 
     def __init__(self, ax, collection, ch_names,
-                 alpha_other=0.3):  # noqa: D107
+                 alpha_other=0.3):
         import matplotlib as mpl
         if LooseVersion(mpl.__version__) < LooseVersion('1.2.1'):
             raise ImportError('Interactive selection not possible for '
@@ -2216,7 +2216,7 @@ class DraggableLine(object):
         Callback to call when line is released.
     """
 
-    def __init__(self, line, modify_callback, drag_callback):  # noqa: D107
+    def __init__(self, line, modify_callback, drag_callback):
         self.line = line
         self.press = None
         self.x0 = line.get_xdata()[0]
