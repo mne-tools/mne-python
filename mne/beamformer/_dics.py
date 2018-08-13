@@ -1,22 +1,22 @@
 """Dynamic Imaging of Coherent Sources (DICS)."""
 
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Britta Westner
+#          Britta Westner <britta.wstnr@gmail.com>
 #          Susanna Aro <susanna.aro@aalto.fi>
 #          Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD (3-clause)
 import numpy as np
-from scipy import linalg
 
 from ..utils import logger, verbose, warn
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc, _get_src_type
 from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
-from ._compute_beamformer import (_reg_pinv, _eig_inv, _setup_picks,
+from ._compute_beamformer import (_reg_pinv, _setup_picks,
                                   _pick_channels_spatial_filter,
                                   _check_proj_match, _prepare_beamformer_input,
+                                  _compute_beamformer, _check_one_ch_type,
                                   _check_src_type)
 from ..externals import six
 
@@ -211,7 +211,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     )
     csd_picks = [csd.ch_names.index(ch) for ch in ch_names]
 
-    n_sources = G.shape[1] // n_orient
+    _check_one_ch_type(info, picks, None, 'dics')
 
     logger.info('Computing DICS spatial filters...')
     Ws = []
@@ -228,101 +228,10 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         # Ensure the CSD is in the same order as the leadfield
         Cm = Cm[csd_picks, :][:, csd_picks]
 
-        # Tikhonov regularization using reg parameter to control for
-        # trade-off between spatial resolution and noise sensitivity
-        # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
-        Cm_inv, _ = _reg_pinv(Cm, reg, rcond='auto')
-
-        if (pick_ori == 'max-power' and weight_norm == 'unit-noise-gain' and
-                inversion == 'matrix'):
-            Cm_inv_sq = Cm_inv.dot(Cm_inv)
-
-        # Compute spatial filters
-        W = np.dot(G.T, Cm_inv)
-
-        for k in range(n_sources):
-            Wk = W[n_orient * k: n_orient * k + n_orient]
-            Gk = G[:, n_orient * k: n_orient * k + n_orient]
-
-            # Compute power at the source
-            Ck = np.dot(Wk, Gk)
-
-            # XXX This should be de-duplicated with LCMV
-
-            # Normalize the spatial filters
-            if Wk.ndim == 2 and len(Wk) > 1:
-                # Free source orientation
-                if inversion == 'single':
-                    # Invert for each dipole separately using plain division
-                    Wk /= np.diag(Ck)[:, np.newaxis]
-                elif inversion == 'matrix':
-                    # Invert for all dipoles simultaneously using matrix
-                    # inversion.
-                    Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
-            else:
-                # Fixed source orientation
-                Wk /= Ck
-
-            if pick_ori == 'max-power':
-                # Compute spectral power, so we can pick the orientation that
-                # maximizes this power.
-                if inversion == 'matrix' and weight_norm == 'unit-noise-gain':
-                    # Use Eq. 4.47 from [2]_
-                    norm_inv = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
-                    if reduce_rank:
-                        # Use pseudo inverse computation setting smallest
-                        # component to zero if the leadfield is not full rank
-                        norm = _eig_inv(norm_inv, norm_inv.shape[0] - 1)
-                    else:
-                        # Use straight inverse with full rank leadfield
-                        try:
-                            norm = linalg.inv(norm_inv)
-                        except np.linalg.linalg.LinAlgError:
-                            raise ValueError(
-                                'Singular matrix detected when estimating '
-                                'DICS filters. Consider reducing the rank '
-                                'of the forward operator by using '
-                                'reduce_rank=True.'
-                            )
-                    power = np.dot(norm, np.dot(Wk, Gk))
-
-                elif (inversion == 'single' and
-                      weight_norm == 'unit-noise-gain'):
-                    # First make the filters unit gain, then apply them to the
-                    # CSD matrix to compute power.
-                    norm = 1 / np.sqrt(np.sum(Wk ** 2, axis=1))
-                    Wk_norm = Wk / norm[:, np.newaxis]
-                    power = Wk_norm.dot(Cm).dot(Wk_norm.T)
-                else:
-                    # Compute spectral power by applying the spatial filters to
-                    # the CSD matrix.
-                    power = Wk.dot(Cm).dot(Wk.T)
-
-                # Compute the direction of max power
-                u, s, _ = np.linalg.svd(power.real)
-                max_power_ori = u[:, 0]
-
-                # Re-compute the filter in the direction of max power
-                Wk[:] = max_power_ori.dot(Wk)
-
-        if pick_ori == 'normal':
-            W = W[2::3]
-        elif pick_ori == 'max-power':
-            W = W[0::3]
-
-        if weight_norm == 'unit-noise-gain':
-            # Scale weights so that W @ I @ W.T == I
-            if pick_ori is None and n_orient > 1:
-                # Compute the norm for each set of 3 dipoles
-                W = W.reshape(-1, 3, W.shape[1])
-                norm = np.sqrt(np.sum(W ** 2, axis=(1, 2)))
-                W /= norm[:, np.newaxis, np.newaxis]
-                W = W.reshape(-1, W.shape[2])
-            else:
-                # Compute the norm for each dipole
-                norm = np.sqrt(np.sum(W ** 2, axis=1))
-                W /= norm[:, np.newaxis]
-
+        # compute spatial filter
+        W, _ = _compute_beamformer('dics', G, Cm, reg, n_orient, weight_norm,
+                                   pick_ori, reduce_rank, rank=None,
+                                   is_free_ori=None, inversion=inversion)
         Ws.append(W)
 
     Ws = np.array(Ws)
