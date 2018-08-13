@@ -138,6 +138,33 @@ def test_render_report():
 
 
 @testing.requires_testing_data
+def test_report_raw_psd_and_date():
+    """Test report raw PSD and DATE_NONE functionality."""
+    with pytest.raises(TypeError, match='dict'):
+        Report(raw_psd='foo')
+
+    tempdir = _TempDir()
+    raw = read_raw_fif(raw_fname).crop(0, 1.).load_data()
+    raw_fname_new = op.join(tempdir, 'temp_raw.fif')
+    raw.save(raw_fname_new)
+    report = Report(raw_psd=True)
+    report.parse_folder(data_path=tempdir, render_bem=False,
+                        on_error='raise')
+    assert isinstance(report.html, list)
+    assert 'PSD' in ''.join(report.html)
+    assert 'GMT' in ''.join(report.html)
+
+    # DATE_NONE functionality
+    report = Report()
+    raw.anonymize()
+    raw.save(raw_fname_new, overwrite=True)
+    report.parse_folder(data_path=tempdir, render_bem=False,
+                        on_error='raise')
+    assert isinstance(report.html, list)
+    assert 'GMT' not in ''.join(report.html)
+
+
+@testing.requires_testing_data
 @requires_mayavi
 @traits_test
 def test_render_add_sections():
@@ -197,9 +224,8 @@ def test_render_mri():
         shutil.copyfile(a, b)
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
-    with pytest.warns(None):  # contours
-        report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*',
-                            n_jobs=2)
+    report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*',
+                        n_jobs=2)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
     assert repr(report)
 
@@ -214,8 +240,7 @@ def test_render_mri_without_bem():
     shutil.copyfile(mri_fname, op.join(tempdir, 'sample', 'mri', 'T1.mgz'))
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=tempdir)
-    with pytest.warns(RuntimeWarning, match='bem directory .* does not exist'):
-        report.parse_folder(tempdir)
+    report.parse_folder(tempdir, render_bem=False)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 
