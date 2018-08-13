@@ -881,7 +881,7 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
     xhemi : bool
         Morph across hemisphere. Currently only implemented for
         ``subject_to == subject_from``. See notes at
-        :func:`mne.compute_morph_matrix`.
+        :class:`mne.SourceMorph`.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).

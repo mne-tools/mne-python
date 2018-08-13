@@ -16,8 +16,7 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  spatio_temporal_src_connectivity,
                  spatial_inter_hemi_connectivity,
                  spatial_src_connectivity, spatial_tris_connectivity,
-                 SourceSpaces, grade_to_vertices, compute_morph_matrix,
-                 SourceMorph)
+                 SourceSpaces, grade_to_vertices, SourceMorph)
 from mne.source_estimate import grade_to_tris, _get_vol_mask
 
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
@@ -592,9 +591,11 @@ def test_morph_data():
 
     # steps warning
     with pytest.warns(RuntimeWarning, match='steps'):
-        compute_morph_matrix(subject_from, subject_to,
-                             stc_from.vertices, vertices_to,
-                             smooth=1, subjects_dir=subjects_dir)
+        SourceMorph(subject_from=subject_from,
+                    subject_to=subject_to,
+                    subjects_dir=subjects_dir,
+                    smooth=1,
+                    spacing=vertices_to)(stc_from)
 
     mean_from = stc_from.data.mean(axis=0)
     mean_to = stc_to1.data.mean(axis=0)

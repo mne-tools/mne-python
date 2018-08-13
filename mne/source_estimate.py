@@ -1358,7 +1358,8 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         vertices_to : list of array of int
             The vertices on the destination subject's brain.
         morph_mat : sparse matrix
-            The morphing matrix, usually from compute_morph_matrix.
+            Deprecated. Can still be obtained using
+            mne.SourceMorph(src=src, sparse=True).params['morph_mat'].
         subject_from : string | None
             Name of the original subject as named in the SUBJECTS_DIR.
             If None, self.subject will be used.
@@ -2293,7 +2294,8 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     vertices_to : list of array of int
         The vertices on the destination subject's brain.
     morph_mat : sparse matrix
-        The morphing matrix, typically from compute_morph_matrix.
+        Deprecated. Can still be obtained using
+        mne.SourceMorph(src=src).params['morph_mat'].
 
     Returns
     -------
