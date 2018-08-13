@@ -62,7 +62,7 @@ vhdr_nV_path = op.join(data_dir, 'test_nV.vhdr')
 montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 eog = ['HL', 'HR', 'Vb']
-event_id = {'Sync On': 5, 'O  1': 1, 'R255': 255}
+event_id = {'Sync On': 5}
 
 
 def test_vmrk_meas_date():
@@ -509,7 +509,7 @@ def test_events():
     with pytest.warns(RuntimeWarning, match='channel types to misc'):
         raw = read_raw_brainvision(vhdr_v2_path)
     events = raw._get_brainvision_events()
-    assert events.shape == (10, 3)  # shape of events without comment/response
+    assert events.shape == (11, 3)  # shape of events without comment
 
     # with event_id specified, get that comment and assert it's there
     tmp_event_id = {'comment using [square] brackets': 999}
@@ -517,7 +517,7 @@ def test_events():
         raw = read_raw_brainvision(vhdr_v2_path, event_id=tmp_event_id)
     events = raw._get_brainvision_events()
     assert 999 in events[:, -1]
-    assert events.shape == (11, 3)  # shape of events without response
+    assert events.shape == (12, 3)  # shape of events with comment
 
     # check that events are read properly when event_id is specified for
     # auxiliary events
