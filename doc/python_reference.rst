@@ -763,6 +763,7 @@ Source Space Data
    SourceEstimate
    VectorSourceEstimate
    VolSourceEstimate
+   SourceMorph
 
 .. autosummary::
    :toctree: generated/
@@ -770,20 +771,17 @@ Source Space Data
 
    head_to_mni
    head_to_mri
-   compute_morph_matrix
    extract_label_time_course
    grade_to_tris
    grade_to_vertices
    grow_labels
    label_sign_flip
-   morph_data
-   morph_data_precomputed
    random_parcellation
    read_labels_from_annot
    read_dipole
    read_label
    read_source_estimate
-   save_stc_as_volume
+   read_source_morph
    split_label
    stc_to_label
    transform_surface_to
@@ -1044,11 +1042,11 @@ Realtime
 MNE-Report
 ==========
 
-:py:mod:`mne`:
+:py:mod:`mne.report`:
 
-.. currentmodule:: mne
+.. currentmodule:: mne.report
 
-.. automodule:: mne
+.. automodule:: mne.report
    :no-members:
    :no-inherited-members:
 

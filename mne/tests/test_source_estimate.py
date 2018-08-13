@@ -11,14 +11,13 @@ from mne.datasets import testing
 from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  VolSourceEstimate, Label, read_source_spaces,
                  read_evokeds, MixedSourceEstimate, find_events, Epochs,
-                 read_source_estimate, morph_data, extract_label_time_course,
+                 read_source_estimate, extract_label_time_course,
                  spatio_temporal_tris_connectivity,
                  spatio_temporal_src_connectivity,
                  spatial_inter_hemi_connectivity,
                  spatial_src_connectivity, spatial_tris_connectivity,
-                 SourceSpaces)
-from mne.source_estimate import (compute_morph_matrix, grade_to_vertices,
-                                 grade_to_tris, _get_vol_mask)
+                 SourceSpaces, grade_to_vertices, SourceMorph)
+from mne.source_estimate import grade_to_tris, _get_vol_mask
 
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs)
@@ -163,7 +162,7 @@ def test_save_vol_stc_as_nifti():
     src = SourceSpaces([src[0], src[0]])
     stc = VolSourceEstimate(np.r_[stc.data, stc.data],
                             [stc.vertices, stc.vertices],
-                            tmin=stc.tmin, tstep=stc.tstep)
+                            tmin=stc.tmin, tstep=stc.tstep, subject='sample')
     img = stc.as_volume(src, dest='mri', mri_resolution=False)
     assert (img.shape == src[0]['shape'] + (len(stc.times),))
 
@@ -550,63 +549,63 @@ def test_morph_data():
     stc_to.crop(0.09, 0.1)  # for faster computation
     assert_array_equal(stc_to.time_as_index([0.09, 0.1], use_rounding=True),
                        [0, len(stc_to.times) - 1])
-    pytest.raises(ValueError, stc_from.morph, subject_to, grade=3, smooth=-1,
-                  subjects_dir=subjects_dir)
-    stc_to1 = stc_from.morph(subject_to, grade=3, smooth=12, buffer_size=1000,
-                             subjects_dir=subjects_dir)
+
+    morph = SourceMorph(subject_from=subject_from,
+                        subject_to=subject_to,
+                        spacing=5,
+                        smooth=-1,
+                        subjects_dir=subjects_dir)
+    # negative smooth
+    pytest.raises(ValueError, morph, stc_from)
+    stc_to1 = SourceMorph(subject_to=subject_to,
+                          spacing=3,
+                          smooth=12,
+                          subjects_dir=subjects_dir)(stc_from)
+
     stc_to1.save(op.join(tempdir, '%s_audvis-meg' % subject_to))
     # Morphing to a density that is too high should raise an informative error
     # (here we need to push to grade=6, but for some subjects even grade=5
     # will break)
-    pytest.raises(ValueError, stc_to1.morph, subject_from, grade=6,
-                  subjects_dir=subjects_dir)
+    morph = SourceMorph(subject_from=subject_to,
+                        subject_to=subject_from,
+                        spacing=6,
+                        subjects_dir=subjects_dir)
+    pytest.raises(ValueError, morph, stc_to1)
     # make sure we can specify vertices
     vertices_to = grade_to_vertices(subject_to, grade=3,
                                     subjects_dir=subjects_dir)
-    stc_to2 = morph_data(subject_from, subject_to, stc_from,
-                         grade=vertices_to, smooth=12, buffer_size=1000,
-                         subjects_dir=subjects_dir)
-    # make sure we can use different buffer_size
-    stc_to3 = morph_data(subject_from, subject_to, stc_from,
-                         grade=vertices_to, smooth=12, buffer_size=3,
-                         subjects_dir=subjects_dir)
-    # make sure we get a warning about # of steps
+    # make sure we get a warning about # of smoothing steps
     with pytest.warns(RuntimeWarning, match='consider increasing'):
-        morph_data(subject_from, subject_to, stc_from,
-                   grade=vertices_to, smooth=1, buffer_size=3,
-                   subjects_dir=subjects_dir)
+        SourceMorph(subject_from, subject_to, spacing=vertices_to,
+                    smooth=1, subjects_dir=subjects_dir)(stc_from)
 
     assert_array_almost_equal(stc_to.data, stc_to1.data, 5)
-    assert_array_almost_equal(stc_to1.data, stc_to2.data)
-    assert_array_almost_equal(stc_to1.data, stc_to3.data)
-    # make sure precomputed morph matrices work
-    morph_mat = compute_morph_matrix(subject_from, subject_to,
-                                     stc_from.vertices, vertices_to,
-                                     smooth=12, subjects_dir=subjects_dir)
-    stc_to3 = stc_from.morph_precomputed(subject_to, vertices_to, morph_mat)
-    assert_array_almost_equal(stc_to1.data, stc_to3.data)
-    pytest.raises(ValueError, stc_from.morph_precomputed,
-                  subject_to, vertices_to, 'foo')
-    pytest.raises(ValueError, stc_from.morph_precomputed,
-                  subject_to, [vertices_to[0]], morph_mat)
-    pytest.raises(ValueError, stc_from.morph_precomputed,
-                  subject_to, [vertices_to[0][:-1], vertices_to[1]], morph_mat)
-    pytest.raises(ValueError, stc_from.morph_precomputed, subject_to,
-                  vertices_to, morph_mat, subject_from='foo')
+
+    # subject from mismatch
+    morph = SourceMorph(subject_from='foo')
+    pytest.raises(ValueError, morph, stc_from)
+
+    # only one set of vertices
+    morph = SourceMorph(subject_from=subject_from, spacing=[vertices_to[0]])
+    pytest.raises(ValueError, morph, stc_from)
 
     # steps warning
     with pytest.warns(RuntimeWarning, match='steps'):
-        compute_morph_matrix(subject_from, subject_to,
-                             stc_from.vertices, vertices_to,
-                             smooth=1, subjects_dir=subjects_dir)
+        SourceMorph(subject_from=subject_from,
+                    subject_to=subject_to,
+                    subjects_dir=subjects_dir,
+                    smooth=1,
+                    spacing=vertices_to)(stc_from)
 
     mean_from = stc_from.data.mean(axis=0)
     mean_to = stc_to1.data.mean(axis=0)
     assert (np.corrcoef(mean_to, mean_from).min() > 0.999)
 
-    # make sure we can fill by morphing
-    stc_to5 = morph_data(subject_from, subject_to, stc_from, grade=None,
-                         smooth=12, buffer_size=3, subjects_dir=subjects_dir)
+    # make sure we can fill by morphing (deprecation warning)
+    stc_to5 = SourceMorph(subject_from=subject_from, subject_to=subject_to,
+                          spacing=None,
+                          smooth=12,
+                          subjects_dir=subjects_dir)(stc_from)
     assert (stc_to5.data.shape[0] == 163842 + 163842)
 
     # Morph sparse data
@@ -615,40 +614,58 @@ def test_morph_data():
     stc_from.vertices[1] = stc_from.vertices[1][[200]]
     stc_from._data = stc_from._data[:3]
 
-    pytest.raises(RuntimeError, stc_from.morph, subject_to, sparse=True,
-                  grade=5, subjects_dir=subjects_dir)
+    morph = SourceMorph(subject_from=subject_from, subject_to=subject_to,
+                        spacing=5,
+                        sparse=True,
+                        subjects_dir=subjects_dir)
+    # spacing not None
+    # steps warning
+    with pytest.warns(RuntimeWarning, match='steps'):
+        pytest.raises(RuntimeError, morph, stc_from)
+        stc_to_sparse = SourceMorph(subject_from=subject_from,
+                                    subject_to=subject_to,
+                                    spacing=None,
+                                    sparse=True,
+                                    subjects_dir=subjects_dir)(stc_from)
 
-    stc_to_sparse = stc_from.morph(subject_to, grade=None, sparse=True,
-                                   subjects_dir=subjects_dir)
     assert_array_almost_equal(np.sort(stc_from.data.sum(axis=1)),
                               np.sort(stc_to_sparse.data.sum(axis=1)))
-    assert_equal(len(stc_from.rh_vertno), len(stc_to_sparse.rh_vertno))
-    assert_equal(len(stc_from.lh_vertno), len(stc_to_sparse.lh_vertno))
-    assert_equal(stc_to_sparse.subject, subject_to)
-    assert_equal(stc_from.tmin, stc_from.tmin)
-    assert_equal(stc_from.tstep, stc_from.tstep)
+    assert len(stc_from.rh_vertno) == len(stc_to_sparse.rh_vertno)
+    assert len(stc_from.lh_vertno) == len(stc_to_sparse.lh_vertno)
+    assert stc_to_sparse.subject == subject_to
+    assert stc_from.tmin == stc_from.tmin
+    assert stc_from.tstep == stc_from.tstep
 
     stc_from.vertices[0] = np.array([], dtype=np.int64)
     stc_from._data = stc_from._data[:1]
 
-    stc_to_sparse = stc_from.morph(subject_to, grade=None, sparse=True,
-                                   subjects_dir=subjects_dir)
+    with pytest.warns(RuntimeWarning, match='steps'):
+        stc_to_sparse = SourceMorph(subject_from=subject_from,
+                                    subject_to=subject_to,
+                                    spacing=None,
+                                    sparse=True,
+                                    subjects_dir=subjects_dir)(stc_from)
+
     assert_array_almost_equal(np.sort(stc_from.data.sum(axis=1)),
                               np.sort(stc_to_sparse.data.sum(axis=1)))
-    assert_equal(len(stc_from.rh_vertno), len(stc_to_sparse.rh_vertno))
-    assert_equal(len(stc_from.lh_vertno), len(stc_to_sparse.lh_vertno))
-    assert_equal(stc_to_sparse.subject, subject_to)
-    assert_equal(stc_from.tmin, stc_from.tmin)
-    assert_equal(stc_from.tstep, stc_from.tstep)
+    assert len(stc_from.rh_vertno) == len(stc_to_sparse.rh_vertno)
+    assert len(stc_from.lh_vertno) == len(stc_to_sparse.lh_vertno)
+    assert stc_to_sparse.subject == subject_to
+    assert stc_from.tmin == stc_from.tmin
+    assert stc_from.tstep == stc_from.tstep
 
     # Morph vector data
     stc_vec = _real_vec_stc()
 
-    # Ignore warnings about number of steps
-    stc_vec_to1 = stc_vec.morph(subject_to, grade=3, smooth=12,
-                                buffer_size=1000, subjects_dir=subjects_dir)
-    stc_vec_to2 = stc_vec.morph_precomputed(subject_to, vertices_to, morph_mat)
-    assert_array_almost_equal(stc_vec_to1.data, stc_vec_to2.data)
+    stc_vec_to1 = SourceMorph(subject_from=subject_from, subject_to=subject_to,
+                              subjects_dir=subjects_dir,
+                              spacing=5,
+                              smooth=12)(stc_vec)
+    assert stc_vec_to1.subject == subject_to
+    assert stc_vec_to1.tmin == stc_vec.tmin
+    assert stc_vec_to1.tstep == stc_vec.tstep
+    assert len(stc_vec_to1.lh_vertno) == 10242
+    assert len(stc_vec_to1.rh_vertno) == 10242
 
 
 def _my_trans(data):
@@ -849,7 +866,6 @@ def test_get_peak():
 
 
 @requires_h5py
-@testing.requires_testing_data
 def test_mixed_stc():
     """Test source estimate from mixed source space."""
     N = 90  # number of sources

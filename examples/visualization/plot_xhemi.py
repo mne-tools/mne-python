@@ -7,7 +7,7 @@ Cross-hemisphere comparison
 This example illustrates how to visualize the difference between activity in
 the left and the right hemisphere. The data from the right hemisphere is
 mapped to the left hemisphere, and then the difference is plotted. For more
-information see :func:`mne.compute_morph_matrix`.
+information see :class:`mne.SourceMorph`.
 """
 # Author: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
@@ -28,11 +28,13 @@ stc = stc.morph('fsaverage_sym', subjects_dir=subjects_dir, smooth=5)
 
 # Compute a morph-matrix mapping the right to the left hemisphere. Use the
 # vertices parameters to determine source and target hemisphere:
-mm = mne.compute_morph_matrix(
-    'fsaverage_sym', 'fsaverage_sym', xhemi=True,  # cross-hemisphere morphing
-    vertices_from=[[], stc.vertices[1]],  # from the right hemisphere
-    vertices_to=[stc.vertices[0], []],  # to the left hemisphere
-    subjects_dir=subjects_dir)
+mm = mne.SourceMorph(subject_from='fsaverage_sym', subject_to='fsaverage_sym',
+                     spacing=[stc.vertices[0], []],
+                     subjects_dir=subjects_dir,
+                     xhemi=True)
+stc_m = mm(stc)
+
+mm = mm.params['morph_mat']
 
 # SourceEstimate on the left hemisphere:
 stc_lh = mne.SourceEstimate(stc.lh_data, [stc.vertices[0], []], stc.tmin,

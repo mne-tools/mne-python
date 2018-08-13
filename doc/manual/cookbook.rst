@@ -174,7 +174,8 @@ Cortical surface reconstruction with FreeSurfer
 
 The first processing stage is the creation of various surface
 reconstructions with FreeSurfer. The recommended FreeSurfer workflow
-is summarized on the `FreeSurfer wiki pages <https://surfer.nmr.mgh.harvard.edu/fswiki/RecommendedReconstruction>`_.
+is summarized on the `FreeSurfer wiki pages <https://surfer.nmr.mgh.harvard.edu/fswiki/RecommendedReconstruction>`_. See
+also this information :ref:`sphx_glr_auto_tutorials_plot_background_freesurfer.py`.
 
 .. _setting_up_source_space:
 
@@ -295,7 +296,7 @@ Using this model, the BEM solution can be computed using
 
 After the BEM is set up it is advisable to check that the
 BEM model meshes are correctly positioned using *e.g.*
-:func:`mne.viz.plot_alignment` or :class:`mne.Report`.
+:func:`mne.viz.plot_alignment` or :class:`mne.report.Report`.
 
 .. note:: Up to this point all processing stages depend on the
           anatomical (geometrical) information only and thus remain
