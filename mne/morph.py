@@ -983,7 +983,6 @@ def _compute_morph_sdr(mri_from, mri_to,
 # Morph for SourceEstimate |  VectorSourceEstimate
 @deprecated("This function is deprecated and will be removed in version 0.19. "
             "Use morph_mat = mne.SourceMorph(src=src).params['morph_mat']")
-@verbose
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
                          smooth=None, subjects_dir=None, warn=True,
                          xhemi=False, verbose=None):
