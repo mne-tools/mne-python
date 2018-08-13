@@ -196,7 +196,7 @@ class SourceMorph(object):
         # Params for surface morphing
         self.smooth = smooth
         self.warn = warn
-        
+
         if self.kind not in 'surface' and xhemi:
             raise ValueError('Inter-hemispheric morphing can only be used '
                              'with surface source estimates.')
@@ -1068,6 +1068,7 @@ def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
 
     if xhemi:
         hemi_indexes = [(0, 1), (1, 0)]
+        vertices_to.reverse()
     else:
         hemi_indexes = [(0, 0), (1, 1)]
     morpher = []
@@ -1452,7 +1453,14 @@ def _apply_morph_data(morph, stc_from, verbose=None):
         morph_mat = morph.params['morph_mat']
         vertices_to = morph.params['vertno']
 
-        data = stc_from.data
+        # select correct data - since vertices_to can have empty hemispheres,
+        # the correct data needs to be selected in order to apply the morph_mat
+        # correctly
+        data = (stc_from.data
+                if len(vertices_to[0]) != 0 and len(vertices_to[1]) != 0
+                else (stc_from.lh_data
+                      if len(vertices_to[0]) != 0
+                      else stc_from.rh_data))
 
         # apply morph and return new morphed instance of (Vector)SourceEstimate
         if isinstance(stc_from, VectorSourceEstimate):
