@@ -17,7 +17,7 @@ from .source_estimate import (VolSourceEstimate, SourceEstimate,
 from .source_space import SourceSpaces
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
-                    warn as warn_)
+                    warn as warn_, deprecated)
 from .externals.h5io import read_hdf5, write_hdf5
 
 
@@ -196,8 +196,19 @@ class SourceMorph(object):
         # Params for surface morphing
         self.smooth = smooth
         self.warn = warn
-        self.xhemi = xhemi
-        self.sparse = sparse
+        
+        if self.kind not in 'surface' and xhemi:
+            raise ValueError('Inter-hemispheric morphing can only be used '
+                             'with surface source estimates.')
+        else:
+            self.xhemi = xhemi
+
+        if sparse and self.kind not in 'surface':
+            raise ValueError('Only surface source estimates can compute a '
+                             'sparse morph.')
+        else:
+            self.sparse = sparse
+
         self.params = dict()
 
         # apply precomputed data and return
@@ -970,6 +981,8 @@ def _compute_morph_sdr(mri_from, mri_to,
 
 ###############################################################################
 # Morph for SourceEstimate |  VectorSourceEstimate
+@deprecated("This function is deprecated and will be removed in version 0.19. "
+            "Use morph_mat = mne.SourceMorph(src=src).params['morph_mat']")
 @verbose
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
                          smooth=None, subjects_dir=None, warn=True,

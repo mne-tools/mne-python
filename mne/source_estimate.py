@@ -7,8 +7,6 @@
 
 import copy
 import os.path as op
-from math import ceil
-import warnings
 
 import numpy as np
 from scipy import linalg, sparse
@@ -18,9 +16,7 @@ from .utils import deprecated
 from .filter import resample
 from .fixes import einsum
 from .evoked import _get_peak
-from .parallel import parallel_func
-from .surface import (read_surface, _get_ico_surface, read_morph_map,
-                      _compute_nearest, mesh_edges)
+from .surface import read_surface, _get_ico_surface, mesh_edges
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
@@ -2221,6 +2217,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
 ###############################################################################
 # Morphing
 
+
 @deprecated("This function is deprecated and will be removed in version "
             "0.19. Use morph = mne.SourceMorph and morph(stc)")
 @verbose
@@ -2325,6 +2322,7 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
                        subject_to=subject_to,
                        precomputed={'vertno': vertices_to,
                                     'morph_mat': morph_mat})(stc_from)
+
 
 def _get_vol_mask(src):
     """Get the volume source space mask."""

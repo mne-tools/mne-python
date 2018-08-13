@@ -3,10 +3,10 @@ from __future__ import print_function
 import os
 import os.path as op
 from unittest import SkipTest
+
 import pytest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
-
 from mne.datasets import testing
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
@@ -459,10 +459,10 @@ def test_head_to_mni():
     mri_head_t = invert_transform(trans)  # MRI (surface RAS)->head matrix
 
     # obtained from sample_audvis-meg-oct-6-mixed-fwd.fif
-    coo_right_amygdala = np.array([[0.01745682,  0.02665809,  0.03281873],
-                                   [0.01014125,  0.02496262,  0.04233755],
-                                   [0.01713642,  0.02505193,  0.04258181],
-                                   [0.01720631,  0.03073877,  0.03850075]])
+    coo_right_amygdala = np.array([[0.01745682, 0.02665809, 0.03281873],
+                                   [0.01014125, 0.02496262, 0.04233755],
+                                   [0.01713642, 0.02505193, 0.04258181],
+                                   [0.01720631, 0.03073877, 0.03850075]])
     coords_MNI_2 = head_to_mni(coo_right_amygdala, 'sample', mri_head_t,
                                subjects_dir)
     # less than 1mm error
@@ -664,9 +664,10 @@ def test_morphed_source_space_return():
                                     subjects_dir=subjects_dir)
 
     # Morph the data over using standard methods
-    stc_morph = SourceMorph(subject_to='sample', subject_from='fsaverage',
-                            spacing=[s['vertno'] for s in src_morph],
-                            smooth=1, subjects_dir=subjects_dir)(stc_fs)
+    with pytest.warns(RuntimeWarning, match='vertices not included'):
+        stc_morph = SourceMorph(subject_to='sample', subject_from='fsaverage',
+                                spacing=[s['vertno'] for s in src_morph],
+                                smooth=1, subjects_dir=subjects_dir)(stc_fs)
 
     # We can now pretend like this was real data we got e.g. from an inverse.
     # To be complete, let's remove some vertices

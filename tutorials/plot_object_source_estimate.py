@@ -2,31 +2,54 @@
 What's a SourceEstimate?
 ========================
 
-Source estimations in MNE-Python are represented using two different types of
-objects:
+Source estimations in MNE-Python rely on two different types of objects:
+
+    - :class:`mne.SourceSpaces`
 
     - :class:`mne.SourceEstimate` or :class:`mne.VectorSourceEstimate` (which
             will in the following be substituted by 'SourceEstimate')
 
-    - :class:`mne.SourceSpaces`
+MNE-Python provides different methods for solving the so-called
+'inverse problem'. Thereby sensor level data will be projected into a
+3-dimensional 'source space' representing the individual subject's brain
+anatomy. Hence the data is transformed such that the recorded time series at
+each sensor location maps to a time series at each spatial location of the
+brain representation from where we obtain our source estimates.
 
+Before a source estimate can be computed, the correct source space needs to be
+set up. In MNE :class:`mne.SourceSpaces` are often called **src** and represent
+the correct mapping between sensor space and brain space or source space data.
+Thus, in order to obtain source estimates, the computation of the corresponding
+source space needs to be performed.
 
-:class:`mne.SourceEstimate` is the result of a source analysis. MNE-Python
-provides different methods for solving the so-called 'inverse problem'. Thereby
-sensor level data will be projected into a 3-dimensional 'source space'
-representing the individual subject's brain anatomy. Hence the data is
-transformed such that the recorded time series at each sensor location maps to
-a time series at each spatial location of the brain representation.
+:class:`mne.SourceEstimate` is a class in MNE-Python to represent source
+estimations. Within the MNE ecosystem source estimates are mostly called
+**stc** - short for Source Time Course(s). In general there are two major types
+of source estimates within MNE-Python. Those are (Vector)
+:class:`mne.SourceEstimate` and :class:`mne.VolSourceEstimate`. Volumetric
+source estimates and mixed source estimates (consisting of both types) are not
+discussed here.
 
-Knowing this :class:`mne.SourceEstimate` (within the MNE ecosystem mostly
-called **stc**, which is short for source time courses) represents
-the carrier of the new time series data, whereas :class:`mne.SourceSpaces`
-(mostly called **src**) the mapping towards the anatomical representation.
+.. note::
 
-For an example on how to compute different kinds of source estimates see
+    :class:`(Vector) <mne.VectorSourceEstimate>`
+    :class:`SourceEstimate <mne.SourceEstimate>` are surface representations
+    mostly used together with
+    :ref:`FreeSurfer <sphx_glr_auto_tutorials_plot_background_freesurfer.py>`
+    surface representations.
+
+.. contents::
+    :local:
+
+MNE-Python provides different methods to compute the source estimate from the
+forward model (that includes src). For an example on how to compute different
+kinds of source estimates see
 :ref:`sphx_glr_auto_tutorials_plot_mne_dspm_source_localization.py`.
 
-But let's get ourselves an idea of what a :class:`mne.SourceEstimate` really
+SourceEstimates in practice
+===========================
+
+Let's get ourselves an idea of what a :class:`mne.SourceEstimate` really
 is. We first set up the environment and load some data:
 """
 import os
@@ -44,7 +67,8 @@ subjects_dir = os.path.join(sample_dir_raw, 'subjects')
 fname_stc = os.path.join(sample_dir, 'sample_audvis-meg')
 
 ###############################################################################
-# Load example data
+# Load and inspect example data
+# -----------------------------
 #
 # This data set contains source estimation data from an audio visual task. It
 # has been mapped towards the inflated cortical surface representation obtained
@@ -70,8 +94,8 @@ brain = stc.plot(**surfer_kwargs)
 brain.add_text(0.1, 0.9, 'SourceEstimate', 'title', font_size=16)
 
 ###############################################################################
-# About SourceEstimate (stc)
-# --------------------------
+# SourceEstimate (stc)
+# --------------------
 #
 # We know that source estimate data is represented as a time series of a signal
 # at a spatial location. In the context of a FreeSurfer surfaces - which
@@ -126,8 +150,8 @@ print('\nThe number of vertices in stc.lh_data and stc.rh_data do ' +
 # ``stc.rh_vertno`` to the right inflated surface representation of
 # FreeSurfer.
 #
-# About SourceSpaces (src)
-# ------------------------
+# Relationship to SourceSpaces (src)
+# ----------------------------------
 #
 # As mentioned above, :class:`src <mne.SourceSpaces>` carries the mapping from
 # stc to the surface. The surface is built up from a
@@ -149,7 +173,7 @@ print('\nThe number of vertices in stc.lh_data and stc.rh_data do ' +
 # stc.lh_data corresponds to the Nth value in stc.lh_vertno and
 # src[0]['vertno'] respectively, which in turn map the time series to a
 # specific location on the surface, represented as the set of cartesian
-# coordinates stc.lh_vertno[N] in ``src[0]['rr']``.
+# coordinates ``stc.lh_vertno[N]`` in ``src[0]['rr']``.
 #
 # Let's obtain the peak amplitude of the data as vertex and time point index
 

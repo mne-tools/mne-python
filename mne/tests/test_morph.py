@@ -66,7 +66,7 @@ def test_stc_as_volume():
     assert img.shape[:3] == inverse_operator_vol['src'][0]['shape'][:3]
 
     # Check if not morphed, but voxel size not boolean, raise ValueError
-    with pytest.raises(ValueError, match='Cannot infer original voxel size.*'):
+    with pytest.raises(ValueError, match='Cannot infer original voxel size'):
         stc_vol.as_volume(inverse_operator_vol['src'], mri_resolution=4)
 
 
@@ -92,7 +92,7 @@ def test_surface_vector_source_morph():
 
     stc_surf_morphed = source_morph_surf(stc_surf)
     stc_vec_morphed = source_morph_surf(stc_vec)
-    with pytest.raises(ValueError, match='Only volume source estimates.*'):
+    with pytest.raises(ValueError, match='Only volume source estimates'):
         source_morph_surf.as_volume(stc_surf_morphed)
 
     # check if correct class after morphing
@@ -136,7 +136,7 @@ def test_volume_source_morph():
     stc_vol = read_source_estimate(fname_vol, 'sample')
 
     # check for invalid input type
-    with pytest.raises(ValueError, match='src must be an instance of .*'):
+    with pytest.raises(ValueError, match='src must be an instance of'):
         SourceMorph(src=42)
 
     # check for raising an error if neither
@@ -145,11 +145,18 @@ def test_volume_source_morph():
     src = inverse_operator_vol['src']
     src[0]['subject_his_id'] = None
 
-    with pytest.raises(ValueError, match='subject_from is None. Please .*'):
+    with pytest.raises(ValueError, match='subject_from is None.'):
         SourceMorph(src=src, subjects_dir=subjects_dir)
 
     # check infer subject_from from src[0]['subject_his_id']
     src[0]['subject_his_id'] = 'sample'
+
+    with pytest.raises(ValueError, match='Inter-hemispheric morphing'):
+        SourceMorph(src=src, subjects_dir=subjects_dir, xhemi=True)
+
+    with pytest.raises(ValueError, match='Only surface'):
+        SourceMorph(src=src, sparse=True)
+
     source_morph_vol = SourceMorph(subjects_dir=subjects_dir,
                                    src=inverse_operator_vol['src'],
                                    niter_affine=(1,),
@@ -160,7 +167,7 @@ def test_volume_source_morph():
     # the brain used in sample data has shape (255, 255, 255)
     assert (tuple(
         source_morph_vol.params['DiffeomorphicMap']['domain_shape']) ==
-        (37, 37, 37))
+            (37, 37, 37))
 
     assert (tuple(source_morph_vol.params['AffineMap']['domain_shape']) ==
             (37, 37, 37))
@@ -184,7 +191,7 @@ def test_volume_source_morph():
         niter_sdr=(1,), spacing=7)
 
     # check wrong subject_to
-    with pytest.raises(IOError, match='cannot read file.*'):
+    with pytest.raises(IOError, match='cannot read file'):
         SourceMorph(subject_from='sample', subject_to='42',
                     subjects_dir=subjects_dir, src=fwd['src'])
 
@@ -196,7 +203,7 @@ def test_volume_source_morph():
         os.path.join(tempdir, 'vol-morph.h5'))
 
     # check for invalid file name handling ()
-    with pytest.raises(IOError, match='file .* not found'):
+    with pytest.raises(IOError, match='not found'):
         read_source_morph(os.path.join(tempdir, '42'))
 
     # check morph
@@ -208,7 +215,7 @@ def test_volume_source_morph():
 
     # check for subject_from mismatch
     source_morph_vol_r.subject_from = '42'
-    with pytest.raises(ValueError, match='.*subject_from must match.*'):
+    with pytest.raises(ValueError, match='subject_from must match'):
         source_morph_vol_r(stc_vol_morphed)
 
     # check if nifti is in grid morph space with voxel_size == spacing
@@ -251,14 +258,14 @@ def test_volume_source_morph():
                                    mri_space=True, format='nifti2'),
         nib.Nifti2Image)
 
-    with pytest.raises(ValueError, match='subject_from does not match.*'):
+    with pytest.raises(ValueError, match='subject_from does not match'):
         SourceMorph(src=src, subject_from='42')
 
     # check wrong format
-    with pytest.raises(ValueError, match='invalid format specifier.*'):
+    with pytest.raises(ValueError, match='invalid format specifier'):
         source_morph_vol.as_volume(stc_vol_morphed, format='42')
 
-    with pytest.raises(ValueError, match='invalid format specifier.*'):
+    with pytest.raises(ValueError, match='invalid format specifier'):
         stc_vol_morphed.as_volume(inverse_operator_vol['src'], format='42')
 
 

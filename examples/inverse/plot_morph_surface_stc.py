@@ -5,7 +5,7 @@ Morph surface source estimate
 
 This example demonstrates how to morph an individual subject's
 :class:`mne.SourceEstimate` to a common reference space. We achieve this using
- :class:`mne.SourceMorph`. Pre-computed data will be morphed based on
+:class:`mne.SourceMorph`. Pre-computed data will be morphed based on
 a spherical representation of the cortex computed using the spherical
 registration of
 :ref:`FreeSurfer <sphx_glr_auto_tutorials_plot_background_freesurfer.py>`

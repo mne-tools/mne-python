@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 r"""
-===============================
-About MNE-Python and FreeSurfer
-===============================
+======================================
+FreeSurfer integration with MNE-Python
+======================================
 
 FreeSurfer is an open source analysis toolbox for MRI data. It contains several
 command line tools and graphical user interfaces. FreeSurfer can be obtained
@@ -33,7 +33,6 @@ This can be done by setting the FreeSurfer's root directory correctly and
 sourcing the setup file::
 
     $ export FREESURFER_HOME=/path/to/FreeSurfer
-
     $ source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 .. note::

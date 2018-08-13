@@ -790,7 +790,7 @@ def requires_dipy():
     """Check for dipy."""
     import pytest
     return pytest.mark.skipif(not check_version('dipy', '0.10.1'),
-                              reason='Requires dipy')
+                              reason='Requires dipy >= 0.10.1')
 
 
 def buggy_mkl_svd(function):
