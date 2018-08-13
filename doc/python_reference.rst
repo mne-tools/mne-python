@@ -769,7 +769,7 @@ Source Space Data
    :toctree: generated/
    :template: function.rst
 
-   head_to_mni
+   head_to_mri
    extract_label_time_course
    grade_to_tris
    grade_to_vertices
