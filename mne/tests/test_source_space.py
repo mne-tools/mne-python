@@ -684,10 +684,11 @@ def test_morphed_source_space_return():
         src_fs, subjects_dir=subjects_dir)
 
     # Compare to the original data
-    stc_morph_morph = SourceMorph(subject_to='fsaverage',
-                                  spacing=stc_morph_return.vertices,
-                                  smooth=1,
-                                  subjects_dir=subjects_dir)(stc_morph)
+    with pytest.warns(RuntimeWarning, match='vertices not included'):
+        stc_morph_morph = SourceMorph(subject_to='fsaverage',
+                                      spacing=stc_morph_return.vertices,
+                                      smooth=1,
+                                      subjects_dir=subjects_dir)(stc_morph)
 
     assert_equal(stc_morph_return.subject, stc_morph_morph.subject)
     for ii in range(2):
@@ -705,6 +706,16 @@ def test_morphed_source_space_return():
     src_fs2[0]['rr'][vert1] = src_fs2[0]['rr'][vert2]
     stc_morph_return = stc_morph.to_original_src(
         src_fs2, subjects_dir=subjects_dir)
+
+    # test to_original_src method result equality
+    for ii in range(2):
+        assert_array_equal(stc_morph_return.vertices[ii],
+                           stc_morph_morph.vertices[ii])
+
+    # These will not match perfectly because morphing pushes data around
+    corr = np.corrcoef(stc_morph_return.data[:, 0],
+                       stc_morph_morph.data[:, 0])[0, 1]
+    assert corr > 0.99, corr
 
     # Degenerate cases
     stc_morph.subject = None  # no .subject provided
