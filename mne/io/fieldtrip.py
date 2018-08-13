@@ -214,7 +214,7 @@ def _create_info_chs(ft_struct):
         cur_ch['ch_name'] = cur_channel
         cur_ch['logno'] = idx_chan + 1
         cur_ch['scanno'] = idx_chan + 1
-        if cur_channel in elec['label']:
+        if elec and cur_channel in elec['label']:
             chan_idx_in_elec = np.where(elec['label'] == cur_channel)
             position = np.squeeze(elec['chanpos'][chan_idx_in_elec, :])
             chantype = elec['chantype'][chan_idx_in_elec]
@@ -234,12 +234,13 @@ def _create_info_chs(ft_struct):
             cur_ch['kind'] = FIFF.FIFFV_EEG_CH
             cur_ch['coil_type'] = FIFF.FIFFV_COIL_EEG
 
-        elif cur_channel in grad['label']:
+        elif grad and cur_channel in grad['label']:
             chan_idx_in_grad = np.where(grad['label'] == cur_channel)
             position = np.squeeze(grad['chanpos'][chan_idx_in_grad, :])
             orientation = transforms.rotation3d(
                 *np.squeeze(grad['chanori'][chan_idx_in_grad, :]).tolist())
             orientation = orientation.flatten()
+            position_unit = grad['unit']
             chantype = grad['chantype'][chan_idx_in_grad]
             chanunit = grad['chanunit'][chan_idx_in_grad]
             position = position * _unit_dict[position_unit]
