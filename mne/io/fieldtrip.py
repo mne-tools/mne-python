@@ -285,23 +285,16 @@ def _create_montage(ft_struct):
     # try to create a montage
     montage_pos, montage_ch_names = list(), list()
 
-    # see if there is a grad field in the structure
-    try:
-        available_channels = np.where(np.in1d(ft_struct['grad']['label'],
-                                              ft_struct['label']))
-        montage_ch_names.extend(ft_struct['grad']['label'][available_channels])
-        montage_pos.extend(ft_struct['grad']['chanpos'][available_channels])
-    except KeyError:
-        pass
-
-    # see if there is a elec field in the structure
-    try:
-        available_channels = np.where(np.in1d(ft_struct['elec']['label'],
-                                              ft_struct['label']))
-        montage_ch_names.extend(ft_struct['elec']['label'][available_channels])
-        montage_pos.extend(ft_struct['elec']['chanpos'][available_channels])
-    except KeyError:
-        pass
+    for cur_ch_type in ('grad', 'elec'):
+        if cur_ch_type in ft_struct:
+            cur_ch_struct = ft_struct[cur_ch_type]
+            available_channels = np.where(np.in1d(cur_ch_struct['label'],
+                                                  ft_struct['label']))[0]
+            cur_labels = np.asanyarray(cur_ch_struct['label'])
+            montage_ch_names.extend(
+                cur_labels[available_channels])
+            montage_pos.extend(
+                cur_ch_struct['chanpos'][available_channels])
 
     montage = None
 
