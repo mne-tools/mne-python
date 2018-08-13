@@ -786,6 +786,13 @@ def requires_nibabel(vox2ras_tkr=False):
                               reason='Requires nibabel%s' % extra)
 
 
+def requires_dipy():
+    """Check for dipy."""
+    import pytest
+    return pytest.mark.skipif(not check_version('dipy', '0.10.1'),
+                              reason='Requires dipy >= 0.10.1')
+
+
 def buggy_mkl_svd(function):
     """Decorate tests that make calls to SVD and intermittently fail."""
     @wraps(function)

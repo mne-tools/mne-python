@@ -91,6 +91,10 @@ Bug
 API
 ~~~
 
+- Add :class:`mne.SourceMorph` with :meth:`mne.SourceMorph.__call__`, :meth:`mne.SourceMorph.save` and :meth:`mne.SourceMorph.as_volume`, :func:`mne.read_source_morph`, by `Tommy Clausner`_
+
+- Deprecated :meth:`mne.SourceEstimate.morph_precomputed`, :func:`mne.compute_morph_matrix` and :func:`mne.morph_data`in favor of :class:`mne.SourceMorph` by `Tommy Clausner`_
+
 - Prepare transition to Python 3. This release will be the last release compatible with Python 2. The next version will be Python 3 only.
 
 - :meth:`mne.Evoked.plot_image` has gained the ability to ``show_names``, and if a selection is provided to ``group_by``, ``axes`` can now receive a `dict`, by `Jona Sassenhagen`_
