@@ -14,6 +14,7 @@ from ..channels import DigMontage
 from ..utils import warn
 from .constants import FIFF
 from ..externals.pymatreader.pymatreader import read_mat
+from .. import transforms
 
 _unit_dict = {'m': 1,
               'cm': 1e-2,
