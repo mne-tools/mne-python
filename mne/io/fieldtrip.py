@@ -60,6 +60,16 @@ def read_raw_fieldtrip(ft_structure_path, data_name='data'):
     data = np.array(ft_struct['trial'])  # create the main data array
     info = _create_info(ft_struct)  # create info structure
 
+    if data.ndim > 2:
+        data = np.squeeze(data)
+
+    if data.ndim == 1:
+        data = data[np.newaxis, ...]
+
+    if data.ndim != 2:
+        raise RuntimeError('The data you are trying to load does not seem to'
+                           'be raw data')
+
     custom_raw = RawArray(data, info)  # create an MNE RawArray
     return custom_raw
 
