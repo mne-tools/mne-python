@@ -825,7 +825,7 @@ def grand_average(all_evoked, interpolate_bads=True):
     return grand_average
 
 
-def _check_evokeds_ch_names_times(all_evoked, reorder=False):
+def _check_evokeds_ch_names_times(all_evoked):
     evoked = all_evoked[0]
     ch_names = evoked.ch_names
     for ii, ev in enumerate(all_evoked[1:]):
@@ -882,7 +882,7 @@ def combine_evoked(all_evoked, weights):
     if weights.ndim != 1 or weights.size != len(all_evoked):
         raise ValueError('weights must be the same size as all_evoked')
 
-    all_evoked = _check_evokeds_ch_names_times(all_evoked, reorder=True)
+    all_evoked = _check_evokeds_ch_names_times(all_evoked)
     evoked = all_evoked[0].copy()
 
     # use union of bad channels
