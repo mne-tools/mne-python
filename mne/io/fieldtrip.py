@@ -374,3 +374,5 @@ def _process_channel_meg(cur_ch, grad):
         raise NotImplemented('This needs to be implemented!')
 
     cur_ch['unit_mul'] = np.log10(_unit_dict[chanunit[0]])
+
+    return cur_ch
