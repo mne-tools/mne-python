@@ -13,7 +13,6 @@ from .meas_info import create_info
 from ..channels import DigMontage
 from ..utils import warn
 from .constants import FIFF
-from ..externals.pymatreader.pymatreader import read_mat
 from .. import transforms
 
 _unit_dict = {'m': 1,
@@ -50,6 +49,8 @@ def read_raw_fieldtrip(ft_structure_path, data_name='data'):
         info
 
     """
+    from ..externals.pymatreader.pymatreader import read_mat
+
     ft_struct = read_mat(ft_structure_path,
                          ignore_fields=['previous'],
                          variable_names=[data_name])
@@ -104,6 +105,7 @@ def read_epochs_fieldtrip(ft_structure_path, data_name='data',
 
 
     """
+    from ..externals.pymatreader.pymatreader import read_mat
     ft_struct = read_mat(ft_structure_path,
                          ignore_fields=['previous'],
                          variable_names=[data_name])
@@ -144,6 +146,7 @@ def read_evoked_fieldtrip(ft_structure_path, comment=None, data_name='data'):
          comment and measurement info.
 
     """
+    from ..externals.pymatreader.pymatreader import read_mat
     ft_struct = read_mat(ft_structure_path,
                          ignore_fields=['previous'],
                          variable_names=[data_name])
