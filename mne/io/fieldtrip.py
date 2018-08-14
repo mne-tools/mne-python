@@ -13,7 +13,7 @@ from .meas_info import create_info
 from ..channels import DigMontage
 from ..utils import warn
 from .constants import FIFF
-from .. import transforms
+from ..externals.pymatreader.pymatreader import read_mat
 
 _unit_dict = {'m': 1,
               'cm': 1e-2,
@@ -27,18 +27,6 @@ _unit_dict = {'m': 1,
 
 _supported_megs = ['neuromag306']
 
-
-def _check_pymatreader():
-    """Check if pymatreader and h5py are installed.
-
-    Returns the pymatreader module on success.
-    """
-    try:
-        from ..externals import pymatreader
-    except ImportError:
-        raise ImportError('The h5py module is required to use the FieldTrip '
-                          'import functions.')
-    return pymatreader
 
 
 def read_raw_fieldtrip(ft_structure_path, data_name='data'):
@@ -62,9 +50,7 @@ def read_raw_fieldtrip(ft_structure_path, data_name='data'):
         info
 
     """
-    pymatreader = _check_pymatreader()
-
-    ft_struct = pymatreader.read_mat(ft_structure_path,
+    ft_struct = read_mat(ft_structure_path,
                                      ignore_fields=['previous'],
                                      variable_names=[data_name])
 
@@ -108,9 +94,7 @@ def read_epochs_fieldtrip(ft_structure_path, data_name='data',
 
 
     """
-    pymatreader = _check_pymatreader()
-
-    ft_struct = pymatreader.read_mat(ft_structure_path,
+    ft_struct = read_mat(ft_structure_path,
                                      ignore_fields=['previous'],
                                      variable_names=[data_name])
 
@@ -150,9 +134,7 @@ def read_evoked_fieldtrip(ft_structure_path, comment=None, data_name='data'):
          comment and measurement info.
 
     """
-    pymatreader = _check_pymatreader()
-
-    ft_struct = pymatreader.read_mat(ft_structure_path,
+    ft_struct = read_mat(ft_structure_path,
                                      ignore_fields=['previous'],
                                      variable_names=[data_name])
     ft_struct = ft_struct[data_name]
