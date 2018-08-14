@@ -28,7 +28,6 @@ _unit_dict = {'m': 1,
 _supported_megs = ['neuromag306']
 
 
-
 def read_raw_fieldtrip(ft_structure_path, data_name='data'):
     """Load continuous (i.e. raw) data from a FieldTrip preprocessing structure.
 
@@ -51,8 +50,8 @@ def read_raw_fieldtrip(ft_structure_path, data_name='data'):
 
     """
     ft_struct = read_mat(ft_structure_path,
-                                     ignore_fields=['previous'],
-                                     variable_names=[data_name])
+                         ignore_fields=['previous'],
+                         variable_names=[data_name])
 
     # load data and set ft_struct to the heading dictionary
     ft_struct = ft_struct[data_name]
@@ -95,8 +94,8 @@ def read_epochs_fieldtrip(ft_structure_path, data_name='data',
 
     """
     ft_struct = read_mat(ft_structure_path,
-                                     ignore_fields=['previous'],
-                                     variable_names=[data_name])
+                         ignore_fields=['previous'],
+                         variable_names=[data_name])
 
     # load data and set ft_struct to the heading dictionary
     ft_struct = ft_struct[data_name]
@@ -135,8 +134,8 @@ def read_evoked_fieldtrip(ft_structure_path, comment=None, data_name='data'):
 
     """
     ft_struct = read_mat(ft_structure_path,
-                                     ignore_fields=['previous'],
-                                     variable_names=[data_name])
+                         ignore_fields=['previous'],
+                         variable_names=[data_name])
     ft_struct = ft_struct[data_name]
 
     data_evoked = ft_struct['avg']  # create evoked data
@@ -188,7 +187,7 @@ def _create_info_chs(ft_struct):
         warn('Unsupported MEG type %s. Values for the kind of coils '
              'are guessed with best effort. Please verify those. '
              'Please also verify whether the channel locations '
-             'and orientations match!' % (grad['type'], ))
+             'and orientations match!' % (grad['type'],))
 
     chs = list()
     for idx_chan, cur_channel in enumerate(all_channels):
@@ -207,7 +206,7 @@ def _create_info_chs(ft_struct):
                 raise RuntimeError('The current channel is contained in '
                                    'the "elec" sub-structure. This should '
                                    'be an EEG channel. However, the channel '
-                                   'type is: %s.' % (chantype, ))
+                                   'type is: %s.' % (chantype,))
 
             position = position * _unit_dict[position_unit]
             cur_ch['loc'] = np.hstack((position, np.zeros((9,))))
@@ -239,7 +238,7 @@ def _create_info_chs(ft_struct):
                     cur_ch['unit'] = FIFF.FIFF_UNIT_T_M
                 else:
                     raise RuntimeError('Unexpected coil type: %s.' % (
-                        chantype, ))
+                        chantype,))
             else:
                 raise NotImplemented('This needs to be implemented!')
 
@@ -253,7 +252,7 @@ def _create_info_chs(ft_struct):
                 cur_ch['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
             else:
                 warn('Cannot guess the correct type of channel %s. Making '
-                     'it a MISC channel.' % (cur_channel, ))
+                     'it a MISC channel.' % (cur_channel,))
                 cur_ch['kind'] = FIFF.FIFFV_MISC_CH
                 cur_ch['coil_type'] = FIFF.FIFFV_COIL_NONE
 
