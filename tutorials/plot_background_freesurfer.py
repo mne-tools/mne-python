@@ -64,9 +64,7 @@ reconstruction is obtained by prompting the following command to a bash
 console (e.g. Linux or MacOS Terminal)::
 
     $ my_subject=sample
-
     $ my_NIfTI=/path/to/NIfTI.nii.gz
-
     $ recon-all -i $my_NIfTI -s $my_subject -all
 
 , where :math:`i` stands for "input" and :math:`s` for "subject". Executing

@@ -25,7 +25,8 @@ source space needs to be performed.
 :class:`mne.SourceEstimate` is a class in MNE-Python to represent source
 estimations. Within the MNE ecosystem source estimates are mostly called
 **stc** - short for Source Time Course(s). In general there are two major types
-of source estimates within MNE-Python. Those are (Vector)
+of source estimates within MNE-Python. Those are
+:class:`(Vector) <mne.VectorSourceEstimate>`
 :class:`mne.SourceEstimate` and :class:`mne.VolSourceEstimate`. Volumetric
 source estimates and mixed source estimates (consisting of both types) are not
 discussed here.

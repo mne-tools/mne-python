@@ -16,8 +16,8 @@ https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage).
 
 The transformation will be applied to the surface source estimate. A plot
 depicting the successful morph will be created for the spherical and inflated
-surface representation of 'fsaverage', overlaid with the morphed surface source
-estimate.
+surface representation of ``'fsaverage'``, overlaid with the morphed surface
+source estimate.
 
 .. note:: For a tutorial about morphing see:
           :ref:`sphx_glr_auto_tutorials_plot_morph_stc.py`.

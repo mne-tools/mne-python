@@ -8,7 +8,8 @@ This example demonstrates how to morph an individual subject's
 using :class:`mne.SourceMorph`. Pre-computed data will be morphed based on
 an affine transformation and a nonlinear morph, estimated on the respective
 transformation from the subject's anatomical T1 weighted MRI (brain) to
-fsaverage T1 weighted MRI (brain).
+FreeSurfer's 'fsaverage' T1 weighted MRI (brain).See
+https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage .
 
 Afterwards the transformation will be applied to the volumetric source
 estimate. The result will be plotted, showing the fsaverage T1 weighted
