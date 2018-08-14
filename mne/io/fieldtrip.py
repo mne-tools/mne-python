@@ -294,7 +294,7 @@ def _create_events(ft_struct, trialinfo_column):
 
 
 def _process_channel_eeg(cur_ch, elec):
-    """Convert EEG channel from FieldTrip to MNE
+    """Convert EEG channel from FieldTrip to MNE.
 
     Parameters
     ----------
@@ -308,7 +308,6 @@ def _process_channel_eeg(cur_ch, elec):
     -------
     dict: The original dict (cur_ch) with the added information
     """
-
     chan_idx_in_elec = np.where(elec['label'] == cur_ch['ch_name'])
     position = np.squeeze(elec['chanpos'][chan_idx_in_elec, :])
     chantype = elec['chantype'][chan_idx_in_elec]
@@ -332,7 +331,7 @@ def _process_channel_eeg(cur_ch, elec):
 
 
 def _process_channel_meg(cur_ch, grad):
-    """Convert MEG channel from FieldTrip to MNE
+    """Convert MEG channel from FieldTrip to MNE.
 
     Parameters
     ----------
@@ -346,7 +345,6 @@ def _process_channel_meg(cur_ch, grad):
     -------
     dict: The original dict (cur_ch) with the added information
     """
-
     chan_idx_in_grad = np.where(grad['label'] == cur_ch['ch_name'])
     position = np.squeeze(grad['chanpos'][chan_idx_in_grad, :])
     orientation = transforms.rotation3d(
