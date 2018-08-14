@@ -308,7 +308,8 @@ def _process_channel_eeg(cur_ch, elec):
     -------
     dict: The original dict (cur_ch) with the added information
     """
-    chan_idx_in_elec = np.where(elec['label'] == cur_ch['ch_name'])
+    all_labels = np.asanyarray(elec['label'])
+    chan_idx_in_elec = np.where(all_labels == cur_ch['ch_name'])[0][0]
     position = np.squeeze(elec['chanpos'][chan_idx_in_elec, :])
     chantype = elec['chantype'][chan_idx_in_elec]
     chanunit = elec['chanunit'][chan_idx_in_elec]
@@ -345,7 +346,8 @@ def _process_channel_meg(cur_ch, grad):
     -------
     dict: The original dict (cur_ch) with the added information
     """
-    chan_idx_in_grad = np.where(grad['label'] == cur_ch['ch_name'])
+    all_labels = np.asanyarray(grad['label'])
+    chan_idx_in_grad = np.where(all_labels == cur_ch['ch_name'])[0][0]
     position = np.squeeze(grad['chanpos'][chan_idx_in_grad, :])
     orientation = transforms.rotation3d(
         *np.squeeze(grad['chanori'][chan_idx_in_grad, :]).tolist())
