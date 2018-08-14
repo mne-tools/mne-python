@@ -13,7 +13,7 @@ from numpy.testing import (assert_equal, assert_array_equal,
 import pytest
 
 from mne.parallel import _force_serial
-from mne.stats.cluster_level import (permutation_cluster_test,
+from mne.stats.cluster_level import (permutation_cluster_test, f_oneway,
                                      permutation_cluster_1samp_test,
                                      spatio_temporal_cluster_test,
                                      spatio_temporal_cluster_1samp_test,
@@ -45,6 +45,42 @@ def _get_conditions():
     condition1_2d = condition1_1d[:, :, np.newaxis]
     condition2_2d = condition2_1d[:, :, np.newaxis]
     return condition1_1d, condition2_1d, condition1_2d, condition2_2d
+
+
+def test_thresholds():
+    """Test automatic threshold calculations."""
+    # within subjects
+    rng = np.random.RandomState(0)
+    X = rng.randn(10, 1, 1) + 0.08
+    want_thresh = -stats.t.ppf(0.025, len(X) - 1)
+    assert 0.03 < stats.ttest_1samp(X[:, 0, 0], 0)[1] < 0.05
+    my_fun = partial(ttest_1samp_no_p)
+    with catch_logging() as log:
+        with pytest.warns(RuntimeWarning, match='threshold is only valid'):
+            out = permutation_cluster_1samp_test(X, stat_fun=my_fun,
+                                                 verbose=True)
+    log = log.getvalue()
+    assert str(want_thresh)[:6] in log
+    assert len(out[1]) == 1  # 1 cluster
+    assert 0.03 < out[2] < 0.05
+    # between subjects
+    Y = rng.randn(10, 1, 1)
+    Z = rng.randn(10, 1, 1) - 0.7
+    X = [X, Y, Z]
+    want_thresh = stats.f.ppf(1. - 0.05, 2, sum(len(a) for a in X) - len(X))
+    p = stats.f_oneway(*X)[1]
+    assert 0.03 < p < 0.05
+    my_fun = partial(f_oneway)  # just to make the check fail
+    with catch_logging() as log:
+        with pytest.warns(RuntimeWarning, match='threshold is only valid'):
+            out = permutation_cluster_test(X, tail=1, stat_fun=my_fun,
+                                           verbose=True)
+    log = log.getvalue()
+    assert str(want_thresh)[:6] in log
+    assert len(out[1]) == 1  # 1 cluster
+    assert 0.03 < out[2] < 0.05
+    with pytest.warns(RuntimeWarning, match='Ignoring argument "tail"'):
+        permutation_cluster_test(X, tail=0)
 
 
 def test_cache_dir():
@@ -136,7 +172,7 @@ def test_cluster_permutation_test():
         assert_equal(np.sum(cluster_p_values < 0.05), 1)
 
         T_obs, clusters, cluster_p_values, hist = permutation_cluster_test(
-            [condition1, condition2], n_permutations=100, tail=0, seed=1,
+            [condition1, condition2], n_permutations=100, tail=1, seed=1,
             buffer_size=None)
         assert_equal(np.sum(cluster_p_values < 0.05), 1)
 
@@ -144,7 +180,7 @@ def test_cluster_permutation_test():
         buffer_size = condition1.shape[1] // 10
         T_obs, clusters, cluster_p_values_buff, hist =\
             permutation_cluster_test([condition1, condition2],
-                                     n_permutations=100, tail=0, seed=1,
+                                     n_permutations=100, tail=1, seed=1,
                                      n_jobs=2, buffer_size=buffer_size)
         assert_array_equal(cluster_p_values, cluster_p_values_buff)
 
@@ -338,8 +374,9 @@ def test_cluster_permutation_with_connectivity():
                       connectivity=connectivity, threshold=[])
 
         # wrong value for tail
-        pytest.raises(ValueError, spatio_temporal_func, X1d_3,
-                      connectivity=connectivity, tail=2)
+        with pytest.warns(None):  # sometimes ignoring tail
+            pytest.raises(ValueError, spatio_temporal_func, X1d_3,
+                          connectivity=connectivity, tail=2)
 
         # make sure it actually found a significant point
         out_connectivity_6 = spatio_temporal_func(X1d_3, n_permutations=50,

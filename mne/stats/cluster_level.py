@@ -930,8 +930,8 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
 def _check_fun(X, stat_fun, threshold, tail=0, kind='within'):
     """Check the stat_fun and threshold values."""
     from scipy import stats
-    ppf = stats.t.ppf
     if kind == 'within':
+        ppf = stats.t.ppf
         if threshold is None:
             if stat_fun is not None and stat_fun is not ttest_1samp_no_p:
                 warn('Automatic threshold is only valid for stat_fun=None '
@@ -945,15 +945,17 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind='within'):
         stat_fun = ttest_1samp_no_p if stat_fun is None else stat_fun
     else:
         assert kind == 'between'
+        ppf = stats.f.ppf
         if threshold is None:
             if stat_fun is not None and stat_fun is not f_oneway:
                 warn('Automatic threshold is only valid for stat_fun=None '
                      '(or f_oneway), got %s' % (stat_fun,))
-            p_thresh = 0.05 / (1 + (tail == 0))
-            n_samples_per_group = [len(x) for x in X]
-            threshold = ppf(1. - p_thresh, *n_samples_per_group)
-            if np.sign(tail) < 0:
-                threshold = -threshold
+            elif tail != 1:
+                warn('Ignoring argument "tail", performing 1-tailed F-test')
+            p_thresh = 0.05
+            dfn = len(X) - 1
+            dfd = np.sum([len(x) for x in X]) - len(X)
+            threshold = ppf(1. - p_thresh, dfn, dfd)
             logger.info("Using a threshold of {:.6f}".format(threshold))
         stat_fun = f_oneway if stat_fun is None else stat_fun
     return stat_fun, threshold
