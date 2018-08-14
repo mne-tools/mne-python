@@ -101,7 +101,7 @@ API
 
 - Add :class:`mne.SourceMorph` with :meth:`mne.SourceMorph.__call__`, :meth:`mne.SourceMorph.save` and :meth:`mne.SourceMorph.as_volume`, :func:`mne.read_source_morph`, by `Tommy Clausner`_
 
-- Deprecated :meth:`mne.SourceEstimate.morph_precomputed`, :func:`mne.compute_morph_matrix` and :func:`mne.morph_data`in favor of :class:`mne.SourceMorph` by `Tommy Clausner`_
+- Deprecated :meth:`mne.SourceEstimate.morph_precomputed`, :meth:`mne.SourceEstimate.morph`, :func:`mne.compute_morph_matrix`, :func:`mne.morph_data_precomputed` and :func:`mne.morph_data`in favor of :class:`mne.SourceMorph` by `Tommy Clausner`_
 
 - Prepare transition to Python 3. This release will be the last release compatible with Python 2. The next version will be Python 3 only.
 

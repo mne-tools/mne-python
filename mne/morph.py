@@ -6,7 +6,6 @@
 import os
 import warnings
 import copy
-
 import numpy as np
 from scipy import sparse
 from scipy.sparse import block_diag as sparse_block_diag
@@ -715,12 +714,6 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
         from nibabel import (Nifti2Image as NiftiImage,
                              Nifti2Header as NiftiHeader)
 
-    # setup volume parameters
-    n_times = stc.data.shape[1]
-    shape3d = morph_data['src_shape']
-    shape = (n_times,) + shape3d
-    vols = np.zeros(shape)
-
     voxel_size_defined = False
 
     if isinstance(mri_resolution, (int, float)) and not isinstance(
@@ -729,7 +722,7 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
         mri_resolution = (float(mri_resolution),) * 3
 
     if isinstance(mri_resolution, tuple):
-        _check_dep(nibabel='2.1.0', dipy='0.10.1')
+        _check_dep(nibabel=False, dipy='0.10.1')  # nibabel was already checked
         from dipy.align.reslice import reslice
 
         voxel_size = mri_resolution
@@ -743,6 +736,12 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
         raise ValueError(
             "Cannot infer original voxel size for reslicing... "
             "set mri_resolution to boolean value or apply morph first.")
+
+    # setup volume parameters
+    n_times = stc.data.shape[1]
+    shape3d = morph_data['src_shape']
+    shape = (n_times,) + shape3d
+    vols = np.zeros(shape)
 
     mask3d = morph_data['inuse'].reshape(shape3d).astype(np.bool)
     n_vertices = np.sum(mask3d)

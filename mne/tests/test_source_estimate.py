@@ -586,7 +586,8 @@ def test_morph_data():
     pytest.raises(ValueError, morph, stc_from)
 
     # only one set of vertices
-    morph = SourceMorph(subject_from=subject_from, spacing=[vertices_to[0]])
+    morph = SourceMorph(subject_from=subject_from, spacing=[vertices_to[0]],
+                        subjects_dir=subjects_dir)
     pytest.raises(ValueError, morph, stc_from)
 
     # steps warning

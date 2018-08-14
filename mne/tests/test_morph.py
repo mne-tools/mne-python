@@ -44,6 +44,7 @@ def _real_vec_stc():
 
 
 @requires_nibabel()
+@requires_dipy()
 @testing.requires_testing_data
 def test_stc_as_volume():
     """Test previous volume source estimate morph."""
@@ -65,7 +66,9 @@ def test_stc_as_volume():
     assert isinstance(img, nib.Nifti1Image)
     assert img.shape[:3] == inverse_operator_vol['src'][0]['shape'][:3]
 
-    # Check if not morphed, but voxel size not boolean, raise ValueError
+    # Check if not morphed, but voxel size not boolean, raise ValueError.
+    # Note that this check requires dipy to not raise the dipy ImportError
+    # before checking if the actual voxel size error will raise.
     with pytest.raises(ValueError, match='Cannot infer original voxel size'):
         stc_vol.as_volume(inverse_operator_vol['src'], mri_resolution=4)
 
