@@ -8,12 +8,12 @@
 # License: BSD (3-clause)
 import numpy as np
 
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose, warn, reg_pinv
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc, _get_src_type
 from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
-from ._compute_beamformer import (_reg_pinv, _setup_picks,
+from ._compute_beamformer import (_setup_picks,
                                   _pick_channels_spatial_filter,
                                   _check_proj_match, _prepare_beamformer_input,
                                   _compute_beamformer, _check_one_ch_type,
@@ -23,8 +23,9 @@ from ..externals import six
 
 @verbose
 def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
-              inversion='single', weight_norm=None, normalize_fwd=True,
-              real_filter=False, reduce_rank=False, verbose=None):
+              rank='auto', inversion='single', weight_norm=None,
+              normalize_fwd=True, real_filter=False, reduce_rank=False,
+              verbose=None):
     """Compute a Dynamic Imaging of Coherent Sources (DICS) spatial filter.
 
     This is a beamformer filter that can be used to estimate the source power
@@ -62,6 +63,13 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                 filters are computer for the orientation that maximizes
                 spectral power.
 
+    rank : int | 'auto' | None
+        The effective rank of the covariance matrix. If 'auto', the rank will
+        be estimated before regularization is applied. If ``None``, the rank
+        will be estimated after regularization is applied.
+        Defaults to 'auto'.
+
+        .. versionadded:: 0.17
     inversion : 'single' | 'matrix'
         This determines how the beamformer deals with source spaces in "free"
         orientation. Such source spaces define three orthogonal dipoles at each
@@ -71,12 +79,12 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         three dipoles at a source vertex are considered as a group and the
         spatial filters are computed jointly using a matrix inversion. While
         ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
-        precise. See section 5 of [4]_.  Defaults to 'single'.
-    weight_norm : None | 'unit-noise-gain'
-        How to normalize the beamformer weights. None means no normalization is
-        performed. If 'unit-noise-gain', the unit-noise gain minimum variance
-        beamformer will be computed (Borgiotti-Kaplan beamformer) [2]_.
-        Defaults to ``None``.
+        precise. See section 5 of [5]_.  Defaults to 'single'.
+    weight_norm : 'unit-noise-gain' | 'nai' | None
+        If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
+        will be computed (Borgiotti-Kaplan beamformer) [2]_,
+        If 'nai', the Neural Activity Index [4]_ will be computed.
+        Defaults to ``None``, in which case no normalization is performed.
     normalize_fwd : bool
         Whether to normalize the forward solution. Defaults to ``True``. Note
         that this normalization is not required when weight normalization
@@ -131,7 +139,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
 
     Notes
     -----
-    The original reference is [1]_. See [4]_ for a tutorial style paper on the
+    The original reference is [1]_. See [5]_ for a tutorial style paper on the
     topic.
 
     The DICS beamformer is very similar to the LCMV (:func:`make_lcmv`)
@@ -142,7 +150,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     searching), and it remains to be seen how functionally interchangeable they
     could be.
 
-    The default setting reproduce the DICS beamformer as described in [4]_::
+    The default setting reproduce the DICS beamformer as described in [5]_::
 
         inversion='single', weight_norm=None, normalize_fwd=True
 
@@ -165,7 +173,10 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
            in Large-Scale Cortical Networks Predicts Perception.
            Neuron (2011) vol 69 pp. 387-396.
            https://doi.org/10.1016/j.neuron.2010.12.027
-    .. [4] van Vliet, et al. (2018) Analysis of functional connectivity and
+    .. [4] Van Veen et al. Localization of brain electrical activity via
+           linearly constrained minimum variance spatial filtering.
+           Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
+    .. [5] van Vliet, et al. (2018) Analysis of functional connectivity and
            oscillatory power using DICS: from raw MEG data to group-level
            statistics in Python. bioRxiv, 245530.
            https://doi.org/10.1101/245530
@@ -229,9 +240,8 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         Cm = Cm[csd_picks, :][:, csd_picks]
 
         # compute spatial filter
-        W, _ = _compute_beamformer('dics', G, Cm, reg, n_orient, weight_norm,
-                                   pick_ori, reduce_rank, rank=None,
-                                   is_free_ori=None, inversion=inversion)
+        W = _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
+                                reduce_rank, rank=rank, inversion=inversion)
         Ws.append(W)
 
     Ws = np.array(Ws)
@@ -516,7 +526,7 @@ def _apply_old_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
     # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
-    Cm_inv, _ = _reg_pinv(Cm, reg)
+    Cm_inv, _ = reg_pinv(Cm, reg, rank='auto')
     del Cm
 
     # Compute spatial filters

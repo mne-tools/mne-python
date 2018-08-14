@@ -19,7 +19,7 @@ from mne.parallel import parallel_func
 from mne.time_frequency import tfr_morlet
 from mne.utils import (set_log_level, set_log_file, _TempDir,
                        get_config, set_config, deprecated, _fetch_file,
-                       sum_squared, estimate_rank,
+                       sum_squared, estimate_rank, reg_pinv,
                        _url_to_local_path, sizeof_fmt, _check_subject,
                        _check_type_picks, object_hash, object_diff,
                        requires_good_network, run_tests_if_main, md5sum,
@@ -479,7 +479,7 @@ def test_deprecated():
     pytest.deprecated_call(deprecated_class)
 
 
-def test_how_to_deal_with_warnnings():
+def test_how_to_deal_with_warnings():
     """Test filter some messages out of warning records."""
     with pytest.warns(UserWarning, match='bb') as w:
         warnings.warn("aa warning", UserWarning)
@@ -893,6 +893,46 @@ def test_warn(capsys):
     captured = capsys.readouterr()
     assert captured.out == ''  # gh-5592
     assert captured.err == ''  # this is because pytest.warns took it already
+
+
+def test_reg_pinv():
+    """Test regularization and inversion of covariance matrix."""
+    # create rank-deficient array
+    a = np.array([[1., 0., 1.], [0., 1., 0.], [1., 0., 1.]])
+
+    # Test if rank-deficient matrix without regularization throws
+    # specific warning
+    with pytest.warns(RuntimeWarning, match='deficient'):
+        reg_pinv(a, reg=0.)
+
+    # Test inversion with explicit rank
+    a_inv_np = np.linalg.pinv(a)
+    a_inv_mne, loading_factor, rank = reg_pinv(a, rank=2)
+    assert loading_factor == 0
+    assert rank == 2
+    assert_array_equal(a_inv_np, a_inv_mne)
+
+    # Test inversion with automatic rank detection
+    a_inv_mne, _, estimated_rank = reg_pinv(a, rank='auto')
+    assert_array_equal(a_inv_np, a_inv_mne)
+    assert estimated_rank == 2
+
+    # Test adding regularization
+    a_inv_mne, loading_factor, estimated_rank = reg_pinv(a, reg=2)
+    # Since A has a diagonal of all ones, loading_factor should equal the
+    # regularization parameter
+    assert loading_factor == 2
+    # The estimated rank should be that of the non-regularized matrix
+    assert estimated_rank == 2
+    # Test result against the NumPy version
+    a_inv_np = np.linalg.pinv(a + loading_factor * np.eye(3))
+    assert_array_equal(a_inv_np, a_inv_mne)
+
+    # Test setting rcond
+    a_inv_np = np.linalg.pinv(a, rcond=0.5)
+    a_inv_mne, _, estimated_rank = reg_pinv(a, rcond=0.5)
+    assert_array_equal(a_inv_np, a_inv_mne)
+    assert estimated_rank == 1
 
 
 run_tests_if_main()

@@ -13,11 +13,11 @@ from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate, _get_src_type
-from ..utils import logger, verbose, warn, _validate_type
+from ..utils import logger, verbose, warn, _validate_type, reg_pinv
 from .. import Epochs
 from ..externals import six
 from ._compute_beamformer import (
-    _reg_pinv, _setup_picks, _pick_channels_spatial_filter,
+    _setup_picks, _pick_channels_spatial_filter,
     _check_proj_match, _prepare_beamformer_input, _check_one_ch_type,
     _compute_beamformer, _check_src_type, Beamformer)
 
@@ -60,11 +60,12 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
             'vector'
                 Keeps the currents for each direction separate
 
-    rank : None | int | dict
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
-        to specify the rank for each modality.
+    rank : int | dict | 'auto' | None
+        The effective rank of the covariance matrix. A dictionary with entries
+        'eeg' and/or 'meg' can be used to specify the rank for each sensor
+        type. If 'auto', the rank will be estimated before regularization is
+        applied. If ``None``, the rank will be estimated after regularization
+        is applied. Defaults to ``None``.
     weight_norm : 'unit-noise-gain' | 'nai' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
@@ -149,7 +150,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
                                              return_rank=True)
         # whiten the leadfield
         G = np.dot(whitener, G)
-        # whiten  data covariance
+        # whiten data covariance
         Cm = np.dot(whitener, np.dot(Cm, whitener.T))
         noise_cov = noise_cov.copy()
         if 'estimator' in noise_cov:
@@ -169,15 +170,18 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     # compute spatial filter
     n_orient = 3 if is_free_ori else 1
-    W, is_free_ori = _compute_beamformer('lcmv', G, Cm, reg, n_orient,
-                                         weight_norm, pick_ori, reduce_rank,
-                                         rank, is_free_ori)
+    W = _compute_beamformer(G, Cm, reg, n_orient, weight_norm,
+                            pick_ori, reduce_rank, rank,
+                            inversion='matrix')
 
     # get src type to store with filters for _make_stc
     src_type = _get_src_type(forward['src'], vertno)
 
     # get subject to store with filters
     subject_from = _subject_from_forward(forward)
+
+    # Is the computed beamformer a scalar or vector beamformer?
+    is_free_ori = is_free_ori if pick_ori in [None, 'vector'] else False
 
     filters = Beamformer(
         kind='LCMV', weights=W, data_cov=data_cov, noise_cov=noise_cov,
@@ -437,7 +441,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
     # This modifies Cm inplace, regularizing it
-    Cm_inv, d = _reg_pinv(Cm, reg)
+    Cm_inv, d, _ = reg_pinv(Cm, reg)
 
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)

@@ -17,67 +17,12 @@ from ..io.proj import make_projector, Projection
 from ..io.pick import (pick_channels_forward, pick_info)
 from ..minimum_norm.inverse import _get_vertno
 from ..source_space import label_src_vertno_sel
-from ..utils import logger, warn, estimate_rank, verbose, check_fname
+from ..utils import logger, warn, verbose, check_fname, reg_pinv
 from ..channels.channels import _contains_ch_type
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
 
-
-def _reg_pinv(x, reg, rcond=1e-15):
-    """Compute a regularized pseudoinverse of a square array.
-
-    Parameters
-    ----------
-    x : ndarray, shape (n, n)
-        Square array to invert.
-    reg : float
-        Regularization parameter.
-    rcond : float | 'auto'
-        Cutoff for small singular values. Singular values smaller (in modulus)
-        than `rcond` * largest_singular_value (again, in modulus) are set to
-        zero. Use 'auto' to attempt to automatically set a sane value. Defaults
-        to 1e-15.
-    """
-    covrank, s = estimate_rank(x, tol='auto', norm=False, return_singular=True)
-
-    # This adds the regularization without using np.eye
-    d = reg * np.trace(x) / len(x)
-    x = x.copy()
-    x.flat[::x.shape[0] + 1] += d
-
-    if covrank < len(x):
-        if reg == 0:
-            warn('Covariance matrix is rank-deficient and no regularization '
-                 'is done.')
-
-        if rcond == 'auto':
-            # Reduce the toleration of the pseudo-inverse to force a solution
-            s = linalg.svd(x, compute_uv=False)
-            tol = s[covrank - 1:covrank + 1].mean()
-            tol = max(
-                tol,
-                len(x) * linalg.norm(x) * np.finfo(float).eps
-            )
-            rcond = tol / s.max()
-
-    if rcond == 'auto':
-        rcond = 1e-15
-
-    return linalg.pinv(x, rcond=rcond), d
-
-
-def _eig_inv(x, rank):
-    """Compute a pseudoinverse with smallest component set to zero."""
-    U, s, V = linalg.svd(x)
-
-    # pseudoinverse is computed by setting eigenvalues not included in
-    # signalspace to zero
-    s_inv = np.zeros(s.shape)
-    s_inv[:rank] = 1. / s[:rank]
-
-    x_inv = np.dot(V.T, s_inv[:, np.newaxis] * U.T)
-    return x_inv
 
 
 def _setup_picks(info, forward, data_cov=None, noise_cov=None):
@@ -123,7 +68,11 @@ def _compare_ch_names(names1, names2, bads):
 
 def _check_one_ch_type(info, picks, noise_cov, method):
     """Check number of sensor types and presence of noise covariance matrix."""
+    # XXX : ugly hack to avoid picking subset of info with applied comps
+    comps = info['comps']
+    info['comps'] = []
     info_pick = pick_info(info, sel=picks)
+    info['comps'] = comps
     ch_types =\
         [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
     if method == 'lcmv' and sum(ch_types) > 1 and noise_cov is None:
@@ -255,48 +204,131 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
     return is_free_ori, ch_names, proj, vertno, G
 
 
-def _compute_beamformer(method, G, Cm, reg, n_orient, weight_norm,
-                        pick_ori, reduce_rank, rank, is_free_ori,
-                        inversion=None):
-    """Compute a spatial filter (LCMV or DICS)."""
-    # Tikhonov regularization using reg parameter d to control for
+def _shortcut(Wk, Gk, Cm_inv_sq, reduce_rank):
+    """Shortcut to compute the normalized weights in max-power orientation.
+
+    Uses Eq. 4.47 from [1]_.
+
+    Parameters
+    ----------
+    Wk : ndarray, shape (n_dipoles, n_channels)
+        The set of un-normalized filters at a single source point.
+    Gk : ndarray, shape (n_dipoles, n_channels)
+        The leadfield at a single source point.
+    Cm_inv_sq : nsarray, snape (n_channels, n_channels)
+        The squared inverse covariance matrix.
+    reduce_rank : bool
+        Whether to reduce the rank of the filter by one.
+
+    Returns
+    -------
+    Wk : ndarray, shape (n_dipoles, n_channels)
+        The normalized beamformer filters at the source point in the direction
+        of max power.
+
+    References
+    ----------
+    .. [1] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
+           brain imaging (2008) Springer Science & Business Media
+    """
+    norm_inv = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
+    if reduce_rank:
+        # Use pseudo inverse computation setting smallest
+        # component to zero if the leadfield is not full rank
+        norm = reg_pinv(norm_inv, rank=norm_inv.shape[0] - 1)[0]
+    else:
+        # Use straight inverse with full rank leadfield
+        try:
+            norm = linalg.inv(norm_inv)
+        except np.linalg.linalg.LinAlgError:
+            raise ValueError(
+                'Singular matrix detected when estimating spatial filters. '
+                'Consider reducing the rank of the forward operator by using '
+                'reduce_rank=True.'
+            )
+    power = np.dot(norm, np.dot(Wk, Gk))
+
+    # Determine orientation of max power
+    eig_vals, eig_vecs = linalg.eig(power)
+    if not np.iscomplex(power).any() and np.iscomplex(eig_vecs).any():
+        raise ValueError('The eigenspectrum of the leadfield at this voxel is '
+                         'complex. Consider reducing the rank of the '
+                         'leadfield by using reduce_rank=True.')
+
+    idx_max = eig_vals.argmax()
+    max_power_ori = eig_vecs[:, idx_max]
+
+    # Compute the filter in the orientation of max power
+    Wk[:] = np.dot(max_power_ori, Wk)
+    Gk = np.dot(Gk, max_power_ori)
+    denom = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
+    denom = np.sqrt(denom)
+    Wk /= denom
+
+    return Wk
+
+
+def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
+                        reduce_rank, rank, inversion):
+    """Compute a spatial beamformer filter (LCMV or DICS).
+
+    For more detailed information on the parameters, see the docstrings of
+    `make_lcmv` and `make_dics`.
+
+    Parameters
+    ----------
+    G : ndarray, shape (n_dipoles, n_channels)
+        The leadfield.
+    Cm : ndarray, shape (n_channels, n_channels)
+        The data covariance matrix.
+    reg : float
+        Regularization parameter.
+    n_orient : int
+        Number of dipole orientations defined at each source point
+    weight_norm : None | 'unit-noise-gain' | 'nai'
+        The weight normalization scheme to use.
+    pick_ori : None | 'normal' | 'max-power'
+        The source orientation to compute the beamformer in.
+    reduce_rank : bool
+        Whether to reduce the rank by one during computation of the filter.
+    rank : int | 'auto' | None
+        The effective rank of the covariance matrix. If 'auto', it will be
+        estimated before regularization is applied. If ``None``, it will be
+        estimated after regularization is applied.
+    inversion : 'matrix' | 'single'
+        The inversion scheme to compute the weights.
+
+    Returns
+    -------
+    W : ndarray, shape (n_dipoles, n_channels)
+        The beamformer filter weights.
+    """
+    # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
-    if method == 'lcmv':
-        Cm_inv, d = _reg_pinv(Cm.copy(), reg)
-    elif method == 'dics':
-        Cm_inv, _ = _reg_pinv(Cm, reg, rcond='auto')
+    # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
+    Cm_inv, loading_factor, rank = reg_pinv(Cm, reg, rank)
 
-    if weight_norm is not None and inversion is not 'single':
-        # Compute square of Cm_inv used for weight normalization
-        Cm_inv_sq = np.dot(Cm_inv, Cm_inv)
+    if (inversion == 'matrix' and pick_ori == 'max-power' and
+            weight_norm in ['unit-noise-gain', 'nai']):
+        Cm_inv_sq = Cm_inv.dot(Cm_inv)
 
-        if weight_norm == 'nai':
-            # estimate noise level based on covariance matrix, taking the
-            # smallest eigenvalue that is not zero
-            noise, _ = linalg.eigh(Cm)
-            if rank is not None:
-                rank_Cm = rank
-            else:
-                rank_Cm = estimate_rank(Cm, tol='auto', norm=False,
-                                        return_singular=False)
-            noise = noise[-rank_Cm]
-
-            # use either noise floor or regularization parameter d
-            noise = max(noise, d)
-
-    # compute spatial filter
+    # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
     n_sources = G.shape[1] // n_orient
 
     for k in range(n_sources):
         Wk = W[n_orient * k: n_orient * k + n_orient]
         Gk = G[:, n_orient * k: n_orient * k + n_orient]
-        if method == 'lcmv' and np.all(Gk == 0.):
-            continue
+
+        # Compute power at the source
         Ck = np.dot(Wk, Gk)
 
-        if method == 'dics':
-            # Normalize the spatial filters:
+        if (inversion == 'matrix' and pick_ori == 'max-power' and
+                weight_norm in ['unit-noise-gain', 'nai']):
+            # In this case, take a shortcut to compute the filter
+            Wk[:] = _shortcut(Wk, Gk, Cm_inv_sq, reduce_rank)
+        else:
+            # Normalize the spatial filters
             if Wk.ndim == 2 and len(Wk) > 1:
                 # Free source orientation
                 if inversion == 'single':
@@ -308,139 +340,96 @@ def _compute_beamformer(method, G, Cm, reg, n_orient, weight_norm,
                     Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
             else:
                 # Fixed source orientation
-                Wk /= Ck
+                if not np.all(Ck == 0.):
+                    Wk /= Ck
 
-        # compute scalar beamformer by finding the source orientation
-        # which maximizes output source power
-        if pick_ori == 'max-power':
-            if weight_norm is not None and inversion is not 'single':
-                # finding optimal orientation for NAI and unit-noise-gain
-                # based on [2]_, Eq. 4.47
-                tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
-
-                if reduce_rank:
-                    # use pseudo inverse computation setting smallest component
-                    # to zero if the leadfield is not full rank
-                    tmp_inv = _eig_inv(tmp, tmp.shape[0] - 1)
-                else:
-                    # use straight inverse with full rank leadfield
-                    try:
-                        tmp_inv = linalg.inv(tmp)
-                    except np.linalg.linalg.LinAlgError:
-                        raise ValueError('Singular matrix detected when '
-                                         'estimating spatial filters. '
-                                         'Consider reducing the rank of the '
-                                         'leadfield by using  '
-                                         'reduce_rank=True.')
-
-                power = np.dot(tmp_inv, np.dot(Wk, Gk))
-
-            elif weight_norm is not None and inversion == 'single':
-                # First make the filters unit gain, then apply them to the
-                # CSD matrix to compute power.
-                norm = 1 / np.sqrt(np.sum(Wk ** 2, axis=1))
-                Wk_norm = Wk / norm[:, np.newaxis]
-                power = Wk_norm.dot(Cm).dot(Wk_norm.T)
-
-            else:
-                if method == 'dics':
-                    # Compute spectral power by applying the spatial filters to
-                    # the CSD matrix.
+            if pick_ori == 'max-power':
+                # Compute the power
+                if inversion == 'single' and weight_norm == 'unit-noise-gain':
+                    # First make the filters unit gain, then apply them to the
+                    # cov matrix to compute power.
+                    Wk_norm = Wk / np.sqrt(np.sum(Wk ** 2, axis=1,
+                                                  keepdims=True))
+                    power = Wk_norm.dot(Cm).dot(Wk_norm.T)
+                elif weight_norm is None:
+                    # Compute power by applying the spatial filters to
+                    # the cov matrix.
                     power = Wk.dot(Cm).dot(Wk.T)
-                elif method == 'lcmv':
-                    # no weight-normalization and max-power is not implemented
-                    # yet for lcmv beamformer:
-                    raise NotImplementedError('The max-power orientation '
-                                              'selection is not yet '
-                                              'implemented with weight_norm '
-                                              'set to None.')
 
-            # compute the orientation:
-            if method == 'lcmv':
-                eig_vals, eig_vecs = linalg.eig(power)
-
-                if np.iscomplex(eig_vecs).any():
-                    raise ValueError('The eigenspectrum of the leadfield '
-                                     'at this voxel is complex. Consider '
-                                     'reducing the rank of the leadfield '
-                                     'by using reduce_rank=True.')
-
-                idx_max = eig_vals.argmax()
-                max_ori = eig_vecs[:, idx_max]
-                Wk[:] = np.dot(max_ori, Wk)
-                Gk = np.dot(Gk, max_ori)
-
-                # compute spatial filter for NAI or unit-noise-gain
-                tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
-                denom = np.sqrt(tmp)
-                Wk /= denom
-                if weight_norm == 'nai':
-                    Wk /= np.sqrt(noise)
-
-                is_free_ori = False
-
-            elif method == 'dics':
                 # Compute the direction of max power
                 u, s, _ = np.linalg.svd(power.real)
-                max_ori = u[:, 0]
+                max_power_ori = u[:, 0]
 
-                Wk[:] = np.dot(max_ori, Wk)
+                # Re-compute the filter in the direction of max power
+                Wk[:] = max_power_ori.dot(Wk)
 
-        else:  # do vector beamformer
-            if method == 'lcmv':
-                # compute the filters:
-                if is_free_ori:
-                    # Free source orientation
-                    Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
-                else:
-                    # Fixed source orientation
-                    if not np.all(Ck == 0.):
-                        Wk /= Ck
-
-                # handle noise normalization with free/normal source
-                # orientation:
-                if weight_norm == 'nai':
-                    raise NotImplementedError('Weight normalization with '
-                                              'neural activity index is not '
-                                              'implemented yet with free or '
-                                              'fixed orientation.')
-
-                elif weight_norm == 'unit-noise-gain':
-                    noise_norm = np.sum(Wk ** 2, axis=1, keepdims=True)
-                    if is_free_ori and pick_ori in [None, 'vector']:
-                        # Only do this when we don't select a single
-                        # orientation later. We need to enforce:
-                        # W @ I @ W.T == I
-                        noise_norm = np.sum(noise_norm)
-                    noise_norm = np.sqrt(noise_norm)
-                    if np.all(noise_norm == 0.):
-                        noise_norm_inv = 0.  # avoid division by 0
-                    else:
-                        noise_norm_inv = 1. / noise_norm
-                    Wk[:] *= noise_norm_inv
-
-    # picking source orientation maximizing output source power
-    if pick_ori == 'max-power':
-        W = W[0::3]
-    elif pick_ori == 'normal':
+    if pick_ori == 'normal':
         W = W[2::3]
-        is_free_ori = False
+    elif pick_ori == 'max-power':
+        W = W[0::3]
 
-    if method == 'dics':
-        if weight_norm == 'unit-noise-gain':
-            # Scale weights so that W @ I @ W.T == I
-            if pick_ori is None and n_orient > 1:
-                # Compute the norm for each set of 3 dipoles
-                W = W.reshape(-1, 3, W.shape[1])
-                norm = np.sqrt(np.sum(W ** 2, axis=(1, 2)))
-                W /= norm[:, np.newaxis, np.newaxis]
-                W = W.reshape(-1, W.shape[2])
+    # Re-scale the filter weights according to the selected weight
+    # normalization scheme
+    if weight_norm in ['unit-noise-gain', 'nai']:
+        if pick_ori in [None, 'vector'] and n_orient > 1:
+            # Rescale each set of 3 filters
+            W = W.reshape(-1, 3, W.shape[1])
+            noise_norm = np.sqrt(np.sum(W ** 2, axis=(1, 2), keepdims=True))
+        else:
+            # Rescale each filter separately
+            noise_norm = np.sqrt(np.sum(W ** 2, axis=1, keepdims=True))
+
+        if weight_norm == 'nai':
+            # Estimate noise level based on covariance matrix, taking the
+            # first eigenvalue that falls outside the signal subspace or the
+            # loading factor used during regularization, whichever is largest.
+            if rank >= len(Cm):
+                # Covariance matrix is full rank, no noise subspace!
+                # Use the loading factor as noise ceiling.
+                if loading_factor == 0:
+                    raise RuntimeError(
+                        'Cannot compute noise subspace with a full-rank '
+                        'covariance matrix and no regularization. Try '
+                        'manually specifying the rank of the covariance '
+                        'matrix or using regularization.')
+                noise = loading_factor
             else:
-                # Compute the norm for each dipole
-                norm = np.sqrt(np.sum(W ** 2, axis=1))
-                W /= norm[:, np.newaxis]
+                noise, _ = linalg.eigh(Cm)
+                noise = noise[-rank]
+                noise = max(noise, loading_factor)
+            noise_norm *= np.sqrt(noise)
 
-    return W, is_free_ori
+        # Apply the normalization
+        if np.all(noise_norm == 0.):
+            noise_norm_inv = 0.  # avoid division by 0
+        else:
+            noise_norm_inv = 1 / noise_norm
+        W *= noise_norm_inv
+        W = W.reshape(-1, W.shape[-1])
+
+        Parameters
+        ----------
+        fname : str
+            The filename to use to write the HDF5 data.
+            Should end in ``'-lcmv.h5'`` or ``'-dics.h5'``.
+        overwrite : bool
+            If True, overwrite the file (if it exists).
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
+        """
+        ending = '-%s.h5' % (self['kind'].lower(),)
+        check_fname(fname, self['kind'], (ending,))
+        csd_orig = None
+        try:
+            if 'csd' in self:
+                csd_orig = self['csd']
+                self['csd'] = self['csd'].__getstate__()
+            write_hdf5(fname, self, overwrite=overwrite, title='mnepython')
+        finally:
+            if csd_orig is not None:
+                self['csd'] = csd_orig
 
 
 class Beamformer(dict):
@@ -484,30 +473,6 @@ class Beamformer(dict):
     @verbose
     def save(self, fname, overwrite=False, verbose=None):
         """Save the beamformer filter.
-
-        Parameters
-        ----------
-        fname : str
-            The filename to use to write the HDF5 data.
-            Should end in ``'-lcmv.h5'`` or ``'-dics.h5'``.
-        overwrite : bool
-            If True, overwrite the file (if it exists).
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
-        """
-        ending = '-%s.h5' % (self['kind'].lower(),)
-        check_fname(fname, self['kind'], (ending,))
-        csd_orig = None
-        try:
-            if 'csd' in self:
-                csd_orig = self['csd']
-                self['csd'] = self['csd'].__getstate__()
-            write_hdf5(fname, self, overwrite=overwrite, title='mnepython')
-        finally:
-            if csd_orig is not None:
-                self['csd'] = csd_orig
 
 
 def read_beamformer(fname):

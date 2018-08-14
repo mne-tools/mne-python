@@ -97,12 +97,12 @@ def _simulate_data(fwd):
     return epochs, evoked, csd, source_vertno
 
 
-def _test_weight_norm(filters):
+def _test_weight_norm(filters, norm=1):
     """Test weight normalization."""
     for ws in filters['weights']:
         ws = ws.reshape(-1, filters['n_orient'], ws.shape[1])
         for w in ws:
-            assert_allclose(np.trace(w.dot(w.T)), 1)
+            assert_allclose(np.trace(w.dot(w.T)), norm)
 
 
 @pytest.mark.slowtest
@@ -113,7 +113,7 @@ def _test_weight_norm(filters):
 def test_make_dics(tmpdir):
     """Test making DICS beamformer filters."""
     # We only test proper handling of parameters here. Testing the results is
-    # done in apply_dics_timeseries and apply_dics_csd.
+    # done in test_apply_dics_timeseries and test_apply_dics_csd.
 
     fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward()
     epochs, _, csd, _ = _simulate_data(fwd_fixed)
@@ -187,6 +187,9 @@ def test_make_dics(tmpdir):
     assert filters['n_orient'] == n_orient
     _test_weight_norm(filters)
 
+    # From here on, only work on a single frequency
+    csd = csd[0]
+
     # Test using a real-valued filter
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
                         pick_ori='normal', real_filter=True)
@@ -204,10 +207,21 @@ def test_make_dics(tmpdir):
     assert_allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-6, atol=0)
 
     # Test turning off both forward and weight normalization
-    filters = make_dics(epochs.info, fwd_surf, csd_noise, label=label,
+    filters = make_dics(epochs.info, fwd_surf, csd, label=label,
                         weight_norm=None, normalize_fwd=False)
     w = filters['weights'][0][:3]
     assert not np.allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-2, atol=0)
+
+    # Test neural-activity-index weight normalization. It should be a scaled
+    # version of the unit-noise-gain beamformer.
+    filters_nai = make_dics(epochs.info, fwd_surf, csd, label=label,
+                            weight_norm='nai', normalize_fwd=False)
+    w_nai = filters_nai['weights'][0]
+    filters_ung = make_dics(epochs.info, fwd_surf, csd, label=label,
+                            weight_norm='unit-noise-gain', normalize_fwd=False)
+    w_ung = filters_ung['weights'][0]
+    assert np.allclose(np.corrcoef(np.abs(w_nai).ravel(),
+                                   np.abs(w_ung).ravel()), 1)
 
     # Test whether spatial filter contains src_type
     assert 'src_type' in filters
