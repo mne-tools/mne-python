@@ -296,7 +296,7 @@ Using this model, the BEM solution can be computed using
 
 After the BEM is set up it is advisable to check that the
 BEM model meshes are correctly positioned using *e.g.*
-:func:`mne.viz.plot_alignment` or :class:`mne.report.Report`.
+:func:`mne.viz.plot_alignment` or :class:`mne.Report`.
 
 .. note:: Up to this point all processing stages depend on the
           anatomical (geometrical) information only and thus remain

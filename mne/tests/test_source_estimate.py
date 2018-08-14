@@ -866,6 +866,7 @@ def test_get_peak():
 
 
 @requires_h5py
+@testing.requires_testing_data
 def test_mixed_stc():
     """Test source estimate from mixed source space."""
     N = 90  # number of sources
