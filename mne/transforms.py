@@ -9,7 +9,6 @@
 import os
 from os import path as op
 import glob
-import copy
 
 import numpy as np
 from copy import deepcopy
@@ -168,7 +167,7 @@ class Transform(dict):
 
     def copy(self):
         """Make a copy of the transform."""
-        return copy.deepcopy(self)
+        return deepcopy(self)
 
 
 def _coord_frame_name(cframe):

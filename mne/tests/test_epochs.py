@@ -13,7 +13,6 @@ import pytest
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose, assert_equal)
 import numpy as np
-import copy as cp
 import matplotlib
 
 import mne
@@ -1238,19 +1237,19 @@ def test_resample():
                       preload=True, reject=reject, flat=flat)
     epochs = epochs_o.copy()
 
-    data_normal = cp.deepcopy(epochs.get_data())
-    times_normal = cp.deepcopy(epochs.times)
+    data_normal = deepcopy(epochs.get_data())
+    times_normal = deepcopy(epochs.times)
     sfreq_normal = epochs.info['sfreq']
     # upsample by 2
     epochs = epochs_o.copy()
     epochs.resample(sfreq_normal * 2, npad=0)
-    data_up = cp.deepcopy(epochs.get_data())
-    times_up = cp.deepcopy(epochs.times)
+    data_up = deepcopy(epochs.get_data())
+    times_up = deepcopy(epochs.times)
     sfreq_up = epochs.info['sfreq']
     # downsamply by 2, which should match
     epochs.resample(sfreq_normal, npad=0)
-    data_new = cp.deepcopy(epochs.get_data())
-    times_new = cp.deepcopy(epochs.times)
+    data_new = deepcopy(epochs.get_data())
+    times_new = deepcopy(epochs.times)
     sfreq_new = epochs.info['sfreq']
     assert (data_up.shape[2] == 2 * data_normal.shape[2])
     assert (sfreq_up == 2 * sfreq_normal)
