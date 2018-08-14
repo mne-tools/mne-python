@@ -7,7 +7,6 @@
 
 import copy
 import os.path as op
-
 import numpy as np
 from scipy import linalg, sparse
 from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
@@ -23,7 +22,6 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_, copy_function_doc_to_method_doc)
 from .viz import plot_source_estimates, plot_vector_source_estimates
 from .io.base import ToDataFrameMixin, TimeMixin
-
 from .externals.six import string_types
 from .externals.six.moves import zip
 from .externals.h5io import read_hdf5, write_hdf5
@@ -186,7 +184,7 @@ def _write_w(filename, vertices, data):
     data: 1D array
         The data array (nvert).
     """
-    assert(len(vertices) == len(data))
+    assert (len(vertices) == len(data))
 
     fid = open(filename, 'wb')
 
@@ -365,7 +363,7 @@ def _get_src_type(src, vertices, warn_text=None):
             warn_(warn_text)
         if isinstance(vertices, list) and len(vertices) == 2:
             src_type = 'surface'
-        elif isinstance(vertices, np.ndarray) or isinstance(vertices, list)\
+        elif isinstance(vertices, np.ndarray) or isinstance(vertices, list) \
                 and len(vertices) == 1:
             src_type = 'volume'
         elif isinstance(vertices, list) and len(vertices) > 2:
@@ -1666,7 +1664,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
                      np.arange(len(self.vertices[1])) + len(self.vertices[0])]
         if hemi is None:
             hemi = np.where(np.array([np.sum(values[vi])
-                            for vi in vert_inds]))[0]
+                                      for vi in vert_inds]))[0]
             if not len(hemi) == 1:
                 raise ValueError('Could not infer hemisphere')
             hemi = hemi[0]
@@ -2215,6 +2213,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                    overwrite=True)
         logger.info('[done]')
 
+
 ###############################################################################
 # Morphing
 
@@ -2320,10 +2319,12 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     if stc_from.subject is not None and stc_from.subject != subject_from:
         raise ValueError('stc_from.subject and subject_from must match')
 
-    return SourceMorph(subject_from=subject_from,
-                       subject_to=subject_to,
-                       precomputed={'vertno': vertices_to,
-                                    'morph_mat': morph_mat})(stc_from)
+    # private function only needed here to wrap the API
+    return SourceMorph(
+        subject_from=subject_from,
+        subject_to=subject_to)._update_morph_data({'vertno': vertices_to,
+                                                   'morph_mat': morph_mat},
+                                                  'surface')(stc_from)
 
 
 def _get_vol_mask(src):
@@ -2512,7 +2513,7 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
         raise RuntimeError('src must have distances included, consider using\n'
                            'mne_add_patch_info with --dist argument')
     edges = sparse_block_diag([s['dist'][s['vertno'], :][:, s['vertno']]
-                              for s in src])
+                               for s in src])
     edges.data[:] = np.less_equal(edges.data, dist)
     # clean it up and put it in coo format
     edges = edges.tocsr()
@@ -2645,7 +2646,7 @@ def _get_connectivity_from_edges(edges, n_times, verbose=None):
     data = np.ones(edges.data.size * n_times + 2 * n_vertices * (n_times - 1),
                    dtype=np.int)
     connectivity = coo_matrix((data, (row, col)),
-                              shape=(n_times * n_vertices, ) * 2)
+                              shape=(n_times * n_vertices,) * 2)
     return connectivity
 
 

@@ -76,10 +76,6 @@ class SourceMorph(object):
         Morph across hemisphere. Currently only implemented for
         ``subject_to == subject_from``. See notes below.
         The default is xhemi=False.
-    precomputed : dict | None
-        Precomputed morphing data. Usually obtained by computing
-        ``morph = mne.SourceMorph()`` and retrieving the dict stored in morph
-        params ``precomputed = morph.params``. The default is precomputed=None.
     sparse : bool
         Morph as a sparse source estimate. Works only with (Vector)
         SourceEstimate. If True the only parameters used are subject_to and
@@ -175,7 +171,7 @@ class SourceMorph(object):
     def __init__(self, subject_from=None, subject_to='fsaverage',
                  subjects_dir=None, src=None, niter_affine=(100, 100, 10),
                  niter_sdr=(5, 5, 3), spacing=5, smooth=None, warn=True,
-                 xhemi=False, precomputed=None, sparse=False, verbose=False):
+                 xhemi=False, sparse=False, verbose=False):
         super(SourceMorph, self).__init__()
 
         if src is not None and not isinstance(src, SourceSpaces):
@@ -209,11 +205,6 @@ class SourceMorph(object):
             self.sparse = sparse
 
         self.params = dict()
-
-        # apply precomputed data and return
-        if precomputed is not None:
-            self._update_morph_data(precomputed)
-            return
 
         # get data to perform morph and as_volume
         if src is not None:
