@@ -66,8 +66,8 @@ class RawBrainVision(BaseRaw):
         but typically another value or None will be necessary.
     event_id : dict | None
         Special events to consider in addition to those that follow the normal
-        BrainVision trigger format ('###' with possible prefixes: 'S', 'R', or
-        'O'). If dict, the keys will be mapped to trigger values on the
+        BrainVision trigger format ('###' with an optional single character
+        prefix). If dict, the keys will be mapped to trigger values on the
         stimulus channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}.
         If None or an empty dict (default), only BrainVision format events are
         added to the stimulus channel. Keys are case sensitive. "New Segment"
@@ -232,8 +232,8 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
         vmrk file to be read.
     event_id : dict | None
         Special events to consider in addition to those that follow the normal
-        BrainVision trigger format ('###' with possible prefixes: 'S', 'R', or
-        'O'). If dict, the keys will be mapped to trigger values on the
+        BrainVision trigger format ('###' with an optional single character
+        prefix). If dict, the keys will be mapped to trigger values on the
         stimulus channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}.
         If None or an empty dict (default), only BrainVision format events are
         added to the stimulus channel. Keys are case sensitive. "New Segment"
@@ -323,11 +323,13 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
             trigger = event_id[mdesc]
         else:
             try:
-                # Match any three digit marker value (padded with whitespace)
-                # In BrainVision Recorder, these sometimes have a prefix
+                # Match any three digit marker value (padded with whitespace).
+                # In BrainVision Recorder, the markers sometimes have a prefix
                 # depending on the type, e.g., Stimulus=S, Response=R,
-                # Optical=O, ...
-                marker_regexp = r'^[SRO]{0,1}([\s\d]{2}\d{1})$'
+                # Optical=O, ... Note that any arbitrary stimulus type can be
+                # defined. So we match any single character that is not
+                # forbidden by BrainVision Recorder: [^a-z$%\-@/\\|;,:.\s]
+                marker_regexp = r'^[^a-z$%\-@/\\|;,:.\s]{0,1}([\s\d]{2}\d{1})$'
                 trigger = int(re.findall(marker_regexp, mdesc)[0])
             except IndexError:
                 trigger = None
@@ -358,8 +360,8 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
         dropped = list(set(dropped))
         warn("Currently, {0} trigger(s) will be dropped, such as {1}. "
              "Consider using ``event_id`` to parse triggers that "
-             "do not follow the '###' pattern with possible prefixes: "
-             "'S', 'R', or 'O'.".format(len(dropped), dropped[:5]))
+             "do not follow the '###' pattern with an optional single "
+             "character prefix.".format(len(dropped), dropped[:5]))
 
     events = np.array(events).reshape(-1, 3)
     return events
@@ -875,8 +877,8 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         but typically another value or None will be necessary.
     event_id : dict | None
         Special events to consider in addition to those that follow the normal
-        BrainVision trigger format ('###' with possible prefixes: 'S', 'R', or
-        'O'). If dict, the keys will be mapped to trigger values on the
+        BrainVision trigger format ('###' with an optional single character
+        prefix). If dict, the keys will be mapped to trigger values on the
         stimulus channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}.
         If None or an empty dict (default), only BrainVision format events are
         added to the stimulus channel. Keys are case sensitive. "New Segment"
