@@ -67,6 +67,9 @@ def test_raw():
         # Check that the data was loaded correctly
         np.testing.assert_almost_equal(raw_fiff_mne.get_data(),
                                        raw_fiff_ft.get_data())
+
+        # Check info field
+        _assert_deep_almost_equal(raw_fiff_mne.info, raw_fiff_ft.info)
         pass
 
 
