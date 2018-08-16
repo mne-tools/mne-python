@@ -37,7 +37,6 @@ def test_raw():
 
         # Check info field
         check_info_fields(raw_fiff_mne, raw_fiff_ft)
-        pass
 
 
 @testing.requires_testing_data
@@ -71,4 +70,3 @@ def test_whole_process_old():
         mne_avg = mne_epoched.average(
             picks=np.arange(0, len(mne_epoched.ch_names)))
         np.testing.assert_almost_equal(data_avg.data, mne_avg.data[:, :-1])
-
