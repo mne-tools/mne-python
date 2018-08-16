@@ -5,6 +5,32 @@
 # License: BSD (3-clause)
 import types
 import numpy as np
+import copy
+
+
+ignored_fields = ('file_id', )
+
+
+def _remove_ignored_info_fields(info):
+    for cur_field in ignored_fields:
+        if cur_field in info:
+            del info[cur_field]
+
+
+def check_info_fields(expected, actual):
+    """
+    Check if info fields are equal.
+
+    Some fields are ignored.
+    """
+
+    expected = copy.deepcopy(expected.info)
+    actual = copy.deepcopy(actual.info)
+
+    _remove_ignored_info_fields(expected)
+    _remove_ignored_info_fields(actual)
+
+    assert_deep_almost_equal(expected, actual)
 
 
 def assert_deep_almost_equal(expected, actual, *args, **kwargs):
@@ -21,7 +47,7 @@ def assert_deep_almost_equal(expected, actual, *args, **kwargs):
     This code has been adapted from
     https://github.com/larsbutler/oq-engine/blob/master/tests/utils/helpers.py
     """
-    is_root = not '__trace' in kwargs
+    is_root = '__trace' not in kwargs
     trace = kwargs.pop('__trace', 'ROOT')
 
     if isinstance(expected, np.ndarray) and expected.size == 0:

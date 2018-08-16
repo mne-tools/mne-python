@@ -8,7 +8,7 @@ import mne
 import numpy as np
 import os.path
 from mne.datasets import testing
-from .helpers import assert_deep_almost_equal
+from .helpers import assert_deep_almost_equal, check_info_fields
 from mne.utils import requires_h5py
 
 
@@ -69,5 +69,5 @@ def test_raw():
                                        raw_fiff_ft.get_data())
 
         # Check info field
-        assert_deep_almost_equal(raw_fiff_mne.info, raw_fiff_ft.info)
+        check_info_fields(raw_fiff_mne, raw_fiff_ft)
         pass
