@@ -19,7 +19,7 @@ def test_whole_process_old():
                                     'fieldtrip/old')
     all_versions = ['v7', 'v73']
     for version in all_versions:
-        f_name_raw = os.path.join(test_data_folder, 'raw_%s.mat' % (version, ))
+        f_name_raw = os.path.join(test_data_folder, 'raw_%s.mat' % (version,))
         f_name_epoched = os.path.join(test_data_folder,
                                       'epoched_%s.mat' % (version,))
         f_name_avg = os.path.join(test_data_folder,
@@ -42,3 +42,24 @@ def test_whole_process_old():
         mne_avg = mne_epoched.average(
             picks=np.arange(0, len(mne_epoched.ch_names)))
         np.testing.assert_almost_equal(data_avg.data, mne_avg.data[:, :-1])
+
+
+@testing.requires_testing_data
+@requires_h5py
+def test_raw():
+    """Test comparing reading a raw fiff file and the FieldTrip version."""
+    test_data_folder_ft = os.path.join(mne.datasets.testing.data_path(),
+                                       'fieldtrip/from_mne_sample')
+    raw_fiff_file = os.path.join(mne.datasets.testing.data_path(),
+                                 'MEG/sample', 'sample_audvis_trunc_raw.fif')
+
+    # Load the raw fiff file with mne
+    raw_fiff_mne = mne.io.read_raw_fif(raw_fiff_file, preload=True)
+
+    all_versions = ['v7', 'v73']
+
+    for version in all_versions:
+        cur_fname = os.path.join(test_data_folder_ft,
+                                 'raw_%s.mat' % (version, ))
+        raw_fiff_ft = mne.io.read_raw_fieldtrip(cur_fname)
+        pass
