@@ -221,6 +221,9 @@ def _create_info_chs(ft_struct):
             elif cur_channel_label.startswith('ECG'):
                 cur_ch['kind'] = FIFF.FIFFV_ECG_CH
                 cur_ch['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
+            elif cur_channel_label.startswith('STI'):
+                cur_ch['kind'] = FIFF.FIFFV_STIM_CH
+                cur_ch['coil_type'] = FIFF.FIFFV_COIL_NONE
             else:
                 warn('Cannot guess the correct type of channel %s. Making '
                      'it a MISC channel.' % (cur_channel_label,))
