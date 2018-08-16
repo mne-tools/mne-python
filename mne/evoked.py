@@ -828,13 +828,21 @@ def grand_average(all_evoked, interpolate_bads=True):
 def _check_evokeds_ch_names_times(all_evoked):
     evoked = all_evoked[0]
     ch_names = evoked.ch_names
-    for ev in all_evoked[1:]:
+    for ii, ev in enumerate(all_evoked[1:]):
         if ev.ch_names != ch_names:
-            raise ValueError(
-                "%s and %s do not contain the same channels" % (evoked, ev))
+            if set(ev.ch_names) != set(ch_names):
+                raise ValueError(
+                    "%s and %s do not contain the same channels." % (evoked,
+                                                                     ev))
+            else:
+                warn("Order of channels differs, reordering channels ...")
+                ev = ev.copy()
+                ev.reorder_channels(ch_names)
+                all_evoked[ii + 1] = ev
         if not np.max(np.abs(ev.times - evoked.times)) < 1e-7:
             raise ValueError("%s and %s do not contain the same time instants"
                              % (evoked, ev))
+    return all_evoked
 
 
 def combine_evoked(all_evoked, weights):
@@ -861,7 +869,6 @@ def combine_evoked(all_evoked, weights):
     -----
     .. versionadded:: 0.9.0
     """
-    evoked = all_evoked[0].copy()
     if isinstance(weights, string_types):
         if weights not in ('nave', 'equal'):
             raise ValueError('weights must be a list of float, or "nave" or '
@@ -875,7 +882,8 @@ def combine_evoked(all_evoked, weights):
     if weights.ndim != 1 or weights.size != len(all_evoked):
         raise ValueError('weights must be the same size as all_evoked')
 
-    _check_evokeds_ch_names_times(all_evoked)
+    all_evoked = _check_evokeds_ch_names_times(all_evoked)
+    evoked = all_evoked[0].copy()
 
     # use union of bad channels
     bads = list(set(evoked.info['bads']).union(*(ev.info['bads']

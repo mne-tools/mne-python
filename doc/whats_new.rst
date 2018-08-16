@@ -39,6 +39,8 @@ Changelog
 
 - Add :func:`mne.head_to_mri` to convert positions from head coordinates to MRI RAS coordinates, by `Joan Massich`_ and `Alex Gramfort`_
 
+- :func:`mne.combine_evoked` and :func:`mne.grand_average` can now handle input with the same channels in different orders, if required, by `Jona Sassenhagen`_
+
 Bug
 ~~~
 
