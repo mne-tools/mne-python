@@ -16,7 +16,7 @@ info_ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
                        'dev_head_t', 'dig', 'bads', 'projs')
 
 ch_ignore_fields = ('logno', 'cal', 'range',
-                    'loc', 'coord_frame') # TODO: implement transform
+                    'loc', 'coord_frame')  # TODO: implement transform
 
 
 def _remove_ignored_ch_fields(info):
@@ -53,12 +53,11 @@ def check_info_fields(expected, actual):
 
     Some fields are ignored.
     """
-
     expected = copy.deepcopy(expected.info)
     actual = copy.deepcopy(actual.info)
 
-    #_transform_chs_to_head_coords(expected)
-    #_transform_chs_to_head_coords(actual)
+    # _transform_chs_to_head_coords(expected)
+    # _transform_chs_to_head_coords(actual)
 
     _remove_ignored_info_fields(expected)
     _remove_ignored_info_fields(actual)
