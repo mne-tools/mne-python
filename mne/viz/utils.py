@@ -6,6 +6,7 @@ from __future__ import print_function
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: Simplified BSD
 
@@ -36,9 +37,6 @@ from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
 from ..annotations import Annotations, _sync_onset
 
-
-COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
-          '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
 
 _channel_type_prettyprint = {'eeg': "EEG channel",  'grad': "Gradiometer",
                              'mag': "Magnetometer", 'seeg': "sEEG channel",
@@ -432,7 +430,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     for ii, p in enumerate(projs):
         if p['active']:
             for x in proj_checks.lines[ii]:
-                x.set_color('r')
+                x.set_color('#ff0000')
     # make minimal size
     # pass key presses from option dialog over
 
@@ -855,7 +853,10 @@ def _setup_annotation_fig(params):
         circle.set_linewidth(4)
         circle.set_radius(radius / (len(labels)))
         label.set_x(circle.center[0] + (radius + 0.1) / len(labels))
-    col = 'r' if len(fig.radio.circles) < 1 else circles[0].get_edgecolor()
+    if len(fig.radio.circles) < 1:
+        col = '#ff0000'
+    else:
+        col = circles[0].get_edgecolor()
     fig.canvas.mpl_connect('key_press_event', partial(
         _change_annotation_description, params=params))
     fig.button = Button(button_ax, 'Add label')
@@ -1106,7 +1107,7 @@ class ClickableImage(object):
 
     """
 
-    def __init__(self, imdata, **kwargs):  # noqa: D102
+    def __init__(self, imdata, **kwargs):
         """Display the image for clicking."""
         from matplotlib.pyplot import figure
         self.coords = []
@@ -1149,10 +1150,10 @@ class ClickableImage(object):
         ax.imshow(self.imdata, extent=(0, self.xmax, 0, self.ymax), **kwargs)
         xlim, ylim = [ax.get_xlim(), ax.get_ylim()]
         xcoords, ycoords = zip(*self.coords)
-        ax.scatter(xcoords, ycoords, c='r')
+        ax.scatter(xcoords, ycoords, c='#ff0000')
         ann_text = np.arange(len(self.coords)).astype(str)
         for txt, coord in zip(ann_text, self.coords):
-            ax.annotate(txt, coord, fontsize=20, color='r')
+            ax.annotate(txt, coord, fontsize=20, color='#ff0000')
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
         plt_show()
@@ -1680,7 +1681,7 @@ class DraggableColorbar(object):
     See http://www.ster.kuleuven.be/~pieterd/python/html/plotting/interactive_colorbar.html
     """  # noqa: E501
 
-    def __init__(self, cbar, mappable):  # noqa: D102
+    def __init__(self, cbar, mappable):
         import matplotlib.pyplot as plt
         self.cbar = cbar
         self.mappable = mappable
@@ -1793,7 +1794,7 @@ class SelectFromCollection(object):
     """
 
     def __init__(self, ax, collection, ch_names,
-                 alpha_other=0.3):  # noqa: D102
+                 alpha_other=0.3):
         import matplotlib as mpl
         if LooseVersion(mpl.__version__) < LooseVersion('1.2.1'):
             raise ImportError('Interactive selection not possible for '
@@ -1907,6 +1908,38 @@ def _plot_annotations(raw, params):
     params['annot_description'] = descriptions
 
 
+def _get_color_list(annotations=False):
+    """Get the current color list from matplotlib rcParams.
+
+    Parameters
+    ----------
+    annotations : boolean
+        Has no influence on the function if false. If true, check if color
+        "red" (#ff0000) is in the cycle and remove it.
+
+    Returns
+    -------
+    colors : list
+    """
+    import matplotlib.pyplot as plt
+    color_cycle = plt.rcParams.get('axes.prop_cycle')
+
+    if not color_cycle:
+        # Use deprecated color_cycle to avoid KeyErrors in environments
+        # with Python 2.7 and Matplotlib < 1.5
+        # this will already be a list
+        colors = plt.rcParams.get('axes.color_cycle')
+    else:
+        # we were able to use the prop_cycle. Now just convert to list
+        colors = color_cycle.by_key()['color']
+
+    # If we want annotations, red is reserved ... remove if present
+    if annotations and '#ff0000' in colors:
+        colors.remove('#ff0000')
+
+    return colors
+
+
 def _setup_annotation_colors(params):
     """Set up colors for annotations."""
     raw = params['raw']
@@ -1918,16 +1951,15 @@ def _setup_annotation_colors(params):
     else:
         descriptions = list()
     color_keys = np.union1d(descriptions, params['added_label'])
-    color_cycle = cycle(np.delete(COLORS, COLORS.index('r')))  # no red
+    color_cycle = cycle(_get_color_list(annotations=True))  # no red
     for key, color in segment_colors.items():
-        assert color in COLORS
-        if color != 'r' and key in color_keys:
+        if color != '#ff0000' and key in color_keys:
             next(color_cycle)
     for idx, key in enumerate(color_keys):
         if key in segment_colors:
             continue
         elif key.lower().startswith('bad') or key.lower().startswith('edge'):
-            segment_colors[key] = 'r'
+            segment_colors[key] = '#ff0000'
         else:
             segment_colors[key] = next(color_cycle)
     params['segment_colors'] = segment_colors
@@ -2184,7 +2216,7 @@ class DraggableLine(object):
         Callback to call when line is released.
     """
 
-    def __init__(self, line, modify_callback, drag_callback):  # noqa: D102
+    def __init__(self, line, modify_callback, drag_callback):
         self.line = line
         self.press = None
         self.x0 = line.get_xdata()[0]

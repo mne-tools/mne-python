@@ -27,7 +27,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
                     _setup_vmin_vmax, _grad_pair_pick_and_name, _check_cov,
                     _validate_if_list_of_axes, _triage_rank_sss,
-                    _connection_line, COLORS, _setup_ax_spines,
+                    _connection_line, _get_color_list, _setup_ax_spines,
                     _setup_plot_projector, _prepare_joint_axes,
                     _set_title_multiple_electrodes, _check_time_unit,
                     _plot_masked_image)
@@ -831,11 +831,9 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         font_color = 'k'
     if color is None:
         if dark_background:
-            color = ['w'] + COLORS
+            color = ['w'] + _get_color_list()
         else:
-            # default colors from M Waskom's Seaborn
-            color = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
-                     '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
+            color = _get_color_list()
         color = color * ((len(evoked) % len(color)) + 1)
         color = color[:len(evoked)]
     return _plot_evoked_topo(evoked=evoked, layout=layout,
@@ -1654,10 +1652,8 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
                     continue
 
     # categorical colors
-    if not isinstance(colors, dict):  # default colors from M Waskom's Seaborn
-        # XXX should put a good list of default colors into defaults.py
-        colors_ = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
-                   '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
+    if not isinstance(colors, dict):
+        colors_ = _get_color_list()
         if len(conditions) > len(colors_):
             msg = ("Trying to plot more than {0} conditions. We provide"
                    "only {0} default colors. Please supply colors manually.")

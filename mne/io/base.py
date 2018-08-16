@@ -7,7 +7,6 @@
 #
 # License: BSD (3-clause)
 
-import copy
 from copy import deepcopy
 import os
 import os.path as op
@@ -1712,7 +1711,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         _check_fname(fname, overwrite)
 
         if proj:
-            info = copy.deepcopy(self.info)
+            info = deepcopy(self.info)
             projector, info = setup_proj(info)
             activate_proj(info['projs'], copy=False)
         else:

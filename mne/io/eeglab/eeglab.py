@@ -739,7 +739,7 @@ def _read_annotations_eeglab(eeg):
     elif isinstance(eeg.event, dict) and \
             np.array(eeg.event['latency']).ndim > 0:
         events = _dol_to_lod(eeg.event)
-    elif not isinstance(eeg.event, np.ndarray):
+    elif not isinstance(eeg.event, (np.ndarray, list)):
         events = [eeg.event]
     else:
         events = eeg.event

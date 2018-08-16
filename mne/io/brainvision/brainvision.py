@@ -65,13 +65,13 @@ class RawBrainVision(BaseRaw):
         triggers will be ignored. Default is 0 for backwards compatibility,
         but typically another value or None will be necessary.
     event_id : dict | None
-        The id of special events to consider in addition to those that
-        follow the normal Brainvision trigger format ('S###').
-        If dict, the keys will be mapped to trigger values on the stimulus
-        channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
-        or an empty dict (default), only stimulus and response events are added
-        to the stimulus channel. Keys are case sensitive. "New Segment" markers
-        are always dropped.
+        Special events to consider in addition to those that follow the normal
+        BrainVision trigger format ('###' with an optional single character
+        prefix). If dict, the keys will be mapped to trigger values on the
+        stimulus channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}.
+        If None or an empty dict (default), only BrainVision format events are
+        added to the stimulus channel. Keys are case sensitive. "New Segment"
+        markers are always dropped.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -231,13 +231,13 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
     fname : str
         vmrk file to be read.
     event_id : dict | None
-        The id of special events to consider in addition to those that
-        follow the normal Brainvision trigger format ('S###').
-        If dict, the keys will be mapped to trigger values on the stimulus
-        channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
-        or an empty dict (default), only stimulus and response events are added
-        to the stimulus channel. Keys are case sensitive. "New Segment" markers
-        are always dropped.
+        Special events to consider in addition to those that follow the normal
+        BrainVision trigger format ('###' with an optional single character
+        prefix). If dict, the keys will be mapped to trigger values on the
+        stimulus channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}.
+        If None or an empty dict (default), only BrainVision format events are
+        added to the stimulus channel. Keys are case sensitive. "New Segment"
+        markers are always dropped.
     response_trig_shift : int | None
         Integer to shift response triggers by. None ignores response triggers.
 
@@ -323,7 +323,14 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
             trigger = event_id[mdesc]
         else:
             try:
-                trigger = int(re.findall(r'S([\s\d]{2}\d{1})', mdesc)[0])
+                # Match any three digit marker value (padded with whitespace).
+                # In BrainVision Recorder, the markers sometimes have a prefix
+                # depending on the type, e.g., Stimulus=S, Response=R,
+                # Optical=O, ... Note that any arbitrary stimulus type can be
+                # defined. So we match any single character that is not
+                # forbidden by BrainVision Recorder: [^a-z$%\-@/\\|;,:.\s]
+                marker_regexp = r'^[^a-z$%\-@/\\|;,:.\s]{0,1}([\s\d]{2}\d{1})$'
+                trigger = int(re.findall(marker_regexp, mdesc)[0])
             except IndexError:
                 trigger = None
         if mtype.lower() in trig_shift_by_type:
@@ -351,13 +358,10 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
 
     if len(dropped) > 0:
         dropped = list(set(dropped))
-        examples = ", ".join(dropped[:5])
-        if len(dropped) > 5:
-            examples += ", ..."
-        warn("Currently, {0} trigger(s) will be dropped, such as [{1}]. "
+        warn("Currently, {0} trigger(s) will be dropped, such as {1}. "
              "Consider using ``event_id`` to parse triggers that "
-             "do not follow the 'S###' pattern.".format(
-                 len(dropped), examples))
+             "do not follow the '###' pattern with an optional single "
+             "character prefix.".format(len(dropped), dropped[:5]))
 
     events = np.array(events).reshape(-1, 3)
     return events
@@ -872,13 +876,13 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         triggers will be ignored. Default is 0 for backwards compatibility,
         but typically another value or None will be necessary.
     event_id : dict | None
-        The id of special events to consider in addition to those that
-        follow the normal Brainvision trigger format ('S###').
-        If dict, the keys will be mapped to trigger values on the stimulus
-        channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
-        or an empty dict (default), only stimulus and response events are added
-        to the stimulus channel. Keys are case sensitive. "New Segment" markers
-        are always dropped.
+        Special events to consider in addition to those that follow the normal
+        BrainVision trigger format ('###' with an optional single character
+        prefix). If dict, the keys will be mapped to trigger values on the
+        stimulus channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}.
+        If None or an empty dict (default), only BrainVision format events are
+        added to the stimulus channel. Keys are case sensitive. "New Segment"
+        markers are always dropped.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).

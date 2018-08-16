@@ -1,5 +1,5 @@
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Britta Westner
+#          Britta Westner <britta.wstnr@gmail.com>
 #
 # License: BSD 3 clause
 
@@ -106,6 +106,8 @@ def _test_weight_norm(filters):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
+@pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
+                            ":RuntimeWarning")
 def test_make_dics():
     """Test making DICS beamformer filters."""
     # We only test proper handling of parameters here. Testing the results is
@@ -206,6 +208,8 @@ def test_make_dics():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
+@pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
+                            ":RuntimeWarning")
 def test_apply_dics_csd():
     """Test applying a DICS beamformer to a CSD matrix."""
     fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward()
@@ -306,6 +310,8 @@ def test_apply_dics_csd():
 
 
 @testing.requires_testing_data
+@pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
+                            ":RuntimeWarning")
 def test_apply_dics_timeseries():
     """Test DICS applied to timeseries data."""
     fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward()
@@ -395,6 +401,8 @@ def test_apply_dics_timeseries():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
+@pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
+                            ":RuntimeWarning")
 def test_tf_dics():
     """Test 5D time-frequency beamforming based on DICS."""
     fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward()

@@ -22,8 +22,19 @@ Mk8=Stimulus,S255,3263,1,0
 Mk9=Stimulus,S253,4936,1,0
 Mk10=Stimulus,S255,4946,1,0
 Mk11=Response,R255,6000,1,0
-Mk12=Stimulus,S254,6620,1,0
-Mk13=Stimulus,S255,6630,1,0
+
+;Removing the prefix makes the marker "PyCorder" style
+;The removal of the prefix should not change the parsing
+Mk12=Stimulus,254,6620,1,0
+Mk13=Stimulus,255,6630,1,0
+
+;Do not parse by default if not in shape '###' + optional single char prefix
+Mk14=Comment,This will not be parsed by default 13,8010,1,0
+Mk15=Comment,Not parsed by default either S456 ms,8020,1,0
+
+;Certain prefixes are blacklisted by BrainVision recorder: [^a-z$%\-@/\\|;,:.\s]
+;Will not be parsed by default
+Mk16=$User_Spec,$ 18,8030,1,0
 
 [Marker User Infos]
 ; Each entry: Prop<Number>=Mk<Marker number>,<Type>,<Name>,<Value>,<Value2>,...,<ValueN>
