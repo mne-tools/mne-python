@@ -6,6 +6,8 @@
 import types
 import numpy as np
 import copy
+from ...constants import FIFF
+from ....transforms import apply_trans
 
 info_ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
                        'meas_date', 'highpass', 'lowpass', 'subject_info',
@@ -13,7 +15,8 @@ info_ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
                        'proj_id', 'proj_name', 'line_freq', 'gantry_angle',
                        'dev_head_t', 'dig', 'bads', 'projs')
 
-ch_ignore_fields = ('logno', 'cal', 'range', 'loc', 'coord_frame') # TODO: remove loc and coord_frame from here
+ch_ignore_fields = ('logno', 'cal', 'range',
+                    'loc', 'coord_frame') # TODO: implement transform
 
 
 def _remove_ignored_ch_fields(info):
@@ -32,6 +35,18 @@ def _remove_ignored_info_fields(info):
     _remove_ignored_ch_fields(info)
 
 
+def _transform_chs_to_head_coords(info):
+    if 'dev_head_t' not in info:
+        return
+
+    trans = info['dev_head_t']
+
+    for cur_ch in info['chs']:
+        if cur_ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE:
+            cur_ch['loc'] = apply_trans(trans, cur_ch['loc'])
+            cur_ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+
+
 def check_info_fields(expected, actual):
     """
     Check if info fields are equal.
@@ -41,6 +56,9 @@ def check_info_fields(expected, actual):
 
     expected = copy.deepcopy(expected.info)
     actual = copy.deepcopy(actual.info)
+
+    #_transform_chs_to_head_coords(expected)
+    #_transform_chs_to_head_coords(actual)
 
     _remove_ignored_info_fields(expected)
     _remove_ignored_info_fields(actual)
