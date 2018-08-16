@@ -8,13 +8,26 @@ import numpy as np
 import copy
 
 
-ignored_fields = ('file_id', )
+ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
+                  'meas_date', 'highpass', 'lowpass')
+
+ch_ignore_fields = ('logno', 'cal', 'range')
+
+
+def _remove_ignored_ch_fields(info):
+    if 'chs' in info:
+        for cur_ch in info['chs']:
+            for cur_field in ch_ignore_fields:
+                if cur_field in cur_ch:
+                    del cur_ch[cur_field]
 
 
 def _remove_ignored_info_fields(info):
     for cur_field in ignored_fields:
         if cur_field in info:
             del info[cur_field]
+
+    _remove_ignored_ch_fields(info)
 
 
 def check_info_fields(expected, actual):
