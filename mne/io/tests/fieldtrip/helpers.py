@@ -7,11 +7,13 @@ import types
 import numpy as np
 import copy
 
+info_ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
+                       'meas_date', 'highpass', 'lowpass', 'subject_info',
+                       'hpi_subsystem', 'experimenter', 'description',
+                       'proj_id', 'proj_name', 'line_freq', 'gantry_angle',
+                       'dev_head_t', 'dig', 'bads', 'projs')
 
-ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
-                  'meas_date', 'highpass', 'lowpass')
-
-ch_ignore_fields = ('logno', 'cal', 'range')
+ch_ignore_fields = ('logno', 'cal', 'range', 'loc', 'coord_frame') # TODO: remove loc and coord_frame from here
 
 
 def _remove_ignored_ch_fields(info):
@@ -23,7 +25,7 @@ def _remove_ignored_ch_fields(info):
 
 
 def _remove_ignored_info_fields(info):
-    for cur_field in ignored_fields:
+    for cur_field in info_ignored_fields:
         if cur_field in info:
             del info[cur_field]
 
