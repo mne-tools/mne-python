@@ -19,6 +19,29 @@ raw_fiff_file = os.path.join(mne.datasets.testing.data_path(),
 
 @testing.requires_testing_data
 @requires_h5py
+def test_epoched():
+    raw_fiff_mne = mne.io.read_raw_fif(raw_fiff_file, preload=True)
+    raw_fiff_mne.set_eeg_reference([])
+    events = mne.find_events(raw_fiff_mne)
+    mne_epoched = mne.Epochs(raw_fiff_mne, events=events, event_id=[1, 2, 3],
+                             tmin=-0.05, tmax=0.05, baseline=None)
+
+    all_versions = ['v7', 'v73']
+
+    for version in all_versions:
+        cur_fname = os.path.join(test_data_folder_ft,
+                                 'epoched_%s.mat' % (version,))
+        epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname)
+
+        mne_data = mne_epoched.get_data()[:, :, :-1]
+        ft_data = epoched_ft.get_data()
+
+        np.testing.assert_almost_equal(mne_data, ft_data)
+        check_info_fields(mne_epoched, epoched_ft)
+
+
+@testing.requires_testing_data
+@requires_h5py
 def test_raw():
     """Test comparing reading a raw fiff file and the FieldTrip version."""
     # Load the raw fiff file with mne

@@ -319,10 +319,11 @@ def _create_events(ft_struct, trialinfo_column):
 
     event_trans_val = np.zeros(len(event_type))
 
-    final_event_types = event_type[:, trialinfo_column]
+    if event_type.ndim == 2:
+        event_type = event_type[:, trialinfo_column]
 
     events = np.vstack([np.array(event_number), event_trans_val,
-                        final_event_types]).astype('int').T
+                        event_type]).astype('int').T
 
     return events
 
