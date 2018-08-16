@@ -11,16 +11,16 @@ from mne.datasets import testing
 from .helpers import check_info_fields
 from mne.utils import requires_h5py
 
+test_data_folder_ft = os.path.join(mne.datasets.testing.data_path(),
+                                   'fieldtrip/from_mne_sample')
+raw_fiff_file = os.path.join(mne.datasets.testing.data_path(),
+                             'MEG/sample', 'sample_audvis_trunc_raw.fif')
+
 
 @testing.requires_testing_data
 @requires_h5py
 def test_raw():
     """Test comparing reading a raw fiff file and the FieldTrip version."""
-    test_data_folder_ft = os.path.join(mne.datasets.testing.data_path(),
-                                       'fieldtrip/from_mne_sample')
-    raw_fiff_file = os.path.join(mne.datasets.testing.data_path(),
-                                 'MEG/sample', 'sample_audvis_trunc_raw.fif')
-
     # Load the raw fiff file with mne
     raw_fiff_mne = mne.io.read_raw_fif(raw_fiff_file, preload=True)
 
@@ -28,7 +28,7 @@ def test_raw():
 
     for version in all_versions:
         cur_fname = os.path.join(test_data_folder_ft,
-                                 'raw_%s.mat' % (version, ))
+                                 'raw_%s.mat' % (version,))
         raw_fiff_ft = mne.io.read_raw_fieldtrip(cur_fname)
 
         # Check that the data was loaded correctly
