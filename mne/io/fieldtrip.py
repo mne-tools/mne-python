@@ -235,7 +235,7 @@ def _create_info_chs(ft_struct):
         else:
             if cur_channel_label.startswith('EOG'):
                 cur_ch['kind'] = FIFF.FIFFV_EOG_CH
-                cur_ch['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
+                cur_ch['coil_type'] = FIFF.FIFFV_COIL_EEG
             elif cur_channel_label.startswith('ECG'):
                 cur_ch['kind'] = FIFF.FIFFV_ECG_CH
                 cur_ch['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
@@ -396,7 +396,7 @@ def _process_channel_meg(cur_ch, grad):
     cur_ch['kind'] = FIFF.FIFFV_MEG_CH
     if gradtype == 'neuromag306':
         if chantype == 'megmag':
-            cur_ch['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T1
+            cur_ch['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T3
             cur_ch['unit'] = FIFF.FIFF_UNIT_T
         elif chantype == 'megplanar':
             cur_ch['coil_type'] = FIFF.FIFFV_COIL_VV_PLANAR_T1
