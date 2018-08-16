@@ -34,6 +34,12 @@ def read_raw_fieldtrip(ft_structure_path, data_name='data'):
     This function expects to find single trial raw data (FT_DATATYPE_RAW) in
     the structure data_name is pointing at.
 
+    .. warning:: FieldTrip stores all channel locations in head coordinates.
+                 mne-python stores MEG channel locations in device coordinates
+                 by default. This is not possible because the transformation
+                 matrix is missing. All channel locations are thus stored in
+                 head coordinates.
+
     Parameters
     ----------
     ft_structure_path: str
@@ -85,6 +91,12 @@ def read_epochs_fieldtrip(ft_structure_path, data_name='data',
     .. warning:: Only epochs with the same amount of channels and samples are
                  supported!
 
+    .. warning:: FieldTrip stores all channel locations in head coordinates.
+                 mne-python stores MEG channel locations in device coordinates
+                 by default. This is not possible because the transformation
+                 matrix is missing. All channel locations are thus stored in
+                 head coordinates.
+
     Parameters
     ----------
     ft_structure_path: str
@@ -128,6 +140,12 @@ def read_evoked_fieldtrip(ft_structure_path, comment=None, data_name='data'):
 
     This function expects to find timelocked data in the structure data_name is
     pointing at.
+
+    .. warning:: FieldTrip stores all channel locations in head coordinates.
+                 mne-python stores MEG channel locations in device coordinates
+                 by default. This is not possible because the transformation
+                 matrix is missing. All channel locations are thus stored in
+                 head coordinates.
 
     Parameters
     ----------
