@@ -13,10 +13,10 @@ from mne.utils import requires_h5py
 
 @testing.requires_testing_data
 @requires_h5py
-def test_whole_process():
+def test_whole_process_old():
     """Test the reader functions for FieldTrip data."""
     test_data_folder = os.path.join(mne.datasets.testing.data_path(),
-                                    'fieldtrip')
+                                    'fieldtrip/old')
     all_versions = ['v7', 'v73']
     for version in all_versions:
         f_name_raw = os.path.join(test_data_folder, 'raw_%s.mat' % (version, ))
