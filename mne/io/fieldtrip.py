@@ -397,9 +397,9 @@ def _process_channel_meg(cur_ch, grad):
         cur_coilpos = cur_coilpos * _unit_dict[position_unit]
         cur_coilori = grad['coilori'][idx_in_coilpos, :]
         if chantype == 'megmag':
-            position = cur_coilpos[0] - 0.0003*cur_coilori[0]
+            position = cur_coilpos[0] - 0.0003 * cur_coilori[0]
         if chantype == 'megplanar':
-            tmp_pos = cur_coilpos - 0.0003*cur_coilori
+            tmp_pos = cur_coilpos - 0.0003 * cur_coilori
             position = np.average(tmp_pos, axis=0)
 
     # TODO: this needs to be fixed!
