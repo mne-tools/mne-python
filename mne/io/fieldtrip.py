@@ -194,7 +194,7 @@ def _create_info(ft_struct):
 def _create_info_chs(ft_struct):
     """Create the chs info field from the FieldTrip structure."""
     all_channels = ft_struct['label']
-    ch_defaults = dict(coord_frame=FIFF.FIFFV_COORD_HEAD,
+    ch_defaults = dict(coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                        cal=1.0,
                        range=1.0,
                        unit_mul=FIFF.FIFF_UNITM_NONE,
@@ -362,6 +362,7 @@ def _process_channel_eeg(cur_ch, elec):
     cur_ch['unit_mul'] = np.log10(_unit_dict[chanunit[0]])
     cur_ch['kind'] = FIFF.FIFFV_EEG_CH
     cur_ch['coil_type'] = FIFF.FIFFV_COIL_EEG
+    cur_ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
     return cur_ch
 
@@ -401,7 +402,9 @@ def _process_channel_meg(cur_ch, grad):
             tmp_pos = cur_coilpos - 0.0003*cur_coilori
             position = np.average(tmp_pos, axis=0)
 
-    orientation = transforms.quat_to_rot(np.squeeze(grad['chanori'][chan_idx_in_grad, :]))
+    # TODO: this needs to be fixed!
+    original_orientation = np.squeeze(grad['chanori'][chan_idx_in_grad, :])
+    orientation = transforms.quat_to_rot(original_orientation)
     orientation = orientation.flatten()
     chanunit = grad['chanunit'][chan_idx_in_grad]
 
@@ -421,5 +424,6 @@ def _process_channel_meg(cur_ch, grad):
         raise NotImplemented('This needs to be implemented!')
 
     cur_ch['unit_mul'] = np.log10(_unit_dict[chanunit[0]])
+    cur_ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
     return cur_ch
