@@ -27,6 +27,12 @@ def _remove_ignored_ch_fields(info):
                     del cur_ch[cur_field]
 
 
+def _remove_orientation_from_loc(info):
+    if 'chs' in info:
+        for cur_ch in info['chs']:
+            cur_ch['loc'] = cur_ch['loc'][0:2]
+
+
 def _remove_ignored_info_fields(info):
     for cur_field in info_ignored_fields:
         if cur_field in info:
@@ -73,6 +79,9 @@ def check_info_fields(expected, actual):
 
     _remove_ignored_info_fields(expected)
     _remove_ignored_info_fields(actual)
+
+    _remove_orientation_from_loc(expected)
+    _remove_orientation_from_loc(expected)
 
     assert_deep_almost_equal(expected, actual)
 
