@@ -8,8 +8,6 @@ import numpy as np
 import copy
 import os
 from ...constants import FIFF
-from ....transforms import apply_trans
-
 import mne
 
 info_ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
@@ -18,8 +16,7 @@ info_ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
                        'proj_id', 'proj_name', 'line_freq', 'gantry_angle',
                        'dev_head_t', 'dig', 'bads', 'projs')
 
-ch_ignore_fields = ('logno', 'cal', 'range',
-                    'loc', 'coord_frame')  # TODO: implement transform
+ch_ignore_fields = ('logno', 'cal', 'range')
 
 
 def _remove_ignored_ch_fields(info):
@@ -46,11 +43,14 @@ def _transform_chs_to_head_coords(info):
 
     for cur_ch in info['chs']:
         if cur_ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE:
-            cur_ch['loc'] = apply_trans(trans, cur_ch['loc'])
+            cur_trans_orig = mne.io.tag._loc_to_coil_trans(cur_ch['loc'])
+            trans_transformed = np.dot(trans['trans'], cur_trans_orig)
+            cur_ch['loc'] = mne.io.tag._coil_trans_to_loc(trans_transformed)
             cur_ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
 
 def get_data_paths():
+    """Return common paths for all tests."""
     test_data_folder_ft = os.path.join(mne.datasets.testing.data_path(),
                                        'fieldtrip/from_mne_sample')
     raw_fiff_file = os.path.join(mne.datasets.testing.data_path(),
@@ -68,8 +68,8 @@ def check_info_fields(expected, actual):
     expected = copy.deepcopy(expected.info)
     actual = copy.deepcopy(actual.info)
 
-    # _transform_chs_to_head_coords(expected)
-    # _transform_chs_to_head_coords(actual)
+    _transform_chs_to_head_coords(expected)
+    _transform_chs_to_head_coords(actual)
 
     _remove_ignored_info_fields(expected)
     _remove_ignored_info_fields(actual)
