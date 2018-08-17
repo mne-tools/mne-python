@@ -8,19 +8,15 @@ import mne
 import numpy as np
 import os.path
 from mne.datasets import testing
-from .helpers import check_info_fields
+from .helpers import check_info_fields, get_data_paths
 from mne.utils import requires_h5py
-
-test_data_folder_ft = os.path.join(mne.datasets.testing.data_path(),
-                                   'fieldtrip/from_mne_sample')
-raw_fiff_file = os.path.join(mne.datasets.testing.data_path(),
-                             'MEG/sample', 'sample_audvis_trunc_raw.fif')
 
 
 @testing.requires_testing_data
 @requires_h5py
 def test_averaged():
     """Test comparing reading an Evoked object and the FieldTrip version."""
+    (test_data_folder_ft, raw_fiff_file) = get_data_paths()
     raw_fiff_mne = mne.io.read_raw_fif(raw_fiff_file, preload=True)
     raw_fiff_mne.set_eeg_reference([])
     raw_fiff_mne.del_proj('all')
@@ -46,6 +42,7 @@ def test_averaged():
 @requires_h5py
 def test_epoched():
     """Test comparing reading an Epochs object and the FieldTrip version."""
+    (test_data_folder_ft, raw_fiff_file) = get_data_paths()
     raw_fiff_mne = mne.io.read_raw_fif(raw_fiff_file, preload=True)
     raw_fiff_mne.set_eeg_reference([])
     events = mne.find_events(raw_fiff_mne)
@@ -70,6 +67,7 @@ def test_epoched():
 def test_raw():
     """Test comparing reading a raw fiff file and the FieldTrip version."""
     # Load the raw fiff file with mne
+    (test_data_folder_ft, raw_fiff_file) = get_data_paths()
     raw_fiff_mne = mne.io.read_raw_fif(raw_fiff_file, preload=True)
 
     all_versions = ['v7', 'v73']

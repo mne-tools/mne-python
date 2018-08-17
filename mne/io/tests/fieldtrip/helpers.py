@@ -6,8 +6,11 @@
 import types
 import numpy as np
 import copy
+import os
 from ...constants import FIFF
 from ....transforms import apply_trans
+
+import mne
 
 info_ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
                        'meas_date', 'highpass', 'lowpass', 'subject_info',
@@ -45,6 +48,15 @@ def _transform_chs_to_head_coords(info):
         if cur_ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE:
             cur_ch['loc'] = apply_trans(trans, cur_ch['loc'])
             cur_ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+
+
+def get_data_paths():
+    test_data_folder_ft = os.path.join(mne.datasets.testing.data_path(),
+                                       'fieldtrip/from_mne_sample')
+    raw_fiff_file = os.path.join(mne.datasets.testing.data_path(),
+                                 'MEG/sample', 'sample_audvis_trunc_raw.fif')
+
+    return test_data_folder_ft, raw_fiff_file
 
 
 def check_info_fields(expected, actual):
