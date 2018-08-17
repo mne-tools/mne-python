@@ -6,8 +6,8 @@ from functools import partial
 import numpy as np
 from scipy.fftpack import ifftshift, fftfreq
 
-from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
-                   setup_cuda_fft_resample, fft_resample, _smart_pad)
+from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
+                   _setup_cuda_fft_resample, _fft_resample, _smart_pad)
 from .externals.six import string_types, integer_types
 from .fixes import get_sosfiltfilt, minimum_phase
 from .parallel import parallel_func, check_n_jobs
@@ -199,18 +199,18 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
                          '2 * len(h) - 1 (%s), got %s' % (min_fft, n_fft))
 
     # Figure out if we should use CUDA
-    n_jobs, cuda_dict, h_fft = setup_cuda_fft_multiply_repeated(
+    n_jobs, cuda_dict = _setup_cuda_fft_multiply_repeated(
         n_jobs, h, n_fft)
 
     # Process each row separately
     picks = np.arange(len(x)) if picks is None else picks
     if n_jobs == 1:
         for p in picks:
-            x[p] = _1d_overlap_filter(x[p], h_fft, len(h), n_edge, phase,
+            x[p] = _1d_overlap_filter(x[p], len(h), n_edge, phase,
                                       cuda_dict, pad, n_fft)
     else:
         parallel, p_fun, _ = parallel_func(_1d_overlap_filter, n_jobs)
-        data_new = parallel(p_fun(x[p], h_fft, len(h), n_edge, phase,
+        data_new = parallel(p_fun(x[p], len(h), n_edge, phase,
                                   cuda_dict, pad, n_fft) for p in picks)
         for pp, p in enumerate(picks):
             x[p] = data_new[pp]
@@ -219,7 +219,7 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
     return x
 
 
-def _1d_overlap_filter(x, h_fft, n_h, n_edge, phase, cuda_dict, pad, n_fft):
+def _1d_overlap_filter(x, n_h, n_edge, phase, cuda_dict, pad, n_fft):
     """Do one-dimensional overlap-add FFT FIR filtering."""
     # pad to reduce ringing
     x_ext = _smart_pad(x, (n_edge, n_edge), pad)
@@ -238,7 +238,7 @@ def _1d_overlap_filter(x, h_fft, n_h, n_edge, phase, cuda_dict, pad, n_fft):
         seg = x_ext[start:stop]
         seg = np.concatenate([seg, np.zeros(n_fft - len(seg))])
 
-        prod = fft_multiply_repeated(h_fft, seg, n_fft, cuda_dict)
+        prod = _fft_multiply_repeated(seg, cuda_dict)
 
         start_filt = max(0, start - shift)
         stop_filt = min(start - shift + n_fft, n_x)
@@ -1582,18 +1582,18 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
     W *= (float(new_len) / float(orig_len))
 
     # figure out if we should use CUDA
-    n_jobs, cuda_dict, W = setup_cuda_fft_resample(n_jobs, W, new_len)
+    n_jobs, cuda_dict = _setup_cuda_fft_resample(n_jobs, W, new_len)
 
     # do the resampling using an adaptation of scipy's FFT-based resample()
     # use of the 'flat' window is recommended for minimal ringing
     if n_jobs == 1:
         y = np.zeros((len(x_flat), new_len - to_removes.sum()), dtype=x.dtype)
         for xi, x_ in enumerate(x_flat):
-            y[xi] = fft_resample(x_, W, new_len, npads, to_removes,
-                                 cuda_dict, pad)
+            y[xi] = _fft_resample(x_, new_len, npads, to_removes,
+                                  cuda_dict, pad)
     else:
-        parallel, p_fun, _ = parallel_func(fft_resample, n_jobs)
-        y = parallel(p_fun(x_, W, new_len, npads, to_removes, cuda_dict, pad)
+        parallel, p_fun, _ = parallel_func(_fft_resample, n_jobs)
+        y = parallel(p_fun(x_, new_len, npads, to_removes, cuda_dict, pad)
                      for x_ in x_flat)
         y = np.array(y)
 
