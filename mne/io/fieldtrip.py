@@ -383,15 +383,27 @@ def _process_channel_meg(cur_ch, grad):
     """
     all_labels = np.asanyarray(grad['label'])
     chan_idx_in_grad = np.where(all_labels == cur_ch['ch_name'])[0][0]
-    position = np.squeeze(grad['chanpos'][chan_idx_in_grad, :])
-    orientation = transforms.rotation3d(
-        *np.squeeze(grad['chanori'][chan_idx_in_grad, :]).tolist())
-    orientation = orientation.flatten()
-    position_unit = grad['unit']
-    chantype = grad['chantype'][chan_idx_in_grad]
-    chanunit = grad['chanunit'][chan_idx_in_grad]
-    position = position * _unit_dict[position_unit]
     gradtype = grad['type']
+    chantype = grad['chantype'][chan_idx_in_grad]
+    position_unit = grad['unit']
+    position = np.squeeze(grad['chanpos'][chan_idx_in_grad, :])
+    position = position * _unit_dict[position_unit]
+
+    if gradtype == 'neuromag306' and 'tra' in grad and 'coilpos' in grad:
+        # Try to regenerate original channel pos.
+        idx_in_coilpos = np.where(grad['tra'][chan_idx_in_grad, :] != 0)[0]
+        cur_coilpos = grad['coilpos'][idx_in_coilpos, :]
+        cur_coilpos = cur_coilpos * _unit_dict[position_unit]
+        cur_coilori = grad['coilori'][idx_in_coilpos, :]
+        if chantype == 'megmag':
+            position = cur_coilpos[0] - 0.0003*cur_coilori[0]
+        if chantype == 'megplanar':
+            tmp_pos = cur_coilpos - 0.0003*cur_coilori
+            position = np.average(tmp_pos, axis=0)
+
+    orientation = transforms.quat_to_rot(np.squeeze(grad['chanori'][chan_idx_in_grad, :]))
+    orientation = orientation.flatten()
+    chanunit = grad['chanunit'][chan_idx_in_grad]
 
     cur_ch['loc'] = np.hstack((position, orientation))
     cur_ch['kind'] = FIFF.FIFFV_MEG_CH
