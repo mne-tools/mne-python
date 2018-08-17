@@ -158,6 +158,7 @@ html_theme_options = {
         ("Install", "getting_started"),
         ("Documentation", "documentation"),
         ("API", "python_reference"),
+        ("Glossary", "glossary"),
         ("Examples", "auto_examples/index"),
         ("Contribute", "contributing"),
     ],
