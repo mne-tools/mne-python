@@ -78,7 +78,7 @@ If you get a new prompt with no error messages, you should be good to go!
 The ``$ conda env create ...`` step sometimes emits warnings, but you can ensure
 all default dependencies are installed by listing their versions with::
 
-    >>> mne.sys_info()
+    >>> mne.sys_info()  # doctest:+SKIP
     Platform:      Linux-4.4.0-112-generic-x86_64-with-debian-jessie-sid
     Python:        3.6.6 |Anaconda, Inc.| (default, Jun 28 2018, 17:14:51)  [GCC 7.2.0]
     Executable:    /home/travis/miniconda/envs/test/bin/python
