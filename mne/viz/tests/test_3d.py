@@ -7,7 +7,6 @@
 #
 # License: Simplified BSD
 
-from distutils.version import LooseVersion
 import os.path as op
 
 import numpy as np
@@ -314,7 +313,6 @@ def test_limits_to_control_points():
 @requires_nibabel()
 def test_stc_mpl():
     """Test plotting source estimates with matplotlib."""
-    import matplotlib
     import matplotlib.pyplot as plt
     sample_src = read_source_spaces(src_fname)
 

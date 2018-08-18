@@ -1345,7 +1345,6 @@ def _key_pressed_slider(event, params):
 def _smooth_plot(this_time, params):
     """Smooth source estimate data and plot with mpl."""
     from ..source_estimate import _morph_buffer
-    from mpl_toolkits.mplot3d import art3d
     ax = params['ax']
     stc = params['stc']
     ax.clear()
