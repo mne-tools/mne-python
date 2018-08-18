@@ -57,6 +57,16 @@ MNE-Python core terminology and general concepts
         are classically obtained from a trigger channel, also referred to as
         stim channel.
 
+    first_samp
+        The attribute of raw objects called `first_samp` is an integer that
+        refers to the number of time samples passed between the onset of the
+        acquisition system and the time when data started to be written
+        on disk. This is a specificity of the Vectorview MEG systems (fif files)
+        but for consistency it is available for all file formats in MNE.
+        One benefit of this system is that croppping data only boils
+        down to a change of the `first_samp` attribute to know when cropped data
+        was acquired.
+
     info
         Also called `measurements info`, it is a collection of metadata regarding
         a Raw, Epochs or Evoked object; e.g.,
