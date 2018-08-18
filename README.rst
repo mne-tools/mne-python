@@ -92,9 +92,8 @@ For full functionality, some functions require:
 - Picard >= 0.3
 
 To use `NVIDIA CUDA <https://developer.nvidia.com/cuda-zone>`_ for resampling
-and FFT FIR filtering, you will also need to install the NVIDIA CUDA SDK,
-pycuda, and scikit-cuda (see the `getting started page`_
-for more information).
+and FFT FIR filtering, you will also need to install the NVIDIA CUDA SDK
+and ``cupy`` (see the `getting started page`_ for more information).
 
 
 Contributing to MNE-Python

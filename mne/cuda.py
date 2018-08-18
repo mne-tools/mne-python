@@ -12,20 +12,25 @@ from .utils import (sizeof_fmt, logger, get_config, warn, _explain_exception,
 _cuda_capable = False
 
 
-def get_cuda_memory():
+def get_cuda_memory(kind='available'):
     """Get the amount of free memory for CUDA operations.
+
+    Parameters
+    ----------
+    kind : str
+        Can be "available" or "total".
 
     Returns
     -------
     memory : str
-        The amount of available memory as a human-readable string.
+        The amount of available or total memory as a human-readable string.
     """
     if not _cuda_capable:
         warn('CUDA not enabled, returning zero for memory')
         mem = 0
     else:
         import cupy
-        mem = cupy.get_default_memory_pool().total_bytes()
+        mem = cupy.cuda.runtime.memGetInfo()[dict(available=0, total=1)[kind]]
     return sizeof_fmt(mem)
 
 

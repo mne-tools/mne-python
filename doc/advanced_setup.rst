@@ -59,44 +59,24 @@ CUDA (NVIDIA GPU acceleration)
 We have developed specialized routines to make use of
 `NVIDIA CUDA GPU processing <http://www.nvidia.com/object/cuda_home_new.html>`_
 to speed up some operations (e.g. FIR filtering) by up to 10x.
-If you want to use NVIDIA CUDA, you should install:
+If you want to use NVIDIA CUDA, you should ensure that you are running the
+NVIDIA proprietary drivers, and then do the following (assuming you are using
+``conda`` as your Python environment):
 
-1. `the NVIDIA toolkit on your system <https://developer.nvidia.com/cuda-downloads>`_
-2. `PyCUDA <http://wiki.tiker.net/PyCuda/Installation/>`_
-3. `skcuda <https://github.com/lebedov/scikits.cuda>`_
+.. code-block: console
 
-For example, on Ubuntu 15.10, a combination of system packages and ``git``
-packages can be used to install the CUDA stack:
+    $ conda install cupy
 
-.. code-block:: console
-
-    # install system packages for CUDA
-    $ sudo apt-get install nvidia-cuda-dev nvidia-modprobe
-    # install PyCUDA
-    $ git clone http://git.tiker.net/trees/pycuda.git
-    $ cd pycuda
-    $ ./configure.py --cuda-enable-gl
-    $ git submodule update --init
-    $ make -j 4
-    $ python setup.py install
-    # install skcuda
-    $ cd ..
-    $ git clone https://github.com/lebedov/scikit-cuda.git
-    $ cd scikit-cuda
-    $ python setup.py install
-
-To initialize mne-python cuda support, after installing these dependencies
-and running their associated unit tests (to ensure your installation is correct)
-you can run:
+To initialize and test mne-python cuda support, after installing cupy_
+you can run the following, which should give you an INFO-level log
+message telling you your CUDA hardware's available memory:
 
 .. code-block:: console
 
-    $ MNE_USE_CUDA=true MNE_LOGGING_LEVEL=info python -c "import mne; mne.cuda.init_cuda()"
+    $ MNE_USE_CUDA=true python -c "import mne; mne.cuda.init_cuda(verbose=True)"
     Enabling CUDA with 1.55 GB available memory
 
-If you have everything installed correctly, you should see an INFO-level log
-message telling you your CUDA hardware's available memory. To have CUDA
-initialized on startup, you can do::
+To have CUDA initialized automatically when necessary by MNE, you can do::
 
     >>> mne.utils.set_config('MNE_USE_CUDA', 'true') # doctest: +SKIP
 
@@ -106,8 +86,12 @@ You can test if MNE CUDA support is working by running the associated test:
 
     $ pytest mne/tests/test_filter.py
 
-If ``MNE_USE_CUDA=true`` and all tests pass with none skipped, then
-MNE-Python CUDA support works.
+If ``MNE_USE_CUDA=true`` and all tests pass with none skipped due to missing
+CUDA, then MNE-Python CUDA support works.
+
+To use CUDA, look for functions and methods that state that tehy allow
+passing ``n_jobs='cuda'``, such as :meth:`mne.io.Raw.filter` and
+:meth:`mne.io.Raw.resample`.
 
 IPython / Jupyter notebooks
 ###########################

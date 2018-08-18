@@ -105,6 +105,8 @@ API
 
 - Prepare transition to Python 3. This release will be the last release compatible with Python 2. The next version will be Python 3 only.
 
+- CUDA support now relies on cupy_ instead of ``PyCUDA`` and ``scikits-cuda``. It can be installed using ``conda install cupy``. By `Eric Larson`_
+
 - Functions requiring a color cycle will now default to Matplotlib rcParams colors, by `Stefan Appelhoff`_
 
 - :meth:`mne.Evoked.plot_image` has gained the ability to ``show_names``, and if a selection is provided to ``group_by``, ``axes`` can now receive a `dict`, by `Jona Sassenhagen`_
