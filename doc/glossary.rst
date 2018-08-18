@@ -22,7 +22,7 @@ MNE-Python core terminology and general concepts
 
     annotations
         One annotation is defined by an onset, a duration and a string
-        descrition. It can contain information about the experiments, but
+        description. It can contain information about the experiments, but
         also details on signals marked by a human: bad data segments,
         sleep scores, sleep events (spindles, K-complex) etc.
         An :class:`Annotations` object is a container of multiple annotations.
@@ -81,7 +81,7 @@ MNE-Python core terminology and general concepts
         class.
 
     morphing
-        Morphing refers to the operation of transfering source estimates from
+        Morphing refers to the operation of transferring source estimates from
         one anatomy to another. It is commonly referred as realignment in fMRI
         literature. This operation is necessary for group studies.
         See :ref:`sphx_glr_auto_tutorials_plot_morph_data.py` for more details.
@@ -141,3 +141,7 @@ MNE-Python core terminology and general concepts
         takes positive values when something happens such as the onset of a stimulus.
         Classical names for stim channels is `STI 014` or `STI 101`.
         So-called events arrays are obtained from stim channels.
+
+    trans
+        A coordinate frame affine transformation, usually between the Neuromag head
+        coordinate frame and the MRI Surface RAS coordinate frame used by Freesurfer.
