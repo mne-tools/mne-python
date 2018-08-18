@@ -1375,10 +1375,8 @@ def _smooth_plot(this_time, params):
                             antialiased=False)
     color_ave = np.mean(colors[faces], axis=1).flatten()
     curv_ave = np.mean(params['curv'][faces], axis=1).flatten()
-    try:  # matplotlib/matplotlib#11877
-        facecolors = polyc.get_facecolors()
-    except AttributeError:
-        facecolors = polyc._facecolors3d
+    # matplotlib/matplotlib#11877
+    facecolors = polyc._facecolors3d
 
     to_blend = color_ave > params['ctrl_pts'][0] / vmax
     facecolors[to_blend, :3] = ((1 - transp) *
