@@ -68,7 +68,7 @@ on your operating system, and then do:
     $ MNE_USE_CUDA=true python -c "import mne; mne.cuda.init_cuda(verbose=True)"
     Enabling CUDA with 1.55 GB available memory
 
-If you receieve a message reporting the GPU's available memory, CuPy_
+If you receive a message reporting the GPU's available memory, CuPy_
 is woriking properly. To permanently enable CUDA in MNE, you can do::
 
     >>> mne.utils.set_config('MNE_USE_CUDA', 'true') # doctest: +SKIP
