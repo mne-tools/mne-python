@@ -147,7 +147,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                                                eeg=50e-6, eog=250e-6),
                      flat=None, bads=[], avg_ref=False,
                      no_proj=False, event_id=999, ecg_l_freq=5, ecg_h_freq=35,
-                     tstart=0., qrs_threshold='auto', filter_method='fft',
+                     tstart=0., qrs_threshold='auto', filter_method='fir',
                      iir_params=None, copy=True, return_drop_log=False,
                      verbose=None):
     """Compute SSP/PCA projections for ECG artifacts.
@@ -205,7 +205,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         automatically choose the threshold that generates a reasonable
         number of heartbeats (40-160 beats / min).
     filter_method : str
-        Method for filtering ('iir' or 'fft').
+        Method for filtering ('iir' or 'fir').
     iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
@@ -256,7 +256,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=500e-6,
                                  eog=np.inf), flat=None, bads=[],
                      avg_ref=False, no_proj=False, event_id=998, eog_l_freq=1,
-                     eog_h_freq=10, tstart=0., filter_method='fft',
+                     eog_h_freq=10, tstart=0., filter_method='fir',
                      iir_params=None, ch_name=None, copy=True,
                      return_drop_log=False, verbose=None):
     """Compute SSP/PCA projections for EOG artifacts.
@@ -308,7 +308,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
     tstart : float
         Start artifact detection after tstart seconds.
     filter_method : str
-        Method for filtering ('iir' or 'fft').
+        Method for filtering ('iir' or 'fir').
     iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params

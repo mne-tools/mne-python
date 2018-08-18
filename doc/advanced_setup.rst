@@ -56,42 +56,34 @@ If you plan to contribute to MNE, please continue reading how to
 CUDA (NVIDIA GPU acceleration)
 ##############################
 
-We have developed specialized routines to make use of
-`NVIDIA CUDA GPU processing <http://www.nvidia.com/object/cuda_home_new.html>`_
-to speed up some operations (e.g. FIR filtering) by up to 10x.
-If you want to use NVIDIA CUDA, you should ensure that you are running the
-NVIDIA proprietary drivers, and then do the following (assuming you are using
-``conda`` as your Python environment):
-
-.. code-block: console
-
-    $ conda install cupy
-
-To initialize and test mne-python cuda support, after installing cupy_
-you can run the following, which should give you an INFO-level log
-message telling you your CUDA hardware's available memory:
+Some routines can utilize
+`NVIDIA CUDA GPU processing <https://developer.nvidia.com/cuda-zone>`_
+to speed up some operations (e.g. FIR filtering) by roughly an order of magnitude.
+To use CUDA, first  ensure that you are running the NVIDIA proprietary drivers
+on your operating system, and then do:
 
 .. code-block:: console
 
+    $ conda install cupy
     $ MNE_USE_CUDA=true python -c "import mne; mne.cuda.init_cuda(verbose=True)"
     Enabling CUDA with 1.55 GB available memory
 
-To have CUDA initialized automatically when necessary by MNE, you can do::
+If you receieve a message reporting the GPU's available memory, ``cupy``
+is woriking properly. To permanently enable CUDA in MNE, you can do::
 
     >>> mne.utils.set_config('MNE_USE_CUDA', 'true') # doctest: +SKIP
 
-You can test if MNE CUDA support is working by running the associated test:
+You can then test MNE CUDA support by running the associated test:
 
 .. code-block:: console
 
-    $ pytest mne/tests/test_filter.py
+    $ pytest mne/tests/test_filter.py -k cuda
 
-If ``MNE_USE_CUDA=true`` and all tests pass with none skipped due to missing
-CUDA, then MNE-Python CUDA support works.
-
-To use CUDA, look for functions and methods that state that tehy allow
-passing ``n_jobs='cuda'``, such as :meth:`mne.io.Raw.filter` and
-:meth:`mne.io.Raw.resample`.
+If the tests pass, then CUDA should work in MNE. You can use CUDA in methods
+that state that they allow passing ``n_jobs='cuda'``, such as
+:meth:`mne.io.Raw.filter` and :meth:`mne.io.Raw.resample`,
+and they should run faster than the CPU-based multithreading such as
+``n_jobs=8``.
 
 IPython / Jupyter notebooks
 ###########################

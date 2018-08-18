@@ -146,8 +146,8 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
         filtered. Only supported for 2D (n_channels, n_times) and 3D
         (n_epochs, n_channels, n_times) data.
     n_jobs : int | str
-        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly and CUDA is initialized.
+        Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
+        is installed properly.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
@@ -782,8 +782,8 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 
         Only used for ``method='fir'``.
     n_jobs : int | str
-        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly, CUDA is initialized, and method='fir'.
+        Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
+        is installed properly and method='fir'.
     method : str
         'fir' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
@@ -1225,8 +1225,8 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
         filtered. Only supported for 2D (n_channels, n_times) and 3D
         (n_epochs, n_channels, n_times) data.
     n_jobs : int | str
-        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly, CUDA is initialized, and method='fir'.
+        Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
+        is installed properly and method='fir'.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
@@ -1489,8 +1489,8 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
     window : string or tuple
         See :func:`scipy.signal.resample` for description.
     n_jobs : int | str
-        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly and CUDA is initialized.
+        Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
+        is installed properly.
     pad : str
         The type of padding to use. Supports all :func:`numpy.pad` ``mode``
         options. Can also be "reflect_limited" (default), which pads with a
@@ -1989,8 +1989,8 @@ class FilterMixin(object):
 
             Only used for ``method='fir'``.
         n_jobs : int | str
-            Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-            is installed properly, CUDA is initialized, and method='fir'.
+            Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
+            is installed properly and method='fir'.
         method : str
             'fir' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt).

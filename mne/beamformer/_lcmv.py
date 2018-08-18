@@ -529,8 +529,8 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         free orientation, a vector beamformer is computed, combining the output
         for all source orientations.
     n_jobs : int | str
-        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly and CUDA is initialized.
+        Number of jobs to run in parallel.
+        Can be 'cuda' if ``cupy`` is installed properly.
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG

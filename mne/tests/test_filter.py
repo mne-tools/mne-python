@@ -182,7 +182,7 @@ def test_iir_stability():
     pytest.raises(TypeError, filter_data, sig, sfreq, 0.1, None,
                   method='iir', iir_params='blah')
     pytest.raises(ValueError, filter_data, sig, sfreq, 0.1, None,
-                  method='fft', iir_params=dict())
+                  method='fir', iir_params=dict())
 
     # should pass because default trans_bandwidth is not relevant
     iir_params = dict(ftype='butter', order=2, output='sos')
@@ -484,11 +484,9 @@ def test_filter_auto():
                   10, filter_length='auto', h_trans_bandwidth='auto', **kwargs)
 
 
-def test_cuda():
+def test_cuda_fir():
     """Test CUDA-based filtering."""
-    # NOTE: don't make test_cuda() the last test, or pycuda might spew
-    # some warnings about clean-up failing
-    # Also, using `n_jobs='cuda'` on a non-CUDA system should be fine,
+    # Using `n_jobs='cuda'` on a non-CUDA system should be fine,
     # as it should fall back to using n_jobs=1.
     sfreq = 500
     sig_len_secs = 20
@@ -523,8 +521,12 @@ def test_cuda():
     from mne.cuda import _cuda_capable  # allow above funs to set it
     tot = 12 if _cuda_capable else 0
     assert sum(['Using CUDA for FFT FIR filtering' in o for o in out]) == tot
+    if not _cuda_capable:
+        pytest.skip('CUDA not enabled')
 
-    # check resampling
+
+def test_cuda_resampling():
+    """Test CUDA resampling."""
     for window in ('boxcar', 'triang'):
         for N in (997, 1000):  # one prime, one even
             a = rng.randn(2, N)
@@ -538,6 +540,9 @@ def test_cuda():
     assert_array_equal(resample([0, 0], 2, 1, n_jobs='cuda'), [0., 0., 0., 0.])
     assert_array_equal(resample(np.zeros(2, np.float32), 2, 1, n_jobs='cuda'),
                        [0., 0., 0., 0.])
+    from mne.cuda import _cuda_capable  # allow above funs to set it
+    if not _cuda_capable:
+        pytest.skip('CUDA not enabled')
 
 
 def test_detrend():

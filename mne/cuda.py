@@ -8,7 +8,6 @@ from .utils import (sizeof_fmt, logger, get_config, warn, _explain_exception,
                     verbose)
 
 
-# Support CUDA for FFTs; requires scikits.cuda and pycuda
 _cuda_capable = False
 
 
@@ -62,7 +61,7 @@ def init_cuda(ignore_config=False, verbose=True):
         warn('module cupy not found, CUDA not enabled')
         return
     try:
-        # Initialize CUDA; happens with importing autoinit
+        # Initialize CUDA
         cupy.cuda.Device()
     except Exception:
         warn('so CUDA device could be initialized, likely a hardware error, '
