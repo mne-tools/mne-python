@@ -143,9 +143,21 @@ using mayavi), you can try setting the ``ETS_TOOLKIT`` environment variable::
 
     >>> import os
     >>> os.environ['ETS_TOOLKIT'] = 'qt4'
-    >>> os.environ['QT_API'] = 'pyqt'
+    >>> os.environ['QT_API'] = 'pyqt5'
 
 This will tell Traits that we will use Qt with PyQt bindings.
 
 For more information, see
 http://docs.enthought.com/mayavi/mayavi/building_applications.html.
+
+Off-screen rendering on Linux with MESA
+#######################################
+
+On remote systems, it might be possible to use MESA software rendering
+(``swr``) for 3D visualization with some tweaks. For example, on CentOS 7.5
+you might be able to use the environment variable to force MESA to use
+modern OpenGL by using this before executing ``spyder`` or ``python``:
+
+.. code-block:: console
+
+    $ export MESA_GL_VERSION_OVERRIDE=3.3
