@@ -1345,7 +1345,6 @@ def _key_pressed_slider(event, params):
 def _smooth_plot(this_time, params):
     """Smooth source estimate data and plot with mpl."""
     from ..source_estimate import _morph_buffer
-    from mpl_toolkits.mplot3d import art3d
     ax = params['ax']
     stc = params['stc']
     ax.clear()
@@ -1376,7 +1375,8 @@ def _smooth_plot(this_time, params):
                             antialiased=False)
     color_ave = np.mean(colors[faces], axis=1).flatten()
     curv_ave = np.mean(params['curv'][faces], axis=1).flatten()
-    facecolors = art3d.PolyCollection.get_facecolors(polyc)
+    # matplotlib/matplotlib#11877
+    facecolors = polyc._facecolors3d
 
     to_blend = color_ave > params['ctrl_pts'][0] / vmax
     facecolors[to_blend, :3] = ((1 - transp) *
