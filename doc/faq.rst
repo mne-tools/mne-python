@@ -30,11 +30,11 @@ You can also chat with developers `on Gitter <https://gitter.im/mne-tools/mne-py
 I can't get Mayavi/3D plotting to work under Windows.
 -----------------------------------------------------
 If Mayavi plotting in Jupyter Notebooks doesn't work
-well, using the IPython magic ``%gui qt`` after importing MNE/Mayavi/PySurfer 
+well, using the IPython magic ``%gui qt`` after importing MNE/Mayavi/PySurfer
 should `help <https://github.com/ipython/ipython/issues/10384>`_.
-   
+
 .. code:: ipython
-   
+
    from mayavi import mlab
    %gui qt
 
@@ -73,30 +73,6 @@ Please report any problems you find while using MNE-Python to the
 Try :ref:`using the latest master version <installing_master>` to
 see if the problem persists before reporting the bug, as it may have
 been fixed since the latest release.
-
-It is helpful to include system information with bug reports, so it can be
-useful to include the output of the :func:`mne.sys_info` command when
-reporting a bug, which should look something like this::
-
-    >>> import mne
-    >>> mne.sys_info()  # doctest:+SKIP
-    Platform:      Linux-4.2.0-27-generic-x86_64-with-debian-jessie-sid
-    Python:        2.7.11 |Continuum Analytics, Inc.| (default, Dec  6 2015, 18:08:32)  [GCC 4.4.7 20120313 (Red Hat 4.4.7-1)]
-    Executable:    /home/larsoner/miniconda/bin/python
-
-    mne:           0.12.dev0
-    numpy:         1.10.2 {lapack=mkl_lapack95_lp64, blas=mkl_intel_lp64}
-    scipy:         0.16.1
-    matplotlib:    1.5.1
-
-    sklearn:       Not found
-    nibabel:       Not found
-    nitime:        Not found
-    mayavi:        Not found
-    pandas:        Not found
-    pycuda:        Not found
-    skcuda:        Not found
-
 
 Why is it dangerous to "pickle" my MNE-Python objects and data for later use?
 -----------------------------------------------------------------------------
