@@ -7,6 +7,7 @@
 #
 # License: Simplified BSD
 
+from distutils.version import LooseVersion
 import os.path as op
 
 import numpy as np
@@ -313,6 +314,7 @@ def test_limits_to_control_points():
 @requires_nibabel()
 def test_stc_mpl():
     """Test plotting source estimates with matplotlib."""
+    import matplotlib
     import matplotlib.pyplot as plt
     sample_src = read_source_spaces(src_fname)
 
@@ -322,7 +324,10 @@ def test_stc_mpl():
     stc_data = np.ones((n_verts * n_time))
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
-    with pytest.warns(RuntimeWarning, match='not included'):
+    # See matplotlib/matplotlib#11877, eventually we can set this to == 2.2.3
+    mpv = matplotlib.__version__
+    if LooseVersion(mpv) >= LooseVersion('2.2.3'):
+        pytest.skip('Matplotlib %s Poly3DCollection.get_facecolors bug' % mpv)
         stc.plot(subjects_dir=subjects_dir, time_unit='s', views='ven',
                  hemi='rh', smoothing_steps=2, subject='sample',
                  backend='matplotlib', spacing='oct1', initial_time=0.001,
