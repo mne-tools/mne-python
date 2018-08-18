@@ -1366,7 +1366,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         is used.
     limit_depth_chs : bool
         If True, use only grad channels in depth weighting (equivalent to MNE
-        C code). If grad chanels aren't present, only mag channels will be
+        C code). If grad channels aren't present, only mag channels will be
         used (if no mag, then eeg). If False, use all channels.
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is

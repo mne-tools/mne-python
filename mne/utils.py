@@ -1786,7 +1786,7 @@ class ProgressBar(object):
         if self._do_print:
             sys.stdout.write(bar)
             sys.stdout.flush()
-        # Increament the spinner
+        # Increment the spinner
         if self.spinner:
             self.spinner_index = (self.spinner_index + 1) % self.n_spinner
 

@@ -228,7 +228,7 @@ def _iter_contrasts(n_subjects, factor_levels, effect_picks):
 
 def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
                         pvalue=0.05):
-    """Compute F-value thesholds for a two-way ANOVA.
+    """Compute F-value thresholds for a two-way ANOVA.
 
     Parameters
     ----------

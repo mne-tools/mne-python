@@ -356,7 +356,7 @@ def test_accuracy():
 def test_dipole_fixed():
     """Test reading a fixed-position dipole (from Xfit)."""
     dip = read_dipole(fname_xfit_dip)
-    # print the representation of the objet DipoleFixed
+    # print the representation of the object DipoleFixed
     print(dip)
 
     _check_roundtrip_fixed(dip)

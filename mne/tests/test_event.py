@@ -487,7 +487,7 @@ def test_acqparser():
     assert (repr(acqp))
     # this file should not be in compatibility mode
     assert (not acqp.compat)
-    # nonexisting category
+    # nonexistent category
     pytest.raises(KeyError, acqp.__getitem__, 'does not exist')
     pytest.raises(KeyError, acqp.get_condition, raw, 'foo')
     # category not a string

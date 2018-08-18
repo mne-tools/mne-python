@@ -251,7 +251,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         any additional arguments. Defaults to None.
     figsize : array-like of size (2,) | None
         Allows to control size of the figure. If None, the figure size
-        defauls to [7., 6.].
+        defaults to [7., 6.].
     show : bool
         Show figure if True.
 

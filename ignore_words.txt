@@ -1,3 +1,4 @@
+backed
 ons
 fro
 ang
@@ -8,6 +9,8 @@ sinc
 wan
 reord
 iff
+numer
+uint
 # for tempita
 delimeters
 delimeter

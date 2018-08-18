@@ -892,7 +892,7 @@ baseline_plot(x)
 #     high-pass filters). Similar filters can be achieved in MNE-Python when
 #     filtering with :meth:`raw.filter(..., method='iir') <mne.io.Raw.filter>`
 #     (see also :func:`mne.filter.construct_iir_filter` for options).
-#     For more inforamtion, see e.g. `FieldTrip band-pass documentation`_.
+#     For more information, see e.g. `FieldTrip band-pass documentation`_.
 #
 # Reporting Filters
 # =================
