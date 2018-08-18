@@ -1376,7 +1376,6 @@ def _smooth_plot(this_time, params):
                             antialiased=False)
     color_ave = np.mean(colors[faces], axis=1).flatten()
     curv_ave = np.mean(params['curv'][faces], axis=1).flatten()
-    facecolors = polyc.get_facecolors()
     try:  # matplotlib/matplotlib#11877
         facecolors = polyc.get_facecolors()
     except AttributeError:
