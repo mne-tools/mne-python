@@ -66,7 +66,7 @@ Bug
 
 - Fix bug with IIR filtering axis in :func:`mne.filter.filter_data` by `Eric Larson`_
 
-- Fix bug with non-boxcar windows in :meth:`mne.Raw.resample` and :func:`mne.filter.resample` by `Eric Larson`_
+- Fix bug with non-boxcar windows in :meth:`mne.io.Raw.resample` and :func:`mne.filter.resample` by `Eric Larson`_
 
 - Fix bug in :func:`mne.minimum_norm.apply_inverse` where applying an MEG-only inverse would raise an error about needing an average EEG reference by `Eric Larson`_
 
@@ -88,7 +88,7 @@ Bug
 
 - Fix bug in :func:`mne.make_sphere_model` where EEG sphere model coefficients were not optimized properly by `Eric Larson`_
 
-- Fix bug in :func:`mne.io.ctf.read_raw_ctf` to read bad channels and segments from CTF ds files by `Luke Bloy`_
+- Fix bug in :func:`mne.io.read_raw_ctf` to read bad channels and segments from CTF ds files by `Luke Bloy`_
 
 - Fix problem with :meth:`mne.io.Raw.add_channels` where ``raw.info['bads']`` was replicated by `Eric Larson`_
 
