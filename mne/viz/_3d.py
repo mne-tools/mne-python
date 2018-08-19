@@ -1857,7 +1857,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             params.update({'title': 'Activation (t=%.3f s.)'
                           % params['stc'].times[idx]})
             plot_map_callback(
-                params['img_idx'], title=params['title'],
+                params['img_idx'], title='',
                 cut_coords=cut_coords)
 
         if event.inaxes in [ax_x, ax_y, ax_z]:
@@ -1870,9 +1870,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             ax_x.clear()
             ax_y.clear()
             ax_z.clear()
-            plot_map_callback(
-                params['img_idx'], title=params['title'],
-                cut_coords=cut_coords)
+            plot_map_callback(params['img_idx'], title='',
+                              cut_coords=cut_coords)
             loc_idx = _cut_coords_to_idx(cut_coords, params['img_idx'])
 
             marker_kwargs = dict(markersize=10, markerfacecolor='w',
@@ -1933,11 +1932,10 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     params = {'stc': stc, 'ax_time': ax_time,
               'plot_map_callback': plot_map_callback,
               'img_idx': img_idx,
-              'title': 'Activation (t=%.3f s.)' % stc.times[idx],
               'fig': fig, 'bg_img': bg_img, 'lx': lx}
 
     fig_anat = plot_map_callback(
-        stat_map_img=params['img_idx'], title=params['title'],
+        stat_map_img=params['img_idx'], title='',
         cut_coords=cut_coords)
     if mode == 'glass_brain':
         img_resampled = resample_to_img(params['img_idx'],
