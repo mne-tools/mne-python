@@ -1720,8 +1720,9 @@ def _get_ps_kwargs(initial_time, require='0.6'):
 
 @verbose
 def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
-                                 mode='stat_map', bg_img=None, threshold=None,
-                                 show=True, verbose=None):
+                                 mode='stat_map', bg_img=None, colorbar=True,
+                                 colormap='hot', clim='auto', show=True,
+                                 verbose=None):
     """Plot Nutmeg style volumetric source estimates using nilearn.
 
     Parameters
@@ -1742,14 +1743,26 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     bg_img : Niimg-like object | None
         The background image used in the nilearn plotting function.
         If None, it is the T1.mgz file that is found in the subjects_dir.
-    threshold : int | None | 'auto'
-        The threshold, passed to the nilearn plotting function.
-        - If None is given, the image is not thresholded.
-        - If a number is given, it is used to threshold the image:
-          values below the threshold (in absolute value) are plotted as
-          transparent.
-        - If 'auto' is given, the threshold is determined magically by
-          analysis of the image.
+    colorbar : boolean, optional
+        If True, display a colorbar on the right of the plots.
+    colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
+        Name of colormap to use or a custom look up table. If array, must
+        be (n x 3) or (n x 4) array for with RGB or RGBA values between
+        0 and 255.
+    clim : str | dict
+        Colorbar properties specification. If 'auto', set clim automatically
+        based on data percentiles. If dict, should contain:
+
+            ``kind`` : 'value' | 'percent'
+                Flag to specify type of limits.
+            ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                Note: Only use this if 'colormap' is not 'mne'.
+                Left, middle, and right bound for colormap.
+            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                Note: Only use this if 'colormap' is 'mne'.
+                Left, middle, and right bound for colormap. Positive values
+                will be mirrored directly across zero during colormap
+                construction to obtain negative control points.
     show : bool
         Show figures if True. Defaults to True.
     verbose : bool, str, int, or None
@@ -1757,8 +1770,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         and :ref:`Logging documentation <tut_logging>` for more).
     """
     import matplotlib.pyplot as plt
-    from scipy import stats
     import nibabel as nib
+    from .utils import _get_pysurfer_cmap
     from ..source_estimate import VolSourceEstimate
 
     if not check_version('nilearn', '0.4'):
@@ -1899,9 +1912,6 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     img = stc.as_volume(src, mri_resolution=False)
 
-    if threshold == 'auto':
-        threshold = stats.scoreatpercentile(np.abs(stc.data), 80) - 1e-5
-
     vmax = np.abs(stc.data).max()
     loc_idx, idx = np.unravel_index(np.abs(stc.data).argmax(),
                                     stc.data.shape)
@@ -1915,19 +1925,22 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     ax_time = fig.add_axes([0.09, 0.1, 0.9, 0.4], ylim=(0, vmax))
     ax_time.plot(stc.times, stc.data[loc_idx].T)
-    if threshold is not None:
-        ax_time.axhline(threshold, ls='--', color='k')
     lx = ax_time.axvline(stc.times[idx], color='g')
     plt.xlabel('Time (ms)')
     plt.ylabel('Activation')
+
+    ctrl_pts, colormap, _, _ = _limits_to_control_points(
+        clim, stc.data, colormap, transparent=True, fmt='matplotlib')
+    center = (stc.data.max() + stc.data.min()) / 2
+    cmap = _get_pysurfer_cmap(colormap, ctrl_pts, center)
 
     # black_bg = True is needed because of some matplotlib
     # peculiarity. See: https://stackoverflow.com/a/34730204
     # Otherwise, event.inaxes does not work for ax_x and ax_z
     plot_map_callback = partial(
-        plot_func, threshold=threshold, axes=[0.09, 0.55, 0.9, 0.4],
+        plot_func, threshold=ctrl_pts[0], axes=[0.09, 0.55, 0.9, 0.4],
         resampling_interpolation='nearest', vmax=vmax, figure=fig,
-        colorbar=True, bg_img=bg_img_param, black_bg=True)
+        colorbar=True, bg_img=bg_img_param, cmap=cmap, black_bg=True)
 
     params = {'stc': stc, 'ax_time': ax_time,
               'plot_map_callback': plot_map_callback,
@@ -1937,6 +1950,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     fig_anat = plot_map_callback(
         stat_map_img=params['img_idx'], title='',
         cut_coords=cut_coords)
+
     if mode == 'glass_brain':
         img_resampled = resample_to_img(params['img_idx'],
                                         params['bg_img'])

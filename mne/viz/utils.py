@@ -68,6 +68,119 @@ def _setup_vmin_vmax(data, vmin, vmax, norm=False):
     return vmin, vmax
 
 
+def _get_pysurfer_cmap(colormap, ctrl_pts, center):
+    """Emulate surface colormaps."""
+    from matplotlib import cm
+    from matplotlib.colors import ListedColormap
+
+    cmaps = dict()
+    cmaps['Sequential'] = [
+        'Greys', 'Purples', 'Blues',
+        'Greens', 'Oranges', 'Reds', 'YlOrBr', 'YlOrRd', 'OrRd',
+        'PuRd', 'RdPu', 'BuPu', 'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn',
+        'BuGn', 'YlGn']
+    cmaps['Sequential (2)'] = [
+        'binary', 'gist_yarg', 'gist_gray', 'gray', 'bone', 'pink',
+        'spring', 'summer', 'autumn', 'winter', 'cool', 'Wistia',
+        'hot', 'afmhot', 'gist_heat', 'copper']
+    cmaps['Diverging'] = [
+        'PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
+        'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr', 'seismic']
+
+    if colormap not in (cmaps['Sequential'] + cmaps['Sequential (2)'] +
+                        cmaps['Diverging']):
+        raise ValueError('Colormap must be Sequential or diverging.'
+                         'Got %s' % colormap)
+
+    cmap = cm.get_cmap(colormap)
+    n_colors = cmap.N
+    lut_table = cmap(np.linspace(0, 1, n_colors))
+
+    fmin, fmid, fmax = ctrl_pts
+    if colormap in (cmaps['Sequential'] + cmaps['Sequential (2)']):
+        n_colors2 = int(n_colors / 2)
+        lut_table[:n_colors2, -1] = np.linspace(0, 1, n_colors2)
+        lut_table[n_colors2:, -1] = np.ones(n_colors - n_colors2)
+        lut_scaled = _scale_sequential_lut(lut_table, fmin, fmid, fmax)
+        cmap = ListedColormap(lut_scaled)
+    elif colormap in cmaps['Diverging']:
+        N4 = np.full(4, n_colors / 4, dtype=int)
+        N4[:np.mod(n_colors, 4)] += 1
+        assert N4.sum() == n_colors
+        lut_table[:, -1] = np.r_[np.ones(N4[0]),
+                                 np.linspace(1, 0, N4[2]),
+                                 np.linspace(0, 1, N4[3]),
+                                 np.ones(N4[1])]
+        n_colors2 = int(n_colors / 2)
+        n_fill = int(round(fmin * n_colors2 / (fmax - fmin))) * 2
+        lut_table = np.r_[
+            _scale_sequential_lut(lut_table[:n_colors2, :],
+                                  center - fmax, center - fmid, center - fmin),
+            _get_fill_colors(
+                lut_table[n_colors2 - 3:n_colors2 + 3, :], n_fill),
+            _scale_sequential_lut(lut_table[n_colors2:, :],
+                                  center + fmin, center + fmid, center + fmax)]
+
+    return cmap
+
+
+def _scale_sequential_lut(lut_table, fmin, fmid, fmax):
+    """Scale a sequential colormap."""
+
+    lut_table_new = lut_table.copy()
+    n_colors = lut_table.shape[0]
+    n_colors2 = n_colors // 2
+
+    # Index of fmid in new colorbar (which position along the N colors would
+    # fmid take, if fmin is first and fmax is last?)
+    fmid_idx = int(np.round(n_colors * ((fmid - fmin) /
+                                        (fmax - fmin))) - 1)
+
+    # morph each color channel so that fmid gets assigned the middle color of
+    # the original table and the number of colors to the left and right are
+    # stretched or squeezed such that they correspond to the distance of fmid
+    # to fmin and fmax, respectively
+    for i in range(4):
+        part1 = np.interp(np.linspace(0, n_colors2 - 1, fmid_idx + 1),
+                          np.arange(n_colors),
+                          lut_table[:, i])
+        lut_table_new[:fmid_idx + 1, i] = part1
+        part2 = np.interp(np.linspace(n_colors2, n_colors - 1,
+                                      n_colors - fmid_idx - 1),
+                          np.arange(n_colors),
+                          lut_table[:, i])
+        lut_table_new[fmid_idx + 1:, i] = part2
+
+    return lut_table_new
+
+
+def _get_fill_colors(cols, n_fill):
+    """Get the fill colors for the middle of divergent colormaps.
+    Tries to figure out whether there is a smooth transition in the center of
+    the original colormap. If yes, it chooses the color in the center as the
+    only fill color, else it chooses the two colors between which there is
+    a large step in color space to fill up the middle of the new colormap.
+    """
+    steps = np.linalg.norm(np.diff(cols[:, :3].astype(float), axis=0), axis=1)
+
+    # if there is a jump in the middle of the colors
+    # (define a jump as a step in 3D colorspace whose size is 3-times larger
+    # than the mean step size between the first and last steps of the given
+    # colors - I verified that no such jumps exist in the divergent colormaps
+    # of matplotlib 2.0 which all have a smooth transition in the middle)
+    ind = np.flatnonzero(steps[1:-1] > steps[[0, -1]].mean() * 3)
+    if ind.size > 0:
+        # choose the two colors between which there is the large step
+        ind = ind[0] + 1
+        fillcols = np.r_[np.tile(cols[ind, :], (n_fill / 2, 1)),
+                         np.tile(cols[ind + 1, :], (n_fill - n_fill / 2, 1))]
+    else:
+        # choose a color from the middle of the colormap
+        fillcols = np.tile(cols[int(cols.shape[0] / 2), :], (n_fill, 1))
+
+    return fillcols
+
+
 def plt_show(show=True, fig=None, **kwargs):
     """Show a figure while suppressing warnings.
 

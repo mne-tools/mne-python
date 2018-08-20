@@ -96,8 +96,7 @@ stc.data[:, :] = np.abs(stc.data)
 stc.save('lcmv-vol')
 
 stc.crop(0.0, 0.2)
-stc.plot(src=forward['src'], subject='sample', subjects_dir=subjects_dir,
-         threshold=0.45)
+stc.plot(src=forward['src'], subject='sample', subjects_dir=subjects_dir)
 # We can also visualize the activity on a "glass brain"
 stc.plot(src=forward['src'], subject='sample', subjects_dir=subjects_dir,
-         threshold=0.45, mode='glass_brain')
+         mode='glass_brain')
