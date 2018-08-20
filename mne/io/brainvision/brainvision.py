@@ -118,7 +118,8 @@ class RawBrainVision(BaseRaw):
             _get_vhdr_info(vhdr_fname, eog, misc, scale, montage)
         self._order = order
         self._n_samples = n_samples
-        events = _read_vmrk_events(mrk_fname, event_id, trig_shift_by_type)
+        events, self._markers = _read_vmrk_events(mrk_fname, event_id,
+                                                  trig_shift_by_type)
         _check_update_montage(info, montage)
         with open(data_filename, 'rb') as f:
             if isinstance(fmt, dict):  # ASCII, this will be slow :(
@@ -202,6 +203,9 @@ class RawBrainVision(BaseRaw):
         if self.preload:
             self._data[-1] = self._event_ch
 
+    def find_brainvision_events(self):
+        return self._markers
+
 
 def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
     """Read chunk of vectorized raw data."""
@@ -246,6 +250,15 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
     events : array, shape (n_events, 3)
         An array containing the whole recording's events, each row representing
         an event as (onset, duration, trigger) sequence.
+    markers : list
+        List of unprocessed markers as found in the marker file. Each list
+        entry is a comma separated string and corresponds to a marker. The
+        individual string components are:
+        - Marker type
+        - Marker description
+        - Position (in samples)
+        - Duration (in samples)
+        - Channel number (0 means all channels)
     """
     if event_id is None:
         event_id = dict()
@@ -288,12 +301,14 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
         cp_setting = re.search('Codepage=(.+)',
                                txt.decode('ascii', 'ignore'),
                                re.IGNORECASE & re.MULTILINE)
-        codepage = 'utf-8'
         if cp_setting:
             codepage = cp_setting.group(1).strip()
+        else:
+            codepage = 'utf-8'
+
         # BrainAmp Recorder also uses ANSI codepage
         # an ANSI codepage raises a LookupError exception
-        # python recognize ANSI decoding as cp1252
+        # Python recognize ANSI decoding as cp1252
         if codepage == 'ANSI':
             codepage = 'cp1252'
         txt = txt.decode(codepage)
@@ -308,14 +323,16 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
     if not m:
         return np.zeros((0, 3))
     mk_txt = txt[m.end():]
-    m = re.search(r"^\[.*\]$", mk_txt)
+    m = re.search(r"^\[.*\]$", mk_txt)  # FIXME: not sure if this does what it is intended to - there can't be a [*] at the beginning and end of the string unless there are no markers at all
+                                        # FIXME: the ^ and $ qualifiers should probably be dropped
     if m:
         mk_txt = mk_txt[:m.start()]
 
     # extract event information
-    items = re.findall(r"^Mk\d+=(.*)", mk_txt, re.MULTILINE)
+    markers = re.findall(r"^Mk\d+=(.*)", mk_txt, re.MULTILINE)
+    markers = [marker.strip() for marker in markers]
     events, dropped = list(), list()
-    for info in items:
+    for info in markers:
         mtype, mdesc, onset, duration = info.split(',')[:4]
         onset = int(onset) - 1  # BrainVision is 1-indexed, not 0-indexed
         duration = (int(duration) if duration.isdigit() else 1)
@@ -364,7 +381,7 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
              "character prefix.".format(len(dropped), dropped[:5]))
 
     events = np.array(events).reshape(-1, 3)
-    return events
+    return events, markers
 
 
 def _check_hdr_version(header):
