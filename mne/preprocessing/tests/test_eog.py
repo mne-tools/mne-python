@@ -20,3 +20,7 @@ def test_find_eog():
 
     events = find_eog_events(raw, reject_by_annotation=True)
     assert all(events[:, 0] < 29000)
+
+	#threshold option 
+	events_thr = find_eog_events(raw, thresh=100e-6)
+	assert len(events) == 5
