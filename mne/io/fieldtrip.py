@@ -11,9 +11,9 @@ from ..epochs import EpochsArray
 from ..evoked import EvokedArray
 from .meas_info import create_info
 from ..channels import DigMontage
-from ..utils import warn
 from .constants import FIFF
 from .. import transforms
+from ..utils import _check_pandas_installed, warn
 
 _unit_dict = {'m': 1,
               'cm': 1e-2,
@@ -127,11 +127,12 @@ def read_epochs_fieldtrip(ft_structure_path, data_name='data',
 
     data = np.array(ft_struct['trial'])  # create the epochs data array
     events = _create_events(ft_struct, trialinfo_column)
+    metadata = _create_event_metadata(ft_struct)
     tmin = _set_tmin(ft_struct)  # create start time
     info = _create_info(ft_struct)  # create info structure
 
     custom_epochs = EpochsArray(data=data, info=info, tmin=tmin,
-                                events=events)
+                                events=events, metadata=metadata)
     return custom_epochs
 
 
@@ -326,6 +327,19 @@ def _create_events(ft_struct, trialinfo_column):
                         event_type]).astype('int').T
 
     return events
+
+
+def _create_event_metadata(ft_struct):
+    """Create event metadata from trialinfo"""
+    pandas = _check_pandas_installed(strict=False)
+    if not pandas:
+        warn('The Pandas library is not installed. Not returning the original'
+             'trialinfo matrix as metadata.')
+        return None
+
+    metadata = pandas.DataFrame(ft_struct['trialinfo'])
+
+    return metadata
 
 
 def _process_channel_eeg(cur_ch, elec):
