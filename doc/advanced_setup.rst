@@ -154,10 +154,14 @@ Off-screen rendering on Linux with MESA
 #######################################
 
 On remote systems, it might be possible to use MESA software rendering
-(``swr``) for 3D visualization with some tweaks. For example, on CentOS 7.5
-you might be able to use the environment variable to force MESA to use
-modern OpenGL by using this before executing ``spyder`` or ``python``:
+(such as ``llvmpipe`` or ``swr``) for 3D visualization with some tweaks.
+For example, on CentOS 7.5 you might be able to use the environment variable
+to force MESA to use modern OpenGL by using this before executing
+``spyder`` or ``python``:
 
 .. code-block:: console
 
     $ export MESA_GL_VERSION_OVERRIDE=3.3
+
+Also, it's possible that different software rending backends might perform
+better than others, such as using the ``llvmpipe`` backend rather than ``swr``.
