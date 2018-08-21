@@ -2918,13 +2918,18 @@ def _finish_concat(info, data, events, event_id, tmin, tmax, metadata,
     return out
 
 
-def concatenate_epochs(epochs_list):
+def concatenate_epochs(epochs_list, add_offset=True):
     """Concatenate a list of epochs into one epochs object.
 
     Parameters
     ----------
     epochs_list : list
         list of Epochs instances to concatenate (in order).
+    add_offset : bool
+        If True, a fixed offset is added to the event times from different 
+        Epochs sets, such that they are easy to distinguish after the 
+        concatenation.
+        If False, the event times are unaltered during the concatenation.
 
     Returns
     -------
@@ -2935,7 +2940,7 @@ def concatenate_epochs(epochs_list):
     -----
     .. versionadded:: 0.9.0
     """
-    return _finish_concat(*_concatenate_epochs(epochs_list))
+    return _finish_concat(*_concatenate_epochs(epochs_list, add_offset=add_offset))
 
 
 @verbose
