@@ -36,7 +36,8 @@ From the command line, install the MNE dependencies to a dedicated ``mne`` Anaco
     $ conda env create -f environment.yml
     $ conda activate mne
 
-You can also use a web browser to `download the required environment file <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml>`_ if you do not have ``curl``.
+You can also use a web browser to `download the required environment file <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml>`_
+if you do not have ``curl``.
 
 .. admonition:: |apple| macOS
   :class: note
@@ -57,7 +58,7 @@ To make sure everything installed correctly, type the following command in a ter
 
     $ python
 
-This should open an interactive Python prompt, where you can type:
+This should open an interactive Python prompt, where you can type::
 
     >>> import mne
 
@@ -73,6 +74,29 @@ If you get a new prompt with no error messages, you should be good to go!
 
      In [1]: from mayavi import mlab
      In [2]: %gui qt
+
+The ``$ conda env create ...`` step sometimes emits warnings, but you can ensure
+all default dependencies are installed by listing their versions with::
+
+    >>> mne.sys_info()  # doctest:+SKIP
+    Platform:      Linux-4.4.0-112-generic-x86_64-with-debian-jessie-sid
+    Python:        3.6.6 |Anaconda, Inc.| (default, Jun 28 2018, 17:14:51)  [GCC 7.2.0]
+    Executable:    /home/travis/miniconda/envs/test/bin/python
+    CPU:           x86_64: 48 cores
+    Memory:        62.7 GB
+
+    mne:           0.16.2
+    numpy:         1.15.0 {blas=mkl_rt, lapack=mkl_rt}
+    scipy:         1.1.0
+    matplotlib:    2.2.2 {backend=Qt5Agg}
+
+    sklearn:       0.19.1
+    nibabel:       2.3.0
+    mayavi:        4.6.1 {qt_api=pyqt5}
+    pycuda:        Not found
+    skcuda:        Not found
+    pandas:        0.23.4
+
 
 For advanced topics like how to get :ref:`CUDA` support or if you are experiencing other issues, check out :ref:`advanced_setup`.
 

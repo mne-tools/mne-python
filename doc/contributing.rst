@@ -121,8 +121,8 @@ follows the `NumPy docstring standard`_.
 
 Documentation is automatically built remotely during pull requests. If
 you want to also test documentation locally, you will need to install
-``sphinx sphinx-gallery sphinx_bootstrap_theme numpydoc``, and then within
-the ``mne/doc`` directory do:
+``sphinx sphinx-gallery sphinx_bootstrap_theme sphinx_fontawesome``, and then
+within the ``mne/doc`` directory do:
 
 .. code-block:: console
 
