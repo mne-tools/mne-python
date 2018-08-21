@@ -27,10 +27,11 @@ def _remove_ignored_ch_fields(info):
                     del cur_ch[cur_field]
 
 
-def _remove_orientation_from_loc(info):
+def _remove_tangential_plane_from_ori(info):
     if 'chs' in info:
         for cur_ch in info['chs']:
-            cur_ch['loc'] = cur_ch['loc'][0:2]
+            cur_ch['loc'][3:9] = 0
+            cur_ch['loc'][3:] = np.around(cur_ch['loc'][3:], 2)
 
 
 def _remove_ignored_info_fields(info):
@@ -80,8 +81,18 @@ def check_info_fields(expected, actual):
     _remove_ignored_info_fields(expected)
     _remove_ignored_info_fields(actual)
 
-    _remove_orientation_from_loc(expected)
-    _remove_orientation_from_loc(expected)
+    # Coordinates are now in head reference frame. The orientation rotation
+    # matrix is thus redundant in the sense that the third column is the
+    # cross product of the first two. The third is the unit vector of the
+    # direction perpendicular to the coil. FieldTrip only stores this vector.
+    # We recreate the rotation matrix using
+    # `mne.transforms.rotation3d_align_z_axis`. However, the first and second
+    # column of the rotation matrix are now arbitrary and thus need to be
+    # deleted.
+    # We are also allowing the orientation to be more inaccurate (up to 2
+    # decimal points)
+    _remove_tangential_plane_from_ori(expected)
+    _remove_tangential_plane_from_ori(actual)
 
     assert_deep_almost_equal(expected, actual)
 
