@@ -17,7 +17,7 @@ from ..externals.six import string_types
 @verbose
 def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
                     filter_length='10s', ch_name=None, tstart=0,
-                    reject_by_annotation=False, verbose=None):
+                    reject_by_annotation=False, thresh=None, verbose=None):
     """Locate EOG artifacts.
 
     Parameters
@@ -38,6 +38,8 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         Start detection after tstart seconds.
     reject_by_annotation : bool
         Whether to omit data that is annotated as bad.
+    thresh : float
+    	Threshold to trigger EOG event.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -68,7 +70,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
                                   sampling_rate=raw.info['sfreq'],
                                   first_samp=raw.first_samp,
                                   filter_length=filter_length,
-                                  tstart=tstart)
+                                  tstart=tstart, thresh=thresh)
     # Map times to corresponding samples.
     eog_events[:, 0] = np.round(times[eog_events[:, 0] -
                                       raw.first_samp]).astype(int)
@@ -76,7 +78,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
 
 
 def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
-                     filter_length='10s', tstart=0.):
+                     filter_length='10s', tstart=0., thresh=None):
     """Find EOG events."""
     logger.info('Filtering the data to remove DC offset to help '
                 'distinguish blinks from saccades')
@@ -104,9 +106,9 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
     temp = filteog - np.mean(filteog)
     n_samples_start = int(sampling_rate * tstart)
     if np.abs(np.max(temp)) > np.abs(np.min(temp)):
-        eog_events, _ = peak_finder(filteog[n_samples_start:], extrema=1)
+        eog_events, _ = peak_finder(filteog[n_samples_start:], thresh, extrema=1)
     else:
-        eog_events, _ = peak_finder(filteog[n_samples_start:], extrema=-1)
+        eog_events, _ = peak_finder(filteog[n_samples_start:], thresh, extrema=-1)
 
     eog_events += n_samples_start
     n_events = len(eog_events)
