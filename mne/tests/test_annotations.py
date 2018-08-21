@@ -643,6 +643,7 @@ def test_event_id_function_using_custom_function():
 
 
 @testing.requires_testing_data
+@pytest.mark.skip(reason="Until _read_vmrk_annotation is not finish, this cannot be tested")
 # def test_brainvision_event_from_annot():
 def test_yy():
 

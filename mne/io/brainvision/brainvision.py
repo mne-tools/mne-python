@@ -228,7 +228,7 @@ def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
         _mult_cal_one(data, block, idx, cals, mult)
 
 
-def _read_vmrk_annotations(fname, event_id=None, trig_shift_by_type=None):
+def _read_vmrk_annotations(fname, event_id=None, trig_shift_by_type=None, sfreq=None):
     """Read annotations from a vmrk file.
 
     Parameters
@@ -251,6 +251,8 @@ def _read_vmrk_annotations(fname, event_id=None, trig_shift_by_type=None):
     annotations : instance of Annotations
         The annotations extracted from the vmrk file.
     """
+    assert sfreq is not None  # XXX BREAK, annotations cannot computed otherwise
+
     # read vmrk file
     with open(fname, 'rb') as fid:
         txt = fid.read()
@@ -300,16 +302,23 @@ def _read_vmrk_annotations(fname, event_id=None, trig_shift_by_type=None):
     # extract event information
     items = re.findall(r"^Mk\d+=(.*)", mk_txt, re.MULTILINE)
     onset, duration, description = list(), list(), list()
+    orig_time = None
     for info in items:
         mtype, mdesc, this_onset, this_duration = info.split(',')[:4]
-        this_onset = int(this_onset) - 1  # BV is 1-indexed, not 0-indexed
-        this_duration = (int(this_duration) if this_duration.isdigit() else 1)
-        duration.append(this_duration)
-        onset.append(this_onset)
-        description.append(mtype + '/' + mdesc)
+        if mtype == 'New Segment':
+            orig_time = int(info.split(',')[-1])
+        else:
+            this_onset = int(this_onset) - 1  # BV is 1-indexed, not 0-indexed
+            this_duration = (int(this_duration) if this_duration.isdigit() else 1)
+            duration.append(this_duration)
+            onset.append(this_onset)
+            description.append(mtype + '/' + mdesc)
 
     annotations = Annotations(onset=onset, duration=duration,
-                              description=description)
+                              description=description,
+                              orig_time=None)
+    annotations.orig_time = orig_time  # XXX This should not be done like this
+
     return annotations
 
 

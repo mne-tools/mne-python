@@ -612,5 +612,19 @@ def test_brainvision_neuroone_export():
     assert len(raw.info['chs']) == 66
     assert raw.info['sfreq'] == 5000.
 
+@testing.requires_testing_data
+def test_read_vmrk_annotations():
+    """Test annotations onsets are timestamps (+ validate some)"""
+    from mne.io.brainvision.brainvision import _read_vmrk_annotations
+    event_id = {'Sync On': 5, 'O  1': 1, 'R255': 255}
+    eog = ['HL', 'HR', 'Vb']
+    annotations = _read_vmrk_annotations(vmrk_path, event_id=event_id, sfreq=1000.0)
+    assert annotations.orig_time == 20131113161403794232
+    # validation_samples = [0, 1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37]
+    # expected = np.array([128.00, 217.00, 266.54, 602.00, 987.00, 1446.89,
+    #                      2199.99, 2585.50, 3343.98, 3730.01, 4511.53,
+    #                      5670.50, 6036.04, 7195.01])
+    # assert_array_almost_equal(annotations.onset[validation_samples],
+    #                           expected, decimal=2)
 
 run_tests_if_main()
