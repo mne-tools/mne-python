@@ -39,9 +39,12 @@ def test_helmet():
     fname_trans = op.join(base_dir, 'tests', 'data',
                           'sample-audvis-raw-trans.txt')
     trans = _get_trans(fname_trans)[0]
-    for fname in [fname_raw, fname_kit_raw, fname_bti_raw, fname_ctf_raw]:
+    for fname, n in [(fname_raw, 304),
+                     (fname_kit_raw, 304),
+                     (fname_bti_raw, 304),
+                     (fname_ctf_raw, 3894)]:
         helmet = get_meg_helmet_surf(read_info(fname), trans)
-        assert_equal(len(helmet['rr']), 304)  # they all have 304 verts
+        assert_equal(len(helmet['rr']), n)  # they all have 304 verts
         assert_equal(len(helmet['rr']), len(helmet['nn']))
 
 
