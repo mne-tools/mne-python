@@ -24,6 +24,7 @@ from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
 from ..utils import (_read_segments_file, _synthesize_stim_channel,
                      _mult_cal_one)
+from ...annotations import Annotations
 
 from ...externals.six import StringIO, string_types
 from ...externals.six.moves import configparser
@@ -117,6 +118,9 @@ class RawBrainVision(BaseRaw):
             _get_vhdr_info(vhdr_fname, eog, misc, scale, montage)
         self._order = order
         self._n_samples = n_samples
+        # XXX: we should call _read_vmrk_annotations here and use
+        # set_annotations and then don't create the stim channel
+        # automatically.
         events = _read_vmrk_events(mrk_fname, event_id, trig_shift_by_type)
         _check_update_montage(info, montage)
         with open(data_filename, 'rb') as f:
@@ -136,6 +140,8 @@ class RawBrainVision(BaseRaw):
                 offsets = None
                 n_samples = n_samples // (dtype_bytes * (info['nchan'] - 1))
         self.preload = False  # so the event-setting works
+        # XXX : this function _create_event_ch should disappear
+        # and rely on a mne.find_events that use the raw.annotations
         self._create_event_ch(events, n_samples)
         super(RawBrainVision, self).__init__(
             info, last_samps=[n_samples - 1], filenames=[data_filename],
@@ -222,8 +228,8 @@ def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
         _mult_cal_one(data, block, idx, cals, mult)
 
 
-def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
-    """Read events from a vmrk file.
+def _read_vmrk_annotations(fname, event_id=None, trig_shift_by_type=None):
+    """Read annotations from a vmrk file.
 
     Parameters
     ----------
@@ -242,29 +248,9 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
 
     Returns
     -------
-    events : array, shape (n_events, 3)
-        An array containing the whole recording's events, each row representing
-        an event as (onset, duration, trigger) sequence.
+    annotations : instance of Annotations
+        The annotations extracted from the vmrk file.
     """
-    if event_id is None:
-        event_id = dict()
-    if trig_shift_by_type is None:
-        trig_shift_by_type = dict()
-    if not isinstance(trig_shift_by_type, dict):
-        raise TypeError("'trig_shift_by_type' must be None or dict")
-    for mrk_type in list(trig_shift_by_type.keys()):
-        cur_shift = trig_shift_by_type[mrk_type]
-        if not isinstance(cur_shift, int) and cur_shift is not None:
-            raise TypeError('shift for type {} must be int or None'.format(
-                mrk_type
-            ))
-        mrk_type_lc = mrk_type.lower()
-        if mrk_type_lc != mrk_type:
-            if mrk_type_lc in trig_shift_by_type:
-                raise ValueError('marker type {} specified twice with'
-                                 'different case'.format(mrk_type_lc))
-            trig_shift_by_type[mrk_type_lc] = cur_shift
-            del trig_shift_by_type[mrk_type]
     # read vmrk file
     with open(fname, 'rb') as fid:
         txt = fid.read()
@@ -313,11 +299,28 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
 
     # extract event information
     items = re.findall(r"^Mk\d+=(.*)", mk_txt, re.MULTILINE)
-    events, dropped = list(), list()
+    onset, duration, description = list(), list(), list()
     for info in items:
-        mtype, mdesc, onset, duration = info.split(',')[:4]
-        onset = int(onset) - 1  # BrainVision is 1-indexed, not 0-indexed
-        duration = (int(duration) if duration.isdigit() else 1)
+        mtype, mdesc, this_onset, this_duration = info.split(',')[:4]
+        this_onset = int(this_onset) - 1  # BV is 1-indexed, not 0-indexed
+        this_duration = (int(this_duration) if this_duration.isdigit() else 1)
+        duration.append(this_duration)
+        onset.append(this_onset)
+        description.append(mtype + '/' + mdesc)
+
+    annotations = Annotations(onset=onset, duration=duration,
+                              description=description)
+    return annotations
+
+
+# XXX : this function should be consistent with behavior / API
+# of read_events_eeglab function.
+def _events_from_annotations(annots, event_id, trig_shift_by_type):
+    # extract event information
+    events, dropped = list(), list()
+    for onset, duration, desc in \
+            zip(annots.onset, annots.duration, annots.description):
+        mtype, mdesc = desc.split('/')
         if mdesc in event_id:
             trigger = event_id[mdesc]
         else:
@@ -364,6 +367,77 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
 
     events = np.array(events).reshape(-1, 3)
     return events
+
+
+def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
+    """Read events from a vmrk file.
+
+    Parameters
+    ----------
+    fname : str
+        vmrk file to be read.
+    event_id : dict | None
+        The id of special events to consider in addition to those that
+        follow the normal Brainvision trigger format ('S###').
+        If dict, the keys will be mapped to trigger values on the stimulus
+        channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
+        or an empty dict (default), only stimulus and response events are added
+        to the stimulus channel. Keys are case sensitive. "New Segment" markers
+        are always dropped.
+    response_trig_shift : int | None
+        Integer to shift response triggers by. None ignores response triggers.
+
+    Returns
+    -------
+    events : array, shape (n_events, 3)
+        An array containing the whole recording's events, each row representing
+        an event as (onset, duration, trigger) sequence.
+    """
+    if event_id is None:
+        event_id = dict()
+    if trig_shift_by_type is None:
+        trig_shift_by_type = dict()
+    if not isinstance(trig_shift_by_type, dict):
+        raise TypeError("'trig_shift_by_type' must be None or dict")
+    for mrk_type in list(trig_shift_by_type.keys()):
+        cur_shift = trig_shift_by_type[mrk_type]
+        if not isinstance(cur_shift, int) and cur_shift is not None:
+            raise TypeError('shift for type {} must be int or None'.format(
+                mrk_type
+            ))
+        mrk_type_lc = mrk_type.lower()
+        if mrk_type_lc != mrk_type:
+            if mrk_type_lc in trig_shift_by_type:
+                raise ValueError('marker type {} specified twice with'
+                                 'different case'.format(mrk_type_lc))
+            trig_shift_by_type[mrk_type_lc] = cur_shift
+            del trig_shift_by_type[mrk_type]
+
+    annots = _read_vmrk_annotations(fname)
+    events = _events_from_annotations(annots, event_id, trig_shift_by_type)
+
+    return events
+
+
+# XXX : check that annotations returned here are valid about the onsets
+# and orig_time
+def read_annotations_brainvision(fname):
+    r"""Create Annotations from BrainVision vrmk.
+
+    This function reads the event attribute from the EEGLAB
+    structure and makes an :class:`mne.Annotations` object.
+
+    Parameters
+    ----------
+    fname : str | object
+        The path to the .vmrk file.
+
+    Returns
+    -------
+    annotations : instance of Annotations
+        The annotations present in the file.
+    """
+    return _read_vmrk_annotations(fname)
 
 
 def _check_hdr_version(header):
