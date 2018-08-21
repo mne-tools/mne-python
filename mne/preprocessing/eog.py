@@ -158,7 +158,7 @@ def _get_eog_channel_index(ch_name, inst):
 @verbose
 def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
                       tmax=0.5, l_freq=1, h_freq=10, reject=None, flat=None,
-                      baseline=None, preload=True, reject_by_annotation=True,
+                      baseline=None, preload=True, reject_by_annotation=True, thresh=None,
                       verbose=None):
     """Conveniently generate epochs around EOG artifact events.
 
@@ -215,7 +215,9 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
         rejection based on annotations is performed.
 
         .. versionadded:: 0.14.0
-
+        
+    thresh : float
+    	Threshold to trigger EOG event.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -238,7 +240,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
     """
     events = find_eog_events(raw, ch_name=ch_name, event_id=event_id,
                              l_freq=l_freq, h_freq=h_freq,
-                             reject_by_annotation=reject_by_annotation)
+                             reject_by_annotation=reject_by_annotation, thresh=thresh)
 
     # create epochs around EOG events
     eog_epochs = Epochs(raw, events=events, event_id=event_id, tmin=tmin,
