@@ -358,6 +358,7 @@ def _process_channel_eeg(cur_ch, elec):
 
     position = position * _unit_dict[position_unit]
     cur_ch['loc'] = np.hstack((position, np.zeros((9,))))
+    cur_ch['loc'][-1] = 1
     cur_ch['unit'] = FIFF.FIFF_UNIT_V
     cur_ch['unit_mul'] = np.log10(_unit_dict[chanunit[0]])
     cur_ch['kind'] = FIFF.FIFFV_EEG_CH
@@ -404,7 +405,7 @@ def _process_channel_meg(cur_ch, grad):
 
     # TODO: this needs to be fixed!
     original_orientation = np.squeeze(grad['chanori'][chan_idx_in_grad, :])
-    orientation = transforms.quat_to_rot(original_orientation)
+    orientation = transforms.rotation3d_align_z_axis(original_orientation).T
     orientation = orientation.flatten()
     chanunit = grad['chanunit'][chan_idx_in_grad]
 
