@@ -333,7 +333,7 @@ def _create_event_metadata(ft_struct):
     """Create event metadata from trialinfo."""
     pandas = _check_pandas_installed(strict=False)
     if not pandas:
-        warn('The Pandas library is not installed. Not returning the original'
+        warn('The Pandas library is not installed. Not returning the original '
              'trialinfo matrix as metadata.')
         return None
 

@@ -6,10 +6,11 @@
 
 import mne
 import numpy as np
+import pytest
 import os.path
 from mne.datasets import testing
 from .helpers import check_info_fields, get_data_paths
-from mne.utils import requires_h5py
+from mne.utils import requires_h5py, _check_pandas_installed
 
 
 @testing.requires_testing_data
@@ -42,6 +43,8 @@ def test_averaged():
 @requires_h5py
 def test_epoched():
     """Test comparing reading an Epochs object and the FieldTrip version."""
+    has_pandas = _check_pandas_installed(strict=False) is not False
+
     (test_data_folder_ft, raw_fiff_file) = get_data_paths()
     raw_fiff_mne = mne.io.read_raw_fif(raw_fiff_file, preload=True)
     raw_fiff_mne.set_eeg_reference([])
@@ -53,7 +56,16 @@ def test_epoched():
     for version in all_versions:
         cur_fname = os.path.join(test_data_folder_ft,
                                  'epoched_%s.mat' % (version,))
-        epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname)
+        if has_pandas:
+            pandas = _check_pandas_installed()
+            epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname)
+            assert isinstance(epoched_ft.metadata, pandas.DataFrame)
+        else:
+            with pytest.warns('The Pandas library is not installed. '
+                              'Not returning the original '
+                              'trialinfo matrix as metadata.'):
+                epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname)
+                assert epoched_ft.metadata is None
 
         mne_data = mne_epoched.get_data()[:, :, :-1]
         ft_data = epoched_ft.get_data()
