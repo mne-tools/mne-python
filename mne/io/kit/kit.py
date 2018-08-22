@@ -58,12 +58,12 @@ class RawKIT(BaseRaw):
     hsp : None | str | array, shape (n_points, 3)
         Digitizer head shape points, or path to head shape file. If more than
         10,000 points are in the head shape, they are automatically decimated.
-    stim : list of int | '<' | '>'
+    stim : list of int | '<' | '>' | None
         Channel-value correspondence when converting KIT trigger channels to a
         Neuromag-style stim channel. For '<', the largest values are assigned
         to the first channel (default). For '>', the largest values are
         assigned to the last channel. Can also be specified as a list of
-        trigger channel indexes.
+        trigger channel indexes. If None, no synthesized channel is generated.
     slope : '+' | '-'
         How to interpret values on KIT trigger channels when synthesizing a
         Neuromag-style stim channel. With '+', a positive slope (low-to-high)
