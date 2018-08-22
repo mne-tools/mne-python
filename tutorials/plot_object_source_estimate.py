@@ -28,15 +28,15 @@ for an example of source localization with dSPM, sLORETA or eLORETA.
 
 Source estimates come in different forms:
 
-    - :class:`SourceEstimate`: For cortically constrained source spaces.
+    - :class:`mne.SourceEstimate`: For cortically constrained source spaces.
 
-    - :class:`VolSourceEstimate`: For volumetric source spaces
+    - :class:`mne.VolSourceEstimate`: For volumetric source spaces
 
-    - :class:`VectorSourceEstimate`: For cortically constrained source
+    - :class:`mne.VectorSourceEstimate`: For cortically constrained source
       spaces with vector-valued source activations (strength and orientation)
 
-    - :class:`MixedSourceEstimate`: For source spaces formed of a combination
-      of cortically constrained and volumetric sources.
+    - :class:`mne.MixedSourceEstimate`: For source spaces formed of a
+      combination of cortically constrained and volumetric sources.
 
 .. note::
 
@@ -231,6 +231,8 @@ brain.add_text(0.1, 0.9, 'Peak coordinate', 'title', font_size=14)
 #
 #   >>> lh_coordinates = src[0]['rr'][stc.lh_vertno]
 #   >>> lh_data = stc.lh_data
+#
 # or
+#
 #   >>> rh_coordinates = src[1]['rr'][src[1]['vertno']]
 #   >>> rh_data = stc.rh_data
