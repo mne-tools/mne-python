@@ -255,7 +255,7 @@ def test_resample():
     assert_array_equal(resample([0, 0], 2, 1), [0., 0., 0., 0.])
 
 
-@requires_version('scipy', '0.13')  # 0.12 at least has a Nyquist bug
+@requires_version('scipy', '1.0')  # earlier versions have a Nyquist bug
 def test_resample_scipy():
     """Test resampling against SciPy."""
     n_jobs_test = (1, 'cuda')
