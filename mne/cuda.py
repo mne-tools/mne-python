@@ -34,7 +34,7 @@ def get_cuda_memory(kind='available'):
 
 
 @verbose
-def init_cuda(ignore_config=False, verbose=True):
+def init_cuda(ignore_config=False, verbose=None):
     """Initialize CUDA functionality.
 
     This function attempts to load the necessary interfaces
@@ -45,6 +45,15 @@ def init_cuda(ignore_config=False, verbose=True):
     MNE_USE_CUDA == 'true', this function will be executed when
     the first CUDA setup is performed. If this variable is not
     set, this function can be manually executed.
+
+    Parameters
+    ----------
+    ignore_config : bool
+        If True, ignore the config value MNE_USE_CUDA and force init.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        self.verbose.
     """
     global _cuda_capable
     if _cuda_capable:

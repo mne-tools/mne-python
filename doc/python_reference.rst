@@ -1089,4 +1089,5 @@ Logging and Configuration
    :toctree: generated/
    :template: function.rst
 
+   get_cuda_memory
    init_cuda
