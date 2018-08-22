@@ -374,6 +374,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     manual/source_localization/forward.rst
     manual/source_localization/inverse.rst
     manual/source_localization/morph.rst
+    auto_tutorials/plot_background_freesurfer.rst
 
 **Getting data to source space**
 
