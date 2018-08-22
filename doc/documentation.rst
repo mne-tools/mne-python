@@ -75,7 +75,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     manual/cookbook.rst
     whats_new.rst
     python_reference.rst
-    glossary.rst
+    doc/glossary.rst
     auto_examples/index.rst
     generated/commands.rst
     auto_tutorials/plot_configuration.rst
