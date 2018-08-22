@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add ability to pass threshold for EOG to :func:`mne.preprocessing.find_eog_events` and :func:`mne.preprocessing.create_eog_epochs` by `Peter Molfese_`
+
 - Add possibility to save :class:`mne.VolSourceEstimate` and :class:`mne.MixedSourceEstimate` to HDF5 format (file extension .h5) with :meth:`mne.VolSourceEstimate.save` and :meth:`mne.MixedSourceEstimate.save` by `Alex Gramfort`_
 
 - Add `replace` parameter to :meth:`mne.io.Raw.add_events` to allow adding events while removing the old ones on the stim channel by `Alex Gramfort`_
@@ -2842,3 +2844,5 @@ of commits):
 .. _Thomas Hartmann: https://github.com/thht
 
 .. _Steven Gutstein: http://robust.cs.utep.edu/~gutstein
+
+.. _Peter Molfese: https://github.com/pmolfese
