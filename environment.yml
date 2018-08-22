@@ -8,6 +8,7 @@ dependencies:
 - numpy
 - scipy
 - matplotlib
+- cython
 - pyqt>=5.9
 - vtk>=8
 - pandas
@@ -18,7 +19,6 @@ dependencies:
 - jupyter
 - pytest
 - pytest-cov
-- sphinx
 - joblib
 - psutil
 - numpydoc
@@ -31,7 +31,7 @@ dependencies:
 - pip:
   - mne
   - mayavi
-  - "https://api.github.com/repos/nipy/PySurfer/zipball/master"
+  - PySurfer
   - nitime
   - nibabel
   - nilearn
@@ -39,7 +39,5 @@ dependencies:
   - pytest-sugar
   - pytest-faulthandler
   - pydocstyle
-  - sphinx_bootstrap_theme
-  - "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master"
+  - codespell
   - python-picard
-  - sphinx_fontawesome
