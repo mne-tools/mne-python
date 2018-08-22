@@ -1044,7 +1044,7 @@ MNE-Report
 
 :py:mod:`mne`:
 
-.. currentmodule:: mne.report
+.. currentmodule:: mne
 
 .. automodule:: mne
    :no-members:
