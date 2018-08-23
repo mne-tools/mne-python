@@ -15,7 +15,6 @@ from mne.utils import (run_tests_if_main, requires_nibabel, _TempDir,
                        requires_dipy, string_types, requires_h5py)
 
 # Setup paths
-tempdir = _TempDir()
 
 data_path = testing.data_path(download=False)
 
@@ -77,6 +76,8 @@ def test_stc_as_volume():
 @testing.requires_testing_data
 def test_surface_vector_source_morph():
     """Test surface and vector source estimate morph."""
+    tempdir = _TempDir()
+
     inverse_operator_surf = read_inverse_operator(fname_inv_surf)
 
     stc_surf = read_source_estimate(fname_smorph, subject='sample')
@@ -127,6 +128,9 @@ def test_surface_vector_source_morph():
 def test_volume_source_morph():
     """Test volume source estimate morph, special cases and exceptions."""
     import nibabel as nib
+
+    tempdir = _TempDir()
+
     data_path = sample.data_path(
         download=False)  # because testing data has no brain.mgz
     subjects_dir = os.path.join(data_path, 'subjects')

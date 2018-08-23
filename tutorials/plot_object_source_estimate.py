@@ -234,3 +234,4 @@ brain.add_text(0.1, 0.9, 'Peak coordinate', 'title', font_size=14)
 # or
 #   >>> rh_coordinates = src[1]['rr'][src[1]['vertno']]
 #   >>> rh_data = stc.rh_data
+#

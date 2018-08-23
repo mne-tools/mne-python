@@ -5,7 +5,7 @@ Morphing source estimates: Moving data from one brain to another
 ================================================================
 
 Morphing refers to the operation of transferring
-:ref:`source estimates <sphx_glr_auto_tutorials_plot_source_estimate_object.py`
+:ref:`source estimates <sphx_glr_auto_tutorials_plot_object_source_estimate.py`
 from one anatomy to another. It is commonly referred as realignment in fMRI
 literature. This operation is necessary for group studies as one needs
 then data in a common space.
@@ -21,7 +21,7 @@ information.
 Furthermore we will convert our volume source estimate into a NIfTI image using
 :meth:`morph.as_volume <mne.SourceMorph.as_volume>`.
 
-In order to morph :ref:`labels <mne.Label>` between subjects allowing the
+In order to morph :class:`labels <mne.Label>` between subjects allowing the
 definition of labels in a one brain and transforming them to anatomically
 analogous labels in another use :func:`mne.Label.morph`.
 
@@ -224,11 +224,11 @@ anatomical surface data of Subject B, in the same way it does for Subject A.
 See :ref:`sphx_glr_auto_examples_inverse_plot_morph_surface_stc.py`
 usage and for more details:
 
-    - How to create a SourceMorph object for surface data
+    - How to create a :class:`mne.SourceMorph` object for surface data
 
-    - Apply it to SourceEstimate or VectorSourceEstimate
+    - Apply it to :class:`mne.SourceEstimate` or :class:`mne.VectorSourceEstimate`
 
-    - Save a SourceMorph object to disk
+    - Save a :class:`mne.SourceMorph` object to disk
 
 Please see also Gramfort *et al.* (2013) [1]_.
 
