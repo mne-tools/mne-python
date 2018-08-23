@@ -882,8 +882,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
         Path to SUBJECTS_DIR is not set in the environment.
     xhemi : bool
         Morph across hemisphere. Currently only implemented for
-        ``subject_to == subject_from``. See notes at
-        :class:`mne.SourceMorph`.
+        ``subject_to == subject_from``. See notes of
+        :func:`mne.compute_source_morph`.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).

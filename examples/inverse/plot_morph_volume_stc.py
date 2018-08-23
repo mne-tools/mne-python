@@ -24,7 +24,7 @@ anatomical MRI, overlaid with the morphed volumetric source estimate.
 import os
 
 import nibabel as nib
-from mne import read_evokeds, SourceMorph, read_source_morph
+from mne import read_evokeds, compute_source_morph, read_source_morph
 from mne.datasets import sample
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from nilearn.plotting import plot_glass_brain
@@ -74,11 +74,8 @@ stc.crop(0.09, 0.09)
 #
 # A standard usage for volumetric data reads:
 
-src = inverse_operator['src']
-morph = SourceMorph(subject_from='sample',
-                    subject_to='fsaverage',
-                    subjects_dir=subjects_dir,
-                    src=src)
+morph = compute_source_morph(subject_to='fsaverage', subjects_dir=subjects_dir,
+                             src=inverse_operator['src'])
 
 ###############################################################################
 # Apply morph to VolSourceEstimate
@@ -178,6 +175,5 @@ img = morph(stc, as_volume=True, apply_morph=True)
 # easily chained into a handy one-liner. Taking this together the shortest
 # possible way to morph data directly would be:
 
-src[0]['subject_his_id'] = 'sample'  # not needed for new MNE versions
-os.environ['SUBJECTS_DIR'] = subjects_dir
-stc_fsaverage = SourceMorph(src=src)(stc)
+stc_fsaverage = compute_source_morph(src=inverse_operator['src'],
+                                     subjects_dir=subjects_dir)(stc)

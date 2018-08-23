@@ -27,7 +27,7 @@ source estimate.
 # License: BSD (3-clause)
 import os
 
-from mne import read_source_estimate, SourceMorph, read_source_morph
+from mne import read_source_estimate, compute_source_morph, read_source_morph
 from mne.datasets import sample
 
 print(__doc__)
@@ -75,9 +75,8 @@ stc = read_source_estimate(fname_stc, subject='sample')
 #
 # Initialize SourceMorph for SourceEstimate
 
-morph = SourceMorph(subject_from='sample',
-                    subject_to='fsaverage',
-                    subjects_dir=subjects_dir)
+morph = compute_source_morph(subject_from='sample', subject_to='fsaverage',
+                             subjects_dir=subjects_dir)
 
 ###############################################################################
 # Apply morph to (Vector) SourceEstimate
@@ -142,4 +141,4 @@ morph = read_source_morph('my-file-name-morph.h5')
 # easily chained into a handy one-liner. Taking this together the shortest
 # possible way to morph data directly would be:
 
-stc_fsaverage = SourceMorph(subjects_dir=subjects_dir)(stc)
+stc_fsaverage = compute_source_morph(subjects_dir=subjects_dir)(stc)

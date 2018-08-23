@@ -224,9 +224,11 @@ anatomical surface data of Subject B, in the same way it does for Subject A.
 See :ref:`sphx_glr_auto_examples_inverse_plot_morph_surface_stc.py`
 usage and for more details:
 
-    - How to create a :class:`mne.SourceMorph` object for surface data
+    - How to create a :class:`mne.SourceMorph` object using
+      :func:`mne.compute_source_morph` for surface data
 
-    - Apply it to :class:`mne.SourceEstimate` or :class:`mne.VectorSourceEstimate`
+    - Apply it to :class:`mne.SourceEstimate` or
+      :class:`mne.VectorSourceEstimate`
 
     - Save a :class:`mne.SourceMorph` object to disk
 

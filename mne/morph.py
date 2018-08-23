@@ -17,11 +17,16 @@ from .source_space import SourceSpaces
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, deprecated)
+from .externals.six import string_types
 from .externals.h5io import read_hdf5, write_hdf5
 
 
-class SourceMorph(object):
-    """Container for source estimate morphs.
+def compute_source_morph(subject_from=None, subject_to='fsaverage',
+                         subjects_dir=None, src=None,
+                         niter_affine=(100, 100, 10), niter_sdr=(5, 5, 3),
+                         spacing=5, smooth=None, warn=True, xhemi=False,
+                         sparse=False, verbose=False):
+    """Create a SourceMorph from one subject to another.
 
     Parameters
     ----------
@@ -37,9 +42,10 @@ class SourceMorph(object):
     subjects_dir : str | None
         Path to SUBJECTS_DIR if it is not set in the environment. The default
         is None.
-    src : instance of SourceSpaces | None
-        The list of SourceSpaces corresponding subject_from. Note that src must
-        be provided when morphing VolSourceEstimate. The default is None.
+    src : instance of SourceSpaces | instance of SourceEstimate
+        The list of SourceSpaces corresponding subject_from (can be a
+        SourceEstimate if only using a surface source space).
+        src must be provided when morphing a volume.
     niter_affine : tuple of int
         Number of levels (``len(niter_affine)``) and number of
         iterations per level - for each successive stage of iterative
@@ -51,6 +57,7 @@ class SourceMorph(object):
         refinement - to perform the Symmetric Diffeomorphic Registration (sdr)
         transform. Default is niter_sdr=(5, 5, 3).
     spacing : tuple | int | float | list | None
+        XXX THIS SHOULD BE SPLIT FOR FUTURE COMPAT WITH MIXED SOURCE SPACES!
         If morphing VolSourceEstimate, spacing is a tuple carrying the voxel
         size of volume for each spatial dimension in mm.
         If spacing is None, MRIs won't be resliced. Note that in this case
@@ -85,14 +92,154 @@ class SourceMorph(object):
         and :ref:`Logging documentation <tut_logging>` for more). The default
         is verbose=None.
 
+    Notes
+    -----
+    This function can be used to morph data between hemispheres by setting
+    ``xhemi=True``. The full cross-hemisphere morph matrix maps left to right
+    and right to left. A matrix for cross-mapping only one hemisphere can be
+    constructed by specifying the appropriate vertices, for example, to map the
+    right hemisphere to the left:
+    ``vertices_from=[[], vert_rh], vertices_to=[vert_lh, []]``.
+
+    Cross-hemisphere mapping requires appropriate ``sphere.left_right``
+    morph-maps in the subject's directory. These morph maps are included
+    with the ``fsaverage_sym`` FreeSurfer subject, and can be created for other
+    subjects with the ``mris_left_right_register`` FreeSurfer command. The
+    ``fsaverage_sym`` subject is included with FreeSurfer > 5.1 and can be
+    obtained as described `here
+    <http://surfer.nmr.mgh.harvard.edu/fswiki/Xhemi>`_. For statistical
+    comparisons between hemispheres, use of the symmetric ``fsaverage_sym``
+    model is recommended to minimize bias [1]_.
+
+    .. versionadded:: 0.17.0
+
+    References
+    ----------
+    .. [1] Greve D. N., Van der Haegen L., Cai Q., Stufflebeam S., Sabuncu M.
+           R., Fischl B., Brysbaert M.
+           A Surface-based Analysis of Language Lateralization and Cortical
+           Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
+    """
+    if isinstance(src, (SourceEstimate, VectorSourceEstimate)):
+        src_data = copy.deepcopy(src.vertices)
+        kind = 'surface'
+        subject_from = _check_subject_from(subject_from, src.subject)
+    elif src is None:
+        raise ValueError('src must be supplied, got None')
+    else:
+        src_data, kind = _get_src_data(src)
+        subject_from = _check_subject_from(subject_from, src)
+    del src
+    # Params
+    warn = False if sparse else warn
+
+    if kind not in 'surface' and xhemi:
+        raise ValueError('Inter-hemispheric morphing can only be used '
+                         'with surface source estimates.')
+    if sparse and kind != 'surface':
+        raise ValueError('Only surface source estimates can compute a '
+                         'sparse morph.')
+
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+
+    # VolSourceEstimate
+    morph_shape = morph_zooms = morph_affine = None
+    pre_sdr_affine = sdr_mapping = None
+    morph_mat = vertices_to = None
+    if kind == 'volume':
+        assert subject_to is not None  # guaranteed by _check_subject_from
+
+        _check_dep(nibabel='2.1.0', dipy=False)
+
+        logger.info('volume source space inferred...')
+        import nibabel as nib
+
+        # load moving MRI
+        mri_subpath = os.path.join('mri', 'brain.mgz')
+        mri_path_from = os.path.join(subjects_dir, subject_from,
+                                     mri_subpath)
+
+        logger.info('loading %s as moving volume' % mri_path_from)
+        with warnings.catch_warnings():
+            mri_from = nib.load(mri_path_from)
+
+        # load static MRI
+        static_path = os.path.join(subjects_dir, subject_to)
+
+        if not os.path.isdir(static_path):
+            mri_path_to = static_path
+        else:
+            mri_path_to = os.path.join(static_path, mri_subpath)
+
+        if os.path.isfile(mri_path_to):
+            logger.info('loading %s as static volume' % mri_path_to)
+            with warnings.catch_warnings():
+                mri_to = nib.load(mri_path_to)
+        else:
+            raise IOError('cannot read file: %s' % mri_path_to)
+
+        # pre-compute non-linear morph
+        morph_shape, morph_zooms, morph_affine, pre_sdr_affine, sdr_mapping = \
+            _compute_morph_sdr(
+                mri_from, mri_to, niter_affine, niter_sdr, spacing)
+    elif kind == 'surface':
+        logger.info('surface source space inferred...')
+        if sparse:
+            if spacing is not None:
+                raise RuntimeError('spacing must be set to None if '
+                                   'sparse=True.')
+            vertices_to, morph_mat = _compute_sparse_morph(
+                src_data, subject_from, subject_to, subjects_dir)
+        else:
+            vertices_to = grade_to_vertices(
+                subject_to, spacing, subjects_dir, 1)
+            morph_mat = _compute_morph_matrix(
+                subject_from=subject_from, subject_to=subject_to,
+                vertices_from=src_data, vertices_to=vertices_to,
+                subjects_dir=subjects_dir, smooth=smooth, warn=warn,
+                xhemi=xhemi)
+            n_verts = sum(len(v) for v in vertices_to)
+            assert morph_mat.shape[0] == n_verts
+
+    return SourceMorph(subject_from, subject_to, kind,
+                       niter_affine, niter_sdr, spacing, smooth, xhemi,
+                       morph_mat, vertices_to, morph_shape, morph_zooms,
+                       morph_affine, pre_sdr_affine, sdr_mapping, src_data)
+
+
+def _compute_sparse_morph(vertices_from, subject_from, subject_to,
+                          subjects_dir=None):
+    """Get nearest vertices from one subject to another."""
+    maps = read_morph_map(subject_to, subject_from, subjects_dir)
+    cnt = 0
+    vertices = list()
+    cols = list()
+    for verts, map_hemi in zip(vertices_from, maps):
+        vertno_h = _sparse_argmax_nnz_row(map_hemi[verts])
+        order = np.argsort(vertno_h)
+        cols.append(cnt + order)
+        vertices.append(vertno_h[order])
+        cnt += len(vertno_h)
+    cols = np.concatenate(cols)
+    rows = np.arange(len(cols))
+    data = np.ones(len(cols))
+    morph_mat = sparse.coo_matrix((data, (rows, cols)),
+                                  shape=(len(cols), len(cols))).tocsr()
+    return vertices, morph_mat
+
+
+_SOURCE_MORPH_ATTRIBUTES = [  # used in writing
+    'subject_from', 'subject_to', 'kind', 'niter_affine', 'niter_sdr',
+    'spacing', 'smooth', 'xhemi', 'morph_mat', 'vertices_to',
+    'morph_shape', 'morph_zooms', 'morph_affine', 'pre_sdr_affine',
+    'sdr_mapping', 'src_data']
+
+
+class SourceMorph(object):
+    """Morph source space data from one subject to another.
 
     Attributes
     ----------
-    kind : str | None
-        Kind of source estimate. E.g. 'volume' or 'surface'.
-    subjects_dir : str | None
-        The path to the FreeSurfer subjects reconstructions.
-        It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
     subject_from : str | None
         Name of the subject from which to morph as named in the SUBJECTS_DIR
     subject_to : str | array | list of two arrays
@@ -101,6 +248,8 @@ class SourceMorph(object):
         subject_to can also be an array of vertices or a list of two arrays of
         vertices to morph to. If morphing a volume source space, subject_to can
         be the path to a MRI volume.
+    kind : str | None
+        Kind of source estimate. E.g. 'volume' or 'surface'.
     niter_affine : tuple of int
         Number of levels (``len(niter_affine)``) and number of
         iterations per level - for each successive stage of iterative
@@ -131,92 +280,41 @@ class SourceMorph(object):
         Number of iterations for the smoothing of the surface data.
         If None, smooth is automatically defined to fill the surface
         with non-zero values.
-    warn : bool
-        If True, warn if not all vertices were used. warn is set to False
-        if sparse is True.
     xhemi : bool
         Morph across hemisphere.
-    params : dict
-        The morph data. Contains all data relevant for morphing and / or volume
-        output.
-
-    Notes
-    -----
-    This function can be used to morph data between hemispheres by setting
-    ``xhemi=True``. The full cross-hemisphere morph matrix maps left to right
-    and right to left. A matrix for cross-mapping only one hemisphere can be
-    constructed by specifying the appropriate vertices, for example, to map the
-    right hemisphere to the left:
-    ``vertices_from=[[], vert_rh], vertices_to=[vert_lh, []]``.
-
-    Cross-hemisphere mapping requires appropriate ``sphere.left_right``
-    morph-maps in the subject's directory. These morph maps are included
-    with the ``fsaverage_sym`` FreeSurfer subject, and can be created for other
-    subjects with the ``mris_left_right_register`` FreeSurfer command. The
-    ``fsaverage_sym`` subject is included with FreeSurfer > 5.1 and can be
-    obtained as described `here
-    <http://surfer.nmr.mgh.harvard.edu/fswiki/Xhemi>`_. For statistical
-    comparisons between hemispheres, use of the symmetric ``fsaverage_sym``
-    model is recommended to minimize bias [1]_.
-
-    .. versionadded:: 0.17.0
-
-    References
-    ----------
-    .. [1] Greve D. N., Van der Haegen L., Cai Q., Stufflebeam S., Sabuncu M.
-           R., Fischl B., Brysbaert M.
-           A Surface-based Analysis of Language Lateralization and Cortical
-           Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
     """
 
-    def __init__(self, subject_from=None, subject_to='fsaverage',
-                 subjects_dir=None, src=None, niter_affine=(100, 100, 10),
-                 niter_sdr=(5, 5, 3), spacing=5, smooth=None, warn=True,
-                 xhemi=False, sparse=False, verbose=False):
-        super(SourceMorph, self).__init__()
-
-        if src is not None and not isinstance(src, SourceSpaces):
-            raise ValueError('src must be an instance of SourceSpaces')
-        # Params
-        self.kind = 'surface' if src is None else src.kind
-        self.subject_from = _check_subject_from(subject_from, src)
+    def __init__(self, subject_from, subject_to, kind,
+                 niter_affine, niter_sdr, spacing, smooth, xhemi,
+                 morph_mat, vertices_to, morph_shape, morph_zooms,
+                 morph_affine, pre_sdr_affine, sdr_mapping, src_data):
+        # universal
+        self.subject_from = subject_from
         self.subject_to = subject_to
-        self.subjects_dir = subjects_dir
-
-        # Params for volumetric morphing
+        self.kind = kind
+        # vol input
         self.niter_affine = niter_affine
         self.niter_sdr = niter_sdr
-
         self.spacing = spacing
-
-        # Params for surface morphing
+        # surf input
         self.smooth = smooth
-        self.warn = False if sparse else warn
-
-        if self.kind not in 'surface' and xhemi:
-            raise ValueError('Inter-hemispheric morphing can only be used '
-                             'with surface source estimates.')
-        else:
-            self.xhemi = xhemi
-
-        if sparse and self.kind not in 'surface':
-            raise ValueError('Only surface source estimates can compute a '
-                             'sparse morph.')
-        else:
-            self.sparse = sparse
-
-        self.params = dict()
-
-        # get data to perform morph and as_volume
-        if src is not None:
-            self._update_morph_data(_get_src_data(src))
-            self._compute_morph_data(verbose=verbose)
+        self.xhemi = xhemi
+        # surf computed
+        self.morph_mat = morph_mat
+        self.vertices_to = vertices_to
+        # vol computed
+        self.morph_shape = morph_shape
+        self.morph_zooms = morph_zooms
+        self.morph_affine = morph_affine
+        self.pre_sdr_affine = pre_sdr_affine
+        self.sdr_mapping = sdr_mapping
+        self.src_data = src_data
 
     @verbose
     def __call__(self, stc_from, as_volume=False, mri_resolution=False,
                  mri_space=False, apply_morph=True, format='nifti1',
                  verbose=None):
-        """Morph data.
+        """Morph source space data.
 
         Parameters
         ----------
@@ -254,11 +352,9 @@ class SourceMorph(object):
             # if no mri resolution is desired, probably no mri space is wanted
             # as well and vice versa
             mri_space = mri_resolution if mri_space is None else mri_space
-            return self.as_volume(stc, fname=None,
-                                  mri_resolution=mri_resolution,
-                                  mri_space=mri_space,
-                                  apply_morph=apply_morph,
-                                  format=format)
+            return self.as_volume(
+                stc, fname=None, mri_resolution=mri_resolution,
+                mri_space=mri_space, apply_morph=apply_morph, format=format)
 
         if stc.subject is None:
             stc.subject = self.subject_from
@@ -271,22 +367,7 @@ class SourceMorph(object):
                              'morph.subject_from must match. (%s != %s)' %
                              (stc.subject, self.subject_from))
 
-        # if not precomputed
-        if 'morph_mat' not in self.params and self.kind == 'surface':
-            self._update_morph_data({'0': stc.lh_vertno,
-                                     '1': stc.rh_vertno,
-                                     'hemis': [0, 1]},
-                                    kind='surface')
-            self._compute_morph_data(verbose=verbose)
-
-        if self.sparse:
-            if self.spacing is not None:
-                raise RuntimeError('spacing must be set to None if '
-                                   'sparse=True.')
-            return _morph_sparse(stc, self.subject_from, self.subject_to,
-                                 self.subjects_dir)
-
-        return _apply_morph_data(self, stc, verbose=verbose)
+        return _apply_morph_data(self, stc)
 
     def __repr__(self):  # noqa: D105
         s = "%s" % self.kind
@@ -304,7 +385,7 @@ class SourceMorph(object):
         return "<SourceMorph  |  %s>" % s
 
     @verbose
-    def save(self, fname, verbose=None):
+    def save(self, fname, overwrite=False, verbose=None):
         """Save the morph for source estimates to a file.
 
         Parameters
@@ -312,17 +393,22 @@ class SourceMorph(object):
         fname : str
             The stem of the file name. '-morph.h5' will be added if fname does
             not end with '.h5'
+        overwrite : bool
+            If True, overwrite existing file.
         verbose : bool | str | int | None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
             for more).
         """
-        logger.info('saving morph...')
         if not fname.endswith('.h5'):
             fname = '%s-morph.h5' % fname
 
-        write_hdf5(fname, self.__dict__, overwrite=True)
-        logger.info('[done]')
+        out_dict = dict((key, getattr(self, key))
+                        for key in _SOURCE_MORPH_ATTRIBUTES)
+        for key in ('pre_sdr_affine', 'sdr_mapping'):  # classes
+            if out_dict[key] is not None:
+                out_dict[key] = out_dict[key].__dict__
+        write_hdf5(fname, out_dict, overwrite=overwrite)
 
     def as_volume(self, stc, fname=None, mri_resolution=False, mri_space=True,
                   apply_morph=False, format='nifti1'):
@@ -357,78 +443,61 @@ class SourceMorph(object):
             The image object.
         """
         if format != 'nifti1' and format != 'nifti2':
-            raise ValueError("invalid format specifier %s. Must be 'nifti1' or"
-                             " 'nifti2'" % format)
+            raise ValueError("invalid format %s, must be 'nifti1' or 'nifti1''"
+                             % format)
         if apply_morph:
             stc = self.__call__(stc)  # apply morph if desired
-        return _stc_as_volume(self, stc, fname=fname,
-                              mri_resolution=mri_resolution,
-                              mri_space=mri_space,
-                              format=format)
-
-    def _update_morph_data(self, data=None, kind=None):
-        """Update morph data and kind."""
-        if data is not None:
-            self.params.update(data)
-
-        if kind is not None:
-            self.kind = kind
-
-    def _compute_morph_data(self, verbose=None):
-        """Compute morph data."""
-        self._update_morph_data(_compute_morph_data(self, verbose=verbose))
+        img = _stc_as_volume(self, stc, mri_resolution=mri_resolution,
+                             mri_space=mri_space, format=format)
+        if fname is not None:
+            import nibabel as nib
+            nib.save(img, fname)
+        return img
 
 
 ###############################################################################
 # I/O
-def _check_subject_from(subject_from, src_in):
-    src = copy.deepcopy(src_in)
-    if src is None:
-        return subject_from
-
-    if src[0]['subject_his_id'] is not None:
-        subject_his_id = src[0]['subject_his_id']
-        if subject_from is not None and subject_from != subject_his_id:
-            raise ValueError('subject_from does not match source space subject'
-                             ' (%s != %s)' % (subject_from, subject_his_id))
-        subject_from = subject_his_id
-
-    if src[0]['subject_his_id'] is not None and subject_from is None:
-        subject_from = src[0]['subject_his_id']
-
-    if subject_from is None and src.kind == 'volume':
-        raise ValueError(
-            'subject_from is None. Please specify subject_from when working '
-            'with volume source space.')
-    del src
+def _check_subject_from(subject_from, src):
+    if isinstance(src, string_types):
+        subject_check = src
+    else:
+        subject_check = src[0]['subject_his_id']
+    if subject_from is None:
+        subject_from = subject_check
+    elif subject_check is not None and subject_from != subject_check:
+        raise ValueError('subject_from does not match source space subject'
+                         ' (%s != %s)' % (subject_from, subject_check))
+    if subject_from is None:
+        raise ValueError('subject_from could not be inferred, it must be '
+                         'specified')
     return subject_from
 
 
-@verbose
-def read_source_morph(fname, verbose=None):
+def read_source_morph(fname):
     """Load the morph for source estimates from a file.
 
     Parameters
     ----------
     fname : str
         Full filename including path.
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see
-        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more). The default is verbose=False.
 
     Returns
     -------
     source_morph : instance of SourceMorph
         The loaded morph.
     """
-    logger.info('loading morph...')
-    data = read_hdf5(fname)
-
-    source_morph = SourceMorph()
-    source_morph.__dict__.update(data)
-    logger.info('[done]')
-    return source_morph
+    vals = read_hdf5(fname)
+    if vals['pre_sdr_affine'] is not None:  # reconstruct
+        from dipy.align.imaffine import AffineMap
+        affine = vals['pre_sdr_affine']
+        vals['pre_sdr_affine'] = AffineMap(None)
+        vals['pre_sdr_affine'].__dict__ = affine
+    if vals['sdr_mapping'] is not None:
+        from dipy.align.imwarp import DiffeomorphicMap
+        morph = vals['sdr_mapping']
+        vals['sdr_mapping'] = DiffeomorphicMap(None, [])
+        vals['sdr_mapping'].__dict__ = morph
+    return SourceMorph(**vals)
 
 
 ###############################################################################
@@ -445,62 +514,13 @@ def _check_dep(nibabel='2.1.0', dipy='0.10.1'):
                                                                         ver))
 
 
-def _check_hemi_data(data_in, data_ref):
-    """Check and setup correct data for hemispheres."""
-    return [np.array([], int) if
-            len(data_ref[h]) == 0 or
-            data_ref[h] is None else
-            data_in[h]
-            for h in range(len(data_ref))]
-
-
-def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
-                   mri_space=True, format='nifti1'):
-    """Return volume source space as Nifti1Image and/or save to disk.
-
-    Parameters
-    ----------
-    morph : instance of SourceMorph
-        Instance of SourceMorph carrying the relevant volume transform
-        information. Typically computed using SourceMorph().
-    stc : VolSourceEstimate
-        Data to be transformed.
-    fname : str | None
-        String to where to save the volume. If not None that volume will
-        be saved at fname.
-    mri_resolution: bool | tuple | int | float
-        Whether to use MRI resolution. If False the morph's resolution
-        will be used. If tuple the voxel size must be given in float values
-        in mm. E.g. mri_resolution=(3., 3., 3.)
-        WARNING: if you have many time points the file produced can be
-        huge. The default is mri_resolution=False.
-    mri_space : bool
-        Whether the image to world registration should be in MRI space. The
-        default is mri_space=True.
-    format : str
-        Either 'nifti1' (default) or 'nifti2'
-
-    Returns
-    -------
-    img : Nifti1Image | Nifti2Image
-        The image object.
-    """
+def _stc_as_volume(morph, stc, mri_resolution=False, mri_space=True,
+                   format='nifti1'):
+    """Return volume source space as Nifti1Image and/or save to disk."""
     if not isinstance(stc, VolSourceEstimate):
         raise ValueError('Only volume source estimates can be converted to '
                          'volumes')
     _check_dep(nibabel='2.1.0', dipy=False)
-    import nibabel as nib
-    # this is a special case when as_volume is called without having done a
-    # morph beforehand (to assure compatibility to previous versions)
-    if 'morph_shape' not in morph.params:
-        img = _interpolate_data(stc, morph.params,
-                                mri_resolution=mri_resolution,
-                                mri_space=mri_space,
-                                format=format)
-        if fname is not None:
-            with warnings.catch_warnings():
-                nib.save(img, fname)
-        return img
 
     if format == 'nifti1':
         from nibabel import (Nifti1Image as NiftiImage,
@@ -515,7 +535,7 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
 
     # if full MRI resolution, compute zooms from shape and MRI zooms
     if isinstance(mri_resolution, bool) and mri_resolution:
-        new_zooms = _get_zooms_orig(morph.params)
+        new_zooms = _get_zooms_orig(morph)
 
     # if MRI resolution is set manually as a single value, convert to tuple
     if isinstance(mri_resolution, (int, float)) and not isinstance(
@@ -528,9 +548,9 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
         new_zooms = mri_resolution
 
     # setup volume properties
-    shape = tuple([int(i) for i in morph.params['morph_shape']])
-    affine = morph.params['morph_affine']
-    zooms = morph.params['morph_zooms'][:3]
+    shape = tuple([int(i) for i in morph.morph_shape])
+    affine = morph.morph_affine
+    zooms = morph.morph_zooms[:3]
 
     # create header
     hdr = NiftiHeader()
@@ -560,12 +580,6 @@ def _stc_as_volume(morph, stc, fname=None, mri_resolution=False,
 
     #  set zooms in header
     img.header.set_zooms(tuple(zooms) + (1,))
-
-    # save if fname is provided
-    if fname is not None:
-        with warnings.catch_warnings():
-            nib.save(img, fname)
-
     return img
 
 
@@ -574,10 +588,19 @@ def _get_src_data(src):
     src_data = dict()
 
     # copy data to avoid conflicts
-    src_t = copy.deepcopy(src)
+    if isinstance(src, SourceEstimate):
+        src_t = [dict(vertno=src.vertices[0]), dict(vertno=src.vertices[1])]
+        src_kind = 'surface'
+    elif isinstance(src, SourceSpaces):
+        src_t = src.copy()
+        src_kind = src.kind
+    else:
+        raise TypeError('src must be an instance of SourceSpaces or '
+                        'SourceEstimate, got %s (%s)' % (type(src), src))
+    del src
 
     # extract all relevant data for volume operations
-    if src.kind == 'volume':
+    if src_kind == 'volume':
         shape = src_t[0]['shape']
         src_data.update({'src_shape': (shape[2], shape[1], shape[0]),
                          'src_affine_vox': src_t[0]['vox_mri_t']['trans'],
@@ -588,112 +611,15 @@ def _get_src_data(src):
                              src_t[0]['mri_width']),
                          'interpolator': src_t[0]['interpolator'],
                          'inuse': src_t[0]['inuse']})
-    elif src_t.kind == 'surface':
-        hemis = []
-        # extract information for each hemisphere and save order (necessary for
-        # xhemi)
-        for n, s in enumerate(src_t):
-            src_data.update({str(n): s['vertno']})
-            hemis.append(n)
-        src_data.update({'hemis': hemis})
+    else:
+        assert src_kind == 'surface'
+        src_data = [s['vertno'].copy() for s in src_t]
 
     # delete copy
-    del src_t
-    return src_data
+    return src_data, src_kind
 
 
-def _compute_morph_data(morph, verbose=None):
-    """Compute morph depending on the underlying type of source estimate."""
-    data = dict()
-
-    # get data currently present in morph
-    data.update(morph.params)
-    subjects_dir = get_subjects_dir(morph.subjects_dir,
-                                    raise_error=True)
-
-    # VolSourceEstimate
-    if morph.kind == 'volume' and morph.subject_to is not None:
-
-        _check_dep(nibabel='2.1.0', dipy=False)
-
-        logger.info('volume source space inferred...')
-        import nibabel as nib
-
-        # load moving MRI
-        mri_subpath = os.path.join('mri', 'brain.mgz')
-        mri_path_from = os.path.join(subjects_dir, morph.subject_from,
-                                     mri_subpath)
-
-        logger.info('loading %s as moving volume' % mri_path_from)
-        with warnings.catch_warnings():
-            mri_from = nib.load(mri_path_from)
-
-        # load static MRI
-        static_path = os.path.join(subjects_dir, morph.subject_to)
-
-        if not os.path.isdir(static_path):
-            mri_path_to = static_path
-        else:
-            mri_path_to = os.path.join(static_path, mri_subpath)
-
-        if os.path.isfile(mri_path_to):
-            logger.info('loading %s as static volume' % mri_path_to)
-            with warnings.catch_warnings():
-                mri_to = nib.load(mri_path_to)
-        else:
-            raise IOError('cannot read file: %s' % mri_path_to)
-
-        # pre-compute non-linear morph
-        data.update(_compute_morph_sdr(
-            mri_from,
-            mri_to,
-            niter_affine=morph.niter_affine,
-            niter_sdr=morph.niter_sdr,
-            spacing=morph.spacing,
-            verbose=verbose))
-
-    # SourceEstimate | VectorSourceEstimate
-    elif morph.kind == 'surface':
-        logger.info('surface source space inferred...')
-
-        # get surface data
-        data_from = []
-        hemis = morph.params['hemis']
-        for h in hemis:
-            data_from.append(morph.params[str(h)])
-
-        data_to = None
-        # default for fsaverage
-        if morph.subject_to == 'fsaverage' and morph.spacing is 5:
-            data_to = [np.arange(10242)] * 2
-        else:
-            data_to = grade_to_vertices(morph.subject_to, morph.spacing,
-                                        subjects_dir, 1)
-            data_from = _check_hemi_data(data_from, data_to)
-
-        if data_to is None:
-            raise ValueError('Please specify target to morph to.')
-
-        # check emptiness of hemispheres
-        data_to = _check_hemi_data(data_to, data_from)
-
-        # pre-compute morph matrix
-        morph_mat = _compute_morph_matrix(
-            subject_from=morph.subject_from,
-            subject_to=morph.subject_to,
-            vertices_from=data_from,
-            vertices_to=data_to,
-            subjects_dir=subjects_dir,
-            smooth=morph.smooth,
-            warn=morph.warn,
-            xhemi=morph.xhemi,
-            verbose=verbose)
-        data.update({'morph_mat': morph_mat, 'vertno': data_to})
-
-    return data
-
-
-def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
+def _interpolate_data(stc, morph, mri_resolution=True, mri_space=True,
                       format='nifti1'):
     """Interpolate source estimate data to MRI."""
     _check_dep(nibabel='2.1.0', dipy=False)
@@ -706,6 +632,7 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
     elif format == 'nifti2':
         from nibabel import (Nifti2Image as NiftiImage,
                              Nifti2Header as NiftiHeader)
+    assert morph.kind == 'volume'
 
     voxel_size_defined = False
 
@@ -725,18 +652,22 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
     # if data wasn't morphed yet - necessary for call of
     # stc_unmorphed.as_volume. Since only the shape of src is known, it cannot
     # be resliced to a given voxel size without knowing the original.
-    if 'morph_shape' not in morph_data and voxel_size_defined:
-        raise ValueError(
-            "Cannot infer original voxel size for reslicing... "
-            "set mri_resolution to boolean value or apply morph first.")
+    if isinstance(morph, SourceSpaces):
+        assert morph.kind == 'volume'
+        if voxel_size_defined:
+            raise ValueError(
+                "Cannot infer original voxel size for reslicing... "
+                "set mri_resolution to boolean value or apply morph first.")
+        from mne.io.constants import BunchConst
+        morph = BunchConst(src_data=_get_src_data(morph)[0])
 
     # setup volume parameters
     n_times = stc.data.shape[1]
-    shape3d = morph_data['src_shape']
+    shape3d = morph.src_data['src_shape']
     shape = (n_times,) + shape3d
     vols = np.zeros(shape)
 
-    mask3d = morph_data['inuse'].reshape(shape3d).astype(np.bool)
+    mask3d = morph.src_data['inuse'].reshape(shape3d).astype(np.bool)
     n_vertices = np.sum(mask3d)
 
     n_vertices_seen = 0
@@ -748,11 +679,11 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
 
     # use mri resolution as represented in src
     if mri_resolution:
-        mri_shape3d = morph_data['src_shape_full']
+        mri_shape3d = morph.src_data['src_shape_full']
         mri_shape = (n_times,) + mri_shape3d
         mri_vol = np.zeros(mri_shape)
 
-        interpolator = morph_data['interpolator']
+        interpolator = morph.src_data['interpolator']
 
         for k, vol in enumerate(vols):
             mri_vol[k] = (interpolator * vol.ravel()).reshape(mri_shape3d)
@@ -761,13 +692,13 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
     vols = vols.T
 
     # set correct space
-    affine = morph_data['src_affine_vox']
+    affine = morph.src_data['src_affine_vox']
 
     if not mri_resolution:
-        affine = morph_data['src_affine_src']
+        affine = morph.src_data['src_affine_src']
 
     if mri_space:
-        affine = np.dot(morph_data['src_affine_ras'], affine)
+        affine = np.dot(morph.src_data['src_affine_ras'], affine)
 
     affine[:3] *= 1e3
 
@@ -783,10 +714,7 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
     if voxel_size_defined:
         # reslice mri
         img, img_affine = reslice(
-            img.get_data(),
-            img.affine,
-            _get_zooms_orig(morph_data),
-            voxel_size)
+            img.get_data(), img.affine, _get_zooms_orig(morph), voxel_size)
         with warnings.catch_warnings():  # nibabel<->numpy warning
             img = NiftiImage(img, img_affine, header=header)
 
@@ -795,74 +723,10 @@ def _interpolate_data(stc, morph_data, mri_resolution=True, mri_space=True,
 
 ###############################################################################
 # Morph for VolSourceEstimate
-@verbose
-def _compute_morph_sdr(mri_from, mri_to,
-                       niter_affine=(100, 100, 10),
-                       niter_sdr=(5, 5, 3),
-                       spacing=(5., 5., 5.),
-                       verbose=None):
-    """Get a matrix that morphs data from one subject to another.
 
-    Parameters
-    ----------
-    mri_from : str | Nifti1Image
-        Path to source subject's anatomical MRI or Nifti1Image
-    mri_to : str | Nifti1Image
-        Path to reference subject's anatomical MRI or Nifti1Image
-    niter_affine : tuple of int
-        Number of levels (``len(niter_affine)``) and number of
-        iterations per level - for each successive stage of iterative
-        refinement - to perform the affine transform. The default is
-        niter_affine=(100, 100, 10).
-    niter_sdr : tuple of int
-        Number of levels (``len(niter_sdr)``) and number of
-        iterations per level - for each successive stage of iterative
-        refinement - to perform the Symmetric Diffeomorphic Registration (sdr)
-        transform. The default is niter_sdr=(5, 5, 3).
-    spacing : tuple | int | float | None
-        Voxel size of volume for each spatial dimension separately (tuple) or
-        isometric (int). The default is spacing=5
-        If spacing is None, MRIs won't be resliced. Note that in this case
-        both volumes must have the same number of slices in every
-        spatial dimension.
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). The default
-        is verbose=None.
-
-    Returns
-    -------
-    morph : dict
-        Details about AffineMap, DiffeomorphicMap, morph_shape, morph_zooms,
-        morph_affine for affine and diffeomorphic registration.
-
-    Notes
-    -----
-    This function will be used to morph VolSourceEstimate based on an
-    affine transformation and a nonlinear morph, estimated based on
-    respective transformation from the subject's anatomical T1 (brain) to
-    a reference subject's anatomical T1 (e.g. fsaverage). Afterwards the
-    transformation can be applied. Affine transformations are computed
-    based on the mutual information. This metric relates structural changes
-    in image intensity values. Because different brains expose high structural
-    similarities, this method works quite well to relate corresponding features
-    [1]_.
-    The nonlinear transformations will be performed as Symmetric
-    Diffeomorphic Registration using the cross-correlation metric [2]_.
-
-    References
-    ----------
-    .. [1] Mattes, D., Haynor, D. R., Vesselle, H., Lewellen, T. K., &
-    Eubank, W. (2003). PET-CT image registration in the chest using
-    free-form deformations. IEEE transactions on medical imaging, 22(1),
-    120-128.
-
-    .. [2] Avants, B. B., Epstein, C. L., Grossman, M., & Gee, J. C. (2009).
-    Symmetric Diffeomorphic Image Registration with Cross- Correlation:
-    Evaluating Automated Labeling of Elderly and Neurodegenerative Brain,
-    12(1), 26-41. Asymmetry. Journal of Cognitive Neuroscience 25(9),
-    1477-1492, 2013.
-    """
+def _compute_morph_sdr(mri_from, mri_to, niter_affine=(100, 100, 10),
+                       niter_sdr=(5, 5, 3), morph_zooms=(5., 5., 5.)):
+    """Get a matrix that morphs data from one subject to another."""
     _check_dep(nibabel='2.1.0', dipy='0.10.1')
     import nibabel as nib
     from pytest import warns as warns_numpy
@@ -872,58 +736,40 @@ def _compute_morph_sdr(mri_from, mri_to,
 
     logger.info('Computing nonlinear Symmetric Diffeomorphic Registration...')
 
-    morph_params = dict()
-
     # use voxel size of mri_from
-    if spacing is None:
-        spacing = mri_from.header.get_zooms()[:3]
+    if morph_zooms is None:
+        morph_zooms = mri_from.header.get_zooms()[:3]
 
     # use iso voxel size
-    if isinstance(spacing, (int, float)):
-        spacing = (float(spacing),) * 3
+    if isinstance(morph_zooms, (int, float)):
+        morph_zooms = (float(morph_zooms),) * 3
 
     # reslice mri_from
     mri_from_res, mri_from_res_affine = reslice(
-        mri_from.get_data(),
-        mri_from.affine,
-        mri_from.header.get_zooms()[:3],
-        spacing)
+        mri_from.get_data(), mri_from.affine, mri_from.header.get_zooms()[:3],
+        morph_zooms)
 
     with warnings.catch_warnings():  # nibabel<->numpy warning
         mri_from = nib.Nifti1Image(mri_from_res, mri_from_res_affine)
 
     # reslice mri_to
     mri_to_res, mri_to_res_affine = reslice(
-        mri_to.get_data(),
-        mri_to.affine,
-        mri_to.header.get_zooms()[:3],
-        spacing)
+        mri_to.get_data(), mri_to.affine, mri_to.header.get_zooms()[:3],
+        morph_zooms)
 
     with warnings.catch_warnings():  # nibabel<->numpy warning
         mri_to = nib.Nifti1Image(mri_to_res, mri_to_res_affine)
 
-    # get mri_to to world transform
     mri_to_grid2world = mri_to.affine
-
-    # output mri_to as ndarray
-    mri_to = mri_to.dataobj[:, :, :]
-
-    # normalize values
-    mri_to = mri_to.astype('float') / mri_to.max()
-
-    # get mri_from to world transform
-    mri_from_grid2world = mri_from.affine
-
-    # output mri_from as ndarray
-    mri_from = mri_from.dataobj[:, :, :]
-
-    # normalize values
-    mri_from = mri_from.astype('float') / mri_from.max()
+    mri_to = np.array(mri_to.dataobj, float)  # to ndarray
+    mri_to /= mri_to.max()
+    mri_from_grid2world = mri_from.affine  # get mri_from to world transform
+    mri_from = np.array(mri_from.dataobj, float)  # to ndarray
+    mri_from /= mri_from.max()  # normalize
 
     # compute center of mass
-    c_of_mass = imaffine.transform_centers_of_mass(mri_to, mri_to_grid2world,
-                                                   mri_from,
-                                                   mri_from_grid2world)
+    c_of_mass = imaffine.transform_centers_of_mass(
+        mri_to, mri_to_grid2world, mri_from, mri_from_grid2world)
 
     # set up Affine Registration
     affreg = imaffine.AffineRegistration(
@@ -959,22 +805,15 @@ def _compute_morph_sdr(mri_from, mri_to,
 
     # compute mapping
     mapping = sdr.optimize(mri_to, mri_from_affine)
-    morph_params.update(
-        {'morph_shape': tuple(mapping.domain_shape.astype('float')),
-         'morph_zooms': spacing,
-         'morph_affine': mri_to_grid2world,
-         'AffineMap': affine.__dict__,
-         'DiffeomorphicMap': mapping.__dict__})
-
+    morph_shape = tuple(mapping.domain_shape.astype('float'))
     logger.info('done.')
-
-    return morph_params
+    return morph_shape, morph_zooms, mri_to_grid2world, affine, mapping
 
 
 ###############################################################################
 # Morph for SourceEstimate |  VectorSourceEstimate
 @deprecated("This function is deprecated and will be removed in version 0.19. "
-            "Use morph_mat = mne.SourceMorph(src=src).params['morph_mat']")
+            "Use morph_mat = mne.compute_source_morph(...)morph_mat")
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
                          smooth=None, subjects_dir=None, warn=True,
                          xhemi=False, verbose=None):
@@ -1041,13 +880,12 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     """
     return _compute_morph_matrix(subject_from, subject_to, vertices_from,
                                  vertices_to, smooth, subjects_dir, warn,
-                                 xhemi, verbose)
+                                 xhemi)
 
 
-@verbose
 def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
                           smooth=None, subjects_dir=None, warn=True,
-                          xhemi=False, verbose=None):
+                          xhemi=False):
     """Compute morph matrix."""
     logger.info('Computing morph matrix...')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -1119,7 +957,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
         Vertex numbers for LH and RH
     """
     # add special case for fsaverage for speed
-    if subject == 'fsaverage' and grade == 5:
+    if subject == 'fsaverage' and isinstance(grade, int) and grade == 5:
         return [np.arange(10242)] * 2
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
@@ -1162,9 +1000,8 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     return vertices
 
 
-@verbose
 def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
-                  warn=True, verbose=None):
+                  warn=True):
     """Morph data from one subject's source space to another.
 
     Parameters
@@ -1203,9 +1040,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
         for dim in range(3):
             data_morphed[:, dim, :] = _morph_buffer(
                 data=data[:, dim, :], idx_use=idx_use, e=e, smooth=smooth,
-                n_vertices=n_vertices, nearest=nearest, maps=maps, warn=warn,
-                verbose=verbose
-            )
+                n_vertices=n_vertices, nearest=nearest, maps=maps, warn=warn)
         return data_morphed
 
     n_iter = 99  # max nb of smoothing iterations (minus one)
@@ -1314,47 +1149,6 @@ def _sparse_argmax_nnz_row(csr_mat):
     return idx
 
 
-def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
-    """Morph sparse source estimates to an other subject.
-
-    Parameters
-    ----------
-    stc : SourceEstimate | VectorSourceEstimate
-        The sparse STC.
-    subject_from : str
-        The subject on which stc is defined.
-    subject_to : str
-        The target subject.
-    subjects_dir : str
-        Path to SUBJECTS_DIR if it is not set in the environment. The default
-        is subjects_dir=None.
-
-    Returns
-    -------
-    stc_morph : SourceEstimate | VectorSourceEstimate
-        The morphed source estimates.
-    """
-    maps = read_morph_map(subject_to, subject_from, subjects_dir)
-    stc_morph = stc.copy()
-    stc_morph.subject = subject_to
-
-    cnt = 0
-    for h in [0, 1]:
-        if len(stc.vertices[h]) > 0:
-            map_hemi = maps[h]
-            vertno_h = _sparse_argmax_nnz_row(map_hemi[stc.vertices[h]])
-            order = np.argsort(vertno_h)
-            n_active_hemi = len(vertno_h)
-            data_hemi = stc_morph.data[cnt:cnt + n_active_hemi]
-            stc_morph.data[cnt:cnt + n_active_hemi] = data_hemi[order]
-            stc_morph.vertices[h] = vertno_h[order]
-            cnt += n_active_hemi
-        else:
-            stc_morph.vertices[h] = np.array([], int)
-
-    return stc_morph
-
-
 def _get_subject_sphere_tris(subject, subjects_dir):
     spheres = [os.path.join(subjects_dir, subject, 'surf',
                             xh + '.sphere.reg') for xh in ['lh', 'rh']]
@@ -1364,85 +1158,52 @@ def _get_subject_sphere_tris(subject, subjects_dir):
 
 ###############################################################################
 # Apply morph to source estimate
-def _get_zooms_orig(morph_data):
+def _get_zooms_orig(morph):
     """Compute src zooms from morph zooms, morph shape and src shape."""
-    morph_zooms = morph_data['morph_zooms']
-    morph_shape = morph_data['morph_shape']
-    src_shape = morph_data['src_shape_full']
-
     # zooms_to = zooms_from / shape_to * shape_from for each spatial dimension
     return [mz / ss * ms for mz, ms, ss in
-            zip(morph_zooms, morph_shape, src_shape)]
+            zip(morph.morph_zooms, morph.morph_shape,
+                morph.src_data['src_shape_full'])]
 
 
-@verbose
-def _apply_morph_data(morph, stc_from, verbose=None):
-    """Morph a source estimate from one subject to another.
-
-    Parameters
-    ----------
-    morph : SourceMorph
-        Instance of SourceMorph used to compute the respective morphing data
-    stc_from : VolSourceEstimate | VectorSourceEstimate | SourceEstimate
-        Data to be morphed
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). The default
-        is verbose=None.
-
-    Returns
-    -------
-    stc_to : VolSourceEstimate | VectorSourceEstimate | SourceEstimate
-        Source estimate for the reference subject.
-    """
+def _apply_morph_data(morph, stc_from):
+    """Morph a source estimate from one subject to another."""
+    if stc_from.subject is not None and stc_from.subject != morph.subject_from:
+        raise ValueError('stc.subject (%s) != morph.subject_from (%s)'
+                         % (stc_from.subject, morph.subject_from))
     if morph.kind == 'volume':
-
-        from dipy.align.imwarp import DiffeomorphicMap
-        from dipy.align.imaffine import AffineMap
         from dipy.align.reslice import reslice
 
         # prepare data to be morphed
-        img_to = _interpolate_data(stc_from, morph.params, mri_resolution=True,
+        img_to = _interpolate_data(stc_from, morph, mri_resolution=True,
                                    mri_space=True)
-
-        # setup morphs to not carry those custom objects around
-        # (issues in saving / loading)
-        affine_morph = AffineMap(None)
-        affine_morph.__dict__ = morph.params['AffineMap']
-
-        sdr_morph = DiffeomorphicMap(None, [])
-        sdr_morph.__dict__ = morph.params['DiffeomorphicMap']
 
         # reslice to match morph
         img_to, img_to_affine = reslice(
-            img_to.get_data(),
-            morph.params['morph_affine'],
-            _get_zooms_orig(morph.params),
-            morph.params['morph_zooms'])
+            img_to.get_data(), morph.morph_affine, _get_zooms_orig(morph),
+            morph.morph_zooms)
 
         # morph data
         for vol in range(img_to.shape[3]):
-            img_to[:, :, :, vol] = sdr_morph.transform(
-                affine_morph.transform(img_to[:, :, :, vol]))
+            img_to[:, :, :, vol] = morph.sdr_mapping.transform(
+                morph.pre_sdr_affine.transform(img_to[:, :, :, vol]))
 
         # reshape to nvoxel x nvol
         img_to = img_to.reshape(-1, img_to.shape[3])
 
-        vertices = [i for i, d in enumerate(img_to.sum(axis=1) == 0) if
-                    not d]
-
-        # create new source estimate
-        stc_to = VolSourceEstimate(img_to[vertices, :],
-                                   vertices=np.asanyarray(vertices),
-                                   tmin=stc_from.tmin,
-                                   tstep=stc_from.tstep,
-                                   verbose=verbose,
-                                   subject=morph.subject_to)
-
-    elif morph.kind == 'surface':
-
-        morph_mat = morph.params['morph_mat']
-        vertices_to = morph.params['vertno']
+        vertices_to = np.where(img_to.sum(axis=1) != 0)[0]
+        data = img_to[vertices_to]
+        klass = VolSourceEstimate
+    else:
+        assert morph.kind == 'surface'
+        morph_mat = morph.morph_mat
+        vertices_to = morph.vertices_to
+        for hemi, v1, v2 in zip(('left', 'right'),
+                                morph.src_data, stc_from.vertices):
+            if not np.array_equal(v1, v2):
+                raise ValueError('vertices do not match between morph (%s) '
+                                 'and stc (%s) for the %s hemisphere:\n%s\n%s'
+                                 % (len(v1), len(v2), hemi, v1, v2))
 
         # select correct data - since vertices_to can have empty hemispheres,
         # the correct data needs to be selected in order to apply the morph_mat
@@ -1459,19 +1220,10 @@ def _apply_morph_data(morph, stc_from, verbose=None):
             n_verts, _, n_samples = stc_from.data.shape
             data = morph_mat * data.reshape(n_verts, 3 * n_samples)
             data = data.reshape(morph_mat.shape[0], 3, n_samples)
-            stc_to = VectorSourceEstimate(data, vertices=vertices_to,
-                                          tmin=stc_from.tmin,
-                                          tstep=stc_from.tstep,
-                                          verbose=verbose,
-                                          subject=morph.subject_to)
+            klass = VectorSourceEstimate
         else:
             data = morph_mat * data
-            stc_to = SourceEstimate(data, vertices=vertices_to,
-                                    tmin=stc_from.tmin,
-                                    tstep=stc_from.tstep,
-                                    verbose=verbose,
-                                    subject=morph.subject_to)
-    else:
-        stc_to = None
-
+            klass = SourceEstimate
+    stc_to = klass(data, vertices_to, stc_from.tmin, stc_from.tstep,
+                   morph.subject_to)
     return stc_to

@@ -123,13 +123,10 @@ brain.add_text(0.1, 0.9, 'dSPM (plus location of maximal activation)', 'title',
 # Morph data to average brain
 # ---------------------------
 
-fs_vertices = [np.arange(10242)] * 2  # fsaverage is special this way
-
 # setup source morph
-morph = mne.SourceMorph(subject_from=stc.subject,
-                        subject_to='fsaverage',
-                        spacing=fs_vertices,  # list of vertices to morph to
-                        subjects_dir=subjects_dir)
+morph = mne.compute_source_morph(
+    subject_from=stc.subject, subject_to='fsaverage', spacing=5,  # to ico-5
+    subjects_dir=subjects_dir)
 # morph data
 stc_fsaverage = morph(stc)
 

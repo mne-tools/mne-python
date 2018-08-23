@@ -769,6 +769,7 @@ Source Space Data
    :toctree: generated/
    :template: function.rst
 
+   compute_source_morph
    head_to_mni
    head_to_mri
    extract_label_time_course

@@ -29,10 +29,10 @@ dependencies:
 - pyface>=6
 - traitsui>=6
 - pip:
-  - dipy
   - mne
   - mayavi
   - PySurfer
+  - dipy
   - nitime
   - nibabel
   - nilearn

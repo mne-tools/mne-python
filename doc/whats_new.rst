@@ -19,7 +19,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-- Add :class:`mne.SourceMorph` object to unify morphing any type of source estimates (surface or volume) from one subject to another for group studies. It is now posssible to do group studies when working on the volume with MNE. Work by `Tommy Clausner`_
+- Add :func:`mne.compute_source_morph` which creates a :class:`mne.SourceMorph` object to unify morphing any type of source estimates (surface or volume) from one subject to another for group studies. It is now posssible to do group studies when working on the volume with MNE. Work by `Tommy Clausner`_
 
 - Add ability to pass threshold for EOG to :func:`mne.preprocessing.find_eog_events` and :func:`mne.preprocessing.create_eog_epochs` by `Peter Molfese_`
 
@@ -111,7 +111,7 @@ Bug
 API
 ~~~
 
-- Deprecated `mne.SourceEstimate.morph_precomputed`, `mne.SourceEstimate.morph`, `mne.compute_morph_matrix`, `mne.morph_data_precomputed` and `mne.morph_data` in favor of :class:`mne.SourceMorph`, by `Tommy Clausner`_
+- Deprecated ``mne.SourceEstimate.morph_precomputed``, ``mne.SourceEstimate.morph``, ``mne.compute_morph_matrix``, ``mne.morph_data_precomputed`` and ``mne.morph_data`` in favor of :func:`mne.compute_source_morph`, by `Tommy Clausner`_
 
 - Prepare transition to Python 3. This release will be the last release compatible with Python 2. The next version will be Python 3 only.
 
@@ -491,7 +491,7 @@ Changelog
 
 - Add reduced set of labels for HCPMMP-1.0 parcellation in :func:`mne.datasets.fetch_hcp_mmp_parcellation` by `Eric Larson`_
 
-- Enable morphing between hemispheres with `mne.compute_morph_matrix` by `Christian Brodbeck`_
+- Enable morphing between hemispheres with ``mne.compute_morph_matrix`` by `Christian Brodbeck`_
 
 - Add ``return_drop_log`` to :func:`mne.preprocessing.compute_proj_eog` and :func:`mne.preprocessing.compute_proj_ecg` by `Eric Larson`_
 

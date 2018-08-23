@@ -559,7 +559,7 @@ class Label(object):
         on the new surface are required, consider using `mne.read_surface`
         with `label.vertices`.
         """
-        from .morph import SourceMorph
+        from .morph import compute_source_morph, grade_to_vertices
         subject_from = _check_subject(self.subject, subject_from)
         if not isinstance(subject_to, string_types):
             raise TypeError('"subject_to" must be entered as a string')
@@ -569,31 +569,29 @@ class Label(object):
             raise ValueError('Morphing label with all zero values will result '
                              'in the label having no vertices. Consider using '
                              'something like label.values.fill(1.0).')
+        idx = 0 if self.hemi == 'lh' else 1
         if isinstance(grade, np.ndarray):
-            if self.hemi == 'lh':
-                grade = [grade, np.array([], int)]
-            else:
-                grade = [np.array([], int), grade]
-        if self.hemi == 'lh':
-            vertices = [self.vertices, np.array([], int)]
-        else:
-            vertices = [np.array([], int), self.vertices]
+            grade_ = [np.array([], int)] * 2
+            grade_[idx] = grade
+            grade = grade_
+            del grade_
+        grade = grade_to_vertices(subject_to, grade, subjects_dir=subjects_dir)
+        spacing = [np.array([], int)] * 2
+        spacing[idx] = grade[idx]
+        vertices = [np.array([], int)] * 2
+        vertices[idx] = self.vertices
         data = self.values[:, np.newaxis]
+        assert len(data) == sum(len(v) for v in vertices)
         stc = SourceEstimate(data, vertices, tmin=1, tstep=1,
                              subject=subject_from)
-        stc = SourceMorph(subject_from=subject_from,
-                          subject_to=subject_to,
-                          spacing=grade,
-                          smooth=smooth,
-                          subjects_dir=subjects_dir,
-                          warn=False)(stc)
+        morph = compute_source_morph(
+            subject_from, subject_to, spacing=spacing, smooth=smooth, src=stc,
+            subjects_dir=subjects_dir, warn=False)
+        stc = morph(stc)
         inds = np.nonzero(stc.data)[0]
         self.values = stc.data[inds, :].ravel()
         self.pos = np.zeros((len(inds), 3))
-        if self.hemi == 'lh':
-            self.vertices = stc.vertices[0][inds]
-        else:
-            self.vertices = stc.vertices[1][inds]
+        self.vertices = stc.vertices[idx][inds]
         self.subject = subject_to
         return self
 

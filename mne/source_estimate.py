@@ -1057,6 +1057,10 @@ def _center_of_mass(vertices, values, hemi, surf, subject, subjects_dir,
     return vertex
 
 
+_dep_str = ("This function is deprecated and will be removed in version "
+            "0.18. Use morph = mne.compute_source_morph(...) and morph(stc)")
+
+
 class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
     """Abstract base class for surface source estimates.
 
@@ -1285,8 +1289,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         return self.__class__(self._data[data_idx], vertices,
                               self.tmin, self.tstep, subject_orig)
 
-    @deprecated("This function is deprecated and will be removed in version "
-                "0.19. Use morph = mne.SourceMorph and morph(stc)")
+    @deprecated(_dep_str)
     @verbose
     def morph(self, subject_to, grade=5, smooth=None, subjects_dir=None,
               buffer_size=64, n_jobs=1, subject_from=None, sparse=False,
@@ -1343,8 +1346,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             return morph_data(subject_from, subject_to, self, grade, smooth,
                               subjects_dir, buffer_size, n_jobs, verbose)
 
-    @deprecated("This function is deprecated and will be removed in version "
-                "0.19. Use morph = mne.SourceMorph and morph(stc)")
+    @deprecated(_dep_str)
     def morph_precomputed(self, subject_to, vertices_to, morph_mat,
                           subject_from=None):
         """Morph source estimate between subjects using a precomputed matrix.
@@ -1356,8 +1358,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         vertices_to : list of array of int
             The vertices on the destination subject's brain.
         morph_mat : sparse matrix
-            Deprecated. Can still be obtained using
-            mne.SourceMorph(src=src, sparse=True).params['morph_mat'].
+            Deprecated.
         subject_from : string | None
             Name of the original subject as named in the SUBJECTS_DIR.
             If None, self.subject will be used.
@@ -1788,7 +1789,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
         logger.info('[done]')
 
-    def save_as_volume(self, fname, src, dest='mri', mri_resolution=False):
+    def save_as_volume(self, fname, src, dest='mri', mri_resolution=False,
+                       format='nifti1'):
         """Save a volume source estimate in a NIfTI file.
 
         Parameters
@@ -1805,6 +1807,11 @@ class VolSourceEstimate(_BaseSourceEstimate):
             It True the image is saved in MRI resolution.
             WARNING: if you have many time points the file produced can be
             huge.
+        format : str
+            Either 'nifti1' (default) or 'nifti2'.
+
+            .. versionadded:: 0.17
+
 
         Returns
         -------
@@ -1815,8 +1822,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
         -----
         .. versionadded:: 0.9.0
         """
-        _save_stc_as_volume(fname, self, src, dest=dest,
-                            mri_resolution=mri_resolution)
+        import nibabel as nib
+        img = self.as_volume(src, dest=dest, mri_resolution=mri_resolution,
+                             format=format)
+        nib.save(img, fname)
 
     def as_volume(self, src, dest='mri', mri_resolution=False,
                   format='nifti1'):
@@ -1846,9 +1855,9 @@ class VolSourceEstimate(_BaseSourceEstimate):
         -----
         .. versionadded:: 0.9.0
         """
-        return _save_stc_as_volume(None, self, src, dest=dest,
-                                   mri_resolution=mri_resolution,
-                                   format=format)
+        from .morph import _interpolate_data
+        return _interpolate_data(self, src, mri_resolution=mri_resolution,
+                                 mri_space=True, format=format)
 
     def __repr__(self):  # noqa: D105
         if isinstance(self.vertices, list):
@@ -2218,8 +2227,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
 # Morphing
 
 
-@deprecated("This function is deprecated and will be removed in version "
-            "0.19. Use morph = mne.SourceMorph and morph(stc)")
+@deprecated(_dep_str)
 @verbose
 def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
                subjects_dir=None, buffer_size=64, n_jobs=1, warn=True,
@@ -2265,19 +2273,17 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     stc_to : SourceEstimate | VectorSourceEstimate
         Source estimate for the destination subject.
     """
-    from .morph import SourceMorph
+    from .morph import compute_source_morph
     if not isinstance(stc_from, _BaseSurfaceSourceEstimate):
         raise ValueError('Morphing is only possible with surface or vector '
                          'source estimates')
 
-    return SourceMorph(subject_from=subject_from,
-                       subject_to=subject_to, spacing=grade,
-                       smooth=smooth, subjects_dir=subjects_dir,
-                       warn=warn, verbose=verbose)(stc_from)
+    return compute_source_morph(subject_from, subject_to, spacing=grade,
+                                smooth=smooth, subjects_dir=subjects_dir,
+                                warn=warn)(stc_from)
 
 
-@deprecated("This function is deprecated and will be removed in version "
-            "0.19. Use morph = mne.SourceMorph and morph(stc)")
+@deprecated(_dep_str)
 def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
                            morph_mat):
     """Morph source estimate between subjects using a precomputed matrix.
@@ -2293,8 +2299,8 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     vertices_to : list of array of int
         The vertices on the destination subject's brain.
     morph_mat : sparse matrix
-        Deprecated. Can still be obtained using
-        mne.SourceMorph(src=src).params['morph_mat'].
+        Deprecated.
+
 
     Returns
     -------
@@ -2320,11 +2326,9 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
         raise ValueError('stc_from.subject and subject_from must match')
 
     # private function only needed here to wrap the API
-    return SourceMorph(
-        subject_from=subject_from,
-        subject_to=subject_to)._update_morph_data({'vertno': vertices_to,
-                                                   'morph_mat': morph_mat},
-                                                  'surface')(stc_from)
+    return SourceMorph(subject_from=subject_from,
+                       subject_to=subject_to, vertices_to=vertices_to,
+                       morph_mat=morph_mat, kind='surface')(stc_from)
 
 
 def _get_vol_mask(src):
@@ -2661,7 +2665,7 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
 
 
 @deprecated("This function is deprecated and will be removed in version 0.18. "
-            "Use instead stc.as_volume or stc.save_as_volume methods.")
+            "Use instead stc.save_as_volume.")
 def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     """Save a volume source estimate in a NIfTI file.
 
@@ -2688,60 +2692,8 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     img : instance Nifti1Image
         The image object.
     """
-    return _save_stc_as_volume(fname, stc, src, dest=dest,
-                               mri_resolution=mri_resolution)
-
-
-def _save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False,
-                        format='nifti1'):
-    """Save a volume source estimate in a NIfTI file.
-
-    Parameters
-    ----------
-    fname : string | None
-        The name of the generated nifti file. If None, the image is only
-        returned and not saved.
-    stc : instance of VolSourceEstimate
-        The source estimate
-    src : list
-        The list of source spaces (should actually be of length 1)
-    dest : 'mri' | 'surf'
-        If 'mri' the volume is defined in the coordinate system of
-        the original T1 image. If 'surf' the coordinate system
-        of the FreeSurfer surface is used (Surface RAS).
-    mri_resolution: bool
-        It True the image is saved in MRI resolution.
-        WARNING: if you have many time points the file produced can be
-        huge.
-    format : str
-        Either 'nifti1' (default) or 'nifti2'.
-
-    Returns
-    -------
-    img : instance Nifti1Image
-        The image object.
-    """
-    from .morph import _interpolate_data, _get_src_data
-    if not isinstance(stc, VolSourceEstimate):
-        raise ValueError('Only volume source estimates can be saved as '
-                         'volumes')
-
-    src_type = _get_src_type(src, None)
-    if src_type != 'volume':
-        raise ValueError('You need a volume source space. Got type: %s.'
-                         % src_type)
-    # setup volume related information
-    is_mri = True if dest == 'mri' else False
-    img = _interpolate_data(stc, _get_src_data(src),
-                            mri_resolution=mri_resolution,
-                            mri_space=is_mri,
-                            format=format)
-    # save if desired
-    if fname is not None:
-        import nibabel as nib
-        nib.save(img, fname)
-
-    return img
+    return stc.save_as_volume(fname, src, dest=dest,
+                              mri_resolution=mri_resolution)
 
 
 def _get_label_flip(labels, label_vertidx, src):
