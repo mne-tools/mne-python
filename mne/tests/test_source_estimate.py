@@ -556,7 +556,8 @@ def test_morph_data():
                         smooth=-1,
                         subjects_dir=subjects_dir)
     # negative smooth
-    pytest.raises(ValueError, morph, stc_from)
+    with pytest.raises(ValueError, match='smooth.* has to be at least 1'):
+        morph(stc_from)
     stc_to1 = SourceMorph(subject_to=subject_to,
                           spacing=3,
                           smooth=12,
@@ -570,25 +571,45 @@ def test_morph_data():
                         subject_to=subject_from,
                         spacing=6,
                         subjects_dir=subjects_dir)
-    pytest.raises(ValueError, morph, stc_to1)
-    # make sure we can specify vertices
-    vertices_to = grade_to_vertices(subject_to, grade=3,
-                                    subjects_dir=subjects_dir)
-    # make sure we get a warning about # of smoothing steps
-    with pytest.warns(RuntimeWarning, match='consider increasing'):
-        SourceMorph(subject_from, subject_to, spacing=vertices_to,
-                    smooth=1, subjects_dir=subjects_dir)(stc_from)
+
+    with pytest.raises(ValueError, match='Cannot use icosahedral grade 6 '):
+        morph(stc_to1)
 
     assert_array_almost_equal(stc_to.data, stc_to1.data, 5)
 
+    # make sure we can specify vertices
+    vertices_to = grade_to_vertices(subject_to, grade=3,
+                                    subjects_dir=subjects_dir)
+
+    stc_to2 = SourceMorph(subject_from, subject_to,
+                          spacing=vertices_to, smooth=12,
+                          subjects_dir=subjects_dir)(stc_from)
+
+    assert_array_almost_equal(stc_to1.data, stc_to2.data)
+
+    # XXX got rid of buffer_size...
+    # # make sure we can use different buffer_size
+    # stc_to3 = SourceMorph(subject_from, subject_to, stc_from,
+    #                       spacing=vertices_to, smooth=12, buffer_size=3,
+    #                       subjects_dir=subjects_dir)(stc_from)
+
+    # # make sure we get a warning about # of smoothing steps
+    # with pytest.warns(RuntimeWarning, match='consider increasing'):
+    #     SourceMorph(subject_from, subject_to, spacing=vertices_to,
+    #                 smooth=1, subjects_dir=subjects_dir)(stc_from)
+
+    # assert_array_almost_equal(stc_to1.data, stc_to3.data)
+
     # subject from mismatch
     morph = SourceMorph(subject_from='foo')
-    pytest.raises(ValueError, morph, stc_from)
+    with pytest.raises(ValueError, match="sample != foo"):
+        morph(stc_from)
 
     # only one set of vertices
     morph = SourceMorph(subject_from=subject_from, spacing=[vertices_to[0]],
                         subjects_dir=subjects_dir)
-    pytest.raises(ValueError, morph, stc_from)
+    with pytest.raises(ValueError, match="grade.*list must have two elements"):
+        morph(stc_from)
 
     # steps warning
     with pytest.warns(RuntimeWarning, match='steps'):
@@ -604,8 +625,7 @@ def test_morph_data():
 
     # make sure we can fill by morphing (deprecation warning)
     stc_to5 = SourceMorph(subject_from=subject_from, subject_to=subject_to,
-                          spacing=None,
-                          smooth=12,
+                          spacing=None, smooth=12,
                           subjects_dir=subjects_dir)(stc_from)
     assert (stc_to5.data.shape[0] == 163842 + 163842)
 
@@ -616,8 +636,7 @@ def test_morph_data():
     stc_from._data = stc_from._data[:3]
 
     morph = SourceMorph(subject_from=subject_from, subject_to=subject_to,
-                        spacing=5,
-                        sparse=True,
+                        spacing=5, sparse=True,
                         subjects_dir=subjects_dir)
     # spacing not None
     # steps warning

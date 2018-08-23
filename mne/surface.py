@@ -861,6 +861,8 @@ def decimate_surface(points, triangles, n_triangles):
 ###############################################################################
 # Morph maps
 
+# XXX this morphing related code should probably be moved to morph.py
+
 @verbose
 def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
                    verbose=None):
