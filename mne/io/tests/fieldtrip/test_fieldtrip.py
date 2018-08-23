@@ -10,7 +10,7 @@ import pytest
 import os.path
 from mne.datasets import testing
 from .helpers import check_info_fields, get_data_paths, _has_h5py
-from mne.utils import requires_h5py, _check_pandas_installed
+from mne.utils import requires_h5py, _check_pandas_installed, requires_pandas
 
 
 @testing.requires_testing_data
@@ -68,9 +68,11 @@ def test_epoched():
             epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname)
             assert isinstance(epoched_ft.metadata, pandas.DataFrame)
         else:
-            with pytest.warns('The Pandas library is not installed. '
-                              'Not returning the original '
-                              'trialinfo matrix as metadata.'):
+            with pytest.warns(RuntimeWarning, message='The Pandas library is '
+                                                      'not installed. Not '
+                                                      'returning the original '
+                                                      'trialinfo matrix as '
+                                                      'metadata.'):
                 if version == 'v73' and not _has_h5py():
                     with pytest.raises(ImportError):
                         mne.io.read_epochs_fieldtrip(cur_fname)
@@ -114,6 +116,7 @@ def test_raw():
 
 @testing.requires_testing_data
 @requires_h5py
+@requires_pandas
 def test_whole_process_old():
     """Test the reader functions for FieldTrip data."""
     test_data_folder = os.path.join(mne.datasets.testing.data_path(),
