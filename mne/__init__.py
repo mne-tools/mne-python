@@ -48,7 +48,8 @@ from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
                       make_forward_dipole)
 from .source_estimate import (read_source_estimate, MixedSourceEstimate,
                               SourceEstimate, VectorSourceEstimate,
-                              VolSourceEstimate,
+                              VolSourceEstimate, morph_data,
+                              morph_data_precomputed,
                               grade_to_tris,
                               spatial_src_connectivity,
                               spatial_tris_connectivity,
@@ -60,7 +61,8 @@ from .source_estimate import (read_source_estimate, MixedSourceEstimate,
                               save_stc_as_volume, extract_label_time_course)
 from .surface import (read_surface, write_surface, decimate_surface, read_tri,
                       read_morph_map, get_head_surf, get_meg_helmet_surf)
-from .morph import SourceMorph, read_source_morph, grade_to_vertices
+from .morph import (SourceMorph, read_source_morph, grade_to_vertices,
+                    compute_morph_matrix)
 from .source_space import (read_source_spaces, vertex_to_mni,
                            head_to_mni, head_to_mri,
                            write_source_spaces, setup_source_space,
