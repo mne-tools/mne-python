@@ -371,10 +371,10 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
+    auto_tutorials/plot_background_freesurfer.rst
     manual/source_localization/forward.rst
     manual/source_localization/inverse.rst
-    manual/source_localization/morph.rst
-    auto_tutorials/plot_background_freesurfer.rst
+    auto_tutorials/plot_morph_stc.rst
 
 **Getting data to source space**
 
@@ -390,7 +390,6 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_point_spread.rst
     auto_tutorials/plot_dipole_orientations.rst
     auto_tutorials/plot_dics.rst
-    auto_tutorials/plot_morph_stc.rst
     auto_tutorials/plot_background_freesurfer.rst
 
 

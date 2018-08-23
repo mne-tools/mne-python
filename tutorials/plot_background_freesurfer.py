@@ -8,7 +8,7 @@ FreeSurfer is an open source analysis toolbox for MRI data. It contains several
 command line tools and graphical user interfaces. FreeSurfer can be obtained
 from https://surfer.nmr.mgh.harvard.edu/
 
-In MNE-Python, FreeSurfer is used to provide structural information of various
+In MNE, FreeSurfer is used to provide structural information of various
 kinds, for :ref:`source estimation
 <sphx_glr_auto_tutorials_plot_mne_dspm_source_localization.py>`. Thereby a
 subject specific structural MRI will be used to obtain various structural

@@ -75,6 +75,10 @@ MNE-Python core terminology and general concepts
         See :ref:`sphx_glr_auto_tutorials_plot_info.py` for a narrative
         overview.
 
+    label
+        A :class:`Label` refers to a region in the cortex, also often called
+        a region of interest (ROI) in the literature.
+
     montage
         EEG channel names and the relative positions of the sensor w.r.t. the scalp.
         See :class:`Montage <channels.Montage>` for the API of the corresponding object
