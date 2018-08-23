@@ -19,6 +19,14 @@ info_ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
 ch_ignore_fields = ('logno', 'cal', 'range')
 
 
+def _has_h5py():
+    try:
+        import h5py
+        return True
+    except ImportError:
+        return False
+
+
 def _remove_ignored_ch_fields(info):
     if 'chs' in info:
         for cur_ch in info['chs']:
