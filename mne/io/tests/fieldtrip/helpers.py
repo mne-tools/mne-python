@@ -21,7 +21,7 @@ ch_ignore_fields = ('logno', 'cal', 'range')
 
 def _has_h5py():
     try:
-        import h5py
+        import h5py  # noqa
         return True
     except ImportError:
         return False
