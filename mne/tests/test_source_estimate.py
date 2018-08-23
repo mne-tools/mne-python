@@ -635,8 +635,6 @@ def test_morph_data():
     stc_from.vertices[1] = stc_from.vertices[1][[200]]
     stc_from._data = stc_from._data[:3]
 
-    # XXX : why needing to specify spacing with sparse=True?
-    # why not an auto model ignoring spacing if sparse == True?
     morph = SourceMorph(subject_from=subject_from, subject_to=subject_to,
                         spacing=None, sparse=True, subjects_dir=subjects_dir)
     stc_to_sparse = morph(stc_from)
