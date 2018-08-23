@@ -535,6 +535,9 @@ def test_extract_label_time_course():
     assert (x.size == 0)
 
 
+# XXX once in master this test_morph_data function need to be put
+# in test_morph.py
+
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_morph_data():
@@ -587,16 +590,10 @@ def test_morph_data():
 
     assert_array_almost_equal(stc_to1.data, stc_to2.data)
 
-    # XXX got rid of buffer_size...
-    # # make sure we can use different buffer_size
-    # stc_to3 = SourceMorph(subject_from, subject_to, stc_from,
-    #                       spacing=vertices_to, smooth=12, buffer_size=3,
-    #                       subjects_dir=subjects_dir)(stc_from)
-
-    # # make sure we get a warning about # of smoothing steps
-    # with pytest.warns(RuntimeWarning, match='consider increasing'):
-    #     SourceMorph(subject_from, subject_to, spacing=vertices_to,
-    #                 smooth=1, subjects_dir=subjects_dir)(stc_from)
+    # make sure we get a warning about # of smoothing steps
+    with pytest.warns(RuntimeWarning, match='consider increasing'):
+        SourceMorph(subject_from, subject_to, spacing=vertices_to,
+                    smooth=1, subjects_dir=subjects_dir)(stc_from)
 
     # assert_array_almost_equal(stc_to1.data, stc_to3.data)
 
