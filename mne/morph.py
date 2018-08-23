@@ -132,7 +132,8 @@ class SourceMorph(object):
         If None, smooth is automatically defined to fill the surface
         with non-zero values.
     warn : bool
-        If True, warn if not all vertices were used.
+        If True, warn if not all vertices were used. warn is set to False
+        if sparse is True.
     xhemi : bool
         Morph across hemisphere.
     params : dict
@@ -190,7 +191,7 @@ class SourceMorph(object):
 
         # Params for surface morphing
         self.smooth = smooth
-        self.warn = warn
+        self.warn = False if sparse else warn
 
         if self.kind not in 'surface' and xhemi:
             raise ValueError('Inter-hemispheric morphing can only be used '
@@ -280,7 +281,8 @@ class SourceMorph(object):
 
         if self.sparse:
             if self.spacing is not None:
-                raise RuntimeError('grade must be set to None if sparse=True.')
+                raise RuntimeError('spacing must be set to None if '
+                                   'sparse=True.')
             return _morph_sparse(stc, self.subject_from, self.subject_to,
                                  self.subjects_dir)
 

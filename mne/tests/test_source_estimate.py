@@ -635,18 +635,17 @@ def test_morph_data():
     stc_from.vertices[1] = stc_from.vertices[1][[200]]
     stc_from._data = stc_from._data[:3]
 
+    # XXX : why needing to specify spacing with sparse=True?
+    # why not an auto model ignoring spacing if sparse == True?
     morph = SourceMorph(subject_from=subject_from, subject_to=subject_to,
-                        spacing=5, sparse=True,
-                        subjects_dir=subjects_dir)
+                        spacing=None, sparse=True, subjects_dir=subjects_dir)
+    stc_to_sparse = morph(stc_from)
+
     # spacing not None
-    # steps warning
-    with pytest.warns(RuntimeWarning, match='steps'):
-        pytest.raises(RuntimeError, morph, stc_from)
-        stc_to_sparse = SourceMorph(subject_from=subject_from,
-                                    subject_to=subject_to,
-                                    spacing=None,
-                                    sparse=True,
-                                    subjects_dir=subjects_dir)(stc_from)
+    morph = SourceMorph(subject_from=subject_from, subject_to=subject_to,
+                        spacing=5, sparse=True, subjects_dir=subjects_dir)
+    with pytest.raises(RuntimeError, match="spacing"):
+        morph(stc_from)
 
     assert_array_almost_equal(np.sort(stc_from.data.sum(axis=1)),
                               np.sort(stc_to_sparse.data.sum(axis=1)))
@@ -659,12 +658,11 @@ def test_morph_data():
     stc_from.vertices[0] = np.array([], dtype=np.int64)
     stc_from._data = stc_from._data[:1]
 
-    with pytest.warns(RuntimeWarning, match='steps'):
-        stc_to_sparse = SourceMorph(subject_from=subject_from,
-                                    subject_to=subject_to,
-                                    spacing=None,
-                                    sparse=True,
-                                    subjects_dir=subjects_dir)(stc_from)
+    stc_to_sparse = SourceMorph(subject_from=subject_from,
+                                subject_to=subject_to,
+                                spacing=None,
+                                sparse=True,
+                                subjects_dir=subjects_dir)(stc_from)
 
     assert_array_almost_equal(np.sort(stc_from.data.sum(axis=1)),
                               np.sort(stc_to_sparse.data.sum(axis=1)))
