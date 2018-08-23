@@ -9,12 +9,11 @@ import numpy as np
 import pytest
 import os.path
 from mne.datasets import testing
-from .helpers import check_info_fields, get_data_paths
+from .helpers import check_info_fields, get_data_paths, _has_h5py
 from mne.utils import requires_h5py, _check_pandas_installed
 
 
 @testing.requires_testing_data
-@requires_h5py
 def test_averaged():
     """Test comparing reading an Evoked object and the FieldTrip version."""
     (test_data_folder_ft, raw_fiff_file) = get_data_paths()
@@ -29,6 +28,11 @@ def test_averaged():
     for version in all_versions:
         cur_fname = os.path.join(test_data_folder_ft,
                                  'averaged_%s.mat' % (version,))
+        if version == 'v73' and not _has_h5py():
+            with pytest.raises(ImportError):
+                mne.io.read_evoked_fieldtrip(cur_fname)
+            continue
+
         avg_ft = mne.io.read_evoked_fieldtrip(cur_fname)
         avg_ft.pick_types(meg=True, eeg=True)
 
@@ -40,7 +44,6 @@ def test_averaged():
 
 
 @testing.requires_testing_data
-@requires_h5py
 def test_epoched():
     """Test comparing reading an Epochs object and the FieldTrip version."""
     has_pandas = _check_pandas_installed(strict=False) is not False
@@ -58,12 +61,20 @@ def test_epoched():
                                  'epoched_%s.mat' % (version,))
         if has_pandas:
             pandas = _check_pandas_installed()
+            if version == 'v73' and not _has_h5py():
+                with pytest.raises(ImportError):
+                    mne.io.read_epochs_fieldtrip(cur_fname)
+                continue
             epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname)
             assert isinstance(epoched_ft.metadata, pandas.DataFrame)
         else:
             with pytest.warns('The Pandas library is not installed. '
                               'Not returning the original '
                               'trialinfo matrix as metadata.'):
+                if version == 'v73' and not _has_h5py():
+                    with pytest.raises(ImportError):
+                        mne.io.read_epochs_fieldtrip(cur_fname)
+                    continue
                 epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname)
                 assert epoched_ft.metadata is None
 
@@ -75,7 +86,6 @@ def test_epoched():
 
 
 @testing.requires_testing_data
-@requires_h5py
 def test_raw():
     """Test comparing reading a raw fiff file and the FieldTrip version."""
     # Load the raw fiff file with mne
@@ -87,6 +97,11 @@ def test_raw():
     for version in all_versions:
         cur_fname = os.path.join(test_data_folder_ft,
                                  'raw_%s.mat' % (version,))
+
+        if version == 'v73' and not _has_h5py():
+            with pytest.raises(ImportError):
+                mne.io.read_raw_fieldtrip(cur_fname)
+            continue
         raw_fiff_ft = mne.io.read_raw_fieldtrip(cur_fname)
 
         # Check that the data was loaded correctly
