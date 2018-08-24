@@ -68,15 +68,16 @@ def test_epoched():
             epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname)
             assert isinstance(epoched_ft.metadata, pandas.DataFrame)
         else:
+            if version == 'v73' and not _has_h5py():
+                with pytest.raises(ImportError):
+                    mne.io.read_epochs_fieldtrip(cur_fname)
+                continue
             with pytest.warns(RuntimeWarning, message='The Pandas library is '
                                                       'not installed. Not '
                                                       'returning the original '
                                                       'trialinfo matrix as '
                                                       'metadata.'):
-                if version == 'v73' and not _has_h5py():
-                    with pytest.raises(ImportError):
-                        mne.io.read_epochs_fieldtrip(cur_fname)
-                    continue
+
                 epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname)
                 assert epoched_ft.metadata is None
 
