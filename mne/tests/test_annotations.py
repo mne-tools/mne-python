@@ -513,4 +513,28 @@ def test_events_from_annot():
     assert_array_equal(expected_events5, events5)
 
 
+@testing.requires_testing_data
+def test_eeglab_event_from_annot(recwarn):
+    """Test all forms of obtaining annotations"""
+    from mne.io import read_raw_eeglab
+    from mne.io.eeglab import read_annotations_eeglab, read_events_eeglab
+    import mne
+    base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
+    raw_fname_mat = op.join(base_dir, 'test_raw.set')
+    raw_fname = raw_fname_mat
+    montage = op.join(base_dir, 'test_chans.locs')
+    event_id = {'rt': 1, 'square': 2}
+    raw1 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+                           event_id=event_id, preload=False)
+
+    events_a = mne.find_events(raw1)
+    events_b = read_events_eeglab(raw_fname, event_id=event_id)
+    annotations = read_annotations_eeglab(raw_fname)
+    assert raw1.annotations is None
+    raw1.set_annotations(annotations)
+    events_c, _ = events_from_annotations(raw1, event_id=event_id,)
+
+    assert_array_equal(events_a, events_b)
+    assert_array_equal(events_a, events_c)
+
 run_tests_if_main()
