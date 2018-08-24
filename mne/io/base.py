@@ -2223,7 +2223,6 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
             write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 2)
             end_block(fid, FIFF.FIFFB_REF)
 
-
     pos_prev = fid.tell()
     if pos_prev > split_size:
         fid.close()
