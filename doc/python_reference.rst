@@ -465,6 +465,7 @@ Events
    read_events
    write_events
    concatenate_epochs
+   events_from_annotations
 
 :py:mod:`mne.event`:
 

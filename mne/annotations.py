@@ -8,7 +8,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from .utils import _pl, check_fname, _validate_type, warn
+from .utils import _pl, check_fname, _validate_type, verbose, warn, logger
 from .externals.six import string_types
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
@@ -443,3 +443,80 @@ def _ensure_annotation_object(obj):
     if not isinstance(obj, Annotations):
         raise ValueError('Annotations must be an instance of '
                          'mne.Annotations. Got %s.' % obj)
+
+
+@verbose
+def events_from_annotations(raw, event_id=None, regexp=None,
+                            event_id_func=None, verbose=None):
+    """Get events and event_id from an Annotations object
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        The raw data for which Annotations are defined.
+    event_id : dict | None
+        Dictionary of string keys and integer values as used in mne.Epochs
+        to map annotation descriptions to integer event codes. If None,
+        all descriptions of annotations are mapped and assigned arbitrary
+        unique integer values. Else, only the keys present will be mapped
+        and and the annotations with other descriptions will be ignored.
+    regexp : str | None
+        Regular expression used to filter the annotations whose
+        descriptions is a match.
+    event_id_func : None | str | callable
+        What to do for events not found in ``event_id``. Must take one ``str``
+        argument and return an ``int``. If string, must be 'strip-to-integer',
+        in which case it defaults to stripping event codes such as "D128" or
+        "S  1" of their non-integer parts and returns the integer.
+        If the event is not in the ``event_id`` and calling ``event_id_func``
+        on it results in a ``TypeError`` (e.g. if ``event_id_func`` is
+        ``None``) or a ``ValueError``, the event is dropped.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see
+        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+        for more). Defaults to self.verbose.
+
+    Returns
+    -------
+    events : ndarray, shape (n_events, 3)
+        The events.
+    event_id : dict
+        The event_id variable that can be passed to Epochs.
+    """
+    import re
+
+    if raw.annotations is None:
+        return np.asarray([]), event_id
+
+    annotations = raw.annotations
+
+    inds = raw.time_as_index(
+        annotations.onset, use_rounding=True) + raw.first_samp
+
+    unique_keys = np.unique(annotations.description)
+
+    logger.info('Annotations descriptions: %s' % unique_keys)
+
+    if regexp is not None:
+        pat = re.compile(regexp)
+        unique_keys = [kk for kk in unique_keys if pat.match(kk)]
+
+    if event_id is None:
+        event_id_ = dict(
+            zip(unique_keys, np.arange(1, 1 + len(unique_keys))))
+    else:
+        event_id_ = {k: v for k, v in event_id.items()
+                        if k in unique_keys}
+
+    event_sel = [ii for ii, kk in
+                    enumerate(annotations.description)
+                    if kk in event_id_]
+    if len(event_sel) == 0:
+        raise ValueError('Could not find any of the events you specified.')
+    values = [event_id_[kk] for kk in
+                annotations.description[event_sel]]
+    previous_value = np.zeros(len(event_sel))
+    inds = inds[event_sel]
+    events = np.c_[inds, previous_value, values].astype(int)
+
+    return events, event_id_
