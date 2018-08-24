@@ -238,7 +238,10 @@ _SOURCE_MORPH_ATTRIBUTES = [  # used in writing
 class SourceMorph(object):
     """Morph source space data from one subject to another.
 
-    Attributes
+    .. note:: This class should not be instantiated directly.
+              Use :func:`mne.compute_source_morph` instead.
+
+    Parameters
     ----------
     subject_from : str | None
         Name of the subject from which to morph as named in the SUBJECTS_DIR
@@ -282,6 +285,22 @@ class SourceMorph(object):
         with non-zero values.
     xhemi : bool
         Morph across hemisphere.
+    morph_mat : scipy.sparse.csr_matrix
+        XXX
+    vertices_to : XXX
+        XXX
+    morph_shape : XXX
+        XXX
+    morph_zooms : XXX
+        XXX
+    morph_affine : XXX
+        XXX
+    pre_sdr_affine : XXX
+        XXX
+    sdr_mapping : XXX
+        XXX
+    src_data : XXX
+        XXX
     """
 
     def __init__(self, subject_from, subject_to, kind,

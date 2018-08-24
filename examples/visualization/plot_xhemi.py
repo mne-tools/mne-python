@@ -24,17 +24,17 @@ stc = mne.read_source_estimate(stc_path, 'sample')
 
 # First, morph the data to fsaverage_sym, for which we have left_right
 # registrations:
-stc = stc.morph('fsaverage_sym', subjects_dir=subjects_dir, smooth=5)
+stc = mne.compute_source_morph('sample', 'fsaverage_sym', smooth=5, warn=False,
+                               src=stc, subjects_dir=subjects_dir)(stc)
 
 # Compute a morph-matrix mapping the right to the left hemisphere. Use the
 # vertices parameters to determine source and target hemisphere:
-morph = mne.SourceMorph(subject_from='fsaverage_sym',
-                        subject_to='fsaverage_sym',
-                        spacing=[stc.vertices[0], []],
-                        subjects_dir=subjects_dir, xhemi=True)
+morph = mne.compute_source_morph('fsaverage_sym', 'fsaverage_sym', src=stc,
+                                 spacing=[stc.vertices[0], []], warn=False,
+                                 subjects_dir=subjects_dir, xhemi=True)
 stc_m = morph(stc)
 
-mm = morph.params['morph_mat']
+mm = morph.morph_mat
 
 # SourceEstimate on the left hemisphere:
 stc_lh = mne.SourceEstimate(stc.lh_data, [stc.vertices[0], []], stc.tmin,

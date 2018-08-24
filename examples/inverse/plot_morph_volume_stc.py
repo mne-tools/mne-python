@@ -61,7 +61,8 @@ stc.crop(0.09, 0.09)
 # Get a SourceMorph object for VolSourceEstimate
 # ----------------------------------------------
 #
-# ``subject_from`` can be inferred from :class:`src <mne.SourceSpaces>`,
+# ``subject_from`` can typically be inferred from
+# :class:`src <mne.SourceSpaces>`,
 # and ``subject_to`` is  set to 'fsaverage' by default. ``subjects_dir`` can be
 # None when set in the environment. In that case SourceMorph can be initialized
 # taking ``src`` as only argument. See :class:`mne.SourceMorph` for more
@@ -74,8 +75,9 @@ stc.crop(0.09, 0.09)
 #
 # A standard usage for volumetric data reads:
 
-morph = compute_source_morph(subject_to='fsaverage', subjects_dir=subjects_dir,
-                             src=inverse_operator['src'])
+morph = compute_source_morph(subject_from='sample', subject_to='fsaverage',
+                             src=inverse_operator['src'],
+                             subjects_dir=subjects_dir)
 
 ###############################################################################
 # Apply morph to VolSourceEstimate
@@ -136,16 +138,15 @@ display.add_overlay(img_fsaverage, alpha=0.75)
 #
 # This methods allows for specification of a filename under which the ``morph``
 # will be save in ".h5" format. If no file extension is provided, "-morph.h5"
-# will be appended to the respective defined filename.
-
-morph.save('my-file-name')
-
+# will be appended to the respective defined filename::
+#
+#     >>> morph.save('my-file-name')
+#
 # Reading a saved source morph can be achieved by using
-# :func:`mne.read_source_morph`:
-
-morph = read_source_morph('my-file-name-morph.h5')
-
-###############################################################################
+# :func:`mne.read_source_morph`::
+#
+#     >>> morph = read_source_morph('my-file-name-morph.h5')
+#
 # Additional Info
 # ===============
 #
@@ -175,5 +176,6 @@ img = morph(stc, as_volume=True, apply_morph=True)
 # easily chained into a handy one-liner. Taking this together the shortest
 # possible way to morph data directly would be:
 
-stc_fsaverage = compute_source_morph(src=inverse_operator['src'],
+stc_fsaverage = compute_source_morph(subject_from='sample',
+                                     src=inverse_operator['src'],
                                      subjects_dir=subjects_dir)(stc)
