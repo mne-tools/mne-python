@@ -746,11 +746,15 @@ def _read_annotations_eeglab(eeg):
     events = _bunchify(events)
     description = [str(event.type) for event in events]
     onset = [event.latency - 1 for event in events]
+    onset = np.array(onset) / eeg.srate
     duration = np.zeros(len(onset))
     if len(events) > 0 and hasattr(events[0], 'duration'):
         duration[:] = [event.duration for event in events]
 
-    return Annotations(onset=onset, duration=duration, description=description)
+    return Annotations(onset=onset,
+                       duration=duration,
+                       description=description,
+                       orig_time=None)
 
 
 def _dol_to_lod(dol):
