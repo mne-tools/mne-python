@@ -40,7 +40,7 @@ mm = morph.morph_mat
 stc_lh = mne.SourceEstimate(stc.lh_data, [stc.vertices[0], []], stc.tmin,
                             stc.tstep, stc.subject)
 # SourceEstimate of the right hemisphere, morphed to the left:
-stc_rh_on_lh = mne.SourceEstimate(mm * stc.rh_data, [stc.vertices[0], []],
+stc_rh_on_lh = mne.SourceEstimate(mm * stc.data, [stc.vertices[0], []],
                                   stc.tmin, stc.tstep, stc.subject)
 # Since both STCs are now on the same hemisphere we can subtract them:
 diff = stc_lh - stc_rh_on_lh

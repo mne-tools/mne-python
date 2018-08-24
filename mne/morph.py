@@ -1227,12 +1227,7 @@ def _apply_morph_data(morph, stc_from):
         # select correct data - since vertices_to can have empty hemispheres,
         # the correct data needs to be selected in order to apply the morph_mat
         # correctly
-        data = (stc_from.data
-                if len(vertices_to[0]) != 0 and len(vertices_to[1]) != 0
-                else (stc_from.lh_data
-                      if len(vertices_to[0]) != 0
-                      else stc_from.rh_data))
-
+        data = stc_from.data
         # apply morph and return new morphed instance of (Vector)SourceEstimate
         if isinstance(stc_from, VectorSourceEstimate):
             # Morph the locations of the dipoles, but not their orientation

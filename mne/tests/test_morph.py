@@ -37,6 +37,7 @@ fname_inv_surf = op.join(sample_dir,
 fname_smorph = op.join(sample_dir, 'sample_audvis_trunc-meg')
 fname_t1 = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
 fname_brain = op.join(subjects_dir, 'sample', 'mri', 'brain.mgz')
+fname_stc = op.join(sample_dir, 'fsaverage_audvis_trunc-meg')
 
 
 def _real_vec_stc():
@@ -92,6 +93,24 @@ def test_sparse_morph():
         orders.append(order + offset)
         offset += len(order)
     assert_allclose(stc_fs.data, stc_fs_return.data[np.concatenate(orders)])
+
+
+@testing.requires_testing_data
+def test_xhemi_morph():
+    """Test cross-hemisphere morphing."""
+    stc = read_source_estimate(fname_stc, subject='sample')
+    # just smoke tests for now
+    stc = compute_source_morph(
+        'sample', 'fsaverage_sym', smooth=5, warn=False, src=stc,
+        subjects_dir=subjects_dir)(stc)
+    stc_m = compute_source_morph(
+        'fsaverage_sym', 'fsaverage_sym', src=stc, xhemi=True, warn=False,
+        spacing=[stc.vertices[0], []], subjects_dir=subjects_dir)(stc)
+    assert stc_m.data.shape[0] == 10242
+    assert stc_m.rh_data.shape[0] == 10242
+    assert len(stc_m.vertices[1]) == 10242
+    assert stc_m.lh_data.shape[0] == 0
+    assert len(stc_m.vertices[0]) == 0
 
 
 @requires_nibabel()

@@ -2686,6 +2686,7 @@ def sys_info(fid=None, show_paths=False):
         mayavi:        4.3.1
         cupy:          4.1.0
         pandas:        0.17.1+25.g547750a
+        dipy:          0.14.0
 
     """  # noqa: E501
     ljust = 15
@@ -2723,7 +2724,7 @@ def sys_info(fid=None, show_paths=False):
                 libs += ['%s=%s' % (key, lib)]
     libs = ', '.join(libs)
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
-                     'nibabel', 'mayavi', 'cupy', 'pandas'):
+                     'nibabel', 'mayavi', 'cupy', 'pandas', 'dipy'):
         if mod_name == '':
             out += '\n'
             continue

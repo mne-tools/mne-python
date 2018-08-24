@@ -27,7 +27,7 @@ source estimate.
 # License: BSD (3-clause)
 import os
 
-from mne import read_source_estimate, compute_source_morph, read_source_morph
+import mne
 from mne.datasets import sample
 
 print(__doc__)
@@ -45,7 +45,7 @@ fname_stc = os.path.join(sample_dir, 'sample_audvis-meg')
 # Load example data
 
 # Read stc from file
-stc = read_source_estimate(fname_stc, subject='sample')
+stc = mne.read_source_estimate(fname_stc, subject='sample')
 
 ###############################################################################
 # Setting up SourceMorph for SourceEstimate
@@ -75,8 +75,8 @@ stc = read_source_estimate(fname_stc, subject='sample')
 #
 # Initialize SourceMorph for SourceEstimate
 
-morph = compute_source_morph(subject_from='sample', subject_to='fsaverage',
-                             src=stc, subjects_dir=subjects_dir)
+morph = mne.compute_source_morph(subject_from='sample', subject_to='fsaverage',
+                                 src=stc, subjects_dir=subjects_dir)
 
 ###############################################################################
 # Apply morph to (Vector) SourceEstimate
@@ -129,7 +129,7 @@ brain_inf.add_text(0.1, 0.9, 'Morphed to fsaverage (inflated)', 'title',
 # Reading a saved source morph can be achieved by using
 # :func:`mne.read_source_morph`::
 #
-#     >>> morph = read_source_morph('my-file-name-morph.h5')
+#     >>> morph = mne.read_source_morph('my-file-name-morph.h5')
 #
 # Once the environment is set up correctly, no information such as
 # ``subject_from`` or ``subjects_dir`` must be provided, since it can be
@@ -140,5 +140,5 @@ brain_inf.add_text(0.1, 0.9, 'Morphed to fsaverage (inflated)', 'title',
 # easily chained into a handy one-liner. Taking this together the shortest
 # possible way to morph data directly would be:
 
-stc_fsaverage = compute_source_morph(subjects_dir=subjects_dir,
-                                     src=stc)(stc)
+stc_fsaverage = mne.compute_source_morph(subjects_dir=subjects_dir,
+                                         src=stc)(stc)

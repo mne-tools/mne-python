@@ -24,7 +24,7 @@ anatomical MRI, overlaid with the morphed volumetric source estimate.
 import os
 
 import nibabel as nib
-from mne import read_evokeds, compute_source_morph, read_source_morph
+import mne
 from mne.datasets import sample
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from nilearn.plotting import plot_glass_brain
@@ -48,7 +48,7 @@ fname_t1_fsaverage = os.path.join(subjects_dir, 'fsaverage', 'mri',
 # :ref:`sphx_glr_auto_examples_inverse_plot_compute_mne_inverse_volume.py`
 #
 # Load data:
-evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
+evoked = mne.read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
 inverse_operator = read_inverse_operator(fname_inv)
 
 # Apply inverse operator
@@ -75,9 +75,9 @@ stc.crop(0.09, 0.09)
 #
 # A standard usage for volumetric data reads:
 
-morph = compute_source_morph(subject_from='sample', subject_to='fsaverage',
-                             src=inverse_operator['src'],
-                             subjects_dir=subjects_dir)
+morph = mne.compute_source_morph(subject_from='sample', subject_to='fsaverage',
+                                 src=inverse_operator['src'],
+                                 subjects_dir=subjects_dir)
 
 ###############################################################################
 # Apply morph to VolSourceEstimate
@@ -145,7 +145,7 @@ display.add_overlay(img_fsaverage, alpha=0.75)
 # Reading a saved source morph can be achieved by using
 # :func:`mne.read_source_morph`::
 #
-#     >>> morph = read_source_morph('my-file-name-morph.h5')
+#     >>> morph = mne.read_source_morph('my-file-name-morph.h5')
 #
 # Additional Info
 # ===============
@@ -176,6 +176,6 @@ img = morph(stc, as_volume=True, apply_morph=True)
 # easily chained into a handy one-liner. Taking this together the shortest
 # possible way to morph data directly would be:
 
-stc_fsaverage = compute_source_morph(subject_from='sample',
-                                     src=inverse_operator['src'],
-                                     subjects_dir=subjects_dir)(stc)
+stc_fsaverage = mne.compute_source_morph(subject_from='sample',
+                                         src=inverse_operator['src'],
+                                         subjects_dir=subjects_dir)(stc)

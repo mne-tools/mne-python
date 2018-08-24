@@ -554,12 +554,12 @@ def test_morph_data():
                        [0, len(stc_to.times) - 1])
 
     with pytest.raises(ValueError, match='smooth.* has to be at least 1'):
-        morph = compute_source_morph(
+        compute_source_morph(
             subject_from, subject_to, src=stc_from, spacing=5, smooth=-1,
             subjects_dir=subjects_dir)
     stc_to1 = compute_source_morph(
-       subject_to=subject_to, spacing=3, smooth=12, src=stc_from,
-       subjects_dir=subjects_dir)(stc_from)
+        subject_to=subject_to, spacing=3, smooth=12, src=stc_from,
+        subjects_dir=subjects_dir)(stc_from)
 
     stc_to1.save(op.join(tempdir, '%s_audvis-meg' % subject_to))
     # Morphing to a density that is too high should raise an informative error
@@ -604,8 +604,8 @@ def test_morph_data():
     # steps warning
     with pytest.warns(RuntimeWarning, match='steps'):
         compute_source_morph(
-           subject_from, subject_to, subjects_dir=subjects_dir,
-           smooth=1, spacing=vertices_to, src=stc_from)(stc_from)
+            subject_from, subject_to, subjects_dir=subjects_dir,
+            smooth=1, spacing=vertices_to, src=stc_from)(stc_from)
 
     mean_from = stc_from.data.mean(axis=0)
     mean_to = stc_to1.data.mean(axis=0)
