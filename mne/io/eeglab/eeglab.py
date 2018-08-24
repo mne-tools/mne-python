@@ -593,6 +593,10 @@ class EpochsEEGLAB(BaseEpochs):
         logger.info('Ready.')
 
 
+from mne.utils import deprecated
+@deprecated('read_events_eeglab is deprecated from 0.17 and will be removed'
+            ' in 0.18. Please use read_annotations_eeglab and create events'
+            ' using events_from_annotations')
 def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
                        uint16_codec=None):
     r"""Create events array from EEGLAB structure.
@@ -662,7 +666,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
         eeg = io.loadmat(eeg, struct_as_record=False, squeeze_me=True,
                          uint16_codec=uint16_codec)['EEG']
 
-    annotations = _read_annotations_eeglab(eeg)
+    annotations = _read_annotations_eeglab(eeg, output_type='sample')
     types = annotations.description
     latencies = annotations.onset
 
@@ -733,7 +737,31 @@ def _bunchify(items):
     return items
 
 
-def _read_annotations_eeglab(eeg, xxx=False):
+def _read_annotations_eeglab(eeg, output_type=None):
+    r"""Create Annotations from EEGLAB file.
+
+    This function reads the event attribute from the EEGLAB
+    structure and makes an :class:`mne.Annotations` object.
+
+    Parameters
+    ----------
+    eeg : object
+        'EEG' struct
+
+    output_type: str
+        The only valid values are: 'sample' or 'time_stamp'. This parameter is
+        used for back compatibility to replicate a buggy behavior. When
+        output_type='sample' the returned annotation object is not valid since
+        annotation.onset are sample ids rather than time stamps (and this is a
+        BUG). output_type='time_stamp' produce proper annotation object.
+
+    Returns
+    -------
+    annotations : instance of Annotations
+        The annotations present in the file.
+    """
+    assert output_type is not None and output_type in ['sample', 'time_stamp']
+
     if not hasattr(eeg, 'event'):
         events = []
     elif isinstance(eeg.event, dict) and \
@@ -750,11 +778,8 @@ def _read_annotations_eeglab(eeg, xxx=False):
     if len(events) > 0 and hasattr(events[0], 'duration'):
         duration[:] = [event.duration for event in events]
 
-    if xxx:
+    if output_type == "time_stamp":
         onset = np.array(onset) / eeg.srate
-    else:
-        # warn('xxxxxxxxx', category=DeprecationWarning)
-        pass
 
     return Annotations(onset=onset,
                        duration=duration,
@@ -791,7 +816,7 @@ def read_annotations_eeglab(fname, uint16_codec=None):
         The annotations present in the file.
     """
     eeg = _check_load_mat(fname, uint16_codec=uint16_codec)
-    return _read_annotations_eeglab(eeg, xxx=True)
+    return _read_annotations_eeglab(eeg, output_type='time_stamp')
 
 
 def _strip_to_integer(trigger):

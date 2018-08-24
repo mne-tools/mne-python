@@ -54,6 +54,7 @@ def _check_h5(fname):
 
 @requires_h5py
 @testing.requires_testing_data
+# @pytest.mark.filterwarnings('ignore:is deprecated in 0.17 and')
 @pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
 def test_io_set_raw(fnames, tmpdir):
     """Test importing EEGLAB .set files."""
@@ -85,7 +86,7 @@ def test_io_set_raw(fnames, tmpdir):
         assert_equal(epochs["square"].average().nave, 80)  # 80 with
         assert_array_equal(raw0[:][0], raw1[:][0], raw2[:][0], raw3[:][0])
         assert_array_equal(raw0[:][-1], raw1[:][-1], raw2[:][-1], raw3[:][-1])
-        assert_equal(len(w), 4)
+        assert_equal(len(w), 9)
         # 1 for preload=False / str with fname_onefile, 3 for dropped events
         raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
                     phase='zero')  # test that preloading works
