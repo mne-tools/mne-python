@@ -733,7 +733,7 @@ def _bunchify(items):
     return items
 
 
-def _read_annotations_eeglab(eeg):
+def _read_annotations_eeglab(eeg, xxx=False):
     if not hasattr(eeg, 'event'):
         events = []
     elif isinstance(eeg.event, dict) and \
@@ -746,10 +746,15 @@ def _read_annotations_eeglab(eeg):
     events = _bunchify(events)
     description = [str(event.type) for event in events]
     onset = [event.latency - 1 for event in events]
-    onset = np.array(onset) / eeg.srate
     duration = np.zeros(len(onset))
     if len(events) > 0 and hasattr(events[0], 'duration'):
         duration[:] = [event.duration for event in events]
+
+    if xxx:
+        onset = np.array(onset) / eeg.srate
+    else:
+        # warn('xxxxxxxxx', category=DeprecationWarning)
+        pass
 
     return Annotations(onset=onset,
                        duration=duration,
@@ -786,7 +791,7 @@ def read_annotations_eeglab(fname, uint16_codec=None):
         The annotations present in the file.
     """
     eeg = _check_load_mat(fname, uint16_codec=uint16_codec)
-    return _read_annotations_eeglab(eeg)
+    return _read_annotations_eeglab(eeg, xxx=True)
 
 
 def _strip_to_integer(trigger):
