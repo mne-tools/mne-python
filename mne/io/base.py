@@ -1607,7 +1607,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=None,
              drop_small_buffer=False, proj=False, fmt='single',
-             overwrite=False, split_size='2GB', verbose=None):
+             overwrite=False, split_size='2GB', split_naming='elekta',
+             verbose=None):
         """Save raw data to file.
 
         Parameters
@@ -1661,6 +1662,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             .. note:: Due to FIFF file limitations, the maximum split
                       size is 2GB.
 
+        split_naming : string ('elekta' | 'bids')
+            Add the filename partition with the appropriate naming schema.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1734,9 +1737,18 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         buffer_size = self._get_buffer_size(buffer_size_sec)
 
         # write the raw file
-        _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
-                   start, stop, buffer_size, projector, drop_small_buffer,
-                   split_size, 0, None)
+        if split_naming == 'elekta':
+            _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
+                       start, stop, buffer_size, projector, drop_small_buffer,
+                       split_size, split_naming, 0, None)
+        elif split_naming == 'bids':
+            _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
+                       start, stop, buffer_size, projector, drop_small_buffer,
+                       split_size, split_naming, 1, None)
+        else:
+            err = ("split_naming must be either 'elekta' or 'bids instead of'"
+                   "'{}'".format(split_naming))
+            raise ValueError(err)
 
     @copy_function_doc_to_method_doc(plot_raw)
     def plot(self, events=None, duration=10.0, start=0.0, n_channels=20,
@@ -2161,7 +2173,7 @@ class _RawShell():
 # Writing
 def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                stop, buffer_size, projector, drop_small_buffer,
-               split_size, part_idx, prev_fname):
+               split_size, split_naming, part_idx, prev_fname):
     """Write raw file with splitting."""
     # we've done something wrong if we hit this
     n_times_max = len(raw.times)
@@ -2170,9 +2182,15 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                            '(max: %s) requested' % (start, stop, n_times_max))
 
     if part_idx > 0:
-        # insert index in filename
-        base, ext = op.splitext(fname)
-        use_fname = '%s-%d%s' % (base, part_idx, ext)
+        if split_naming == 'elekta':
+            # insert index in filename
+            base, ext = op.splitext(fname)
+            use_fname = '%s-%d%s' % (base, part_idx, ext)
+        else:
+            # insert index in filename
+            base, ext = op.splitext(fname)
+            use_fname = '%s_part-%02d_meg%s' % (base, part_idx, ext)
+
     else:
         use_fname = fname
     logger.info('Writing %s' % use_fname)
@@ -2186,14 +2204,25 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
 
     # previous file name and id
-    if part_idx > 0 and prev_fname is not None:
-        start_block(fid, FIFF.FIFFB_REF)
-        write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
-        write_string(fid, FIFF.FIFF_REF_FILE_NAME, prev_fname)
-        if info['meas_id'] is not None:
-            write_id(fid, FIFF.FIFF_REF_FILE_ID, info['meas_id'])
-        write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 1)
-        end_block(fid, FIFF.FIFFB_REF)
+    if split_naming == 'elekta':
+        if part_idx > 0 and prev_fname is not None:
+            start_block(fid, FIFF.FIFFB_REF)
+            write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
+            write_string(fid, FIFF.FIFF_REF_FILE_NAME, prev_fname)
+            if info['meas_id'] is not None:
+                write_id(fid, FIFF.FIFF_REF_FILE_ID, info['meas_id'])
+            write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 1)
+            end_block(fid, FIFF.FIFFB_REF)
+    else:
+        if part_idx > 1 and prev_fname is not None:
+            start_block(fid, FIFF.FIFFB_REF)
+            write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
+            write_string(fid, FIFF.FIFF_REF_FILE_NAME, prev_fname)
+            if info['meas_id'] is not None:
+                write_id(fid, FIFF.FIFF_REF_FILE_ID, info['meas_id'])
+            write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 2)
+            end_block(fid, FIFF.FIFFB_REF)
+
 
     pos_prev = fid.tell()
     if pos_prev > split_size:
@@ -2271,7 +2300,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
             next_fname, next_idx = _write_raw(
                 fname, raw, info, picks, fmt,
                 data_type, reset_range, first + buffer_size, stop, buffer_size,
-                projector, drop_small_buffer, split_size,
+                projector, drop_small_buffer, split_size, split_naming,
                 part_idx + 1, use_fname)
 
             start_block(fid, FIFF.FIFFB_REF)
