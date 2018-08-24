@@ -1100,8 +1100,9 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
                  subject=None, verbose=None):  # noqa: D102
 
         if not (isinstance(vertices, list) and len(vertices) == 2):
-            raise ValueError('Vertices, if a list, must contain two '
-                             'numpy arrays')
+            raise ValueError('Vertices must be a list containing two '
+                             'numpy arrays, got type %s (%s)'
+                             % (type(vertices), vertices))
 
         _BaseSourceEstimate.__init__(self, data, vertices=vertices, tmin=tmin,
                                      tstep=tstep, subject=subject,
@@ -1502,24 +1503,6 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         This function will extract one time course for each label. The way the
         time courses are extracted depends on the mode parameter.
 
-        Valid values for mode are:
-
-            - 'mean': Average within each label.
-            - 'mean_flip': Average within each label with sign flip depending
-              on source orientation.
-            - 'pca_flip': Apply an SVD to the time courses within each label
-              and use the scaled and sign-flipped first right-singular vector
-              as the label time course. The scaling is performed such that the
-              power of the label time course is the same as the average
-              per-vertex time course power within the label. The sign of the
-              resulting time course is adjusted by multiplying it with
-              "sign(dot(u, flip))" where u is the first left-singular vector,
-              and flip is a sing-flip vector based on the vertex normals. This
-              procedure assures that the phase does not randomly change by 180
-              degrees from one stc to the next.
-            - 'max': Max value within each label.
-
-
         Parameters
         ----------
         labels : Label | BiHemiLabel | list of Label or BiHemiLabel
@@ -1527,7 +1510,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         src : list
             Source spaces for left and right hemisphere.
         mode : str
-            Extraction mode, see explanation above.
+            Extraction mode, see explanation below.
         allow_empty : bool
             Instead of emitting an error, return all-zero time course for
             labels that do not have any vertices in the source estimate.
@@ -1544,6 +1527,29 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         See Also
         --------
         extract_label_time_course : extract time courses for multiple STCs
+
+        Notes
+        -----
+        Valid values for mode are:
+
+        - 'mean'
+              Average within each label.
+        - 'mean_flip'
+              Average within each label with sign flip depending
+              on source orientation.
+        - 'pca_flip'
+              Apply an SVD to the time courses within each label
+              and use the scaled and sign-flipped first right-singular vector
+              as the label time course. The scaling is performed such that the
+              power of the label time course is the same as the average
+              per-vertex time course power within the label. The sign of the
+              resulting time course is adjusted by multiplying it with
+              "sign(dot(u, flip))" where u is the first left-singular vector,
+              and flip is a sing-flip vector based on the vertex normals. This
+              procedure assures that the phase does not randomly change by 180
+              degrees from one stc to the next.
+        - 'max'
+              Max value within each label.
         """
         label_tc = extract_label_time_course(
             self, labels, src, mode=mode, return_generator=False,

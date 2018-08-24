@@ -22,7 +22,7 @@ from .externals.h5io import read_hdf5, write_hdf5
 
 
 def compute_source_morph(subject_from=None, subject_to='fsaverage',
-                         subjects_dir=None, src=None,
+                         subjects_dir=None, src=None, zooms=5,
                          niter_affine=(100, 100, 10), niter_sdr=(5, 5, 3),
                          spacing=5, smooth=None, warn=True, xhemi=False,
                          sparse=False, verbose=False):
@@ -46,6 +46,10 @@ def compute_source_morph(subject_from=None, subject_to='fsaverage',
         The list of SourceSpaces corresponding subject_from (can be a
         SourceEstimate if only using a surface source space).
         src must be provided when morphing a volume.
+    zooms : float | tuple | None
+        The voxel size of volume for each spatial dimension in mm.
+        If spacing is None, MRIs won't be resliced, and both volumes
+        must have the same number of spatial dimensions.
     niter_affine : tuple of int
         Number of levels (``len(niter_affine)``) and number of
         iterations per level - for each successive stage of iterative
@@ -56,23 +60,11 @@ def compute_source_morph(subject_from=None, subject_to='fsaverage',
         iterations per level - for each successive stage of iterative
         refinement - to perform the Symmetric Diffeomorphic Registration (sdr)
         transform. Default is niter_sdr=(5, 5, 3).
-    spacing : tuple | int | float | list | None
-        XXX THIS SHOULD BE SPLIT FOR FUTURE COMPAT WITH MIXED SOURCE SPACES!
-        If morphing VolSourceEstimate, spacing is a tuple carrying the voxel
-        size of volume for each spatial dimension in mm.
-        If spacing is None, MRIs won't be resliced. Note that in this case
-        both volumes (used to compute the morph) must have the same number of
-        spatial dimensions.
-        If morphing SourceEstimate or VectorSourceEstimate, spacing can be
-        int, list (of two arrays), or None, defining the resolution of the
-        icosahedral mesh (typically 5). If None, all vertices will be used
-        (potentially filling the surface). If a list, then values will be
-        morphed to the set of vertices specified in in spacing[0] and
-        spacing[1].
-        Note that specifying the vertices (e.g., spacing=[np.arange(10242)] * 2
-        for fsaverage on a standard spacing 5 source space) can be
-        substantially faster than computing vertex locations. The default is
-        spacing=5.
+    spacing : int | list | None
+        The resolution of the icosahedral mesh (typically 5).
+        If None, all vertices will be used (potentially filling the
+        surface). If a list, then values will be morphed to the set of
+        vertices specified in in ``spacing[0]`` and ``spacing[1]``.
     smooth : int | None
         Number of iterations for the smoothing of the surface data.
         If None, smooth is automatically defined to fill the surface
@@ -121,7 +113,7 @@ def compute_source_morph(subject_from=None, subject_to='fsaverage',
            Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
     """
     if isinstance(src, (SourceEstimate, VectorSourceEstimate)):
-        src_data = copy.deepcopy(src.vertices)
+        src_data = dict(vertices_from=copy.deepcopy(src.vertices))
         kind = 'surface'
         subject_from = _check_subject_from(subject_from, src.subject)
     elif src is None:
@@ -143,8 +135,7 @@ def compute_source_morph(subject_from=None, subject_to='fsaverage',
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     # VolSourceEstimate
-    morph_shape = morph_zooms = morph_affine = None
-    pre_sdr_affine = sdr_mapping = None
+    shape = affine = pre_sdr_affine = sdr_mapping = None
     morph_mat = vertices_to = None
     if kind == 'volume':
         assert subject_to is not None  # guaranteed by _check_subject_from
@@ -179,32 +170,32 @@ def compute_source_morph(subject_from=None, subject_to='fsaverage',
             raise IOError('cannot read file: %s' % mri_path_to)
 
         # pre-compute non-linear morph
-        morph_shape, morph_zooms, morph_affine, pre_sdr_affine, sdr_mapping = \
-            _compute_morph_sdr(
-                mri_from, mri_to, niter_affine, niter_sdr, spacing)
+        shape, zooms, affine, pre_sdr_affine, sdr_mapping = _compute_morph_sdr(
+            mri_from, mri_to, niter_affine, niter_sdr, zooms)
     elif kind == 'surface':
         logger.info('surface source space inferred...')
+        vertices_from = src_data['vertices_from']
         if sparse:
             if spacing is not None:
                 raise RuntimeError('spacing must be set to None if '
                                    'sparse=True.')
             vertices_to, morph_mat = _compute_sparse_morph(
-                src_data, subject_from, subject_to, subjects_dir)
+                vertices_from, subject_from, subject_to, subjects_dir)
         else:
             vertices_to = grade_to_vertices(
                 subject_to, spacing, subjects_dir, 1)
             morph_mat = _compute_morph_matrix(
                 subject_from=subject_from, subject_to=subject_to,
-                vertices_from=src_data, vertices_to=vertices_to,
+                vertices_from=vertices_from, vertices_to=vertices_to,
                 subjects_dir=subjects_dir, smooth=smooth, warn=warn,
                 xhemi=xhemi)
             n_verts = sum(len(v) for v in vertices_to)
             assert morph_mat.shape[0] == n_verts
 
-    return SourceMorph(subject_from, subject_to, kind,
+    return SourceMorph(subject_from, subject_to, kind, zooms,
                        niter_affine, niter_sdr, spacing, smooth, xhemi,
-                       morph_mat, vertices_to, morph_shape, morph_zooms,
-                       morph_affine, pre_sdr_affine, sdr_mapping, src_data)
+                       morph_mat, vertices_to, shape, affine,
+                       pre_sdr_affine, sdr_mapping, src_data)
 
 
 def _compute_sparse_morph(vertices_from, subject_from, subject_to,
@@ -229,10 +220,9 @@ def _compute_sparse_morph(vertices_from, subject_from, subject_to,
 
 
 _SOURCE_MORPH_ATTRIBUTES = [  # used in writing
-    'subject_from', 'subject_to', 'kind', 'niter_affine', 'niter_sdr',
+    'subject_from', 'subject_to', 'kind', 'zooms', 'niter_affine', 'niter_sdr',
     'spacing', 'smooth', 'xhemi', 'morph_mat', 'vertices_to',
-    'morph_shape', 'morph_zooms', 'morph_affine', 'pre_sdr_affine',
-    'sdr_mapping', 'src_data']
+    'shape', 'affine', 'pre_sdr_affine', 'sdr_mapping', 'src_data']
 
 
 class SourceMorph(object):
@@ -253,6 +243,8 @@ class SourceMorph(object):
         be the path to a MRI volume.
     kind : str | None
         Kind of source estimate. E.g. 'volume' or 'surface'.
+    zooms : float | tuple
+        See :func:`mne.compute_source_morph`.
     niter_affine : tuple of int
         Number of levels (``len(niter_affine)``) and number of
         iterations per level - for each successive stage of iterative
@@ -263,22 +255,8 @@ class SourceMorph(object):
         iterations per level - for each successive stage of iterative
         refinement - to perform the Symmetric Diffeomorphic Registration (sdr)
         transform. Default is niter_sdr=(5, 5, 3)
-    spacing : tuple | int | float | list | None
-        If morphing VolSourceEstimate, spacing is a tuple, carrying the
-        voxel size of the MRI volume for each spatial dimension in mm or int
-        for isotropic voxel size in mm.
-        If spacing is None, MRIs won't be resliced. Note that in this case
-        both volumes (used to compute the morph) must have the same number of
-        slices for each spatial dimensions.
-        If morphing SourceEstimate or VectorSourceEstimate, spacing can be
-        int, list (of two arrays), or None, defining the resolution of the
-        icosahedral mesh (typically 5). If None, all vertices will be used
-        (potentially filling the surface). If a list, then values will be
-        morphed to the set of vertices specified in in spacing[0] and
-        spacing[1].
-        Note that specifying the vertices (e.g., spacing=[np.arange(10242),
-        np.arange(10242)] for fsaverage on a standard spacing 5 source space)
-        can be substantially faster than computing vertex locations.
+    spacing : int | list | None
+        See :func:`mne.compute_source_morph`.
     smooth : int | None
         Number of iterations for the smoothing of the surface data.
         If None, smooth is automatically defined to fill the surface
@@ -289,11 +267,9 @@ class SourceMorph(object):
         XXX
     vertices_to : XXX
         XXX
-    morph_shape : XXX
+    shape : XXX
         XXX
-    morph_zooms : XXX
-        XXX
-    morph_affine : XXX
+    affine : XXX
         XXX
     pre_sdr_affine : XXX
         XXX
@@ -303,30 +279,31 @@ class SourceMorph(object):
         XXX
     """
 
-    def __init__(self, subject_from, subject_to, kind,
+    def __init__(self, subject_from, subject_to, kind, zooms,
                  niter_affine, niter_sdr, spacing, smooth, xhemi,
-                 morph_mat, vertices_to, morph_shape, morph_zooms,
-                 morph_affine, pre_sdr_affine, sdr_mapping, src_data):
+                 morph_mat, vertices_to, shape,
+                 affine, pre_sdr_affine, sdr_mapping, src_data):
         # universal
         self.subject_from = subject_from
         self.subject_to = subject_to
         self.kind = kind
         # vol input
+        self.zooms = zooms
         self.niter_affine = niter_affine
         self.niter_sdr = niter_sdr
-        self.spacing = spacing
         # surf input
+        self.spacing = spacing
         self.smooth = smooth
         self.xhemi = xhemi
         # surf computed
         self.morph_mat = morph_mat
         self.vertices_to = vertices_to
         # vol computed
-        self.morph_shape = morph_shape
-        self.morph_zooms = morph_zooms
-        self.morph_affine = morph_affine
+        self.shape = shape
+        self.affine = affine
         self.pre_sdr_affine = pre_sdr_affine
         self.sdr_mapping = sdr_mapping
+        # used by both
         self.src_data = src_data
 
     @verbose
@@ -566,27 +543,23 @@ def _stc_as_volume(morph, stc, mri_resolution=False, mri_space=True,
     if isinstance(mri_resolution, tuple):
         new_zooms = mri_resolution
 
-    # setup volume properties
-    shape = tuple([int(i) for i in morph.morph_shape])
-    affine = morph.morph_affine
-    zooms = morph.morph_zooms[:3]
-
     # create header
     hdr = NiftiHeader()
     hdr.set_xyzt_units('mm', 'msec')
     hdr['pixdim'][4] = 1e3 * stc.tstep
 
     # setup empty volume
-    img = np.zeros(shape + (stc.shape[1],)).reshape(-1, stc.shape[1])
+    img = np.zeros(morph.shape + (stc.shape[1],)).reshape(-1, stc.shape[1])
     img[stc.vertices, :] = stc.data
 
-    img = img.reshape(shape + (-1,))
+    img = img.reshape(morph.shape + (-1,))
 
     # make nifti from data
     with warnings.catch_warnings():  # nibabel<->numpy warning
-        img = NiftiImage(img, affine, header=hdr)
+        img = NiftiImage(img, morph.affine, header=hdr)
 
     # reslice in case of manually defined voxel size
+    zooms = morph.zooms[:3]
     if new_zooms is not None:
         new_zooms = new_zooms[:3]
         img, affine = reslice(img.get_data(),
@@ -632,7 +605,7 @@ def _get_src_data(src):
                          'inuse': src_t[0]['inuse']})
     else:
         assert src_kind == 'surface'
-        src_data = [s['vertno'].copy() for s in src_t]
+        src_data = dict(vertices_from=[s['vertno'].copy() for s in src_t])
 
     # delete copy
     return src_data, src_kind
@@ -744,7 +717,7 @@ def _interpolate_data(stc, morph, mri_resolution=True, mri_space=True,
 # Morph for VolSourceEstimate
 
 def _compute_morph_sdr(mri_from, mri_to, niter_affine=(100, 100, 10),
-                       niter_sdr=(5, 5, 3), morph_zooms=(5., 5., 5.)):
+                       niter_sdr=(5, 5, 3), zooms=(5., 5., 5.)):
     """Get a matrix that morphs data from one subject to another."""
     _check_dep(nibabel='2.1.0', dipy='0.10.1')
     import nibabel as nib
@@ -756,17 +729,19 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine=(100, 100, 10),
     logger.info('Computing nonlinear Symmetric Diffeomorphic Registration...')
 
     # use voxel size of mri_from
-    if morph_zooms is None:
-        morph_zooms = mri_from.header.get_zooms()[:3]
-
-    # use iso voxel size
-    if isinstance(morph_zooms, (int, float)):
-        morph_zooms = (float(morph_zooms),) * 3
+    if zooms is None:
+        zooms = mri_from.header.get_zooms()[:3]
+    zooms = np.atleast_1d(zooms).astype(float)
+    if zooms.shape == (1,):
+        zooms = np.repeat(zooms, 3)
+    if zooms.shape != (3,):
+        raise ValueError('zooms must be None, a singleton, or have shape (3,),'
+                         ' got shape %s' % (zooms.shape,))
 
     # reslice mri_from
     mri_from_res, mri_from_res_affine = reslice(
         mri_from.get_data(), mri_from.affine, mri_from.header.get_zooms()[:3],
-        morph_zooms)
+        zooms)
 
     with warnings.catch_warnings():  # nibabel<->numpy warning
         mri_from = nib.Nifti1Image(mri_from_res, mri_from_res_affine)
@@ -774,21 +749,21 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine=(100, 100, 10),
     # reslice mri_to
     mri_to_res, mri_to_res_affine = reslice(
         mri_to.get_data(), mri_to.affine, mri_to.header.get_zooms()[:3],
-        morph_zooms)
+        zooms)
 
     with warnings.catch_warnings():  # nibabel<->numpy warning
         mri_to = nib.Nifti1Image(mri_to_res, mri_to_res_affine)
 
-    mri_to_grid2world = mri_to.affine
+    affine = mri_to.affine
     mri_to = np.array(mri_to.dataobj, float)  # to ndarray
     mri_to /= mri_to.max()
-    mri_from_grid2world = mri_from.affine  # get mri_from to world transform
+    mri_from_affine = mri_from.affine  # get mri_from to world transform
     mri_from = np.array(mri_from.dataobj, float)  # to ndarray
     mri_from /= mri_from.max()  # normalize
 
     # compute center of mass
     c_of_mass = imaffine.transform_centers_of_mass(
-        mri_to, mri_to_grid2world, mri_from, mri_from_grid2world)
+        mri_to, affine, mri_from, affine)
 
     # set up Affine Registration
     affreg = imaffine.AffineRegistration(
@@ -798,35 +773,27 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine=(100, 100, 10),
         factors=[4, 2, 1])
 
     # translation
-    translation = affreg.optimize(mri_to, mri_from,
-                                  transforms.TranslationTransform3D(), None,
-                                  mri_to_grid2world, mri_from_grid2world,
-                                  starting_affine=c_of_mass.affine)
+    translation = affreg.optimize(
+        mri_to, mri_from, transforms.TranslationTransform3D(), None, affine,
+        mri_from_affine, starting_affine=c_of_mass.affine)
 
     # rigid body transform (translation + rotation)
-    rigid = affreg.optimize(mri_to, mri_from,
-                            transforms.RigidTransform3D(), None,
-                            mri_to_grid2world, mri_from_grid2world,
-                            starting_affine=translation.affine)
+    rigid = affreg.optimize(
+        mri_to, mri_from, transforms.RigidTransform3D(), None,
+        affine, mri_from_affine, starting_affine=translation.affine)
 
     # affine transform (translation + rotation + scaling)
-    affine = affreg.optimize(mri_to, mri_from,
-                             transforms.AffineTransform3D(), None,
-                             mri_to_grid2world, mri_from_grid2world,
-                             starting_affine=rigid.affine)
-
-    # apply affine transformation
-    mri_from_affine = affine.transform(mri_from)
-
-    # set up Symmetric Diffeomorphic Registration (metric, iterations)
-    sdr = imwarp.SymmetricDiffeomorphicRegistration(
-        metrics.CCMetric(3), list(niter_sdr))
+    pre_sdr_affine = affreg.optimize(
+        mri_to, mri_from, transforms.AffineTransform3D(), None,
+        affine, mri_from_affine, starting_affine=rigid.affine)
 
     # compute mapping
-    mapping = sdr.optimize(mri_to, mri_from_affine)
-    morph_shape = tuple(mapping.domain_shape.astype('float'))
+    sdr = imwarp.SymmetricDiffeomorphicRegistration(
+        metrics.CCMetric(3), list(niter_sdr))
+    sdr_mapping = sdr.optimize(mri_to, pre_sdr_affine.transform(mri_from))
+    shape = tuple(sdr_mapping.domain_shape)  # should be tuple of int
     logger.info('done.')
-    return morph_shape, morph_zooms, mri_to_grid2world, affine, mapping
+    return shape, zooms, affine, pre_sdr_affine, sdr_mapping
 
 
 ###############################################################################
@@ -977,7 +944,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     """
     # add special case for fsaverage for speed
     if subject == 'fsaverage' and isinstance(grade, int) and grade == 5:
-        return [np.arange(10242)] * 2
+        return [np.arange(10242), np.arange(10242)]
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     spheres_to = [os.path.join(subjects_dir, subject, 'surf',
@@ -1181,8 +1148,7 @@ def _get_zooms_orig(morph):
     """Compute src zooms from morph zooms, morph shape and src shape."""
     # zooms_to = zooms_from / shape_to * shape_from for each spatial dimension
     return [mz / ss * ms for mz, ms, ss in
-            zip(morph.morph_zooms, morph.morph_shape,
-                morph.src_data['src_shape_full'])]
+            zip(morph.zooms, morph.shape, morph.src_data['src_shape_full'])]
 
 
 def _apply_morph_data(morph, stc_from):
@@ -1199,8 +1165,8 @@ def _apply_morph_data(morph, stc_from):
 
         # reslice to match morph
         img_to, img_to_affine = reslice(
-            img_to.get_data(), morph.morph_affine, _get_zooms_orig(morph),
-            morph.morph_zooms)
+            img_to.get_data(), morph.affine, _get_zooms_orig(morph),
+            morph.zooms)
 
         # morph data
         for vol in range(img_to.shape[3]):
@@ -1218,7 +1184,8 @@ def _apply_morph_data(morph, stc_from):
         morph_mat = morph.morph_mat
         vertices_to = morph.vertices_to
         for hemi, v1, v2 in zip(('left', 'right'),
-                                morph.src_data, stc_from.vertices):
+                                morph.src_data['vertices_from'],
+                                stc_from.vertices):
             if not np.array_equal(v1, v2):
                 raise ValueError('vertices do not match between morph (%s) '
                                  'and stc (%s) for the %s hemisphere:\n%s\n%s'

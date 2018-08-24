@@ -6,7 +6,8 @@ import os.path as op
 
 import pytest
 import numpy as np
-from numpy.testing import assert_array_less, assert_allclose
+from numpy.testing import (assert_array_less, assert_allclose,
+                           assert_array_equal)
 from scipy.spatial.distance import cdist
 
 import mne
@@ -162,7 +163,8 @@ def test_surface_vector_source_morph():
     assert source_morph_surf.subject_from == 'sample'
     assert source_morph_surf.subject_to == 'fsaverage'
     assert source_morph_surf.kind == 'surface'
-    assert isinstance(source_morph_surf.src_data, list)
+    assert isinstance(source_morph_surf.src_data, dict)
+    assert isinstance(source_morph_surf.src_data['vertices_from'], list)
     assert isinstance(source_morph_surf, SourceMorph)
     stc_surf_morphed = source_morph_surf(stc_surf)
     assert isinstance(stc_surf_morphed, SourceEstimate)
@@ -227,7 +229,7 @@ def test_volume_source_morph():
 
     source_morph_vol = compute_source_morph(
         subjects_dir=subjects_dir, src=inverse_operator_vol['src'],
-        niter_affine=(1,), niter_sdr=(1,), spacing=7)
+        niter_affine=(1,), niter_sdr=(1,), zooms=7)
 
     assert source_morph_vol.subject_from == 'sample'
 
@@ -237,7 +239,7 @@ def test_volume_source_morph():
     assert tuple(source_morph_vol.pre_sdr_affine.domain_shape) == (37, 37, 37)
 
     # proofs the above
-    assert source_morph_vol.spacing == 7
+    assert_array_equal(source_morph_vol.zooms, (7, 7, 7))
 
     # assure proper src shape
     mri_size = (src[0]['mri_height'], src[0]['mri_depth'], src[0]['mri_width'])
@@ -247,7 +249,7 @@ def test_volume_source_morph():
     # check input via path to src and path to subject_to
     source_morph_vol = compute_source_morph(
         'sample', fname_brain, subjects_dir=subjects_dir, niter_affine=(1,),
-        src=fwd['src'], niter_sdr=(1,), spacing=7)
+        src=fwd['src'], niter_sdr=(1,), zooms=7)
 
     # check wrong subject_to
     with pytest.raises(IOError, match='cannot read file'):
