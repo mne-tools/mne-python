@@ -9,6 +9,7 @@ import numpy as np
 
 from ..utils import (_read_segments_file, _find_channels,
                      _synthesize_stim_channel)
+from ...utils import deprecated
 from ..constants import FIFF, Bunch
 from ..meas_info import _empty_info, create_info
 from ..base import BaseRaw, _check_update_montage
@@ -593,7 +594,6 @@ class EpochsEEGLAB(BaseEpochs):
         logger.info('Ready.')
 
 
-from mne.utils import deprecated
 @deprecated('read_events_eeglab is deprecated from 0.17 and will be removed'
             ' in 0.18. Please use read_annotations_eeglab and create events'
             ' using events_from_annotations')
@@ -656,7 +656,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
     mne.find_events : Extract events from a stim channel. Note that stim
         channels can only code for one event per time point.
     """
-    if event_id_func is 'strip_to_integer':
+    if event_id_func == 'strip_to_integer':
         event_id_func = _strip_to_integer
     if event_id is None:
         event_id = dict()

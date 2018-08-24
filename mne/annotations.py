@@ -445,6 +445,11 @@ def _ensure_annotation_object(obj):
                          'mne.Annotations. Got %s.' % obj)
 
 
+def _strip_to_integer(trigger):
+    """Return only the integer part of a string."""
+    return int("".join([x for x in trigger if x.isdigit()]))
+
+
 @verbose
 def events_from_annotations(raw, event_id=None, regexp=None,
                             event_id_func=None, verbose=None):
@@ -488,35 +493,52 @@ def events_from_annotations(raw, event_id=None, regexp=None,
     if raw.annotations is None:
         return np.asarray([]), event_id
 
+    if event_id_func == 'strip_to_integer':
+        event_id_func = _strip_to_integer
+
     annotations = raw.annotations
 
     inds = raw.time_as_index(
         annotations.onset, use_rounding=True) + raw.first_samp
 
-    unique_keys = np.unique(annotations.description)
-
-    logger.info('Annotations descriptions: %s' % unique_keys)
+    # Filter out the annotations that do not match regexp
+    if regexp is not None:
+        pat = re.compile(regexp)
 
     if regexp is not None:
         pat = re.compile(regexp)
-        unique_keys = [kk for kk in unique_keys if pat.match(kk)]
 
-    if event_id is None:
-        event_id_ = dict(
-            zip(unique_keys, np.arange(1, 1 + len(unique_keys))))
-    else:
-        event_id_ = {k: v for k, v in event_id.items()
-                        if k in unique_keys}
+    cnt = 1
+    event_id_ = dict()
+    for desc in annotations.description:
+        if desc in event_id_:
+            continue
 
-    event_sel = [ii for ii, kk in
-                    enumerate(annotations.description)
-                    if kk in event_id_]
+        if regexp is not None and not pat.match(desc):
+            continue
+
+        if event_id is not None and desc in event_id:
+            event_id_[desc] = event_id[desc]
+        elif event_id_func is not None:
+            val = event_id_func(desc)
+            event_id_[desc] = val
+        else:
+            event_id_[desc] = cnt
+            cnt += 1
+
+    event_sel = [ii for ii, kk in enumerate(annotations.description)
+                 if kk in event_id_]
+
     if len(event_sel) == 0:
         raise ValueError('Could not find any of the events you specified.')
+
     values = [event_id_[kk] for kk in
-                annotations.description[event_sel]]
+              annotations.description[event_sel]]
     previous_value = np.zeros(len(event_sel))
     inds = inds[event_sel]
     events = np.c_[inds, previous_value, values].astype(int)
+
+    logger.info('Used Annotations descriptions: %s' %
+                (list(event_id_.keys()),))
 
     return events, event_id_
