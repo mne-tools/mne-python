@@ -272,8 +272,8 @@ def test_volume_source_morph():
     with pytest.raises(ValueError, match='Inter-hemispheric morphing'):
         compute_source_morph(src=src, subjects_dir=subjects_dir, xhemi=True)
 
-    with pytest.raises(ValueError, match='Only surface'):
-        compute_source_morph(src=src, sparse=True)
+    with pytest.raises(ValueError, match='Only surface.*sparse morph'):
+        compute_source_morph(src=src, sparse=True, subjects_dir=subjects_dir)
 
     zooms = 20  # terrible quality but fast
     source_morph_vol = compute_source_morph(
@@ -469,12 +469,6 @@ def test_morph_stc_dense():
             subject_from=subject_from, spacing=[vertices_to[0]],
             subjects_dir=subjects_dir, src=stc_from)
 
-    # spacing not None
-    with pytest.raises(RuntimeError, match="spacing"):
-        compute_source_morph(
-            subject_from=subject_from, subject_to=subject_to, src=stc_from,
-            spacing=5, sparse=True, subjects_dir=subjects_dir)
-
 
 @requires_version('scipy', '0.13')
 @testing.requires_testing_data
@@ -515,6 +509,16 @@ def test_morph_stc_sparse():
     assert stc_to_sparse.subject == subject_to
     assert stc_from.tmin == stc_from.tmin
     assert stc_from.tstep == stc_from.tstep
+
+    # Degenerate cases
+    with pytest.raises(ValueError, match='spacing must be set to None'):
+        compute_source_morph(
+            subject_from=subject_from, subject_to=subject_to, src=stc_from,
+            spacing=5, sparse=True, subjects_dir=subjects_dir)
+    with pytest.raises(ValueError, match='xhemi=True can only be used with'):
+        compute_source_morph(
+            subject_from=subject_from, subject_to=subject_to, src=stc_from,
+            spacing=None, sparse=True, xhemi=True, subjects_dir=subjects_dir)
 
 
 run_tests_if_main()

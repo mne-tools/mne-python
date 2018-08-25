@@ -176,8 +176,11 @@ def compute_source_morph(subject_from=None, subject_to='fsaverage',
         vertices_from = src_data['vertices_from']
         if sparse:
             if spacing is not None:
-                raise RuntimeError('spacing must be set to None if '
-                                   'sparse=True.')
+                raise ValueError('spacing must be set to None if '
+                                 'sparse=True.')
+            if xhemi:
+                raise ValueError('xhemi=True can only be used with '
+                                 'sparse=False')
             vertices_to, morph_mat = _compute_sparse_morph(
                 vertices_from, subject_from, subject_to, subjects_dir)
         else:
