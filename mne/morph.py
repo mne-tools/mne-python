@@ -263,19 +263,21 @@ class SourceMorph(object):
     xhemi : bool
         Morph across hemisphere.
     morph_mat : scipy.sparse.csr_matrix
-        XXX
-    vertices_to : XXX
-        XXX
-    shape : XXX
-        XXX
-    affine : XXX
-        XXX
-    pre_sdr_affine : XXX
-        XXX
-    sdr_mapping : XXX
-        XXX
-    src_data : XXX
-        XXX
+        The sparse surface morphing matrix.3
+    vertices_to : list of ndarray
+        The destination surface vertices.
+    shape : tuple
+        The volume MRI shape.
+    affine : ndarray
+        The volume MRI affine.
+    pre_sdr_affine : instance of dipy.align.imaffine.AffineMap
+        The :class:`dipy.align.imaffine.AffineMap` transformation that is
+        applied before the SDR morph.
+    sdr_mapping : instance of dipy.align.imwarp.DiffeomorphicMap
+        The :class:`dipy.align.imwarp.DiffeomorphicMap` that applies the
+        SDR transform.
+    src_data : dict
+        Additional source data necessary to perform morphing.
     """
 
     def __init__(self, subject_from, subject_to, kind, zooms,
@@ -719,8 +721,7 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine=(100, 100, 10),
     """Get a matrix that morphs data from one subject to another."""
     _check_dep(nibabel='2.1.0', dipy='0.10.1')
     import nibabel as nib
-    from pytest import warns as warns_numpy
-    with warns_numpy(None):  # dipy <-> numpy warning
+    with np.testing.suppress_warnings():
         from dipy.align import imaffine, imwarp, metrics, transforms
     from dipy.align.reslice import reslice
 

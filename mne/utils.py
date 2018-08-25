@@ -804,8 +804,22 @@ def requires_nibabel(vox2ras_tkr=False):
 def requires_dipy():
     """Check for dipy."""
     import pytest
-    return pytest.mark.skipif(not check_version('dipy', '0.10.1'),
-                              reason='Requires dipy >= 0.10.1')
+    # for some strange reason on CIs we cane get:
+    #
+    #     can get weird ImportError: dlopen: cannot load any more object
+    #     with static TLS
+    #
+    # so let's import everything in the decorator.
+    try:
+        from dipy.align import imaffine, imwarp, metrics, transforms  # noqa, analysis:ignore
+        from dipy.align.reslice import reslice  # noqa, analysis:ignore
+        from dipy.align.imaffine import AffineMap  # noqa, analysis:ignore
+        from dipy.align.imwarp import DiffeomorphicMap  # noqa, analysis:ignore
+    except Exception:
+        have = False
+    else:
+        have = True
+    return pytest.mark.skipif(not have, reason='Requires dipy >= 0.10.1')
 
 
 def buggy_mkl_svd(function):

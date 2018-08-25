@@ -17,7 +17,7 @@ from mne import (read_label, stc_to_label, read_source_estimate,
                  read_surface, random_parcellation)
 from mne.label import Label, _blend_colors, label_sign_flip
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
-                       run_tests_if_main)
+                       run_tests_if_main, requires_version)
 from mne.fixes import assert_is, assert_is_not
 from mne.label import _n_colors
 from mne.source_space import SourceSpaces
@@ -684,6 +684,7 @@ def test_stc_to_label():
 
 
 @pytest.mark.slowtest
+@requires_version('scipy', '0.13')  # 0.12 has a sparse matrix bug
 @testing.requires_testing_data
 def test_morph():
     """Test inter-subject label morphing."""

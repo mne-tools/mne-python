@@ -18,7 +18,7 @@ from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
 from mne.datasets import testing
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.utils import (run_tests_if_main, requires_nibabel, _TempDir,
-                       requires_dipy, requires_h5py)
+                       requires_dipy, requires_h5py, requires_version)
 from mne.fixes import _get_args
 
 # Setup paths
@@ -55,6 +55,7 @@ def test_sourcemorph_consistency():
         mne.morph._SOURCE_MORPH_ATTRIBUTES
 
 
+@requires_version('scipy', '0.13')  # SciPy 0.13 reduction bug
 @testing.requires_testing_data
 def test_sparse_morph():
     """Test sparse morphing."""
@@ -99,6 +100,7 @@ def test_sparse_morph():
     assert_allclose(stc_fs.data, stc_fs_return.data[np.concatenate(orders)])
 
 
+@requires_version('scipy', '0.13')  # SciPy 0.12 zero-length reduction bug
 @testing.requires_testing_data
 def test_xhemi_morph():
     """Test cross-hemisphere morphing."""
