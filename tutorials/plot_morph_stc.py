@@ -5,7 +5,7 @@ Morphing source estimates: Moving data from one brain to another
 ================================================================
 
 Morphing refers to the operation of transferring
-:ref:`source estimates <sphx_glr_auto_tutorials_plot_object_source_estimate.py`
+:ref:`source estimates <sphx_glr_auto_tutorials_plot_object_source_estimate.py>`
 from one anatomy to another. It is commonly referred as realignment in fMRI
 literature. This operation is necessary for group studies as one needs
 then data in a common space.
@@ -247,4 +247,4 @@ References
        with MNE-Python. Frontiers in neuroscience, 7, 267.
 
 .. _dipy: http://nipy.org/dipy/
-"""
+"""  # noqa: E501

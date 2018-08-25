@@ -269,32 +269,6 @@ For expert use cases or debugging the alternative estimators can also be compare
 This will plot the whitened evoked for the optimal estimator and display the GFPs
 for all estimators as separate lines in the related panel.
 
-Morphing data
-=============
-
-Should I morph my source estimates using ``morph`` or ``morph_precomputed``?
-----------------------------------------------------------------------------
-The two functions :func:`mne.SourceEstimate.morph` and
-:func:`mne.SourceEstimate.morph_precomputed` perform the same operation:
-taking surface-based source space data from one subject and
-morphing it to another using a smoothing procedure. However, they can
-take different amounts of time to perform the computation.
-
-To use :func:`mne.SourceEstimate.morph_precomputed`, you must first
-precompute a morphing matrix with :func:`mne.compute_morph_matrix` which
-can take some time, but then the actual morphing operation carried out by
-:func:`mne.SourceEstimate.morph_precomputed` is very fast, even for
-:class:`mne.SourceEstimate` objects with many time points. The method
-:func:`mne.SourceEstimate.morph`, by contrast, smooths the data by operating
-directly on the data, which can be **very slow** with many time points.
-If there are thousands of time points, then
-:func:`mne.SourceEstimate.morph_precomputed` will be much faster; if there
-are a few time points, then :func:`mne.SourceEstimate.morph` will be faster.
-For data sizes in between, we advise testing to determine which is best,
-although some developers choose to always use
-:func:`mne.SourceEstimate.morph_precomputed` since it will rarely take
-a long time.
-
 References
 ----------
 
