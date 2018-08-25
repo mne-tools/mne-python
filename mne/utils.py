@@ -1889,8 +1889,8 @@ class _PBSubsetUpdater(object):
         self.pb = pb
         self.idx = idx
 
-    def finished(self, ii):
-        self.pb[self.idx[ii]] = True
+    def update(self, ii):
+        self.pb[self.idx[:ii]] = True
 
 
 def _get_terminal_width():

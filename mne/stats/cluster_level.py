@@ -580,7 +580,7 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
         else:
             max_cluster_sums[seed_idx] = 0
 
-        progress_bar.finished(seed_idx)
+        progress_bar.update(seed_idx + 1)
 
     return max_cluster_sums
 
@@ -651,7 +651,7 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
         else:
             max_cluster_sums[seed_idx] = 0
 
-        progress_bar.finished(seed_idx)
+        progress_bar.update(seed_idx + 1)
 
     return max_cluster_sums
 

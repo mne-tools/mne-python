@@ -790,7 +790,7 @@ def test_progressbar_parallel_basic(capsys):
 
 def _identity_block(x, pb):
     for ii in range(len(x)):
-        pb.finished(ii)
+        pb.update(ii + 1)
     return x
 
 
@@ -817,7 +817,7 @@ def test_progressbar_parallel_advanced(capsys):
 def _identity_block_wide(x, pb):
     for ii in range(len(x)):
         for jj in range(2):
-            pb.finished(ii * 2 + jj)
+            pb.update(ii * 2 + jj + 1)
     return x, pb.idx
 
 

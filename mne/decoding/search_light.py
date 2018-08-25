@@ -334,7 +334,7 @@ def _sl_fit(estimator, X, y, pb, **fit_params):
         est = clone(estimator)
         est.fit(X[..., ii], y, **fit_params)
         estimators_.append(est)
-        pb.finished(ii)
+        pb.update(ii + 1)
     return estimators_
 
 
@@ -365,7 +365,7 @@ def _sl_transform(estimators, X, method, pb):
         if ii == 0:
             y_pred = _sl_init_pred(_y_pred, X)
         y_pred[:, ii, ...] = _y_pred
-        pb.finished(ii)
+        pb.update(ii + 1)
     return y_pred
 
 
@@ -629,7 +629,7 @@ def _gl_transform(estimators, X, method, pb):
         if ii == 0:
             y_pred = _gl_init_pred(_y_pred, X, len(estimators))
         y_pred[:, ii, ...] = _y_pred
-        pb.finished(slice(ii * n_iter, (ii + 1) * n_iter))
+        pb.update((ii + 1) * n_iter)
     return y_pred
 
 
@@ -679,7 +679,7 @@ def _gl_score(estimators, scoring, X, y, pb):
                 dtype = type(_score)
                 score = np.zeros(score_shape, dtype)
             score[ii, jj, ...] = _score
-            pb.finished(jj * len(estimators) + ii)
+            pb.update(jj * len(estimators) + ii + 1)
     return score
 
 
