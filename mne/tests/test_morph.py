@@ -49,7 +49,8 @@ def _real_vec_stc():
 
 def test_sourcemorph_consistency():
     """Test SourceMorph class consistency."""
-    assert _get_args(SourceMorph) == mne.morph._SOURCE_MORPH_ATTRIBUTES
+    assert _get_args(SourceMorph.__init__)[1:] == \
+        mne.morph._SOURCE_MORPH_ATTRIBUTES
 
 
 @testing.requires_testing_data
@@ -104,14 +105,54 @@ def test_xhemi_morph():
     stc = compute_source_morph(
         'sample', 'fsaverage_sym', smooth=5, warn=False, src=stc,
         subjects_dir=subjects_dir)(stc)
-    stc_m = compute_source_morph(
+    morph = compute_source_morph(
         'fsaverage_sym', 'fsaverage_sym', src=stc, xhemi=True, warn=False,
-        spacing=[stc.vertices[0], []], subjects_dir=subjects_dir)(stc)
-    assert stc_m.data.shape[0] == 10242
-    assert stc_m.rh_data.shape[0] == 10242
-    assert len(stc_m.vertices[1]) == 10242
-    assert stc_m.lh_data.shape[0] == 0
-    assert len(stc_m.vertices[0]) == 0
+        spacing=[stc.vertices[0], []], subjects_dir=subjects_dir)
+    stc_xhemi = morph(stc)
+    assert stc_xhemi.data.shape[0] == 10242
+    assert stc_xhemi.rh_data.shape[0] == 0
+    assert len(stc_xhemi.vertices[1]) == 0
+    assert stc_xhemi.lh_data.shape[0] == 10242
+    assert len(stc_xhemi.vertices[0]) == 10242
+    # complete reversal mapping
+    morph = compute_source_morph(
+        'fsaverage_sym', 'fsaverage_sym', src=stc, xhemi=True, warn=False,
+        spacing=stc.vertices, subjects_dir=subjects_dir)
+    mm = morph.morph_mat
+    assert mm.shape == (20484, 20484)
+    assert mm.size > 20484
+    assert mm[:10242, :10242].size == 0  # left to left
+    assert mm[10242:, 10242:].size == 0  # right to right
+    assert mm[10242:, :10242].size > 10242  # left to right
+    assert morph.morph_mat[:10242, 10242:].size > 10242  # right to left
+    # more complicated reversal mapping
+    src = mne.setup_source_space('fsaverage_sym', spacing='oct6',
+                                 subjects_dir=subjects_dir, add_dist=False,
+                                 surface='sphere.reg')
+    vertices_use = [stc.vertices[0], src[1]['vertno']]
+    assert vertices_use[0].shape == (10242,)
+    assert vertices_use[1].shape == (4098,)
+    # ensure it's a very diffirent set
+    assert np.in1d(vertices_use[1], stc.vertices[1]).mean() < 0.1
+    morph = compute_source_morph(
+        'fsaverage_sym', 'fsaverage_sym', src=stc, xhemi=True, warn=False,
+        spacing=vertices_use, subjects_dir=subjects_dir)
+    mm = morph.morph_mat
+    assert mm.shape == (10242 + 4098, 20484)
+    assert mm[:10242, :10242].size == 0
+    assert mm[10242:, 10242:].size == 0
+    assert mm[:10242, 10242:].size > 10242
+    assert mm[10242:, :10242].size > 4098
+    # morph forward then back
+    stc_xhemi = morph(stc)
+    morph = compute_source_morph(
+        'fsaverage_sym', 'fsaverage_sym', src=stc_xhemi, xhemi=True,
+        warn=False, spacing=stc.vertices, subjects_dir=subjects_dir)
+    stc_return = morph(stc_xhemi)
+    for hi in range(2):
+        assert_array_equal(stc_return.vertices[hi], stc.vertices[hi])
+    correlation = np.corrcoef(stc.data.ravel(), stc_return.data.ravel())[0, 1]
+    assert correlation > 0.95
 
 
 @requires_nibabel()

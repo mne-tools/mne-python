@@ -366,17 +366,16 @@ class SourceMorph(object):
         return _apply_morph_data(self, stc)
 
     def __repr__(self):  # noqa: D105
-        s = "%s" % self.kind
-        s += ", subject_from : %s" % self.subject_from
-        s += ", subject_to : %s" % self.subject_to
-        s += ", spacing : {}".format(self.spacing)
+        s = u"%s" % self.kind
+        s += u", %s -> %s" % (self.subject_from, self.subject_to)
         if self.kind == 'volume':
+            s += ", zooms : {}".format(self.zooms)
             s += ", niter_affine : {}".format(self.niter_affine)
             s += ", niter_sdr : {}".format(self.niter_sdr)
-
-        elif self.kind == 'surface' or self.kind == 'vector':
+        elif self.kind in ('surface', 'vector'):
+            s += ", spacing : {}".format(self.spacing)
             s += ", smooth : %s" % self.smooth
-            s += ", xhemi : %s" % self.xhemi
+            s += ", xhemi" if self.xhemi else ""
 
         return "<SourceMorph  |  %s>" % s
 
@@ -881,15 +880,13 @@ def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
 
     # morph the data
 
-    if xhemi:
-        hemi_indexes = [(0, 1), (1, 0)]
-        vertices_to.reverse()
-    else:
-        hemi_indexes = [(0, 0), (1, 1)]
     morpher = []
-    for hemi_from, hemi_to in hemi_indexes:
+    for hemi_to in range(2):  # iterate over to / block-rows of CSR matrix
+        hemi_from = (1 - hemi_to) if xhemi else hemi_to
         idx_use = vertices_from[hemi_from]
         if len(idx_use) == 0:
+            morpher.append(
+                sparse.csr_matrix(shape=(len(vertices_to[hemi_to]), 0)))
             continue
         e = mesh_edges(tris[hemi_from])
         e.data[e.data == 2] = 1
@@ -898,14 +895,25 @@ def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         m = sparse.eye(len(idx_use), len(idx_use), format='csr')
         mm = _morph_buffer(m, idx_use, e, smooth, n_vertices,
                            vertices_to[hemi_to], maps[hemi_from], warn=warn)
+        assert mm.shape == (len(vertices_to[hemi_to]),
+                            len(vertices_from[hemi_from]))
         morpher.append(mm)
-
-    if len(morpher) == 0:
-        raise ValueError("Empty morph-matrix")
-    elif len(morpher) == 1:
-        morpher = morpher[0]
-    else:
-        morpher = sparse_block_diag(morpher, format='csr')
+    shape = (sum(len(v) for v in vertices_to),
+             sum(len(v) for v in vertices_from))
+    data = [m.data for m in morpher]
+    indices = [m.indices.copy() for m in morpher]
+    indptr = [m.indptr.copy() for m in morpher]
+    # column indices need to be adjusted
+    indices[0 if xhemi else 1] += len(vertices_from[0])
+    indices = np.concatenate(indices)
+    # row index pointers need to be adjusted
+    indptr[1] = indptr[1][1:] + len(data[0])
+    indptr = np.concatenate(indptr)
+    # data does not need to be adjusted
+    data = np.concatenate(data)
+    # this is equivalent to morpher = sparse_block_diag(morpher).tocsr(),
+    # but works for xhemi mode
+    morpher = sparse.csr_matrix((data, indices, indptr), shape=shape)
     logger.info('[done]')
     return morpher
 
