@@ -885,7 +885,7 @@ def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         idx_use = vertices_from[hemi_from]
         if len(idx_use) == 0:
             morpher.append(
-                sparse.csr_matrix(shape=(len(vertices_to[hemi_to]), 0)))
+                sparse.csr_matrix((len(vertices_to[hemi_to]), 0)))
             continue
         e = mesh_edges(tris[hemi_from])
         e.data[e.data == 2] = 1

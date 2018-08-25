@@ -218,7 +218,7 @@ def test_surface_vector_source_morph():
     assert isinstance(stc_vec_morphed, VectorSourceEstimate)
 
     # check __repr__
-    assert isinstance(source_morph_surf.__repr__(), string_types)
+    assert 'surface' in repr(source_morph_surf)
 
     # check loading and saving for surf
     source_morph_surf.save(op.join(tempdir, '42.h5'))
@@ -352,7 +352,7 @@ def test_volume_source_morph():
                      sorted(source_morph_vol.__dict__))]))
 
     # check __repr__
-    assert isinstance(source_morph_vol.__repr__(), string_types)
+    assert 'volume' in repr(source_morph_vol)
 
     # check Nifti2Image
     assert isinstance(
