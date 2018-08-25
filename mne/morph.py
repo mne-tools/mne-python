@@ -8,7 +8,6 @@ import warnings
 import copy
 import numpy as np
 from scipy import sparse
-from scipy.sparse import block_diag as sparse_block_diag
 
 from .parallel import parallel_func
 from .source_estimate import (VolSourceEstimate, SourceEstimate,
