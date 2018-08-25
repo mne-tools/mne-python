@@ -476,6 +476,7 @@ def test_morph_stc_dense():
             spacing=5, sparse=True, subjects_dir=subjects_dir)
 
 
+@requires_version('scipy', '0.13')
 @testing.requires_testing_data
 def test_morph_stc_sparse():
     """Test morphing stc with sparse=True."""
