@@ -1724,7 +1724,7 @@ class ProgressBar(object):
     """
 
     spinner_symbols = ['|', '/', '-', '\\']
-    template = '\r[{0}{1}] {2:.02f}% {4} {3}   '
+    template = '\r[{0}{1}] {2:6.02f}% {4} {3}   '
 
     def __init__(self, max_value, initial_value=0, mesg='', max_chars='auto',
                  progress_character='.', spinner=False,
@@ -1865,22 +1865,23 @@ class ProgressBar(object):
         if not self._do_print:
             return
         assert val is True
-        if self._mmap is None:
-            self._mmap = np.memmap(self._mmap_fname, bool, 'w+',
-                                   shape=self.max_value)
         self._mmap[idx] = True
         self.update(self._mmap.sum())
 
     def __enter__(self):  # noqa: D105
+        if op.isfile(self._mmap_fname):
+            os.remove(self._mmap_fname)
+        self._mmap = np.memmap(self._mmap_fname, bool, 'w+',
+                               shape=self.max_value)
         return self
 
     def __exit__(self, type, value, traceback):  # noqa: D105
         """Clean up memmapped file."""
         # we can't put this in __del__ b/c then each worker will delete the
         # file, which is not so good
-        if self._mmap is not None:
-            self._mmap = None
-            os.remove(self._mmap_fname)
+        self._mmap = None
+        os.remove(self._mmap_fname)
+        print('')
 
 
 class _PBSubsetUpdater(object):
