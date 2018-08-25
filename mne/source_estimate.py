@@ -1339,13 +1339,10 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         stc_to : SourceEstimate | VectorSourceEstimate
             Source estimate for the destination subject.
         """
-        subject_from = _check_subject(self.subject, subject_from)
-        if sparse:
-            from mne.morph import _morph_sparse
-            return _morph_sparse(self, subject_from, subject_to, subjects_dir)
-        else:
-            return morph_data(subject_from, subject_to, self, grade, smooth,
-                              subjects_dir, buffer_size, n_jobs, verbose)
+        from .morph import compute_source_morph
+        return compute_source_morph(subject_from, subject_to, spacing=grade,
+                                    smooth=smooth, subjects_dir=subjects_dir,
+                                    src=self, sparse=sparse)(self)
 
     @deprecated(_dep_str)
     def morph_precomputed(self, subject_to, vertices_to, morph_mat,
@@ -2286,7 +2283,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 
     return compute_source_morph(subject_from, subject_to, spacing=grade,
                                 smooth=smooth, subjects_dir=subjects_dir,
-                                warn=warn)(stc_from)
+                                warn=warn, src=stc_from)(stc_from)
 
 
 @deprecated(_dep_str)
@@ -2332,9 +2329,10 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
         raise ValueError('stc_from.subject and subject_from must match')
 
     # private function only needed here to wrap the API
-    return SourceMorph(subject_from=subject_from,
-                       subject_to=subject_to, vertices_to=vertices_to,
-                       morph_mat=morph_mat, kind='surface')(stc_from)
+    return SourceMorph(subject_from, subject_to, 'surface',
+                       None, None, None, None, None, False, morph_mat,
+                       vertices_to, None, None, None, None,
+                       dict(vertices_from=stc_from.vertices))(stc_from)
 
 
 def _get_vol_mask(src):

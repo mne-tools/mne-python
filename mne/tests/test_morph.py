@@ -18,7 +18,7 @@ from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
 from mne.datasets import testing
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.utils import (run_tests_if_main, requires_nibabel, _TempDir,
-                       requires_dipy, string_types, requires_h5py)
+                       requires_dipy, requires_h5py)
 from mne.fixes import _get_args
 
 # Setup paths
