@@ -16,7 +16,6 @@ import os.path as op
 import numpy as np
 
 from ..transforms import _pol_to_cart, _cart_to_sph
-from ..bem import fit_sphere_to_headshape
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..io.meas_info import Info
@@ -615,7 +614,7 @@ def _find_topomap_coords(info, picks, layout=None):
         pos = [layout.pos[layout.names.index(ch['ch_name'])] for ch in chs]
         pos = np.asarray(pos)
     else:
-        pos = _auto_topomap_coords(info, picks)
+        pos = _auto_topomap_coords(info, picks, to_sphere=True)
 
     return pos
 
@@ -677,7 +676,8 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
             raise RuntimeError('No digitization points found.')
 
         locs3d = np.array([point['r'] for point in info['dig']
-                           if point['kind'] == FIFF.FIFFV_POINT_EEG])
+                           if point['kind'] == FIFF.FIFFV_POINT_EEG and
+                           point['coord_frame'] == FIFF.FIFFV_COORD_HEAD])
 
         if len(locs3d) == 0:
             raise RuntimeError('Did not find any digitization points of '
@@ -688,13 +688,6 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
             raise ValueError("Number of EEG digitization points (%d) "
                              "doesn't match the number of EEG channels "
                              "(%d)" % (len(locs3d), len(eeg_ch_names)))
-
-        # Center digitization points on head origin
-        dig_kinds = (FIFF.FIFFV_POINT_CARDINAL,
-                     FIFF.FIFFV_POINT_EEG,
-                     FIFF.FIFFV_POINT_EXTRA)
-        _, origin_head, _ = fit_sphere_to_headshape(info, dig_kinds, units='m')
-        locs3d -= origin_head
 
         # Match the digitization points with the requested
         # channels.
@@ -715,8 +708,10 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
 
     if to_sphere:
         # use spherical (theta, pol) as (r, theta) for polar->cartesian
-        return _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
-    return _pol_to_cart(_cart_to_sph(locs3d))
+        out = _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
+    else:
+        out = _pol_to_cart(_cart_to_sph(locs3d))
+    return out
 
 
 def _topo_to_sphere(pos, eegs):

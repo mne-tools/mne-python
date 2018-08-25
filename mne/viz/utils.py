@@ -1515,8 +1515,9 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
         ax.set(xticks=[], yticks=[], aspect='equal')
         fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
                             hspace=None)
+        head_dict = dict(center=(0, 0), scale=(0.25, 0.25))
         if to_sphere:
-            pos, outlines = _check_outlines(pos, 'head')
+            pos, outlines = _check_outlines(pos, 'head', head_dict)
         else:
             pos, outlines = _check_outlines(pos, np.array([0.5, 0.5]),
                                             {'center': (0, 0),
