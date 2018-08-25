@@ -1742,8 +1742,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         elif split_naming == 'bids':
             part_idx = 1
         else:
-            err = ("split_naming must be either 'elekta' or 'bids instead of'"
-                   "'{}'".format(split_naming))
+            err = ("split_naming must be either 'elekta' or 'bids' instead "
+                   "of '{}'.".format(split_naming))
             raise ValueError(err)
         _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
                    start, stop, buffer_size, projector, drop_small_buffer,
@@ -2203,16 +2203,16 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
 
     # previous file name and id
     if split_naming == 'elekta':
-        data = part_idx - 1
+        part_idx_tag = part_idx - 1
     else:
-        data = part_idx - 2
+        part_idx_tag = part_idx - 2
     if part_idx > 0 and prev_fname is not None:
         start_block(fid, FIFF.FIFFB_REF)
         write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
         write_string(fid, FIFF.FIFF_REF_FILE_NAME, prev_fname)
         if info['meas_id'] is not None:
             write_id(fid, FIFF.FIFF_REF_FILE_ID, info['meas_id'])
-        write_int(fid, FIFF.FIFF_REF_FILE_NUM, data)
+        write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx_tag)
         end_block(fid, FIFF.FIFFB_REF)
 
     pos_prev = fid.tell()
