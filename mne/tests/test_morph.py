@@ -14,7 +14,7 @@ import mne
 from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
                  read_evokeds, SourceMorph, compute_source_morph,
                  read_source_morph, read_source_estimate,
-                 read_forward_solution)
+                 read_forward_solution, grade_to_vertices, morph_data)
 from mne.datasets import testing
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.utils import (run_tests_if_main, requires_nibabel, _TempDir,
@@ -35,6 +35,8 @@ fname_vol = op.join(sample_dir,
                     'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
 fname_inv_surf = op.join(sample_dir,
                          'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
+fname_fmorph = op.join(data_path, 'MEG', 'sample',
+                       'fsaverage_audvis_trunc-meg')
 fname_smorph = op.join(sample_dir, 'sample_audvis_trunc-meg')
 fname_t1 = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
 fname_brain = op.join(subjects_dir, 'sample', 'mri', 'brain.mgz')
@@ -101,58 +103,61 @@ def test_sparse_morph():
 def test_xhemi_morph():
     """Test cross-hemisphere morphing."""
     stc = read_source_estimate(fname_stc, subject='sample')
-    # just smoke tests for now
+    # smooth 1 for speed where possible
+    smooth = 4
+    spacing = 4
+    n_grade_verts = 2562
     stc = compute_source_morph(
-        'sample', 'fsaverage_sym', smooth=5, warn=False, src=stc,
-        subjects_dir=subjects_dir)(stc)
+        'sample', 'fsaverage_sym', smooth=smooth, warn=False, src=stc,
+        spacing=spacing, subjects_dir=subjects_dir)(stc)
     morph = compute_source_morph(
-        'fsaverage_sym', 'fsaverage_sym', src=stc, xhemi=True, warn=False,
-        spacing=[stc.vertices[0], []], subjects_dir=subjects_dir)
+        'fsaverage_sym', 'fsaverage_sym', smooth=1, src=stc, xhemi=True,
+        warn=False, spacing=[stc.vertices[0], []],
+        subjects_dir=subjects_dir)
     stc_xhemi = morph(stc)
-    assert stc_xhemi.data.shape[0] == 10242
+    assert stc_xhemi.data.shape[0] == n_grade_verts
     assert stc_xhemi.rh_data.shape[0] == 0
     assert len(stc_xhemi.vertices[1]) == 0
-    assert stc_xhemi.lh_data.shape[0] == 10242
-    assert len(stc_xhemi.vertices[0]) == 10242
+    assert stc_xhemi.lh_data.shape[0] == n_grade_verts
+    assert len(stc_xhemi.vertices[0]) == n_grade_verts
     # complete reversal mapping
     morph = compute_source_morph(
-        'fsaverage_sym', 'fsaverage_sym', src=stc, xhemi=True, warn=False,
-        spacing=stc.vertices, subjects_dir=subjects_dir)
+        'fsaverage_sym', 'fsaverage_sym', src=stc, smooth=smooth, xhemi=True,
+        warn=False, spacing=stc.vertices, subjects_dir=subjects_dir)
     mm = morph.morph_mat
-    assert mm.shape == (20484, 20484)
-    assert mm.size > 20484
-    assert mm[:10242, :10242].size == 0  # left to left
-    assert mm[10242:, 10242:].size == 0  # right to right
-    assert mm[10242:, :10242].size > 10242  # left to right
-    assert morph.morph_mat[:10242, 10242:].size > 10242  # right to left
+    assert mm.shape == (n_grade_verts * 2,) * 2
+    assert mm.size > n_grade_verts * 2
+    assert mm[:n_grade_verts, :n_grade_verts].size == 0  # L to L
+    assert mm[n_grade_verts:, n_grade_verts:].size == 0  # R to L
+    assert mm[n_grade_verts:, :n_grade_verts].size > n_grade_verts  # L to R
+    assert mm[:n_grade_verts, n_grade_verts:].size > n_grade_verts  # R to L
     # more complicated reversal mapping
-    src = mne.setup_source_space('fsaverage_sym', spacing='oct6',
-                                 subjects_dir=subjects_dir, add_dist=False,
-                                 surface='sphere.reg')
-    vertices_use = [stc.vertices[0], src[1]['vertno']]
-    assert vertices_use[0].shape == (10242,)
-    assert vertices_use[1].shape == (4098,)
-    # ensure it's a very diffirent set
-    assert np.in1d(vertices_use[1], stc.vertices[1]).mean() < 0.1
+    vertices_use = [stc.vertices[0], np.arange(10242)]
+    n_src_verts = len(vertices_use[1])
+    assert vertices_use[0].shape == (n_grade_verts,)
+    assert vertices_use[1].shape == (n_src_verts,)
+    # ensure it's sufficiently diffirent to manifest round-trip errors
+    assert np.in1d(vertices_use[1], stc.vertices[1]).mean() < 0.3
     morph = compute_source_morph(
-        'fsaverage_sym', 'fsaverage_sym', src=stc, xhemi=True, warn=False,
-        spacing=vertices_use, subjects_dir=subjects_dir)
+        'fsaverage_sym', 'fsaverage_sym', src=stc, smooth=smooth, xhemi=True,
+        warn=False, spacing=vertices_use, subjects_dir=subjects_dir)
     mm = morph.morph_mat
-    assert mm.shape == (10242 + 4098, 20484)
-    assert mm[:10242, :10242].size == 0
-    assert mm[10242:, 10242:].size == 0
-    assert mm[:10242, 10242:].size > 10242
-    assert mm[10242:, :10242].size > 4098
+    assert mm.shape == (n_grade_verts + n_src_verts, n_grade_verts * 2)
+    assert mm[:n_grade_verts, :n_grade_verts].size == 0
+    assert mm[n_grade_verts:, n_grade_verts:].size == 0
+    assert mm[:n_grade_verts, n_grade_verts:].size > n_grade_verts
+    assert mm[n_grade_verts:, :n_grade_verts].size > n_src_verts
     # morph forward then back
     stc_xhemi = morph(stc)
     morph = compute_source_morph(
-        'fsaverage_sym', 'fsaverage_sym', src=stc_xhemi, xhemi=True,
-        warn=False, spacing=stc.vertices, subjects_dir=subjects_dir)
+        'fsaverage_sym', 'fsaverage_sym', src=stc_xhemi, smooth=smooth,
+        xhemi=True, warn=False, spacing=stc.vertices,
+        subjects_dir=subjects_dir)
     stc_return = morph(stc_xhemi)
     for hi in range(2):
         assert_array_equal(stc_return.vertices[hi], stc.vertices[hi])
     correlation = np.corrcoef(stc.data.ravel(), stc_return.data.ravel())[0, 1]
-    assert correlation > 0.95
+    assert correlation > 0.9  # not great b/c of sparse grade + small smooth
 
 
 @requires_nibabel()
@@ -199,7 +204,7 @@ def test_surface_vector_source_morph():
     stc_vec = _real_vec_stc()
 
     source_morph_surf = compute_source_morph(
-        subjects_dir=subjects_dir, spacing=[np.arange(10242)] * 2,
+        subjects_dir=subjects_dir, smooth=1, warn=False,  # smooth 1 for speed
         src=inverse_operator_surf['src'])
     assert source_morph_surf.subject_from == 'sample'
     assert source_morph_surf.subject_to == 'fsaverage'
@@ -268,19 +273,21 @@ def test_volume_source_morph():
     with pytest.raises(ValueError, match='Only surface'):
         compute_source_morph(src=src, sparse=True)
 
+    zooms = 20  # terrible quality but fast
     source_morph_vol = compute_source_morph(
         subjects_dir=subjects_dir, src=inverse_operator_vol['src'],
-        niter_affine=(1,), niter_sdr=(1,), zooms=7)
+        niter_affine=(1,), niter_sdr=(1,), zooms=zooms)
+    shape = (13,) * 3  # for the given zooms
 
     assert source_morph_vol.subject_from == 'sample'
 
     # the brain used in sample data has shape (255, 255, 255)
-    assert tuple(source_morph_vol.sdr_mapping.domain_shape) == (37, 37, 37)
+    assert tuple(source_morph_vol.sdr_mapping.domain_shape) == shape
 
-    assert tuple(source_morph_vol.pre_sdr_affine.domain_shape) == (37, 37, 37)
+    assert tuple(source_morph_vol.pre_sdr_affine.domain_shape) == shape
 
     # proofs the above
-    assert_array_equal(source_morph_vol.zooms, (7, 7, 7))
+    assert_array_equal(source_morph_vol.zooms, (zooms,) * 3)
 
     # assure proper src shape
     mri_size = (src[0]['mri_height'], src[0]['mri_depth'], src[0]['mri_width'])
@@ -290,7 +297,7 @@ def test_volume_source_morph():
     # check input via path to src and path to subject_to
     source_morph_vol = compute_source_morph(
         'sample', fname_brain, subjects_dir=subjects_dir, niter_affine=(1,),
-        src=fwd['src'], niter_sdr=(1,), zooms=7)
+        src=fwd['src'], niter_sdr=(1,), zooms=zooms)
 
     # check wrong subject_to
     with pytest.raises(IOError, match='cannot read file'):
@@ -326,7 +333,7 @@ def test_volume_source_morph():
 
     # assure morph spacing
     assert isinstance(img_morph_res, nib.Nifti1Image)
-    assert img_morph_res.header.get_zooms()[:3] == (7., 7., 7.)
+    assert img_morph_res.header.get_zooms()[:3] == (zooms,) * 3
 
     # assure src shape
     img_mri_res = source_morph_vol.as_volume(stc_vol_morphed,
@@ -369,6 +376,142 @@ def test_volume_source_morph():
 
     with pytest.raises(ValueError, match='invalid format'):
         stc_vol_morphed.as_volume(inverse_operator_vol['src'], format='42')
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_morph_stc_dense():
+    """Test morphing stc."""
+    subject_from = 'sample'
+    subject_to = 'fsaverage'
+    stc_from = read_source_estimate(fname_smorph, subject='sample')
+    stc_to = read_source_estimate(fname_fmorph)
+    # make sure we can specify grade
+    stc_from.crop(0.09, 0.1)  # for faster computation
+    stc_to.crop(0.09, 0.1)  # for faster computation
+    assert_array_equal(stc_to.time_as_index([0.09, 0.1], use_rounding=True),
+                       [0, len(stc_to.times) - 1])
+
+    # After dep change this to:
+    # stc_to1 = compute_source_morph(
+    #     subject_to=subject_to, spacing=3, smooth=12, src=stc_from,
+    #     subjects_dir=subjects_dir)(stc_from)
+    with pytest.deprecated_call():
+        stc_to1 = stc_from.morph(
+            subject_to=subject_to, grade=3, smooth=12,
+            subjects_dir=subjects_dir)
+    assert_allclose(stc_to.data, stc_to1.data, atol=1e-5)
+
+    mean_from = stc_from.data.mean(axis=0)
+    mean_to = stc_to1.data.mean(axis=0)
+    assert np.corrcoef(mean_to, mean_from).min() > 0.999
+
+    vertices_to = grade_to_vertices(subject_to, grade=3,
+                                    subjects_dir=subjects_dir)
+
+    # make sure we can fill by morphing
+    with pytest.warns(RuntimeWarning, match='consider increasing'):
+        morph = compute_source_morph(
+            subject_from, subject_to, spacing=None, smooth=1,
+            subjects_dir=subjects_dir, src=stc_from)
+    # after deprecation change this to:
+    # stc_to5 = morph(stc_from)
+    with pytest.deprecated_call():
+        stc_to5 = stc_from.morph_precomputed(
+            morph_mat=morph.morph_mat, subject_to=subject_to,
+            vertices_to=morph.vertices_to)
+    assert (stc_to5.data.shape[0] == 163842 + 163842)
+    # after deprecation delete this
+    with pytest.deprecated_call():
+        stc_to6 = morph_data(
+            subject_from, subject_to, stc_from, grade=None, smooth=1,
+            subjects_dir=subjects_dir)
+    assert_allclose(stc_to6.data, stc_to5.data)
+
+    # Morph vector data
+    stc_vec = _real_vec_stc()
+    stc_vec_to1 = compute_source_morph(
+        subject_from, subject_to, subjects_dir=subjects_dir, src=stc_vec,
+        spacing=vertices_to, smooth=1, warn=False)(stc_vec)
+    assert stc_vec_to1.subject == subject_to
+    assert stc_vec_to1.tmin == stc_vec.tmin
+    assert stc_vec_to1.tstep == stc_vec.tstep
+    assert len(stc_vec_to1.lh_vertno) == 642
+    assert len(stc_vec_to1.rh_vertno) == 642
+    return
+
+    # Degenerate conditions
+
+    # Morphing to a density that is too high should raise an informative error
+    # (here we need to push to grade=6, but for some subjects even grade=5
+    # will break)
+    with pytest.raises(ValueError, match='Cannot use icosahedral grade 6 '):
+        compute_source_morph(
+            subject_from=subject_to, subject_to=subject_from, spacing=6,
+            src=stc_to1, subjects_dir=subjects_dir)
+    del stc_to1
+
+    with pytest.raises(ValueError, match='smooth.* has to be at least 1'):
+        compute_source_morph(
+            subject_from, subject_to, src=stc_from, spacing=5, smooth=-1,
+            subjects_dir=subjects_dir)
+
+    # subject from mismatch
+    with pytest.raises(ValueError, match="does not match source space subj"):
+        compute_source_morph(subject_from='foo', src=stc_from,
+                             subjects_dir=subjects_dir)
+
+    # only one set of vertices
+    with pytest.raises(ValueError, match="grade.*list must have two elements"):
+        compute_source_morph(
+            subject_from=subject_from, spacing=[vertices_to[0]],
+            subjects_dir=subjects_dir, src=stc_from)
+
+    # spacing not None
+    with pytest.raises(RuntimeError, match="spacing"):
+        compute_source_morph(
+            subject_from=subject_from, subject_to=subject_to, src=stc_from,
+            spacing=5, sparse=True, subjects_dir=subjects_dir)
+
+
+@testing.requires_testing_data
+def test_morph_stc_sparse():
+    """Test morphing stc with sparse=True."""
+    subject_from = 'sample'
+    subject_to = 'fsaverage'
+    # Morph sparse data
+    # Make a sparse stc
+    stc_from = read_source_estimate(fname_smorph, subject='sample')
+    stc_from.vertices[0] = stc_from.vertices[0][[100, 500]]
+    stc_from.vertices[1] = stc_from.vertices[1][[200]]
+    stc_from._data = stc_from._data[:3]
+
+    stc_to_sparse = compute_source_morph(
+        subject_from=subject_from, subject_to=subject_to, src=stc_from,
+        spacing=None, sparse=True, subjects_dir=subjects_dir)(stc_from)
+
+    assert_allclose(np.sort(stc_from.data.sum(axis=1)),
+                    np.sort(stc_to_sparse.data.sum(axis=1)))
+    assert len(stc_from.rh_vertno) == len(stc_to_sparse.rh_vertno)
+    assert len(stc_from.lh_vertno) == len(stc_to_sparse.lh_vertno)
+    assert stc_to_sparse.subject == subject_to
+    assert stc_from.tmin == stc_from.tmin
+    assert stc_from.tstep == stc_from.tstep
+
+    stc_from.vertices[0] = np.array([], dtype=np.int64)
+    stc_from._data = stc_from._data[:1]
+
+    stc_to_sparse = compute_source_morph(
+        subject_from, subject_to, spacing=None, sparse=True, src=stc_from,
+        subjects_dir=subjects_dir)(stc_from)
+
+    assert_allclose(np.sort(stc_from.data.sum(axis=1)),
+                    np.sort(stc_to_sparse.data.sum(axis=1)))
+    assert len(stc_from.rh_vertno) == len(stc_to_sparse.rh_vertno)
+    assert len(stc_from.lh_vertno) == len(stc_to_sparse.lh_vertno)
+    assert stc_to_sparse.subject == subject_to
+    assert stc_from.tmin == stc_from.tmin
+    assert stc_from.tstep == stc_from.tstep
 
 
 run_tests_if_main()
