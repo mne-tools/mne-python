@@ -1871,8 +1871,9 @@ class ProgressBar(object):
     def __enter__(self):  # noqa: D105
         if op.isfile(self._mmap_fname):
             os.remove(self._mmap_fname)
+        # prevent corner cases where self.max_value == 0
         self._mmap = np.memmap(self._mmap_fname, bool, 'w+',
-                               shape=self.max_value)
+                               shape=max(self.max_value, 1))
         return self
 
     def __exit__(self, type, value, traceback):  # noqa: D105
