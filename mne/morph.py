@@ -26,6 +26,10 @@ def compute_source_morph(subject_from=None, subject_to='fsaverage',
                          sparse=False, verbose=False):
     """Create a SourceMorph from one subject to another.
 
+    Method is based on spherical morphing by FreeSurfer for surface
+    cortical estimates [1]_ and Symmetric Diffeomorphic Registration
+    for volumic data [2]_.
+
     Parameters
     ----------
     subject_from : str | None
@@ -104,6 +108,10 @@ def compute_source_morph(subject_from=None, subject_to='fsaverage',
            R., Fischl B., Brysbaert M.
            A Surface-based Analysis of Language Lateralization and Cortical
            Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
+    .. [2] Avants, B. B., Epstein, C. L., Grossman, M., & Gee, J. C. (2009).
+           Symmetric Diffeomorphic Image Registration with Cross- Correlation:
+           Evaluating Automated Labeling of Elderly and Neurodegenerative
+           Brain, 12(1), 26-41.
     """
     if isinstance(src, (SourceEstimate, VectorSourceEstimate)):
         src_data = dict(vertices_from=copy.deepcopy(src.vertices))
@@ -243,7 +251,7 @@ class SourceMorph(object):
         Number of levels (``len(niter_sdr)``) and number of
         iterations per level - for each successive stage of iterative
         refinement - to perform the Symmetric Diffeomorphic Registration (sdr)
-        transform.
+        transform [2]_.
     spacing : int | list | None
         See :func:`mne.compute_source_morph`.
     smooth : int | None
@@ -253,7 +261,8 @@ class SourceMorph(object):
     xhemi : bool
         Morph across hemisphere.
     morph_mat : scipy.sparse.csr_matrix
-        The sparse surface morphing matrix.
+        The sparse surface morphing matrix for spherical surface
+        based morphing [1]_.
     vertices_to : list of ndarray
         The destination surface vertices.
     shape : tuple
@@ -268,6 +277,17 @@ class SourceMorph(object):
         the symmetric diffeomorphic registration (SDR) morph.
     src_data : dict
         Additional source data necessary to perform morphing.
+
+    References
+    ----------
+    .. [1] Greve D. N., Van der Haegen L., Cai Q., Stufflebeam S., Sabuncu M.
+           R., Fischl B., Brysbaert M.
+           A Surface-based Analysis of Language Lateralization and Cortical
+           Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
+    .. [2] Avants, B. B., Epstein, C. L., Grossman, M., & Gee, J. C. (2009).
+           Symmetric Diffeomorphic Image Registration with Cross- Correlation:
+           Evaluating Automated Labeling of Elderly and Neurodegenerative
+           Brain, 12(1), 26-41.
     """
 
     def __init__(self, subject_from, subject_to, kind, zooms,
@@ -888,6 +908,7 @@ def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         assert mm.shape == (len(vertices_to[hemi_to]),
                             len(vertices_from[hemi_from]))
         morpher.append(mm)
+
     shape = (sum(len(v) for v in vertices_to),
              sum(len(v) for v in vertices_from))
     data = [m.data for m in morpher]

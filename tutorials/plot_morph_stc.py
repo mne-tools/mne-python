@@ -16,7 +16,9 @@ between individual subject spaces using :class:`mne.SourceMorph` object.
 We will use precomputed data and morph surface and volume source estimates to a
 reference anatomy. The common space of choice will be FreeSurfer's 'fsaverage'
 See :ref:`sphx_glr_auto_tutorials_plot_background_freesurfer.py` for more
-information.
+information. Method used for cortical surface data in based
+on spherical registration [1]_ and Symmetric Diffeomorphic Registration (SDR)
+for volumic data [2]_.
 
 Furthermore we will convert our volume source estimate into a NIfTI image using
 :meth:`morph.as_volume <mne.SourceMorph.as_volume>`.
@@ -76,10 +78,10 @@ Morphing volumetric data from subject A to subject B requires a non-linear
 registration step between the anatomical T1 image of subject A to
 the anatomical T1 image of subject B.
 
-MNE-Python uses the Symmetric Diffeomorphic Registration from
-dipy_ (See
+MNE-Python uses the Symmetric Diffeomorphic Registration [2]_ as implemented
+in dipy_ [3]_ (See
 `tutorial <http://nipy.org/dipy/examples_built/syn_registration_3d.html>`_
-from dipy_ for reference and details).
+from dipy_ for more details).
 
 :class:`mne.SourceMorph` uses segmented anatomical MR images computed
 using :ref:`FreeSurfer <sphx_glr_auto_tutorials_plot_background_freesurfer.py>`
@@ -232,7 +234,7 @@ usage and for more details:
 
     - Save a :class:`mne.SourceMorph` object to disk
 
-Please see also Gramfort *et al.* (2013) [1]_.
+Please see also Gramfort *et al.* (2013) [4]_.
 
 Example result for morphing **surface** source estimates:
 
@@ -242,9 +244,22 @@ Example result for morphing **surface** source estimates:
 
 References
 ==========
-.. [1] Gramfort, A., Luessi, M., Larson, E., Engemann, D. A., Strohmeier, D.,
-       Brodbeck, C., ... & Hämäläinen, M. (2013). MEG and EEG data analysis
-       with MNE-Python. Frontiers in neuroscience, 7, 267.
+.. [1] Greve D. N., Van der Haegen L., Cai Q., Stufflebeam S., Sabuncu M.
+       R., Fischl B., Brysbaert M.
+       A Surface-based Analysis of Language Lateralization and Cortical
+       Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
+.. [2] Avants, B. B., Epstein, C. L., Grossman, M., & Gee, J. C. (2009).
+       Symmetric Diffeomorphic Image Registration with Cross- Correlation:
+       Evaluating Automated Labeling of Elderly and Neurodegenerative
+       Brain, 12(1), 26-41.
+.. [3] Garyfallidis E, Brett M, Amirbekian B, Rokem A, van der Walt S,
+       Descoteaux M, Nimmo-Smith I and Dipy Contributors (2014). DIPY, a
+       library for the analysis of diffusion MRI data. Frontiers in
+       Neuroinformatics, vol.8, no.8.
+.. [4] Gramfort A., Luessi M., Larson E., Engemann D. A., Strohmeier D.,
+       Brodbeck C., Goj R., Jas. M., Brooks T., Parkkonen L. & Hämäläinen, M.
+       (2013). MEG and EEG data analysis with MNE-Python. Frontiers in
+       neuroscience, 7, 267.
 
 .. _dipy: http://nipy.org/dipy/
 """  # noqa: E501

@@ -9,7 +9,7 @@ This example demonstrates how to morph an individual subject's
 a spherical representation of the cortex computed using the spherical
 registration of
 :ref:`FreeSurfer <sphx_glr_auto_tutorials_plot_background_freesurfer.py>`
-(https://surfer.nmr.mgh.harvard.edu/fswiki/SurfaceRegAndTemplates). This
+(https://surfer.nmr.mgh.harvard.edu/fswiki/SurfaceRegAndTemplates) [1]_. This
 transform will be used to morph the surface vertices of the subject towards the
 reference vertices. Here we will use 'fsaverage' as a reference space (see
 https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage).
@@ -18,6 +18,13 @@ The transformation will be applied to the surface source estimate. A plot
 depicting the successful morph will be created for the spherical and inflated
 surface representation of ``'fsaverage'``, overlaid with the morphed surface
 source estimate.
+
+References
+----------
+.. [1] Greve D. N., Van der Haegen L., Cai Q., Stufflebeam S., Sabuncu M.
+       R., Fischl B., Brysbaert M.
+       A Surface-based Analysis of Language Lateralization and Cortical
+       Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
 
 .. note:: For a tutorial about morphing see:
           :ref:`sphx_glr_auto_tutorials_plot_morph_stc.py`.
