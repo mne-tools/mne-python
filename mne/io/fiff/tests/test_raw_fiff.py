@@ -427,6 +427,11 @@ def test_split_files():
     assert_array_equal(data_1, data_2)
     assert_array_equal(times_1, times_2)
 
+    raw_bids = read_raw_fif(split_fname_bids_part1)
+    data_bids, times_bids = raw_bids[:, :]
+    assert_array_equal(data_1, data_bids)
+    assert_array_equal(times_1, times_bids)
+
     # test the case where we only end up with one buffer to write
     # (GH#3210). These tests rely on writing meas info and annotations
     # taking up a certain number of bytes, so if we change those functions

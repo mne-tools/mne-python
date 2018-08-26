@@ -1607,7 +1607,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=None,
              drop_small_buffer=False, proj=False, fmt='single',
-             overwrite=False, split_size='2GB', split_naming='elekta',
+             overwrite=False, split_size='2GB', split_naming='neuromag',
              verbose=None):
         """Save raw data to file.
 
@@ -1662,8 +1662,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             .. note:: Due to FIFF file limitations, the maximum split
                       size is 2GB.
 
-        split_naming : string ('elekta' | 'bids')
+        split_naming : string ('neuromag' | 'bids')
             Add the filename partition with the appropriate naming schema.
+
+            .. versionadded:: 0.17
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1742,9 +1745,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         elif split_naming == 'bids':
             part_idx = 1
         else:
-            err = ("split_naming must be either 'elekta' or 'bids' instead "
-                   "of '{}'.".format(split_naming))
-            raise ValueError(err)
+            raise ValueError(
+            "split_naming must be either 'elekta' or 'bids' instead "
+            "of '{}'.".format(split_naming))
         _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
                    start, stop, buffer_size, projector, drop_small_buffer,
                    split_size, split_naming, part_idx, None)
