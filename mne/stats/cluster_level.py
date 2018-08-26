@@ -10,8 +10,6 @@
 #
 # License: Simplified BSD
 
-import logging
-
 import numpy as np
 from scipy import sparse
 
@@ -541,10 +539,6 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
                     for s in slices]
 
     for seed_idx, order in enumerate(orders):
-        if progress_bar is not None:
-            if (not (seed_idx + 1) % 32) or (seed_idx == 0):
-                progress_bar.update(seed_idx + 1)
-
         # shuffle sample indices
         assert order is not None
         idx_shuffle_list = [order[s] for s in slices]
@@ -586,6 +580,8 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
         else:
             max_cluster_sums[seed_idx] = 0
 
+        progress_bar.update(seed_idx + 1)
+
     return max_cluster_sums
 
 
@@ -606,10 +602,6 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
         X_flip_buffer = np.empty((n_samp, buffer_size), dtype=X.dtype)
 
     for seed_idx, order in enumerate(orders):
-        if progress_bar is not None:
-            if not (seed_idx + 1) % 32 or seed_idx == 0:
-                progress_bar.update(seed_idx + 1)
-
         assert isinstance(order, np.ndarray)
         # new surrogate data with specified sign flip
         assert order.size == n_samp  # should be guaranteed by parent
@@ -658,6 +650,8 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
             max_cluster_sums[seed_idx] = perm_clusters_sums[idx_max]
         else:
             max_cluster_sums[seed_idx] = 0
+
+        progress_bar.update(seed_idx + 1)
 
     return max_cluster_sums
 
@@ -858,7 +852,8 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         orders = [rng.permutation(len(X_full))
                   for _ in range(n_permutations - 1)]
     del rng
-    parallel, my_do_perm_func, _ = parallel_func(do_perm_func, n_jobs)
+    parallel, my_do_perm_func, _ = parallel_func(
+        do_perm_func, n_jobs, verbose=False)
 
     if len(clusters) == 0:
         warn('No clusters found, returning empty H0, clusters, and cluster_pv')
@@ -866,12 +861,6 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
 
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
-
-    def get_progress_bar(seeds):
-        # make sure the progress bar adds to up 100% across n jobs
-        return (ProgressBar(len(seeds), spinner=True) if
-                logger.level <= logging.INFO else None)
-
     # Step 3: repeat permutations for step-down-in-jumps procedure
     n_removed = 1  # number of new clusters added
     total_removed = 0
@@ -888,11 +877,13 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         else:
             this_include = step_down_include
         logger.info('Permuting %d times%s...' % (len(orders), extra))
-        H0 = parallel(my_do_perm_func(X_full, slices, threshold, tail,
-                      connectivity, stat_fun, max_step, this_include,
-                      partitions, t_power, order, sample_shape, buffer_size,
-                      get_progress_bar(order))
-                      for order in split_list(orders, n_jobs))
+        with ProgressBar(len(orders), verbose_bool='auto') as progress_bar:
+            H0 = parallel(my_do_perm_func(X_full, slices, threshold, tail,
+                          connectivity, stat_fun, max_step, this_include,
+                          partitions, t_power, order, sample_shape,
+                          buffer_size, progress_bar.subset(idx))
+                          for idx, order in split_list(
+                              orders, n_jobs, idx=True))
         # include original (true) ordering
         if tail == -1:  # up tail
             orig = cluster_stats.min()

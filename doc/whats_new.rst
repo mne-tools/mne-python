@@ -39,6 +39,8 @@ Changelog
 
 - Add `trig_shift_by_type` parameter in :func:`mne.io.read_raw_brainvision` to allow to specify offsets for arbitrary marker types by `Henrich Kolkhorst`_
 
+- Add progress bar support to :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` by `Eric Larson`_
+
 - Add :func:`mne.head_to_mri` to convert positions from head coordinates to MRI RAS coordinates, by `Joan Massich`_ and `Alex Gramfort`_
 
 - :func:`mne.combine_evoked` and :func:`mne.grand_average` can now handle input with the same channels in different orders, if required, by `Jona Sassenhagen`_

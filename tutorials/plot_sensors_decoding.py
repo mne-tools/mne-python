@@ -66,8 +66,7 @@ y = epochs.events[:, 2]  # target: Audio left or right
 
 clf = make_pipeline(StandardScaler(), LogisticRegression())
 
-time_decod = SlidingEstimator(clf, n_jobs=1, scoring='roc_auc')
-
+time_decod = SlidingEstimator(clf, n_jobs=1, scoring='roc_auc', verbose=True)
 scores = cross_val_multiscore(time_decod, X, y, cv=5, n_jobs=1)
 
 # Mean scores across cross-validation splits
@@ -84,10 +83,11 @@ ax.axvline(.0, color='k', linestyle='-')
 ax.set_title('Sensor space decoding')
 plt.show()
 
+###############################################################################
 # You can retrieve the spatial filters and spatial patterns if you explicitly
 # use a LinearModel
 clf = make_pipeline(StandardScaler(), LinearModel(LogisticRegression()))
-time_decod = SlidingEstimator(clf, n_jobs=1, scoring='roc_auc')
+time_decod = SlidingEstimator(clf, n_jobs=1, scoring='roc_auc', verbose=True)
 time_decod.fit(X, y)
 
 coef = get_coef(time_decod, 'patterns_', inverse_transform=True)
@@ -107,7 +107,8 @@ evoked.plot_joint(times=np.arange(0., .500, .100), title='patterns',
 # generalizes to any other time point.
 
 # define the Temporal Generalization object
-time_gen = GeneralizingEstimator(clf, n_jobs=1, scoring='roc_auc')
+time_gen = GeneralizingEstimator(clf, n_jobs=1, scoring='roc_auc',
+                                 verbose=True)
 
 scores = cross_val_multiscore(time_gen, X, y, cv=5, n_jobs=1)
 
