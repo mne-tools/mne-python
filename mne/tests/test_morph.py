@@ -444,7 +444,6 @@ def test_morph_stc_dense():
     assert stc_vec_to1.tstep == stc_vec.tstep
     assert len(stc_vec_to1.lh_vertno) == 642
     assert len(stc_vec_to1.rh_vertno) == 642
-    return
 
     # Degenerate conditions
 
