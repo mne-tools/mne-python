@@ -2,8 +2,7 @@
 
 # License: BSD (3-clause)
 
-
-import os
+import os.path as op
 import warnings
 import copy
 import numpy as np
@@ -31,20 +30,15 @@ def compute_source_morph(subject_from=None, subject_to='fsaverage',
     ----------
     subject_from : str | None
         Name of the original subject as named in the SUBJECTS_DIR.
-        If None src[0]['subject_his_id]' will be used (default).
-    subject_to : str | array | list of two arrays
+        If None (default), then ``src[0]['subject_his_id]'`` will be used.
+    subject_to : str
         Name of the subject to which to morph as named in the SUBJECTS_DIR.
-        If morphing a surface source estimate, subject_to can also be an array
-        of vertices or a list of two arrays of vertices to morph to. If
-        morphing a volume source space, subject_to can be the path to a MRI
-        volume. The default is 'fsaverage'.
     subjects_dir : str | None
         Path to SUBJECTS_DIR if it is not set in the environment. The default
         is None.
     src : instance of SourceSpaces | instance of SourceEstimate
-        The list of SourceSpaces corresponding subject_from (can be a
+        The SourceSpaces of subject_from (can be a
         SourceEstimate if only using a surface source space).
-        src must be provided when morphing a volume.
     zooms : float | tuple | None
         The voxel size of volume for each spatial dimension in mm.
         If spacing is None, MRIs won't be resliced, and both volumes
@@ -120,6 +114,9 @@ def compute_source_morph(subject_from=None, subject_to='fsaverage',
     else:
         src_data, kind = _get_src_data(src)
         subject_from = _check_subject_from(subject_from, src)
+    if not isinstance(subject_to, string_types):
+        raise TypeError('subject_to must be str, got type %s (%s)'
+                        % (type(subject_to), subject_to))
     del src
     # Params
     warn = False if sparse else warn
@@ -134,42 +131,33 @@ def compute_source_morph(subject_from=None, subject_to='fsaverage',
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     # VolSourceEstimate
-    shape = affine = pre_sdr_affine = sdr_mapping = None
+    shape = affine = pre_affine = sdr_morph = None
     morph_mat = vertices_to = None
     if kind == 'volume':
-        assert subject_to is not None  # guaranteed by _check_subject_from
-
         _check_dep(nibabel='2.1.0', dipy=False)
 
         logger.info('volume source space inferred...')
         import nibabel as nib
 
         # load moving MRI
-        mri_subpath = os.path.join('mri', 'brain.mgz')
-        mri_path_from = os.path.join(subjects_dir, subject_from,
-                                     mri_subpath)
+        mri_subpath = op.join('mri', 'brain.mgz')
+        mri_path_from = op.join(subjects_dir, subject_from, mri_subpath)
 
-        logger.info('loading %s as moving volume' % mri_path_from)
+        logger.info('loading %s as "from" volume' % mri_path_from)
         with warnings.catch_warnings():
             mri_from = nib.load(mri_path_from)
 
-        # load static MRI
-        static_path = os.path.join(subjects_dir, subject_to)
-
-        if not os.path.isdir(static_path):
-            mri_path_to = static_path
-        else:
-            mri_path_to = os.path.join(static_path, mri_subpath)
-
-        if os.path.isfile(mri_path_to):
-            logger.info('loading %s as static volume' % mri_path_to)
-            with warnings.catch_warnings():
-                mri_to = nib.load(mri_path_to)
-        else:
+        # eventually we could let this be some other volume, but for now
+        # let's KISS and use `brain.mgz`, too
+        mri_path_to = op.join(subjects_dir, subject_to, mri_subpath)
+        if not op.isfile(mri_path_to):
             raise IOError('cannot read file: %s' % mri_path_to)
+        logger.info('loading %s as "to" volume' % mri_path_to)
+        with warnings.catch_warnings():
+            mri_to = nib.load(mri_path_to)
 
         # pre-compute non-linear morph
-        shape, zooms, affine, pre_sdr_affine, sdr_mapping = _compute_morph_sdr(
+        shape, zooms, affine, pre_affine, sdr_morph = _compute_morph_sdr(
             mri_from, mri_to, niter_affine, niter_sdr, zooms)
     elif kind == 'surface':
         logger.info('surface source space inferred...')
@@ -194,10 +182,12 @@ def compute_source_morph(subject_from=None, subject_to='fsaverage',
             n_verts = sum(len(v) for v in vertices_to)
             assert morph_mat.shape[0] == n_verts
 
-    return SourceMorph(subject_from, subject_to, kind, zooms,
-                       niter_affine, niter_sdr, spacing, smooth, xhemi,
-                       morph_mat, vertices_to, shape, affine,
-                       pre_sdr_affine, sdr_mapping, src_data)
+    morph = SourceMorph(subject_from, subject_to, kind, zooms,
+                        niter_affine, niter_sdr, spacing, smooth, xhemi,
+                        morph_mat, vertices_to, shape, affine,
+                        pre_affine, sdr_morph, src_data)
+    logger.info('[done]')
+    return morph
 
 
 def _compute_sparse_morph(vertices_from, subject_from, subject_to,
@@ -224,7 +214,7 @@ def _compute_sparse_morph(vertices_from, subject_from, subject_to,
 _SOURCE_MORPH_ATTRIBUTES = [  # used in writing
     'subject_from', 'subject_to', 'kind', 'zooms', 'niter_affine', 'niter_sdr',
     'spacing', 'smooth', 'xhemi', 'morph_mat', 'vertices_to',
-    'shape', 'affine', 'pre_sdr_affine', 'sdr_mapping', 'src_data']
+    'shape', 'affine', 'pre_affine', 'sdr_morph', 'src_data']
 
 
 class SourceMorph(object):
@@ -236,13 +226,11 @@ class SourceMorph(object):
     Parameters
     ----------
     subject_from : str | None
-        Name of the subject from which to morph as named in the SUBJECTS_DIR
+        Name of the subject from which to morph as named in the SUBJECTS_DIR.
     subject_to : str | array | list of two arrays
         Name of the subject on which to morph as named in the SUBJECTS_DIR.
-        The default is 'fsaverage'. If morphing a surface source extimate,
-        subject_to can also be an array of vertices or a list of two arrays of
-        vertices to morph to. If morphing a volume source space, subject_to can
-        be the path to a MRI volume.
+        The default is 'fsaverage'. If morphing a volume source space,
+        subject_to can be the path to a MRI volume.
     kind : str | None
         Kind of source estimate. E.g. 'volume' or 'surface'.
     zooms : float | tuple
@@ -251,12 +239,11 @@ class SourceMorph(object):
         Number of levels (``len(niter_affine)``) and number of
         iterations per level - for each successive stage of iterative
         refinement - to perform the affine transform.
-        Default is niter_affine=(100, 100, 10)
     niter_sdr : tuple of int
         Number of levels (``len(niter_sdr)``) and number of
         iterations per level - for each successive stage of iterative
         refinement - to perform the Symmetric Diffeomorphic Registration (sdr)
-        transform. Default is niter_sdr=(5, 5, 3)
+        transform.
     spacing : int | list | None
         See :func:`mne.compute_source_morph`.
     smooth : int | None
@@ -266,19 +253,19 @@ class SourceMorph(object):
     xhemi : bool
         Morph across hemisphere.
     morph_mat : scipy.sparse.csr_matrix
-        The sparse surface morphing matrix.3
+        The sparse surface morphing matrix.
     vertices_to : list of ndarray
         The destination surface vertices.
     shape : tuple
         The volume MRI shape.
     affine : ndarray
         The volume MRI affine.
-    pre_sdr_affine : instance of dipy.align.imaffine.AffineMap
+    pre_affine : instance of dipy.align.imaffine.AffineMap
         The :class:`dipy.align.imaffine.AffineMap` transformation that is
-        applied before the SDR morph.
-    sdr_mapping : instance of dipy.align.imwarp.DiffeomorphicMap
+        applied before the before ``sdr_morph``.
+    sdr_morph : instance of dipy.align.imwarp.DiffeomorphicMap
         The :class:`dipy.align.imwarp.DiffeomorphicMap` that applies the
-        SDR transform.
+        the symmetric diffeomorphic registration (SDR) morph.
     src_data : dict
         Additional source data necessary to perform morphing.
     """
@@ -286,7 +273,7 @@ class SourceMorph(object):
     def __init__(self, subject_from, subject_to, kind, zooms,
                  niter_affine, niter_sdr, spacing, smooth, xhemi,
                  morph_mat, vertices_to, shape,
-                 affine, pre_sdr_affine, sdr_mapping, src_data):
+                 affine, pre_affine, sdr_morph, src_data):
         # universal
         self.subject_from = subject_from
         self.subject_to = subject_to
@@ -305,8 +292,8 @@ class SourceMorph(object):
         # vol computed
         self.shape = shape
         self.affine = affine
-        self.pre_sdr_affine = pre_sdr_affine
-        self.sdr_mapping = sdr_mapping
+        self.sdr_morph = sdr_morph
+        self.pre_affine = pre_affine
         # used by both
         self.src_data = src_data
 
@@ -404,7 +391,7 @@ class SourceMorph(object):
 
         out_dict = dict((key, getattr(self, key))
                         for key in _SOURCE_MORPH_ATTRIBUTES)
-        for key in ('pre_sdr_affine', 'sdr_mapping'):  # classes
+        for key in ('pre_affine', 'sdr_morph'):  # classes
             if out_dict[key] is not None:
                 out_dict[key] = out_dict[key].__dict__
         write_hdf5(fname, out_dict, overwrite=overwrite)
@@ -486,16 +473,16 @@ def read_source_morph(fname):
         The loaded morph.
     """
     vals = read_hdf5(fname)
-    if vals['pre_sdr_affine'] is not None:  # reconstruct
+    if vals['pre_affine'] is not None:  # reconstruct
         from dipy.align.imaffine import AffineMap
-        affine = vals['pre_sdr_affine']
-        vals['pre_sdr_affine'] = AffineMap(None)
-        vals['pre_sdr_affine'].__dict__ = affine
-    if vals['sdr_mapping'] is not None:
+        affine = vals['pre_affine']
+        vals['pre_affine'] = AffineMap(None)
+        vals['pre_affine'].__dict__ = affine
+    if vals['sdr_morph'] is not None:
         from dipy.align.imwarp import DiffeomorphicMap
-        morph = vals['sdr_mapping']
-        vals['sdr_mapping'] = DiffeomorphicMap(None, [])
-        vals['sdr_mapping'].__dict__ = morph
+        morph = vals['sdr_morph']
+        vals['sdr_morph'] = DiffeomorphicMap(None, [])
+        vals['sdr_morph'].__dict__ = morph
     return SourceMorph(**vals)
 
 
@@ -785,17 +772,17 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine=(100, 100, 10),
         affine, mri_from_affine, starting_affine=translation.affine)
 
     # affine transform (translation + rotation + scaling)
-    pre_sdr_affine = affreg.optimize(
+    pre_affine = affreg.optimize(
         mri_to, mri_from, transforms.AffineTransform3D(), None,
         affine, mri_from_affine, starting_affine=rigid.affine)
 
     # compute mapping
     sdr = imwarp.SymmetricDiffeomorphicRegistration(
         metrics.CCMetric(3), list(niter_sdr))
-    sdr_mapping = sdr.optimize(mri_to, pre_sdr_affine.transform(mri_from))
-    shape = tuple(sdr_mapping.domain_shape)  # should be tuple of int
+    sdr_morph = sdr.optimize(mri_to, pre_affine.transform(mri_from))
+    shape = tuple(sdr_morph.domain_shape)  # should be tuple of int
     logger.info('done.')
-    return shape, zooms, affine, pre_sdr_affine, sdr_mapping
+    return shape, zooms, affine, pre_affine, sdr_morph
 
 
 ###############################################################################
@@ -958,8 +945,8 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
         return [np.arange(10242), np.arange(10242)]
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
-    spheres_to = [os.path.join(subjects_dir, subject, 'surf',
-                               xh + '.sphere.reg') for xh in ['lh', 'rh']]
+    spheres_to = [op.join(subjects_dir, subject, 'surf',
+                          xh + '.sphere.reg') for xh in ['lh', 'rh']]
     lhs, rhs = [read_surface(s)[0] for s in spheres_to]
 
     if grade is not None:  # fill a subset of vertices
@@ -1147,8 +1134,8 @@ def _sparse_argmax_nnz_row(csr_mat):
 
 
 def _get_subject_sphere_tris(subject, subjects_dir):
-    spheres = [os.path.join(subjects_dir, subject, 'surf',
-                            xh + '.sphere.reg') for xh in ['lh', 'rh']]
+    spheres = [op.join(subjects_dir, subject, 'surf',
+                       xh + '.sphere.reg') for xh in ['lh', 'rh']]
     tris = [read_surface(s)[1] for s in spheres]
     return tris
 
@@ -1181,8 +1168,8 @@ def _apply_morph_data(morph, stc_from):
 
         # morph data
         for vol in range(img_to.shape[3]):
-            img_to[:, :, :, vol] = morph.sdr_mapping.transform(
-                morph.pre_sdr_affine.transform(img_to[:, :, :, vol]))
+            img_to[:, :, :, vol] = morph.sdr_morph.transform(
+                morph.pre_affine.transform(img_to[:, :, :, vol]))
 
         # reshape to nvoxel x nvol
         img_to = img_to.reshape(-1, img_to.shape[3])

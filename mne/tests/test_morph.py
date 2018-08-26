@@ -275,18 +275,19 @@ def test_volume_source_morph():
     with pytest.raises(ValueError, match='Only surface.*sparse morph'):
         compute_source_morph(src=src, sparse=True, subjects_dir=subjects_dir)
 
-    zooms = 20  # terrible quality but fast
+    # terrible quality buts fast
+    zooms = 20
+    kwargs = dict(zooms=zooms, niter_sdr=(1,), niter_affine=(1,))
     source_morph_vol = compute_source_morph(
-        subjects_dir=subjects_dir, src=inverse_operator_vol['src'],
-        niter_affine=(1,), niter_sdr=(1,), zooms=zooms)
+        subjects_dir=subjects_dir, src=inverse_operator_vol['src'], **kwargs)
     shape = (13,) * 3  # for the given zooms
 
     assert source_morph_vol.subject_from == 'sample'
 
     # the brain used in sample data has shape (255, 255, 255)
-    assert tuple(source_morph_vol.sdr_mapping.domain_shape) == shape
+    assert tuple(source_morph_vol.sdr_morph.domain_shape) == shape
 
-    assert tuple(source_morph_vol.pre_sdr_affine.domain_shape) == shape
+    assert tuple(source_morph_vol.pre_affine.domain_shape) == shape
 
     # proofs the above
     assert_array_equal(source_morph_vol.zooms, (zooms,) * 3)
@@ -296,10 +297,9 @@ def test_volume_source_morph():
     assert source_morph_vol.src_data['src_shape_full'] == mri_size
 
     fwd = read_forward_solution(fname_fwd_vol)
-    # check input via path to src and path to subject_to
     source_morph_vol = compute_source_morph(
-        'sample', fname_brain, subjects_dir=subjects_dir, niter_affine=(1,),
-        src=fwd['src'], niter_sdr=(1,), zooms=zooms)
+        'sample', 'sample', subjects_dir=subjects_dir, src=fwd['src'],
+        **kwargs)
 
     # check wrong subject_to
     with pytest.raises(IOError, match='cannot read file'):
@@ -378,6 +378,10 @@ def test_volume_source_morph():
 
     with pytest.raises(ValueError, match='invalid format'):
         stc_vol_morphed.as_volume(inverse_operator_vol['src'], format='42')
+
+    with pytest.raises(TypeError, match='subject_to must'):
+        compute_source_morph('sample', None, src=src,
+                             subjects_dir=subjects_dir)
 
 
 @pytest.mark.slowtest
