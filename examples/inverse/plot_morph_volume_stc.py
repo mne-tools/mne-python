@@ -142,32 +142,13 @@ display.add_overlay(img_fsaverage, alpha=0.75)
 #
 #     >>> morph = mne.read_source_morph('my-file-name-morph.h5')
 #
-# Additional Info
-# ===============
-#
-# In addition to the functionality, demonstrated above,
-# :class:`mne.SourceMorph` can be used slightly differently as well, in order
-# to enhance user comfort.
-#
-# For instance, it is possible to directly obtain a NIfTI image when calling
-# the SourceMorph instance, but setting ``as_volume=True``. If so, the
-# :meth:`morph.apply() <mne.SourceMorph.apply>` function takes the same input
-# arguments as :meth:`morph.as_volume <mne.SourceMorph.as_volume>`.
-#
-# Moreover it can be decided whether to actually apply the morph or not. This
-# way SourceMorph can be used to output un-morphed data as a volume as well. By
-# setting ``apply_morph`` and ``as_volume`` to True, the source estimate will
-# be morphed and convert it into a volume in one go:
-
-img = morph(stc, as_volume=True, apply_morph=True)
-
 ###############################################################################
 # Once the environment is set up correctly, no information such as
 # ``subject_from`` or ``subjects_dir`` must be provided, since it can be
-# inferred from the data and use morph to 'fsaverage' by default. SourceMorph
+# inferred from the data and used morph to 'fsaverage' by default. SourceMorph
 # can further be used without creating an instance and assigning it to a
 # variable. Instead :func:`mne.compute_source_morph` and
-# :meth:`mne.SourceMorph.apply` method can be
+# :meth:`mne.SourceMorph.apply` can be
 # easily chained into a handy one-liner. Taking this together the shortest
 # possible way to morph data directly would be:
 
