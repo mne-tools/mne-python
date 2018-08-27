@@ -58,22 +58,22 @@ stc = mne.read_source_estimate(fname_stc, subject='sample')
 # Setting up SourceMorph for SourceEstimate
 # -----------------------------------------
 #
-# In MNE surface source estimates are represented as lists of vertices. If
-# that is not entirely clear, we ask ourselves
-# :ref:`sphx_glr_auto_tutorials_plot_object_source_estimate.py`
+# In MNE surface source estimates represent the source space simply as
+# lists of vertices (see
+# :ref:`sphx_glr_auto_tutorials_plot_object_source_estimate.py`).
+# This list can either be obtained from
+# :class:`mne.SourceSpaces` (src) or from the ``stc`` itself.
 #
-# The respective list of our data can either be obtained from
-# :class:`mne.SourceSpaces` (src) or from the data we want to morph itself. If
-# src is not provided, the morph will not be precomputed but instead will be
-# prepared for morphing when calling.
+# Since the default ``spacing`` (resolution of surface mesh) is ``5`` and
+# ``subject_to`` is set to 'fsaverage', :class:`mne.SourceMorph` will use
+# default ico-5 ``fsaverage`` vertices to morph, which are the special
+# values ``[np.arange(10242)] * 2``.
 #
-# This works only with (Vector) :class:`SourceEstimate <mne.SourceEstimate>`.
-# See :class:`mne.SourceMorph` for additional parameter settings. We keep the
-# default parameters for *src* and *spacing*.
-#
-# Since the default of spacing (resolution of surface mesh) is 5 and subject_to
-# was set to 'fsaverage', SourceMorph will use default vertices to morph
-# (``[np.arange(10242)] * 2``).
+# .. note:: This is not generally true for other subjects! The set of vertices
+#           used for ``fsaverage`` with ico-5 spacing was designed to be
+#           special. ico-5 spacings for other subjects (or other spacings
+#           for fsaverage) must be calculated and will not be consecutive
+#           integers.
 #
 # If src was not defined, the morph will actually not be precomputed, because
 # we lack the vertices *from* that we want to compute. Instead the morph will
@@ -127,7 +127,7 @@ brain_inf.add_text(0.1, 0.9, 'Morphed to fsaverage (inflated)', 'title',
 # An instance of SourceMorph can be saved, by calling
 # :meth:`morph.save <mne.SourceMorph.save>`.
 #
-# This methods allows for specification of a filename under which the ``morph``
+# This method allows for specification of a filename under which the ``morph``
 # will be save in ".h5" format. If no file extension is provided, "-morph.h5"
 # will be appended to the respective defined filename::
 #

@@ -21,7 +21,7 @@ on spherical registration [1]_ and Symmetric Diffeomorphic Registration (SDR)
 for volumic data [2]_.
 
 Furthermore we will convert our volume source estimate into a NIfTI image using
-:meth:`morph.as_volume <mne.SourceMorph.as_volume>`.
+:meth:`morph.apply(..., output='nifti1') <mne.SourceMorph.apply>`.
 
 In order to morph :class:`labels <mne.Label>` between subjects allowing the
 definition of labels in a one brain and transforming them to anatomically

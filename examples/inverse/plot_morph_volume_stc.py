@@ -93,7 +93,7 @@ morph = mne.compute_source_morph(subject_from='sample', subject_to='fsaverage',
 # --------------------------------
 #
 # The morph can be applied to the source estimate data, by giving it as the
-# first argument to the morph we computed above.
+# first argument to the :meth:`morph.apply() <mne.SourceMorph.apply>`method:
 
 stc_fsaverage = morph.apply(stc)
 
@@ -102,7 +102,7 @@ stc_fsaverage = morph.apply(stc)
 # --------------------------------------------
 #
 # We can convert our morphed source estimate into a NIfTI volume using
-# :meth:`morph.apply(..., output='nifti1') <mne.SourceMorph.as_volume>`.
+# :meth:`morph.apply(..., output='nifti1') <mne.SourceMorph.apply>`.
 
 # Create mri-resolution volume of results
 img_fsaverage = morph.apply(stc, mri_resolution=2, output='nifti1')
@@ -142,7 +142,6 @@ display.add_overlay(img_fsaverage, alpha=0.75)
 #
 #     >>> morph = mne.read_source_morph('my-file-name-morph.h5')
 #
-###############################################################################
 # Once the environment is set up correctly, no information such as
 # ``subject_from`` or ``subjects_dir`` must be provided, since it can be
 # inferred from the data and used morph to 'fsaverage' by default. SourceMorph
