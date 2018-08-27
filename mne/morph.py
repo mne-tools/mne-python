@@ -231,6 +231,8 @@ class SourceMorph(object):
     .. note:: This class should not be instantiated directly.
               Use :func:`mne.compute_source_morph` instead.
 
+    .. versionadded:: 0.17
+
     Parameters
     ----------
     subject_from : str | None
@@ -318,14 +320,16 @@ class SourceMorph(object):
         self.src_data = src_data
 
     @verbose
-    def apply(self, stc_from, as_volume=False, mri_resolution=False,
-              mri_space=False, output='stc', verbose=None):
+    def apply(self, stc_from, output='stc', mri_resolution=False,
+              mri_space=False, verbose=None):
         """Morph source space data.
 
         Parameters
         ----------
         stc_from : VolSourceEstimate | SourceEstimate | VectorSourceEstimate
             The source estimate to morph.
+        output : str
+            Can be 'stc' (default), 'nifti1', or 'nifti2'.
         mri_resolution: bool | tuple | int | float
             If True the image is saved in MRI resolution. Default False.
             WARNING: if you have many time points the file produced can be
@@ -333,8 +337,6 @@ class SourceMorph(object):
         mri_space : bool
             Whether the image to world registration should be in mri space. The
             default is mri_space=mri_resolution.
-        output : str
-            Can be 'stc' (default), 'nifti1', or 'nifti2'.
         verbose : bool | str | int | None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`

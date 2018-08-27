@@ -142,8 +142,8 @@ brain_inf.add_text(0.1, 0.9, 'Morphed to fsaverage (inflated)', 'title',
 # ``subject_from`` or ``subjects_dir`` must be provided, since it can be
 # inferred from the data and use morph to 'fsaverage' by default. SourceMorph
 # can further be used without creating an instance and assigning it to a
-# variable. Instead the :class:`__init__ <mne.SourceMorph>` and
-# :meth:`__call__ <mne.SourceMorph.__call__>` methods of SourceMorph can be
+# variable. Instead :func:`mne.compute_source_morph` and
+# :meth:`mne.SourceMorph.apply` can be
 # easily chained into a handy one-liner. Taking this together the shortest
 # possible way to morph data directly would be:
 

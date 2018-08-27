@@ -92,34 +92,20 @@ morph = mne.compute_source_morph(subject_from='sample', subject_to='fsaverage',
 # Apply morph to VolSourceEstimate
 # --------------------------------
 #
-# The morph will be applied to the source estimate data, by giving it as the
-# first argument to the morph we computed above. Note that
-# :meth:`morph() <mne.SourceMorph.__call__>` can take the same input arguments
-# as :meth:`morph.as_volume() <mne.SourceMorph.as_volume>` to return a NIfTI
-# image instead of a MNE-Python representation of the source estimate.
+# The morph can be applied to the source estimate data, by giving it as the
+# first argument to the morph we computed above.
 
-# Morph data
-stc_fsaverage = morph(stc)
+stc_fsaverage = morph.apply(stc)
 
 ###############################################################################
 # Convert morphed VolSourceEstimate into NIfTI
 # --------------------------------------------
 #
 # We can convert our morphed source estimate into a NIfTI volume using
-# :meth:`morph.as_volume() <mne.SourceMorph.as_volume>`. We provided our
-# morphed source estimate as first argument. All following keyword arguments
-# can be used to modify the output image.
-#
-# Note that ``apply_morph=False``, that is the morph will not be applied
-# because the data has already been morphed. Set ``apply_morph=True`` to output
-# un-morphed data as a morphed volume. Further
-# :meth:`morph() <mne.SourceMorph.__call__>` can be used to output a volume as
-# well, taking the same input arguments. Provide ``as_volume=True`` when
-# calling the :class:`mne.SourceMorph` instance. In that case however
-# apply_morph will of course be True by default.
+# :meth:`morph.apply(..., output='nifti1') <mne.SourceMorph.as_volume>`.
 
 # Create mri-resolution volume of results
-img_fsaverage = morph.as_volume(stc_fsaverage, mri_resolution=2)
+img_fsaverage = morph.apply(stc_fsaverage, mri_resolution=2, output='nifti1')
 
 ###############################################################################
 # Plot results
@@ -165,7 +151,7 @@ display.add_overlay(img_fsaverage, alpha=0.75)
 #
 # For instance, it is possible to directly obtain a NIfTI image when calling
 # the SourceMorph instance, but setting ``as_volume=True``. If so, the
-# :meth:`morph() <mne.SourceMorph.__call__>` function takes the same input
+# :meth:`morph.apply() <mne.SourceMorph.apply>` function takes the same input
 # arguments as :meth:`morph.as_volume <mne.SourceMorph.as_volume>`.
 #
 # Moreover it can be decided whether to actually apply the morph or not. This
@@ -180,11 +166,11 @@ img = morph(stc, as_volume=True, apply_morph=True)
 # ``subject_from`` or ``subjects_dir`` must be provided, since it can be
 # inferred from the data and use morph to 'fsaverage' by default. SourceMorph
 # can further be used without creating an instance and assigning it to a
-# variable. Instead the :class:`__init__ <mne.SourceMorph>` and
-# :meth:`__call__ <mne.SourceMorph.__call__>` methods of SourceMorph can be
+# variable. Instead :func:`mne.compute_source_morph` and
+# :meth:`mne.SourceMorph.apply` method can be
 # easily chained into a handy one-liner. Taking this together the shortest
 # possible way to morph data directly would be:
 
 stc_fsaverage = mne.compute_source_morph(subject_from='sample',
                                          src=inverse_operator['src'],
-                                         subjects_dir=subjects_dir)(stc)
+                                         subjects_dir=subjects_dir).apply(stc)
