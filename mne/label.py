@@ -584,10 +584,9 @@ class Label(object):
         assert len(data) == sum(len(v) for v in vertices)
         stc = SourceEstimate(data, vertices, tmin=1, tstep=1,
                              subject=subject_from)
-        morph = compute_source_morph(
+        stc = compute_source_morph(
             subject_from, subject_to, spacing=spacing, smooth=smooth, src=stc,
-            subjects_dir=subjects_dir, warn=False)
-        stc = morph(stc)
+            subjects_dir=subjects_dir, warn=False).apply(stc)
         inds = np.nonzero(stc.data)[0]
         self.values = stc.data[inds, :].ravel()
         self.pos = np.zeros((len(inds), 3))

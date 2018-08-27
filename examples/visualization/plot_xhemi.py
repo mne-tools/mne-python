@@ -31,7 +31,7 @@ stc = mne.compute_source_morph('sample', 'fsaverage_sym', smooth=5, warn=False,
 morph = mne.compute_source_morph('fsaverage_sym', 'fsaverage_sym', src=stc,
                                  spacing=stc.vertices, warn=False,
                                  subjects_dir=subjects_dir, xhemi=True)
-stc_xhemi = morph(stc)
+stc_xhemi = morph.apply(stc)
 
 # Now we can subtract them and plot the result:
 diff = stc - stc_xhemi

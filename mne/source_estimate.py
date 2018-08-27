@@ -1342,7 +1342,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         from .morph import compute_source_morph
         return compute_source_morph(subject_from, subject_to, spacing=grade,
                                     smooth=smooth, subjects_dir=subjects_dir,
-                                    src=self, sparse=sparse)(self)
+                                    src=self, sparse=sparse).apply(self)
 
     @deprecated(_dep_str)
     def morph_precomputed(self, subject_to, vertices_to, morph_mat,
@@ -1860,7 +1860,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
         """
         from .morph import _interpolate_data
         return _interpolate_data(self, src, mri_resolution=mri_resolution,
-                                 mri_space=True, format=format)
+                                 mri_space=True, output=format)
 
     def __repr__(self):  # noqa: D105
         if isinstance(self.vertices, list):
@@ -2283,7 +2283,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 
     return compute_source_morph(subject_from, subject_to, spacing=grade,
                                 smooth=smooth, subjects_dir=subjects_dir,
-                                warn=warn, src=stc_from)(stc_from)
+                                warn=warn, src=stc_from).apply(stc_from)
 
 
 @deprecated(_dep_str)
@@ -2332,7 +2332,7 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     return SourceMorph(subject_from, subject_to, 'surface',
                        None, None, None, None, None, False, morph_mat,
                        vertices_to, None, None, None, None,
-                       dict(vertices_from=stc_from.vertices))(stc_from)
+                       dict(vertices_from=stc_from.vertices)).apply(stc_from)
 
 
 def _get_vol_mask(src):

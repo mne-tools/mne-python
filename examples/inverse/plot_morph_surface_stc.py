@@ -92,7 +92,7 @@ morph = mne.compute_source_morph(subject_from='sample', subject_to='fsaverage',
 # The morph will be applied to the source estimate data, by giving it as the
 # first argument to the morph we computed above.
 
-stc_fsaverage = morph(stc)
+stc_fsaverage = morph.apply(stc)
 
 ###############################################################################
 # Plot results
@@ -148,4 +148,4 @@ brain_inf.add_text(0.1, 0.9, 'Morphed to fsaverage (inflated)', 'title',
 # possible way to morph data directly would be:
 
 stc_fsaverage = mne.compute_source_morph(subjects_dir=subjects_dir,
-                                         src=stc)(stc)
+                                         src=stc).apply(stc)

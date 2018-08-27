@@ -73,7 +73,7 @@ def test_sparse_morph():
     morph_fs_sample = compute_source_morph(
         'fsaverage', 'sample', src=stc_fs, sparse=True, spacing=None,
         subjects_dir=subjects_dir)
-    stc_sample = morph_fs_sample(stc_fs)
+    stc_sample = morph_fs_sample.apply(stc_fs)
     offset = 0
     orders = list()
     for v1, s1, v2, s2 in zip(stc_fs.vertices, spheres_fs,
@@ -88,7 +88,7 @@ def test_sparse_morph():
     morph_sample_fs = compute_source_morph(
         'sample', 'fsaverage', src=stc_sample, sparse=True, spacing=None,
         subjects_dir=subjects_dir)
-    stc_fs_return = morph_sample_fs(stc_sample)
+    stc_fs_return = morph_sample_fs.apply(stc_sample)
     offset = 0
     orders = list()
     for v1, s, v2 in zip(stc_fs.vertices, spheres_fs, stc_fs_return.vertices):
@@ -111,12 +111,12 @@ def test_xhemi_morph():
     n_grade_verts = 2562
     stc = compute_source_morph(
         'sample', 'fsaverage_sym', smooth=smooth, warn=False, src=stc,
-        spacing=spacing, subjects_dir=subjects_dir)(stc)
+        spacing=spacing, subjects_dir=subjects_dir).apply(stc)
     morph = compute_source_morph(
         'fsaverage_sym', 'fsaverage_sym', smooth=1, src=stc, xhemi=True,
         warn=False, spacing=[stc.vertices[0], []],
         subjects_dir=subjects_dir)
-    stc_xhemi = morph(stc)
+    stc_xhemi = morph.apply(stc)
     assert stc_xhemi.data.shape[0] == n_grade_verts
     assert stc_xhemi.rh_data.shape[0] == 0
     assert len(stc_xhemi.vertices[1]) == 0
@@ -150,46 +150,16 @@ def test_xhemi_morph():
     assert mm[:n_grade_verts, n_grade_verts:].size > n_grade_verts
     assert mm[n_grade_verts:, :n_grade_verts].size > n_src_verts
     # morph forward then back
-    stc_xhemi = morph(stc)
+    stc_xhemi = morph.apply(stc)
     morph = compute_source_morph(
         'fsaverage_sym', 'fsaverage_sym', src=stc_xhemi, smooth=smooth,
         xhemi=True, warn=False, spacing=stc.vertices,
         subjects_dir=subjects_dir)
-    stc_return = morph(stc_xhemi)
+    stc_return = morph.apply(stc_xhemi)
     for hi in range(2):
         assert_array_equal(stc_return.vertices[hi], stc.vertices[hi])
     correlation = np.corrcoef(stc.data.ravel(), stc_return.data.ravel())[0, 1]
     assert correlation > 0.9  # not great b/c of sparse grade + small smooth
-
-
-@requires_nibabel()
-@requires_dipy()
-@testing.requires_testing_data
-def test_stc_as_volume():
-    """Test previous volume source estimate morph."""
-    import nibabel as nib
-    inverse_operator_vol = read_inverse_operator(fname_inv_vol)
-
-    # Apply inverse operator
-    stc_vol = read_source_estimate(fname_vol, 'sample')
-
-    img = stc_vol.as_volume(inverse_operator_vol['src'], mri_resolution=True,
-                            dest='42')
-    t1_img = nib.load(fname_t1)
-    # always assure nifti and dimensionality
-    assert isinstance(img, nib.Nifti1Image)
-    assert img.header.get_zooms()[:3] == t1_img.header.get_zooms()[:3]
-
-    img = stc_vol.as_volume(inverse_operator_vol['src'], mri_resolution=False)
-
-    assert isinstance(img, nib.Nifti1Image)
-    assert img.shape[:3] == inverse_operator_vol['src'][0]['shape'][:3]
-
-    # Check if not morphed, but voxel size not boolean, raise ValueError.
-    # Note that this check requires dipy to not raise the dipy ImportError
-    # before checking if the actual voxel size error will raise.
-    with pytest.raises(ValueError, match='Cannot infer original voxel size'):
-        stc_vol.as_volume(inverse_operator_vol['src'], mri_resolution=4)
 
 
 @requires_h5py
@@ -214,11 +184,11 @@ def test_surface_vector_source_morph():
     assert isinstance(source_morph_surf.src_data, dict)
     assert isinstance(source_morph_surf.src_data['vertices_from'], list)
     assert isinstance(source_morph_surf, SourceMorph)
-    stc_surf_morphed = source_morph_surf(stc_surf)
+    stc_surf_morphed = source_morph_surf.apply(stc_surf)
     assert isinstance(stc_surf_morphed, SourceEstimate)
-    stc_vec_morphed = source_morph_surf(stc_vec)
+    stc_vec_morphed = source_morph_surf.apply(stc_vec)
     with pytest.raises(ValueError, match='Only volume source estimates'):
-        source_morph_surf.as_volume(stc_surf_morphed)
+        source_morph_surf.apply(stc_surf, output='nifti1')
 
     # check if correct class after morphing
     assert isinstance(stc_surf_morphed, SourceEstimate)
@@ -238,7 +208,7 @@ def test_surface_vector_source_morph():
 
     # check wrong subject correction
     stc_surf.subject = None
-    assert isinstance(source_morph_surf(stc_surf), SourceEstimate)
+    assert isinstance(source_morph_surf.apply(stc_surf), SourceEstimate)
 
 
 @requires_h5py
@@ -318,37 +288,35 @@ def test_volume_source_morph():
         read_source_morph(op.join(tempdir, '42'))
 
     # check morph
-    stc_vol_morphed = source_morph_vol(stc_vol)
+    stc_vol_morphed = source_morph_vol.apply(stc_vol)
 
-    # check as_volume=True
-    assert isinstance(source_morph_vol(stc_vol, as_volume=True),
-                      nib.Nifti1Image)
+    # check output as NIfTI
+    assert isinstance(source_morph_vol.apply(stc_vol, output='nifti2'),
+                      nib.Nifti2Image)
 
     # check for subject_from mismatch
     source_morph_vol_r.subject_from = '42'
     with pytest.raises(ValueError, match='subject_from must match'):
-        source_morph_vol_r(stc_vol_morphed)
+        source_morph_vol_r.apply(stc_vol_morphed)
 
     # check if nifti is in grid morph space with voxel_size == spacing
-    img_morph_res = source_morph_vol.as_volume(stc_vol_morphed,
-                                               mri_resolution=False)
+    img_morph_res = source_morph_vol.apply(stc_vol, output='nifti1')
 
     # assure morph spacing
     assert isinstance(img_morph_res, nib.Nifti1Image)
     assert img_morph_res.header.get_zooms()[:3] == (zooms,) * 3
 
     # assure src shape
-    img_mri_res = source_morph_vol.as_volume(stc_vol_morphed,
-                                             mri_resolution=True)
+    img_mri_res = source_morph_vol.apply(stc_vol, output='nifti1',
+                                         mri_resolution=True)
     assert isinstance(img_mri_res, nib.Nifti1Image)
     assert (img_mri_res.shape == (src[0]['mri_height'], src[0]['mri_depth'],
                                   src[0]['mri_width']) +
             (img_mri_res.shape[3],))
 
     # check if nifti is defined resolution with voxel_size == (5., 5., 5.)
-    img_any_res = source_morph_vol.as_volume(stc_vol_morphed,
-                                             mri_resolution=(5., 5., 5.),
-                                             fname=op.join(tempdir, '42'))
+    img_any_res = source_morph_vol.apply(stc_vol, output='nifti1',
+                                         mri_resolution=(5., 5., 5.))
     assert isinstance(img_any_res, nib.Nifti1Image)
     assert img_any_res.header.get_zooms()[:3] == (5., 5., 5.)
 
@@ -365,20 +333,17 @@ def test_volume_source_morph():
 
     # check Nifti2Image
     assert isinstance(
-        source_morph_vol.as_volume(stc_vol_morphed, mri_resolution=True,
-                                   mri_space=True, format='nifti2'),
+        source_morph_vol.apply(stc_vol, mri_resolution=True,
+                               mri_space=True, output='nifti2'),
         nib.Nifti2Image)
 
+    # Degenerate conditions
+    with pytest.raises(TypeError, match='output must be'):
+        source_morph_vol.apply(stc_vol, output=1)
     with pytest.raises(ValueError, match='subject_from does not match'):
         compute_source_morph(src=src, subject_from='42')
-
-    # check wrong format
-    with pytest.raises(ValueError, match='invalid format'):
-        source_morph_vol.as_volume(stc_vol_morphed, format='42')
-
-    with pytest.raises(ValueError, match='invalid format'):
-        stc_vol_morphed.as_volume(inverse_operator_vol['src'], format='42')
-
+    with pytest.raises(ValueError, match='output must be one of'):
+        source_morph_vol.apply(stc_vol, output='42')
     with pytest.raises(TypeError, match='subject_to must'):
         compute_source_morph('sample', None, src=src,
                              subjects_dir=subjects_dir)
@@ -401,7 +366,7 @@ def test_morph_stc_dense():
     # After dep change this to:
     # stc_to1 = compute_source_morph(
     #     subject_to=subject_to, spacing=3, smooth=12, src=stc_from,
-    #     subjects_dir=subjects_dir)(stc_from)
+    #     subjects_dir=subjects_dir).apply(stc_from)
     with pytest.deprecated_call():
         stc_to1 = stc_from.morph(
             subject_to=subject_to, grade=3, smooth=12,
@@ -421,12 +386,12 @@ def test_morph_stc_dense():
             subject_from, subject_to, spacing=None, smooth=1,
             subjects_dir=subjects_dir, src=stc_from)
     # after deprecation change this to:
-    # stc_to5 = morph(stc_from)
+    # stc_to5 = morph.apply(stc_from)
     with pytest.deprecated_call():
         stc_to5 = stc_from.morph_precomputed(
             morph_mat=morph.morph_mat, subject_to=subject_to,
             vertices_to=morph.vertices_to)
-    assert (stc_to5.data.shape[0] == 163842 + 163842)
+    assert stc_to5.data.shape[0] == 163842 + 163842
     # after deprecation delete this
     with pytest.deprecated_call():
         stc_to6 = morph_data(
@@ -438,7 +403,7 @@ def test_morph_stc_dense():
     stc_vec = _real_vec_stc()
     stc_vec_to1 = compute_source_morph(
         subject_from, subject_to, subjects_dir=subjects_dir, src=stc_vec,
-        spacing=vertices_to, smooth=1, warn=False)(stc_vec)
+        spacing=vertices_to, smooth=1, warn=False).apply(stc_vec)
     assert stc_vec_to1.subject == subject_to
     assert stc_vec_to1.tmin == stc_vec.tmin
     assert stc_vec_to1.tstep == stc_vec.tstep
@@ -488,7 +453,7 @@ def test_morph_stc_sparse():
 
     stc_to_sparse = compute_source_morph(
         subject_from=subject_from, subject_to=subject_to, src=stc_from,
-        spacing=None, sparse=True, subjects_dir=subjects_dir)(stc_from)
+        spacing=None, sparse=True, subjects_dir=subjects_dir).apply(stc_from)
 
     assert_allclose(np.sort(stc_from.data.sum(axis=1)),
                     np.sort(stc_to_sparse.data.sum(axis=1)))
@@ -503,7 +468,7 @@ def test_morph_stc_sparse():
 
     stc_to_sparse = compute_source_morph(
         subject_from, subject_to, spacing=None, sparse=True, src=stc_from,
-        subjects_dir=subjects_dir)(stc_from)
+        subjects_dir=subjects_dir).apply(stc_from)
 
     assert_allclose(np.sort(stc_from.data.sum(axis=1)),
                     np.sort(stc_to_sparse.data.sum(axis=1)))

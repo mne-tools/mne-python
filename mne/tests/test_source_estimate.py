@@ -45,6 +45,8 @@ fname_vol = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
 fname_vsrc = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-vol-7-fwd.fif')
+fname_inv_vol = op.join(data_path, 'MEG', 'sample',
+                        'sample_audvis_trunc-meg-vol-7-meg-inv.fif')
 rng = np.random.RandomState(0)
 
 
@@ -120,6 +122,37 @@ def test_volume_stc():
             assert (isinstance(stc_new, VolSourceEstimate))
             assert_array_equal(stc.vertices, stc_new.vertices)
             assert_array_almost_equal(stc.data, stc_new.data)
+
+
+@requires_nibabel()
+@testing.requires_testing_data
+def test_stc_as_volume():
+    """Test previous volume source estimate morph."""
+    import nibabel as nib
+    inverse_operator_vol = read_inverse_operator(fname_inv_vol)
+
+    # Apply inverse operator
+    stc_vol = read_source_estimate(fname_vol, 'sample')
+
+    img = stc_vol.as_volume(inverse_operator_vol['src'], mri_resolution=True,
+                            dest='42')
+    t1_img = nib.load(fname_t1)
+    # always assure nifti and dimensionality
+    assert isinstance(img, nib.Nifti1Image)
+    assert img.header.get_zooms()[:3] == t1_img.header.get_zooms()[:3]
+
+    img = stc_vol.as_volume(inverse_operator_vol['src'], mri_resolution=False)
+
+    assert isinstance(img, nib.Nifti1Image)
+    assert img.shape[:3] == inverse_operator_vol['src'][0]['shape'][:3]
+
+    # Check if not morphed, but voxel size not boolean, raise ValueError.
+    # Note that this check requires dipy to not raise the dipy ImportError
+    # before checking if the actual voxel size error will raise.
+    with pytest.raises(ValueError, match='Cannot infer original voxel size'):
+        stc_vol.as_volume(inverse_operator_vol['src'], mri_resolution=4)
+    with pytest.raises(ValueError, match='invalid output'):
+        stc_vol.as_volume(inverse_operator_vol['src'], format='42')
 
 
 @testing.requires_testing_data

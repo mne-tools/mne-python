@@ -670,7 +670,7 @@ def test_morphed_source_space_return():
     stc_morph = compute_source_morph(
         'fsaverage', 'sample', src=src_fs,
         spacing=[s['vertno'] for s in src_morph], smooth=1,
-        subjects_dir=subjects_dir, warn=False)(stc_fs)
+        subjects_dir=subjects_dir, warn=False).apply(stc_fs)
     assert stc_morph.data.shape[0] == n_verts_sample
 
     # We can now pretend like this was real data we got e.g. from an inverse.
@@ -693,13 +693,13 @@ def test_morphed_source_space_return():
             subject_from='sample', spacing=stc_morph_return.vertices, smooth=1,
             subjects_dir=subjects_dir, src=src_morph)
     with pytest.raises(ValueError, match='vertices do not match'):
-        morph(stc_morph)
+        morph.apply(stc_morph)
 
     # Compare to the original data
     with pytest.warns(RuntimeWarning, match='vertices not included'):
         stc_morph_morph = compute_source_morph(
             subject_from='sample', spacing=stc_morph_return.vertices, smooth=1,
-            subjects_dir=subjects_dir, src=stc_morph)(stc_morph)
+            subjects_dir=subjects_dir, src=stc_morph).apply(stc_morph)
 
     assert_equal(stc_morph_return.subject, stc_morph_morph.subject)
     for ii in range(2):

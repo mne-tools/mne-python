@@ -318,18 +318,14 @@ class SourceMorph(object):
         self.src_data = src_data
 
     @verbose
-    def __call__(self, stc_from, as_volume=False, mri_resolution=False,
-                 mri_space=False, apply_morph=True, format='nifti1',
-                 verbose=None):
+    def apply(self, stc_from, as_volume=False, mri_resolution=False,
+              mri_space=False, output='stc', verbose=None):
         """Morph source space data.
 
         Parameters
         ----------
         stc_from : VolSourceEstimate | SourceEstimate | VectorSourceEstimate
             The source estimate to morph.
-        as_volume : bool
-            Whether to output a NIfTI volume. stc_from has to be a
-            VolSourceEstimate. The default is as_volume=False.
         mri_resolution: bool | tuple | int | float
             If True the image is saved in MRI resolution. Default False.
             WARNING: if you have many time points the file produced can be
@@ -337,11 +333,8 @@ class SourceMorph(object):
         mri_space : bool
             Whether the image to world registration should be in mri space. The
             default is mri_space=mri_resolution.
-        apply_morph : bool
-            If as_volume=True and apply_morph=True, the input stc will be
-            morphed and outputted as a volume. The default is as_volume=True.
-        format : str
-            Either 'nifti1' (default) or 'nifti2'.
+        output : str
+            Can be 'stc' (default), 'nifti1', or 'nifti2'.
         verbose : bool | str | int | None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -350,31 +343,28 @@ class SourceMorph(object):
         Returns
         -------
         stc_to : VolSourceEstimate | SourceEstimate | VectorSourceEstimate | Nifti1Image | Nifti2Image
-            The morphed source estimate or a NIfTI image if as_volume=True.
-            By default a Nifti1Image is returned. See 'format'.
+            The morphed source estimates.
         """  # noqa: E501
         stc = copy.deepcopy(stc_from)
 
-        if as_volume:
-            # if no mri resolution is desired, probably no mri space is wanted
-            # as well and vice versa
-            mri_space = mri_resolution if mri_space is None else mri_space
-            return self.as_volume(
-                stc, fname=None, mri_resolution=mri_resolution,
-                mri_space=mri_space, apply_morph=apply_morph, format=format)
-
+        mri_space = mri_resolution if mri_space is None else mri_space
         if stc.subject is None:
             stc.subject = self.subject_from
-
         if self.subject_from is None:
             self.subject_from = stc.subject
-
         if stc.subject != self.subject_from:
             raise ValueError('stc_from.subject and '
                              'morph.subject_from must match. (%s != %s)' %
                              (stc.subject, self.subject_from))
-
-        return _apply_morph_data(self, stc)
+        if not isinstance(output, string_types):
+            raise TypeError('output must be str, got type %s (%s)'
+                            % (type(output), output))
+        out = _apply_morph_data(self, stc)
+        if output != 'stc':  # convert to volume
+            out = _morphed_stc_as_volume(
+                self, out, mri_resolution=mri_resolution, mri_space=mri_space,
+                output=output)
+        return out
 
     def __repr__(self):  # noqa: D105
         s = u"%s" % self.kind
@@ -415,50 +405,6 @@ class SourceMorph(object):
             if out_dict[key] is not None:
                 out_dict[key] = out_dict[key].__dict__
         write_hdf5(fname, out_dict, overwrite=overwrite)
-
-    def as_volume(self, stc, fname=None, mri_resolution=False, mri_space=True,
-                  apply_morph=False, format='nifti1'):
-        """Return volume source space as Nifti1Image and / or save to disk.
-
-        Parameters
-        ----------
-        stc : VolSourceEstimate
-            Data to be transformed
-        fname : str | None
-            String to where to save the volume. If not None that volume will
-            be saved at fname.
-        mri_resolution: bool | tuple | int | float
-            Whether to use MRI resolution. If False the morph's resolution
-            will be used. If tuple the voxel size must be given in float values
-            in mm. E.g. mri_resolution=(3., 3., 3.). The default is
-            mri_resolution=False.
-            WARNING: if you have many time points the file produced can be
-            huge.
-        mri_space : bool
-            Whether the image to world registration should be in MRI space. The
-            default is mri_space=True.
-        apply_morph : bool
-            Whether to apply the precomputed morph to stc or not. The default
-            is apply_morph=False.
-        format : str
-            Either 'nifti1' (default) or 'nifti2'
-
-        Returns
-        -------
-        img : Nifti1Image | Nifti2Image
-            The image object.
-        """
-        if format != 'nifti1' and format != 'nifti2':
-            raise ValueError("invalid format %s, must be 'nifti1' or 'nifti1''"
-                             % format)
-        if apply_morph:
-            stc = self.__call__(stc)  # apply morph if desired
-        img = _stc_as_volume(self, stc, mri_resolution=mri_resolution,
-                             mri_space=mri_space, format=format)
-        if fname is not None:
-            import nibabel as nib
-            nib.save(img, fname)
-        return img
 
 
 ###############################################################################
@@ -520,22 +466,25 @@ def _check_dep(nibabel='2.1.0', dipy='0.10.1'):
                                                                         ver))
 
 
-def _stc_as_volume(morph, stc, mri_resolution=False, mri_space=True,
-                   format='nifti1'):
+def _morphed_stc_as_volume(morph, stc, mri_resolution=False, mri_space=True,
+                           output='nifti1'):
     """Return volume source space as Nifti1Image and/or save to disk."""
     if not isinstance(stc, VolSourceEstimate):
         raise ValueError('Only volume source estimates can be converted to '
                          'volumes')
     _check_dep(nibabel='2.1.0', dipy=False)
 
-    if format == 'nifti1':
+    known_types = ('nifti', 'nifti1', 'nifti2')
+    if output not in known_types:
+        raise ValueError('output must be one of %s, got %s'
+                         % (known_types, output))
+    if output in ('nifti', 'nifti1'):
         from nibabel import (Nifti1Image as NiftiImage,
                              Nifti1Header as NiftiHeader)
-    elif format == 'nifti2':
+    else:
+        assert output == 'nifti2'
         from nibabel import (Nifti2Image as NiftiImage,
                              Nifti2Header as NiftiHeader)
-
-    from dipy.align.reslice import reslice
 
     new_zooms = None
 
@@ -571,6 +520,7 @@ def _stc_as_volume(morph, stc, mri_resolution=False, mri_space=True,
     # reslice in case of manually defined voxel size
     zooms = morph.zooms[:3]
     if new_zooms is not None:
+        from dipy.align.reslice import reslice
         new_zooms = new_zooms[:3]
         img, affine = reslice(img.get_data(),
                               img.affine,  # MRI to world registration
@@ -622,16 +572,17 @@ def _get_src_data(src):
 
 
 def _interpolate_data(stc, morph, mri_resolution=True, mri_space=True,
-                      format='nifti1'):
+                      output='nifti1'):
     """Interpolate source estimate data to MRI."""
     _check_dep(nibabel='2.1.0', dipy=False)
-    if format != 'nifti1' and format != 'nifti2':
-        raise ValueError("invalid format specifier %s. Must be 'nifti1' or"
-                         " 'nifti2'" % format)
-    if format == 'nifti1':
+    if output not in ('nifti', 'nifti1', 'nifti2'):
+        raise ValueError("invalid output specifier %s. Must be 'nifti1' or"
+                         " 'nifti2'" % output)
+    if output in ('nifti', 'nifti1'):
         from nibabel import (Nifti1Image as NiftiImage,
                              Nifti1Header as NiftiHeader)
-    elif format == 'nifti2':
+    else:
+        assert output == 'nifti2'
         from nibabel import (Nifti2Image as NiftiImage,
                              Nifti2Header as NiftiHeader)
     assert morph.kind == 'volume'
