@@ -105,7 +105,7 @@ stc_fsaverage = morph.apply(stc)
 # :meth:`morph.apply(..., output='nifti1') <mne.SourceMorph.as_volume>`.
 
 # Create mri-resolution volume of results
-img_fsaverage = morph.apply(stc_fsaverage, mri_resolution=2, output='nifti1')
+img_fsaverage = morph.apply(stc, mri_resolution=2, output='nifti1')
 
 ###############################################################################
 # Plot results

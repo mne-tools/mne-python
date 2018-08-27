@@ -347,6 +347,11 @@ def test_volume_source_morph():
     with pytest.raises(TypeError, match='subject_to must'):
         compute_source_morph('sample', None, src=src,
                              subjects_dir=subjects_dir)
+    # Check if not morphed, but voxel size not boolean, raise ValueError.
+    # Note that this check requires dipy to not raise the dipy ImportError
+    # before checking if the actual voxel size error will raise.
+    with pytest.raises(ValueError, match='Cannot infer original voxel size'):
+        stc_vol.as_volume(inverse_operator_vol['src'], mri_resolution=4)
 
 
 @pytest.mark.slowtest
