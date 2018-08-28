@@ -54,6 +54,8 @@ Bug
 
 - Fix bug with reading measurement dates from BrainVision files by `Stefan Appelhoff`_
 
+- Fix bug with `mne.fit_dipole` where the residual was returned as ``ndarray`` instead of :class:`mne.Evoked` instance, by `Eric Larson`_
+
 - Fix bug with ``mne flash_bem`` when ``flash30`` is not used by `Eric Larson`_
 
 - Fix bug with :func:`mne.stats.permutation_cluster_test` and :func:`mne.stats.spatio_temporal_cluster_test` where ``threshold=None`` was not calculated properly for a f-oneway test by `Daniel McCloy`_ and `Eric Larson`_

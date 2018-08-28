@@ -107,7 +107,13 @@ raw_erm = mne.preprocessing.maxwell_filter(raw_erm, coord_frame='meg',
 cov = mne.compute_raw_covariance(raw_erm)
 del raw_erm
 
-dip, residual = fit_dipole(evoked, cov, sphere)
+dip, residual = fit_dipole(evoked, cov, sphere, verbose=True)
+
+###############################################################################
+# Let's look at how well we explained the data:
+
+evoked.plot()
+residual.plot()
 
 ###############################################################################
 # Compare the actual position with the estimated one.

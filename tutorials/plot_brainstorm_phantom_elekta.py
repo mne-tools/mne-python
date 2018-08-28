@@ -37,7 +37,7 @@ print(__doc__)
 # The data were collected with an Elekta Neuromag VectorView system at 1000 Hz
 # and low-pass filtered at 330 Hz. Here the medium-amplitude (200 nAm) data
 # are read to construct instances of :class:`mne.io.Raw`.
-data_path = bst_phantom_elekta.data_path()
+data_path = bst_phantom_elekta.data_path(verbose=True)
 
 raw_fname = op.join(data_path, 'kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif')
 raw = read_raw_fif(raw_fname)
@@ -108,7 +108,13 @@ for ii in event_id:
     data.append(evoked.data[:, 0])
 evoked = mne.EvokedArray(np.array(data).T, evoked.info, tmin=0.)
 del epochs, raw
-dip = fit_dipole(evoked, cov, sphere, n_jobs=1)[0]
+dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=1)
+
+###############################################################################
+# Do a quick check of how much variance we explained:
+
+evoked.plot()
+residual.plot()
 
 ###############################################################################
 # Now we can compare to the actual locations, taking the difference in mm:
@@ -150,6 +156,7 @@ def plot_pos_ori(pos, ori, color=(0., 0., 0.)):
                   ori[:, 0], ori[:, 1], ori[:, 2],
                   scale_factor=0.03,
                   color=color)
+
 
 mne.viz.plot_alignment(evoked.info, bem=sphere, surfaces=[])
 

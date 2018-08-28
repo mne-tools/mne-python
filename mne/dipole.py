@@ -1055,9 +1055,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         The dipole fits. A :class:`mne.DipoleFixed` is returned if
         ``pos`` and ``ori`` are both not None, otherwise a
         :class:`mne.Dipole` is returned.
-    residual : ndarray, shape (n_meeg_channels, n_times)
-        The good M-EEG data channels with the fitted dipolar activity
-        removed.
+    residual : instance of EvokedArray
+        The M-EEG data channels with the fitted dipolar activity removed.
 
     See Also
     --------
@@ -1317,8 +1316,10 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         dipoles = Dipole(times, out[0], out[1], out[2], out[3], comment,
                          out[4], out[5], out[6])
     residual = out[-1]
+    residual_evoked = evoked.copy()
+    residual_evoked.data[picks] = residual
     logger.info('%d time points fitted' % len(dipoles.times))
-    return dipoles, residual
+    return dipoles, residual_evoked
 
 
 def get_phantom_dipoles(kind='vectorview'):
