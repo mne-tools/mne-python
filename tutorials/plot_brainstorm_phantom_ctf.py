@@ -34,7 +34,7 @@ print(__doc__)
 
 ###############################################################################
 # The data were collected with a CTF system at 2400 Hz.
-data_path = bst_phantom_ctf.data_path()
+data_path = bst_phantom_ctf.data_path(verbose=True)
 
 # Switch to these to use the higher-SNR data:
 # raw_path = op.join(data_path, 'phantom_200uA_20150709_01.ds')
@@ -108,12 +108,6 @@ cov = mne.compute_raw_covariance(raw_erm)
 del raw_erm
 
 dip, residual = fit_dipole(evoked, cov, sphere, verbose=True)
-
-###############################################################################
-# Let's look at how well we explained the data:
-
-evoked.plot()
-residual.plot()
 
 ###############################################################################
 # Compare the actual position with the estimated one.
