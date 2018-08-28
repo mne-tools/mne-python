@@ -115,12 +115,13 @@ dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=1)
 # data and residuals on the same scale (here the "time points" are the
 # 32 dipole peak values that we fit):
 
-fig_ev = evoked.plot()
-fig_res = residual.plot()
-for ax_ev, ax_res in zip(fig_ev.axes, fig_res.axes):
-    ax_ev.get_shared_y_axes().join(ax_ev, ax_res)
-    ax_res.get_shared_y_axes().join(ax_ev, ax_res)
-    ax_ev.autoscale(axis='y')
+fig, axes = plt.subplots(2, 1)
+evoked.plot(axes=axes)
+for ax in axes:
+    ax.texts = []
+    for line in ax.lines:
+        line.set_color('#98df81')
+residual.plot(axes=axes)
 
 ###############################################################################
 # Now we can compare to the actual locations, taking the difference in mm:
