@@ -52,13 +52,6 @@ jobs:
             key: pip-cache
             paths:
               - ~/.cache/pip
-        # The conda-provided PyQt5 does not work on CircleCI for some reason,
-        # possibly because the libGL expects a sufficiently modern libgcc
-        # and conda rolls their own (libgcc-ng package).
-        #- run: conda remove --yes qt pyqt matplotlib sip libxcb icu vtk
-        #- run: pip uninstall --yes mayavi vtk
-        #- run: pip install vtk mayavi PyQt5 PyQt5-sip sip matplotlib
-        #- run: echo "export LD_PRELOAD=~/miniconda/envs/mne/lib/libgobject-2.0.so.0.5600.1" >> $BASH_ENV
         - run: pip install --upgrade "https://api.github.com/repos/nipy/PySurfer/zipball/master"
         # Look at what we have and fail early if there is some library conflict
         - run: which python
