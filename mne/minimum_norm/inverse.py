@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
@@ -550,18 +551,18 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
     #   Create the whitener
     #
     if not inv['noise_cov']['diag']:
-        inv['whitener'] = np.zeros((inv['noise_cov']['dim'],
-                                    inv['noise_cov']['dim']))
+        inv['whitener'] = np.zeros((inv['noise_cov']['dim'], 1))
         #
         #   Omit the zeroes due to projection
         #
         eig = inv['noise_cov']['eig']
         nzero = (eig > 0)
-        inv['whitener'][nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
+        inv['whitener'][nzero, 0] = 1.0 / np.sqrt(eig[nzero])
         #
         #   Rows of eigvec are the eigenvectors
         #
-        inv['whitener'] = np.dot(inv['whitener'], inv['noise_cov']['eigvec'])
+        inv['whitener'] = inv['whitener'] * inv['noise_cov']['eigvec']
+        inv['colorer'] = np.sqrt(eig) * inv['noise_cov']['eigvec'].T
         logger.info('    Created the whitener using a full noise '
                     'covariance matrix (%d small eigenvalues omitted)'
                     % (inv['noise_cov']['dim'] - np.sum(nzero)))
@@ -571,6 +572,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
         #
         inv['whitener'] = np.diag(1.0 /
                                   np.sqrt(inv['noise_cov']['data'].ravel()))
+        inv['colorer'] = np.diag(np.sqrt(inv['noise_cov']['data'].ravel()))
         logger.info('    Created the whitener using a diagonal noise '
                     'covariance matrix (%d small eigenvalues discarded)'
                     % ncomp)
@@ -812,7 +814,7 @@ def _subject_from_inverse(inverse_operator):
 @verbose
 def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
                   pick_ori=None, prepared=False, label=None,
-                  method_params=None, verbose=None):
+                  method_params=None, return_residual=False, verbose=None):
     """Apply inverse operator to evoked data.
 
     Parameters
@@ -843,6 +845,11 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
         Additional options for eLORETA. See Notes for details.
 
         .. versionadded:: 0.16
+    return_residual : bool
+        If True (default False), return the residual evoked data.
+        Cannot be used with ``method=='eLORETA'``.
+
+        .. versionadded:: 0.17
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -850,7 +857,9 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     Returns
     -------
     stc : SourceEstimate | VectorSourceEstimate | VolSourceEstimate
-        The source estimates
+        The source estimates.
+    residual : instance of Evoked
+        The residual evoked data, only returned if return_residual is True.
 
     See Also
     --------
@@ -912,6 +921,8 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     """
     _check_reference(evoked, inverse_operator['info']['ch_names'])
     _check_method(method)
+    if method == 'eLORETA' and return_residual:
+        raise ValueError('eLORETA does not currently support return_residual')
     _check_ori(pick_ori, inverse_operator['source_ori'])
     #
     #   Set up the inverse according to the parameters
@@ -935,7 +946,21 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     K, noise_norm, vertno, source_nn = _assemble_kernel(inv, label, method,
                                                         pick_ori)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
-
+    logger.info('    Computing residual...')
+    # x̂(t) = G ĵ(t) = C ** 1/2 U Π w(t)
+    # where the diagonal matrix Π has elements πk = λk γk
+    Pi = inv['sing'] * inv['reginv']
+    residual = evoked.copy()
+    data_w = np.dot(inv['whitener'],  # C ** -0.5
+                    np.dot(inv['proj'], evoked.data[sel]))
+    w_t = np.dot(inv['eigen_fields']['data'], data_w)  # U.T @ data
+    data_est = np.dot(inv['colorer'],  # C ** 0.5
+                      np.dot(inv['eigen_fields']['data'].T,  # U
+                             Pi[:, np.newaxis] * w_t))
+    data_est_w = np.dot(inv['whitener'], np.dot(inv['proj'], data_est))
+    var_exp = 1 - ((data_est_w - data_w) ** 2).sum() / (data_w ** 2).sum()
+    logger.info('    Explained %5.1f%% variance' % (100 * var_exp,))
+    residual.data[sel] -= data_est
     is_free_ori = (inverse_operator['source_ori'] ==
                    FIFF.FIFFV_MNE_FREE_ORI and pick_ori != 'normal')
 
@@ -959,7 +984,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
                     src_type=src_type)
     logger.info('[done]')
 
-    return stc
+    return (stc, residual) if return_residual else stc
 
 
 @verbose
