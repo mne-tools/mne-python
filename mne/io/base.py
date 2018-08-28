@@ -1662,7 +1662,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             .. note:: Due to FIFF file limitations, the maximum split
                       size is 2GB.
 
-        split_naming : string ('neuromag' | 'bids')
+        split_naming : {'neuromag' | 'bids'}
             Add the filename partition with the appropriate naming schema.
 
             .. versionadded:: 0.17
@@ -1740,14 +1740,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         buffer_size = self._get_buffer_size(buffer_size_sec)
 
         # write the raw file
-        if split_naming == 'elekta':
+        if split_naming == 'neuromag':
             part_idx = 0
         elif split_naming == 'bids':
             part_idx = 1
         else:
             raise ValueError(
-            "split_naming must be either 'elekta' or 'bids' instead "
-            "of '{}'.".format(split_naming))
+                "split_naming must be either 'neuromag' or 'bids' instead "
+                "of '{}'.".format(split_naming))
         _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
                    start, stop, buffer_size, projector, drop_small_buffer,
                    split_size, split_naming, part_idx, None)
@@ -2185,7 +2185,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
 
     if part_idx > 0:
         base, ext = op.splitext(fname)
-        if split_naming == 'elekta':
+        if split_naming == 'neuromag':
             # insert index in filename
             use_fname = '%s-%d%s' % (base, part_idx, ext)
         else:
@@ -2205,7 +2205,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
 
     # previous file name and id
-    if split_naming == 'elekta':
+    if split_naming == 'neuromag':
         part_idx_tag = part_idx - 1
     else:
         part_idx_tag = part_idx - 2
