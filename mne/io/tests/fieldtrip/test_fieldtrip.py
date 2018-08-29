@@ -12,7 +12,7 @@ from mne.datasets import testing
 from .helpers import (check_info_fields, get_data_paths, get_raw_data,
                       get_epoched_data, get_averaged_data, _has_h5py,
                       pandas_not_found_warning_msg)
-from mne.utils import requires_h5py, _check_pandas_installed, requires_pandas
+from mne.utils import _check_pandas_installed
 
 
 all_systems = ['neuromag306']
@@ -108,4 +108,3 @@ def test_raw():
 
             # Check info field
             check_info_fields(raw_fiff_mne, raw_fiff_ft)
-

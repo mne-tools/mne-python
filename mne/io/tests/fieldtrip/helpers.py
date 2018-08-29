@@ -23,7 +23,8 @@ ch_ignore_fields = ('logno', 'cal', 'range', 'scanno')
 
 system_to_reader_fn_dict = {'neuromag306': mne.io.read_raw_fif,
                             'CNT': partial(mne.io.read_raw_cnt, montage=None),
-                            'CTF': partial(mne.io.read_raw_ctf, clean_names=True)}
+                            'CTF': partial(mne.io.read_raw_ctf,
+                                           clean_names=True)}
 
 pandas_not_found_warning_msg = 'The Pandas library is not installed. Not ' \
                                'returning the original trialinfo matrix as ' \
@@ -63,9 +64,7 @@ def _remove_ignored_info_fields(info):
 
 
 def _transform_chs_to_head_coords(info):
-    is_ctf = False
     if 'dev_ctf_t' in info and info['dev_ctf_t'] is not None:
-        is_ctf = True
         trans = info['dev_ctf_t']
     elif 'dev_head_t' in info and info['dev_head_t'] is not None:
         trans = info['dev_head_t']
