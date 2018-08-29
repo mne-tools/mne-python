@@ -149,7 +149,9 @@ def get_epoched_data(system):
 
 
 def get_averaged_data(system):
-    return get_epoched_data(system).average()
+    data = get_epoched_data(system)
+
+    return data.average(picks=np.arange(len(data.ch_names)))
 
 
 def check_info_fields(expected, actual, has_raw_info):

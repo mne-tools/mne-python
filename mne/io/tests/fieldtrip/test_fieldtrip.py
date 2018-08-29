@@ -41,7 +41,6 @@ def test_averaged(cur_system, version, use_info):
         return
 
     avg_ft = mne.io.read_evoked_fieldtrip(cur_fname, info)
-    avg_ft.pick_types(meg=True, eeg=True, ref_meg=True)
 
     mne_data = mne_avg.data[:, :-1]
     ft_data = avg_ft.data
