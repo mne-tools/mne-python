@@ -17,8 +17,8 @@ from mne.utils import _check_pandas_installed
 
 all_systems = ['neuromag306']
 all_versions = ['v7', 'v73']
-
 all_test_params = list(itertools.product(all_systems, all_versions))
+
 
 @testing.requires_testing_data
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
