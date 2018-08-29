@@ -21,6 +21,8 @@ info_ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
 
 ch_ignore_fields = ('logno', 'cal', 'range', 'scanno')
 
+info_long_fields = ('hpi_meas', )
+
 system_to_reader_fn_dict = {'neuromag306': mne.io.read_raw_fif,
                             'CNT': partial(mne.io.read_raw_cnt, montage=None),
                             'CTF': partial(mne.io.read_raw_ctf,
@@ -53,6 +55,12 @@ def _remove_tangential_plane_from_ori(info):
             cur_ch['loc'][3:9] = 0
             cur_ch['loc'][3:] = np.around(cur_ch['loc'][3:], 2)
             cur_ch['loc'] = np.around(cur_ch['loc'], 3)
+
+
+def _remove_long_info_fields(info):
+    for cur_field in info_long_fields:
+        if cur_field in info:
+            del info[cur_field]
 
 
 def _remove_ignored_info_fields(info):
@@ -154,7 +162,7 @@ def get_averaged_data(system):
     return data.average(picks=np.arange(len(data.ch_names)))
 
 
-def check_info_fields(expected, actual, has_raw_info):
+def check_info_fields(expected, actual, has_raw_info, ignore_long=True):
     """
     Check if info fields are equal.
 
@@ -182,6 +190,10 @@ def check_info_fields(expected, actual, has_raw_info):
         # decimal points)
         _remove_tangential_plane_from_ori(expected)
         _remove_tangential_plane_from_ori(actual)
+
+    if info_long_fields:
+        _remove_long_info_fields(expected)
+        _remove_long_info_fields(actual)
 
     assert_deep_almost_equal(expected, actual)
 
