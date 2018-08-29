@@ -55,7 +55,7 @@ def read_raw_fieldtrip(ft_structure_path, info, data_name='data'):
     ft_struct = ft_struct[data_name]
 
     data = np.array(ft_struct['trial'])  # create the main data array
-    info = _create_info(ft_struct)  # create info structure
+    info = _create_info(ft_struct, info)  # create info structure
 
     if data.ndim > 2:
         data = np.squeeze(data)
@@ -124,7 +124,7 @@ def read_epochs_fieldtrip(ft_structure_path, info, data_name='data',
     events = _create_events(ft_struct, trialinfo_column)
     metadata = _create_event_metadata(ft_struct)
     tmin = _set_tmin(ft_struct)  # create start time
-    info = _create_info(ft_struct)  # create info structure
+    info = _create_info(ft_struct, info)  # create info structure
 
     custom_epochs = EpochsArray(data=data, info=info, tmin=tmin,
                                 events=events, metadata=metadata)
@@ -172,7 +172,7 @@ def read_evoked_fieldtrip(ft_structure_path, info, comment=None, data_name='data
     ft_struct = ft_struct[data_name]
 
     data_evoked = ft_struct['avg']  # create evoked data
-    info = _create_info(ft_struct)  # create info structure
+    info = _create_info(ft_struct, info)  # create info structure
 
     evoked_array = EvokedArray(data_evoked, info, comment=comment)
     return evoked_array

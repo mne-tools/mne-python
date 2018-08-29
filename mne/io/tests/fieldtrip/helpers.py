@@ -152,7 +152,7 @@ def get_averaged_data(system):
     return get_epoched_data(system).average()
 
 
-def check_info_fields(expected, actual):
+def check_info_fields(expected, actual, has_raw_info):
     """
     Check if info fields are equal.
 
@@ -161,24 +161,25 @@ def check_info_fields(expected, actual):
     expected = copy.deepcopy(expected.info)
     actual = copy.deepcopy(actual.info)
 
-    _transform_chs_to_head_coords(expected)
-    _transform_chs_to_head_coords(actual)
+    if not has_raw_info:
+        _transform_chs_to_head_coords(expected)
+        _transform_chs_to_head_coords(actual)
 
-    _remove_ignored_info_fields(expected)
-    _remove_ignored_info_fields(actual)
+        _remove_ignored_info_fields(expected)
+        _remove_ignored_info_fields(actual)
 
-    # Coordinates are now in head reference frame. The orientation rotation
-    # matrix is thus redundant in the sense that the third column is the
-    # cross product of the first two. The third is the unit vector of the
-    # direction perpendicular to the coil. FieldTrip only stores this vector.
-    # We recreate the rotation matrix using
-    # `mne.transforms.rotation3d_align_z_axis`. However, the first and second
-    # column of the rotation matrix are now arbitrary and thus need to be
-    # deleted.
-    # We are also allowing the orientation to be more inaccurate (up to 2
-    # decimal points)
-    _remove_tangential_plane_from_ori(expected)
-    _remove_tangential_plane_from_ori(actual)
+        # Coordinates are now in head reference frame. The orientation rotation
+        # matrix is thus redundant in the sense that the third column is the
+        # cross product of the first two. The third is the unit vector of the
+        # direction perpendicular to the coil. FieldTrip only stores this vector.
+        # We recreate the rotation matrix using
+        # `mne.transforms.rotation3d_align_z_axis`. However, the first and second
+        # column of the rotation matrix are now arbitrary and thus need to be
+        # deleted.
+        # We are also allowing the orientation to be more inaccurate (up to 2
+        # decimal points)
+        _remove_tangential_plane_from_ori(expected)
+        _remove_tangential_plane_from_ori(actual)
 
     assert_deep_almost_equal(expected, actual)
 

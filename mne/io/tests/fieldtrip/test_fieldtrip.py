@@ -47,7 +47,7 @@ def test_averaged(cur_system, version, use_info):
     ft_data = avg_ft.data
 
     np.testing.assert_almost_equal(mne_data, ft_data)
-    check_info_fields(mne_avg, avg_ft)
+    check_info_fields(mne_avg, avg_ft, use_info)
 
 
 @testing.requires_testing_data
@@ -86,7 +86,7 @@ def test_epoched(cur_system, version, use_info):
     ft_data = epoched_ft.get_data()
 
     np.testing.assert_almost_equal(mne_data, ft_data)
-    check_info_fields(mne_epoched, epoched_ft)
+    check_info_fields(mne_epoched, epoched_ft, use_info)
 
 
 @testing.requires_testing_data
@@ -115,4 +115,4 @@ def test_raw(cur_system, version, use_info):
                                    raw_fiff_ft.get_data())
 
     # Check info field
-    check_info_fields(raw_fiff_mne, raw_fiff_ft)
+    check_info_fields(raw_fiff_mne, raw_fiff_ft, use_info)

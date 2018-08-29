@@ -10,6 +10,7 @@ from mne import transforms
 from ...channels import DigMontage
 from ..constants import FIFF
 from ...utils import warn, _check_pandas_installed
+from ..pick import pick_info
 
 _supported_megs = ['neuromag306']
 
@@ -23,17 +24,31 @@ _unit_dict = {'m': 1,
               'T/m': 1,
               'T/cm': 1e2}
 
+NOINFO_WARNING = 'Importing FieldTrip data without an info dict from the ' \
+                 'original file. Channel locations, orientations and types ' \
+                 'will be incorrect. The imported data cannot be used for ' \
+                 'source analysis, channel interpolation etc.'
 
-def _create_info(ft_struct):
+
+def _create_info(ft_struct, raw_info):
     """Create MNE info structure from a FieldTrip structure."""
+    if raw_info is None:
+        warn(NOINFO_WARNING)
+
     sfreq = _set_sfreq(ft_struct)
-    montage = _create_montage(ft_struct)
     chs = _create_info_chs(ft_struct)
     ch_names = [ch['ch_name'] for ch in chs]
+    if raw_info:
+        info = raw_info.copy()
+        info['sfreq'] = sfreq
+        ch_idx = [info['ch_names'].index(ch) for ch in ch_names]
+        pick_info(info, ch_idx, copy=False)
+    else:
+        montage = _create_montage(ft_struct)
 
-    info = create_info(ch_names, sfreq, montage=montage)
-    info['chs'] = chs
-    info._update_redundant()
+        info = create_info(ch_names, sfreq, montage=montage)
+        info['chs'] = chs
+        info._update_redundant()
 
     return info
 
