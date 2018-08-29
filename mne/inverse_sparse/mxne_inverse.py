@@ -56,8 +56,8 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
 @verbose
 def _prepare_gain_column(forward, info, noise_cov, pca, depth, loose, weights,
                          weights_min, verbose=None):
-    gain_info, gain, _, whitener, _ = _prepare_forward(
-        forward, info, noise_cov, pca=pca)
+    gain_info, gain, _, whitener, _ = _prepare_forward(forward, info,
+                                                       noise_cov, pca)
 
     logger.info('Whitening lead field matrix.')
     gain = np.dot(whitener, gain)

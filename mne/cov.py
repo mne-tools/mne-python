@@ -1275,8 +1275,9 @@ def _get_whitener(noise_cov, info=None, ch_names=None, rank=None,
     n_chan = len(noise_cov['eig'])
 
     #   Omit the zeroes due to projection
-    eig = noise_cov['eig']
+    eig = noise_cov['eig'].copy()
     nzero = (eig > 0)
+    eig[~nzero] = 0.  # get rid of numerical noise (negative) ones
     n_nzero = np.sum(nzero)
 
     whitener = np.zeros((n_chan, 1), dtype=np.float)
