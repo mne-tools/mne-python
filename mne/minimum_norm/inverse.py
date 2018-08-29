@@ -533,7 +533,8 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
     #   Create the diagonal matrix for computing the regularized inverse
     #
     sing = np.array(inv['sing'], dtype=np.float64)
-    inv['reginv'] = sing / (sing ** 2 + lambda2)
+    with np.errstate(invalid='ignore'):  # if lambda2==0
+        inv['reginv'] = np.where(sing > 0, sing / (sing ** 2 + lambda2), 0)
     logger.info('    Created the regularized inverter')
     #
     #   Create the projection operator
@@ -550,32 +551,9 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
     #
     #   Create the whitener
     #
-    if not inv['noise_cov']['diag']:
-        inv['whitener'] = np.zeros((inv['noise_cov']['dim'], 1))
-        #
-        #   Omit the zeroes due to projection
-        #
-        eig = inv['noise_cov']['eig']
-        nzero = (eig > 0)
-        inv['whitener'][nzero, 0] = 1.0 / np.sqrt(eig[nzero])
-        #
-        #   Rows of eigvec are the eigenvectors
-        #
-        inv['whitener'] = inv['whitener'] * inv['noise_cov']['eigvec']
-        inv['colorer'] = np.sqrt(eig) * inv['noise_cov']['eigvec'].T
-        logger.info('    Created the whitener using a full noise '
-                    'covariance matrix (%d small eigenvalues omitted)'
-                    % (inv['noise_cov']['dim'] - np.sum(nzero)))
-    else:
-        #
-        #   No need to omit the zeroes due to projection
-        #
-        inv['whitener'] = np.diag(1.0 /
-                                  np.sqrt(inv['noise_cov']['data'].ravel()))
-        inv['colorer'] = np.diag(np.sqrt(inv['noise_cov']['data'].ravel()))
-        logger.info('    Created the whitener using a diagonal noise '
-                    'covariance matrix (%d small eigenvalues discarded)'
-                    % ncomp)
+
+    inv['whitener'], inv['colorer'], _, _ = _get_whitener(
+        inv['noise_cov'], pca=False, prepared=True)
 
     #
     #   Finally, compute the noise-normalization factors
@@ -1336,8 +1314,8 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
     n_chan = len(ch_names)
     logger.info("Computing inverse operator with %d channels." % n_chan)
 
-    whitener, noise_cov, n_nzero = _get_whitener(noise_cov, info, ch_names,
-                                                 rank, pca)
+    whitener, _, noise_cov, n_nzero = _get_whitener(
+        noise_cov, info, ch_names, rank, pca)
 
     gain = forward['sol']['data']
 
@@ -1506,8 +1484,10 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     # 4. Load the sensor noise covariance matrix and attach it to the forward
     #
 
+    # For now we always have pca=False. It does not seem to affect calculations
+    # and is also backward-compatible with MNE-C
     gain_info, gain, noise_cov, whitener, n_nzero = \
-        _prepare_forward(forward, info, noise_cov, rank=rank)
+        _prepare_forward(forward, info, noise_cov, pca=False, rank=rank)
     forward['info']._check_consistency()
 
     #
@@ -1536,7 +1516,8 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
                 use_cps=use_cps)
             is_fixed_ori = is_fixed_orient(forward)
             gain_info, gain, noise_cov, whitener, n_nzero = \
-                _prepare_forward(forward, info, noise_cov, verbose=False)
+                _prepare_forward(forward, info, noise_cov, pca=False,
+                                 verbose=False)
 
     logger.info("Computing inverse operator with %d channels."
                 % len(gain_info['ch_names']))

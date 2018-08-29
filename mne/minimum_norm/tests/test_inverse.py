@@ -5,7 +5,8 @@ import re
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_equal,
-                           assert_allclose, assert_array_equal)
+                           assert_allclose, assert_array_equal,
+                           assert_array_less)
 from scipy import sparse
 
 import pytest
@@ -518,15 +519,13 @@ def test_inverse_residual():
         assert corr > 0.999
     with catch_logging() as log:
         _, residual = apply_inverse(
-            evoked, inv, 1e-10, 'MNE', return_residual=True, verbose=True)
+            evoked, inv, 0., 'MNE', return_residual=True, verbose=True)
     log = log.getvalue()
     match = matcher.match(log.replace('\n', ' '))
     assert match is not None
     match = float(match.group(1))
-    assert match >= 99.9
-    # unfortunately our residual here does not go to zero :(
-    # XXX possibly need pca=True to avoid this?
-    # assert_array_less(np.abs(residual.data), 1e-15)
+    assert match == 100.
+    assert_array_less(np.abs(residual.data), 1e-15)
 
     # Degenerate: we don't have the right representation for eLORETA for this
     with pytest.raises(ValueError, match='eLORETA does not .* support .*'):
