@@ -10,13 +10,24 @@ import os
 from ...constants import FIFF
 import mne
 
+from functools import partial
+
 info_ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
                        'meas_date', 'highpass', 'lowpass', 'subject_info',
                        'hpi_subsystem', 'experimenter', 'description',
                        'proj_id', 'proj_name', 'line_freq', 'gantry_angle',
-                       'dev_head_t', 'dig', 'bads', 'projs')
+                       'dev_head_t', 'dig', 'bads', 'projs', 'ctf_head_t',
+                       'dev_ctf_t')
 
-ch_ignore_fields = ('logno', 'cal', 'range')
+ch_ignore_fields = ('logno', 'cal', 'range', 'scanno')
+
+system_to_reader_fn_dict = {'neuromag306': mne.io.read_raw_fif,
+                            'CNT': partial(mne.io.read_raw_cnt, montage=None),
+                            'CTF': partial(mne.io.read_raw_ctf, clean_names=True)}
+
+pandas_not_found_warning_msg = 'The Pandas library is not installed. Not ' \
+                               'returning the original trialinfo matrix as ' \
+                               'metadata.'
 
 
 def _has_h5py():
@@ -40,6 +51,7 @@ def _remove_tangential_plane_from_ori(info):
         for cur_ch in info['chs']:
             cur_ch['loc'][3:9] = 0
             cur_ch['loc'][3:] = np.around(cur_ch['loc'][3:], 2)
+            cur_ch['loc'] = np.around(cur_ch['loc'], 3)
 
 
 def _remove_ignored_info_fields(info):
@@ -51,10 +63,14 @@ def _remove_ignored_info_fields(info):
 
 
 def _transform_chs_to_head_coords(info):
-    if 'dev_head_t' not in info:
+    is_ctf = False
+    if 'dev_ctf_t' in info and info['dev_ctf_t'] is not None:
+        is_ctf = True
+        trans = info['dev_ctf_t']
+    elif 'dev_head_t' in info and info['dev_head_t'] is not None:
+        trans = info['dev_head_t']
+    else:
         return
-
-    trans = info['dev_head_t']
 
     for cur_ch in info['chs']:
         if cur_ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE:
@@ -64,14 +80,67 @@ def _transform_chs_to_head_coords(info):
             cur_ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
 
-def get_data_paths():
+def get_data_paths(system):
     """Return common paths for all tests."""
     test_data_folder_ft = os.path.join(mne.datasets.testing.data_path(),
-                                       'fieldtrip/from_mne_sample')
-    raw_fiff_file = os.path.join(mne.datasets.testing.data_path(),
-                                 'MEG/sample', 'sample_audvis_trunc_raw.fif')
+                                       'fieldtrip/ft_test_data', system)
 
-    return test_data_folder_ft, raw_fiff_file
+    return test_data_folder_ft
+
+
+def get_cfg_local(system):
+    from mne.externals.pymatreader import read_mat
+    cfg_local = read_mat(os.path.join(get_data_paths(system), 'raw_v7.mat'),
+                         ('cfg_local',))['cfg_local']
+
+    return cfg_local
+
+
+def get_raw_data(system):
+    cfg_local = get_cfg_local(system)
+
+    raw_data_file = os.path.join(mne.datasets.testing.data_path(),
+                                 cfg_local['file_name'])
+    reader_function = system_to_reader_fn_dict[system]
+
+    raw_data = reader_function(raw_data_file, preload=True)
+    raw_data.crop(0, cfg_local['crop'])
+    raw_data.set_eeg_reference([])
+    raw_data.del_proj('all')
+    raw_data.drop_channels(cfg_local['removed_chan_names'])
+
+    return raw_data
+
+
+def get_epoched_data(system):
+    cfg_local = get_cfg_local(system)
+    raw_data = get_raw_data(system)
+
+    if cfg_local['eventtype'] in raw_data.ch_names:
+        stim_channel = cfg_local['eventtype']
+    else:
+        stim_channel = 'STI 014'
+
+    events = mne.find_events(raw_data, stim_channel=stim_channel,
+                             shortest_event=1)
+
+    if isinstance(cfg_local['eventvalue'], np.ndarray):
+        event_id = list(cfg_local['eventvalue'].astype('int'))
+    else:
+        event_id = [int(cfg_local['eventvalue'])]
+
+    event_id = [id for id in event_id if id in events[:, 2]]
+
+    epochs = mne.Epochs(raw_data, events=events,
+                        event_id=event_id,
+                        tmin=-cfg_local['prestim'],
+                        tmax=cfg_local['poststim'], baseline=None)
+
+    return epochs
+
+
+def get_averaged_data(system):
+    return get_epoched_data(system).average()
 
 
 def check_info_fields(expected, actual):
