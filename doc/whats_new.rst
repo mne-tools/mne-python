@@ -489,6 +489,8 @@ Changelog
 
 - Enable morphing between hemispheres with :func:`mne.compute_morph_matrix` by `Christian Brodbeck`_
 
+- Add ``return_residual`` to :func:`mne.minimum_norm.apply_inverse` by `Eric Larson`_
+
 - Add ``return_drop_log`` to :func:`mne.preprocessing.compute_proj_eog` and :func:`mne.preprocessing.compute_proj_ecg` by `Eric Larson`_
 
 - Add time cursor and category/amplitude status message into the single-channel evoked plot by `Jussi Nurminen`_

@@ -1265,31 +1265,33 @@ def _get_ch_whitener(A, pca, ch_type, rank):
     return eig, eigvec
 
 
-def _get_whitener(noise_cov, info, ch_names, rank, pca, scalings=None):
+def _get_whitener(noise_cov, info=None, ch_names=None, rank=None,
+                  pca=False, scalings=None, prepared=False):
     #
     #   Handle noise cov
     #
-    noise_cov = prepare_noise_cov(noise_cov, info, ch_names, rank)
-    n_chan = len(ch_names)
+    if not prepared:
+        noise_cov = prepare_noise_cov(noise_cov, info, ch_names, rank)
+    n_chan = len(noise_cov['eig'])
 
     #   Omit the zeroes due to projection
-    eig = noise_cov['eig']
+    eig = noise_cov['eig'].copy()
     nzero = (eig > 0)
+    eig[~nzero] = 0.  # get rid of numerical noise (negative) ones
     n_nzero = np.sum(nzero)
 
+    whitener = np.zeros((n_chan, 1), dtype=np.float)
+    whitener[nzero, 0] = 1.0 / np.sqrt(eig[nzero])
+    #   Rows of eigvec are the eigenvectors
+    whitener = whitener * noise_cov['eigvec']  # C ** -0.5
+    colorer = np.sqrt(eig) * noise_cov['eigvec'].T  # C ** 0.5
     if pca:
-        #   Rows of eigvec are the eigenvectors
-        whitener = noise_cov['eigvec'][nzero] / np.sqrt(eig[nzero])[:, None]
-        logger.info('Reducing data rank to %d' % n_nzero)
-    else:
-        whitener = np.zeros((n_chan, n_chan), dtype=np.float)
-        whitener[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
-        #   Rows of eigvec are the eigenvectors
-        whitener = np.dot(whitener, noise_cov['eigvec'])
-
-    logger.info('Total rank is %d' % n_nzero)
-
-    return whitener, noise_cov, n_nzero
+        whitener = whitener[nzero]
+        colorer = colorer[:, nzero]
+    logger.info('    Created the whitener using a noise covariance matrix '
+                'with rank %d (%d small eigenvalues omitted)'
+                % (n_nzero, noise_cov['dim'] - np.sum(nzero)))
+    return whitener, colorer, noise_cov, n_nzero
 
 
 @verbose
@@ -1649,8 +1651,8 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
                            % missing)
 
     scalings = _handle_default('scalings_cov_rank', scalings)
-    W, noise_cov, n_nzero = _get_whitener(noise_cov, info, ch_names, rank,
-                                          pca=False, scalings=scalings)
+    W, _, noise_cov, n_nzero = _get_whitener(
+        noise_cov, info, ch_names, rank, pca=False, scalings=scalings)
 
     # Do the back projection
     W = np.dot(noise_cov['eigvec'].T, W)

@@ -12,7 +12,7 @@ import mne
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 
-# sphinx_gallery_thumbnail_number = 9
+# sphinx_gallery_thumbnail_number = 10
 
 ###############################################################################
 # Process MEG data
@@ -88,8 +88,9 @@ del fwd
 method = "dSPM"
 snr = 3.
 lambda2 = 1. / snr ** 2
-stc = apply_inverse(evoked, inverse_operator, lambda2,
-                    method=method, pick_ori=None)
+stc, residual = apply_inverse(evoked, inverse_operator, lambda2,
+                              method=method, pick_ori=None,
+                              return_residual=True, verbose=True)
 
 ###############################################################################
 # Visualization
@@ -101,6 +102,17 @@ plt.plot(1e3 * stc.times, stc.data[::100, :].T)
 plt.xlabel('time (ms)')
 plt.ylabel('%s value' % method)
 plt.show()
+
+###############################################################################
+# Examine the original data and the residual after fitting:
+
+fig, axes = plt.subplots(2, 1)
+evoked.plot(axes=axes)
+for ax in axes:
+    ax.texts = []
+    for line in ax.lines:
+        line.set_color('#98df81')
+residual.plot(axes=axes)
 
 ###############################################################################
 # Here we use peak getter to move visualization to the time point of the peak
