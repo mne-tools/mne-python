@@ -32,6 +32,8 @@ References
 # License: BSD (3-clause)
 import os
 
+import matplotlib.pyplot as plt
+
 import nibabel as nib
 import mne
 from mne.datasets import sample
@@ -154,3 +156,5 @@ display.add_overlay(img_fsaverage, alpha=0.75)
 stc_fsaverage = mne.compute_source_morph(subject_from='sample',
                                          src=inverse_operator['src'],
                                          subjects_dir=subjects_dir).apply(stc)
+
+plt.show()

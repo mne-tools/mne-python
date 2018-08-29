@@ -1,4 +1,6 @@
 # Author(s): Tommy Clausner <tommy.clausner@gmail.com>
+#            Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#            Eric Larson <larson.eric.d@gmail.com>
 
 # License: BSD (3-clause)
 
