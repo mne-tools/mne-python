@@ -127,7 +127,7 @@ def read_epochs_fieldtrip(ft_structure_path, info, data_name='data',
     info = _create_info(ft_struct, info)  # create info structure
 
     custom_epochs = EpochsArray(data=data, info=info, tmin=tmin,
-                                events=events, metadata=metadata)
+                                events=events, metadata=metadata, proj=False)
     return custom_epochs
 
 
