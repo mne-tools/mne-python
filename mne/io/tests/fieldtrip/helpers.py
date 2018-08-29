@@ -115,7 +115,7 @@ def get_raw_info(system):
     return info
 
 
-def get_raw_data(system):
+def get_raw_data(system, drop_sti_cnt=True):
     cfg_local = get_cfg_local(system)
 
     raw_data_file = os.path.join(mne.datasets.testing.data_path(),
@@ -129,12 +129,18 @@ def get_raw_data(system):
     raw_data.info['comps'] = []
     raw_data.drop_channels(cfg_local['removed_chan_names'])
 
+    if system == 'CNT':
+        raw_data._data[0:-1, :] = raw_data._data[0:-1, :] * 1e6
+
+    if system == 'CNT' and drop_sti_cnt:
+        raw_data.drop_channels(['STI 014'])
+
     return raw_data
 
 
 def get_epoched_data(system):
     cfg_local = get_cfg_local(system)
-    raw_data = get_raw_data(system)
+    raw_data = get_raw_data(system, drop_sti_cnt=False)
 
     if cfg_local['eventtype'] in raw_data.ch_names:
         stim_channel = cfg_local['eventtype']
@@ -143,6 +149,9 @@ def get_epoched_data(system):
 
     events = mne.find_events(raw_data, stim_channel=stim_channel,
                              shortest_event=1)
+
+    if system == 'CNT':
+        raw_data.drop_channels(['STI 014'])
 
     if isinstance(cfg_local['eventvalue'], np.ndarray):
         event_id = list(cfg_local['eventvalue'].astype('int'))
@@ -197,6 +206,13 @@ def check_info_fields(expected, actual, has_raw_info, ignore_long=True):
     if info_long_fields:
         _remove_long_info_fields(expected)
         _remove_long_info_fields(actual)
+
+    assert_deep_almost_equal(expected, actual)
+
+
+def check_data(expected, actual):
+    expected = np.around(expected, 1)
+    actual = np.around(actual, 1)
 
     assert_deep_almost_equal(expected, actual)
 

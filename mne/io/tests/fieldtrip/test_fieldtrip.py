@@ -12,7 +12,7 @@ import itertools
 from mne.datasets import testing
 from .helpers import (check_info_fields, get_data_paths, get_raw_data,
                       get_epoched_data, get_averaged_data, _has_h5py,
-                      pandas_not_found_warning_msg, get_raw_info)
+                      pandas_not_found_warning_msg, get_raw_info, check_data)
 from mne.utils import _check_pandas_installed
 
 all_systems = ['neuromag306', 'CTF', 'CNT']
@@ -45,7 +45,7 @@ def test_averaged(cur_system, version, use_info):
     mne_data = mne_avg.data[:, :-1]
     ft_data = avg_ft.data
 
-    np.testing.assert_almost_equal(mne_data, ft_data)
+    check_data(mne_data, ft_data)
     check_info_fields(mne_avg, avg_ft, use_info)
 
 
@@ -70,7 +70,7 @@ def test_epoched(cur_system, version, use_info):
             with pytest.raises(ImportError):
                 mne.io.read_epochs_fieldtrip(cur_fname, info)
             return
-        epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname,info)
+        epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname, info)
         assert isinstance(epoched_ft.metadata, pandas.DataFrame)
     else:
         with pytest.warns(RuntimeWarning,
@@ -85,7 +85,7 @@ def test_epoched(cur_system, version, use_info):
     mne_data = mne_epoched.get_data()[:, :, :-1]
     ft_data = epoched_ft.get_data()
 
-    np.testing.assert_almost_equal(mne_data, ft_data)
+    check_data(mne_data, ft_data)
     check_info_fields(mne_epoched, epoched_ft, use_info)
 
 
@@ -112,8 +112,8 @@ def test_raw(cur_system, version, use_info):
     raw_fiff_ft = mne.io.read_raw_fieldtrip(cur_fname, info)
 
     # Check that the data was loaded correctly
-    np.testing.assert_almost_equal(raw_fiff_mne.get_data(),
-                                   raw_fiff_ft.get_data())
+    check_data(raw_fiff_mne.get_data(),
+               raw_fiff_ft.get_data())
 
     # Check info field
     check_info_fields(raw_fiff_mne, raw_fiff_ft, use_info)
