@@ -36,8 +36,7 @@ def _create_info(ft_struct, raw_info):
         warn(NOINFO_WARNING)
 
     sfreq = _set_sfreq(ft_struct)
-    chs = _create_info_chs(ft_struct)
-    ch_names = [ch['ch_name'] for ch in chs]
+    ch_names = ft_struct['label']
     if raw_info:
         info = raw_info.copy()
         info['sfreq'] = sfreq

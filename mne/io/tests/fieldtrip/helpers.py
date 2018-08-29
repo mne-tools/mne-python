@@ -110,7 +110,9 @@ def get_raw_info(system):
                                  cfg_local['file_name'])
     reader_function = system_to_reader_fn_dict[system]
 
-    return reader_function(raw_data_file, preload=False).info
+    info = reader_function(raw_data_file, preload=False).info
+    info['comps'] = []
+    return info
 
 
 def get_raw_data(system):
@@ -124,6 +126,7 @@ def get_raw_data(system):
     raw_data.crop(0, cfg_local['crop'])
     raw_data.set_eeg_reference([])
     raw_data.del_proj('all')
+    raw_data.info['comps'] = []
     raw_data.drop_channels(cfg_local['removed_chan_names'])
 
     return raw_data
