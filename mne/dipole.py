@@ -1048,7 +1048,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         The dipole fits. A :class:`mne.DipoleFixed` is returned if
         ``pos`` and ``ori`` are both not None, otherwise a
         :class:`mne.Dipole` is returned.
-    residual : instance of EvokedArray
+    residual : instance of Evoked
         The M-EEG data channels with the fitted dipolar activity removed.
 
     See Also
