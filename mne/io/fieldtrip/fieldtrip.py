@@ -13,22 +13,27 @@ from ...epochs import EpochsArray
 from ...evoked import EvokedArray
 
 
-def read_raw_fieldtrip(ft_structure_path, data_name='data'):
+def read_raw_fieldtrip(ft_structure_path, info, data_name='data'):
     """Load continuous (i.e. raw) data from a FieldTrip preprocessing structure.
 
     This function expects to find single trial raw data (FT_DATATYPE_RAW) in
     the structure data_name is pointing at.
 
-    .. warning:: FieldTrip stores all channel locations in head coordinates.
-                 mne-python stores MEG channel locations in device coordinates
-                 by default. This is not possible because the transformation
-                 matrix is missing. All channel locations are thus stored in
-                 head coordinates.
+    .. warning:: FieldTrip does not normally store the original information
+                 concerning channel location, orientation, type etc. It is
+                 therefore **highly recommended** to provide the info field.
+                 This can be obtained by reading the original raw data file
+                 with MNE functions (without preload). The returned object
+                 contains the necessary info field.
 
     Parameters
     ----------
     ft_structure_path: str
         Path and filename of the .mat file containing the data.
+    info: dict or None
+        The info dict of the raw data file corresponding to the data to import.
+        If this is set to None, limited information is extracted from the
+        FieldTrip structure.
     data_name: str
         Name of heading dict/ variable name under which the data was originally
         saved in MATLAB.
@@ -66,7 +71,7 @@ def read_raw_fieldtrip(ft_structure_path, data_name='data'):
     return custom_raw
 
 
-def read_epochs_fieldtrip(ft_structure_path, data_name='data',
+def read_epochs_fieldtrip(ft_structure_path, info, data_name='data',
                           trialinfo_column=0):
     """Load epoched data from a FieldTrip preprocessing structure.
 
@@ -76,16 +81,21 @@ def read_epochs_fieldtrip(ft_structure_path, data_name='data',
     .. warning:: Only epochs with the same amount of channels and samples are
                  supported!
 
-    .. warning:: FieldTrip stores all channel locations in head coordinates.
-                 mne-python stores MEG channel locations in device coordinates
-                 by default. This is not possible because the transformation
-                 matrix is missing. All channel locations are thus stored in
-                 head coordinates.
+    .. warning:: FieldTrip does not normally store the original information
+                 concerning channel location, orientation, type etc. It is
+                 therefore **highly recommended** to provide the info field.
+                 This can be obtained by reading the original raw data file
+                 with MNE functions (without preload). The returned object
+                 contains the necessary info field.
 
     Parameters
     ----------
     ft_structure_path: str
         Path and filename of the .mat file containing the data.
+    info: dict or None
+        The info dict of the raw data file corresponding to the data to import.
+        If this is set to None, limited information is extracted from the
+        FieldTrip structure.
     data_name: str
         Name of heading dict/ variable name under which the data was originally
         saved in MATLAB.
@@ -121,22 +131,27 @@ def read_epochs_fieldtrip(ft_structure_path, data_name='data',
     return custom_epochs
 
 
-def read_evoked_fieldtrip(ft_structure_path, comment=None, data_name='data'):
+def read_evoked_fieldtrip(ft_structure_path, info, omment=None, data_name='data'):
     """Load evoked data from a FieldTrip timelocked structure.
 
     This function expects to find timelocked data in the structure data_name is
     pointing at.
 
-    .. warning:: FieldTrip stores all channel locations in head coordinates.
-                 mne-python stores MEG channel locations in device coordinates
-                 by default. This is not possible because the transformation
-                 matrix is missing. All channel locations are thus stored in
-                 head coordinates.
+    .. warning:: FieldTrip does not normally store the original information
+                 concerning channel location, orientation, type etc. It is
+                 therefore **highly recommended** to provide the info field.
+                 This can be obtained by reading the original raw data file
+                 with MNE functions (without preload). The returned object
+                 contains the necessary info field.
 
     Parameters
     ----------
     ft_structure_path: str
         Path and filename of the .mat file containing the data.
+    info: dict or None
+        The info dict of the raw data file corresponding to the data to import.
+        If this is set to None, limited information is extracted from the
+        FieldTrip structure.
     comment: str
         Comment on dataset. Can be the condition.
     data_name: str
