@@ -6,14 +6,14 @@
 
 import numpy as np
 
-from . import RawArray
-from ..epochs import EpochsArray
-from ..evoked import EvokedArray
-from .meas_info import create_info
-from ..channels import DigMontage
-from .constants import FIFF
-from .. import transforms
-from ..utils import _check_pandas_installed, warn
+from .. import RawArray
+from ...epochs import EpochsArray
+from ...evoked import EvokedArray
+from ...io.meas_info import create_info
+from ...channels import DigMontage
+from ...io.constants import FIFF
+from mne import transforms
+from ...utils import _check_pandas_installed, warn
 
 _unit_dict = {'m': 1,
               'cm': 1e-2,
@@ -55,7 +55,7 @@ def read_raw_fieldtrip(ft_structure_path, data_name='data'):
         info
 
     """
-    from ..externals.pymatreader.pymatreader import read_mat
+    from ...externals.pymatreader.pymatreader import read_mat
 
     ft_struct = read_mat(ft_structure_path,
                          ignore_fields=['previous'],
@@ -117,7 +117,7 @@ def read_epochs_fieldtrip(ft_structure_path, data_name='data',
 
 
     """
-    from ..externals.pymatreader.pymatreader import read_mat
+    from ...externals.pymatreader.pymatreader import read_mat
     ft_struct = read_mat(ft_structure_path,
                          ignore_fields=['previous'],
                          variable_names=[data_name])
@@ -165,7 +165,7 @@ def read_evoked_fieldtrip(ft_structure_path, comment=None, data_name='data'):
          comment and measurement info.
 
     """
-    from ..externals.pymatreader.pymatreader import read_mat
+    from ...externals.pymatreader.pymatreader import read_mat
     ft_struct = read_mat(ft_structure_path,
                          ignore_fields=['previous'],
                          variable_names=[data_name])
