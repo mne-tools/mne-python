@@ -420,7 +420,7 @@ def test_stc_methods():
         stc_new = deepcopy(stc)
         o_sfreq = 1.0 / stc.tstep
         # note that using no padding for this STC reduces edge ringing...
-        stc_new.resample(2 * o_sfreq, npad=0, n_jobs=2)
+        stc_new.resample(2 * o_sfreq, npad=0)
         assert (stc_new.data.shape[1] == 2 * stc.data.shape[1])
         assert (stc_new.tstep == stc.tstep / 2)
         stc_new.resample(o_sfreq, npad=0)
