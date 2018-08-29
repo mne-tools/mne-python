@@ -21,6 +21,7 @@ public_modules = [
     'mne.beamformer',
     'mne.chpi',
     'mne.connectivity',
+    'mne.cuda',
     'mne.datasets',
     'mne.datasets.brainstorm',
     'mne.datasets.hf_sef',
@@ -187,7 +188,6 @@ def test_tabs():
 
 
 documented_ignored_mods = (
-    'mne.cuda',
     'mne.fixes',
     'mne.io.write',
     'mne.utils',

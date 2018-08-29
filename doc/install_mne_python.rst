@@ -93,8 +93,7 @@ all default dependencies are installed by listing their versions with::
     sklearn:       0.19.1
     nibabel:       2.3.0
     mayavi:        4.6.1 {qt_api=pyqt5}
-    pycuda:        Not found
-    skcuda:        Not found
+    cupy:          Not found
     pandas:        0.23.4
 
 

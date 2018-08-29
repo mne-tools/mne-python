@@ -90,11 +90,7 @@ For full functionality, some functions require:
 - NiBabel >= 2.1.0
 - Pandas >= 0.13
 - Picard >= 0.3
-
-To use `NVIDIA CUDA <https://developer.nvidia.com/cuda-zone>`_ for resampling
-and FFT FIR filtering, you will also need to install the NVIDIA CUDA SDK,
-pycuda, and scikit-cuda (see the `getting started page`_
-for more information).
+- CuPy >= 4.0 (for NVIDIA CUDA acceleration)
 
 
 Contributing to MNE-Python

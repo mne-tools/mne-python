@@ -58,3 +58,6 @@
 
 .. pymatreader
 .. _pymatreader: https://gitlab.com/obob/pymatreader
+
+.. CuPy
+.. _CuPy: https://cupy.chainer.org/

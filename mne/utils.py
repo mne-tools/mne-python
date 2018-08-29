@@ -2677,8 +2677,7 @@ def sys_info(fid=None, show_paths=False):
         sklearn:       0.18.dev0
         nibabel:       2.1.0dev
         mayavi:        4.3.1
-        pycuda:        2015.1.3
-        skcuda:        0.5.2
+        cupy:          4.1.0
         pandas:        0.17.1+25.g547750a
 
     """  # noqa: E501
@@ -2716,9 +2715,8 @@ def sys_info(fid=None, show_paths=False):
                     lib = lib.split('[')[1].split("'")[1]
                 libs += ['%s=%s' % (key, lib)]
     libs = ', '.join(libs)
-    version_texts = dict(pycuda='VERSION_TEXT')
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
-                     'nibabel', 'mayavi', 'pycuda', 'skcuda', 'pandas'):
+                     'nibabel', 'mayavi', 'cupy', 'pandas'):
         if mod_name == '':
             out += '\n'
             continue
@@ -2731,7 +2729,6 @@ def sys_info(fid=None, show_paths=False):
         except Exception:
             out += 'Not found\n'
         else:
-            version = getattr(mod, version_texts.get(mod_name, '__version__'))
             extra = (' (%s)' % op.dirname(mod.__file__)) if show_paths else ''
             if mod_name == 'numpy':
                 extra = ' {%s}%s' % (libs, extra)
@@ -2743,7 +2740,7 @@ def sys_info(fid=None, show_paths=False):
                 except Exception:
                     qt_api = 'unknown'
                 extra = ' {qt_api=%s}%s' % (qt_api, extra)
-            out += '%s%s\n' % (version, extra)
+            out += '%s%s\n' % (mod.__version__, extra)
     print(out, end='', file=fid)
 
 
