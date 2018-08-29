@@ -928,7 +928,6 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     # x̂(t) = G ĵ(t) = C ** 1/2 U Π w(t)
     # where the diagonal matrix Π has elements πk = λk γk
     Pi = inv['sing'] * inv['reginv']
-    residual = evoked.copy()
     data_w = np.dot(inv['whitener'],  # C ** -0.5
                     np.dot(inv['proj'], evoked.data[sel]))
     w_t = np.dot(inv['eigen_fields']['data'], data_w)  # U.T @ data
@@ -938,7 +937,9 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     data_est_w = np.dot(inv['whitener'], np.dot(inv['proj'], data_est))
     var_exp = 1 - ((data_est_w - data_w) ** 2).sum() / (data_w ** 2).sum()
     logger.info('    Explained %5.1f%% variance' % (100 * var_exp,))
-    residual.data[sel] -= data_est
+    if return_residual:
+        residual = evoked.copy()
+        residual.data[sel] -= data_est
     is_free_ori = (inverse_operator['source_ori'] ==
                    FIFF.FIFFV_MNE_FREE_ORI and pick_ori != 'normal')
 
