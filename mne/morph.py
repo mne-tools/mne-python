@@ -1131,25 +1131,41 @@ def _apply_morph_data(morph, stc_from):
     if morph.kind == 'volume':
         from dipy.align.reslice import reslice
 
-        # prepare data to be morphed
-        img_to = _interpolate_data(stc_from, morph, mri_resolution=True,
-                                   mri_space=True)
+        n_times = stc_from.data.shape[1]
 
-        # reslice to match morph
-        img_to, img_to_affine = reslice(
-            img_to.get_data(), morph.affine, _get_zooms_orig(morph),
-            morph.zooms)
+        def _morph_one(stc_one):
+            # prepare data to be morphed
+            img_to = _interpolate_data(stc_one, morph, mri_resolution=True,
+                                       mri_space=True)
 
-        # morph data
-        for vol in range(img_to.shape[3]):
-            img_to[:, :, :, vol] = morph.sdr_morph.transform(
-                morph.pre_affine.transform(img_to[:, :, :, vol]))
+            # reslice to match morph
+            img_to, img_to_affine = reslice(
+                img_to.get_data(), morph.affine, _get_zooms_orig(morph),
+                morph.zooms)
 
-        # reshape to nvoxel x nvol
-        img_to = img_to.reshape(-1, img_to.shape[3])
+            # morph data
+            for vol in range(img_to.shape[3]):
+                img_to[:, :, :, vol] = morph.sdr_morph.transform(
+                    morph.pre_affine.transform(img_to[:, :, :, vol]))
 
+            # reshape to nvoxel x nvol
+            img_to = img_to.reshape(-1, img_to.shape[3])
+            return img_to
+
+        # First get the vertices (vertices_to) you will need the values for
+        stc_ones = VolSourceEstimate(np.ones_like(stc_from.data[:, :1]),
+                                     stc_from.vertices,
+                                     tmin=0., tstep=1.)
+        img_to = _morph_one(stc_ones)
         vertices_to = np.where(img_to.sum(axis=1) != 0)[0]
-        data = img_to[vertices_to]
+        data = np.empty((len(vertices_to), n_times))
+        # Loop over time points to save memory
+        for k in range(n_times):
+            this_stc = VolSourceEstimate(stc_from.data[:, k:k + 1],
+                                         stc_from.vertices,
+                                         tmin=0., tstep=1.)
+            this_img_to = _morph_one(this_stc)
+            data[:, k] = this_img_to[vertices_to, 0]
         klass = VolSourceEstimate
     else:
         assert morph.kind == 'surface'

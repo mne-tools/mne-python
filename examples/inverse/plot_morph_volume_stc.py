@@ -63,7 +63,7 @@ inverse_operator = read_inverse_operator(fname_inv)
 # Apply inverse operator
 stc = apply_inverse(evoked, inverse_operator, 1.0 / 3.0 ** 2, "dSPM")
 
-# To save memory
+# To save time
 stc.crop(0.09, 0.09)
 
 ###############################################################################
