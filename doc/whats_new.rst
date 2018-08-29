@@ -25,6 +25,8 @@ Changelog
 
 - Add :func:`mne.io.read_raw_fieldtrip`, :func:`mne.read_epochs_fieldtrip` and :func:`mne.read_evoked_fieldtrip` to import FieldTrip data. By `Thomas Hartmann`_ and `Dirk Gütlin`_.
 
+- Add ``rank`` parameter to :func:`mne.compute_covariance`, :func:`mne.cov.regularize` and related functions to preserve data rank during regularization by `Eric Larson`_ and `Denis Engemann`_
+
 - Add new function :func:`mne.read_annotations` that can read annotations in EEGLAB, BrainVision, EDF and Brainstorm formats by `Joan Massich`_ and `Alex Gramfort`_.
 
 - :func:`mne.io.read_raw_eeglab` no longer warns when the stim channel is populated with an array of zeros by `Joan Massich`_
@@ -114,6 +116,8 @@ Bug
 - Fix :func:`mne.io.Raw.plot_projs_topomap` by `Joan Massich`_
 
 - Fix bug in :func:`mne.minimum_norm.compute_source_psd` where the ``stc.times`` output was scaled by 1000, by `Eric Larson`_
+
+- Fix default values for ``'diagonal_fixed'`` estimation method of :func:`mne.compute_covariance` to be ``0.1`` for all channel types, as in :func:`mne.cov.regularize` by `Eric Larson`_
 
 - Fix reading edf file annotations by `Joan Massich`_
 

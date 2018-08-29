@@ -98,7 +98,9 @@ mne.viz.plot_alignment(raw.info, subject='sample',
 # then do the fits for each event_id taking the time instant that maximizes
 # the global field power.
 
-cov = mne.compute_covariance(epochs, tmax=0)
+cov = mne.compute_covariance(epochs, tmax=0, method='shrunk', rank=None)
+mne.viz.plot_evoked_white(epochs['1'].average(), cov)
+
 data = []
 for ii in event_id:
     evoked = epochs[str(ii)].average()
@@ -132,19 +134,19 @@ actual_amp = 100.  # nAm
 fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, figsize=(6, 7))
 
 diffs = 1000 * np.sqrt(np.sum((dip.pos - actual_pos) ** 2, axis=-1))
-print('mean(position error) = %s' % (np.mean(diffs),))
+print('mean(position error) = %0.1f mm' % (np.mean(diffs),))
 ax1.bar(event_id, diffs)
 ax1.set_xlabel('Dipole index')
 ax1.set_ylabel('Loc. error (mm)')
 
-angles = np.arccos(np.abs(np.sum(dip.ori * actual_ori, axis=1)))
-print('mean(angle error) = %s' % (np.mean(angles),))
+angles = np.rad2deg(np.arccos(np.abs(np.sum(dip.ori * actual_ori, axis=1))))
+print(u'mean(angle error) = %0.1f°' % (np.mean(angles),))
 ax2.bar(event_id, angles)
 ax2.set_xlabel('Dipole index')
-ax2.set_ylabel('Angle error (rad)')
+ax2.set_ylabel(u'Angle error (°)')
 
 amps = actual_amp - dip.amplitude / 1e-9
-print('mean(abs amplitude error) = %s' % (np.mean(np.abs(amps)),))
+print('mean(abs amplitude error) = %0.1f nAm' % (np.mean(np.abs(amps)),))
 ax3.bar(event_id, amps)
 ax3.set_xlabel('Dipole index')
 ax3.set_ylabel('Amplitude error (nAm)')

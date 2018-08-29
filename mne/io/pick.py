@@ -663,6 +663,14 @@ def pick_channels_cov(orig, include=[], exclude='bads'):
     return res
 
 
+def _mag_grad_dependent(info):
+    """Determine of mag and grad should be dealt with jointly."""
+    # right now just uses SSS, could be computed / checked from cov
+    # but probably overkill
+    return any(ph.get('max_info', {}).get('sss_info', {}).get('in_order', 0)
+               for ph in info.get('proc_history', []))
+
+
 def _picks_by_type(info, meg_combined=False, ref_meg=False, exclude='bads'):
     """Get data channel indices as separate list of tuples.
 
@@ -672,6 +680,7 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False, exclude='bads'):
         The info.
     meg_combined : bool
         Whether to return combined picks for grad and mag.
+        Can be 'auto' to choose based on Maxwell filtering status.
     ref_meg : bool
         If True include CTF / 4D reference channels
     exclude : list of string | str
@@ -684,6 +693,8 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False, exclude='bads'):
         The list of tuples of picks and the type string.
     """
     from ..channels.channels import _contains_ch_type
+    if meg_combined == 'auto':
+        meg_combined = _mag_grad_dependent(info)
     picks_list = []
     has = [_contains_ch_type(info, k) for k in _DATA_CH_TYPES_SPLIT]
     has = dict(zip(_DATA_CH_TYPES_SPLIT, has))

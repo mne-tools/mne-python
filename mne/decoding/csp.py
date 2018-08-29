@@ -60,6 +60,10 @@ class CSP(TransformerMixin, BaseEstimator):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
+    rank : None | int | dict | 'full'
+        See :func:`mne.compute_covariance`.
+
+        .. versionadded:: 0.17
 
     Attributes
     ----------
@@ -92,12 +96,13 @@ class CSP(TransformerMixin, BaseEstimator):
 
     def __init__(self, n_components=4, reg=None, log=None, cov_est="concat",
                  transform_into='average_power', norm_trace=False,
-                 cov_method_params=None):
+                 cov_method_params=None, rank=''):
         """Init of CSP."""
         # Init default CSP
         if not isinstance(n_components, int):
             raise ValueError('n_components must be an integer.')
         self.n_components = n_components
+        self.rank = rank
 
         self.reg = reg
 
@@ -169,7 +174,8 @@ class CSP(TransformerMixin, BaseEstimator):
                 class_ = np.transpose(X[y == this_class], [1, 0, 2])
                 class_ = class_.reshape(n_channels, -1)
                 cov = _regularized_covariance(
-                    class_, reg=self.reg, method_params=self.cov_method_params)
+                    class_, reg=self.reg, method_params=self.cov_method_params,
+                    rank=self.rank)
                 weight = sum(y == this_class)
             elif self.cov_est == "epoch":
                 class_ = X[y == this_class]
@@ -177,7 +183,8 @@ class CSP(TransformerMixin, BaseEstimator):
                 for this_X in class_:
                     cov += _regularized_covariance(
                         this_X, reg=self.reg,
-                        method_params=self.cov_method_params)
+                        method_params=self.cov_method_params,
+                        rank=self.rank)
                 cov /= len(class_)
                 weight = len(class_)
 

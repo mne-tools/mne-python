@@ -70,6 +70,7 @@ def test_bad_proj():
     #     applying projector with 101/306 of the original channels available
     #     may be dangerous.
     raw = read_raw_fif(raw_fname).crop(0, 1)
+    raw.set_eeg_reference(projection=True)
     raw.info['bads'] = ['MEG 0111']
     meg_picks = mne.pick_types(raw.info, meg=True, exclude=())
     ch_names = [raw.ch_names[pick] for pick in meg_picks]
@@ -79,7 +80,7 @@ def test_bad_proj():
         data[:, idx] = p['data']['data']
         p['data'].update(ncol=len(meg_picks), col_names=ch_names, data=data)
     mne.cov.regularize(mne.compute_raw_covariance(raw, verbose='error'),
-                       raw.info)
+                       raw.info, rank=None)
 
 
 def _check_warnings(raw, events, picks=None, count=3):

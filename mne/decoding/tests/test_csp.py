@@ -187,7 +187,8 @@ def test_regularized_csp():
     n_components = 3
     reg_cov = [None, 0.05, 'ledoit_wolf', 'oas']
     for reg in reg_cov:
-        csp = CSP(n_components=n_components, reg=reg, norm_trace=False)
+        csp = CSP(n_components=n_components, reg=reg, norm_trace=False,
+                  rank=None)
         csp.fit(epochs_data, epochs.events[:, -1])
         y = epochs.events[:, -1]
         X = csp.fit_transform(epochs_data, y)
