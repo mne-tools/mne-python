@@ -95,6 +95,16 @@ def get_cfg_local(system):
     return cfg_local
 
 
+def get_raw_info(system):
+    cfg_local = get_cfg_local(system)
+
+    raw_data_file = os.path.join(mne.datasets.testing.data_path(),
+                                 cfg_local['file_name'])
+    reader_function = system_to_reader_fn_dict[system]
+
+    return reader_function(raw_data_file, preload=False).info
+
+
 def get_raw_data(system):
     cfg_local = get_cfg_local(system)
 
