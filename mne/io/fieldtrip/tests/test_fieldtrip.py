@@ -12,6 +12,7 @@ from mne.datasets import testing
 from .helpers import (check_info_fields, get_data_paths, get_raw_data,
                       get_epoched_data, get_averaged_data, _has_h5py,
                       pandas_not_found_warning_msg, get_raw_info, check_data)
+from ..utils import NOINFO_WARNING
 from mne.utils import _check_pandas_installed
 
 # missing: KIT: biggest problem here is that the channels do not have the same
@@ -28,6 +29,9 @@ all_test_params_epochs = list(itertools.product(all_systems_epochs,
                                                 all_versions,
                                                 use_info))
 
+no_info_warning = {'expected_warning': RuntimeWarning,
+                   'message': NOINFO_WARNING}
+
 
 @testing.requires_testing_data
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
@@ -39,8 +43,10 @@ def test_averaged(cur_system, version, use_info):
     mne_avg = get_averaged_data(cur_system)
     if use_info:
         info = get_raw_info(cur_system)
+        pytestwarning = {'expected_warning': None}
     else:
         info = None
+        pytestwarning = no_info_warning
 
     cur_fname = os.path.join(test_data_folder_ft,
                              'averaged_%s.mat' % (version,))
@@ -49,7 +55,8 @@ def test_averaged(cur_system, version, use_info):
             mne.io.read_evoked_fieldtrip(cur_fname, info)
         return
 
-    avg_ft = mne.io.read_evoked_fieldtrip(cur_fname, info)
+    with pytest.warns(**pytestwarning):
+        avg_ft = mne.io.read_evoked_fieldtrip(cur_fname, info)
 
     mne_data = mne_avg.data[:, :-1]
     ft_data = avg_ft.data
@@ -69,8 +76,10 @@ def test_epoched(cur_system, version, use_info):
     mne_epoched = get_epoched_data(cur_system)
     if use_info:
         info = get_raw_info(cur_system)
+        pytestwarning = {'expected_warning': None}
     else:
         info = None
+        pytestwarning = no_info_warning
 
     cur_fname = os.path.join(test_data_folder_ft,
                              'epoched_%s.mat' % (version,))
@@ -80,7 +89,8 @@ def test_epoched(cur_system, version, use_info):
             with pytest.raises(ImportError):
                 mne.io.read_epochs_fieldtrip(cur_fname, info)
             return
-        epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname, info)
+        with pytest.warns(**pytestwarning):
+            epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname, info)
         assert isinstance(epoched_ft.metadata, pandas.DataFrame)
     else:
         with pytest.warns(RuntimeWarning,
@@ -89,7 +99,8 @@ def test_epoched(cur_system, version, use_info):
                 with pytest.raises(ImportError):
                     mne.io.read_epochs_fieldtrip(cur_fname, info)
                 return
-            epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname, info)
+            with pytest.warns(**pytestwarning):
+                epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname, info)
             assert epoched_ft.metadata is None
 
     mne_data = mne_epoched.get_data()[:, :, :-1]
@@ -109,8 +120,10 @@ def test_raw(cur_system, version, use_info):
     raw_fiff_mne = get_raw_data(cur_system, drop_extra_chs=True)
     if use_info:
         info = get_raw_info(cur_system)
+        pytestwarning = {'expected_warning': None}
     else:
         info = None
+        pytestwarning = no_info_warning
 
     cur_fname = os.path.join(test_data_folder_ft,
                              'raw_%s.mat' % (version,))
@@ -119,7 +132,8 @@ def test_raw(cur_system, version, use_info):
         with pytest.raises(ImportError):
             mne.io.read_raw_fieldtrip(cur_fname, info)
         return
-    raw_fiff_ft = mne.io.read_raw_fieldtrip(cur_fname, info)
+    with pytest.warns(**pytestwarning):
+        raw_fiff_ft = mne.io.read_raw_fieldtrip(cur_fname, info)
 
     # Check that the data was loaded correctly
     check_data(raw_fiff_mne.get_data(),
