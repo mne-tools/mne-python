@@ -33,7 +33,7 @@ system_to_reader_fn_dict = {'neuromag306': mne.io.read_raw_fif,
                                            sort_by_ch_name=False),
                             'EGI': mne.io.read_raw_egi,
                             'KIT': mne.io.read_raw_kit,
-                            'exima': mne.io.read_raw_eximia}
+                            'eximia': mne.io.read_raw_eximia}
 
 ignore_channels_dict = {'BTI': ['MUz', 'MLx', 'MLy', 'MUx', 'MUy', 'MLz']}
 

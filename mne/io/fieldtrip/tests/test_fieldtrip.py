@@ -14,7 +14,7 @@ from .helpers import (check_info_fields, get_data_paths, get_raw_data,
                       pandas_not_found_warning_msg, get_raw_info, check_data)
 from mne.utils import _check_pandas_installed
 
-all_systems_raw = ['neuromag306', 'CTF', 'CNT', 'BTI', 'EGI', 'KIT', 'exima']
+all_systems_raw = ['neuromag306', 'CTF', 'CNT', 'BTI', 'EGI', 'KIT', 'eximia']
 all_systems_epochs = ['neuromag306', 'CTF', 'CNT', 'EGI']
 all_versions = ['v7', 'v73']
 use_info = [True]
