@@ -311,13 +311,18 @@ class RtEpochs(BaseEpochs):
         if stop_receive_thread or stop_measurement:
             self._client.stop_receive_thread(stop_measurement=stop_measurement)
 
-    def next(self, return_event_id=False):
+    @verbose
+    def next(self, return_event_id=False, verbose=None):
         """Make iteration over epochs easy.
 
         Parameters
         ----------
         return_event_id : bool
             If True, return both an epoch and and event_id.
+        verbose: bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Returns
         -------
