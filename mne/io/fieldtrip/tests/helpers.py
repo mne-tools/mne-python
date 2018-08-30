@@ -7,7 +7,7 @@ import types
 import numpy as np
 import copy
 import os
-from ...constants import FIFF
+from mne.io.constants import FIFF
 import mne
 
 from functools import partial
