@@ -219,7 +219,7 @@ def check_data(expected, actual):
     #expected = np.around(expected, 1)
     #actual = np.around(actual, 1)
 
-    assert_deep_almost_equal(expected, actual)
+    np.testing.assert_almost_equal(expected, actual)
 
 
 def assert_deep_almost_equal(expected, actual, *args, **kwargs):
