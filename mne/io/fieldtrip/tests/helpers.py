@@ -146,7 +146,12 @@ def get_raw_data(system, drop_sti_cnt=True, drop_extra_chs=False):
     raw_data.set_eeg_reference([])
     raw_data.del_proj('all')
     raw_data.info['comps'] = []
-    raw_data.drop_channels(cfg_local['removed_chan_names'])
+    if system == 'KIT':
+        dropped_chan_idx = [9, 19, 29]
+        drop_chans = [raw_data.ch_names[idx] for idx in dropped_chan_idx]
+        raw_data.drop_channels(drop_chans)
+    else:
+        raw_data.drop_channels(cfg_local['removed_chan_names'])
 
     if system == 'CNT':
         raw_data._data[0:-1, :] = raw_data._data[0:-1, :] * 1e6
