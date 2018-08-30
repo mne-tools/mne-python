@@ -292,7 +292,6 @@ class RtClient(object):
             Also stop the measurement.
         """
         if self._recv_thread is not None:
-            self._recv_thread.stop()
             self._recv_thread = None
 
         if stop_measurement:
@@ -364,7 +363,8 @@ class RtClient(object):
         raw_buffer : generator
             Generator for iteration over raw buffers.
         """
-        while True:
+        # stops the loop if stop_receive_thread has been called
+        while self._recv_thread == threading.current_thread():
             raw_buffer = self.read_raw_buffer(nchan)
             if raw_buffer is not None:
                 yield raw_buffer

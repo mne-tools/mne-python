@@ -336,7 +336,6 @@ class FieldTripClient(object):
             Also stop the measurement.
         """
         if self._recv_thread is not None:
-            self._recv_thread.stop()
             self._recv_thread = None
 
     def iter_raw_buffers(self):
@@ -366,3 +365,7 @@ class FieldTripClient(object):
             raw_buffer = self.ft_client.getData([start, stop - 1]).transpose()
 
             yield raw_buffer
+
+            if self._recv_thread != threading.current_thread():
+                # stop_receive_thread has been called
+                break
