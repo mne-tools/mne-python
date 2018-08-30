@@ -26,7 +26,12 @@ info_long_fields = ('hpi_meas', )
 system_to_reader_fn_dict = {'neuromag306': mne.io.read_raw_fif,
                             'CNT': partial(mne.io.read_raw_cnt, montage=None),
                             'CTF': partial(mne.io.read_raw_ctf,
-                                           clean_names=True)}
+                                           clean_names=True),
+                            'BTI': partial(mne.io.read_raw_bti,
+                                           head_shape_fname=None),
+                            'EGI': mne.io.read_raw_egi,
+                            'KIT': mne.io.read_raw_kit,
+                            'exima': mne.io.read_raw_eximia}
 
 pandas_not_found_warning_msg = 'The Pandas library is not installed. Not ' \
                                'returning the original trialinfo matrix as ' \
@@ -211,8 +216,8 @@ def check_info_fields(expected, actual, has_raw_info, ignore_long=True):
 
 
 def check_data(expected, actual):
-    expected = np.around(expected, 1)
-    actual = np.around(actual, 1)
+    #expected = np.around(expected, 1)
+    #actual = np.around(actual, 1)
 
     assert_deep_almost_equal(expected, actual)
 

@@ -15,15 +15,20 @@ from .helpers import (check_info_fields, get_data_paths, get_raw_data,
                       pandas_not_found_warning_msg, get_raw_info, check_data)
 from mne.utils import _check_pandas_installed
 
-all_systems = ['neuromag306', 'CTF', 'CNT']
+all_systems_raw = ['neuromag306', 'CTF', 'CNT', 'BTI', 'EGI', 'KIT', 'exima']
+all_systems_epochs = ['neuromag306', 'CTF', 'CNT', 'EGI']
 all_versions = ['v7', 'v73']
 use_info = [True]
-all_test_params = list(itertools.product(all_systems, all_versions, use_info))
+all_test_params_raw = list(itertools.product(all_systems_raw, all_versions,
+                                             use_info))
+all_test_params_epochs = list(itertools.product(all_systems_epochs,
+                                                all_versions,
+                                                use_info))
 
 
 @testing.requires_testing_data
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
-@pytest.mark.parametrize('cur_system, version, use_info', all_test_params)
+@pytest.mark.parametrize('cur_system, version, use_info', all_test_params_epochs)
 def test_averaged(cur_system, version, use_info):
     """Test comparing reading an Evoked object and the FieldTrip version."""
     test_data_folder_ft = get_data_paths(cur_system)
@@ -51,7 +56,7 @@ def test_averaged(cur_system, version, use_info):
 
 @testing.requires_testing_data
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
-@pytest.mark.parametrize('cur_system, version, use_info', all_test_params)
+@pytest.mark.parametrize('cur_system, version, use_info', all_test_params_epochs)
 def test_epoched(cur_system, version, use_info):
     """Test comparing reading an Epochs object and the FieldTrip version."""
     has_pandas = _check_pandas_installed(strict=False) is not False
@@ -91,7 +96,7 @@ def test_epoched(cur_system, version, use_info):
 
 @testing.requires_testing_data
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
-@pytest.mark.parametrize('cur_system, version, use_info', all_test_params)
+@pytest.mark.parametrize('cur_system, version, use_info', all_test_params_raw)
 def test_raw(cur_system, version, use_info):
     """Test comparing reading a raw fiff file and the FieldTrip version."""
     # Load the raw fiff file with mne
