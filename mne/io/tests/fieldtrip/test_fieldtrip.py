@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 
 import mne
-import numpy as np
 import os.path
 import pytest
 import itertools
@@ -28,7 +27,8 @@ all_test_params_epochs = list(itertools.product(all_systems_epochs,
 
 @testing.requires_testing_data
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
-@pytest.mark.parametrize('cur_system, version, use_info', all_test_params_epochs)
+@pytest.mark.parametrize('cur_system, version, use_info',
+                         all_test_params_epochs)
 def test_averaged(cur_system, version, use_info):
     """Test comparing reading an Evoked object and the FieldTrip version."""
     test_data_folder_ft = get_data_paths(cur_system)
