@@ -38,7 +38,8 @@ system_to_reader_fn_dict = {'neuromag306': mne.io.read_raw_fif,
 ignore_channels_dict = {'BTI': ['MUz', 'MLx', 'MLy', 'MUx', 'MUy', 'MLz']}
 
 drop_extra_chans_dict = {'EGI': ['STI 014', 'DIN1', 'DIN3',
-                                 'DIN7', 'DIN4', 'DIN5', 'DIN2']}
+                                 'DIN7', 'DIN4', 'DIN5', 'DIN2'],
+                         'eximia': ['GateIn', 'Trig1', 'Trig2']}
 
 pandas_not_found_warning_msg = 'The Pandas library is not installed. Not ' \
                                'returning the original trialinfo matrix as ' \
@@ -136,6 +137,8 @@ def get_raw_data(system, drop_sti_cnt=True, drop_extra_chs=False):
 
     raw_data = reader_function(raw_data_file, preload=True)
     crop = min(cfg_local['crop'], np.max(raw_data.times))
+    if system == 'eximia':
+        crop -= 0.5*(1.0/raw_data.info['sfreq'])
     raw_data.crop(0, crop)
     raw_data.set_eeg_reference([])
     raw_data.del_proj('all')
