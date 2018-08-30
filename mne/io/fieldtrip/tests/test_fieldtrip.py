@@ -21,7 +21,7 @@ from mne.utils import _check_pandas_installed
 all_systems_raw = ['neuromag306', 'CTF', 'CNT', 'BTI', 'eximia']
 all_systems_epochs = ['neuromag306', 'CTF', 'CNT']
 all_versions = ['v7', 'v73']
-use_info = [True]
+use_info = [True, False]
 all_test_params_raw = list(itertools.product(all_systems_raw, all_versions,
                                              use_info))
 all_test_params_epochs = list(itertools.product(all_systems_epochs,
