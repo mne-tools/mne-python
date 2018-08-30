@@ -37,6 +37,9 @@ system_to_reader_fn_dict = {'neuromag306': mne.io.read_raw_fif,
 
 ignore_channels_dict = {'BTI': ['MUz', 'MLx', 'MLy', 'MUx', 'MUy', 'MLz']}
 
+drop_extra_chans_dict = {'EGI': ['STI 014', 'DIN1', 'DIN3',
+                                 'DIN7', 'DIN4', 'DIN5', 'DIN2']}
+
 pandas_not_found_warning_msg = 'The Pandas library is not installed. Not ' \
                                'returning the original trialinfo matrix as ' \
                                'metadata.'
@@ -124,7 +127,7 @@ def get_raw_info(system):
     return info
 
 
-def get_raw_data(system, drop_sti_cnt=True):
+def get_raw_data(system, drop_sti_cnt=True, drop_extra_chs=False):
     cfg_local = get_cfg_local(system)
 
     raw_data_file = os.path.join(mne.datasets.testing.data_path(),
@@ -146,6 +149,9 @@ def get_raw_data(system, drop_sti_cnt=True):
 
     if system in ignore_channels_dict:
         raw_data.drop_channels(ignore_channels_dict[system])
+
+    if system in drop_extra_chans_dict and drop_extra_chs:
+        raw_data.drop_channels(drop_extra_chans_dict[system])
 
     return raw_data
 

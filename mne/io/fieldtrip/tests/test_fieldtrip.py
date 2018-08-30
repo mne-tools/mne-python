@@ -101,7 +101,7 @@ def test_raw(cur_system, version, use_info):
     """Test comparing reading a raw fiff file and the FieldTrip version."""
     # Load the raw fiff file with mne
     test_data_folder_ft = get_data_paths(cur_system)
-    raw_fiff_mne = get_raw_data(cur_system)
+    raw_fiff_mne = get_raw_data(cur_system, drop_extra_chs=True)
     if use_info:
         info = get_raw_info(cur_system)
     else:
