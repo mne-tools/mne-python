@@ -16,9 +16,10 @@ from mne.utils import _check_pandas_installed
 
 # missing: KIT: biggest problem here is that the channels do not have the same
 # names.
+# EGI: no calibration done in FT. so data is VERY different
 
-all_systems_raw = ['neuromag306', 'CTF', 'CNT', 'BTI', 'EGI', 'eximia']
-all_systems_epochs = ['neuromag306', 'CTF', 'CNT', 'EGI']
+all_systems_raw = ['neuromag306', 'CTF', 'CNT', 'BTI', 'eximia']
+all_systems_epochs = ['neuromag306', 'CTF', 'CNT']
 all_versions = ['v7', 'v73']
 use_info = [True]
 all_test_params_raw = list(itertools.product(all_systems_raw, all_versions,
@@ -53,7 +54,7 @@ def test_averaged(cur_system, version, use_info):
     mne_data = mne_avg.data[:, :-1]
     ft_data = avg_ft.data
 
-    check_data(mne_data, ft_data)
+    check_data(mne_data, ft_data, cur_system)
     check_info_fields(mne_avg, avg_ft, use_info)
 
 
@@ -94,7 +95,7 @@ def test_epoched(cur_system, version, use_info):
     mne_data = mne_epoched.get_data()[:, :, :-1]
     ft_data = epoched_ft.get_data()
 
-    check_data(mne_data, ft_data)
+    check_data(mne_data, ft_data, cur_system)
     check_info_fields(mne_epoched, epoched_ft, use_info)
 
 
@@ -122,7 +123,8 @@ def test_raw(cur_system, version, use_info):
 
     # Check that the data was loaded correctly
     check_data(raw_fiff_mne.get_data(),
-               raw_fiff_ft.get_data())
+               raw_fiff_ft.get_data(),
+               cur_system)
 
     # Check info field
     check_info_fields(raw_fiff_mne, raw_fiff_ft, use_info)

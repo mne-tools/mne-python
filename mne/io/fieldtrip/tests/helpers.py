@@ -41,6 +41,8 @@ drop_extra_chans_dict = {'EGI': ['STI 014', 'DIN1', 'DIN3',
                                  'DIN7', 'DIN4', 'DIN5', 'DIN2'],
                          'eximia': ['GateIn', 'Trig1', 'Trig2']}
 
+system_decimal_accuracy_dict = {'CNT': 2}
+
 pandas_not_found_warning_msg = 'The Pandas library is not installed. Not ' \
                                'returning the original trialinfo matrix as ' \
                                'metadata.'
@@ -153,7 +155,7 @@ def get_raw_data(system, drop_sti_cnt=True, drop_extra_chs=False):
     else:
         raw_data.drop_channels(cfg_local['removed_chan_names'])
 
-    if system == 'CNT':
+    if system in ['CNT', 'EGI']:
         raw_data._data[0:-1, :] = raw_data._data[0:-1, :] * 1e6
 
     if system == 'CNT' and drop_sti_cnt:
@@ -244,9 +246,13 @@ def check_info_fields(expected, actual, has_raw_info, ignore_long=True):
     assert_deep_almost_equal(expected, actual)
 
 
-def check_data(expected, actual):
+def check_data(expected, actual, system):
     """Check data for equality."""
-    np.testing.assert_almost_equal(expected, actual)
+    decimal = 7
+    if system in system_decimal_accuracy_dict:
+        decimal = system_decimal_accuracy_dict[system]
+
+    np.testing.assert_almost_equal(expected, actual, decimal=decimal)
 
 
 def assert_deep_almost_equal(expected, actual, *args, **kwargs):
