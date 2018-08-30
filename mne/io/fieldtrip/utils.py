@@ -313,7 +313,7 @@ def _process_channel_meg(cur_ch, grad):
             raise RuntimeError('Unexpected coil type: %s.' % (
                 chantype,))
     else:
-        raise NotImplemented('This needs to be implemented!')
+        raise NotImplementedError('This needs to be implemented!')
 
     cur_ch['unit_mul'] = np.log10(_unit_dict[chanunit[0]])
     cur_ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
