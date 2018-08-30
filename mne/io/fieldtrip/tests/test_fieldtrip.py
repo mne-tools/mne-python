@@ -56,7 +56,8 @@ def test_averaged(cur_system, version, use_info):
 
 @testing.requires_testing_data
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
-@pytest.mark.parametrize('cur_system, version, use_info', all_test_params_epochs)
+@pytest.mark.parametrize('cur_system, version, use_info',
+                         all_test_params_epochs)
 def test_epoched(cur_system, version, use_info):
     """Test comparing reading an Epochs object and the FieldTrip version."""
     has_pandas = _check_pandas_installed(strict=False) is not False

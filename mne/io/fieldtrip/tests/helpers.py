@@ -109,6 +109,7 @@ def get_data_paths(system):
 
 
 def get_cfg_local(system):
+    """Return cfg_local field for the system."""
     from mne.externals.pymatreader import read_mat
     cfg_local = read_mat(os.path.join(get_data_paths(system), 'raw_v7.mat'),
                          ('cfg_local',))['cfg_local']
@@ -117,6 +118,7 @@ def get_cfg_local(system):
 
 
 def get_raw_info(system):
+    """Return the info dict of the raw data."""
     cfg_local = get_cfg_local(system)
 
     raw_data_file = os.path.join(mne.datasets.testing.data_path(),
@@ -129,6 +131,7 @@ def get_raw_info(system):
 
 
 def get_raw_data(system, drop_sti_cnt=True, drop_extra_chs=False):
+    """Find, load and process the raw data."""
     cfg_local = get_cfg_local(system)
 
     raw_data_file = os.path.join(mne.datasets.testing.data_path(),
@@ -138,7 +141,7 @@ def get_raw_data(system, drop_sti_cnt=True, drop_extra_chs=False):
     raw_data = reader_function(raw_data_file, preload=True)
     crop = min(cfg_local['crop'], np.max(raw_data.times))
     if system == 'eximia':
-        crop -= 0.5*(1.0/raw_data.info['sfreq'])
+        crop -= 0.5 * (1.0 / raw_data.info['sfreq'])
     raw_data.crop(0, crop)
     raw_data.set_eeg_reference([])
     raw_data.del_proj('all')
@@ -161,6 +164,7 @@ def get_raw_data(system, drop_sti_cnt=True, drop_extra_chs=False):
 
 
 def get_epoched_data(system):
+    """Find, load and process the epoched data."""
     cfg_local = get_cfg_local(system)
     raw_data = get_raw_data(system, drop_sti_cnt=False)
 
@@ -191,6 +195,7 @@ def get_epoched_data(system):
 
 
 def get_averaged_data(system):
+    """Find, load and process the avg data."""
     data = get_epoched_data(system)
 
     return data.average(picks=np.arange(len(data.ch_names)))
@@ -215,9 +220,11 @@ def check_info_fields(expected, actual, has_raw_info, ignore_long=True):
         # Coordinates are now in head reference frame. The orientation rotation
         # matrix is thus redundant in the sense that the third column is the
         # cross product of the first two. The third is the unit vector of the
-        # direction perpendicular to the coil. FieldTrip only stores this vector.
+        # direction perpendicular to the coil. FieldTrip only stores this
+        # vector.
         # We recreate the rotation matrix using
-        # `mne.transforms.rotation3d_align_z_axis`. However, the first and second
+        # `mne.transforms.rotation3d_align_z_axis`. However, the first and
+        # second
         # column of the rotation matrix are now arbitrary and thus need to be
         # deleted.
         # We are also allowing the orientation to be more inaccurate (up to 2
@@ -233,9 +240,7 @@ def check_info_fields(expected, actual, has_raw_info, ignore_long=True):
 
 
 def check_data(expected, actual):
-    #expected = np.around(expected, 1)
-    #actual = np.around(actual, 1)
-
+    """Check data for equality."""
     np.testing.assert_almost_equal(expected, actual)
 
 

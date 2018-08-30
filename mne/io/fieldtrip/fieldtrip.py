@@ -131,7 +131,8 @@ def read_epochs_fieldtrip(ft_structure_path, info, data_name='data',
     return custom_epochs
 
 
-def read_evoked_fieldtrip(ft_structure_path, info, comment=None, data_name='data'):
+def read_evoked_fieldtrip(ft_structure_path, info, comment=None,
+                          data_name='data'):
     """Load evoked data from a FieldTrip timelocked structure.
 
     This function expects to find timelocked data in the structure data_name is
