@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add :func:`mne.compute_source_morph` which creates a :class:`mne.SourceMorph` object to unify morphing any type of source estimates (surface or volume) from one subject to another for group studies. It is now possible to do group studies when working on the volume with MNE. Work by `Tommy Clausner`_ during GSOC 2018 with the help of `Alex Gramfort`_ and `Eric Larson`_.
+
 - Add ability to pass threshold for EOG to :func:`mne.preprocessing.find_eog_events` and :func:`mne.preprocessing.create_eog_epochs` by `Peter Molfese_`
 
 - Add possibility to save :class:`mne.VolSourceEstimate` and :class:`mne.MixedSourceEstimate` to HDF5 format (file extension .h5) with :meth:`mne.VolSourceEstimate.save` and :meth:`mne.MixedSourceEstimate.save` by `Alex Gramfort`_
@@ -108,6 +110,8 @@ Bug
 
 API
 ~~~
+
+- Deprecated ``mne.SourceEstimate.morph_precomputed``, ``mne.SourceEstimate.morph``, ``mne.compute_morph_matrix``, ``mne.morph_data_precomputed`` and ``mne.morph_data`` in favor of :func:`mne.compute_source_morph`, by `Tommy Clausner`_
 
 - Prepare transition to Python 3. This release will be the last release compatible with Python 2. The next version will be Python 3 only.
 
@@ -487,7 +491,7 @@ Changelog
 
 - Add reduced set of labels for HCPMMP-1.0 parcellation in :func:`mne.datasets.fetch_hcp_mmp_parcellation` by `Eric Larson`_
 
-- Enable morphing between hemispheres with :func:`mne.compute_morph_matrix` by `Christian Brodbeck`_
+- Enable morphing between hemispheres with ``mne.compute_morph_matrix`` by `Christian Brodbeck`_
 
 - Add ``return_residual`` to :func:`mne.minimum_norm.apply_inverse` by `Eric Larson`_
 

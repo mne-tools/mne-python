@@ -431,4 +431,4 @@ done *e.g.*, to ``subject='fsaverage'`` as::
 
     >>> stc_fsaverage = stc.morph('fsaverage')  # doctest: +SKIP
 
-See :ref:`ch_morph` for more information.
+See :ref:`sphx_glr_auto_tutorials_plot_morph_stc.py` for more information.

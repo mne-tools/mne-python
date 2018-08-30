@@ -71,7 +71,7 @@ def nottest(f):
 # This list must also be updated in doc/_templates/class.rst if it is
 # changed here!
 _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
-                        '__call__', '__add__', '__sub__', '__mul__', '__div__',
+                        '__add__', '__sub__', '__mul__', '__div__',
                         '__neg__', '__hash__')
 
 ###############################################################################
@@ -799,6 +799,27 @@ def requires_nibabel(vox2ras_tkr=False):
     extra = ' with vox2ras_tkr support' if vox2ras_tkr else ''
     return pytest.mark.skipif(not has_nibabel(vox2ras_tkr),
                               reason='Requires nibabel%s' % extra)
+
+
+def requires_dipy():
+    """Check for dipy."""
+    import pytest
+    # for some strange reason on CIs we cane get:
+    #
+    #     can get weird ImportError: dlopen: cannot load any more object
+    #     with static TLS
+    #
+    # so let's import everything in the decorator.
+    try:
+        from dipy.align import imaffine, imwarp, metrics, transforms  # noqa, analysis:ignore
+        from dipy.align.reslice import reslice  # noqa, analysis:ignore
+        from dipy.align.imaffine import AffineMap  # noqa, analysis:ignore
+        from dipy.align.imwarp import DiffeomorphicMap  # noqa, analysis:ignore
+    except Exception:
+        have = False
+    else:
+        have = True
+    return pytest.mark.skipif(not have, reason='Requires dipy >= 0.10.1')
 
 
 def buggy_mkl_svd(function):
@@ -2679,6 +2700,7 @@ def sys_info(fid=None, show_paths=False):
         mayavi:        4.3.1
         cupy:          4.1.0
         pandas:        0.17.1+25.g547750a
+        dipy:          0.14.0
 
     """  # noqa: E501
     ljust = 15
@@ -2716,7 +2738,7 @@ def sys_info(fid=None, show_paths=False):
                 libs += ['%s=%s' % (key, lib)]
     libs = ', '.join(libs)
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
-                     'nibabel', 'mayavi', 'cupy', 'pandas'):
+                     'nibabel', 'mayavi', 'cupy', 'pandas', 'dipy'):
         if mod_name == '':
             out += '\n'
             continue

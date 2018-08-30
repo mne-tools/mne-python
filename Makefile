@@ -113,7 +113,7 @@ docstring:
 	@$(PYTESTS) --doctest-modules mne/tests/test_docstring_parameters.py
 
 check-manifest:
-	check-manifest --ignore .circleci*,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data
+	check-manifest --ignore .circleci*,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data,.DS_Store
 
 pep:
 	@$(MAKE) -k flake pydocstyle docstring codespell-error check-manifest

@@ -3,16 +3,16 @@ from __future__ import print_function
 import os
 import os.path as op
 from unittest import SkipTest
+
 import pytest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
-
 from mne.datasets import testing
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
                  add_source_space_distances, read_bem_surfaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
-                 head_to_mni, read_trans)
+                 head_to_mni, read_trans, compute_source_morph)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
                        requires_mne, requires_version, run_tests_if_main)
@@ -459,10 +459,10 @@ def test_head_to_mni():
     mri_head_t = invert_transform(trans)  # MRI (surface RAS)->head matrix
 
     # obtained from sample_audvis-meg-oct-6-mixed-fwd.fif
-    coo_right_amygdala = np.array([[0.01745682,  0.02665809,  0.03281873],
-                                   [0.01014125,  0.02496262,  0.04233755],
-                                   [0.01713642,  0.02505193,  0.04258181],
-                                   [0.01720631,  0.03073877,  0.03850075]])
+    coo_right_amygdala = np.array([[0.01745682, 0.02665809, 0.03281873],
+                                   [0.01014125, 0.02496262, 0.04233755],
+                                   [0.01713642, 0.02505193, 0.04258181],
+                                   [0.01720631, 0.03073877, 0.03850075]])
     coords_MNI_2 = head_to_mni(coo_right_amygdala, 'sample', mri_head_t,
                                subjects_dir)
     # less than 1mm error
@@ -658,14 +658,20 @@ def test_morphed_source_space_return():
     src_fs = read_source_spaces(fname_fs)
     stc_fs = SourceEstimate(data, [s['vertno'] for s in src_fs],
                             tmin, tstep, 'fsaverage')
+    n_verts_fs = sum(len(s['vertno']) for s in src_fs)
 
     # Create our morph source space
     src_morph = morph_source_spaces(src_fs, 'sample',
                                     subjects_dir=subjects_dir)
+    n_verts_sample = sum(len(s['vertno']) for s in src_morph)
+    assert n_verts_fs == n_verts_sample
 
     # Morph the data over using standard methods
-    stc_morph = stc_fs.morph('sample', [s['vertno'] for s in src_morph],
-                             smooth=1, subjects_dir=subjects_dir)
+    stc_morph = compute_source_morph(
+        'fsaverage', 'sample', src=src_fs,
+        spacing=[s['vertno'] for s in src_morph], smooth=1,
+        subjects_dir=subjects_dir, warn=False).apply(stc_fs)
+    assert stc_morph.data.shape[0] == n_verts_sample
 
     # We can now pretend like this was real data we got e.g. from an inverse.
     # To be complete, let's remove some vertices
@@ -681,9 +687,20 @@ def test_morphed_source_space_return():
     stc_morph_return = stc_morph.to_original_src(
         src_fs, subjects_dir=subjects_dir)
 
+    # This should fail (has too many verts in SourceMorph)
+    with pytest.warns(RuntimeWarning, match='vertices not included'):
+        morph = compute_source_morph(
+            subject_from='sample', spacing=stc_morph_return.vertices, smooth=1,
+            subjects_dir=subjects_dir, src=src_morph)
+    with pytest.raises(ValueError, match='vertices do not match'):
+        morph.apply(stc_morph)
+
     # Compare to the original data
-    stc_morph_morph = stc_morph.morph('fsaverage', stc_morph_return.vertices,
-                                      smooth=1, subjects_dir=subjects_dir)
+    with pytest.warns(RuntimeWarning, match='vertices not included'):
+        stc_morph_morph = compute_source_morph(
+            subject_from='sample', spacing=stc_morph_return.vertices, smooth=1,
+            subjects_dir=subjects_dir, src=stc_morph).apply(stc_morph)
+
     assert_equal(stc_morph_return.subject, stc_morph_morph.subject)
     for ii in range(2):
         assert_array_equal(stc_morph_return.vertices[ii],
@@ -700,6 +717,16 @@ def test_morphed_source_space_return():
     src_fs2[0]['rr'][vert1] = src_fs2[0]['rr'][vert2]
     stc_morph_return = stc_morph.to_original_src(
         src_fs2, subjects_dir=subjects_dir)
+
+    # test to_original_src method result equality
+    for ii in range(2):
+        assert_array_equal(stc_morph_return.vertices[ii],
+                           stc_morph_morph.vertices[ii])
+
+    # These will not match perfectly because morphing pushes data around
+    corr = np.corrcoef(stc_morph_return.data[:, 0],
+                       stc_morph_morph.data[:, 0])[0, 1]
+    assert corr > 0.99, corr
 
     # Degenerate cases
     stc_morph.subject = None  # no .subject provided
