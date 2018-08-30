@@ -93,12 +93,6 @@ def _create_info_chs(ft_struct):
              'field. No channel locations will extracted and the kind of '
              'channel might be inaccurate.')
 
-    if grad['type'] not in _supported_megs:
-        warn('Unsupported MEG type %s. Values for the kind of coils '
-             'are guessed with best effort. Please verify those. '
-             'Please also verify whether the channel locations '
-             'and orientations match!' % (grad['type'],))
-
     chs = list()
     for idx_chan, cur_channel_label in enumerate(all_channels):
         cur_ch = ch_defaults.copy()
@@ -296,8 +290,11 @@ def _process_channel_meg(cur_ch, grad):
 
     # TODO: this needs to be fixed!
     original_orientation = np.squeeze(grad['chanori'][chan_idx_in_grad, :])
-    orientation = transforms.rotation3d_align_z_axis(original_orientation).T
-    orientation = orientation.flatten()
+    try:
+        orientation = transforms.rotation3d_align_z_axis(original_orientation).T
+        orientation = orientation.flatten()
+    except AssertionError:
+        orientation = np.eye(4, 4).flatten()
     chanunit = grad['chanunit'][chan_idx_in_grad]
 
     cur_ch['loc'] = np.hstack((position, orientation))
