@@ -185,6 +185,7 @@ def get_epoched_data(system):
 
     if system == 'CNT':
         raw_data.drop_channels(['STI 014'])
+        events[:, 0] = events[:, 0] + 1
 
     if isinstance(cfg_local['eventvalue'], np.ndarray):
         event_id = list(cfg_local['eventvalue'].astype('int'))
