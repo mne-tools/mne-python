@@ -302,18 +302,24 @@ def _process_channel_meg(cur_ch, grad):
 
     cur_ch['loc'] = np.hstack((position, orientation))
     cur_ch['kind'] = FIFF.FIFFV_MEG_CH
-    if gradtype == 'neuromag306':
-        if chantype == 'megmag':
-            cur_ch['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T3
-            cur_ch['unit'] = FIFF.FIFF_UNIT_T
-        elif chantype == 'megplanar':
-            cur_ch['coil_type'] = FIFF.FIFFV_COIL_VV_PLANAR_T1
-            cur_ch['unit'] = FIFF.FIFF_UNIT_T_M
-        else:
-            raise RuntimeError('Unexpected coil type: %s.' % (
-                chantype,))
+    if chantype == 'megmag':
+        cur_ch['coil_type'] = FIFF.FIFFV_COIL_POINT_MAGNETOMETER
+        cur_ch['unit'] = FIFF.FIFF_UNIT_T
+    elif chantype == 'megplanar':
+        cur_ch['coil_type'] = FIFF.FIFFV_COIL_VV_PLANAR_T1
+        cur_ch['unit'] = FIFF.FIFF_UNIT_T_M
+    elif chantype == 'refmag':
+        cur_ch['coil_type'] = FIFF.FIFFV_COIL_MAGNES_REF_MAG
+        cur_ch['unit'] = FIFF.FIFF_UNIT_T
+    elif chantype == 'refgrad':
+        cur_ch['coil_type'] = FIFF.FIFFV_COIL_MAGNES_REF_GRAD
+        cur_ch['unit'] = FIFF.FIFF_UNIT_T
+    elif chantype == 'meggrad':
+        cur_ch['coil_type'] = FIFF.FIFFV_COIL_AXIAL_GRAD_5CM
+        cur_ch['unit'] = FIFF.FIFF_UNIT_T
     else:
-        raise NotImplementedError('This needs to be implemented!')
+        raise RuntimeError('Unexpected coil type: %s.' % (
+            chantype,))
 
     cur_ch['unit_mul'] = np.log10(_unit_dict[chanunit[0]])
     cur_ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
