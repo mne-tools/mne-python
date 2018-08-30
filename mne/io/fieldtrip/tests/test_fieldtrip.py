@@ -17,8 +17,6 @@ from mne.utils import _check_pandas_installed
 # missing: KIT: biggest problem here is that the channels do not have the same
 # names.
 # EGI: no calibration done in FT. so data is VERY different
-# CNT epochs and averages are not tested because small differences in
-# the raw data create big ones
 
 all_systems_raw = ['neuromag306', 'CTF', 'CNT', 'BTI', 'eximia']
 all_systems_epochs = ['neuromag306', 'CTF', 'CNT']
