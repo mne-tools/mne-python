@@ -39,6 +39,22 @@ def _create_info(ft_struct, raw_info):
     ch_names = ft_struct['label']
     if raw_info:
         info = raw_info.copy()
+        missing_channels = set(ch_names) - set(info['ch_names'])
+        if missing_channels:
+            warn('The following channels are present in the FieldTrip data '
+                 'but cannot be found in the provided info: %s.\n'
+                 'These channels will be removed from the resulting data!'
+                 % (str(missing_channels), ))
+
+            missing_chan_idx = [ch_names.index(ch) for ch in missing_channels]
+            new_chs = [ch for ch in ch_names if ch not in missing_channels]
+            ch_names = new_chs
+            ft_struct['label'] = ch_names
+            if ft_struct['trial'].ndim == 2:
+                ft_struct['trial'] = np.delete(ft_struct['trial'],
+                                               missing_chan_idx,
+                                               axis=0)
+
         info['sfreq'] = sfreq
         ch_idx = [info['ch_names'].index(ch) for ch in ch_names]
         pick_info(info, ch_idx, copy=False)
@@ -46,6 +62,7 @@ def _create_info(ft_struct, raw_info):
         montage = _create_montage(ft_struct)
 
         info = create_info(ch_names, sfreq, montage=montage)
+        chs = _create_info_chs(ft_struct)
         info['chs'] = chs
         info._update_redundant()
 

@@ -54,8 +54,8 @@ def read_raw_fieldtrip(ft_structure_path, info, data_name='data'):
     # load data and set ft_struct to the heading dictionary
     ft_struct = ft_struct[data_name]
 
-    data = np.array(ft_struct['trial'])  # create the main data array
     info = _create_info(ft_struct, info)  # create info structure
+    data = np.array(ft_struct['trial'])  # create the main data array
 
     if data.ndim > 2:
         data = np.squeeze(data)
