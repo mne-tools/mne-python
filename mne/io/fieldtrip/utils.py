@@ -185,7 +185,11 @@ def _create_events(ft_struct, trialinfo_column):
     if trialinfo_column < 0:
         raise ValueError('trialinfo_column must be positive')
 
-    if trialinfo_column > (event_type.shape[0] + 1):
+    available_ti_cols = 1
+    if event_type.ndim == 2:
+        available_ti_cols = event_type.shape[1]
+
+    if trialinfo_column > (available_ti_cols - 1):
         raise ValueError('trialinfo_column is higher than the amount of'
                          'columns in trialinfo.')
 
