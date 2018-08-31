@@ -7,7 +7,6 @@ import types
 import numpy as np
 import copy
 import os
-from mne.io.constants import FIFF
 import mne
 
 from functools import partial
@@ -85,24 +84,6 @@ def _remove_ignored_info_fields(info):
             del info[cur_field]
 
     _remove_ignored_ch_fields(info)
-
-
-def _transform_chs_to_head_coords(info):
-    #if 'dev_ctf_t' in info and info['dev_ctf_t'] is not None:
-    #    trans = info['dev_ctf_t']
-    if 'dev_head_t' in info and info['dev_head_t'] is not None:
-        trans = info['dev_head_t']
-    else:
-        return
-
-    for cur_ch in info['chs']:
-        if np.all(np.isnan(cur_ch['loc'])):
-            cur_ch['loc'] = np.asanyarray([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1])
-        if cur_ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE:
-            cur_trans_orig = mne.io.tag._loc_to_coil_trans(cur_ch['loc'])
-            trans_transformed = np.dot(trans['trans'], cur_trans_orig)
-            cur_ch['loc'] = mne.io.tag._coil_trans_to_loc(trans_transformed)
-            cur_ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
 
 def get_data_paths(system):
