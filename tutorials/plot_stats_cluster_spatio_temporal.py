@@ -123,7 +123,7 @@ X[:, :, :, 1] += condition2.data[:, :, np.newaxis]
 src = mne.read_source_spaces(src_fname)
 fsave_vertices = [s['vertno'] for s in src]
 morph_mat = mne.compute_source_morph(
-    subject_to='fsaverage', src=inverse_operator['src'],
+    src=inverse_operator['src'], subject_to='fsaverage',
     spacing=fsave_vertices, subjects_dir=subjects_dir).morph_mat
 
 n_vertices_fsave = morph_mat.shape[0]

@@ -1340,9 +1340,10 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             Source estimate for the destination subject.
         """
         from .morph import compute_source_morph
-        return compute_source_morph(subject_from, subject_to, spacing=grade,
-                                    smooth=smooth, subjects_dir=subjects_dir,
-                                    src=self, sparse=sparse).apply(self)
+        return compute_source_morph(self, subject_from, subject_to,
+                                    spacing=grade, smooth=smooth,
+                                    subjects_dir=subjects_dir,
+                                    sparse=sparse).apply(self)
 
     @deprecated(_dep_str)
     def morph_precomputed(self, subject_to, vertices_to, morph_mat,
@@ -2281,9 +2282,10 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         raise ValueError('Morphing is only possible with surface or vector '
                          'source estimates')
 
-    return compute_source_morph(subject_from, subject_to, spacing=grade,
-                                smooth=smooth, subjects_dir=subjects_dir,
-                                warn=warn, src=stc_from).apply(stc_from)
+    return compute_source_morph(stc_from, subject_from, subject_to,
+                                spacing=grade, smooth=smooth,
+                                subjects_dir=subjects_dir,
+                                warn=warn).apply(stc_from)
 
 
 @deprecated(_dep_str)

@@ -82,8 +82,9 @@ stc = mne.read_source_estimate(fname_stc, subject='sample')
 #
 # Initialize SourceMorph for SourceEstimate
 
-morph = mne.compute_source_morph(subject_from='sample', subject_to='fsaverage',
-                                 src=stc, subjects_dir=subjects_dir)
+morph = mne.compute_source_morph(stc, subject_from='sample',
+                                 subject_to='fsaverage',
+                                 subjects_dir=subjects_dir)
 
 ###############################################################################
 # Apply morph to (Vector) SourceEstimate
@@ -147,5 +148,5 @@ brain_inf.add_text(0.1, 0.9, 'Morphed to fsaverage (inflated)', 'title',
 # easily chained into a handy one-liner. Taking this together the shortest
 # possible way to morph data directly would be:
 
-stc_fsaverage = mne.compute_source_morph(subjects_dir=subjects_dir,
-                                         src=stc).apply(stc)
+stc_fsaverage = mne.compute_source_morph(stc,
+                                         subjects_dir=subjects_dir).apply(stc)

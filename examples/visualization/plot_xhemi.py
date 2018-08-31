@@ -23,12 +23,13 @@ stc = mne.read_source_estimate(stc_path, 'sample')
 
 # First, morph the data to fsaverage_sym, for which we have left_right
 # registrations:
-stc = mne.compute_source_morph('sample', 'fsaverage_sym', smooth=5, warn=False,
-                               src=stc, subjects_dir=subjects_dir).apply(stc)
+stc = mne.compute_source_morph(stc, 'sample', 'fsaverage_sym', smooth=5,
+                               warn=False,
+                               subjects_dir=subjects_dir).apply(stc)
 
 # Compute a morph-matrix mapping the right to the left hemisphere,
 # and vice-versa.
-morph = mne.compute_source_morph('fsaverage_sym', 'fsaverage_sym', src=stc,
+morph = mne.compute_source_morph(stc, 'fsaverage_sym', 'fsaverage_sym',
                                  spacing=stc.vertices, warn=False,
                                  subjects_dir=subjects_dir, xhemi=True)
 stc_xhemi = morph.apply(stc)

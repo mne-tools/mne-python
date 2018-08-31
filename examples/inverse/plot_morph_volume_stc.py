@@ -86,8 +86,8 @@ stc.crop(0.09, 0.09)
 #
 # A standard usage for volumetric data reads:
 
-morph = mne.compute_source_morph(subject_from='sample', subject_to='fsaverage',
-                                 src=inverse_operator['src'],
+morph = mne.compute_source_morph(inverse_operator['src'],
+                                 subject_from='sample', subject_to='fsaverage',
                                  subjects_dir=subjects_dir)
 
 ###############################################################################
@@ -153,8 +153,8 @@ display.add_overlay(img_fsaverage, alpha=0.75)
 # easily chained into a handy one-liner. Taking this together the shortest
 # possible way to morph data directly would be:
 
-stc_fsaverage = mne.compute_source_morph(subject_from='sample',
-                                         src=inverse_operator['src'],
+stc_fsaverage = mne.compute_source_morph(inverse_operator['src'],
+                                         subject_from='sample',
                                          subjects_dir=subjects_dir).apply(stc)
 
 plt.show()

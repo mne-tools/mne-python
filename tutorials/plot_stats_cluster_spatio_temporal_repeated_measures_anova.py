@@ -122,7 +122,7 @@ for ii, condition in enumerate(conditions):
 src = mne.read_source_spaces(src_fname)
 fsave_vertices = [src[0]['vertno'], []]
 morph_mat = mne.compute_source_morph(
-    subject_to='fsaverage', src=inverse_operator['src'],
+    src=inverse_operator['src'], subject_to='fsaverage',
     spacing=fsave_vertices, subjects_dir=subjects_dir, smooth=20).morph_mat
 morph_mat = morph_mat[:, :n_vertices_sample]  # just left hemi from src
 n_vertices_fsave = morph_mat.shape[0]
