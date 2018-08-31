@@ -7,7 +7,9 @@
 import mne
 import os.path
 import pytest
+import copy
 import itertools
+import numpy as np
 from mne.datasets import testing
 from .helpers import (check_info_fields, get_data_paths, get_raw_data,
                       get_epoched_data, get_averaged_data, _has_h5py,
@@ -174,3 +176,28 @@ def test_invalid_trialinfocolumn():
 
     with pytest.raises(ValueError):
         mne.io.read_epochs_fieldtrip(cur_fname, None, trialinfo_column=3)
+
+
+@testing.requires_testing_data
+def test_create_events():
+    from ....externals.pymatreader import read_mat
+    from ..utils import _create_events
+
+    test_data_folder_ft = get_data_paths('neuromag306')
+    cur_fname = os.path.join(test_data_folder_ft, 'epoched_v7.mat')
+    original_data = read_mat(cur_fname, ('data', ))
+
+    new_data = copy.deepcopy(original_data)
+    new_data['trialinfo'] = np.array([[1, 2, 3, 4],
+                                      [1, 2, 3, 4],
+                                      [1, 2, 3, 4]])
+
+    with pytest.raises(ValueError):
+        _create_events(new_data, -1)
+
+    for cur_col in np.arange(4):
+        evts = _create_events(new_data, cur_col)
+        assert np.all(evts[:, 2] == cur_col+1)
+
+    with pytest.raises(ValueError):
+        _create_events(new_data, 4)
