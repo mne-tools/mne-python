@@ -135,6 +135,10 @@ def test_raw(cur_system, version, use_info):
     with pytest.warns(**pytestwarning):
         raw_fiff_ft = mne.io.read_raw_fieldtrip(cur_fname, info)
 
+    if cur_system == 'BTI' and not use_info:
+        raw_fiff_ft.drop_channels(['MzA', 'MxA', 'MyaA',
+                                   'MyA', 'MxaA', 'MzaA'])
+
     # Check that the data was loaded correctly
     check_data(raw_fiff_mne.get_data(),
                raw_fiff_ft.get_data(),
