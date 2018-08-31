@@ -158,6 +158,7 @@ def test_raw(cur_system, version, use_info):
 @testing.requires_testing_data
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
 def test_load_epoched_as_raw():
+    """Test whether exception is thrown when loading epochs as raw."""
     test_data_folder_ft = get_data_paths('neuromag306')
     cur_fname = os.path.join(test_data_folder_ft, 'epoched_v7.mat')
 
@@ -168,6 +169,7 @@ def test_load_epoched_as_raw():
 @testing.requires_testing_data
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
 def test_invalid_trialinfocolumn():
+    """Test for exceptions when using wrong values for trialinfo parameter."""
     test_data_folder_ft = get_data_paths('neuromag306')
     cur_fname = os.path.join(test_data_folder_ft, 'epoched_v7.mat')
 
@@ -180,6 +182,7 @@ def test_invalid_trialinfocolumn():
 
 @testing.requires_testing_data
 def test_create_events():
+    """Test 2dim trialinfo fields."""
     from ....externals.pymatreader import read_mat
     from ..utils import _create_events
 
@@ -197,7 +200,7 @@ def test_create_events():
 
     for cur_col in np.arange(4):
         evts = _create_events(new_data, cur_col)
-        assert np.all(evts[:, 2] == cur_col+1)
+        assert np.all(evts[:, 2] == cur_col + 1)
 
     with pytest.raises(ValueError):
         _create_events(new_data, 4)
