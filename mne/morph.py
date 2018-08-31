@@ -416,6 +416,8 @@ class SourceMorph(object):
 def _check_subject_from(subject_from, src):
     if isinstance(src, string_types):
         subject_check = src
+    elif src is None:  # assume it's correct although dangerous but unlikely
+        subject_check = subject_from
     else:
         subject_check = src[0]['subject_his_id']
     if subject_from is None:
