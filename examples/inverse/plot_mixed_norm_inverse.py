@@ -112,7 +112,7 @@ plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
 morph = mne.compute_source_morph(subject_from='sample', subject_to='fsaverage',
                                  spacing=None, sparse=True,
                                  subjects_dir=subjects_dir,
-                                 stc=stc)
+                                 src=stc)
 stc_fsaverage = morph.apply(stc)
 src_fsaverage_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
 src_fsaverage = mne.read_source_spaces(src_fsaverage_fname)
