@@ -151,3 +151,13 @@ def test_raw(cur_system, version, use_info):
 
     # Check info field
     check_info_fields(raw_fiff_mne, raw_fiff_ft, use_info)
+
+
+@testing.requires_testing_data
+@pytest.mark.filterwarnings('ignore::RuntimeWarning')
+def test_load_epoched_as_raw():
+    test_data_folder_ft = get_data_paths('neuromag306')
+    cur_fname = os.path.join(test_data_folder_ft, 'epoched_v7.mat')
+
+    with pytest.raises(RuntimeError):
+        mne.io.read_raw_fieldtrip(cur_fname, None)
