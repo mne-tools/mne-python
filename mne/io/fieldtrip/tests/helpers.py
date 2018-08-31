@@ -98,7 +98,7 @@ def get_cfg_local(system):
     """Return cfg_local field for the system."""
     from mne.externals.pymatreader import read_mat
     cfg_local = read_mat(os.path.join(get_data_paths(system), 'raw_v7.mat'),
-                         ['cfg_local',])['cfg_local']
+                         ['cfg_local'])['cfg_local']
 
     return cfg_local
 
