@@ -277,3 +277,9 @@ def assert_deep_almost_equal(expected, actual, *args, **kwargs):
                 pass
             exc = AssertionError("%s\nTRACE: %s" % (message, trace))
         raise exc
+
+
+def assert_warning_in_record(warning_message, warn_record):
+    """Assert that a warning message is in the records."""
+    all_messages = [str(w.message) for w in warn_record]
+    assert warning_message in all_messages

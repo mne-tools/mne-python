@@ -11,7 +11,8 @@ import itertools
 from mne.datasets import testing
 from .helpers import (check_info_fields, get_data_paths, get_raw_data,
                       get_epoched_data, get_averaged_data, _has_h5py,
-                      pandas_not_found_warning_msg, get_raw_info, check_data)
+                      pandas_not_found_warning_msg, get_raw_info, check_data,
+                      assert_warning_in_record)
 from ..utils import NOINFO_WARNING
 from mne.utils import _check_pandas_installed
 
@@ -93,15 +94,16 @@ def test_epoched(cur_system, version, use_info):
             epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname, info)
         assert isinstance(epoched_ft.metadata, pandas.DataFrame)
     else:
-        with pytest.warns(RuntimeWarning,
-                          message=pandas_not_found_warning_msg):
+        with pytest.warns(None) as warn_record:
             if version == 'v73' and not _has_h5py():
                 with pytest.raises(ImportError):
                     mne.io.read_epochs_fieldtrip(cur_fname, info)
                 return
-            with pytest.warns(**pytestwarning):
-                epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname, info)
+            epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname, info)
             assert epoched_ft.metadata is None
+            assert_warning_in_record(pandas_not_found_warning_msg, warn_record)
+            if pytestwarning['expected_warning'] is not None:
+                assert_warning_in_record(pytestwarning['message'], warn_record)
 
     mne_data = mne_epoched.get_data()[:, :, :-1]
     ft_data = epoched_ft.get_data()
