@@ -37,6 +37,7 @@ EEG                   EEGLAB                     .set       :func:`mne.io.read_r
 EEG                   eXimia                     .nxe       :func:`mne.io.read_raw_eximia`
 Electrode locations   elc, txt, csd, sfp, htps   Misc       :func:`mne.channels.read_montage`
 Electrode locations   EEGLAB loc, locs, eloc     Misc       :func:`mne.channels.read_montage`
+MEG and EEG           FieldTrip raw/epochs/avg   .mat       :func:`mne.io.read_raw_fieldtrip`, :func:`mne.read_epochs_fieldtrip` and :func:`mne.read_evoked_fieldtrip`
 ===================   ========================   =========  =================================================================
 
 .. note::
@@ -461,3 +462,8 @@ This functionality is illustrated in :ref:`sphx_glr_auto_examples_io_plot_object
 Using 3rd party libraries such as NEO (https://pythonhosted.org/neo/) in combination
 with these functions abundant electrophysiological file formats can be easily loaded
 into MNE.
+
+
+Importing MEG/EEG data from FieldTrip
+#####################################
+

@@ -14,7 +14,7 @@ from ...evoked import EvokedArray
 
 
 def read_raw_fieldtrip(ft_structure_path, info, data_name='data'):
-    """Load continuous (i.e. raw) data from a FieldTrip preprocessing structure.
+    """Load continuous (raw) data from a FieldTrip preprocessing structure.
 
     This function expects to find single trial raw data (FT_DATATYPE_RAW) in
     the structure data_name is pointing at.
