@@ -139,6 +139,9 @@ def test_raw(cur_system, version, use_info):
         raw_fiff_ft.drop_channels(['MzA', 'MxA', 'MyaA',
                                    'MyA', 'MxaA', 'MzaA'])
 
+    if cur_system == 'eximia' and not use_info:
+        raw_fiff_ft.drop_channels(['TRIG2', 'TRIG1', 'GATE'])
+
     # Check that the data was loaded correctly
     check_data(raw_fiff_mne.get_data(),
                raw_fiff_ft.get_data(),
