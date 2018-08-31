@@ -13,7 +13,7 @@ from ...epochs import EpochsArray
 from ...evoked import EvokedArray
 
 
-def read_raw_fieldtrip(ft_structure_path, info, data_name='data'):
+def read_raw_fieldtrip(fname, info, data_name='data'):
     """Load continuous (raw) data from a FieldTrip preprocessing structure.
 
     This function expects to find single trial raw data (FT_DATATYPE_RAW) in
@@ -28,7 +28,7 @@ def read_raw_fieldtrip(ft_structure_path, info, data_name='data'):
 
     Parameters
     ----------
-    ft_structure_path: str
+    fname: str
         Path and filename of the .mat file containing the data.
     info: dict or None
         The info dict of the raw data file corresponding to the data to import.
@@ -47,7 +47,7 @@ def read_raw_fieldtrip(ft_structure_path, info, data_name='data'):
     """
     from ...externals.pymatreader.pymatreader import read_mat
 
-    ft_struct = read_mat(ft_structure_path,
+    ft_struct = read_mat(fname,
                          ignore_fields=['previous'],
                          variable_names=[data_name])
 
@@ -71,7 +71,7 @@ def read_raw_fieldtrip(ft_structure_path, info, data_name='data'):
     return custom_raw
 
 
-def read_epochs_fieldtrip(ft_structure_path, info, data_name='data',
+def read_epochs_fieldtrip(fname, info, data_name='data',
                           trialinfo_column=0):
     """Load epoched data from a FieldTrip preprocessing structure.
 
@@ -90,7 +90,7 @@ def read_epochs_fieldtrip(ft_structure_path, info, data_name='data',
 
     Parameters
     ----------
-    ft_structure_path: str
+    fname: str
         Path and filename of the .mat file containing the data.
     info: dict or None
         The info dict of the raw data file corresponding to the data to import.
@@ -113,7 +113,7 @@ def read_epochs_fieldtrip(ft_structure_path, info, data_name='data',
 
     """
     from ...externals.pymatreader.pymatreader import read_mat
-    ft_struct = read_mat(ft_structure_path,
+    ft_struct = read_mat(fname,
                          ignore_fields=['previous'],
                          variable_names=[data_name])
 
@@ -131,7 +131,7 @@ def read_epochs_fieldtrip(ft_structure_path, info, data_name='data',
     return custom_epochs
 
 
-def read_evoked_fieldtrip(ft_structure_path, info, comment=None,
+def read_evoked_fieldtrip(fname, info, comment=None,
                           data_name='data'):
     """Load evoked data from a FieldTrip timelocked structure.
 
@@ -147,7 +147,7 @@ def read_evoked_fieldtrip(ft_structure_path, info, comment=None,
 
     Parameters
     ----------
-    ft_structure_path: str
+    fname: str
         Path and filename of the .mat file containing the data.
     info: dict or None
         The info dict of the raw data file corresponding to the data to import.
@@ -167,7 +167,7 @@ def read_evoked_fieldtrip(ft_structure_path, info, comment=None,
 
     """
     from ...externals.pymatreader.pymatreader import read_mat
-    ft_struct = read_mat(ft_structure_path,
+    ft_struct = read_mat(fname,
                          ignore_fields=['previous'],
                          variable_names=[data_name])
     ft_struct = ft_struct[data_name]
