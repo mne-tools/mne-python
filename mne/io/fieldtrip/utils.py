@@ -235,12 +235,6 @@ def _process_channel_eeg(cur_ch, elec):
     chanunit = elec['chanunit'][chan_idx_in_elec]
     position_unit = elec['unit']
 
-    if chantype != 'eeg':
-        raise RuntimeError('The current channel is contained in '
-                           'the "elec" sub-structure. This should '
-                           'be an EEG channel. However, the channel '
-                           'type is: %s.' % (chantype,))
-
     position = position * _unit_dict[position_unit]
     cur_ch['loc'] = np.hstack((position, np.zeros((9,))))
     cur_ch['loc'][-1] = 1
