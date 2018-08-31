@@ -20,7 +20,7 @@ info_ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
                        'dev_ctf_t')
 
 ch_ignore_fields = ('logno', 'cal', 'range', 'scanno', 'coil_type', 'kind',
-                    'loc', 'coord_frame')
+                    'loc', 'coord_frame', 'unit')
 
 info_long_fields = ('hpi_meas', )
 
