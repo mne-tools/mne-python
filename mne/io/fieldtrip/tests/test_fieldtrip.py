@@ -188,7 +188,7 @@ def test_create_events():
 
     test_data_folder_ft = get_data_paths('neuromag306')
     cur_fname = os.path.join(test_data_folder_ft, 'epoched_v7.mat')
-    original_data = read_mat(cur_fname, ('data', ))
+    original_data = read_mat(cur_fname, ['data', ])
 
     new_data = copy.deepcopy(original_data)
     new_data['trialinfo'] = np.array([[1, 2, 3, 4],
