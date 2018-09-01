@@ -105,6 +105,7 @@ def test_mxne_inverse():
                           solver='cd', return_as_dipoles=True)
     stc_dip = make_stc_from_dipoles(dips, forward['src'])
     assert isinstance(dips[0], Dipole)
+    assert stc_dip.subject == "sample"
     _check_stcs(stc_cd, stc_dip)
 
     with pytest.warns(None):  # CD

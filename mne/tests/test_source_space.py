@@ -668,7 +668,7 @@ def test_morphed_source_space_return():
 
     # Morph the data over using standard methods
     stc_morph = compute_source_morph(
-        'fsaverage', 'sample', src=src_fs,
+        src_fs, 'fsaverage', 'sample',
         spacing=[s['vertno'] for s in src_morph], smooth=1,
         subjects_dir=subjects_dir, warn=False).apply(stc_fs)
     assert stc_morph.data.shape[0] == n_verts_sample
@@ -690,16 +690,18 @@ def test_morphed_source_space_return():
     # This should fail (has too many verts in SourceMorph)
     with pytest.warns(RuntimeWarning, match='vertices not included'):
         morph = compute_source_morph(
-            subject_from='sample', spacing=stc_morph_return.vertices, smooth=1,
-            subjects_dir=subjects_dir, src=src_morph)
+            src_morph, subject_from='sample',
+            spacing=stc_morph_return.vertices, smooth=1,
+            subjects_dir=subjects_dir)
     with pytest.raises(ValueError, match='vertices do not match'):
         morph.apply(stc_morph)
 
     # Compare to the original data
     with pytest.warns(RuntimeWarning, match='vertices not included'):
         stc_morph_morph = compute_source_morph(
-            subject_from='sample', spacing=stc_morph_return.vertices, smooth=1,
-            subjects_dir=subjects_dir, src=stc_morph).apply(stc_morph)
+            src=stc_morph, subject_from='sample',
+            spacing=stc_morph_return.vertices, smooth=1,
+            subjects_dir=subjects_dir).apply(stc_morph)
 
     assert_equal(stc_morph_return.subject, stc_morph_morph.subject)
     for ii in range(2):

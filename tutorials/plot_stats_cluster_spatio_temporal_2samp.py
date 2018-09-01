@@ -40,8 +40,10 @@ stc.resample(50, npad='auto')
 # Read the source space we are morphing to
 src = mne.read_source_spaces(src_fname)
 fsave_vertices = [s['vertno'] for s in src]
-stc = mne.morph_data('sample', 'fsaverage', stc, grade=fsave_vertices,
-                     smooth=20, subjects_dir=subjects_dir)
+morph = mne.compute_source_morph(stc, 'sample', 'fsaverage',
+                                 spacing=fsave_vertices, smooth=20,
+                                 subjects_dir=subjects_dir)
+stc = morph.apply(stc)
 n_vertices_fsave, n_times = stc.data.shape
 tstep = stc.tstep
 

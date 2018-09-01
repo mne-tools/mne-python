@@ -21,8 +21,8 @@ from .externals.six import string_types
 from .externals.h5io import read_hdf5, write_hdf5
 
 
-def compute_source_morph(subject_from=None, subject_to='fsaverage',
-                         subjects_dir=None, src=None, zooms=5,
+def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
+                         subjects_dir=None, zooms=5,
                          niter_affine=(100, 100, 10), niter_sdr=(5, 5, 3),
                          spacing=5, smooth=None, warn=True, xhemi=False,
                          sparse=False, verbose=False):
@@ -34,6 +34,9 @@ def compute_source_morph(subject_from=None, subject_to='fsaverage',
 
     Parameters
     ----------
+    src : instance of SourceSpaces | instance of SourceEstimate
+        The SourceSpaces of subject_from (can be a
+        SourceEstimate if only using a surface source space).
     subject_from : str | None
         Name of the original subject as named in the SUBJECTS_DIR.
         If None (default), then ``src[0]['subject_his_id]'`` will be used.
@@ -42,9 +45,6 @@ def compute_source_morph(subject_from=None, subject_to='fsaverage',
     subjects_dir : str | None
         Path to SUBJECTS_DIR if it is not set in the environment. The default
         is None.
-    src : instance of SourceSpaces | instance of SourceEstimate
-        The SourceSpaces of subject_from (can be a
-        SourceEstimate if only using a surface source space).
     zooms : float | tuple | None
         The voxel size of volume for each spatial dimension in mm.
         If spacing is None, MRIs won't be resliced, and both volumes
@@ -119,8 +119,6 @@ def compute_source_morph(subject_from=None, subject_to='fsaverage',
         src_data = dict(vertices_from=copy.deepcopy(src.vertices))
         kind = 'surface'
         subject_from = _check_subject_from(subject_from, src.subject)
-    elif src is None:
-        raise ValueError('src must be supplied, got None')
     else:
         src_data, kind = _get_src_data(src)
         subject_from = _check_subject_from(subject_from, src)
@@ -416,6 +414,8 @@ class SourceMorph(object):
 def _check_subject_from(subject_from, src):
     if isinstance(src, string_types):
         subject_check = src
+    elif src is None:  # assume it's correct although dangerous but unlikely
+        subject_check = subject_from
     else:
         subject_check = src[0]['subject_his_id']
     if subject_from is None:
