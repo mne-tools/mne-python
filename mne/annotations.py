@@ -445,11 +445,6 @@ def _ensure_annotation_object(obj):
                          'mne.Annotations. Got %s.' % obj)
 
 
-def _strip_to_integer(trigger):
-    """Return only the integer part of a string."""
-    return int("".join([x for x in trigger if x.isdigit()]))
-
-
 @verbose
 def events_from_annotations(raw, event_id=None, regexp=None,
                             event_id_func=None, verbose=None):
@@ -498,9 +493,6 @@ def events_from_annotations(raw, event_id=None, regexp=None,
 
     if raw.annotations is None:
         return np.empty((0, 3), dtype=int), event_id
-
-    if event_id_func == 'strip_to_integer':
-        event_id_func = _strip_to_integer
 
     annotations = raw.annotations
 
