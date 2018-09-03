@@ -445,6 +445,33 @@ def _ensure_annotation_object(obj):
                          'mne.Annotations. Got %s.' % obj)
 
 
+def _incremental_event_id():
+    """create a callable counter that takes 1 parameter.
+
+    It can be used as follows::
+
+        >>> my_counter = _incremental_event_id()
+        >>> my_counter(None)
+            0
+        >>> my_counter('usless string')
+            1
+        >>> my_counter(42)
+            2
+        >>> [my_counter(x) for x in ['a', None, 42]]
+            [3, 4, 5]
+    """
+    from itertools import count
+
+    class A():
+        def __init__(self, generator):
+            self.generator = generator
+
+        def __call__(self, _):
+            return next(self.generator)
+
+    return A(count())
+
+
 @verbose
 def events_from_annotations(raw, event_id=None, regexp=None,
                             event_id_func=None, verbose=None):
@@ -466,16 +493,10 @@ def events_from_annotations(raw, event_id=None, regexp=None,
         Regular expression used to filter the annotations whose
         descriptions is a match.
 
-    event_id_func : None | str | callable
-        What to do for events not found in ``event_id``. Must take one ``str``
-        argument and return an ``int``. If string, must be 'strip-to-integer',
-        in which case it defaults to stripping event codes such as "D128" or
-        "S  1" of their non-integer parts and returns the integer.
-        If the event is not in the ``event_id`` and calling ``event_id_func``
-        on it results in a ``TypeError`` (e.g. if ``event_id_func`` is
-        ``None``) or a ``ValueError``, the event is dropped.
-
-        XXX missing example
+    event_id_func : None | callable
+        What to do for events not found in ``event_id``. Must take one
+        argument and return an ``int``. If None, ``event_id_func`` behaves like
+        a counter that increments every time is called.
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see
@@ -506,7 +527,9 @@ def events_from_annotations(raw, event_id=None, regexp=None,
     if regexp is not None:
         pat = re.compile(regexp)
 
-    cnt = 1
+    if event_id_func is None:
+        event_id_func = _incremental_event_id()
+
     event_id_ = dict()
     for desc in annotations.description:
         if desc in event_id_:
@@ -517,12 +540,8 @@ def events_from_annotations(raw, event_id=None, regexp=None,
 
         if event_id is not None and desc in event_id:
             event_id_[desc] = event_id[desc]
-        elif event_id_func is not None:
-            val = event_id_func(desc)
-            event_id_[desc] = val
         else:
-            event_id_[desc] = cnt
-            cnt += 1
+            event_id_[desc] = event_id_func(desc)
 
     event_sel = [ii for ii, kk in enumerate(annotations.description)
                  if kk in event_id_]
