@@ -105,7 +105,8 @@ def test_io_set_raw(fnames, tmpdir):
         raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
                     phase='zero')  # test that preloading works
 
-        [w.pop(FutureWarning) for _ in range(2)]
+        while 'FutureWarning' in [xx._category_name for xx in w]:
+            w.pop(FutureWarning)
         while 'ImportWarning' in [xx._category_name for xx in w]:
             w.pop(ImportWarning)
 
