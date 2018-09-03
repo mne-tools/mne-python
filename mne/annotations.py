@@ -453,7 +453,7 @@ def _strip_to_integer(trigger):
 @verbose
 def events_from_annotations(raw, event_id=None, regexp=None,
                             event_id_func=None, verbose=None):
-    """Get events and event_id from an Annotations object
+    """Get events and event_id from an Annotations object.
 
     Parameters
     ----------

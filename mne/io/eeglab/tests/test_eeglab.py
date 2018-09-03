@@ -334,7 +334,7 @@ def test_eeglab_annotations(fname):
 
 @testing.requires_testing_data
 def test_read_annotations_eeglab():
-    """Test annotations onsets are timestamps (+ validate some)"""
+    """Test annotations onsets are timestamps (+ validate some)."""
     annotations = read_annotations_eeglab(raw_fname_mat)
     validation_samples = [0, 1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31]
     expected_onset = np.array([1.00, 1.69, 2.08, 4.70, 7.71, 11.30, 17.18,

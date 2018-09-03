@@ -458,7 +458,8 @@ def test_annotations_crop():
 
 
 @testing.requires_testing_data
-def test_events_from_annot():
+def test_events_from_annot_in_raw_objects():
+    """Test basic functionality of events_fron_annot for raw objects."""
     raw = read_raw_fif(fif_fname)
     events = mne.find_events(raw)
     event_id = {
