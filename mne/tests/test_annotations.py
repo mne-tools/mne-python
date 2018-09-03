@@ -516,7 +516,7 @@ def test_events_from_annot_in_raw_objects():
 
 @testing.requires_testing_data
 def test_eeglab_event_from_annot(recwarn):
-    """Test all forms of obtaining annotations"""
+    """Test all forms of obtaining annotations."""
     from mne.io import read_raw_eeglab
     from mne.io.eeglab import read_annotations_eeglab, read_events_eeglab
     import mne
