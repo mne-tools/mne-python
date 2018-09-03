@@ -459,15 +459,18 @@ def events_from_annotations(raw, event_id=None, regexp=None,
     ----------
     raw : instance of Raw
         The raw data for which Annotations are defined.
+
     event_id : dict | None
         Dictionary of string keys and integer values as used in mne.Epochs
-        to map annotation descriptions to integer event codes. If None,
-        all descriptions of annotations are mapped and assigned arbitrary
-        unique integer values. Else, only the keys present will be mapped
-        and and the annotations with other descriptions will be ignored.
+        to map annotation descriptions to integer event codes. Only the
+        keys present will be mapped and the annotations with other descriptions
+        will be ignored. If None, all descriptions of annotations are mapped
+        and assigned arbitrary unique integer values.
+
     regexp : str | None
         Regular expression used to filter the annotations whose
         descriptions is a match.
+
     event_id_func : None | str | callable
         What to do for events not found in ``event_id``. Must take one ``str``
         argument and return an ``int``. If string, must be 'strip-to-integer',
@@ -476,6 +479,9 @@ def events_from_annotations(raw, event_id=None, regexp=None,
         If the event is not in the ``event_id`` and calling ``event_id_func``
         on it results in a ``TypeError`` (e.g. if ``event_id_func`` is
         ``None``) or a ``ValueError``, the event is dropped.
+
+        XXX missing example
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see
         :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -491,7 +497,7 @@ def events_from_annotations(raw, event_id=None, regexp=None,
     import re
 
     if raw.annotations is None:
-        return np.asarray([]), event_id
+        return np.empty((0, 3), dtype=int), event_id
 
     if event_id_func == 'strip_to_integer':
         event_id_func = _strip_to_integer
