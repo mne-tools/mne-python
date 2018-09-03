@@ -54,7 +54,7 @@ def _check_h5(fname):
 
 @requires_h5py
 @testing.requires_testing_data
-# @pytest.mark.filterwarnings('ignore:is deprecated in 0.17 and')
+@pytest.mark.filterwarnings('ignore:Function read_events_eeglab is deprecated')
 @pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
 def test_io_set_raw(fnames, tmpdir):
     """Test importing EEGLAB .set files."""
@@ -68,6 +68,15 @@ def test_io_set_raw(fnames, tmpdir):
     for want in ('Events like', 'consist entirely', 'could not be mapped',
                  'string preload is not supported'):
         assert (any(want in str(ww.message) for ww in w))
+
+    # XXX `match='Data will be preloaded'` should work, to capture only this
+    #     warning, and then compare len(w) == 4:
+    # RuntimeWarning('Data will be preloaded. preload=False or a string '
+    #                'preload is not supported when the data is stored in '
+    #                'the .set file')
+    # But using only RuntimeWarning catches a bunch of things that need popping
+    #
+    # with pytest.warns(RuntimeWarning, match='Data will') as w:
     with pytest.warns(RuntimeWarning) as w:
         # test finding events in continuous data
         event_id = {'rt': 1, 'square': 2}
@@ -80,16 +89,27 @@ def test_io_set_raw(fnames, tmpdir):
         raw3 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
                                event_id=event_id)
         raw4 = read_raw_eeglab(input_fname=raw_fname, montage=montage)
+
+        [w.pop(DeprecationWarning) for _ in range(5)]  # read_events_eeglab
+        # [w.pop(RuntimeWarning) for _ in range(4)] This is what I'm searching
+
         Epochs(raw0, find_events(raw0), event_id)
         epochs = Epochs(raw1, find_events(raw1), event_id)
-        assert_equal(len(find_events(raw4)), 0)  # no events without event_id
-        assert_equal(epochs["square"].average().nave, 80)  # 80 with
+
+        assert len(find_events(raw4)) == 0  # no events without event_id
+        assert epochs["square"].average().nave == 80   # 80 with
         assert_array_equal(raw0[:][0], raw1[:][0], raw2[:][0], raw3[:][0])
         assert_array_equal(raw0[:][-1], raw1[:][-1], raw2[:][-1], raw3[:][-1])
-        assert_equal(len(w), 9)
+
         # 1 for preload=False / str with fname_onefile, 3 for dropped events
         raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
                     phase='zero')  # test that preloading works
+
+        [w.pop(FutureWarning) for _ in range(2)]
+        while 'ImportWarning' in [xx._category_name for xx in w]:
+            w.pop(ImportWarning)
+
+    assert len(w) == 4  # check `preload=False` raises RuntimeWarning
 
     # test that using uint16_codec does not break stuff
     raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
@@ -175,6 +195,7 @@ def test_io_set_raw(fnames, tmpdir):
     with pytest.warns(None) as w:
         read_raw_eeglab(input_fname=one_chan_fname, preload=True)
     # no warning for 'no events found'
+    w.pop(DeprecationWarning)
     assert len(w) == 0
 
     # test reading file with 3 channels - one without position information
