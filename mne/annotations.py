@@ -445,12 +445,12 @@ def _ensure_annotation_object(obj):
                          'mne.Annotations. Got %s.' % obj)
 
 
-def _incremental_event_id():
+def _counter_factory():
     """create a callable counter that takes 1 parameter.
 
     It can be used as follows::
 
-        >>> my_counter = _incremental_event_id()
+        >>> my_counter = _counter_factory()
         >>> my_counter(None)
             0
         >>> my_counter('usless string')
@@ -459,17 +459,19 @@ def _incremental_event_id():
             2
         >>> [my_counter(x) for x in ['a', None, 42]]
             [3, 4, 5]
+        >>> my_other_counter = _counter_factory()
+        >>> [my_other_counter(x) for x in ['a', None, 42]]
+            [0, 1, 2]
     """
-    from itertools import count
+    class Counter():
+        count = 0
 
-    class A():
-        def __init__(self, generator):
-            self.generator = generator
+        def __call__(self, *args, **kargs):
+            c = self.count
+            self.count += 1
+            return c
 
-        def __call__(self, _):
-            return next(self.generator)
-
-    return A(count())
+    return Counter()
 
 
 @verbose
@@ -528,7 +530,7 @@ def events_from_annotations(raw, event_id=None, regexp=None,
         pat = re.compile(regexp)
 
     if event_id_func is None:
-        event_id_func = _incremental_event_id()
+        event_id_func = _counter_factory()
 
     event_id_ = dict()
     for desc in annotations.description:
