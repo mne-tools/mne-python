@@ -1752,7 +1752,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
     @copy_function_doc_to_method_doc(plot_volume_source_estimates)
     def plot(self, src, subject=None, subjects_dir=None, mode='stat_map',
-             bg_img=None, colorbar=True, colormap='hot', clim='auto',
+             bg_img=None, colorbar=True, colormap='mne', clim='auto',
              show=True, verbose=None):
         return plot_volume_source_estimates(
             self, src=src, subject=subject, subjects_dir=subjects_dir,

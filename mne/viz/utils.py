@@ -87,39 +87,34 @@ def _get_pysurfer_cmap(colormap, ctrl_pts, center):
         'PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
         'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr', 'seismic']
 
-    if colormap not in (cmaps['Sequential'] + cmaps['Sequential (2)'] +
-                        cmaps['Diverging']):
-        raise ValueError('Colormap must be Sequential or diverging.'
-                         'Got %s' % colormap)
+    if isinstance(colormap, np.ndarray):
+        lut_table = colormap.copy()
+    else:
+        cmap = cm.get_cmap(colormap)
+        lut_table = cmap(np.linspace(0, 1, cmap.N))
 
-    cmap = cm.get_cmap(colormap)
-    n_colors = cmap.N
-    lut_table = cmap(np.linspace(0, 1, n_colors))
-
+    n_colors = lut_table.shape[0]
     fmin, fmid, fmax = ctrl_pts
     if colormap in (cmaps['Sequential'] + cmaps['Sequential (2)']):
-        n_colors2 = int(n_colors / 2)
-        lut_table[:n_colors2, -1] = np.linspace(0, 1, n_colors2)
-        lut_table[n_colors2:, -1] = np.ones(n_colors - n_colors2)
-        lut_scaled = _scale_sequential_lut(lut_table, fmin, fmid, fmax)
-        cmap = ListedColormap(lut_scaled)
-    elif colormap in cmaps['Diverging']:
-        N4 = np.full(4, n_colors / 4, dtype=int)
-        N4[:np.mod(n_colors, 4)] += 1
-        assert N4.sum() == n_colors
-        lut_table[:, -1] = np.r_[np.ones(N4[0]),
-                                 np.linspace(1, 0, N4[2]),
-                                 np.linspace(0, 1, N4[3]),
-                                 np.ones(N4[1])]
-        n_colors2 = int(n_colors / 2)
-        n_fill = int(round(fmin * n_colors2 / (fmax - fmin))) * 2
-        lut_table = np.r_[
-            _scale_sequential_lut(lut_table[:n_colors2, :],
-                                  center - fmax, center - fmid, center - fmin),
-            _get_fill_colors(
-                lut_table[n_colors2 - 3:n_colors2 + 3, :], n_fill),
-            _scale_sequential_lut(lut_table[n_colors2:, :],
-                                  center + fmin, center + fmid, center + fmax)]
+        raise ValueError('Colormap cannot be sequential')
+
+    N4 = np.full(4, n_colors / 4, dtype=int)
+    N4[:np.mod(n_colors, 4)] += 1
+    assert N4.sum() == n_colors
+    lut_table[:, -1] = np.r_[np.ones(N4[0]),
+                             np.linspace(1, 0, N4[2]),
+                             np.linspace(0, 1, N4[3]),
+                             np.ones(N4[1])]
+    n_colors2 = int(n_colors / 2)
+    n_fill = int(round(fmin * n_colors2 / (fmax - fmin))) * 2
+    lut_scaled = np.r_[
+        _scale_sequential_lut(lut_table[:n_colors2, :],
+                              center - fmax, center - fmid, center - fmin),
+        _get_fill_colors(
+            lut_table[n_colors2 - 3:n_colors2 + 3, :], n_fill),
+        _scale_sequential_lut(lut_table[n_colors2:, :],
+                              center + fmin, center + fmid, center + fmax)]
+    cmap = ListedColormap(lut_scaled)
 
     return cmap
 

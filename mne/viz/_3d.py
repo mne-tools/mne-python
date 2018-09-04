@@ -1721,7 +1721,7 @@ def _get_ps_kwargs(initial_time, require='0.6'):
 @verbose
 def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                                  mode='stat_map', bg_img=None, colorbar=True,
-                                 colormap='hot', clim='auto', show=True,
+                                 colormap='mne', clim='auto', show=True,
                                  verbose=None):
     """Plot Nutmeg style volumetric source estimates using nilearn.
 
@@ -1931,15 +1931,18 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     ctrl_pts, colormap, _, _ = _limits_to_control_points(
         clim, stc.data, colormap, transparent=True, fmt='matplotlib')
-    center = (stc.data.max() + stc.data.min()) / 2
-    cmap = _get_pysurfer_cmap(colormap, ctrl_pts, center)
+    center = 0.
+    if colormap in ('mne', 'mne_analyze'):
+        cmap = colormap
+    else:
+        cmap = _get_pysurfer_cmap(colormap, ctrl_pts, center)
 
     # black_bg = True is needed because of some matplotlib
     # peculiarity. See: https://stackoverflow.com/a/34730204
     # Otherwise, event.inaxes does not work for ax_x and ax_z
     plot_map_callback = partial(
         plot_func, threshold=ctrl_pts[0], axes=[0.09, 0.55, 0.9, 0.4],
-        resampling_interpolation='nearest', vmax=vmax, figure=fig,
+        resampling_interpolation='nearest', vmax=ctrl_pts[2], figure=fig,
         colorbar=True, bg_img=bg_img_param, cmap=cmap, black_bg=True)
 
     params = {'stc': stc, 'ax_time': ax_time,
