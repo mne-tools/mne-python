@@ -677,6 +677,7 @@ def test_event_id_function_behaviour_event_from_annotations():
     assert_array_equal(events, expected_events)
     assert event_id == expected_event_id
 
+
 def test_counter_factory():
     """Test that _counter_factory can be restarted."""
     from mne.annotations import _counter_factory
@@ -687,8 +688,8 @@ def test_counter_factory():
     event_id_func = _counter_factory()
     second_round = [event_id_func(x) for x in ['b', None, 3]]
 
-    assert first_round == [0, 1, 2]
-    assert second_round == [0, 1, 2]
+    assert first_round == [1, 2, 3]
+    assert second_round == [1, 2, 3]
 
 
 run_tests_if_main()
