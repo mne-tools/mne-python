@@ -648,7 +648,33 @@ def test_event_id_function_behaviour_event_from_annotations():
                                                event_id_func=None)
 
     assert_array_equal(events, expected_events)
-    assert_array_equal(event_id, expected_event_id)
+    assert event_id == expected_event_id
 
+    description = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+    given_event_id = {'b': 42, 'd': 42, 'f': 0}
+    expected_event_id = {'a': 1, 'b': 42, 'c': 2, 'd': 42,
+                         'e': 3, 'f': 0, 'g': 4}
+    expected_events = np.array([[3, 3, 3, 3, 3, 3, 3],
+                                [0, 0, 0, 0, 0, 0, 0],
+                                [1, 42, 2, 42, 3, 0, 4]]).T
+    raw = _xx(description, xx=3, duration=100)
+    events, event_id = events_from_annotations(raw, event_id=given_event_id,
+                                               event_id_func=None)
+
+    assert_array_equal(events, expected_events)
+    assert event_id == expected_event_id
+
+    description = ['a', 'a', 'b', 'a', 'b', 'b', 'k']
+    given_event_id = {'b': 42, 'd': 42, 'f': 0}
+    expected_event_id = {'a': 1, 'b': 42, 'k': 2}
+    expected_events = np.array([[3, 3, 3, 3, 3, 3, 3],
+                                [0, 0, 0, 0, 0, 0, 0],
+                                [1, 1, 42, 1, 42, 42, 2]]).T
+    raw = _xx(description, xx=3, duration=100)
+    events, event_id = events_from_annotations(raw, event_id=given_event_id,
+                                               event_id_func=None)
+
+    assert_array_equal(events, expected_events)
+    assert event_id == expected_event_id
 
 run_tests_if_main()
