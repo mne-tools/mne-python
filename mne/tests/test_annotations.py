@@ -539,4 +539,116 @@ def test_eeglab_event_from_annot(recwarn):
     assert_array_equal(events_a, events_b)
     assert_array_equal(events_a, events_c)
 
+
+@pytest.fixture
+def dummy_raw():
+    info = create_info(ch_names=10, sfreq=1000., ch_types=None, montage=None,
+                       verbose=None)
+    raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
+                   info=info, first_samp=0)
+    return raw
+
+
+@pytest.fixture
+def dummy_annotation():
+    from mne import Annotations
+    onset = np.arange(1, 10)
+    duration = np.full_like(onset, 10)
+    description = ["yy"] * onset.shape[0]
+
+    return Annotations(onset=onset,
+                       duration=duration,
+                       description=description,
+                       orig_time=0)
+
+
+def _create_annotation_based_on_descr(description, onset=0, duration=0,
+                                      orig_time=0):
+    from mne import Annotations
+
+    onset_matching_desc = np.full_like(description, onset, dtype=type(onset))
+    duration_matching_desc = np.full_like(description, duration,
+                                          dtype=type(duration))
+    return Annotations(description=description,
+                       onset=onset_matching_desc,
+                       duration=duration_matching_desc,
+                       orig_time=0)
+
+
+def test_empty_annotation_is_none(raw=dummy_raw()):
+
+    from pytest import approx
+    description = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+    annot = _create_annotation_based_on_descr(description=description,
+                                              onset=raw.times[3],
+                                              duration=0.1,
+                                              orig_time=0)
+    with pytest.warns(RuntimeWarning, match='Limited .* expanding outside'):
+        # duration 0.1s is larger than the raw data expand
+        raw.set_annotations(annot)
+
+    # Make sure that set_annotations(annot) works
+    assert all(raw.annotations.onset == raw.times[3])
+    expected_duration = (1 / raw.info['sfreq']) * len(raw.times) - raw.times[3]
+    _duration = raw.annotations.duration[0]
+    assert _duration == approx(expected_duration)
+    assert all(raw.annotations.duration == _duration)
+    assert all(raw.annotations.description == description)
+
+    events, event_id = events_from_annotations(raw, event_id=None,
+                                               event_id_func=None)
+
+
+def _xx(description, xx=0, onset=0, duration=0,
+        orig_time=0, raw=dummy_raw()):
+
+    from pytest import approx
+    from mne import Annotations
+
+    onset = raw.times[xx]
+    onset_matching_desc = np.full_like(description, onset, dtype=type(onset))
+    duration_matching_desc = np.full_like(description, duration,
+                                          dtype=type(duration))
+    annot = Annotations(description=description,
+                        onset=onset_matching_desc,
+                        duration=duration_matching_desc,
+                        orig_time=orig_time)
+
+    if duration != 0:
+        with pytest.warns(RuntimeWarning, match='Limited.*expanding outside'):
+            # duration 0.1s is larger than the raw data expand
+            raw.set_annotations(annot)
+    else:
+        raw.set_annotations(annot)
+
+    # Make sure that set_annotations(annot) works
+    assert all(raw.annotations.onset == raw.times[xx])
+    if duration != 0:
+        expected_duration = (1 / raw.info['sfreq']) * len(raw.times) - raw.times[xx]
+    else:
+        expected_duration = 0
+    _duration = raw.annotations.duration[0]
+    assert _duration == approx(expected_duration)
+    assert all(raw.annotations.duration == _duration)
+    assert all(raw.annotations.description == description)
+
+    return raw
+
+
+def test_event_id_function_behaviour_event_from_annotations():
+
+    description = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+    expected_event_id = dict(zip(description, range(1, 100)))
+    expected_events = np.array([[3, 3, 3, 3, 3, 3, 3],
+                                [0, 0, 0, 0, 0, 0, 0],
+                                [1, 2, 3, 4, 5, 6, 7]]).T
+
+    raw = _xx(description, xx=3, duration=100)
+    events, event_id = events_from_annotations(raw, event_id=None,
+                                               event_id_func=None)
+
+    assert_array_equal(events, expected_events)
+    assert_array_equal(event_id, expected_event_id)
+
+
 run_tests_if_main()
