@@ -485,7 +485,7 @@ def test_events_from_annot_in_raw_objects():
         events_from_annotations(raw, event_id=None, regexp=None)
 
     assert_array_equal(events[:, 0], events3[:, 0])
-    assert_equal(event_id.keys(), event_id3.keys())
+    assert list(event_id.keys()).sort() == list(event_id3.keys()).sort()
 
     first = np.unique(events3[:, 2])
     second = np.arange(1, len(event_id) + 1, 1).astype(first.dtype)
