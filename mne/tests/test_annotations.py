@@ -621,4 +621,28 @@ def test_counter_factory():
     assert second_round == [1, 2, 3]
 
 
+@pytest.fixture
+def dummy_xx():
+    """helper function that creates dummy raw object."""
+    info = create_info(ch_names=10, sfreq=1000., ch_types=None, montage=None,
+                       verbose=None,)
+    info['meas_date'] = np.array([1038942070, 720100])
+    raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
+                   info=info, first_samp=20)
+    return raw
+
+
+def test_xx(raw=dummy_xx()):
+    from mne import Annotations
+
+    annot = Annotations(description=['a'],
+                        onset=[0.025],
+                        duration=[0.002],
+                        orig_time=raw.info['meas_date'])
+
+    raw.set_annotations(annot)
+    assert raw.annotations.onset[0] == 0.025
+    xx, yy = events_from_annotations(raw)
+    assert xx[0, 0] == 0.025 * raw.info['sfreq']
+
 run_tests_if_main()
