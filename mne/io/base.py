@@ -715,7 +715,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             new_annotations.crop(tmin=tmin, tmax=tmax,
                                  emit_warning=emit_warning)
 
-            if annotations.orig_time != meas_date:
+            if self.info['meas_date'] is None:
+                new_annotations.orig_time = None
+            elif annotations.orig_time != meas_date:
                 # XXX, TODO: this should be a function, method or something.
                 # maybe orig_time should have a setter
                 # new_annotations.orig_time = xxxxx # resets onset based on x
