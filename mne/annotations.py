@@ -452,16 +452,17 @@ def _counter_factory():
 
         >>> my_counter = _counter_factory()
         >>> my_counter(None)
-            1
+        1
         >>> my_counter('usless string')
-            2
+        2
         >>> my_counter(42)
-            3
+        3
         >>> [my_counter(x) for x in ['a', None, 42]]
-            [4, 5, 6]
+        [4, 5, 6]
         >>> my_other_counter = _counter_factory()
         >>> [my_other_counter(x) for x in ['a', None, 42]]
-            [1, 2, 3]
+        [1, 2, 3]
+
     """
     class Counter():
         count = 1
