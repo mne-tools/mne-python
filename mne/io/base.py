@@ -701,10 +701,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                    ' ``orig_time`` to a raw object with None'
                                    ' ``meas_date`` is ambiguous.')
 
-            time_of_first_sample = (
-                _handle_meas_date(self.info['meas_date']) +
-                (self.first_samp / self.info['sfreq']))
+            meas_date = _handle_meas_date(self.info['meas_date'])
             delta = 1. / self.info['sfreq']
+            time_of_first_sample = meas_date + self.first_samp * delta
 
             new_annotations = annotations.copy()
             if annotations.orig_time is None:
@@ -716,8 +715,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             new_annotations.crop(tmin=tmin, tmax=tmax,
                                  emit_warning=emit_warning)
 
-            if annotations.orig_time is None:
-                new_annotations.orig_time = None
+            if annotations.orig_time != meas_date:
+                # XXX, TODO: this should be a function, method or something.
+                # maybe orig_time should have a setter
+                # new_annotations.orig_time = xxxxx # resets onset based on x
+                # new_annotations._update_orig(xxxx)
+                xx = new_annotations.orig_time
+                new_annotations.orig_time = meas_date
+                new_annotations.onset -= (meas_date - xx)
 
             self._annotations = new_annotations
 
