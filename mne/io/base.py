@@ -693,6 +693,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._annotations = None
         else:
             _ensure_annotation_object(annotations)
+
+            if self.info['meas_date'] is None and \
+               annotations.orig_time is not None:
+                raise RuntimeError('Ambiguous opearation.'
+                                   ' Setting an Annotation object with None'
+                                   ' ``orig_time`` to a raw object with None'
+                                   ' ``meas_date`` is ambiguous.')
+
             time_of_first_sample = (
                 _handle_meas_date(self.info['meas_date']) +
                 (self.first_samp / self.info['sfreq']))
