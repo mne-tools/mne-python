@@ -15,7 +15,7 @@ import mne
 from mne import create_info, Epochs, read_annotations
 from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_fif, RawArray, concatenate_raws
-from mne.annotations import Annotations, _sync_onset
+from mne.annotations import Annotations, _sync_onset, _handle_meas_date
 from mne.annotations import read_brainstorm_annotations
 from mne.datasets import testing
 
@@ -47,16 +47,17 @@ def test_basics():
     delta = raw.times[-1] + 1. / raw.info['sfreq']
     orig_time = (meas_date[0] + meas_date[1] * 1e-6 +
                  raw2.first_samp / raw2.info['sfreq'])
+    offset = orig_time - _handle_meas_date(raw2.info['meas_date'])
     annot = Annotations(onset, duration, description, orig_time)
     assert ' segments' in repr(annot)
     raw2.set_annotations(annot)
-    assert_array_equal(raw2.annotations.onset, onset)
+    assert_array_equal(raw2.annotations.onset, onset + offset)
     assert id(raw2.annotations) != id(annot)
     concatenate_raws([raw, raw2])
     raw.annotations.delete(-1)  # remove boundary annotations
     raw.annotations.delete(-1)
 
-    assert_allclose(onset + delta, raw.annotations.onset, rtol=1e-5)
+    assert_allclose(onset + offset + delta, raw.annotations.onset, rtol=1e-5)
     assert_array_equal(annot.duration, raw.annotations.duration)
     assert_array_equal(raw.annotations.description, np.repeat('test', 10))
 
@@ -82,12 +83,14 @@ def test_basics():
     boundary_idx = np.where(raw.annotations.description == 'EDGE boundary')[0]
     assert len(boundary_idx) == 3
     raw.annotations.delete(boundary_idx)
-    assert_array_equal(raw.annotations.onset, [1., 2., 11., 12., 21., 22.,
-                                               31.])
+    assert_array_equal(raw.annotations.onset, [124., 125., 134., 135.,
+                                               144., 145., 154.])
     raw.annotations.delete(2)
-    assert_array_equal(raw.annotations.onset, [1., 2., 12., 21., 22., 31.])
+    assert_array_equal(raw.annotations.onset, [124., 125., 135., 144.,
+                                               145., 154.])
     raw.annotations.append(5, 1.5, 'y')
-    assert_array_equal(raw.annotations.onset, [1., 2., 12., 21., 22., 31., 5])
+    assert_array_equal(raw.annotations.onset, [124., 125., 135., 144.,
+                                               145., 154.,   5.])
     assert_array_equal(raw.annotations.duration, [.5, .5, .5, .5, .5, .5, 1.5])
     assert_array_equal(raw.annotations.description, ['x', 'x', 'x', 'x', 'x',
                                                      'x', 'y'])
@@ -186,6 +189,7 @@ def test_crop_more():
     raw.set_annotations(annotations)
     assert len(raw.annotations) == 4
     delta = 1. / raw.info['sfreq']
+    offset = raw.first_samp * delta
     raw_concat = mne.concatenate_raws(
         [raw.copy().crop(0, 4 - delta),
          raw.copy().crop(4, 8 - delta),
@@ -206,8 +210,8 @@ def test_crop_more():
                        raw.annotations.description)
     assert_allclose(raw.annotations.duration, duration)
     assert_allclose(raw_concat.annotations.duration, duration)
-    assert_allclose(raw.annotations.onset, onset)
-    assert_allclose(raw_concat.annotations.onset, onset,
+    assert_allclose(raw.annotations.onset, onset + offset)
+    assert_allclose(raw_concat.annotations.onset, onset + offset,
                     atol=1. / raw.info['sfreq'])
 
 
