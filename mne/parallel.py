@@ -9,7 +9,7 @@ import logging
 import os
 
 from . import get_config
-from .utils import logger, verbose, warn
+from .utils import logger, verbose, warn, ProgressBar
 from .fixes import _get_args
 
 if 'MNE_FORCE_SERIAL' in os.environ:
@@ -19,8 +19,8 @@ else:
 
 
 @verbose
-def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto',
-                  pre_dispatch='2 * n_jobs'):
+def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
+                  total=None, verbose=None):
     """Return parallel instance with delayed function.
 
     Util function to use joblib only if available
@@ -31,10 +31,6 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto',
         A function
     n_jobs: int
         Number of jobs to run in parallel
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). INFO or DEBUG
-        will print parallel status, others will not.
     max_nbytes : int, str, or None
         Threshold on the minimum size of arrays passed to the workers that
         triggers automated memory mapping. Can be an int in Bytes,
@@ -42,21 +38,16 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto',
         Use None to disable memmaping of large arrays. Use 'auto' to
         use the value set using mne.set_memmap_min_size.
     pre_dispatch : int, or string, optional
-        Controls the number of jobs that get dispatched during parallel
-        execution. Reducing this number can be useful to avoid an
-        explosion of memory consumption when more jobs get dispatched
-        than CPUs can process. This parameter can be:
-
-            - None, in which case all the jobs are immediately
-              created and spawned. Use this for lightweight and
-              fast-running jobs, to avoid delays due to on-demand
-              spawning of the jobs
-
-            - An int, giving the exact number of total jobs that are
-              spawned
-
-            - A string, giving an expression as a function of n_jobs,
-              as in '2*n_jobs'
+        See :class:`joblib.Parallel`.
+    total : int | None
+        If int, use a progress bar to display the progress of dispatched
+        jobs. This should only be used when directly iterating, not when
+        using ``split_list`` or :func:`np.array_split`.
+        If None (default), do not add a progress bar.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). INFO or DEBUG
+        will print parallel status, others will not.
 
     Returns
     -------
@@ -67,58 +58,64 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto',
     n_jobs: int
         Number of jobs >= 0
     """
+    should_print = (logger.level <= logging.INFO)
     # for a single job, we don't need joblib
+    if n_jobs != 1:
+        try:
+            from joblib import Parallel, delayed
+        except ImportError:
+            try:
+                from sklearn.externals.joblib import Parallel, delayed
+            except ImportError:
+                warn('joblib not installed. Cannot run in parallel.')
+                n_jobs = 1
     if n_jobs == 1:
         n_jobs = 1
         my_func = func
         parallel = list
-        return parallel, my_func, n_jobs
+    else:
+        # check if joblib is recent enough to support memmaping
+        p_args = _get_args(Parallel.__init__)
+        joblib_mmap = ('temp_folder' in p_args and 'max_nbytes' in p_args)
 
-    try:
-        from joblib import Parallel, delayed
-    except ImportError:
-        try:
-            from sklearn.externals.joblib import Parallel, delayed
-        except ImportError:
-            warn('joblib not installed. Cannot run in parallel.')
-            n_jobs = 1
-            my_func = func
-            parallel = list
-            return parallel, my_func, n_jobs
+        cache_dir = get_config('MNE_CACHE_DIR', None)
+        if isinstance(max_nbytes, string_types) and max_nbytes == 'auto':
+            max_nbytes = get_config('MNE_MEMMAP_MIN_SIZE', None)
 
-    # check if joblib is recent enough to support memmaping
-    p_args = _get_args(Parallel.__init__)
-    joblib_mmap = ('temp_folder' in p_args and 'max_nbytes' in p_args)
+        if max_nbytes is not None:
+            if not joblib_mmap and cache_dir is not None:
+                warn('"MNE_CACHE_DIR" is set but a newer version of joblib is '
+                     'needed to use the memmapping pool.')
+            if joblib_mmap and cache_dir is None:
+                logger.info(
+                    'joblib supports memapping pool but "MNE_CACHE_DIR" '
+                    'is not set in MNE-Python config. To enable it, use, '
+                    'e.g., mne.set_cache_dir(\'/tmp/shm\'). This will '
+                    'store temporary files under /dev/shm and can result '
+                    'in large memory savings.')
 
-    cache_dir = get_config('MNE_CACHE_DIR', None)
-    if isinstance(max_nbytes, string_types) and max_nbytes == 'auto':
-        max_nbytes = get_config('MNE_MEMMAP_MIN_SIZE', None)
+        # create keyword arguments for Parallel
+        kwargs = {'verbose': 5 if should_print and total is None else 0}
+        kwargs['pre_dispatch'] = pre_dispatch
 
-    if max_nbytes is not None:
-        if not joblib_mmap and cache_dir is not None:
-            warn('"MNE_CACHE_DIR" is set but a newer version of joblib is '
-                 'needed to use the memmapping pool.')
-        if joblib_mmap and cache_dir is None:
-            logger.info('joblib supports memapping pool but "MNE_CACHE_DIR" '
-                        'is not set in MNE-Python config. To enable it, use, '
-                        'e.g., mne.set_cache_dir(\'/tmp/shm\'). This will '
-                        'store temporary files under /dev/shm and can result '
-                        'in large memory savings.')
+        if joblib_mmap:
+            if cache_dir is None:
+                max_nbytes = None  # disable memmaping
+            kwargs['temp_folder'] = cache_dir
+            kwargs['max_nbytes'] = max_nbytes
 
-    # create keyword arguments for Parallel
-    kwargs = {'verbose': 5 if logger.level <= logging.INFO else 0}
-    kwargs['pre_dispatch'] = pre_dispatch
+        n_jobs = check_n_jobs(n_jobs)
+        parallel = Parallel(n_jobs, **kwargs)
+        my_func = delayed(func)
 
-    if joblib_mmap:
-        if cache_dir is None:
-            max_nbytes = None  # disable memmaping
-        kwargs['temp_folder'] = cache_dir
-        kwargs['max_nbytes'] = max_nbytes
-
-    n_jobs = check_n_jobs(n_jobs)
-    parallel = Parallel(n_jobs, **kwargs)
-    my_func = delayed(func)
-    return parallel, my_func, n_jobs
+    if total is not None:
+        def parallel_progress(op_iter):
+            pb = ProgressBar(total, verbose_bool=should_print)
+            return parallel(pb(op_iter))
+        parallel_out = parallel_progress
+    else:
+        parallel_out = parallel
+    return parallel_out, my_func, n_jobs
 
 
 def check_n_jobs(n_jobs, allow_cuda=False):

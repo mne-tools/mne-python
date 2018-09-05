@@ -5,7 +5,7 @@ Plot a cortical parcellation
 ============================
 
 In this example, we download the HCP-MMP1.0 parcellation [1]_ and show it
-on fsaverage.
+on ``fsaverage``.
 
 .. note:: The HCP-MMP dataset has license terms restricting its use.
           Of particular relevance:

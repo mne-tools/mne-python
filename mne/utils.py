@@ -71,7 +71,7 @@ def nottest(f):
 # This list must also be updated in doc/_templates/class.rst if it is
 # changed here!
 _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
-                        '__call__', '__add__', '__sub__', '__mul__', '__div__',
+                        '__add__', '__sub__', '__mul__', '__div__',
                         '__neg__', '__hash__')
 
 ###############################################################################
@@ -296,13 +296,28 @@ def check_random_state(seed):
                      ' instance' % seed)
 
 
-def split_list(l, n):
-    """Split list in n (approx) equal pieces."""
+def split_list(l, n, idx=False):
+    """Split list in n (approx) equal pieces, possibly giving indices."""
     n = int(n)
-    sz = len(l) // n
+    tot = len(l)
+    sz = tot // n
+    start = stop = 0
     for i in range(n - 1):
-        yield l[i * sz:(i + 1) * sz]
-    yield l[(n - 1) * sz:]
+        stop += sz
+        yield (np.arange(start, stop), l[start:stop]) if idx else l[start:stop]
+        start += sz
+    yield (np.arange(start, tot), l[start:]) if idx else l[start]
+
+
+def array_split_idx(ary, indices_or_sections, axis=0, n_per_split=1):
+    """Do what numpy.array_split does, but add indices."""
+    # this only works for indices_or_sections as int
+    indices_or_sections = _ensure_int(indices_or_sections)
+    ary_split = np.array_split(ary, indices_or_sections, axis=axis)
+    idx_split = np.array_split(np.arange(ary.shape[axis]), indices_or_sections)
+    idx_split = (np.arange(sp[0] * n_per_split, (sp[-1] + 1) * n_per_split)
+                 for sp in idx_split)
+    return zip(idx_split, ary_split)
 
 
 def create_chunks(sequence, size):
@@ -784,6 +799,27 @@ def requires_nibabel(vox2ras_tkr=False):
     extra = ' with vox2ras_tkr support' if vox2ras_tkr else ''
     return pytest.mark.skipif(not has_nibabel(vox2ras_tkr),
                               reason='Requires nibabel%s' % extra)
+
+
+def requires_dipy():
+    """Check for dipy."""
+    import pytest
+    # for some strange reason on CIs we cane get:
+    #
+    #     can get weird ImportError: dlopen: cannot load any more object
+    #     with static TLS
+    #
+    # so let's import everything in the decorator.
+    try:
+        from dipy.align import imaffine, imwarp, metrics, transforms  # noqa, analysis:ignore
+        from dipy.align.reslice import reslice  # noqa, analysis:ignore
+        from dipy.align.imaffine import AffineMap  # noqa, analysis:ignore
+        from dipy.align.imwarp import DiffeomorphicMap  # noqa, analysis:ignore
+    except Exception:
+        have = False
+    else:
+        have = True
+    return pytest.mark.skipif(not have, reason='Requires dipy >= 0.10.1')
 
 
 def buggy_mkl_svd(function):
@@ -1709,7 +1745,7 @@ class ProgressBar(object):
     """
 
     spinner_symbols = ['|', '/', '-', '\\']
-    template = '\r[{0}{1}] {2:.02f}% {4} {3}   '
+    template = '\r[{0}{1}] {2:6.02f}% {4} {3}   '
 
     def __init__(self, max_value, initial_value=0, mesg='', max_chars='auto',
                  progress_character='.', spinner=False,
@@ -1719,13 +1755,15 @@ class ProgressBar(object):
             self.max_value = len(max_value)
             self.iterable = max_value
         else:
-            self.max_value = float(max_value)
+            self.max_value = max_value
             self.iterable = None
         self.mesg = mesg
         self.progress_character = progress_character
         self.spinner = spinner
         self.spinner_index = 0
         self.n_spinner = len(self.spinner_symbols)
+        if verbose_bool == 'auto':
+            verbose_bool = True if logger.level <= logging.INFO else False
         self._do_print = verbose_bool
         self.cur_time = time.time()
         if max_total_width == 'auto':
@@ -1735,6 +1773,10 @@ class ProgressBar(object):
             max_chars = min(max(max_total_width - 40, 10), 60)
         self.max_chars = int(max_chars)
         self.cur_rate = 0
+        with tempfile.NamedTemporaryFile('wb', prefix='tmp_mne_prog') as tf:
+            self._mmap_fname = tf.name
+        del tf  # should remove the file
+        self._mmap = None
 
     def update(self, cur_value, mesg=None):
         """Update progressbar with current value of process.
@@ -1760,7 +1802,7 @@ class ProgressBar(object):
         self.cur_time = cur_time
         self.cur_value = cur_value
         self.cur_rate = cur_rate
-        progress = min(float(self.cur_value) / self.max_value, 1.)
+        progress = min(float(self.cur_value) / float(self.max_value), 1.)
         num_chars = int(progress * self.max_chars)
         num_left = self.max_chars - num_chars
 
@@ -1813,6 +1855,65 @@ class ProgressBar(object):
         for obj in self.iterable:
             yield obj
             self.update_with_increment_value(1)
+
+    def __call__(self, seq):
+        """Call the ProgressBar in a joblib-friendly way."""
+        while True:
+            try:
+                yield next(seq)
+            except StopIteration:
+                return
+            else:
+                self.update_with_increment_value(1)
+
+    def subset(self, idx):
+        """Make a joblib-friendly index subset updater.
+
+        Parameters
+        ----------
+        idx : ndarray
+            List of indices for this subset.
+
+        Returns
+        -------
+        updater : instance of PBSubsetUpdater
+            Class with a ``.update(ii)`` method.
+        """
+        return _PBSubsetUpdater(self, idx)
+
+    def __setitem__(self, idx, val):
+        """Use alternative, mmap-based incrementing (max_value must be int)."""
+        if not self._do_print:
+            return
+        assert val is True
+        self._mmap[idx] = True
+        self.update(self._mmap.sum())
+
+    def __enter__(self):  # noqa: D105
+        if op.isfile(self._mmap_fname):
+            os.remove(self._mmap_fname)
+        # prevent corner cases where self.max_value == 0
+        self._mmap = np.memmap(self._mmap_fname, bool, 'w+',
+                               shape=max(self.max_value, 1))
+        return self
+
+    def __exit__(self, type, value, traceback):  # noqa: D105
+        """Clean up memmapped file."""
+        # we can't put this in __del__ b/c then each worker will delete the
+        # file, which is not so good
+        self._mmap = None
+        os.remove(self._mmap_fname)
+        print('')
+
+
+class _PBSubsetUpdater(object):
+
+    def __init__(self, pb, idx):
+        self.pb = pb
+        self.idx = idx
+
+    def update(self, ii):
+        self.pb[self.idx[:ii]] = True
 
 
 def _get_terminal_width():
@@ -2597,9 +2698,9 @@ def sys_info(fid=None, show_paths=False):
         sklearn:       0.18.dev0
         nibabel:       2.1.0dev
         mayavi:        4.3.1
-        pycuda:        2015.1.3
-        skcuda:        0.5.2
+        cupy:          4.1.0
         pandas:        0.17.1+25.g547750a
+        dipy:          0.14.0
 
     """  # noqa: E501
     ljust = 15
@@ -2636,9 +2737,8 @@ def sys_info(fid=None, show_paths=False):
                     lib = lib.split('[')[1].split("'")[1]
                 libs += ['%s=%s' % (key, lib)]
     libs = ', '.join(libs)
-    version_texts = dict(pycuda='VERSION_TEXT')
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
-                     'nibabel', 'mayavi', 'pycuda', 'skcuda', 'pandas'):
+                     'nibabel', 'mayavi', 'cupy', 'pandas', 'dipy'):
         if mod_name == '':
             out += '\n'
             continue
@@ -2651,7 +2751,6 @@ def sys_info(fid=None, show_paths=False):
         except Exception:
             out += 'Not found\n'
         else:
-            version = getattr(mod, version_texts.get(mod_name, '__version__'))
             extra = (' (%s)' % op.dirname(mod.__file__)) if show_paths else ''
             if mod_name == 'numpy':
                 extra = ' {%s}%s' % (libs, extra)
@@ -2663,7 +2762,7 @@ def sys_info(fid=None, show_paths=False):
                 except Exception:
                     qt_api = 'unknown'
                 extra = ' {qt_api=%s}%s' % (qt_api, extra)
-            out += '%s%s\n' % (version, extra)
+            out += '%s%s\n' % (mod.__version__, extra)
     print(out, end='', file=fid)
 
 

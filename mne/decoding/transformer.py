@@ -455,10 +455,10 @@ class FilterEstimator(TransformerMixin):
     h_trans_bandwidth : float
         Width of the transition band at the high cut-off frequency in Hz.
     n_jobs : int | str
-        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly, CUDA is initialized, and method='fft'.
+        Number of jobs to run in parallel.
+        Can be 'cuda' if ``cupy`` is installed properly and method='fir'.
     method : str
-        'fft' will use overlap-add FIR filtering, 'iir' will use IIR
+        'fir' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
     iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
@@ -484,7 +484,7 @@ class FilterEstimator(TransformerMixin):
 
     def __init__(self, info, l_freq, h_freq, picks=None, filter_length='auto',
                  l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
-                 method='fft', iir_params=None, fir_design='firwin',
+                 method='fir', iir_params=None, fir_design='firwin',
                  verbose=None):  # noqa: D102
         self.info = info
         self.l_freq = l_freq
@@ -749,8 +749,8 @@ class TemporalFilter(TransformerMixin):
 
         Only used for ``method='fir'``.
     n_jobs : int | str, defaults to 1
-        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly, CUDA is initialized, and method='fft'.
+        Number of jobs to run in parallel.
+        Can be 'cuda' if ``cupy`` is installed properly and method='fir'.
     method : str, defaults to 'fir'
         'fir' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).

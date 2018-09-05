@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add :func:`mne.compute_source_morph` which creates a :class:`mne.SourceMorph` object to unify morphing any type of source estimates (surface or volume) from one subject to another for group studies. It is now possible to do group studies when working on the volume with MNE. Work by `Tommy Clausner`_ during GSOC 2018 with the help of `Alex Gramfort`_ and `Eric Larson`_.
+
 - Add ability to pass threshold for EOG to :func:`mne.preprocessing.find_eog_events` and :func:`mne.preprocessing.create_eog_epochs` by `Peter Molfese_`
 
 - Add possibility to save :class:`mne.VolSourceEstimate` and :class:`mne.MixedSourceEstimate` to HDF5 format (file extension .h5) with :meth:`mne.VolSourceEstimate.save` and :meth:`mne.MixedSourceEstimate.save` by `Alex Gramfort`_
@@ -39,6 +41,8 @@ Changelog
 
 - Add `trig_shift_by_type` parameter in :func:`mne.io.read_raw_brainvision` to allow to specify offsets for arbitrary marker types by `Henrich Kolkhorst`_
 
+- Add progress bar support to :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` by `Eric Larson`_
+
 - Add :func:`mne.head_to_mri` to convert positions from head coordinates to MRI RAS coordinates, by `Joan Massich`_ and `Alex Gramfort`_
 
 - :func:`mne.combine_evoked` and :func:`mne.grand_average` can now handle input with the same channels in different orders, if required, by `Jona Sassenhagen`_
@@ -51,6 +55,8 @@ Bug
 - Fix bug of not showing ERD's in baseline rescaled tfr topomaps if grads are combined by `Erkka Heinila`_
 
 - Fix bug with reading measurement dates from BrainVision files by `Stefan Appelhoff`_
+
+- Fix bug with `mne.fit_dipole` where the residual was returned as ``ndarray`` instead of :class:`mne.Evoked` instance, by `Eric Larson`_
 
 - Fix bug with ``mne flash_bem`` when ``flash30`` is not used by `Eric Larson`_
 
@@ -105,7 +111,11 @@ Bug
 API
 ~~~
 
+- Deprecated ``mne.SourceEstimate.morph_precomputed``, ``mne.SourceEstimate.morph``, ``mne.compute_morph_matrix``, ``mne.morph_data_precomputed`` and ``mne.morph_data`` in favor of :func:`mne.compute_source_morph`, by `Tommy Clausner`_
+
 - Prepare transition to Python 3. This release will be the last release compatible with Python 2. The next version will be Python 3 only.
+
+- CUDA support now relies on CuPy_ instead of ``PyCUDA`` and ``scikits-cuda``. It can be installed using ``conda install cupy``. By `Eric Larson`_
 
 - Functions requiring a color cycle will now default to Matplotlib rcParams colors, by `Stefan Appelhoff`_
 
@@ -481,7 +491,9 @@ Changelog
 
 - Add reduced set of labels for HCPMMP-1.0 parcellation in :func:`mne.datasets.fetch_hcp_mmp_parcellation` by `Eric Larson`_
 
-- Enable morphing between hemispheres with :func:`mne.compute_morph_matrix` by `Christian Brodbeck`_
+- Enable morphing between hemispheres with ``mne.compute_morph_matrix`` by `Christian Brodbeck`_
+
+- Add ``return_residual`` to :func:`mne.minimum_norm.apply_inverse` by `Eric Larson`_
 
 - Add ``return_drop_log`` to :func:`mne.preprocessing.compute_proj_eog` and :func:`mne.preprocessing.compute_proj_ecg` by `Eric Larson`_
 

@@ -1,4 +1,3 @@
-import os
 import os.path as op
 
 import numpy as np
@@ -11,7 +10,7 @@ from mne import (read_dipole, read_forward_solution,
                  transform_surface_to, make_sphere_model, pick_types,
                  pick_info, EvokedArray, read_source_spaces, make_ad_hoc_cov,
                  make_forward_solution, Dipole, DipoleFixed, Epochs,
-                 make_fixed_length_events)
+                 make_fixed_length_events, Evoked)
 from mne.dipole import get_phantom_dipoles
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
@@ -136,11 +135,12 @@ def test_dipole_fitting():
     # Run mne-python version
     sphere = make_sphere_model(head_radius=0.1)
     with pytest.warns(RuntimeWarning, match='projection'):
-        dip, residuals = fit_dipole(evoked, cov, sphere, fname_fwd)
+        dip, residual = fit_dipole(evoked, cov, sphere, fname_fwd)
+    assert isinstance(residual, Evoked)
 
     # Sanity check: do our residuals have less power than orig data?
     data_rms = np.sqrt(np.sum(evoked.data ** 2, axis=0))
-    resi_rms = np.sqrt(np.sum(residuals ** 2, axis=0))
+    resi_rms = np.sqrt(np.sum(residual.data ** 2, axis=0))
     assert (data_rms > resi_rms * 0.95).all(), \
         '%s (factor: %s)' % ((data_rms / resi_rms).min(), 0.95)
 
@@ -169,13 +169,9 @@ def test_dipole_fitting():
                                                      axis=1)))]
         amp_errs += [np.sqrt(np.mean((amp - d.amplitude) ** 2))]
         gofs += [np.mean(d.gof)]
-    if os.getenv('TRAVIS', 'false').lower() == 'true' and \
-            'OPENBLAS_NUM_THREADS' in os.environ:
-        # XXX possibly some OpenBLAS numerical differences make
-        # things slightly worse for us
-        factor = 0.7
-    else:
-        factor = 0.8
+    # XXX possibly some OpenBLAS numerical differences make
+    # things slightly worse for us
+    factor = 0.7
     assert dists[0] / factor >= dists[1], 'dists: %s' % dists
     assert corrs[0] * factor <= corrs[1], 'corrs: %s' % corrs
     assert gc_dists[0] / factor >= gc_dists[1] * 0.8, \
@@ -199,13 +195,15 @@ def test_dipole_fitting_fixed():
     assert_equal(len(evoked_crop.times), 1)
     cov = read_cov(fname_cov)
     dip_seq, resid = fit_dipole(evoked_crop, cov, sphere)
-    assert (isinstance(dip_seq, Dipole))
+    assert isinstance(dip_seq, Dipole)
+    assert isinstance(resid, Evoked)
     assert_equal(len(dip_seq.times), 1)
     pos, ori, gof = dip_seq.pos[0], dip_seq.ori[0], dip_seq.gof[0]
     amp = dip_seq.amplitude[0]
     # Fix position, allow orientation to change
     dip_free, resid_free = fit_dipole(evoked, cov, sphere, pos=pos)
-    assert (isinstance(dip_free, Dipole))
+    assert isinstance(dip_free, Dipole)
+    assert isinstance(resid_free, Evoked)
     assert_allclose(dip_free.times, evoked.times)
     assert_allclose(np.tile(pos[np.newaxis], (len(evoked.times), 1)),
                     dip_free.pos)
@@ -213,7 +211,7 @@ def test_dipole_fitting_fixed():
     assert (np.dot(dip_free.ori, ori).mean() < 0.9)  # but few the same
     assert_allclose(gof, dip_free.gof[t_idx])  # ... same gof
     assert_allclose(amp, dip_free.amplitude[t_idx])  # and same amp
-    assert_allclose(resid, resid_free[:, [t_idx]])
+    assert_allclose(resid.data, resid_free.data[:, [t_idx]])
     # Fix position and orientation
     dip_fixed, resid_fixed = fit_dipole(evoked, cov, sphere, pos=pos, ori=ori)
     assert (isinstance(dip_fixed, DipoleFixed))
@@ -221,7 +219,7 @@ def test_dipole_fitting_fixed():
     assert_allclose(dip_fixed.info['chs'][0]['loc'][:3], pos)
     assert_allclose(dip_fixed.info['chs'][0]['loc'][3:6], ori)
     assert_allclose(dip_fixed.data[1, t_idx], gof)
-    assert_allclose(resid, resid_fixed[:, [t_idx]])
+    assert_allclose(resid.data, resid_fixed.data[:, [t_idx]])
     _check_roundtrip_fixed(dip_fixed)
     # bad resetting
     evoked.info['bads'] = [evoked.ch_names[3]]
@@ -287,6 +285,7 @@ def test_min_distance_fit_dipole():
     bem = read_bem_solution(fname_bem)
     dip, residual = fit_dipole(evoked, cov, bem, fname_trans,
                                min_dist=min_dist)
+    assert isinstance(residual, Evoked)
 
     dist = _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir)
 

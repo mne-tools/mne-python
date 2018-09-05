@@ -227,12 +227,13 @@ brain.add_text(0.1, 0.9, 'Peak coordinate', 'title', font_size=14)
 #
 # The surface's mesh coordinates are stored in ``src[0]['rr']`` and
 # ``src[1]['rr']`` for left and right hemisphere. 3D coordinates can be
-# accessed by the above logic:
+# accessed by the above logic::
 #
 #   >>> lh_coordinates = src[0]['rr'][stc.lh_vertno]
 #   >>> lh_data = stc.lh_data
 #
-# or
+# or::
 #
 #   >>> rh_coordinates = src[1]['rr'][src[1]['vertno']]
 #   >>> rh_data = stc.rh_data
+#

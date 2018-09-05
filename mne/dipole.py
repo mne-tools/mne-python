@@ -673,7 +673,7 @@ def _dipole_gof(uu, sing, vv, B, B2):
     return gof, one
 
 
-def _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig, rd, ori=None):
+def _fit_Q(fwd_data, whitener, B, B2, B_orig, rd, ori=None):
     """Fit the dipole moment once the location is known."""
     if 'fwd' in fwd_data:
         # should be a single precomputed "guess" (i.e., fixed position)
@@ -705,24 +705,18 @@ def _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig, rd, ori=None):
         gof = (one * one)[0] / B2
         Q = ori * (scales[0] * np.sum(one / sing))
         ncomp = 3
-    B_residual = _compute_residual(proj_op, B_orig, fwd_orig, Q)
-    return Q, gof, B_residual, ncomp
-
-
-def _compute_residual(proj_op, B_orig, fwd_orig, Q):
-    """Compute the residual."""
-    # apply the projector to both elements
-    return np.dot(proj_op, B_orig) - np.dot(np.dot(Q, fwd_orig), proj_op.T)
+    B_residual_noproj = B_orig - np.dot(fwd_orig.T, Q)
+    return Q, gof, B_residual_noproj, ncomp
 
 
 def _fit_dipoles(fun, min_dist_to_inner_skull, data, times, guess_rrs,
-                 guess_data, fwd_data, whitener, proj_op, ori, n_jobs, rank):
+                 guess_data, fwd_data, whitener, ori, n_jobs, rank):
     """Fit a single dipole to the given whitened, projected data."""
     from scipy.optimize import fmin_cobyla
     parallel, p_fun, _ = parallel_func(fun, n_jobs)
     # parallel over time points
     res = parallel(p_fun(min_dist_to_inner_skull, B, t, guess_rrs,
-                         guess_data, fwd_data, whitener, proj_op,
+                         guess_data, fwd_data, whitener,
                          fmin_cobyla, ori, rank)
                    for B, t in zip(data.T, times))
     pos = np.array([r[0] for r in res])
@@ -736,9 +730,9 @@ def _fit_dipoles(fun, min_dist_to_inner_skull, data, times, guess_rrs,
         conf = {key: conf[:, ki] for ki, key in enumerate(keys)}
     khi2 = np.array([r[5] for r in res])
     nfree = np.array([r[6] for r in res])
-    residual = np.array([r[7] for r in res]).T
+    residual_noproj = np.array([r[7] for r in res]).T
 
-    return pos, amp, ori, gof, conf, khi2, nfree, residual
+    return pos, amp, ori, gof, conf, khi2, nfree, residual_noproj
 
 
 '''Simplex code in case we ever want/need it for testing
@@ -834,7 +828,7 @@ def _simplex_minimize(p, ftol, stol, fun, max_eval=1000):
 '''
 
 
-def _fit_confidence(rd, Q, ori, whitener, fwd_data, proj):
+def _fit_confidence(rd, Q, ori, whitener, fwd_data):
     # As describedd in the Xfit manual, confidence intervals can be calculated
     # by examining a linearization of model at the best-fitting location,
     # i.e. taking the Jacobian and using the whitener:
@@ -916,8 +910,7 @@ def _sphere_constraint(rd, r0, R_adj):
 
 
 def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
-                guess_data, fwd_data, whitener, proj_op,
-                fmin_cobyla, ori, rank):
+                guess_data, fwd_data, whitener, fmin_cobyla, ori, rank):
     """Fit a single bit of data."""
     B = np.dot(whitener, B_orig)
 
@@ -956,15 +949,15 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
     # rd_final = simplex[0]
 
     # Compute the dipole moment at the final point
-    Q, gof, residual, n_comp = _fit_Q(
-        fwd_data, whitener, proj_op, B, B2, B_orig, rd_final, ori=ori)
+    Q, gof, residual_noproj, n_comp = _fit_Q(
+        fwd_data, whitener, B, B2, B_orig, rd_final, ori=ori)
     khi2 = (1 - gof) * B2
     nfree = rank - n_comp
     amp = np.sqrt(np.dot(Q, Q))
     norm = 1. if amp == 0. else amp
     ori = Q / norm
 
-    conf = _fit_confidence(rd_final, Q, ori, whitener, fwd_data, proj_op)
+    conf = _fit_confidence(rd_final, Q, ori, whitener, fwd_data)
 
     msg = '---- Fitted : %7.1f ms' % (1000. * t)
     if surf is not None:
@@ -974,11 +967,11 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
                 % (dist_to_inner_skull * 1000.))
 
     logger.info(msg)
-    return rd_final, amp, ori, gof, conf, khi2, nfree, residual
+    return rd_final, amp, ori, gof, conf, khi2, nfree, residual_noproj
 
 
 def _fit_dipole_fixed(min_dist_to_inner_skull, B_orig, t, guess_rrs,
-                      guess_data, fwd_data, whitener, proj_op,
+                      guess_data, fwd_data, whitener,
                       fmin_cobyla, ori, rank):
     """Fit a data using a fixed position."""
     B = np.dot(whitener, B_orig)
@@ -987,8 +980,8 @@ def _fit_dipole_fixed(min_dist_to_inner_skull, B_orig, t, guess_rrs,
         warn('Zero field found for time %s' % t)
         return np.zeros(3), 0, np.zeros(3), 0, np.zeros(6)
     # Compute the dipole moment
-    Q, gof, residual = _fit_Q(guess_data, whitener, proj_op, B, B2, B_orig,
-                              rd=None, ori=ori)[:3]
+    Q, gof, residual_noproj = _fit_Q(guess_data, whitener, B, B2, B_orig,
+                                     rd=None, ori=ori)[:3]
     if ori is None:
         amp = np.sqrt(np.dot(Q, Q))
         norm = 1. if amp == 0. else amp
@@ -997,10 +990,10 @@ def _fit_dipole_fixed(min_dist_to_inner_skull, B_orig, t, guess_rrs,
         amp = np.dot(Q, ori)
     rd_final = guess_rrs[0]
     # This will be slow, and we don't use it anyway, so omit it for now:
-    # conf = _fit_confidence(rd_final, Q, ori, whitener, fwd_data, proj_op)
+    # conf = _fit_confidence(rd_final, Q, ori, whitener, fwd_data)
     conf = khi2 = nfree = None
     # No corresponding 'logger' message here because it should go *very* fast
-    return rd_final, amp, ori, gof, conf, khi2, nfree, residual
+    return rd_final, amp, ori, gof, conf, khi2, nfree, residual_noproj
 
 
 @verbose
@@ -1055,9 +1048,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         The dipole fits. A :class:`mne.DipoleFixed` is returned if
         ``pos`` and ``ori`` are both not None, otherwise a
         :class:`mne.Dipole` is returned.
-    residual : ndarray, shape (n_meeg_channels, n_times)
-        The good M-EEG data channels with the fitted dipolar activity
-        removed.
+    residual : instance of Evoked
+        The M-EEG data channels with the fitted dipolar activity removed.
 
     See Also
     --------
@@ -1284,7 +1276,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     fun = _fit_dipole_fixed if fixed_position else _fit_dipole
     out = _fit_dipoles(
         fun, min_dist_to_inner_skull, data, times, guess_src['rr'],
-        guess_data, fwd_data, whitener, proj_op, ori, n_jobs, rank)
+        guess_data, fwd_data, whitener, ori, n_jobs, rank)
     assert len(out) == 8
     if fixed_position and ori is not None:
         # DipoleFixed
@@ -1316,7 +1308,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     else:
         dipoles = Dipole(times, out[0], out[1], out[2], out[3], comment,
                          out[4], out[5], out[6])
-    residual = out[-1]
+    residual = evoked.copy().apply_proj()  # set the projs active
+    residual.data[picks] = np.dot(proj_op, out[-1])
     logger.info('%d time points fitted' % len(dipoles.times))
     return dipoles, residual
 

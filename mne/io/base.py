@@ -1162,8 +1162,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             Only used for ``method='fir'``.
         n_jobs : int | str
-            Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-            is installed properly, CUDA is initialized, and method='fir'.
+            Number of jobs to run in parallel.
+            Can be 'cuda' if ``cupy`` is installed properly and method='fir'.
         method : str
             'fir' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt).
@@ -1256,7 +1256,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @verbose
     def notch_filter(self, freqs, picks=None, filter_length='auto',
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
-                     method='fft', iir_params=None, mt_bandwidth=None,
+                     method='fir', iir_params=None, mt_bandwidth=None,
                      p_value=0.05, phase='zero', fir_window='hamming',
                      fir_design='firwin', pad='reflect_limited', verbose=None):
         """Notch filter a subset of channels.
@@ -1302,8 +1302,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Width of the transition band in Hz.
             Only used for ``method='fir'``.
         n_jobs : int | str
-            Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-            is installed properly, CUDA is initialized, and method='fir'.
+            Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
+            is installed properly and method='fir'.
         method : str
             'fir' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt). 'spectrum_fit' will
@@ -1427,8 +1427,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             triggers. If None, stim channels are automatically chosen using
             :func:`mne.pick_types`.
         n_jobs : int | str
-            Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-            is installed properly and CUDA is initialized.
+            Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
+            is installed properly and method='fir'.
         events : 2D array, shape (n_events, 3) | None
             An optional event matrix. When specified, the onsets of the events
             are resampled jointly with the data. NB: The input events are not

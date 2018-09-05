@@ -1,8 +1,12 @@
 from __future__ import print_function
+
 import os.path as op
+import re
+
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_equal,
-                           assert_allclose, assert_array_equal)
+                           assert_allclose, assert_array_equal,
+                           assert_array_less)
 from scipy import sparse
 
 import pytest
@@ -13,20 +17,22 @@ from mne.datasets import testing
 from mne.label import read_label, label_sign_flip
 from mne.event import read_events
 from mne.epochs import Epochs
-from mne.forward import restrict_forward_to_stc
+from mne.forward import restrict_forward_to_stc, apply_forward
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  pick_types_forward, make_forward_solution, EvokedArray,
                  convert_forward_solution, Covariance, combine_evoked,
-                 SourceEstimate, make_sphere_model, make_ad_hoc_cov)
+                 SourceEstimate, make_sphere_model, make_ad_hoc_cov,
+                 pick_channels_forward)
 from mne.io import read_raw_fif, Info
+from mne.io.proj import make_projector
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
                                       make_inverse_operator,
                                       write_inverse_operator,
                                       compute_rank_inverse,
                                       prepare_inverse_operator)
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import _TempDir, run_tests_if_main, catch_logging
 from mne.externals import six
 
 test_path = testing.data_path(download=False)
@@ -481,6 +487,49 @@ def test_apply_inverse_operator():
 
     # But test that we do not get EEG-related errors on MEG-only inv (gh-4650)
     apply_inverse(evoked, inv_op_meg, 1. / 9.)
+
+
+@testing.requires_testing_data
+def test_inverse_residual():
+    """Test MNE inverse application."""
+    # use fname_inv as it will be faster than fname_full (fewer verts and chs)
+    evoked = _get_evoked().pick_types()
+    inv = read_inverse_operator(fname_inv_fixed_depth)
+    fwd = read_forward_solution(fname_fwd)
+    fwd = convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
+    fwd = pick_channels_forward(fwd, evoked.ch_names)
+    matcher = re.compile('.* ([0-9]?[0-9]?[0-9]?\.[0-9])% variance.*')
+    for method in ('MNE', 'dSPM', 'sLORETA'):
+        with catch_logging() as log:
+            stc, residual = apply_inverse(
+                evoked, inv, method=method, return_residual=True, verbose=True)
+        log = log.getvalue()
+        match = matcher.match(log.replace('\n', ' '))
+        assert match is not None
+        match = float(match.group(1))
+        assert 45 < match < 50
+        if method == 'MNE':  # must be first!
+            recon = apply_forward(fwd, stc, evoked.info)
+            proj_op = make_projector(evoked.info['projs'], evoked.ch_names)[0]
+            recon.data[:] = np.dot(proj_op, recon.data)
+            residual_fwd = evoked.copy()
+            residual_fwd.data -= recon.data
+        corr = np.corrcoef(residual_fwd.data.ravel(),
+                           residual.data.ravel())[0, 1]
+        assert corr > 0.999
+    with catch_logging() as log:
+        _, residual = apply_inverse(
+            evoked, inv, 0., 'MNE', return_residual=True, verbose=True)
+    log = log.getvalue()
+    match = matcher.match(log.replace('\n', ' '))
+    assert match is not None
+    match = float(match.group(1))
+    assert match == 100.
+    assert_array_less(np.abs(residual.data), 1e-15)
+
+    # Degenerate: we don't have the right representation for eLORETA for this
+    with pytest.raises(ValueError, match='eLORETA does not .* support .*'):
+        apply_inverse(evoked, inv, method="eLORETA", return_residual=True)
 
 
 @testing.requires_testing_data

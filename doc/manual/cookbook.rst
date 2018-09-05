@@ -429,6 +429,7 @@ Group analyses
 Group analysis is facilitated by morphing source estimates, which can be
 done *e.g.*, to ``subject='fsaverage'`` as::
 
-    >>> stc_fsaverage = stc.morph('fsaverage')  # doctest: +SKIP
+    >>> morph = mne.compute_source_morph(stc, subject_from='sample', subject_to='fsaverage')  # doctest: +SKIP
+    >>> stc_fsaverage = morph.apply(stc)  # doctest: +SKIP
 
-See :ref:`ch_morph` for more information.
+See :ref:`sphx_glr_auto_tutorials_plot_morph_stc.py` for more information.

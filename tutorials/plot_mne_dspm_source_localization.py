@@ -12,7 +12,7 @@ import mne
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 
-# sphinx_gallery_thumbnail_number = 9
+# sphinx_gallery_thumbnail_number = 10
 
 ###############################################################################
 # Process MEG data
@@ -88,8 +88,9 @@ del fwd
 method = "dSPM"
 snr = 3.
 lambda2 = 1. / snr ** 2
-stc = apply_inverse(evoked, inverse_operator, lambda2,
-                    method=method, pick_ori=None)
+stc, residual = apply_inverse(evoked, inverse_operator, lambda2,
+                              method=method, pick_ori=None,
+                              return_residual=True, verbose=True)
 
 ###############################################################################
 # Visualization
@@ -101,6 +102,17 @@ plt.plot(1e3 * stc.times, stc.data[::100, :].T)
 plt.xlabel('time (ms)')
 plt.ylabel('%s value' % method)
 plt.show()
+
+###############################################################################
+# Examine the original data and the residual after fitting:
+
+fig, axes = plt.subplots(2, 1)
+evoked.plot(axes=axes)
+for ax in axes:
+    ax.texts = []
+    for line in ax.lines:
+        line.set_color('#98df81')
+residual.plot(axes=axes)
 
 ###############################################################################
 # Here we use peak getter to move visualization to the time point of the peak
@@ -123,11 +135,14 @@ brain.add_text(0.1, 0.9, 'dSPM (plus location of maximal activation)', 'title',
 # Morph data to average brain
 # ---------------------------
 
-fs_vertices = [np.arange(10242)] * 2  # fsaverage is special this way
-morph_mat = mne.compute_morph_matrix(
-    'sample', 'fsaverage', stc.vertices, fs_vertices, smooth=None,
+# setup source morph
+morph = mne.compute_source_morph(
+    src=inverse_operator['src'], subject_from=stc.subject,
+    subject_to='fsaverage', spacing=5,  # to ico-5
     subjects_dir=subjects_dir)
-stc_fsaverage = stc.morph_precomputed('fsaverage', fs_vertices, morph_mat)
+# morph data
+stc_fsaverage = morph.apply(stc)
+
 brain = stc_fsaverage.plot(**surfer_kwargs)
 brain.add_text(0.1, 0.9, 'Morphed to fsaverage', 'title', font_size=20)
 del stc_fsaverage

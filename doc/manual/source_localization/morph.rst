@@ -1,4 +1,4 @@
-
+:orphan:
 
 .. _ch_morph:
 
@@ -116,6 +116,7 @@ created to assist mne_analyze and mne_make_movie in
 morphing. Since the morphing maps described above take a while to
 compute, it is beneficial to construct all necessary maps in advance
 before using mne_make_movie .
+
 The precomputed morphing maps are located in ``$SUBJECTS_DIR/morph-maps`` . mne_make_morph_maps creates
 this directory automatically if it does not exist. If this directory
 exists when mne_analyze or mne_make_movie is run

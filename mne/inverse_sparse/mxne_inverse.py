@@ -272,7 +272,8 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
             rh_vertno.append(src[1]['vertno'][idx - n_lh_points])
     vertices = [np.array(lh_vertno).astype(int),
                 np.array(rh_vertno).astype(int)]
-    stc = SourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep)
+    stc = SourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep,
+                         subject=src[0]['subject_his_id'])
     logger.info('[done]')
     return stc
 

@@ -8,5 +8,3 @@
 
    {% block methods %}
    {% endblock %}
-
-

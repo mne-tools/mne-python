@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
@@ -532,7 +533,8 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
     #   Create the diagonal matrix for computing the regularized inverse
     #
     sing = np.array(inv['sing'], dtype=np.float64)
-    inv['reginv'] = sing / (sing ** 2 + lambda2)
+    with np.errstate(invalid='ignore'):  # if lambda2==0
+        inv['reginv'] = np.where(sing > 0, sing / (sing ** 2 + lambda2), 0)
     logger.info('    Created the regularized inverter')
     #
     #   Create the projection operator
@@ -549,31 +551,9 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
     #
     #   Create the whitener
     #
-    if not inv['noise_cov']['diag']:
-        inv['whitener'] = np.zeros((inv['noise_cov']['dim'],
-                                    inv['noise_cov']['dim']))
-        #
-        #   Omit the zeroes due to projection
-        #
-        eig = inv['noise_cov']['eig']
-        nzero = (eig > 0)
-        inv['whitener'][nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
-        #
-        #   Rows of eigvec are the eigenvectors
-        #
-        inv['whitener'] = np.dot(inv['whitener'], inv['noise_cov']['eigvec'])
-        logger.info('    Created the whitener using a full noise '
-                    'covariance matrix (%d small eigenvalues omitted)'
-                    % (inv['noise_cov']['dim'] - np.sum(nzero)))
-    else:
-        #
-        #   No need to omit the zeroes due to projection
-        #
-        inv['whitener'] = np.diag(1.0 /
-                                  np.sqrt(inv['noise_cov']['data'].ravel()))
-        logger.info('    Created the whitener using a diagonal noise '
-                    'covariance matrix (%d small eigenvalues discarded)'
-                    % ncomp)
+
+    inv['whitener'], inv['colorer'], _, _ = _get_whitener(
+        inv['noise_cov'], pca=False, prepared=True)
 
     #
     #   Finally, compute the noise-normalization factors
@@ -812,7 +792,7 @@ def _subject_from_inverse(inverse_operator):
 @verbose
 def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
                   pick_ori=None, prepared=False, label=None,
-                  method_params=None, verbose=None):
+                  method_params=None, return_residual=False, verbose=None):
     """Apply inverse operator to evoked data.
 
     Parameters
@@ -843,6 +823,11 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
         Additional options for eLORETA. See Notes for details.
 
         .. versionadded:: 0.16
+    return_residual : bool
+        If True (default False), return the residual evoked data.
+        Cannot be used with ``method=='eLORETA'``.
+
+        .. versionadded:: 0.17
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -850,7 +835,9 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     Returns
     -------
     stc : SourceEstimate | VectorSourceEstimate | VolSourceEstimate
-        The source estimates
+        The source estimates.
+    residual : instance of Evoked
+        The residual evoked data, only returned if return_residual is True.
 
     See Also
     --------
@@ -912,6 +899,8 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     """
     _check_reference(evoked, inverse_operator['info']['ch_names'])
     _check_method(method)
+    if method == 'eLORETA' and return_residual:
+        raise ValueError('eLORETA does not currently support return_residual')
     _check_ori(pick_ori, inverse_operator['source_ori'])
     #
     #   Set up the inverse according to the parameters
@@ -935,7 +924,22 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     K, noise_norm, vertno, source_nn = _assemble_kernel(inv, label, method,
                                                         pick_ori)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
-
+    logger.info('    Computing residual...')
+    # x̂(t) = G ĵ(t) = C ** 1/2 U Π w(t)
+    # where the diagonal matrix Π has elements πk = λk γk
+    Pi = inv['sing'] * inv['reginv']
+    data_w = np.dot(inv['whitener'],  # C ** -0.5
+                    np.dot(inv['proj'], evoked.data[sel]))
+    w_t = np.dot(inv['eigen_fields']['data'], data_w)  # U.T @ data
+    data_est = np.dot(inv['colorer'],  # C ** 0.5
+                      np.dot(inv['eigen_fields']['data'].T,  # U
+                             Pi[:, np.newaxis] * w_t))
+    data_est_w = np.dot(inv['whitener'], np.dot(inv['proj'], data_est))
+    var_exp = 1 - ((data_est_w - data_w) ** 2).sum() / (data_w ** 2).sum()
+    logger.info('    Explained %5.1f%% variance' % (100 * var_exp,))
+    if return_residual:
+        residual = evoked.copy()
+        residual.data[sel] -= data_est
     is_free_ori = (inverse_operator['source_ori'] ==
                    FIFF.FIFFV_MNE_FREE_ORI and pick_ori != 'normal')
 
@@ -959,7 +963,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
                     src_type=src_type)
     logger.info('[done]')
 
-    return stc
+    return (stc, residual) if return_residual else stc
 
 
 @verbose
@@ -1311,8 +1315,8 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
     n_chan = len(ch_names)
     logger.info("Computing inverse operator with %d channels." % n_chan)
 
-    whitener, noise_cov, n_nzero = _get_whitener(noise_cov, info, ch_names,
-                                                 rank, pca)
+    whitener, _, noise_cov, n_nzero = _get_whitener(
+        noise_cov, info, ch_names, rank, pca)
 
     gain = forward['sol']['data']
 
@@ -1481,8 +1485,10 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     # 4. Load the sensor noise covariance matrix and attach it to the forward
     #
 
+    # For now we always have pca=False. It does not seem to affect calculations
+    # and is also backward-compatible with MNE-C
     gain_info, gain, noise_cov, whitener, n_nzero = \
-        _prepare_forward(forward, info, noise_cov, rank=rank)
+        _prepare_forward(forward, info, noise_cov, pca=False, rank=rank)
     forward['info']._check_consistency()
 
     #
@@ -1511,7 +1517,8 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
                 use_cps=use_cps)
             is_fixed_ori = is_fixed_orient(forward)
             gain_info, gain, noise_cov, whitener, n_nzero = \
-                _prepare_forward(forward, info, noise_cov, verbose=False)
+                _prepare_forward(forward, info, noise_cov, pca=False,
+                                 verbose=False)
 
     logger.info("Computing inverse operator with %d channels."
                 % len(gain_info['ch_names']))
