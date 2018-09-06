@@ -27,7 +27,8 @@ fif_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
 def test_basics():
     """Test annotation class."""
     raw = read_raw_fif(fif_fname)
-    assert raw.annotations is None
+    assert raw.annotations is not None  # XXX to be fixed in #5416
+    assert len(raw.annotations.onset) == 0  # XXX to be fixed in #5416
     pytest.raises(IOError, read_annotations, fif_fname)
     onset = np.array(range(10))
     duration = np.ones(10)
@@ -176,7 +177,8 @@ def test_crop():
     raw.set_annotations(None)
     raw.save(fname, overwrite=True)
     raw_read = read_raw_fif(fname)
-    assert raw_read.annotations is None
+    assert raw_read.annotations is not None  # XXX to be fixed in #5416
+    assert len(raw_read.annotations.onset) == 0  # XXX to be fixed in #5416
 
 
 def test_crop_more():
