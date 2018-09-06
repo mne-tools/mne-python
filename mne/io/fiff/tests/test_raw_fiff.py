@@ -53,7 +53,7 @@ def test_acq_skip():
     assert_equal(len(raw.times), 17000)
     annotations = raw.annotations
     assert_equal(len(annotations), 3)  # there are 3 skips
-    assert_allclose(annotations.onset, [2, 7, 11])
+    assert_allclose(annotations.onset, np.array([2, 7, 11])+12)
     assert_allclose(annotations.duration, [2., 2., 3.])  # inclusive!
     data, times = raw.get_data(
         picks, reject_by_annotation='omit', return_times=True)
