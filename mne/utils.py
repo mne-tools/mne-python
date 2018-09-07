@@ -1802,7 +1802,8 @@ class ProgressBar(object):
         self.cur_time = cur_time
         self.cur_value = cur_value
         self.cur_rate = cur_rate
-        progress = min(float(self.cur_value) / float(self.max_value), 1.)
+        max_value = float(self.max_value) if self.max_value else 1.
+        progress = np.clip(self.cur_value / max_value, 0, 1)
         num_chars = int(progress * self.max_chars)
         num_left = self.max_chars - num_chars
 

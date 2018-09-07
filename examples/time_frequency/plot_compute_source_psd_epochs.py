@@ -25,6 +25,7 @@ fname_raw = data_path + '/MEG/sample/sample_audvis_raw.fif'
 fname_event = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 label_name = 'Aud-lh'
 fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
+subjects_dir = data_path + '/subjects'
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 snr = 1.0  # use smaller SNR for raw data
@@ -80,8 +81,8 @@ stc.data = psd_avg  # overwrite the last epoch's data with the average
 # Visualize the 10 Hz PSD:
 
 brain = stc.plot(initial_time=10., hemi='lh', views='lat',  # 10 HZ
-                 clim=dict(kind='value', lims=(0.5e4, 2e4, 3.5e4)),
-                 smoothing_steps=3)
+                 clim=dict(kind='value', lims=(20, 40, 60)),
+                 smoothing_steps=3, subjects_dir=subjects_dir)
 brain.add_label(label, borders=True, color='k')
 
 ###############################################################################
