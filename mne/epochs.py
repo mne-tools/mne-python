@@ -2877,7 +2877,7 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
             evs[:, 0] += events_offset
         # Update offset for the next iteration.
         # offset is the last epoch + tmax + 10 second
-        events_offset += (np.max(evs[:, 0]) +
+        events_offset += (np.max(epochs.events[:, 0]) +
                           int((10 + tmax) * epochs.info['sfreq']))
         events.append(evs)
         selection = np.concatenate((selection, epochs.selection))
