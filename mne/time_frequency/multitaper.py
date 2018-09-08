@@ -414,7 +414,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
     Parameters
     ----------
-    x : array, shape=(n_signals, n_times)
+    x : array, shape=(..., n_times)
         Input signal
     dpss : array, shape=(n_tapers, n_times)
         The tapers
@@ -426,7 +426,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
     Returns
     -------
-    x_mt : array, shape=(n_signals, n_tapers, n_times)
+    x_mt : array, shape=(..., n_tapers, n_times)
         The tapered spectra
     freqs : array
         The frequency points in Hz of the spectra
@@ -435,7 +435,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
         n_fft = x.shape[1]
 
     # remove mean (do not use in-place subtraction as it may modify input x)
-    x = x - np.mean(x, axis=-1)[:, np.newaxis]
+    x = x - np.mean(x, axis=-1, keepdims=True)
 
     # only keep positive frequencies
     freqs = np.fft.rfftfreq(n_fft, 1. / sfreq)
@@ -443,9 +443,10 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     # The following is equivalent to this, but uses less memory:
     # x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss, n=n_fft)
     n_tapers = dpss.shape[0] if dpss.ndim > 1 else 1
-    x_mt = np.zeros((len(x), n_tapers, len(freqs)), dtype=np.complex128)
+    x_mt = np.zeros(x.shape[:-1] + (n_tapers, len(freqs)),
+                    dtype=np.complex128)
     for idx, sig in enumerate(x):
-        x_mt[idx] = np.fft.rfft(sig[np.newaxis, :] * dpss, n=n_fft)
+        x_mt[idx] = np.fft.rfft(sig[..., np.newaxis, :] * dpss, n=n_fft)
     # Adjust DC and maybe Nyquist, depending on one-sided transform
     x_mt[:, :, 0] /= np.sqrt(2.)
     if x.shape[1] % 2 == 0:

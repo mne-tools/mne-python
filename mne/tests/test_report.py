@@ -224,8 +224,7 @@ def test_render_mri():
         shutil.copyfile(a, b)
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
-    report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*',
-                        n_jobs=2)
+    report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*')
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
     assert repr(report)
 

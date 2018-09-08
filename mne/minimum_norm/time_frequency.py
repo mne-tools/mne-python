@@ -16,7 +16,7 @@ from .inverse import (combine_xyz, prepare_inverse_operator, _assemble_kernel,
                       _pick_channels_inverse_operator, _check_method,
                       _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
-from ..utils import logger, verbose
+from ..utils import logger, verbose, ProgressBar
 from ..externals import six
 
 
@@ -550,8 +550,17 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         n_times, sfreq, bandwidth, low_bias, adaptive, verbose=False)
 
     n_tapers = len(dpss)
-    logger.info('Using %d tapers with bandwidth %0.1fHz'
-                % (n_tapers, bandwidth))
+    try:
+        n_epochs = len(epochs)
+    except RuntimeError:
+        n_epochs = len(epochs.events)
+        extra = 'on at most %d epochs' % (n_epochs,)
+        pb = False
+    else:
+        extra = 'on %d epochs' % (n_epochs,)
+        pb = True
+    logger.info('Using %d tapers with bandwidth %0.1fHz %s'
+                % (n_tapers, bandwidth, extra))
 
     if adaptive:
         parallel, my_psd_from_mt_adaptive, n_jobs = \
@@ -560,8 +569,10 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
 
     subject = _subject_from_inverse(inverse_operator)
-    for k, e in enumerate(epochs):
-        logger.info("Processing epoch : %d" % (k + 1))
+    iter_epochs = ProgressBar(epochs) if pb else epochs
+    for k, e in enumerate(iter_epochs):
+        if not pb:
+            logger.info("    Processing epoch : %d" % (k + 1))
         data = e[sel]
 
         if Vh is not None:
@@ -586,7 +597,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
             x_mt_src = np.empty((K_part.shape[0], x_mt.shape[1],
                                 x_mt.shape[2]), dtype=x_mt.dtype)
 
-            # apply inverse to each taper
+            # apply inverse to each taper (faster than equiv einsum)
             for i in range(n_tapers):
                 x_mt_src[:, i, :] = np.dot(K_part, x_mt[:, i, :])
 

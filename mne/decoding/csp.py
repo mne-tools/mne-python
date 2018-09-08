@@ -185,7 +185,7 @@ class CSP(TransformerMixin, BaseEstimator):
             if self.norm_trace:
                 # Append covariance matrix and weight. Prior to version 0.15,
                 # trace normalization was applied, but was breaking results for
-                # some usecases by chaging the apparent ranking of patterns.
+                # some usecases by changing the apparent ranking of patterns.
                 # Trace normalization of the covariance matrix was removed
                 # without signigificant effect on patterns or performances.
                 # If the user interested in this feature, we suggest trace

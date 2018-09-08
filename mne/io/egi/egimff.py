@@ -435,7 +435,7 @@ class RawMff(BaseRaw):
         # Number of channels to be read from EEG
         n_data1_channels = len(eeg_chans)
 
-        # Number of channels expected in the EEG binay file
+        # Number of channels expected in the EEG binary file
         n_eeg_channels = n_channels
 
         # Get starting/stopping block/samples
