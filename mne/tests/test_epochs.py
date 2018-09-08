@@ -2158,6 +2158,12 @@ def test_concatenate_epochs():
         rel_pos = epochs_list[ii].events[:, 0] - evs[:, 0]
         assert (sum(rel_pos - rel_pos[0]) == 0)
 
+    # test large number of epochs
+    long_epochs_list = [epochs.copy() for ii in range(60)]
+    many_epochs_cat = concatenate_epochs(long_epochs_list)
+    max_expected_sample_index = 60 * 1.2 * np.max(epochs.events[:, 0])
+    assert np.max(many_epochs_cat.events[:, 0]) < max_expected_sample_index
+
 
 def test_add_channels():
     """Test epoch splitting / re-appending channel types."""

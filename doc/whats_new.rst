@@ -108,6 +108,8 @@ Bug
 
 - Fix the use of :func:`sklearn.model_selection.cross_val_predict` with :class:`mne.decoding.SlidingEstimator` by `Alex Gramfort`_
 
+- Fix event sample number increase when combining many Epochs objects with :func:`mne.concatenate_epochs` with  by `Jasper van den Bosch`_
+
 API
 ~~~
 
@@ -2858,3 +2860,5 @@ of commits):
 .. _Steven Gutstein: http://robust.cs.utep.edu/~gutstein
 
 .. _Peter Molfese: https://github.com/pmolfese
+
+.. _Jasper van den Bosch: https://github.com/ilogue
