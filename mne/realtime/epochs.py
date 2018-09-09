@@ -290,7 +290,7 @@ class RtEpochs(BaseEpochs):
             self._started = True
             self._last_time = np.inf  # init delay counter. Will stop iters
 
-    def stop(self, stop_receive_thread=False, stop_measurement=False):
+    def stop(self, stop_receive_thread=True, stop_measurement=False):
         """Stop receiving epochs.
 
         Parameters

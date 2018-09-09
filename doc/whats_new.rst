@@ -112,6 +112,8 @@ Bug
 
 - Fix title of custom slider images to :class:`mne.Report` by `Marijn van Vliet`_
 
+- Fix missing initialization of ``self._current`` in :class:`mne.Epochs` by `Henrich Kolkhorst`_
+
 API
 ~~~
 
@@ -135,6 +137,8 @@ API
 - `src.kind` now equals to `'mixed'` (and not `'combined'`) for a mixed source space (made of surfaces and volume grids) by `Alex Gramfort`_
 
 - Deprecation of :meth:`mne.io.BaseRaw.annotations` property in favor of :meth:`mne.io.BaseRaw.set_annotations` by `Joan Massich`_
+
+- The default value of ``stop_receive_thread`` in :meth:`mne.realtime.RtEpochs.stop` has been changed to ``True`` by `Henrich Kolkhorst`_
 
 .. _changes_0_16:
 

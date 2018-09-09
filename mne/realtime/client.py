@@ -291,8 +291,7 @@ class RtClient(object):
         stop_measurement : bool
             Also stop the measurement.
         """
-        if self._recv_thread is not None:
-            self._recv_thread = None
+        self._recv_thread = None
 
         if stop_measurement:
             self.stop_measurement()
