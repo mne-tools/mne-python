@@ -1219,7 +1219,7 @@ def test_save():
 
     # test abspath support and annotations
     annot = Annotations([10], [5], ['test'],
-                        raw.info['meas_date'] +
+                        raw.info['meas_date'][0] +
                         raw.first_samp / raw.info['sfreq'])
     raw.set_annotations(annot)
     new_fname = op.join(op.abspath(op.curdir), 'break_raw.fif')

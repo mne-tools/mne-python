@@ -65,7 +65,7 @@ def test_basics():
     sfreq = 100.
     info = create_info(ch_names=['MEG1', 'MEG2'], ch_types=['grad'] * 2,
                        sfreq=sfreq)
-    info['meas_date'] = np.pi
+    info['meas_date'] = (np.pi, 0)
     raws = []
     for first_samp in [12300, 100, 12]:
         raw = RawArray(data.copy(), info, first_samp=first_samp)

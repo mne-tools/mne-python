@@ -286,7 +286,7 @@ def test_reject():
         onsets[0] = onsets[0] + tmin - 0.499  # tmin < 0
         onsets[1] = onsets[1] + tmax - 0.001
         first_time = (raw.info['meas_date'][0] + raw.info['meas_date'][1] *
-                      0.000001 + raw.first_samp / sfreq)
+                      1e-6 + raw.first_samp / sfreq)
         for orig_time in [None, first_time]:
             annot = Annotations(onsets, [0.5, 0.5, 0.5], 'BAD', orig_time)
             raw.set_annotations(annot)
@@ -1940,7 +1940,7 @@ def test_add_channels_epochs():
         assert_allclose(data1, data2, atol=1e-25)
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['meas_date'] += 10
+    epochs_meg2.info['meas_date'] = (0, 0)
     add_channels_epochs([epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()

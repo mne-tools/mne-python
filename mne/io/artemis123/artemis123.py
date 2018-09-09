@@ -143,7 +143,7 @@ def _get_artemis123_info(fname, pos_fname=None):
     try:
         date = datetime.datetime.strptime(
             op.basename(fname).split('_')[2], '%Y-%m-%d-%Hh-%Mm')
-        meas_date = calendar.timegm(date.utctimetuple())
+        meas_date = (calendar.timegm(date.utctimetuple()), 0)
     except Exception:
         meas_date = None
 

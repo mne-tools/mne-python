@@ -231,8 +231,7 @@ def test_plot_raw():
 
         plt.close('all')
     # test if meas_date has only one element
-    raw.info['meas_date'] = np.array([raw.info['meas_date'][0]],
-                                     dtype=np.int32)
+    raw.info['meas_date'] = (raw.info['meas_date'][0], 0)
     annot = Annotations([1 + raw.first_samp / raw.info['sfreq']],
                         [5], ['bad'])
     with pytest.warns(RuntimeWarning, match='outside data range'):
