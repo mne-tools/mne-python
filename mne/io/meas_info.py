@@ -410,7 +410,7 @@ class Info(dict):
                 if len(entr) >= 56:
                     entr = _summarize_str(entr)
             elif k == 'meas_date':
-                if k is None:
+                if v is None:
                     entr = 'unspecified'
                 else:
                     # first entry in meas_date is meaningful

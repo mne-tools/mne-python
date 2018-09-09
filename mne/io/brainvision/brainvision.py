@@ -546,7 +546,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             break
 
     else:
-        info['meas_date'] = DATE_NONE
+        info['meas_date'] = None
 
     # load channel labels
     nchan = cfg.getint(cinfostr, 'NumberOfChannels') + 1
