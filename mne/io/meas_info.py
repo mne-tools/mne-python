@@ -146,7 +146,7 @@ class Info(dict):
         Tilt angle of the gantry in degrees.
     lowpass : float | None
         Lowpass corner frequency in Hertz.
-    meas_date : list of int
+    meas_date : tuple of int
         The first element of this list is a UNIX timestamp (seconds since
         1970-01-01 00:00:00) denoting the date and time at which the
         measurement was taken. The second element is the additional number of
@@ -449,6 +449,12 @@ class Info(dict):
         if len(missing) > 0:
             raise RuntimeError('bad channel(s) %s marked do not exist in info'
                                % (missing,))
+        meas_date = self.get('meas_date')
+        if meas_date is not None and (not isinstance(self['meas_date'], tuple)
+                                      or len(self['meas_date']) != 2):
+            raise RuntimeError('info["meas_date"] must be a tuple of length '
+                               '2 or None, got "%r"'
+                               % (repr(self['meas_date']),))
 
         chs = [ch['ch_name'] for ch in self['chs']]
         if len(self['ch_names']) != len(chs) or any(
@@ -943,7 +949,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 highpass = float(tag.data)
         elif kind == FIFF.FIFF_MEAS_DATE:
             tag = read_tag(fid, pos)
-            meas_date = tag.data
+            meas_date = tuple(tag.data)
         elif kind == FIFF.FIFF_COORD_TRANS:
             tag = read_tag(fid, pos)
             cand = tag.data
@@ -1236,7 +1242,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['proj_id'] = proj_id
     info['proj_name'] = proj_name
     if meas_date is None:
-        meas_date = [info['meas_id']['secs'], info['meas_id']['usecs']]
+        meas_date = (info['meas_id']['secs'], info['meas_id']['usecs'])
     if np.array_equal(meas_date, DATE_NONE):
         meas_date = None
     info['meas_date'] = meas_date

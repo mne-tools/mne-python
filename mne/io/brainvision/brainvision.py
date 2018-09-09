@@ -542,7 +542,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             unix_time = (meas_date - epoch).total_seconds()
             unix_secs = int(modf(unix_time)[1])
             microsecs = int(modf(unix_time)[0] * 1e6)
-            info['meas_date'] = [unix_secs, microsecs]
+            info['meas_date'] = (unix_secs, microsecs)
             break
 
     else:
