@@ -104,7 +104,7 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
     date = datetime.datetime(int(date[0]), int(date[1]), int(date[2]),
                              int(time[0]), int(time[1]), int(sec), int(msec))
     info = _empty_info(header_info['sample_freq'])
-    info['meas_date'] = calendar.timegm(date.utctimetuple())
+    info['meas_date'] = (calendar.timegm(date.utctimetuple()), 0)
 
     if ch_type == 'eeg':
         ch_coil = FIFF.FIFFV_COIL_EEG

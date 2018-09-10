@@ -740,7 +740,7 @@ def get_kit_info(rawfile, allow_unknown_format):
 
     # Create raw.info dict for raw fif object with SQD data
     info = _empty_info(float(sqd['sfreq']))
-    info.update(meas_date=create_time, lowpass=sqd['lowpass'],
+    info.update(meas_date=(create_time, 0), lowpass=sqd['lowpass'],
                 highpass=sqd['highpass'], kit_system_id=sysid)
 
     # Creates a list of dicts of meg channels for raw.info

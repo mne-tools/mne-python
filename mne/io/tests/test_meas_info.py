@@ -429,7 +429,8 @@ def test_anonymize():
         for key in ('file_id', 'meas_id'):
             assert inst.info[key]['secs'] != DATE_NONE[0]
             assert inst.info[key]['usecs'] != DATE_NONE[1]
-        assert tuple(inst.info['meas_date']) != DATE_NONE
+        assert isinstance(inst.info['meas_date'], tuple)
+        assert inst.info['meas_date'] != DATE_NONE
         inst.anonymize()
         assert 'subject_info' not in inst.info.keys()
         for key in ('file_id', 'meas_id'):

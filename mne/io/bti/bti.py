@@ -1147,7 +1147,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     if pdf_fname is not None:
         info = _empty_info(sfreq)
         date = bti_info['processes'][0]['timestamp']
-        info['meas_date'] = [date, 0]
+        info['meas_date'] = (date, 0)
     else:  # these cannot be guessed from config, see docstring
         info = _empty_info(1.0)
         info['sfreq'] = None

@@ -18,7 +18,6 @@ from math import modf
 
 import numpy as np
 
-from ..write import DATE_NONE
 from ...utils import verbose, logger, warn
 from ..constants import FIFF
 from ..meas_info import _empty_info
@@ -542,11 +541,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             unix_time = (meas_date - epoch).total_seconds()
             unix_secs = int(modf(unix_time)[1])
             microsecs = int(modf(unix_time)[0] * 1e6)
-            info['meas_date'] = [unix_secs, microsecs]
+            info['meas_date'] = (unix_secs, microsecs)
             break
 
     else:
-        info['meas_date'] = DATE_NONE
+        info['meas_date'] = None
 
     # load channel labels
     nchan = cfg.getint(cinfostr, 'NumberOfChannels') + 1
