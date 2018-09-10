@@ -18,7 +18,6 @@ from math import modf
 
 import numpy as np
 
-from ..write import DATE_NONE
 from ...utils import verbose, logger, warn
 from ..constants import FIFF
 from ..meas_info import _empty_info
