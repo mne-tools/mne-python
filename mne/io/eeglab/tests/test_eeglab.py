@@ -1,5 +1,6 @@
 # Author: Mainak Jas <mainak.jas@telecom-paristech.fr>
 #         Mikolaj Magnuski <mmagnuski@swps.edu.pl>
+#         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -79,6 +80,8 @@ def test_io_set_raw(fnames, tmpdir):
         raw3 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
                                event_id=event_id)
         raw4 = read_raw_eeglab(input_fname=raw_fname, montage=montage)
+        assert raw0.filenames[0].endswith('.fdt')  # .set with additional .fdt
+        assert raw2.filenames[0].endswith('.set')  # standalone .set
         Epochs(raw0, find_events(raw0), event_id)
         epochs = Epochs(raw1, find_events(raw1), event_id)
         assert_equal(len(find_events(raw4)), 0)  # no events without event_id
