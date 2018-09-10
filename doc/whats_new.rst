@@ -110,6 +110,8 @@ Bug
 
 - Fix event sample number increase when combining many Epochs objects with :func:`mne.concatenate_epochs` with  by `Jasper van den Bosch`_
 
+- Fix title of custom slider images to :class:`mne.Report` by `Marijn van Vliet`_
+
 API
 ~~~
 

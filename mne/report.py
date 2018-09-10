@@ -1184,7 +1184,7 @@ class Report(object):
                                             slider_id=slider_id, html=html,
                                             image_html=image_html))
 
-        self.fnames.append('%s-#-%s-#-custom' % (section, sectionvar))
+        self.fnames.append('%s-#-%s-#-custom' % (title, sectionvar))
 
     ###########################################################################
     # HTML rendering
