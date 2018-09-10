@@ -210,7 +210,7 @@ def test_relation_between_raw_meas_date_and_annotations_orig_time_C(
     acquired.
     """
     raw.info['meas_date'] = None
-    with pytest.raises(RuntimeError, match='Ambiguous opearation'):
+    with pytest.raises(RuntimeError, match='Ambiguous operation'):
         raw.set_annotations(annot)
 
 
