@@ -10,11 +10,10 @@ from mne.io.constants import FIFF
 from mne.utils import _fetch_file, requires_good_network
 
 
+# These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
-tag_bads = (299,)  # no proper dtype or units (sss_expansion)
-# XXX -> ask MEGIN folks what it should be
 tag_dups = (3501, 3507)  # in both MEGIN and MNE files
-
+# The tests should also be improved, see several XXX below.
 
 _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'pop', 'popitem', 'setdefault', 'update', 'values')
@@ -77,13 +76,8 @@ def test_constants(tmpdir):
             assert len(line) in (1, 2, 3), line
             desc = '' if len(line) == 1 else line[1]
             line = line[0].split()
-            if int(line[1]) in tag_bads:
-                assert len(line) == 2
-                kind, id_ = line
-                dtype, unit = '-', '-'
-            else:
-                assert len(line) == 4, line
-                kind, id_, dtype, unit = line
+            assert len(line) == 4, line
+            kind, id_, dtype, unit = line
             id_ = int(id_)
             val = [kind, dtype, unit]
             assert id_ not in tags, (tags.get(id_), val)
@@ -137,11 +131,6 @@ def test_constants(tmpdir):
             assert name in ('FIFFC_MAJOR_VERSION', 'FIFFC_MINOR_VERSION',
                             'FIFFC_VERSION')
         elif name.startswith('FIFFB_'):
-            # We put these in the tag section rather than the IOD/block section
-            # -> XXX fix this by moving them to the IOD files in fiff-constants
-            if name in ('FIFFB_MNE_ANNOTATIONS', 'FIFFB_MNE_METADATA'):
-                assert val in tags
-                continue
             assert val in iod, (val, name)
         elif name.startswith('FIFFT_'):
             continue  # XXX add check for this
@@ -153,13 +142,9 @@ def test_constants(tmpdir):
             continue  # XXX add check for this
         elif name.startswith('FWD_'):
             # These are not FIFF constants really
-            # -> XXX remove from FIFF to forward.py namespace?
+            # XXX remove from FIFF to forward.py namespace
             continue
         elif name.startswith('FIFF_'):
-            if name == 'FIFF_MNE_KIT_SYSTEM_ID':
-                # This is missing
-                # -> XXX add this to Tags_MNE
-                continue
             assert val in tags, (name, val)
         else:
             unknowns.append((name, val))
