@@ -3,6 +3,7 @@
 # License: BSD (3-clause)
 
 import os.path as op
+import re
 import shutil
 import zipfile
 
@@ -17,6 +18,42 @@ tag_dups = (3501, 3507)  # in both MEGIN and MNE files
 
 _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'pop', 'popitem', 'setdefault', 'update', 'values')
+
+# XXX These should all probably be added to the FIFF constants
+_missing_names = (
+    'FIFFV_BEM_APPROX_CONST',
+    'FIFFV_BEM_APPROX_LINEAR',
+    'FIFFV_COIL_ARTEMIS123_GRAD',
+    'FIFFV_COIL_ARTEMIS123_REF_GRAD',
+    'FIFFV_COIL_ARTEMIS123_REF_MAG',
+    'FIFFV_COIL_BABY_REF_MAG',
+    'FIFFV_COIL_BABY_REF_MAG2',
+    'FIFFV_COIL_KRISS_GRAD',
+    'FIFFV_COIL_POINT_MAGNETOMETER_X',
+    'FIFFV_COIL_POINT_MAGNETOMETER_Y',
+    'FIFFV_COIL_SAMPLE_TMS_PLANAR',
+    'FIFFV_NEXT_SEQ',
+    'FIFFV_NEXT_NONE',
+    'FIFFV_PROJ_ITEM_DIP_FIX',
+    'FIFFV_PROJ_ITEM_DIP_ROT',
+    'FIFFV_PROJ_ITEM_FIELD',
+    'FIFFV_PROJ_ITEM_HOMOG_FIELD',
+    'FIFFV_PROJ_ITEM_HOMOG_GRAD',
+    'FIFFV_PROJ_ITEM_NONE',
+    'FIFF_UNIT_AM_M2',
+    'FIFF_UNIT_AM_M3',
+    'FIFFV_MNE_COORD_4D_HEAD',
+    'FIFFV_MNE_COORD_CTF_DEVICE',
+    'FIFFV_MNE_COORD_CTF_HEAD',
+    'FIFFV_MNE_COORD_FS_TAL',
+    'FIFFV_MNE_COORD_FS_TAL_GTZ',
+    'FIFFV_MNE_COORD_FS_TAL_LTZ',
+    'FIFFV_MNE_COORD_KIT_HEAD',
+    'FIFFV_MNE_COORD_MNI_TAL',
+    'FIFFV_MNE_COORD_MRI_VOXEL',
+    'FIFFV_MNE_COORD_RAS',
+    'FIFFV_MNE_COORD_TUFTS_EEG',
+)
 
 
 @requires_good_network
@@ -110,6 +147,57 @@ def test_constants(tmpdir):
                 assert id_ not in tags, (tags.get(id_), val)
             tags[id_] = val
 
+    # Types and enums
+    defines = dict()  # maps the other way (name->val)
+    types = dict()
+    used_enums = ('unit', 'unitm', 'coil', 'aspect', 'bem_surf_id',
+                  'ch_type', 'coord', 'mri_pixel', 'point', 'role',
+                  'hand', 'sex',
+                  'mne_cov_ch', 'mne_ori', 'mne_map', 'covariance_type',
+                  'mne_priors', 'mne_space', 'mne_surf')
+    enums = dict((k, dict()) for k in used_enums)
+    in_ = None
+    re_prim = re.compile(r'^primitive\((.*)\)\s*(\S*)\s*"(.*)"$')
+    re_enum = re.compile(r'^enum\((\S*)\)\s*".*"$')
+    re_enum_entry = re.compile(r'\s*(\S*)\s*(\S*)\s*"(.*)"$')
+    re_defi = re.compile(r'#define\s*(\S*)\s*(\S*)\s*"(.*)"$')
+    for extra in ('', '_MNE'):
+        with open(op.join(tmpdir, 'DictionaryTypes%s.txt'
+                          % (extra,)), 'rb') as fid:
+            for li, line in enumerate(fid):
+                line = line.decode('ISO-8859-1').strip()
+                if in_ is None:
+                    p = re_prim.match(line)
+                    e = re_enum.match(line)
+                    d = re_defi.match(line)
+                    if p is not None:
+                        t, s, d = p.groups()
+                        s = int(s)
+                        assert s not in types
+                        types[s] = [t, d]
+                    elif e is not None:
+                        # entering an enum
+                        this_enum = e.group(1)
+                        if this_enum in enums:
+                            in_ = enums[e.group(1)]
+                    elif d is not None:
+                        t, s, d = d.groups()
+                        s = int(s)
+                        defines[t] = [s, d]
+                    else:
+                        assert not line.startswith('enum(')
+                else:  # in an enum
+                    if line == '{':
+                        continue
+                    elif line == '}':
+                        in_ = None
+                        continue
+                    t, s, d = re_enum_entry.match(line).groups()
+                    s = int(s)
+                    if t != 'ecg' and s != 3:  # ecg defined the same way
+                        assert s not in in_
+                    in_[s] = [t, d]
+
     #
     # Assertions
     #
@@ -123,26 +211,46 @@ def test_constants(tmpdir):
     # Assert that all our constants are in the dict
     # (we are not necessarily complete the other way)
     for name in sorted(dir(FIFF)):
-        if name.startswith('_') or name in _dir_ignore_names:
+        if name.startswith('_') or name in _dir_ignore_names or \
+                name in _missing_names:
             continue
         val = getattr(FIFF, name)
-        if name.startswith('FIFFC_'):
+        if name in defines:
+            assert defines[name][0] == val
+        elif name.startswith('FIFFC_'):
             # Checked above
             assert name in ('FIFFC_MAJOR_VERSION', 'FIFFC_MINOR_VERSION',
                             'FIFFC_VERSION')
         elif name.startswith('FIFFB_'):
             assert val in iod, (val, name)
         elif name.startswith('FIFFT_'):
-            continue  # XXX add check for this
+            assert val in types, (val, name)
         elif name.startswith('FIFFV_'):
-            continue  # XXX add check for this
-        elif name.startswith('FIFF_UNIT_'):
-            continue  # XXX add check for this
-        elif name.startswith('FIFF_UNITM_'):  # multipliers
-            continue  # XXX add check for this
+            if name.startswith('FIFFV_MNE_') and name.endswith('_ORI'):
+                this_enum = 'mne_ori'
+            elif name.startswith('FIFFV_MNE_') and name.endswith('_COV'):
+                this_enum = 'covariance_type'
+            elif name.startswith('FIFFV_MNE_COORD'):
+                this_enum = 'coord'  # weird wrapper
+            elif name.endswith('_CH') or '_QUAT_' in name or name in \
+                    ('FIFFV_DIPOLE_WAVE', 'FIFFV_GOODNESS_FIT',
+                     'FIFFV_HPI_ERR', 'FIFFV_HPI_G', 'FIFFV_HPI_MOV'):
+                this_enum = 'ch_type'
+            elif name.startswith('FIFFV_SUBJ_'):
+                this_enum = name.split('_')[2].lower()
+            else:
+                for this_enum in used_enums:
+                    if name.startswith('FIFFV_' + this_enum.upper()):
+                        break
+                else:
+                    raise RuntimeError('Could not find %s' % (name,))
+            assert this_enum in used_enums, name
+            assert val in enums[this_enum], (val, name)
+        elif name.startswith('FIFF_UNIT'):  # units and multipliers
+            this_enum = name.split('_')[1].lower()
+            assert val in enums[this_enum], (name, val)
         elif name.startswith('FWD_'):
-            # These are not FIFF constants really
-            # XXX remove from FIFF to forward.py namespace
+            # XXX remove from FIFF to forward.py namespace at some point?
             continue
         elif name.startswith('FIFF_'):
             assert val in tags, (name, val)
