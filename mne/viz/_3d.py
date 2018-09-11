@@ -1923,19 +1923,21 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     # Plot initial figure
     fig = plt.figure()
 
-    ax_time = fig.add_axes([0.09, 0.1, 0.9, 0.4], ylim=(0, vmax))
+    vmin = -vmax
+    if np.all(stc.data > 0):
+        vmin = 0.
+    ax_time = fig.add_axes([0.09, 0.1, 0.9, 0.4], ylim=(vmin, vmax))
     ax_time.plot(stc.times, stc.data[loc_idx].T)
     lx = ax_time.axvline(stc.times[idx], color='g')
     plt.xlabel('Time (ms)')
     plt.ylabel('Activation')
 
-    ctrl_pts, colormap, _, _ = _limits_to_control_points(
+    ctrl_pts, colormap_auto, _, _ = _limits_to_control_points(
         clim, stc.data, colormap, transparent=True, fmt='matplotlib')
-    center = 0.
     if colormap in ('mne', 'mne_analyze'):
-        cmap = colormap
+        cmap = colormap_auto
     else:
-        cmap = _get_pysurfer_cmap(colormap, ctrl_pts, center)
+        cmap = _get_pysurfer_cmap(colormap_auto, ctrl_pts)
 
     # black_bg = True is needed because of some matplotlib
     # peculiarity. See: https://stackoverflow.com/a/34730204
