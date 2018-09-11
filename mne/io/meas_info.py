@@ -1722,6 +1722,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
     for k in other_fields:
         info[k] = _merge_info_values(infos, k)
 
+    info['meas_date'] = infos[0]['meas_date']  # XXX nasty fix
     info._check_consistency()
     return info
 
