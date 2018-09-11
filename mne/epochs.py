@@ -824,7 +824,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         method : str | callable
             How to combine the data. If "mean", "median" or "std", the mean,
             median or standard deviation are returned.
-            Otherwise, must be a callable which, when passed an array of shape 
+            Otherwise, must be a callable which, when passed an array of shape
             (n_epochs, n_channels, n_time) returns an array of shape
             (n_channels, n_time).
 
@@ -883,14 +883,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if self.preload:
             n_events = len(self.events)
 
-#            modes = {mode: lambda data: getattr(np, mode)(data, axis=0)
-#                     for mode in {"mean", "median", "std"}}
             if mode == "mean":
-                fun = lambda data: np.mean(data, axis=0)
+                def fun(data):
+                    return np.mean(data, axis=0)
             elif mode == "std":
-                fun = lambda data: np.std(data, axis=0)
-#            if mode in modes:
-#                fun = modes[mode]
+                def fun(data):
+                    return np.std(data, axis=0)
             elif callable(mode):
                 fun = mode
             else:
