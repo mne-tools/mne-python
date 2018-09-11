@@ -110,6 +110,8 @@ Bug
 
 - Fix event sample number increase when combining many Epochs objects with :func:`mne.concatenate_epochs` with  by `Jasper van den Bosch`_
 
+- Fix error in mne coreg when saving with scaled MRI if fiducials haven't been saved by `Ezequiel Mikulan`_
+  
 API
 ~~~
 
