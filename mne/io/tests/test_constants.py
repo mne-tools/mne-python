@@ -59,8 +59,8 @@ _missing_names = (
 def test_constants(tmpdir):
     """Test compensation."""
     dest = op.join(tmpdir, 'fiff.zip')
-    _fetch_file('https://api.github.com/repos/mne-tools/fiff-constants'
-                '/zipball/master', dest)
+    _fetch_file('https://codeload.github.com/mne-tools/fiff-constants/zip/'
+                'master', dest)
     names = list()
     with zipfile.ZipFile(dest, 'r') as ff:
         for name in ff.namelist():
