@@ -10,9 +10,10 @@ import os
 from os import path as op
 import numpy as np
 
+from ._compute_forward import _compute_forwards
 from ..io import read_info, _loc_to_coil_trans, _loc_to_eeg_loc, Info
 from ..io.pick import _has_kit_refs, pick_types, pick_info
-from ..io.constants import FIFF
+from ..io.constants import FIFF, FWD
 from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_trans, _print_coord_trans, _coord_frame_name,
                           Transform)
@@ -26,11 +27,10 @@ from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
 from ..externals.six import string_types
 
 from .forward import Forward, _merge_meg_eeg_fwds, convert_forward_solution
-from ._compute_forward import _compute_forwards
 
 
-_accuracy_dict = dict(normal=FIFF.FWD_COIL_ACCURACY_NORMAL,
-                      accurate=FIFF.FWD_COIL_ACCURACY_ACCURATE)
+_accuracy_dict = dict(normal=FWD.COIL_ACCURACY_NORMAL,
+                      accurate=FWD.COIL_ACCURACY_ACCURATE)
 
 
 @verbose
@@ -180,7 +180,7 @@ def _create_eeg_el(ch, t=None):
     # The electrode location
     cosmag = r0ex.copy()
     _normalize_vectors(cosmag)
-    res = dict(chname=ch['ch_name'], coil_class=FIFF.FWD_COILC_EEG, w=w,
+    res = dict(chname=ch['ch_name'], coil_class=FWD.COILC_EEG, w=w,
                accuracy=_accuracy_dict['normal'], type=ch['coil_type'],
                coord_frame=t['to'], rmag=r0ex, cosmag=cosmag)
     return res

@@ -646,27 +646,30 @@ FIFF.FIFFV_MNE_COORD_KIT_HEAD    = FIFF.FIFFV_MNE_COORD_CTF_HEAD
 #
 #   FWD Types
 #
-FIFF.FWD_COIL_UNKNOWN                   = 0
-FIFF.FWD_COILC_UNKNOWN                  = 0
-FIFF.FWD_COILC_EEG                      = 1000
-FIFF.FWD_COILC_MAG                      = 1
-FIFF.FWD_COILC_AXIAL_GRAD               = 2
-FIFF.FWD_COILC_PLANAR_GRAD              = 3
-FIFF.FWD_COILC_AXIAL_GRAD2              = 4
 
-FIFF.FWD_COIL_ACCURACY_POINT            = 0
-FIFF.FWD_COIL_ACCURACY_NORMAL           = 1
-FIFF.FWD_COIL_ACCURACY_ACCURATE         = 2
+FWD = BunchConst()
 
-FIFF.FWD_BEM_UNKNOWN                    = -1
-FIFF.FWD_BEM_CONSTANT_COLL              = 1
-FIFF.FWD_BEM_LINEAR_COLL                = 2
+FWD.COIL_UNKNOWN                 = 0
+FWD.COILC_UNKNOWN                = 0
+FWD.COILC_EEG                    = 1000
+FWD.COILC_MAG                    = 1
+FWD.COILC_AXIAL_GRAD             = 2
+FWD.COILC_PLANAR_GRAD            = 3
+FWD.COILC_AXIAL_GRAD2            = 4
 
-FIFF.FWD_BEM_IP_APPROACH_LIMIT          = 0.1
+FWD.COIL_ACCURACY_POINT          = 0
+FWD.COIL_ACCURACY_NORMAL         = 1
+FWD.COIL_ACCURACY_ACCURATE       = 2
 
-FIFF.FWD_BEM_LIN_FIELD_SIMPLE           = 1
-FIFF.FWD_BEM_LIN_FIELD_FERGUSON         = 2
-FIFF.FWD_BEM_LIN_FIELD_URANKAR          = 3
+FWD.BEM_UNKNOWN                  = -1
+FWD.BEM_CONSTANT_COLL            = 1
+FWD.BEM_LINEAR_COLL              = 2
+
+FWD.BEM_IP_APPROACH_LIMIT        = 0.1
+
+FWD.BEM_LIN_FIELD_SIMPLE         = 1
+FWD.BEM_LIN_FIELD_FERGUSON       = 2
+FWD.BEM_LIN_FIELD_URANKAR        = 3
 
 #
 #   Data types

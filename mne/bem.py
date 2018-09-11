@@ -15,8 +15,7 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg
 
-from .transforms import _ensure_trans, apply_trans
-from .io.constants import FIFF
+from .io.constants import FIFF, FWD
 from .io.write import (start_file, start_block, write_float, write_int,
                        write_float_matrix, write_int_matrix, end_block,
                        end_file)
@@ -26,6 +25,7 @@ from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
                       _fast_cross_nd_sum, _get_solids)
+from .transforms import _ensure_trans, apply_trans
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type)
 from .fixes import einsum
@@ -267,7 +267,7 @@ def _fwd_bem_linear_collocation_solution(m):
     m['solution'] = _fwd_bem_multi_solution(coeff, m['gamma'], nps)
     if len(m['surfs']) == 3:
         ip_mult = m['sigma'][1] / m['sigma'][2]
-        if ip_mult <= FIFF.FWD_BEM_IP_APPROACH_LIMIT:
+        if ip_mult <= FWD.BEM_IP_APPROACH_LIMIT:
             logger.info('IP approach required...')
             logger.info('    Matrix coefficients (homog)...')
             coeff = _fwd_bem_lin_pot_coeff([m['surfs'][-1]])
@@ -278,7 +278,7 @@ def _fwd_bem_linear_collocation_solution(m):
                         'IP approach...')
             _fwd_bem_ip_modify_solution(m['solution'], ip_solution, ip_mult,
                                         nps)
-    m['bem_method'] = FIFF.FWD_BEM_LINEAR_COLL
+    m['bem_method'] = FWD.BEM_LINEAR_COLL
     logger.info("Solution ready.")
 
 
@@ -1521,7 +1521,7 @@ def write_bem_solution(fname, bem):
         _write_bem_surfaces_block(fid, bem['surfs'])
         # The potential solution
         if 'solution' in bem:
-            if bem['bem_method'] != FIFF.FWD_BEM_LINEAR_COLL:
+            if bem['bem_method'] != FWD.BEM_LINEAR_COLL:
                 raise RuntimeError('Only linear collocation supported')
             write_int(fid, FIFF.FIFF_BEM_APPROX, FIFF.FIFFV_BEM_APPROX_LINEAR)
             write_float_matrix(fid, FIFF.FIFF_BEM_POT_SOLUTION,

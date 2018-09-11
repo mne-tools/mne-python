@@ -14,7 +14,6 @@ from mne.utils import _fetch_file, requires_good_network
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
 tag_dups = (3501, 3507)  # in both MEGIN and MNE files
-# The tests should also be improved, see several XXX below.
 
 _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'pop', 'popitem', 'setdefault', 'update', 'values')
@@ -249,9 +248,6 @@ def test_constants(tmpdir):
         elif name.startswith('FIFF_UNIT'):  # units and multipliers
             this_enum = name.split('_')[1].lower()
             assert val in enums[this_enum], (name, val)
-        elif name.startswith('FWD_'):
-            # XXX remove from FIFF to forward.py namespace at some point?
-            continue
         elif name.startswith('FIFF_'):
             assert val in tags, (name, val)
         else:
