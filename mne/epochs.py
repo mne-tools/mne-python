@@ -933,10 +933,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             kind = 'standard_error'
             data /= np.sqrt(n_events)
         else:
-            if isinstance(mode, string_types):
-                kind = mode
-            else:
-                kind = "custom"
+            kind = "average"
 
         return self._evoked_from_epoch_data(data, self.info, picks, n_events,
                                             kind, self._name)
