@@ -1047,15 +1047,17 @@ MNE-Report
 
 .. currentmodule:: mne
 
-.. automodule:: mne
-   :no-members:
-   :no-inherited-members:
-
 .. autosummary::
    :toctree: generated/
    :template: class.rst
 
    Report
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+    open_report
 
 
 Logging and Configuration
