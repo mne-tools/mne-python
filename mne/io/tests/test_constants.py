@@ -20,8 +20,8 @@ _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
 
 # XXX These should all probably be added to the FIFF constants
 _missing_names = (
-    'FIFFV_BEM_APPROX_CONST',
-    'FIFFV_BEM_APPROX_LINEAR',
+    'FIFFV_NEXT_SEQ',
+    'FIFFV_NEXT_NONE',
     'FIFFV_COIL_ARTEMIS123_GRAD',
     'FIFFV_COIL_ARTEMIS123_REF_GRAD',
     'FIFFV_COIL_ARTEMIS123_REF_MAG',
@@ -31,14 +31,6 @@ _missing_names = (
     'FIFFV_COIL_POINT_MAGNETOMETER_X',
     'FIFFV_COIL_POINT_MAGNETOMETER_Y',
     'FIFFV_COIL_SAMPLE_TMS_PLANAR',
-    'FIFFV_NEXT_SEQ',
-    'FIFFV_NEXT_NONE',
-    'FIFFV_PROJ_ITEM_DIP_FIX',
-    'FIFFV_PROJ_ITEM_DIP_ROT',
-    'FIFFV_PROJ_ITEM_FIELD',
-    'FIFFV_PROJ_ITEM_HOMOG_FIELD',
-    'FIFFV_PROJ_ITEM_HOMOG_GRAD',
-    'FIFFV_PROJ_ITEM_NONE',
     'FIFF_UNIT_AM_M2',
     'FIFF_UNIT_AM_M3',
     'FIFFV_MNE_COORD_4D_HEAD',
@@ -151,7 +143,7 @@ def test_constants(tmpdir):
     types = dict()
     used_enums = ('unit', 'unitm', 'coil', 'aspect', 'bem_surf_id',
                   'ch_type', 'coord', 'mri_pixel', 'point', 'role',
-                  'hand', 'sex',
+                  'hand', 'sex', 'proj_item', 'bem_approx',
                   'mne_cov_ch', 'mne_ori', 'mne_map', 'covariance_type',
                   'mne_priors', 'mne_space', 'mne_surf')
     enums = dict((k, dict()) for k in used_enums)

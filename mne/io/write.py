@@ -116,7 +116,7 @@ def write_julian(fid, kind, data):
 
 def write_string(fid, kind, data):
     """Write a string tag."""
-    str_data = data.encode('utf-8')  # Use unicode or bytes depending on Py2/3
+    str_data = data.encode('ISO 8859-1')
     data_size = len(str_data)  # therefore compute size here
     my_dtype = '>a'  # py2/3 compatible on writing -- don't ask me why
     if data_size > 0:

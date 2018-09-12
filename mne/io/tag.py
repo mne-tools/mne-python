@@ -341,9 +341,9 @@ def _read_simple(fid, tag, shape, rlims, dtype):
 
 def _read_string(fid, tag, shape, rlims):
     """Read a string tag."""
-    # Always decode to unicode.
+    # Always decode to ISO 8859-1 (FIFF standard).
     d = _frombuffer_rows(fid, tag.size, dtype='>c', shape=shape, rlims=rlims)
-    return text_type(d.tostring().decode('utf-8', 'ignore'))
+    return text_type(d.tostring().decode('ISO 8859-1', 'ignore'))
 
 
 def _read_complex_float(fid, tag, shape, rlims):
