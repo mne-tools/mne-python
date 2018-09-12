@@ -228,23 +228,6 @@ def test_read_write_info():
     assert m1 == m2
 
 
-# @pytest.mark.skip(reason="XXX TODO this is a regression to investigate")
-def test_anonymization_annotation_regression():
-    # Fake some subject data
-    raw = read_raw_fif(raw_fname)
-    expected_onset = [0, 1]
-    raw.set_annotations(Annotations(onset=expected_onset,
-                                    duration=[1, 1],
-                                    description='dummy',
-                                    orig_time=None))
-    raw.info['subject_info'] = dict(id=1, his_id='foobar', last_name='bar',
-                                    first_name='bar', birthday=(1987, 4, 8),
-                                    sex=0, hand=1)
-
-    raw.anonymize()
-    assert_allclose(raw.annotations.onset, expected_onset)
-
-
 def test_io_dig_points():
     """Test Writing for dig files."""
     tempdir = _TempDir()
