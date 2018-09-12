@@ -197,7 +197,7 @@ def test_lcmv():
             # Test picking normal orientation (surface source space only)
             filters = make_lcmv(evoked.info, forward_surf_ori, data_cov,
                                 reg=0.01, noise_cov=noise_cov,
-                                pick_ori='normal')
+                                pick_ori='normal', weight_norm=None)
             stc_normal = apply_lcmv(evoked, filters, max_ori_out='signed')
             stc_normal.crop(0.02, None)
 
@@ -206,8 +206,8 @@ def test_lcmv():
             max_stc = stc_normal.data[idx]
             tmax = stc_normal.times[np.argmax(max_stc)]
 
-            assert 0.04 < tmax < 0.12, tmax
-            assert 0.4 < np.max(max_stc) < 2., np.max(max_stc)
+            assert 0.04 < tmax < 0.13, tmax
+            assert 3e-7 < np.max(max_stc) < 5e-7, np.max(max_stc)
 
             # The amplitude of normal orientation results should always be
             # smaller than free orientation results
