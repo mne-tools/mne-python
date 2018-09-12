@@ -71,7 +71,7 @@ def test_constants(tmpdir):
     for name in ['DictionaryIOD.txt', 'DictionaryIOD_MNE.txt']:
         with open(op.join(tmpdir, name), 'rb') as fid:
             for line in fid:
-                line = line.decode('ISO-8859-1').strip()
+                line = line.decode('latin1').strip()
                 if line.startswith('# Packing revision'):
                     assert fiff_version is None
                     fiff_version = line.split()[-1]
