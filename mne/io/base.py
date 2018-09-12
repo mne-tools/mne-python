@@ -303,6 +303,85 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         * _read_segment_file(self, data, idx, fi, start, stop, cals, mult)
           (only needed for types that support on-demand disk reads)
 
+    When setting annotations to any of the subclasses the following alignments
+    between ``self.info['meas_date']`` and ``annotation.orig_time`` take place:
+
+    ::
+        ----------- meas_date=XX, orig_time=YY -----------------------------
+
+             |              +------------------+
+             |______________|     RAW          |
+             |              |                  |
+             |              +------------------+
+         meas_date      first_samp
+             .
+             .         |         +------+
+             .         |_________| ANOT |
+             .         |         |      |
+             .         |         +------+
+             .     orig_time   onset[0]
+             .
+             |                   +------+
+             |___________________|      |
+             |                   |      |
+             |                   +------+
+         orig_time            onset[0]'
+
+        ----------- meas_date=XX, orig_time=None ---------------------------
+
+             |              +------------------+
+             |______________|     RAW          |
+             |              |                  |
+             |              +------------------+
+             .              N         +------+
+             .              o_________| ANOT |
+             .              n         |      |
+             .              e         +------+
+             .
+             |                        +------+
+             |________________________|      |
+             |                        |      |
+             |                        +------+
+         orig_time                 onset[0]'
+
+        ----------- meas_date=None, orig_time=YY ---------------------------
+
+             N              +------------------+
+             o______________|     RAW          |
+             n              |                  |
+             e              +------------------+
+                       |         +------+
+                       |_________| ANOT |
+                       |         |      |
+                       |         +------+
+
+
+                    [[[ CRASH ]]]
+
+        ----------- meas_date=None, orig_time=None -------------------------
+
+             N              +------------------+
+             o______________|     RAW          |
+             n              |                  |
+             e              +------------------+
+             .              N         +------+
+             .              o_________| ANOT |
+             .              n         |      |
+             .              e         +------+
+             .
+             N                        +------+
+             o________________________|      |
+             n                        |      |
+             e                        +------+
+         orig_time                 onset[0]'
+
+    ::
+
+    Notice that the resulting annotation object is stored in
+    ``self.annotations``
+
+        .. versionadded:: 0.17
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
@@ -676,74 +755,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Setter for annotations.
 
         This setter checks if they are inside the data range.
-
-        ----------- meas_date=XX, orig_time=YY -----------------------------
-
-             |              +------------------+
-             |______________|     RAW          |
-             |              |                  |
-             |              +------------------+
-         meas_date      first_samp
-             .
-             .         |         +------+
-             .         |_________| ANOT |
-             .         |         |      |
-             .         |         +------+
-             .     orig_time   onset[0]
-             .
-             |                   +------+
-             |___________________|      |
-             |                   |      |
-             |                   +------+
-         orig_time            onset[0]'
-
-        ----------- meas_date=XX, orig_time=None ---------------------------
-
-             |              +------------------+
-             |______________|     RAW          |
-             |              |                  |
-             |              +------------------+
-             .              N         +------+
-             .              o_________| ANOT |
-             .              n         |      |
-             .              e         +------+
-             .
-             |                        +------+
-             |________________________|      |
-             |                        |      |
-             |                        +------+
-         orig_time                 onset[0]'
-
-        ----------- meas_date=None, orig_time=YY ---------------------------
-
-             N              +------------------+
-             o______________|     RAW          |
-             n              |                  |
-             e              +------------------+
-                       |         +------+
-                       |_________| ANOT |
-                       |         |      |
-                       |         +------+
-
-
-                    [[[ CRASH ]]]
-
-        ----------- meas_date=None, orig_time=None -------------------------
-
-             N              +------------------+
-             o______________|     RAW          |
-             n              |                  |
-             e              +------------------+
-             .              N         +------+
-             .              o_________| ANOT |
-             .              n         |      |
-             .              e         +------+
-             .
-             N                        +------+
-             o________________________|      |
-             n                        |      |
-             e                        +------+
-         orig_time                 onset[0]'
 
         Parameters
         ----------
