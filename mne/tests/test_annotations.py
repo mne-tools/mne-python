@@ -377,6 +377,11 @@ def test_annotation_epoching():
     data = np.ones((1, 1000))
     info = create_info(1, 1000., 'eeg')
     raw = concatenate_raws([RawArray(data, info) for ii in range(3)])
+    assert raw.annotations is not None
+    assert len(raw.annotations) == 4
+    assert np.in1d(raw.annotations.description, ['BAD boundary']).sum() == 2
+    assert np.in1d(raw.annotations.description, ['EDGE boundary']).sum() == 2
+    assert_array_equal(raw.annotations.duration, 0.)
     events = np.array([[a, 0, 1] for a in [0, 500, 1000, 1500, 2000]])
     epochs = Epochs(raw, events, tmin=0, tmax=0.999, baseline=None,
                     preload=True)  # 1000 samples long
@@ -461,5 +466,6 @@ def test_annotations_crop():
         a.copy().crop(tmin=42, tmax=100, emit_warning=True)
     with pytest.warns(RuntimeWarning, match='Limited .* expanding outside'):
         a.copy().crop(tmin=0, tmax=12, emit_warning=True)
+
 
 run_tests_if_main()
