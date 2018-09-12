@@ -410,10 +410,10 @@ def test_check_consistency():
 
 def test_anonymize():
     """Test that sensitive information can be anonymized."""
+    def _is_anonymous(inst):
+        """Check all the anonymity fields.
 
-    def _is_anonymous(xx):
-        """This function checks all the anonymity files.
-        xx is either a raw or epochs object.
+        inst is either a raw or epochs object.
         """
         from collections import namedtuple
         anonymity_checks = namedtuple("anonymity_checks",
@@ -425,27 +425,27 @@ def test_anonymize():
                                        "anonymous_meas_date",
                                        "anonymous_annotations"])
 
-        if 'subject_info' not in xx.info.keys():
+        if 'subject_info' not in inst.info.keys():
             missing_subject_info = True
         else:
-            missing_subject_info = xx.info['subject_info'] is None
+            missing_subject_info = inst.info['subject_info'] is None
 
-        anonymous_file_id_secs = xx.info['file_id']['secs'] == DATE_NONE[0]
-        anonymous_file_id_usecs = xx.info['file_id']['usecs'] == DATE_NONE[1]
-        anonymous_meas_id_secs = xx.info['meas_id']['secs'] == DATE_NONE[0]
-        anonymous_meas_id_usecs = xx.info['meas_id']['usecs'] == DATE_NONE[1]
-        if xx.info['meas_date'] is None:
+        anonymous_file_id_secs = inst.info['file_id']['secs'] == DATE_NONE[0]
+        anonymous_file_id_usecs = inst.info['file_id']['usecs'] == DATE_NONE[1]
+        anonymous_meas_id_secs = inst.info['meas_id']['secs'] == DATE_NONE[0]
+        anonymous_meas_id_usecs = inst.info['meas_id']['usecs'] == DATE_NONE[1]
+        if inst.info['meas_date'] is None:
             anonymous_meas_date = True
         else:
-            assert isinstance(xx.info['meas_date'], tuple)
-            anonymous_meas_date = xx.info['meas_date'] == DATE_NONE
-        if not hasattr(xx, 'annotations'):
+            assert isinstance(inst.info['meas_date'], tuple)
+            anonymous_meas_date = inst.info['meas_date'] == DATE_NONE
+        if not hasattr(inst, 'annotations'):
             anonymous_annotations = True
         else:
-            if xx.annotations is None:
+            if inst.annotations is None:
                 anonymous_annotations = True
             else:
-                anonymous_annotations = xx.annotations.orig_time is None
+                anonymous_annotations = inst.annotations.orig_time is None
 
         return anonymity_checks(missing_subject_info,
                                 anonymous_file_id_secs,
