@@ -403,7 +403,7 @@ def _compute_beamformer(method, G, Cm, reg, n_orient, weight_norm,
 
                 elif weight_norm == 'unit-noise-gain':
                     noise_norm = np.sum(Wk ** 2, axis=1, keepdims=True)
-                    if is_free_ori and pick_ori in [None, 'vector']: 
+                    if is_free_ori and pick_ori in [None, 'vector']:
                         # Only do this when we don't select a single
                         # orientation later. We need to enforce:
                         # W @ I @ W.T == I
