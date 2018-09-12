@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #         Denis Engemann <denis.engemann@gmail.com>
 #
@@ -513,16 +514,16 @@ def test_io_raw():
     rng = np.random.RandomState(0)
     tempdir = _TempDir()
     # test unicode io
-    for chars in [b'\xc3\xa4\xc3\xb6\xc3\xa9', b'a']:
+    for chars in [u'äöé', 'a']:
         with read_raw_fif(fif_fname) as r:
             assert ('Raw' in repr(r))
             assert (op.basename(fif_fname) in repr(r))
-            desc1 = r.info['description'] = chars.decode('utf-8')
+            r.info['description'] = chars
             temp_file = op.join(tempdir, 'raw.fif')
             r.save(temp_file, overwrite=True)
             with read_raw_fif(temp_file) as r2:
                 desc2 = r2.info['description']
-            assert_equal(desc1, desc2)
+            assert desc2 == chars
 
     # Let's construct a simple test for IO first
     raw = read_raw_fif(fif_fname).crop(0, 3.5)
