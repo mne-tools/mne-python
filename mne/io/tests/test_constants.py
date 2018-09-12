@@ -50,7 +50,7 @@ _missing_names = (
 @requires_good_network
 def test_constants(tmpdir):
     """Test compensation."""
-    dest = op.join(tmpdir, 'fiff.zip')
+    dest = tmpdir.join('fiff.zip')
     _fetch_file('https://codeload.github.com/mne-tools/fiff-constants/zip/'
                 'master', dest)
     names = list()
@@ -59,7 +59,7 @@ def test_constants(tmpdir):
             if 'Dictionary' in name:
                 ff.extract(name, tmpdir)
                 names.append(op.basename(name))
-                shutil.move(op.join(tmpdir, name), op.join(tmpdir, names[-1]))
+                shutil.move(tmpdir.join(name), tmpdir.join(names[-1]))
     names = sorted(names)
     assert names == ['DictionaryIOD.txt', 'DictionaryIOD_MNE.txt',
                      'DictionaryStructures.txt',
@@ -69,7 +69,7 @@ def test_constants(tmpdir):
     iod = dict()
     fiff_version = None
     for name in ['DictionaryIOD.txt', 'DictionaryIOD_MNE.txt']:
-        with open(op.join(tmpdir, name), 'rb') as fid:
+        with open(tmpdir.join(name), 'rb') as fid:
             for line in fid:
                 line = line.decode('latin1').strip()
                 if line.startswith('# Packing revision'):
@@ -94,7 +94,7 @@ def test_constants(tmpdir):
                 iod[id_] = [kind, desc]
     # Tags (MEGIN)
     tags = dict()
-    with open(op.join(tmpdir, 'DictionaryTags.txt'), 'rb') as fid:
+    with open(tmpdir.join('DictionaryTags.txt'), 'rb') as fid:
         for line in fid:
             line = line.decode('ISO-8859-1').strip()
             if (line.startswith('#') or line.startswith('alias') or
@@ -111,7 +111,7 @@ def test_constants(tmpdir):
             assert id_ not in tags, (tags.get(id_), val)
             tags[id_] = val
     # Tags (MNE)
-    with open(op.join(tmpdir, 'DictionaryTags_MNE.txt'), 'rb') as fid:
+    with open(tmpdir.join('DictionaryTags_MNE.txt'), 'rb') as fid:
         for li, line in enumerate(fid):
             line = line.decode('ISO-8859-1').strip()
             # ignore continuation lines (*)
@@ -153,8 +153,8 @@ def test_constants(tmpdir):
     re_enum_entry = re.compile(r'\s*(\S*)\s*(\S*)\s*"(.*)"$')
     re_defi = re.compile(r'#define\s*(\S*)\s*(\S*)\s*"(.*)"$')
     for extra in ('', '_MNE'):
-        with open(op.join(tmpdir, 'DictionaryTypes%s.txt'
-                          % (extra,)), 'rb') as fid:
+        with open(tmpdir.join(
+                'DictionaryTypes%s.txt' % (extra,)), 'rb') as fid:
             for li, line in enumerate(fid):
                 line = line.decode('ISO-8859-1').strip()
                 if in_ is None:
