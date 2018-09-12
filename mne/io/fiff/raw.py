@@ -118,9 +118,9 @@ class Raw(BaseRaw):
 
         # Add annotations for in-data skips
         for extra in self._raw_extras:
-            start = np.array([_['first'] for _ in extra if _['ent'] is None])
-            stop = np.array([_['last'] for _ in extra if _['ent'] is None])
-            duration = (stop - start + 1) / self.info['sfreq']
+            start = np.array([e['first'] for e in extra if e['ent'] is None])
+            stop = np.array([e['last'] for e in extra if e['ent'] is None])
+            duration = (stop - start + 1.) / self.info['sfreq']
 
             annot = Annotations(onset=(start / self.info['sfreq']),
                                 duration=duration,

@@ -228,7 +228,7 @@ def test_read_write_info():
     assert m1 == m2
 
 
-@pytest.mark.skip(reason="XXX TODO this is a regression to investigate")
+# @pytest.mark.skip(reason="XXX TODO this is a regression to investigate")
 def test_anonymization_annotation_regression():
     # Fake some subject data
     raw = read_raw_fif(raw_fname)

@@ -795,9 +795,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 # maybe orig_time should have a setter
                 # new_annotations.orig_time = xxxxx # resets onset based on x
                 # new_annotations._update_orig(xxxx)
-                xx = new_annotations.orig_time
+                orig_time = new_annotations.orig_time
                 new_annotations.orig_time = meas_date
-                new_annotations.onset -= (meas_date - xx)
+                new_annotations.onset -= (meas_date - orig_time)
 
             self._annotations = new_annotations
 

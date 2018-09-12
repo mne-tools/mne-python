@@ -88,7 +88,11 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
     assert_equal(concat_raw.last_samp - last_samp + first_samp, last_samp + 1)
     idx = np.where(concat_raw.annotations.description == 'BAD boundary')[0]
 
-    expected_bad_boundary_onset = last_samp / raw.info['sfreq'] if concat_raw.info['meas_date'] is not None else (last_samp - first_samp) / raw.info['sfreq']
+    if concat_raw.info['meas_date'] is None:
+        expected_bad_boundary_onset = ((last_samp - first_samp) /
+                                       raw.info['sfreq'])
+    else:
+        expected_bad_boundary_onset = last_samp / raw.info['sfreq']
 
     assert_array_almost_equal(concat_raw.annotations.onset[idx],
                               expected_bad_boundary_onset,
