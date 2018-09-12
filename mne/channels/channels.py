@@ -581,8 +581,6 @@ class SetChannelsMixin(object):
         .. versionadded:: 0.13.0
         """
         anonymize_info(self.info)
-        # XXX This should not be here, but I don't know where to put it
-        # right now
         if hasattr(self, 'annotations'):
             if self.annotations is None:
                 pass

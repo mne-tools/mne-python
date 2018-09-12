@@ -1716,7 +1716,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
                     'comps', 'custom_ref_applied', 'description',
                     'experimenter', 'file_id', 'highpass',
                     'hpi_subsystem', 'events',
-                    'line_freq', 'lowpass', 'meas_date', 'meas_id',
+                    'line_freq', 'lowpass', 'meas_id',
                     'proj_id', 'proj_name', 'projs', 'sfreq', 'gantry_angle',
                     'subject_info', 'sfreq', 'xplotter_layout', 'proc_history']
     for k in other_fields:
