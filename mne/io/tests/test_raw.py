@@ -7,7 +7,7 @@ import numpy as np
 from numpy.testing import (assert_allclose, assert_array_almost_equal,
                            assert_equal, assert_array_equal)
 
-from mne import concatenate_raws, create_info
+from mne import concatenate_raws, create_info, Annotations
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray
 from mne.utils import _TempDir
@@ -163,57 +163,40 @@ def test_annotation_property_deprecation_warning():
         raw.annotations = None
 
 
+def _raw_annot(meas_date, orig_time):
+    info = create_info(ch_names=10, sfreq=10.)
+    raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
+    raw.info['meas_date'] = meas_date
+    raw.set_annotations(Annotations([.5], [.2], ['dummy'], orig_time))
+    return raw
+
+
 def test_meas_date_orig_time():
     """Test the relation between meas_time in orig_time."""
-    def _raw(meas_date=1):
-        info = create_info(ch_names=10, sfreq=10.)
-        raw = RawArray(data=np.random.RandomState(0).randn(10, 10),
-                       info=info, first_samp=10)
-        raw.info['meas_date'] = meas_date
-        return raw
-
-    def _annotation(orig_time=1.5):
-        from mne import Annotations
-        return Annotations(onset=[.5],
-                           duration=[.2],
-                           description=['dummy'],
-                           orig_time=orig_time)
-
-    """Test meas_time is set and orig_time is set.
-
-    clips the annotations based on raw.data and resets the annotation based on
-    raw.info['meas_date]
-    """
-    raw = _raw(meas_date=1).set_annotations(_annotation(orig_time=1.5))
-
+    # meas_time is set and orig_time is set:
+    # clips the annotations based on raw.data and resets the annotation based
+    # on raw.info['meas_date]
+    raw = _raw_annot(1, 1.5)
     assert raw.annotations.orig_time == 1
     assert raw.annotations.onset[0] == 1
 
-    """Test meas_time is set and orig_time is None.
-
-    Consider annot.orig_time to be raw.frist_sample, clip and reset
-    annotations to have the raw.annotations.orig_time == raw.info['meas_date]
-    """
-    raw = _raw(meas_date=1).set_annotations(_annotation(orig_time=None))
-
+    # meas_time is set and orig_time is None:
+    # Consider annot.orig_time to be raw.frist_sample, clip and reset
+    # annotations to have the raw.annotations.orig_time == raw.info['meas_date]
+    raw = _raw_annot(1, None)
     assert raw.annotations.orig_time == 1
     assert raw.annotations.onset[0] == 1.5
 
-    """Test meas_time is None and orig_time is set.
-
-    Raise error, it makes no sense to have an annotations object that we know
-    when was acquired and set it to a raw object that does not know when was it
-    acquired.
-    """
+    # meas_time is None and orig_time is set:
+    # Raise error, it makes no sense to have an annotations object that we know
+    # when was acquired and set it to a raw object that does not know when was
+    # it acquired.
     with pytest.raises(RuntimeError, match='Ambiguous operation'):
-        raw = _raw(meas_date=None).set_annotations(_annotation(orig_time=1.5))
+        _raw_annot(None, 1.5)
 
-    """Test meas_time is None and orig_time is None.
-
-    Consider annot.orig_time to be raw.first_sample and clip
-    """
-    raw = _raw(meas_date=None).set_annotations(_annotation(orig_time=None))
-
+    # meas_time is None and orig_time is None:
+    # Consider annot.orig_time to be raw.first_sample and clip
+    raw = _raw_annot(None, None)
     assert raw.annotations.orig_time is None
     assert raw.annotations.onset[0] == 0.5
     assert raw.annotations.duration[0] == 0.2

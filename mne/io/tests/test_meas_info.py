@@ -408,53 +408,54 @@ def test_check_consistency():
     assert_array_equal(info3['ch_names'], ['a', 'b-0', 'b-1', 'c', 'b-2'])
 
 
-def test_anonymize():
-    """Test that sensitive information can be anonymized."""
-    def _is_anonymous(inst):
-        """Check all the anonymity fields.
+def _is_anonymous(inst):
+    """Check all the anonymity fields.
 
-        inst is either a raw or epochs object.
-        """
-        from collections import namedtuple
-        anonymity_checks = namedtuple("anonymity_checks",
-                                      ["missing_subject_info",
-                                       "anonymous_file_id_secs",
-                                       "anonymous_file_id_usecs",
-                                       "anonymous_meas_id_secs",
-                                       "anonymous_meas_id_usecs",
-                                       "anonymous_meas_date",
-                                       "anonymous_annotations"])
+    inst is either a raw or epochs object.
+    """
+    from collections import namedtuple
+    anonymity_checks = namedtuple("anonymity_checks",
+                                  ["missing_subject_info",
+                                   "anonymous_file_id_secs",
+                                   "anonymous_file_id_usecs",
+                                   "anonymous_meas_id_secs",
+                                   "anonymous_meas_id_usecs",
+                                   "anonymous_meas_date",
+                                   "anonymous_annotations"])
 
-        if 'subject_info' not in inst.info.keys():
-            missing_subject_info = True
-        else:
-            missing_subject_info = inst.info['subject_info'] is None
+    if 'subject_info' not in inst.info.keys():
+        missing_subject_info = True
+    else:
+        missing_subject_info = inst.info['subject_info'] is None
 
-        anonymous_file_id_secs = inst.info['file_id']['secs'] == DATE_NONE[0]
-        anonymous_file_id_usecs = inst.info['file_id']['usecs'] == DATE_NONE[1]
-        anonymous_meas_id_secs = inst.info['meas_id']['secs'] == DATE_NONE[0]
-        anonymous_meas_id_usecs = inst.info['meas_id']['usecs'] == DATE_NONE[1]
-        if inst.info['meas_date'] is None:
-            anonymous_meas_date = True
-        else:
-            assert isinstance(inst.info['meas_date'], tuple)
-            anonymous_meas_date = inst.info['meas_date'] == DATE_NONE
-        if not hasattr(inst, 'annotations'):
+    anonymous_file_id_secs = inst.info['file_id']['secs'] == DATE_NONE[0]
+    anonymous_file_id_usecs = inst.info['file_id']['usecs'] == DATE_NONE[1]
+    anonymous_meas_id_secs = inst.info['meas_id']['secs'] == DATE_NONE[0]
+    anonymous_meas_id_usecs = inst.info['meas_id']['usecs'] == DATE_NONE[1]
+    if inst.info['meas_date'] is None:
+        anonymous_meas_date = True
+    else:
+        assert isinstance(inst.info['meas_date'], tuple)
+        anonymous_meas_date = inst.info['meas_date'] == DATE_NONE
+    if not hasattr(inst, 'annotations'):
+        anonymous_annotations = True
+    else:
+        if inst.annotations is None:
             anonymous_annotations = True
         else:
-            if inst.annotations is None:
-                anonymous_annotations = True
-            else:
-                anonymous_annotations = inst.annotations.orig_time is None
+            anonymous_annotations = inst.annotations.orig_time is None
 
-        return anonymity_checks(missing_subject_info,
-                                anonymous_file_id_secs,
-                                anonymous_file_id_usecs,
-                                anonymous_meas_id_secs,
-                                anonymous_meas_id_usecs,
-                                anonymous_meas_date,
-                                anonymous_annotations)
+    return anonymity_checks(missing_subject_info,
+                            anonymous_file_id_secs,
+                            anonymous_file_id_usecs,
+                            anonymous_meas_id_secs,
+                            anonymous_meas_id_usecs,
+                            anonymous_meas_date,
+                            anonymous_annotations)
 
+
+def test_anonymize():
+    """Test that sensitive information can be anonymized."""
     pytest.raises(TypeError, anonymize_info, 'foo')
 
     # Fake some subject data

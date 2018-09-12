@@ -61,6 +61,80 @@ class Annotations(object):
     If ``orig_time`` is None, the annotations are synced to the start of the
     data (0 seconds). Otherwise the annotations are synced to sample 0 and
     ``raw.first_samp`` is taken into account the same way as with events.
+
+    When setting annotations, the following alignments
+    between ``raw.info['meas_date']`` and ``annotation.orig_time`` take place:
+
+    ::
+
+        ----------- meas_date=XX, orig_time=YY -----------------------------
+
+             |              +------------------+
+             |______________|     RAW          |
+             |              |                  |
+             |              +------------------+
+         meas_date      first_samp
+             .
+             .         |         +------+
+             .         |_________| ANOT |
+             .         |         |      |
+             .         |         +------+
+             .     orig_time   onset[0]
+             .
+             |                   +------+
+             |___________________|      |
+             |                   |      |
+             |                   +------+
+         orig_time            onset[0]'
+
+        ----------- meas_date=XX, orig_time=None ---------------------------
+
+             |              +------------------+
+             |______________|     RAW          |
+             |              |                  |
+             |              +------------------+
+             .              N         +------+
+             .              o_________| ANOT |
+             .              n         |      |
+             .              e         +------+
+             .
+             |                        +------+
+             |________________________|      |
+             |                        |      |
+             |                        +------+
+         orig_time                 onset[0]'
+
+        ----------- meas_date=None, orig_time=YY ---------------------------
+
+             N              +------------------+
+             o______________|     RAW          |
+             n              |                  |
+             e              +------------------+
+                       |         +------+
+                       |_________| ANOT |
+                       |         |      |
+                       |         +------+
+
+
+                    [[[ CRASH ]]]
+
+        ----------- meas_date=None, orig_time=None -------------------------
+
+             N              +------------------+
+             o______________|     RAW          |
+             n              |                  |
+             e              +------------------+
+             .              N         +------+
+             .              o_________| ANOT |
+             .              n         |      |
+             .              e         +------+
+             .
+             N                        +------+
+             o________________________|      |
+             n                        |      |
+             e                        +------+
+         orig_time                 onset[0]'
+
     """  # noqa: E501
 
     def __init__(self, onset, duration, description,
