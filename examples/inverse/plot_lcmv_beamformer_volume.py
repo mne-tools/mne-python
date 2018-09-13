@@ -11,8 +11,6 @@ Freeview.
 #
 # License: BSD (3-clause)
 
-import numpy as np
-
 import mne
 from mne.datasets import sample
 from mne.beamformer import make_lcmv, apply_lcmv
