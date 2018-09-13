@@ -24,7 +24,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        _import_mlab, _TempDir, requires_nibabel, check_version,
-                       requires_version, traits_test)
+                       traits_test)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.bem import read_bem_solution, read_bem_surfaces
@@ -423,7 +423,7 @@ def test_plot_volume_source_estimates():
 
 
 @testing.requires_testing_data
-@requires_version('surfer', '0.8')
+@requires_pysurfer
 @requires_mayavi
 @traits_test
 def test_plot_vec_source_estimates():
