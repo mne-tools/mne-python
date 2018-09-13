@@ -16,7 +16,10 @@ iod_dups = (355, 359)  # these are in both MEGIN and MNE files
 tag_dups = (3501, 3507)  # in both MEGIN and MNE files
 
 _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
-                     'pop', 'popitem', 'setdefault', 'update', 'values')
+                     'pop', 'popitem', 'setdefault', 'update', 'values',
+                     'has_key', 'iteritems', 'iterkeys', 'itervalues',  # Py2
+                     'viewitems', 'viewkeys', 'viewvalues',  # Py2
+                     )
 
 # XXX These should all probably be added to the FIFF constants
 _missing_names = (
