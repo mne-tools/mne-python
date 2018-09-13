@@ -1596,6 +1596,7 @@ def _merge_info_values(infos, key, verbose=None):
         if is_qual:
             return values[0]
         elif key == 'meas_date':
+            1/0
             logger.info('Found multiple entries for %s. '
                         'Setting value to `None`' % key)
             return None
