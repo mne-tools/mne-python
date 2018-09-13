@@ -89,14 +89,17 @@ stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 ###############################################################################
 # Plot source space activity:
 
-# take absolute values for plotting
-stc.data[:, :] = np.abs(stc.data)
+# You can save result in stc files with:
+# stc.save('lcmv-vol')
 
-# Save result in stc files
-stc.save('lcmv-vol')
-
-stc.crop(0.0, 0.2)
-stc.plot(src=forward['src'], subject='sample', subjects_dir=subjects_dir)
-# We can also visualize the activity on a "glass brain"
+clim = dict(kind='value', pos_lims=[0.3, 0.6, 0.9])
 stc.plot(src=forward['src'], subject='sample', subjects_dir=subjects_dir,
-         mode='glass_brain')
+         clim=clim)
+
+###############################################################################
+# We can also visualize the activity on a "glass brain" (shown here with
+# absolute values):
+
+clim = dict(kind='value', lims=[0.3, 0.6, 0.9])
+abs(stc).plot(src=forward['src'], subject='sample', subjects_dir=subjects_dir,
+              mode='glass_brain', clim=clim)

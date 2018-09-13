@@ -24,7 +24,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        _import_mlab, _TempDir, requires_nibabel, check_version,
-                       traits_test)
+                       traits_test, requires_version)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.bem import read_bem_solution, read_bem_surfaces
@@ -395,6 +395,7 @@ def test_snapshot_brain_montage():
 
 @testing.requires_testing_data
 @requires_nibabel()
+@requires_version('nilearn', '0.4')
 def test_plot_volume_source_estimates():
     """Test interactive plotting of volume source estimates."""
     forward = read_forward_solution(fwd_fname)
@@ -402,13 +403,12 @@ def test_plot_volume_source_estimates():
 
     vertices = [s['vertno'] for s in sample_src]
     n_verts = sum(len(v) for v in vertices)
-    n_time = 5
+    n_time = 2
     data = np.random.RandomState(0).rand(n_verts, n_time)
     vol_stc = VolSourceEstimate(data, vertices, 1, 1)
 
     for mode in ['glass_brain', 'stat_map']:
-        with pytest.warns(DeprecationWarning,
-                          match='scalars to be interpreted as an index'):
+        with pytest.warns(None):  # sometimes get scalars/index warning
             fig = vol_stc.plot(sample_src, subject='sample',
                                subjects_dir=subjects_dir,
                                mode=mode)
@@ -416,12 +416,13 @@ def test_plot_volume_source_estimates():
         for ax_idx in [0, 2, 3, 4]:
             _fake_click(fig, fig.axes[ax_idx], (0.3, 0.5))
 
-    pytest.raises(ValueError, vol_stc.plot, sample_src,
-                  'sample', subjects_dir, mode='abcd')
+    with pytest.raises(ValueError, match='must be one of'):
+        vol_stc.plot(sample_src, 'sample', subjects_dir, mode='abcd')
     vertices.append([])
     surface_stc = SourceEstimate(data, vertices, 1, 1)
-    pytest.raises(ValueError, plot_volume_source_estimates,
-                  surface_stc, sample_src, 'sample', subjects_dir)
+    with pytest.raises(ValueError, match='Only Vol'):
+        plot_volume_source_estimates(surface_stc, sample_src, 'sample',
+                                     subjects_dir)
 
 
 @testing.requires_testing_data
