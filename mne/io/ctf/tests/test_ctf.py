@@ -106,7 +106,7 @@ def test_read_ctf():
         assert_allclose(raw.times, raw_c.times)
         assert_allclose(raw._cals, raw_c._cals)
         assert_equal(raw.info['meas_id']['version'],
-                     raw_c.info['meas_id']['version'])
+                     raw_c.info['meas_id']['version'] + 1)
         for t in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
             assert_allclose(raw.info[t]['trans'], raw_c.info[t]['trans'],
                             rtol=1e-4, atol=1e-7)

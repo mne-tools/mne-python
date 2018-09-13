@@ -5,8 +5,8 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg
 
+from ..io.constants import FWD
 from ..bem import _check_origin
-from ..io.constants import FIFF
 from ..io.pick import pick_types, pick_info
 from ..surface import get_head_surf, get_meg_helmet_surf
 
@@ -23,9 +23,8 @@ from ..externals.six import string_types
 
 def _is_axial_coil(coil):
     """Determine if the coil is axial."""
-    is_ax = coil['coil_class'] in (FIFF.FWD_COILC_MAG,
-                                   FIFF.FWD_COILC_AXIAL_GRAD,
-                                   FIFF.FWD_COILC_AXIAL_GRAD2)
+    is_ax = coil['coil_class'] in (
+        FWD.COILC_MAG, FWD.COILC_AXIAL_GRAD, FWD.COILC_AXIAL_GRAD2)
     return is_ax
 
 
