@@ -437,13 +437,9 @@ def _is_anonymous(inst):
     else:
         assert isinstance(inst.info['meas_date'], tuple)
         anonymous_meas_date = inst.info['meas_date'] == DATE_NONE
-    if not hasattr(inst, 'annotations'):
-        anonymous_annotations = True
-    else:
-        if inst.annotations is None:
-            anonymous_annotations = True
-        else:
-            anonymous_annotations = inst.annotations.orig_time is None
+
+    anonymous_annotations = (hasattr(inst, 'annotations') and
+                             inst.annotations.orig_time is None)
 
     return anonymity_checks(missing_subject_info,
                             anonymous_file_id_secs,
@@ -483,7 +479,7 @@ def test_anonymize():
 
     assert not any(_is_anonymous(epochs)[:-1])  # epochs has no annotations
     epochs.anonymize()
-    assert all(_is_anonymous(epochs))
+    assert all(_is_anonymous(epochs)[:-1])
 
     # When we write out with raw.save, these get overwritten with the
     # new save time
