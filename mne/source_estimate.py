@@ -1473,7 +1473,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
     @copy_function_doc_to_method_doc(plot_source_estimates)
     def plot(self, subject=None, surface='inflated', hemi='lh',
              colormap='auto', time_label='auto', smoothing_steps=10,
-             transparent=None, alpha=1.0, time_viewer=False, subjects_dir=None,
+             transparent=True, alpha=1.0, time_viewer=False, subjects_dir=None,
              figure=None, views='lat', colorbar=True, clim='auto',
              cortex="classic", size=800, background="black",
              foreground="white", initial_time=None, time_unit='s',
@@ -2027,7 +2027,7 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
 
     @copy_function_doc_to_method_doc(plot_vector_source_estimates)
     def plot(self, subject=None, hemi='lh', colormap='hot', time_label='auto',
-             smoothing_steps=10, transparent=None, brain_alpha=0.4,
+             smoothing_steps=10, transparent=True, brain_alpha=0.4,
              overlay_alpha=None, vector_alpha=1.0, scale_factor=None,
              time_viewer=False, subjects_dir=None, figure=None, views='lat',
              colorbar=True, clim='auto', cortex='classic', size=800,
