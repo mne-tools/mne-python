@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- :func:`mne.BaseRaw.set_annotations` now changes ``orig_time`` to match ``meas_date`` and shift ``self.annotations.onset`` accordingly. Previous behavior is deprecated and would be removed in 0.18. Work by `Joan Massich`_
+
 - Add :func:`mne.compute_source_morph` which creates a :class:`mne.SourceMorph` object to unify morphing any type of source estimates (surface or volume) from one subject to another for group studies. It is now possible to do group studies when working on the volume with MNE. Work by `Tommy Clausner`_ during GSOC 2018 with the help of `Alex Gramfort`_ and `Eric Larson`_.
 
 - Add ability to pass threshold for EOG to :func:`mne.preprocessing.find_eog_events` and :func:`mne.preprocessing.create_eog_epochs` by `Peter Molfese`_

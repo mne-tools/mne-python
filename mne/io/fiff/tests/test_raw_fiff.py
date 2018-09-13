@@ -54,7 +54,7 @@ def test_acq_skip():
     assert_equal(len(raw.times), 17000)
     annotations = raw.annotations
     assert_equal(len(annotations), 3)  # there are 3 skips
-    assert_allclose(annotations.onset, [2, 7, 11])
+    assert_allclose(annotations.onset, [14, 19, 23])
     assert_allclose(annotations.duration, [2., 2., 3.])  # inclusive!
     data, times = raw.get_data(
         picks, reject_by_annotation='omit', return_times=True)
@@ -404,7 +404,7 @@ def test_split_files():
 
     raw_2 = read_raw_fif(split_fname)
     assert_allclose(raw_2.buffer_size_sec, 1., atol=1e-2)  # samp rate
-    assert_array_equal(raw_1.annotations.onset, raw_2.annotations.onset)
+    assert_array_almost_equal(raw_1.annotations.onset, raw_2.annotations.onset)
     assert_array_equal(raw_1.annotations.duration, raw_2.annotations.duration)
     assert_array_equal(raw_1.annotations.description,
                        raw_2.annotations.description)
@@ -1223,11 +1223,12 @@ def test_save():
                         raw.info['meas_date'][0] +
                         raw.first_samp / raw.info['sfreq'])
     raw.set_annotations(annot)
+    annot = raw.annotations
     new_fname = op.join(op.abspath(op.curdir), 'break_raw.fif')
     raw.save(op.join(tempdir, new_fname), overwrite=True)
     new_raw = read_raw_fif(op.join(tempdir, new_fname), preload=False)
     pytest.raises(ValueError, new_raw.save, new_fname)
-    assert_array_equal(annot.onset, new_raw.annotations.onset)
+    assert_array_almost_equal(annot.onset, new_raw.annotations.onset)
     assert_array_equal(annot.duration, new_raw.annotations.duration)
     assert_array_equal(annot.description, new_raw.annotations.description)
     assert_equal(annot.orig_time, new_raw.annotations.orig_time)
@@ -1248,7 +1249,7 @@ def test_annotation_crop():
     onsets = raw.annotations.onset
     durations = raw.annotations.duration
     # 2*5s clips combined with annotations at 2.5s + 2s clip, annotation at 1s
-    assert_array_almost_equal([2.5, 7.5, 11.], onsets[:3], decimal=2)
+    assert_array_almost_equal(onsets[:3], [47.95, 52.95, 56.46], decimal=2)
     assert_array_almost_equal([2., 2.5, 1.], durations[:3], decimal=2)
 
     # test annotation clipping
