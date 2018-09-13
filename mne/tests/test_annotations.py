@@ -538,10 +538,11 @@ def dummy_raw():
 
 
 def _create_annotation_based_on_descr(description, annotation_start_sampl=0,
-                                      duration=0, orig_time=0, raw=dummy_raw()):
+                                      duration=0, orig_time=0,
+                                      raw=dummy_raw()):
     """helper func returning a raw object with annotations from descriptions.
 
-    The 
+    The
 
     """
     from pytest import approx
@@ -566,7 +567,8 @@ def _create_annotation_based_on_descr(description, annotation_start_sampl=0,
     # Make sure that set_annotations(annot) works
     assert all(raw.annotations.onset == raw.times[annotation_start_sampl])
     if duration != 0:
-        expected_duration = (1 / raw.info['sfreq']) * len(raw.times) - raw.times[annotation_start_sampl]
+        expected_duration = ((1 / raw.info['sfreq']) * len(raw.times) -
+                             raw.times[annotation_start_sampl])
     else:
         expected_duration = 0
     _duration = raw.annotations.duration[0]
@@ -577,7 +579,7 @@ def _create_annotation_based_on_descr(description, annotation_start_sampl=0,
     return raw
 
 
-def test_event_id_function_behaviour_event_from_annotations():
+def test_event_id_function_behaviour():
 
     description = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
     expected_event_id = dict(zip(description, range(1, 100)))
@@ -585,7 +587,9 @@ def test_event_id_function_behaviour_event_from_annotations():
                                 [0, 0, 0, 0, 0, 0, 0],
                                 [1, 2, 3, 4, 5, 6, 7]]).T
 
-    raw = _create_annotation_based_on_descr(description, annotation_start_sampl=3, duration=100)
+    raw = _create_annotation_based_on_descr(description,
+                                            annotation_start_sampl=3,
+                                            duration=100)
     events, event_id = events_from_annotations(raw, event_id=None,
                                                event_id_func=None)
 
@@ -599,7 +603,9 @@ def test_event_id_function_behaviour_event_from_annotations():
     expected_events = np.array([[3, 3, 3, 3, 3, 3, 3],
                                 [0, 0, 0, 0, 0, 0, 0],
                                 [1, 42, 2, 42, 3, 0, 4]]).T
-    raw = _create_annotation_based_on_descr(description, annotation_start_sampl=3, duration=100)
+    raw = _create_annotation_based_on_descr(description,
+                                            annotation_start_sampl=3,
+                                            duration=100)
     events, event_id = events_from_annotations(raw, event_id=given_event_id,
                                                event_id_func=None)
 
@@ -612,7 +618,9 @@ def test_event_id_function_behaviour_event_from_annotations():
     expected_events = np.array([[3, 3, 3, 3, 3, 3, 3],
                                 [0, 0, 0, 0, 0, 0, 0],
                                 [1, 1, 42, 1, 42, 42, 2]]).T
-    raw = _create_annotation_based_on_descr(description, annotation_start_sampl=3, duration=100)
+    raw = _create_annotation_based_on_descr(description,
+                                            annotation_start_sampl=3,
+                                            duration=100)
     events, event_id = events_from_annotations(raw, event_id=given_event_id,
                                                event_id_func=None)
 
