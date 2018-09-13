@@ -23,7 +23,7 @@ from scipy import linalg
 
 from ..defaults import DEFAULTS
 from ..externals.six import BytesIO, string_types, advance_iterator
-from ..fixes import einsum
+from ..fixes import einsum, _crop_colorbar
 from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types
 from ..io.constants import FIFF
@@ -1802,7 +1802,6 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         raise RuntimeError('This function requires nilearn >= 0.4')
 
     from nilearn.plotting import plot_stat_map, plot_glass_brain
-    from nilearn.plotting.img_plotting import _crop_colorbar
     from nilearn.image import index_img, resample_to_img
 
     if mode == 'stat_map':
