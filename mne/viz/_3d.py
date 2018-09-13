@@ -1753,9 +1753,12 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
     mode : str
         The plotting mode to use. Either 'stat_map' (default) or 'glass_brain'.
+        For "glass_brain", activation absolute values are displayed
+        after being transformed to a standard MNI brain.
     bg_img : Niimg-like object | None
         The background image used in the nilearn plotting function.
         If None, it is the T1.mgz file that is found in the subjects_dir.
+        Not used in "glass brain" plotting.
     colorbar : boolean, optional
         If True, display a colorbar on the right of the plots.
     colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
@@ -1799,6 +1802,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         raise RuntimeError('This function requires nilearn >= 0.4')
 
     from nilearn.plotting import plot_stat_map, plot_glass_brain
+    from nilearn.plotting.img_plotting import _crop_colorbar
     from nilearn.image import index_img, resample_to_img
 
     if mode == 'stat_map':
@@ -1950,9 +1954,12 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     plt.xlabel('Time (ms)')
     plt.ylabel('Activation')
 
+    allow_pos_lims = (mode != 'glass_brain')
     ctrl_pts, colormap, scale_pts, _ = _limits_to_control_points(
-        clim, stc.data, colormap, transparent, fmt='matplotlib')
+        clim, stc.data, colormap, transparent, fmt='matplotlib',
+        allow_pos_lims=allow_pos_lims)
     if np.array_equal(ctrl_pts, scale_pts):  # set eq above iff one-sided
+        diverging = False
         # there is a bug in nilearn where this messes w/transparency
         # Need to double the colormap
         if (ctrl_pts < 0).any():
@@ -1961,9 +1968,10 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             # Should get them to support non-mirrored colorbars, or
             # at least a proper `vmin` for one-sided things.
             # Hopefully this is a sufficiently rare use case!
-            raise RuntimeError('Negative values not supported currently, '
-                               'Consider shifting or flipping the sign of '
-                               'your data for visualization purposes')
+            raise ValueError('Negative colormap limits for sequential '
+                             'control points clim["lims"] not supported '
+                             'currently, consider shifting or flipping the '
+                             'sign of your data for visualization purposes')
         colormap = plt.get_cmap(colormap)
         bottom = np.array(colormap(0))
         locs = np.clip(np.linspace(-ctrl_pts[0] / ctrl_pts[2], 1, 256), 0, 1)
@@ -1973,6 +1981,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             bottom[3] = 0
         colormap = np.concatenate([np.tile(bottom, (256, 1)), colormap])
         colormap = colors.ListedColormap(colormap)
+    else:
+        diverging = True
     vmax = ctrl_pts[-1]
 
     # black_bg = True is needed because of some matplotlib
@@ -1982,7 +1992,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     plot_kwargs = dict(
         threshold=None, axes=axes,
         resampling_interpolation='nearest', vmax=vmax, figure=fig,
-        colorbar=True, bg_img=bg_img_param, cmap=colormap, black_bg=True,
+        colorbar=colorbar, bg_img=bg_img_param, cmap=colormap, black_bg=True,
         symmetric_cbar=True)
 
     plot_func = partial(plot_func, **plot_kwargs)
@@ -1994,7 +2004,11 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             warnings.simplefilter('ignore', mplDeprecation)
             fig_anat = plot_func(*args, **kwargs)
         # Fix nilearn bug w/cbar background being white
-        fig_anat._cbar.patch.set_facecolor('0.5')
+        if plot_kwargs['colorbar']:
+            fig_anat._cbar.patch.set_facecolor('0.5')
+            # adjust one-sided colorbars
+            if not diverging:
+                _crop_colorbar(fig_anat._cbar, *ctrl_pts[[0, -1]])
         return fig_anat
 
     params = dict(stc=stc, ax_time=ax_time, plot_func=plot_and_correct,

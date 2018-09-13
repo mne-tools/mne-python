@@ -423,6 +423,9 @@ def test_plot_volume_source_estimates():
     with pytest.raises(ValueError, match='Only Vol'):
         plot_volume_source_estimates(surface_stc, sample_src, 'sample',
                                      subjects_dir)
+    with pytest.raises(ValueError, match='Negative colormap limits'):
+        vol_stc.plot(sample_src, 'sample', subjects_dir,
+                     clim=dict(lims=[-1, 2, 3], kind='value'))
 
 
 @testing.requires_testing_data
