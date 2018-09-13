@@ -354,14 +354,18 @@ def _pick_and_combine(epochs, combine, all_picks, all_ch_types, names):
     if combine == "gfp":
         def combine(data):
             return np.sqrt((data * data).mean(axis=1))
+
     elif combine in {"mean", "median", "std"}:
         func = getattr(np, combine)
+
         def combine(data):
             return func(data, axis=1)
+
     elif not callable(combine):
         raise ValueError(
             "``combine`` must be None, a callable or one out of 'mean' "
             "or 'gfp'. Got " + str(type(combine)))
+
     for ch_type, picks_, name in zip(all_ch_types, all_picks, names):
         if len(np.atleast_1d(picks_)) < 2:
             raise ValueError("Cannot combine over only one sensor. "
