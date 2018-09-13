@@ -399,8 +399,22 @@ def test_split_files():
 
     assert_allclose(raw_1.buffer_size_sec, 10., atol=1e-2)  # samp rate
     split_fname = op.join(tempdir, 'split_raw.fif')
+    # intended filenames
+    split_fname_elekta_part2 = op.join(tempdir, 'split_raw-1.fif')
+    split_fname_bids_part1 = op.join(tempdir, 'split_raw_part-01_meg.fif')
+    split_fname_bids_part2 = op.join(tempdir, 'split_raw_part-02_meg.fif')
     raw_1.set_annotations(Annotations([2.], [5.5], 'test'))
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
+
+    # check that the filenames match the intended pattern
+    assert op.exists(split_fname_elekta_part2)
+    # check that filenames are being formatted correctly for BIDS
+    raw_1.save(split_fname,
+               buffer_size_sec=1.0, split_size='10MB',
+               split_naming='bids',
+               overwrite=True)
+    assert op.exists(split_fname_bids_part1)
+    assert op.exists(split_fname_bids_part2)
 
     raw_2 = read_raw_fif(split_fname)
     assert_allclose(raw_2.buffer_size_sec, 1., atol=1e-2)  # samp rate
@@ -412,6 +426,12 @@ def test_split_files():
     data_2, times_2 = raw_2[:, :]
     assert_array_equal(data_1, data_2)
     assert_array_equal(times_1, times_2)
+
+    with pytest.warns(RuntimeWarning, match='does not conform to MNE'):
+        raw_bids = read_raw_fif(split_fname_bids_part1)
+    data_bids, times_bids = raw_bids[:, :]
+    assert_array_equal(data_1, data_bids)
+    assert_array_equal(times_1, times_bids)
 
     # test the case where we only end up with one buffer to write
     # (GH#3210). These tests rely on writing meas info and annotations
