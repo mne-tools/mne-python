@@ -132,7 +132,6 @@ def _get_pysurfer_cmap(colormap, ctrl_pts):
 
 def _scale_sequential_lut(lut_table, fmin, fmid, fmax):
     """Scale a sequential colormap."""
-
     lut_table_new = lut_table.copy()
     n_colors = lut_table.shape[0]
     n_colors2 = n_colors // 2
@@ -162,6 +161,7 @@ def _scale_sequential_lut(lut_table, fmin, fmid, fmax):
 
 def _get_fill_colors(cols, n_fill):
     """Get the fill colors for the middle of divergent colormaps.
+
     Tries to figure out whether there is a smooth transition in the center of
     the original colormap. If yes, it chooses the color in the center as the
     only fill color, else it chooses the two colors between which there is

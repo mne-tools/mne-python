@@ -407,9 +407,11 @@ def test_plot_volume_source_estimates():
     vol_stc = VolSourceEstimate(data, vertices, 1, 1)
 
     for mode in ['glass_brain', 'stat_map']:
-        fig = vol_stc.plot(sample_src, subject='sample',
-                           subjects_dir=subjects_dir,
-                           mode=mode)
+        with pytest.warns(DeprecationWarning,
+                          match='scalars to be interpreted as an index'):
+            fig = vol_stc.plot(sample_src, subject='sample',
+                               subjects_dir=subjects_dir,
+                               mode=mode)
         # [ax_time, ax_y, ax_x, ax_z]
         for ax_idx in [0, 2, 3, 4]:
             _fake_click(fig, fig.axes[ax_idx], (0.3, 0.5))
