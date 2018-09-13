@@ -1,5 +1,6 @@
 # Authors: Mainak Jas <mainak.jas@telecom-paristech.fr>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -386,8 +387,8 @@ class RawEEGLAB(BaseRaw):
             data *= CAL
             data[-1] = self._event_ch
             super(RawEEGLAB, self).__init__(
-                info, data, last_samps=last_samps, orig_format='double',
-                verbose=verbose)
+                info, data, filenames=[input_fname], last_samps=last_samps,
+                orig_format='double', verbose=verbose)
 
     def _create_event_ch(self, events, n_samples=None):
         """Create the event channel."""

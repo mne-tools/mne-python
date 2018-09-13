@@ -22,7 +22,7 @@ from ..transforms import (_str_to_frame, _get_trans, Transform, apply_trans,
                           _sh_complex_to_real, _sh_real_to_complex, _sh_negate)
 from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
 from ..surface import _normalize_vectors
-from ..io.constants import FIFF
+from ..io.constants import FIFF, FWD
 from ..io.meas_info import _simplify_info
 from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, DATE_NONE
@@ -748,7 +748,7 @@ def _copy_preload_add_channels(raw, add_channels):
             dict(ch_name='CHPI%03d' % (ii + 1), logno=ii + 1,
                  scanno=off + ii + 1, unit_mul=-1, range=1., unit=-1,
                  kind=kinds[ii], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
-                 cal=1e-4, coil_type=FIFF.FWD_COIL_UNKNOWN, loc=np.zeros(12))
+                 cal=1e-4, coil_type=FWD.COIL_UNKNOWN, loc=np.zeros(12))
             for ii in range(len(kinds))]
         raw.info['chs'].extend(chpi_chs)
         raw.info._update_redundant()
@@ -1002,8 +1002,7 @@ _mu_0 = 4e-7 * np.pi  # magnetic permeability
 
 def _get_mag_mask(coils):
     """Get the coil_scale for Maxwell filtering."""
-    return np.array([coil['coil_class'] == FIFF.FWD_COILC_MAG
-                     for coil in coils])
+    return np.array([coil['coil_class'] == FWD.COILC_MAG for coil in coils])
 
 
 def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):

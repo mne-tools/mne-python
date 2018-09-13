@@ -19,9 +19,11 @@ Current
 Changelog
 ~~~~~~~~~
 
+- :func:`mne.BaseRaw.set_annotations` now changes ``orig_time`` to match ``meas_date`` and shift ``self.annotations.onset`` accordingly. Previous behavior is deprecated and would be removed in 0.18. Work by `Joan Massich`_
+
 - Add :func:`mne.compute_source_morph` which creates a :class:`mne.SourceMorph` object to unify morphing any type of source estimates (surface or volume) from one subject to another for group studies. It is now possible to do group studies when working on the volume with MNE. Work by `Tommy Clausner`_ during GSOC 2018 with the help of `Alex Gramfort`_ and `Eric Larson`_.
 
-- Add ability to pass threshold for EOG to :func:`mne.preprocessing.find_eog_events` and :func:`mne.preprocessing.create_eog_epochs` by `Peter Molfese_`
+- Add ability to pass threshold for EOG to :func:`mne.preprocessing.find_eog_events` and :func:`mne.preprocessing.create_eog_epochs` by `Peter Molfese`_
 
 - Add possibility to save :class:`mne.VolSourceEstimate` and :class:`mne.MixedSourceEstimate` to HDF5 format (file extension .h5) with :meth:`mne.VolSourceEstimate.save` and :meth:`mne.MixedSourceEstimate.save` by `Alex Gramfort`_
 
@@ -53,6 +55,8 @@ Bug
 - Fix bug with reading events from BrainVision files by `Stefan Appelhoff`_
 
 - Fix bug of not showing ERD's in baseline rescaled tfr topomaps if grads are combined by `Erkka Heinila`_
+
+- Fix bug with FIF I/O where strings were written in UTF-8 format instead of Latin-1 by `Eric Larson`_
 
 - Fix bug with reading measurement dates from BrainVision files by `Stefan Appelhoff`_
 
@@ -107,6 +111,10 @@ Bug
 - Fix error when running LCMV on MEG channels with compensation using reference channels (like for CTF data) by `Alex Gramfort`_
 
 - Fix the use of :func:`sklearn.model_selection.cross_val_predict` with :class:`mne.decoding.SlidingEstimator` by `Alex Gramfort`_
+
+- Fix event sample number increase when combining many Epochs objects with :func:`mne.concatenate_epochs` with  by `Jasper van den Bosch`_
+
+- Fix title of custom slider images to :class:`mne.Report` by `Marijn van Vliet`_
 
 API
 ~~~
@@ -2858,3 +2866,5 @@ of commits):
 .. _Steven Gutstein: http://robust.cs.utep.edu/~gutstein
 
 .. _Peter Molfese: https://github.com/pmolfese
+
+.. _Jasper van den Bosch: https://github.com/ilogue

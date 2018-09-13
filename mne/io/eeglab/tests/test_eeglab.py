@@ -1,5 +1,6 @@
 # Author: Mainak Jas <mainak.jas@telecom-paristech.fr>
 #         Mikolaj Magnuski <mmagnuski@swps.edu.pl>
+#         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -92,6 +93,9 @@ def test_io_set_raw(fnames, tmpdir):
 
         [w.pop(DeprecationWarning) for _ in range(5)]  # read_events_eeglab
         # [w.pop(RuntimeWarning) for _ in range(4)] This is what I'm searching
+
+        assert raw0.filenames[0].endswith('.fdt')  # .set with additional .fdt
+        assert raw2.filenames[0].endswith('.set')  # standalone .set
 
         Epochs(raw0, find_events(raw0), event_id)
         epochs = Epochs(raw1, find_events(raw1), event_id)

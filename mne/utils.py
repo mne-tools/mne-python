@@ -1802,7 +1802,8 @@ class ProgressBar(object):
         self.cur_time = cur_time
         self.cur_value = cur_value
         self.cur_rate = cur_rate
-        progress = min(float(self.cur_value) / float(self.max_value), 1.)
+        max_value = float(self.max_value) if self.max_value else 1.
+        progress = np.clip(self.cur_value / max_value, 0, 1)
         num_chars = int(progress * self.max_chars)
         num_left = self.max_chars - num_chars
 
@@ -1852,6 +1853,7 @@ class ProgressBar(object):
         """Iterate to auto-increment the pbar with 1."""
         if self.iterable is None:
             raise ValueError("Must give an iterable to be used in a loop.")
+        self.update(self.cur_value)
         for obj in self.iterable:
             yield obj
             self.update_with_increment_value(1)
@@ -1895,6 +1897,7 @@ class ProgressBar(object):
         # prevent corner cases where self.max_value == 0
         self._mmap = np.memmap(self._mmap_fname, bool, 'w+',
                                shape=max(self.max_value, 1))
+        self.update(0)  # must be zero as we just created the memmap
         return self
 
     def __exit__(self, type, value, traceback):  # noqa: D105
@@ -2018,16 +2021,20 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
     verbose_bool = (logger.level <= 20)  # 20 is info
     try:
         # Check file size and displaying it alongside the download url
-        u = urllib.request.urlopen(url, timeout=timeout)
-        u.close()
-        # this is necessary to follow any redirects
-        url = u.geturl()
-        u = urllib.request.urlopen(url, timeout=timeout)
-        try:
-            file_size = int(u.headers.get('Content-Length', '1').strip())
-        finally:
-            u.close()
-            del u
+        # this loop is necessary to follow any redirects
+        for _ in range(10):  # 10 really should be sufficient...
+            u = urllib.request.urlopen(url, timeout=timeout)
+            try:
+                last_url, url = url, u.geturl()
+                if url == last_url:
+                    file_size = int(
+                        u.headers.get('Content-Length', '1').strip())
+                    break
+            finally:
+                u.close()
+                del u
+        else:
+            raise RuntimeError('Too many redirects')
         logger.info('Downloading %s (%s)' % (url, sizeof_fmt(file_size)))
 
         # Triage resume

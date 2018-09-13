@@ -286,7 +286,7 @@ def test_reject():
         onsets[0] = onsets[0] + tmin - 0.499  # tmin < 0
         onsets[1] = onsets[1] + tmax - 0.001
         first_time = (raw.info['meas_date'][0] + raw.info['meas_date'][1] *
-                      0.000001 + raw.first_samp / sfreq)
+                      1e-6 + raw.first_samp / sfreq)
         for orig_time in [None, first_time]:
             annot = Annotations(onsets, [0.5, 0.5, 0.5], 'BAD', orig_time)
             raw.set_annotations(annot)
@@ -1261,7 +1261,7 @@ def test_resample():
 
     # use parallel
     epochs = epochs_o.copy()
-    epochs.resample(sfreq_normal * 2, n_jobs=2, npad=0)
+    epochs.resample(sfreq_normal * 2, n_jobs=1, npad=0)
     assert (np.allclose(data_up, epochs._data, rtol=1e-8, atol=1e-16))
 
     # test copy flag
@@ -1940,7 +1940,7 @@ def test_add_channels_epochs():
         assert_allclose(data1, data2, atol=1e-25)
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['meas_date'] += 10
+    epochs_meg2.info['meas_date'] = (0, 0)
     add_channels_epochs([epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
@@ -2157,6 +2157,12 @@ def test_concatenate_epochs():
         evs = epochs_cat.events[ii * len(epochs):(ii + 1) * len(epochs)]
         rel_pos = epochs_list[ii].events[:, 0] - evs[:, 0]
         assert (sum(rel_pos - rel_pos[0]) == 0)
+
+    # test large number of epochs
+    long_epochs_list = [epochs.copy() for ii in range(60)]
+    many_epochs_cat = concatenate_epochs(long_epochs_list)
+    max_expected_sample_index = 60 * 1.2 * np.max(epochs.events[:, 0])
+    assert np.max(many_epochs_cat.events[:, 0]) < max_expected_sample_index
 
 
 def test_add_channels():

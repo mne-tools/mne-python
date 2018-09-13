@@ -344,7 +344,7 @@ class RawMff(BaseRaw):
             egi_info['year'], egi_info['month'], egi_info['day'],
             egi_info['hour'], egi_info['minute'], egi_info['second'])
         my_timestamp = time.mktime(my_time.timetuple())
-        info['meas_date'] = np.array([my_timestamp, 0], dtype=np.float32)
+        info['meas_date'] = (my_timestamp, 0)
         ch_names = [channel_naming % (i + 1) for i in
                     range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
@@ -435,7 +435,7 @@ class RawMff(BaseRaw):
         # Number of channels to be read from EEG
         n_data1_channels = len(eeg_chans)
 
-        # Number of channels expected in the EEG binay file
+        # Number of channels expected in the EEG binary file
         n_eeg_channels = n_channels
 
         # Get starting/stopping block/samples

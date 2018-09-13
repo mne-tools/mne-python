@@ -20,7 +20,6 @@ from mne import pick_types, find_events
 from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.write import DATE_NONE
 from mne.datasets import testing
 
 FILE = inspect.getfile(inspect.currentframe())
@@ -82,7 +81,7 @@ def test_vmrk_meas_date():
     # Test files with no date, we should get DATE_NONE from mne.io.write
     with pytest.warns(RuntimeWarning, match='coordinate information'):
         raw = read_raw_brainvision(vhdr_v2_path)
-    assert_allclose(raw.info['meas_date'], DATE_NONE)
+    assert raw.info['meas_date'] is None
     assert 'unspecified' in repr(raw.info)
 
 
@@ -607,7 +606,7 @@ def test_brainvision_with_montage():
 def test_brainvision_neuroone_export():
     """Test Brainvision file exported with neuroone system."""
     raw = read_raw_brainvision(neuroone_vhdr, verbose='error')
-    assert raw.info['meas_date'] == DATE_NONE
+    assert raw.info['meas_date'] is None
     assert len(raw.info['chs']) == 66
     assert raw.info['sfreq'] == 5000.
 

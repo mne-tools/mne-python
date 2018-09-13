@@ -145,7 +145,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             date = datetime.datetime(int(date[2]), int(date[0]),
                                      int(date[1]), int(time[0]),
                                      int(time[1]), int(time[2]))
-            meas_date = np.array([calendar.timegm(date.utctimetuple()), 0])
+            meas_date = (calendar.timegm(date.utctimetuple()), 0)
         else:
             warn('  Could not parse meas date from the header. '
                  'Setting to None.')

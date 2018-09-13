@@ -146,7 +146,7 @@ class Info(dict):
         Tilt angle of the gantry in degrees.
     lowpass : float | None
         Lowpass corner frequency in Hertz.
-    meas_date : list of int
+    meas_date : tuple of int
         The first element of this list is a UNIX timestamp (seconds since
         1970-01-01 00:00:00) denoting the date and time at which the
         measurement was taken. The second element is the additional number of
@@ -409,8 +409,8 @@ class Info(dict):
                                  {0: 'ff', 1: 'n'}[p['active']] for p in v)
                 if len(entr) >= 56:
                     entr = _summarize_str(entr)
-            elif k == 'meas_date' and np.iterable(v):
-                if np.array_equal(v, DATE_NONE):
+            elif k == 'meas_date':
+                if v is None:
                     entr = 'unspecified'
                 else:
                     # first entry in meas_date is meaningful
@@ -449,6 +449,13 @@ class Info(dict):
         if len(missing) > 0:
             raise RuntimeError('bad channel(s) %s marked do not exist in info'
                                % (missing,))
+        meas_date = self.get('meas_date')
+        if meas_date is not None and (
+                not isinstance(self['meas_date'], tuple) or
+                len(self['meas_date']) != 2):
+            raise RuntimeError('info["meas_date"] must be a tuple of length '
+                               '2 or None, got "%r"'
+                               % (repr(self['meas_date']),))
 
         chs = [ch['ch_name'] for ch in self['chs']]
         if len(self['ch_names']) != len(chs) or any(
@@ -943,7 +950,9 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 highpass = float(tag.data)
         elif kind == FIFF.FIFF_MEAS_DATE:
             tag = read_tag(fid, pos)
-            meas_date = tag.data
+            meas_date = tuple(tag.data)
+            if len(meas_date) == 1:  # can happen from old C conversions
+                meas_date = (meas_date[0], 0)
         elif kind == FIFF.FIFF_COORD_TRANS:
             tag = read_tag(fid, pos)
             cand = tag.data
@@ -1236,7 +1245,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['proj_id'] = proj_id
     info['proj_name'] = proj_name
     if meas_date is None:
-        meas_date = [info['meas_id']['secs'], info['meas_id']['usecs']]
+        meas_date = (info['meas_id']['secs'], info['meas_id']['usecs'])
     if np.array_equal(meas_date, DATE_NONE):
         meas_date = None
     info['meas_date'] = meas_date
@@ -1528,7 +1537,7 @@ def write_info(fname, info, data_type=None, reset_range=True):
 
 
 @verbose
-def _merge_dict_values(dicts, key, verbose=None):
+def _merge_info_values(infos, key, verbose=None):
     """Merge things together.
 
     Fork for {'dict', 'list', 'array', 'other'}
@@ -1536,9 +1545,10 @@ def _merge_dict_values(dicts, key, verbose=None):
 
     Does special things for "projs", "bads", and "meas_date".
     """
-    values = [d[key] for d in dicts]
+    values = [d[key] for d in infos]
     msg = ("Don't know how to merge '%s'. Make sure values are "
-           "compatible." % key)
+           "compatible, got types:\n    %s"
+           % (key, [type(v) for v in values]))
 
     def _flatten(lists):
         return [item for sublist in lists for item in sublist]
@@ -1552,7 +1562,7 @@ def _merge_dict_values(dicts, key, verbose=None):
 
     # list
     if _check_isinstance(values, list, all):
-        lists = (d[key] for d in dicts)
+        lists = (d[key] for d in infos)
         if key == 'projs':
             return _uniquify_projs(_flatten(lists))
         elif key == 'bads':
@@ -1564,7 +1574,7 @@ def _merge_dict_values(dicts, key, verbose=None):
         if len(idx) == 1:
             return values[int(idx)]
         elif len(idx) > 1:
-            lists = (d[key] for d in dicts if isinstance(d[key], list))
+            lists = (d[key] for d in infos if isinstance(d[key], list))
             return _flatten(lists)
     # dict
     elif _check_isinstance(values, dict, all):
@@ -1580,8 +1590,9 @@ def _merge_dict_values(dicts, key, verbose=None):
         elif len(idx) > 1:
             raise RuntimeError(msg)
     # ndarray
-    elif _check_isinstance(values, np.ndarray, all):
-        is_qual = all(np.all(values[0] == x) for x in values[1:])
+    elif _check_isinstance(values, np.ndarray, all) or \
+            _check_isinstance(values, tuple, all):
+        is_qual = all(np.array_equal(values[0], x) for x in values[1:])
         if is_qual:
             return values[0]
         elif key == 'meas_date':
@@ -1590,7 +1601,7 @@ def _merge_dict_values(dicts, key, verbose=None):
             return None
         else:
             raise RuntimeError(msg)
-    elif _check_isinstance(values, np.ndarray, any):
+    elif _check_isinstance(values, (np.ndarray, tuple), any):
         idx = _where_isinstance(values, np.ndarray)
         if len(idx) == 1:
             return values[int(idx)]
@@ -1705,12 +1716,13 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
                     'comps', 'custom_ref_applied', 'description',
                     'experimenter', 'file_id', 'highpass',
                     'hpi_subsystem', 'events',
-                    'line_freq', 'lowpass', 'meas_date', 'meas_id',
+                    'line_freq', 'lowpass', 'meas_id',
                     'proj_id', 'proj_name', 'projs', 'sfreq', 'gantry_angle',
                     'subject_info', 'sfreq', 'xplotter_layout', 'proc_history']
     for k in other_fields:
-        info[k] = _merge_dict_values(infos, k)
+        info[k] = _merge_info_values(infos, k)
 
+    info['meas_date'] = infos[0]['meas_date']
     info._check_consistency()
     return info
 

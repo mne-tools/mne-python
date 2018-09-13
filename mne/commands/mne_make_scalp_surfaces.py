@@ -98,8 +98,10 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
         raise RuntimeError('mkheadsurf did not produce the standard output '
                            'file.')
 
-    dense_fname = '{0}/{1}/bem/{1}-head-dense.fif'.format(subjects_dir,
-                                                          subject)
+    bem_dir = op.join(subjects_dir, subject, 'bem')
+    if not op.isdir(bem_dir):
+        os.mkdir(bem_dir)
+    dense_fname = op.join(bem_dir, '%s-head-dense.fif' % subject)
     logger.info('2. Creating %s ...' % dense_fname)
     _check_file(dense_fname, overwrite)
     surf = mne.bem._surfaces_to_bem(

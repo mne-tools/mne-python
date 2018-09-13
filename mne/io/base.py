@@ -672,7 +672,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              category=DeprecationWarning)
         self.set_annotations(annotations, emit_warning=emit_warning)
 
-    def set_annotations(self, annotations, emit_warning=True):
+    def set_annotations(self, annotations, emit_warning=True, sync_orig=True):
         """Setter for annotations.
 
         This setter checks if they are inside the data range.
@@ -683,20 +683,44 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Annotations to set.
         emit_warning : bool
             Whether to emit warnings when limiting or omitting annotations.
+        sync_orig : bool
+            Whether to sync ``self.annotations.orig_time`` with
+            ``self.info['meas_date']``, or not. This parameter is meant to be
+            True, and toggled to False only to achieve backward compatibility,
+            and will be removed in version 0.18.
+            Defaults to True.
+
+             .. versionadded:: 0.17
 
         Returns
         -------
         self : instance of Raw
             The raw object with annotations.
         """
+        if sync_orig is False:
+            warn(('Unsynchronized orig_time and meas_date is deprecated and'
+                  ' will be removed 0.18.'), DeprecationWarning)
+
         if annotations is None:
             self._annotations = None
         else:
             _ensure_annotation_object(annotations)
-            time_of_first_sample = (
-                _handle_meas_date(self.info['meas_date']) +
-                (self.first_samp / self.info['sfreq']))
+
+            if self.info['meas_date'] is None and \
+               annotations.orig_time is not None:
+                raise RuntimeError('Ambiguous operation. Setting an Annotation'
+                                   ' object with known ``orig_time`` to a raw'
+                                   ' object which has ``meas_date`` set to'
+                                   ' None is ambiguous. Please, either set a'
+                                   ' meaningful ``meas_date`` to the raw'
+                                   ' object; or set ``orig_time`` to None in'
+                                   ' which case the annotation onsets would be'
+                                   ' taken in reference to the first sample of'
+                                   ' the raw object.')
+
+            meas_date = _handle_meas_date(self.info['meas_date'])
             delta = 1. / self.info['sfreq']
+            time_of_first_sample = meas_date + self.first_samp * delta
 
             new_annotations = annotations.copy()
             if annotations.orig_time is None:
@@ -708,8 +732,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             new_annotations.crop(tmin=tmin, tmax=tmax,
                                  emit_warning=emit_warning)
 
-            if annotations.orig_time is None:
+            if self.info['meas_date'] is None:
                 new_annotations.orig_time = None
+            elif sync_orig and annotations.orig_time != meas_date:
+                # XXX, TODO: this should be a function, method or something.
+                # maybe orig_time should have a setter
+                # new_annotations.orig_time = xxxxx # resets onset based on x
+                # new_annotations._update_orig(xxxx)
+                orig_time = new_annotations.orig_time
+                new_annotations.orig_time = meas_date
+                new_annotations.onset -= (meas_date - orig_time)
 
             self._annotations = new_annotations
 
