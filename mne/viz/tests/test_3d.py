@@ -287,24 +287,21 @@ def test_limits_to_control_points():
     stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99, **kwargs)
     pytest.raises(ValueError, stc.plot, clim='auto', figure=figs, **kwargs)
 
-    # Test both types of incorrect limits key (lims/pos_lims)
-    pytest.raises(KeyError, plot_source_estimates, stc, colormap='mne',
-                  clim=dict(kind='value', lims=(5, 10, 15)), **kwargs)
-    pytest.raises(KeyError, plot_source_estimates, stc, colormap='hot',
-                  clim=dict(kind='value', pos_lims=(5, 10, 15)), **kwargs)
-
     # Test for correct clim values
-    pytest.raises(ValueError, stc.plot,
-                  clim=dict(kind='value', pos_lims=[0, 1, 0]), **kwargs)
-    pytest.raises(ValueError, stc.plot, colormap='mne',
-                  clim=dict(pos_lims=(5, 10, 15, 20)), **kwargs)
-    pytest.raises(ValueError, stc.plot,
-                  clim=dict(pos_lims=(5, 10, 15), kind='foo'), **kwargs)
-    pytest.raises(ValueError, stc.plot, colormap='mne', clim='foo', **kwargs)
-    pytest.raises(ValueError, stc.plot, clim=(5, 10, 15), **kwargs)
-    pytest.raises(TypeError, plot_source_estimates, 'foo', clim='auto',
-                  **kwargs)
-    pytest.raises(ValueError, stc.plot, hemi='foo', clim='auto', **kwargs)
+    with pytest.raises(ValueError, match='monotonically'):
+        stc.plot(clim=dict(kind='value', pos_lims=[0, 1, 0]), **kwargs)
+    with pytest.raises(ValueError, match=r'.*must be \(3,\)'):
+        stc.plot(colormap='mne', clim=dict(pos_lims=(5, 10, 15, 20)), **kwargs)
+    with pytest.raises(ValueError, match='must be "value" or "percent"'):
+        stc.plot(clim=dict(pos_lims=(5, 10, 15), kind='foo'), **kwargs)
+    with pytest.raises(ValueError, match='must be "auto" or dict'):
+        stc.plot(colormap='mne', clim='foo', **kwargs)
+    with pytest.raises(TypeError, match='must be an instance of'):
+        plot_source_estimates('foo', clim='auto', **kwargs)
+    with pytest.raises(ValueError, match='hemi'):
+        stc.plot(hemi='foo', clim='auto', **kwargs)
+    with pytest.raises(ValueError, match='Exactly one'):
+        stc.plot(clim=dict(lims=[0, 1, 2], pos_lims=[0, 1, 2], kind='value'))
 
     # Test handling of degenerate data: thresholded maps
     stc._data.fill(0.)
