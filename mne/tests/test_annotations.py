@@ -526,28 +526,23 @@ def test_events_from_annot_in_raw_objects():
     assert_array_equal(expected_events5, events5)
 
 
-@pytest.fixture
-def dummy_raw():
-    """helper function that creates dummy raw object."""
-    info = create_info(ch_names=10, sfreq=1000., ch_types=None, montage=None,
-                       verbose=None)
-    raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
-                   info=info, first_samp=0)
-    raw.info['meas_date'] = 0
-    return raw
-
-
 def _create_annotation_based_on_descr(description, annotation_start_sampl=0,
-                                      duration=0, orig_time=0,
-                                      raw=dummy_raw()):
+                                      duration=0, orig_time=0):
     """helper func returning a raw object with annotations from descriptions.
 
-    The
-
+    The returning raw object contains as many annotations as description given.
+    All starting at `annotation_start_sampl`.
     """
     from pytest import approx
     from mne import Annotations
 
+    # create dummy raw
+    raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
+                   info=create_info(ch_names=10, sfreq=1000.),
+                   first_samp=0)
+    raw.info['meas_date'] = 0
+
+    # create dummy annotations based on the descriptions
     onset = raw.times[annotation_start_sampl]
     onset_matching_desc = np.full_like(description, onset, dtype=type(onset))
     duration_matching_desc = np.full_like(description, duration,
@@ -565,10 +560,9 @@ def _create_annotation_based_on_descr(description, annotation_start_sampl=0,
         raw.set_annotations(annot)
 
     # Make sure that set_annotations(annot) works
-    assert all(raw.annotations.onset == raw.times[annotation_start_sampl])
+    assert all(raw.annotations.onset == onset)
     if duration != 0:
-        expected_duration = ((1 / raw.info['sfreq']) * len(raw.times) -
-                             raw.times[annotation_start_sampl])
+        expected_duration = (len(raw.times) / raw.info['sfreq']) - onset
     else:
         expected_duration = 0
     _duration = raw.annotations.duration[0]
@@ -579,8 +573,14 @@ def _create_annotation_based_on_descr(description, annotation_start_sampl=0,
     return raw
 
 
-def test_event_id_function_behaviour():
+def test_event_id_function_default():
+    """Test[unit_test] for event_id_function default in event_from_annotations.
 
+    The expected behavior is give numeric label for all those annotations not
+    present in event_id, starting at 1.
+    """
+
+    # No event_id given
     description = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
     expected_event_id = dict(zip(description, range(1, 100)))
     expected_events = np.array([[3, 3, 3, 3, 3, 3, 3],
@@ -596,6 +596,7 @@ def test_event_id_function_behaviour():
     assert_array_equal(events, expected_events)
     assert event_id == expected_event_id
 
+    # some event_id given
     description = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
     given_event_id = {'b': 42, 'd': 42, 'f': 0}
     expected_event_id = {'a': 1, 'b': 42, 'c': 2, 'd': 42,
@@ -612,6 +613,7 @@ def test_event_id_function_behaviour():
     assert_array_equal(events, expected_events)
     assert event_id == expected_event_id
 
+    # some event_id given + repeated descriptions
     description = ['a', 'a', 'b', 'a', 'b', 'b', 'k']
     given_event_id = {'b': 42, 'd': 42, 'f': 0}
     expected_event_id = {'a': 1, 'b': 42, 'k': 2}
@@ -620,7 +622,7 @@ def test_event_id_function_behaviour():
                                 [1, 1, 42, 1, 42, 42, 2]]).T
     raw = _create_annotation_based_on_descr(description,
                                             annotation_start_sampl=3,
-                                            duration=100)
+                                            duration=0)
     events, event_id = events_from_annotations(raw, event_id=given_event_id,
                                                event_id_func=None)
 
@@ -628,8 +630,27 @@ def test_event_id_function_behaviour():
     assert event_id == expected_event_id
 
 
+def test_event_id_function_using_custom_function():
+    """Test[unit_test] for event_id_function in event_from_annotations using an
+    arbitrary function to create the ids.
+    """
+    from itertools import repeat
+
+    def _constant_id(*args, **kwargs):
+        return 42
+
+    description = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+    expected_event_id = dict(zip(description, repeat(42)))
+    expected_events = np.repeat([[0, 0, 42]], len(description), axis=0)
+    raw = _create_annotation_based_on_descr(description)
+    events, event_id = events_from_annotations(raw, event_id_func=_constant_id)
+
+    assert_array_equal(events, expected_events)
+    assert event_id == expected_event_id
+
+
 def test_counter_factory():
-    """Test that _counter_factory can be restarted."""
+    """Test that _counter_factory works and can be restarted."""
     from mne.annotations import _counter_factory
 
     event_id_func = _counter_factory()
