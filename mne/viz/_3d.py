@@ -1790,7 +1790,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     -----
     .. versionadded:: 0.17
     """
-    from matplotlib import pyplot as plt, colors, MatplotlibDeprecationWarning
+    from matplotlib import pyplot as plt, colors
+    from matplotlib.cbook import mplDeprecation
     import nibabel as nib
     from ..source_estimate import VolSourceEstimate
 
@@ -1990,7 +1991,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         axes.clear()
         fig.axes[-1].clear()  # cbar
         with warnings.catch_warnings(record=True):  # nilearn bug; ax recreated
-            warnings.simplefilter('ignore', MatplotlibDeprecationWarning)
+            warnings.simplefilter('ignore', mplDeprecation)
             fig_anat = plot_func(*args, **kwargs)
         # Fix nilearn bug w/cbar background being white
         fig_anat._cbar.patch.set_facecolor('0.5')
