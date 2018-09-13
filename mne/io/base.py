@@ -1750,7 +1750,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 "of '{}'.".format(split_naming))
         _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
                    start, stop, buffer_size, projector, drop_small_buffer,
-                   split_size, split_naming, part_idx, None)
+                   split_size, split_naming, part_idx, None, overwrite)
 
     @copy_function_doc_to_method_doc(plot_raw)
     def plot(self, events=None, duration=10.0, start=0.0, n_channels=20,
@@ -2175,7 +2175,7 @@ class _RawShell():
 # Writing
 def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                stop, buffer_size, projector, drop_small_buffer,
-               split_size, split_naming, part_idx, prev_fname):
+               split_size, split_naming, part_idx, prev_fname, overwrite):
     """Write raw file with splitting."""
     # we've done something wrong if we hit this
     n_times_max = len(raw.times)
@@ -2191,6 +2191,8 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         else:
             # insert index in filename
             use_fname = '%s_part-%02d_meg%s' % (base, part_idx, ext)
+            # check for file existence
+            _check_fname(use_fname, overwrite)
 
     else:
         use_fname = fname
@@ -2295,7 +2297,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                 fname, raw, info, picks, fmt,
                 data_type, reset_range, first + buffer_size, stop, buffer_size,
                 projector, drop_small_buffer, split_size, split_naming,
-                part_idx + 1, use_fname)
+                part_idx + 1, use_fname, overwrite)
 
             start_block(fid, FIFF.FIFFB_REF)
             write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)

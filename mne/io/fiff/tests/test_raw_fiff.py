@@ -409,11 +409,10 @@ def test_split_files():
     # check that the filenames match the intended pattern
     assert op.exists(split_fname_elekta_part2)
     # check that filenames are being formatted correctly for BIDS
-    with pytest.warns(RuntimeWarning):
-        raw_1.save(split_fname,
-                   buffer_size_sec=1.0, split_size='10MB',
-                   split_naming='bids',
-                   overwrite=True)
+    raw_1.save(split_fname,
+               buffer_size_sec=1.0, split_size='10MB',
+               split_naming='bids',
+               overwrite=True)
     assert op.exists(split_fname_bids_part1)
     assert op.exists(split_fname_bids_part2)
 
@@ -428,7 +427,8 @@ def test_split_files():
     assert_array_equal(data_1, data_2)
     assert_array_equal(times_1, times_2)
 
-    raw_bids = read_raw_fif(split_fname_bids_part1)
+    with pytest.warns(RuntimeWarning, match='does not conform to MNE'):
+        raw_bids = read_raw_fif(split_fname_bids_part1)
     data_bids, times_bids = raw_bids[:, :]
     assert_array_equal(data_1, data_bids)
     assert_array_equal(times_1, times_bids)

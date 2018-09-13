@@ -47,6 +47,8 @@ Changelog
 
 - :func:`mne.combine_evoked` and :func:`mne.grand_average` can now handle input with the same channels in different orders, if required, by `Jona Sassenhagen`_
 
+- Add `split_naming` parameter to the `Raw.save` method to allow for BIDS-compatible raw file name construction by `Teon Brooks`_
+
 Bug
 ~~~
 
@@ -2685,7 +2687,7 @@ of commits):
 
 .. _Simon Kornblith: http://simonster.com
 
-.. _Teon Brooks: http://sites.google.com/a/nyu.edu/teon/
+.. _Teon Brooks: https://teonbrooks.github.io
 
 .. _Mainak Jas: http://ltl.tkk.fi/wiki/Mainak_Jas
 
