@@ -51,10 +51,10 @@ class IPythonConsoleLexer(Lexer):
     name = 'IPython console session'
     aliases = ['ipython']
     mimetypes = ['text/x-ipython-console']
-    input_prompt = re.compile("(In \[[0-9]+\]: )|(   \.\.\.+:)")
-    output_prompt = re.compile("(Out\[[0-9]+\]: )|(   \.\.\.+:)")
-    continue_prompt = re.compile("   \.\.\.+:")
-    tb_start = re.compile("\-+")
+    input_prompt = re.compile(r"(In \[[0-9]+\]: )|(   \.\.\.+:)")
+    output_prompt = re.compile(r"(Out\[[0-9]+\]: )|(   \.\.\.+:)")
+    continue_prompt = re.compile(r"   \.\.\.+:")
+    tb_start = re.compile(r"\-+")
 
     def get_tokens_unprocessed(self, text):
         pylexer = PythonLexer(**self.options)

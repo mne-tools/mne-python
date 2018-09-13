@@ -95,7 +95,7 @@ def parse_soup_page(soup):
 def get_total_citations(soup):
     """Get total citations."""
     results = soup.find('div', attrs={'id': 'gs_ab_md'}).contents[0]
-    matches = re.search("About\s(\d+)\s", results)
+    matches = re.search(r"About\s(\d+)\s", results)
     if matches:
         hits = matches.groups()[0]
         return hits
@@ -239,7 +239,7 @@ if __name__ == '__main__':
     # sort by year of publication
     years = list()
     for pub in publications:
-        m = re.search('\d{4} -', pub)
+        m = re.search(r'\d{4} -', pub)
         if m is None:
             years.append(-1)
         else:
