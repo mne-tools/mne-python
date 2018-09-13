@@ -484,7 +484,8 @@ def test_events_from_annot_in_raw_objects():
     event_map = {v: k for k, v in event_id.items()}
     annot = Annotations(onset=raw.times[events[:, 0] - raw.first_samp],
                         duration=np.zeros(len(events)),
-                        description=[event_map[vv] for vv in events[:, 2]])
+                        description=[event_map[vv] for vv in events[:, 2]],
+                        orig_time=None)
     raw.set_annotations(annot)
 
     events2, event_id2 = \
@@ -532,6 +533,7 @@ def dummy_raw():
                        verbose=None)
     raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
                    info=info, first_samp=0)
+    raw.info['meas_date'] = 0
     return raw
 
 
