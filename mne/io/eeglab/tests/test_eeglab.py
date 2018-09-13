@@ -344,6 +344,7 @@ def test_read_annotations_eeglab():
     validation_samples = [0, 1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31]
     expected_onset = np.array([1.00, 1.69, 2.08, 4.70, 7.71, 11.30, 17.18,
                                20.20, 26.12, 29.14, 35.25, 44.30, 47.15])
+    assert annotations.orig_time is None
     assert_array_almost_equal(annotations.onset[validation_samples],
                               expected_onset, decimal=2)
 
