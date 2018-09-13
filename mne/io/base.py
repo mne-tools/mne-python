@@ -672,7 +672,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              category=DeprecationWarning)
         self.set_annotations(annotations, emit_warning=emit_warning)
 
-    def set_annotations(self, annotations, sync_orig=True, emit_warning=True):
+    def set_annotations(self, annotations, emit_warning=True, sync_orig=True):
         """Setter for annotations.
 
         This setter checks if they are inside the data range.
@@ -681,6 +681,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         annotations : Instance of mne.Annotations
             Annotations to set.
+        emit_warning : bool
+            Whether to emit warnings when limiting or omitting annotations.
         sync_orig : bool
             Whether to sync ``self.annotations.orig_time`` with
             ``self.info['meas_date']``, or not. This parameter is meant to be
@@ -689,8 +691,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Defaults to True.
 
              .. versionadded:: 0.17
-        emit_warning : bool
-            Whether to emit warnings when limiting or omitting annotations.
 
         Returns
         -------
