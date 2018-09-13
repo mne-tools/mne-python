@@ -637,7 +637,7 @@ def dummy_xx():
     """helper function that creates dummy raw object."""
     info = create_info(ch_names=10, sfreq=1000., ch_types=None, montage=None,
                        verbose=None,)
-    info['meas_date'] = np.array([1038942070, 720100])
+    info['meas_date'] = (1038942070, 720100)
     raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
                    info=info, first_samp=20)
     return raw
