@@ -70,14 +70,6 @@ def test_io_set_raw(fnames, tmpdir):
                  'string preload is not supported'):
         assert (any(want in str(ww.message) for ww in w))
 
-    # XXX `match='Data will be preloaded'` should work, to capture only this
-    #     warning, and then compare len(w) == 4:
-    # RuntimeWarning('Data will be preloaded. preload=False or a string '
-    #                'preload is not supported when the data is stored in '
-    #                'the .set file')
-    # But using only RuntimeWarning catches a bunch of things that need popping
-    #
-    # with pytest.warns(RuntimeWarning, match='Data will') as w:
     with pytest.warns(RuntimeWarning) as w:
         # test finding events in continuous data
         event_id = {'rt': 1, 'square': 2}
@@ -92,7 +84,6 @@ def test_io_set_raw(fnames, tmpdir):
         raw4 = read_raw_eeglab(input_fname=raw_fname, montage=montage)
 
         [w.pop(DeprecationWarning) for _ in range(5)]  # read_events_eeglab
-        # [w.pop(RuntimeWarning) for _ in range(4)] This is what I'm searching
 
         assert raw0.filenames[0].endswith('.fdt')  # .set with additional .fdt
         assert raw2.filenames[0].endswith('.set')  # standalone .set
