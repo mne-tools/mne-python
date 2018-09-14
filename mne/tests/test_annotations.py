@@ -526,6 +526,24 @@ def test_events_from_annot_in_raw_objects():
     assert_array_equal(expected_events5, events5)
 
 
+def test_events_from_annot_onset_alingment():
+    from mne.io.tests.test_raw import _raw_annot
+    #       sec  0        1        2        3
+    #       raw  .        |--------XXXXXXXXX
+    #     annot  .             |---XX
+    # raw.annot  .        |--------XX
+    #   latency  .        0        1        2
+    #            .                 0        0
+
+    raw = _raw_annot(meas_date=1, orig_time=1.5)
+    assert raw.annotations.orig_time == 1
+    assert raw.annotations.onset[0] == 1
+    assert raw.first_samp == 10
+    xx, yy = events_from_annotations(raw)
+    assert xx[0, 0] == 10
+    assert raw.first_samp == xx[0, 0]
+
+
 def _create_annotation_based_on_descr(description, annotation_start_sampl=0,
                                       duration=0, orig_time=0):
     """Helper_func returning a raw object with annotations from descriptions.
