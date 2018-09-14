@@ -154,47 +154,23 @@ def test_time_as_index():
     assert_array_equal(new_inds, np.arange(len(raw.times)))
 
 
-def test_time_as_index_refA():
+@pytest.mark.parametrize('offset, origin',
+                         [(0, None), (0, 2.0), (1, 1.0), (2, 0.0)],
+                         ids=['times in s. relative to first_samp (default)',
+                              'times in s. relative to first_samp',
+                              'times in s. relative to meas_date',
+                              'absolute times in s. relative to 0'])
+def test_time_as_index_ref(offset, origin):
     """Test indexing of raw times."""
     meas_date = 1
     info = create_info(ch_names=10, sfreq=10.)
     raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
     raw.info['meas_date'] = meas_date
 
-    inds = raw.time_as_index(raw.times + 0, use_rounding=True)
-    assert_array_equal(inds, np.arange(raw.n_times))
-
-
-def test_time_as_index_refD():
-    """Test indexing of raw times."""
-    meas_date = 1
-    info = create_info(ch_names=10, sfreq=10.)
-    raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
-    raw.info['meas_date'] = meas_date
-
-    inds = raw.time_as_index(raw.times + 0, use_rounding=True, origin=2)
-    assert_array_equal(inds, np.arange(raw.n_times))
-
-
-def test_time_as_index_refB():
-    """Test indexing of raw times."""
-    meas_date = 1
-    info = create_info(ch_names=10, sfreq=10.)
-    raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
-    raw.info['meas_date'] = meas_date
-
-    inds = raw.time_as_index(raw.times + 1, use_rounding=True, origin=1)
-    assert_array_equal(inds, np.arange(raw.n_times))
-
-
-def test_time_as_index_refC():
-    """Test indexing of raw times."""
-    meas_date = 1
-    info = create_info(ch_names=10, sfreq=10.)
-    raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
-    raw.info['meas_date'] = meas_date
-
-    inds = raw.time_as_index(raw.times + 2, use_rounding=True, origin=0)
+    relative_times = raw.times
+    inds = raw.time_as_index(relative_times + offset,
+                             use_rounding=True,
+                             origin=origin)
     assert_array_equal(inds, np.arange(raw.n_times))
 
 
