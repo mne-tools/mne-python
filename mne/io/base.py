@@ -218,6 +218,12 @@ class TimeMixin(object):
         use_rounding : boolean
             If True, use rounding (instead of truncation) when converting
             times to indices. This can help avoid non-unique indices.
+        origin: time-like | float | int | None
+            Time reference for times. If None, ``times`` are assumed to be
+            relative to ``first_samp``.
+
+            .. versionadded:: 0.17.0
+
 
         Returns
         -------
