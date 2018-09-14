@@ -175,7 +175,7 @@ def test_find_events():
     rt_client = MockRtClient(raw)
     rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
                          stim_channel='STI 014', isi_max=0.5,
-                         find_events=find_events, verbose='WARNING')
+                         find_events=find_events)
     rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10, buffer_size=1000)
     rt_epochs.start()
     # make sure next() works even if no iter-method has been called before
@@ -191,7 +191,7 @@ def test_find_events():
     rt_client = MockRtClient(raw)
     rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
                          stim_channel='STI 014', isi_max=0.5,
-                         find_events=find_events, verbose='WARNING')
+                         find_events=find_events)
     rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10, buffer_size=1000)
     rt_epochs.start()
     events = [5, 6, 5, 6]
@@ -204,7 +204,7 @@ def test_find_events():
     rt_client = MockRtClient(raw)
     rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
                          stim_channel='STI 014', isi_max=0.5,
-                         find_events=find_events, verbose='WARNING')
+                         find_events=find_events)
     rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10, buffer_size=1000)
     rt_epochs.start()
     events = [5]
@@ -217,7 +217,7 @@ def test_find_events():
     rt_client = MockRtClient(raw)
     rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
                          stim_channel='STI 014', isi_max=0.5,
-                         find_events=find_events, verbose='WARNING')
+                         find_events=find_events)
     rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10, buffer_size=1000)
     rt_epochs.start()
     events = [5, 6, 5, 0, 6, 0]
@@ -238,7 +238,7 @@ def test_find_events():
     rt_client = MockRtClient(raw)
     rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
                          stim_channel='STI 014', isi_max=0.5,
-                         find_events=find_events, verbose='WARNING')
+                         find_events=find_events)
     rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10, buffer_size=1000)
     rt_epochs.start()
     events = [5]
@@ -258,7 +258,7 @@ def test_find_events():
         rt_client = MockRtClient(raw)
         rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
                              stim_channel='STI 014', isi_max=0.5,
-                             find_events=find_events, verbose='WARNING')
+                             find_events=find_events)
         rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10,
                             buffer_size=1000)
         rt_epochs.start()
