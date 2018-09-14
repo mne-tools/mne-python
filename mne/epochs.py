@@ -1604,7 +1604,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             return epochs
 
     def crop(self, tmin=None, tmax=None):
-        """Crop a time interval from the epochs."
+        """Crop a time interval from the epochs.
 
         Parameters
         ----------
