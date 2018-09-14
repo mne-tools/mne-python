@@ -1720,15 +1720,11 @@ def _get_ps_kwargs(initial_time, require='0.6'):
 
 
 def _glass_brain_crosshairs(params, x, y, z):
-    from matplotlib import patheffects
-    shadow = patheffects.withStroke(foreground='k', linewidth=2)
-    marker_kwargs = dict(
-        markersize=20, markerfacecolor='none', markeredgecolor='w',
-        markeredgewidth=0.5, marker='+', path_effects=[shadow], lw=1)
     for ax, a, b in ((params['ax_y'], x, z),
                      (params['ax_x'], y, z),
                      (params['ax_z'], x, y)):
-        ax.plot(a, b, 'o', **marker_kwargs)[0]
+        ax.axvline(a, color='0.75')
+        ax.axhline(b, color='0.75')
 
 
 @verbose
@@ -1837,10 +1833,10 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     def _get_cut_coords_stat_map(event, params):
         """Get voxel coordinates from mouse click."""
-        if event.inaxes is ax_x:
+        if event.inaxes is params['ax_x']:
             cut_coords = (params['ax_z'].lines[0].get_xdata()[0],
                           event.xdata, event.ydata)
-        elif event.inaxes is ax_y:
+        elif event.inaxes is params['ax_y']:
             cut_coords = (event.xdata,
                           params['ax_x'].lines[0].get_xdata()[0],
                           event.ydata)
@@ -1853,11 +1849,11 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         """Get voxel coordinates with max intensity projection."""
         img_data = np.abs(params['img_idx_resampled'].get_data())
         shape = img_data.shape
-        if event.inaxes is ax_x:
+        if event.inaxes is params['ax_x']:
             y, z = int(round(event.xdata)), int(round(event.ydata))
             x = np.argmax(img_data[:, y + shape[1] // 2, z + shape[2] // 2])
             x -= shape[0] // 2
-        elif event.inaxes is ax_y:
+        elif event.inaxes is params['ax_y']:
             x, z = int(round(event.xdata)), int(round(event.ydata))
             y = np.argmax(img_data[x + shape[0] // 2, :, z + shape[2] // 2])
             y -= shape[1] // 2
@@ -1910,9 +1906,6 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             plot_map_callback(params['img_idx'], title='',
                               cut_coords=cut_coords)
             loc_idx = _cut_coords_to_idx(cut_coords, params['img_idx'])
-
-            if mode == 'glass_brain':
-                _glass_brain_crosshairs(params, *cut_coords)
             if loc_idx is not None:
                 ax_time.lines[0].set_ydata(stc.data[loc_idx].T)
             else:
@@ -1943,15 +1936,12 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     # Plot initial figure
     fig = plt.figure()
 
-    vmin = -vmax
-    if np.all(stc.data > 0):
-        vmin = 0.
-    ax_time = fig.add_axes([0.09, 0.1, 0.9, 0.4], ylim=(vmin, vmax))
+    pos = [0.09, 0.1, 0.81, 0.4]
+    ax_time = fig.add_axes(pos)
     ax_time.plot(stc.times, stc.data[loc_idx].T, color='k')
-    ax_time.set(xlim=stc.times[[0, -1]])
+    ax_time.set(xlim=stc.times[[0, -1]],
+                xlabel='Time (s)', ylabel='Activation')
     lx = ax_time.axvline(stc.times[idx], color='g')
-    plt.xlabel('Time (ms)')
-    plt.ylabel('Activation')
 
     allow_pos_lims = (mode != 'glass_brain')
     ctrl_pts, colormap, scale_pts, _ = _limits_to_control_points(
@@ -1987,44 +1977,41 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     # black_bg = True is needed because of some matplotlib
     # peculiarity. See: https://stackoverflow.com/a/34730204
     # Otherwise, event.inaxes does not work for ax_x and ax_z
-    axes = fig.add_axes([0.09, 0.55, 0.9, 0.4])
+    pos[1] = 0.55
+    axes = fig.add_axes(pos)
     plot_kwargs = dict(
         threshold=None, axes=axes,
         resampling_interpolation='nearest', vmax=vmax, figure=fig,
         colorbar=colorbar, bg_img=bg_img_param, cmap=colormap, black_bg=True,
         symmetric_cbar=True)
 
-    plot_func = partial(plot_func, **plot_kwargs)
-
     def plot_and_correct(*args, **kwargs):
         axes.clear()
         fig.axes[-1].clear()  # cbar
         with warnings.catch_warnings(record=True):  # nilearn bug; ax recreated
             warnings.simplefilter('ignore', mplDeprecation)
-            fig_anat = plot_func(*args, **kwargs)
+            fig_anat = partial(plot_func, **plot_kwargs)(*args, **kwargs)
+        params.update(ax_x=fig_anat.axes['x'].ax,
+                      ax_y=fig_anat.axes['y'].ax,
+                      ax_z=fig_anat.axes['z'].ax)
         # Fix nilearn bug w/cbar background being white
         if plot_kwargs['colorbar']:
             fig_anat._cbar.patch.set_facecolor('0.5')
             # adjust one-sided colorbars
             if not diverging:
                 _crop_colorbar(fig_anat._cbar, *ctrl_pts[[0, -1]])
+        if mode == 'glass_brain':
+            _glass_brain_crosshairs(params, *kwargs['cut_coords'])
         return fig_anat
 
     params = dict(stc=stc, ax_time=ax_time, plot_func=plot_and_correct,
                   img_idx=img_idx, fig=fig, bg_img=bg_img, lx=lx)
 
-    fig_anat = plot_and_correct(stat_map_img=params['img_idx'], title='',
-                                cut_coords=cut_coords)
-
-    ax_x = fig_anat.axes['x'].ax
-    ax_y = fig_anat.axes['y'].ax
-    ax_z = fig_anat.axes['z'].ax
-    params.update({'ax_x': ax_x, 'ax_y': ax_y, 'ax_z': ax_z})
+    plot_and_correct(stat_map_img=params['img_idx'], title='',
+                     cut_coords=cut_coords)
     if mode == 'glass_brain':
-        img_resampled = resample_to_img(params['img_idx'],
-                                        params['bg_img'])
-        params.update({'img_idx_resampled': img_resampled})
-        _glass_brain_crosshairs(params, *cut_coords)
+        params.update(img_idx_resampled=resample_to_img(
+            params['img_idx'], params['bg_img']))
 
     if show:
         plt.show()
