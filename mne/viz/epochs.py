@@ -15,7 +15,7 @@ import copy
 
 import numpy as np
 
-from ..utils import verbose, get_config, set_config, logger, warn
+from ..utils import verbose, get_config, set_config, logger, warn, _pl
 from ..io.pick import pick_types, channel_type, _get_channel_types
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
@@ -313,14 +313,15 @@ def _get_picks_and_types(picks, ch_types, group_by, combine):
             n_picks = len(picks_)
             if n_picks < 2:
                 raise ValueError(" ".join(
-                    (name, "has only ", str(n_picks), "sensor(s).")))
+                    (name, "has only ", str(n_picks),
+                     "sensor{}.".format(_pl(n_picks)))))
         all_ch_types = list()
         for picks_, name in zip(all_picks, names):
             this_ch_type = list(set((ch_types[pick] for pick in picks_)))
             n_types = len(this_ch_type)
             if n_types > 1:  # we can only scale properly with 1 type
                 raise ValueError(
-                    "Roi {} contains > 1 sensor types ({})!".format(
+                    "Roi {} contains more than one sensor types ({})!".format(
                         name, n_types))
             all_ch_types.append(this_ch_type[0])
             names.append(name)

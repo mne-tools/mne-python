@@ -814,7 +814,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self.next(*args, **kwargs)
 
     def average(self, picks=None, method="mean"):
-        """Compute an aggregate over epochs. Defaults to the mean.
+        """Compute an aggregate over epochs, by default the mean.
 
         Parameters
         ----------
@@ -827,8 +827,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Otherwise, must be a callable which, when passed an array of shape
             (n_epochs, n_channels, n_time) returns an array of shape
             (n_channels, n_time).
-
-            e.g.::    epochs.average(method=lambda x: np.median(x, axis=0))
 
         Returns
         -------
@@ -845,6 +843,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         are selected, resulting in an error. This is because ICA channels
         are not considered data channels (they are of misc type) and only data
         channels are selected when picks is None.
+
+        The `method` parameter allows robust aggregation. For example, one
+        could do:
+
+            >>> from scipy.stats import trim_mean  # doctest:+SKIP
+            >>> epochs.average(method=lambda x: trim_mean(x, 10, axis=0))  # doctest:+SKIP
+
+        This would compute the trimmed mean.
+
         """
         return self._compute_aggregate(picks=picks, mode=method)
 
@@ -896,7 +903,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  ", got %s (type %s)." % (mode, type(mode)))
             data = fun(self._data)
             assert len(self.events) == len(self._data)
-            if data.shape != self._data.shape[1:] and callable(mode):
+            if data.shape != self._data.shape[1:]:
                     raise RuntimeError("You passed a function that resulted "
                                        "in data of shape {}, but it should be "
                                        "{}.".format(data.shape,
@@ -925,9 +932,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     data += (e - data_mean) ** 2
                 data = np.sqrt(data / n_events)
 
-        if mode == "mean":
-            kind = 'average'
-        elif mode == "std":
+        if mode == "std":
             kind = 'standard_error'
             data /= np.sqrt(n_events)
         else:
@@ -1599,7 +1604,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             return epochs
 
     def crop(self, tmin=None, tmax=None):
-        """Crop a time interval from the epochs, which is modified in-place.
+        """Crop a time interval from the epochs."
 
         Parameters
         ----------
@@ -1617,6 +1622,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         Unlike Python slices, MNE time intervals include both their end points;
         crop(tmin, tmax) returns the interval tmin <= t <= tmax.
+
+        Note that the object is modified in place.
         """
         # XXX this could be made to work on non-preloaded data...
         _check_preload(self, 'Modifying data of epochs')
