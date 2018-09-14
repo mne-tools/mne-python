@@ -1934,14 +1934,13 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     cut_coords = apply_trans(img.affine, (x, y, z))
 
     # Plot initial figure
-    fig = plt.figure()
-
-    pos = [0.09, 0.1, 0.81, 0.4]
-    ax_time = fig.add_axes(pos)
+    fig, (axes, ax_time) = plt.subplots(2)
     ax_time.plot(stc.times, stc.data[loc_idx].T, color='k')
     ax_time.set(xlim=stc.times[[0, -1]],
                 xlabel='Time (s)', ylabel='Activation')
     lx = ax_time.axvline(stc.times[idx], color='g')
+    axes.set(xticks=[], yticks=[])
+    fig.tight_layout()
 
     allow_pos_lims = (mode != 'glass_brain')
     ctrl_pts, colormap, scale_pts, _ = _limits_to_control_points(
@@ -1977,8 +1976,6 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     # black_bg = True is needed because of some matplotlib
     # peculiarity. See: https://stackoverflow.com/a/34730204
     # Otherwise, event.inaxes does not work for ax_x and ax_z
-    pos[1] = 0.55
-    axes = fig.add_axes(pos)
     plot_kwargs = dict(
         threshold=None, axes=axes,
         resampling_interpolation='nearest', vmax=vmax, figure=fig,
@@ -1987,22 +1984,22 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     def plot_and_correct(*args, **kwargs):
         axes.clear()
-        fig.axes[-1].clear()  # cbar
+        if params.get('fig_anat') is not None and plot_kwargs['colorbar']:
+            params['fig_anat']._cbar.ax.clear()
         with warnings.catch_warnings(record=True):  # nilearn bug; ax recreated
             warnings.simplefilter('ignore', mplDeprecation)
-            fig_anat = partial(plot_func, **plot_kwargs)(*args, **kwargs)
-        params.update(ax_x=fig_anat.axes['x'].ax,
-                      ax_y=fig_anat.axes['y'].ax,
-                      ax_z=fig_anat.axes['z'].ax)
+            params['fig_anat'] = partial(
+                plot_func, **plot_kwargs)(*args, **kwargs)
+        for key in 'xyz':
+            params.update({'ax_' + key: params['fig_anat'].axes[key].ax})
         # Fix nilearn bug w/cbar background being white
         if plot_kwargs['colorbar']:
-            fig_anat._cbar.patch.set_facecolor('0.5')
+            params['fig_anat']._cbar.patch.set_facecolor('0.5')
             # adjust one-sided colorbars
             if not diverging:
-                _crop_colorbar(fig_anat._cbar, *ctrl_pts[[0, -1]])
+                _crop_colorbar(params['fig_anat']._cbar, *ctrl_pts[[0, -1]])
         if mode == 'glass_brain':
             _glass_brain_crosshairs(params, *kwargs['cut_coords'])
-        return fig_anat
 
     params = dict(stc=stc, ax_time=ax_time, plot_func=plot_and_correct,
                   img_idx=img_idx, fig=fig, bg_img=bg_img, lx=lx)
