@@ -208,7 +208,7 @@ class ToDataFrameMixin(object):
 class TimeMixin(object):
     """Class to add sfreq and time_as_index capabilities to certain classes."""
 
-    def time_as_index(self, times, use_rounding=False):
+    def time_as_index(self, times, use_rounding=False, origin=None):
         """Convert time to indices.
 
         Parameters
@@ -229,7 +229,15 @@ class TimeMixin(object):
             sfreq = 1. / self.tstep
         else:
             sfreq = self.info['sfreq']
-        index = (np.atleast_1d(times)) * sfreq
+
+        if origin is None:
+            index = np.atleast_1d(times) * sfreq
+        else:
+            absolute_time = np.atleast_1d(times) + _handle_meas_date(origin)
+            first_samp_in_abs_time = (_handle_meas_date(
+                self.info['meas_date']) + self.first_samp / self.info['sfreq'])
+            index = (absolute_time - first_samp_in_abs_time) * sfreq
+
         if use_rounding:
             index = np.round(index)
         return index.astype(int)
