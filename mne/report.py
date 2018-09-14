@@ -15,7 +15,6 @@ import codecs
 import time
 from glob import glob
 import warnings
-
 import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
@@ -32,6 +31,7 @@ from .viz.raw import _data_types
 from .externals.tempita import HTMLTemplate, Template
 from .externals.six import BytesIO
 from .externals.six import moves
+from .externals.h5io import read_hdf5, write_hdf5
 
 VALID_EXTENSIONS = ['raw.fif', 'raw.fif.gz', 'sss.fif', 'sss.fif.gz',
                     '-eve.fif', '-eve.fif.gz', '-cov.fif', '-cov.fif.gz',
@@ -314,6 +314,49 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
         _update_html(html, report_fname, report_sectionlabel)
 
     return htmls, report_fnames, report_sectionlabels
+
+
+def open_report(fname, **params):
+    """Read a saved report or, if it doesn't exist yet, create a new one.
+
+    The returned report can be used as a context manager, in which case any
+    changes to the report are saved when exiting the context block.
+
+    Parameters
+    ----------
+    fname : str
+        The file containing the report, stored in the HDF5 format. If the file
+        does not exist yet, a new report is created that will be saved to the
+        specified file.
+    **params : list of parameters
+        When creating a new report, any named parameters other than ``fname``
+        are passed to the `__init__` function of the `Report` object. When
+        reading an existing report, the parameters are checked with the
+        loaded report and an exception is raised when they don't match.
+
+    Returns
+    -------
+    report : instance of Report
+        The report.
+    """
+    if op.exists(fname):
+        # Check **params with the loaded report
+        state = read_hdf5(fname, title='mnepython')
+        for param in params.keys():
+            if param not in state:
+                raise ValueError('The loaded report has no attribute %s' %
+                                 param)
+            if params[param] != state[param]:
+                raise ValueError("Attribute '%s' of loaded report does not "
+                                 "match the given parameter." % param)
+        report = Report()
+        report.__setstate__(state)
+    else:
+        report = Report(**params)
+    # Keep track of the filename in case the Report object is used as a context
+    # manager.
+    report._fname = fname
+    return report
 
 
 ###############################################################################
@@ -1354,17 +1397,67 @@ class Report(object):
                 warn('`subjects_dir` and `subject` not provided. Cannot '
                      'render MRI and -trans.fif(.gz) files.')
 
+    def _get_state_params(self):
+        """Obtain all fields that are in the state dictionary of this object.
+
+        Returns
+        -------
+        non_opt_params : list of str
+            All parameters that must be present in the state dictionary.
+        opt_params : list of str
+            All parameters that are optionally present in the state dictionary.
+        """
+        # Note: self._fname is not part of the state
+        return (['baseline', 'cov_fname', 'fnames', 'html', 'include',
+                 'image_format', 'info_fname', 'initial_id', 'raw_psd',
+                 '_sectionlabels', 'sections', '_sectionvars',
+                 '_sort_sections', 'subjects_dir', 'subject', 'title',
+                 'verbose'],
+                ['data_path', '_sort'])
+
+    def __getstate__(self):
+        """Get the state of the report as a dictionary."""
+        state = dict()
+        non_opt_params, opt_params = self._get_state_params()
+        for param in non_opt_params:
+            state[param] = getattr(self, param)
+        for param in opt_params:
+            if hasattr(self, param):
+                state[param] = getattr(self, param)
+        return state
+
+    def __setstate__(self, state):
+        """Set the state of the report."""
+        non_opt_params, opt_params = self._get_state_params()
+        for param in non_opt_params:
+            setattr(self, param, state[param])
+        for param in opt_params:
+            if param in state:
+                setattr(self, param, state[param])
+        return state
+
     def save(self, fname=None, open_browser=True, overwrite=False):
-        """Save html report and open it in browser.
+        """Save the report and optionally open it in browser.
 
         Parameters
         ----------
-        fname : str
-            File name of the report.
+        fname : str | None
+            File name of the report. If the file name ends in '.h5' or '.hdf5',
+            the report is saved in HDF5 format, so it can later be loaded again
+            with :func:`open_report`. If the file name ends in anything else,
+            the report is rendered to HTML. If ``None``, the report is saved to
+            'report.html' in the current working directory.
+            Defaults to ``None``.
         open_browser : bool
-            Open html browser after saving if True.
+            When saving to HTML, open the rendered HTML file browser after
+            saving if True. Defaults to True.
         overwrite : bool
-            If True, overwrite report if it already exists.
+            If True, overwrite report if it already exists. Defaults to False.
+
+        Returns
+        -------
+        fname : str
+            The file name to which the report was saved.
         """
         if fname is None:
             if not hasattr(self, 'data_path'):
@@ -1375,14 +1468,6 @@ class Report(object):
         else:
             fname = op.realpath(fname)
 
-        self._render_toc()
-
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter('ignore')
-            html = footer_template.substitute(date=time.strftime("%B %d, %Y"),
-                                              current_year=time.strftime("%Y"))
-        self.html.append(html)
-
         if not overwrite and op.isfile(fname):
             msg = ('Report already exists at location %s. '
                    'Overwrite it (y/[n])? '
@@ -1391,22 +1476,54 @@ class Report(object):
             if answer.lower() == 'y':
                 overwrite = True
 
+        _, ext = op.splitext(fname)
+        is_hdf5 = ext.lower() in ['.h5', '.hdf5']
+
         if overwrite or not op.isfile(fname):
             logger.info('Saving report to location %s' % fname)
-            fobj = codecs.open(fname, 'w', 'utf-8')
-            fobj.write(_fix_global_ids(u''.join(self.html)))
-            fobj.close()
 
-            # remove header, TOC and footer to allow more saves
-            self.html.pop(0)
-            self.html.pop(0)
-            self.html.pop()
+            if is_hdf5:
+                write_hdf5(fname, self.__getstate__(), overwrite=overwrite,
+                           title='mnepython')
+            else:
+                self._render_toc()
 
-        if open_browser:
+                # Annotate the HTML with a TOC and footer.
+                with warnings.catch_warnings(record=True):
+                    warnings.simplefilter('ignore')
+                    html = footer_template.substitute(
+                        date=time.strftime("%B %d, %Y"),
+                        current_year=time.strftime("%Y"))
+                self.html.append(html)
+
+                # Writing to disk may fail. However, we need to make sure that
+                # the TOC and footer are removed regardless, otherwise they
+                # will be duplicated when the user attempts to save again.
+                try:
+                    # Write HTML
+                    with codecs.open(fname, 'w', 'utf-8') as fobj:
+                        fobj.write(_fix_global_ids(u''.join(self.html)))
+                finally:
+                    self.html.pop(0)
+                    self.html.pop(0)
+                    self.html.pop()
+
+        if open_browser and not is_hdf5:
             import webbrowser
             webbrowser.open_new_tab('file://' + fname)
 
+        self.fname = fname
         return fname
+
+    def __enter__(self):
+        """Do nothing when entering the context block."""
+        return self
+
+    def __exit__(self, type, value, traceback):
+        """Save the report when leaving the context block."""
+        if self._fname is not None:
+            self.save(self._fname, open_browser=False, overwrite=True)
+        return self
 
     @verbose
     def _render_toc(self, verbose=None):
