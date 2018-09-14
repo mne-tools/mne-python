@@ -229,7 +229,7 @@ class TimeMixin(object):
             sfreq = 1. / self.tstep
         else:
             sfreq = self.info['sfreq']
-        index = (np.atleast_1d(times) - self.times[0]) * sfreq
+        index = (np.atleast_1d(times)) * sfreq
         if use_rounding:
             index = np.round(index)
         return index.astype(int)
