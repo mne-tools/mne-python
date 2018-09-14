@@ -139,7 +139,7 @@ def _test_concat(reader, *args):
 
 
 @testing.requires_testing_data
-def test_time_index():
+def test_time_as_index():
     """Test indexing of raw times."""
     raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                         'data', 'test_raw.fif')
@@ -151,7 +151,7 @@ def test_time_index():
 
     # Test new (rounding) indexing behavior
     new_inds = raw.time_as_index(raw.times, use_rounding=True)
-    assert(len(set(new_inds)) == len(new_inds))
+    assert_array_equal(new_inds, np.arange(len(raw.times)))
 
 
 def test_annotation_property_deprecation_warning():
