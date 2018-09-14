@@ -497,7 +497,7 @@ def test_events_from_annot_in_raw_objects():
         events_from_annotations(raw, event_id=None, regexp=None)
 
     assert_array_equal(events[:, 0], events3[:, 0])
-    assert list(event_id.keys()).sort() == list(event_id3.keys()).sort()
+    assert set(event_id.keys()) == set(event_id3.keys())
 
     first = np.unique(events3[:, 2])
     second = np.arange(1, len(event_id) + 1, 1).astype(first.dtype)
@@ -528,7 +528,7 @@ def test_events_from_annot_in_raw_objects():
 
 def _create_annotation_based_on_descr(description, annotation_start_sampl=0,
                                       duration=0, orig_time=0):
-    """helper func returning a raw object with annotations from descriptions.
+    """Helper_func returning a raw object with annotations from descriptions.
 
     The returning raw object contains as many annotations as description given.
     All starting at `annotation_start_sampl`.
@@ -579,7 +579,6 @@ def test_event_id_function_default():
     The expected behavior is give numeric label for all those annotations not
     present in event_id, starting at 1.
     """
-
     # No event_id given
     description = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
     expected_event_id = dict(zip(description, range(1, 100)))
@@ -631,9 +630,7 @@ def test_event_id_function_default():
 
 
 def test_event_id_function_using_custom_function():
-    """Test[unit_test] for event_id_function in event_from_annotations using an
-    arbitrary function to create the ids.
-    """
+    """Test [unit_test] arbitrary function to create the ids."""
     from itertools import repeat
 
     def _constant_id(*args, **kwargs):

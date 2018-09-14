@@ -520,7 +520,7 @@ def _ensure_annotation_object(obj):
 
 
 def _counter_factory():
-    """create a callable counter that takes 1 parameter.
+    """Create a callable counter that takes 1 parameter.
 
     It can be used as follows::
 
@@ -597,9 +597,6 @@ def events_from_annotations(raw, event_id=None, regexp=None,
     inds = raw.time_as_index(annotations.onset, use_rounding=True)
 
     # Filter out the annotations that do not match regexp
-    if regexp is not None:
-        pat = re.compile(regexp)
-
     if regexp is not None:
         pat = re.compile(regexp)
 
