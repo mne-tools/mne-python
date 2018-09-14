@@ -770,9 +770,7 @@ def _read_annotations_eeglab(eeg):
     if len(events) > 0 and hasattr(events[0], 'duration'):
         duration[:] = [event.duration for event in events]
 
-    onset = np.array(onset) / eeg.srate
-
-    return Annotations(onset=onset,
+    return Annotations(onset=np.array(onset) / eeg.srate,
                        duration=duration,
                        description=description,
                        orig_time=None)
