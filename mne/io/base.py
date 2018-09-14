@@ -237,7 +237,7 @@ class TimeMixin(object):
             sfreq = self.info['sfreq']
 
         if origin is None:
-            index = np.atleast_1d(times) * sfreq
+            index = (np.atleast_1d(times) - self.times[0]) * sfreq
         else:
             absolute_time = np.atleast_1d(times) + _handle_meas_date(origin)
             first_samp_in_abs_time = (_handle_meas_date(
