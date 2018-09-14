@@ -154,6 +154,50 @@ def test_time_as_index():
     assert_array_equal(new_inds, np.arange(len(raw.times)))
 
 
+def test_time_as_index_refA():
+    """Test indexing of raw times."""
+    meas_date = 1
+    info = create_info(ch_names=10, sfreq=10.)
+    raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
+    raw.info['meas_date'] = meas_date
+
+    inds = raw.time_as_index(raw.times + 0, use_rounding=True)
+    assert_array_equal(inds, np.arange(raw.n_times))
+
+
+def test_time_as_index_refD():
+    """Test indexing of raw times."""
+    meas_date = 1
+    info = create_info(ch_names=10, sfreq=10.)
+    raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
+    raw.info['meas_date'] = meas_date
+
+    inds = raw.time_as_index(raw.times + 0, use_rounding=True, origin=2)
+    assert_array_equal(inds, np.arange(raw.n_times))
+
+
+def test_time_as_index_refB():
+    """Test indexing of raw times."""
+    meas_date = 1
+    info = create_info(ch_names=10, sfreq=10.)
+    raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
+    raw.info['meas_date'] = meas_date
+
+    inds = raw.time_as_index(raw.times + 1, use_rounding=True, origin=1)
+    assert_array_equal(inds, np.arange(raw.n_times))
+
+
+def test_time_as_index_refC():
+    """Test indexing of raw times."""
+    meas_date = 1
+    info = create_info(ch_names=10, sfreq=10.)
+    raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
+    raw.info['meas_date'] = meas_date
+
+    inds = raw.time_as_index(raw.times + 2, use_rounding=True, origin=0)
+    assert_array_equal(inds, np.arange(raw.n_times))
+
+
 def test_annotation_property_deprecation_warning():
     """Test that assigning annotations warns and nowhere else."""
     with pytest.warns(None) as w:
