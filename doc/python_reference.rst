@@ -267,6 +267,7 @@ Visualization
    plot_sensors
    plot_snr_estimate
    plot_source_estimates
+   plot_volume_source_estimates
    plot_vector_source_estimates
    plot_sparse_source_estimates
    plot_tfr_topomap
