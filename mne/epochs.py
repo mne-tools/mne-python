@@ -848,7 +848,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         could do:
 
             >>> from scipy.stats import trim_mean  # doctest:+SKIP
-            >>> epochs.average(method=lambda x: trim_mean(x, 10, axis=0))  # doctest:+SKIP
+            >>> trim = lambda x: trim_mean(x, 10, axis=0)  # doctest:+SKIP
+            >>> epochs.average(method=trim)  # doctest:+SKIP
 
         This would compute the trimmed mean.
 
