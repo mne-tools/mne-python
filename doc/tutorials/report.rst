@@ -164,9 +164,9 @@ This allows us to have multiple scripts that add figures to the same report. To
 make this even easier, :class:`mne.Report` can be used as a context manager,
 allowing you to do this::
 
-    >>> with open_report('report.h5') as report:  # Creates a new report if 'report.h5' doesn't exist
-    >>>    report.add_figs_to_section(fig, captions='Left Auditory', section='evoked')
-    >>>    report.save('report.html', overwrite=True)  # Update the HTML page
+    >>> with open_report('report.h5') as report:  # Creates a new report if 'report.h5' doesn't exist # doctest: +SKIP
+    >>>    report.add_figs_to_section(fig, captions='Left Auditory', section='evoked') # doctest: +SKIP
+    >>>    report.save('report.html', overwrite=True)  # Update the HTML page # doctest: +SKIP
     >>> # Updated report is automatically saved back to 'report.h5' upon leaving the block
 
 That's it!
