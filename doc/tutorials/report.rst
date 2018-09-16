@@ -152,4 +152,21 @@ are rendered consecutively. Within a section, the plots are ordered in the same 
 added using the `add_figs_to_section` command. Each section is identified by a toggle button in the navigation
 bar of the report which can be used to show or hide the contents of the section.
 
+Saving to HTML is a write-only operation, meaning that we cannot read an
+``.html`` file back as a :class:`mne.Report` object. In order to be able to
+read it back, we can save it as an HDF5 file::
+
+    >>> from mne import open_report
+    >>> report.save('report.h5', overwrite=True) # doctest: +SKIP
+    >>> open_report('report.h5') # doctest: +SKIP
+
+This allows us to have multiple scripts that add figures to the same report. To
+make this even easier, :class:`mne.Report` can be used as a context manager,
+allowing you to do this::
+
+    >>> with open_report('report.h5') as report:  # Creates a new report if 'report.h5' doesn't exist
+    >>>    report.add_figs_to_section(fig, captions='Left Auditory', section='evoked')
+    >>>    report.save('report.html', overwrite=True)  # Update the HTML page
+    >>> # Updated report is automatically saved back to 'report.h5' upon leaving the block
+
 That's it!
