@@ -90,4 +90,5 @@ with FieldTripClient(host='localhost', port=1972,
         plt.pause(0.05)
         plt.draw()
 
+    rt_epochs.stop()
     plt.close()
