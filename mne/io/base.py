@@ -664,6 +664,40 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """The last data sample."""
         return self.first_samp + sum(self._raw_lengths) - 1
 
+    def time_as_index(self, times, use_rounding=False, origin=None):
+        """Convert time to indices.
+
+        Parameters
+        ----------
+        times : list-like | float | int
+            List of numbers or a number representing points in time.
+        use_rounding : boolean
+            If True, use rounding (instead of truncation) when converting
+            times to indices. This can help avoid non-unique indices.
+        origin: time-like | float | int | None
+            Time reference for times. If None, ``times`` are assumed to be
+            relative to ``first_samp``.
+
+            .. versionadded:: 0.17.0
+
+        Returns
+        -------
+        index : ndarray
+            Indices corresponding to the times supplied.
+        """
+        first_samp_in_abs_time = (_handle_meas_date(self.info['meas_date']) +
+                                  self._first_time)
+        if origin is None:
+            origin = first_samp_in_abs_time
+
+        absolute_time = np.atleast_1d(times) + _handle_meas_date(origin)
+        index = (absolute_time - first_samp_in_abs_time) * self.info['sfreq']
+
+        if use_rounding:
+            index = np.round(index)
+
+        return index.astype(int)
+
     @property
     def _raw_lengths(self):
         return [l - f + 1 for f, l in zip(self._first_samps, self._last_samps)]
