@@ -677,12 +677,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             origin = first_samp_in_abs_time
 
         absolute_time = np.atleast_1d(times) + _handle_meas_date(origin)
-        index = (absolute_time - first_samp_in_abs_time) * self.info['sfreq']
+        times = (absolute_time - first_samp_in_abs_time)
 
-        if use_rounding:
-            index = np.round(index)
-
-        return index.astype(int)
+        return super(BaseRaw, self).time_as_index(times, use_rounding)
 
     @property
     def _raw_lengths(self):
