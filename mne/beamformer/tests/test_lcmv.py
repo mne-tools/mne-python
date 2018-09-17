@@ -405,6 +405,14 @@ def test_lcmv():
 
     assert_array_almost_equal(stcs_label[0].data, stcs[0].in_label(label).data)
 
+    # Test condition where the filters weights are zero. There should not be any
+    # divide-by-zero errors
+    zero_cov = data_cov.copy()
+    zero_cov['data'][:] = 0
+    filters = make_lcmv(epochs.info, forward_fixed, zero_cov, reg=0.01,
+                        noise_cov=noise_cov)
+    assert_array_equal(filters['weights'], 0)
+
 
 @testing.requires_testing_data
 def test_lcmv_raw():

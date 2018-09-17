@@ -391,7 +391,8 @@ def _compute_beamformer(method, G, Cm, reg, n_orient, weight_norm,
                     Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
                 else:
                     # Fixed source orientation
-                    Wk /= Ck
+                    if not np.all(Ck == 0.):
+                        Wk /= Ck
 
                 # handle noise normalization with free/normal source
                 # orientation:
