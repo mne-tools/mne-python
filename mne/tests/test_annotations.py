@@ -527,6 +527,7 @@ def test_events_from_annot_in_raw_objects():
 
 
 def test_events_from_annot_onset_alingment():
+    """Test events and annotations onset are the same."""
     from mne.io.tests.test_raw import _raw_annot
     #       sec  0        1        2        3
     #       raw  .        |--------XXXXXXXXX
