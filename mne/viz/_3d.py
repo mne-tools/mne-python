@@ -23,7 +23,7 @@ from scipy import linalg
 
 from ..defaults import DEFAULTS
 from ..externals.six import BytesIO, string_types, advance_iterator
-from ..fixes import einsum
+from ..fixes import einsum, _crop_colorbar
 from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types
 from ..io.constants import FIFF
@@ -1242,6 +1242,8 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
                               fmt='mayavi', allow_pos_lims=True):
     """Convert limits (values or percentiles) to control points."""
     # Based on type of limits specified, get cmap control points
+    # XXX this function should be expanded to handle other divergent colormaps
+    # properly!
     if colormap == 'auto':
         if clim == 'auto':
             if allow_pos_lims and (stc_data < 0).any():
@@ -1559,7 +1561,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             ``kind`` : 'value' | 'percent'
                 Flag to specify type of limits.
             ``lims`` : list | np.ndarray | tuple of float, 3 elements
-                Note: Only use this if 'colormap' is not 'mne'.
                 Left, middle, and right bound for colormap.
 
         Unlike :meth:`stc.plot <mne.SourceEstimate.plot>`, it cannot use
@@ -1655,7 +1656,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     # convert control points to locations in colormap
-    ctrl_pts, colormap, scale_pts, transparent = _limits_to_control_points(
+    _, colormap, scale_pts, transparent = _limits_to_control_points(
         clim, stc.data, colormap, transparent)
 
     if hemi in ['both', 'split']:
@@ -1718,6 +1719,307 @@ def _get_ps_kwargs(initial_time, require='0.6'):
     return initial_time, ad_kwargs, sd_kwargs
 
 
+def _glass_brain_crosshairs(params, x, y, z):
+    for ax, a, b in ((params['ax_y'], x, z),
+                     (params['ax_x'], y, z),
+                     (params['ax_z'], x, y)):
+        ax.axvline(a, color='0.75')
+        ax.axhline(b, color='0.75')
+
+
+@verbose
+def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
+                                 mode='stat_map', bg_img=None, colorbar=True,
+                                 colormap='auto', clim='auto',
+                                 transparent=None, show=True, verbose=None):
+    """Plot Nutmeg style volumetric source estimates using nilearn.
+
+    Parameters
+    ----------
+    stc : VectorSourceEstimate
+        The vector source estimate to plot.
+    src : instance of SourceSpaces
+        The source space.
+    subject : str | None
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT. If None stc.subject will be used. If that
+        is None, the environment will be used.
+    subjects_dir : str
+        The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    mode : str
+        The plotting mode to use. Either 'stat_map' (default) or 'glass_brain'.
+        For "glass_brain", activation absolute values are displayed
+        after being transformed to a standard MNI brain.
+    bg_img : Niimg-like object | None
+        The background image used in the nilearn plotting function.
+        If None, it is the T1.mgz file that is found in the subjects_dir.
+        Not used in "glass brain" plotting.
+    colorbar : boolean, optional
+        If True, display a colorbar on the right of the plots.
+    colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
+        Name of colormap to use or a custom look up table. If array, must
+        be (n x 3) or (n x 4) array for with RGB or RGBA values between
+        0 and 255.
+    clim : str | dict
+        Colorbar properties specification. If 'auto', set clim automatically
+        based on data percentiles. If dict, should contain:
+
+            ``kind`` : 'value' | 'percent'
+                Flag to specify type of limits.
+            ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                Left, middle, and right bound for colormap.
+            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                Left, middle, and right bound for colormap. Positive values
+                will be mirrored directly across zero during colormap
+                construction to obtain negative control points.
+
+        .. note:: Only sequential colormaps should be used with ``lims``, and
+                  only divergent colormaps should be used with ``pos_lims``.
+    transparent : bool | None
+        If True, use a linear transparency between fmin and fmid.
+        None will choose automatically based on colormap type.
+    show : bool
+        Show figures if True. Defaults to True.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Notes
+    -----
+    .. versionadded:: 0.17
+    """
+    from matplotlib import pyplot as plt, colors
+    from matplotlib.cbook import mplDeprecation
+    import nibabel as nib
+    from ..source_estimate import VolSourceEstimate
+
+    if not check_version('nilearn', '0.4'):
+        raise RuntimeError('This function requires nilearn >= 0.4')
+
+    from nilearn.plotting import plot_stat_map, plot_glass_brain
+    from nilearn.image import index_img, resample_to_img
+
+    if mode == 'stat_map':
+        plot_func = plot_stat_map
+    elif mode == 'glass_brain':
+        plot_func = plot_glass_brain
+    else:
+        raise ValueError('Plotting function must be one of'
+                         ' stat_map | glas_brain. Got %s' % mode)
+
+    if not isinstance(stc, VolSourceEstimate):
+        raise ValueError('Only VolSourceEstimate objects are supported.'
+                         'Got %s' % type(stc))
+
+    def _cut_coords_to_idx(cut_coords, img_idx):
+        """Convert voxel coordinates to index in stc.data."""
+        # XXX: check lines below
+        cut_coords = apply_trans(linalg.inv(img.affine), cut_coords)
+        cut_coords = np.array([int(round(c)) for c in cut_coords])
+
+        # the affine transformation can sometimes lead to corner
+        # cases near the edges?
+        shape = img_idx.shape
+        cut_coords = np.clip(cut_coords, 0, np.array(shape) - 1)
+        loc_idx = np.ravel_multi_index(
+            cut_coords, shape, order='F')
+        dist_vertices = [abs(v - loc_idx) for v in stc.vertices]
+        nearest_idx = int(round(np.argmin(dist_vertices)))
+        if dist_vertices[nearest_idx] == 0:
+            return nearest_idx
+        else:
+            return None
+
+    def _get_cut_coords_stat_map(event, params):
+        """Get voxel coordinates from mouse click."""
+        if event.inaxes is params['ax_x']:
+            cut_coords = (params['ax_z'].lines[0].get_xdata()[0],
+                          event.xdata, event.ydata)
+        elif event.inaxes is params['ax_y']:
+            cut_coords = (event.xdata,
+                          params['ax_x'].lines[0].get_xdata()[0],
+                          event.ydata)
+        else:
+            cut_coords = (event.xdata, event.ydata,
+                          params['ax_x'].lines[1].get_ydata()[0])
+        return cut_coords
+
+    def _get_cut_coords_glass_brain(event, params):
+        """Get voxel coordinates with max intensity projection."""
+        img_data = np.abs(params['img_idx_resampled'].get_data())
+        shape = img_data.shape
+        if event.inaxes is params['ax_x']:
+            y, z = int(round(event.xdata)), int(round(event.ydata))
+            x = np.argmax(img_data[:, y + shape[1] // 2, z + shape[2] // 2])
+            x -= shape[0] // 2
+        elif event.inaxes is params['ax_y']:
+            x, z = int(round(event.xdata)), int(round(event.ydata))
+            y = np.argmax(img_data[x + shape[0] // 2, :, z + shape[2] // 2])
+            y -= shape[1] // 2
+        else:
+            x, y = int(round(event.xdata)), int(round(event.ydata))
+            z = np.argmax(img_data[x + shape[0] // 2, y + shape[1] // 2, :])
+            z -= shape[2] // 2
+        return (x, y, z)
+
+    def _resample(event, params):
+        """Precompute the resampling as the mouse leaves the time axis."""
+        if event.inaxes is params['ax_time'] and mode == 'glass_brain':
+            img_resampled = resample_to_img(params['img_idx'],
+                                            params['bg_img'])
+            params.update({'img_idx_resampled': img_resampled})
+
+    def _onclick(event, params):
+        """Manage clicks on the plot."""
+        ax_x, ax_y, ax_z = params['ax_x'], params['ax_y'], params['ax_z']
+        plot_map_callback = params['plot_func']
+        if event.inaxes is params['ax_time']:
+            idx = params['stc'].time_as_index(event.xdata)[0]
+            params['lx'].set_xdata(event.xdata)
+
+            cut_coords = (0, 0, 0)
+            if mode == 'stat_map':
+                cut_coords = (ax_y.lines[0].get_xdata()[0],
+                              ax_x.lines[0].get_xdata()[0],
+                              ax_x.lines[1].get_ydata()[0])
+            ax_x.clear()
+            ax_y.clear()
+            ax_z.clear()
+            params.update({'img_idx': index_img(img, idx)})
+            params.update({'title': 'Activation (t=%.3f s.)'
+                          % params['stc'].times[idx]})
+            plot_map_callback(
+                params['img_idx'], title='',
+                cut_coords=cut_coords)
+
+        if event.inaxes in [ax_x, ax_y, ax_z]:
+            if mode == 'stat_map':
+                cut_coords = _get_cut_coords_stat_map(event, params)
+            elif mode == 'glass_brain':
+                cut_coords = _get_cut_coords_glass_brain(event, params)
+
+            x, y, z = cut_coords
+            ax_x.clear()
+            ax_y.clear()
+            ax_z.clear()
+            plot_map_callback(params['img_idx'], title='',
+                              cut_coords=cut_coords)
+            loc_idx = _cut_coords_to_idx(cut_coords, params['img_idx'])
+            if loc_idx is not None:
+                ax_time.lines[0].set_ydata(stc.data[loc_idx].T)
+            else:
+                ax_time.lines[0].set_ydata(0.)
+        params['fig'].canvas.draw()
+
+    if bg_img is None:
+        subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                        raise_error=True)
+        subject = _check_subject(stc.subject, subject, True)
+        t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+        bg_img = nib.load(t1_fname)
+
+    bg_img_param = bg_img
+    if mode == 'glass_brain':
+        bg_img_param = None
+
+    img = stc.as_volume(src, mri_resolution=False)
+
+    vmax = np.abs(stc.data).max()
+    loc_idx, idx = np.unravel_index(np.abs(stc.data).argmax(),
+                                    stc.data.shape)
+    img_idx = index_img(img, idx)
+    x, y, z = np.unravel_index(stc.vertices[loc_idx], img_idx.shape,
+                               order='F')
+    cut_coords = apply_trans(img.affine, (x, y, z))
+
+    # Plot initial figure
+    fig, (axes, ax_time) = plt.subplots(2)
+    ax_time.plot(stc.times, stc.data[loc_idx].T, color='k')
+    ax_time.set(xlim=stc.times[[0, -1]],
+                xlabel='Time (s)', ylabel='Activation')
+    lx = ax_time.axvline(stc.times[idx], color='g')
+    axes.set(xticks=[], yticks=[])
+    fig.tight_layout()
+
+    allow_pos_lims = (mode != 'glass_brain')
+    ctrl_pts, colormap, scale_pts, _ = _limits_to_control_points(
+        clim, stc.data, colormap, transparent, fmt='matplotlib',
+        allow_pos_lims=allow_pos_lims)
+    if np.array_equal(ctrl_pts, scale_pts):  # set eq above iff one-sided
+        diverging = False
+        # there is a bug in nilearn where this messes w/transparency
+        # Need to double the colormap
+        if (ctrl_pts < 0).any():
+            # XXX We should fix this, but it's hard to get nilearn to
+            # use arbitrary bounds :(
+            # Should get them to support non-mirrored colorbars, or
+            # at least a proper `vmin` for one-sided things.
+            # Hopefully this is a sufficiently rare use case!
+            raise ValueError('Negative colormap limits for sequential '
+                             'control points clim["lims"] not supported '
+                             'currently, consider shifting or flipping the '
+                             'sign of your data for visualization purposes')
+        colormap = plt.get_cmap(colormap)
+        bottom = np.array(colormap(0))
+        locs = np.clip(np.linspace(-ctrl_pts[0] / ctrl_pts[2], 1, 256), 0, 1)
+        colormap = colormap(locs)
+        if transparent:
+            colormap[:, 3] = np.clip(locs * 2, 0, 1)
+            bottom[3] = 0
+        colormap = np.concatenate([np.tile(bottom, (256, 1)), colormap])
+        colormap = colors.ListedColormap(colormap)
+    else:
+        diverging = True
+    vmax = ctrl_pts[-1]
+
+    # black_bg = True is needed because of some matplotlib
+    # peculiarity. See: https://stackoverflow.com/a/34730204
+    # Otherwise, event.inaxes does not work for ax_x and ax_z
+    plot_kwargs = dict(
+        threshold=None, axes=axes,
+        resampling_interpolation='nearest', vmax=vmax, figure=fig,
+        colorbar=colorbar, bg_img=bg_img_param, cmap=colormap, black_bg=True,
+        symmetric_cbar=True)
+
+    def plot_and_correct(*args, **kwargs):
+        axes.clear()
+        if params.get('fig_anat') is not None and plot_kwargs['colorbar']:
+            params['fig_anat']._cbar.ax.clear()
+        with warnings.catch_warnings(record=True):  # nilearn bug; ax recreated
+            warnings.simplefilter('ignore', mplDeprecation)
+            params['fig_anat'] = partial(
+                plot_func, **plot_kwargs)(*args, **kwargs)
+        for key in 'xyz':
+            params.update({'ax_' + key: params['fig_anat'].axes[key].ax})
+        # Fix nilearn bug w/cbar background being white
+        if plot_kwargs['colorbar']:
+            params['fig_anat']._cbar.patch.set_facecolor('0.5')
+            # adjust one-sided colorbars
+            if not diverging:
+                _crop_colorbar(params['fig_anat']._cbar, *ctrl_pts[[0, -1]])
+        if mode == 'glass_brain':
+            _glass_brain_crosshairs(params, *kwargs['cut_coords'])
+
+    params = dict(stc=stc, ax_time=ax_time, plot_func=plot_and_correct,
+                  img_idx=img_idx, fig=fig, bg_img=bg_img, lx=lx)
+
+    plot_and_correct(stat_map_img=params['img_idx'], title='',
+                     cut_coords=cut_coords)
+    if mode == 'glass_brain':
+        params.update(img_idx_resampled=resample_to_img(
+            params['img_idx'], params['bg_img']))
+
+    if show:
+        plt.show()
+    fig.canvas.mpl_connect('button_press_event',
+                           partial(_onclick, params=params))
+    fig.canvas.mpl_connect('axes_leave_event',
+                           partial(_resample, params=params))
+
+    return fig
+
+
 def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  time_label='auto', smoothing_steps=10,
                                  transparent=None, brain_alpha=0.4,
@@ -1748,7 +2050,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
         Name of colormap to use or a custom look up table. If array, must
         be (n x 3) or (n x 4) array for with RGB or RGBA values between
-        0 and 255.
+        0 and 255. This should be a sequential colormap.
     time_label : str | callable | None
         Format of the time label (a format string, a function that maps
         floating point time values to strings, or None for no label). The
@@ -1789,14 +2091,10 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
             ``kind`` : 'value' | 'percent'
                 Flag to specify type of limits.
             ``lims`` : list | np.ndarray | tuple of float, 3 elements
-                Note: Only use this if 'colormap' is not 'mne'.
                 Left, middle, and right bound for colormap.
-            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
-                Note: Only use this if 'colormap' is 'mne'.
-                Left, middle, and right bound for colormap. Positive values
-                will be mirrored directly across zero during colormap
-                construction to obtain negative control points.
 
+        Unlike :meth:`stc.plot <mne.SourceEstimate.plot>`, it cannot use
+        ``pos_lims``, as the surface plot must show the magnitude.
     cortex : str or tuple
         specifies how binarized curvature values are rendered.
         either the name of a preset PySurfer cortex colorscheme (one of
@@ -1847,7 +2145,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     time_label, times = _handle_time(time_label, time_unit, stc.times)
 
     # convert control points to locations in colormap
-    scale_pts, colormap, scale_points, transparent = _limits_to_control_points(
+    scale_pts, colormap, _, transparent = _limits_to_control_points(
         clim, stc.data, colormap, transparent, allow_pos_lims=False)
 
     if hemi in ['both', 'split']:

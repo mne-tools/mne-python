@@ -267,6 +267,7 @@ Visualization
    plot_sensors
    plot_snr_estimate
    plot_source_estimates
+   plot_volume_source_estimates
    plot_vector_source_estimates
    plot_sparse_source_estimates
    plot_tfr_topomap
@@ -1048,15 +1049,17 @@ MNE-Report
 
 .. currentmodule:: mne
 
-.. automodule:: mne
-   :no-members:
-   :no-inherited-members:
-
 .. autosummary::
    :toctree: generated/
    :template: class.rst
 
    Report
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+    open_report
 
 
 Logging and Configuration

@@ -139,7 +139,7 @@ def _test_concat(reader, *args):
 
 
 @testing.requires_testing_data
-def test_time_index():
+def test_time_as_index():
     """Test indexing of raw times."""
     raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                         'data', 'test_raw.fif')
@@ -151,7 +151,27 @@ def test_time_index():
 
     # Test new (rounding) indexing behavior
     new_inds = raw.time_as_index(raw.times, use_rounding=True)
-    assert(len(set(new_inds)) == len(new_inds))
+    assert_array_equal(new_inds, np.arange(len(raw.times)))
+
+
+@pytest.mark.parametrize('offset, origin',
+                         [(0, None), (0, 2.0), (1, 1.0), (2, 0.0)],
+                         ids=['times in s. relative to first_samp (default)',
+                              'times in s. relative to first_samp',
+                              'times in s. relative to meas_date',
+                              'absolute times in s. relative to 0'])
+def test_time_as_index_ref(offset, origin):
+    """Test indexing of raw times."""
+    meas_date = 1
+    info = create_info(ch_names=10, sfreq=10.)
+    raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
+    raw.info['meas_date'] = meas_date
+
+    relative_times = raw.times
+    inds = raw.time_as_index(relative_times + offset,
+                             use_rounding=True,
+                             origin=origin)
+    assert_array_equal(inds, np.arange(raw.n_times))
 
 
 def test_annotation_property_deprecation_warning():

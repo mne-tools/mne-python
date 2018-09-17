@@ -341,6 +341,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         del info
         self._metadata = None
         self.metadata = metadata
+        self._current = 0
 
         if picks is None:
             picks = list(range(len(self.info['ch_names'])))
@@ -720,6 +721,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         The Evoked objects yielded will each contain a single epoch (i.e., no
         averaging is performed).
+
+        This method resets the object iteration state to the first epoch.
         """
         self._current = 0
 
@@ -1304,6 +1307,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def __iter__(self):
         """Facilitate iteration over epochs.
+
+        This method resets the object iteration state to the first epoch.
 
         Notes
         -----
@@ -2007,6 +2012,10 @@ class Epochs(BaseEpochs):
 
     For indexing and slicing using ``epochs[...]``, see
     :meth:`mne.Epochs.__getitem__`.
+
+    All methods for iteration over objects (using :meth:`mne.Epochs.__iter__`,
+    :meth:`mne.Epochs.iter_evoked` or :meth:`mne.Epochs.next`) use the same
+    internal state.
     """
 
     @verbose

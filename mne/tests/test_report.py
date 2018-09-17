@@ -16,9 +16,9 @@ import pytest
 from mne import Epochs, read_events, read_evokeds
 from mne.io import read_raw_fif
 from mne.datasets import testing
-from mne.report import Report
+from mne.report import Report, open_report
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
-                       run_tests_if_main, traits_test)
+                       run_tests_if_main, traits_test, requires_h5py)
 from mne.viz import plot_alignment
 
 import matplotlib
@@ -305,6 +305,36 @@ def test_validate_input():
     values = report._validate_input(items, captions, section, comments=None)
     items_new, captions_new, comments_new = values
     assert_equal(len(comments_new), len(items))
+
+
+@requires_h5py
+def test_open_report():
+    """Test the open_report function."""
+    tempdir = _TempDir()
+    hdf5 = op.join(tempdir, 'report.h5')
+    import matplotlib.pyplot as plt
+    fig = plt.plot([1, 2], [1, 2])[0].figure
+
+    # Test creating a new report through the open_report function
+    with open_report(hdf5, subjects_dir=subjects_dir) as report:
+        assert report.subjects_dir == subjects_dir
+        assert report._fname == hdf5
+        report.add_figs_to_section(figs=fig, captions=['evoked response'])
+    # Exiting the context block should have triggered saving to HDF5
+    assert op.exists(hdf5)
+
+    # Load the HDF5 version of the report and check equivalency
+    report2 = open_report(hdf5)
+    assert report2._fname == hdf5
+    assert report2.subjects_dir == report.subjects_dir
+    assert report2.html == report.html
+    assert report2.__getstate__() == report.__getstate__()
+    assert '_fname' not in report2.__getstate__()
+
+    # Check parameters when loading a report
+    pytest.raises(ValueError, open_report, hdf5, foo='bar')  # non-existing
+    pytest.raises(ValueError, open_report, hdf5, subjects_dir='foo')
+    open_report(hdf5, subjects_dir=subjects_dir)  # This should work
 
 
 run_tests_if_main()

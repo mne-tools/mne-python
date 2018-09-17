@@ -116,7 +116,7 @@ def test_fieldtrip_rtepochs(free_tcp_port, tmpdir):
                                                   int(ev.comment))
 
                 _call_base_epochs_public_api(epochs_rt, tmpdir)
-                epochs_rt.stop()
+                epochs_rt.stop(stop_receive_thread=True)
 
         assert_array_equal(events_ids_rt, epochs_rt.events[:, 2])
         assert_array_equal(data_rt, epochs_rt.get_data())

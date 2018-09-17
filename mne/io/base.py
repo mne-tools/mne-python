@@ -650,6 +650,37 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """The last data sample."""
         return self.first_samp + sum(self._raw_lengths) - 1
 
+    def time_as_index(self, times, use_rounding=False, origin=None):
+        """Convert time to indices.
+
+        Parameters
+        ----------
+        times : list-like | float | int
+            List of numbers or a number representing points in time.
+        use_rounding : boolean
+            If True, use rounding (instead of truncation) when converting
+            times to indices. This can help avoid non-unique indices.
+        origin: time-like | float | int | None
+            Time reference for times. If None, ``times`` are assumed to be
+            relative to ``first_samp``.
+
+            .. versionadded:: 0.17.0
+
+        Returns
+        -------
+        index : ndarray
+            Indices corresponding to the times supplied.
+        """
+        first_samp_in_abs_time = (_handle_meas_date(self.info['meas_date']) +
+                                  self._first_time)
+        if origin is None:
+            origin = first_samp_in_abs_time
+
+        absolute_time = np.atleast_1d(times) + _handle_meas_date(origin)
+        times = (absolute_time - first_samp_in_abs_time)
+
+        return super(BaseRaw, self).time_as_index(times, use_rounding)
+
     @property
     def _raw_lengths(self):
         return [l - f + 1 for f, l in zip(self._first_samps, self._last_samps)]
@@ -1639,7 +1670,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=None,
              drop_small_buffer=False, proj=False, fmt='single',
-             overwrite=False, split_size='2GB', verbose=None):
+             overwrite=False, split_size='2GB', split_naming='neuromag',
+             verbose=None):
         """Save raw data to file.
 
         Parameters
@@ -1692,6 +1724,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             .. note:: Due to FIFF file limitations, the maximum split
                       size is 2GB.
+
+        split_naming : {'neuromag' | 'bids'}
+            Add the filename partition with the appropriate naming schema.
+
+            .. versionadded:: 0.17
 
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
@@ -1766,9 +1803,17 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         buffer_size = self._get_buffer_size(buffer_size_sec)
 
         # write the raw file
+        if split_naming == 'neuromag':
+            part_idx = 0
+        elif split_naming == 'bids':
+            part_idx = 1
+        else:
+            raise ValueError(
+                "split_naming must be either 'neuromag' or 'bids' instead "
+                "of '{}'.".format(split_naming))
         _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
                    start, stop, buffer_size, projector, drop_small_buffer,
-                   split_size, 0, None)
+                   split_size, split_naming, part_idx, None, overwrite)
 
     @copy_function_doc_to_method_doc(plot_raw)
     def plot(self, events=None, duration=10.0, start=0.0, n_channels=20,
@@ -2193,7 +2238,7 @@ class _RawShell():
 # Writing
 def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                stop, buffer_size, projector, drop_small_buffer,
-               split_size, part_idx, prev_fname):
+               split_size, split_naming, part_idx, prev_fname, overwrite):
     """Write raw file with splitting."""
     # we've done something wrong if we hit this
     n_times_max = len(raw.times)
@@ -2202,9 +2247,16 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                            '(max: %s) requested' % (start, stop, n_times_max))
 
     if part_idx > 0:
-        # insert index in filename
         base, ext = op.splitext(fname)
-        use_fname = '%s-%d%s' % (base, part_idx, ext)
+        if split_naming == 'neuromag':
+            # insert index in filename
+            use_fname = '%s-%d%s' % (base, part_idx, ext)
+        else:
+            # insert index in filename
+            use_fname = '%s_part-%02d_meg%s' % (base, part_idx, ext)
+            # check for file existence
+            _check_fname(use_fname, overwrite)
+
     else:
         use_fname = fname
     logger.info('Writing %s' % use_fname)
@@ -2218,13 +2270,17 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
 
     # previous file name and id
+    if split_naming == 'neuromag':
+        part_idx_tag = part_idx - 1
+    else:
+        part_idx_tag = part_idx - 2
     if part_idx > 0 and prev_fname is not None:
         start_block(fid, FIFF.FIFFB_REF)
         write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
         write_string(fid, FIFF.FIFF_REF_FILE_NAME, prev_fname)
         if info['meas_id'] is not None:
             write_id(fid, FIFF.FIFF_REF_FILE_ID, info['meas_id'])
-        write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 1)
+        write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx_tag)
         end_block(fid, FIFF.FIFFB_REF)
 
     pos_prev = fid.tell()
@@ -2303,8 +2359,8 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
             next_fname, next_idx = _write_raw(
                 fname, raw, info, picks, fmt,
                 data_type, reset_range, first + buffer_size, stop, buffer_size,
-                projector, drop_small_buffer, split_size,
-                part_idx + 1, use_fname)
+                projector, drop_small_buffer, split_size, split_naming,
+                part_idx + 1, use_fname, overwrite)
 
             start_block(fid, FIFF.FIFFB_REF)
             write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)

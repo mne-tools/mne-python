@@ -20,7 +20,8 @@ from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_, copy_function_doc_to_method_doc)
-from .viz import plot_source_estimates, plot_vector_source_estimates
+from .viz import (plot_source_estimates, plot_vector_source_estimates,
+                  plot_volume_source_estimates)
 from .io.base import ToDataFrameMixin, TimeMixin
 from .externals.six import string_types
 from .externals.six.moves import zip
@@ -1748,6 +1749,15 @@ class VolSourceEstimate(_BaseSourceEstimate):
         _BaseSourceEstimate.__init__(self, data, vertices=vertices, tmin=tmin,
                                      tstep=tstep, subject=subject,
                                      verbose=verbose)
+
+    @copy_function_doc_to_method_doc(plot_volume_source_estimates)
+    def plot(self, src, subject=None, subjects_dir=None, mode='stat_map',
+             bg_img=None, colorbar=True, colormap='auto', clim='auto',
+             transparent='auto', show=True, verbose=None):
+        return plot_volume_source_estimates(
+            self, src=src, subject=subject, subjects_dir=subjects_dir,
+            mode=mode, bg_img=bg_img, colorbar=colorbar, colormap=colormap,
+            clim=clim, transparent=transparent, show=show, verbose=verbose)
 
     @verbose
     def save(self, fname, ftype='stc', verbose=None):
