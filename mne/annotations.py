@@ -594,7 +594,8 @@ def events_from_annotations(raw, event_id=None, regexp=None,
 
     annotations = raw.annotations
 
-    inds = raw.time_as_index(annotations.onset, use_rounding=True)
+    inds = raw.time_as_index(annotations.onset, use_rounding=True,
+                             origin=raw.info['meas_date'])
 
     # Filter out the annotations that do not match regexp
     if regexp is not None:
