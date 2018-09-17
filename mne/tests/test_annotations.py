@@ -540,9 +540,9 @@ def test_events_from_annot_onset_alingment():
     assert raw.annotations.orig_time == 1
     assert raw.annotations.onset[0] == 1
     assert raw.first_samp == 10
-    xx, yy = events_from_annotations(raw)
-    assert xx[0, 0] == 10
-    assert raw.first_samp == xx[0, 0]
+    event_latencies, event_id = events_from_annotations(raw)
+    assert event_latencies[0, 0] == 10
+    assert raw.first_samp == event_latencies[0, 0]
 
 
 def _create_annotation_based_on_descr(description, annotation_start_sampl=0,
