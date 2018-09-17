@@ -14,16 +14,17 @@ import pytest
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
-                 make_sphere_model, setup_volume_source_space)
+                 VolSourceEstimate, make_sphere_model,
+                 setup_volume_source_space, read_forward_solution)
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
-                     plot_alignment)
+                     plot_alignment, plot_volume_source_estimates)
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        _import_mlab, _TempDir, requires_nibabel, check_version,
-                       requires_version, traits_test)
+                       traits_test, requires_version)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.bem import read_bem_solution, read_bem_surfaces
@@ -45,6 +46,9 @@ ctf_fname = op.join(data_dir, 'CTF', 'testdata_ctf.ds')
 io_dir = op.join(op.abspath(op.dirname(__file__)), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
+
+fwd_fname = op.join(data_dir, 'MEG', 'sample',
+                    'sample_audvis_trunc-meg-vol-7-fwd.fif')
 
 base_dir = op.join(io_dir, 'bti', 'tests', 'data')
 pdf_fname = op.join(base_dir, 'test_pdf_linux')
@@ -390,7 +394,42 @@ def test_snapshot_brain_montage():
 
 
 @testing.requires_testing_data
-@requires_version('surfer', '0.8')
+@requires_nibabel()
+@requires_version('nilearn', '0.4')
+def test_plot_volume_source_estimates():
+    """Test interactive plotting of volume source estimates."""
+    forward = read_forward_solution(fwd_fname)
+    sample_src = forward['src']
+
+    vertices = [s['vertno'] for s in sample_src]
+    n_verts = sum(len(v) for v in vertices)
+    n_time = 2
+    data = np.random.RandomState(0).rand(n_verts, n_time)
+    vol_stc = VolSourceEstimate(data, vertices, 1, 1)
+
+    for mode in ['glass_brain', 'stat_map']:
+        with pytest.warns(None):  # sometimes get scalars/index warning
+            fig = vol_stc.plot(sample_src, subject='sample',
+                               subjects_dir=subjects_dir,
+                               mode=mode)
+        # [ax_time, ax_y, ax_x, ax_z]
+        for ax_idx in [0, 2, 3, 4]:
+            _fake_click(fig, fig.axes[ax_idx], (0.3, 0.5))
+
+    with pytest.raises(ValueError, match='must be one of'):
+        vol_stc.plot(sample_src, 'sample', subjects_dir, mode='abcd')
+    vertices.append([])
+    surface_stc = SourceEstimate(data, vertices, 1, 1)
+    with pytest.raises(ValueError, match='Only Vol'):
+        plot_volume_source_estimates(surface_stc, sample_src, 'sample',
+                                     subjects_dir)
+    with pytest.raises(ValueError, match='Negative colormap limits'):
+        vol_stc.plot(sample_src, 'sample', subjects_dir,
+                     clim=dict(lims=[-1, 2, 3], kind='value'))
+
+
+@testing.requires_testing_data
+@requires_pysurfer
 @requires_mayavi
 @traits_test
 def test_plot_vec_source_estimates():

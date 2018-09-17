@@ -581,6 +581,14 @@ class SetChannelsMixin(object):
         .. versionadded:: 0.13.0
         """
         anonymize_info(self.info)
+        if hasattr(self, 'annotations'):
+            if self.annotations is None:
+                pass
+            else:
+                self.annotations.orig_time = None
+                offset = self.first_samp / self.info['sfreq']
+                self.annotations.onset -= offset
+
         return self
 
 

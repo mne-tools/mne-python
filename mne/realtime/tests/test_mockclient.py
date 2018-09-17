@@ -26,6 +26,7 @@ events = read_events(event_name)
 
 def _call_base_epochs_public_api(epochs, tmpdir):
     """Call all public API methods of an (non-empty) epochs object."""
+    # make sure saving and loading returns the same data
     orig_data = epochs.get_data()
     export_file = tmpdir.join('test_rt-epo.fif')
     epochs.save(str(export_file))
@@ -177,6 +178,9 @@ def test_find_events():
                          find_events=find_events)
     rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10, buffer_size=1000)
     rt_epochs.start()
+    # make sure next() works even if no iter-method has been called before
+    rt_epochs.next()
+
     events = [5, 6]
     for ii, ev in enumerate(rt_epochs.iter_evoked()):
         assert ev.comment == str(events[ii])

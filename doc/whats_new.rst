@@ -19,9 +19,13 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add ``orgin`` parameter to :meth:`mne.io.Raw.time_as_index` to allow ``times`` to be relative to this ``origin`` by `Joan Massich`_
+
+- :func:`mne.BaseRaw.set_annotations` now changes ``orig_time`` to match ``meas_date`` and shift ``self.annotations.onset`` accordingly. Previous behavior is deprecated and would be removed in 0.18. Work by `Joan Massich`_
+
 - Add :func:`mne.compute_source_morph` which creates a :class:`mne.SourceMorph` object to unify morphing any type of source estimates (surface or volume) from one subject to another for group studies. It is now possible to do group studies when working on the volume with MNE. Work by `Tommy Clausner`_ during GSOC 2018 with the help of `Alex Gramfort`_ and `Eric Larson`_.
 
-- Add ability to pass threshold for EOG to :func:`mne.preprocessing.find_eog_events` and :func:`mne.preprocessing.create_eog_epochs` by `Peter Molfese_`
+- Add ability to pass threshold for EOG to :func:`mne.preprocessing.find_eog_events` and :func:`mne.preprocessing.create_eog_epochs` by `Peter Molfese`_
 
 - Add possibility to save :class:`mne.VolSourceEstimate` and :class:`mne.MixedSourceEstimate` to HDF5 format (file extension .h5) with :meth:`mne.VolSourceEstimate.save` and :meth:`mne.MixedSourceEstimate.save` by `Alex Gramfort`_
 
@@ -43,9 +47,17 @@ Changelog
 
 - Add progress bar support to :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` by `Eric Larson`_
 
+- Add interactive visualization of volume source estimates using :func:`mne.viz.plot_volume_source_estimates` by `Mainak Jas`_
+
 - Add :func:`mne.head_to_mri` to convert positions from head coordinates to MRI RAS coordinates, by `Joan Massich`_ and `Alex Gramfort`_
 
 - :func:`mne.combine_evoked` and :func:`mne.grand_average` can now handle input with the same channels in different orders, if required, by `Jona Sassenhagen`_
+
+- Add `split_naming` parameter to the `Raw.save` method to allow for BIDS-compatible raw file name construction by `Teon Brooks`_
+
+- Add capability to save a :class:`mne.Report` to an HDF5 file to :meth:`mne.Report.save` by `Marijn van Vliet`_
+
+- Add :func:`mne.open_report` to read back a :class:`mne.Report` object that was saved to an HDF5 file by `Marijn van Vliet`_
 
 Bug
 ~~~
@@ -53,6 +65,8 @@ Bug
 - Fix bug with reading events from BrainVision files by `Stefan Appelhoff`_
 
 - Fix bug of not showing ERD's in baseline rescaled tfr topomaps if grads are combined by `Erkka Heinila`_
+
+- Fix bug with FIF I/O where strings were written in UTF-8 format instead of Latin-1 by `Eric Larson`_
 
 - Fix bug with reading measurement dates from BrainVision files by `Stefan Appelhoff`_
 
@@ -112,7 +126,10 @@ Bug
 
 - Fix title of custom slider images to :class:`mne.Report` by `Marijn van Vliet`_
 
+- Fix missing initialization of ``self._current`` in :class:`mne.Epochs` by `Henrich Kolkhorst`_
+
 - Fix error in mne coreg when saving with scaled MRI if fiducials haven't been saved by `Ezequiel Mikulan`_
+
 
 API
 ~~~
@@ -137,6 +154,8 @@ API
 - `src.kind` now equals to `'mixed'` (and not `'combined'`) for a mixed source space (made of surfaces and volume grids) by `Alex Gramfort`_
 
 - Deprecation of :meth:`mne.io.BaseRaw.annotations` property in favor of :meth:`mne.io.BaseRaw.set_annotations` by `Joan Massich`_
+
+- The default value of ``stop_receive_thread`` in :meth:`mne.realtime.RtEpochs.stop` has been changed to ``True`` by `Henrich Kolkhorst`_
 
 .. _changes_0_16:
 
@@ -2685,7 +2704,7 @@ of commits):
 
 .. _Simon Kornblith: http://simonster.com
 
-.. _Teon Brooks: http://sites.google.com/a/nyu.edu/teon/
+.. _Teon Brooks: https://teonbrooks.github.io
 
 .. _Mainak Jas: http://ltl.tkk.fi/wiki/Mainak_Jas
 

@@ -7,7 +7,7 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 from scipy import sparse
 
-from mne import Epochs, read_events, pick_info, pick_types
+from mne import Epochs, read_events, pick_info, pick_types, Annotations
 from mne.event import make_fixed_length_events
 from mne.datasets import testing
 from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
@@ -408,52 +408,85 @@ def test_check_consistency():
     assert_array_equal(info3['ch_names'], ['a', 'b-0', 'b-1', 'c', 'b-2'])
 
 
+def _is_anonymous(inst):
+    """Check all the anonymity fields.
+
+    inst is either a raw or epochs object.
+    """
+    from collections import namedtuple
+    anonymity_checks = namedtuple("anonymity_checks",
+                                  ["missing_subject_info",
+                                   "anonymous_file_id_secs",
+                                   "anonymous_file_id_usecs",
+                                   "anonymous_meas_id_secs",
+                                   "anonymous_meas_id_usecs",
+                                   "anonymous_meas_date",
+                                   "anonymous_annotations"])
+
+    if 'subject_info' not in inst.info.keys():
+        missing_subject_info = True
+    else:
+        missing_subject_info = inst.info['subject_info'] is None
+
+    anonymous_file_id_secs = inst.info['file_id']['secs'] == DATE_NONE[0]
+    anonymous_file_id_usecs = inst.info['file_id']['usecs'] == DATE_NONE[1]
+    anonymous_meas_id_secs = inst.info['meas_id']['secs'] == DATE_NONE[0]
+    anonymous_meas_id_usecs = inst.info['meas_id']['usecs'] == DATE_NONE[1]
+    if inst.info['meas_date'] is None:
+        anonymous_meas_date = True
+    else:
+        assert isinstance(inst.info['meas_date'], tuple)
+        anonymous_meas_date = inst.info['meas_date'] == DATE_NONE
+
+    anonymous_annotations = (hasattr(inst, 'annotations') and
+                             inst.annotations.orig_time is None)
+
+    return anonymity_checks(missing_subject_info,
+                            anonymous_file_id_secs,
+                            anonymous_file_id_usecs,
+                            anonymous_meas_id_secs,
+                            anonymous_meas_id_usecs,
+                            anonymous_meas_date,
+                            anonymous_annotations)
+
+
 def test_anonymize():
     """Test that sensitive information can be anonymized."""
     pytest.raises(TypeError, anonymize_info, 'foo')
 
     # Fake some subject data
     raw = read_raw_fif(raw_fname)
+    raw.set_annotations(Annotations(onset=[0, 1],
+                                    duration=[1, 1],
+                                    description='dummy',
+                                    orig_time=None))
     raw.info['subject_info'] = dict(id=1, his_id='foobar', last_name='bar',
                                     first_name='bar', birthday=(1987, 4, 8),
                                     sex=0, hand=1)
 
-    orig_file_id = raw.info['file_id']['secs']
-    orig_meas_id = raw.info['meas_id']['secs']
+    # Test no error for incomplete info
+    info = raw.info.copy()
+    info.pop('file_id')
+    anonymize_info(info)
+
     # Test instance method
     events = read_events(event_name)
     epochs = Epochs(raw, events[:1], 2, 0., 0.1)
-    for inst in [raw, epochs]:
-        assert 'subject_info' in inst.info.keys()
-        assert inst.info['subject_info'] is not None
-        for key in ('file_id', 'meas_id'):
-            assert inst.info[key]['secs'] != DATE_NONE[0]
-            assert inst.info[key]['usecs'] != DATE_NONE[1]
-        assert isinstance(inst.info['meas_date'], tuple)
-        assert inst.info['meas_date'] != DATE_NONE
-        inst.anonymize()
-        assert 'subject_info' not in inst.info.keys()
-        for key in ('file_id', 'meas_id'):
-            assert inst.info[key]['secs'] == DATE_NONE[0]
-            assert inst.info[key]['usecs'] == DATE_NONE[1]
-        assert inst.info['meas_date'] is None
+
+    assert not any(_is_anonymous(raw))
+    raw.anonymize()
+    assert all(_is_anonymous(raw))
+
+    assert not any(_is_anonymous(epochs)[:-1])  # epochs has no annotations
+    epochs.anonymize()
+    assert all(_is_anonymous(epochs)[:-1])
 
     # When we write out with raw.save, these get overwritten with the
     # new save time
     tempdir = _TempDir()
     out_fname = op.join(tempdir, 'test_subj_info_raw.fif')
     raw.save(out_fname, overwrite=True)
-    raw = read_raw_fif(out_fname)
-    assert raw.info.get('subject_info') is None
-    assert raw.info['meas_date'] is None
-    # XXX mne.io.write.write_id necessarily writes secs
-    assert raw.info['file_id']['secs'] != orig_file_id
-    assert raw.info['meas_id']['secs'] != orig_meas_id
-
-    # Test no error for incomplete info
-    info = raw.info.copy()
-    info.pop('file_id')
-    anonymize_info(info)
+    assert all(_is_anonymous(read_raw_fif(out_fname)))
 
 
 @testing.requires_testing_data

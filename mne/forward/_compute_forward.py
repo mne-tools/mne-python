@@ -17,7 +17,7 @@ import numpy as np
 from copy import deepcopy
 
 from ..surface import fast_cross_3d, _project_onto_surface
-from ..io.constants import FIFF
+from ..io.constants import FIFF, FWD
 from ..transforms import apply_trans
 from ..utils import logger, verbose, _pl
 from ..parallel import parallel_func
@@ -682,7 +682,7 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
     """
     bem_rr = mults = mri_Q = head_mri_t = None
     if not bem['is_sphere']:
-        if bem['bem_method'] != FIFF.FWD_BEM_LINEAR_COLL:
+        if bem['bem_method'] != FWD.BEM_LINEAR_COLL:
             raise RuntimeError('only linear collocation supported')
         # Store (and apply soon) μ_0/(4π) factor before source computations
         mults = np.repeat(bem['source_mult'] / (4.0 * np.pi),

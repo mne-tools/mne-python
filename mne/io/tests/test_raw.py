@@ -7,7 +7,7 @@ import numpy as np
 from numpy.testing import (assert_allclose, assert_array_almost_equal,
                            assert_equal, assert_array_equal)
 
-from mne import concatenate_raws, create_info
+from mne import concatenate_raws, create_info, Annotations
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray
 from mne.utils import _TempDir
@@ -87,8 +87,16 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
     assert_equal(concat_raw.first_samp, first_samp)
     assert_equal(concat_raw.last_samp - last_samp + first_samp, last_samp + 1)
     idx = np.where(concat_raw.annotations.description == 'BAD boundary')[0]
-    assert_array_almost_equal([(last_samp - first_samp) / raw.info['sfreq']],
-                              concat_raw.annotations.onset[idx], decimal=2)
+
+    if concat_raw.info['meas_date'] is None:
+        expected_bad_boundary_onset = ((last_samp - first_samp) /
+                                       raw.info['sfreq'])
+    else:
+        expected_bad_boundary_onset = last_samp / raw.info['sfreq']
+
+    assert_array_almost_equal(concat_raw.annotations.onset[idx],
+                              expected_bad_boundary_onset,
+                              decimal=2)
 
     if raw.info['meas_id'] is not None:
         for key in ['secs', 'usecs', 'version']:
@@ -131,7 +139,7 @@ def _test_concat(reader, *args):
 
 
 @testing.requires_testing_data
-def test_time_index():
+def test_time_as_index():
     """Test indexing of raw times."""
     raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                         'data', 'test_raw.fif')
@@ -143,7 +151,27 @@ def test_time_index():
 
     # Test new (rounding) indexing behavior
     new_inds = raw.time_as_index(raw.times, use_rounding=True)
-    assert(len(set(new_inds)) == len(new_inds))
+    assert_array_equal(new_inds, np.arange(len(raw.times)))
+
+
+@pytest.mark.parametrize('offset, origin',
+                         [(0, None), (0, 2.0), (1, 1.0), (2, 0.0)],
+                         ids=['times in s. relative to first_samp (default)',
+                              'times in s. relative to first_samp',
+                              'times in s. relative to meas_date',
+                              'absolute times in s. relative to 0'])
+def test_time_as_index_ref(offset, origin):
+    """Test indexing of raw times."""
+    meas_date = 1
+    info = create_info(ch_names=10, sfreq=10.)
+    raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
+    raw.info['meas_date'] = meas_date
+
+    relative_times = raw.times
+    inds = raw.time_as_index(relative_times + offset,
+                             use_rounding=True,
+                             origin=origin)
+    assert_array_equal(inds, np.arange(raw.n_times))
 
 
 def test_annotation_property_deprecation_warning():
@@ -153,3 +181,56 @@ def test_annotation_property_deprecation_warning():
     assert len(w) is 0
     with pytest.warns(DeprecationWarning, match='by assignment is deprecated'):
         raw.annotations = None
+
+
+def _raw_annot(meas_date, orig_time, sync_orig=True):
+    info = create_info(ch_names=10, sfreq=10.)
+    raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
+    raw.info['meas_date'] = meas_date
+    annot = Annotations([.5], [.2], ['dummy'], orig_time)
+    raw.set_annotations(annotations=annot, sync_orig=sync_orig)
+    return raw
+
+
+def test_meas_date_orig_time():
+    """Test the relation between meas_time in orig_time."""
+    # meas_time is set and orig_time is set:
+    # clips the annotations based on raw.data and resets the annotation based
+    # on raw.info['meas_date]
+    raw = _raw_annot(1, 1.5)
+    assert raw.annotations.orig_time == 1
+    assert raw.annotations.onset[0] == 1
+
+    # meas_time is set and orig_time is None:
+    # Consider annot.orig_time to be raw.frist_sample, clip and reset
+    # annotations to have the raw.annotations.orig_time == raw.info['meas_date]
+    raw = _raw_annot(1, None)
+    assert raw.annotations.orig_time == 1
+    assert raw.annotations.onset[0] == 1.5
+
+    # meas_time is None and orig_time is set:
+    # Raise error, it makes no sense to have an annotations object that we know
+    # when was acquired and set it to a raw object that does not know when was
+    # it acquired.
+    with pytest.raises(RuntimeError, match='Ambiguous operation'):
+        _raw_annot(None, 1.5)
+
+    # meas_time is None and orig_time is None:
+    # Consider annot.orig_time to be raw.first_sample and clip
+    raw = _raw_annot(None, None)
+    assert raw.annotations.orig_time is None
+    assert raw.annotations.onset[0] == 0.5
+    assert raw.annotations.duration[0] == 0.2
+
+
+def test_deprecated_meas_date_orig_time():
+    """Test meas_date_orig_time old behavior for backward compatibility."""
+    with pytest.warns(DeprecationWarning):
+        raw = _raw_annot(1, 1.5, sync_orig=False)
+    assert raw.annotations.orig_time == 1.5
+    assert raw.annotations.onset[0] == 0.5
+
+    with pytest.warns(DeprecationWarning):
+        raw = _raw_annot(1, None, sync_orig=False)
+    assert raw.annotations.orig_time == 2
+    assert raw.annotations.onset[0] == 0.5

@@ -2021,16 +2021,20 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
     verbose_bool = (logger.level <= 20)  # 20 is info
     try:
         # Check file size and displaying it alongside the download url
-        u = urllib.request.urlopen(url, timeout=timeout)
-        u.close()
-        # this is necessary to follow any redirects
-        url = u.geturl()
-        u = urllib.request.urlopen(url, timeout=timeout)
-        try:
-            file_size = int(u.headers.get('Content-Length', '1').strip())
-        finally:
-            u.close()
-            del u
+        # this loop is necessary to follow any redirects
+        for _ in range(10):  # 10 really should be sufficient...
+            u = urllib.request.urlopen(url, timeout=timeout)
+            try:
+                last_url, url = url, u.geturl()
+                if url == last_url:
+                    file_size = int(
+                        u.headers.get('Content-Length', '1').strip())
+                    break
+            finally:
+                u.close()
+                del u
+        else:
+            raise RuntimeError('Too many redirects')
         logger.info('Downloading %s (%s)' % (url, sizeof_fmt(file_size)))
 
         # Triage resume

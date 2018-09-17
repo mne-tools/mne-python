@@ -230,7 +230,14 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
                           (limits[2], 0.5, 0.5),
                           (limits[3], 0.5, 0.5),
                           (limits[4], 0.0, 0.0),
-                          (limits[5], 0.0, 0.0))}
+                          (limits[5], 0.0, 0.0)),
+                 'alpha': ((limits[0], 1.0, 1.0),
+                           (limits[1], 1.0, 1.0),
+                           (limits[2], 0.0, 0.0),
+                           (limits[3], 0.0, 0.0),
+                           (limits[4], 1.0, 1.0),
+                           (limits[5], 1.0, 1.0)),
+                 }
         return colors.LinearSegmentedColormap('mne_analyze', cdict)
     elif format == 'mayavi':
         if len(limits) == 3:

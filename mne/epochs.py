@@ -133,10 +133,10 @@ def _save_split(epochs, fname, part_idx, n_parts):
     # undo modifications to data
     data /= decal[np.newaxis, :, np.newaxis]
 
-    write_string(fid, FIFF.FIFFB_MNE_EPOCHS_DROP_LOG,
+    write_string(fid, FIFF.FIFF_MNE_EPOCHS_DROP_LOG,
                  json.dumps(epochs.drop_log))
 
-    write_int(fid, FIFF.FIFFB_MNE_EPOCHS_SELECTION,
+    write_int(fid, FIFF.FIFF_MNE_EPOCHS_SELECTION,
               epochs.selection)
 
     # And now write the next file info in case epochs are split on disk
@@ -341,6 +341,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         del info
         self._metadata = None
         self.metadata = metadata
+        self._current = 0
 
         if picks is None:
             picks = list(range(len(self.info['ch_names'])))
@@ -720,6 +721,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         The Evoked objects yielded will each contain a single epoch (i.e., no
         averaging is performed).
+
+        This method resets the object iteration state to the first epoch.
         """
         self._current = 0
 
@@ -1304,6 +1307,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def __iter__(self):
         """Facilitate iteration over epochs.
+
+        This method resets the object iteration state to the first epoch.
 
         Notes
         -----
@@ -2007,6 +2012,10 @@ class Epochs(BaseEpochs):
 
     For indexing and slicing using ``epochs[...]``, see
     :meth:`mne.Epochs.__getitem__`.
+
+    All methods for iteration over objects (using :meth:`mne.Epochs.__iter__`,
+    :meth:`mne.Epochs.iter_evoked` or :meth:`mne.Epochs.next`) use the same
+    internal state.
     """
 
     @verbose
@@ -2470,10 +2479,10 @@ def _read_one_epoch_file(f, tree, preload):
                 # Constant 305 was used before v0.11
                 tag = read_tag(fid, pos)
                 bmax = float(tag.data)
-            elif kind == FIFF.FIFFB_MNE_EPOCHS_SELECTION:
+            elif kind == FIFF.FIFF_MNE_EPOCHS_SELECTION:
                 tag = read_tag(fid, pos)
                 selection = np.array(tag.data)
-            elif kind == FIFF.FIFFB_MNE_EPOCHS_DROP_LOG:
+            elif kind == FIFF.FIFF_MNE_EPOCHS_DROP_LOG:
                 tag = read_tag(fid, pos)
                 drop_log = json.loads(tag.data)
 
@@ -2513,7 +2522,7 @@ def _read_one_epoch_file(f, tree, preload):
         tmax = last / info['sfreq']
         event_id = (dict((str(e), e) for e in np.unique(events[:, 2]))
                     if mappings is None else mappings)
-        # In case epochs didn't have a FIFF.FIFFB_MNE_EPOCHS_SELECTION tag
+        # In case epochs didn't have a FIFF.FIFF_MNE_EPOCHS_SELECTION tag
         # (version < 0.8):
         if selection is None:
             selection = np.arange(len(events))

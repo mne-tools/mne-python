@@ -21,7 +21,7 @@ from ..base import (BaseRaw, _RawShell, _check_raw_compatibility,
                     _check_maxshield)
 from ..utils import _mult_cal_one
 
-from ...annotations import (Annotations, _combine_annotations, _sync_onset,
+from ...annotations import (Annotations, _combine_annotations,
                             _read_annotations)
 
 from ...event import AcqParserFIF
@@ -117,19 +117,24 @@ class Raw(BaseRaw):
                 n_samples += r.last_samp - r.first_samp + 1
 
         # Add annotations for in-data skips
-        offsets = [0] + self._raw_lengths[:-1]
-        for extra, first_samp, offset in zip(self._raw_extras,
-                                             self._first_samps, offsets):
-            for skip in extra:
-                if skip['ent'] is None:  # these are skips
-                    if self.annotations is None:
-                        self.set_annotations(Annotations((), (), ()))
-                    start = skip['first'] - first_samp + offset
-                    stop = skip['last'] - first_samp + offset
-                    self.annotations.append(
-                        _sync_onset(self, start / self.info['sfreq']),
-                        (stop - start + 1) / self.info['sfreq'],
-                        'BAD_ACQ_SKIP')
+        for extra in self._raw_extras:
+            start = np.array([e['first'] for e in extra if e['ent'] is None])
+            stop = np.array([e['last'] for e in extra if e['ent'] is None])
+            duration = (stop - start + 1.) / self.info['sfreq']
+
+            annot = Annotations(onset=(start / self.info['sfreq']),
+                                duration=duration,
+                                description='BAD_ACQ_SKIP',
+                                orig_time=self.info['meas_date'])
+
+            if self.annotations is None:
+                self.set_annotations(annot)
+            else:
+                # they share the same reference
+                self.annotations.append(onset=annot.onset,
+                                        duration=annot.duration,
+                                        description=annot.description)
+
         if preload:
             self._preload_data(preload)
         else:

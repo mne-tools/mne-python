@@ -26,7 +26,7 @@ FIFF = BunchConst()
 # FIFF version number in use
 #
 FIFF.FIFFC_MAJOR_VERSION = 1
-FIFF.FIFFC_MINOR_VERSION = 3
+FIFF.FIFFC_MINOR_VERSION = 4
 FIFF.FIFFC_VERSION = FIFF.FIFFC_MAJOR_VERSION << 16 | FIFF.FIFFC_MINOR_VERSION
 
 #
@@ -129,7 +129,7 @@ FIFF.FIFF_BAD_CHS       = 220
 FIFF.FIFF_ARTEF_REMOVAL = 221
 FIFF.FIFF_COORD_TRANS = 222
 FIFF.FIFF_HIGHPASS    = 223
-FIFF.FIFF_CH_CALS        = 22     # This will not occur in new files
+FIFF.FIFF_CH_CALS        = 224     # This will not occur in new files
 FIFF.FIFF_HPI_BAD_CHS    = 225    # List of channels considered to be bad in hpi
 FIFF.FIFF_HPI_CORR_COEFF = 226    # HPI curve fit correlations
 FIFF.FIFF_EVENT_COMMENT  = 227    # Comment about the events used in averaging
@@ -646,27 +646,30 @@ FIFF.FIFFV_MNE_COORD_KIT_HEAD    = FIFF.FIFFV_MNE_COORD_CTF_HEAD
 #
 #   FWD Types
 #
-FIFF.FWD_COIL_UNKNOWN                   = 0
-FIFF.FWD_COILC_UNKNOWN                  = 0
-FIFF.FWD_COILC_EEG                      = 1000
-FIFF.FWD_COILC_MAG                      = 1
-FIFF.FWD_COILC_AXIAL_GRAD               = 2
-FIFF.FWD_COILC_PLANAR_GRAD              = 3
-FIFF.FWD_COILC_AXIAL_GRAD2              = 4
 
-FIFF.FWD_COIL_ACCURACY_POINT            = 0
-FIFF.FWD_COIL_ACCURACY_NORMAL           = 1
-FIFF.FWD_COIL_ACCURACY_ACCURATE         = 2
+FWD = BunchConst()
 
-FIFF.FWD_BEM_UNKNOWN                    = -1
-FIFF.FWD_BEM_CONSTANT_COLL              = 1
-FIFF.FWD_BEM_LINEAR_COLL                = 2
+FWD.COIL_UNKNOWN                 = 0
+FWD.COILC_UNKNOWN                = 0
+FWD.COILC_EEG                    = 1000
+FWD.COILC_MAG                    = 1
+FWD.COILC_AXIAL_GRAD             = 2
+FWD.COILC_PLANAR_GRAD            = 3
+FWD.COILC_AXIAL_GRAD2            = 4
 
-FIFF.FWD_BEM_IP_APPROACH_LIMIT          = 0.1
+FWD.COIL_ACCURACY_POINT          = 0
+FWD.COIL_ACCURACY_NORMAL         = 1
+FWD.COIL_ACCURACY_ACCURATE       = 2
 
-FIFF.FWD_BEM_LIN_FIELD_SIMPLE           = 1
-FIFF.FWD_BEM_LIN_FIELD_FERGUSON         = 2
-FIFF.FWD_BEM_LIN_FIELD_URANKAR          = 3
+FWD.BEM_UNKNOWN                  = -1
+FWD.BEM_CONSTANT_COLL            = 1
+FWD.BEM_LINEAR_COLL              = 2
+
+FWD.BEM_IP_APPROACH_LIMIT        = 0.1
+
+FWD.BEM_LIN_FIELD_SIMPLE         = 1
+FWD.BEM_LIN_FIELD_FERGUSON       = 2
+FWD.BEM_LIN_FIELD_URANKAR        = 3
 
 #
 #   Data types
@@ -848,11 +851,11 @@ FIFF.FIFF_MNE_RT_COMMAND           = 3700  # realtime command
 FIFF.FIFF_MNE_RT_CLIENT_ID         = 3701  # realtime client
 
 # MNE epochs bookkeeping
-FIFF.FIFFB_MNE_EPOCHS_SELECTION    = 3800  # the epochs selection
-FIFF.FIFFB_MNE_EPOCHS_DROP_LOG     = 3801  # the drop log
+FIFF.FIFF_MNE_EPOCHS_SELECTION     = 3800  # the epochs selection
+FIFF.FIFF_MNE_EPOCHS_DROP_LOG      = 3801  # the drop log
 
 # MNE annotations
-FIFF.FIFFB_MNE_ANNOTATIONS          = 3810  # annotations
+FIFF.FIFFB_MNE_ANNOTATIONS         = 3810  # annotations block
 
 # MNE Metadata Dataframes
-FIFF.FIFFB_MNE_METADATA             = 3811  # metadata dataframes
+FIFF.FIFFB_MNE_METADATA            = 3811  # metadata dataframes block
