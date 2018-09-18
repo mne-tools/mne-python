@@ -3,21 +3,26 @@
 # License: BSD 3 clause
 
 from datetime import datetime
+from itertools import repeat
+
 import os.path as op
 
 import pytest
+from pytest import approx
 from numpy.testing import (assert_equal, assert_array_equal,
                            assert_array_almost_equal, assert_allclose)
 
 import numpy as np
 
 import mne
-from mne import create_info, Epochs, read_annotations, events_from_annotations
+from mne import create_info, read_annotations, events_from_annotations
+from mne import Epochs, Annotations
 from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_fif, RawArray, concatenate_raws
-from mne.annotations import Annotations, _sync_onset, _handle_meas_date
+from mne.annotations import _sync_onset, _handle_meas_date
 from mne.annotations import read_brainstorm_annotations
 from mne.datasets import testing
+
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fif_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
@@ -552,8 +557,6 @@ def _create_annotation_based_on_descr(description, annotation_start_sampl=0,
     The returning raw object contains as many annotations as description given.
     All starting at `annotation_start_sampl`.
     """
-    from pytest import approx
-    from mne import Annotations
 
     # create dummy raw
     raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
@@ -650,8 +653,6 @@ def test_event_id_function_default():
 
 def test_event_id_function_using_custom_function():
     """Test [unit_test] arbitrary function to create the ids."""
-    from itertools import repeat
-
     def _constant_id(*args, **kwargs):
         return 42
 

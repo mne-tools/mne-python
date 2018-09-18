@@ -19,10 +19,11 @@ from scipy import io
 from mne import write_events, read_epochs_eeglab, Epochs, find_events
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.eeglab.eeglab import read_events_eeglab
-from mne.io.eeglab import read_annotations_eeglab
+from mne.io.eeglab import read_annotations_eeglab, read_events_eeglab
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, requires_h5py
+from mne.annotations import events_from_annotations
+
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 
@@ -343,10 +344,6 @@ def test_read_annotations_eeglab():
 @testing.requires_testing_data
 def test_eeglab_event_from_annot(recwarn):
     """Test all forms of obtaining annotations."""
-    from mne.io import read_raw_eeglab
-    from mne.io.eeglab import read_annotations_eeglab, read_events_eeglab
-    import mne
-    from mne.annotations import events_from_annotations
     base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
     raw_fname_mat = op.join(base_dir, 'test_raw.set')
     raw_fname = raw_fname_mat
@@ -355,7 +352,7 @@ def test_eeglab_event_from_annot(recwarn):
     raw1 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
                            event_id=event_id, preload=False)
 
-    events_a = mne.find_events(raw1)
+    events_a = find_events(raw1)
     events_b = read_events_eeglab(raw_fname, event_id=event_id)
     annotations = read_annotations_eeglab(raw_fname)
     assert raw1.annotations is None
