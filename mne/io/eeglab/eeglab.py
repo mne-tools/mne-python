@@ -397,9 +397,10 @@ class RawEEGLAB(BaseRaw):
             warn(str(n_dropped) + " events will be dropped because they "
                  "occur on the same time sample as another event. "
                  "`mne.io.Raw` objects store events on an event channel, "
-                 "which cannot represent two events on the same sample. You "
-                 "can extract the original event structure using "
-                 "`mne.io.eeglab.read_events_eeglab`. Then, you can e.g. "
+                 "which cannot represent two events on the same sample. "
+                 "Please use `read_annotations_eeglab` and create events "
+                 "using `events_from_annotations` to extract the original "
+                 "event structure. Then, you can e.g. "
                  "subset the extracted events for constructing epochs.")
         if n_samples is None:
             n_samples = self.last_samp - self.first_samp + 1
@@ -597,7 +598,7 @@ class EpochsEEGLAB(BaseEpochs):
 
 @deprecated('read_events_eeglab is deprecated from 0.17 and will be removed'
             ' in 0.18. Please use read_annotations_eeglab and create events'
-            ' using events_from_annotations')
+            ' using events_from_annotations.')
 def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
                        uint16_codec=None):
     r"""Create events array from EEGLAB structure.
