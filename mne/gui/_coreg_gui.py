@@ -923,8 +923,8 @@ class CoregPanelHandler(Handler):
                    "Select No to proceed scaling the MRI without fiducials.".
                    format(src=subject_from))
             title = "Save Fiducials for %s?" % subject_from
-            rc = confirm(None, msg, title, cancel=True, default=CANCEL,
-                         parent=self.info.ui.control)
+            rc = confirm(self.info.ui.control, msg, title, cancel=True,
+                         default=CANCEL)
             if rc == CANCEL:
                 return
             elif rc == YES:

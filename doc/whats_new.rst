@@ -128,6 +128,9 @@ Bug
 
 - Fix missing initialization of ``self._current`` in :class:`mne.Epochs` by `Henrich Kolkhorst`_
 
+- Fix error in mne coreg when saving with scaled MRI if fiducials haven't been saved by `Ezequiel Mikulan`_
+
+
 API
 ~~~
 
@@ -2882,3 +2885,5 @@ of commits):
 .. _Peter Molfese: https://github.com/pmolfese
 
 .. _Jasper van den Bosch: https://github.com/ilogue
+
+.. _Ezequiel Mikulan: https://github.com/ezemikulan
