@@ -423,7 +423,7 @@ def check_fname(fname, filetype, endings, endings_err=()):
              % (fname, filetype, print_endings))
 
 
-class Counter():
+class _Counter():
     count = 1
 
     def __call__(self, *args, **kargs):

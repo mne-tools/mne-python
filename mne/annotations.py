@@ -9,7 +9,7 @@ from copy import deepcopy
 import numpy as np
 
 from .utils import _pl, check_fname, _validate_type, verbose, warn, logger
-from .utils import Counter
+from .utils import _Counter as Counter
 from .externals.six import string_types
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
