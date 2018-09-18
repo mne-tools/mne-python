@@ -532,7 +532,7 @@ def test_event_ordering():
 
 
 def test_events_type():
-    """Test type of events"""
+    """Test type of events."""
     raw, events = _get_data()[:2]
     events_id = {'A': 1, 'B': 2}
     events = (events, events_id)
