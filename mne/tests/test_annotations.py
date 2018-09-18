@@ -547,7 +547,7 @@ def test_events_from_annot_onset_alingment():
 
 def _create_annotation_based_on_descr(description, annotation_start_sampl=0,
                                       duration=0, orig_time=0):
-    """Helper_func returning a raw object with annotations from descriptions.
+    """Create a raw object with annotations from descriptions.
 
     The returning raw object contains as many annotations as description given.
     All starting at `annotation_start_sampl`.
