@@ -740,7 +740,7 @@ def _bunchify(items):
 
 
 def _read_annotations_eeglab(eeg):
-    r"""Create Annotations from EEGLAB file.
+    """Create Annotations from EEGLAB file.
 
     This function reads the event attribute from the EEGLAB
     structure and makes an :class:`mne.Annotations` object.
