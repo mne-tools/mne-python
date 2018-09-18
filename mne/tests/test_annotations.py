@@ -666,18 +666,4 @@ def test_event_id_function_using_custom_function():
     assert event_id == expected_event_id
 
 
-def test_counter_factory():
-    """Test that _counter_factory works and can be restarted."""
-    from mne.annotations import _counter_factory
-
-    event_id_func = _counter_factory()
-    first_round = [event_id_func(x) for x in [None, 'a', 42]]
-
-    event_id_func = _counter_factory()
-    second_round = [event_id_func(x) for x in ['b', None, 3]]
-
-    assert first_round == [1, 2, 3]
-    assert second_round == [1, 2, 3]
-
-
 run_tests_if_main()

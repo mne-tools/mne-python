@@ -9,6 +9,7 @@ from copy import deepcopy
 import numpy as np
 
 from .utils import _pl, check_fname, _validate_type, verbose, warn, logger
+from .utils import Counter
 from .externals.six import string_types
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
@@ -519,36 +520,6 @@ def _ensure_annotation_object(obj):
                          'mne.Annotations. Got %s.' % obj)
 
 
-def _counter_factory():
-    """Create a callable counter that takes 1 parameter.
-
-    It can be used as follows::
-
-        >>> my_counter = _counter_factory()
-        >>> my_counter(None)
-        1
-        >>> my_counter('usless string')
-        2
-        >>> my_counter(42)
-        3
-        >>> [my_counter(x) for x in ['a', None, 42]]
-        [4, 5, 6]
-        >>> my_other_counter = _counter_factory()
-        >>> [my_other_counter(x) for x in ['a', None, 42]]
-        [1, 2, 3]
-
-    """
-    class Counter():
-        count = 1
-
-        def __call__(self, *args, **kargs):
-            c = self.count
-            self.count += 1
-            return c
-
-    return Counter()
-
-
 @verbose
 def events_from_annotations(raw, event_id=None, regexp=None,
                             event_id_func=None, verbose=None):
@@ -598,7 +569,7 @@ def events_from_annotations(raw, event_id=None, regexp=None,
         pat = re.compile(regexp)
 
     if event_id_func is None:
-        event_id_func = _counter_factory()
+        event_id_func = Counter()
 
     event_id_ = dict()
     for desc in annotations.description:

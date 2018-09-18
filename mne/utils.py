@@ -423,6 +423,15 @@ def check_fname(fname, filetype, endings, endings_err=()):
              % (fname, filetype, print_endings))
 
 
+class Counter():
+    count = 1
+
+    def __call__(self, *args, **kargs):
+        c = self.count
+        self.count += 1
+        return c
+
+
 class WrapStdOut(object):
     """Dynamically wrap to sys.stdout.
 
