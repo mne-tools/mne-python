@@ -949,11 +949,134 @@ class Report(object):
 
         return items, captions, comments
 
-    def _add_figs_to_section(self, figs, captions, section='custom',
-                             image_format='png', scale=None, comments=None):
-        """Auxiliary method for `add_section` and `add_figs_to_section`."""
+    def remove(self, index=None, caption=None, section=None):
+        """Remove a figure from the report.
+
+        The figures to remove can be either specified by integer index or
+        searched for by their caption. When searching by caption, the section
+        label can be specified as well to narrow down the search. If multiple
+        figures match the search criteria, the last one will be removed.
+
+        Any empty sections will be removed as well.
+
+        Parameters
+        ----------
+        index : int | None
+            If set, specifies the figure to remove by integer index.
+        caption : str | None
+            If set, search for the figure by caption.
+        section : str | None
+            If set, limit the search to the section with the given label.
+
+        Returns
+        -------
+        removed_index : int | None
+            The integer index of the figure that was removed, or ``None`` if no
+            figure matched the search criteria.
+        """
+        if (index is None) == (caption is None):
+            raise ValueError('Specify either an index or caption '
+                             '(but not both).')
+
+        if caption is not None:
+            # Construct the search pattern
+            pattern = r'^%s-#-.*-#-custom$' % caption
+
+            # Search for figures matching the search pattern, regardless of
+            # section
+            matches = [i for i, fname in enumerate(self.fnames)
+                       if re.match(pattern, fname)]
+            if section is not None:
+                # Narrow down the search to the given section
+                svar = self._sectionvars[section]
+                matches = [i for i in matches
+                           if self._sectionlabels[i] == svar]
+            if len(matches) == 0:
+                return None
+
+            # Remove last occurrence
+            index = max(matches)
+
+        # Remove the figure
+        del self.fnames[index]
+        del self._sectionlabels[index]
+        del self.html[index]
+
+        # Remove any (now) empty sections.
+        # We use a list() to copy the _sectionvars dictionary, since we are
+        # removing elements during the loop.
+        for section_, sectionlabel_ in list(self._sectionvars.items()):
+            if sectionlabel_ not in self._sectionlabels:
+                self.sections.remove(section_)
+                del self._sectionvars[section_]
+
+        return index
+
+    def _add_or_replace(self, fname, sectionlabel, html, replace=False):
+        """Append a figure to the report, or replace it if it already exists.
+
+        Parameters
+        ----------
+        fname : str
+            A unique identifier for the figure. If a figure with this
+            identifier has already been added, it will be replaced.
+        sectionlabel : str
+            The section to place the figure in.
+        html : str
+            The HTML that contains the figure.
+        replace : bool
+            Existing figures are only replaced if this is set to ``True``.
+            Defaults to ``False``.
+        """
+        if replace and fname in self.fnames:
+            # Find last occurrence of the figure
+            ind = max([i for i, existing in enumerate(self.fnames)
+                       if existing == fname])
+            self.fnames[ind] = fname
+            self._sectionlabels[ind] = sectionlabel
+            self.html[ind] = html
+        else:
+            # Append new record
+            self.fnames.append(fname)
+            self._sectionlabels.append(sectionlabel)
+            self.html.append(html)
+
+    def add_figs_to_section(self, figs, captions, section='custom',
+                            scale=None, image_format=None, comments=None,
+                            replace=False):
+        """Append custom user-defined figures.
+
+        Parameters
+        ----------
+        figs : figure | list of figures
+            A figure or a list of figures to add to the report. Each figure in
+            the list can be an instance of :class:`matplotlib.figure.Figure`,
+            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
+        captions : str | list of str
+            A caption or a list of captions to the figures.
+        section : str
+            Name of the section to place the figure in. If section already
+            exists, the figures will be appended to the end of the section.
+        scale : float | None | callable
+            Scale the images maintaining the aspect ratio.
+            If None, no scaling is applied. If float, scale will determine
+            the relative scaling (might not work for scale <= 1 depending on
+            font sizes). If function, should take a figure object as input
+            parameter. Defaults to None.
+        image_format : str | None
+            The image format to be used for the report, can be 'png' or 'svd'.
+            None (default) will use the default specified during Report
+            class construction.
+        comments : None | str | list of str
+            A string of text or a list of strings of text to be appended after
+            the figure.
+        replace : bool
+            If ``True``, figures already present that have the same caption
+            will be replaced. Defaults to ``False``.
+        """
         figs, captions, comments = self._validate_input(figs, captions,
                                                         section, comments)
+        image_format = _check_image_format(self, image_format)
         _check_scale(scale)
         for fig, caption, comment in zip(figs, captions, comments):
             caption = 'custom plot' if caption == '' else caption
@@ -970,47 +1093,11 @@ class Report(object):
                                              show=True,
                                              image_format=image_format,
                                              comment=comment)
-            self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
-            self._sectionlabels.append(sectionvar)
-            self.html.append(html)
-
-    def add_figs_to_section(self, figs, captions, section='custom',
-                            scale=None, image_format=None, comments=None):
-        """Append custom user-defined figures.
-
-        Parameters
-        ----------
-        figs : list of figures.
-            Each figure in the list can be an instance of
-            :class:`matplotlib.figure.Figure`,
-            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
-        captions : list of str
-            A list of captions to the figures.
-        section : str
-            Name of the section. If section already exists, the figures
-            will be appended to the end of the section
-        scale : float | None | callable
-            Scale the images maintaining the aspect ratio.
-            If None, no scaling is applied. If float, scale will determine
-            the relative scaling (might not work for scale <= 1 depending on
-            font sizes). If function, should take a figure object as input
-            parameter. Defaults to None.
-        image_format : str | None
-            The image format to be used for the report, can be 'png' or 'svd'.
-            None (default) will use the default specified during Report
-            class construction.
-        comments : None | str | list of str
-            A string of text or a list of strings of text to be appended after
-            the figure.
-        """
-        image_format = _check_image_format(self, image_format)
-        return self._add_figs_to_section(figs=figs, captions=captions,
-                                         section=section, scale=scale,
-                                         image_format=image_format,
-                                         comments=comments)
+            self._add_or_replace('%s-#-%s-#-custom' % (caption, sectionvar),
+                                 sectionvar, html, replace)
 
     def add_images_to_section(self, fnames, captions, scale=None,
-                              section='custom', comments=None):
+                              section='custom', comments=None, replace=False):
         """Append custom user-defined images.
 
         Parameters
@@ -1029,6 +1116,10 @@ class Report(object):
         comments : None | str | list of str
             A string of text or a list of strings of text to be appended after
             the image.
+        replace : bool
+            If ``True``, figures already present that have the same caption
+            will be replaced. Defaults to ``False``.
+
         """
         # Note: using scipy.misc is equivalent because scipy internally
         # imports PIL anyway. It's not possible to redirect image output
@@ -1062,11 +1153,12 @@ class Report(object):
                                              width=scale,
                                              comment=comment,
                                              show=True)
-            self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
-            self._sectionlabels.append(sectionvar)
-            self.html.append(html)
 
-    def add_htmls_to_section(self, htmls, captions, section='custom'):
+            self._add_or_replace('%s-#-%s-#-custom' % (caption, sectionvar),
+                                 sectionvar, html, replace)
+
+    def add_htmls_to_section(self, htmls, captions, section='custom',
+                             replace=False):
         """Append htmls to the report.
 
         Parameters
@@ -1078,6 +1170,9 @@ class Report(object):
         section : str
             Name of the section. If section already exists, the images
             will be appended to the end of the section.
+        replace : bool
+            If ``True``, figures already present that have the same caption
+            will be replaced. Defaults to ``False``.
 
         Notes
         -----
@@ -1090,14 +1185,14 @@ class Report(object):
             global_id = self._get_id()
             div_klass = self._sectionvars[section]
 
-            self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
-            self._sectionlabels.append(sectionvar)
-            self.html.append(
+            self._add_or_replace(
+                '%s-#-%s-#-custom' % (caption, sectionvar), sectionvar,
                 html_template.substitute(div_klass=div_klass, id=global_id,
-                                         caption=caption, html=html))
+                                         caption=caption, html=html), replace)
 
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
-                           decim=2, n_jobs=1, subjects_dir=None):
+                           decim=2, n_jobs=1, subjects_dir=None,
+                           replace=False):
         """Render a bem slider html str.
 
         Parameters
@@ -1117,6 +1212,10 @@ class Report(object):
         subjects_dir : str | None
             Path to the SUBJECTS_DIR. If None, the path is obtained by using
             the environment variable SUBJECTS_DIR.
+        replace : bool
+            If ``True``, figures already present that have the same caption
+            will be replaced. Defaults to ``False``.
+
 
         Notes
         -----
@@ -1128,13 +1227,12 @@ class Report(object):
                                 caption=caption)
         html, caption, _ = self._validate_input(html, caption, section)
         sectionvar = self._sectionvars[section]
-
-        self.fnames.append('%s-#-%s-#-custom' % (caption[0], sectionvar))
-        self._sectionlabels.append(sectionvar)
-        self.html.extend(html)
+        self._add_or_replace('%s-#-%s-#-custom' % (caption[0], sectionvar),
+                             sectionvar, html)
 
     def add_slider_to_section(self, figs, captions=None, section='custom',
-                              title='Slider', scale=None, image_format=None):
+                              title='Slider', scale=None, image_format=None,
+                              replace=False):
         """Render a slider of figs to the report.
 
         Parameters
@@ -1163,6 +1261,10 @@ class Report(object):
             The image format to be used for the report, can be 'png' or 'svd'.
             None (default) will use the default specified during Report
             class construction.
+        replace : bool
+            If ``True``, figures already present that have the same caption
+            will be replaced. Defaults to ``False``.
+
 
         Notes
         -----
@@ -1181,7 +1283,6 @@ class Report(object):
         figs = figs[0]
 
         sectionvar = self._sectionvars[section]
-        self._sectionlabels.append(sectionvar)
         global_id = self._get_id()
         img_klass = self._sectionvars[section]
         name = 'slider'
@@ -1221,13 +1322,13 @@ class Report(object):
         html = '\n'.join(html)
 
         slider_klass = sectionvar
-        self.html.append(
+
+        self._add_or_replace(
+            '%s-#-%s-#-custom' % (section, sectionvar), sectionvar,
             slider_full_template.substitute(id=global_id, title=title,
                                             div_klass=slider_klass,
                                             slider_id=slider_id, html=html,
                                             image_html=image_html))
-
-        self.fnames.append('%s-#-%s-#-custom' % (title, sectionvar))
 
     ###########################################################################
     # HTML rendering

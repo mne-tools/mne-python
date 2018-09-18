@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+import copy
 import glob
 import os
 import os.path as op
@@ -22,6 +23,7 @@ from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
 from mne.viz import plot_alignment
 
 import matplotlib
+from matplotlib import pyplot as plt
 matplotlib.use('Agg')  # for testing don't use X server
 
 data_dir = testing.data_path(download=False)
@@ -40,6 +42,10 @@ mri_fname = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
 base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
                                'data'))
 evoked_fname = op.join(base_dir, 'test-ave.fif')
+
+# Two example figures
+fig1 = plt.plot([1, 2], [1, 2])[0].figure
+fig2 = plt.plot([3, 4], [3, 4])[0].figure
 
 
 @pytest.mark.slowtest
@@ -265,13 +271,7 @@ def test_add_slider_to_section():
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     section = 'slider_section'
-    figs = list()
-    figs.append(plt.figure())
-    plt.plot([1, 2, 3])
-    plt.close('all')
-    figs.append(plt.figure())
-    plt.plot([3, 2, 1])
-    plt.close('all')
+    figs = [fig1, fig2]
     report.add_slider_to_section(figs, section=section)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
@@ -312,14 +312,12 @@ def test_open_report():
     """Test the open_report function."""
     tempdir = _TempDir()
     hdf5 = op.join(tempdir, 'report.h5')
-    import matplotlib.pyplot as plt
-    fig = plt.plot([1, 2], [1, 2])[0].figure
 
     # Test creating a new report through the open_report function
     with open_report(hdf5, subjects_dir=subjects_dir) as report:
         assert report.subjects_dir == subjects_dir
         assert report._fname == hdf5
-        report.add_figs_to_section(figs=fig, captions=['evoked response'])
+        report.add_figs_to_section(figs=fig1, captions=['evoked response'])
     # Exiting the context block should have triggered saving to HDF5
     assert op.exists(hdf5)
 
@@ -335,6 +333,71 @@ def test_open_report():
     pytest.raises(ValueError, open_report, hdf5, foo='bar')  # non-existing
     pytest.raises(ValueError, open_report, hdf5, subjects_dir='foo')
     open_report(hdf5, subjects_dir=subjects_dir)  # This should work
+
+
+def test_remove():
+    """Test removing figures from a report."""
+    r = Report()
+    r.add_figs_to_section(fig1, 'figure1', 'mysection')
+    r.add_figs_to_section(fig1, 'figure1', 'othersection')
+    r.add_figs_to_section(fig2, 'figure1', 'mysection')
+    r.add_figs_to_section(fig2, 'figure2', 'mysection')
+
+    # Test removal by index
+    r2 = copy.deepcopy(r)
+    removed_index = r2.remove(2)
+    assert removed_index == 2
+    assert len(r2.html) == 3
+    assert r2.html[0] == r.html[0]
+    assert r2.html[1] == r.html[1]
+    assert r2.html[2] == r.html[3]
+
+    # Test removal by caption
+    r2 = copy.deepcopy(r)
+    removed_index = r2.remove(caption='figure1')
+    assert removed_index == 2
+    assert len(r2.html) == 3
+    assert r2.html[0] == r.html[0]
+    assert r2.html[1] == r.html[1]
+    assert r2.html[2] == r.html[3]
+
+    # Test removal by caption, restrict to section
+    r2 = copy.deepcopy(r)
+    removed_index = r2.remove(caption='figure1', section='othersection')
+    assert removed_index == 1
+    assert len(r2.html) == 3
+    assert r2.html[0] == r.html[0]
+    assert r2.html[1] == r.html[2]
+    assert r2.html[2] == r.html[3]
+
+    # Test removal of empty sections
+    r2 = copy.deepcopy(r)
+    r2.remove(caption='figure1', section='othersection')
+    assert r2.sections == ['mysection']
+    assert r2._sectionvars == {'mysection': 'report_mysection'}
+
+
+def test_add_or_replace():
+    """Test replacing existing figures in a report."""
+    r = Report()
+    r.add_figs_to_section(fig1, 'duplicate', 'mysection')
+    r.add_figs_to_section(fig1, 'duplicate', 'mysection')
+    r.add_figs_to_section(fig1, 'duplicate', 'othersection')
+    r.add_figs_to_section(fig2, 'nonduplicate', 'mysection')
+    # By default, replace=False, so all figures should be there
+    assert len(r.html) == 4
+
+    old_r = copy.deepcopy(r)
+
+    # Re-add fig1 with replace=True, it should overwrite the last occurrence of
+    # fig1 in section 'mysection'.
+    r.add_figs_to_section(fig2, 'duplicate', 'mysection', replace=True)
+    assert len(r.html) == 4
+    assert r.html[1] != old_r.html[1]  # This figure should have changed
+    # All other figures should be the same
+    assert r.html[0] == old_r.html[0]
+    assert r.html[2] == old_r.html[2]
+    assert r.html[3] == old_r.html[3]
 
 
 run_tests_if_main()
