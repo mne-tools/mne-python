@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add optically pumped magnetometer dataset and example by `Rasmus Zetter`_ and `Eric Larson`_
+
 - Add ``orgin`` parameter to :meth:`mne.io.Raw.time_as_index` to allow ``times`` to be relative to this ``origin`` by `Joan Massich`_
 
 - :func:`mne.BaseRaw.set_annotations` now changes ``orig_time`` to match ``meas_date`` and shift ``self.annotations.onset`` accordingly. Previous behavior is deprecated and would be removed in 0.18. Work by `Joan Massich`_
@@ -2887,3 +2889,5 @@ of commits):
 .. _Jasper van den Bosch: https://github.com/ilogue
 
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
+
+.. _Rasmus Zetter: https://people.aalto.fi/rasmus.zetter

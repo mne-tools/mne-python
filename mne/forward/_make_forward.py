@@ -789,6 +789,28 @@ def _to_forward_dict(fwd, names, fwd_grad=None,
 
 @contextlib.contextmanager
 def use_coil_def(fname):
+    """Use a custom coil definition file.
+
+    Parameters
+    ----------
+    fname : str
+        The filename of the coil definition file.
+
+    Returns
+    -------
+    context : context manager
+        The context for using the coil definition.
+
+    Notes
+    -----
+    This is meant to be used a context manager such as::
+
+    >>> with use_coil_def(my_fname):  # doctest:+SKIP
+    ...    make_forward_solution(...)
+
+    This allows using custom coil definitions with functions that require
+    forward modeling.
+    """
     global _extra_coil_def_fname
     _extra_coil_def_fname = fname
     yield

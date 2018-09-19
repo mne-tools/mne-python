@@ -144,6 +144,9 @@ jobs:
                     if [[ $(cat $FNAME | grep -x ".*datasets.*multimodal.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.multimodal.data_path(update_path=True))";
                     fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*opm.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.opm.data_path(update_path=True))";
+                    fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*phantom_4dbti.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.phantom_4dbti.data_path(update_path=True))";
                     fi;
@@ -197,6 +200,7 @@ jobs:
               - ~/mne_data/MNE-kiloword-data
               - ~/mne_data/MNE-misc-data
               - ~/mne_data/MNE-multimodal-data
+              - ~/mne_data/MNE-OPM-data
               - ~/mne_data/MNE-phantom-4DBTi
               - ~/mne_data/MNE-sample-data
               - ~/mne_data/MNE-somato-data
