@@ -167,7 +167,8 @@ for ii, this_stc in enumerate(stc_gen):
     psd, freqs = mne.time_frequency.psd_array_welch(
         this_stc.data, sfreq=epochs.info['sfreq'],
         n_fft=1024, fmin=1, fmax=50)
-    psd = np.log10(psd)
+# changing this makes a big difference.
+#    psd = np.log10(psd)
 
     if True:  # compute relative power
         psd /= psd.sum(axis=1, keepdims=True)

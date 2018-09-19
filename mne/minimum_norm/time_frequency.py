@@ -401,7 +401,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                        tmin=None, tmax=None, fmin=0., fmax=200.,
                        n_fft=2048, overlap=0.5, pick_ori=None, label=None,
                        nave=1, pca=True, prepared=False, method_params=None,
-                       verbose=None):
+                       out_decibels=True, verbose=None):
     """Compute source power spectrum density (PSD).
 
     Parameters
@@ -510,8 +510,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         n_windows += 1
 
     psd /= n_windows
-
-    psd = 10 * np.log10(psd)
+    if out_decibels:
+        psd = 10 * np.log10(psd)
 
     subject = _subject_from_inverse(inverse_operator)
     stc = _make_stc(psd, vertices=vertno, tmin=fmin * 1e-3,
