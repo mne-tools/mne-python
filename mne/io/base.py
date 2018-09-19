@@ -2218,6 +2218,7 @@ class _RawShell():
     def __init__(self):  # noqa: D102
         self.first_samp = None
         self.last_samp = None
+        self._first_time = None
         self._cals = None
         self._rawdir = None
         self._projector = None

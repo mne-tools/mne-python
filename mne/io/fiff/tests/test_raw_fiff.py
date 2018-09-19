@@ -1240,8 +1240,7 @@ def test_save():
 
     # test abspath support and annotations
     annot = Annotations([10], [5], ['test'],
-                        raw.info['meas_date'][0] +
-                        raw.first_samp / raw.info['sfreq'])
+                        orig_time=raw.info['meas_date'][0] + raw._first_time)
     raw.set_annotations(annot)
     annot = raw.annotations
     new_fname = op.join(op.abspath(op.curdir), 'break_raw.fif')
@@ -1273,9 +1272,8 @@ def test_annotation_crop():
     assert_array_almost_equal([2., 2.5, 1.], durations[:3], decimal=2)
 
     # test annotation clipping
-    sfreq = raw.info['sfreq']
     annot = Annotations([0., raw.times[-1]], [2., 2.], 'test',
-                        raw.info['meas_date'] + raw.first_samp / sfreq - 1.)
+                        orig_time=raw.info['meas_date'] + raw._first_time - 1.)
     with pytest.warns(RuntimeWarning, match='Limited .* expanding outside'):
         raw.set_annotations(annot)
     assert_allclose(raw.annotations.duration,

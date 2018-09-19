@@ -780,15 +780,15 @@ def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
     if pos.ndim != 2 or pos.shape[1] != 10:
         raise ValueError('pos must be an array of shape (N, 10)')
     t = pos[:, 0]
-    t_off = raw.first_samp / raw.info['sfreq']
     if not np.array_equal(t, np.unique(t)):
         raise ValueError('Time points must unique and in ascending order')
     # We need an extra 1e-3 (1 ms) here because MaxFilter outputs values
     # only out to 3 decimal places
-    if not _time_mask(t, tmin=t_off - 1e-3, tmax=None, sfreq=sfreq).all():
+    if not _time_mask(t, tmin=raw._first_time - 1e-3, tmax=None,
+                      sfreq=sfreq).all():
         raise ValueError('Head position time points must be greater than '
                          'first sample offset, but found %0.4f < %0.4f'
-                         % (t[0], t_off))
+                         % (t[0], raw._first_time))
     max_dist = np.sqrt(np.sum(pos[:, 4:7] ** 2, axis=1)).max()
     if max_dist > 1.:
         warn('Found a distance greater than 1 m (%0.3g m) from the device '
@@ -798,7 +798,7 @@ def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
     dev_head_ts[:, 3, 3] = 1.
     dev_head_ts[:, :3, 3] = pos[:, 4:7]
     dev_head_ts[:, :3, :3] = quat_to_rot(pos[:, 1:4])
-    pos = [dev_head_ts, t - t_off, pos[:, 1:]]
+    pos = [dev_head_ts, t - raw._first_time, pos[:, 1:]]
     return pos
 
 

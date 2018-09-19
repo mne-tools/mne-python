@@ -46,8 +46,7 @@ def test_basics():
     # Test combining annotations with concatenate_raws
     raw2 = raw.copy()
     delta = raw.times[-1] + 1. / raw.info['sfreq']
-    orig_time = (meas_date[0] + meas_date[1] * 1e-6 +
-                 raw2.first_samp / raw2.info['sfreq'])
+    orig_time = (meas_date[0] + meas_date[1] * 1e-6 + raw2._first_time)
     offset = orig_time - _handle_meas_date(raw2.info['meas_date'])
     annot = Annotations(onset, duration, description, orig_time)
     assert ' segments' in repr(annot)
@@ -251,9 +250,10 @@ def test_raw_reject():
 
     # with orig_time and complete overlap
     raw = read_raw_fif(fif_fname)
-    t_0 = raw.first_samp / raw.info['sfreq']
-    raw.set_annotations(Annotations([t_0 + 1, t_0 + 4, t_0 + 5], [1, 3, 1],
-                                    'BAD', raw.info['meas_date']))
+    raw.set_annotations(Annotations(onset=[1, 4, 5] + raw._first_time,
+                                    duration=[1, 3, 1],
+                                    description='BAD',
+                                    orig_time=raw.info['meas_date']))
     t_stop = 18.
     assert raw.times[-1] > t_stop
     n_stop = int(round(t_stop * raw.info['sfreq']))
