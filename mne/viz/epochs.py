@@ -321,7 +321,7 @@ def _get_picks_and_types(picks, ch_types, group_by, combine):
             n_types = len(this_ch_type)
             if n_types > 1:  # we can only scale properly with 1 type
                 raise ValueError(
-                    "Roi {} contains more than one sensor types ({})!".format(
+                    "ROI {} contains more than one sensor type ({})!".format(
                         name, n_types))
             all_ch_types.append(this_ch_type[0])
             names.append(name)
