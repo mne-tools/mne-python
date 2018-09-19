@@ -228,10 +228,10 @@ The new ``coil_type`` is 9999.
 OPM co-registration differs a bit from the typical SQUID-MEG workflow.
 No ``-trans.fif`` file is needed for the OPMs, the FIF files include proper
 sensor locations in MRI coordinates and no digitization of RPA/LPA/Nasion.
-Thus the MEG<->Head and Head<->MRI coordinate transforms are both taken to
-be identity matrices (i.e., everything is in MRI coordinates), even though
-this mis-identifies the head coordinate frame (which is defined by the
-relationship of the LPA, RPA, and Nasion).
+Thus the MEG<->Head coordinate transform is taken to be an identity matrix
+(i.e., everything is in MRI coordinates), even though this mis-identifies
+the head coordinate frame (which is defined by the relationship of the
+LPA, RPA, and Nasion).
 
 Triggers include:
 

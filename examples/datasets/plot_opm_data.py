@@ -2,7 +2,10 @@
 Optically pumped magnetometer (OPM) data
 ========================================
 
-Here we demonstrate how to localize custom OPM data in MNE.
+In this dataset, electrical median nerve stimulation was delivered to the
+left wrist of the subject. Somatosensory evoked fields were measured using
+nine QuSpin SERF OPMs placed over the right-hand side somatomotor area.
+Here we demonstrate how to localize these custom OPM data in MNE.
 """
 
 # sphinx_gallery_thumbnail_number = 4
@@ -28,7 +31,9 @@ coil_def_fname = op.join(data_path, 'MEG', 'OPM', 'coil_def.dat')
 # First we filter and epoch the data:
 
 raw = mne.io.Raw(raw_fname, preload=True)
-raw = raw.filter(None, 40)
+raw.filter(None, 90, h_trans_bandwidth=10.)
+raw.notch_filter(50., notch_widths=1)
+
 
 # Set epoch rejection threshold a bit larger than for SQUIDs
 reject = dict(mag=2e-10)
@@ -39,10 +44,9 @@ event_id = dict(Median=257)
 events = mne.find_events(raw, stim_channel='STI101', mask=257, mask_type='and')
 picks = mne.pick_types(raw.info, meg=True, eeg=False)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-                    reject=reject, picks=picks, proj=False, decim=5)
+                    reject=reject, picks=picks, proj=False, decim=4)
 evoked = epochs.average()
 evoked.plot()
-
 cov = mne.compute_covariance(epochs, tmax=0.)
 
 ###############################################################################
@@ -94,7 +98,7 @@ dip_opm.plot_locations(trans, subject, subjects_dir,
 # Perform minimum-norm localization
 # ---------------------------------
 # Due to the small number of sensors, there will be some leakage of activity
-# to areas with low/no sensitivity occurs. Constraining the source space to
+# to areas with low/no sensitivity. Constraining the source space to
 # areas we are sensitive to might be a good idea.
 
 inverse_operator = mne.minimum_norm.make_inverse_operator(
@@ -109,4 +113,5 @@ stc = mne.minimum_norm.apply_inverse(
 
 # Plot source estimate at time of best dipole fit
 brain = stc.plot(hemi='rh', views='lat', subjects_dir=subjects_dir,
-                 initial_time=dip_opm.times[idx])
+                 initial_time=dip_opm.times[idx],
+                 clim=dict(kind='percent', lims=[99, 99.9, 99.99]))
