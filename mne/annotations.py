@@ -4,6 +4,7 @@
 
 from datetime import datetime
 import time
+import re
 from copy import deepcopy
 
 import numpy as np
@@ -554,8 +555,6 @@ def events_from_annotations(raw, event_id=None, regexp=None,
     event_id : dict
         The event_id variable that can be passed to Epochs.
     """
-    import re
-
     if raw.annotations is None:
         return np.empty((0, 3), dtype=int), event_id
 
@@ -565,8 +564,7 @@ def events_from_annotations(raw, event_id=None, regexp=None,
                              origin=annotations.orig_time) + raw.first_samp
 
     # Filter out the annotations that do not match regexp
-    if regexp is not None:
-        pat = re.compile(regexp)
+    regexp = re.compile('.*' if regexp is None else regexp)
 
     if event_id_func is None:
         event_id_func = Counter()
@@ -576,7 +574,7 @@ def events_from_annotations(raw, event_id=None, regexp=None,
         if desc in event_id_:
             continue
 
-        if regexp is not None and not pat.match(desc):
+        if regexp is not None and not regexp.match(desc):
             continue
 
         if event_id is not None and desc in event_id:
