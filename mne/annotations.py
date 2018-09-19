@@ -574,7 +574,7 @@ def events_from_annotations(raw, event_id=None, regexp=None,
         if desc in event_id_:
             continue
 
-        if not regexp.match(desc):
+        if regexp.match(desc) is None:
             continue
 
         if event_id is not None and desc in event_id:
