@@ -557,7 +557,6 @@ def _create_annotation_based_on_descr(description, annotation_start_sampl=0,
     The returning raw object contains as many annotations as description given.
     All starting at `annotation_start_sampl`.
     """
-
     # create dummy raw
     raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
                    info=create_info(ch_names=10, sfreq=1000.),
