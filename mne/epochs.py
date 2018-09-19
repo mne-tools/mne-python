@@ -814,7 +814,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self.next(*args, **kwargs)
 
     def average(self, picks=None, method="mean"):
-        """Compute an aggregate over epochs, by default the mean.
+        """Compute an average over epochs.
 
         Parameters
         ----------
@@ -837,7 +837,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Notes
         -----
-        Computes an aggregate of all epochs in the instance, even if
+        Computes an average of all epochs in the instance, even if
         they correspond to different conditions. To average by condition,
         do ``epochs[condition].average()`` for each condition separately.
 
@@ -846,8 +846,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         are not considered data channels (they are of misc type) and only data
         channels are selected when picks is None.
 
-        The `method` parameter allows robust aggregation. For example, one
-        could do:
+        The `method` parameter allows e.g. robust averaging.
+        For example, one could do:
 
             >>> from scipy.stats import trim_mean  # doctest:+SKIP
             >>> trim = lambda x: trim_mean(x, 10, axis=0)  # doctest:+SKIP
