@@ -141,15 +141,14 @@ def test_crop():
     raw.set_annotations(None)  # undo
 
     # Test concatenating annotations with and without orig_time.
-    last_time = raw.last_samp / raw.info['sfreq']
     raw2 = raw.copy()
     raw.set_annotations(Annotations([45.], [3], 'test', raw.info['meas_date']))
     raw2.set_annotations(Annotations([2.], [3], 'BAD', None))
+    expected_onset = [45., 2. + raw._last_time]
     raw = concatenate_raws([raw, raw2])
     raw.annotations.delete(-1)  # remove boundary annotations
     raw.annotations.delete(-1)
-    assert_array_almost_equal(raw.annotations.onset, [45., 2. + last_time],
-                              decimal=2)
+    assert_array_almost_equal(raw.annotations.onset, expected_onset, decimal=2)
 
     # Test IO
     tempdir = _TempDir()
