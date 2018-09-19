@@ -822,11 +822,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             If None only MEG, EEG, SEEG, ECoG, and fNIRS channels are kept
             otherwise the channels indices in picks are kept.
         method : str | callable
-            How to combine the data. If "mean", "median" or "std", the mean,
-            median or standard deviation are returned.
+            How to combine the data. If "mean"/"median", the mean/median
+            are returned.
             Otherwise, must be a callable which, when passed an array of shape
             (n_epochs, n_channels, n_time) returns an array of shape
             (n_channels, n_time).
+            Note that due to file type limitations, the kind for all
+            these will be "average".
 
         Returns
         -------
