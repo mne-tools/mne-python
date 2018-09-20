@@ -617,44 +617,11 @@ def test_event_id_function_default():
     raw = _create_annotation_based_on_descr(description,
                                             annotation_start_sampl=3,
                                             duration=100)
-    events, event_id = events_from_annotations(raw, event_id=None,
-                                               event_id_func=None)
+    events, event_id = events_from_annotations(raw, event_id=None)
 
     assert_array_equal(events, expected_events)
     assert event_id == expected_event_id
 
-    # some event_id given
-    description = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
-    given_event_id = {'b': 42, 'd': 42, 'f': 0}
-    expected_event_id = {'a': 1, 'b': 42, 'c': 2, 'd': 42,
-                         'e': 3, 'f': 0, 'g': 4}
-    expected_events = np.array([[3, 3, 3, 3, 3, 3, 3],
-                                [0, 0, 0, 0, 0, 0, 0],
-                                [1, 42, 2, 42, 3, 0, 4]]).T
-    raw = _create_annotation_based_on_descr(description,
-                                            annotation_start_sampl=3,
-                                            duration=100)
-    events, event_id = events_from_annotations(raw, event_id=given_event_id,
-                                               event_id_func=None)
-
-    assert_array_equal(events, expected_events)
-    assert event_id == expected_event_id
-
-    # some event_id given + repeated descriptions
-    description = ['a', 'a', 'b', 'a', 'b', 'b', 'k']
-    given_event_id = {'b': 42, 'd': 42, 'f': 0}
-    expected_event_id = {'a': 1, 'b': 42, 'k': 2}
-    expected_events = np.array([[3, 3, 3, 3, 3, 3, 3],
-                                [0, 0, 0, 0, 0, 0, 0],
-                                [1, 1, 42, 1, 42, 42, 2]]).T
-    raw = _create_annotation_based_on_descr(description,
-                                            annotation_start_sampl=3,
-                                            duration=0)
-    events, event_id = events_from_annotations(raw, event_id=given_event_id,
-                                               event_id_func=None)
-
-    assert_array_equal(events, expected_events)
-    assert event_id == expected_event_id
 
 
 def test_event_id_function_using_custom_function():
@@ -666,7 +633,7 @@ def test_event_id_function_using_custom_function():
     expected_event_id = dict(zip(description, repeat(42)))
     expected_events = np.repeat([[0, 0, 42]], len(description), axis=0)
     raw = _create_annotation_based_on_descr(description)
-    events, event_id = events_from_annotations(raw, event_id_func=_constant_id)
+    events, event_id = events_from_annotations(raw, event_id=_constant_id)
 
     assert_array_equal(events, expected_events)
     assert event_id == expected_event_id
