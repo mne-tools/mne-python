@@ -30,7 +30,7 @@ coil_def_fname = op.join(data_path, 'MEG', 'OPM', 'coil_def.dat')
 # -----------------------------
 # First we filter and epoch the data:
 
-raw = mne.io.Raw(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.filter(None, 90, h_trans_bandwidth=10.)
 raw.notch_filter(50., notch_widths=1)
 
