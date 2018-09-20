@@ -18,7 +18,6 @@ import warnings
 import numpy as np
 
 from ..baseline import rescale
-from ..io.constants import FIFF
 from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
                        _pick_data_channels, pick_channels)
 from ..utils import _clean_names, _time_mask, verbose, logger, warn
@@ -39,7 +38,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
 
     if layout is None and ch_type is not 'eeg':
         from ..channels import find_layout
-        layout = find_layout(info)
+        layout = find_layout(info)  # XXX : why not passing ch_type???
     elif layout == 'auto':
         layout = None
 
@@ -54,8 +53,9 @@ def _prepare_topo_plot(inst, ch_type, layout):
     info._check_consistency()
 
     # special case for merging grad channels
-    if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
-            np.unique([ch['coil_type'] for ch in info['chs']])):
+    if (ch_type == 'grad' and layout is not None and
+            (layout.kind.startswith('Vectorview') or
+             layout.kind.startswith('Neuromag_122'))):
         from ..channels.layout import _pair_grad_sensors
         picks, pos = _pair_grad_sensors(info, layout)
         merge_grads = True
@@ -227,8 +227,9 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     .. versionadded:: 0.9.0
     """
     import matplotlib.pyplot as plt
-    from ..channels.layout import (_pair_grad_sensors_from_ch_names, Layout,
-                                   _merge_grad_data)
+    from ..channels.layout import (_pair_grad_sensors_ch_names_vectorview,
+                                   _pair_grad_sensors_ch_names_neuromag122,
+                                   Layout, _merge_grad_data)
     from ..channels import _get_ch_type
     if info is not None:
         if not isinstance(info, Info):
@@ -285,8 +286,17 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
             idx = []
             for l in layout:
                 is_vv = l.kind.startswith('Vectorview')
+                grad_pairs = None
                 if is_vv:
-                    grad_pairs = _pair_grad_sensors_from_ch_names(ch_names)
+                    grad_pairs = \
+                        _pair_grad_sensors_ch_names_vectorview(ch_names)
+                    if grad_pairs:
+                        ch_names = [ch_names[i] for i in grad_pairs]
+
+                is_neuromag122 = l.kind.startswith('Neuromag_122')
+                if is_neuromag122:
+                    grad_pairs = \
+                        _pair_grad_sensors_ch_names_neuromag122(ch_names)
                     if grad_pairs:
                         ch_names = [ch_names[i] for i in grad_pairs]
 
@@ -295,7 +305,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                 if len(idx) == 0:
                     continue
                 pos = l.pos[idx]
-                if is_vv and grad_pairs:
+                if grad_pairs:
                     shape = (len(idx) // 2, 2, -1)
                     pos = pos.reshape(shape).mean(axis=1)
                     data = _merge_grad_data(data[grad_pairs]).ravel()

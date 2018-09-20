@@ -13,12 +13,13 @@ from numpy.testing import assert_array_equal, assert_equal
 import pytest
 
 from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
-                 compute_proj_evoked)
+                 compute_proj_evoked, find_layout)
 from mne.io.proj import make_eeg_average_ref_proj
 from mne.io import read_raw_fif, read_info
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
 from mne.io.compensator import get_current_comp
+from mne.io.proj import Projection
 from mne.channels import read_layout, make_eeg_layout
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
@@ -416,5 +417,33 @@ def test_ctf_plotting():
     # smoke test that compensation does not matter
     evoked.plot_topomap(time_unit='s')
 
+
+@testing.requires_testing_data
+def test_plot_topomap_neuromag122():
+    """Test topomap plotting."""
+    res = 8
+    fast_test = dict(res=res, contours=0, sensors=False)
+    evoked = read_evokeds(evoked_fname, 'Left Auditory',
+                          baseline=(None, 0))
+    evoked.pick_types(meg='grad')
+    evoked.pick_channels(evoked.ch_names[:122])
+    ch_names = ['MEG %03d' % k for k in range(1, 123)]
+    for c in evoked.info['chs']:
+        c['coil_type'] = FIFF.FIFFV_COIL_NM_122
+    evoked.rename_channels({c_old: c_new for (c_old, c_new) in
+                            zip(evoked.ch_names, ch_names)})
+    layout = find_layout(evoked.info)
+    assert layout.kind.startswith('Neuromag_122')
+    evoked.plot_topomap(times=[0.1], **fast_test)
+
+    proj = Projection(active=False,
+                      desc="test", kind=1,
+                      data=dict(nrow=1, ncol=122,
+                                row_names=None,
+                                col_names=evoked.ch_names, data=np.ones(122)),
+                      explained_var=0.5)
+
+    plot_projs_topomap([proj], info=evoked.info, **fast_test)
+    pytest.raises(RuntimeError, plot_projs_topomap, [proj], **fast_test)
 
 run_tests_if_main()
