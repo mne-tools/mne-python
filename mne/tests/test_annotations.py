@@ -530,6 +530,13 @@ def test_events_from_annot_in_raw_objects():
     expected_events5 = events[(events[:, 2] == 1) | (events[:, 2] == 3)]
     assert_array_equal(expected_events5, events5)
 
+    with pytest.raises(ValueError, match='not find any of the events'):
+        events_from_annotations(raw, regexp='not_there')
+
+    raw.set_annotations(None)
+    events7, _ = events_from_annotations(raw)
+    assert_array_equal(events7, np.empty((0, 3), dtype=int))
+
 
 def test_events_from_annot_onset_alingment():
     """Test events and annotations onset are the same."""
