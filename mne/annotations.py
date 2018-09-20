@@ -523,26 +523,23 @@ def _ensure_annotation_object(obj):
 
 @verbose
 def events_from_annotations(raw, event_id=None, regexp=None,
-                            event_id_func=None, verbose=None):
+                            verbose=None):
     """Get events and event_id from an Annotations object.
 
     Parameters
     ----------
     raw : instance of Raw
         The raw data for which Annotations are defined.
-    event_id : dict | None
+    event_id : dict | Callable | None
         Dictionary of string keys and integer values as used in mne.Epochs
         to map annotation descriptions to integer event codes. Only the
         keys present will be mapped and the annotations with other descriptions
-        will be ignored. If None, all descriptions of annotations are mapped
+        will be ignored. Otherwise, a callable that provides an integer given
+        a string. If None, all descriptions of annotations are mapped
         and assigned arbitrary unique integer values.
     regexp : str | None
         Regular expression used to filter the annotations whose
         descriptions is a match.
-    event_id_func : None | callable
-        What to do for events not found in ``event_id``. Must take one
-        argument and return an ``int``. If None, ``event_id_func`` behaves like
-        a counter that increments every time is called.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see
         :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -566,8 +563,8 @@ def events_from_annotations(raw, event_id=None, regexp=None,
     # Filter out the annotations that do not match regexp
     regexp = re.compile('.*' if regexp is None else regexp)
 
-    if event_id_func is None:
-        event_id_func = Counter()
+    if event_id is None:
+        event_id = Counter()
 
     event_id_ = dict()
     for desc in annotations.description:
@@ -577,10 +574,13 @@ def events_from_annotations(raw, event_id=None, regexp=None,
         if regexp.match(desc) is None:
             continue
 
-        if event_id is not None and desc in event_id:
-            event_id_[desc] = event_id[desc]
+        if isinstance(event_id, dict):
+            if desc in event_id:
+                event_id_[desc] = event_id[desc]
+            else:
+                continue
         else:
-            event_id_[desc] = event_id_func(desc)
+            event_id_[desc] = event_id(desc)
 
     event_sel = [ii for ii, kk in enumerate(annotations.description)
                  if kk in event_id_]
