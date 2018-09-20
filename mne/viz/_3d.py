@@ -1267,7 +1267,10 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
     diverging_maps += ['mne', 'mne_analyze', ]
     if clim == 'auto':
         # this is merely a heuristic!
-        key = 'pos_lims' if colormap in diverging_maps else 'lims'
+        if allow_pos_lims and colormap in diverging_maps:
+            key = 'pos_lims'
+        else:
+            key = 'lims'
         clim = {'kind': 'percent', key: [96, 97.5, 99.95]}
     if not isinstance(clim, dict):
         raise ValueError('"clim" must be "auto" or dict, got %s' % (clim,))
@@ -1543,7 +1546,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
         Name of colormap to use or a custom look up table. If array, must
         be (n x 3) or (n x 4) array for with RGB or RGBA values between
-        0 and 255. Default is 'hot'.
+        0 and 255. The default ('auto') uses 'hot' for one-sided data and
+        'mne' for two-sided data.
     time_label : str | callable | None
         Format of the time label (a format string, a function that maps
         floating point time values to strings, or None for no label). The
@@ -1580,9 +1584,13 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 Flag to specify type of limits.
             ``lims`` : list | np.ndarray | tuple of float, 3 elements
                 Left, middle, and right bound for colormap.
+            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                Left, middle, and right bound for colormap. Positive values
+                will be mirrored directly across zero during colormap
+                construction to obtain negative control points.
 
-        Unlike :meth:`stc.plot <mne.SourceEstimate.plot>`, it cannot use
-        ``pos_lims``, as the surface plot must show the magnitude.
+        .. note:: Only sequential colormaps should be used with ``lims``, and
+                  only divergent colormaps should be used with ``pos_lims``.
     cortex : str or tuple
         Specifies how binarized curvature values are rendered.
         Either the name of a preset PySurfer cortex colorscheme (one of
@@ -1778,7 +1786,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
         Name of colormap to use or a custom look up table. If array, must
         be (n x 3) or (n x 4) array for with RGB or RGBA values between
-        0 and 255.
+        0 and 255. Default ('auto') uses 'hot' for one-sided data and 'mne'
+        for two-sided data.
     clim : str | dict
         Colorbar properties specification. If 'auto', set clim automatically
         based on data percentiles. If dict, should contain:
