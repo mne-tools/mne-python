@@ -623,7 +623,6 @@ def test_event_id_function_default():
     assert event_id == expected_event_id
 
 
-
 def test_event_id_function_using_custom_function():
     """Test [unit_test] arbitrary function to create the ids."""
     def _constant_id(*args, **kwargs):
