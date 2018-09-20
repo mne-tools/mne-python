@@ -92,7 +92,7 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
         expected_bad_boundary_onset = ((last_samp - first_samp) /
                                        raw.info['sfreq'])
     else:
-        expected_bad_boundary_onset = last_samp / raw.info['sfreq']
+        expected_bad_boundary_onset = raw._last_time
 
     assert_array_almost_equal(concat_raw.annotations.onset[idx],
                               expected_bad_boundary_onset,

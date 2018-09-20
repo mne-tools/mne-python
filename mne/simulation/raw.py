@@ -242,7 +242,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         head_pos = head_pos_to_trans_rot_t(head_pos)
     if isinstance(head_pos, tuple):  # can be quats converted to trans, rot, t
         transs, rots, ts = head_pos
-        ts -= first_samp / info['sfreq']  # MF files need reref
+        ts -= raw._first_time  # MF files need reref
         dev_head_ts = [np.r_[np.c_[r, t[:, np.newaxis]], [[0, 0, 0, 1]]]
                        for r, t in zip(rots, transs)]
         del transs, rots

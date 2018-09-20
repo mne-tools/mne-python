@@ -1719,13 +1719,11 @@ class Report(object):
         meas_date = raw.info['meas_date']
         if meas_date is not None:
             meas_date = _stamp_to_dt(meas_date).strftime("%B %d, %Y") + ' GMT'
-        tmin = raw.first_samp / raw.info['sfreq']
-        tmax = raw.last_samp / raw.info['sfreq']
 
         html = raw_template.substitute(
             div_klass='raw', id=global_id, caption=caption, info=raw.info,
             meas_date=meas_date, n_eeg=n_eeg, n_grad=n_grad, n_mag=n_mag,
-            eog=eog, ecg=ecg, tmin=tmin, tmax=tmax)
+            eog=eog, ecg=ecg, tmin=raw._first_time, tmax=raw._last_time)
 
         raw_psd = {} if self.raw_psd is True else self.raw_psd
         if isinstance(raw_psd, dict):

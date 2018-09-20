@@ -586,8 +586,7 @@ class SetChannelsMixin(object):
                 pass
             else:
                 self.annotations.orig_time = None
-                offset = self.first_samp / self.info['sfreq']
-                self.annotations.onset -= offset
+                self.annotations.onset -= self._first_time
 
         return self
 

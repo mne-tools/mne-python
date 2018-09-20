@@ -650,6 +650,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """The last data sample."""
         return self.first_samp + sum(self._raw_lengths) - 1
 
+    @property
+    def _last_time(self):
+        return self.last_samp / float(self.info['sfreq'])
+
     def time_as_index(self, times, use_rounding=False, origin=None):
         """Convert time to indices.
 
@@ -2218,6 +2222,8 @@ class _RawShell():
     def __init__(self):  # noqa: D102
         self.first_samp = None
         self.last_samp = None
+        self._first_time = None
+        self._last_time = None
         self._cals = None
         self._rawdir = None
         self._projector = None
