@@ -19,6 +19,7 @@ from mne import create_info, read_annotations, events_from_annotations
 from mne import Epochs, Annotations
 from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_fif, RawArray, concatenate_raws
+from mne.io.tests.test_raw import _raw_annot
 from mne.annotations import _sync_onset, _handle_meas_date
 from mne.annotations import read_brainstorm_annotations
 from mne.datasets import testing
@@ -540,7 +541,7 @@ def test_events_from_annot_in_raw_objects():
 
 def test_events_from_annot_onset_alingment():
     """Test events and annotations onset are the same."""
-    from mne.io.tests.test_raw import _raw_annot
+    raw = _raw_annot(meas_date=1, orig_time=1.5)
     #       sec  0        1        2        3
     #       raw  .        |--------XXXXXXXXX
     #     annot  .             |---XX
@@ -548,7 +549,6 @@ def test_events_from_annot_onset_alingment():
     #   latency  .        0        1        2
     #            .                 0        0
 
-    raw = _raw_annot(meas_date=1, orig_time=1.5)
     assert raw.annotations.orig_time == 1
     assert raw.annotations.onset[0] == 1
     assert raw.first_samp == 10
