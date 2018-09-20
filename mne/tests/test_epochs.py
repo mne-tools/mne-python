@@ -531,6 +531,15 @@ def test_event_ordering():
                  1)
 
 
+def test_events_type():
+    """Test type of events."""
+    raw, events = _get_data()[:2]
+    events_id = {'A': 1, 'B': 2}
+    events = (events, events_id)
+    with pytest.raises(ValueError, match='got type'):
+        Epochs(raw, events, event_id, tmin, tmax)
+
+
 def test_rescale():
     """Test rescale."""
     data = np.array([2, 3, 4, 5], float)
