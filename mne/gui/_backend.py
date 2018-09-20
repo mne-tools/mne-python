@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import os
+from ..utils import warn
 
 
 def _check_backend():
@@ -11,7 +12,8 @@ def _check_backend():
     try:
         from pyface.api import warning
     except ImportError:
-        warning = None
+        def warning(a, msg, title):
+            warn(msg)
 
     backend, status = _check_pyface_backend()
     if status == 0:
