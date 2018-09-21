@@ -826,7 +826,7 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads',
 # this function is used to pair grad when info is not present
 # it is the case of Projection that don't have the info.
 def _pair_grad_sensors_ch_names_vectorview(ch_names):
-    """Find the indexes for pairing grad channels in a Vectorview system
+    """Find the indexes for pairing grad channels in a Vectorview system.
 
     Parameters
     ----------
@@ -854,7 +854,7 @@ def _pair_grad_sensors_ch_names_vectorview(ch_names):
 # this function is used to pair grad when info is not present
 # it is the case of Projection that don't have the info.
 def _pair_grad_sensors_ch_names_neuromag122(ch_names):
-    """Find the indexes for pairing grad channels in a Neuromag 122 system
+    """Find the indexes for pairing grad channels in a Neuromag 122 system.
 
     Parameters
     ----------
