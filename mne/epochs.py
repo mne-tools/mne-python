@@ -813,14 +813,22 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Provide a wrapper for Py3k."""
         return self.next(*args, **kwargs)
 
-    def average(self, picks=None):
-        """Compute average of epochs.
+    def average(self, picks=None, method="mean"):
+        """Compute an average over epochs.
 
         Parameters
         ----------
         picks : array-like of int | None
             If None only MEG, EEG, SEEG, ECoG, and fNIRS channels are kept
             otherwise the channels indices in picks are kept.
+        method : str | callable
+            How to combine the data. If "mean"/"median", the mean/median
+            are returned.
+            Otherwise, must be a callable which, when passed an array of shape
+            (n_epochs, n_channels, n_time) returns an array of shape
+            (n_channels, n_time).
+            Note that due to file type limitations, the kind for all
+            these will be "average".
 
         Returns
         -------
@@ -837,8 +845,18 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         are selected, resulting in an error. This is because ICA channels
         are not considered data channels (they are of misc type) and only data
         channels are selected when picks is None.
+
+        The `method` parameter allows e.g. robust averaging.
+        For example, one could do:
+
+            >>> from scipy.stats import trim_mean  # doctest:+SKIP
+            >>> trim = lambda x: trim_mean(x, 10, axis=0)  # doctest:+SKIP
+            >>> epochs.average(method=trim)  # doctest:+SKIP
+
+        This would compute the trimmed mean.
+
         """
-        return self._compute_mean_or_stderr(picks, 'ave')
+        return self._compute_aggregate(picks=picks, mode=method)
 
     def standard_error(self, picks=None):
         """Compute standard error over epochs.
@@ -854,12 +872,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         evoked : instance of Evoked
             The standard error over epochs.
         """
-        return self._compute_mean_or_stderr(picks, 'stderr')
+        return self._compute_aggregate(picks, "std")
 
-    def _compute_mean_or_stderr(self, picks, mode='ave'):
+    def _compute_aggregate(self, picks, mode='mean'):
         """Compute the mean or std over epochs and return Evoked."""
-        _do_std = True if mode == 'stderr' else False
-
         # if instance contains ICA channels they won't be included unless picks
         # is specified
         if picks is None:
@@ -876,10 +892,29 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if self.preload:
             n_events = len(self.events)
-            fun = np.std if _do_std else np.mean
-            data = fun(self._data, axis=0)
+
+            if mode == "mean":
+                def fun(data):
+                    return np.mean(data, axis=0)
+            elif mode == "std":
+                def fun(data):
+                    return np.std(data, axis=0)
+            elif callable(mode):
+                fun = mode
+            else:
+                raise ValueError("mode must be mean, median, std, or callable"
+                                 ", got %s (type %s)." % (mode, type(mode)))
+            data = fun(self._data)
             assert len(self.events) == len(self._data)
+            if data.shape != self._data.shape[1:]:
+                    raise RuntimeError("You passed a function that resulted "
+                                       "in data of shape {}, but it should be "
+                                       "{}.".format(data.shape,
+                                                    self._data.shape[1:]))
         else:
+            if mode not in {"mean", "std"}:
+                raise ValueError("If data are not preloaded, can only compute "
+                                 "mean or standard deviation.")
             data = np.zeros((n_channels, n_times))
             n_events = 0
             for e in self:
@@ -893,18 +928,18 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             # convert to stderr if requested, could do in one pass but do in
             # two (slower) in case there are large numbers
-            if _do_std:
+            if mode == "std":
                 data_mean = data.copy()
                 data.fill(0.)
                 for e in self:
                     data += (e - data_mean) ** 2
                 data = np.sqrt(data / n_events)
 
-        if not _do_std:
-            kind = 'average'
-        else:
+        if mode == "std":
             kind = 'standard_error'
             data /= np.sqrt(n_events)
+        else:
+            kind = "average"
 
         return self._evoked_from_epoch_data(data, self.info, picks, n_events,
                                             kind, self._name)
@@ -1572,7 +1607,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             return epochs
 
     def crop(self, tmin=None, tmax=None):
-        """Crop a time interval from epochs object.
+        """Crop a time interval from the epochs.
 
         Parameters
         ----------
@@ -1590,6 +1625,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         Unlike Python slices, MNE time intervals include both their end points;
         crop(tmin, tmax) returns the interval tmin <= t <= tmax.
+
+        Note that the object is modified in place.
         """
         # XXX this could be made to work on non-preloaded data...
         _check_preload(self, 'Modifying data of epochs')

@@ -59,6 +59,8 @@ Changelog
 
 - Add :func:`mne.open_report` to read back a :class:`mne.Report` object that was saved to an HDF5 file by `Marijn van Vliet`_
 
+- :meth:`mne.Epochs.average` now supports custom, e.g. robust, averaging methods, by `Jona Sassenhagen`_
+
 Bug
 ~~~
 
