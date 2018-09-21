@@ -10,6 +10,7 @@ import numpy as np
 
 from ..utils import (_read_segments_file, _find_channels,
                      _synthesize_stim_channel)
+from ...utils import deprecated
 from ..constants import FIFF, Bunch
 from ..meas_info import _empty_info, create_info
 from ..base import BaseRaw, _check_update_montage
@@ -396,9 +397,10 @@ class RawEEGLAB(BaseRaw):
             warn(str(n_dropped) + " events will be dropped because they "
                  "occur on the same time sample as another event. "
                  "`mne.io.Raw` objects store events on an event channel, "
-                 "which cannot represent two events on the same sample. You "
-                 "can extract the original event structure using "
-                 "`mne.io.eeglab.read_events_eeglab`. Then, you can e.g. "
+                 "which cannot represent two events on the same sample. "
+                 "Please use `read_annotations_eeglab` and create events "
+                 "using `events_from_annotations` to extract the original "
+                 "event structure. Then, you can e.g. "
                  "subset the extracted events for constructing epochs.")
         if n_samples is None:
             n_samples = self.last_samp - self.first_samp + 1
@@ -594,6 +596,9 @@ class EpochsEEGLAB(BaseEpochs):
         logger.info('Ready.')
 
 
+@deprecated('read_events_eeglab is deprecated from 0.17 and will be removed'
+            ' in 0.18. Please use read_annotations_eeglab and create events'
+            ' using events_from_annotations.')
 def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
                        uint16_codec=None):
     r"""Create events array from EEGLAB structure.
@@ -653,7 +658,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
     mne.find_events : Extract events from a stim channel. Note that stim
         channels can only code for one event per time point.
     """
-    if event_id_func is 'strip_to_integer':
+    if event_id_func == 'strip_to_integer':
         event_id_func = _strip_to_integer
     if event_id is None:
         event_id = dict()
@@ -665,7 +670,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
 
     annotations = _read_annotations_eeglab(eeg)
     types = annotations.description
-    latencies = annotations.onset
+    latencies = annotations.onset * eeg.srate
 
     if "boundary" in types and "boundary" not in event_id:
         warn("The data contains 'boundary' events, indicating data "
@@ -710,7 +715,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
     for tt, latency in zip(types, latencies):
         try:  # look up the event in event_id and if not, try event_id_func
             event_code = event_id[tt] if tt in event_id else event_id_func(tt)
-            events.append([int(round(latency)), 1, event_code])
+            events.append([int(round(latency)), 0, event_code])
         except (ValueError, TypeError):  # if event_id_func fails
             pass  # We're already raising warnings above, so we just drop
 
@@ -735,6 +740,21 @@ def _bunchify(items):
 
 
 def _read_annotations_eeglab(eeg):
+    """Create Annotations from EEGLAB file.
+
+    This function reads the event attribute from the EEGLAB
+    structure and makes an :class:`mne.Annotations` object.
+
+    Parameters
+    ----------
+    eeg : object
+        'EEG' struct
+
+    Returns
+    -------
+    annotations : instance of Annotations
+        The annotations present in the file.
+    """
     if not hasattr(eeg, 'event'):
         events = []
     elif isinstance(eeg.event, dict) and \
@@ -751,7 +771,10 @@ def _read_annotations_eeglab(eeg):
     if len(events) > 0 and hasattr(events[0], 'duration'):
         duration[:] = [event.duration for event in events]
 
-    return Annotations(onset=onset, duration=duration, description=description)
+    return Annotations(onset=np.array(onset) / eeg.srate,
+                       duration=duration,
+                       description=description,
+                       orig_time=None)
 
 
 def _dol_to_lod(dol):

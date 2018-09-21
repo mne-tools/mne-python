@@ -4,11 +4,13 @@
 
 from datetime import datetime
 import time
+import re
 from copy import deepcopy
 
 import numpy as np
 
-from .utils import _pl, check_fname, _validate_type, warn
+from .utils import _pl, check_fname, _validate_type, verbose, warn, logger
+from .utils import _Counter as Counter
 from .externals.six import string_types
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
@@ -517,3 +519,82 @@ def _ensure_annotation_object(obj):
     if not isinstance(obj, Annotations):
         raise ValueError('Annotations must be an instance of '
                          'mne.Annotations. Got %s.' % obj)
+
+
+@verbose
+def events_from_annotations(raw, event_id=None, regexp=None,
+                            verbose=None):
+    """Get events and event_id from an Annotations object.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        The raw data for which Annotations are defined.
+    event_id : dict | Callable | None
+        Dictionary of string keys and integer values as used in mne.Epochs
+        to map annotation descriptions to integer event codes. Only the
+        keys present will be mapped and the annotations with other descriptions
+        will be ignored. Otherwise, a callable that provides an integer given
+        a string. If None, all descriptions of annotations are mapped
+        and assigned arbitrary unique integer values.
+    regexp : str | None
+        Regular expression used to filter the annotations whose
+        descriptions is a match.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see
+        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+        for more). Defaults to self.verbose.
+
+    Returns
+    -------
+    events : ndarray, shape (n_events, 3)
+        The events.
+    event_id : dict
+        The event_id variable that can be passed to Epochs.
+    """
+    if raw.annotations is None:
+        return np.empty((0, 3), dtype=int), event_id
+
+    annotations = raw.annotations
+
+    inds = raw.time_as_index(annotations.onset, use_rounding=True,
+                             origin=annotations.orig_time) + raw.first_samp
+
+    # Filter out the annotations that do not match regexp
+    regexp = re.compile('.*' if regexp is None else regexp)
+
+    if event_id is None:
+        event_id = Counter()
+
+    event_id_ = dict()
+    for desc in annotations.description:
+        if desc in event_id_:
+            continue
+
+        if regexp.match(desc) is None:
+            continue
+
+        if isinstance(event_id, dict):
+            if desc in event_id:
+                event_id_[desc] = event_id[desc]
+            else:
+                continue
+        else:
+            event_id_[desc] = event_id(desc)
+
+    event_sel = [ii for ii, kk in enumerate(annotations.description)
+                 if kk in event_id_]
+
+    if len(event_sel) == 0:
+        raise ValueError('Could not find any of the events you specified.')
+
+    values = [event_id_[kk] for kk in
+              annotations.description[event_sel]]
+    previous_value = np.zeros(len(event_sel))
+    inds = inds[event_sel]
+    events = np.c_[inds, previous_value, values].astype(int)
+
+    logger.info('Used Annotations descriptions: %s' %
+                (list(event_id_.keys()),))
+
+    return events, event_id_

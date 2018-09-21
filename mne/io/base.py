@@ -673,7 +673,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Returns
         -------
         index : ndarray
-            Indices corresponding to the times supplied.
+            Indices relative to ``first_samp`` corresponding to the times
+            supplied.
         """
         first_samp_in_abs_time = (_handle_meas_date(self.info['meas_date']) +
                                   self._first_time)

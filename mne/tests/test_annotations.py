@@ -3,21 +3,27 @@
 # License: BSD 3 clause
 
 from datetime import datetime
+from itertools import repeat
+
 import os.path as op
 
 import pytest
+from pytest import approx
 from numpy.testing import (assert_equal, assert_array_equal,
                            assert_array_almost_equal, assert_allclose)
 
 import numpy as np
 
 import mne
-from mne import create_info, Epochs, read_annotations
+from mne import create_info, read_annotations, events_from_annotations
+from mne import Epochs, Annotations
 from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_fif, RawArray, concatenate_raws
-from mne.annotations import Annotations, _sync_onset, _handle_meas_date
+from mne.io.tests.test_raw import _raw_annot
+from mne.annotations import _sync_onset, _handle_meas_date
 from mne.annotations import read_brainstorm_annotations
 from mne.datasets import testing
+
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fif_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
@@ -465,6 +471,170 @@ def test_annotations_crop():
         a.copy().crop(tmin=42, tmax=100, emit_warning=True)
     with pytest.warns(RuntimeWarning, match='Limited .* expanding outside'):
         a.copy().crop(tmin=0, tmax=12, emit_warning=True)
+
+
+@testing.requires_testing_data
+def test_events_from_annot_in_raw_objects():
+    """Test basic functionality of events_fron_annot for raw objects."""
+    raw = read_raw_fif(fif_fname)
+    events = mne.find_events(raw)
+    event_id = {
+        'Auditory/Left': 1,
+        'Auditory/Right': 2,
+        'Visual/Left': 3,
+        'Visual/Right': 4,
+        'Visual/Smiley': 32,
+        'Motor/Button': 5
+    }
+    event_map = {v: k for k, v in event_id.items()}
+    annot = Annotations(onset=raw.times[events[:, 0] - raw.first_samp],
+                        duration=np.zeros(len(events)),
+                        description=[event_map[vv] for vv in events[:, 2]],
+                        orig_time=None)
+    raw.set_annotations(annot)
+
+    events2, event_id2 = \
+        events_from_annotations(raw, event_id=event_id, regexp=None)
+    assert_array_equal(events, events2)
+    assert_equal(event_id, event_id2)
+
+    events3, event_id3 = \
+        events_from_annotations(raw, event_id=None, regexp=None)
+
+    assert_array_equal(events[:, 0], events3[:, 0])
+    assert set(event_id.keys()) == set(event_id3.keys())
+
+    first = np.unique(events3[:, 2])
+    second = np.arange(1, len(event_id) + 1, 1).astype(first.dtype)
+    assert_array_equal(first, second)
+
+    first = np.unique(list(event_id3.values()))
+    second = np.arange(1, len(event_id) + 1, 1).astype(first.dtype)
+    assert_array_equal(first, second)
+
+    events4, event_id4 =\
+        events_from_annotations(raw, event_id=None, regexp='.*Left')
+
+    expected_event_id4 = {k: v for k, v in event_id.items() if 'Left' in k}
+    assert_equal(event_id4.keys(), expected_event_id4.keys())
+
+    expected_events4 = events[(events[:, 2] == 1) | (events[:, 2] == 3)]
+    assert_array_equal(expected_events4[:, 0], events4[:, 0])
+
+    events5, event_id5 = \
+        events_from_annotations(raw, event_id=event_id, regexp='.*Left')
+
+    expected_event_id5 = {k: v for k, v in event_id.items() if 'Left' in k}
+    assert_equal(event_id5, expected_event_id5)
+
+    expected_events5 = events[(events[:, 2] == 1) | (events[:, 2] == 3)]
+    assert_array_equal(expected_events5, events5)
+
+    with pytest.raises(ValueError, match='not find any of the events'):
+        events_from_annotations(raw, regexp='not_there')
+
+    raw.set_annotations(None)
+    events7, _ = events_from_annotations(raw)
+    assert_array_equal(events7, np.empty((0, 3), dtype=int))
+
+
+def test_events_from_annot_onset_alingment():
+    """Test events and annotations onset are the same."""
+    raw = _raw_annot(meas_date=1, orig_time=1.5)
+    #       sec  0        1        2        3
+    #       raw  .        |--------XXXXXXXXX
+    #     annot  .             |---XX
+    # raw.annot  .        |--------XX
+    #   latency  .        0        1        2
+    #            .                 0        0
+
+    assert raw.annotations.orig_time == 1
+    assert raw.annotations.onset[0] == 1
+    assert raw.first_samp == 10
+    event_latencies, event_id = events_from_annotations(raw)
+    assert event_latencies[0, 0] == 10
+    assert raw.first_samp == event_latencies[0, 0]
+
+
+def _create_annotation_based_on_descr(description, annotation_start_sampl=0,
+                                      duration=0, orig_time=0):
+    """Create a raw object with annotations from descriptions.
+
+    The returning raw object contains as many annotations as description given.
+    All starting at `annotation_start_sampl`.
+    """
+    # create dummy raw
+    raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
+                   info=create_info(ch_names=10, sfreq=1000.),
+                   first_samp=0)
+    raw.info['meas_date'] = 0
+
+    # create dummy annotations based on the descriptions
+    onset = raw.times[annotation_start_sampl]
+    onset_matching_desc = np.full_like(description, onset, dtype=type(onset))
+    duration_matching_desc = np.full_like(description, duration,
+                                          dtype=type(duration))
+    annot = Annotations(description=description,
+                        onset=onset_matching_desc,
+                        duration=duration_matching_desc,
+                        orig_time=orig_time)
+
+    if duration != 0:
+        with pytest.warns(RuntimeWarning, match='Limited.*expanding outside'):
+            # duration 0.1s is larger than the raw data expand
+            raw.set_annotations(annot)
+    else:
+        raw.set_annotations(annot)
+
+    # Make sure that set_annotations(annot) works
+    assert all(raw.annotations.onset == onset)
+    if duration != 0:
+        expected_duration = (len(raw.times) / raw.info['sfreq']) - onset
+    else:
+        expected_duration = 0
+    _duration = raw.annotations.duration[0]
+    assert _duration == approx(expected_duration)
+    assert all(raw.annotations.duration == _duration)
+    assert all(raw.annotations.description == description)
+
+    return raw
+
+
+def test_event_id_function_default():
+    """Test[unit_test] for event_id_function default in event_from_annotations.
+
+    The expected behavior is give numeric label for all those annotations not
+    present in event_id, starting at 1.
+    """
+    # No event_id given
+    description = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+    expected_event_id = dict(zip(description, range(1, 100)))
+    expected_events = np.array([[3, 3, 3, 3, 3, 3, 3],
+                                [0, 0, 0, 0, 0, 0, 0],
+                                [1, 2, 3, 4, 5, 6, 7]]).T
+
+    raw = _create_annotation_based_on_descr(description,
+                                            annotation_start_sampl=3,
+                                            duration=100)
+    events, event_id = events_from_annotations(raw, event_id=None)
+
+    assert_array_equal(events, expected_events)
+    assert event_id == expected_event_id
+
+
+def test_event_id_function_using_custom_function():
+    """Test [unit_test] arbitrary function to create the ids."""
+    def _constant_id(*args, **kwargs):
+        return 42
+
+    description = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+    expected_event_id = dict(zip(description, repeat(42)))
+    expected_events = np.repeat([[0, 0, 42]], len(description), axis=0)
+    raw = _create_annotation_based_on_descr(description)
+    events, event_id = events_from_annotations(raw, event_id=_constant_id)
+
+    assert_array_equal(events, expected_events)
+    assert event_id == expected_event_id
 
 
 run_tests_if_main()

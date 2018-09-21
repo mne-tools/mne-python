@@ -19,10 +19,11 @@ from scipy import io
 from mne import write_events, read_epochs_eeglab, Epochs, find_events
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.eeglab.eeglab import read_events_eeglab
-from mne.io.eeglab import read_annotations_eeglab
+from mne.io.eeglab import read_annotations_eeglab, read_events_eeglab
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, requires_h5py
+from mne.annotations import events_from_annotations
+
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 
@@ -55,6 +56,7 @@ def _check_h5(fname):
 
 @requires_h5py
 @testing.requires_testing_data
+@pytest.mark.filterwarnings('ignore:Function read_events_eeglab is deprecated')
 @pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
 def test_io_set_raw(fnames, tmpdir):
     """Test importing EEGLAB .set files."""
@@ -68,6 +70,7 @@ def test_io_set_raw(fnames, tmpdir):
     for want in ('Events like', 'consist entirely', 'could not be mapped',
                  'string preload is not supported'):
         assert (any(want in str(ww.message) for ww in w))
+
     with pytest.warns(RuntimeWarning) as w:
         # test finding events in continuous data
         event_id = {'rt': 1, 'square': 2}
@@ -80,18 +83,30 @@ def test_io_set_raw(fnames, tmpdir):
         raw3 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
                                event_id=event_id)
         raw4 = read_raw_eeglab(input_fname=raw_fname, montage=montage)
+
+        [w.pop(DeprecationWarning) for _ in range(5)]  # read_events_eeglab
+
         assert raw0.filenames[0].endswith('.fdt')  # .set with additional .fdt
         assert raw2.filenames[0].endswith('.set')  # standalone .set
+
         Epochs(raw0, find_events(raw0), event_id)
         epochs = Epochs(raw1, find_events(raw1), event_id)
-        assert_equal(len(find_events(raw4)), 0)  # no events without event_id
-        assert_equal(epochs["square"].average().nave, 80)  # 80 with
+
+        assert len(find_events(raw4)) == 0  # no events without event_id
+        assert epochs["square"].average().nave == 80   # 80 with
         assert_array_equal(raw0[:][0], raw1[:][0], raw2[:][0], raw3[:][0])
         assert_array_equal(raw0[:][-1], raw1[:][-1], raw2[:][-1], raw3[:][-1])
-        assert_equal(len(w), 4)
+
         # 1 for preload=False / str with fname_onefile, 3 for dropped events
         raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
                     phase='zero')  # test that preloading works
+
+        while 'FutureWarning' in [xx._category_name for xx in w]:
+            w.pop(FutureWarning)
+        while 'ImportWarning' in [xx._category_name for xx in w]:
+            w.pop(ImportWarning)
+
+    assert len(w) == 4  # check `preload=False` raises RuntimeWarning
 
     # test that using uint16_codec does not break stuff
     raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
@@ -177,6 +192,7 @@ def test_io_set_raw(fnames, tmpdir):
     with pytest.warns(None) as w:
         read_raw_eeglab(input_fname=one_chan_fname, preload=True)
     # no warning for 'no events found'
+    w.pop(DeprecationWarning)
     assert len(w) == 0
 
     # test reading file with 3 channels - one without position information
@@ -311,6 +327,40 @@ def test_eeglab_annotations(fname):
     assert len(annotations) == 154
     assert set(annotations.description) == set(['rt', 'square'])
     assert np.all(annotations.duration == 0.)
+
+
+@testing.requires_testing_data
+def test_read_annotations_eeglab():
+    """Test annotations onsets are timestamps (+ validate some)."""
+    annotations = read_annotations_eeglab(raw_fname_mat)
+    validation_samples = [0, 1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31]
+    expected_onset = np.array([1.00, 1.69, 2.08, 4.70, 7.71, 11.30, 17.18,
+                               20.20, 26.12, 29.14, 35.25, 44.30, 47.15])
+    assert annotations.orig_time is None
+    assert_array_almost_equal(annotations.onset[validation_samples],
+                              expected_onset, decimal=2)
+
+
+@testing.requires_testing_data
+def test_eeglab_event_from_annot(recwarn):
+    """Test all forms of obtaining annotations."""
+    base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
+    raw_fname_mat = op.join(base_dir, 'test_raw.set')
+    raw_fname = raw_fname_mat
+    montage = op.join(base_dir, 'test_chans.locs')
+    event_id = {'rt': 1, 'square': 2}
+    raw1 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+                           event_id=event_id, preload=False)
+
+    events_a = find_events(raw1)
+    events_b = read_events_eeglab(raw_fname, event_id=event_id)
+    annotations = read_annotations_eeglab(raw_fname)
+    assert raw1.annotations is None
+    raw1.set_annotations(annotations)
+    events_c, _ = events_from_annotations(raw1, event_id=event_id)
+
+    assert_array_equal(events_a, events_b)
+    assert_array_equal(events_a, events_c)
 
 
 run_tests_if_main()
