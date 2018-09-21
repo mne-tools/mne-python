@@ -1279,10 +1279,15 @@ def _sensor_shape(coil):
 
 def _limits_to_control_points(clim, stc_data, colormap, transparent,
                               fmt='mayavi', allow_pos_lims=True):
-    """Convert limits (values or percentiles) to control points."""
+    """Convert limits (values or percentiles) to control points.
+
+    This function also does the nonlinear scaling of the colormap in the
+    case of a diverging colormap, and it forces transparency in the
+    alpha channel.
+    """
     # Based on type of limits specified, get cmap control points
-    # XXX this function should be expanded to handle other divergent colormaps
-    # properly!
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import ListedColormap
     if colormap == 'auto':
         if clim == 'auto':
             if allow_pos_lims and (stc_data < 0).any():
@@ -1294,35 +1299,42 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
                 colormap = 'hot'
             else:  # 'pos_lims' in clim
                 colormap = 'mne'
+    diverging_maps = ['PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
+                      'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr',
+                      'seismic']
+    diverging_maps += [d + '_r' for d in diverging_maps]
+    diverging_maps += ['mne', 'mne_analyze', ]
     if clim == 'auto':
-        # Set upper and lower bound based on percent, and get average between
-        ctrl_pts = np.percentile(np.abs(stc_data), [96, 97.5, 99.95])
-    elif isinstance(clim, dict):
-        # Get appropriate key for clim if it's a dict
-        if 'pos_lims' in clim and not allow_pos_lims:
-            raise ValueError('Cannot use "pos_lims" for clim, use "lims" '
-                             'instead')
-        limit_key = ['lims', 'pos_lims'][colormap in ('mne', 'mne_analyze')]
-        if limit_key not in clim.keys():
-            raise KeyError('"pos_lims" must be used with "mne" colormap')
-        clim['kind'] = clim.get('kind', 'percent')
-        if clim['kind'] == 'percent':
-            ctrl_pts = np.percentile(np.abs(stc_data),
-                                     list(np.abs(clim[limit_key])))
-        elif clim['kind'].startswith('value'):  # permit "values"
-            ctrl_pts = np.array(clim[limit_key])
-            if (np.diff(ctrl_pts) < 0).any():
-                raise ValueError('value colormap limits must be strictly '
-                                 'nondecreasing')
+        # this is merely a heuristic!
+        if allow_pos_lims and colormap in diverging_maps:
+            key = 'pos_lims'
         else:
-            raise ValueError('If clim is a dict, clim[kind] must be '
-                             ' "value" or "percent"')
-    else:
+            key = 'lims'
+        clim = {'kind': 'percent', key: [96, 97.5, 99.95]}
+    if not isinstance(clim, dict):
         raise ValueError('"clim" must be "auto" or dict, got %s' % (clim,))
-    if len(ctrl_pts) != 3:
-        raise ValueError('"lims" or "pos_lims" is length %i. It must be length'
-                         ' 3' % len(ctrl_pts))
+
+    if ('lims' in clim) + ('pos_lims' in clim) != 1:
+        raise ValueError('Exactly one of lims and pos_lims must be specified '
+                         'in clim, got %s' % (clim,))
+    if 'pos_lims' in clim and not allow_pos_lims:
+        raise ValueError('Cannot use "pos_lims" for clim, use "lims" '
+                         'instead')
+    diverging_lims = 'pos_lims' in clim
+    ctrl_pts = np.array(clim['pos_lims' if diverging_lims else 'lims'])
     ctrl_pts = np.array(ctrl_pts, float)
+    if ctrl_pts.shape != (3,):
+        raise ValueError('clim has shape %s, it must be (3,)'
+                         % (ctrl_pts.shape,))
+    if (np.diff(ctrl_pts) < 0).any():
+        raise ValueError('colormap limits must be monotonically '
+                         'increasing, got %s' % (ctrl_pts,))
+    clim_kind = clim.get('kind', 'percent')
+    if clim_kind == 'percent':
+        ctrl_pts = np.percentile(np.abs(stc_data), ctrl_pts)
+    elif clim_kind not in ('value', 'values'):
+        raise ValueError('clim["kind"] must be "value" or "percent", got %s'
+                         % (clim['kind'],))
     if len(set(ctrl_pts)) != 3:
         if len(set(ctrl_pts)) == 1:  # three points match
             if ctrl_pts[0] == 0:  # all are zero
@@ -1337,17 +1349,28 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
             bump = 1e-5 if ctrl_pts[0] == ctrl_pts[1] else -1e-5
             ctrl_pts[1] = ctrl_pts[0] + bump * (ctrl_pts[2] - ctrl_pts[0])
 
-    # Construct cmap manually if 'mne' and get cmap bounds
-    # and triage transparent argument
     if colormap in ('mne', 'mne_analyze'):
-        colormap = mne_analyze_colormap(ctrl_pts, format=fmt)
-        scale_pts = [-1 * ctrl_pts[-1], 0, ctrl_pts[-1]]
-        transparent = False if transparent is None else transparent
+        colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
+    # scale colormap so that the bounds given by ctrl_pts actually work
+    colormap = plt.get_cmap(colormap)
+    if diverging_lims:
+        ctrl_norm = np.concatenate([-ctrl_pts[::-1] / ctrl_pts[2], [0],
+                                    ctrl_pts / ctrl_pts[2]]) / 2 + 0.5
+        vals = np.interp(np.linspace(0, 1, 256),
+                         ctrl_norm, np.linspace(0, 1, 7))
+        colormap = np.array(colormap(vals))
+        if transparent:  # force alpha
+            colormap[:, 3] = np.interp(
+                np.linspace(0, 1, 256), ctrl_norm,
+                [1, 1, 0, 0, 0, 1, 1])
+        scale_pts = [-ctrl_pts[2], 0, ctrl_pts[2]]
     else:
-        scale_pts = ctrl_pts
-        transparent = True if transparent is None else transparent
-
-    return ctrl_pts, colormap, scale_pts, transparent
+        colormap = colormap(np.linspace(0, 1, 256))
+        if transparent:
+            colormap[:128, 3] = np.linspace(0, 1, 128)
+        scale_pts = ctrl_pts.copy()
+    colormap = ListedColormap(colormap)
+    return ctrl_pts, colormap, scale_pts, False
 
 
 def _handle_time(time_label, time_unit, times):
@@ -1535,7 +1558,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='auto',
-                          smoothing_steps=10, transparent=None, alpha=1.0,
+                          smoothing_steps=10, transparent=True, alpha=1.0,
                           time_viewer=False, subjects_dir=None, figure=None,
                           views='lat', colorbar=True, clim='auto',
                           cortex="classic", size=800, background="black",
@@ -1562,17 +1585,16 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
         Name of colormap to use or a custom look up table. If array, must
         be (n x 3) or (n x 4) array for with RGB or RGBA values between
-        0 and 255. Default is 'hot'.
+        0 and 255. The default ('auto') uses 'hot' for one-sided data and
+        'mne' for two-sided data.
     time_label : str | callable | None
         Format of the time label (a format string, a function that maps
         floating point time values to strings, or None for no label). The
         default is ``time=%0.2f ms``.
     smoothing_steps : int
         The amount of smoothing
-    transparent : bool | None
+    transparent : bool
         If True, use a linear transparency between fmin and fmid.
-        None will choose automatically based on colormap type. Has no effect
-        with mpl backend.
     alpha : float
         Alpha value to apply globally to the overlay. Has no effect with mpl
         backend.
@@ -1601,9 +1623,13 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 Flag to specify type of limits.
             ``lims`` : list | np.ndarray | tuple of float, 3 elements
                 Left, middle, and right bound for colormap.
+            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                Left, middle, and right bound for colormap. Positive values
+                will be mirrored directly across zero during colormap
+                construction to obtain negative control points.
 
-        Unlike :meth:`stc.plot <mne.SourceEstimate.plot>`, it cannot use
-        ``pos_lims``, as the surface plot must show the magnitude.
+        .. note:: Only sequential colormaps should be used with ``lims``, and
+                  only divergent colormaps should be used with ``pos_lims``.
     cortex : str or tuple
         Specifies how binarized curvature values are rendered.
         Either the name of a preset PySurfer cortex colorscheme (one of
@@ -1799,7 +1825,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
         Name of colormap to use or a custom look up table. If array, must
         be (n x 3) or (n x 4) array for with RGB or RGBA values between
-        0 and 255.
+        0 and 255. Default ('auto') uses 'hot' for one-sided data and 'mne'
+        for two-sided data.
     clim : str | dict
         Colorbar properties specification. If 'auto', set clim automatically
         based on data percentiles. If dict, should contain:
@@ -2096,9 +2123,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         default is ``time=%0.2f ms``.
     smoothing_steps : int
         The amount of smoothing
-    transparent : bool | None
+    transparent : bool
         If True, use a linear transparency between fmin and fmid.
-        None will choose automatically based on colormap type.
     brain_alpha : float
         Alpha value to apply globally to the surface meshes. Defaults to 0.4.
     overlay_alpha : float

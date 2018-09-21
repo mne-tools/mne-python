@@ -11,14 +11,13 @@ Freeview.
 #
 # License: BSD (3-clause)
 
+# sphinx_gallery_thumbnail_number = 3
+
 import mne
 from mne.datasets import sample
 from mne.beamformer import make_lcmv, apply_lcmv
 
 print(__doc__)
-
-# sphinx_gallery_thumbnail_number = 3
-
 
 ###############################################################################
 # Data preprocessing:
