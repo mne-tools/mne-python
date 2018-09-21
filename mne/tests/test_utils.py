@@ -31,7 +31,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        check_fname, get_config_path,
                        object_size, buggy_mkl_svd, _get_inst_data,
                        copy_doc, copy_function_doc_to_method_doc, ProgressBar,
-                       linkcode_resolve, array_split_idx)
+                       linkcode_resolve, array_split_idx, filter_out_warnings)
 
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -479,14 +479,13 @@ def test_deprecated():
     pytest.deprecated_call(deprecated_class)
 
 
-# @pytest.mark.warnings("ignore:*:UserWarning")
-from sklearn.utils.testing import ignore_warnings
 def test_how_to_deal_with_warnnings():
-    with pytest.warns(UserWarning, match='bb') as w, \
-         ignore_warnings(category=RuntimeWarning):
-
-        warnings.warn("aa warning", RuntimeWarning)
+    with pytest.warns(UserWarning, match='bb') as w:
+        warnings.warn("aa warning", UserWarning)
         warnings.warn("bb warning", UserWarning)
+        warnings.warn("bb warning", RuntimeWarning)
+    filter_out_warnings(w, category=UserWarning, match='aa')
+    filter_out_warnings(w, category=RuntimeWarning)
     assert len(w) == 1
 
 

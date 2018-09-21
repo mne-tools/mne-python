@@ -397,6 +397,10 @@ def warn(message, category=RuntimeWarning):
     logger.warning(message)
 
 
+def filter_out_warnings(warns, category=None, match=None):
+    pass
+
+
 def check_fname(fname, filetype, endings, endings_err=()):
     """Enforce MNE filename conventions.
 
