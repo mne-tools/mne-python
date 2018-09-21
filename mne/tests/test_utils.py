@@ -479,10 +479,13 @@ def test_deprecated():
     pytest.deprecated_call(deprecated_class)
 
 
-@pytest.mark.warnings("ignore:*:UserWarning")
+# @pytest.mark.warnings("ignore:*:UserWarning")
+from sklearn.utils.testing import ignore_warnings
 def test_how_to_deal_with_warnnings():
-    with pytest.warns(UserWarning, match='bb') as w:
-        warnings.warn("aa warning", UserWarning)
+    with pytest.warns(UserWarning, match='bb') as w, \
+         ignore_warnings(category=RuntimeWarning):
+
+        warnings.warn("aa warning", RuntimeWarning)
         warnings.warn("bb warning", UserWarning)
     assert len(w) == 1
 
