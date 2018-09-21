@@ -5,6 +5,7 @@ import sys
 import webbrowser
 
 import numpy as np
+import warnings
 import pytest
 from scipy import sparse
 from numpy.testing import assert_equal, assert_array_equal, assert_allclose
@@ -476,6 +477,14 @@ def test_deprecated():
     """Test deprecated function."""
     pytest.deprecated_call(deprecated_func)
     pytest.deprecated_call(deprecated_class)
+
+
+@pytest.mark.filterwarnings("ignore:aa")
+def test_how_to_deal_with_warnnings():
+    with pytest.warns(UserWarning, match='bb') as w:
+        warnings.warn("aa warning", UserWarning)
+        warnings.warn("bb warning", UserWarning)
+    assert len(w) == 1
 
 
 def _test_fetch(url):
