@@ -484,6 +484,7 @@ def test_how_to_deal_with_warnnings():
         warnings.warn("aa warning", UserWarning)
         warnings.warn("bb warning", UserWarning)
         warnings.warn("bb warning", RuntimeWarning)
+        warnings.warn("aa warning", UserWarning)
     filter_out_warnings(w, category=UserWarning, match='aa')
     filter_out_warnings(w, category=RuntimeWarning)
     assert len(w) == 1

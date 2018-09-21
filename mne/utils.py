@@ -33,6 +33,7 @@ import traceback
 from unittest import SkipTest
 import warnings
 import webbrowser
+import re
 
 import numpy as np
 from scipy import linalg, sparse
@@ -397,8 +398,46 @@ def warn(message, category=RuntimeWarning):
     logger.warning(message)
 
 
-def filter_out_warnings(warns, category=None, match=None):
-    pass
+def filter_out_warnings(warn_record, category=None, match=None):
+    r"""Remove particular records from ``warn_record``
+
+    This helper takes a list of :class:`warnings.WarningMessage` objects,
+    and remove those matching category and/or text.
+
+        >>> with pytest.warns(None) as recwarn:
+        ...     warnings.warn("value must be 0 or None", UserWarning)
+        ... filter_out_warnings(recwarn, match='0 or None')
+        ... assert len(recwarn.list) == 0
+
+        >>> with warns(UserWarning, match=r'must be \d+$'):
+        >>> with pytest.warns(None) as recwarn:
+        ...     warnings.warn("value must be 42", UserWarning)
+        ... filter_out_warnings(recwarn, match=r'must be \d+$'):
+        ... assert len(recwarn.list) == 0
+
+        >>> with warns(UserWarning, match=r'must be \d+$'):
+        ...     warnings.warn("this is not here", UserWarning)
+        ... filter_out_warnings(recwarn, match=r'must be \d+$'):
+        ... assert len(recwarn.list) == 1
+
+    Parameters
+    ----------
+    category: WarningMessage type | None
+       class of the message to filter out
+
+    match : str | None
+        text or regex that matches the error message to filter out
+    """
+    regexp = re.compile('.*' if match is None else match)
+    is_category = [w.category == category if category is not None else True
+                   for w in warn_record._list]
+    is_match = [regexp.match(w.message.args[0]) is not None
+                for w in warn_record._list]
+    ind = [ind for ind, (c, m) in enumerate(zip(is_category, is_match))
+           if c and m]
+
+    for i in reversed(ind):
+        warn_record._list.pop(i)
 
 
 def check_fname(fname, filetype, endings, endings_err=()):
