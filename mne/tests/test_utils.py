@@ -479,7 +479,7 @@ def test_deprecated():
     pytest.deprecated_call(deprecated_class)
 
 
-@pytest.mark.filterwarnings("ignore:aa")
+@pytest.mark.warnings("ignore:*:UserWarning")
 def test_how_to_deal_with_warnnings():
     with pytest.warns(UserWarning, match='bb') as w:
         warnings.warn("aa warning", UserWarning)
