@@ -767,7 +767,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     elif trans is None:
         trans = Transform('head', 'mri')
     else:
-        _validate_type(trans, dict, "str, dict, or None")
+        _validate_type(trans, (Transform,), "str, Transform, or None")
     head_mri_t = _ensure_trans(trans, 'head', 'mri')
     dev_head_t = info['dev_head_t']
     del trans
@@ -984,7 +984,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     for key in surfs.keys():
         # Surfs can sometimes be in head coords (e.g., if coming from sphere)
         surfs[key] = transform_surface_to(surfs[key], coord_frame,
-                                          [mri_trans, head_trans])
+                                          [mri_trans, head_trans], copy=True)
     if src is not None:
         if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
             src_rr = apply_trans(mri_trans, src_rr)
@@ -1184,11 +1184,15 @@ def _make_tris_fan(n_vert):
 
 def _sensor_shape(coil):
     """Get the sensor shape vertices."""
-    rrs = np.empty([0, 2])
-    tris = np.empty([0, 3], int)
+    from scipy.spatial import ConvexHull
     id_ = coil['type'] & 0xFFFF
-    if id_ in (2, 3012, 3013, 3011):
-        # square figure eight
+    pad = True
+    # Square figure eight
+    if id_ in (FIFF.FIFFV_COIL_NM_122,
+               FIFF.FIFFV_COIL_VV_PLANAR_W,
+               FIFF.FIFFV_COIL_VV_PLANAR_T1,
+               FIFF.FIFFV_COIL_VV_PLANAR_T2,
+               ):
         # wound by right hand rule such that +x side is "up" (+z)
         long_side = coil['size']  # length of long side (meters)
         offset = 0.0025  # offset of the center portion of planar grad coil
@@ -1203,23 +1207,43 @@ def _sensor_shape(coil):
             [-offset, long_side / 2.]])
         tris = np.concatenate((_make_tris_fan(4),
                                _make_tris_fan(4)[:, ::-1] + 4), axis=0)
-    elif id_ in (2000, 3022, 3023, 3024):
+    # Square
+    elif id_ in (FIFF.FIFFV_COIL_POINT_MAGNETOMETER,
+                 FIFF.FIFFV_COIL_VV_MAG_T1,
+                 FIFF.FIFFV_COIL_VV_MAG_T2,
+                 FIFF.FIFFV_COIL_VV_MAG_T3,
+                 FIFF.FIFFV_COIL_KIT_REF_MAG,
+                 ):
         # square magnetometer (potentially point-type)
         size = 0.001 if id_ == 2000 else (coil['size'] / 2.)
         rrs = np.array([[-1., 1.], [1., 1.], [1., -1.], [-1., -1.]]) * size
         tris = _make_tris_fan(4)
-    elif id_ in (4001, 4003, 5002, 7002, 7003,
-                 FIFF.FIFFV_COIL_ARTEMIS123_REF_MAG):
-        # round magnetometer
+    # Circle
+    elif id_ in (FIFF.FIFFV_COIL_MAGNES_MAG,
+                 FIFF.FIFFV_COIL_MAGNES_REF_MAG,
+                 FIFF.FIFFV_COIL_CTF_REF_MAG,
+                 FIFF.FIFFV_COIL_BABY_MAG,
+                 FIFF.FIFFV_COIL_BABY_REF_MAG,
+                 FIFF.FIFFV_COIL_ARTEMIS123_REF_MAG,
+                 ):
         n_pts = 15  # number of points for circle
         circle = np.exp(2j * np.pi * np.arange(n_pts) / float(n_pts))
         circle = np.concatenate(([0.], circle))
         circle *= coil['size'] / 2.  # radius of coil
         rrs = np.array([circle.real, circle.imag]).T
         tris = _make_tris_fan(n_pts + 1)
-    elif id_ in (4002, 5001, 5003, 5004, 4004, 4005, 6001, 7001,
+    # Circle
+    elif id_ in (FIFF.FIFFV_COIL_MAGNES_GRAD,
+                 FIFF.FIFFV_COIL_CTF_GRAD,
+                 FIFF.FIFFV_COIL_CTF_REF_GRAD,
+                 FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD,
+                 FIFF.FIFFV_COIL_MAGNES_REF_GRAD,
+                 FIFF.FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD,
+                 FIFF.FIFFV_COIL_KIT_GRAD,
+                 FIFF.FIFFV_COIL_BABY_GRAD,
                  FIFF.FIFFV_COIL_ARTEMIS123_GRAD,
-                 FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD):
+                 FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD,
+                 ):
         # round coil 1st order (off-diagonal) gradiometer
         baseline = coil['base'] if id_ in (5004, 4005) else 0.
         n_pts = 16  # number of points for circle
@@ -1233,8 +1257,23 @@ def _sensor_shape(coil):
             np.concatenate([circle.imag, -circle.imag])]).T
         tris = np.concatenate([_make_tris_fan(n_pts + 1),
                                _make_tris_fan(n_pts + 1) + n_pts + 1])
+    # 3D convex hull (will fail for 2D geometry, can extend later if needed)
+    else:
+        rrs = coil['rmag_orig'].copy()
+        pad = False
+        tris = ConvexHull(rrs).simplices
+        # reorder tris to be CCW-ordered
+        com = np.mean(rrs, axis=0)
+        rr_tris = rrs[tris]
+        dirs = np.sign((np.cross(rr_tris[:, 1] - rr_tris[:, 0],
+                                 rr_tris[:, 2] - rr_tris[:, 0]) *
+                        (rr_tris[:, 0] - com)).sum(-1)).astype(int)
+        tris = np.array([t[::d] for d, t in zip(dirs, tris)])
+
     # Go from (x,y) -> (x,y,z)
-    rrs = np.pad(rrs, ((0, 0), (0, 1)), mode='constant')
+    if pad:
+        rrs = np.pad(rrs, ((0, 0), (0, 1)), mode='constant')
+    assert rrs.ndim == 2 and rrs.shape[1] == 3
     return rrs, tris
 
 

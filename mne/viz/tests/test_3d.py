@@ -16,14 +16,17 @@ from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
                  VolSourceEstimate, make_sphere_model,
                  setup_volume_source_space, read_forward_solution)
+from mne.forward import use_coil_def
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
+from mne.io.pick import pick_info
+from mne.io.constants import FIFF
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
                      plot_alignment, plot_volume_source_estimates)
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
-                       _import_mlab, _TempDir, requires_nibabel, check_version,
+                       _import_mlab, requires_nibabel, check_version,
                        traits_test, requires_version)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
@@ -55,6 +58,18 @@ pdf_fname = op.join(base_dir, 'test_pdf_linux')
 config_fname = op.join(base_dir, 'test_config_linux')
 hs_fname = op.join(base_dir, 'test_hs_linux')
 sqd_fname = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
+
+coil_3d = """# custom cube coil def
+1   9999    1   8  3e-03  0.000e+00     "QuSpin ZFOPM 3mm cube"
+  0.1250 -0.750e-03 -0.750e-03 -0.750e-03  0.000  0.000  1.000
+  0.1250 -0.750e-03  0.750e-03 -0.750e-03  0.000  0.000  1.000
+  0.1250  0.750e-03 -0.750e-03 -0.750e-03  0.000  0.000  1.000
+  0.1250  0.750e-03  0.750e-03 -0.750e-03  0.000  0.000  1.000
+  0.1250 -0.750e-03 -0.750e-03  0.750e-03  0.000  0.000  1.000
+  0.1250 -0.750e-03  0.750e-03  0.750e-03  0.000  0.000  1.000
+  0.1250  0.750e-03 -0.750e-03  0.750e-03  0.000  0.000  1.000
+  0.1250  0.750e-03  0.750e-03  0.750e-03  0.000  0.000  1.000
+"""
 
 
 def test_plot_head_positions():
@@ -141,10 +156,10 @@ def test_plot_evoked_field():
 @testing.requires_testing_data
 @requires_mayavi
 @traits_test
-def test_plot_alignment():
+def test_plot_alignment(tmpdir):
     """Test plotting of -trans.fif files and MEG sensor layouts."""
     # generate fiducials file for testing
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     fiducials_path = op.join(tempdir, 'fiducials.fif')
     fid = [{'coord_frame': 5, 'ident': 1, 'kind': 1,
             'r': [-0.08061612, -0.02908875, -0.04131077]},
@@ -222,9 +237,13 @@ def test_plot_alignment():
     plot_alignment(info, trans_fname, subject='sample', meg='helmet',
                    subjects_dir=subjects_dir, eeg='projected', bem=sphere,
                    surfaces=['head', 'brain'], src=sample_src)
+    assert all(surf['coord_frame'] == FIFF.FIFFV_COORD_MRI
+               for surf in bem_sol['surfs'])
     plot_alignment(info, trans_fname, subject='sample', meg=[],
                    subjects_dir=subjects_dir, bem=bem_sol, eeg=True,
                    surfaces=['head', 'inflated', 'outer_skull', 'inner_skull'])
+    assert all(surf['coord_frame'] == FIFF.FIFFV_COORD_MRI
+               for surf in bem_sol['surfs'])
     plot_alignment(info, trans_fname, subject='sample',
                    meg=True, subjects_dir=subjects_dir,
                    surfaces=['head', 'inner_skull'], bem=bem_surfs)
@@ -237,6 +256,17 @@ def test_plot_alignment():
     plot_alignment(info, trans_fname, subject='sample', meg=False,
                    coord_frame='mri', subjects_dir=subjects_dir,
                    surfaces=['brain'], bem=sphere, show_axes=True)
+
+    # 3D coil with no defined draw (ConvexHull)
+    info_cube = pick_info(info, [0])
+    info_cube['chs'][0]['coil_type'] = 9999
+    with pytest.raises(RuntimeError, match='coil definition not found'):
+        plot_alignment(info_cube, meg='sensors', surfaces=())
+    coil_def_fname = op.join(tempdir, 'temp')
+    with open(coil_def_fname, 'w') as fid:
+        fid.write(coil_3d)
+    with use_coil_def(coil_def_fname):
+        plot_alignment(info_cube, meg='sensors', surfaces=())
 
     # one layer bem with skull surfaces:
     pytest.raises(ValueError, plot_alignment, info=info, trans=trans_fname,

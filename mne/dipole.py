@@ -19,8 +19,7 @@ from .io.pick import pick_types, channel_type
 from .io.proj import make_projector, _needs_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .evoked import _read_evoked, _aspect_rev, _write_evokeds
-from .transforms import (_print_coord_trans, _coord_frame_name,
-                         apply_trans, Transform)
+from .transforms import _print_coord_trans, _coord_frame_name, apply_trans
 from .viz.evoked import _plot_evoked
 from .forward._make_forward import (_get_trans, _setup_bem,
                                     _prep_meg_channels, _prep_eeg_channels)
@@ -1095,15 +1094,10 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     else:
         bem_extra = repr(bem)
         logger.info('BEM               : %s' % bem_extra)
-    if trans is not None:
-        logger.info('MRI transform     : %s' % trans)
-        mri_head_t, trans = _get_trans(trans)
-    else:
-        mri_head_t = Transform('head', 'mri')
+    mri_head_t, trans = _get_trans(trans)
+    logger.info('MRI transform     : %s' % trans)
     bem = _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=False)
     if not bem['is_sphere']:
-        if trans is None:
-            raise ValueError('mri must not be None if BEM is provided')
         # Find the best-fitting sphere
         inner_skull = _bem_find_surface(bem, 'inner_skull')
         inner_skull = inner_skull.copy()

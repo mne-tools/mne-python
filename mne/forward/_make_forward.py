@@ -6,8 +6,10 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
+import contextlib
 import os
 from os import path as op
+
 import numpy as np
 
 from ._compute_forward import _compute_forwards
@@ -17,7 +19,7 @@ from ..io.constants import FIFF, FWD
 from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_trans, _print_coord_trans, _coord_frame_name,
                           Transform)
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose, warn, _pl
 from ..parallel import check_n_jobs
 from ..source_space import (_ensure_src, _filter_source_spaces,
                             _make_discrete_source_space, SourceSpaces)
@@ -31,6 +33,7 @@ from .forward import Forward, _merge_meg_eeg_fwds, convert_forward_solution
 
 _accuracy_dict = dict(normal=FWD.COIL_ACCURACY_NORMAL,
                       accurate=FWD.COIL_ACCURACY_ACCURATE)
+_extra_coil_def_fname = None
 
 
 @verbose
@@ -57,23 +60,30 @@ def _read_coil_defs(elekta_defs=False, verbose=None):
         'chname' | 'accuracy'.
         cosmag contains the direction of the coils and rmag contains the
         position vector.
+
+    Notes
+    -----
+    The global variable "_extra_coil_def_fname" can be used to prepend
+    additional definitions. These are never added to the registry.
     """
     coil_dir = op.join(op.split(__file__)[0], '..', 'data')
     coils = list()
     if elekta_defs:
         coils += _read_coil_def_file(op.join(coil_dir, 'coil_def_Elekta.dat'))
+    if _extra_coil_def_fname is not None:
+        coils += _read_coil_def_file(_extra_coil_def_fname, use_registry=False)
     coils += _read_coil_def_file(op.join(coil_dir, 'coil_def.dat'))
     return coils
 
 
 # Typically we only have 1 or 2 coil def files, but they can end up being
 # read a lot. Let's keep a list of them and just reuse them:
-_coil_register = {}
+_coil_registry = {}
 
 
-def _read_coil_def_file(fname):
+def _read_coil_def_file(fname, use_registry=True):
     """Read a coil def file."""
-    if fname not in _coil_register:
+    if not use_registry or fname not in _coil_registry:
         big_val = 0.5
         coils = list()
         with open(fname, 'r') as fid:
@@ -117,9 +127,11 @@ def _read_coil_def_file(fname):
                 cosmag /= size[:, np.newaxis]
                 coil.update(dict(w=w, cosmag=cosmag, rmag=rmag))
                 coils.append(coil)
-        _coil_register[fname] = coils
-    coils = deepcopy(_coil_register[fname])
-    logger.info('%d coil definitions read', len(coils))
+        if use_registry:
+            _coil_registry[fname] = coils
+    if use_registry:
+        coils = deepcopy(_coil_registry[fname])
+    logger.info('%d coil definition%s read', len(coils), _pl(coils))
     return coils
 
 
@@ -773,3 +785,33 @@ def _to_forward_dict(fwd, names, fwd_grad=None,
         fwd.update(dict(sol_grad=sol_grad),
                    _orig_sol_grad=sol_grad['data'].copy())
     return fwd
+
+
+@contextlib.contextmanager
+def use_coil_def(fname):
+    """Use a custom coil definition file.
+
+    Parameters
+    ----------
+    fname : str
+        The filename of the coil definition file.
+
+    Returns
+    -------
+    context : context manager
+        The context for using the coil definition.
+
+    Notes
+    -----
+    This is meant to be used a context manager such as::
+
+    >>> with use_coil_def(my_fname):  # doctest:+SKIP
+    ...    make_forward_solution(...)
+
+    This allows using custom coil definitions with functions that require
+    forward modeling.
+    """
+    global _extra_coil_def_fname
+    _extra_coil_def_fname = fname
+    yield
+    _extra_coil_def_fname = None

@@ -15,6 +15,7 @@ from . import mtrf
 from . import sample
 from . import somato
 from . import multimodal
+from . import opm
 from . import spm_face
 from . import testing
 from . import _fake

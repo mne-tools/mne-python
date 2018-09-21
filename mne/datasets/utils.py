@@ -225,6 +225,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'brainstorm': 'MNE_DATASETS_BRAINSTORM_PATH',
         'testing': 'MNE_DATASETS_TESTING_PATH',
         'multimodal': 'MNE_DATASETS_MULTIMODAL_PATH',
+        'opm': 'MNE_DATASETS_OPM_PATH',
         'visual_92_categories': 'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
         'kiloword': 'MNE_DATASETS_KILOWORD_PATH',
         'mtrf': 'MNE_DATASETS_MTRF_PATH',
@@ -259,6 +260,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         testing='https://codeload.github.com/mne-tools/mne-testing-data/'
                 'tar.gz/%s' % releases['testing'],
         multimodal='https://ndownloader.figshare.com/files/5999598',
+        opm='https://osf.io/p6ae7/download',
         visual_92_categories=[
             'https://osf.io/8ejrs/download',
             'https://osf.io/t4yjp/download'],
@@ -275,6 +277,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         misc='mne-misc-data-%s.tar.gz' % releases['misc'],
         mtrf='mTRF_1.5.zip',
         multimodal='MNE-multimodal-data.tar.gz',
+        opm='MNE-OPM-data.tar.gz',
         sample='MNE-sample-data-processed.tar.gz',
         somato='MNE-somato-data.tar.gz',
         spm='MNE-spm-face.tar.gz',
@@ -317,6 +320,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         spm='9f43f67150e3b694b523a21eb929ea75',
         testing='27c1a8e4665f098ec19cd22e0cfecd3c',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
+        opm='56e4ad38af7f5550fc0a6c6ad655f888',
         visual_92_categories=['74f50bbeb65740903eadc229c9fa759f',
                               '203410a98afc9df9ae8ba9f933370e20'],
         kiloword='3a124170795abbd2e48aae8727e719a8',
@@ -509,6 +513,7 @@ def has_dataset(name):
         'somato': 'MNE-somato-data',
         'spm': 'MNE-spm-face',
         'multimodal': 'MNE-multimodal-data',
+        'opm': 'MNE-OPM-data',
         'testing': 'MNE-testing-data',
         'visual_92_categories': 'MNE-visual_92_categories-data',
         'kiloword': 'MNE-kiloword-data',
@@ -529,7 +534,7 @@ def _download_all_example_data(verbose=True):
     # verbose=True by default so we get nice status messages
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
-                   eegbci, multimodal, hf_sef, mtrf, fieldtrip_cmc,
+                   eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
                    kiloword, phantom_4dbti)
     sample.data_path()
     testing.data_path()
@@ -538,6 +543,7 @@ def _download_all_example_data(verbose=True):
     somato.data_path()
     hf_sef.data_path()
     multimodal.data_path()
+    opm.data_path()
     mtrf.data_path()
     fieldtrip_cmc.data_path()
     kiloword.data_path()

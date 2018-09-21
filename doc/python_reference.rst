@@ -613,6 +613,7 @@ Forward Modeling
    setup_source_space
    setup_volume_source_space
    surface.complete_surface_info
+   use_coil_def
    write_bem_surfaces
    write_trans
 
