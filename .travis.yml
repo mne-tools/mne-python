@@ -6,9 +6,12 @@ cache:
   pip: true
 env:
     # TRAVIS_PYTHON_VERSION is only needed for neo's setup.py
+    # OPENBLAS_NUM_THREADS=1 avoid slowdowns:
+    # https://github.com/xianyi/OpenBLAS/issues/731
     global: PYTHON_VERSION=3.6 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning TEST_LOCATION=src
             PIP_DEPENDENCIES="codecov pytest-faulthandler pytest-sugar" OPTION=""
             TRAVIS_PYTHON_VERSION=3.6 CONDA_VERSION=">=4.3.27"
+            OPENBLAS_NUM_THREADS=1
 
 matrix:
     include:
@@ -28,11 +31,8 @@ matrix:
           env: CONDA_ENVIRONMENT="environment.yml"
 
         # PIP + non-default stim channel
-        # OPENBLAS_NUM_THREADS=1 avoid slowdowns:
-        # https://github.com/xianyi/OpenBLAS/issues/731
         - os: linux
           env: MNE_STIM_CHANNEL=STI101
-               OPENBLAS_NUM_THREADS=1
           language: python
           python: "3.6"
 
