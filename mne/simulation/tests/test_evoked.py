@@ -29,6 +29,7 @@ cov_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
 
 
 @testing.requires_testing_data
+@pytest.mark.skip(reason="travis timeout")
 def test_simulate_evoked():
     """Test simulation of evoked data."""
     raw = read_raw_fif(raw_fname)
