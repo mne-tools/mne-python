@@ -1889,7 +1889,8 @@ def _check_bem_size(surfs):
 
 
 def _symlink(src, dest):
-    """Create a symlink."""
+    """Create a relative symlink."""
+    src = op.relpath(src, op.dirname(dest))
     try:
         os.symlink(src, dest)
     except OSError:
