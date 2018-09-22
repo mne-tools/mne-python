@@ -444,6 +444,7 @@ def test_plot_topomap_neuromag122():
                       explained_var=0.5)
 
     plot_projs_topomap([proj], info=evoked.info, **fast_test)
+    plot_projs_topomap([proj], layout=layout, **fast_test)
     pytest.raises(RuntimeError, plot_projs_topomap, [proj], **fast_test)
 
 run_tests_if_main()

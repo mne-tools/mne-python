@@ -272,7 +272,6 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
         ch_names = _clean_names(proj['data']['col_names'],
                                 remove_whitespace=True)
         data = proj['data']['data'].ravel()
-
         if info is not None:
             info_names = _clean_names(info['ch_names'],
                                       remove_whitespace=True)
