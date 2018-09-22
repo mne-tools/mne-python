@@ -63,6 +63,9 @@ Changelog
 
 - :meth:`mne.Epochs.average` now supports custom, e.g. robust, averaging methods, by `Jona Sassenhagen`_
 
+- Add support for Neuromag 122 system by `Alex Gramfort`_
+
+
 Bug
 ~~~
 

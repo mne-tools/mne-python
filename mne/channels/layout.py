@@ -392,7 +392,8 @@ def find_layout(info, ch_type=None, exclude='bads'):
 
     (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
      has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
-     has_eeg_coils_and_meg, has_eeg_coils_only) = _get_ch_info(info)
+     has_eeg_coils_and_meg, has_eeg_coils_only,
+     has_neuromag_122_grad) = _get_ch_info(info)
     has_vv_meg = has_vv_mag and has_vv_grad
     has_vv_only_mag = has_vv_mag and not has_vv_grad
     has_vv_only_grad = has_vv_grad and not has_vv_mag
@@ -412,6 +413,8 @@ def find_layout(info, ch_type=None, exclude='bads'):
             layout_name = 'Vectorview-grad_norm'
         else:
             layout_name = 'Vectorview-grad'
+    elif has_neuromag_122_grad:
+        layout_name = 'Neuromag_122'
     elif ((has_eeg_coils_only and ch_type in [None, 'eeg']) or
           (has_eeg_coils_and_meg and ch_type == 'eeg')):
         if not isinstance(info, (dict, Info)):
@@ -783,13 +786,21 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads',
     # find all complete pairs of grad channels
     pairs = defaultdict(list)
     grad_picks = pick_types(info, meg='grad', ref_meg=False, exclude=exclude)
+
+    (_, has_vv_grad, _, _, _, _, _, _, _, _, _, has_neuromag_122_grad) = \
+        _get_ch_info(info)
+
     for i in grad_picks:
         ch = info['chs'][i]
         name = ch['ch_name']
-        if name.startswith('MEG'):
+        if has_vv_grad and name.startswith('MEG'):
             if name.endswith(('2', '3')):
                 key = name[-4:-1]
                 pairs[key].append(ch)
+        if has_neuromag_122_grad and name.startswith('MEG'):
+            key = (int(name[-3:]) - 1) // 2
+            pairs[key].append(ch)
+
     pairs = [p for p in pairs.values() if len(p) == 2]
     if len(pairs) == 0:
         if raise_error:
@@ -814,8 +825,8 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads',
 
 # this function is used to pair grad when info is not present
 # it is the case of Projection that don't have the info.
-def _pair_grad_sensors_from_ch_names(ch_names):
-    """Find the indexes for pairing grad channels.
+def _pair_grad_sensors_ch_names_vectorview(ch_names):
+    """Find the indexes for pairing grad channels in a Vectorview system.
 
     Parameters
     ----------
@@ -833,6 +844,33 @@ def _pair_grad_sensors_from_ch_names(ch_names):
             if name.endswith(('2', '3')):
                 key = name[-4:-1]
                 pairs[key].append(i)
+
+    pairs = [p for p in pairs.values() if len(p) == 2]
+
+    grad_chs = sum(pairs, [])
+    return grad_chs
+
+
+# this function is used to pair grad when info is not present
+# it is the case of Projection that don't have the info.
+def _pair_grad_sensors_ch_names_neuromag122(ch_names):
+    """Find the indexes for pairing grad channels in a Neuromag 122 system.
+
+    Parameters
+    ----------
+    ch_names : list of str
+        A list of channel names.
+
+    Returns
+    -------
+    indexes : list of int
+        Indexes of the grad channels, ordered in pairs.
+    """
+    pairs = defaultdict(list)
+    for i, name in enumerate(ch_names):
+        if name.startswith('MEG'):
+            key = (int(name[-3:]) - 1) // 2
+            pairs[key].append(i)
 
     pairs = [p for p in pairs.values() if len(p) == 2]
 

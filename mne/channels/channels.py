@@ -1160,12 +1160,15 @@ def find_ch_connectivity(info, ch_type):
                          "Got %s." % ch_type)
     (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
      has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
-     has_eeg_coils_and_meg, has_eeg_coils_only) = _get_ch_info(info)
+     has_eeg_coils_and_meg, has_eeg_coils_only,
+     has_neuromag_122_grad) = _get_ch_info(info)
     conn_name = None
     if has_vv_mag and ch_type == 'mag':
         conn_name = 'neuromag306mag'
     elif has_vv_grad and ch_type == 'grad':
         conn_name = 'neuromag306planar'
+    elif has_neuromag_122_grad:
+        conn_name = 'neuromag122'
     elif has_4D_mag:
         if 'MEG 248' in info['ch_names']:
             idx = info['ch_names'].index('MEG 248')
@@ -1311,6 +1314,8 @@ def _get_ch_info(info):
     has_vv_grad = any(k in coil_types for k in [FIFF.FIFFV_COIL_VV_PLANAR_T1,
                                                 FIFF.FIFFV_COIL_VV_PLANAR_T2,
                                                 FIFF.FIFFV_COIL_VV_PLANAR_T3])
+    has_neuromag_122_grad = any(k in coil_types
+                                for k in [FIFF.FIFFV_COIL_NM_122])
 
     is_old_vv = ' ' in chs[0]['ch_name']
 
@@ -1335,7 +1340,7 @@ def _get_ch_info(info):
 
     return (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
             has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
-            has_eeg_coils_and_meg, has_eeg_coils_only)
+            has_eeg_coils_and_meg, has_eeg_coils_only, has_neuromag_122_grad)
 
 
 def make_1020_channel_selections(info, midline="z"):
