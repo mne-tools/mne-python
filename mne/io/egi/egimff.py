@@ -16,7 +16,7 @@ from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..utils import _create_chs
 from ...utils import verbose, logger, warn
-from ...annotations import Annotations, _sync_onset
+from ...annotations import _sync_onset
 
 
 def _read_mff_header(filepath):
@@ -554,9 +554,8 @@ class RawMff(BaseRaw):
                         # fill with zeros and break the loop
                         data_view = data[n_data1_channels:, -1] = 0
                         warn('This file has the EGI PSG sample bug')
-                        if self.annotations is None:
-                            self.set_annotations(Annotations((), (), ()))
                         an_start = current_data_sample
+                        # XXX : use of _sync_onset should live in annotations
                         self.annotations.append(
                             _sync_onset(self, an_start / self.info['sfreq']),
                             1 / self.info['sfreq'], 'BAD_EGI_PSG')

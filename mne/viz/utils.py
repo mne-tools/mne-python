@@ -35,10 +35,10 @@ from ..utils import logger, verbose, set_config, warn
 from ..externals.six import string_types
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
-from ..annotations import Annotations, _sync_onset
+from ..annotations import _sync_onset
 
 
-_channel_type_prettyprint = {'eeg': "EEG channel",  'grad': "Gradiometer",
+_channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
                              'mag': "Magnetometer", 'seeg': "sEEG channel",
                              'eog': "EOG channel", 'ecg': "ECG sensor",
                              'emg': "EMG sensor", 'ecog': "ECoG channel",
@@ -822,8 +822,6 @@ def _setup_annotation_fig(params):
     from matplotlib.widgets import RadioButtons, SpanSelector, Button
     if params['fig_annotation'] is not None:
         params['fig_annotation'].canvas.close_event()
-    if params['raw'].annotations is None:
-        params['raw'].set_annotations(Annotations(list(), list(), list()))
     annotations = params['raw'].annotations
     labels = list(set(annotations.description))
     labels = np.union1d(labels, params['added_label'])
@@ -1880,8 +1878,6 @@ def _annotate_select(vmin, vmax, params):
     duration = vmax - vmin
     active_idx = _get_active_radiobutton(params['fig_annotation'].radio)
     description = params['fig_annotation'].radio.labels[active_idx].get_text()
-    if raw.annotations is None:
-        raw.annotations = Annotations([], [], [])
     _merge_annotations(onset, onset + duration, description,
                        raw.annotations)
     _plot_annotations(params['raw'], params)
@@ -1890,7 +1886,7 @@ def _annotate_select(vmin, vmax, params):
 
 def _plot_annotations(raw, params):
     """Set up annotations for plotting in raw browser."""
-    if raw.annotations is None:
+    if len(raw.annotations) == 0:
         return
 
     while len(params['ax_hscroll'].collections) > 0:
@@ -1952,7 +1948,7 @@ def _setup_annotation_colors(params):
     raw = params['raw']
     segment_colors = params.get('segment_colors', dict())
     # sort the segments by start time
-    if raw.annotations is not None:
+    if len(raw.annotations) > 0:
         ann_order = raw.annotations.onset.argsort(axis=0)
         descriptions = raw.annotations.description[ann_order]
     else:

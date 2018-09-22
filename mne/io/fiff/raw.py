@@ -127,13 +127,7 @@ class Raw(BaseRaw):
                                 description='BAD_ACQ_SKIP',
                                 orig_time=self.info['meas_date'])
 
-            if self.annotations is None:
-                self.set_annotations(annot)
-            else:
-                # they share the same reference
-                self.annotations.append(onset=annot.onset,
-                                        duration=annot.duration,
-                                        description=annot.description)
+            self._annotations += annot
 
         if preload:
             self._preload_data(preload)
