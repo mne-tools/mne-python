@@ -229,9 +229,7 @@ def _synthesize_stim_channel(events, n_samples):
     Parameters
     ----------
     events : array, shape (n_events, 3)
-        Each row representing an event as (onset, duration, trigger) sequence
-        (the format returned by `_read_vmrk_events` or `_read_eeglab_events`).
-        Durations equal to 0 are converted to 1.
+        Each row representing an event.
     n_samples : int
         The number of samples.
 

@@ -642,33 +642,4 @@ def test_event_id_function_using_custom_function():
     assert event_id == expected_event_id
 
 
-@testing.requires_testing_data
-@pytest.mark.skip(reason="Until _read_vmrk_annotation is not finish, this cannot be tested")
-# def test_brainvision_event_from_annot():
-def test_yy():
-
-    from mne.io import read_raw_brainvision
-    import mne
-    # data_dir = op.join(op.dirname(__file__), '..', 'io', 'brainvision',
-    #                 'tests', 'data')
-    data_dir = '/home/sik/code/mne-python/mne/tests/../io/brainvision/tests/data'
-    vhdr_path = op.join(data_dir, 'test.vhdr')
-    vmrk_path = op.join(data_dir, 'test.vmrk')
-    event_id = {'Sync On': 5, 'O  1': 1, 'R255': 255}
-    eog = ['HL', 'HR', 'Vb']
-    raw = read_raw_brainvision(vhdr_path, eog=eog, event_id=event_id)
-    events = raw._get_brainvision_events()
-    events_ = mne.find_events(raw)
-    with pytest.raises(ValueError, match='Contact MNE-Developers'):
-        events_2 = mne.io.brainvision.brainvision._read_vmrk_events(vhdr_path,
-            event_id=event_id)
-
-    xx = mne.io.brainvision.brainvision._read_vmrk_annotations(vmrk_path,
-        event_id=event_id)
-
-    # events_a, _ = events_from_annotations(raw, xx, event_id=event_id,
-    #                                      convention="brainvision")
-    events_a, _ = mne.io.brainvision.brainvision._events_from_annotations(xx, event_id=event_id)
-
-
 run_tests_if_main()
