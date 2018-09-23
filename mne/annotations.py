@@ -546,7 +546,8 @@ def events_from_annotations(raw, event_id=None, regexp=None,
         to map annotation descriptions to integer event codes. Only the
         keys present will be mapped and the annotations with other descriptions
         will be ignored. Otherwise, a callable that provides an integer given
-        a string. If None, all descriptions of annotations are mapped
+        a string or that returns None for an event to ignore.
+        If None, all descriptions of annotations are mapped
         and assigned arbitrary unique integer values.
     regexp : str | None
         Regular expression used to filter the annotations whose
@@ -578,6 +579,7 @@ def events_from_annotations(raw, event_id=None, regexp=None,
         event_id = Counter()
 
     event_id_ = dict()
+    dropped = []
     for desc in annotations.description:
         if desc in event_id_:
             continue
@@ -591,7 +593,11 @@ def events_from_annotations(raw, event_id=None, regexp=None,
             else:
                 continue
         else:
-            event_id_[desc] = event_id(desc)
+            trigger = event_id(desc)
+            if trigger is not None:
+                event_id_[desc] = trigger
+            else:
+                dropped.append(desc)
 
     event_sel = [ii for ii, kk in enumerate(annotations.description)
                  if kk in event_id_]
@@ -607,5 +613,12 @@ def events_from_annotations(raw, event_id=None, regexp=None,
 
     logger.info('Used Annotations descriptions: %s' %
                 (list(event_id_.keys()),))
+
+    if len(dropped) > 0:
+        dropped = list(set(dropped))
+        logger.info("{0} trigger(s) have been dropped, such as {1}. "
+                    "Consider using ``regexp`` to ignore triggers that "
+                    "do not follow a specicif pattern."
+                    .format(len(dropped), dropped[:5]))
 
     return events, event_id_

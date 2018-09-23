@@ -15,16 +15,17 @@ import os.path as op
 import re
 from datetime import datetime
 from math import modf
+from functools import partial
 
 import numpy as np
 
 from ...utils import verbose, logger, warn
 from ..constants import FIFF
 from ..meas_info import _empty_info
-from ..base import BaseRaw, _check_update_montage
+from ..base import BaseRaw, _check_update_montage, _RawShell
 from ..utils import (_read_segments_file, _synthesize_stim_channel,
                      _mult_cal_one)
-from ...annotations import Annotations
+from ...annotations import Annotations, events_from_annotations
 
 from ...externals.six import StringIO, string_types
 from ...externals.six.moves import configparser
@@ -118,10 +119,7 @@ class RawBrainVision(BaseRaw):
             _get_vhdr_info(vhdr_fname, eog, misc, scale, montage)
         self._order = order
         self._n_samples = n_samples
-        # XXX: we should call _read_vmrk_annotations here and use
-        # set_annotations and then don't create the stim channel
-        # automatically.
-        events = _read_vmrk_events(mrk_fname, event_id, trig_shift_by_type)
+
         _check_update_montage(info, montage)
         with open(data_filename, 'rb') as f:
             if isinstance(fmt, dict):  # ASCII, this will be slow :(
@@ -140,13 +138,37 @@ class RawBrainVision(BaseRaw):
                 offsets = None
                 n_samples = n_samples // (dtype_bytes * (info['nchan'] - 1))
         self.preload = False  # so the event-setting works
-        # XXX : this function _create_event_ch should disappear
-        # and rely on a mne.find_events that use the raw.annotations
+
+        # Get annotations from vmrk file and then use events_from_annotations
+        trig_shift_by_type = _check_trig_shift_by_type(trig_shift_by_type)
+        annots = read_annotations_brainvision(mrk_fname, info['sfreq'])
+        event_id = dict() if event_id is None else event_id
+        event_id = partial(_event_id_func, event_id=event_id,
+                           trig_shift_by_type=trig_shift_by_type)
+
+        # XXX : We use a mock raw as self is not proper yet
+        # and it's not possible to do it after as one needs the events
+        # to create the stim channel before calling super init
+        raw_tmp = _RawShell()
+        raw_tmp.first_samp = 0
+        raw_tmp.info = info
+        raw_tmp.set_annotations(annots)
+
+        def _time_as_index(times, use_rounding, origin):
+            return np.round(np.atleast_1d(times) * info['sfreq'])
+
+        raw_tmp.time_as_index = _time_as_index
+        events, _ = events_from_annotations(raw_tmp, event_id)
+
         self._create_event_ch(events, n_samples)
+
         super(RawBrainVision, self).__init__(
             info, last_samps=[n_samples - 1], filenames=[data_filename],
             orig_format=fmt, preload=preload, verbose=verbose,
             raw_extras=[offsets])
+
+        # Set the annotations as attribute
+        self.set_annotations(annots)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
@@ -228,30 +250,24 @@ def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
         _mult_cal_one(data, block, idx, cals, mult)
 
 
-def _read_vmrk_annotations(fname, event_id=None, trig_shift_by_type=None, sfreq=None):
+def _read_vmrk(fname):
     """Read annotations from a vmrk file.
 
     Parameters
     ----------
     fname : str
         vmrk file to be read.
-    event_id : dict | None
-        Special events to consider in addition to those that follow the normal
-        BrainVision trigger format ('###' with an optional single character
-        prefix). If dict, the keys will be mapped to trigger values on the
-        stimulus channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}.
-        If None or an empty dict (default), only BrainVision format events are
-        added to the stimulus channel. Keys are case sensitive. "New Segment"
-        markers are always dropped.
-    response_trig_shift : int | None
-        Integer to shift response triggers by. None ignores response triggers.
 
     Returns
     -------
-    annotations : instance of Annotations
-        The annotations extracted from the vmrk file.
+    onsets : array
+
+    duration : array
+
+    description : array
+
+    orig_time : str
     """
-    assert sfreq is not None  # XXX BREAK, annotations cannot computed otherwise
 
     # read vmrk file
     with open(fname, 'rb') as fid:
@@ -302,11 +318,11 @@ def _read_vmrk_annotations(fname, event_id=None, trig_shift_by_type=None, sfreq=
     # extract event information
     items = re.findall(r"^Mk\d+=(.*)", mk_txt, re.MULTILINE)
     onset, duration, description = list(), list(), list()
-    orig_time = None
+    date_str = None
     for info in items:
         mtype, mdesc, this_onset, this_duration = info.split(',')[:4]
         if mtype == 'New Segment':
-            orig_time = int(info.split(',')[-1])
+            date_str = info.split(',')[-1]
         else:
             this_onset = int(this_onset) - 1  # BV is 1-indexed, not 0-indexed
             this_duration = (int(this_duration) if this_duration.isdigit() else 1)
@@ -314,68 +330,101 @@ def _read_vmrk_annotations(fname, event_id=None, trig_shift_by_type=None, sfreq=
             onset.append(this_onset)
             description.append(mtype + '/' + mdesc)
 
-    annotations = Annotations(onset=onset, duration=duration,
-                              description=description,
-                              orig_time=None)
-    annotations.orig_time = orig_time  # XXX This should not be done like this
-
-    return annotations
+    return np.array(onset), np.array(duration), np.array(description), date_str
 
 
 # XXX : this function should be consistent with behavior / API
 # of read_events_eeglab function.
-def _events_from_annotations(annots, event_id, trig_shift_by_type):
+def _event_id_func(desc, event_id, trig_shift_by_type):
     # extract event information
-    events, dropped = list(), list()
-    for onset, duration, desc in \
-            zip(annots.onset, annots.duration, annots.description):
-        mtype, mdesc = desc.split('/')
-        if mdesc in event_id:
-            trigger = event_id[mdesc]
-        else:
-            try:
-                # Match any three digit marker value (padded with whitespace).
-                # In BrainVision Recorder, the markers sometimes have a prefix
-                # depending on the type, e.g., Stimulus=S, Response=R,
-                # Optical=O, ... Note that any arbitrary stimulus type can be
-                # defined. So we match any single character that is not
-                # forbidden by BrainVision Recorder: [^a-z$%\-@/\\|;,:.\s]
-                marker_regexp = r'^[^a-z$%\-@/\\|;,:.\s]{0,1}([\s\d]{2}\d{1})$'
-                trigger = int(re.findall(marker_regexp, mdesc)[0])
-            except IndexError:
-                trigger = None
-        if mtype.lower() in trig_shift_by_type:
-            cur_shift = trig_shift_by_type[mtype.lower()]
-            if cur_shift is not None:
-                trigger += cur_shift
-            else:
-                # The trigger has been deliberately shifted to None. Do not
-                # add this to "dropped" so we do not warn about something
-                # that was done deliberately. Just continue with next item.
-                trigger = None
-                continue
-        # FIXME: ideally, we would not use the middle column of the events
-        # array to store the duration. A better solution would be using
-        # annotations.
-        if trigger:
-            events.append((onset, duration, trigger))
-        else:
-            # Markers with no description are not regarded as dropped but
-            # instead are simply ignored. For example, the "New Segment"
-            # markers are ignored, because they usually look like:
-            # Mk1=New Segment,,1,1,0
-            if len(mdesc) > 0:
-                dropped.append(mdesc)
+    mtype, mdesc = desc.split('/')
+    found = False  # to avoid warning if mdesc explicitly in event_id
+    if mdesc in event_id:
+        trigger = event_id[mdesc]
+        found = True
+    else:
+        try:
+            # Match any three digit marker value (padded with whitespace).
+            # In BrainVision Recorder, the markers sometimes have a prefix
+            # depending on the type, e.g., Stimulus=S, Response=R,
+            # Optical=O, ... Note that any arbitrary stimulus type can be
+            # defined. So we match any single character that is not
+            # forbidden by BrainVision Recorder: [^a-z$%\-@/\\|;,:.\s]
+            marker_regexp = r'^[^a-z$%\-@/\\|;,:.\s]{0,1}([\s\d]{2}\d{1})$'
+            trigger = int(re.findall(marker_regexp, mdesc)[0])
+        except IndexError:
+            trigger = None
 
-    if len(dropped) > 0:
-        dropped = list(set(dropped))
-        warn("Currently, {0} trigger(s) will be dropped, such as {1}. "
-             "Consider using ``event_id`` to parse triggers that "
-             "do not follow the '###' pattern with an optional single "
-             "character prefix.".format(len(dropped), dropped[:5]))
+    if mtype.lower() in trig_shift_by_type:
+        cur_shift = trig_shift_by_type[mtype.lower()]
+        if cur_shift is not None:
+            trigger += cur_shift
+        else:
+            # The trigger has been deliberately shifted to None. Do not
+            # add this to "dropped" so we do not warn about something
+            # that was done deliberately. Just continue with next item.
+            trigger = -1
 
-    events = np.array(events).reshape(-1, 3)
-    return events
+    if trigger is None and not found:
+        warn("Marker '%s' will be dropped" % desc)
+
+    return trigger
+
+
+# # XXX : this function should be consistent with behavior / API
+# # of read_events_eeglab function.
+# def _events_from_annotations(annots, event_id, trig_shift_by_type):
+#     # extract event information
+#     events, dropped = list(), list()
+#     for onset, duration, desc in \
+#             zip(annots.onset, annots.duration, annots.description):
+#         mtype, mdesc = desc.split('/')
+#         if mdesc in event_id:
+#             trigger = event_id[mdesc]
+#         else:
+#             try:
+#                 # Match any three digit marker value (padded with whitespace).
+#                 # In BrainVision Recorder, the markers sometimes have a prefix
+#                 # depending on the type, e.g., Stimulus=S, Response=R,
+#                 # Optical=O, ... Note that any arbitrary stimulus type can be
+#                 # defined. So we match any single character that is not
+#                 # forbidden by BrainVision Recorder: [^a-z$%\-@/\\|;,:.\s]
+#                 marker_regexp = r'^[^a-z$%\-@/\\|;,:.\s]{0,1}([\s\d]{2}\d{1})$'
+#                 trigger = int(re.findall(marker_regexp, mdesc)[0])
+#             except IndexError:
+#                 trigger = None
+#         if mtype.lower() in trig_shift_by_type:
+#             cur_shift = trig_shift_by_type[mtype.lower()]
+#             if cur_shift is not None:
+#                 trigger += cur_shift
+#             else:
+#                 # The trigger has been deliberately shifted to None. Do not
+#                 # add this to "dropped" so we do not warn about something
+#                 # that was done deliberately. Just continue with next item.
+#                 trigger = None
+#                 continue
+#         # FIXME: ideally, we would not use the middle column of the events
+#         # array to store the duration. A better solution would be using
+#         # annotations.
+#         if trigger:
+#             events.append((onset, duration, trigger))
+#         else:
+#             # Markers with no description are not regarded as dropped but
+#             # instead are simply ignored. For example, the "New Segment"
+#             # markers are ignored, because they usually look like:
+#             # Mk1=New Segment,,1,1,0
+#             if len(mdesc) > 0:
+#                 dropped.append(mdesc)
+
+#     if len(dropped) > 0:
+#         dropped = list(set(dropped))
+#         warn("Currently, {0} trigger(s) will be dropped, such as {1}. "
+#              "Consider using ``event_id`` to parse triggers that "
+#              "do not follow the '###' pattern with an optional single "
+#              "character prefix.".format(len(dropped), dropped[:5]))
+
+#     events = np.array(events).reshape(-1, 3)
+#     return events
 
 
 def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
@@ -394,6 +443,7 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
         to the stimulus channel. Keys are case sensitive. "New Segment" markers
         are always dropped.
     response_trig_shift : int | None
+        XXX: wrong docstring
         Integer to shift response triggers by. None ignores response triggers.
 
     Returns
@@ -402,8 +452,15 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
         An array containing the whole recording's events, each row representing
         an event as (onset, duration, trigger) sequence.
     """
-    if event_id is None:
-        event_id = dict()
+    trig_shift_by_type = _check_trig_shift_by_type(trig_shift_by_type)
+
+    annots = read_annotations_brainvision(fname)
+    event_id = partial(_event_id_func, event_id, trig_shift_by_type)
+    events, _ = events_from_annotations(annots, event_id)
+    return events
+
+
+def _check_trig_shift_by_type(trig_shift_by_type):
     if trig_shift_by_type is None:
         trig_shift_by_type = dict()
     if not isinstance(trig_shift_by_type, dict):
@@ -421,32 +478,41 @@ def _read_vmrk_events(fname, event_id=None, trig_shift_by_type=None):
                                  'different case'.format(mrk_type_lc))
             trig_shift_by_type[mrk_type_lc] = cur_shift
             del trig_shift_by_type[mrk_type]
-
-    annots = _read_vmrk_annotations(fname)
-    events = _events_from_annotations(annots, event_id, trig_shift_by_type)
-
-    return events
+    return trig_shift_by_type
 
 
 # XXX : check that annotations returned here are valid about the onsets
 # and orig_time
-def read_annotations_brainvision(fname):
+def read_annotations_brainvision(fname, sfreq):
     r"""Create Annotations from BrainVision vrmk.
 
-    This function reads the event attribute from the EEGLAB
-    structure and makes an :class:`mne.Annotations` object.
+    This function reads a .vrmk file and makes an
+    :class:`mne.Annotations` object.
 
     Parameters
     ----------
     fname : str | object
         The path to the .vmrk file.
+    sfreq : float
+        The sampling frequency in the file. It's necessary
+        as Annotations are expressed in seconds and vmrk
+        files are in samples.
 
     Returns
     -------
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    return _read_vmrk_annotations(fname)
+    onset, duration, description, date_str = _read_vmrk(fname)
+    orig_time = _str_to_meas_date(date_str)
+
+    onset = np.array(onset, dtype=float) / sfreq
+    duration = np.array(duration, dtype=float) / sfreq
+    annotations = Annotations(onset=onset, duration=duration,
+                              description=description,
+                              orig_time=orig_time)
+
+    return annotations
 
 
 def _check_hdr_version(header):
@@ -485,6 +551,23 @@ _unit_dict = {'V': 1.,  # V stands for Volt
               u'ARU': 1,  # ARU is the unity for the breathing data
               'S': 1,
               'N': 1}  # Newton
+
+
+def _str_to_meas_date(date_str):
+    date_str = date_str.strip()
+
+    if date_str in ['0', '00000000000000000000']:
+        return None
+
+    meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
+
+    # We need list of unix time in milliseconds and as second entry
+    # the additional amount of microseconds
+    epoch = datetime.utcfromtimestamp(0)
+    unix_time = (meas_date - epoch).total_seconds()
+    unix_secs = int(modf(unix_time)[1])
+    microsecs = int(modf(unix_time)[0] * 1e6)
+    return unix_secs, microsecs
 
 
 def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
@@ -616,15 +699,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         # Always take first measurement date we find
         if match and match[0] != '00000000000000000000':
             date_str = match[0]
-            meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
-
-            # We need list of unix time in milliseconds and as second entry
-            # the additional amount of microseconds
-            epoch = datetime.utcfromtimestamp(0)
-            unix_time = (meas_date - epoch).total_seconds()
-            unix_secs = int(modf(unix_time)[1])
-            microsecs = int(modf(unix_time)[0] * 1e6)
-            info['meas_date'] = (unix_secs, microsecs)
+            info['meas_date'] = _str_to_meas_date(date_str)
             break
 
     else:
