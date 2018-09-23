@@ -1886,9 +1886,6 @@ def _annotate_select(vmin, vmax, params):
 
 def _plot_annotations(raw, params):
     """Set up annotations for plotting in raw browser."""
-    if len(raw.annotations) == 0:
-        return
-
     while len(params['ax_hscroll'].collections) > 0:
         params['ax_hscroll'].collections.pop()
     segments = list()
