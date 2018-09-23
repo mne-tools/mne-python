@@ -204,7 +204,6 @@ class Annotations(object):
                              "add/concatenate 2 annotations "
                              "(got %s != %s)" % (self.orig_time,
                                                  other.orig_time))
-        # XXX this should not ignore orig_time
         return self.append(other.onset, other.duration, other.description)
 
     def append(self, onset, duration, description):
