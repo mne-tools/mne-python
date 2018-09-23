@@ -161,6 +161,8 @@ API
 
 - The default value of ``stop_receive_thread`` in :meth:`mne.realtime.RtEpochs.stop` has been changed to ``True`` by `Henrich Kolkhorst`_
 
+- :meth:`mne.io.BaseRaw.annotations` when missing is set to an empty :class:`mne.Annotations` rather than ``None`` by `Joan Massich`_ and `Alex Gramfort`_
+
 .. _changes_0_16:
 
 Version 0.16
@@ -189,7 +191,7 @@ Changelog
 
 - Add support for gantry tilt angle determination from Elekta FIF file header by `Chris Bailey`_
 
-- Add possibility to concatenate `mne.Annotations` objects with ``+`` or ``+=`` operators by `Clemens Brunner`_
+- Add possibility to concatenate :class:`mne.Annotations` objects with ``+`` or ``+=`` operators by `Clemens Brunner`_
 
 - Add support for MaxShield raw files in :class:`mne.Report` by `Eric Larson`_
 
