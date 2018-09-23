@@ -338,7 +338,7 @@ def _read_vmrk(fname):
 def _event_id_func(desc, event_id, trig_shift_by_type):
     # extract event information
     mtype, mdesc = desc.split('/')
-    found = False  # to avoid warning if mdesc explicitly in event_id
+    found = False
     if mdesc in event_id:
         trigger = event_id[mdesc]
         found = True
@@ -363,7 +363,8 @@ def _event_id_func(desc, event_id, trig_shift_by_type):
             # The trigger has been deliberately shifted to None. Do not
             # add this to "dropped" so we do not warn about something
             # that was done deliberately. Just continue with next item.
-            trigger = -1
+            trigger = None
+            found = True
 
     if trigger is None and not found:
         warn("Marker '%s' will be dropped" % desc)
