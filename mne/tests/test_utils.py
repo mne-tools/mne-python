@@ -480,6 +480,7 @@ def test_deprecated():
 
 
 def test_how_to_deal_with_warnnings():
+    """Test filter some messages out of warning records."""
     with pytest.warns(UserWarning, match='bb') as w:
         warnings.warn("aa warning", UserWarning)
         warnings.warn("bb warning", UserWarning)
