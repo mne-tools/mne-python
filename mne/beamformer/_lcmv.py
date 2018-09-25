@@ -127,7 +127,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     """
     picks = _setup_picks(info, forward, data_cov, noise_cov)
 
-    is_free_ori, ch_names, proj, vertno, G = \
+    is_free_ori, ch_names, proj, vertno, G, nn = \
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
     data_cov = pick_channels_cov(data_cov, include=ch_names)
@@ -172,7 +172,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     n_orient = 3 if is_free_ori else 1
     W = _compute_beamformer(G, Cm, reg, n_orient, weight_norm,
                             pick_ori, reduce_rank, rank,
-                            inversion='matrix')
+                            inversion='matrix', nn=nn)
 
     # get src type to store with filters for _make_stc
     src_type = _get_src_type(forward['src'], vertno)
@@ -414,7 +414,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
 
-    is_free_ori, ch_names, proj, vertno, G =\
+    is_free_ori, ch_names, proj, vertno, G, _ =\
         _prepare_beamformer_input(
             info, forward, label, picks, pick_ori)
 

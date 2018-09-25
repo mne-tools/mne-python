@@ -216,7 +216,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         fwd_norm = None  # No normalization
 
     picks = _setup_picks(info=info, forward=forward)
-    _, ch_names, proj, vertices, G = _prepare_beamformer_input(
+    _, ch_names, proj, vertices, G, nn = _prepare_beamformer_input(
         info, forward, label, picks=picks, pick_ori=pick_ori,
         fwd_norm=fwd_norm,
     )
@@ -241,7 +241,8 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
 
         # compute spatial filter
         W = _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
-                                reduce_rank, rank=rank, inversion=inversion)
+                                reduce_rank, rank=rank, inversion=inversion,
+                                nn=nn)
         Ws.append(W)
 
     Ws = np.array(Ws)
@@ -513,7 +514,7 @@ def _apply_old_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
         raise ValueError('CSD matrix object should only contain one '
                          'frequency.')
 
-    is_free_ori, _, proj, vertno, G =\
+    is_free_ori, _, proj, vertno, G, _ =\
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
     Cm = data_csd.get_data(index=0)

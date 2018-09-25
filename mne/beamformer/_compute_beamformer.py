@@ -159,8 +159,15 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
     picks_forward = [fwd_ch_names.index(ch) for ch in ch_names]
 
     # Get gain matrix (forward operator)
+    nn = forward['source_nn']
+    if is_free_ori:  # take Z coordinate
+        nn = nn[2::3]
+    nn = nn.copy()
+    if forward['surf_ori']:
+        nn[...] = [0, 0, 1]  # align to local +Z coordinate
     if label is not None:
         vertno, src_sel = label_src_vertno_sel(label, forward['src'])
+        nn = nn[src_sel]
 
         if is_free_ori:
             src_sel = 3 * src_sel
@@ -201,24 +208,26 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
         raise ValueError('Got invalid value for "fwd_norm". Valid '
                          'values are: "dipole", "vertex" or None.')
 
-    return is_free_ori, ch_names, proj, vertno, G
+    return is_free_ori, ch_names, proj, vertno, G, nn
 
 
-def _shortcut(Wk, Gk, Cm_inv_sq, reduce_rank):
+def _shortcut(Wk, Gk, Cm_inv_sq, reduce_rank, nn):
     """Shortcut to compute the normalized weights in max-power orientation.
 
     Uses Eq. 4.47 from [1]_.
 
     Parameters
     ----------
-    Wk : ndarray, shape (n_dipoles, n_channels)
+    Wk : ndarray, shape (3, n_channels)
         The set of un-normalized filters at a single source point.
-    Gk : ndarray, shape (n_dipoles, n_channels)
+    Gk : ndarray, shape (n_channels, 3)
         The leadfield at a single source point.
     Cm_inv_sq : nsarray, snape (n_channels, n_channels)
         The squared inverse covariance matrix.
     reduce_rank : bool
         Whether to reduce the rank of the filter by one.
+    nn : ndarray, shape (3,)
+        The source normal.
 
     Returns
     -------
@@ -246,6 +255,7 @@ def _shortcut(Wk, Gk, Cm_inv_sq, reduce_rank):
                 'Consider reducing the rank of the forward operator by using '
                 'reduce_rank=True.'
             )
+    assert Wk.shape[0] == Gk.shape[1] == 3
     power = np.dot(norm, np.dot(Wk, Gk))
 
     # Determine orientation of max power
@@ -258,6 +268,11 @@ def _shortcut(Wk, Gk, Cm_inv_sq, reduce_rank):
     idx_max = eig_vals.argmax()
     max_power_ori = eig_vecs[:, idx_max]
 
+    # set the (otherwise arbitrary) sign to match the normal
+    sign = np.sign(np.dot(max_power_ori, nn))
+    sign = 1 if sign == 0 else sign
+    max_power_ori *= sign
+
     # Compute the filter in the orientation of max power
     Wk[:] = np.dot(max_power_ori, Wk)
     Gk = np.dot(Gk, max_power_ori)
@@ -269,7 +284,7 @@ def _shortcut(Wk, Gk, Cm_inv_sq, reduce_rank):
 
 
 def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
-                        reduce_rank, rank, inversion):
+                        reduce_rank, rank, inversion, nn):
     """Compute a spatial beamformer filter (LCMV or DICS).
 
     For more detailed information on the parameters, see the docstrings of
@@ -297,6 +312,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         estimated after regularization is applied.
     inversion : 'matrix' | 'single'
         The inversion scheme to compute the weights.
+    nn : ndarray, shape (n_dipoles, 3)
+        The source normals.
 
     Returns
     -------
@@ -315,6 +332,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
     n_sources = G.shape[1] // n_orient
+    assert nn.shape == (n_sources, 3)
 
     for k in range(n_sources):
         Wk = W[n_orient * k: n_orient * k + n_orient]
@@ -326,7 +344,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         if (inversion == 'matrix' and pick_ori == 'max-power' and
                 weight_norm in ['unit-noise-gain', 'nai']):
             # In this case, take a shortcut to compute the filter
-            Wk[:] = _shortcut(Wk, Gk, Cm_inv_sq, reduce_rank)
+            Wk[:] = _shortcut(Wk, Gk, Cm_inv_sq, reduce_rank, nn[k])
         else:
             # Normalize the spatial filters
             if Wk.ndim == 2 and len(Wk) > 1:
@@ -359,6 +377,11 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 # Compute the direction of max power
                 u, s, _ = np.linalg.svd(power.real)
                 max_power_ori = u[:, 0]
+
+                # set the (otherwise arbitrary) sign to match the normal
+                sign = np.sign(np.dot(nn[k], max_power_ori))
+                sign = 1 if sign == 0 else sign  # corner case
+                max_power_ori *= sign
 
                 # Re-compute the filter in the direction of max power
                 Wk[:] = max_power_ori.dot(Wk)
