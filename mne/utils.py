@@ -404,22 +404,6 @@ def filter_out_warnings(warn_record, category=None, match=None):
     This helper takes a list of :class:`warnings.WarningMessage` objects,
     and remove those matching category and/or text.
 
-        >>> with pytest.warns(None) as recwarn:
-        ...     warnings.warn("value must be 0 or None", UserWarning)
-        ... filter_out_warnings(recwarn, match='0 or None')
-        ... assert len(recwarn.list) == 0
-
-        >>> with warns(UserWarning, match=r'must be \d+$'):
-        >>> with pytest.warns(None) as recwarn:
-        ...     warnings.warn("value must be 42", UserWarning)
-        ... filter_out_warnings(recwarn, match=r'must be \d+$'):
-        ... assert len(recwarn.list) == 0
-
-        >>> with warns(UserWarning, match=r'must be \d+$'):
-        ...     warnings.warn("this is not here", UserWarning)
-        ... filter_out_warnings(recwarn, match=r'must be \d+$'):
-        ... assert len(recwarn.list) == 1
-
     Parameters
     ----------
     category: WarningMessage type | None
@@ -427,6 +411,28 @@ def filter_out_warnings(warn_record, category=None, match=None):
 
     match : str | None
         text or regex that matches the error message to filter out
+
+    Examples
+    --------
+    This can be used as::
+
+        >>> import pytest
+        >>> import warnings
+        >>> from mne.utils import filter_out_warnings
+        >>> with pytest.warns(None) as recwarn:
+        ...     warnings.warn("value must be 0 or None", UserWarning)
+        >>> filter_out_warnings(recwarn, match=".* 0 or None")
+        >>> assert len(recwarn.list) == 0
+
+        >>> with pytest.warns(None) as recwarn:
+        ...     warnings.warn("value must be 42", UserWarning)
+        >>> filter_out_warnings(recwarn, match=r'.* must be \d+$')
+        >>> assert len(recwarn.list) == 0
+
+        >>> with pytest.warns(None) as recwarn:
+        ...     warnings.warn("this is not here", UserWarning)
+        >>> filter_out_warnings(recwarn, match=r'.* must be \d+$')
+        >>> assert len(recwarn.list) == 1
     """
     regexp = re.compile('.*' if match is None else match)
     is_category = [w.category == category if category is not None else True
