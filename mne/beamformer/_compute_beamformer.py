@@ -276,7 +276,7 @@ def _compute_beamformer(method, G, Cm, reg, n_orient, weight_norm,
             else:
                 rank_Cm = estimate_rank(Cm, tol='auto', norm=False,
                                         return_singular=False)
-            noise = noise[rank_Cm]
+            noise = noise[-rank_Cm]
 
             # use either noise floor or regularization parameter d
             noise = max(noise, d)
