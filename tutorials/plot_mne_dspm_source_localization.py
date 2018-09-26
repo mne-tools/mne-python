@@ -23,7 +23,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw_fif(raw_fname)  # already has an average reference
 events = mne.find_events(raw, stim_channel='STI 014')
 
-event_id = dict(aud_r=1)  # event trigger and conditions
+event_id = dict(aud_l=1)  # event trigger and conditions
 tmin = -0.2  # start of each epoch (200ms before the trigger)
 tmax = 0.5  # end of each epoch (500ms after the trigger)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']
