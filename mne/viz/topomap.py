@@ -2382,3 +2382,81 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
     fig.canvas.draw()
     plt_show(show)
     return fig
+
+
+def _trigradient(x, y, z):
+    """Taking gradients of z on a mesh"""
+    from matplotlib.tri import Triangulation, CubicTriInterpolator
+    tri = Triangulation(x.ravel(), y.ravel())
+    tci = CubicTriInterpolator(tri, z.ravel())
+    dx, dy = tci.gradient(tri.x, tri.y)
+    return dx, dy
+
+def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, axes=None):
+
+
+    """Plotting arrow map
+    ----------
+    data : array, shape (n_chan,)
+        The data values to plot.
+    info_from : instance of Info
+        The measurement data to interpolate from.
+    info_to : instance of Info | None
+        The measurement info to interpolate to.
+    scale : scalar | 1e-10
+        To scale the arrows
+    axes : instance of Axes | None
+        The axes to plot to. If None, the current axes will be used.
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The Figure of the plot
+    ax : matplotlib.axes._subplots.AxesSubplot
+        The axes of the subplot
+    im : matplotlib.image.AxesImage
+        The interpolated data.
+    cn : matplotlib.contour.ContourSet
+        The fieldlines..
+    """
+    from matplotlib import pyplot as plt
+    from ..forward import _map_meg_channels
+
+    ch_type = _picks_by_type(info_from)
+    if len(ch_type) > 1:
+        raise ValueError("Multiple Channel type not supported")
+    else:
+        ch_type = ch_type[0][0]
+
+    if ch_type not in ('mag', 'grad'):
+            raise ValueError("Channel type not supported. Supported channel "
+                         "types include 'mag' and 'grad'.")
+
+
+    if info_to is None and ch_type is 'mag':
+        info_to = info_from
+    else:
+        ch_type = _picks_by_type(info_to)
+        if len(ch_type) > 1:
+            raise ValueError("Multiple Channel type not supported")
+        else:
+            ch_type = ch_type[0][0]
+
+        if ch_type not in ('mag'):
+            raise ValueError("only mag Channel type is supported")
+
+    if info_to is not info_from:
+        mapping = _map_meg_channels(info_from, info_to, mode='accurate')
+        data = np.dot(mapping, data)
+
+    pos = _prepare_topo_plot(info_to, ch_type='mag', layout=None)[1]
+    pos = _check_outlines(pos, 'head', None)[0]
+    if axes is None:
+        fig, ax = plt.subplots()
+    im, cn = plot_topomap(data, pos, axes=ax)
+    x, y = tuple(pos.T)
+    dx, dy = _trigradient(x, y, data)
+    dxx = dy.data
+    dyy = -dx.data
+    ax.quiver(x, y, dxx, dyy, scale=scale, color='k', lw=1)
+    fig.tight_layout()
+    return fig, ax, im, cn
