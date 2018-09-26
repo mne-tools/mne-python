@@ -399,7 +399,7 @@ def warn(message, category=RuntimeWarning):
 
 
 def filter_out_warnings(warn_record, category=None, match=None):
-    r"""Remove particular records from ``warn_record``
+    r"""Remove particular records from ``warn_record``.
 
     This helper takes a list of :class:`warnings.WarningMessage` objects,
     and remove those matching category and/or text.
