@@ -1,11 +1,10 @@
 """
-.. _tut_viz_epochs:
+.. _tut_viz_stcs:
 
 Visualize Source time courses
 =============================
 
 """
-# sphinx_gallery_thumbnail_number = 2
 
 import os
 
@@ -18,8 +17,6 @@ from mne.datasets import sample
 # .. contents:: Table of Contents
 #    :local:
 #
-#
-# .. _surface_stc:
 # Surface Source Estimates
 # ------------------------
 # First, we get the paths for the evoked data and the
@@ -44,7 +41,8 @@ print(type(stc))
 # The SourceEstimate object is in fact a *surface* source estimate. MNE also
 # supports volume-based source estimates but more on that later.
 #
-# We can plot the source estimate using the ``stc.plot`` just as in other MNE
+# We can plot the source estimate using the
+# :func:`stc.plot <mne.SourceEstimate.plot>` just as in other MNE
 # objects. Note that for this visualization to work, you must have ``mayavi``
 # and ``pysurfer`` installed on your machine.
 initial_time = 0.1
@@ -54,7 +52,6 @@ stc.plot(subjects_dir=subjects_dir, initial_time=initial_time)
 # Note that here we used ``initial_time=0.1``, but we can also browse through
 # time using ``time_viewer=True``.
 #
-# .. _vol_stc:
 # Volume Source Estimates
 # -----------------------
 # We can also visualize volume source estimates (used for deep structures).
@@ -84,13 +81,14 @@ stc = apply_inverse(evoked, inv, lambda2, method)
 stc.crop(0.0, 0.2)
 
 ###############################################################################
-# This time, we have a different container for the source time course.
+# This time, we have a different container
+# (:class:`VolSourceEstimate <mne.VolSourceEstimate>`) for the source time
+# course.
 print(type(stc))
 
 ###############################################################################
 # This too comes with a convenient plot method.
 
-# XXX: subject=None should work with stc object (?)
 stc.plot(src, subject='sample', subjects_dir=subjects_dir)
 
 ###############################################################################
@@ -99,9 +97,16 @@ stc.plot(src, subject='sample', subjects_dir=subjects_dir)
 # to explore the time series. Clicking on any time point will bring up the
 # corresponding anatomical map.
 #
-# .. _vector_stc:
+# We could visualize the source estimate on a glass brain. Unlike the previous
+# visualization, a glass brain does not show us one slice but what we would
+# see if the brain was transparent like glass.
+stc.plot(src, subject='sample', subjects_dir=subjects_dir, mode='glass_brain')
+
+###############################################################################
 # Vector Source Estimates
 # -----------------------
+# If we choose to use ``pick_ori='vector'`` in
+# :func:`apply_inverse <mne.minimum_norm.apply_inverse>`
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 
 inv = read_inverse_operator(fname_inv)
@@ -110,7 +115,6 @@ stc.plot(subject='sample', subjects_dir=subjects_dir,
          initial_time=initial_time)
 
 ###############################################################################
-# .. _dipole_fit:
 # Dipole fits
 # -----------
 # For computing a dipole fit, we need to load the noise covariance, the BEM
