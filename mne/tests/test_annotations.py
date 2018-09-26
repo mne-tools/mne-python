@@ -417,6 +417,11 @@ def test_annotation_concat():
     assert_equal(len(a), 6)
     assert_equal(len(b), 3)
 
+    # test += operator (modifies a in place)
+    b.orig_time = 1038942070.7201
+    with pytest.raises(ValueError, match='orig_time should be the same'):
+        a += b
+
 
 def test_annotations_crop():
     """Test basic functionality of annotation crop."""

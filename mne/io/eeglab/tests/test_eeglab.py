@@ -355,7 +355,7 @@ def test_eeglab_event_from_annot(recwarn):
     events_a = find_events(raw1)
     events_b = read_events_eeglab(raw_fname, event_id=event_id)
     annotations = read_annotations_eeglab(raw_fname)
-    assert raw1.annotations is None
+    assert len(raw1.annotations) == 0
     raw1.set_annotations(annotations)
     events_c, _ = events_from_annotations(raw1, event_id=event_id)
 

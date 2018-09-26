@@ -578,7 +578,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         if start < 0:
             return None
-        if reject_by_annotation and self.annotations is not None:
+        if reject_by_annotation and len(self.annotations) > 0:
             annot = self.annotations
             sfreq = self.info['sfreq']
             onset = _sync_onset(self, annot.onset)
@@ -715,8 +715,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        annotations : Instance of mne.Annotations
-            Annotations to set.
+        annotations : Instance of mne.Annotations | None
+            Annotations to set. If None, the annotations is defined
+            but empty.
         emit_warning : bool
             Whether to emit warnings when limiting or omitting annotations.
         sync_orig : bool
@@ -738,7 +739,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                   ' will be removed 0.18.'), DeprecationWarning)
 
         if annotations is None:
-            self._annotations = None
+            self._annotations = Annotations([], [], [])
         else:
             _ensure_annotation_object(annotations)
 
@@ -951,7 +952,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             picks = np.arange(self.info['nchan'])
         start = 0 if start is None else start
         stop = min(self.n_times if stop is None else stop, self.n_times)
-        if self.annotations is None or reject_by_annotation is None:
+        if len(self.annotations) == 0 or reject_by_annotation is None:
             data, times = self[picks, start:stop]
             return (data, times) if return_times else data
         if reject_by_annotation.lower() not in ['omit', 'nan']:
@@ -1664,11 +1665,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._data = self._data[:, smin:smax + 1].copy()
         self._update_times()
 
-        if self.annotations is not None:
-            if self.annotations.orig_time is None:
-                self.annotations.onset -= tmin
-            # now call setter to filter out annotations outside of interval
-            self.set_annotations(self.annotations, False)
+        if self.annotations.orig_time is None:
+            self.annotations.onset -= tmin
+        # now call setter to filter out annotations outside of interval
+        self.set_annotations(self.annotations, False)
 
         return self
 
@@ -2101,8 +2101,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._raw_extras += r._raw_extras
             self._filenames += r._filenames
         self._update_times()
-        if annotations is None:
-            annotations = Annotations([], [], [])
         self.set_annotations(annotations)
         for edge_samp in edge_samps:
             onset = _sync_onset(self, (edge_samp) / self.info['sfreq'], True)
@@ -2238,6 +2236,8 @@ class _RawShell():
         return self._annotations
 
     def set_annotations(self, annotations):
+        if annotations is None:
+            annotations = Annotations([], [], [], None)
         self._annotations = annotations
 
 
@@ -2390,8 +2390,8 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
     return use_fname, part_idx
 
 
-def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
-                       reset_range=True, annotations=None):
+def _start_writing_raw(name, info, sel, data_type,
+                       reset_range, annotations):
     """Start write raw data in file.
 
     Parameters
@@ -2400,14 +2400,15 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
         Name of the file to create.
     info : dict
         Measurement info.
-    sel : array of int, optional
-        Indices of channels to include. By default all channels are included.
+    sel : array of int | None
+        Indices of channels to include. If None, all channels
+        are included.
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
         5 (FIFFT_DOUBLE), 16 (FIFFT_DAU_PACK16), or 3 (FIFFT_INT) for raw data.
     reset_range : bool
         If True, the info['chs'][k]['range'] parameter will be set to unity.
-    annotations : instance of Annotations or None
+    annotations : instance of Annotations
         The annotations to write.
 
     Returns
@@ -2447,7 +2448,7 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     #
     # Annotations
     #
-    if annotations is not None:  # allow saving empty annotations
+    if len(annotations) > 0:  # don't save empty annot
         _write_annotations(fid, annotations)
 
     #

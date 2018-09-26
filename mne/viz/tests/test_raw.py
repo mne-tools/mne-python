@@ -51,7 +51,7 @@ def _annotation_helper(raw, events=False):
     import matplotlib.pyplot as plt
     # Some of our checks here require modern mpl to work properly
     mpl_good_enough = LooseVersion(matplotlib.__version__) >= '2.0'
-    n_anns = 0 if raw.annotations is None else len(raw.annotations.onset)
+    n_anns = len(raw.annotations)
     plt.close('all')
 
     if events:

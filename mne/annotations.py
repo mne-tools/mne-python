@@ -188,11 +188,22 @@ class Annotations(object):
 
     def __add__(self, other):
         """Add (concatencate) two Annotation objects."""
-        return self.copy().append(other.onset, other.duration,
-                                  other.description)
+        out = self.copy()
+        out += other
+        return out
 
     def __iadd__(self, other):
-        """Add (concatencate) two Annotation objects in-place."""
+        """Add (concatencate) two Annotation objects in-place.
+
+        Both annotations must have the same orig_time
+        """
+        if len(self) == 0:
+            self.orig_time = other.orig_time
+        if self.orig_time != other.orig_time:
+            raise ValueError("orig_time should be the same to "
+                             "add/concatenate 2 annotations "
+                             "(got %s != %s)" % (self.orig_time,
+                                                 other.orig_time))
         return self.append(other.onset, other.duration, other.description)
 
     def append(self, onset, duration, description):
@@ -381,7 +392,7 @@ def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
         for kind in kinds:
             _validate_type(kind, 'str', "All entries")
 
-    if raw.annotations is None:
+    if len(raw.annotations) == 0:
         onsets, ends = np.array([], int), np.array([], int)
     else:
         idxs = [idx for idx, desc in enumerate(raw.annotations.description)
@@ -552,7 +563,7 @@ def events_from_annotations(raw, event_id=None, regexp=None,
     event_id : dict
         The event_id variable that can be passed to Epochs.
     """
-    if raw.annotations is None:
+    if len(raw.annotations) == 0:
         return np.empty((0, 3), dtype=int), event_id
 
     annotations = raw.annotations

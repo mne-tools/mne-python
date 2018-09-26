@@ -375,7 +375,8 @@ def pick_info(info, sel=(), copy=True):
     info : dict
         Info structure from evoked or raw data.
     sel : list of int | None
-        Indices of channels to include.
+        Indices of channels to include. If None, all channels
+        are included.
     copy : bool
         If copy is False, info is modified inplace.
 

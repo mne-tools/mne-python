@@ -582,11 +582,10 @@ class SetChannelsMixin(object):
         """
         anonymize_info(self.info)
         if hasattr(self, 'annotations'):
-            if self.annotations is None:
-                pass
-            else:
-                self.annotations.orig_time = None
-                self.annotations.onset -= self._first_time
+            # XXX : anonymize should rather subtract a random date
+            # rather than setting it to None
+            self.annotations.orig_time = None
+            self.annotations.onset -= self._first_time
 
         return self
 
