@@ -1945,11 +1945,8 @@ def _setup_annotation_colors(params):
     raw = params['raw']
     segment_colors = params.get('segment_colors', dict())
     # sort the segments by start time
-    if len(raw.annotations) > 0:
-        ann_order = raw.annotations.onset.argsort(axis=0)
-        descriptions = raw.annotations.description[ann_order]
-    else:
-        descriptions = list()
+    ann_order = raw.annotations.onset.argsort(axis=0)
+    descriptions = raw.annotations.description[ann_order]
     color_keys = np.union1d(descriptions, params['added_label'])
     color_cycle = cycle(_get_color_list(annotations=True))  # no red
     for key, color in segment_colors.items():

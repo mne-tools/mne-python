@@ -2390,8 +2390,8 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
     return use_fname, part_idx
 
 
-def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
-                       reset_range=True, annotations=None):
+def _start_writing_raw(name, info, sel, data_type,
+                       reset_range, annotations):
     """Start write raw data in file.
 
     Parameters
@@ -2407,7 +2407,7 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
         5 (FIFFT_DOUBLE), 16 (FIFFT_DAU_PACK16), or 3 (FIFFT_INT) for raw data.
     reset_range : bool
         If True, the info['chs'][k]['range'] parameter will be set to unity.
-    annotations : instance of Annotations or None
+    annotations : instance of Annotations
         The annotations to write.
 
     Returns
@@ -2447,7 +2447,7 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     #
     # Annotations
     #
-    if annotations is not None and len(annotations):  # don't save empty annot
+    if len(annotations) > 0:  # don't save empty annot
         _write_annotations(fid, annotations)
 
     #
