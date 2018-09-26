@@ -49,8 +49,16 @@ initial_time = 0.1
 stc.plot(subjects_dir=subjects_dir, initial_time=initial_time)
 
 ###############################################################################
+#
 # Note that here we used ``initial_time=0.1``, but we can also browse through
 # time using ``time_viewer=True``.
+#
+# In case ``mayavi`` is not available, we also offer a ``matplotlib``
+# backend.
+stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
+         backend='matplotlib')
+
+###############################################################################
 #
 # Volume Source Estimates
 # -----------------------
@@ -134,4 +142,4 @@ dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
 
 ##############################################################################
 # Finally, we can visualize the dipole.
-dip.plot_locations(fname_trans, 'sample', subjects_dir, mode='orthoview')
+dip.plot_locations(fname_trans, 'sample', subjects_dir)
