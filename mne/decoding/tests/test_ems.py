@@ -60,7 +60,7 @@ def test_ems():
     epochs.equalize_event_counts(epochs.event_id)
     if check_version('sklearn', '0.18'):
         from sklearn.model_selection import StratifiedKFold
-        cv = StratifiedKFold()
+        cv = StratifiedKFold(n_splits=3)
     else:
         from sklearn.cross_validation import StratifiedKFold
         cv = StratifiedKFold(epochs.events[:, 2])

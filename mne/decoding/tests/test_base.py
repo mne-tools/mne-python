@@ -197,18 +197,20 @@ def test_cross_val_multiscore():
     from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
     from sklearn.linear_model import LogisticRegression, LinearRegression
 
+    logreg = LogisticRegression(solver='liblinear', random_state=0)
+
     # compare to cross-val-score
     X = np.random.rand(20, 3)
     y = np.arange(20) % 2
-    clf = LogisticRegression()
     cv = KFold(2, random_state=0)
+    clf = logreg
     assert_array_equal(cross_val_score(clf, X, y, cv=cv),
                        cross_val_multiscore(clf, X, y, cv=cv))
 
     # Test with search light
     X = np.random.rand(20, 4, 3)
     y = np.arange(20) % 2
-    clf = SlidingEstimator(LogisticRegression(), scoring='accuracy')
+    clf = SlidingEstimator(logreg, scoring='accuracy')
     scores_acc = cross_val_multiscore(clf, X, y, cv=cv)
     assert_array_equal(np.shape(scores_acc), [2, 3])
 
@@ -225,7 +227,7 @@ def test_cross_val_multiscore():
     # prediction.
     pytest.raises(ValueError, cross_val_multiscore, clf, X, y, cv=cv,
                   scoring='roc_auc')
-    clf = SlidingEstimator(LogisticRegression(), scoring='roc_auc')
+    clf = SlidingEstimator(logreg, scoring='roc_auc')
     scores_auc = cross_val_multiscore(clf, X, y, cv=cv, n_jobs=1)
     scores_auc_manual = list()
     for train, test in cv.split(X, y):
@@ -237,14 +239,14 @@ def test_cross_val_multiscore():
     # estimator and generates a StratifiedKFold for classiers and a KFold
     # otherwise
     X = np.random.randn(1000, 3)
-    y = np.r_[np.zeros(500), np.ones(500)]
-    clf = LogisticRegression(random_state=0)
+    y = np.ones(1000, dtype=int)
+    y[::2] = 0
+    clf = logreg
     reg = LinearRegression()
     for cross_val in (cross_val_score, cross_val_multiscore):
         manual = cross_val(clf, X, y, cv=StratifiedKFold(2))
         auto = cross_val(clf, X, y, cv=2)
         assert_array_equal(manual, auto)
-        pytest.raises(ValueError, cross_val, clf, X, y, cv=KFold(2))
 
         manual = cross_val(reg, X, y, cv=KFold(2))
         auto = cross_val(reg, X, y, cv=2)
