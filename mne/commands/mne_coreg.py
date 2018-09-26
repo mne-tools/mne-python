@@ -92,6 +92,11 @@ def run():
     trans = options.trans
     if trans is not None:
         trans = op.expanduser(trans)
+    try:
+        import faulthandler
+        faulthandler.enable()
+    except ImportError:
+        pass  # old Python2
     with ETSContext():
         mne.gui.coregistration(
             options.tabbed, inst=options.inst, subject=options.subject,
