@@ -2400,8 +2400,9 @@ def _start_writing_raw(name, info, sel, data_type,
         Name of the file to create.
     info : dict
         Measurement info.
-    sel : array of int, optional
-        Indices of channels to include. By default all channels are included.
+    sel : array of int | None
+        Indices of channels to include. If None, all channels
+        are included.
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
         5 (FIFFT_DOUBLE), 16 (FIFFT_DAU_PACK16), or 3 (FIFFT_INT) for raw data.
