@@ -604,7 +604,7 @@ def test_brainvision_neuroone_export():
 
 @testing.requires_testing_data
 def test_read_vmrk_annotations():
-    """Test annotations onsets are timestamps (+ validate some)"""
+    """Test annotations onsets are timestamps (+ validate some)."""
     from mne.io.brainvision import read_annotations_brainvision
     sfreq = 1000.0
     annotations = read_annotations_brainvision(vmrk_path, sfreq=sfreq)

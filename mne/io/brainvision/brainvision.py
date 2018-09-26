@@ -269,7 +269,6 @@ def _read_vmrk(fname):
     orig_time : str
         The origin time as a string.
     """
-
     # read vmrk file
     with open(fname, 'rb') as fid:
         txt = fid.read()
