@@ -89,6 +89,7 @@ def run():
     make_flash_bem(subject=subject, subjects_dir=subjects_dir,
                    overwrite=overwrite, show=show, flash_path='.')
 
+
 is_main = (__name__ == '__main__')
 if is_main:
     run()
