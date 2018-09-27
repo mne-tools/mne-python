@@ -9,7 +9,7 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
 import pytest
 
 from mne.fixes import is_regressor, is_classifier
-from mne.utils import requires_version
+from mne.utils import requires_version, check_version
 from mne.decoding.base import (_get_inverse_funcs, LinearModel, get_coef,
                                cross_val_multiscore)
 from mne.decoding.search_light import SlidingEstimator
@@ -197,7 +197,10 @@ def test_cross_val_multiscore():
     from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
     from sklearn.linear_model import LogisticRegression, LinearRegression
 
-    logreg = LogisticRegression(solver='liblinear', random_state=0)
+    if check_version('sklearn', '0.20'):
+        logreg = LogisticRegression(solver='liblinear', random_state=0)
+    else:
+        logreg = LogisticRegression(random_state=0)
 
     # compare to cross-val-score
     X = np.random.rand(20, 3)
