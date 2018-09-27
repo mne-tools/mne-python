@@ -997,6 +997,7 @@ def test_MGH_cross_talk():
     assert (len(py_ctc) > 0)
 
 
+@testing.requires_testing_data
 def test_mf_skips():
     """Test processing of data with skips."""
     raw = read_raw_fif(skip_fname, preload=True)
