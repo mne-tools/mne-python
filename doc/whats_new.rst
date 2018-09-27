@@ -135,6 +135,8 @@ Bug
 
 - Fix missing initialization of ``self._current`` in :class:`mne.Epochs` by `Henrich Kolkhorst`_
 
+- Fix processing of data with bad segments and acquisition skips with new ``skip_by_annotation`` paremeter in :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
+
 - Fix symlinking to use relative paths in ``mne flash_bem` and ``mne watershed_bem`` by `Eric Larson`_
 
 - Fix error in mne coreg when saving with scaled MRI if fiducials haven't been saved by `Ezequiel Mikulan`_

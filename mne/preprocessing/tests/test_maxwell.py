@@ -9,7 +9,8 @@ from numpy.testing import assert_equal, assert_allclose, assert_array_equal
 import pytest
 from scipy import sparse
 
-from mne import compute_raw_covariance, pick_types
+from mne import compute_raw_covariance, pick_types, concatenate_raws
+from mne.annotations import _annotations_starts_stops
 from mne.chpi import read_head_pos, filter_chpi
 from mne.forward import _prep_meg_channels
 from mne.cov import _estimate_rank_meeg_cov
@@ -44,6 +45,7 @@ sss_st1FineCalCrossTalkRegInTransSample_fname = \
 sss_movecomp_fname = pre + 'movecomp_raw_sss.fif'
 sss_movecomp_reg_in_fname = pre + 'movecomp_regIn_raw_sss.fif'
 sss_movecomp_reg_in_st4s_fname = pre + 'movecomp_regIn_st4s_raw_sss.fif'
+skip_fname = op.join(data_path, 'misc', 'intervalrecording_raw.fif')
 
 erm_fname = pre + 'erm_raw.fif'
 sss_erm_std_fname = pre + 'erm_devOrigin_raw_sss.fif'
@@ -509,7 +511,8 @@ def test_spatiotemporal():
     raw = read_crop(raw_fname)
 
     # Test that window is less than length of data
-    pytest.raises(ValueError, maxwell_filter, raw, st_duration=1000.)
+    with pytest.raises(ValueError, match='duration'):
+        maxwell_filter(raw, st_duration=1000.)
 
     # We could check both 4 and 10 seconds because Elekta handles them
     # differently (to ensure that std/non-std tSSS windows are correctly
@@ -993,5 +996,50 @@ def test_MGH_cross_talk():
     py_ctc = raw_sss.info['proc_history'][0]['max_info']['sss_ctc']
     assert (len(py_ctc) > 0)
 
+
+def test_mf_skips():
+    """Test processing of data with skips."""
+    raw = read_raw_fif(skip_fname, preload=True)
+    raw.fix_mag_coil_types()
+    raw.pick_channels(raw.ch_names[:50])  # fast and inaccurate
+    kwargs = dict(st_only=True, coord_frame='meg', int_order=4, ext_order=3)
+    # smoke test that this runs
+    maxwell_filter(raw, st_duration=17., skip_by_annotation=(), **kwargs)
+    # and this one, too, which will process some all-zero data
+    maxwell_filter(raw, st_duration=2., skip_by_annotation=(), **kwargs)
+    with pytest.raises(ValueError, match='duration'):
+        # skips decrease acceptable duration
+        maxwell_filter(raw, st_duration=17., **kwargs)
+    onsets, ends = _annotations_starts_stops(
+        raw, ('edge', 'bad_acq_skip'), 'skip_by_annotation', invert=True)
+    assert (ends - onsets).min() / raw.info['sfreq'] == 2.
+    assert (ends - onsets).max() / raw.info['sfreq'] == 3.
+    for st_duration in (2., 3.):
+        raw_sss = maxwell_filter(raw, st_duration=st_duration, **kwargs)
+        for start, stop in zip(onsets, ends):
+            orig_data = raw[:, start:stop][0]
+            new_data = raw_sss[:, start:stop][0]
+            if (stop - start) / raw.info['sfreq'] >= st_duration:
+                # Should be modified
+                assert not np.allclose(new_data, orig_data, atol=1e-20)
+            else:
+                # Should not be modified
+                assert_allclose(new_data, orig_data, atol=1e-20)
+    # Processing an individual file and concat should be equivalent to
+    # concat then process
+    raw.crop(0, 1)
+    raw_sss = maxwell_filter(raw, st_duration=1., **kwargs)
+    raw_sss_concat = concatenate_raws([raw_sss, raw_sss.copy()])
+    raw_concat = concatenate_raws([raw.copy(), raw.copy()])
+    raw_concat_sss = maxwell_filter(raw_concat, st_duration=1., **kwargs)
+    raw_concat_sss_bad = maxwell_filter(raw_concat, st_duration=1.,
+                                        skip_by_annotation=(), **kwargs)
+    data_c = raw_concat[:][0]
+    data_sc = raw_sss_concat[:][0]
+    data_cs = raw_concat_sss[:][0]
+    data_csb = raw_concat_sss_bad[:][0]
+    assert not np.allclose(data_cs, data_c, atol=1e-20)
+    assert not np.allclose(data_cs, data_csb, atol=1e-20)
+    assert_allclose(data_sc, data_cs, atol=1e-20)
 
 run_tests_if_main()

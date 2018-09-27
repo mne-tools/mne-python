@@ -14,6 +14,7 @@ import numpy as np
 from scipy import linalg
 
 from .. import __version__
+from ..annotations import _annotations_starts_stops
 from ..bem import _check_origin
 from ..chpi import quat_to_rot, rot_to_quat
 from ..transforms import (_str_to_frame, _get_trans, Transform, apply_trans,
@@ -45,7 +46,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                    st_correlation=0.98, coord_frame='head', destination=None,
                    regularize='in', ignore_ref=False, bad_condition='error',
                    head_pos=None, st_fixed=True, st_only=False, mag_scale=100.,
-                   verbose=None):
+                   skip_by_annotation=('edge', 'bad_acq_skip'), verbose=None):
     u"""Apply Maxwell filter to data using multipole moments.
 
     .. warning:: Automatic bad channel detection is not currently implemented.
@@ -149,6 +150,17 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
         .. versionadded:: 0.13
 
+    skip_by_annotation : str | list of str
+        If a string (or list of str), any annotation segment that begins
+        with the given string will not be included in filtering, and
+        segments on either side of the given excluded annotated segment
+        will be filtered separately (i.e., as independent signals).
+        The default (``('edge', 'bad_acq_skip')`` will separately filter
+        any segments that were concatenated by :func:`mne.concatenate_raws`
+        or :meth:`mne.io.Raw.append`, or separated during acquisition.
+        To disable, provide an empty list.
+
+        .. versionadded:: 0.17
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -280,12 +292,16 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                          % coord_frame)
     head_frame = True if coord_frame == 'head' else False
     recon_trans = _check_destination(destination, raw.info, head_frame)
+    onsets, ends = _annotations_starts_stops(
+        raw, skip_by_annotation, 'skip_by_annotation', invert=True)
+    max_samps = (ends - onsets).max()
     if st_duration is not None:
         st_duration = float(st_duration)
-        if not 0. < st_duration <= raw.times[-1] + 1. / raw.info['sfreq']:
+        if not 0. < st_duration * raw.info['sfreq'] <= max_samps + 1.:
             raise ValueError('st_duration (%0.1fs) must be between 0 and the '
-                             'duration of the data (%0.1fs).'
-                             % (st_duration, raw.times[-1]))
+                             'longest contiguous duration of the data '
+                             '(%0.1fs).' % (st_duration,
+                                            max_samps / raw.info['sfreq']))
         st_correlation = float(st_correlation)
         st_duration = int(round(st_duration * raw.info['sfreq']))
         if not 0. < st_correlation <= 1:
@@ -404,24 +420,38 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         st_duration = max(int(round(10. * info['sfreq'])), 1)
         st_correlation = None
         st_when = 'never'
-    st_duration = min(len(raw_sss.times), st_duration)
+    st_duration = min(max_samps, st_duration)
     del st_fixed
 
     # Generate time points to break up data into equal-length windows
-    read_lims = np.arange(0, len(raw_sss.times) + 1, st_duration)
-    if len(read_lims) == 1:
-        read_lims = np.concatenate([read_lims, [len(raw_sss.times)]])
-    if read_lims[-1] != len(raw_sss.times):
-        read_lims[-1] = len(raw_sss.times)
-        # len_last_buf < st_dur so fold it into the previous buffer
-        if st_correlation is not None and len(read_lims) > 2:
-            logger.info('    Spatiotemporal window did not fit evenly into '
-                        'raw object. The final %0.2f seconds were lumped '
-                        'onto the previous window.'
-                        % ((read_lims[-1] - read_lims[-2] - st_duration) /
-                           info['sfreq'],))
-    assert len(read_lims) >= 2
-    assert read_lims[0] == 0 and read_lims[-1] == len(raw_sss.times)
+    starts, stops = list(), list()
+    for onset, end in zip(onsets, ends):
+        read_lims = np.arange(onset, end + 1, st_duration)
+        if len(read_lims) == 1:
+            read_lims = np.concatenate([read_lims, [end]])
+        if read_lims[-1] != end:
+            read_lims[-1] = end
+            # fold it into the previous buffer
+            n_last_buf = read_lims[-1] - read_lims[-2]
+            if st_correlation is not None and len(read_lims) > 2:
+                if n_last_buf >= st_duration:
+                    logger.info(
+                        '    Spatiotemporal window did not fit evenly into'
+                        'contiguous data segment. %0.2f seconds were lumped '
+                        'into the previous window.'
+                        % ((n_last_buf - st_duration) / info['sfreq'],))
+                else:
+                    logger.info(
+                        '    Contiguous data segement of duration %0.2f '
+                        'seconds is too short to be processed with tSSS '
+                        'using duration %0.2f'
+                        % (n_last_buf / info['sfreq'],
+                           st_duration / info['sfreq']))
+        assert len(read_lims) >= 2
+        assert read_lims[0] == onset and read_lims[-1] == end
+        starts.extend(read_lims[:-1])
+        stops.extend(read_lims[1:])
+        del read_lims
 
     #
     # Do the heavy lifting
@@ -449,15 +479,13 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         info['dev_head_t'], t=0.)
     reg_moments_0 = reg_moments.copy()
     # Loop through buffer windows of data
-    n_sig = int(np.floor(np.log10(max(len(read_lims), 0)))) + 1
-    logger.info('    Processing %s data chunk%s of (at least) %0.1f sec'
-                % (len(read_lims) - 1, _pl(read_lims),
-                   st_duration / info['sfreq']))
-    for ii, (start, stop) in enumerate(zip(read_lims[:-1], read_lims[1:])):
+    n_sig = int(np.floor(np.log10(max(len(starts), 0)))) + 1
+    logger.info('    Processing %s data chunk%s' % (len(starts), _pl(starts)))
+    for ii, (start, stop) in enumerate(zip(starts, stops)):
+        tsss_valid = (stop - start) >= st_duration
         rel_times = raw_sss.times[start:stop]
         t_str = '%8.3f - %8.3f sec' % tuple(rel_times[[0, -1]])
-        t_str += ('(#%d/%d)'
-                  % (ii + 1, len(read_lims) - 1)).rjust(2 * n_sig + 5)
+        t_str += ('(#%d/%d)' % (ii + 1, len(starts))).rjust(2 * n_sig + 5)
 
         # Get original data
         orig_data = raw_sss._data[meg_picks[good_picks], start:stop]
@@ -498,7 +526,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                 # Here we operate on our actual data
                 proc = out_meg_data if st_only else orig_data
                 _do_tSSS(proc, orig_in_data, resid, st_correlation,
-                         n_positions, t_str)
+                         n_positions, t_str, tsss_valid)
 
         if not st_only or st_when == 'after':
             # Do movement compensation on the data
@@ -539,7 +567,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         # If doing tSSS at the end
         if st_when == 'after':
             _do_tSSS(out_meg_data, orig_in_data, resid, st_correlation,
-                     n_positions, t_str)
+                     n_positions, t_str, tsss_valid)
         elif st_when == 'never' and head_pos[0] is not None:
             logger.info('        Used % 2d head position%s for %s'
                         % (n_positions, _pl(n_positions), t_str))
@@ -710,10 +738,13 @@ def _trans_starts_stops_quats(pos, start, stop, this_pos_data):
 
 
 def _do_tSSS(clean_data, orig_in_data, resid, st_correlation,
-             n_positions, t_str):
+             n_positions, t_str, tsss_valid):
     """Compute and apply SSP-like projection vectors based on min corr."""
-    np.asarray_chkfinite(resid)
-    t_proj = _overlap_projector(orig_in_data, resid, st_correlation)
+    if not tsss_valid:
+        t_proj = np.empty((clean_data.shape[1], 0))
+    else:
+        np.asarray_chkfinite(resid)
+        t_proj = _overlap_projector(orig_in_data, resid, st_correlation)
     # Apply projector according to Eq. 12 in [2]_
     msg = ('        Projecting %2d intersecting tSSS component%s '
            'for %s' % (t_proj.shape[1], _pl(t_proj.shape[1], ' '), t_str))
@@ -1487,12 +1518,17 @@ def _overlap_projector(data_int, data_res, corr):
 
     # we use np.linalg.norm instead of sp.linalg.norm here: ~2x faster!
     n = np.linalg.norm(data_int)
-    Q_int = linalg.qr(_orth_overwrite((data_int / n).T),
-                      overwrite_a=True, mode='economic', **check_disable)[0].T
+    n = 1. if n == 0 else n  # all-zero data should gracefully continue
+    data_int = _orth_overwrite((data_int / n).T)
     n = np.linalg.norm(data_res)
-    Q_res = linalg.qr(_orth_overwrite((data_res / n).T),
+    n = 1. if n == 0 else n
+    data_res = _orth_overwrite((data_res / n).T)
+    if data_int.shape[1] == 0 or data_res.shape[1] == 0:
+        return np.empty((data_int.shape[0], 0))
+    Q_int = linalg.qr(data_int,
+                      overwrite_a=True, mode='economic', **check_disable)[0].T
+    Q_res = linalg.qr(data_res,
                       overwrite_a=True, mode='economic', **check_disable)[0]
-    assert data_int.shape[1] > 0
     C_mat = np.dot(Q_int, Q_res)
     del Q_int
 
