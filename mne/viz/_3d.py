@@ -1460,11 +1460,12 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                   colormap='auto', time_label='auto', smoothing_steps=10,
                   subjects_dir=None, views='lat', clim='auto', figure=None,
                   initial_time=None, time_unit='s', background='black',
-                  spacing='oct6', time_viewer=False):
+                  spacing='oct6', time_viewer=False, colorbar=True):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     from matplotlib import cm
+    from matplotlib import colors
     from matplotlib.widgets import Slider
     import nibabel as nib
     from scipy import sparse, stats
@@ -1561,6 +1562,19 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         time_viewer.subplots_adjust(left=0.12, bottom=0.05, right=0.75,
                                     top=0.95)
     fig.subplots_adjust(left=0., bottom=0., right=1., top=1.)
+
+    # add colorbar
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    sm = plt.cm.ScalarMappable(cmap=cmap,
+                               norm=plt.Normalize(ctrl_pts[0], ctrl_pts[2]))
+    cax = inset_axes(ax, width="80%", height="5%", loc=8, borderpad=3.)
+    plt.setp(plt.getp(cax, 'xticklabels'), color='w')
+    sm.set_array(np.linspace(ctrl_pts[0], ctrl_pts[2]))
+    if colorbar:
+        plt.colorbar(sm, cax=cax, orientation='horizontal')
+        cb_yticks = plt.getp(cax, 'yticklabels')
+        plt.setp(cb_yticks, color='w')
+        cax.tick_params(labelsize=16)
     plt.show()
     return fig
 
@@ -1623,7 +1637,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         'cau', 'dor' 'ven', 'fro', 'par']. Using multiple views is not
         supported for mpl backend.
     colorbar : bool
-        If True, display colorbar on scene. Not available on mpl backend.
+        If True, display colorbar on scene.
     clim : str | dict
         Colorbar properties specification. If 'auto', set clim automatically
         based on data percentiles. If dict, should contain:
@@ -1708,7 +1722,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              subjects_dir=subjects_dir, views=views, clim=clim,
                              figure=figure, initial_time=initial_time,
                              time_unit=time_unit, background=background,
-                             spacing=spacing, time_viewer=time_viewer)
+                             spacing=spacing, time_viewer=time_viewer,
+                             colorbar=colorbar)
     from surfer import Brain, TimeViewer
     initial_time, ad_kwargs, sd_kwargs = _get_ps_kwargs(initial_time)
 
