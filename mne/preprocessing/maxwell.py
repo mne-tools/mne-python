@@ -442,7 +442,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                         % ((n_last_buf - st_duration) / info['sfreq'],))
                 else:
                     logger.info(
-                        '    Contiguous data segement of duration %0.2f '
+                        '    Contiguous data segment of duration %0.2f '
                         'seconds is too short to be processed with tSSS '
                         'using duration %0.2f'
                         % (n_last_buf / info['sfreq'],
