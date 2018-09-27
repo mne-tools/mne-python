@@ -1428,7 +1428,7 @@ def _smooth_plot(this_time, params):
                                params['smoothing_steps'], params['n_verts'],
                                params['inuse'], params['maps'])
 
-    vmax = np.max(array_plot)
+    vmax = params['ctrl_pts'][-1]
     colors = array_plot / vmax
 
     transp = 0.8
@@ -1460,7 +1460,8 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                   colormap='auto', time_label='auto', smoothing_steps=10,
                   subjects_dir=None, views='lat', clim='auto', figure=None,
                   initial_time=None, time_unit='s', background='black',
-                  spacing='oct6', time_viewer=False, colorbar=True):
+                  spacing='oct6', time_viewer=False, colorbar=True,
+                  transparent=True):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
@@ -1494,7 +1495,12 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         raise ValueError("views must be one of ['lat', 'med', 'ros', 'cau', "
                          "'dor' 'ven', 'fro', 'par']. Got %s." % views)
     ctrl_pts, colormap, _, _ = _limits_to_control_points(
-        clim, stc.data, colormap, transparent=False, fmt='matplotlib')
+        clim, stc.data, colormap, transparent=transparent, fmt='matplotlib')
+    colormap = plt.get_cmap(colormap)
+
+    locs = np.clip(np.linspace(ctrl_pts[0] / ctrl_pts[2], 1, 256), 0, 1)
+    colormap = colormap(locs)
+    colormap = colors.ListedColormap(colormap)
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     fig = plt.figure(figsize=(6, 6)) if figure is None else figure
@@ -1569,7 +1575,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                                norm=plt.Normalize(ctrl_pts[0], ctrl_pts[2]))
     cax = inset_axes(ax, width="80%", height="5%", loc=8, borderpad=3.)
     plt.setp(plt.getp(cax, 'xticklabels'), color='w')
-    sm.set_array(np.linspace(ctrl_pts[0], ctrl_pts[2]))
+    sm.set_array(np.linspace(0, 1))
     if colorbar:
         plt.colorbar(sm, cax=cax, orientation='horizontal')
         cb_yticks = plt.getp(cax, 'yticklabels')
@@ -1723,7 +1729,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              figure=figure, initial_time=initial_time,
                              time_unit=time_unit, background=background,
                              spacing=spacing, time_viewer=time_viewer,
-                             colorbar=colorbar)
+                             colorbar=colorbar, transparent=transparent)
     from surfer import Brain, TimeViewer
     initial_time, ad_kwargs, sd_kwargs = _get_ps_kwargs(initial_time)
 
