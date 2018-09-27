@@ -2395,8 +2395,10 @@ def _trigradient(x, y, z):
 
 def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, axes=None):
     """Plotting arrow map
+
+    Parameters
     ----------
-    data : array, shape (n_chan,)
+    data : array, shape (n_channels,)
         The data values to plot.
     info_from : instance of Info
         The measurement data to interpolate from.
