@@ -2392,9 +2392,8 @@ def _trigradient(x, y, z):
     dx, dy = tci.gradient(tri.x, tri.y)
     return dx, dy
 
+
 def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, axes=None):
-
-
     """Plotting arrow map
     ----------
     data : array, shape (n_chan,)
@@ -2407,6 +2406,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, axes=None):
         To scale the arrows
     axes : instance of Axes | None
         The axes to plot to. If None, the current axes will be used.
+
     Returns
     -------
     fig : matplotlib.figure.Figure
@@ -2416,21 +2416,22 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, axes=None):
     im : matplotlib.image.AxesImage
         The interpolated data.
     cn : matplotlib.contour.ContourSet
-        The fieldlines..
+        The fieldlines.
     """
     from matplotlib import pyplot as plt
     from ..forward import _map_meg_channels
 
     ch_type = _picks_by_type(info_from)
+
     if len(ch_type) > 1:
-        raise ValueError("Multiple Channel type not supported")
+        raise ValueError("Multiple Channel type not supported,"
+                         "only support single channel type of 'grad' or 'mag' ")
     else:
         ch_type = ch_type[0][0]
 
-    if ch_type not in ('mag', 'grad'):
-            raise ValueError("Channel type not supported. Supported channel "
+    if ch_type != 'mag' and ch_type != 'grad':
+        raise ValueError("Channel type not supported. Supported channel "
                          "types include 'mag' and 'grad'.")
-
 
     if info_to is None and ch_type is 'mag':
         info_to = info_from
@@ -2459,4 +2460,5 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, axes=None):
     dyy = -dx.data
     ax.quiver(x, y, dxx, dyy, scale=scale, color='k', lw=1)
     fig.tight_layout()
+
     return fig, ax, im, cn
