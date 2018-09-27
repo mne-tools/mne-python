@@ -33,13 +33,16 @@ def test_search_light():
         from sklearn.ensemble import BaggingClassifier
     from sklearn.base import is_classifier
 
+    logreg = LogisticRegression(solver='liblinear', multi_class='ovr',
+                                random_state=0)
+
     X, y = make_data()
     n_epochs, _, n_time = X.shape
     # init
     pytest.raises(ValueError, SlidingEstimator, 'foo')
     sl = SlidingEstimator(Ridge())
     assert (not is_classifier(sl))
-    sl = SlidingEstimator(LogisticRegression())
+    sl = SlidingEstimator(LogisticRegression(solver='liblinear'))
     assert (is_classifier(sl))
     # fit
     assert_equal(sl.__repr__()[:18], '<SlidingEstimator(')
@@ -64,19 +67,18 @@ def test_search_light():
     assert (np.sum(np.abs(score)) != 0)
     assert (score.dtype == float)
 
-    sl = SlidingEstimator(LogisticRegression())
+    sl = SlidingEstimator(logreg)
     assert_equal(sl.scoring, None)
 
     # Scoring method
     for scoring in ['foo', 999]:
-        sl = SlidingEstimator(LogisticRegression(), scoring=scoring)
+        sl = SlidingEstimator(logreg, scoring=scoring)
         sl.fit(X, y)
         pytest.raises((ValueError, TypeError), sl.score, X, y)
 
     # Check sklearn's roc_auc fix: scikit-learn/scikit-learn#6874
     # -- 3 class problem
-    sl = SlidingEstimator(LogisticRegression(random_state=0),
-                          scoring='roc_auc')
+    sl = SlidingEstimator(logreg, scoring='roc_auc')
     y = np.arange(len(X)) % 3
     sl.fit(X, y)
     pytest.raises(ValueError, sl.score, X, y)
@@ -89,12 +91,12 @@ def test_search_light():
     y = np.arange(len(X)) % 2
 
     # Cannot pass a metric as a scoring parameter
-    sl1 = SlidingEstimator(LogisticRegression(), scoring=roc_auc_score)
+    sl1 = SlidingEstimator(logreg, scoring=roc_auc_score)
     sl1.fit(X, y)
     pytest.raises(ValueError, sl1.score, X, y)
 
     # Now use string as scoring
-    sl1 = SlidingEstimator(LogisticRegression(), scoring='roc_auc')
+    sl1 = SlidingEstimator(logreg, scoring='roc_auc')
     sl1.fit(X, y)
     rng = np.random.RandomState(0)
     X = rng.randn(*X.shape)  # randomize X to avoid AUCs in [0, 1]
@@ -109,8 +111,7 @@ def test_search_light():
     assert_array_equal(score_manual, score_sl)
 
     # n_jobs
-    sl = SlidingEstimator(LogisticRegression(random_state=0), n_jobs=1,
-                          scoring='roc_auc')
+    sl = SlidingEstimator(logreg, n_jobs=1, scoring='roc_auc')
     score_1job = sl.fit(X, y).score(X, y)
     sl.n_jobs = 2
     score_njobs = sl.fit(X, y).score(X, y)
@@ -125,11 +126,17 @@ def test_search_light():
 
     class _LogRegTransformer(LogisticRegression):
         # XXX needs transformer in pipeline to get first proba only
+        def __init__(self):
+            super(_LogRegTransformer, self).__init__()
+            self.multi_class = 'auto'
+            self.random_state = 0
+            self.solver = 'liblinear'
+
         def transform(self, X):
             return super(_LogRegTransformer, self).predict_proba(X)[..., 1]
 
     pipe = make_pipeline(SlidingEstimator(_LogRegTransformer()),
-                         LogisticRegression())
+                         logreg)
     pipe.fit(X, y)
     pipe.predict(X)
 
@@ -139,7 +146,7 @@ def test_search_light():
     y_preds = list()
     for n_jobs in [1, 2]:
         pipe = SlidingEstimator(
-            make_pipeline(Vectorizer(), LogisticRegression()), n_jobs=n_jobs)
+            make_pipeline(Vectorizer(), logreg), n_jobs=n_jobs)
         y_preds.append(pipe.fit(X, y).predict(X))
         features_shape = pipe.estimators_[0].steps[0][1].features_shape_
         assert_array_equal(features_shape, [3, 4])
@@ -161,10 +168,13 @@ def test_generalization_light():
     from sklearn.linear_model import LogisticRegression
     from sklearn.metrics import roc_auc_score
 
+    logreg = LogisticRegression(solver='liblinear', multi_class='ovr',
+                                random_state=0)
+
     X, y = make_data()
     n_epochs, _, n_time = X.shape
     # fit
-    gl = GeneralizingEstimator(LogisticRegression())
+    gl = GeneralizingEstimator(logreg)
     assert_equal(repr(gl)[:23], '<GeneralizingEstimator(')
     gl.fit(X, y)
     gl.fit(X, y, sample_weight=np.ones_like(y))
@@ -188,20 +198,20 @@ def test_generalization_light():
     assert (np.sum(np.abs(score)) != 0)
     assert (score.dtype == float)
 
-    gl = GeneralizingEstimator(LogisticRegression(), scoring='roc_auc')
+    gl = GeneralizingEstimator(logreg, scoring='roc_auc')
     gl.fit(X, y)
     score = gl.score(X, y)
     auc = roc_auc_score(y, gl.estimators_[0].predict_proba(X[..., 0])[..., 1])
     assert_equal(score[0, 0], auc)
 
     for scoring in ['foo', 999]:
-        gl = GeneralizingEstimator(LogisticRegression(), scoring=scoring)
+        gl = GeneralizingEstimator(logreg, scoring=scoring)
         gl.fit(X, y)
         pytest.raises((ValueError, TypeError), gl.score, X, y)
 
     # Check sklearn's roc_auc fix: scikit-learn/scikit-learn#6874
     # -- 3 class problem
-    gl = GeneralizingEstimator(LogisticRegression(), scoring='roc_auc')
+    gl = GeneralizingEstimator(logreg, scoring='roc_auc')
     y = np.arange(len(X)) % 3
     gl.fit(X, y)
     pytest.raises(ValueError, gl.score, X, y)
@@ -214,7 +224,7 @@ def test_generalization_light():
     assert_array_equal(score, manual_score)
 
     # n_jobs
-    gl = GeneralizingEstimator(LogisticRegression(), n_jobs=2)
+    gl = GeneralizingEstimator(logreg, n_jobs=2)
     gl.fit(X, y)
     y_pred = gl.predict(X)
     assert_array_equal(y_pred.shape, [n_epochs, n_time, n_time])
@@ -231,7 +241,7 @@ def test_generalization_light():
     y_preds = list()
     for n_jobs in [1, 2]:
         pipe = GeneralizingEstimator(
-            make_pipeline(Vectorizer(), LogisticRegression()), n_jobs=n_jobs)
+            make_pipeline(Vectorizer(), logreg), n_jobs=n_jobs)
         y_preds.append(pipe.fit(X, y).predict(X))
         features_shape = pipe.estimators_[0].steps[0][1].features_shape_
         assert_array_equal(features_shape, [3, 4])

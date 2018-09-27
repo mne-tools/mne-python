@@ -57,7 +57,10 @@ class LinearModel(BaseEstimator):
     def __init__(self, model=None):  # noqa: D102
         if model is None:
             from sklearn.linear_model import LogisticRegression
-            model = LogisticRegression()
+            if check_version('sklearn', '0.20'):
+                model = LogisticRegression(solver='liblinear')
+            else:
+                model = LogisticRegression()
 
         self.model = model
         self._estimator_type = getattr(model, "_estimator_type", None)

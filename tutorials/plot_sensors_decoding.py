@@ -64,7 +64,7 @@ epochs.pick_types(meg=True, exclude='bads')
 X = epochs.get_data()  # MEG signals: n_epochs, n_channels, n_times
 y = epochs.events[:, 2]  # target: Audio left or right
 
-clf = make_pipeline(StandardScaler(), LogisticRegression())
+clf = make_pipeline(StandardScaler(), LogisticRegression(solver='lbfgs'))
 
 time_decod = SlidingEstimator(clf, n_jobs=1, scoring='roc_auc', verbose=True)
 scores = cross_val_multiscore(time_decod, X, y, cv=5, n_jobs=1)
@@ -86,7 +86,8 @@ plt.show()
 ###############################################################################
 # You can retrieve the spatial filters and spatial patterns if you explicitly
 # use a LinearModel
-clf = make_pipeline(StandardScaler(), LinearModel(LogisticRegression()))
+clf = make_pipeline(StandardScaler(),
+                    LinearModel(LogisticRegression(solver='lbfgs')))
 time_decod = SlidingEstimator(clf, n_jobs=1, scoring='roc_auc', verbose=True)
 time_decod.fit(X, y)
 
