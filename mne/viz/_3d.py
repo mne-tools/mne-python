@@ -1472,16 +1472,25 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     if hemi not in ['lh', 'rh']:
         raise ValueError("hemi must be 'lh' or 'rh' when using matplotlib. "
                          "Got %s." % hemi)
-    kwargs = {'lat': {'elev': 5, 'azim': 0},
-              'med': {'elev': 5, 'azim': 180},
-              'fos': {'elev': 5, 'azim': 90},
-              'cau': {'elev': 5, 'azim': -90},
-              'dor': {'elev': 90, 'azim': 0},
-              'ven': {'elev': -90, 'azim': 0},
-              'fro': {'elev': 5, 'azim': 110},
-              'par': {'elev': 5, 'azim': -110}}
-    if views not in kwargs:
-        raise ValueError("views must be one of ['lat', 'med', 'fos', 'cau', "
+    lh_kwargs = {'lat': {'elev': 0, 'azim': 180},
+                 'med': {'elev': 0, 'azim': 0},
+                 'ros': {'elev': 0, 'azim': 90},
+                 'cau': {'elev': 0, 'azim': -90},
+                 'dor': {'elev': 90, 'azim': -90},
+                 'ven': {'elev': -90, 'azim': -90},
+                 'fro': {'elev': 0, 'azim': 106.739},
+                 'par': {'elev': 30, 'azim': -120}}
+    rh_kwargs = {'lat': {'elev': 0, 'azim': 0},
+                 'med': {'elev': 0, 'azim': 180},
+                 'ros': {'elev': 0, 'azim': 90},
+                 'cau': {'elev': 0, 'azim': -90},
+                 'dor': {'elev': 90, 'azim': -90},
+                 'ven': {'elev': -90, 'azim': -90},
+                 'fro': {'elev': 16.739, 'azim': 60},
+                 'par': {'elev': 30, 'azim': -60}}
+    kwargs = dict(lh=lh_kwargs, rh=rh_kwargs)
+    if views not in lh_kwargs:
+        raise ValueError("views must be one of ['lat', 'med', 'ros', 'cau', "
                          "'dor' 'ven', 'fro', 'par']. Got %s." % views)
     ctrl_pts, colormap, _, _ = _limits_to_control_points(
         clim, stc.data, colormap, transparent=False, fmt='matplotlib')
@@ -1527,7 +1536,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                   time_unit=time_unit)
     _smooth_plot(initial_time, params)
 
-    ax.view_init(**kwargs[views])
+    ax.view_init(**kwargs[hemi][views])
 
     try:
         ax.set_facecolor(background)
@@ -1610,7 +1619,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         figure by it's id or create a new figure with the given id. If an
         instance of matplotlib figure, mpl backend is used for plotting.
     views : str | list
-        View to use. See surfer.Brain(). Supported views: ['lat', 'med', 'fos',
+        View to use. See surfer.Brain(). Supported views: ['lat', 'med', 'ros',
         'cau', 'dor' 'ven', 'fro', 'par']. Using multiple views is not
         supported for mpl backend.
     colorbar : bool
