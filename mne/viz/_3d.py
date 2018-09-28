@@ -1577,10 +1577,11 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     plt.setp(plt.getp(cax, 'xticklabels'), color='w')
     sm.set_array(np.linspace(0, 1))
     if colorbar:
-        plt.colorbar(sm, cax=cax, orientation='horizontal')
+        cb = plt.colorbar(sm, cax=cax, orientation='horizontal')
         cb_yticks = plt.getp(cax, 'yticklabels')
         plt.setp(cb_yticks, color='w')
         cax.tick_params(labelsize=16)
+        cb.patch.set_facecolor((0., 0., 0., 1.0))
     plt.show()
     return fig
 
