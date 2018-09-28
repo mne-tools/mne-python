@@ -276,10 +276,10 @@ def _compute_beamformer(method, G, Cm, reg, n_orient, weight_norm,
             else:
                 rank_Cm = estimate_rank(Cm, tol='auto', norm=False,
                                         return_singular=False)
-                noise = noise[len(noise) - rank_Cm]
+            noise = noise[-rank_Cm]
 
-                # use either noise floor or regularization parameter d
-                noise = max(noise, d)
+            # use either noise floor or regularization parameter d
+            noise = max(noise, d)
 
     # compute spatial filter
     W = np.dot(G.T, Cm_inv)
@@ -391,7 +391,8 @@ def _compute_beamformer(method, G, Cm, reg, n_orient, weight_norm,
                     Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
                 else:
                     # Fixed source orientation
-                    Wk /= Ck
+                    if not np.all(Ck == 0.):
+                        Wk /= Ck
 
                 # handle noise normalization with free/normal source
                 # orientation:
@@ -402,11 +403,14 @@ def _compute_beamformer(method, G, Cm, reg, n_orient, weight_norm,
                                               'fixed orientation.')
 
                 elif weight_norm == 'unit-noise-gain':
-                    noise_norm = np.sum(Wk ** 2, axis=1)
-                    if is_free_ori:
+                    noise_norm = np.sum(Wk ** 2, axis=1, keepdims=True)
+                    if is_free_ori and pick_ori in [None, 'vector']:
+                        # Only do this when we don't select a single
+                        # orientation later. We need to enforce:
+                        # W @ I @ W.T == I
                         noise_norm = np.sum(noise_norm)
                     noise_norm = np.sqrt(noise_norm)
-                    if noise_norm == 0.:
+                    if np.all(noise_norm == 0.):
                         noise_norm_inv = 0.  # avoid division by 0
                     else:
                         noise_norm_inv = 1. / noise_norm
