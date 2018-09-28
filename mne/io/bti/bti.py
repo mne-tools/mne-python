@@ -247,7 +247,13 @@ def _points_to_dig(points, n_idx_points, use_hpi):
 
 def _convert_coil_trans(coil_trans, dev_ctf_t, bti_dev_t):
     """Convert the coil trans."""
-    t = combine_transforms(invert_transform(dev_ctf_t), bti_dev_t,
+
+    dev_ctf_t_ = dev_ctf_t.copy()
+    has_nan = np.isnan(dev_ctf_t_['trans'])
+    if np.any(has_nan):
+        dev_ctf_t_['trans'] = np.identity(4)
+
+    t = combine_transforms(invert_transform(dev_ctf_t_), bti_dev_t,
                            'ctf_head', 'meg')
     t = np.dot(t['trans'], coil_trans)
     return t
