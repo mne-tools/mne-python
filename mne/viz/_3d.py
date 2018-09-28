@@ -1495,11 +1495,14 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         raise ValueError("views must be one of ['lat', 'med', 'ros', 'cau', "
                          "'dor' 'ven', 'fro', 'par']. Got %s." % views)
     ctrl_pts, colormap, _, _ = _limits_to_control_points(
-        clim, stc.data, colormap, transparent=transparent, fmt='matplotlib')
+        clim, stc.data, colormap, transparent=True, fmt='matplotlib')
     colormap = plt.get_cmap(colormap)
 
-    locs = np.clip(np.linspace(ctrl_pts[0] / ctrl_pts[2], 1, 256), 0, 1)
-    colormap = colormap(locs)
+    vals = np.interp(np.linspace(0, 1, 256),
+                     ctrl_pts / ctrl_pts[2], [0, 0.5, 1.])
+    colormap = np.array(colormap(vals))
+    colormap[:, 3] = np.interp(np.linspace(0, 1, 256), ctrl_pts / ctrl_pts[2],
+                               [0, 1, 1])
     colormap = colors.ListedColormap(colormap)
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
@@ -1572,7 +1575,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     # add colorbar
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes
     sm = plt.cm.ScalarMappable(cmap=cmap,
-                               norm=plt.Normalize(ctrl_pts[0], ctrl_pts[2]))
+                               norm=plt.Normalize(0, ctrl_pts[2]))
     cax = inset_axes(ax, width="80%", height="5%", loc=8, borderpad=3.)
     plt.setp(plt.getp(cax, 'xticklabels'), color='w')
     sm.set_array(np.linspace(0, 1))
@@ -1582,6 +1585,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         plt.setp(cb_yticks, color='w')
         cax.tick_params(labelsize=16)
         cb.patch.set_facecolor((0., 0., 0., 1.0))
+        cax.set_xlim((ctrl_pts[0] / ctrl_pts[2], 1))
     plt.show()
     return fig
 
