@@ -245,15 +245,16 @@ def _points_to_dig(points, n_idx_points, use_hpi):
     return dig
 
 
+def _check_nan_dev_head_t(dev_ctf_t):
+    """Make sure we deal with nans."""
+    has_nan = np.isnan(dev_ctf_t['trans'])
+    if np.any(has_nan):
+        dev_ctf_t['trans'] = np.identity(4)
+
+
 def _convert_coil_trans(coil_trans, dev_ctf_t, bti_dev_t):
     """Convert the coil trans."""
-
-    dev_ctf_t_ = dev_ctf_t.copy()
-    has_nan = np.isnan(dev_ctf_t_['trans'])
-    if np.any(has_nan):
-        dev_ctf_t_['trans'] = np.identity(4)
-
-    t = combine_transforms(invert_transform(dev_ctf_t_), bti_dev_t,
+    t = combine_transforms(invert_transform(dev_ctf_t), bti_dev_t,
                            'ctf_head', 'meg')
     t = np.dot(t['trans'], coil_trans)
     return t
@@ -1138,6 +1139,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     dev_ctf_t = Transform('ctf_meg', 'ctf_head',
                           _correct_trans(bti_info['bti_transform'][0]))
 
+    _check_nan_dev_head_t(dev_ctf_t)
     # for old backward compatibility and external processing
     rotation_x = 0. if rotation_x is None else rotation_x
     bti_dev_t = _get_bti_dev_t(rotation_x, translation) if convert else None

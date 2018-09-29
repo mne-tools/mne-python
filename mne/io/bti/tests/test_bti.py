@@ -17,9 +17,8 @@ from mne.io import read_raw_fif, read_raw_bti
 from mne.io.bti.bti import (_read_config, _process_bti_headshape,
                             _read_bti_header, _get_bti_dev_t,
                             _correct_trans, _get_bti_info,
-                            _loc_to_coil_trans,
-                            _convert_coil_trans,
-                            _rename_channels)
+                            _loc_to_coil_trans, _convert_coil_trans,
+                            _check_nan_dev_head_t, _rename_channels)
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.common import assert_dig_allclose
 from mne.io.pick import pick_info
@@ -332,7 +331,7 @@ def test_nan_trans():
 
         # add some nan in some locations!
         dev_ctf_t['trans'][:, 3] = np.nan
-
+        _check_nan_dev_head_t(dev_ctf_t)
         for idx, (chan_4d, chan_neuromag) in enumerate(ch_mapping):
             loc = bti_info['chs'][idx]['loc']
             if loc is not None:
