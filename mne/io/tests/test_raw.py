@@ -157,12 +157,11 @@ def test_time_as_index():
     assert_array_equal(new_inds, np.arange(len(raw.times)))
 
 
-@pytest.mark.parametrize('offset, origin',
-                         [(0, None), (0, 2.0), (1, 1.0), (2, 0.0)],
-                         ids=['times in s. relative to first_samp (default)',
-                              'times in s. relative to first_samp',
-                              'times in s. relative to meas_date',
-                              'absolute times in s. relative to 0'])
+@pytest.mark.parametrize('offset, origin', [
+    pytest.param(0, None, id='times in s. relative to first_samp (default)'),
+    pytest.param(0, 2.0, id='times in s. relative to first_samp'),
+    pytest.param(1, 1.0, id='times in s. relative to meas_date'),
+    pytest.param(2, 0.0, id='absolute times in s. relative to 0')])
 def test_time_as_index_ref(offset, origin):
     """Test indexing of raw times."""
     meas_date = 1
