@@ -335,7 +335,33 @@ def _read_vmrk(fname):
 
 
 def _event_id_func(desc, event_id, trig_shift_by_type):
-    # extract event information
+    """Function to get integers from string description.
+
+    This function can be passed as event_id to events_from_annotations
+    function.
+
+    Parameters
+    ----------
+    desc : str
+        The description of the event.
+    event_id : dict
+        The default mapping from desc to integer.
+    trig_shift_by_type: dict | None
+        The names of marker types to which an offset should be added.
+        If dict, the keys specify marker types (case is ignored), so that the
+        corresponding value (an integer) will be added to the trigger value of
+        all events of this type. If the value for a key is in the dict is None,
+        all markers of this type will be ignored. If None (default), no offset
+        is added, which may lead to different marker types being mapped to the
+        same event id.
+
+    Returns
+    -------
+    trigger : int | None
+        The integer corresponding to the specific event. If None,
+        then a proper integer cannot be found and the event is typically
+        ignored.
+    """
     mtype, mdesc = desc.split('/')
     found = False
     if mdesc in event_id:
@@ -393,7 +419,7 @@ def _check_trig_shift_by_type(trig_shift_by_type):
 
 
 def read_annotations_brainvision(fname, sfreq):
-    r"""Create Annotations from BrainVision vrmk.
+    """Create Annotations from BrainVision vrmk.
 
     This function reads a .vrmk file and makes an
     :class:`mne.Annotations` object.
