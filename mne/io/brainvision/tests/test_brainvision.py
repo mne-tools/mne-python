@@ -620,4 +620,8 @@ def test_read_vmrk_annotations():
                               expected, decimal=7)
     assert_array_equal(annotations.description, description)
 
+    # Test automatic detection of sfreq from header file
+    annotations_auto = read_annotations_brainvision(vmrk_path)
+    assert_array_equal(annotations.onset, annotations_auto.onset)
+
 run_tests_if_main()

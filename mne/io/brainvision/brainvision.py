@@ -418,7 +418,7 @@ def _check_trig_shift_by_type(trig_shift_by_type):
     return trig_shift_by_type
 
 
-def read_annotations_brainvision(fname, sfreq):
+def read_annotations_brainvision(fname, sfreq='auto'):
     """Create Annotations from BrainVision vrmk.
 
     This function reads a .vrmk file and makes an
@@ -428,10 +428,13 @@ def read_annotations_brainvision(fname, sfreq):
     ----------
     fname : str | object
         The path to the .vmrk file.
-    sfreq : float
+    sfreq : float | 'auto'
         The sampling frequency in the file. It's necessary
         as Annotations are expressed in seconds and vmrk
-        files are in samples.
+        files are in samples. If set to 'auto' then
+        the sfreq is taken from the .vhdr file that
+        base the same name (without file extention). So
+        data.vrmk looks for sfreq in data.vhdr.
 
     Returns
     -------
@@ -440,6 +443,12 @@ def read_annotations_brainvision(fname, sfreq):
     """
     onset, duration, description, date_str = _read_vmrk(fname)
     orig_time = _str_to_meas_date(date_str)
+
+    if sfreq == 'auto':
+        vhdr_fname = op.splitext(fname)[0] + '.vhdr'
+        logger.info("Finding 'sfreq' from header file: %s" % vhdr_fname)
+        _, _, _, info = _aux_vhdr_info(vhdr_fname)
+        sfreq = info['sfreq']
 
     onset = np.array(onset, dtype=float) / sfreq
     duration = np.array(duration, dtype=float) / sfreq
@@ -505,46 +514,8 @@ def _str_to_meas_date(date_str):
     return unix_secs, microsecs
 
 
-def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
-    """Extract all the information from the header file.
-
-    Parameters
-    ----------
-    vhdr_fname : str
-        Raw EEG header to be read.
-    eog : list of str
-        Names of channels that should be designated EOG channels. Names should
-        correspond to the vhdr file.
-    misc : list or tuple of str | 'auto'
-        Names of channels or list of indices that should be designated
-        MISC channels. Values should correspond to the electrodes
-        in the vhdr file. If 'auto', units in vhdr file are used for inferring
-        misc channels. Default is ``'auto'``.
-    scale : float
-        The scaling factor for EEG data. Unless specified otherwise by
-        header file, units are in microvolts. Default scale factor is 1.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions. If None,
-        read sensor locations from header file if present, otherwise (0, 0, 0).
-        See the documentation of :func:`mne.channels.read_montage` for more
-        information.
-
-    Returns
-    -------
-    info : Info
-        The measurement info.
-    fmt : str
-        The data format in the file.
-    edf_info : dict
-        A dict containing Brain Vision specific parameters.
-    events : array, shape (n_events, 3)
-        Events from the corresponding vmrk file.
-    """
-    scale = float(scale)
-    ext = op.splitext(vhdr_fname)[-1]
-    if ext != '.vhdr':
-        raise IOError("The header file must be given to read the data, "
-                      "not a file with extension '%s'." % ext)
+def _aux_vhdr_info(vhdr_fname):
+    """Aux function for _get_vhdr_info"""
     with open(vhdr_fname, 'rb') as f:
         # extract the first section to resemble a cfg
         header = f.readline()
@@ -596,6 +567,51 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     # Sampling interval is given in microsec
     sfreq = 1e6 / cfg.getfloat(cinfostr, 'SamplingInterval')
     info = _empty_info(sfreq)
+    return settings, cfg, cinfostr, info
+
+
+def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
+    """Extract all the information from the header file.
+
+    Parameters
+    ----------
+    vhdr_fname : str
+        Raw EEG header to be read.
+    eog : list of str
+        Names of channels that should be designated EOG channels. Names should
+        correspond to the vhdr file.
+    misc : list or tuple of str | 'auto'
+        Names of channels or list of indices that should be designated
+        MISC channels. Values should correspond to the electrodes
+        in the vhdr file. If 'auto', units in vhdr file are used for inferring
+        misc channels. Default is ``'auto'``.
+    scale : float
+        The scaling factor for EEG data. Unless specified otherwise by
+        header file, units are in microvolts. Default scale factor is 1.
+    montage : str | None | instance of Montage
+        Path or instance of montage containing electrode positions. If None,
+        read sensor locations from header file if present, otherwise (0, 0, 0).
+        See the documentation of :func:`mne.channels.read_montage` for more
+        information.
+
+    Returns
+    -------
+    info : Info
+        The measurement info.
+    fmt : str
+        The data format in the file.
+    edf_info : dict
+        A dict containing Brain Vision specific parameters.
+    events : array, shape (n_events, 3)
+        Events from the corresponding vmrk file.
+    """
+    scale = float(scale)
+    ext = op.splitext(vhdr_fname)[-1]
+    if ext != '.vhdr':
+        raise IOError("The header file must be given to read the data, "
+                      "not a file with extension '%s'." % ext)
+
+    settings, cfg, cinfostr, info = _aux_vhdr_info(vhdr_fname)
 
     order = cfg.get(cinfostr, 'DataOrientation')
     if order not in _orientation_dict:
