@@ -335,7 +335,7 @@ def _read_vmrk(fname):
 
 
 def _event_id_func(desc, event_id, trig_shift_by_type):
-    """Function to get integers from string description.
+    """Get integers from string description.
 
     This function can be passed as event_id to events_from_annotations
     function.
@@ -433,7 +433,7 @@ def read_annotations_brainvision(fname, sfreq='auto'):
         as Annotations are expressed in seconds and vmrk
         files are in samples. If set to 'auto' then
         the sfreq is taken from the .vhdr file that
-        base the same name (without file extention). So
+        has the same name (without file extension). So
         data.vrmk looks for sfreq in data.vhdr.
 
     Returns
@@ -515,7 +515,7 @@ def _str_to_meas_date(date_str):
 
 
 def _aux_vhdr_info(vhdr_fname):
-    """Aux function for _get_vhdr_info"""
+    """Aux function for _get_vhdr_info."""
     with open(vhdr_fname, 'rb') as f:
         # extract the first section to resemble a cfg
         header = f.readline()
