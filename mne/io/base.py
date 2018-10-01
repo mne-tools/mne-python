@@ -2260,7 +2260,14 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
             use_fname = '%s-%d%s' % (base, part_idx, ext)
         else:
             # insert index in filename
-            use_fname = '%s_part-%02d_meg%s' % (base, part_idx, ext)
+            deconstructed_base = base.split('_')
+            bids_supported = ['meg', 'eeg', 'ieeg']
+            for mod in bids_supported:
+                if mod in deconstructed_base:
+                    idx = deconstructed_base.index(mod)
+                    modality = deconstructed_base.pop(idx)
+            base = '_'.join(deconstructed_base)
+            use_fname = '%s_part-%02d_%s%s' % (base, part_idx, modality, ext)
             # check for file existence
             _check_fname(use_fname, overwrite)
 
