@@ -1278,7 +1278,7 @@ def _sensor_shape(coil):
 
 
 def _limits_to_control_points(clim, stc_data, colormap, transparent,
-                              fmt='mayavi', allow_pos_lims=True):
+                              allow_pos_lims=True, linearize=False):
     """Convert limits (values or percentiles) to control points.
 
     This function also does the nonlinear scaling of the colormap in the
@@ -1332,6 +1332,7 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
     clim_kind = clim.get('kind', 'percent')
     if clim_kind == 'percent':
         ctrl_pts = np.percentile(np.abs(stc_data), ctrl_pts)
+        logger.info('Using control points %s' % (ctrl_pts,))
     elif clim_kind not in ('value', 'values'):
         raise ValueError('clim["kind"] must be "value" or "percent", got %s'
                          % (clim['kind'],))
@@ -1351,26 +1352,35 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
 
     if colormap in ('mne', 'mne_analyze'):
         colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
-    # scale colormap so that the bounds given by ctrl_pts actually work
+    # scale colormap so that the bounds given by scale_pts actually work
     colormap = plt.get_cmap(colormap)
     if diverging_lims:
+        # remap -ctrl_norm[2]->ctrl_norm[2] to 0->1
         ctrl_norm = np.concatenate([-ctrl_pts[::-1] / ctrl_pts[2], [0],
                                     ctrl_pts / ctrl_pts[2]]) / 2 + 0.5
-        vals = np.interp(np.linspace(0, 1, 256),
-                         ctrl_norm, np.linspace(0, 1, 7))
-        colormap = np.array(colormap(vals))
-        if transparent:  # force alpha
-            colormap[:, 3] = np.interp(
-                np.linspace(0, 1, 256), ctrl_norm,
-                [1, 1, 0, 0, 0, 1, 1])
-        scale_pts = [-ctrl_pts[2], 0, ctrl_pts[2]]
+        linear_norm = [0, 0.25, 0.5, 0.5, 0.5, 0.75, 1]
+        trans_norm = [1, 1, 0, 0, 0, 1, 1]
+        scale_pts = [-ctrl_pts[2], ctrl_pts[2]]
     else:
-        colormap = colormap(np.linspace(0, 1, 256))
+        # remap ctrl_norm[0]->ctrl_norm[2] to 0->1
+        ctrl_norm = [
+            0, (ctrl_pts[1] - ctrl_pts[0]) / (ctrl_pts[2] - ctrl_pts[0]), 1]
+        linear_norm = [0, 0.5, 1]
+        trans_norm = [0, 1, 1]
+        scale_pts = [ctrl_pts[0], ctrl_pts[2]]
+    # do the piecewise linear transformation
+    if linearize:
+        interp_to = np.linspace(0, 1, 256)
+        colormap = np.array(colormap(
+            np.interp(interp_to, ctrl_norm, linear_norm)))
         if transparent:
-            colormap[:128, 3] = np.linspace(0, 1, 128)
-        scale_pts = ctrl_pts.copy()
-    colormap = ListedColormap(colormap)
-    return ctrl_pts, colormap, scale_pts, False
+            colormap[:, 3] = np.interp(interp_to, ctrl_norm, trans_norm)
+        assert len(scale_pts) == 2
+        scale_pts = np.array([scale_pts[0], np.mean(scale_pts), scale_pts[1]])
+        colormap = ListedColormap(colormap)
+    else:  # mayavi / PySurfer
+        scale_pts = ctrl_pts
+    return colormap, scale_pts, diverging_lims, transparent
 
 
 def _handle_time(time_label, time_unit, times):
@@ -1428,31 +1438,28 @@ def _smooth_plot(this_time, params):
                                params['smoothing_steps'], params['n_verts'],
                                params['inuse'], params['maps'])
 
-    vmax = params['ctrl_pts'][-1]
-    colors = array_plot / vmax
+    range_ = params['scale_pts'][2] - params['scale_pts'][0]
+    colors = (array_plot - params['scale_pts'][0]) / range_
 
-    transp = 0.8
     faces = params['faces']
     greymap = params['greymap']
     cmap = params['cmap']
     polyc = ax.plot_trisurf(*params['coords'].T, triangles=faces,
-                            antialiased=False)
+                            antialiased=False, vmin=0, vmax=1)
     color_ave = np.mean(colors[faces], axis=1).flatten()
     curv_ave = np.mean(params['curv'][faces], axis=1).flatten()
     # matplotlib/matplotlib#11877
     facecolors = polyc._facecolors3d
-
-    to_blend = color_ave > params['ctrl_pts'][0] / vmax
-    facecolors[to_blend, :3] = ((1 - transp) *
-                                greymap(curv_ave[to_blend])[:, :3] +
-                                transp * cmap(color_ave[to_blend])[:, :3])
-    facecolors[~to_blend, :3] = greymap(curv_ave[~to_blend])[:, :3]
+    colors = cmap(color_ave)
+    # alpha blend
+    colors[:, :3] *= colors[:, [3]]
+    colors[:, :3] += greymap(curv_ave)[:, :3] * (1. - colors[:, [3]])
+    colors[:, 3] = 1.
+    facecolors[:] = colors
     ax.set_title(params['time_label'] % (times[time_idx] * scaler), color='w')
     ax.set_aspect('equal')
     ax.axis('off')
-    ax.set_xlim(-80, 80)
-    ax.set_ylim(-80, 80)
-    ax.set_zlim(-80, 80)
+    ax.set(xlim=[-80, 80], ylim=(-80, 80), zlim=[-80, 80])
     ax.figure.canvas.draw()
 
 
@@ -1466,7 +1473,6 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     from matplotlib import cm
-    from matplotlib import colors
     from matplotlib.widgets import Slider
     import nibabel as nib
     from scipy import sparse, stats
@@ -1494,16 +1500,9 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     if views not in lh_kwargs:
         raise ValueError("views must be one of ['lat', 'med', 'ros', 'cau', "
                          "'dor' 'ven', 'fro', 'par']. Got %s." % views)
-    ctrl_pts, colormap, _, _ = _limits_to_control_points(
-        clim, stc.data, colormap, transparent=True, fmt='matplotlib')
-    colormap = plt.get_cmap(colormap)
-
-    vals = np.interp(np.linspace(0, 1, 256),
-                     ctrl_pts / ctrl_pts[2], [0, 0.5, 1.])
-    colormap = np.array(colormap(vals))
-    colormap[:, 3] = np.interp(np.linspace(0, 1, 256), ctrl_pts / ctrl_pts[2],
-                               [0, 1, 1])
-    colormap = colors.ListedColormap(colormap)
+    colormap, scale_pts, _, _ = _limits_to_control_points(
+        clim, stc.data, colormap, transparent, linearize=True)
+    del transparent
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     fig = plt.figure(figsize=(6, 6)) if figure is None else figure
@@ -1537,12 +1536,12 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
     curv = nib.freesurfer.read_morph_data(
         op.join(subjects_dir, subject, 'surf', '%s.curv' % hemi))[inuse]
-    curv = np.clip(np.array(curv > 0, np.int), 0.2, 0.8)
+    curv = np.clip(np.array(curv > 0, np.int), 0.33, 0.66)
     params = dict(ax=ax, stc=stc, coords=coords, faces=faces,
                   hemi_idx=hemi_idx, vertices=vertices, e=e,
                   smoothing_steps=smoothing_steps, n_verts=n_verts,
                   inuse=inuse, maps=maps, cmap=cmap, curv=curv,
-                  ctrl_pts=ctrl_pts, greymap=greymap, time_label=time_label,
+                  scale_pts=scale_pts, greymap=greymap, time_label=time_label,
                   time_unit=time_unit)
     _smooth_plot(initial_time, params)
 
@@ -1575,21 +1574,22 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     # add colorbar
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes
     sm = plt.cm.ScalarMappable(cmap=cmap,
-                               norm=plt.Normalize(0, ctrl_pts[2]))
+                               norm=plt.Normalize(scale_pts[0], scale_pts[2]))
     cax = inset_axes(ax, width="80%", height="5%", loc=8, borderpad=3.)
     plt.setp(plt.getp(cax, 'xticklabels'), color='w')
-    sm.set_array(np.linspace(0, 1))
+    sm.set_array(np.linspace(scale_pts[0], scale_pts[2], 256))
     if colorbar:
         cb = plt.colorbar(sm, cax=cax, orientation='horizontal')
         cb_yticks = plt.getp(cax, 'yticklabels')
         plt.setp(cb_yticks, color='w')
         cax.tick_params(labelsize=16)
-        cb.patch.set_facecolor((0., 0., 0., 1.0))
-        cax.set_xlim((ctrl_pts[0] / ctrl_pts[2], 1))
+        cb.patch.set_facecolor('0.5')
+        cax.set(xlim=(scale_pts[0], scale_pts[2]))
     plt.show()
     return fig
 
 
+@verbose
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='auto',
                           smoothing_steps=10, transparent=True, alpha=1.0,
@@ -1597,7 +1597,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           views='lat', colorbar=True, clim='auto',
                           cortex="classic", size=800, background="black",
                           foreground="white", initial_time=None,
-                          time_unit='s', backend='auto', spacing='oct6'):
+                          time_unit='s', backend='auto', spacing='oct6',
+                          verbose=None):
     """Plot SourceEstimates with PySurfer.
 
     By default this function uses :mod:`mayavi.mlab` to plot the source
@@ -1699,6 +1700,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         effect with mayavi backend. Defaults  to 'oct6'.
 
         .. versionadded:: 0.15.0
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1736,7 +1740,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
     from surfer import Brain, TimeViewer
-    initial_time, ad_kwargs, sd_kwargs = _get_ps_kwargs(initial_time)
+    initial_time, ad_kwargs = _get_ps_kwargs(initial_time)
 
     if hemi not in ['lh', 'rh', 'split', 'both']:
         raise ValueError('hemi has to be either "lh", "rh", "split", '
@@ -1756,7 +1760,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     # convert control points to locations in colormap
-    _, colormap, scale_pts, transparent = _limits_to_control_points(
+    colormap, scale_pts, diverging, transparent = _limits_to_control_points(
         clim, stc.data, colormap, transparent)
 
     if hemi in ['both', 'split']:
@@ -1772,6 +1776,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                       figure=figure, subjects_dir=subjects_dir,
                       views=views)
 
+    center = 0 if diverging else None
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
         if hemi_idx == 0:
@@ -1784,12 +1789,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 brain.add_data(data, colormap=colormap, vertices=vertices,
                                smoothing_steps=smoothing_steps, time=times,
                                time_label=time_label, alpha=alpha, hemi=hemi,
-                               colorbar=colorbar, min=0, max=1, **ad_kwargs)
-
-        # scale colormap and set time (index) to display
-        brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
-                                  fmax=scale_pts[2], transparent=transparent,
-                                  **sd_kwargs)
+                               colorbar=colorbar, min=scale_pts[0],
+                               mid=scale_pts[1], max=scale_pts[2],
+                               center=center, transparent=transparent,
+                               **ad_kwargs)
 
     if initial_time is not None:
         brain.set_time(initial_time)
@@ -1809,14 +1812,12 @@ def _get_ps_kwargs(initial_time, require='0.6'):
                           (require, surfer.__version__))
 
     ad_kwargs = dict()
-    sd_kwargs = dict()
     if initial_time is not None and surfer_version >= LooseVersion('0.7'):
         ad_kwargs['initial_time'] = initial_time
         initial_time = None  # don't set it twice
     if surfer_version >= LooseVersion('0.8'):
         ad_kwargs['verbose'] = False
-        sd_kwargs['verbose'] = False
-    return initial_time, ad_kwargs, sd_kwargs
+    return initial_time, ad_kwargs
 
 
 def _glass_brain_crosshairs(params, x, y, z):
@@ -2044,14 +2045,12 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     fig.tight_layout()
 
     allow_pos_lims = (mode != 'glass_brain')
-    ctrl_pts, colormap, scale_pts, _ = _limits_to_control_points(
-        clim, stc.data, colormap, transparent, fmt='matplotlib',
-        allow_pos_lims=allow_pos_lims)
-    if np.array_equal(ctrl_pts, scale_pts):  # set eq above iff one-sided
-        diverging = False
+    colormap, scale_pts, diverging, _ = _limits_to_control_points(
+        clim, stc.data, colormap, transparent, allow_pos_lims, linearize=True)
+    if not diverging:  # set eq above iff one-sided
         # there is a bug in nilearn where this messes w/transparency
         # Need to double the colormap
-        if (ctrl_pts < 0).any():
+        if (scale_pts < 0).any():
             # XXX We should fix this, but it's hard to get nilearn to
             # use arbitrary bounds :(
             # Should get them to support non-mirrored colorbars, or
@@ -2061,18 +2060,15 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                              'control points clim["lims"] not supported '
                              'currently, consider shifting or flipping the '
                              'sign of your data for visualization purposes')
+        # due to nilearn plotting weirdness, extend this to go
+        # -scale_pts[2]->scale_pts[2] instead of scale_pts[0]->scale_pts[2]
         colormap = plt.get_cmap(colormap)
-        bottom = np.array(colormap(0))
-        locs = np.clip(np.linspace(-ctrl_pts[0] / ctrl_pts[2], 1, 256), 0, 1)
-        colormap = colormap(locs)
-        if transparent:
-            colormap[:, 3] = np.clip(locs * 2, 0, 1)
-            bottom[3] = 0
-        colormap = np.concatenate([np.tile(bottom, (256, 1)), colormap])
+        colormap = colormap(
+            np.interp(np.linspace(-1, 1, 256),
+                      scale_pts / scale_pts[2],
+                      [0, 0.5, 1]))
         colormap = colors.ListedColormap(colormap)
-    else:
-        diverging = True
-    vmax = ctrl_pts[-1]
+    vmax = scale_pts[-1]
 
     # black_bg = True is needed because of some matplotlib
     # peculiarity. See: https://stackoverflow.com/a/34730204
@@ -2098,7 +2094,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             params['fig_anat']._cbar.patch.set_facecolor('0.5')
             # adjust one-sided colorbars
             if not diverging:
-                _crop_colorbar(params['fig_anat']._cbar, *ctrl_pts[[0, -1]])
+                _crop_colorbar(params['fig_anat']._cbar, *scale_pts[[0, -1]])
         if mode == 'glass_brain':
             _glass_brain_crosshairs(params, *kwargs['cut_coords'])
 
@@ -2236,7 +2232,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
-    initial_time, ad_kwargs, sd_kwargs = _get_ps_kwargs(initial_time, '0.8')
+    initial_time, ad_kwargs = _get_ps_kwargs(initial_time, '0.8')
 
     if hemi not in ['lh', 'rh', 'split', 'both']:
         raise ValueError('hemi has to be either "lh", "rh", "split", '
@@ -2245,7 +2241,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     time_label, times = _handle_time(time_label, time_unit, stc.times)
 
     # convert control points to locations in colormap
-    scale_pts, colormap, _, transparent = _limits_to_control_points(
+    colormap, scale_pts, _, transparent = _limits_to_control_points(
         clim, stc.data, colormap, transparent, allow_pos_lims=False)
 
     if hemi in ['both', 'split']:
@@ -2280,12 +2276,10 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                time_label=time_label, alpha=overlay_alpha,
                                hemi=hemi, colorbar=colorbar,
                                vector_alpha=vector_alpha,
-                               scale_factor=scale_factor, **ad_kwargs)
-
-        # scale colormap and set time (index) to display
-        brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
-                                  fmax=scale_pts[2], transparent=transparent,
-                                  **sd_kwargs)
+                               scale_factor=scale_factor,
+                               min=scale_pts[0], mid=scale_pts[1],
+                               max=scale_pts[2], transparent=transparent,
+                               **ad_kwargs)
 
     if time_viewer:
         TimeViewer(brain)

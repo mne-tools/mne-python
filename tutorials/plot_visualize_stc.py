@@ -4,23 +4,22 @@
 Visualize Source time courses
 =============================
 
+This tutorial focuses on visualization of stcs.
+
+.. contents:: Table of Contents
+   :local:
+
+Surface Source Estimates
+------------------------
+First, we get the paths for the evoked data and the time courses (stcs).
 """
 
 import os
 
 import mne
 from mne.datasets import sample
-
-###############################################################################
-#  This tutorial focuses on visualization of stcs.
-#
-# .. contents:: Table of Contents
-#    :local:
-#
-# Surface Source Estimates
-# ------------------------
-# First, we get the paths for the evoked data and the
-# source time courses (stcs).
+from mne.minimum_norm import apply_inverse, read_inverse_operator
+from mne import read_evokeds
 
 data_path = sample.data_path()
 sample_dir = os.path.join(data_path, 'MEG', 'sample')
@@ -35,7 +34,7 @@ stc = mne.read_source_estimate(fname_stc, subject='sample')
 
 ###############################################################################
 # This is a :class:`SourceEstimate <mne.SourceEstimate>` object
-print(type(stc))
+print(stc)
 
 ###############################################################################
 # The SourceEstimate object is in fact a *surface* source estimate. MNE also
@@ -63,11 +62,7 @@ stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
 # Volume Source Estimates
 # -----------------------
 # We can also visualize volume source estimates (used for deep structures).
-
-from mne.minimum_norm import apply_inverse, read_inverse_operator  # noqa
-from mne import read_evokeds  # noqa
-
-###############################################################################
+#
 # Let us load the sensor-level evoked data. We select the MEG channels
 # to keep things simple.
 evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
@@ -92,7 +87,7 @@ stc.crop(0.0, 0.2)
 # This time, we have a different container
 # (:class:`VolSourceEstimate <mne.VolSourceEstimate>`) for the source time
 # course.
-print(type(stc))
+print(stc)
 
 ###############################################################################
 # This too comes with a convenient plot method.
@@ -135,7 +130,7 @@ fname_trans = os.path.join(data_path, 'MEG', 'sample',
                            'sample_audvis_raw-trans.fif')
 
 ##############################################################################
-# Dipoles are fit independantly for each time point, so let us crop our time
+# Dipoles are fit independently for each time point, so let us crop our time
 # series to visualize the dipole fit for the time point of interest.
 evoked.crop(0.1, 0.1)
 dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
