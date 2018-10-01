@@ -249,6 +249,8 @@ def _check_nan_dev_head_t(dev_ctf_t):
     """Make sure we deal with nans."""
     has_nan = np.isnan(dev_ctf_t['trans'])
     if np.any(has_nan):
+        logger.info('Missing values BTI dev->head transform. '
+                    'Replacing with identity matrix.')
         dev_ctf_t['trans'] = np.identity(4)
 
 
