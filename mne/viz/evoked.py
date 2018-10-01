@@ -748,7 +748,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     Parameters
     ----------
-    evoked : list of Evoked | Evoked
+    evoked : list of Evoked | dict of Evoked | Evoked
         The evoked response to plot.
     layout : instance of Layout | None
         Layout instance specifying sensor positions (does not need to
@@ -1566,7 +1566,7 @@ def _check_loc_legal(loc, what='your choice', default=1):
     return loc_
 
 
-def _format_evokeds_colors(evokeds, cmap, colors):
+def _format_evokeds_colors(evokeds, cmap=None, colors=None):
     """Set up to have evokeds as a dict as well as colors."""
     from ..evoked import Evoked, _check_evokeds_ch_names_times
 

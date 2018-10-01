@@ -528,12 +528,99 @@ def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
                                 interpolation='nearest'))
 
 
+def _handle_grads_for_topos(evokeds, noise_cov=None, scalings=None,
+                            merge_grads=False, layout=None, proj=False):
+    """Deal with grads and return a copy of the dict of lists of evokeds"""
+    info = list(evokeds.values())[0][0].info
+    ch_names = info["ch_names"]
+    noise_cov = _check_cov(noise_cov, info)
+    if noise_cov is not None:
+        evokeds = {cond:[whiten_evoked(e, noise_cov) for e in evoked]
+                  for cond, evoked in evokeds.items()}
+    else:
+        evokeds = {cond:[e.copy() for e in evoked]
+                  for cond, evoked in evokeds.items()}
+    scalings = _handle_default('scalings', scalings)
+    if not all(e.ch_names == ch_names for evoked in evokeds.values()
+               for e in evoked):
+        raise ValueError('All evoked.picks must be the same')
+    ch_names = _clean_names(ch_names)
+    if merge_grads:
+        picks = _pair_grad_sensors(info, topomap_coords=False)
+        chs = list()
+        for pick in picks[::2]:
+            ch = info['chs'][pick]
+            ch['ch_name'] = ch['ch_name'][:-1] + 'X'
+            chs.append(ch)
+        info['chs'] = chs
+        info['bads'] = list()  # bads dropped on pair_grad_sensors
+        info._update_redundant()
+        info._check_consistency()
+        new_picks = list()
+        for e in evoked:
+            data = _merge_grad_data(e.data[picks])
+            if noise_cov is None:
+                data *= scalings['grad']
+            e.data = data
+            new_picks.append(range(len(data)))
+        picks = new_picks
+        types_used = ['grad']
+        unit = _handle_default('units')['grad'] if noise_cov is None else 'NA'
+        y_label = 'RMS amplitude (%s)' % unit
+
+    if layout is None:
+        layout = find_layout(info)
+
+    if not merge_grads:
+        # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
+        chs_in_layout = set(layout.names) & set(ch_names)
+        types_used = set(channel_type(info, ch_names.index(ch))
+                         for ch in chs_in_layout)
+        # remove possible reference meg channels
+        types_used = set.difference(types_used, set('ref_meg'))
+        # one check for all vendors
+        meg_types = set(('mag', 'grad'))
+        is_meg = len(set.intersection(types_used, meg_types)) > 0
+        if is_meg:
+            types_used = list(types_used)[::-1]  # -> restore kwarg order
+            picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
+                     for kk in types_used]
+        else:
+            types_used_kwargs = dict((t, True) for t in types_used)
+            picks = [pick_types(info, meg=False, exclude=[],
+                                **types_used_kwargs)]
+        assert isinstance(picks, list) and len(types_used) == len(picks)
+
+        if noise_cov is None:
+            for evoked in evokeds.values():
+                for e in evoked:
+                    for pick, ch_type in zip(picks, types_used):
+                        e.data[pick] *= scalings[ch_type]
+
+        if proj is True and all(e.proj is not True for e in evoked):
+            evokeds = {cond: [e.apply_proj() for e in evoked]
+                       for cond, evoked in evokeds.items()}
+        elif proj == 'interactive':  # let it fail early.
+            for evoked in evokeds.values():
+                for e in evoked:
+                    _check_delayed_ssp(e)
+        # Y labels for picked plots must be reconstructed
+        y_label = list()
+        for ch_idx in range(len(chs_in_layout)):
+            if noise_cov is None:
+                unit = _handle_default('units')[channel_type(info, ch_idx)]
+            else:
+                unit = 'NA'
+            y_label.append('Amplitude (%s)' % unit)
+    return evokeds, picks, y_label, layout, scalings
+
+
 def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       border='none', ylim=None, scalings=None, title=None,
                       proj=False, vline=(0.,), hline=(0.,), fig_facecolor='k',
                       fig_background=None, axis_facecolor='k', font_color='w',
                       merge_grads=False, legend=True, axes=None, show=True,
-                      noise_cov=None):
+                      noise_cov=None, linestyles=None, ci=None, split_legend=False):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -613,109 +700,18 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     """
     import matplotlib.pyplot as plt
     from ..cov import whiten_evoked
+    from .evoked import _format_evokeds_colors, plot_compare_evokeds
 
-    if not type(evoked) in (tuple, list):
-        evoked = [evoked]
-
-    if type(color) in (tuple, list):
-        if len(color) != len(evoked):
-            raise ValueError('Lists of evoked objects and colors'
-                             ' must have the same length')
-    elif color is None:
-        colors = ['w'] + _get_color_list
-        stop = (slice(len(evoked)) if len(evoked) < len(colors)
-                else slice(len(colors)))
-        color = cycle(colors[stop])
-        if len(evoked) > len(colors):
-            warn('More evoked objects than colors available. You should pass '
-                 'a list of unique colors.')
-    else:
-        color = cycle([color])
-
-    times = evoked[0].times
-    if not all((e.times == times).all() for e in evoked):
-        raise ValueError('All evoked.times must be the same')
-
-    noise_cov = _check_cov(noise_cov, evoked[0].info)
-    if noise_cov is not None:
-        evoked = [whiten_evoked(e, noise_cov) for e in evoked]
-    else:
-        evoked = [e.copy() for e in evoked]
-    info = evoked[0].info
-    ch_names = evoked[0].ch_names
-    scalings = _handle_default('scalings', scalings)
-    if not all(e.ch_names == ch_names for e in evoked):
-        raise ValueError('All evoked.picks must be the same')
-    ch_names = _clean_names(ch_names)
-    if merge_grads:
-        picks = _pair_grad_sensors(info, topomap_coords=False)
-        chs = list()
-        for pick in picks[::2]:
-            ch = info['chs'][pick]
-            ch['ch_name'] = ch['ch_name'][:-1] + 'X'
-            chs.append(ch)
-        info['chs'] = chs
-        info['bads'] = list()  # bads dropped on pair_grad_sensors
-        info._update_redundant()
-        info._check_consistency()
-        new_picks = list()
-        for e in evoked:
-            data = _merge_grad_data(e.data[picks])
-            if noise_cov is None:
-                data *= scalings['grad']
-            e.data = data
-            new_picks.append(range(len(data)))
-        picks = new_picks
-        types_used = ['grad']
-        unit = _handle_default('units')['grad'] if noise_cov is None else 'NA'
-        y_label = 'RMS amplitude (%s)' % unit
-
-    if layout is None:
-        layout = find_layout(info)
-
-    if not merge_grads:
-        # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
-        chs_in_layout = set(layout.names) & set(ch_names)
-        types_used = set(channel_type(info, ch_names.index(ch))
-                         for ch in chs_in_layout)
-        # remove possible reference meg channels
-        types_used = set.difference(types_used, set('ref_meg'))
-        # one check for all vendors
-        meg_types = set(('mag', 'grad'))
-        is_meg = len(set.intersection(types_used, meg_types)) > 0
-        if is_meg:
-            types_used = list(types_used)[::-1]  # -> restore kwarg order
-            picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
-                     for kk in types_used]
-        else:
-            types_used_kwargs = dict((t, True) for t in types_used)
-            picks = [pick_types(info, meg=False, exclude=[],
-                                **types_used_kwargs)]
-        assert isinstance(picks, list) and len(types_used) == len(picks)
-
-        if noise_cov is None:
-            for e in evoked:
-                for pick, ch_type in zip(picks, types_used):
-                    e.data[pick] *= scalings[ch_type]
-
-        if proj is True and all(e.proj is not True for e in evoked):
-            evoked = [e.apply_proj() for e in evoked]
-        elif proj == 'interactive':  # let it fail early.
-            for e in evoked:
-                _check_delayed_ssp(e)
-        # Y labels for picked plots must be reconstructed
-        y_label = list()
-        for ch_idx in range(len(chs_in_layout)):
-            if noise_cov is None:
-                unit = _handle_default('units')[channel_type(info, ch_idx)]
-            else:
-                unit = 'NA'
-            y_label.append('Amplitude (%s)' % unit)
+    evokeds, colors = _format_evokeds_colors(evoked, cmap=None, colors=color)
+    evoked = list(evokeds.values())[0][0]
+    evokeds, picks, ylabel, layout, scalings = _handle_grads_for_topos(
+        evokeds, noise_cov, scalings, merge_grads, layout, proj)
 
     if ylim is None:
         def set_ylim(x):
             return np.abs(x).max()
-        ylim_ = [set_ylim([e.data[t] for e in evoked]) for t in picks]
+        ylim_ = [set_ylim([e.data[t] for evoked in evokeds.values()
+                           for e in evoked]) for t in picks]
         ymax = np.array(ylim_)
         ylim_ = (-ymax, ymax)
     elif isinstance(ylim, dict):
@@ -729,34 +725,48 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     else:
         raise TypeError('ylim must be None or a dict. Got %s.' % type(ylim))
 
-    data = [e.data for e in evoked]
-    comments = [e.comment for e in evoked]
-    show_func = partial(_plot_timeseries_unified, data=data, color=color,
-                        times=times, vline=vline, hline=hline,
-                        hvline_color=font_color)
-    click_func = partial(_plot_timeseries, data=data, color=color, times=times,
-                         vline=vline, hline=hline, hvline_color=font_color,
-                         labels=comments)
+#    comments = [e.comment for e in evoked]
 
-    fig = _plot_topo(info=info, times=times, show_func=show_func,
-                     click_func=click_func, layout=layout, colorbar=False,
-                     ylim=ylim_, cmap=None, layout_scale=layout_scale,
-                     border=border, fig_facecolor=fig_facecolor,
-                     font_color=font_color, axis_facecolor=axis_facecolor,
-                     title=title, x_label='Time (s)', y_label=y_label,
-                     unified=True, axes=axes)
+    pos = layout.pos.copy()
+    fig = plt.figure()
+    fig.set_size_inches((10, 8))
+
+    ylims = {this_type: np.array(ylim_) * scalings[this_type]
+             for this_type in scalings}
+
+    from mne.viz import plot_compare_evokeds
+    plot_compare_evokeds = partial(
+        plot_compare_evokeds, evokeds, colors=colors, linestyles=linestyles,
+        truncate_yaxis="max_ticks", ylim=ylims, show=False,
+        show_sensors=False,
+    )
+    for pick, (pos_, ch_name) in enumerate(zip(pos, evoked.ch_names)):
+        ax = plt.axes(pos_)
+        plot_compare_evokeds(picks=pick, axes=ax,
+                             show_legend=False,
+                             title='', ci=ci);
+        ax.set_xticklabels(())
+        ax.set_ylabel('')
+        ax.set_xlabel('')
+        ax.set_yticklabels('')
+        ax.text(-.1, 1, ch_name, transform=ax.transAxes)
+
+    ax_l = plt.axes([0, 0] + list(pos[0, 2:]))
+    plot_compare_evokeds(title='', split_legend=split_legend,
+                         picks=0, axes=ax_l, ci=None,
+                         show_legend=False)
+    ax_l.lines.clear()
+    ax_l.patches.clear()
+
+    ax_l = plt.axes([0.1, -.075] + list(pos[0, 2:]))
+    plot_compare_evokeds(title='', split_legend=split_legend,
+                         picks=0, axes=ax_l, ci=None,
+                         show_legend="upper right", vlines=[])
+    ax_l.lines.clear()
+    ax_l.patches.clear()
+    ax_l.axis('off')
 
     add_background_image(fig, fig_background)
-
-    if legend is not False:
-        legend_loc = 0 if legend is True else legend
-        labels = [e.comment if e.comment else 'Unknown' for e in evoked]
-        legend = plt.legend(labels, loc=legend_loc,
-                            prop={'size': 10})
-        legend.get_frame().set_facecolor(axis_facecolor)
-        txts = legend.get_texts()
-        for txt, col in zip(txts, color):
-            txt.set_color(col)
 
     if proj == 'interactive':
         for e in evoked:
