@@ -16,7 +16,9 @@ from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_bti
 from mne.io.bti.bti import (_read_config, _process_bti_headshape,
                             _read_bti_header, _get_bti_dev_t,
-                            _correct_trans, _get_bti_info)
+                            _correct_trans, _get_bti_info,
+                            _loc_to_coil_trans, _convert_coil_trans,
+                            _check_nan_dev_head_t, _rename_channels)
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.common import assert_dig_allclose
 from mne.io.pick import pick_info
@@ -296,5 +298,45 @@ def test_setup_headshape():
                            [d.keys() for d in dig]))
         assert (not expected - found)
 
+
+def test_nan_trans():
+    """Test unlikely case that the device to head transform is empty."""
+    for ii, pdf_fname in enumerate(pdf_fnames):
+        bti_info = _read_bti_header(
+            pdf_fname, config_fnames[ii], sort_by_ch_name=True)
+
+        dev_ctf_t = Transform('ctf_meg', 'ctf_head',
+                              _correct_trans(bti_info['bti_transform'][0]))
+
+        # reading params
+        convert = True
+        rotation_x = 0.
+        translation = (0.0, 0.02, 0.11)
+        bti_dev_t = _get_bti_dev_t(rotation_x, translation)
+        bti_dev_t = Transform('ctf_meg', 'meg', bti_dev_t)
+        ecg_ch = 'E31'
+        eog_ch = ('E63', 'E64')
+
+        # read parts of info to get trans
+        bti_ch_names = list()
+        for ch in bti_info['chs']:
+            ch_name = ch['name']
+            if not ch_name.startswith('A'):
+                ch_name = ch.get('chan_label', ch_name)
+            bti_ch_names.append(ch_name)
+
+        neuromag_ch_names = _rename_channels(
+            bti_ch_names, ecg_ch=ecg_ch, eog_ch=eog_ch)
+        ch_mapping = zip(bti_ch_names, neuromag_ch_names)
+
+        # add some nan in some locations!
+        dev_ctf_t['trans'][:, 3] = np.nan
+        _check_nan_dev_head_t(dev_ctf_t)
+        for idx, (chan_4d, chan_neuromag) in enumerate(ch_mapping):
+            loc = bti_info['chs'][idx]['loc']
+            if loc is not None:
+                if convert:
+                    t = _loc_to_coil_trans(bti_info['chs'][idx]['loc'])
+                    t = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)
 
 run_tests_if_main()
