@@ -615,12 +615,26 @@ def _handle_grads_for_topos(evokeds, noise_cov=None, scalings=None,
     return evokeds, picks, y_label, layout, scalings
 
 
-def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
+def _plot_evoked_topo(evoked,  # rename to evokeds
+
+                      layout=None, layout_scale=0.945,
+
+                      color=None,  # rename to colors
+
                       border='none', ylim=None, scalings=None, title=None,
-                      proj=False, vline=(0.,), hline=(0.,), fig_facecolor='k',
+                      proj=False,
+
+                      vline=(0.,), hline=(0.,),  # deprecate
+
+                      fig_facecolor='k',
                       fig_background=None, axis_facecolor='k', font_color='w',
-                      merge_grads=False, legend=True, axes=None, show=True,
-                      noise_cov=None, linestyles=None, ci=None, split_legend=False):
+                      merge_grads=False, legend=True,
+
+                      axes=None,  # deprecate
+
+                      show=True,
+                      noise_cov=None, linestyles=None, ci=None, split_legend=False,
+                      fig=None):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -728,18 +742,19 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 #    comments = [e.comment for e in evoked]
 
     pos = layout.pos.copy()
-    fig = plt.figure()
-    fig.set_size_inches((10, 8))
+
+    if fig is None:
+        fig = plt.figure()
+        fig.set_size_inches((10, 8))
 
     ylims = {this_type: np.array(ylim_) * scalings[this_type]
              for this_type in scalings}
 
-    from mne.viz import plot_compare_evokeds
     plot_compare_evokeds = partial(
         plot_compare_evokeds, evokeds, colors=colors, linestyles=linestyles,
         truncate_yaxis="max_ticks", ylim=ylims, show=False,
-        show_sensors=False,
-    )
+        show_sensors=False)
+
     for pick, (pos_, ch_name) in enumerate(zip(pos, evoked.ch_names)):
         ax = plt.axes(pos_)
         plot_compare_evokeds(picks=pick, axes=ax,
@@ -751,6 +766,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         ax.set_yticklabels('')
         ax.text(-.1, 1, ch_name, transform=ax.transAxes)
 
+    # draw legend axis
     ax_l = plt.axes([0, 0] + list(pos[0, 2:]))
     plot_compare_evokeds(title='', split_legend=split_legend,
                          picks=0, axes=ax_l, ci=None,
@@ -758,6 +774,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     ax_l.lines.clear()
     ax_l.patches.clear()
 
+    # draw verbal legend on legend axis
     ax_l = plt.axes([0.1, -.075] + list(pos[0, 2:]))
     plot_compare_evokeds(title='', split_legend=split_legend,
                          picks=0, axes=ax_l, ci=None,

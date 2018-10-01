@@ -2862,7 +2862,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
                       else types)
         type_name = ', '.join(cls.__name__ for cls in iter_types)
     if not isinstance(item, types):
-        raise TypeError(item_name, ' must be an instance of ', type_name,
+        raise TypeError(item_name + ' must be an instance of ' + type_name +
                         ', got %s instead.' % (type(item),))
 
 

@@ -1589,9 +1589,10 @@ def _format_evokeds_colors(evokeds, cmap=None, colors=None):
                for condition, v in evokeds.items()}
 
     # Check that all elements are of type evoked
+    #print(evokeds)
     for this_evoked in evokeds.values():
         for ev in this_evoked:
-            _validate_type(ev, Evoked, "All evokeds entries ", "Evoked")
+            _validate_type(ev, Evoked, "All evokeds entries", "Evoked")
 
     # Check that all evoked objects have the same time axis and channels
     all_evoked = sum(evokeds.values(), [])
