@@ -14,6 +14,7 @@ import os.path as op
 import numpy as np
 
 from .constants import FIFF
+from .utils import _construct_bids_filename
 from .pick import pick_types, channel_type, pick_channels, pick_info
 from .pick import _pick_data_channels, _pick_data_or_ica
 from .meas_info import write_meas_info
@@ -2258,18 +2259,8 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         if split_naming == 'neuromag':
             # insert index in filename
             use_fname = '%s-%d%s' % (base, part_idx, ext)
-        else:
-            # insert index in filename
-            deconstructed_base = base.split('_')
-            bids_supported = ['meg', 'eeg', 'ieeg']
-            for mod in bids_supported:
-                if mod in deconstructed_base:
-                    idx = deconstructed_base.index(mod)
-                    modality = deconstructed_base.pop(idx)
-            base = '_'.join(deconstructed_base)
-            use_fname = '%s_part-%02d_%s%s' % (base, part_idx, modality, ext)
-            # check for file existence
-            _check_fname(use_fname, overwrite)
+        elif split_naming == 'bids':
+            use_fname = _construct_bids_filename(base, ext)
 
     else:
         use_fname = fname
