@@ -21,7 +21,7 @@ from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.eeglab import read_annotations_eeglab, read_events_eeglab
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, requires_h5py
+from mne.utils import run_tests_if_main, requires_h5py, filter_out_warnings
 from mne.annotations import events_from_annotations
 
 
@@ -56,7 +56,6 @@ def _check_h5(fname):
 
 @requires_h5py
 @testing.requires_testing_data
-@pytest.mark.filterwarnings('ignore:Function read_events_eeglab is deprecated')
 @pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
 def test_io_set_raw(fnames, tmpdir):
     """Test importing EEGLAB .set files."""
@@ -84,8 +83,6 @@ def test_io_set_raw(fnames, tmpdir):
                                event_id=event_id)
         raw4 = read_raw_eeglab(input_fname=raw_fname, montage=montage)
 
-        [w.pop(DeprecationWarning) for _ in range(5)]  # read_events_eeglab
-
         assert raw0.filenames[0].endswith('.fdt')  # .set with additional .fdt
         assert raw2.filenames[0].endswith('.set')  # standalone .set
 
@@ -101,11 +98,9 @@ def test_io_set_raw(fnames, tmpdir):
         raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
                     phase='zero')  # test that preloading works
 
-        while 'FutureWarning' in [xx._category_name for xx in w]:
-            w.pop(FutureWarning)
-        while 'ImportWarning' in [xx._category_name for xx in w]:
-            w.pop(ImportWarning)
-
+    filter_out_warnings(w, category=DeprecationWarning)
+    filter_out_warnings(w, category=FutureWarning)
+    filter_out_warnings(w, category=ImportWarning)
     assert len(w) == 4  # check `preload=False` raises RuntimeWarning
 
     # test that using uint16_codec does not break stuff
