@@ -8,12 +8,12 @@
 import os.path as op
 import inspect
 
-from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_equal)
 import pytest
 
-from scipy import io
 import numpy as np
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_equal)
+from scipy import io
 
 from mne import pick_types
 from mne.datasets import testing
