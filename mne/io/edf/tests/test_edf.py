@@ -13,7 +13,7 @@ import pytest
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
-from scipy import io
+from scipy.io import loadmat
 
 from mne import pick_types
 from mne.datasets import testing
@@ -59,7 +59,7 @@ def test_bdf_data():
     data_py, _ = raw_py[picks]
 
     # this .mat was generated using the EEG Lab Biosemi Reader
-    raw_eeglab = io.loadmat(bdf_eeglab_path)
+    raw_eeglab = loadmat(bdf_eeglab_path)
     raw_eeglab = raw_eeglab['data'] * 1e-6  # data are stored in microvolts
     data_eeglab = raw_eeglab[picks]
     # bdf saved as a single, resolution to seven decimal points in matlab
@@ -177,7 +177,7 @@ def test_stim_channel():
     print(raw_py.info)  # to test Info repr
 
     # this .mat was generated using the EEG Lab Biosemi Reader
-    raw_eeglab = io.loadmat(edf_eeglab_path)
+    raw_eeglab = loadmat(edf_eeglab_path)
     raw_eeglab = raw_eeglab['data'] * 1e-6  # data are stored in microvolts
     data_eeglab = raw_eeglab[picks]
 
@@ -189,7 +189,7 @@ def test_stim_channel():
     raw_py = read_raw_edf(edf_uneven_path, stim_channel=None)
     data_py, _ = raw_py[0]
     # this .mat was generated using the EEG Lab Biosemi Reader
-    raw_eeglab = io.loadmat(edf_uneven_eeglab_path)
+    raw_eeglab = loadmat(edf_uneven_eeglab_path)
     raw_eeglab = raw_eeglab['data']
     data_eeglab = raw_eeglab[0]
 
