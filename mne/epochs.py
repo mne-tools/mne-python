@@ -2545,8 +2545,10 @@ def _read_one_epoch_file(f, tree, preload):
         epoch_shape = (len(info['ch_names']), n_samp)
         expected = len(events) * np.prod(epoch_shape)
         if data_tag.size // 4 - 4 == expected:  # 32-bit floats stored
+            datatype = np.float64
             pass
         elif data_tag.size // 16 - 1 == expected:  # 128-bit complex stored
+            datatype = np.complex128
             pass
         else:
             raise (ValueError('Incorrect number of samples (%d instead of %d)'+
@@ -2559,11 +2561,11 @@ def _read_one_epoch_file(f, tree, preload):
         # Calibration factors
         cals = np.array([[info['chs'][k]['cal'] *
                           info['chs'][k].get('scale', 1.0)]
-                         for k in range(info['nchan'])], np.float64)
+                         for k in range(info['nchan'])], datatype)
 
         # Read the data
         if preload:
-            data = read_tag(fid, data_tag.pos).data.astype(np.complex128)
+            data = read_tag(fid, data_tag.pos).data.astype(datatype)
             data *= cals[np.newaxis, :, :]
 
         # Put it all together
