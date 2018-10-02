@@ -34,11 +34,8 @@ vhdr_partially_disabled_hw_filter_path = op.join(data_dir,
 
 vhdr_old_path = op.join(data_dir,
                         'test_old_layout_latin1_software_filter.vhdr')
-vmrk_old_path = op.join(data_dir,
-                        'test_old_layout_latin1_software_filter.vmrk')
 
 vhdr_v2_path = op.join(data_dir, 'testv2.vhdr')
-vmrk_v2_path = op.join(data_dir, 'testv2.vmrk')
 
 vhdr_highpass_path = op.join(data_dir, 'test_highpass.vhdr')
 vhdr_mixed_highpass_path = op.join(data_dir, 'test_mixed_highpass.vhdr')
@@ -111,7 +108,6 @@ def test_vhdr_codepage_ansi():
                     line = b'Codepage=ANSI\n'
                 fout.write(line)
     raw = read_raw_brainvision(ansi_vhdr_path, event_id=event_id)
-    data_new, times_new = raw[:]
     assert_equal(raw_init.ch_names, raw.ch_names)
 
 
