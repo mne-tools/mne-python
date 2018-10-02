@@ -1722,7 +1722,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     plot_mpl = backend == 'matplotlib'
     if not plot_mpl:
         try:
-            import mayavi
+            from mayavi import mlab  # noqa: F401
         except ImportError:
             if backend == 'auto':
                 warn('Mayavi not found. Resorting to matplotlib 3d.')
