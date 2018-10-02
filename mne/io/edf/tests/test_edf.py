@@ -8,12 +8,12 @@
 import os.path as op
 import inspect
 
-from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_equal)
 import pytest
 
-from scipy import io
 import numpy as np
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_equal)
+from scipy.io import loadmat
 
 from mne import pick_types
 from mne.datasets import testing
@@ -54,21 +54,21 @@ def test_bdf_data():
     raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
                               montage=montage_path, eog=eog, misc=misc,
                               exclude=['M2', 'IEOG'], stim_channel=-1)
-    assert ('RawEDF' in repr(raw_py))
+    assert 'RawEDF' in repr(raw_py)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
 
     # this .mat was generated using the EEG Lab Biosemi Reader
-    raw_eeglab = io.loadmat(bdf_eeglab_path)
+    raw_eeglab = loadmat(bdf_eeglab_path)
     raw_eeglab = raw_eeglab['data'] * 1e-6  # data are stored in microvolts
     data_eeglab = raw_eeglab[picks]
     # bdf saved as a single, resolution to seven decimal points in matlab
     assert_array_almost_equal(data_py, data_eeglab, 8)
 
     # Manually checking that float coordinates are imported
-    assert ((raw_py.info['chs'][0]['loc']).any())
-    assert ((raw_py.info['chs'][25]['loc']).any())
-    assert ((raw_py.info['chs'][63]['loc']).any())
+    assert (raw_py.info['chs'][0]['loc']).any()
+    assert (raw_py.info['chs'][25]['loc']).any()
+    assert (raw_py.info['chs'][63]['loc']).any()
 
 
 @testing.requires_testing_data
@@ -76,7 +76,7 @@ def test_bdf_stim_channel():
     """Test BDF stim channel."""
     # test if last channel is detected as STIM by default
     raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path)
-    assert (channel_type(raw_py.info, raw_py.info["nchan"] - 1) == 'stim')
+    assert channel_type(raw_py.info, raw_py.info["nchan"] - 1) == 'stim'
 
     # test BDF file with wrong scaling info in header - this should be ignored
     # for BDF stim channels
@@ -177,19 +177,19 @@ def test_stim_channel():
     print(raw_py.info)  # to test Info repr
 
     # this .mat was generated using the EEG Lab Biosemi Reader
-    raw_eeglab = io.loadmat(edf_eeglab_path)
+    raw_eeglab = loadmat(edf_eeglab_path)
     raw_eeglab = raw_eeglab['data'] * 1e-6  # data are stored in microvolts
     data_eeglab = raw_eeglab[picks]
 
     assert_array_almost_equal(data_py, data_eeglab, 10)
     events = find_edf_events(raw_py)
-    assert (len(events) - 1 == len(find_events(raw_py)))  # start not found
+    assert len(events) - 1 == len(find_events(raw_py))  # start not found
 
     # Test uneven sampling
     raw_py = read_raw_edf(edf_uneven_path, stim_channel=None)
     data_py, _ = raw_py[0]
     # this .mat was generated using the EEG Lab Biosemi Reader
-    raw_eeglab = io.loadmat(edf_uneven_eeglab_path)
+    raw_eeglab = loadmat(edf_uneven_eeglab_path)
     raw_eeglab = raw_eeglab['data']
     data_eeglab = raw_eeglab[0]
 
@@ -209,7 +209,7 @@ def test_stim_channel():
     assert len(w) == 0
 
     events = raw_py.find_edf_events()
-    assert (len(events) == 0)
+    assert len(events) == 0
 
 
 def test_parse_annotation():
@@ -263,7 +263,7 @@ def test_edf_stim_channel():
     """Test stim channel for edf file."""
     # test if stim channel is automatically detected
     raw = read_raw_edf(edf_path, preload=True)
-    assert (channel_type(raw.info, raw.info["nchan"] - 1) == 'stim')
+    assert channel_type(raw.info, raw.info["nchan"] - 1) == 'stim'
 
     raw = read_raw_edf(edf_stim_channel_path, preload=True,
                        stim_channel=-1)
@@ -288,10 +288,10 @@ def test_to_data_frame():
                            verbose='error')
         _, times = raw[0, :10]
         df = raw.to_data_frame()
-        assert ((df.columns == raw.ch_names).all())
+        assert (df.columns == raw.ch_names).all()
         assert_array_equal(np.round(times * 1e3), df.index.values[:10])
         df = raw.to_data_frame(index=None, scalings={'eeg': 1e13})
-        assert ('time' in df.index.names)
+        assert 'time' in df.index.names
         assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
 
 
