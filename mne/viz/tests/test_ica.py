@@ -240,6 +240,7 @@ def test_plot_ica_overlay():
         eog_epochs = create_eog_epochs(raw, picks=picks)
     ica.plot_overlay(eog_epochs.average())
     pytest.raises(TypeError, ica.plot_overlay, raw[:2, :3][0])
+    pytest.raises(TypeError, ica.plot_overlay, raw, exclude=2)
     ica.plot_overlay(raw)
     plt.close('all')
 

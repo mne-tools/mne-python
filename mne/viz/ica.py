@@ -585,7 +585,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         sources will be canceled out this display is sensitive to
         artifacts. If evoked input, butterfly plots for clean and raw
         signals will be superimposed.
-    exclude : array_like of int | int | None (default)
+    exclude : array_like of int | None (default)
         The components marked for exclusion. If None (default), ICA.exclude
         will be used.
     picks : array-like of int | None (default)
@@ -617,8 +617,9 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         picks = [inst.ch_names.index(k) for k in ica.ch_names]
     if exclude is None:
         exclude = ica.exclude
-    if isinstance(exclude, int):
-        exclude = [exclude]
+    if not isinstance(exclude, (np.ndarray, list)):
+        raise TypeError('exclude must be of type list. Got %s'
+                        % type(exclude))
     if isinstance(inst, BaseRaw):
         if start is None:
             start = 0.0
