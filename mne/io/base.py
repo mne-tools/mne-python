@@ -2260,7 +2260,9 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
             # insert index in filename
             use_fname = '%s-%d%s' % (base, part_idx, ext)
         elif split_naming == 'bids':
-            use_fname = _construct_bids_filename(base, ext)
+            use_fname = _construct_bids_filename(base, ext, part_idx)
+            # check for file existence
+            _check_fname(use_fname, overwrite)
 
     else:
         use_fname = fname

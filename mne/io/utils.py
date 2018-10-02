@@ -250,7 +250,7 @@ def _synthesize_stim_channel(events, n_samples):
         stim_channel[onset:onset + duration] = trigger
     return stim_channel
 
-def _construct_bids_filename(base, ext):
+def _construct_bids_filename(base, ext, part_idx):
     """Helper function to construct a BIDS compatible filename."""
     # insert index in filename
     deconstructed_base = base.split('_')
@@ -261,7 +261,5 @@ def _construct_bids_filename(base, ext):
             modality = deconstructed_base.pop(idx)
     base = '_'.join(deconstructed_base)
     use_fname = '%s_part-%02d_%s%s' % (base, part_idx, modality, ext)
-    # check for file existence
-    _check_fname(use_fname, overwrite)
 
     return use_fname
