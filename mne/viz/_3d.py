@@ -1368,8 +1368,8 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
         linear_norm = [0, 0.5, 1]
         trans_norm = [0, 1, 1]
         scale_pts = [ctrl_pts[0], ctrl_pts[2]]
-    # do the piecewise linear transformation
-    if linearize:
+    if linearize:  # matplotlib
+        # do the piecewise linear transformation
         interp_to = np.linspace(0, 1, 256)
         colormap = np.array(colormap(
             np.interp(interp_to, ctrl_norm, linear_norm)))
@@ -1378,7 +1378,7 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
         assert len(scale_pts) == 2
         scale_pts = np.array([scale_pts[0], np.mean(scale_pts), scale_pts[1]])
         colormap = ListedColormap(colormap)
-    else:  # mayavi / PySurfer
+    else:  # mayavi / PySurfer will do the transformation for us
         scale_pts = ctrl_pts
     return colormap, scale_pts, diverging_lims, transparent
 
@@ -1740,23 +1740,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
     from surfer import Brain, TimeViewer
-    initial_time, ad_kwargs = _get_ps_kwargs(initial_time)
 
     if hemi not in ['lh', 'rh', 'split', 'both']:
         raise ValueError('hemi has to be either "lh", "rh", "split", '
                          'or "both"')
-
-    # check `figure` parameter (This will be performed by PySurfer > 0.6)
-    if figure is not None:
-        if isinstance(figure, int):
-            # use figure with specified id
-            size_ = size if isinstance(size, (tuple, list)) else (size, size)
-            figure = [mayavi.mlab.figure(figure, size=size_)]
-        elif not isinstance(figure, (list, tuple)):
-            figure = [figure]
-        for f in figure:
-            _validate_type(f, mayavi.core.scene.Scene, "figure",
-                           "mayavi scene or list of scenes")
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     # convert control points to locations in colormap
@@ -1776,35 +1763,33 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                       figure=figure, subjects_dir=subjects_dir,
                       views=views)
 
-    center = 0 if diverging else None
+    ad_kwargs, sd_kwargs = _get_ps_kwargs(
+        initial_time, diverging, scale_pts[1], transparent)
+    del initial_time, transparent
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
-        if hemi_idx == 0:
-            data = stc.data[:len(stc.vertices[0])]
-        else:
-            data = stc.data[len(stc.vertices[0]):]
+        data = getattr(stc, hemi + '_data')
         vertices = stc.vertices[hemi_idx]
         if len(data) > 0:
             with warnings.catch_warnings(record=True):  # traits warnings
                 brain.add_data(data, colormap=colormap, vertices=vertices,
                                smoothing_steps=smoothing_steps, time=times,
                                time_label=time_label, alpha=alpha, hemi=hemi,
-                               colorbar=colorbar, min=scale_pts[0],
-                               mid=scale_pts[1], max=scale_pts[2],
-                               center=center, transparent=transparent,
-                               **ad_kwargs)
-
-    if initial_time is not None:
-        brain.set_time(initial_time)
+                               colorbar=colorbar,
+                               min=scale_pts[0], max=scale_pts[2], **ad_kwargs)
+    if 'mid' not in ad_kwargs:  # PySurfer < 0.9
+        brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
+                                  fmax=scale_pts[2], **sd_kwargs)
     if time_viewer:
         TimeViewer(brain)
     return brain
 
 
-def _get_ps_kwargs(initial_time, require='0.6'):
+def _get_ps_kwargs(initial_time, diverging, mid, transparent):
     """Triage arguments based on PySurfer version."""
     import surfer
     surfer_version = LooseVersion(surfer.__version__)
+    require = '0.8'
     if surfer_version < LooseVersion(require):
         raise ImportError("This function requires PySurfer %s (you are "
                           "running version %s). You can update PySurfer "
@@ -1812,12 +1797,15 @@ def _get_ps_kwargs(initial_time, require='0.6'):
                           (require, surfer.__version__))
 
     ad_kwargs = dict()
-    if initial_time is not None and surfer_version >= LooseVersion('0.7'):
+    sd_kwargs = dict(transparent=transparent)
+    if initial_time is not None:
         ad_kwargs['initial_time'] = initial_time
-        initial_time = None  # don't set it twice
-    if surfer_version >= LooseVersion('0.8'):
-        ad_kwargs['verbose'] = False
-    return initial_time, ad_kwargs
+    if surfer_version >= LooseVersion('0.9'):
+        ad_kwargs.update(mid=mid, transparent=transparent)
+        ad_kwargs['center'] = 0. if diverging else None
+        sd_kwargs['center'] = 0. if diverging else None
+
+    return ad_kwargs, sd_kwargs
 
 
 def _glass_brain_crosshairs(params, x, y, z):
@@ -2232,7 +2220,6 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
-    initial_time, ad_kwargs = _get_ps_kwargs(initial_time, '0.8')
 
     if hemi not in ['lh', 'rh', 'split', 'both']:
         raise ValueError('hemi has to be either "lh", "rh", "split", '
@@ -2262,12 +2249,12 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                       figure=figure, subjects_dir=subjects_dir,
                       views=views, alpha=brain_alpha)
 
+    ad_kwargs, sd_kwargs = _get_ps_kwargs(
+        initial_time, False, scale_pts[1], transparent)
+    del initial_time, transparent
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
-        if hemi_idx == 0:
-            data = stc.data[:len(stc.vertices[0])]
-        else:
-            data = stc.data[len(stc.vertices[0]):]
+        data = getattr(stc, hemi + '_data')
         vertices = stc.vertices[hemi_idx]
         if len(data) > 0:
             with warnings.catch_warnings(record=True):  # traits warnings
@@ -2277,9 +2264,11 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                hemi=hemi, colorbar=colorbar,
                                vector_alpha=vector_alpha,
                                scale_factor=scale_factor,
-                               min=scale_pts[0], mid=scale_pts[1],
-                               max=scale_pts[2], transparent=transparent,
+                               min=scale_pts[0], max=scale_pts[2],
                                **ad_kwargs)
+    if 'mid' not in ad_kwargs:  # PySurfer < 0.9
+        brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
+                                  fmax=scale_pts[2], **sd_kwargs)
 
     if time_viewer:
         TimeViewer(brain)
