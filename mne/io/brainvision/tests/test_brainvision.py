@@ -605,7 +605,7 @@ def test_brainvision_neuroone_export():
 
 @testing.requires_testing_data
 def test_read_vmrk_annotations():
-    """Test annotations onsets are timestamps (+ validate some)."""
+    """Test load brainvision annotations."""
     sfreq = 1000.0
     annotations = read_annotations_brainvision(vmrk_path, sfreq=sfreq)
     assert annotations.orig_time == 1384359243.794231
