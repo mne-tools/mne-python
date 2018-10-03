@@ -23,3 +23,6 @@ Mk11=Stimulus,S254,6620,1,0
 Mk12=Stimulus,S255,6630,1,0
 Mk13=SyncStatus,Sync On,7630,1,0
 Mk14=Optic,O  1,7700,1,0
+Mk15=Bad,test drop,7700,0,0
+Mk16=Bad,test drop,7700,0,0
+Mk17=Bad,test drop,7700,0,0
