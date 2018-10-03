@@ -2030,7 +2030,7 @@ Times and baseline
     snapshots are produced as indicated by the ``--tmin`` , ``--tmax`` ,
     and ``--tstep`` options. This is useful, *e.g.*,
     for producing input for scripts merging the individual graphics
-    snapshots into a composite "filmstrip" reprensentation.
+    snapshots into a composite "filmstrip" representation.
     However, such scripts are not yet part of the MNE software.
 
 ``--bmin <*time/ms*>``
