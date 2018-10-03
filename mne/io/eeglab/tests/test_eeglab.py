@@ -106,8 +106,8 @@ def test_io_set_raw(fnames, tmpdir):
     # test that using uint16_codec does not break stuff
     with pytest.warns(DeprecationWarning, match="read_events_eeglab"):
         raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
-                            event_id=event_id, preload=False,
-                            uint16_codec='ascii')
+                               event_id=event_id, preload=False,
+                               uint16_codec='ascii')
 
     # test old EEGLAB version event import (read old version)
     eeg = io.loadmat(raw_fname_mat, struct_as_record=False,
