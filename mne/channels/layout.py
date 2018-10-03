@@ -601,8 +601,8 @@ def _find_topomap_coords(info, picks, layout=None):
     picks : list of int
         Channel indices to generate topomap coords for.
     layout : None | instance of Layout
-        Enforce using a specific layout. With None, a new map is generated.
-        With None, a layout is chosen based on the channels in the chs
+        Enforce using a specific layout. With None, a new map is generated
+        and a layout is chosen based on the channels in the picks
         parameter.
 
     Returns
@@ -658,12 +658,12 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
     # If electrode locations are not available, use digization points
     if len(locs3d) == 0 or (~np.isfinite(locs3d)).all() or \
             np.allclose(locs3d, 0.):
-        logging.warning('Did not find any electrode locations the info, '
-                        'will attempt to use digitization points instead. '
-                        'However, if digitization points do not correspond to '
-                        'the EEG electrodes, this will lead to bad results. '
-                        'Please verify that the sensor locations in the plot '
-                        'are accurate.')
+        logging.warning('Did not find any electrode locations (in the info '
+                        'object), will attempt to use digitization points '
+                        'instead. However, if digitization points do not '
+                        'correspond to the EEG electrodes, this will lead to '
+                        'bad results. Please verify that the sensor locations '
+                        'in the plot are accurate.')
 
         # MEG/EOG/ECG sensors don't have digitization points; all requested
         # channels must be EEG
@@ -730,7 +730,7 @@ def _topo_to_sphere(pos, eegs):
     pos : array-like, shape (n_channels, 2)
         xy-oordinates to transform.
     eegs : list of int
-        Indices of eeg channels that are included when calculating the sphere.
+        Indices of EEG channels that are included when calculating the sphere.
 
     Returns
     -------
@@ -769,7 +769,7 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads',
         Return the coordinates for a topomap plot along with the picks. If
         False, only picks are returned. Defaults to True.
     exclude : list of str | str
-        List of channels to exclude. If empty do not exclude any (default).
+        List of channels to exclude. If empty, do not exclude any.
         If 'bads', exclude channels in info['bads']. Defaults to 'bads'.
     raise_error : bool
         Whether to raise an error when no pairs are found. If False, raises a
@@ -826,7 +826,7 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads',
 # this function is used to pair grad when info is not present
 # it is the case of Projection that don't have the info.
 def _pair_grad_sensors_ch_names_vectorview(ch_names):
-    """Find the indexes for pairing grad channels in a Vectorview system.
+    """Find the indices for pairing grad channels in a Vectorview system.
 
     Parameters
     ----------
@@ -836,7 +836,7 @@ def _pair_grad_sensors_ch_names_vectorview(ch_names):
     Returns
     -------
     indexes : list of int
-        Indexes of the grad channels, ordered in pairs.
+        Indices of the grad channels, ordered in pairs.
     """
     pairs = defaultdict(list)
     for i, name in enumerate(ch_names):
@@ -854,7 +854,7 @@ def _pair_grad_sensors_ch_names_vectorview(ch_names):
 # this function is used to pair grad when info is not present
 # it is the case of Projection that don't have the info.
 def _pair_grad_sensors_ch_names_neuromag122(ch_names):
-    """Find the indexes for pairing grad channels in a Neuromag 122 system.
+    """Find the indices for pairing grad channels in a Neuromag 122 system.
 
     Parameters
     ----------
@@ -864,7 +864,7 @@ def _pair_grad_sensors_ch_names_neuromag122(ch_names):
     Returns
     -------
     indexes : list of int
-        Indexes of the grad channels, ordered in pairs.
+        Indices of the grad channels, ordered in pairs.
     """
     pairs = defaultdict(list)
     for i, name in enumerate(ch_names):
@@ -962,9 +962,9 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
         ch_names = ['{0}'.format(i) for i in ch_indices]
 
     if len(ch_names) != len(ch_indices):
-        raise ValueError('# ch names and indices must be equal')
+        raise ValueError('# channel names and indices must be equal')
     if len(ch_names) != len(xy):
-        raise ValueError('# ch names and xy vals must be equal')
+        raise ValueError('# channel names and xy vals must be equal')
 
     x, y = xy.copy().astype(float).T
 
