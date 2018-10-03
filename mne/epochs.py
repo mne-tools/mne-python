@@ -2545,18 +2545,16 @@ def _read_one_epoch_file(f, tree, preload):
         epoch_shape = (len(info['ch_names']), n_samp)
         expected = len(events) * np.prod(epoch_shape)
         if data_tag.size // 4 - 4 == expected:  # 32-bit floats stored
-            datatype = np.float64
-            pass
-        elif data_tag.size // 16 - 1 == expected:  # 128-bit complex stored
-            datatype = np.complex128
-            pass
+            datatype = np.float32
+        elif data_tag.size // 8 - 2 == expected:  # 64-bit complex stored
+            datatype = np.complex64
         else:
             raise (ValueError('Incorrect number of samples (%d instead of %d)'+
                               'for 32-bit floats'
                  % (data_tag.size // 4, expected)),
                    ValueError('Incorrect number of samples (%d instead of %d)'+
-                              'for 128-bit complex'
-                 % (data_tag.size // 16, expected)))
+                              'for 64-bit complex'
+                 % (data_tag.size // 8, expected)))
 
         # Calibration factors
         cals = np.array([[info['chs'][k]['cal'] *

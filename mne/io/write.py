@@ -195,17 +195,17 @@ def write_int_matrix(fid, kind, mat):
 
 
 def write_complex_matrix(fid, kind, mat):
-    """Write a single-precision floating-point matrix tag."""
+    """Write complex 64 matrix tag."""
     FIFFT_MATRIX = 1 << 30
     FIFFT_MATRIX_FLOAT = FIFF.FIFFT_FLOAT | FIFFT_MATRIX
 
-    data_size = 16 * mat.size + 4 * (mat.ndim + 1)
+    data_size = 8 * mat.size + 4 * (mat.ndim + 1)
 
     fid.write(np.array(kind, dtype='>i4').tostring())
     fid.write(np.array(FIFFT_MATRIX_FLOAT, dtype='>i4').tostring())
     fid.write(np.array(data_size, dtype='>i4').tostring())
     fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
-    fid.write(np.array(mat, dtype='>c16').tostring())
+    fid.write(np.array(mat, dtype='>c8').tostring())
 
     dims = np.empty(mat.ndim + 1, dtype=np.int32)
     dims[:mat.ndim] = mat.shape[::-1]
