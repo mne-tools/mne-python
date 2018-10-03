@@ -250,6 +250,7 @@ def _synthesize_stim_channel(events, n_samples):
         stim_channel[onset:onset + duration] = trigger
     return stim_channel
 
+
 def _construct_bids_filename(base, ext, part_idx):
     """Helper function to construct a BIDS compatible filename."""
     # insert index in filename
