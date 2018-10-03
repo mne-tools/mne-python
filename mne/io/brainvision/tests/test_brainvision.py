@@ -85,6 +85,7 @@ def test_vmrk_meas_date():
 def test_vhdr_codepage_ansi():
     """Test BV reading with ANSI codepage."""
     raw_init = read_raw_brainvision(vhdr_path, event_id=event_id)
+    data_expected, times_expected = raw_init[:]
     tempdir = _TempDir()
     ansi_vhdr_path = op.join(tempdir, op.split(vhdr_path)[-1])
     ansi_vmrk_path = op.join(tempdir, op.split(vmrk_path)[-1])
@@ -107,8 +108,13 @@ def test_vhdr_codepage_ansi():
                 if line.startswith(b'Codepage'):
                     line = b'Codepage=ANSI\n'
                 fout.write(line)
+
     raw = read_raw_brainvision(ansi_vhdr_path, event_id=event_id)
+    data_new, times_new = raw[:]
+
     assert_equal(raw_init.ch_names, raw.ch_names)
+    assert_allclose(data_new, data_expected, atol=1e-15)
+    assert_allclose(times_new, times_expected, atol=1e-15)
 
 
 def test_ascii():
