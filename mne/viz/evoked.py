@@ -415,7 +415,9 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             if not gfp_only:
                 chs = [info['chs'][i] for i in idx]
                 locs3d = np.array([ch['loc'][:3] for ch in chs])
-                if spatial_colors is True and (locs3d == 0).all():
+                is_ch_loc = (locs3d == 0).all() or \
+                    (~np.isfinite(locs3d)).all() or np.allclose(locs3d, 0.)
+                if spatial_colors is True and is_ch_loc:
                     warn('Channel locations not available. Disabling spatial '
                          'colors.')
                     spatial_colors = selectable = False
