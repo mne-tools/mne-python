@@ -22,7 +22,7 @@ from mne.utils import run_tests_if_main, requires_pandas, _TempDir
 from mne.io import read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.pick import channel_type
-from mne.io.edf.edf import _parse_tal_channel, find_edf_events
+from mne.io.edf.edf import _parse_tal_channel, find_edf_events, _read_annot
 from mne.event import find_events
 
 FILE = inspect.getfile(inspect.currentframe())
@@ -293,6 +293,27 @@ def test_to_data_frame():
         df = raw.to_data_frame(index=None, scalings={'eeg': 1e13})
         assert 'time' in df.index.names
         assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
+
+
+def test_read_annot(tmpdir):
+    """Test parsing the tal channel."""
+    EXPECTED_ANNOTATIONS = [[180.0, 0, 'Lights off'], [180.0, 0, 'Close door'],
+                            [180.0, 0, 'Lights off'], [180.0, 0, 'Close door'],
+                            [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']]
+    annot = (b'+180\x14Lights off\x14Close door\x14\x00\x00\x00\x00\x00'
+             b'+180\x14Lights off\x14\x00\x00\x00\x00\x00\x00\x00\x00'
+             b'+180\x14Close door\x14\x00\x00\x00\x00\x00\x00\x00\x00'
+             b'+3.14\x1504.20\x14nothing\x14\x00\x00\x00\x00'
+             b'+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00'
+             b'+123\x14\x14\x00\x00\x00\x00\x00\x00\x00')
+    annot_file = tmpdir.join('annotations.txt')
+    annot_file.write(annot)
+    annotmap_file = tmpdir.join('annotations_map.txt')
+    annotmap_file.write('Lights off:0\nnothing:1\nApnea:2\nClose door:3')
+
+    stim_ch = _read_annot(annot=annot_file, annotmap=annotmap_file,
+                          sfreq=100, data_length=None)
+    assert stim_ch
 
 
 run_tests_if_main()
