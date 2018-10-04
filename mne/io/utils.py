@@ -252,7 +252,7 @@ def _synthesize_stim_channel(events, n_samples):
 
 
 def _construct_bids_filename(base, ext, part_idx):
-    """Helper function to construct a BIDS compatible filename."""
+    """Construct a BIDS compatible filename for split files."""
     # insert index in filename
     deconstructed_base = base.split('_')
     bids_supported = ['meg', 'eeg', 'ieeg']
