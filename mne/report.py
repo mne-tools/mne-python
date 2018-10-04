@@ -977,8 +977,8 @@ class Report(object):
 
         # Search for figures matching the search pattern, regardless of
         # section
-        matches = [i for i, fname in enumerate(self.fnames)
-                   if re.match(pattern, fname)]
+        matches = [i for i, fname_ in enumerate(self.fnames)
+                   if re.match(pattern, fname_)]
         if section is not None:
             # Narrow down the search to the given section
             svar = self._sectionvars[section]
