@@ -402,10 +402,10 @@ def pick_info(info, sel=(), copy=True):
         current_comp = get_current_comp(info)
         if len(comps_missing) > 0:
             if current_comp != 0:
-                warn('Compensation grade %d has been applied, but '
-                     'not all compensation channels were picked: %s\n'
-                     'This may complicate source analysis using this data'
-                      % (current_comp, comps_missing))
+                logger.info('Compensation grade %d has been applied, but '
+                            'not all compensation channels were picked: %s\n'
+                            'This may complicate source analysis using this '
+                            'data.' % (current_comp, comps_missing))
 
     info['chs'] = [info['chs'][k] for k in sel]
     info._update_redundant()

@@ -15,7 +15,7 @@ from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type)
 from mne.io.constants import FIFF
 from mne.datasets import testing
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, catch_logging
 
 io_dir = op.join(op.dirname(inspect.getfile(inspect.currentframe())), '..')
 data_path = testing.data_path(download=False)
@@ -96,7 +96,10 @@ def test_pick_refs():
 
     for pick in (picks_meg, picks_mag):
         if len(pick) > 0:
-            pytest.raises(RuntimeWarning, pick_info, info, pick)
+            with catch_logging() as log:
+                pick_info(info, pick)
+            assert(log.getvalue().startswith('Compensation grade'))
+
 
 
 def test_pick_channels_regexp():

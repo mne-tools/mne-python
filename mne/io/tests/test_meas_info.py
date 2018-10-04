@@ -20,7 +20,7 @@ from mne.io.meas_info import (Info, create_info, _write_dig_points,
                               _force_update_info, RAW_INFO_FIELDS,
                               _bad_chans_comp)
 from mne.io import read_raw_ctf
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import _TempDir, run_tests_if_main, catch_logging
 from mne.channels.montage import read_montage, read_dig_montage
 
 base_dir = op.join(op.dirname(__file__), 'data')
@@ -541,10 +541,11 @@ def test_check_compensation_consistency():
         assert ret == expected_result
         assert len(missing) == 17
         if comp != 0:
-            with pytest.raises(RuntimeWarning,
-                               match='Compensation grade 1 has been applied'):
+            with catch_logging() as log:
                 Epochs(raw, events, None, -0.2, 0.2, preload=False,
                        picks=picks)
+            log = log.getvalue().splitlines()
+            assert(log[3].startswith('Compensation grade 1'))
         else:
             Epochs(raw, events, None, -0.2, 0.2, preload=False, picks=picks)
 

@@ -769,9 +769,7 @@ def _check_loose_forward(loose, forward):
 
 def _check_reference(inst, ch_names=None):
     """Check for EEG ref."""
-    info = inst.info.copy()  # make a copy as comps are now hacked:
-    # XXX : ugly hack to avoid picking subset of info with applied comps
-    info['comps'] = []
+    info = inst.info
     if ch_names is not None:
         picks = [ci for ci, ch_name in enumerate(info['ch_names'])
                  if ch_name in ch_names]
