@@ -143,10 +143,10 @@ class RawBrainVision(BaseRaw):
         trig_shift_by_type = _check_trig_shift_by_type(trig_shift_by_type)
         annots = read_annotations_brainvision(mrk_fname, info['sfreq'])
         event_id = dict() if event_id is None else event_id
-        warning_messages = []  # use to collect warnings
+        dropped_desc = []  # use to collect dropped descriptions
         event_id = partial(_event_id_func, event_id=event_id,
                            trig_shift_by_type=trig_shift_by_type,
-                           warning_messages=warning_messages)
+                           dropped_desc=dropped_desc)
 
         # XXX : We use a mock raw as self is not proper yet
         # and it's not possible to do it after as one needs the events
@@ -160,10 +160,16 @@ class RawBrainVision(BaseRaw):
             return np.round(np.atleast_1d(times) * info['sfreq'])
 
         raw_tmp.time_as_index = _time_as_index
-        events, _ = events_from_annotations(raw_tmp, event_id)
 
-        for message in set(warning_messages):
-            warn(message)
+        on_drop = 'ignore'   # ignore here as warning raised below
+        events, _ = events_from_annotations(raw_tmp, event_id, on_drop=on_drop)
+
+        dropped = list(set(dropped_desc))
+        if len(dropped) > 0:
+            warn("{0} trigger(s) will be dropped, such as {1}. "
+                 "Consider using ``regexp`` to ignore triggers that "
+                 "do not follow a specific pattern."
+                 .format(len(dropped), dropped[:5]))
 
         self._create_event_ch(events, n_samples)
 
@@ -339,7 +345,7 @@ def _read_vmrk(fname):
     return np.array(onset), np.array(duration), np.array(description), date_str
 
 
-def _event_id_func(desc, event_id, trig_shift_by_type, warning_messages):
+def _event_id_func(desc, event_id, trig_shift_by_type, dropped_desc):
     """Get integers from string description.
 
     This function can be passed as event_id to events_from_annotations
@@ -359,8 +365,8 @@ def _event_id_func(desc, event_id, trig_shift_by_type, warning_messages):
         all markers of this type will be ignored. If None (default), no offset
         is added, which may lead to different marker types being mapped to the
         same event id.
-    warning_messages : list
-        Used to populate the warnings raised.
+    dropped_desc : list
+        Used to log the dropped descriptions.
 
     Returns
     -------
@@ -399,7 +405,7 @@ def _event_id_func(desc, event_id, trig_shift_by_type, warning_messages):
             found = True
 
     if trigger is None and not found:
-        warning_messages.append("Marker '%s' will be dropped" % desc)
+        dropped_desc.append(desc)
 
     return trigger
 

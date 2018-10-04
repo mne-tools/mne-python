@@ -533,7 +533,7 @@ def _ensure_annotation_object(obj):
 
 
 @verbose
-def events_from_annotations(raw, event_id=None, regexp=None,
+def events_from_annotations(raw, event_id=None, regexp=None, on_drop='info',
                             verbose=None):
     """Get events and event_id from an Annotations object.
 
@@ -552,6 +552,9 @@ def events_from_annotations(raw, event_id=None, regexp=None,
     regexp : str | None
         Regular expression used to filter the annotations whose
         descriptions is a match.
+    on_drop : str
+        How to report the drop of some annotations.
+        It can be 'warn' or 'info'.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see
         :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -616,9 +619,18 @@ def events_from_annotations(raw, event_id=None, regexp=None,
 
     if len(dropped) > 0:
         dropped = list(set(dropped))
-        logger.info("{0} trigger(s) have been dropped, such as {1}. "
-                    "Consider using ``regexp`` to ignore triggers that "
-                    "do not follow a specicif pattern."
-                    .format(len(dropped), dropped[:5]))
+        message = ("{0} trigger(s) will be dropped, such as {1}. "
+                   "Consider using ``regexp`` to ignore triggers that "
+                   "do not follow a specific pattern."
+                   .format(len(dropped), dropped[:5]))
+        if on_drop == 'warn':
+            warn(message)
+        elif on_drop == 'info':
+            logger.info(message)
+        elif on_drop == 'ignore':
+            pass
+        else:
+            raise ValueError("on_drop should be 'info', 'ignore' or 'warn'. "
+                             "Got %s." % on_drop)
 
     return events, event_id_
