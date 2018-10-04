@@ -441,10 +441,9 @@ class ICA(ContainsMixin):
             self.max_pca_components = len(picks)
             logger.info('Inferring max_pca_components from picks')
 
-        info = raw.info.copy()
-        if info['comps']:
-            info['comps'] = []
-        self.info = pick_info(info, picks)
+        self.info = pick_info(raw.info, picks)
+        if self.info['comps']:
+            self.info['comps'] = []
         self.ch_names = self.info['ch_names']
         start, stop = _check_start_stop(raw, start, stop)
 
@@ -464,7 +463,7 @@ class ICA(ContainsMixin):
 
         self.n_samples_ = data.shape[1]
         # this may operate inplace or make a copy
-        data, self.pre_whitener_ = self._pre_whiten(data, info, picks)
+        data, self.pre_whitener_ = self._pre_whiten(data, raw.info, picks)
 
         self._fit(data, self.max_pca_components, 'raw')
 
@@ -482,10 +481,10 @@ class ICA(ContainsMixin):
                     '(please be patient, this may take a while)' % len(picks))
 
         # filter out all the channels the raw wouldn't have initialized
-        info = epochs.info.copy()
-        if info['comps']:
-            info['comps'] = []
-        self.info = pick_info(info, picks)
+        self.info = pick_info(epochs.info, picks)
+
+        if self.info['comps']:
+            self.info['comps'] = []
         self.ch_names = self.info['ch_names']
 
         if self.max_pca_components is None:
@@ -503,7 +502,7 @@ class ICA(ContainsMixin):
         # This will make at least one copy (one from hstack, maybe one
         # more from _pre_whiten)
         data, self.pre_whitener_ = \
-            self._pre_whiten(np.hstack(data), info, picks)
+            self._pre_whiten(np.hstack(data), epochs.info, picks)
 
         self._fit(data, self.max_pca_components, 'epochs')
 
@@ -655,13 +654,7 @@ class ICA(ContainsMixin):
             data = raw.get_data(picks, start, stop, 'omit')
         else:
             data = raw[picks, start:stop][0]
-
-        # remove comp matrices
-        info = raw.info.copy()
-        if info['comps']:
-            info['comps'] = []
-
-        data, _ = self._pre_whiten(data, info, picks)
+        data, _ = self._pre_whiten(data, raw.info, picks)
         return self._transform(data)
 
     def _transform_epochs(self, epochs, concatenate):
@@ -678,13 +671,9 @@ class ICA(ContainsMixin):
                                'provide Epochs compatible with '
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
-        # remove comp matrices
-        info = epochs.info.copy()
-        if info['comps']:
-            info['comps'] = []
 
         data = np.hstack(epochs.get_data()[:, picks])
-        data, _ = self._pre_whiten(data, info, picks)
+        data, _ = self._pre_whiten(data, epochs.info, picks)
         sources = self._transform(data)
 
         if not concatenate:
@@ -708,12 +697,7 @@ class ICA(ContainsMixin):
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
 
-        # remove comp matrices
-        info = evoked.info.copy()
-        if info['comps']:
-            info['comps'] = []
-
-        data, _ = self._pre_whiten(evoked.data[picks], info, picks)
+        data, _ = self._pre_whiten(evoked.data[picks], evoked.info, picks)
         sources = self._transform(data)
 
         return sources

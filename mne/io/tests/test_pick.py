@@ -96,7 +96,7 @@ def test_pick_refs():
 
     for pick in (picks_meg, picks_mag):
         if len(pick) > 0:
-            pytest.raises(RuntimeError, pick_info, info, pick)
+            pytest.raises(RuntimeWarning, pick_info, info, pick)
 
 
 def test_pick_channels_regexp():

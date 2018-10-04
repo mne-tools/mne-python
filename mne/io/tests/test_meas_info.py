@@ -541,7 +541,7 @@ def test_check_compensation_consistency():
         assert ret == expected_result
         assert len(missing) == 17
         if comp != 0:
-            with pytest.raises(RuntimeError,
+            with pytest.raises(RuntimeWarning,
                                match='Compensation grade 1 has been applied'):
                 Epochs(raw, events, None, -0.2, 0.2, preload=False,
                        picks=picks)
