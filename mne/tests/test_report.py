@@ -343,15 +343,6 @@ def test_remove():
     r.add_figs_to_section(fig2, 'figure1', 'mysection')
     r.add_figs_to_section(fig2, 'figure2', 'mysection')
 
-    # Test removal by index
-    r2 = copy.deepcopy(r)
-    removed_index = r2.remove(2)
-    assert removed_index == 2
-    assert len(r2.html) == 3
-    assert r2.html[0] == r.html[0]
-    assert r2.html[1] == r.html[1]
-    assert r2.html[2] == r.html[3]
-
     # Test removal by caption
     r2 = copy.deepcopy(r)
     removed_index = r2.remove(caption='figure1')
@@ -361,7 +352,7 @@ def test_remove():
     assert r2.html[1] == r.html[1]
     assert r2.html[2] == r.html[3]
 
-    # Test removal by caption, restrict to section
+    # Test restricting to section
     r2 = copy.deepcopy(r)
     removed_index = r2.remove(caption='figure1', section='othersection')
     assert removed_index == 1

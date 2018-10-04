@@ -949,21 +949,19 @@ class Report(object):
 
         return items, captions, comments
 
-    def remove(self, index=None, caption=None, section=None):
+    def remove(self, caption, section=None):
         """Remove a figure from the report.
 
-        The figures to remove can be either specified by integer index or
-        searched for by their caption. When searching by caption, the section
-        label can be specified as well to narrow down the search. If multiple
-        figures match the search criteria, the last one will be removed.
+        The figure to remove is searched for by its caption. When searching by
+        caption, the section label can be specified as well to narrow down the
+        search. If multiple figures match the search criteria, the last one
+        will be removed.
 
         Any empty sections will be removed as well.
 
         Parameters
         ----------
-        index : int | None
-            If set, specifies the figure to remove by integer index.
-        caption : str | None
+        caption : str
             If set, search for the figure by caption.
         section : str | None
             If set, limit the search to the section with the given label.
@@ -974,28 +972,23 @@ class Report(object):
             The integer index of the figure that was removed, or ``None`` if no
             figure matched the search criteria.
         """
-        if (index is None) == (caption is None):
-            raise ValueError('Specify either an index or caption '
-                             '(but not both).')
+        # Construct the search pattern
+        pattern = r'^%s-#-.*-#-custom$' % caption
 
-        if caption is not None:
-            # Construct the search pattern
-            pattern = r'^%s-#-.*-#-custom$' % caption
+        # Search for figures matching the search pattern, regardless of
+        # section
+        matches = [i for i, fname in enumerate(self.fnames)
+                   if re.match(pattern, fname)]
+        if section is not None:
+            # Narrow down the search to the given section
+            svar = self._sectionvars[section]
+            matches = [i for i in matches
+                       if self._sectionlabels[i] == svar]
+        if len(matches) == 0:
+            return None
 
-            # Search for figures matching the search pattern, regardless of
-            # section
-            matches = [i for i, fname in enumerate(self.fnames)
-                       if re.match(pattern, fname)]
-            if section is not None:
-                # Narrow down the search to the given section
-                svar = self._sectionvars[section]
-                matches = [i for i in matches
-                           if self._sectionlabels[i] == svar]
-            if len(matches) == 0:
-                return None
-
-            # Remove last occurrence
-            index = max(matches)
+        # Remove last occurrence
+        index = max(matches)
 
         # Remove the figure
         del self.fnames[index]
