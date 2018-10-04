@@ -624,7 +624,7 @@ def test_read_vmrk_annotations():
     annotations_auto = read_annotations_brainvision(vmrk_path)
     assert_array_equal(annotations.onset, annotations_auto.onset)
 
-@pytest.mark.skip(reason="This is the regression test that needs to be fixed")
+
 def test_read_raw_brainvision_warn_on_marker_drop():
     """Test that loading test.vhdr warns a summary of each dropped type."""
     EXPECTED_WARN_MSG = r"2 .* will be dropped .* \['Sync On', 'test drop'\]"
