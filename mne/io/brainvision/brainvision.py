@@ -143,8 +143,10 @@ class RawBrainVision(BaseRaw):
         trig_shift_by_type = _check_trig_shift_by_type(trig_shift_by_type)
         annots = read_annotations_brainvision(mrk_fname, info['sfreq'])
         event_id = dict() if event_id is None else event_id
+        warning_messages = []  # use to collect warnings
         event_id = partial(_event_id_func, event_id=event_id,
-                           trig_shift_by_type=trig_shift_by_type)
+                           trig_shift_by_type=trig_shift_by_type,
+                           warning_messages=warning_messages)
 
         # XXX : We use a mock raw as self is not proper yet
         # and it's not possible to do it after as one needs the events
@@ -159,6 +161,9 @@ class RawBrainVision(BaseRaw):
 
         raw_tmp.time_as_index = _time_as_index
         events, _ = events_from_annotations(raw_tmp, event_id)
+
+        for message in set(warning_messages):
+            warn(message)
 
         self._create_event_ch(events, n_samples)
 
@@ -334,7 +339,7 @@ def _read_vmrk(fname):
     return np.array(onset), np.array(duration), np.array(description), date_str
 
 
-def _event_id_func(desc, event_id, trig_shift_by_type):
+def _event_id_func(desc, event_id, trig_shift_by_type, warning_messages):
     """Get integers from string description.
 
     This function can be passed as event_id to events_from_annotations
@@ -354,6 +359,8 @@ def _event_id_func(desc, event_id, trig_shift_by_type):
         all markers of this type will be ignored. If None (default), no offset
         is added, which may lead to different marker types being mapped to the
         same event id.
+    warning_messages : list
+        Used to populate the warnings raised.
 
     Returns
     -------
@@ -392,7 +399,7 @@ def _event_id_func(desc, event_id, trig_shift_by_type):
             found = True
 
     if trigger is None and not found:
-        warn("Marker '%s' will be dropped" % desc)
+        warning_messages.append("Marker '%s' will be dropped" % desc)
 
     return trigger
 
