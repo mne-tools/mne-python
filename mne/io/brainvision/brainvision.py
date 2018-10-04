@@ -326,7 +326,7 @@ def _read_vmrk(fname):
         else:
             this_onset = int(this_onset) - 1  # BV is 1-indexed, not 0-indexed
             this_duration = (int(this_duration)
-                             if this_duration.isdigit() else 1)
+                             if this_duration.isdigit() else 0)
             duration.append(this_duration)
             onset.append(this_onset)
             description.append(mtype + '/' + mdesc)
