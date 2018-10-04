@@ -1479,7 +1479,7 @@ anatomy only, not on the MEG/EEG data to be analyzed.
 		R_{13} & R_{13} & R_{13} & z_0 \\
 		0 & 0 & 0 & 1
 		\end{bmatrix}
-	     
+
 defined so that if the augmented location vectors in MRI
 head and MRI coordinate systems are denoted by :math:`r_{head}[x_{head}\ y_{head}\ z_{head}\ 1]` and :math:`r_{MRI}[x_{MRI}\ y_{MRI}\ z_{MRI}\ 1]`,
 respectively,
