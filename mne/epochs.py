@@ -21,8 +21,9 @@ import numpy as np
 import scipy
 
 from .io.write import (start_file, start_block, end_file, end_block,
-                       write_int, write_float_matrix, write_complex_matrix,
-                       write_float, write_id, write_string, _get_split_size)
+                       write_int, write_float_matrix, write_float,
+                       write_complex_float_matrix, write_complex_double_matrix,
+                       write_id, write_string, _get_split_size)
 from .io.meas_info import read_meas_info, write_meas_info, _merge_info
 from .io.open import fiff_open, _get_next_fname
 from .io.tree import dir_tree_find
@@ -85,7 +86,7 @@ def _save_split(epochs, fname, part_idx, n_parts):
 
     # write events out after getting data to ensure bad events are dropped
     data = epochs.get_data()
-    assert data.dtype in ['float64', 'complex64', 'complex128']
+    assert data.dtype in ('float64', 'complex128')
     start_block(fid, FIFF.FIFFB_MNE_EVENTS)
     write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, epochs.events.T)
     mapping_ = ';'.join([k + ':' + str(v) for k, v in
@@ -130,8 +131,10 @@ def _save_split(epochs, fname, part_idx, n_parts):
 
     if data.dtype == 'float64':
         write_float_matrix(fid, FIFF.FIFF_EPOCH, data)
-    elif data.dtype in ('complex64', 'complex128'):
-        write_complex_matrix(fid, FIFF.FIFF_EPOCH, data)
+    elif data.dtype == 'complex64':
+        write_complex_float_matrix(fid, FIFF.FIFF_EPOCH, data)
+    elif data.dtype == 'complex128':
+        write_complex_double_matrix(fid, FIFF.FIFF_EPOCH, data)
 
     # undo modifications to data
     data /= decal[np.newaxis, :, np.newaxis]
@@ -2548,13 +2551,18 @@ def _read_one_epoch_file(f, tree, preload):
             datatype = np.float32
         elif data_tag.size // 8 - 2 == expected:  # 64-bit complex stored
             datatype = np.complex64
+        elif data_tag.size // 16 - 1 == expected:  # 128-bit complex stored
+            datatype = np.complex128
         else:
             raise (ValueError('Incorrect number of samples (%d instead of %d)'+
                               'for 32-bit floats'
                  % (data_tag.size // 4, expected)),
                    ValueError('Incorrect number of samples (%d instead of %d)'+
                               'for 64-bit complex'
-                 % (data_tag.size // 8, expected)))
+                 % (data_tag.size // 8, expected)),
+                   ValueError('Incorrect number of samples (%d instead of %d)'+
+                              'for 128-bit complex'
+                 % (data_tag.size // 16, expected)))
 
         # Calibration factors
         cals = np.array([[info['chs'][k]['cal'] *

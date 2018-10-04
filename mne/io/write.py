@@ -194,18 +194,38 @@ def write_int_matrix(fid, kind, mat):
     check_fiff_length(fid)
 
 
-def write_complex_matrix(fid, kind, mat):
+def write_complex_float_matrix(fid, kind, mat):
     """Write complex 64 matrix tag."""
     FIFFT_MATRIX = 1 << 30
-    FIFFT_MATRIX_FLOAT = FIFF.FIFFT_FLOAT | FIFFT_MATRIX
+    FIFFT_MATRIX_COMPLEX_FLOAT = FIFF.FIFFT_COMPLEX_FLOAT  | FIFFT_MATRIX
 
-    data_size = 8 * mat.size + 4 * (mat.ndim + 1)
+    data_size = 4 * 2 * mat.size + 4 * (mat.ndim + 1)
 
     fid.write(np.array(kind, dtype='>i4').tostring())
-    fid.write(np.array(FIFFT_MATRIX_FLOAT, dtype='>i4').tostring())
+    fid.write(np.array(FIFFT_MATRIX_COMPLEX_FLOAT, dtype='>i4').tostring())
     fid.write(np.array(data_size, dtype='>i4').tostring())
     fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
     fid.write(np.array(mat, dtype='>c8').tostring())
+
+    dims = np.empty(mat.ndim + 1, dtype=np.int32)
+    dims[:mat.ndim] = mat.shape[::-1]
+    dims[-1] = mat.ndim
+    fid.write(np.array(dims, dtype='>i4').tostring())
+    check_fiff_length(fid)
+
+
+def write_complex_double_matrix(fid, kind, mat):
+    """Write complex 128 matrix tag."""
+    FIFFT_MATRIX = 1 << 30
+    FIFFT_MATRIX_COMPLEX_DOUBLE = FIFF.FIFFT_COMPLEX_DOUBLE  | FIFFT_MATRIX
+
+    data_size = 8 * 2 * mat.size + 4 * (mat.ndim + 1)
+
+    fid.write(np.array(kind, dtype='>i4').tostring())
+    fid.write(np.array(FIFFT_MATRIX_COMPLEX_DOUBLE, dtype='>i4').tostring())
+    fid.write(np.array(data_size, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+    fid.write(np.array(mat, dtype='>c16').tostring())
 
     dims = np.empty(mat.ndim + 1, dtype=np.int32)
     dims[:mat.ndim] = mat.shape[::-1]
