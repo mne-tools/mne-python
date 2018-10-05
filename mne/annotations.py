@@ -595,7 +595,7 @@ def events_from_annotations(raw, event_id=None, regexp=None, on_drop='info',
                              origin=annotations.orig_time) + raw.first_samp
 
     # Filter out the annotations that do not match regexp
-    regexp = re.compile('.*' if regexp is None else regexp)
+    regexp_comp = re.compile('.*' if regexp is None else regexp)
 
     if event_id is None:
         event_id = Counter()
@@ -606,7 +606,7 @@ def events_from_annotations(raw, event_id=None, regexp=None, on_drop='info',
         if desc in event_id_:
             continue
 
-        if regexp.match(desc) is None:
+        if regexp_comp.match(desc) is None:
             continue
 
         if isinstance(event_id, dict):
@@ -621,10 +621,12 @@ def events_from_annotations(raw, event_id=None, regexp=None, on_drop='info',
             else:
                 dropped.append(desc)
 
+    _report_dropped(dropped, on_drop)
+
     event_sel = [ii for ii, kk in enumerate(annotations.description)
                  if kk in event_id_]
 
-    if len(event_sel) == 0:
+    if len(event_sel) == 0 and regexp is not None:
         raise ValueError('Could not find any of the events you specified.')
 
     values = [event_id_[kk] for kk in
@@ -635,7 +637,5 @@ def events_from_annotations(raw, event_id=None, regexp=None, on_drop='info',
 
     logger.info('Used Annotations descriptions: %s' %
                 (list(event_id_.keys()),))
-
-    _report_dropped(dropped, on_drop)
 
     return events, event_id_

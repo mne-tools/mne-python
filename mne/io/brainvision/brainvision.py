@@ -328,15 +328,17 @@ def _read_vmrk(fname):
     date_str = None
     for info in items:
         mtype, mdesc, this_onset, this_duration = info.split(',')[:4]
-        if mtype == 'New Segment':
+        if date_str is None and mtype == 'New Segment':
+            # to handle the origin of time and handle the presence of multiple
+            # New Segment annotations. We only keep the first one for date_str.
             date_str = info.split(',')[-1]
-        else:
-            this_onset = int(this_onset) - 1  # BV is 1-indexed, not 0-indexed
-            this_duration = (int(this_duration)
-                             if this_duration.isdigit() else 0)
-            duration.append(this_duration)
-            onset.append(this_onset)
-            description.append(mtype + '/' + mdesc)
+
+        this_onset = int(this_onset) - 1  # BV is 1-indexed, not 0-indexed
+        this_duration = (int(this_duration)
+                         if this_duration.isdigit() else 0)
+        duration.append(this_duration)
+        onset.append(this_onset)
+        description.append(mtype + '/' + mdesc)
 
     return np.array(onset), np.array(duration), np.array(description), date_str
 
@@ -373,7 +375,10 @@ def _event_id_func(desc, event_id, trig_shift_by_type, dropped_desc):
     """
     mtype, mdesc = desc.split('/')
     found = False
-    if mdesc in event_id:
+    if mtype == "New Segment":
+        trigger = None
+        found = True
+    elif mdesc in event_id:
         trigger = event_id[mdesc]
         found = True
     else:

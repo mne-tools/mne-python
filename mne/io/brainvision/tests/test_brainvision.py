@@ -609,9 +609,10 @@ def test_read_vmrk_annotations():
     sfreq = 1000.0
     annotations = read_annotations_brainvision(vmrk_path, sfreq=sfreq)
     assert annotations.orig_time == 1384359243.794231
-    expected = np.array([486., 496., 1769., 1779., 3252., 3262., 4935., 4945.,
+    expected = np.array([0, 486., 496., 1769., 1779., 3252., 3262., 4935., 4945.,
                          5999., 6619., 6629., 7629., 7699.]) / sfreq
-    description = ['Stimulus/S253', 'Stimulus/S255', 'Stimulus/S254',
+    description = ['New Segment/',
+                   'Stimulus/S253', 'Stimulus/S255', 'Stimulus/S254',
                    'Stimulus/S255', 'Stimulus/S254', 'Stimulus/S255',
                    'Stimulus/S253', 'Stimulus/S255', 'Response/R255',
                    'Stimulus/S254', 'Stimulus/S255',
