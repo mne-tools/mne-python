@@ -649,6 +649,7 @@ def test_report_dropped():
         _report_dropped(['foobar'], on_drop='warn')
     _report_dropped(['foobar'], on_drop='ignore')
     _report_dropped(['foobar'], on_drop='info')
-    pytest.raises(ValueError, _report_dropped, ['foobar'], on_drop='bla')
+    with pytest.raises(ValueError, match="should be 'info', 'ignore' or 'warn'"):
+        _report_dropped(['foobar'], on_drop='bla')
 
 run_tests_if_main()
