@@ -98,8 +98,9 @@ def test_pick_refs():
         if len(pick) > 0:
             with catch_logging() as log:
                 pick_info(info, pick)
-            assert(log.getvalue().startswith('Compensation grade'))
-
+            log = log.getvalue().splitlines()
+            assert(log[0].startswith('Compensation grade'))
+            
 
 
 def test_pick_channels_regexp():
