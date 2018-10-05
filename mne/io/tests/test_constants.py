@@ -20,7 +20,11 @@ _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'has_key', 'iteritems', 'iterkeys', 'itervalues',  # Py2
                      'viewitems', 'viewkeys', 'viewvalues',  # Py2
                      )
-
+# XXX These should all probably be added to the FIFF constants
+_missing_names = (
+    'FIFFV_COIL_POINT_MAGNETOMETER_X',
+    'FIFFV_COIL_POINT_MAGNETOMETER_Y',
+)
 
 @requires_good_network
 def test_constants(tmpdir):
@@ -178,7 +182,8 @@ def test_constants(tmpdir):
     # Assert that all our constants are in the dict
     # (we are not necessarily complete the other way)
     for name in sorted(dir(FIFF)):
-        if name.startswith('_') or name in _dir_ignore_names:
+        if name.startswith('_') or name in _dir_ignore_names or \
+                name in _missing_names:
             continue
         val = getattr(FIFF, name)
         if name in defines:
