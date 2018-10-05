@@ -20,7 +20,7 @@ from mne import Epochs, Annotations
 from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_fif, RawArray, concatenate_raws
 from mne.io.tests.test_raw import _raw_annot
-from mne.annotations import _sync_onset, _handle_meas_date, _report_dropped
+from mne.annotations import _sync_onset, _handle_meas_date
 from mne.annotations import read_brainstorm_annotations
 from mne.datasets import testing
 
@@ -641,15 +641,5 @@ def test_event_id_function_using_custom_function():
     assert_array_equal(events, expected_events)
     assert event_id == expected_event_id
 
-
-def test_report_dropped():
-    """Test on_drop param in events_from_annotations."""
-    _report_dropped([], on_drop='warn')
-    with pytest.warns(RuntimeWarning, match='will be dropped'):
-        _report_dropped(['foobar'], on_drop='warn')
-    _report_dropped(['foobar'], on_drop='ignore')
-    _report_dropped(['foobar'], on_drop='info')
-    with pytest.raises(ValueError, match="should be 'info', 'ignore' or 'warn'"):
-        _report_dropped(['foobar'], on_drop='bla')
 
 run_tests_if_main()

@@ -532,25 +532,6 @@ def _ensure_annotation_object(obj):
                          'mne.Annotations. Got %s.' % obj)
 
 
-def _report_dropped(dropped, on_drop):
-    """Print or warn when some annotations are dropped."""
-    if len(dropped) > 0:
-        dropped = list(set(dropped))
-        message = ("{0} annotation(s) will be dropped, such as {1}. "
-                   "Consider using ``regexp`` to ignore annotations that "
-                   "do not follow a specific pattern."
-                   .format(len(dropped), dropped[:5]))
-        if on_drop == 'warn':
-            warn(message)
-        elif on_drop == 'info':
-            logger.info(message)
-        elif on_drop == 'ignore':
-            pass
-        else:
-            raise ValueError("on_drop should be 'info', 'ignore' or 'warn'. "
-                             "Got %s." % on_drop)
-
-
 @verbose
 def events_from_annotations(raw, event_id=None, regexp=None, verbose=None):
     """Get events and event_id from an Annotations object.

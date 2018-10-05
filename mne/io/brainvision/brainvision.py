@@ -26,7 +26,6 @@ from ..base import BaseRaw, _check_update_montage, _RawShell
 from ..utils import (_read_segments_file, _synthesize_stim_channel,
                      _mult_cal_one)
 from ...annotations import Annotations, events_from_annotations
-from ...annotations import _report_dropped
 
 from ...externals.six import StringIO, string_types
 from ...externals.six.moves import configparser
@@ -164,9 +163,12 @@ class RawBrainVision(BaseRaw):
 
         events, _ = events_from_annotations(raw_tmp, event_id)
 
-        # we use dropped_desc in event_id to collect dropped triggers
-        # and warn a summary
-        _report_dropped(dropped_desc, on_drop='warn')
+        if len(dropped_desc) > 0:
+            dropped = list(set(dropped_desc))
+            warn("{0} annotation(s) will be dropped, such as {1}. "
+                 "Consider using ``regexp`` to ignore annotations that "
+                 "do not follow a specific pattern."
+                 .format(len(dropped), dropped[:5]))
 
         self._create_event_ch(events, n_samples)
 
