@@ -26,6 +26,7 @@ _missing_names = (
     'FIFFV_COIL_POINT_MAGNETOMETER_Y',
 )
 
+
 @requires_good_network
 def test_constants(tmpdir):
     """Test compensation."""
