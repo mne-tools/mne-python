@@ -20,33 +20,10 @@ _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'has_key', 'iteritems', 'iterkeys', 'itervalues',  # Py2
                      'viewitems', 'viewkeys', 'viewvalues',  # Py2
                      )
-
 # XXX These should all probably be added to the FIFF constants
 _missing_names = (
-    'FIFFV_NEXT_SEQ',
-    'FIFFV_NEXT_NONE',
-    'FIFFV_COIL_ARTEMIS123_GRAD',
-    'FIFFV_COIL_ARTEMIS123_REF_GRAD',
-    'FIFFV_COIL_ARTEMIS123_REF_MAG',
-    'FIFFV_COIL_BABY_REF_MAG',
-    'FIFFV_COIL_BABY_REF_MAG2',
-    'FIFFV_COIL_KRISS_GRAD',
     'FIFFV_COIL_POINT_MAGNETOMETER_X',
     'FIFFV_COIL_POINT_MAGNETOMETER_Y',
-    'FIFFV_COIL_SAMPLE_TMS_PLANAR',
-    'FIFF_UNIT_AM_M2',
-    'FIFF_UNIT_AM_M3',
-    'FIFFV_MNE_COORD_4D_HEAD',
-    'FIFFV_MNE_COORD_CTF_DEVICE',
-    'FIFFV_MNE_COORD_CTF_HEAD',
-    'FIFFV_MNE_COORD_FS_TAL',
-    'FIFFV_MNE_COORD_FS_TAL_GTZ',
-    'FIFFV_MNE_COORD_FS_TAL_LTZ',
-    'FIFFV_MNE_COORD_KIT_HEAD',
-    'FIFFV_MNE_COORD_MNI_TAL',
-    'FIFFV_MNE_COORD_MRI_VOXEL',
-    'FIFFV_MNE_COORD_RAS',
-    'FIFFV_MNE_COORD_TUFTS_EEG',
 )
 
 
@@ -146,7 +123,7 @@ def test_constants(tmpdir):
     defines = dict()  # maps the other way (name->val)
     types = dict()
     used_enums = ('unit', 'unitm', 'coil', 'aspect', 'bem_surf_id',
-                  'ch_type', 'coord', 'mri_pixel', 'point', 'role',
+                  'ch_type', 'coord', 'mri_pixel', 'point', 'role', 'next',
                   'hand', 'sex', 'proj_item', 'bem_approx',
                   'mne_cov_ch', 'mne_ori', 'mne_map', 'covariance_type',
                   'mne_priors', 'mne_space', 'mne_surf')
