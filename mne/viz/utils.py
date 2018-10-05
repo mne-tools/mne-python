@@ -908,18 +908,22 @@ def _mouse_click(event, params):
         return
     if event.button == 3:
         if params['fig_annotation'] is None:
-            return
-        raw = params['raw']
-        if np.any([c.contains(event)[0] for c in params['ax'].collections]):
-            xdata = event.xdata - params['first_time']
-            onset = _sync_onset(raw, raw.annotations.onset)
-            ends = onset + raw.annotations.duration
-            ann_idx = np.where((xdata > onset) & (xdata < ends))[0]
-            raw.annotations.delete(ann_idx)  # only first one deleted
-        _remove_segment_line(params)
-        _plot_annotations(raw, params)
-        params['plot_fun']()
-        return
+            if not isinstance(event.xdata, tuple):
+                xdata = (event.xdata, event.xdata)
+            else:
+                xdata = event.xdata
+            params['plot_vertline'](xdata)
+        else:
+            raw = params['raw']
+            if np.any([c.contains(event)[0] for c in params['ax'].collections]):
+                xdata = event.xdata - params['first_time']
+                onset = _sync_onset(raw, raw.annotations.onset)
+                ends = onset + raw.annotations.duration
+                ann_idx = np.where((xdata > onset) & (xdata < ends))[0]
+                raw.annotations.delete(ann_idx)  # only first one deleted
+            _remove_segment_line(params)
+            _plot_annotations(raw, params)
+            params['plot_fun']()
 
     if event.inaxes is None:  # check if channel label is clicked
         if params['n_channels'] > 100:
@@ -985,9 +989,9 @@ def _find_channel_idx(ch_name, params):
 
 def _draw_vert_line(xdata, params):
     """Draw vertical line."""
-    params['ax_vertline'].set_data(xdata, np.array(params['ax'].get_ylim()))
-    params['ax_hscroll_vertline'].set_data(xdata, np.array([0., 1.]))
-    params['vertline_t'].set_text('%0.3f' % xdata[0])
+    params['ax_vertline'].set_data(xdata[0], np.array(params['ax'].get_ylim()))
+    params['ax_hscroll_vertline'].set_data(xdata[0], np.array([0., 1.]))
+    params['vertline_t'].set_text('%0.2f' % xdata[0])
 
 
 def _select_bads(event, params, bads):
