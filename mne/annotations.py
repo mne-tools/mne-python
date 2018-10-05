@@ -532,6 +532,25 @@ def _ensure_annotation_object(obj):
                          'mne.Annotations. Got %s.' % obj)
 
 
+def _report_dropped(dropped, on_drop):
+    """Print or warn when some annotations are dropped."""
+    if len(dropped) > 0:
+        dropped = list(set(dropped))
+        message = ("{0} trigger(s) will be dropped, such as {1}. "
+                   "Consider using ``regexp`` to ignore triggers that "
+                   "do not follow a specific pattern."
+                   .format(len(dropped), dropped[:5]))
+        if on_drop == 'warn':
+            warn(message)
+        elif on_drop == 'info':
+            logger.info(message)
+        elif on_drop == 'ignore':
+            pass
+        else:
+            raise ValueError("on_drop should be 'info', 'ignore' or 'warn'. "
+                             "Got %s." % on_drop)
+
+
 @verbose
 def events_from_annotations(raw, event_id=None, regexp=None, on_drop='info',
                             verbose=None):
@@ -617,20 +636,6 @@ def events_from_annotations(raw, event_id=None, regexp=None, on_drop='info',
     logger.info('Used Annotations descriptions: %s' %
                 (list(event_id_.keys()),))
 
-    if len(dropped) > 0:
-        dropped = list(set(dropped))
-        message = ("{0} trigger(s) will be dropped, such as {1}. "
-                   "Consider using ``regexp`` to ignore triggers that "
-                   "do not follow a specific pattern."
-                   .format(len(dropped), dropped[:5]))
-        if on_drop == 'warn':
-            warn(message)
-        elif on_drop == 'info':
-            logger.info(message)
-        elif on_drop == 'ignore':
-            pass
-        else:
-            raise ValueError("on_drop should be 'info', 'ignore' or 'warn'. "
-                             "Got %s." % on_drop)
+    _report_dropped(dropped, on_drop)
 
     return events, event_id_
