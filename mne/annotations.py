@@ -536,8 +536,8 @@ def _report_dropped(dropped, on_drop):
     """Print or warn when some annotations are dropped."""
     if len(dropped) > 0:
         dropped = list(set(dropped))
-        message = ("{0} trigger(s) will be dropped, such as {1}. "
-                   "Consider using ``regexp`` to ignore triggers that "
+        message = ("{0} annotation(s) will be dropped, such as {1}. "
+                   "Consider using ``regexp`` to ignore annotations that "
                    "do not follow a specific pattern."
                    .format(len(dropped), dropped[:5]))
         if on_drop == 'warn':

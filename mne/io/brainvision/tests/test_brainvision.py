@@ -609,8 +609,8 @@ def test_read_vmrk_annotations():
     sfreq = 1000.0
     annotations = read_annotations_brainvision(vmrk_path, sfreq=sfreq)
     assert annotations.orig_time == 1384359243.794231
-    expected = np.array([0, 486., 496., 1769., 1779., 3252., 3262., 4935., 4945.,
-                         5999., 6619., 6629., 7629., 7699.]) / sfreq
+    expected = np.array([0, 486., 496., 1769., 1779., 3252., 3262., 4935.,
+                         4945., 5999., 6619., 6629., 7629., 7699.]) / sfreq
     description = ['New Segment/',
                    'Stimulus/S253', 'Stimulus/S255', 'Stimulus/S254',
                    'Stimulus/S255', 'Stimulus/S254', 'Stimulus/S255',
@@ -628,7 +628,8 @@ def test_read_vmrk_annotations():
 
 def test_read_raw_brainvision_warn_on_marker_drop():
     """Test that loading test.vhdr warns a summary of each dropped type."""
-    EXPECTED_WARN_MSG = r"1 trigger\(s\) will be dropped, such as \['SyncStatus/Sync On'\]"
+    EXPECTED_WARN_MSG = \
+        r"1 annotation\(s\) will be dropped, such as \['SyncStatus/Sync On'\]"
     with pytest.warns(RuntimeWarning, match=EXPECTED_WARN_MSG) as recwarn:
         read_raw_brainvision(vhdr_path, verbose=True)
     assert len(recwarn) == 1
