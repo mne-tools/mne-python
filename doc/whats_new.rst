@@ -125,6 +125,8 @@ Bug
 
 - Rename ``raw.info['buffer_size_sec']`` to ``raw.buffer_size_sec`` as it is a writing parameter rather than a measurement parameter by `Eric Larson`_
 
+- Fix EGI-MFF parser not to require ``dateutil`` package by `Eric Larson`_
+
 - Fix error when running LCMV on MEG channels with compensation using reference channels (like for CTF data) by `Alex Gramfort`_
 
 - Fix the use of :func:`sklearn.model_selection.cross_val_predict` with :class:`mne.decoding.SlidingEstimator` by `Alex Gramfort`_
