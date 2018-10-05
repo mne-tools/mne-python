@@ -1796,8 +1796,8 @@ def _get_ps_kwargs(initial_time, diverging, mid, transparent):
                           "using:\n\n    $ pip install -U pysurfer" %
                           (require, surfer.__version__))
 
-    ad_kwargs = dict()
-    sd_kwargs = dict(transparent=transparent)
+    ad_kwargs = dict(verbose=False)
+    sd_kwargs = dict(transparent=transparent, verbose=False)
     if initial_time is not None:
         ad_kwargs['initial_time'] = initial_time
     if surfer_version >= LooseVersion('0.9'):
