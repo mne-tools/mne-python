@@ -428,7 +428,7 @@ def test_plot_arrowmap():
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
     evoked.pick_types(meg='mag')
-    plot_arrowmap(evoked.data[:, 175], evoked.info)
+    plot_arrowmap(evoked.data[:, 0], evoked.info)
 
 
 @testing.requires_testing_data
