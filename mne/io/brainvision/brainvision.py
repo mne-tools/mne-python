@@ -162,9 +162,10 @@ class RawBrainVision(BaseRaw):
 
         raw_tmp.time_as_index = _time_as_index
 
-        on_drop = 'ignore'   # ignore here as warning raised below
-        events, _ = events_from_annotations(raw_tmp, event_id, on_drop=on_drop)
+        events, _ = events_from_annotations(raw_tmp, event_id)
 
+        # we use dropped_desc in event_id to collect dropped triggers
+        # and warn a summary
         _report_dropped(dropped_desc, on_drop='warn')
 
         self._create_event_ch(events, n_samples)

@@ -552,8 +552,7 @@ def _report_dropped(dropped, on_drop):
 
 
 @verbose
-def events_from_annotations(raw, event_id=None, regexp=None, on_drop='info',
-                            verbose=None):
+def events_from_annotations(raw, event_id=None, regexp=None, verbose=None):
     """Get events and event_id from an Annotations object.
 
     Parameters
@@ -571,9 +570,6 @@ def events_from_annotations(raw, event_id=None, regexp=None, on_drop='info',
     regexp : str | None
         Regular expression used to filter the annotations whose
         descriptions is a match.
-    on_drop : str
-        How to report the drop of some annotations.
-        It can be 'warn' or 'info'.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see
         :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -620,8 +616,6 @@ def events_from_annotations(raw, event_id=None, regexp=None, on_drop='info',
                 event_id_[desc] = trigger
             else:
                 dropped.append(desc)
-
-    _report_dropped(dropped, on_drop)
 
     event_sel = [ii for ii, kk in enumerate(annotations.description)
                  if kk in event_id_]
