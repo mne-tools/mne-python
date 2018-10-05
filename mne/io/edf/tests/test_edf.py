@@ -300,6 +300,8 @@ def test_read_annot(tmpdir):
     EXPECTED_ANNOTATIONS = [[180.0, 0, 'Lights off'], [180.0, 0, 'Close door'],
                             [180.0, 0, 'Lights off'], [180.0, 0, 'Close door'],
                             [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']]
+    SFREQ = 100
+    DATA_LENGTH = int(EXPECTED_ANNOTATIONS[-1][0] * SFREQ) + 1
     annot = (b'+180\x14Lights off\x14Close door\x14\x00\x00\x00\x00\x00'
              b'+180\x14Lights off\x14\x00\x00\x00\x00\x00\x00\x00\x00'
              b'+180\x14Close door\x14\x00\x00\x00\x00\x00\x00\x00\x00'
@@ -309,11 +311,13 @@ def test_read_annot(tmpdir):
     annot_file = tmpdir.join('annotations.txt')
     annot_file.write(annot)
     annotmap_file = tmpdir.join('annotations_map.txt')
-    annotmap_file.write('Lights off:0\nnothing:1\nApnea:2\nClose door:3')
+    annotmap_file.write('Lights off:1,nothing:2,Apnea:3,Close door:4')
 
     stim_ch = _read_annot(annot=annot_file, annotmap=annotmap_file,
-                          sfreq=100, data_length=None)
-    assert stim_ch
+                          sfreq=SFREQ, data_length=DATA_LENGTH)
+
+    assert stim_ch.shape == (DATA_LENGTH,)
+    assert_array_equal(np.bincount(stim_ch), [180018, 0, 1, 1, 1])
 
 
 run_tests_if_main()

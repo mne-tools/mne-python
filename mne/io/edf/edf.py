@@ -1112,23 +1112,32 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     stim_channel : ndarray
         An array containing stimulus trigger events.
     """
-    pat = '([+/-]\\d+.\\d+),(\\w+)'
-    annot = open(annot).read()
-    triggers = re.findall(pat, annot)
-    times, values = zip(*triggers)
+    pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
+    with open(annot, encoding='latin-1') as annot_file:
+        triggers = re.findall(pat, annot_file.read())
+
+    events = []
+    for ev in triggers:
+        onset = float(ev[0])
+        duration = float(ev[2]) if ev[2] else 0
+        for annotation in ev[3].split('\x14')[1:]:
+            if annotation:
+                events.append([onset, duration, annotation])
+
+    times, durations, descriptions = zip(*events)
     times = [float(time) * sfreq for time in times]
 
-    pat = r'(\w+):(\d+)'
-    annotmap = open(annotmap).read()
-    mappings = re.findall(pat, annotmap)
+    pat = r'([\w\s]+):(\d+)'
+    with open(annotmap) as annotmap_file:
+        mappings = re.findall(pat, annotmap_file.read())
     maps = {}
     for mapping in mappings:
         maps[mapping[0]] = mapping[1]
-    triggers = [int(maps[value]) for value in values]
+    triggers = [int(maps[value]) for value in descriptions]
 
-    stim_channel = np.zeros(data_length)
+    stim_channel = np.zeros(data_length, dtype=int)
     for time, trigger in zip(times, triggers):
-        stim_channel[time] = trigger
+        stim_channel[int(time)] = int(trigger)
 
     return stim_channel
 
