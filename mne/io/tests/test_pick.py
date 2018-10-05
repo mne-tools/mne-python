@@ -100,7 +100,6 @@ def test_pick_refs():
                 pick_info(info, pick)
             log = log.getvalue().splitlines()
             assert(log[0].startswith('Compensation grade'))
-            
 
 
 def test_pick_channels_regexp():
