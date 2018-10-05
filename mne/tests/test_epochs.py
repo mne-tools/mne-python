@@ -2431,7 +2431,7 @@ def test_events_list():
     assert_array_equal(epochs.events, np.array(events))
 
 
-def test_epochs_save_complex():
+def test_save_complex_data():
     """Test whether epochs of hilbert-transformed data can be saved."""
     raw, events = _get_data()[:2]
     raw.load_data().apply_hilbert(envelope=False, n_fft=None)
@@ -2441,7 +2441,8 @@ def test_epochs_save_complex():
     temp_fname = op.join(tempdir, 'test-epo.fif')
     epochs.save(temp_fname)
     epochs_read = read_epochs(temp_fname, proj=False, preload=True)
-    assert_array_equal(epochs.get_data(), epochs_read.get_data())
+#    assert_array_equal(epochs_read.get_data(), epochs.get_data())
+    assert_allclose(epochs_read.get_data(), epochs.get_data())
 
 
 run_tests_if_main()
