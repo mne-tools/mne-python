@@ -118,8 +118,11 @@ def _read_mff_header(filepath):
     return summaryinfo
 
 
-class FixedOffset(datetime.tzinfo):
-    """Fixed offset in minutes east from UTC."""
+class _FixedOffset(datetime.tzinfo):
+    """Fixed offset in minutes east from UTC.
+
+    Adapted from the official Python documentation.
+    """
 
     def __init__(self, offset):
         self._offset = datetime.timedelta(minutes=offset)
@@ -158,7 +161,7 @@ def _read_header(input_fname):
     sn = -1 if mff_hdr['date'][-6] == '-' else 1  # +
     tz = [sn * int(t) for t in (mff_hdr['date'][-5:-3], mff_hdr['date'][-2:])]
     time_n = datetime.datetime.strptime(dt, '%Y-%m-%dT%H:%M:%S.%f')
-    time_n = time_n.replace(tzinfo=FixedOffset(60 * tz[0] + tz[1]))
+    time_n = time_n.replace(tzinfo=_FixedOffset(60 * tz[0] + tz[1]))
     info = dict(
         version=version,
         year=int(time_n.strftime('%Y')),
