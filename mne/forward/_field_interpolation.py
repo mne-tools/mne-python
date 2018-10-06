@@ -118,6 +118,10 @@ def _map_meg_channels(info_from, info_to, mode='fast', origin=(0., 0., 0.04)):
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used. `'fast'` should be sufficient
         for most applications.
+    origin : array-like, shape (3,) | str
+        Origin of the sphere in the head coordinate frame and in meters.
+        Can be ``'auto'``, which means a head-digitization-based origin
+        fit. Default is ``(0., 0., 0.04)``.
 
     Returns
     -------
@@ -239,9 +243,9 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     origin : array-like, shape (3,) | str
-        Origin of internal and external multipolar moment space in head
-        coords and in meters. The default is ``'auto'``, which means
-        a head-digitization-based origin fit.
+        Origin of the sphere in the head coordinate frame and in meters.
+        The default is ``'auto'``, which means a head-digitization-based
+        origin fit.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -363,19 +367,16 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         Should be ``'helmet'`` or ``'head'`` to specify in which surface
         to compute the MEG field map. The default value is ``'helmet'``
     origin : array-like, shape (3,) | str
-        Origin of internal and external multipolar moment space in head
-        coords and in meters. Can be ``'auto'``, which means
-        a head-digitization-based origin fit. Default is ``(0., 0., 0.04)``.
+        Origin of the sphere in the head coordinate frame and in meters.
+        Can be ``'auto'``, which means a head-digitization-based origin
+        fit. Default is ``(0., 0., 0.04)``.
 
         .. versionadded:: 0.11
-
     n_jobs : int
         The number of jobs to run in parallel.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-
-        .. versionadded:: 0.11
 
     Returns
     -------
