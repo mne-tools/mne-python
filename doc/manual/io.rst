@@ -293,10 +293,36 @@ Importing EEG data
 The MNE package includes various functions and utilities for reading EEG
 data and electrode templates.
 
-Brainvision (.vhdr)
-===================
+BrainVision (.vhdr, .vmrk, .eeg)
+================================
 
-Brainvision EEG files can be read in using :func:`mne.io.read_raw_brainvision`.
+The BrainVision file format consists out of three separate files:
+
+1. A text header file (``.vhdr``) containing meta data
+2. A text marker file (``.vmrk``) containing information about events in the
+   data
+3. A binary data file (``.eeg``) containing the voltage values of the EEG
+
+Both text files are based on the
+`Microsoft Windows INI format <https://en.wikipedia.org/wiki/INI_file>`_
+consisting of:
+
+* sections marked as ``[square brackets]``
+* comments marked as ``; comment``
+* key-value pairs marked as ``key=value``
+
+A documentation for core BrainVision file format is provided by Brain Products.
+You can view the specification
+`here <https://docs.google.com/viewer?url=https://raw.githubusercontent.com/sappelhoff/brainvision-validator/master/doc/BrainVisionCoreFileFormat.pdf>`_
+
+BrainVision EEG files can be read in using :func:`mne.io.read_raw_brainvision`
+with the .vhdr header file as an input.
+
+.. warning:: Renaming BrainVision files can be problematic due to their
+             multifile structure. See this
+             `example <https://mne-tools.github.io/mne-bids/auto_examples/rename_brainvision_files>`_
+             for an instruction.
+
 
 European data format (.edf)
 ===========================
