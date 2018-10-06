@@ -265,9 +265,15 @@ csd_signal = csd_morlet(epochs['signal'], frequencies=[10])
 filters_approach1 = make_dics(
     info, fwd, csd_signal, reg=0.05, pick_ori='max-power', normalize_fwd=True,
     inversion='single', weight_norm=None)
+print(filters_approach1)
+
 filters_approach2 = make_dics(
     info, fwd, csd_signal, reg=0.05, pick_ori='max-power', normalize_fwd=False,
     inversion='matrix', weight_norm='unit-noise-gain')
+print(filters_approach2)
+
+# You can save these to disk with:
+# filters_approach1.save('filters_1-dics.h5')
 
 # Compute the DICS power map by applying the spatial filters to the CSD matrix.
 power_approach1, f = apply_dics_csd(csd_signal, filters_approach1)

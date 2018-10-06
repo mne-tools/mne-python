@@ -5,16 +5,23 @@
 #          Britta Westner <britta.wstnr@gmail.com>
 #
 # License: BSD (3-clause)
+
+from copy import deepcopy
+
 import numpy as np
 from scipy import linalg
 
+from ..cov import Covariance
 from ..io.constants import FIFF
-from ..io.proj import make_projector
+from ..io.proj import make_projector, Projection
 from ..io.pick import (pick_channels_forward, pick_info)
 from ..minimum_norm.inverse import _get_vertno
 from ..source_space import label_src_vertno_sel
-from ..utils import logger, warn, estimate_rank
+from ..utils import logger, warn, estimate_rank, verbose, check_fname
 from ..channels.channels import _contains_ch_type
+from ..time_frequency.csd import CrossSpectralDensity
+
+from ..externals.h5io import read_hdf5, write_hdf5
 
 
 def _reg_pinv(x, reg, rcond=1e-15):
@@ -438,3 +445,99 @@ def _compute_beamformer(method, G, Cm, reg, n_orient, weight_norm,
                 W /= norm[:, np.newaxis]
 
     return W, is_free_ori
+
+
+class Beamformer(dict):
+    """A computed beamformer.
+
+    Notes
+    -----
+    .. versionadded:: 0.17
+    """
+
+    def copy(self):
+        """Copy the beamformer.
+
+        Returns
+        -------
+        beamformer : instance of Beamformer
+            A deep copy of the beamformer.
+        """
+        return deepcopy(self)
+
+    def __repr__(self):
+        n_verts = sum(len(v) for v in self['vertices'])
+        n_channels = len(self['ch_names'])
+        if self['subject'] is None:
+            subject = 'unknown'
+        else:
+            subject = '"%s"' % (self['subject'],)
+        out = ('<Beamformer : %s : subject %s : %s vert, %s ch'
+               % (self['kind'], subject, n_verts, n_channels))
+        if self['pick_ori'] is not None:
+            out += ' : %s ori' % (self['pick_ori'],)
+        if self['weight_norm'] is not None:
+            out += ' : %s norm' % (self['weight_norm'],)
+        if self.get('inversion') is not None:
+            out += ' : %s inversion' % (self['inversion'],)
+        if 'rank' in self:
+            out += ' (rank %s)' % (self['rank'],)
+        out += ' >'
+        return out
+
+    @verbose
+    def save(self, fname, overwrite=False, verbose=None):
+        """Save the beamformer filter.
+
+        Parameters
+        ----------
+        fname : str
+            The filename to use to write the HDF5 data.
+            Should end in ``'-lcmv.h5'`` or ``'-dics.h5'``.
+        overwrite : bool
+            If True, overwrite the file (if it exists).
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
+        """
+        ending = '-%s.h5' % (self['kind'].lower(),)
+        check_fname(fname, self['kind'], (ending,))
+        csd_orig = None
+        try:
+            if 'csd' in self:
+                csd_orig = self['csd']
+                self['csd'] = self['csd'].__getstate__()
+            write_hdf5(fname, self, overwrite=overwrite, title='mnepython')
+        finally:
+            if csd_orig is not None:
+                self['csd'] = csd_orig
+
+
+def read_beamformer(fname):
+    """Read a beamformer filter.
+
+    Parameters
+    ----------
+    fname : str
+        The filename of the HDF5 file.
+    """
+    beamformer = read_hdf5(fname, title='mnepython')
+    if 'csd' in beamformer:
+        beamformer['csd'] = CrossSpectralDensity(**beamformer['csd'])
+    # h5io seems to cast `bool` to `int` on round-trip, probably a bug
+    # we should fix at some point (if possible -- could be HDF5 limitation)
+    for key in ('normalize_fwd', 'is_free_ori', 'is_ssp'):
+        if key in beamformer:
+            beamformer[key] = bool(beamformer[key])
+    for key in ('data_cov', 'noise_cov'):
+        if beamformer.get(key) is not None:
+            for pi, p in enumerate(beamformer[key]['projs']):
+                p = Projection(**p)
+                p['active'] = bool(p['active'])
+                beamformer[key]['projs'][pi] = p
+            beamformer[key] = Covariance(
+                *[beamformer[key].get(arg)
+                  for arg in ('data', 'names', 'bads', 'projs', 'nfree', 'eig',
+                              'eigvec', 'method', 'loglik')])
+    return Beamformer(beamformer)

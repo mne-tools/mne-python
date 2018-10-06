@@ -12,13 +12,14 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 import mne
 from mne.datasets import testing
 from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
-                            apply_lcmv_raw, tf_lcmv)
+                            apply_lcmv_raw, tf_lcmv, Beamformer,
+                            read_beamformer)
 from mne.beamformer._lcmv import _lcmv_source_power
 from mne.beamformer._compute_beamformer import _reg_pinv, _eig_inv
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.externals.six import advance_iterator
 from mne.simulation import simulate_evoked
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, object_diff
 
 
 data_path = testing.data_path(download=False)
@@ -174,7 +175,7 @@ def test_lcmv_vector():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_lcmv():
+def test_make_lcmv(tmpdir):
     """Test LCMV with evoked data and single trials."""
     raw, epochs, evoked, data_cov, noise_cov, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
@@ -285,6 +286,25 @@ def test_lcmv():
 
     # Test if spatial filter contains src_type
     assert 'src_type' in filters
+
+    # __repr__
+    assert 'LCMV' in repr(filters)
+    assert 'unknown subject' not in repr(filters)
+    assert '484' in repr(filters)
+    assert '20' in repr(filters)
+    assert '(rank 17)' in repr(filters)
+
+    # I/O
+    fname = op.join(str(tmpdir), 'filters.h5')
+    with pytest.warns(RuntimeWarning, match='-lcmv.h5'):
+        filters.save(fname)
+    filters_read = read_beamformer(fname)
+    assert isinstance(filters, Beamformer)
+    assert isinstance(filters_read, Beamformer)
+    # deal with object_diff strictness
+    filters_read['rank'] = int(filters_read['rank'])
+    filters['rank'] = int(filters['rank'])
+    assert object_diff(filters, filters_read) == ''
 
     # Test if fixed forward operator is detected when picking normal or
     # max-power orientation
