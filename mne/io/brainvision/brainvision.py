@@ -137,48 +137,34 @@ class RawBrainVision(BaseRaw):
                 dtype_bytes = _fmt_byte_dict[fmt]
                 offsets = None
                 n_samples = n_samples // (dtype_bytes * (info['nchan'] - 1))
-        self.preload = False  # so the event-setting works
 
-        # Get annotations from vmrk file and then use events_from_annotations
-        trig_shift_by_type = _check_trig_shift_by_type(trig_shift_by_type)
-        annots = read_annotations_brainvision(mrk_fname, info['sfreq'])
-        dropped_desc = []  # use to collect dropped descriptions
-        event_id = dict() if event_id is None else event_id
-        event_id = partial(_event_id_func, event_id=event_id,
-                           trig_shift_by_type=trig_shift_by_type,
-                           dropped_desc=dropped_desc)
-
-        # XXX : We use a mock raw as self is not proper yet
-        # and it's not possible to do it after as one needs the events
-        # to create the stim channel before calling super init
-        raw_tmp = _RawShell()
-        raw_tmp.first_samp = 0
-        raw_tmp.info = info
-        raw_tmp.set_annotations(annots)
-
-        def _time_as_index(times, use_rounding, origin):
-            return np.round(np.atleast_1d(times) * info['sfreq'])
-
-        raw_tmp.time_as_index = _time_as_index
-
-        events, _ = events_from_annotations(raw_tmp, event_id)
-
-        if len(dropped_desc) > 0:
-            dropped = list(set(dropped_desc))
-            warn("{0} annotation(s) will be dropped, such as {1}. "
-                 "Consider using ``regexp`` to ignore annotations that "
-                 "do not follow a specific pattern."
-                 .format(len(dropped), dropped[:5]))
-
-        self._create_event_ch(events, n_samples)
+        # Create a dummy event channel first
+        self._create_event_ch(np.empty((0, 3)), n_samples)
 
         super(RawBrainVision, self).__init__(
             info, last_samps=[n_samples - 1], filenames=[data_filename],
             orig_format=fmt, preload=preload, verbose=verbose,
             raw_extras=[offsets])
 
-        # Set the annotations as attribute
+        # Get annotations from vmrk file
+        annots = read_annotations_brainvision(mrk_fname, info['sfreq'])
         self.set_annotations(annots)
+
+        # Use events_from_annotations to properly set the events
+        trig_shift_by_type = _check_trig_shift_by_type(trig_shift_by_type)
+        dropped_desc = []  # use to collect dropped descriptions
+        event_id = dict() if event_id is None else event_id
+        event_id = partial(_event_id_func, event_id=event_id,
+                           trig_shift_by_type=trig_shift_by_type,
+                           dropped_desc=dropped_desc)
+        events, _ = events_from_annotations(self, event_id)
+        if len(dropped_desc) > 0:
+            dropped = list(set(dropped_desc))
+            warn("{0} annotation(s) will be dropped, such as {1}. "
+                 "Consider using ``regexp`` to ignore annotations that "
+                 "do not follow a specific pattern."
+                 .format(len(dropped), dropped[:5]))
+        self._create_event_ch(events, n_samples)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
@@ -236,7 +222,7 @@ class RawBrainVision(BaseRaw):
         # update events
         self._event_ch = _synthesize_stim_channel(events, n_samp)
         self._events = events
-        if self.preload:
+        if getattr(self, 'preload', False):
             self._data[-1] = self._event_ch
 
 
