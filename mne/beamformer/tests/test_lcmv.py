@@ -19,7 +19,7 @@ from mne.beamformer._compute_beamformer import _reg_pinv, _eig_inv
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.externals.six import advance_iterator
 from mne.simulation import simulate_evoked
-from mne.utils import run_tests_if_main, object_diff
+from mne.utils import run_tests_if_main, object_diff, requires_h5py
 
 
 data_path = testing.data_path(download=False)
@@ -174,6 +174,7 @@ def test_lcmv_vector():
 
 
 @pytest.mark.slowtest
+@requires_h5py
 @testing.requires_testing_data
 def test_make_lcmv(tmpdir):
     """Test LCMV with evoked data and single trials."""

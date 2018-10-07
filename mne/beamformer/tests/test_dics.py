@@ -17,7 +17,7 @@ from mne.beamformer import (make_dics, apply_dics, apply_dics_epochs,
                             apply_dics_csd, tf_dics, read_beamformer,
                             Beamformer)
 from mne.time_frequency import csd_morlet
-from mne.utils import run_tests_if_main, object_diff
+from mne.utils import run_tests_if_main, object_diff, requires_h5py
 from mne.externals.six import advance_iterator
 from mne.proj import compute_proj_evoked, make_projector
 
@@ -107,6 +107,7 @@ def _test_weight_norm(filters):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
+@requires_h5py
 @pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
                             ":RuntimeWarning")
 def test_make_dics(tmpdir):

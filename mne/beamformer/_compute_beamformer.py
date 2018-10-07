@@ -465,7 +465,7 @@ class Beamformer(dict):
         """
         return deepcopy(self)
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         n_verts = sum(len(v) for v in self['vertices'])
         n_channels = len(self['ch_names'])
         if self['subject'] is None:
