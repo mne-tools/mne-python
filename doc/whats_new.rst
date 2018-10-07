@@ -69,6 +69,8 @@ Changelog
 
 - Add function :func:`mne.io.read_annotations_brainvision` for reading directly Brainvision marker files by `Alex Gramfort`_
 
+- Add :meth:`mne.Report.remove` method to remove existing figures from a report, by `Marijn van Vliet`_
+
 
 Bug
 ~~~
