@@ -2386,9 +2386,9 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
 
 def _trigradient(x, y, z):
     """Taking gradients of z on a mesh"""
-    from matplotlib.tri import Triangulation, CubicTriInterpolator
-    tri = Triangulation(x.ravel(), y.ravel())
-    tci = CubicTriInterpolator(tri, z.ravel())
+    from .triinterpolate import CubicTriInterpolator, Triangulation
+    tri = Triangulation(x, y)
+    tci = CubicTriInterpolator(tri, z)
     dx, dy = tci.gradient(tri.x, tri.y)
     return dx, dy
 

@@ -430,7 +430,6 @@ def test_plot_arrowmap():
     evoked.pick_types(meg='mag')
     plot_arrowmap(evoked.data[:, 0], evoked.info)
 
-
 @testing.requires_testing_data
 def test_plot_topomap_neuromag122():
     """Test topomap plotting."""
