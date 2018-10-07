@@ -289,11 +289,12 @@ def test_saving_picked():
     raw_pick.save(out_fname)  # should work
     read_raw_fif(out_fname)
     read_raw_fif(out_fname, preload=True)
-    # If comp is applied, picking should error
+    # If comp is applied, picking should log a message
     raw.apply_gradient_compensation(1)
     assert raw.compensation_grade == get_current_comp(raw.info) == 1
-    with pytest.raises(RuntimeError, match='Compensation grade 1 has been'):
+    with catch_logging() as log:
         raw.copy().pick_types(**pick_kwargs)
+    assert 'Compensation grade 1 has been applied' in log.getvalue()
 
 
 run_tests_if_main()

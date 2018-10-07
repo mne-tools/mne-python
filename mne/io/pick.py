@@ -406,7 +406,11 @@ def pick_info(info, sel=(), copy=True):
                             'not all compensation channels were picked: %s\n'
                             'This may complicate source analysis using this '
                             'data.' % (current_comp, comps_missing))
-
+            else:
+                logger.info('Removing %d compensators from info because '
+                            'not all compensation channels were picked'
+                            % (len(info['comps']),))
+                info['comps'] = []
     info['chs'] = [info['chs'][k] for k in sel]
     info._update_redundant()
     info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
