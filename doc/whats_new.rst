@@ -65,11 +65,15 @@ Changelog
 
 - Add support for Neuromag 122 system by `Alex Gramfort`_
 
+- Add function :func:`mne.io.read_annotations_brainvision` for reading directly Brainvision marker files by `Alex Gramfort`_
+
 
 Bug
 ~~~
 
 - Fix bug with reading events from BrainVision files by `Stefan Appelhoff`_
+
+- Don't use 2nd column of events in BrainVision to store duration but rather raw.annotations by `Alex Gramfort`_
 
 - Fix bug of not showing ERD's in baseline rescaled tfr topomaps if grads are combined by `Erkka Heinila`_
 
