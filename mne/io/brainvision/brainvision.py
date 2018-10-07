@@ -142,8 +142,8 @@ class RawBrainVision(BaseRaw):
         # Get annotations from vmrk file and then use events_from_annotations
         trig_shift_by_type = _check_trig_shift_by_type(trig_shift_by_type)
         annots = read_annotations_brainvision(mrk_fname, info['sfreq'])
-        event_id = dict() if event_id is None else event_id
         dropped_desc = []  # use to collect dropped descriptions
+        event_id = dict() if event_id is None else event_id
         event_id = partial(_event_id_func, event_id=event_id,
                            trig_shift_by_type=trig_shift_by_type,
                            dropped_desc=dropped_desc)
@@ -336,11 +336,10 @@ def _read_vmrk(fname):
             # New Segment annotations. We only keep the first one for date_str.
             date_str = info.split(',')[-1]
 
-        this_onset = int(this_onset) - 1  # BV is 1-indexed, not 0-indexed
         this_duration = (int(this_duration)
                          if this_duration.isdigit() else 0)
         duration.append(this_duration)
-        onset.append(this_onset)
+        onset.append(int(this_onset) - 1)  # BV is 1-indexed, not 0-indexed
         description.append(mtype + '/' + mdesc)
 
     return np.array(onset), np.array(duration), np.array(description), date_str
@@ -378,11 +377,8 @@ def _event_id_func(desc, event_id, trig_shift_by_type, dropped_desc):
     """
     mtype, mdesc = desc.split('/')
     found = False
-    if mtype == "New Segment":
-        trigger = None
-        found = True
-    elif mdesc in event_id:
-        trigger = event_id[mdesc]
+    if (mdesc in event_id) or (mtype == "New Segment"):
+        trigger = event_id.get(mdesc, None)
         found = True
     else:
         try:
@@ -415,10 +411,16 @@ def _event_id_func(desc, event_id, trig_shift_by_type, dropped_desc):
 
 
 def _check_trig_shift_by_type(trig_shift_by_type):
+    """Check the trig_shift_by_type parameter.
+
+    trig_shift_by_type is used to offset event numbers depending
+    of the type of marker (eg. Response, Stimulus).
+    """
     if trig_shift_by_type is None:
         trig_shift_by_type = dict()
-    if not isinstance(trig_shift_by_type, dict):
+    elif not isinstance(trig_shift_by_type, dict):
         raise TypeError("'trig_shift_by_type' must be None or dict")
+
     for mrk_type in list(trig_shift_by_type.keys()):
         cur_shift = trig_shift_by_type[mrk_type]
         if not isinstance(cur_shift, int) and cur_shift is not None:
@@ -1011,7 +1013,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-    trig_shift_by_type: dict | None
+    trig_shift_by_type : dict | None
         The names of marker types to which an offset should be added.
         If dict, the keys specify marker types (case is ignored), so that the
         corresponding value (an integer) will be added to the trigger value of
