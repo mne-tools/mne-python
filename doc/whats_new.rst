@@ -65,6 +65,8 @@ Changelog
 
 - Add support for Neuromag 122 system by `Alex Gramfort`_
 
+- Add :meth:`mne.Report.remove` method to remove existing figures from a report, by `Marijn van Vliet`_
+
 
 Bug
 ~~~
