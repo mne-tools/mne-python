@@ -888,7 +888,7 @@ class InterpolationMixin(object):
 
     @verbose
     def interpolate_bads(self, reset_bads=True, mode='accurate',
-                         verbose=None):
+                         origin=(0., 0., 0.04), verbose=None):
         """Interpolate bad MEG and EEG channels.
 
         Operates in place.
@@ -901,6 +901,12 @@ class InterpolationMixin(object):
             Either ``'accurate'`` or ``'fast'``, determines the quality of the
             Legendre polynomial expansion used for interpolation of MEG
             channels.
+        origin : array-like, shape (3,) | str
+            Origin of the sphere in the head coordinate frame and in meters.
+            Can be ``'auto'``, which means a head-digitization-based origin
+            fit. Default is ``(0., 0., 0.04)``.
+
+            .. versionadded:: 0.17
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -924,7 +930,7 @@ class InterpolationMixin(object):
             return self
 
         _interpolate_bads_eeg(self)
-        _interpolate_bads_meg(self, mode=mode)
+        _interpolate_bads_meg(self, mode=mode, origin=origin)
 
         if reset_bads is True:
             self.info['bads'] = []

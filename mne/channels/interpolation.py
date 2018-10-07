@@ -156,7 +156,8 @@ def _interpolate_bads_eeg(inst, verbose=None):
 
 
 @verbose
-def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
+def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
+                          verbose=None):
     """Interpolate bad channels from data in good channels.
 
     Parameters
@@ -167,6 +168,10 @@ def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used for interpolation. `'fast'` should
         be sufficient for most applications.
+    origin : array-like, shape (3,) | str
+        Origin of the sphere in the head coordinate frame and in meters.
+        Can be ``'auto'``, which means a head-digitization-based origin
+        fit. Default is ``(0., 0., 0.04)``.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -192,5 +197,5 @@ def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
     inst_info['comps'] = []
     info_from = pick_info(inst_info, picks_good)
     info_to = pick_info(inst_info, picks_bad)
-    mapping = _map_meg_channels(info_from, info_to, mode=mode)
+    mapping = _map_meg_channels(info_from, info_to, mode=mode, origin=origin)
     _do_interp_dots(inst, mapping, picks_good, picks_bad)
