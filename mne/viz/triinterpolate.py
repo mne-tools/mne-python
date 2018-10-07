@@ -35,6 +35,7 @@ class TriInterpolator(object):
           interpolated z values with respect to x and y).
 
     """
+
     def __init__(self, triangulation, z, trifinder=None):
         if not isinstance(triangulation, Triangulation):
             raise ValueError("Expected a Triangulation object")
@@ -171,8 +172,8 @@ class TriInterpolator(object):
                              " Given: {0} and {1}".format(x.shape, y.shape))
         x = np.ravel(x)
         y = np.ravel(y)
-        x_scaled = x/self._unit_x
-        y_scaled = y/self._unit_y
+        x_scaled = x / self._unit_x
+        y_scaled = y / self._unit_y
         size_ret = np.size(x_scaled)
 
         # Computes & ravels the element indexes, extract the valid ones.
@@ -204,7 +205,7 @@ class TriInterpolator(object):
                                  " {'z', 'dzdx', 'dzdy'}")
 
             # Sets the scale factor for f & df components
-            scale = [1., 1./self._unit_x, 1./self._unit_y][return_index]
+            scale = [1., 1. / self._unit_x, 1. / self._unit_y][return_index]
 
             # Computes the interpolation
             ret_loc = np.empty(size_ret, dtype=np.float64)
@@ -264,6 +265,7 @@ class LinearTriInterpolator(TriInterpolator):
     `gradient` (x, y) : Returns interpolated derivatives at x,y points
 
     """
+
     def __init__(self, triangulation, z, trifinder=None):
         TriInterpolator.__init__(self, triangulation, z, trifinder)
 
@@ -274,17 +276,19 @@ class LinearTriInterpolator(TriInterpolator):
     def __call__(self, x, y):
         return self._interpolate_multikeys(x, y, tri_index=None,
                                            return_keys=('z',))[0]
+
     __call__.__doc__ = TriInterpolator.docstring__call__
 
     def gradient(self, x, y):
         return self._interpolate_multikeys(x, y, tri_index=None,
                                            return_keys=('dzdx', 'dzdy'))
+
     gradient.__doc__ = TriInterpolator.docstringgradient
 
     def _interpolate_single_key(self, return_key, tri_index, x, y):
         if return_key == 'z':
-            return (self._plane_coefficients[tri_index, 0]*x +
-                    self._plane_coefficients[tri_index, 1]*y +
+            return (self._plane_coefficients[tri_index, 0] * x +
+                    self._plane_coefficients[tri_index, 1] * y +
                     self._plane_coefficients[tri_index, 2])
         elif return_key == 'dzdx':
             return self._plane_coefficients[tri_index, 0]
@@ -389,6 +393,7 @@ class CubicTriInterpolator(TriInterpolator):
     .. [2] C.T. Kelley, "Iterative Methods for Optimization".
 
     """
+
     def __init__(self, triangulation, z, kind='min_E', trifinder=None,
                  dz=None):
         TriInterpolator.__init__(self, triangulation, z, trifinder)
@@ -433,11 +438,13 @@ class CubicTriInterpolator(TriInterpolator):
     def __call__(self, x, y):
         return self._interpolate_multikeys(x, y, tri_index=None,
                                            return_keys=('z',))[0]
+
     __call__.__doc__ = TriInterpolator.docstring__call__
 
     def gradient(self, x, y):
         return self._interpolate_multikeys(x, y, tri_index=None,
                                            return_keys=('dzdx', 'dzdy'))
+
     gradient.__doc__ = TriInterpolator.docstringgradient
 
     def _interpolate_single_key(self, return_key, tri_index, x, y):
@@ -513,12 +520,12 @@ class CubicTriInterpolator(TriInterpolator):
                  Barycentric coordinates of the points inside the containing
                  triangles.
         """
-        ndim = tris_pts.ndim-2
+        ndim = tris_pts.ndim - 2
 
         a = tris_pts[:, 1, :] - tris_pts[:, 0, :]
         b = tris_pts[:, 2, :] - tris_pts[:, 0, :]
-        abT = np.concatenate([np.expand_dims(a, ndim+1),
-                              np.expand_dims(b, ndim+1)], ndim+1)
+        abT = np.concatenate([np.expand_dims(a, ndim + 1),
+                              np.expand_dims(b, ndim + 1)], ndim + 1)
         ab = _transpose_vectorized(abT)
         x = np.expand_dims(x, ndim)
         y = np.expand_dims(y, ndim)
@@ -534,7 +541,7 @@ class CubicTriInterpolator(TriInterpolator):
             np.expand_dims(OM, ndim)))
         ksi = _prod_vectorized(metric_inv, Covar)
         alpha = _to_matrix_vectorized([
-            [1-ksi[:, 0, 0]-ksi[:, 1, 0]], [ksi[:, 0, 0]], [ksi[:, 1, 0]]])
+            [1 - ksi[:, 0, 0] - ksi[:, 1, 0]], [ksi[:, 0, 0]], [ksi[:, 1, 0]]])
         return alpha
 
     @staticmethod
@@ -581,9 +588,9 @@ class CubicTriInterpolator(TriInterpolator):
               The so-called eccentricity parameters [1] needed for
               HCT triangular element.
         """
-        a = np.expand_dims(tris_pts[:, 2, :]-tris_pts[:, 1, :], axis=2)
-        b = np.expand_dims(tris_pts[:, 0, :]-tris_pts[:, 2, :], axis=2)
-        c = np.expand_dims(tris_pts[:, 1, :]-tris_pts[:, 0, :], axis=2)
+        a = np.expand_dims(tris_pts[:, 2, :] - tris_pts[:, 1, :], axis=2)
+        b = np.expand_dims(tris_pts[:, 0, :] - tris_pts[:, 2, :], axis=2)
+        c = np.expand_dims(tris_pts[:, 1, :] - tris_pts[:, 0, :], axis=2)
         # Do not use np.squeeze, this is dangerous if only one triangle
         # in the triangulation...
         dot_a = _prod_vectorized(_transpose_vectorized(a), a)[:, 0, 0]
@@ -591,9 +598,9 @@ class CubicTriInterpolator(TriInterpolator):
         dot_c = _prod_vectorized(_transpose_vectorized(c), c)[:, 0, 0]
         # Note that this line will raise a warning for dot_a, dot_b or dot_c
         # zeros, but we choose not to support triangles with duplicate points.
-        return _to_matrix_vectorized([[(dot_c-dot_b) / dot_a],
-                                      [(dot_a-dot_c) / dot_b],
-                                      [(dot_b-dot_a) / dot_c]])
+        return _to_matrix_vectorized([[(dot_c - dot_b) / dot_a],
+                                      [(dot_a - dot_c) / dot_b],
+                                      [(dot_b - dot_a) / dot_c]])
 
 
 # FEM element used for interpolation and for solving minimisation
@@ -621,78 +628,78 @@ class _ReducedHCT_Element():
     # 1) Loads matrices to generate shape functions as a function of
     #    triangle eccentricities - based on [1] p.11 '''
     M = np.array([
-        [ 0.00, 0.00, 0.00,  4.50,  4.50, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [-0.25, 0.00, 0.00,  0.50,  1.25, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [-0.25, 0.00, 0.00,  1.25,  0.50, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [ 0.50, 1.00, 0.00, -1.50,  0.00, 3.00, 3.00, 0.00, 0.00, 3.00],
-        [ 0.00, 0.00, 0.00, -0.25,  0.25, 0.00, 1.00, 0.00, 0.00, 0.50],
-        [ 0.25, 0.00, 0.00, -0.50, -0.25, 1.00, 0.00, 0.00, 0.00, 1.00],
-        [ 0.50, 0.00, 1.00,  0.00, -1.50, 0.00, 0.00, 3.00, 3.00, 3.00],
-        [ 0.25, 0.00, 0.00, -0.25, -0.50, 0.00, 0.00, 0.00, 1.00, 1.00],
-        [ 0.00, 0.00, 0.00,  0.25, -0.25, 0.00, 0.00, 1.00, 0.00, 0.50]])
+        [0.00, 0.00, 0.00, 4.50, 4.50, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [-0.25, 0.00, 0.00, 0.50, 1.25, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [-0.25, 0.00, 0.00, 1.25, 0.50, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [0.50, 1.00, 0.00, -1.50, 0.00, 3.00, 3.00, 0.00, 0.00, 3.00],
+        [0.00, 0.00, 0.00, -0.25, 0.25, 0.00, 1.00, 0.00, 0.00, 0.50],
+        [0.25, 0.00, 0.00, -0.50, -0.25, 1.00, 0.00, 0.00, 0.00, 1.00],
+        [0.50, 0.00, 1.00, 0.00, -1.50, 0.00, 0.00, 3.00, 3.00, 3.00],
+        [0.25, 0.00, 0.00, -0.25, -0.50, 0.00, 0.00, 0.00, 1.00, 1.00],
+        [0.00, 0.00, 0.00, 0.25, -0.25, 0.00, 0.00, 1.00, 0.00, 0.50]])
     M0 = np.array([
-        [ 0.00, 0.00, 0.00,  0.00,  0.00, 0.00, 0.00, 0.00, 0.00,  0.00],
-        [ 0.00, 0.00, 0.00,  0.00,  0.00, 0.00, 0.00, 0.00, 0.00,  0.00],
-        [ 0.00, 0.00, 0.00,  0.00,  0.00, 0.00, 0.00, 0.00, 0.00,  0.00],
-        [-1.00, 0.00, 0.00,  1.50,  1.50, 0.00, 0.00, 0.00, 0.00, -3.00],
-        [-0.50, 0.00, 0.00,  0.75,  0.75, 0.00, 0.00, 0.00, 0.00, -1.50],
-        [ 0.00, 0.00, 0.00,  0.00,  0.00, 0.00, 0.00, 0.00, 0.00,  0.00],
-        [ 1.00, 0.00, 0.00, -1.50, -1.50, 0.00, 0.00, 0.00, 0.00,  3.00],
-        [ 0.00, 0.00, 0.00,  0.00,  0.00, 0.00, 0.00, 0.00, 0.00,  0.00],
-        [ 0.50, 0.00, 0.00, -0.75, -0.75, 0.00, 0.00, 0.00, 0.00,  1.50]])
+        [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [-1.00, 0.00, 0.00, 1.50, 1.50, 0.00, 0.00, 0.00, 0.00, -3.00],
+        [-0.50, 0.00, 0.00, 0.75, 0.75, 0.00, 0.00, 0.00, 0.00, -1.50],
+        [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [1.00, 0.00, 0.00, -1.50, -1.50, 0.00, 0.00, 0.00, 0.00, 3.00],
+        [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [0.50, 0.00, 0.00, -0.75, -0.75, 0.00, 0.00, 0.00, 0.00, 1.50]])
     M1 = np.array([
-        [-0.50, 0.00, 0.00,  1.50, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [ 0.00, 0.00, 0.00,  0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [-0.25, 0.00, 0.00,  0.75, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [ 0.00, 0.00, 0.00,  0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [ 0.00, 0.00, 0.00,  0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [ 0.00, 0.00, 0.00,  0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [ 0.50, 0.00, 0.00, -1.50, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [ 0.25, 0.00, 0.00, -0.75, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [ 0.00, 0.00, 0.00,  0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00]])
+        [-0.50, 0.00, 0.00, 1.50, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [-0.25, 0.00, 0.00, 0.75, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [0.50, 0.00, 0.00, -1.50, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [0.25, 0.00, 0.00, -0.75, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00]])
     M2 = np.array([
-        [ 0.50, 0.00, 0.00, 0.00, -1.50, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [ 0.25, 0.00, 0.00, 0.00, -0.75, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [ 0.00, 0.00, 0.00, 0.00,  0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [-0.50, 0.00, 0.00, 0.00,  1.50, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [ 0.00, 0.00, 0.00, 0.00,  0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [-0.25, 0.00, 0.00, 0.00,  0.75, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [ 0.00, 0.00, 0.00, 0.00,  0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [ 0.00, 0.00, 0.00, 0.00,  0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-        [ 0.00, 0.00, 0.00, 0.00,  0.00, 0.00, 0.00, 0.00, 0.00, 0.00]])
+        [0.50, 0.00, 0.00, 0.00, -1.50, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [0.25, 0.00, 0.00, 0.00, -0.75, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [-0.50, 0.00, 0.00, 0.00, 1.50, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [-0.25, 0.00, 0.00, 0.00, 0.75, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00]])
 
     # 2) Loads matrices to rotate components of gradient & Hessian
     #    vectors in the reference basis of triangle first apex (a0)
-    rotate_dV = np.array([[ 1.,  0.], [ 0.,  1.],
-                          [ 0.,  1.], [-1., -1.],
-                          [-1., -1.], [ 1.,  0.]])
+    rotate_dV = np.array([[1., 0.], [0., 1.],
+                          [0., 1.], [-1., -1.],
+                          [-1., -1.], [1., 0.]])
 
-    rotate_d2V = np.array([[1., 0., 0.], [0., 1., 0.], [ 0.,  0.,  1.],
-                           [0., 1., 0.], [1., 1., 1.], [ 0., -2., -1.],
-                           [1., 1., 1.], [1., 0., 0.], [-2.,  0., -1.]])
+    rotate_d2V = np.array([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.],
+                           [0., 1., 0.], [1., 1., 1.], [0., -2., -1.],
+                           [1., 1., 1.], [1., 0., 0.], [-2., 0., -1.]])
 
     # 3) Loads Gauss points & weights on the 3 sub-_triangles for P2
     #    exact integral - 3 points on each subtriangles.
     # NOTE: as the 2nd derivative is discontinuous , we really need those 9
     # points!
     n_gauss = 9
-    gauss_pts = np.array([[13./18.,  4./18.,  1./18.],
-                          [ 4./18., 13./18.,  1./18.],
-                          [ 7./18.,  7./18.,  4./18.],
-                          [ 1./18., 13./18.,  4./18.],
-                          [ 1./18.,  4./18., 13./18.],
-                          [ 4./18.,  7./18.,  7./18.],
-                          [ 4./18.,  1./18., 13./18.],
-                          [13./18.,  1./18.,  4./18.],
-                          [ 7./18.,  4./18.,  7./18.]], dtype=np.float64)
+    gauss_pts = np.array([[13. / 18., 4. / 18., 1. / 18.],
+                          [4. / 18., 13. / 18., 1. / 18.],
+                          [7. / 18., 7. / 18., 4. / 18.],
+                          [1. / 18., 13. / 18., 4. / 18.],
+                          [1. / 18., 4. / 18., 13. / 18.],
+                          [4. / 18., 7. / 18., 7. / 18.],
+                          [4. / 18., 1. / 18., 13. / 18.],
+                          [13. / 18., 1. / 18., 4. / 18.],
+                          [7. / 18., 4. / 18., 7. / 18.]], dtype=np.float64)
     gauss_w = np.ones([9], dtype=np.float64) / 9.
 
     #  4) Stiffness matrix for curvature energy
     E = np.array([[1., 0., 0.], [0., 1., 0.], [0., 0., 2.]])
 
     #  5) Loads the matrix to compute DOF_rot from tri_J at apex 0
-    J0_to_J1 = np.array([[-1.,  1.], [-1.,  0.]])
-    J0_to_J2 = np.array([[ 0., -1.], [ 1., -1.]])
+    J0_to_J1 = np.array([[-1., 1.], [-1., 0.]])
+    J0_to_J2 = np.array([[0., -1.], [1., -1.]])
 
     def get_function_values(self, alpha, ecc, dofs):
         """
@@ -715,12 +722,12 @@ class _ReducedHCT_Element():
         x = ksi[:, 0, 0]
         y = ksi[:, 1, 0]
         z = ksi[:, 2, 0]
-        x_sq = x*x
-        y_sq = y*y
-        z_sq = z*z
+        x_sq = x * x
+        y_sq = y * y
+        z_sq = z * z
         V = _to_matrix_vectorized([
-            [x_sq*x], [y_sq*y], [z_sq*z], [x_sq*z], [x_sq*y], [y_sq*x],
-            [y_sq*z], [z_sq*y], [z_sq*x], [x*y*z]])
+            [x_sq * x], [y_sq * y], [z_sq * z], [x_sq * z], [x_sq * y], [y_sq * x],
+            [y_sq * z], [z_sq * y], [z_sq * x], [x * y * z]])
         prod = _prod_vectorized(self.M, V)
         prod += _scalar_vectorized(E[:, 0, 0],
                                    _prod_vectorized(self.M0, V))
@@ -728,7 +735,7 @@ class _ReducedHCT_Element():
                                    _prod_vectorized(self.M1, V))
         prod += _scalar_vectorized(E[:, 2, 0],
                                    _prod_vectorized(self.M2, V))
-        s = _roll_vectorized(prod, 3*subtri, axis=0)
+        s = _roll_vectorized(prod, 3 * subtri, axis=0)
         return _prod_vectorized(dofs, s)[:, 0, 0]
 
     def get_function_derivatives(self, alpha, J, ecc, dofs):
@@ -756,20 +763,20 @@ class _ReducedHCT_Element():
         x = ksi[:, 0, 0]
         y = ksi[:, 1, 0]
         z = ksi[:, 2, 0]
-        x_sq = x*x
-        y_sq = y*y
-        z_sq = z*z
+        x_sq = x * x
+        y_sq = y * y
+        z_sq = z * z
         dV = _to_matrix_vectorized([
-            [    -3.*x_sq,     -3.*x_sq],
-            [     3.*y_sq,           0.],
-            [          0.,      3.*z_sq],
-            [     -2.*x*z, -2.*x*z+x_sq],
-            [-2.*x*y+x_sq,      -2.*x*y],
-            [ 2.*x*y-y_sq,        -y_sq],
-            [      2.*y*z,         y_sq],
-            [        z_sq,       2.*y*z],
-            [       -z_sq,  2.*x*z-z_sq],
-            [     x*z-y*z,      x*y-y*z]])
+            [-3. * x_sq, -3. * x_sq],
+            [3. * y_sq, 0.],
+            [0., 3. * z_sq],
+            [-2. * x * z, -2. * x * z + x_sq],
+            [-2. * x * y + x_sq, -2. * x * y],
+            [2. * x * y - y_sq, -y_sq],
+            [2. * y * z, y_sq],
+            [z_sq, 2. * y * z],
+            [-z_sq, 2. * x * z - z_sq],
+            [x * z - y * z, x * y - y * z]])
         # Puts back dV in first apex basis
         dV = _prod_vectorized(dV, _extract_submatrices(
             self.rotate_dV, subtri, block_size=2, axis=0))
@@ -781,7 +788,7 @@ class _ReducedHCT_Element():
                                    _prod_vectorized(self.M1, dV))
         prod += _scalar_vectorized(E[:, 2, 0],
                                    _prod_vectorized(self.M2, dV))
-        dsdksi = _roll_vectorized(prod, 3*subtri, axis=0)
+        dsdksi = _roll_vectorized(prod, 3 * subtri, axis=0)
         dfdksi = _prod_vectorized(dofs, dsdksi)
         # In global coordinates:
         # Here we try to deal with the simpliest colinear cases, returning a
@@ -836,16 +843,16 @@ class _ReducedHCT_Element():
         y = ksi[:, 1, 0]
         z = ksi[:, 2, 0]
         d2V = _to_matrix_vectorized([
-            [     6.*x,      6.*x,      6.*x],
-            [     6.*y,        0.,        0.],
-            [       0.,      6.*z,        0.],
-            [     2.*z, 2.*z-4.*x, 2.*z-2.*x],
-            [2.*y-4.*x,      2.*y, 2.*y-2.*x],
-            [2.*x-4.*y,        0.,     -2.*y],
-            [     2.*z,        0.,      2.*y],
-            [       0.,      2.*y,      2.*z],
-            [       0., 2.*x-4.*z,     -2.*z],
-            [    -2.*z,     -2.*y,     x-y-z]])
+            [6. * x, 6. * x, 6. * x],
+            [6. * y, 0., 0.],
+            [0., 6. * z, 0.],
+            [2. * z, 2. * z - 4. * x, 2. * z - 2. * x],
+            [2. * y - 4. * x, 2. * y, 2. * y - 2. * x],
+            [2. * x - 4. * y, 0., -2. * y],
+            [2. * z, 0., 2. * y],
+            [0., 2. * y, 2. * z],
+            [0., 2. * x - 4. * z, -2. * z],
+            [-2. * z, -2. * y, x - y - z]])
         # Puts back d2V in first apex basis
         d2V = _prod_vectorized(d2V, _extract_submatrices(
             self.rotate_d2V, subtri, block_size=3, axis=0))
@@ -856,7 +863,7 @@ class _ReducedHCT_Element():
                                    _prod_vectorized(self.M1, d2V))
         prod += _scalar_vectorized(E[:, 2, 0],
                                    _prod_vectorized(self.M2, d2V))
-        d2sdksi2 = _roll_vectorized(prod, 3*subtri, axis=0)
+        d2sdksi2 = _roll_vectorized(prod, 3 * subtri, axis=0)
         return d2sdksi2
 
     def get_bending_matrices(self, J, ecc):
@@ -933,13 +940,13 @@ class _ReducedHCT_Element():
         Ji10 = J_inv[:, 1, 0]
         Ji01 = J_inv[:, 0, 1]
         H_rot = _to_matrix_vectorized([
-            [Ji00*Ji00, Ji10*Ji10, Ji00*Ji10],
-            [Ji01*Ji01, Ji11*Ji11, Ji01*Ji11],
-            [2*Ji00*Ji01, 2*Ji11*Ji10, Ji00*Ji11+Ji10*Ji01]])
+            [Ji00 * Ji00, Ji10 * Ji10, Ji00 * Ji10],
+            [Ji01 * Ji01, Ji11 * Ji11, Ji01 * Ji11],
+            [2 * Ji00 * Ji01, 2 * Ji11 * Ji10, Ji00 * Ji11 + Ji10 * Ji01]])
         if not return_area:
             return H_rot
         else:
-            area = 0.5 * (J[:, 0, 0]*J[:, 1, 1] - J[:, 0, 1]*J[:, 1, 0])
+            area = 0.5 * (J[:, 0, 0] * J[:, 1, 1] - J[:, 0, 1] * J[:, 1, 0])
             return H_rot, area
 
     def get_Kff_and_Ff(self, J, ecc, triangles, Uc):
@@ -973,9 +980,9 @@ class _ReducedHCT_Element():
 
         # vals, rows and cols indices in global dof numbering
         f_dof_indices = _to_matrix_vectorized([[
-            c_indices, triangles[:, 0]*2, triangles[:, 0]*2+1,
-            c_indices, triangles[:, 1]*2, triangles[:, 1]*2+1,
-            c_indices, triangles[:, 2]*2, triangles[:, 2]*2+1]])
+            c_indices, triangles[:, 0] * 2, triangles[:, 0] * 2 + 1,
+            c_indices, triangles[:, 1] * 2, triangles[:, 1] * 2 + 1,
+            c_indices, triangles[:, 2] * 2, triangles[:, 2] * 2 + 1]])
 
         expand_indices = np.ones([ntri, 9, 1], dtype=np.int32)
         f_row_indices = _prod_vectorized(_transpose_vectorized(f_dof_indices),
@@ -1025,6 +1032,7 @@ class _DOF_estimator():
     np.vstack([dfx,dfy]).T where : dfx, dfy are the estimation of the 2
     gradient coordinates.
     """
+
     def __init__(self, interpolator, **kwargs):
         if not isinstance(interpolator, CubicTriInterpolator):
             raise ValueError("Expected a CubicTriInterpolator object")
@@ -1086,6 +1094,7 @@ class _DOF_estimator():
 
 class _DOF_estimator_user(_DOF_estimator):
     """ dz is imposed by user / Accounts for scaling if any """
+
     def compute_dz(self, dz):
         (dzdx, dzdy) = dz
         dzdx = dzdx * self._unit_x
@@ -1095,6 +1104,7 @@ class _DOF_estimator_user(_DOF_estimator):
 
 class _DOF_estimator_geom(_DOF_estimator):
     """ Fast 'geometric' approximation, recommended for large arrays. """
+
     def compute_dz(self):
         """
         self.df is computed as weighted average of _triangles sharing a common
@@ -1116,16 +1126,16 @@ class _DOF_estimator_geom(_DOF_estimator):
         dfx_el_w = np.empty_like(el_geom_w)
         dfy_el_w = np.empty_like(el_geom_w)
         for iapex in range(3):
-            dfx_el_w[:, iapex] = el_geom_w[:, iapex]*el_geom_grad[:, 0]
-            dfy_el_w[:, iapex] = el_geom_w[:, iapex]*el_geom_grad[:, 1]
+            dfx_el_w[:, iapex] = el_geom_w[:, iapex] * el_geom_grad[:, 0]
+            dfy_el_w[:, iapex] = el_geom_w[:, iapex] * el_geom_grad[:, 1]
         dfx_node_sum = np.bincount(np.ravel(self._triangles),
                                    weights=np.ravel(dfx_el_w))
         dfy_node_sum = np.bincount(np.ravel(self._triangles),
                                    weights=np.ravel(dfy_el_w))
 
         # Estimation of df
-        dfx_estim = dfx_node_sum/w_node_sum
-        dfy_estim = dfy_node_sum/w_node_sum
+        dfx_estim = dfx_node_sum / w_node_sum
+        dfy_estim = dfy_node_sum / w_node_sum
         return np.vstack([dfx_estim, dfy_estim]).T
 
     def compute_geom_weights(self):
@@ -1137,17 +1147,17 @@ class _DOF_estimator_geom(_DOF_estimator):
         tris_pts = self._tris_pts
         for ipt in range(3):
             p0 = tris_pts[:, (ipt) % 3, :]
-            p1 = tris_pts[:, (ipt+1) % 3, :]
-            p2 = tris_pts[:, (ipt-1) % 3, :]
-            alpha1 = np.arctan2(p1[:, 1]-p0[:, 1], p1[:, 0]-p0[:, 0])
-            alpha2 = np.arctan2(p2[:, 1]-p0[:, 1], p2[:, 0]-p0[:, 0])
+            p1 = tris_pts[:, (ipt + 1) % 3, :]
+            p2 = tris_pts[:, (ipt - 1) % 3, :]
+            alpha1 = np.arctan2(p1[:, 1] - p0[:, 1], p1[:, 0] - p0[:, 0])
+            alpha2 = np.arctan2(p2[:, 1] - p0[:, 1], p2[:, 0] - p0[:, 0])
             # In the below formula we could take modulo 2. but
             # modulo 1. is safer regarding round-off errors (flat triangles).
-            angle = np.abs(np.mod((alpha2-alpha1) / np.pi, 1.))
+            angle = np.abs(np.mod((alpha2 - alpha1) / np.pi, 1.))
             # Weight proportional to angle up np.pi/2 ; null weight for
             # degenerated cases 0. and np.pi (Note that `angle` is normalized
             # by np.pi)
-            weights[:, ipt] = 0.5 - np.abs(angle-0.5)
+            weights[:, ipt] = 0.5 - np.abs(angle - 0.5)
         return weights
 
     def compute_geom_grads(self):
@@ -1172,8 +1182,8 @@ class _DOF_estimator_geom(_DOF_estimator):
         df = np.empty_like(dZ)
 
         # With np.einsum :  could be ej,eji -> ej
-        df[:, 0] = dZ[:, 0]*dM_inv[:, 0, 0] + dZ[:, 1]*dM_inv[:, 1, 0]
-        df[:, 1] = dZ[:, 0]*dM_inv[:, 0, 1] + dZ[:, 1]*dM_inv[:, 1, 1]
+        df[:, 0] = dZ[:, 0] * dM_inv[:, 0, 0] + dZ[:, 1] * dM_inv[:, 1, 0]
+        df[:, 1] = dZ[:, 0] * dM_inv[:, 0, 1] + dZ[:, 1] * dM_inv[:, 1, 1]
         return df
 
 
@@ -1183,6 +1193,7 @@ class _DOF_estimator_min_E(_DOF_estimator_geom):
     of the bending energy:
       E(f) = integral[(d2z/dx2 + d2z/dy2 + 2 d2z/dxdy)**2 dA]
     """
+
     def __init__(self, Interpolator):
         self._eccs = Interpolator._eccs
         _DOF_estimator_geom.__init__(self, Interpolator)
@@ -1257,7 +1268,7 @@ class _Sparse_Matrix_coo(object):
         """
         assert V.shape == (self.m,)
         return np.bincount(self.rows,
-                           weights=self.vals*V[self.cols],
+                           weights=self.vals * V[self.cols],
                            minlength=self.m)
 
     def compress_csc(self):
@@ -1265,7 +1276,7 @@ class _Sparse_Matrix_coo(object):
         Compress rows, cols, vals / summing duplicates. Sort for csc format.
         """
         _, unique, indices = np.unique(
-            self.rows + self.n*self.cols,
+            self.rows + self.n * self.cols,
             return_index=True, return_inverse=True)
         self.rows = self.rows[unique]
         self.cols = self.cols[unique]
@@ -1276,7 +1287,7 @@ class _Sparse_Matrix_coo(object):
         Compress rows, cols, vals / summing duplicates. Sort for csr format.
         """
         _, unique, indices = np.unique(
-            self.m*self.rows + self.cols,
+            self.m * self.rows + self.cols,
             return_index=True, return_inverse=True)
         self.rows = self.rows[unique]
         self.cols = self.cols[unique]
@@ -1357,7 +1368,7 @@ def _cg(A, b, x0=None, tol=1.e-10, maxiter=1000):
         x = x0
 
     r = b - A.dot(x)
-    w = r/kvec
+    w = r / kvec
 
     p = np.zeros(n)
     beta = 0.0
@@ -1365,17 +1376,17 @@ def _cg(A, b, x0=None, tol=1.e-10, maxiter=1000):
     k = 0
 
     # Following C. T. Kelley
-    while (np.sqrt(abs(rho)) > tol*b_norm) and (k < maxiter):
-        p = w + beta*p
+    while (np.sqrt(abs(rho)) > tol * b_norm) and (k < maxiter):
+        p = w + beta * p
         z = A.dot(p)
-        alpha = rho/np.dot(p, z)
-        r = r - alpha*z
-        w = r/kvec
+        alpha = rho / np.dot(p, z)
+        r = r - alpha * z
+        w = r / kvec
         rhoold = rho
         rho = np.dot(r, w)
-        x = x + alpha*p
-        beta = rho/rhoold
-        #err = np.linalg.norm(A.dot(x) - b) # absolute accuracy - not used
+        x = x + alpha * p
+        beta = rho / rhoold
+        # err = np.linalg.norm(A.dot(x) - b) # absolute accuracy - not used
         k += 1
     err = np.linalg.norm(A.dot(x) - b)
     return x, err
@@ -1400,11 +1411,11 @@ def _inv22_vectorized(M):
     assert (M.ndim == 3)
     assert (M.shape[-2:] == (2, 2))
     M_inv = np.empty_like(M)
-    delta_inv = np.reciprocal(M[:, 0, 0]*M[:, 1, 1] - M[:, 0, 1]*M[:, 1, 0])
-    M_inv[:, 0, 0] = M[:, 1, 1]*delta_inv
-    M_inv[:, 0, 1] = -M[:, 0, 1]*delta_inv
-    M_inv[:, 1, 0] = -M[:, 1, 0]*delta_inv
-    M_inv[:, 1, 1] = M[:, 0, 0]*delta_inv
+    delta_inv = np.reciprocal(M[:, 0, 0] * M[:, 1, 1] - M[:, 0, 1] * M[:, 1, 0])
+    M_inv[:, 0, 0] = M[:, 1, 1] * delta_inv
+    M_inv[:, 0, 1] = -M[:, 0, 1] * delta_inv
+    M_inv[:, 1, 0] = -M[:, 1, 0] * delta_inv
+    M_inv[:, 1, 1] = M[:, 0, 0] * delta_inv
     return M_inv
 
 
@@ -1453,24 +1464,24 @@ def _safe_inv22_vectorized(M):
     assert M.ndim == 3
     assert M.shape[-2:] == (2, 2)
     M_inv = np.empty_like(M)
-    prod1 = M[:, 0, 0]*M[:, 1, 1]
-    delta = prod1 - M[:, 0, 1]*M[:, 1, 0]
+    prod1 = M[:, 0, 0] * M[:, 1, 1]
+    delta = prod1 - M[:, 0, 1] * M[:, 1, 0]
 
     # We set delta_inv to 0. in case of a rank deficient matrix ; a
     # rank-deficient input matrix *M* will lead to a null matrix in output
-    rank2 = (np.abs(delta) > 1e-8*np.abs(prod1))
+    rank2 = (np.abs(delta) > 1e-8 * np.abs(prod1))
     if np.all(rank2):
         # Normal 'optimized' flow.
-        delta_inv = 1./delta
+        delta_inv = 1. / delta
     else:
         # 'Pathologic' flow.
         delta_inv = np.zeros(M.shape[0])
-        delta_inv[rank2] = 1./delta[rank2]
+        delta_inv[rank2] = 1. / delta[rank2]
 
-    M_inv[:, 0, 0] = M[:, 1, 1]*delta_inv
-    M_inv[:, 0, 1] = -M[:, 0, 1]*delta_inv
-    M_inv[:, 1, 0] = -M[:, 1, 0]*delta_inv
-    M_inv[:, 1, 1] = M[:, 0, 0]*delta_inv
+    M_inv[:, 0, 0] = M[:, 1, 1] * delta_inv
+    M_inv[:, 0, 1] = -M[:, 0, 1] * delta_inv
+    M_inv[:, 1, 0] = -M[:, 1, 0] * delta_inv
+    M_inv[:, 1, 1] = M[:, 0, 0] * delta_inv
     return M_inv
 
 
@@ -1488,9 +1499,9 @@ def _pseudo_inv22sym_vectorized(M):
     assert M.ndim == 3
     assert M.shape[-2:] == (2, 2)
     M_inv = np.empty_like(M)
-    prod1 = M[:, 0, 0]*M[:, 1, 1]
-    delta = prod1 - M[:, 0, 1]*M[:, 1, 0]
-    rank2 = (np.abs(delta) > 1e-8*np.abs(prod1))
+    prod1 = M[:, 0, 0] * M[:, 1, 1]
+    delta = prod1 - M[:, 0, 1] * M[:, 1, 0]
+    rank2 = (np.abs(delta) > 1e-8 * np.abs(prod1))
 
     if np.all(rank2):
         # Normal 'optimized' flow.
@@ -1511,8 +1522,8 @@ def _pseudo_inv22sym_vectorized(M):
         rank01 = ~rank2
         tr = M[rank01, 0, 0] + M[rank01, 1, 1]
         tr_zeros = (np.abs(tr) < 1.e-8)
-        sq_tr_inv = (1.-tr_zeros) / (tr**2+tr_zeros)
-        #sq_tr_inv = 1. / tr**2
+        sq_tr_inv = (1. - tr_zeros) / (tr ** 2 + tr_zeros)
+        # sq_tr_inv = 1. / tr**2
         M_inv[rank01, 0, 0] = M[rank01, 0, 0] * sq_tr_inv
         M_inv[rank01, 0, 1] = M[rank01, 0, 1] * sq_tr_inv
         M_inv[rank01, 1, 0] = M[rank01, 1, 0] * sq_tr_inv
@@ -1533,7 +1544,7 @@ def _prod_vectorized(M1, M2):
     assert sh1[-1] == sh2[-2]
 
     ndim1 = len(sh1)
-    t1_index = list(xrange(ndim1-2)) + [ndim1-1, ndim1-2]
+    t1_index = list(xrange(ndim1 - 2)) + [ndim1 - 1, ndim1 - 2]
     return np.sum(np.transpose(M1, t1_index)[..., np.newaxis] *
                   M2[..., np.newaxis, :], -3)
 
@@ -1542,7 +1553,7 @@ def _scalar_vectorized(scalar, M):
     """
     Scalar product between scalars and matrices.
     """
-    return scalar[:, np.newaxis, np.newaxis]*M
+    return scalar[:, np.newaxis, np.newaxis] * M
 
 
 def _transpose_vectorized(M):
@@ -1551,7 +1562,7 @@ def _transpose_vectorized(M):
     """
     ndim = M.ndim
     assert ndim == 3
-    return np.transpose(M, [0, ndim-1, ndim-2])
+    return np.transpose(M, [0, ndim - 1, ndim - 2])
 
 
 def _roll_vectorized(M, roll_indices, axis):
@@ -1575,11 +1586,11 @@ def _roll_vectorized(M, roll_indices, axis):
     if axis == 0:
         for ir in range(r):
             for ic in range(c):
-                M_roll[:, ir, ic] = M[vec_indices, (-roll_indices+ir) % r, ic]
+                M_roll[:, ir, ic] = M[vec_indices, (-roll_indices + ir) % r, ic]
     elif axis == 1:
         for ir in range(r):
             for ic in range(c):
-                M_roll[:, ir, ic] = M[vec_indices, ir, (-roll_indices+ic) % c]
+                M_roll[:, ir, ic] = M[vec_indices, ir, (-roll_indices + ic) % c]
     return M_roll
 
 
@@ -1595,7 +1606,7 @@ def _to_matrix_vectorized(M):
     assert isinstance(M, (tuple, list))
     assert all([isinstance(item, (tuple, list)) for item in M])
     c_vec = np.asarray([len(item) for item in M])
-    assert np.all(c_vec-c_vec[0] == 0)
+    assert np.all(c_vec - c_vec[0] == 0)
     r = len(M)
     c = c_vec[0]
     M00 = np.asarray(M[0][0])
@@ -1629,9 +1640,9 @@ def _extract_submatrices(M, block_indices, block_size, axis):
     M_res = np.empty(sh, dtype=dt)
     if axis == 0:
         for ir in range(block_size):
-            M_res[:, ir, :] = M[(block_indices*block_size+ir), :]
+            M_res[:, ir, :] = M[(block_indices * block_size + ir), :]
     elif axis == 1:
         for ic in range(block_size):
-            M_res[:, :, ic] = M[:, (block_indices*block_size+ic)]
+            M_res[:, :, ic] = M[:, (block_indices * block_size + ic)]
 
     return M_res

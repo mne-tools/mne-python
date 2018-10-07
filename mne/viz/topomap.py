@@ -2385,7 +2385,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
 
 
 def _trigradient(x, y, z):
-    """Taking gradients of z on a mesh"""
+    """Takes gradients of z on a mesh."""
     from .triinterpolate import CubicTriInterpolator, Triangulation
     tri = Triangulation(x, y)
     tci = CubicTriInterpolator(tri, z)
@@ -2394,7 +2394,7 @@ def _trigradient(x, y, z):
 
 
 def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, axes=None):
-    """Plotting arrow map
+    """Plot arrow map.
 
     Parameters
     ----------
