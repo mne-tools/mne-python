@@ -533,8 +533,7 @@ def _ensure_annotation_object(obj):
 
 
 @verbose
-def events_from_annotations(raw, event_id=None, regexp=None,
-                            verbose=None):
+def events_from_annotations(raw, event_id=None, regexp=None, verbose=None):
     """Get events and event_id from an Annotations object.
 
     Parameters
@@ -546,7 +545,8 @@ def events_from_annotations(raw, event_id=None, regexp=None,
         to map annotation descriptions to integer event codes. Only the
         keys present will be mapped and the annotations with other descriptions
         will be ignored. Otherwise, a callable that provides an integer given
-        a string. If None, all descriptions of annotations are mapped
+        a string or that returns None for an event to ignore.
+        If None, all descriptions of annotations are mapped
         and assigned arbitrary unique integer values.
     regexp : str | None
         Regular expression used to filter the annotations whose
@@ -572,17 +572,18 @@ def events_from_annotations(raw, event_id=None, regexp=None,
                              origin=annotations.orig_time) + raw.first_samp
 
     # Filter out the annotations that do not match regexp
-    regexp = re.compile('.*' if regexp is None else regexp)
+    regexp_comp = re.compile('.*' if regexp is None else regexp)
 
     if event_id is None:
         event_id = Counter()
 
     event_id_ = dict()
+    dropped = []
     for desc in annotations.description:
         if desc in event_id_:
             continue
 
-        if regexp.match(desc) is None:
+        if regexp_comp.match(desc) is None:
             continue
 
         if isinstance(event_id, dict):
@@ -591,12 +592,16 @@ def events_from_annotations(raw, event_id=None, regexp=None,
             else:
                 continue
         else:
-            event_id_[desc] = event_id(desc)
+            trigger = event_id(desc)
+            if trigger is not None:
+                event_id_[desc] = trigger
+            else:
+                dropped.append(desc)
 
     event_sel = [ii for ii, kk in enumerate(annotations.description)
                  if kk in event_id_]
 
-    if len(event_sel) == 0:
+    if len(event_sel) == 0 and regexp is not None:
         raise ValueError('Could not find any of the events you specified.')
 
     values = [event_id_[kk] for kk in

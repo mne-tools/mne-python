@@ -57,6 +57,8 @@ Changelog
 
 - Add `split_naming` parameter to the `Raw.save` method to allow for BIDS-compatible raw file name construction by `Teon Brooks`_
 
+- Add ``origin`` parameter to :meth:`mne.Evoked.interpolate_bads` and related methods by `Eric Larson`_
+
 - Add capability to save a :class:`mne.Report` to an HDF5 file to :meth:`mne.Report.save` by `Marijn van Vliet`_
 
 - Add :func:`mne.open_report` to read back a :class:`mne.Report` object that was saved to an HDF5 file by `Marijn van Vliet`_
@@ -65,6 +67,8 @@ Changelog
 
 - Add support for Neuromag 122 system by `Alex Gramfort`_
 
+- Add function :func:`mne.io.read_annotations_brainvision` for reading directly Brainvision marker files by `Alex Gramfort`_
+
 - Add :meth:`mne.Report.remove` method to remove existing figures from a report, by `Marijn van Vliet`_
 
 
@@ -72,6 +76,8 @@ Bug
 ~~~
 
 - Fix bug with reading events from BrainVision files by `Stefan Appelhoff`_
+
+- Don't use 2nd column of events in BrainVision to store duration but rather raw.annotations by `Alex Gramfort`_
 
 - Fix bug of not showing ERD's in baseline rescaled tfr topomaps if grads are combined by `Erkka Heinila`_
 
@@ -126,6 +132,8 @@ Bug
 - Fix bug with :class:`mne.Epochs` where an error was thrown when resizing data (e.g., during :meth:`mne.Epochs.drop_bad`) by `Eric Larson`_
 
 - Rename ``raw.info['buffer_size_sec']`` to ``raw.buffer_size_sec`` as it is a writing parameter rather than a measurement parameter by `Eric Larson`_
+
+- Fix EGI-MFF parser not to require ``dateutil`` package by `Eric Larson`_
 
 - Fix error when running LCMV on MEG channels with compensation using reference channels (like for CTF data) by `Alex Gramfort`_
 

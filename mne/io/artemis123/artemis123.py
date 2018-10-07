@@ -424,7 +424,7 @@ class RawArtemis123(BaseRaw):
                 hpi_result['dist_limit'] = dist_limit
                 hpi_result['good_limit'] = 0.98
 
-                # Warn for large discrepencies between digitized and fit
+                # Warn for large discrepancies between digitized and fit
                 # cHPI locations
                 if hpi_result['dist_limit'] > 0.005:
                     warn('Large difference between digitized geometry' +

@@ -86,6 +86,7 @@ For full functionality, some functions require:
 
 - Matplotlib >= 1.3
 - Mayavi >= 4.6
+- PySurfer >= 0.8
 - Scikit-learn >= 0.15 (>= 0.18 recommended)
 - NiBabel >= 2.1.0
 - Pandas >= 0.13

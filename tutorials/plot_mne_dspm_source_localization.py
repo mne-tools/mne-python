@@ -5,14 +5,15 @@ Source localization with MNE/dSPM/sLORETA/eLORETA
 The aim of this tutorial is to teach you how to compute and apply a linear
 inverse method such as MNE/dSPM/sLORETA/eLORETA on evoked/raw/epochs data.
 """
+
+# sphinx_gallery_thumbnail_number = 10
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
-
-# sphinx_gallery_thumbnail_number = 10
 
 ###############################################################################
 # Process MEG data

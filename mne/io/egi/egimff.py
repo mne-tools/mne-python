@@ -4,7 +4,6 @@ import datetime
 import os.path as op
 import time
 from xml.dom.minidom import parse
-import dateutil.parser
 
 import numpy as np
 
@@ -119,6 +118,25 @@ def _read_mff_header(filepath):
     return summaryinfo
 
 
+class _FixedOffset(datetime.tzinfo):
+    """Fixed offset in minutes east from UTC.
+
+    Adapted from the official Python documentation.
+    """
+
+    def __init__(self, offset):
+        self._offset = datetime.timedelta(minutes=offset)
+
+    def utcoffset(self, dt):
+        return self._offset
+
+    def tzname(self, dt):
+        return 'MFF'
+
+    def dst(self, dt):
+        return datetime.timedelta(0)
+
+
 def _read_header(input_fname):
     """Obtain the headers from the file package mff.
 
@@ -135,7 +153,15 @@ def _read_header(input_fname):
     mff_hdr = _read_mff_header(input_fname)
     with open(input_fname + '/signal1.bin', 'rb') as fid:
         version = np.fromfile(fid, np.int32, 1)[0]
-    time_n = dateutil.parser.parse(mff_hdr['date'])
+    # This should be equivalent to the following, but no need for external dep:
+    # import dateutil.parser
+    # time_n = dateutil.parser.parse(mff_hdr['date'])
+    dt = mff_hdr['date'][:26]
+    assert mff_hdr['date'][-6] in ('+', '-')
+    sn = -1 if mff_hdr['date'][-6] == '-' else 1  # +
+    tz = [sn * int(t) for t in (mff_hdr['date'][-5:-3], mff_hdr['date'][-2:])]
+    time_n = datetime.datetime.strptime(dt, '%Y-%m-%dT%H:%M:%S.%f')
+    time_n = time_n.replace(tzinfo=_FixedOffset(60 * tz[0] + tz[1]))
     info = dict(
         version=version,
         year=int(time_n.strftime('%Y')),

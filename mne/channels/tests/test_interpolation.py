@@ -145,10 +145,10 @@ def test_interpolation():
     assert np.corrcoef(data1, data2)[0, 1] > thresh
     assert len(epochs_meg.info['bads']) == 0
 
-    # MEG -- evoked
+    # MEG -- evoked (plus auto origin)
     data1 = evoked.data[pick]
     evoked.info.normalize_proj()
-    data2 = evoked.interpolate_bads().data[pick]
+    data2 = evoked.interpolate_bads(origin='auto').data[pick]
     assert np.corrcoef(data1, data2)[0, 1] > thresh
 
 

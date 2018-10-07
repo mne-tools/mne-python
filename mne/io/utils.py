@@ -229,9 +229,7 @@ def _synthesize_stim_channel(events, n_samples):
     Parameters
     ----------
     events : array, shape (n_events, 3)
-        Each row representing an event as (onset, duration, trigger) sequence
-        (the format returned by `_read_vmrk_events` or `_read_eeglab_events`).
-        Durations equal to 0 are converted to 1.
+        Each row representing an event.
     n_samples : int
         The number of samples.
 
@@ -249,3 +247,18 @@ def _synthesize_stim_channel(events, n_samples):
     for onset, duration, trigger in events:
         stim_channel[onset:onset + duration] = trigger
     return stim_channel
+
+
+def _construct_bids_filename(base, ext, part_idx):
+    """Construct a BIDS compatible filename for split files."""
+    # insert index in filename
+    deconstructed_base = base.split('_')
+    bids_supported = ['meg', 'eeg', 'ieeg']
+    for mod in bids_supported:
+        if mod in deconstructed_base:
+            idx = deconstructed_base.index(mod)
+            modality = deconstructed_base.pop(idx)
+    base = '_'.join(deconstructed_base)
+    use_fname = '%s_part-%02d_%s%s' % (base, part_idx, modality, ext)
+
+    return use_fname
