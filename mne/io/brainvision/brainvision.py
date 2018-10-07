@@ -22,7 +22,7 @@ import numpy as np
 from ...utils import verbose, logger, warn
 from ..constants import FIFF
 from ..meas_info import _empty_info
-from ..base import BaseRaw, _check_update_montage, _RawShell
+from ..base import BaseRaw, _check_update_montage
 from ..utils import (_read_segments_file, _synthesize_stim_channel,
                      _mult_cal_one)
 from ...annotations import Annotations, events_from_annotations
