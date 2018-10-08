@@ -14,9 +14,13 @@ import mne
 from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
                  read_evokeds, SourceMorph, compute_source_morph,
                  read_source_morph, read_source_estimate,
-                 read_forward_solution, grade_to_vertices, morph_data)
+                 read_forward_solution, grade_to_vertices, morph_data,
+                 setup_volume_source_space, make_forward_solution,
+                 make_sphere_model, make_ad_hoc_cov)
 from mne.datasets import testing
-from mne.minimum_norm import apply_inverse, read_inverse_operator
+from mne.minimum_norm import (apply_inverse, read_inverse_operator,
+                              make_inverse_operator)
+from mne.source_space import get_volume_labels_from_aseg
 from mne.utils import (run_tests_if_main, requires_nibabel, _TempDir,
                        requires_dipy, requires_h5py, requires_version)
 from mne.fixes import _get_args
@@ -27,6 +31,7 @@ data_path = testing.data_path(download=False)
 sample_dir = op.join(data_path, 'MEG', 'sample')
 subjects_dir = op.join(data_path, 'subjects')
 fname_evoked = op.join(sample_dir, 'sample_audvis-ave.fif')
+fname_trans = op.join(sample_dir, 'sample_audvis_trunc-trans.fif')
 fname_inv_vol = op.join(sample_dir,
                         'sample_audvis_trunc-meg-vol-7-meg-inv.fif')
 fname_fwd_vol = op.join(sample_dir,
@@ -492,6 +497,38 @@ def test_morph_stc_sparse():
         compute_source_morph(
             stc_from, subject_from=subject_from, subject_to=subject_to,
             spacing=None, sparse=True, xhemi=True, subjects_dir=subjects_dir)
+
+
+@requires_nibabel()
+@testing.requires_testing_data
+def test_volume_labels_morph(tmpdir):
+    """Test generating a source space from volume label."""
+    # see gh-5224
+    evoked = mne.read_evokeds(fname_evoked)[0].crop(0, 0)
+    evoked.pick_channels(evoked.ch_names[:306:8])
+    evoked.info.normalize_proj()
+    n_ch = len(evoked.ch_names)
+    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
+    label_names = get_volume_labels_from_aseg(aseg_fname)
+    src = setup_volume_source_space(
+        'sample', subjects_dir=subjects_dir, volume_label=label_names[:2],
+        mri=aseg_fname)
+    assert len(src) == 2
+    assert src.kind == 'volume'
+    n_src = sum(s['nuse'] for s in src)
+    sphere = make_sphere_model('auto', 'auto', evoked.info)
+    fwd = make_forward_solution(evoked.info, fname_trans, src, sphere)
+    assert fwd['sol']['data'].shape == (n_ch, n_src * 3)
+    inv = make_inverse_operator(evoked.info, fwd, make_ad_hoc_cov(evoked.info),
+                                loose=1.)
+    stc = apply_inverse(evoked, inv)
+    assert stc.data.shape == (n_src, 1)
+    img = stc.as_volume(src, mri_resolution=True)
+    n_on = np.array(img.dataobj).astype(bool).sum()
+    assert n_on == 291  # was 291 on `master` before gh-5590
+    img = stc.as_volume(src, mri_resolution=False)
+    n_on = np.array(img.dataobj).astype(bool).sum()
+    assert n_on == 44  # was 20 on `master` before gh-5590
 
 
 run_tests_if_main()
