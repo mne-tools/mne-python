@@ -22,6 +22,7 @@ from ..constants import FIFF
 from ...filter import resample
 from ...externals.six.moves import zip
 from ...utils import copy_function_doc_to_method_doc
+from ...annotations import Annotations, events_from_annotations
 
 
 def find_edf_events(raw):
@@ -98,6 +99,7 @@ class RawEDF(BaseRaw):
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
+    event_id : XXX
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
@@ -152,7 +154,7 @@ class RawEDF(BaseRaw):
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
                  stim_channel='auto', annot=None, annotmap=None, exclude=(),
-                 preload=False, verbose=None):  # noqa: D102
+                 preload=False, verbose=None, event_id=None):  # noqa: D102
         logger.info('Extracting EDF parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         info, edf_info = _get_info(input_fname, stim_channel, annot,
@@ -173,6 +175,12 @@ class RawEDF(BaseRaw):
         super(RawEDF, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[edf_info],
             last_samps=last_samps, orig_format='int', verbose=verbose)
+
+        annots = read_annotations_edf(input_fname, sfreq=info['sfreq'])
+        self.set_annotations(annots)
+        event_id = dict() if event_id is None else event_id
+        events, _ = events_from_annotations(self, event_id)
+        self._create_event_ch(events, edf_info['nsamples'])
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -1100,6 +1108,56 @@ def _read_gdf_header(fname, stim_channel, exclude):
             edf_info['stim_data'] = data
     edf_info.update(events=events, sel=np.arange(len(edf_info['ch_names'])))
     return edf_info
+
+
+def _read_annotations_edf(fname):
+    from io import open  # python 2 backward compatible open
+    pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
+    with open(fname, encoding='latin-1') as annot_file:
+        triggers = re.findall(pat, annot_file.read())
+
+    events = []
+    for ev in triggers:
+        onset = float(ev[0])
+        duration = float(ev[2]) if ev[2] else 0
+        for annotation in ev[3].split('\x14')[1:]:
+            if annotation:
+                events.append([onset, duration, annotation])
+
+    return zip(*events)
+
+
+def read_annotations_edf(fname, sfreq='auto'):
+    """Create Annotations from Edf vrmk.
+
+    This function reads a .vrmk file and makes an
+    :class:`mne.Annotations` object.
+
+    Parameters
+    ----------
+    fname : str | object
+        The path to the .vmrk file.
+    sfreq : float | 'auto'
+        The sampling frequency in the file. It's necessary
+        as Annotations are expressed in seconds and vmrk
+        files are in samples. If set to 'auto' then
+        the sfreq is taken from the .vhdr file that
+        has the same name (without file extension). So
+        data.vrmk looks for sfreq in data.vhdr.
+
+    Returns
+    -------
+    annotations : instance of Annotations
+        The annotations present in the file.
+    """
+    onset, duration, description = _read_annotations_edf(fname)
+    onset = np.array(onset, dtype=float) / sfreq
+    duration = np.array(duration, dtype=float) / sfreq
+    annotations = Annotations(onset=onset, duration=duration,
+                              description=description,
+                              orig_time=None)
+
+    return annotations
 
 
 def _read_annot(annot, annotmap, sfreq, data_length):
