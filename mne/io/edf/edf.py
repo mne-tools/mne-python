@@ -10,7 +10,6 @@ import calendar
 import datetime
 import os
 import re
-from io import open  # python 2 backward compatible open
 
 import numpy as np
 
@@ -1117,6 +1116,7 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     stim_channel : ndarray
         An array containing stimulus trigger events.
     """
+    from io import open  # python 2 backward compatible open
     pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
     with open(annot, encoding='latin-1') as annot_file:
         triggers = re.findall(pat, annot_file.read())
