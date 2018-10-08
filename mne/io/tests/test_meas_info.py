@@ -540,13 +540,10 @@ def test_check_compensation_consistency():
         ret, missing = _bad_chans_comp(raw.info, pick_ch_names)
         assert ret == expected_result
         assert len(missing) == 17
-        if comp != 0:
-            with catch_logging() as log:
-                Epochs(raw, events, None, -0.2, 0.2, preload=False,
-                       picks=picks)
-            assert('Removing 5 compensators' in log.getvalue())
-        else:
-            Epochs(raw, events, None, -0.2, 0.2, preload=False, picks=picks)
+        with catch_logging() as log:
+            Epochs(raw, events, None, -0.2, 0.2, preload=False,
+                   picks=picks, verbose=True)
+            assert'Removing 5 compensators' in log.getvalue()
 
 
 run_tests_if_main()
