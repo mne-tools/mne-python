@@ -89,26 +89,19 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
     # write events out after getting data to ensure bad events are dropped
     data = epochs.get_data()
 
-    if fmt not in ['short', 'int', 'single', 'double']:
-        raise ValueError('fmt must be "short", "single", or "double"')
+    if fmt not in ['single', 'double']:
+        raise ValueError('fmt must be "single" or "double". Got (%s)' % fmt)
 
-    if np.isrealobj(data):
-        if fmt == 'short':
-            write_function = write_dau_pack16
-        elif fmt == 'int':
-            write_function = write_int_matrix
-        elif fmt == 'single':
-            write_function = write_float_matrix
-        elif fmt == 'double':
-            write_function = write_double_matrix
-    elif np.iscomplexobj(data):
+    if np.iscomplexobj(data):
         if fmt == 'single':
             write_function = write_complex_float_matrix
         elif fmt == 'double':
             write_function = write_complex_double_matrix
-        else:
-            raise ValueError('only "single" and "double" supported for '
-                             'writing complex data')
+    else:
+        if fmt == 'single':
+            write_function = write_float_matrix
+        elif fmt == 'double':
+            write_function = write_double_matrix
 
     start_block(fid, FIFF.FIFFB_MNE_EVENTS)
     write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, epochs.events.T)
