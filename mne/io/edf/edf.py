@@ -163,6 +163,10 @@ class RawEDF(BaseRaw):
             warn("Stimulus channel will not be annotated. Both 'annot' and "
                  "'annotmap' must be specified.")
 
+        if bool(annot) or bool(annotmap):
+            warn("'annot' and 'annotmap' parameters are deprecated and will be"
+                 " removed in 0.18", DeprecationWarning)
+
         # Raw attributes
         last_samps = [edf_info['nsamples'] - 1]
         super(RawEDF, self).__init__(
