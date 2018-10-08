@@ -10,7 +10,7 @@ import calendar
 import datetime
 import os
 import re
-import sys  # XXX I would like to import only PY2 from six
+from io import open  # python 2 backward compatible open
 
 import numpy as np
 
@@ -22,9 +22,6 @@ from ..constants import FIFF
 from ...filter import resample
 from ...externals.six.moves import zip
 from ...utils import copy_function_doc_to_method_doc
-
-
-PY2 = sys.version_info[0] == 2
 
 
 def find_edf_events(raw):
@@ -1120,10 +1117,6 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     stim_channel : ndarray
         An array containing stimulus trigger events.
     """
-    if PY2:
-        # backward compatibility `open(..., encoding=..)`
-        from io import open
-
     pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
     with open(annot, encoding='latin-1') as annot_file:
         triggers = re.findall(pat, annot_file.read())
