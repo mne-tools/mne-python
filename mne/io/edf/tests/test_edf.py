@@ -320,4 +320,23 @@ def test_read_annot(tmpdir):
     assert_array_equal(np.bincount(stim_ch), [180018, 0, 1, 1, 1])
 
 
+def test_read_raw_edf_deprecation_of_annot_annotmap(tmpdir):
+    """Test deprecation of annot and annotmap."""
+    EXPECTED_ANNOTATIONS = [[0.1344, 0.2560, 2],
+                            [0.3904, 1.0000, 2],
+                            [2.0000, 0.0000, 3],
+                            [2.5000, 2.5000, 2]]
+    annot = (b'+0.1344\x150.2560\x14two\x14\x00\x00\x00\x00'
+             b'+0.3904\x151.0\x14two\x14\x00\x00\x00\x00'
+             b'+2.0\x14three\x14\x00\x00\x00\x00\x00\x00\x00\x00'
+             b'+2.5\x152.5\x14two\x14\x00\x00\x00\x00')
+    annot_file = tmpdir.join('annotations.txt')
+    annot_file.write(annot)
+    annotmap_file = tmpdir.join('annotations_map.txt')
+    annotmap_file.write('two:2,three:3')
+
+    with pytest.warns(DeprecationWarning):
+        read_raw_edf(input_fname=edf_path, annot=str(annot_file),
+                     annotmap=str(annotmap_file), preload=True)
+
 run_tests_if_main()

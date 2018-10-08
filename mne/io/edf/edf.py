@@ -295,8 +295,8 @@ class RawEDF(BaseRaw):
         if stim_channel is not None and len(stim_channel_idx) > 0:
             if annot and annotmap:
                 evts = _read_annot(annot, annotmap, sfreq,
-                                   self._last_samps[fi])
-                data[stim_channel_idx, :] = evts[start:stop + 1]
+                                   self._last_samps[fi] + 1)
+                data[stim_channel_idx, :] = evts[start:stop]
             elif len(tal_sel) > 0:
                 tal_channel_idx = np.in1d(orig_sel[idx], tal_sel)
                 evts = _parse_tal_channel(np.atleast_2d(data[tal_channel_idx]))
