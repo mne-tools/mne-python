@@ -837,6 +837,11 @@ class UpdateChannelsMixin(object):
         See Also
         --------
         drop_channels
+
+        Notes
+        -----
+        If ``self`` is a Raw instance that has been preloaded into a
+        :obj:`numpy.memmap` instance, the memmap will be resized.
         """
         # avoid circular imports
         from ..io import BaseRaw, _merge_info
@@ -868,14 +873,30 @@ class UpdateChannelsMixin(object):
                 raise AssertionError('All data dimensions except channels '
                                      'must match, got %s != %s'
                                      % (shapes[0], shape))
+        del shapes
 
         # Create final data / info objects
-        data = np.concatenate(data, axis=con_axis)
         infos = [self.info] + [inst.info for inst in add_list]
         new_info = _merge_info(infos, force_update_to_first=force_update_info)
 
         # Now update the attributes
-        self._data = data
+        if isinstance(self._data, np.memmap) and con_axis == 0:
+            # Use a resize and fill in other ones
+            out_shape = (sum(d.shape[0] for d in data),) + data[0].shape[1:]
+            n_bytes = np.prod(out_shape) * self._data.dtype.itemsize
+            self._data.flush()
+            self._data.base.resize(n_bytes)
+            self._data = np.memmap(self._data.filename, mode='r+',
+                                   dtype=self._data.dtype, shape=out_shape)
+            assert self._data.shape == out_shape
+            assert self._data.nbytes == n_bytes
+            offset = len(data[0])
+            for d in data[1:]:
+                this_len = len(d)
+                self._data[offset:offset + this_len] = d
+                offset += this_len
+        else:
+            self._data = np.concatenate(data, axis=con_axis)
         self.info = new_info
         if isinstance(self, BaseRaw):
             self._cals = np.concatenate([getattr(inst, '_cals')
@@ -1101,7 +1122,7 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
 
     for neigh in neighbors:
         if (not isinstance(neigh, list) and
-           not all(isinstance(c, string_types) for c in neigh)):
+                not all(isinstance(c, string_types) for c in neigh)):
             raise ValueError('`neighbors` must be a list of lists of str')
 
     ch_connectivity = np.eye(len(ch_names), dtype=bool)
