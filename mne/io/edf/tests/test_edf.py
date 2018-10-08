@@ -322,10 +322,6 @@ def test_read_annot(tmpdir):
 
 def test_read_raw_edf_deprecation_of_annot_annotmap(tmpdir):
     """Test deprecation of annot and annotmap."""
-    EXPECTED_ANNOTATIONS = [[0.1344, 0.2560, 2],
-                            [0.3904, 1.0000, 2],
-                            [2.0000, 0.0000, 3],
-                            [2.5000, 2.5000, 2]]
     annot = (b'+0.1344\x150.2560\x14two\x14\x00\x00\x00\x00'
              b'+0.3904\x151.0\x14two\x14\x00\x00\x00\x00'
              b'+2.0\x14three\x14\x00\x00\x00\x00\x00\x00\x00\x00'
