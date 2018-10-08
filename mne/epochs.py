@@ -1702,12 +1702,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             .. versionadded:: 0.10.0
         fmt : str
-            Format to use to save data. Valid options are 'double',
-            'single', 'int', and 'short' for 64- or 32-bit float, or 32- or
-            16-bit integers, respectively. Note that using 'short' or 'int' may res',ult
-            in loss of precision, complex data cannot be saved as 'short
-            and neither complex data types nor real data stored as 'double'
-            can be loaded with the MNE command-line tools.
+            Format to use to save data. Valid options are 'double' or
+            'single' for 64- or 32-bit float, or for 128- or
+            64-bit complex numbers respectively.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1721,30 +1718,21 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                       '_epo.fif', '_epo.fif.gz'))
         split_size = _get_split_size(split_size)
 
-        if self.load_data():
-            if np.iscomplexobj(self._data):
-                warn('Saving epoched file with complex data. Loading with '
-                     'command-line MNE tools will not work.')
+        data_test = self[0].get_data()
 
-        type_dict = dict(short=FIFF.FIFFT_DAU_PACK16,
-                         int=FIFF.FIFFT_INT,
-                         single=FIFF.FIFFT_FLOAT,
+        type_dict = dict(single=FIFF.FIFFT_FLOAT,
                          double=FIFF.FIFFT_DOUBLE)
-        if fmt not in type_dict.keys():
-            raise ValueError('fmt must be "short", "int", "single", '
-                             'or "double"')
-
-        data_test = self._data[0, 0][0]
-        if fmt == 'short' and np.iscomplexobj(data_test):
-            raise ValueError('Complex data must be saved as "single" or '
-                             '"double", not "short"')
+        if fmt not in type_dict:
+            raise ValueError('fmt must be "single" or "double". Got (%s).' %
+                             fmt)
 
         # to know the length accurately. The get_data() call would drop
         # bad epochs anyway
         self.drop_bad()
         self._check_consistency()
-        total_size = self[0].get_data().nbytes * len(self)
-        total_size /= 2  # 64bit data converted to 32bit before writing.
+        total_size = data_test.nbytes * len(self)
+        if fmt == "single":
+            total_size /= 2  # 64bit data converted to 32bit before writing.
         n_parts = int(np.ceil(total_size / float(split_size)))
         epoch_idxs = np.array_split(np.arange(len(self)), n_parts)
 
@@ -2591,13 +2579,7 @@ def _read_one_epoch_file(f, tree, preload):
             raise ValueError('Epochs data not found')
         epoch_shape = (len(info['ch_names']), n_samp)
         size_expected = len(events) * np.prod(epoch_shape)
-        if data_tag.type == FIFF.FIFFT_DAU_PACK16:
-            datatype = np.int16
-            size_actual = data_tag.size // 4 - 1
-        elif data_tag.type == FIFF.FIFFT_INT:
-            datatype = np.int32
-            size_actual = data_tag.size // 4 - 3
-        elif data_tag.type == FIFF.FIFFT_FLOAT:
+        if data_tag.type == FIFF.FIFFT_FLOAT:
             datatype = np.float32
             size_actual = data_tag.size // 4 - 4
         elif data_tag.type == FIFF.FIFFT_DOUBLE:
@@ -2605,14 +2587,14 @@ def _read_one_epoch_file(f, tree, preload):
             size_actual = data_tag.size // 8 - 2
         elif data_tag.type == FIFF.FIFFT_COMPLEX_FLOAT:
             datatype = np.complex64
-            size_actual = data_tag.size // 8 - 1
+            size_actual = data_tag.size // 8 - 2
         elif data_tag.type == FIFF.FIFFT_COMPLEX_DOUBLE:
             datatype = np.complex128
             size_actual = data_tag.size // 16 - 1
 
         if not size_actual == size_expected:
             raise ValueError('Incorrect number of samples (%d instead of %d)'
-                 % (size_actual, size_expected))
+                             % (size_actual, size_expected))
 
         # Calibration factors
         cals = np.array([[info['chs'][k]['cal'] *

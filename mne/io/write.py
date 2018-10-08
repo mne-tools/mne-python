@@ -197,7 +197,7 @@ def write_int_matrix(fid, kind, mat):
 def write_complex_float_matrix(fid, kind, mat):
     """Write complex 64 matrix tag."""
     FIFFT_MATRIX = 1 << 30
-    FIFFT_MATRIX_COMPLEX_FLOAT = FIFF.FIFFT_COMPLEX_FLOAT  | FIFFT_MATRIX
+    FIFFT_MATRIX_COMPLEX_FLOAT = FIFF.FIFFT_COMPLEX_FLOAT | FIFFT_MATRIX
 
     data_size = 4 * 2 * mat.size + 4 * (mat.ndim + 1)
 
@@ -217,7 +217,7 @@ def write_complex_float_matrix(fid, kind, mat):
 def write_complex_double_matrix(fid, kind, mat):
     """Write complex 128 matrix tag."""
     FIFFT_MATRIX = 1 << 30
-    FIFFT_MATRIX_COMPLEX_DOUBLE = FIFF.FIFFT_COMPLEX_DOUBLE  | FIFFT_MATRIX
+    FIFFT_MATRIX_COMPLEX_DOUBLE = FIFF.FIFFT_COMPLEX_DOUBLE | FIFFT_MATRIX
 
     data_size = 8 * 2 * mat.size + 4 * (mat.ndim + 1)
 
