@@ -1695,9 +1695,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             .. versionadded:: 0.10.0
         fmt : str
-            Format to use to save data. Valid options are 'double' or
+            Format to save data. Valid options are 'double' or
             'single' for 64- or 32-bit float, or for 128- or
-            64-bit complex numbers respectively.
+            64-bit complex numbers respectively. Note: Data are processed with
+            double-precision. Choosing single-precision, the saved data
+            will slightly differ due to the reduction in precision.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
