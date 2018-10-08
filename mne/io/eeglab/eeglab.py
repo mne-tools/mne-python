@@ -19,7 +19,7 @@ from ...channels.montage import Montage
 from ...epochs import BaseEpochs
 from ...event import read_events
 from ...externals.six import string_types
-from ...annotations import Annotations
+from ...annotations import Annotations, events_from_annotations
 
 # just fix the scaling for now, EEGLAB doesn't seem to provide this info
 CAL = 1e-6
@@ -358,9 +358,8 @@ class RawEEGLAB(BaseRaw):
         info['chs'].append(stim_chan)
         info._update_redundant()
 
-        events = read_events_eeglab(eeg, event_id=event_id,
-                                    event_id_func=event_id_func)
-        self._create_event_ch(events, n_samples=eeg.pnts)
+        # dummy event channel to be populated from annotations later on
+        self._create_event_ch(np.empty((0, 3)), n_samples=eeg.pnts)
 
         # read the data
         if isinstance(eeg.data, string_types):
@@ -389,6 +388,14 @@ class RawEEGLAB(BaseRaw):
             super(RawEEGLAB, self).__init__(
                 info, data, filenames=[input_fname], last_samps=last_samps,
                 orig_format='double', verbose=verbose)
+
+        # create event_ch from annotations
+        annot = read_annotations_eeglab(input_fname)
+        old_annotations = self.annotations
+        self.set_annotations(annot)
+        events, _ = events_from_annotations(self, event_id=event_id)
+        self._create_event_ch(events, n_samples=eeg.pnts)
+        self.set_annotations(old_annotations)
 
     def _create_event_ch(self, events, n_samples=None):
         """Create the event channel."""
