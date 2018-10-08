@@ -94,11 +94,12 @@ def test_pick_refs():
         if len(pick) > 0:
             pick_info(info, pick)
 
+    msg = 'Removing %d compensators' % len(info['comps'])
     for pick in (picks_meg, picks_mag):
         if len(pick) > 0:
             with catch_logging() as log:
                 pick_info(info, pick)
-            assert('Compensation grade 2' in log.getvalue())
+            assert msg in log.getvalue()
 
 
 def test_pick_channels_regexp():

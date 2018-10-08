@@ -280,21 +280,18 @@ def test_saving_picked():
     assert raw.compensation_grade == get_current_comp(raw.info) == 0
     assert len(raw.info['comps']) == 5
     pick_kwargs = dict(meg=True, ref_meg=False, verbose=True)
-    with catch_logging() as log:
-        raw_pick = raw.copy().pick_types(**pick_kwargs)
-    assert len(raw.info['comps']) == 5
-    assert len(raw_pick.info['comps']) == 0
-    log = log.getvalue()
-    assert 'Removing 5 compensators' in log
-    raw_pick.save(out_fname)  # should work
-    read_raw_fif(out_fname)
-    read_raw_fif(out_fname, preload=True)
-    # If comp is applied, picking should log a message
-    raw.apply_gradient_compensation(1)
-    assert raw.compensation_grade == get_current_comp(raw.info) == 1
-    with catch_logging() as log:
-        raw.copy().pick_types(**pick_kwargs)
-    assert 'Compensation grade 1 has been applied' in log.getvalue()
+    for comp_grade in [0, 1]:
+        if comp_grade != 0:
+            raw.apply_gradient_compensation(comp_grade)
+        with catch_logging() as log:
+            raw_pick = raw.copy().pick_types(**pick_kwargs)
+        assert len(raw.info['comps']) == 5
+        assert len(raw_pick.info['comps']) == 0
+        log = log.getvalue()
+        assert 'Removing 5 compensators' in log
+        raw_pick.save(out_fname, overwrite=True)  # should work
+        read_raw_fif(out_fname)
+        read_raw_fif(out_fname, preload=True)
 
 
 run_tests_if_main()
