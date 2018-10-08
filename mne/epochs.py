@@ -2596,7 +2596,7 @@ def _read_one_epoch_file(f, tree, preload):
             size_actual = data_tag.size // 4 - 1
         elif data_tag.type == FIFF.FIFFT_INT:
             datatype = np.int32
-            size_actual = data_tag.size // 4 - 2
+            size_actual = data_tag.size // 4 - 3
         elif data_tag.type == FIFF.FIFFT_FLOAT:
             datatype = np.float32
             size_actual = data_tag.size // 4 - 4
