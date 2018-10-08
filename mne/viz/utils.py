@@ -910,7 +910,7 @@ def _mouse_click(event, params):
     if event.button == 3:  # right click
         if params['fig_annotation'] is not None:  # annotation mode
             raw = params['raw']
-            if np.any([c.contains(event)[0] for c in params['ax'].collections]):
+            if any(c.contains(event)[0] for c in params['ax'].collections):
                 xdata = event.xdata - params['first_time']
                 onset = _sync_onset(raw, raw.annotations.onset)
                 ends = onset + raw.annotations.duration
