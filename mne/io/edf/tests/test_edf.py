@@ -313,7 +313,7 @@ def test_read_annot(tmpdir):
     annotmap_file = tmpdir.join('annotations_map.txt')
     annotmap_file.write('Lights off:1,nothing:2,Apnea:3,Close door:4')
 
-    stim_ch = _read_annot(annot=annot_file, annotmap=annotmap_file,
+    stim_ch = _read_annot(annot=str(annot_file), annotmap=str(annotmap_file),
                           sfreq=SFREQ, data_length=DATA_LENGTH)
 
     assert stim_ch.shape == (DATA_LENGTH,)
