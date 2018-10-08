@@ -616,13 +616,13 @@ def _interpolate_data(stc, morph, mri_resolution=True, mri_space=True,
                 "Cannot infer original voxel size for reslicing... "
                 "set mri_resolution to boolean value or apply morph first.")
         from mne.io.constants import BunchConst
-        # Now deal with the fact that we may have mulitple sub-volumes
+        # Now deal with the fact that we may have multiple sub-volumes
         inuse = [morph[k]['inuse'] for k in range(len(morph))]
         src_shape = [morph[k]['shape'] for k in range(len(morph))]
         assert len(set(map(tuple, src_shape))) == 1
         morph = BunchConst(src_data=_get_src_data(morph)[0])
     else:
-        # Make a list as we may have many inuse when using mulitple sub-volumes
+        # Make a list as we may have many inuse when using multiple sub-volumes
         inuse = [morph.src_data['inuse']]
 
     shape3d = morph.src_data['src_shape']
