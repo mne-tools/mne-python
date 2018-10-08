@@ -521,6 +521,11 @@ def read_beamformer(fname):
     ----------
     fname : str
         The filename of the HDF5 file.
+
+    Returns
+    -------
+    filter : instance of Beamformer
+        The beamformer filter.
     """
     beamformer = read_hdf5(fname, title='mnepython')
     if 'csd' in beamformer:
