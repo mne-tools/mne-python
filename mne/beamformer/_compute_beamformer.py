@@ -472,17 +472,17 @@ class Beamformer(dict):
             subject = 'unknown'
         else:
             subject = '"%s"' % (self['subject'],)
-        out = ('<Beamformer : %s : subject %s : %s vert, %s ch'
+        out = ('<Beamformer  |  %s, subject %s, %s vert, %s ch'
                % (self['kind'], subject, n_verts, n_channels))
         if self['pick_ori'] is not None:
-            out += ' : %s ori' % (self['pick_ori'],)
+            out += ', %s ori' % (self['pick_ori'],)
         if self['weight_norm'] is not None:
-            out += ' : %s norm' % (self['weight_norm'],)
+            out += ', %s norm' % (self['weight_norm'],)
         if self.get('inversion') is not None:
-            out += ' : %s inversion' % (self['inversion'],)
+            out += ', %s inversion' % (self['inversion'],)
         if 'rank' in self:
-            out += ' (rank %s)' % (self['rank'],)
-        out += ' >'
+            out += ', rank %s' % (self['rank'],)
+        out += '>'
         return out
 
     @verbose

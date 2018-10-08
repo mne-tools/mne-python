@@ -293,7 +293,7 @@ def test_make_lcmv(tmpdir):
     assert 'unknown subject' not in repr(filters)
     assert '484' in repr(filters)
     assert '20' in repr(filters)
-    assert '(rank 17)' in repr(filters)
+    assert 'rank 17' in repr(filters)
 
     # I/O
     fname = op.join(str(tmpdir), 'filters.h5')
