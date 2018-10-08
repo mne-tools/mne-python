@@ -366,7 +366,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     return sel
 
 
-def pick_info(info, sel=(), copy=True):
+@verbose
+def pick_info(info, sel=(), copy=True, verbose=None):
     """Restrict an info structure to a selection of channels.
 
     Parameters
@@ -378,6 +379,9 @@ def pick_info(info, sel=(), copy=True):
         are included.
     copy : bool
         If copy is False, info is modified inplace.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

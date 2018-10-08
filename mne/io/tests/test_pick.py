@@ -98,7 +98,7 @@ def test_pick_refs():
     for pick in (picks_meg, picks_mag):
         if len(pick) > 0:
             with catch_logging() as log:
-                pick_info(info, pick)
+                pick_info(info, pick, verbose=True)
             assert msg in log.getvalue()
 
 
