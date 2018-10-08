@@ -98,7 +98,6 @@ def test_io_set_raw(fnames, tmpdir):
         raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
                     phase='zero')  # test that preloading works
 
-    filter_out_warnings(w, category=DeprecationWarning)
     filter_out_warnings(w, category=FutureWarning)
     filter_out_warnings(w, category=ImportWarning)
     assert len(w) == 4  # check `preload=False` raises RuntimeWarning
