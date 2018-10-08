@@ -410,12 +410,16 @@ def test_plot_tfr_topomap():
 def test_ctf_plotting():
     """Test CTF topomap plotting."""
     raw = read_raw_fif(ctf_fname, preload=True)
+    assert raw.compensation_grade == 3
     events = make_fixed_length_events(raw, duration=0.01)
     assert len(events) > 10
     evoked = Epochs(raw, events, tmin=0, tmax=0.01, baseline=None).average()
     assert get_current_comp(evoked.info) == 3
     # smoke test that compensation does not matter
     evoked.plot_topomap(time_unit='s')
+    # better test that topomaps can still be used without plotting ref
+    evoked.pick_types(meg=True, ref_meg=False)
+    evoked.plot_topomap()
 
 
 @testing.requires_testing_data
