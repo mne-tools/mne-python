@@ -182,6 +182,8 @@ API
 
 - The default value of ``stop_receive_thread`` in :meth:`mne.realtime.RtEpochs.stop` has been changed to ``True`` by `Henrich Kolkhorst`_
 
+- Using the :meth:`mne.io.Raw.add_channels` on an instance with memmapped data will now resize the memmap file to append the new channels on Windows and Linux, by `Eric Larson`_
+
 - :attr:`mne.io.Raw.annotations` when missing is set to an empty :class:`mne.Annotations` rather than ``None`` by `Joan Massich`_ and `Alex Gramfort`_
 
 .. _changes_0_16:

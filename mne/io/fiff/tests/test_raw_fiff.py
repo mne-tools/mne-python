@@ -8,6 +8,7 @@ from copy import deepcopy
 from functools import partial
 import itertools as itt
 import os.path as op
+import sys
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -20,7 +21,8 @@ from mne.io.constants import FIFF
 from mne.io import RawArray, concatenate_raws, read_raw_fif
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
 from mne import (concatenate_events, find_events, equalize_channels,
-                 compute_proj_raw, pick_types, pick_channels, create_info)
+                 compute_proj_raw, pick_types, pick_channels, create_info,
+                 pick_info)
 from mne.utils import (_TempDir, requires_pandas, object_diff,
                        requires_mne, run_subprocess, run_tests_if_main)
 from mne.externals.six.moves import zip, cPickle as pickle
@@ -660,7 +662,7 @@ def test_io_complex():
 
     for di, dtype in enumerate(dtypes):
         imag_rand = np.array(1j * rng.randn(data_orig.shape[0],
-                             data_orig.shape[1]), dtype)
+                                            data_orig.shape[1]), dtype)
 
         raw_cp = raw.copy()
         raw_cp._data = np.array(raw_cp._data, dtype)
@@ -1476,6 +1478,48 @@ def test_equalize_channels():
     equalize_channels(my_comparison)
     for e in my_comparison:
         assert_equal(ch_names, e.ch_names)
+
+
+def test_memmap(tmpdir):
+    """Test some interesting memmapping cases."""
+    # concatenate_raw
+    memmaps = [op.join(str(tmpdir), str(ii)) for ii in range(3)]
+    raw_0 = read_raw_fif(test_fif_fname, preload=memmaps[0])
+    assert raw_0._data.filename == memmaps[0]
+    raw_1 = read_raw_fif(test_fif_fname, preload=memmaps[1])
+    assert raw_1._data.filename == memmaps[1]
+    raw_0.append(raw_1, preload=memmaps[2])
+    assert raw_0._data.filename == memmaps[2]
+    # add_channels
+    orig_data = raw_0[:][0]
+    new_ch_info = pick_info(raw_0.info, [0])
+    new_ch_info['chs'][0]['ch_name'] = 'foo'
+    new_ch_info._update_redundant()
+    new_data = np.linspace(0, 1, len(raw_0.times))[np.newaxis]
+    ch = RawArray(new_data, new_ch_info)
+    raw_0.add_channels([ch])
+    if sys.platform == 'darwin':
+        assert not hasattr(raw_0._data, 'filename')
+    else:
+        assert raw_0._data.filename == memmaps[2]
+    assert_allclose(orig_data, raw_0[:-1][0], atol=1e-7)
+    assert_allclose(new_data, raw_0[-1][0], atol=1e-7)
+
+    # now let's see if .copy() actually works; it does, but eventually
+    # we should make it optionally memmap to a new filename rather than
+    # create an in-memory version (filename=None)
+    raw_0 = read_raw_fif(test_fif_fname, preload=memmaps[0])
+    assert raw_0._data.filename == memmaps[0]
+    assert raw_0._data[:1, 3:5].all()
+    raw_1 = raw_0.copy()
+    assert isinstance(raw_1._data, np.memmap)
+    assert raw_1._data.filename is None
+    raw_0._data[:] = 0.
+    assert not raw_0._data.any()
+    assert raw_1._data[:1, 3:5].all()
+    # other things like drop_channels and crop work but do not use memmapping,
+    # eventually we might want to add support for some of these as users
+    # require them.
 
 
 run_tests_if_main()
