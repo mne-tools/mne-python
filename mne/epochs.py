@@ -21,8 +21,7 @@ import numpy as np
 import scipy
 
 from .io.write import (start_file, start_block, end_file, end_block,
-                       write_int, write_dau_pack16, write_float,
-                       write_float_matrix, write_int_matrix,
+                       write_int, write_float, write_float_matrix,
                        write_double_matrix, write_complex_float_matrix,
                        write_complex_double_matrix, write_id, write_string,
                        _get_split_size)
