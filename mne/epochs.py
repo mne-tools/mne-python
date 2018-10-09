@@ -1700,6 +1700,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             64-bit complex numbers respectively. Note: Data are processed with
             double-precision. Choosing single-precision, the saved data
             will slightly differ due to the reduction in precision.
+
+            .. versionadded:: 0.17
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1727,7 +1729,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._check_consistency()
         total_size = data_test.nbytes * len(self)
         if fmt == "single":
-            total_size /= 2  # 64bit data converted to 32bit before writing.
+            total_size //= 2  # 64bit data converted to 32bit before writing.
         n_parts = int(np.ceil(total_size / float(split_size)))
         epoch_idxs = np.array_split(np.arange(len(self)), n_parts)
 
@@ -2574,17 +2576,22 @@ def _read_one_epoch_file(f, tree, preload):
             raise ValueError('Epochs data not found')
         epoch_shape = (len(info['ch_names']), n_samp)
         size_expected = len(events) * np.prod(epoch_shape)
+        # on read double-precision is always used
         if data_tag.type == FIFF.FIFFT_FLOAT:
-            datatype = np.float32
+            datatype = np.dtype('>f8')
+            warn('Data only available as %s but read as %s'
+                 % (np.dtype('>f4').name, datatype.name))
             size_actual = data_tag.size // 4 - 4
         elif data_tag.type == FIFF.FIFFT_DOUBLE:
-            datatype = np.float64
+            datatype = np.dtype('>f8')
             size_actual = data_tag.size // 8 - 2
         elif data_tag.type == FIFF.FIFFT_COMPLEX_FLOAT:
-            datatype = np.complex64
+            datatype = np.dtype('>c16')
+            warn('Data only available as %s but read as %s'
+                 % (np.dtype('>c8').name, datatype.name))
             size_actual = data_tag.size // 8 - 2
         elif data_tag.type == FIFF.FIFFT_COMPLEX_DOUBLE:
-            datatype = np.complex128
+            datatype = np.dtype('>c16')
             size_actual = data_tag.size // 16 - 1
 
         if not size_actual == size_expected:
