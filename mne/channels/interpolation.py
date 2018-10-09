@@ -173,7 +173,6 @@ def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
         Can be ``'auto'``, which means a head-digitization-based origin
         fit. Default is ``(0., 0., 0.04)``.
     verbose : bool, str, int, or None
-    verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
     """
