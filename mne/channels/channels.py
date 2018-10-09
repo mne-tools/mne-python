@@ -8,6 +8,7 @@
 
 import os
 import os.path as op
+import sys
 
 import numpy as np
 from scipy import sparse
@@ -880,7 +881,8 @@ class UpdateChannelsMixin(object):
         new_info = _merge_info(infos, force_update_to_first=force_update_info)
 
         # Now update the attributes
-        if isinstance(self._data, np.memmap) and con_axis == 0:
+        if isinstance(self._data, np.memmap) and con_axis == 0 and \
+                sys.platform != 'darwin':  # resizing not available--no mremap
             # Use a resize and fill in other ones
             out_shape = (sum(d.shape[0] for d in data),) + data[0].shape[1:]
             n_bytes = np.prod(out_shape) * self._data.dtype.itemsize
