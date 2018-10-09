@@ -12,6 +12,7 @@ import os
 import re
 
 import numpy as np
+from io import open as io_open  # python 2 backward compatible open
 
 from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims
@@ -1116,9 +1117,8 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     stim_channel : ndarray
         An array containing stimulus trigger events.
     """
-    from io import open  # python 2 backward compatible open
     pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
-    with open(annot, encoding='latin-1') as annot_file:
+    with io_open(annot, encoding='latin-1') as annot_file:
         triggers = re.findall(pat, annot_file.read())
 
     events = []
@@ -1133,7 +1133,7 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     times = [float(time) * sfreq for time in times]
 
     pat = r'([\w\s]+):(\d+)'
-    with open(annotmap) as annotmap_file:
+    with io_open(annotmap) as annotmap_file:
         mappings = re.findall(pat, annotmap_file.read())
     maps = {}
     for mapping in mappings:
