@@ -1698,7 +1698,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Format to save data. Valid options are 'double' or
             'single' for 64- or 32-bit float, or for 128- or
             64-bit complex numbers respectively. Note: Data are processed with
-            double-precision. Choosing single-precision, the saved data
+            double precision. Choosing single-precision, the saved data
             will slightly differ due to the reduction in precision.
 
             .. versionadded:: 0.17
@@ -2579,16 +2579,12 @@ def _read_one_epoch_file(f, tree, preload):
         # on read double-precision is always used
         if data_tag.type == FIFF.FIFFT_FLOAT:
             datatype = np.dtype('>f8')
-            warn('Saved data only available as %s but read as %s'
-                 % (np.dtype('>f4').name, datatype.name))
             size_actual = data_tag.size // 4 - 4
         elif data_tag.type == FIFF.FIFFT_DOUBLE:
             datatype = np.dtype('>f8')
             size_actual = data_tag.size // 8 - 2
         elif data_tag.type == FIFF.FIFFT_COMPLEX_FLOAT:
             datatype = np.dtype('>c16')
-            warn('Saved data only available as %s but read as %s'
-                 % (np.dtype('>c8').name, datatype.name))
             size_actual = data_tag.size // 8 - 2
         elif data_tag.type == FIFF.FIFFT_COMPLEX_DOUBLE:
             datatype = np.dtype('>c16')
