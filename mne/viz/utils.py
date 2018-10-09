@@ -996,7 +996,7 @@ def _select_bads(event, params, bads):
     # trade-off, avoid selecting more than one channel when drifts are present
     # however for clean data don't click on peaks but on flat segments
     if params['butterfly']:
-        _draw_vert_line(np.array([event.xdata] * 2), params)
+        _draw_vert_line(event.xdata, params)
         return bads
 
     def f(x, y):
