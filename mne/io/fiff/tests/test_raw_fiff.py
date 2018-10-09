@@ -8,6 +8,7 @@ from copy import deepcopy
 from functools import partial
 import itertools as itt
 import os.path as op
+import sys
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -661,7 +662,7 @@ def test_io_complex():
 
     for di, dtype in enumerate(dtypes):
         imag_rand = np.array(1j * rng.randn(data_orig.shape[0],
-                             data_orig.shape[1]), dtype)
+                                            data_orig.shape[1]), dtype)
 
         raw_cp = raw.copy()
         raw_cp._data = np.array(raw_cp._data, dtype)
@@ -1497,7 +1498,10 @@ def test_memmap(tmpdir):
     new_data = np.linspace(0, 1, len(raw_0.times))[np.newaxis]
     ch = RawArray(new_data, new_ch_info)
     raw_0.add_channels([ch])
-    assert raw_0._data.filename == memmaps[2]
+    if sys.platform == 'darwin':
+        assert not hasattr(raw_0._data, 'filename')
+    else:
+        assert raw_0._data.filename == memmaps[2]
     assert_allclose(orig_data, raw_0[:-1][0], atol=1e-7)
     assert_allclose(new_data, raw_0[-1][0], atol=1e-7)
 
