@@ -276,15 +276,22 @@ def test_constants(tmpdir):
         missing = sorted(set(fif.keys()) - set(con.keys()))
         assert missing == [], key
 
-    # Assert that our `coil_def.dat` has accurate descriptions of all
-    # coil entries
+    # Assert that `coil_def.dat` has accurate descriptions of all enum(coil)
     coil_def = _read_coil_defs()
+    coil_desc = np.array([c['desc'] for c in coil_def])
     coil_def = np.array([(c['coil_type'], c['accuracy'])
                          for c in coil_def], int)
-    coil_def = coil_def[coil_def[:, 1] == FWD.COIL_ACCURACY_ACCURATE, 0]
+    mask = (coil_def[:, 1] == FWD.COIL_ACCURACY_ACCURATE)
+    coil_def = coil_def[mask, 0]
+    coil_desc = coil_desc[mask]
     bad_list = []
     for key in fif['coil']:
         if key not in _missing_coil_def and key not in coil_def:
             bad_list.append(('    %s,' % key).ljust(10) +
                             '  # ' + fif['coil'][key][1])
+    assert len(bad_list) == 0, '\n' + '\n'.join(bad_list)
+    # Assert that enum(coil) has all `coil_def.dat` entries
+    for key, desc in zip(coil_def, coil_desc):
+        if key not in fif['coil']:
+            bad_list.append(('    %s,' % key).ljust(10) + '  # ' + desc)
     assert len(bad_list) == 0, '\n' + '\n'.join(bad_list)
