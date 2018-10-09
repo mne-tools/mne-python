@@ -163,7 +163,7 @@ class RawEDF(BaseRaw):
             warn("Stimulus channel will not be annotated. Both 'annot' and "
                  "'annotmap' must be specified.")
 
-        if bool(annot) or bool(annotmap):
+        if annot or annotmap:
             warn("'annot' and 'annotmap' parameters are deprecated and will be"
                  " removed in 0.18", DeprecationWarning)
 
