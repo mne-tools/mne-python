@@ -85,10 +85,14 @@ def test_I_did_mess_up_with_rawshell():
 
 
 def test_toto():
+    from mne.io.eeglab.eeglab import _strip_to_integer_new
+
     def new_get_events(fname, event_id, event_id_func):
         raw = _get_emtpy_raw_with_valid_annot(fname)
         annot = read_annotations_eeglab(fname)
         raw.set_annotations(annot)
+        if event_id_func == 'strip_to_integer':
+            event_id = _strip_to_integer_new
         events, _ = events_from_annotations(raw, event_id=event_id)
         return events
 
@@ -98,7 +102,7 @@ def test_toto():
                                  event_id_func='strip_to_integer')
     new = new_get_events(raw_fname, event_id=None,
                          event_id_func='strip_to_integer')
-    assert new == old
+    assert_array_equal(new, old)
 
 
 @requires_h5py
