@@ -2579,7 +2579,7 @@ def _read_one_epoch_file(f, tree, preload):
         # on read double-precision is always used
         if data_tag.type == FIFF.FIFFT_FLOAT:
             datatype = np.dtype('>f8')
-            warn('Data only available as %s but read as %s'
+            warn('Saved data only available as %s but read as %s'
                  % (np.dtype('>f4').name, datatype.name))
             size_actual = data_tag.size // 4 - 4
         elif data_tag.type == FIFF.FIFFT_DOUBLE:
@@ -2587,7 +2587,7 @@ def _read_one_epoch_file(f, tree, preload):
             size_actual = data_tag.size // 8 - 2
         elif data_tag.type == FIFF.FIFFT_COMPLEX_FLOAT:
             datatype = np.dtype('>c16')
-            warn('Data only available as %s but read as %s'
+            warn('Saved data only available as %s but read as %s'
                  % (np.dtype('>c8').name, datatype.name))
             size_actual = data_tag.size // 8 - 2
         elif data_tag.type == FIFF.FIFFT_COMPLEX_DOUBLE:
@@ -2601,7 +2601,7 @@ def _read_one_epoch_file(f, tree, preload):
         # Calibration factors
         cals = np.array([[info['chs'][k]['cal'] *
                           info['chs'][k].get('scale', 1.0)]
-                         for k in range(info['nchan'])], datatype)
+                         for k in range(info['nchan'])], np.float64)
 
         # Read the data
         if preload:
