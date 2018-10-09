@@ -75,6 +75,8 @@ Changelog
 Bug
 ~~~
 
+- Fix reading edf file annotations by `Joan Massich`_ (`#5580 <https://github.com/mne-tools/mne-python/pull/5580>`_)
+
 - Fix bug with reading events from BrainVision files by `Stefan Appelhoff`_
 
 - Don't use 2nd column of events in BrainVision to store duration but rather raw.annotations by `Alex Gramfort`_
@@ -154,6 +156,8 @@ Bug
 
 API
 ~~~
+
+- Deprecation of ``annot`` and ``annotmap`` parameters in :meth:`mne.io.edf.RawEDF` by `Joan Massich`_ (`#5580 <https://github.com/mne-tools/mne-python/pull/5580>`_)
 
 - Deprecated ``mne.SourceEstimate.morph_precomputed``, ``mne.SourceEstimate.morph``, ``mne.compute_morph_matrix``, ``mne.morph_data_precomputed`` and ``mne.morph_data`` in favor of :func:`mne.compute_source_morph`, by `Tommy Clausner`_
 
