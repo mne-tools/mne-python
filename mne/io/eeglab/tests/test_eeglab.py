@@ -71,7 +71,9 @@ def _get_emtpy_raw_with_valid_annot(fname):
     return raw
 
 
-def test_I_did_mess_up_with_rawshell():
+@testing.requires_testing_data
+def test_rawshell_annot_behaves_like_read_raw_egglab():
+    """Test mocked _RawShell has barely minimum working annotations."""
     raw_fname, _ = raw_mat_fnames
     raw_shell = _get_emtpy_raw_with_valid_annot(raw_fname)
     with pytest.warns(DeprecationWarning):
@@ -81,10 +83,11 @@ def test_I_did_mess_up_with_rawshell():
     assert raw_shell.info['meas_date'] == raw.info['meas_date']
     assert raw_shell.info['sfreq'] == raw.info['sfreq']
     assert raw_shell.first_samp == raw.first_samp
-    # assert_array_equal(raw_shell.times, raw.times)
 
 
-def test_toto():
+@testing.requires_testing_data
+def test_events_from_annot_same_read_events_eeglab():
+    """Test #5460 regression."""
     from mne.io.eeglab.eeglab import _strip_to_integer_new
 
     def new_get_events(fname, event_id, event_id_func):
