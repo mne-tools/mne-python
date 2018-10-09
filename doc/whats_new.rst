@@ -159,6 +159,8 @@ API
 
 - Removed blocking (waiting for new epochs) in :meth:`mne.realtime.RtEpochs.get_data()` by `Henrich Kolkhorst`_
 
+- Warning messages are now only emitted as :func:`warnings.warn_explicit` rather than also being emitted as ``logging`` messages (unless a logging file is being used) to avoid duplicate warning messages, by `Eric Larson`_
+
 - Deprecated save_stc_as_volume function in favor of :meth:`mne.VolSourceEstimate.as_volume` and
    :meth:`mne.VolSourceEstimate.save_as_volume` by `Alex Gramfort`_
 
