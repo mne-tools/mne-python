@@ -616,23 +616,32 @@ def _interpolate_data(stc, morph, mri_resolution=True, mri_space=True,
                 "Cannot infer original voxel size for reslicing... "
                 "set mri_resolution to boolean value or apply morph first.")
         from mne.io.constants import BunchConst
+        # Now deal with the fact that we may have multiple sub-volumes
+        inuse = [morph[k]['inuse'] for k in range(len(morph))]
+        src_shape = [morph[k]['shape'] for k in range(len(morph))]
+        assert len(set(map(tuple, src_shape))) == 1
         morph = BunchConst(src_data=_get_src_data(morph)[0])
+    else:
+        # Make a list as we may have many inuse when using multiple sub-volumes
+        inuse = [morph.src_data['inuse']]
+
+    shape3d = morph.src_data['src_shape']
 
     # setup volume parameters
     n_times = stc.data.shape[1]
-    shape3d = morph.src_data['src_shape']
     shape = (n_times,) + shape3d
     vols = np.zeros(shape)
 
-    mask3d = morph.src_data['inuse'].reshape(shape3d).astype(np.bool)
-    n_vertices = np.sum(mask3d)
-
     n_vertices_seen = 0
-    for k, vol in enumerate(vols):  # loop over time instants
+    for this_inuse in inuse:
+        mask3d = this_inuse.reshape(shape3d).astype(np.bool)
+        n_vertices = np.sum(mask3d)
         stc_slice = slice(n_vertices_seen, n_vertices_seen + n_vertices)
-        vol[mask3d] = stc.data[stc_slice, k]
 
-    n_vertices_seen += n_vertices
+        for k, vol in enumerate(vols):  # loop over time instants
+            vol[mask3d] = stc.data[stc_slice, k]
+
+        n_vertices_seen += n_vertices
 
     # use mri resolution as represented in src
     if mri_resolution:
