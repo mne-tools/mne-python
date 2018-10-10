@@ -1714,22 +1714,25 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                       '_epo.fif', '_epo.fif.gz'))
         split_size = _get_split_size(split_size)
 
-        data_test = self[0].get_data()
-
-        type_dict = dict(single=FIFF.FIFFT_FLOAT,
-                         double=FIFF.FIFFT_DOUBLE)
-        if fmt not in type_dict:
+        if fmt not in ('single', 'double'):
             raise ValueError('fmt must be "single" or "double". Got (%s).' %
                              fmt)
 
         # to know the length accurately. The get_data() call would drop
         # bad epochs anyway
         self.drop_bad()
+        if len(self) == 0:
+            warn('Saving epochs with no data')
+            total_size = 0
+        else:
+            d = self[0].get_data()
+            # this should be guaranteed by subclasses
+            assert d.dtype in ('>f8', '<f8', '>c16', '<c16')
+            total_size = d.nbytes * len(self)
         self._check_consistency()
-        total_size = data_test.nbytes * len(self)
         if fmt == "single":
             total_size //= 2  # 64bit data converted to 32bit before writing.
-        n_parts = int(np.ceil(total_size / float(split_size)))
+        n_parts = max(int(np.ceil(total_size / float(split_size))), 1)
         epoch_idxs = np.array_split(np.arange(len(self)), n_parts)
 
         for part_idx, epoch_idx in enumerate(epoch_idxs):

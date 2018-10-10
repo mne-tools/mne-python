@@ -806,7 +806,7 @@ def use_coil_def(fname):
     This is meant to be used a context manager such as::
 
     >>> with use_coil_def(my_fname):  # doctest:+SKIP
-    ...    make_forward_solution(...)
+    ...     make_forward_solution(...)
 
     This allows using custom coil definitions with functions that require
     forward modeling.

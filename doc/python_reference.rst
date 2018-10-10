@@ -202,6 +202,7 @@ Datasets
    misc.data_path
    mtrf.data_path
    multimodal.data_path
+   opm.data_path
    sample.data_path
    somato.data_path
    spm_face.data_path
