@@ -331,7 +331,7 @@ def test_read_raw_edf_deprecation_of_annot_annotmap(tmpdir):
     annotmap_file = tmpdir.join('annotations_map.txt')
     annotmap_file.write('two:2,three:3')
 
-    with pytest.warns(DeprecationWarning):
+    with pytest.warns(DeprecationWarning, match="annot.*annotmap.*"):
         read_raw_edf(input_fname=edf_path, annot=str(annot_file),
                      annotmap=str(annotmap_file), preload=True)
 
