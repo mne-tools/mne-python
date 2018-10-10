@@ -77,6 +77,8 @@ Changelog
 Bug
 ~~~
 
+- Fix reading edf file annotations by `Joan Massich`_
+
 - Fix bug with reading events from BrainVision files by `Stefan Appelhoff`_
 
 - Don't use 2nd column of events in BrainVision to store duration but rather raw.annotations by `Alex Gramfort`_
@@ -156,6 +158,8 @@ Bug
 
 API
 ~~~
+
+- Deprecation of ``annot`` and ``annotmap`` parameters in :meth:`mne.io.edf.RawEDF` by `Joan Massich`_
 
 - :meth:`mne.Epochs.save` now has the parameter `fmt` to specify the desired format (precision) saving epoched data, by `Stefan Repplinger`_, `Eric Larson`_ and `Alex Gramfort`_
 
@@ -1349,7 +1353,7 @@ BUG
 
 - Time-cropping functions (e.g., :func:`mne.Epochs.crop`, :func:`mne.Evoked.crop`, :func:`mne.io.Raw.crop`, :func:`mne.SourceEstimate.crop`) made consistent with behavior of ``tmin`` and ``tmax`` of :class:`mne.Epochs`, where nearest sample is kept. For example, for MGH data acquired with ``sfreq=600.614990234``, constructing ``Epochs(..., tmin=-1, tmax=1)`` has bounds ``+/-1.00064103``, and now ``epochs.crop(-1, 1)`` will also have these bounds (previously they would have been ``+/-0.99897607``). Time cropping functions also no longer use relative tolerances when determining the boundaries. These changes have minor effects on functions that use cropping under the hood, such as :func:`mne.compute_covariance` and :func:`mne.connectivity.spectral_connectivity`. Changes by `Jaakko Leppakangas`_ and `Eric Larson`_
 
-- Fix EEG spherical spline interpolation code to account for average reference by `Mainak Jas`_ (`#2758 <https://github.com/mne-tools/mne-python/pull/2758>`_)
+- Fix EEG spherical spline interpolation code to account for average reference by `Mainak Jas`_
 
 - MEG projectors are removed after Maxwell filtering by `Eric Larson`_
 

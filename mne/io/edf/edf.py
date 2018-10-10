@@ -12,6 +12,7 @@ import os
 import re
 
 import numpy as np
+from io import open as io_open  # python 2 backward compatible open
 
 from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims
@@ -163,6 +164,10 @@ class RawEDF(BaseRaw):
             warn("Stimulus channel will not be annotated. Both 'annot' and "
                  "'annotmap' must be specified.")
 
+        if annot or annotmap:
+            warn("'annot' and 'annotmap' parameters are deprecated and will be"
+                 " removed in 0.18", DeprecationWarning)
+
         # Raw attributes
         last_samps = [edf_info['nsamples'] - 1]
         super(RawEDF, self).__init__(
@@ -291,8 +296,8 @@ class RawEDF(BaseRaw):
         if stim_channel is not None and len(stim_channel_idx) > 0:
             if annot and annotmap:
                 evts = _read_annot(annot, annotmap, sfreq,
-                                   self._last_samps[fi])
-                data[stim_channel_idx, :] = evts[start:stop + 1]
+                                   self._last_samps[fi] + 1)
+                data[stim_channel_idx, :] = evts[start:stop]
             elif len(tal_sel) > 0:
                 tal_channel_idx = np.in1d(orig_sel[idx], tal_sel)
                 evts = _parse_tal_channel(np.atleast_2d(data[tal_channel_idx]))
@@ -383,9 +388,9 @@ def _parse_tal_channel(tal_channel_data):
     for ev in tal_list:
         onset = float(ev[0])
         duration = float(ev[2]) if ev[2] else 0
-        for annotation in ev[3].split('\x14')[1:]:
-            if annotation:
-                events.append([onset, duration, annotation])
+        for description in ev[3].split('\x14')[1:]:
+            if description:
+                events.append([onset, duration, description])
 
     return events
 
@@ -1112,23 +1117,32 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     stim_channel : ndarray
         An array containing stimulus trigger events.
     """
-    pat = '([+/-]\\d+.\\d+),(\\w+)'
-    annot = open(annot).read()
-    triggers = re.findall(pat, annot)
-    times, values = zip(*triggers)
+    pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
+    with io_open(annot, encoding='latin-1') as annot_file:
+        triggers = re.findall(pat, annot_file.read())
+
+    events = []
+    for ev in triggers:
+        onset = float(ev[0])
+        duration = float(ev[2]) if ev[2] else 0
+        for description in ev[3].split('\x14')[1:]:
+            if description:
+                events.append([onset, duration, description])
+
+    times, durations, descriptions = zip(*events)
     times = [float(time) * sfreq for time in times]
 
-    pat = r'(\w+):(\d+)'
-    annotmap = open(annotmap).read()
-    mappings = re.findall(pat, annotmap)
+    pat = r'([\w\s]+):(\d+)'
+    with io_open(annotmap) as annotmap_file:
+        mappings = re.findall(pat, annotmap_file.read())
     maps = {}
     for mapping in mappings:
         maps[mapping[0]] = mapping[1]
-    triggers = [int(maps[value]) for value in values]
+    triggers = [int(maps[value]) for value in descriptions]
 
-    stim_channel = np.zeros(data_length)
+    stim_channel = np.zeros(data_length, dtype=int)
     for time, trigger in zip(times, triggers):
-        stim_channel[time] = trigger
+        stim_channel[int(time)] = int(trigger)
 
     return stim_channel
 
