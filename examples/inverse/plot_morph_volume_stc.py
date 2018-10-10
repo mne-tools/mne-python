@@ -95,7 +95,7 @@ morph = mne.compute_source_morph(inverse_operator['src'],
 # --------------------------------
 #
 # The morph can be applied to the source estimate data, by giving it as the
-# first argument to the :meth:`morph.apply() <mne.SourceMorph.apply>`method:
+# first argument to the :meth:`morph.apply() <mne.SourceMorph.apply>` method:
 
 stc_fsaverage = morph.apply(stc)
 

@@ -88,7 +88,7 @@ MNE-Python core terminology and general concepts
         Morphing refers to the operation of transferring source estimates from
         one anatomy to another. It is commonly referred as realignment in fMRI
         literature. This operation is necessary for group studies.
-        See :ref:`sphx_glr_auto_examples_inverse_plot_morph_data.py` for more details.
+        See :ref:`sphx_glr_auto_tutorials_plot_morph_stc.py` for more details.
 
     pick
         An integer that is the index of a channel in the measurement info.

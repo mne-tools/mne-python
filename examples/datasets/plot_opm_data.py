@@ -65,14 +65,14 @@ trans = None
 # To compute the forward solution, we must
 # provide our temporary/custom coil definitions, which can be done as::
 #
-# with mne.forward.use_coil_def(coil_def_fname):
+# with mne.use_coil_def(coil_def_fname):
 #     fwd = mne.make_forward_solution(
 #         raw.info, trans, src, bem, eeg=False, mindist=5.0,
 #         n_jobs=1, verbose=True)
 
 fwd = mne.read_forward_solution(fwd_fname)
 
-with mne.forward.use_coil_def(coil_def_fname):
+with mne.use_coil_def(coil_def_fname):
     mne.viz.plot_alignment(
         raw.info, trans, subject, subjects_dir, meg='sensors', bem=bem,
         surfaces=('head', 'pial'))
@@ -83,7 +83,7 @@ mlab.view(45, 60, distance=0.4, focalpoint=(0.02, 0, 0.04))
 # ----------------------
 
 # Fit dipoles on a subset of time points
-with mne.forward.use_coil_def(coil_def_fname):
+with mne.use_coil_def(coil_def_fname):
     dip_opm, _ = mne.fit_dipole(evoked.copy().crop(0.015, 0.080),
                                 cov, bem, trans, verbose=True)
 idx = np.argmax(dip_opm.gof)
