@@ -229,19 +229,18 @@ def test_other_systems():
             pytest.raises(RuntimeError, maxwell_filter, raw_kit,
                           ignore_ref=True, regularize=None)  # bad condition
             raw_sss = maxwell_filter(raw_kit, origin='auto',
-                                     ignore_ref=True, bad_condition='warning',
-                                     verbose='warning')
+                                     ignore_ref=True, bad_condition='info',
+                                     verbose=True)
     log = log.getvalue()
     assert 'badly conditioned' in log
     assert 'more than 20 mm from' in log
     # fits can differ slightly based on scipy version, so be lenient here
     _assert_n_free(raw_sss, 28, 34)  # bad origin == brutal reg
     # Let's set the origin
-    with pytest.warns(RuntimeWarning, match='badly conditioned'):
-        with catch_logging() as log:
-            raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
-                                     ignore_ref=True, bad_condition='warning',
-                                     regularize=None, verbose=True)
+    with catch_logging() as log:
+        raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
+                                 ignore_ref=True, bad_condition='info',
+                                 regularize=None, verbose=True)
     log = log.getvalue()
     assert 'badly conditioned' in log
     assert '80/80 in, 12/15 out' in log
@@ -750,22 +749,18 @@ def test_head_translation():
     assert_meg_snr(raw_sss, read_crop(sss_std_fname, (0., 1.)), 200.)
     # Now with default
     with pytest.warns(RuntimeWarning, match='over 25 mm'):
-        with catch_logging() as log:
-            raw_sss = maxwell_filter(raw, destination=mf_head_origin,
-                                     origin=mf_head_origin, regularize=None,
-                                     bad_condition='ignore', verbose='warning')
-    assert ('over 25 mm' in log.getvalue())
+        raw_sss = maxwell_filter(raw, destination=mf_head_origin,
+                                 origin=mf_head_origin, regularize=None,
+                                 bad_condition='ignore', verbose=True)
     assert_meg_snr(raw_sss, read_crop(sss_trans_default_fname), 125.)
     destination = np.eye(4)
     destination[2, 3] = 0.04
     assert_allclose(raw_sss.info['dev_head_t']['trans'], destination)
     # Now to sample's head pos
     with pytest.warns(RuntimeWarning, match='= 25.6 mm'):
-        with catch_logging() as log:
-            raw_sss = maxwell_filter(raw, destination=sample_fname,
-                                     origin=mf_head_origin, regularize=None,
-                                     bad_condition='ignore', verbose='warning')
-    assert ('= 25.6 mm' in log.getvalue())
+        raw_sss = maxwell_filter(raw, destination=sample_fname,
+                                 origin=mf_head_origin, regularize=None,
+                                 bad_condition='ignore', verbose=True)
     assert_meg_snr(raw_sss, read_crop(sss_trans_sample_fname), 350.)
     assert_allclose(raw_sss.info['dev_head_t']['trans'],
                     read_info(sample_fname)['dev_head_t']['trans'])

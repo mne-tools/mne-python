@@ -1770,7 +1770,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                          int=FIFF.FIFFT_INT,
                          single=FIFF.FIFFT_FLOAT,
                          double=FIFF.FIFFT_DOUBLE)
-        if fmt not in type_dict.keys():
+        if fmt not in type_dict:
             raise ValueError('fmt must be "short", "int", "single", '
                              'or "double"')
         reset_dict = dict(short=False, int=False, single=True, double=True)
