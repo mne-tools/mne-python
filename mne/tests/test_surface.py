@@ -44,7 +44,7 @@ def test_helmet():
                      (fname_bti_raw, 304),
                      (fname_ctf_raw, 3894)]:
         helmet = get_meg_helmet_surf(read_info(fname), trans)
-        assert_equal(len(helmet['rr']), n)  # they all have 304 verts
+        assert_equal(len(helmet['rr']), n)
         assert_equal(len(helmet['rr']), len(helmet['nn']))
 
 
