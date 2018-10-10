@@ -2426,8 +2426,8 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, axes=None):
     ch_type = _picks_by_type(info_from)
 
     if len(ch_type) > 1:
-        raise ValueError("Multiple Channel type not supported, only "
-                         "support single channel type of 'grad' or 'mag' ")
+        raise ValueError('Multiple Channel type not supported, only '
+                         'support single channel type of \'grad\' or \'mag\' ')
     else:
         ch_type = ch_type[0][0]
 
