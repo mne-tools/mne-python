@@ -42,7 +42,7 @@ def test_helmet():
     for fname, n in [(fname_raw, 304),
                      (fname_kit_raw, 304),
                      (fname_bti_raw, 304),
-                     (fname_ctf_raw, 3894)]:
+                     (fname_ctf_raw, 348)]:
         helmet = get_meg_helmet_surf(read_info(fname), trans)
         assert_equal(len(helmet['rr']), n)
         assert_equal(len(helmet['rr']), len(helmet['nn']))
