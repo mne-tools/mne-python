@@ -57,6 +57,36 @@ def _check_h5(fname):
 @requires_h5py
 @testing.requires_testing_data
 @pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
+def test_ZZ(fnames, tmpdir):
+    """Test importing EEGLAB .set files."""
+    tmpdir = str(tmpdir)
+    raw_fname, raw_fname_onefile = fnames
+    with pytest.warns(RuntimeWarning) as w:
+        _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
+                         montage=montage)
+        _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
+                         montage=montage)
+
+    for want in ('Events like', 'consist entirely', 'could not be mapped',
+                 'string preload is not supported'):
+        assert (any(want in str(ww.message) for ww in w))
+
+
+@testing.requires_testing_data
+def test_YY():
+    raw_fname, _ = raw_mat_fnames
+    event_id = {'rt': 1, 'square': 2}
+    raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+                           event_id=event_id, preload=True)
+    events = find_events(raw0)
+    assert events.size
+    Epochs(raw0, find_events(raw0), event_id)
+
+
+@pytest.mark.skip(reason='stuck')
+@requires_h5py
+@testing.requires_testing_data
+@pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
 def test_io_set_raw(fnames, tmpdir):
     """Test importing EEGLAB .set files."""
     tmpdir = str(tmpdir)

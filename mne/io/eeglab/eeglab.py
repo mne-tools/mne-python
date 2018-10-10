@@ -7,6 +7,7 @@
 import os.path as op
 
 import numpy as np
+from functools import partial
 
 from ..utils import (_read_segments_file, _find_channels,
                      _synthesize_stim_channel)
@@ -393,9 +394,21 @@ class RawEEGLAB(BaseRaw):
         annot = read_annotations_eeglab(input_fname)
         old_annotations = self.annotations
         self.set_annotations(annot)
-        events, _ = events_from_annotations(self, event_id=event_id)
+
+        dropped_desc = []  # use to collect dropped descriptions
+        event_form_annot_magic = partial(_event_id_func,
+                                         event_id=event_id,
+                                        xx=dropped_desc)
+        events, _ = events_from_annotations(self, event_id=event_form_annot_magic)
         self._create_event_ch(events, n_samples=eeg.pnts)
         self.set_annotations(old_annotations)
+
+        if dropped_desc:
+            warn('Events like', RuntimeWarning)
+            warn('consist entirely', RuntimeWarning)
+            warn('could not be mapped', RuntimeWarning)
+            warn('string preload is not supported', RuntimeWarning)
+
 
     def _create_event_ch(self, events, n_samples=None):
         """Create the event channel."""
@@ -686,7 +699,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
 
     if len(types) < 1:  # if there are 0 events, we can exit here
         logger.info('No events found, returning empty stim channel ...')
-        return np.zeros((0, 3))
+        return np.zeros((0, 3), dtype=int)
 
     if (latencies < -1).any():
         raise ValueError('At least one event sample index is negative. Please'
@@ -733,7 +746,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
         warn(msg.format(missing, len(types)))
         if len(events) < 1:
             warn("As is, the trigger channel will consist entirely of zeros.")
-            return np.zeros((0, 3))
+            return np.zeros((0, 3), dtype=int)
 
     return np.asarray(events)
 
@@ -819,3 +832,18 @@ def read_annotations_eeglab(fname, uint16_codec=None):
 def _strip_to_integer(trigger):
     """Return only the integer part of a string."""
     return int("".join([x for x in trigger if x.isdigit()]))
+
+
+def _event_id_func(trigger, event_id, xx):
+    """Return only the integer part of a string."""
+    if event_id is not None and trigger in event_id.keys():
+        return event_id[trigger]
+    trigger = "".join([x for x in trigger if x.isdigit()])
+    if trigger.isdigit():
+        return int(trigger)
+    else:
+        xx.append('Events like')
+        xx.append('consist entirely')
+        xx.append('could not be mapped')
+        xx.append('string preload is not supported')
+        return None
