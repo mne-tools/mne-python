@@ -54,6 +54,60 @@ def _check_h5(fname):
             raise SkipTest('h5py module required')
 
 
+def _get_emtpy_raw_with_valid_annot(fname):
+    from mne.io.base import _RawShell
+    from mne.io.eeglab import _get_info, _check_load_mat
+    raw = _RawShell()
+    raw.first_samp = 0
+    eeg = _check_load_mat(fname, uint16_codec=None)
+    raw.info = _get_info(eeg=eeg, montage=montage, eog=())
+    sfreq = raw.info['sfreq']
+
+    def _time_as_index(times, use_rounding, origin):
+        return np.round(np.atleast_1d(times) * sfreq)
+
+    raw.time_as_index = _time_as_index
+
+    return raw
+
+
+@testing.requires_testing_data
+def test_rawshell_annot_behaves_like_read_raw_egglab():
+    """Test mocked _RawShell has barely minimum working annotations."""
+    raw_fname, _ = raw_mat_fnames
+    raw_shell = _get_emtpy_raw_with_valid_annot(raw_fname)
+    with pytest.warns(DeprecationWarning):
+        raw = read_raw_eeglab(raw_fname, montage=montage, eog=(),
+                              preload=False)
+
+    assert raw_shell.info['meas_date'] == raw.info['meas_date']
+    assert raw_shell.info['sfreq'] == raw.info['sfreq']
+    assert raw_shell.first_samp == raw.first_samp
+
+
+@testing.requires_testing_data
+def test_events_from_annot_same_read_events_eeglab():
+    """Test #5460 regression."""
+    from mne.io.eeglab.eeglab import _strip_to_integer_new
+
+    def new_get_events(fname, event_id, event_id_func):
+        raw = _get_emtpy_raw_with_valid_annot(fname)
+        annot = read_annotations_eeglab(fname)
+        raw.set_annotations(annot)
+        if event_id_func == 'strip_to_integer':
+            event_id = _strip_to_integer_new
+        events, _ = events_from_annotations(raw, event_id=event_id)
+        return events
+
+    raw_fname, _ = raw_mat_fnames
+    with pytest.warns(RuntimeWarning):
+        old = read_events_eeglab(raw_fname, event_id=None,
+                                 event_id_func='strip_to_integer')
+    new = new_get_events(raw_fname, event_id=None,
+                         event_id_func='strip_to_integer')
+    assert_array_equal(new, old)
+
+
 @requires_h5py
 @testing.requires_testing_data
 @pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
