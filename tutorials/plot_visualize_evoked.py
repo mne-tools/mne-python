@@ -175,7 +175,7 @@ mne.viz.plot_evoked_topo(evoked, title=title % 'Left/Right Auditory/Visual',
 # the arrows represent actual current following underneath the mag sensors
 # here 175 is the time of the maximum sensor space activity
 evoked_l_aud_mag = evoked_l_aud.pick_types(meg='mag')
-mne.viz.plot_arrowmap(evoked_l_aud_mag.data[: ,175], evoked_l_aud_mag.info)
+mne.viz.plot_arrowmap(evoked_l_aud_mag.data[:, 175], evoked_l_aud_mag.info)
 
 ###############################################################################
 # Visualizing field lines in 3D

@@ -3,8 +3,10 @@
 Plotting topographic arrowmaps of evoked data
 =============================================
 
-Load evoked data and plot arrowmaps along with the topomap for selected time points.
-Arrowmap is based upon Hosaka-Cohen transformation and represents actual current
+Load evoked data and plot arrowmaps along with
+the topomap for selected time points.
+Arrowmap is based upon Hosaka-Cohen transformation
+and represents actual current
 underneath the meg sensors, they are poor man MNE
 """
 # Authors: Sheraz Khan <sheraz@khansheraz.com>
@@ -29,5 +31,4 @@ evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
 # of the maximum sensor space activity
 evoked.pick_types(meg='mag')
 max_time_idx = np.abs(evoked.data).mean(axis=0).argmax()
-plot_arrowmap(evoked.data[: ,max_time_idx], evoked.info)
-
+plot_arrowmap(evoked.data[:, max_time_idx], evoked.info)
