@@ -32,7 +32,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _set_title_multiple_electrodes, _check_time_unit,
                     _plot_masked_image)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
-                     _check_if_nan)
+                     _check_if_nan, _check_ch_locs)
 
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
@@ -415,9 +415,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             if not gfp_only:
                 chs = [info['chs'][i] for i in idx]
                 locs3d = np.array([ch['loc'][:3] for ch in chs])
-                is_ch_loc = (locs3d == 0).all() or \
-                    (~np.isfinite(locs3d)).all() or np.allclose(locs3d, 0.)
-                if spatial_colors is True and is_ch_loc:
+                if spatial_colors is True and _check_ch_locs(locs3d):
                     warn('Channel locations not available. Disabling spatial '
                          'colors.')
                     spatial_colors = selectable = False

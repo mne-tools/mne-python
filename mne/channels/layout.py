@@ -20,7 +20,7 @@ from ..bem import fit_sphere_to_headshape
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..io.meas_info import Info
-from ..utils import _clean_names, warn
+from ..utils import _clean_names, warn, _check_ch_locs
 from ..externals.six.moves import map
 from .channels import _get_ch_info
 
@@ -656,8 +656,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
     locs3d = np.array([ch['loc'][:3] for ch in chs])
 
     # If electrode locations are not available, use digization points
-    if len(locs3d) == 0 or (~np.isfinite(locs3d)).all() or \
-            np.allclose(locs3d, 0.):
+    if _check_ch_locs(locs3d):
         logging.warning('Did not find any electrode locations (in the info '
                         'object), will attempt to use digitization points '
                         'instead. However, if digitization points do not '
