@@ -425,10 +425,12 @@ def test_ctf_plotting():
 @testing.requires_testing_data
 def test_plot_arrowmap():
     """Test arrowmap plotting."""
+    import warnings
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
     evoked.pick_types(meg='mag')
-    plot_arrowmap(evoked.data[:, 0], evoked.info)
+    with warnings.catch_warnings(record=True):
+        plot_arrowmap(evoked.data[:, 0], evoked.info)
 
 
 @testing.requires_testing_data
