@@ -294,7 +294,7 @@ def test_simulate_calculate_chpi_positions():
     info_trans = info['dev_head_t']['trans'].copy()
 
     dev_head_pos_ini = np.concatenate([rot_to_quat(info_trans[:3, :3]),
-                                      info_trans[:3, 3]])
+                                       info_trans[:3, 3]])
     ez = np.array([0, 0, 1])  # Unit vector in z-direction of head coordinates
 
     # Define some constants

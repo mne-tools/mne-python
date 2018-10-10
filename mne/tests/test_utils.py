@@ -28,7 +28,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        set_memmap_min_size, _get_stim_channel, _check_fname,
                        create_slices, _time_mask, random_permutation,
                        _get_call_line, compute_corr, sys_info, verbose,
-                       check_fname, get_config_path,
+                       check_fname, get_config_path, warn,
                        object_size, buggy_mkl_svd, _get_inst_data,
                        copy_doc, copy_function_doc_to_method_doc, ProgressBar,
                        linkcode_resolve, array_split_idx, filter_out_warnings)
@@ -884,6 +884,15 @@ def test_linkcode_resolve():
     url = linkcode_resolve('py', dict(module='mne',
                                       fullname='datasets.sample.data_path'))
     assert '/mne/datasets/sample/sample.py' + ex in url
+
+
+def test_warn(capsys):
+    """Test the smart warn() function."""
+    with pytest.warns(RuntimeWarning, match='foo'):
+        warn('foo')
+    captured = capsys.readouterr()
+    assert captured.out == ''  # gh-5592
+    assert captured.err == ''  # this is because pytest.warns took it already
 
 
 run_tests_if_main()

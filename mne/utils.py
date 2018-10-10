@@ -367,8 +367,7 @@ def warn(message, category=RuntimeWarning):
     category : instance of Warning
         The warning class. Defaults to ``RuntimeWarning``.
     """
-    import mne
-    root_dir = op.dirname(mne.__file__)
+    root_dir = op.dirname(__file__)
     frame = None
     if logger.level <= logging.WARN:
         last_fname = ''
@@ -395,7 +394,12 @@ def warn(message, category=RuntimeWarning):
         # recognize the module name (and our warnings.simplefilter will fail)
         warnings.warn_explicit(message, category, fname, lineno,
                                'mne', globals().get('__warningregistry__', {}))
-    logger.warning(message)
+    # To avoid a duplicate warning print, we only emit the logger.warning if
+    # one of the handlers is a FileHandler. See gh-5592
+    if any(isinstance(h, logging.FileHandler) or getattr(h, '_mne_file_like',
+                                                         False)
+           for h in logger.handlers):
+        logger.warning(message)
 
 
 def filter_out_warnings(warn_record, category=None, match=None):
@@ -1425,6 +1429,7 @@ class catch_logging(object):
         self._data = StringIO()
         self._lh = logging.StreamHandler(self._data)
         self._lh.setFormatter(logging.Formatter('%(message)s'))
+        self._lh._mne_file_like = True  # monkey patch for warn() use
         for lh in logger.handlers:
             logger.removeHandler(lh)
         logger.addHandler(self._lh)
