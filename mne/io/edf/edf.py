@@ -388,9 +388,9 @@ def _parse_tal_channel(tal_channel_data):
     for ev in tal_list:
         onset = float(ev[0])
         duration = float(ev[2]) if ev[2] else 0
-        for annotation in ev[3].split('\x14')[1:]:
-            if annotation:
-                events.append([onset, duration, annotation])
+        for description in ev[3].split('\x14')[1:]:
+            if description:
+                events.append([onset, duration, description])
 
     return events
 
@@ -1125,9 +1125,9 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     for ev in triggers:
         onset = float(ev[0])
         duration = float(ev[2]) if ev[2] else 0
-        for annotation in ev[3].split('\x14')[1:]:
-            if annotation:
-                events.append([onset, duration, annotation])
+        for description in ev[3].split('\x14')[1:]:
+            if description:
+                events.append([onset, duration, description])
 
     times, durations, descriptions = zip(*events)
     times = [float(time) * sfreq for time in times]
