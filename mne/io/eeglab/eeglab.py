@@ -392,23 +392,27 @@ class RawEEGLAB(BaseRaw):
 
         # create event_ch from annotations
         annot = read_annotations_eeglab(input_fname)
-        old_annotations = self.annotations
+        # old_annotations = self.annotations  # XXX
         self.set_annotations(annot)
 
         dropped_desc = []  # use to collect dropped descriptions
-        event_form_annot_magic = partial(_event_id_func,
-                                         event_id=event_id,
-                                        xx=dropped_desc)
-        events, _ = events_from_annotations(self, event_id=event_form_annot_magic)
+        event_id_ = partial(_event_id_func,
+                            event_id=event_id,
+                            event_id_func=event_id_func,
+                            dropped=dropped_desc)
+        events, _ = events_from_annotations(self, event_id=event_id_)
         self._create_event_ch(events, n_samples=eeg.pnts)
-        self.set_annotations(old_annotations)
+        if getattr(self, 'preload', False):
+            self._data[-1] = self._event_ch
+        self.set_annotations(annot)
 
-        if dropped_desc:
-            warn('Events like', RuntimeWarning)
-            warn('consist entirely', RuntimeWarning)
-            warn('could not be mapped', RuntimeWarning)
-            warn('string preload is not supported', RuntimeWarning)
+        # self.set_annotations(old_annotations)  # XXX why set back???
 
+        if len(dropped_desc) > 0:
+            dropped = list(set(dropped_desc))
+            logger.info("{0} annotation(s) will be dropped, such as {1}. "
+                        .format(len(dropped), dropped[:5]))
+            print(dropped_desc)
 
     def _create_event_ch(self, events, n_samples=None):
         """Create the event channel."""
@@ -834,16 +838,16 @@ def _strip_to_integer(trigger):
     return int("".join([x for x in trigger if x.isdigit()]))
 
 
-def _event_id_func(trigger, event_id, xx):
-    """Return only the integer part of a string."""
-    if event_id is not None and trigger in event_id.keys():
+def _event_id_func(trigger, event_id, event_id_func, dropped):
+    """Mimic old behavior to be used with events_from_annotations."""
+    if event_id is not None and trigger in event_id:
         return event_id[trigger]
-    trigger = "".join([x for x in trigger if x.isdigit()])
-    if trigger.isdigit():
-        return int(trigger)
-    else:
-        xx.append('Events like')
-        xx.append('consist entirely')
-        xx.append('could not be mapped')
-        xx.append('string preload is not supported')
-        return None
+    if event_id_func == 'strip_to_integer':
+        trigger = "".join([x for x in trigger if x.isdigit()])
+        if trigger.isdigit():
+            return int(trigger)
+        else:
+            dropped.append(trigger)
+            return None
+    elif event_id_func is not None:
+        return event_id_func(trigger)
