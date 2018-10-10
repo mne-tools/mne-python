@@ -83,7 +83,6 @@ def test_YY():
     Epochs(raw0, find_events(raw0), event_id)
 
 
-@pytest.mark.skip(reason='stuck')
 @requires_h5py
 @testing.requires_testing_data
 @pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])

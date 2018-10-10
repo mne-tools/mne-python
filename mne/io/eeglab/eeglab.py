@@ -392,7 +392,6 @@ class RawEEGLAB(BaseRaw):
 
         # create event_ch from annotations
         annot = read_annotations_eeglab(input_fname)
-        # old_annotations = self.annotations  # XXX
         self.set_annotations(annot)
 
         dropped_desc = []  # use to collect dropped descriptions
@@ -405,8 +404,6 @@ class RawEEGLAB(BaseRaw):
         if getattr(self, 'preload', False):
             self._data[-1] = self._event_ch
         self.set_annotations(annot)
-
-        # self.set_annotations(old_annotations)  # XXX why set back???
 
         if len(dropped_desc) > 0:
             dropped = list(set(dropped_desc))
