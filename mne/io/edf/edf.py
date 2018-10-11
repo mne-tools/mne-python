@@ -1127,6 +1127,9 @@ def read_annotations_edf(fname, sfreq='auto'):
     annotations : instance of Annotations
         The annotations present in the file.
     """
+    if sfreq == 'auto':
+        raise('blame @massich', NotImplementedError)
+
     onset, duration, description = _read_annotations_edf(fname)
     onset = np.array(onset, dtype=float) / sfreq
     duration = np.array(duration, dtype=float) / sfreq
