@@ -394,6 +394,8 @@ class RawEEGLAB(BaseRaw):
         annot = read_annotations_eeglab(input_fname)
         self.set_annotations(annot)
 
+        _check_boundary(annot, event_id)
+
         latencies = np.round(annot.onset * self.info['sfreq'])
         _check_latencies(latencies)
 
@@ -630,6 +632,15 @@ class EpochsEEGLAB(BaseEpochs):
         logger.info('Ready.')
 
 
+def _check_boundary(annot, event_id):
+    if event_id is None:
+        event_id = dict()
+    if "boundary" in annot.description and "boundary" not in event_id:
+        warn("The data contains 'boundary' events, indicating data "
+             "discontinuities. Be cautious of filtering and epoching around "
+             "these events.")
+
+
 def _check_latencies(latencies):
     if (latencies < -1).any():
         raise ValueError('At least one event sample index is negative. Please'
@@ -719,10 +730,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
     types = annotations.description
     latencies = annotations.onset * eeg.srate
 
-    if "boundary" in types and "boundary" not in event_id:
-        warn("The data contains 'boundary' events, indicating data "
-             "discontinuities. Be cautious of filtering and epoching around "
-             "these events.")
+    _check_boundary(annotations, event_id)
 
     if len(types) < 1:  # if there are 0 events, we can exit here
         logger.info('No events found, returning empty stim channel ...')
@@ -855,12 +863,6 @@ def _strip_to_integer(trigger):
 
 def _event_id_func(trigger, event_id, event_id_func, dropped):
     """Mimic old behavior to be used with events_from_annotations."""
-    if trigger == "boundary" and "boundary" not in event_id:
-        # XXX This warns at every boundary instead of once.
-        warn("The data contains 'boundary' events, indicating data "
-             "discontinuities. Be cautious of filtering and epoching around "
-             "these events.")
-
     if event_id is not None and trigger in event_id:
         return event_id[trigger]
     if event_id_func == 'strip_to_integer':
