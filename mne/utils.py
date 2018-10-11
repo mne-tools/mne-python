@@ -2377,14 +2377,15 @@ def _check_pandas_index_arguments(index, defaults):
                          'values are \'None\' or %s' % tuple(options))
 
 
-def _check_ch_locs(locs3d):
+def _check_ch_locs(chs):
     """Check if channel locations exist.
 
     Parameters
     ----------
-    locs3d : array, shape (n_channels, 3)
-        The channel locations
+    chs : dict
+        The channels from info['chs']
     """
+    locs3d = np.array([ch['loc'][:3] for ch in chs])
     return (locs3d == 0).all() or \
         (~np.isfinite(locs3d)).all() or np.allclose(locs3d, 0.)
 
