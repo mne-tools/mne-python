@@ -2401,10 +2401,10 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, axes=None):
     data : array, shape (n_channels,)
         The data values to plot.
     info_from : instance of Info
-        The measurement data to interpolate from.
+        The measurement info from data to interpolate from.
     info_to : instance of Info | None
         The measurement info to interpolate to.
-    scale : scalar | 1e-10
+    scale : float, default 1e-10
         To scale the arrows
     axes : instance of Axes | None
         The axes to plot to. If None, the current axes will be used.
@@ -2431,11 +2431,11 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, axes=None):
     else:
         ch_type = ch_type[0][0]
 
-    if ch_type != 'mag' and ch_type != 'grad':
+    if ch_type not in ('mag', 'grad'):
         raise ValueError("Channel type not supported. Supported channel "
-                         "types include 'mag' and 'grad'.")
+                         "types include 'mag' and 'grad'. Got %s" % ch_type)
 
-    if info_to is None and ch_type is 'mag':
+    if info_to is None and ch_type == 'mag':
         info_to = info_from
     else:
         ch_type = _picks_by_type(info_to)
@@ -2444,8 +2444,9 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, axes=None):
         else:
             ch_type = ch_type[0][0]
 
-        if ch_type not in ('mag'):
-            raise ValueError("only mag Channel type is supported")
+        if ch_type != 'mag':
+            raise ValueError("only 'mag' channel type is supported. "
+                             "Got %s" % ch_type)
 
     if info_to is not info_from:
         mapping = _map_meg_channels(info_from, info_to, mode='accurate')
@@ -2463,4 +2464,4 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, axes=None):
     ax.quiver(x, y, dxx, dyy, scale=scale, color='k', lw=1)
     fig.tight_layout()
 
-    return fig, ax, im, cn
+    return fig

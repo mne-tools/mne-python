@@ -6,9 +6,17 @@ Plotting topographic arrowmaps of evoked data
 Load evoked data and plot arrowmaps along with the topomap for selected time
 points. Arrowmap is based upon Hosaka-Cohen transformation and represents
 actual current underneath the MEG sensors, they are poor man MNE
-Cohen, D.; Hosaka, H. (1976). "Part II: Magnetic field produced by a current
-dipole". Journal of Electrocardiology
+
+See [1]_ for details.
+
+References
+----------
+.. [1] D. Cohen, H. Hosaka
+   "Part II magnetic field produced by a current dipole",
+    Journal of electrocardiology, Volume 9, Number 4, pp. 409-417, 1976.
+    DOI: 10.1016/S0022-0736(76)80041-6
 """
+
 # Authors: Sheraz Khan <sheraz@khansheraz.com>
 #
 # License: BSD (3-clause)
