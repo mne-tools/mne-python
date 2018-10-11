@@ -400,6 +400,11 @@ class RawEEGLAB(BaseRaw):
                             event_id_func=event_id_func,
                             dropped=dropped_desc)
         events, _ = events_from_annotations(self, event_id=event_id_)
+        annot_length = self.annotations.onset.size
+        if events.size < annot_length:
+            msg = ("{0}/{1} event codes could not be mapped to integers. Use "
+                   "the 'event_id' parameter to map such events manually.")
+            warn(msg.format(annot_length - events.size, annot_length))
         if not events.size:
             logger.info('No events found, returning empty stim channel ...')
             warn(' As is, the trigger channel will consist entirely of zeros.',
@@ -413,7 +418,6 @@ class RawEEGLAB(BaseRaw):
             dropped = list(set(dropped_desc))
             logger.info("{0} annotation(s) will be dropped, such as {1}. "
                         .format(len(dropped), dropped[:5]))
-            print(dropped_desc)
             warn('Events like the following will be dropped entirely: {1},'
                  ' {0} in total'.format(len(dropped), dropped[:5]),
                  RuntimeWarning)
