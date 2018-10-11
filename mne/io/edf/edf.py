@@ -176,12 +176,6 @@ class RawEDF(BaseRaw):
             info, preload, filenames=[input_fname], raw_extras=[edf_info],
             last_samps=last_samps, orig_format='int', verbose=verbose)
 
-        annots = read_annotations_edf(input_fname, sfreq=info['sfreq'])
-        self.set_annotations(annots)
-        event_id = dict() if event_id is None else event_id
-        events, _ = events_from_annotations(self, event_id)
-        self._create_event_ch(events, edf_info['nsamples'])
-
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
