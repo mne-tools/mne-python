@@ -72,17 +72,6 @@ def test_ZZ(fnames, tmpdir):
     #     assert (any(want in str(ww.message) for ww in w))
 
 
-@testing.requires_testing_data
-def test_YY():
-    raw_fname, _ = raw_mat_fnames
-    event_id = {'rt': 1, 'square': 2}
-    raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
-                           event_id=event_id, preload=True)
-    events = find_events(raw0)
-    assert events.size
-    Epochs(raw0, find_events(raw0), event_id)
-
-
 @requires_h5py
 @testing.requires_testing_data
 @pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
@@ -115,7 +104,9 @@ def test_io_set_raw(fnames, tmpdir):
         assert raw0.filenames[0].endswith('.fdt')  # .set with additional .fdt
         assert raw2.filenames[0].endswith('.set')  # standalone .set
 
-        Epochs(raw0, find_events(raw0), event_id)
+        raw0_events = find_events(raw0)
+        assert raw0_events.size
+        Epochs(raw0, raw0_events, event_id)
         epochs = Epochs(raw1, find_events(raw1), event_id)
 
         assert len(find_events(raw4)) == 0  # no events without event_id
