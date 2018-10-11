@@ -394,6 +394,9 @@ class RawEEGLAB(BaseRaw):
         annot = read_annotations_eeglab(input_fname)
         self.set_annotations(annot)
 
+        latencies = np.round(annot.onset * self.info['sfreq'])
+        _check_latencies(latencies)
+
         dropped_desc = []  # use to collect dropped descriptions
         event_id_ = partial(_event_id_func,
                             event_id=event_id,
@@ -405,7 +408,7 @@ class RawEEGLAB(BaseRaw):
             msg = ("{0}/{1} event codes could not be mapped to integers. Use "
                    "the 'event_id' parameter to map such events manually.")
             warn(msg.format(annot_length - events.size, annot_length))
-        if not events.size:
+        if not events.size and len(annot):  # only if some events were in file
             logger.info('No events found, returning empty stim channel ...')
             warn(' As is, the trigger channel will consist entirely of zeros.',
                  RuntimeWarning)
@@ -627,6 +630,19 @@ class EpochsEEGLAB(BaseEpochs):
         logger.info('Ready.')
 
 
+def _check_latencies(latencies):
+    if (latencies < -1).any():
+        raise ValueError('At least one event sample index is negative. Please'
+                         ' check if EEG.event.sample values are correct.')
+    if (latencies == -1).any():
+        warn("At least one event has a sample index of -1. This usually is "
+             "a consequence of how eeglab handles event latency after "
+             "resampling - especially when you had a boundary event at the "
+             "beginning of the file. Please make sure that the events at "
+             "the very beginning of your EEGLAB file can be safely dropped "
+             "(e.g., because they are boundary events).")
+
+
 @deprecated('read_events_eeglab is deprecated from 0.17 and will be removed'
             ' in 0.18. Please use read_annotations_eeglab and create events'
             ' using events_from_annotations.')
@@ -712,16 +728,8 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
         logger.info('No events found, returning empty stim channel ...')
         return np.zeros((0, 3), dtype=int)
 
-    if (latencies < -1).any():
-        raise ValueError('At least one event sample index is negative. Please'
-                         ' check if EEG.event.sample values are correct.')
-    if (latencies == -1).any():
-        warn("At least one event has a sample index of -1. This usually is "
-             "a consequence of how eeglab handles event latency after "
-             "resampling - especially when you had a boundary event at the "
-             "beginning of the file. Please make sure that the events at "
-             "the very beginning of your EEGLAB file can be safely dropped "
-             "(e.g., because they are boundary events).")
+    _check_latencies(latencies)
+
     not_in_event_id = set(x for x in types if x not in event_id)
     not_purely_numeric = set(x for x in not_in_event_id if not x.isdigit())
     no_numbers = set([x for x in not_purely_numeric
