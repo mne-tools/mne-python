@@ -45,6 +45,8 @@ _missing_coil_def = (
     3015,   # MEG-MRI proto system planar gradiometer
     3021,   # VV prototype wirewound magnetometer
     3025,   # MEG-MRI proto system magnetometer
+    10001,  # Compumedics adult gradiometer
+    10002,  # Compumedics pediatric gradiometer)
 )
 # explicit aliases in constants.py
 _aliases = dict(
@@ -68,7 +70,7 @@ def test_constants(tmpdir):
     tmpdir = str(tmpdir)  # old pytest...
     dest = op.join(tmpdir, 'fiff.zip')
     _fetch_file('https://codeload.github.com/mne-tools/fiff-constants/zip/'
-                'master', dest)
+                '1407dc312384577bd0f4cdd0036958b4da60ff26', dest)
     names = list()
     with zipfile.ZipFile(dest, 'r') as ff:
         for name in ff.namelist():
