@@ -1110,23 +1110,6 @@ def _read_gdf_header(fname, stim_channel, exclude):
     return edf_info
 
 
-def _read_annotations_edf(fname):
-    from io import open  # python 2 backward compatible open
-    pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
-    with open(fname, encoding='latin-1') as annot_file:
-        triggers = re.findall(pat, annot_file.read())
-
-    events = []
-    for ev in triggers:
-        onset = float(ev[0])
-        duration = float(ev[2]) if ev[2] else 0
-        for annotation in ev[3].split('\x14')[1:]:
-            if annotation:
-                events.append([onset, duration, annotation])
-
-    return zip(*events)
-
-
 def read_annotations_edf(fname, sfreq='auto'):
     """Create Annotations from Edf vrmk.
 
@@ -1179,19 +1162,7 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     stim_channel : ndarray
         An array containing stimulus trigger events.
     """
-    pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
-    with io_open(annot, encoding='latin-1') as annot_file:
-        triggers = re.findall(pat, annot_file.read())
-
-    events = []
-    for ev in triggers:
-        onset = float(ev[0])
-        duration = float(ev[2]) if ev[2] else 0
-        for description in ev[3].split('\x14')[1:]:
-            if description:
-                events.append([onset, duration, description])
-
-    times, durations, descriptions = zip(*events)
+    times, durations, descriptions = _read_annotations_edf(annot)
     times = [float(time) * sfreq for time in times]
 
     pat = r'([\w\s]+):(\d+)'
@@ -1324,3 +1295,39 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
                   stim_channel=stim_channel, annot=annot, annotmap=annotmap,
                   exclude=exclude, preload=preload, verbose=verbose)
+
+
+def _read_annotations_edf(fname):
+    """Annotation File Reader.
+
+    Parameters
+    ----------
+    fname : str
+        Path to annotation file.
+
+    Returns
+    -------
+    onset : array of float, shape (n_annotations,)
+        The starting time of annotations in seconds after ``orig_time``.
+    duration : array of float, shape (n_annotations,)
+        Durations of the annotations in seconds.
+    description : array of str, shape (n_annotations,)
+        Array of strings containing description for each annotation. If a
+        string, all the annotations are given the same description. To reject
+        epochs, use description starting with keyword 'bad'. See example above.
+
+    XXX check that the output type is propper
+    """
+    pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
+    with io_open(fname, encoding='latin-1') as annot_file:
+        triggers = re.findall(pat, annot_file.read())
+
+    events = []
+    for ev in triggers:
+        onset = float(ev[0])
+        duration = float(ev[2]) if ev[2] else 0
+        for description in ev[3].split('\x14')[1:]:
+            if description:
+                events.append([onset, duration, description])
+
+    return zip(*events) if events else (list(), list(), list())
