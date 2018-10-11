@@ -251,6 +251,7 @@ def test_io_set_raw(fnames, tmpdir):
     # test reading channel names from set and positions from montage
     raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True,
                         montage=montage)
+    # XXX 
 
     # when montage was passed - channel positions should be taken from there
     correct_pos = [[-0.56705965, 0.67706631, 0.46906776], [np.nan] * 3,
@@ -270,7 +271,8 @@ def test_io_set_raw(fnames, tmpdir):
                 'times': eeg.times[:2], 'pnts': 2}},
                appendmat=False, oned_as='row')
     # load the file
-    raw = read_raw_eeglab(input_fname=nopos_fname, preload=True)
+    with pytest.warns(RuntimeWarning, match='trigger channel .* of zeros'):
+        raw = read_raw_eeglab(input_fname=nopos_fname, preload=True)
     # test that channel names have been loaded but not channel positions
     for i in range(3):
         assert_equal(raw.info['chs'][i]['ch_name'], ch_names[i])
