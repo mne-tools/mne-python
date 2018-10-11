@@ -837,6 +837,12 @@ def _strip_to_integer(trigger):
 
 def _event_id_func(trigger, event_id, event_id_func, dropped):
     """Mimic old behavior to be used with events_from_annotations."""
+    if trigger == "boundary" and "boundary" not in event_id:
+        # XXX This warns at every boundary instead of once.
+        warn("The data contains 'boundary' events, indicating data "
+             "discontinuities. Be cautious of filtering and epoching around "
+             "these events.")
+
     if event_id is not None and trigger in event_id:
         return event_id[trigger]
     if event_id_func == 'strip_to_integer':
