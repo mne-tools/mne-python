@@ -66,7 +66,7 @@ def test_io_set_raw(fnames, tmpdir):
                          montage=montage)
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
                          montage=montage)
-    for want in ('Events like', 'consist entirely', 'could not be mapped',
+    for want in ('Events like', 'could not be mapped',
                  'string preload is not supported'):
         assert (any(want in str(ww.message) for ww in w))
 
@@ -102,7 +102,7 @@ def test_io_set_raw(fnames, tmpdir):
 
     filter_out_warnings(w, category=FutureWarning)
     filter_out_warnings(w, category=ImportWarning)
-    assert len(w) == 4  # check `preload=False` raises RuntimeWarning
+    assert len(w) == 3  # check `preload=False` raises RuntimeWarning
 
     # test that using uint16_codec does not break stuff
     raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,

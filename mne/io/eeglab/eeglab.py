@@ -412,8 +412,6 @@ class RawEEGLAB(BaseRaw):
             warn(msg.format(annot_length - events.size, annot_length))
         if not events.size and len(annot):  # only if some events were in file
             logger.info('No events found, returning empty stim channel ...')
-            warn(' As is, the trigger channel will consist entirely of zeros.',
-                 RuntimeWarning)
         self._create_event_ch(events, n_samples=eeg.pnts)
         if getattr(self, 'preload', False):
             self._data[-1] = self._event_ch
