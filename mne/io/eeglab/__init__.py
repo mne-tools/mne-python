@@ -4,4 +4,3 @@
 
 from .eeglab import read_raw_eeglab, read_epochs_eeglab, read_events_eeglab
 from .eeglab import read_annotations_eeglab
-from .eeglab import _get_info, _check_load_mat

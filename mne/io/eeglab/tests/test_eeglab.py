@@ -69,6 +69,7 @@ def test_read_events_eeglab_warnings(fnames, tmpdir):
                  'string preload is not supported'):
         assert (any(want in str(ww.message) for ww in w))
 
+
 @requires_h5py
 @testing.requires_testing_data
 @pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
