@@ -400,6 +400,10 @@ class RawEEGLAB(BaseRaw):
                             event_id_func=event_id_func,
                             dropped=dropped_desc)
         events, _ = events_from_annotations(self, event_id=event_id_)
+        if not events.size:
+            logger.info('No events found, returning empty stim channel ...')
+            warn(' As is, the trigger channel will consist entirely of zeros.',
+                 RuntimeWarning)
         self._create_event_ch(events, n_samples=eeg.pnts)
         if getattr(self, 'preload', False):
             self._data[-1] = self._event_ch
@@ -410,6 +414,9 @@ class RawEEGLAB(BaseRaw):
             logger.info("{0} annotation(s) will be dropped, such as {1}. "
                         .format(len(dropped), dropped[:5]))
             print(dropped_desc)
+            warn('Events like the following will be dropped entirely: {1},'
+                 ' {0} in total'.format(len(dropped), dropped[:5]),
+                 RuntimeWarning)
 
     def _create_event_ch(self, events, n_samples=None):
         """Create the event channel."""
@@ -846,9 +853,9 @@ def _event_id_func(trigger, event_id, event_id_func, dropped):
     if event_id is not None and trigger in event_id:
         return event_id[trigger]
     if event_id_func == 'strip_to_integer':
-        trigger = "".join([x for x in trigger if x.isdigit()])
-        if trigger.isdigit():
-            return int(trigger)
+        trigger_new = "".join([x for x in trigger if x.isdigit()])
+        if trigger_new.isdigit():
+            return int(trigger_new)
         else:
             dropped.append(trigger)
             return None
