@@ -23,7 +23,9 @@ from mne.io import read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.pick import channel_type
 from mne.io.edf.edf import _parse_tal_channel, find_edf_events, _read_annot
+from mne.io.edf.edf import read_annotations_edf
 from mne.event import find_events
+from mne.annotations import events_from_annotations
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -334,5 +336,61 @@ def test_read_raw_edf_deprecation_of_annot_annotmap(tmpdir):
     with pytest.warns(DeprecationWarning, match="annot.*annotmap.*"):
         read_raw_edf(input_fname=edf_path, annot=str(annot_file),
                      annotmap=str(annotmap_file), preload=True)
+
+
+def _compute_sfreq_from_edf_info(edf_info):
+    # Compute sfreq from edf_info
+    sel = edf_info['sel']
+    n_samps = edf_info['n_samps'][sel]
+    sfreq = n_samps.max() * \
+        edf_info['record_length'][1] / edf_info['record_length'][0]
+
+    return sfreq
+
+
+def _get_emtpy_raw_with_valid_annot(fname):
+    from mne.io.base import _RawShell
+    from mne.io.edf.edf import _read_edf_header
+    from mne.io.meas_info import _empty_info
+
+    raw = _RawShell()
+    raw.first_samp = 0
+    edf_info = _read_edf_header(fname=fname, annot=None, annotmap=None,
+                                exclude=())
+
+    sfreq = _compute_sfreq_from_edf_info(edf_info)
+    raw.info = _empty_info(sfreq)
+    raw.info['meas_date'] = edf_info['meas_date']
+    def _time_as_index(times, use_rounding, origin):
+        return np.round(np.atleast_1d(times) * sfreq)
+    raw.time_as_index = _time_as_index
+    return raw
+
+
+def test_find_events_and_events_from_annot_are_the_same():
+    """Test that old behaviour and new produce the same events."""
+    # test if stim channel is automatically detected
+    EXPECTED_EVENTS = [[  68, 0, 2],
+                       [ 199, 0, 2],
+                       [1024, 0, 3],
+                       [1280, 0, 2]]
+    raw = read_raw_edf(edf_path, preload=True)
+    raw_shell = _get_emtpy_raw_with_valid_annot(edf_path)
+    assert raw_shell.info['meas_date'] == raw.info['meas_date']
+    assert raw_shell.info['sfreq'] == raw.info['sfreq']
+    assert raw_shell.first_samp == raw.first_samp
+
+    events_from_find_events = find_events(raw)
+    assert_array_equal(events_from_find_events, EXPECTED_EVENTS)
+
+    annot = read_annotations_edf(edf_path, raw_shell.info['sfreq'])
+    raw_shell.set_annotations(annot)
+    events_from_EFA, _ = events_from_annotations(raw_shell)
+
+    ## XXX too fast !!
+    # assert_array_almost_equal(events_from_EFA, events_from_find_events)
+
+    assert_array_equal(events_from_EFA[:, -1], events_from_find_events[:, -1])
+
 
 run_tests_if_main()
