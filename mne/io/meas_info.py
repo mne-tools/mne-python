@@ -8,6 +8,7 @@
 from collections import Counter
 from copy import deepcopy
 import datetime
+import operator
 import os.path as op
 import re
 
@@ -1777,7 +1778,11 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
     * Am: dipole
     * AU: misc
     """
-    if isinstance(ch_names, int):
+    try:
+        ch_names = operator.index(ch_names)  # int-like
+    except TypeError:
+        pass
+    else:
         ch_names = list(np.arange(ch_names).astype(str))
     _validate_type(ch_names, (list, tuple), "ch_names",
                    ("list, tuple, or int"))
