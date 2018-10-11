@@ -412,7 +412,6 @@ class RawEEGLAB(BaseRaw):
         self._create_event_ch(events, n_samples=eeg.pnts)
         if getattr(self, 'preload', False):
             self._data[-1] = self._event_ch
-        self.set_annotations(annot)
 
         if len(dropped_desc) > 0:
             dropped = list(set(dropped_desc))
