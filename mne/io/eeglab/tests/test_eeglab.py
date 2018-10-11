@@ -53,24 +53,21 @@ def _check_h5(fname):
         except Exception:
             raise SkipTest('h5py module required')
 
-
 @requires_h5py
 @testing.requires_testing_data
 @pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
-def test_ZZ(fnames, tmpdir):
+def test_read_events_eeglab_warnings(fnames, tmpdir):
     """Test importing EEGLAB .set files."""
     tmpdir = str(tmpdir)
     raw_fname, raw_fname_onefile = fnames
     with pytest.warns(RuntimeWarning) as w:
-        _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
-                         montage=montage)
-        _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
-                         montage=montage)
-
-    # for want in ('Events like', 'consist entirely', 'could not be mapped',
-    #              'string preload is not supported'):
-    #     assert (any(want in str(ww.message) for ww in w))
-
+        read_raw_eeglab(input_fname=raw_fname, preload=True, montage=montage)
+        read_raw_eeglab(input_fname=raw_fname_onefile, preload=True, montage=montage)
+        read_raw_eeglab(input_fname=raw_fname, preload=False, montage=montage)
+        read_raw_eeglab(input_fname=raw_fname_onefile, preload=False, montage=montage)
+    for want in ('Events like', 'consist entirely', 'could not be mapped',
+                 'string preload is not supported'):
+        assert (any(want in str(ww.message) for ww in w))
 
 @requires_h5py
 @testing.requires_testing_data
