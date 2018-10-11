@@ -170,6 +170,7 @@ def test_io_set_raw(fnames, tmpdir):
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     negative_latency_fname.replace('.set', '.fdt'))
     event_id = {eeg.event[0].type: 1}
+    # XXXX this warning is not done yet
     with pytest.warns(RuntimeWarning, match="has a sample index of -1."):
         read_raw_eeglab(input_fname=negative_latency_fname, preload=True,
                         event_id=event_id, montage=montage)
@@ -185,9 +186,12 @@ def test_io_set_raw(fnames, tmpdir):
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     overlap_fname.replace('.set', '.fdt'))
     event_id = {'rt': 1, 'square': 2}
-    raw = read_raw_eeglab(input_fname=overlap_fname,
-                            montage=montage, event_id=event_id,
-                            preload=True)
+
+    with pytest.warns(None) as w:
+        # XXX for some file, it does not warn that there's an event overlaping
+        raw = read_raw_eeglab(input_fname=overlap_fname,
+                              montage=montage, event_id=event_id,
+                              preload=True)
     events_stimchan = find_events(raw)
     with pytest.warns(DeprecationWarning, match="read_events_eeglab"):
         events_read_events_eeglab = read_events_eeglab(overlap_fname, event_id)
@@ -207,8 +211,7 @@ def test_io_set_raw(fnames, tmpdir):
     with pytest.warns(None) as w:
         read_raw_eeglab(input_fname=one_chan_fname, preload=True)
     # no warning for 'no events found'
-    w.pop(DeprecationWarning)
-    assert len(w) == 0
+    assert len(w) == 0  # XXXX
 
     # test reading file with 3 channels - one without position information
     # first, create chanlocs structured array
