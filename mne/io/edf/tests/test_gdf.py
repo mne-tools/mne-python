@@ -57,6 +57,7 @@ def test_gdf_data():
                          eog=None, misc=None, stim_channel='auto')
 
 
+@pytest.mark.skip(reason="XXX negative meas_date (issue #5604)")
 @testing.requires_testing_data
 def test_gdf2_data():
     """Test reading raw GDF 2.x files."""
