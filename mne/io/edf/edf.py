@@ -1329,3 +1329,13 @@ def _read_annotations_edf(fname):
                 events.append([onset, duration, description])
 
     return zip(*events) if events else (list(), list(), list())
+
+
+def _get_edf_default_event_id(descriptions):
+    mapping = dict((a, n) for n, a in
+                   enumerate(sorted(set(descriptions)), start=1))
+
+    if 'start' in mapping.keys():
+        mapping.pop('start')
+
+    return mapping

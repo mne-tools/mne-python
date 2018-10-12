@@ -370,20 +370,12 @@ def _get_emtpy_raw_with_valid_annot(fname):
     raw.time_as_index = _time_as_index
     return raw
 
-def _old_event_id_func(evts_desc):
-    unique_annots = sorted(set(evts_desc))
-    mapping = dict((a, n + 1) for n, a in enumerate(unique_annots))
-
-    if 'start' in mapping.keys():
-        mapping.pop('start')
-
-    return mapping
-
 
 @testing.requires_testing_data
 def test_find_events_and_events_from_annot_are_the_same():
     """Test that old behaviour and new produce the same events."""
-    # test if stim channel is automatically detected
+    from mne.io.edf.edf import _get_edf_default_event_id
+
     EXPECTED_EVENTS = [[  68, 0, 2],
                        [ 199, 0, 2],
                        [1024, 0, 3],
@@ -399,7 +391,7 @@ def test_find_events_and_events_from_annot_are_the_same():
 
     annot = read_annotations_edf(edf_path, raw_shell.info['sfreq'])
     raw_shell.set_annotations(annot)
-    event_id = _old_event_id_func(annot.description)
+    event_id = _get_edf_default_event_id(annot.description)
     events_from_EFA, _ = events_from_annotations(raw_shell, event_id=event_id,
                                                  use_rounding=False)
 
