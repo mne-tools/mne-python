@@ -406,11 +406,16 @@ def test_find_events_and_events_from_annot_are_the_same():
     assert_array_equal(events_from_EFA, events_from_find_events)
 
 
+@pytest.mark.skip(reason='no annotations')
 @testing.requires_testing_data
 def test_find_events_and_events_from_annot_are_the_same_B():
     """Test BDF stim channel."""
-    # test BDF file with wrong scaling info in header - this should be ignored
-    # for BDF stim channels
+    # This does not use annotaions it uses this to create the stim channel
+    # 
+    # stim = np.bitwise_and(data[stim_channel_idx].astype(int),
+    #                       2**17 - 1)
+    # data[stim_channel_idx, :] = stim
+    #
     EXPECTED_EVENTS = [[242, 0, 4],
                        [310, 0, 2],
                        [952, 0, 1],
