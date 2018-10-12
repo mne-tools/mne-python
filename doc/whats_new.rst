@@ -163,6 +163,8 @@ Bug
 API
 ~~~
 
+- Calling :meth:``mne.io.pick.pick_info`` removing channels that are needed by compensation matrices (``info['comps']``) no longer raises ``RuntimeException`` but instead logs an info level message. By `Luke Bloy`_
+
 - Deprecation of ``annot`` and ``annotmap`` parameters in :meth:`mne.io.read_raw_edf` by `Joan Massich`_
 
 - :meth:`mne.Epochs.save` now has the parameter `fmt` to specify the desired format (precision) saving epoched data, by `Stefan Repplinger`_, `Eric Larson`_ and `Alex Gramfort`_

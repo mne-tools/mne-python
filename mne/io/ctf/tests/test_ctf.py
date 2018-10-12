@@ -280,20 +280,26 @@ def test_saving_picked():
     assert raw.compensation_grade == get_current_comp(raw.info) == 0
     assert len(raw.info['comps']) == 5
     pick_kwargs = dict(meg=True, ref_meg=False, verbose=True)
-    with catch_logging() as log:
-        raw_pick = raw.copy().pick_types(**pick_kwargs)
-    assert len(raw.info['comps']) == 5
-    assert len(raw_pick.info['comps']) == 0
-    log = log.getvalue()
-    assert 'Removing 5 compensators' in log
-    raw_pick.save(out_fname)  # should work
-    read_raw_fif(out_fname)
-    read_raw_fif(out_fname, preload=True)
-    # If comp is applied, picking should error
-    raw.apply_gradient_compensation(1)
-    assert raw.compensation_grade == get_current_comp(raw.info) == 1
-    with pytest.raises(RuntimeError, match='Compensation grade 1 has been'):
-        raw.copy().pick_types(**pick_kwargs)
+    for comp_grade in [0, 1]:
+        raw.apply_gradient_compensation(comp_grade)
+        with catch_logging() as log:
+            raw_pick = raw.copy().pick_types(**pick_kwargs)
+        assert len(raw.info['comps']) == 5
+        assert len(raw_pick.info['comps']) == 0
+        log = log.getvalue()
+        assert 'Removing 5 compensators' in log
+        raw_pick.save(out_fname, overwrite=True)  # should work
+        raw2 = read_raw_fif(out_fname)
+        assert (raw_pick.ch_names == raw2.ch_names)
+        assert_array_equal(raw_pick.times, raw2.times)
+        assert_allclose(raw2[0:20][0], raw_pick[0:20][0], rtol=1e-6,
+                        atol=1e-20)  # atol is very small but > 0
+
+        raw2 = read_raw_fif(out_fname, preload=True)
+        assert (raw_pick.ch_names == raw2.ch_names)
+        assert_array_equal(raw_pick.times, raw2.times)
+        assert_allclose(raw2[0:20][0], raw_pick[0:20][0], rtol=1e-6,
+                        atol=1e-20)  # atol is very small but > 0
 
 
 run_tests_if_main()

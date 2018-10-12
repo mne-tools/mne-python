@@ -193,9 +193,7 @@ def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
     # return without doing anything if there are no meg channels
     if len(picks_meg) == 0 or len(picks_bad) == 0:
         return
-    inst_info = inst.info.copy()
-    inst_info['comps'] = []
-    info_from = pick_info(inst_info, picks_good)
-    info_to = pick_info(inst_info, picks_bad)
-    mapping = _map_meg_channels(info_from, info_to, mode=mode, origin=origin)
+    info_from = pick_info(inst.info, picks_good)
+    info_to = pick_info(inst.info, picks_bad)
+    mapping = _map_meg_channels(info_from, info_to, mode=mode)
     _do_interp_dots(inst, mapping, picks_good, picks_bad)

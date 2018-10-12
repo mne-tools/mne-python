@@ -769,9 +769,7 @@ def _check_loose_forward(loose, forward):
 
 def _check_reference(inst, ch_names=None):
     """Check for EEG ref."""
-    info = inst.info.copy()  # make a copy as comps are now hacked:
-    # XXX : ugly hack to avoid picking subset of info with applied comps
-    info['comps'] = []
+    info = inst.info
     if ch_names is not None:
         picks = [ci for ci, ch_name in enumerate(info['ch_names'])
                  if ch_name in ch_names]
@@ -1297,8 +1295,6 @@ def _xyz2lf(Lf_xyz, normals):
 def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
                      verbose=None):
     """Prepare forward solution for inverse solvers."""
-    info = info.copy()
-
     # fwd['sol']['row_names'] may be different order from fwd['info']['chs']
     fwd_sol_ch_names = forward['sol']['row_names']
     ch_names = [c['ch_name'] for c in info['chs']
@@ -1325,12 +1321,6 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
     gain = gain[fwd_idx]
     # Any function calling this helper will be using the returned fwd_info
     # dict, so fwd['sol']['row_names'] becomes obsolete and is NOT re-ordered
-
-    # remove comps if needed.
-    assert('comps' not in forward['info'] or
-           len(forward['info']['comps']) == 0)
-    if info['comps']:
-        info['comps'] = []
 
     info_idx = [info['ch_names'].index(name) for name in ch_names]
     fwd_info = pick_info(info, info_idx)

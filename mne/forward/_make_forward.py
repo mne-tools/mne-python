@@ -482,7 +482,6 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
         raise RuntimeError('No MEG or EEG channels found.')
 
     # pick out final info
-    info['comps'] = []
     info = pick_info(info, pick_types(info, meg=meg, eeg=eeg, ref_meg=False,
                                       exclude=[]))
 

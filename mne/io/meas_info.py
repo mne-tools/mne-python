@@ -491,12 +491,6 @@ class Info(dict):
                     self['ch_names'][ch_idx] = ch_name
                     self['chs'][ch_idx]['ch_name'] = ch_name
 
-        # make sure required the compensation channels are present
-        comps_bad, comps_missing = _bad_chans_comp(self, self['ch_names'])
-        if comps_bad:
-            msg = 'Compensation channel(s) %s do not exist in info'
-            raise RuntimeError(msg % (comps_missing,))
-
         if 'filename' in self:
             warn('the "filename" key is misleading\
                  and info should not have it')

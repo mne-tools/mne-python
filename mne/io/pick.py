@@ -12,7 +12,6 @@ import numpy as np
 from .constants import FIFF
 from ..utils import logger, verbose, _validate_type
 from ..externals.six import string_types
-from .compensator import get_current_comp
 
 
 def get_channel_types():
@@ -367,7 +366,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     return sel
 
 
-def pick_info(info, sel=(), copy=True):
+@verbose
+def pick_info(info, sel=(), copy=True, verbose=None):
     """Restrict an info structure to a selection of channels.
 
     Parameters
@@ -379,6 +379,9 @@ def pick_info(info, sel=(), copy=True):
         are included.
     copy : bool
         If copy is False, info is modified inplace.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -399,20 +402,11 @@ def pick_info(info, sel=(), copy=True):
     if len(info.get('comps', [])) > 0:
         ch_names = [info['ch_names'][idx] for idx in sel]
         _, comps_missing = _bad_chans_comp(info, ch_names)
-        current_comp = get_current_comp(info)
         if len(comps_missing) > 0:
-            if current_comp != 0:
-                raise RuntimeError(
-                    'Compensation grade %d has been applied, but '
-                    'compensation channels are missing: %s\n'
-                    'Either remove compensation or pick compensation '
-                    'channels' % (current_comp, comps_missing))
-            else:
-                logger.info('Removing %d compensators from info because '
-                            'not all compensation channels were picked'
-                            % (len(info['comps']),))
-                info['comps'] = []
-
+            logger.info('Removing %d compensators from info because '
+                        'not all compensation channels were picked.'
+                        % (len(info['comps']),))
+            info['comps'] = []
     info['chs'] = [info['chs'][k] for k in sel]
     info._update_redundant()
     info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
