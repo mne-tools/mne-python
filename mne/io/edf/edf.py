@@ -1131,8 +1131,8 @@ def read_annotations_edf(fname, sfreq='auto'):
         raise('blame @massich', NotImplementedError)
 
     onset, duration, description = _read_annotations_edf(fname)
-    onset = np.array(onset, dtype=float) / sfreq
-    duration = np.array(duration, dtype=float) / sfreq
+    onset = np.array(onset, dtype=float)
+    duration = np.array(duration, dtype=float)
     annotations = Annotations(onset=onset, duration=duration,
                               description=description,
                               orig_time=None)
