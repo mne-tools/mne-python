@@ -387,7 +387,7 @@ def test_find_events_and_events_from_annot_are_the_same():
     raw_shell.set_annotations(annot)
     event_id = {'type A':2, 'type B':3}
     events_from_EFA, _ = events_from_annotations(raw_shell, event_id=event_id,
-                                                 use_rounding=False)
+                                                 use_rounding=True)
 
     assert_array_equal(events_from_EFA, events_from_find_events)
 
