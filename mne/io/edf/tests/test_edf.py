@@ -362,7 +362,11 @@ def _get_emtpy_raw_with_valid_annot(fname):
     raw.info = _empty_info(sfreq)
     raw.info['meas_date'] = edf_info['meas_date']
     def _time_as_index(times, use_rounding, origin):
-        return np.round(np.atleast_1d(times) * sfreq)
+        if use_rounding:
+            return np.round(np.atleast_1d(times) * sfreq)
+        else:
+            return np.floor(np.atleast_1d(times) * sfreq)
+
     raw.time_as_index = _time_as_index
     return raw
 
