@@ -374,6 +374,7 @@ def _old_event_id_func(evts_desc):
     unique_annots = sorted(set(evts_desc))
     mapping = dict((a, n + 1) for n, a in enumerate(unique_annots))
 
+    mapping.pop('start')
     return mapping
 
 def test_find_events_and_events_from_annot_are_the_same():
@@ -396,7 +397,7 @@ def test_find_events_and_events_from_annot_are_the_same():
     raw_shell.set_annotations(annot)
     event_id = _old_event_id_func(annot.description)
     events_from_EFA, _ = events_from_annotations(raw_shell, event_id=event_id,
-                                                 use_rounding=True)
+                                                 use_rounding=False)
 
     assert_array_equal(events_from_EFA, events_from_find_events)
 
