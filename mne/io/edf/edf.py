@@ -306,10 +306,13 @@ class RawEDF(BaseRaw):
                 evts = _parse_tal_channel(np.atleast_2d(data[tal_channel_idx]))
                 self._raw_extras[fi]['events'] = evts
 
+                unique_annots = sorted(set([e[2] for e in evts]))
+                mapping = dict((a, n + 1) for n, a in enumerate(unique_annots))
+
                 evts_ = np.array(evts)
                 self.set_annotations(Annotations(evts_[:, 0], evts_[:, 1],
                                                  evts_[:, 2]))
-                event_id = _get_edf_default_event_id(evts_[:,2])
+                event_id = _get_edf_default_event_id(evts_[:, 2])
                 events, _ = events_from_annotations(self, event_id=event_id)
                 stim_new = _synthesize_stim_channel(events, read_size)
 
@@ -347,21 +350,6 @@ class RawEDF(BaseRaw):
     @copy_function_doc_to_method_doc(find_edf_events)
     def find_edf_events(self):
         return self._raw_extras[0]['events']
-
-
-    def _create_event_ch(self, events, n_samp=None):
-        """Create the event channel."""
-        if n_samp is None:
-            n_samp = self.last_samp - self.first_samp + 1
-        events = np.array(events, int)
-
-        if events.ndim != 2 or events.shape[1] != 3:
-            raise ValueError("[n_events x 3] shaped array required")
-        # update events
-        self._event_ch = _synthesize_stim_channel(events, n_samp)
-        self._events = events
-        if getattr(self, 'preload', False):
-            self._data[-1] = self._event_ch
 
 
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
@@ -1360,7 +1348,8 @@ def _get_edf_default_event_id(descriptions):
     mapping = dict((a, n) for n, a in
                    enumerate(sorted(set(descriptions)), start=1))
 
-    if 'start' in mapping.keys():
-        mapping.pop('start')
+    # XXX focus in one thing at a time, right now durations
+    # if 'start' in mapping.keys():
+    #     mapping.pop('start')
 
     return mapping
