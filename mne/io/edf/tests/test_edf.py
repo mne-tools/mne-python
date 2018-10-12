@@ -386,12 +386,10 @@ def test_find_events_and_events_from_annot_are_the_same():
     annot = read_annotations_edf(edf_path, raw_shell.info['sfreq'])
     raw_shell.set_annotations(annot)
     event_id = {'type A':2, 'type B':3}
-    events_from_EFA, _ = events_from_annotations(raw_shell, event_id=event_id)
+    events_from_EFA, _ = events_from_annotations(raw_shell, event_id=event_id,
+                                                 use_rounding=False)
 
-    ## XXX too fast !!
-    # assert_array_almost_equal(events_from_EFA, events_from_find_events)
-
-    assert_array_equal(events_from_EFA[:, -1], events_from_find_events[:, -1])
+    assert_array_equal(events_from_EFA, events_from_find_events)
 
 
 run_tests_if_main()
