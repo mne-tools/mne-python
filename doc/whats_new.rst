@@ -19,6 +19,10 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Default parameters in :func:`mne.io.eeglab.read_annotations_eeglab` no longer filter out annotations by `Joan Massich`_ and `Alex Gramfort`_
+
+- :func:`mne.io.eeglab.read_raw_eeglab` no longer warns when the stim channel is populated with an array of zeros by `Joan Massich`_
+
 - Add optically pumped magnetometer dataset and example by `Rasmus Zetter`_ and `Eric Larson`_
 
 - Add ``orgin`` parameter to :meth:`mne.io.Raw.time_as_index` to allow ``times`` to be relative to this ``origin`` by `Joan Massich`_
