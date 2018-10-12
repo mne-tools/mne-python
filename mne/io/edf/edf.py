@@ -1105,9 +1105,9 @@ def _read_gdf_header(fname, stim_channel, exclude):
 
 
 def read_annotations_edf(fname, sfreq='auto'):
-    """Create Annotations from Edf vrmk.
+    """Create Annotations from EDF (and EDF+) files.
 
-    This function reads a .vrmk file and makes an
+    This function reads a .edf file and makes an
     :class:`mne.Annotations` object.
 
     Parameters
