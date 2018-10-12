@@ -13,8 +13,7 @@ from mne import (read_forward_solution, write_forward_solution,
                  make_forward_solution, convert_forward_solution,
                  setup_volume_source_space, read_source_spaces,
                  make_sphere_model, pick_types_forward, pick_info, pick_types,
-                 Transform, read_evokeds, read_cov, read_dipole,
-                 SourceSpaces)
+                 read_evokeds, read_cov, read_dipole, SourceSpaces)
 from mne.utils import (requires_mne, requires_nibabel, _TempDir,
                        run_tests_if_main, run_subprocess)
 from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
