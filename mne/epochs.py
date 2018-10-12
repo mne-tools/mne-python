@@ -21,8 +21,10 @@ import numpy as np
 import scipy
 
 from .io.write import (start_file, start_block, end_file, end_block,
-                       write_int, write_float_matrix, write_float,
-                       write_id, write_string, _get_split_size)
+                       write_int, write_float, write_float_matrix,
+                       write_double_matrix, write_complex_float_matrix,
+                       write_complex_double_matrix, write_id, write_string,
+                       _get_split_size)
 from .io.meas_info import read_meas_info, write_meas_info, _merge_info
 from .io.open import fiff_open, _get_next_fname
 from .io.tree import dir_tree_find
@@ -51,7 +53,7 @@ from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
 
 
-def _save_split(epochs, fname, part_idx, n_parts):
+def _save_split(epochs, fname, part_idx, n_parts, fmt):
     """Split epochs."""
     # insert index in filename
     path, base = op.split(fname)
@@ -85,7 +87,21 @@ def _save_split(epochs, fname, part_idx, n_parts):
 
     # write events out after getting data to ensure bad events are dropped
     data = epochs.get_data()
-    assert data.dtype == 'float64'
+
+    if fmt not in ['single', 'double']:
+        raise ValueError('fmt must be "single" or "double". Got (%s)' % fmt)
+
+    if np.iscomplexobj(data):
+        if fmt == 'single':
+            write_function = write_complex_float_matrix
+        elif fmt == 'double':
+            write_function = write_complex_double_matrix
+    else:
+        if fmt == 'single':
+            write_function = write_float_matrix
+        elif fmt == 'double':
+            write_function = write_double_matrix
+
     start_block(fid, FIFF.FIFFB_MNE_EVENTS)
     write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, epochs.events.T)
     mapping_ = ';'.join([k + ':' + str(v) for k, v in
@@ -128,7 +144,7 @@ def _save_split(epochs, fname, part_idx, n_parts):
 
     data *= decal[np.newaxis, :, np.newaxis]
 
-    write_float_matrix(fid, FIFF.FIFF_EPOCH, data)
+    write_function(fid, FIFF.FIFF_EPOCH, data)
 
     # undo modifications to data
     data /= decal[np.newaxis, :, np.newaxis]
@@ -1661,7 +1677,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return new
 
     @verbose
-    def save(self, fname, split_size='2GB', verbose=True):
+    def save(self, fname, split_size='2GB', fmt='single', verbose=True):
         """Save epochs in a fif file.
 
         Parameters
@@ -1677,6 +1693,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Note: Due to FIFF file limitations, the maximum split size is 2GB.
 
             .. versionadded:: 0.10.0
+        fmt : str
+            Format to save data. Valid options are 'double' or
+            'single' for 64- or 32-bit float, or for 128- or
+            64-bit complex numbers respectively. Note: Data are processed with
+            double precision. Choosing single-precision, the saved data
+            will slightly differ due to the reduction in precision.
+
+            .. versionadded:: 0.17
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1690,20 +1714,32 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                       '_epo.fif', '_epo.fif.gz'))
         split_size = _get_split_size(split_size)
 
+        if fmt not in ('single', 'double'):
+            raise ValueError('fmt must be "single" or "double". Got (%s).' %
+                             fmt)
+
         # to know the length accurately. The get_data() call would drop
         # bad epochs anyway
         self.drop_bad()
+        if len(self) == 0:
+            warn('Saving epochs with no data')
+            total_size = 0
+        else:
+            d = self[0].get_data()
+            # this should be guaranteed by subclasses
+            assert d.dtype in ('>f8', '<f8', '>c16', '<c16')
+            total_size = d.nbytes * len(self)
         self._check_consistency()
-        total_size = self[0].get_data().nbytes * len(self)
-        total_size /= 2  # 64bit data converted to 32bit before writing.
-        n_parts = int(np.ceil(total_size / float(split_size)))
+        if fmt == "single":
+            total_size //= 2  # 64bit data converted to 32bit before writing.
+        n_parts = max(int(np.ceil(total_size / float(split_size))), 1)
         epoch_idxs = np.array_split(np.arange(len(self)), n_parts)
 
         for part_idx, epoch_idx in enumerate(epoch_idxs):
             this_epochs = self[epoch_idx] if n_parts > 1 else self
             # avoid missing event_ids in splits
             this_epochs.event_id = self.event_id
-            _save_split(this_epochs, fname, part_idx, n_parts)
+            _save_split(this_epochs, fname, part_idx, n_parts, fmt)
 
     def equalize_event_counts(self, event_ids, method='mintime'):
         """Equalize the number of trials in each condition.
@@ -2509,6 +2545,7 @@ def _read_one_epoch_file(f, tree, preload):
                 fid.seek(pos, 0)
                 data_tag = read_tag_info(fid)
                 data_tag.pos = pos
+                data_tag.type = data_tag.type ^ (1 << 30)
             elif kind in [FIFF.FIFF_MNE_BASELINE_MIN, 304]:
                 # Constant 304 was used before v0.11
                 tag = read_tag(fid, pos)
@@ -2540,10 +2577,24 @@ def _read_one_epoch_file(f, tree, preload):
         if data_tag is None:
             raise ValueError('Epochs data not found')
         epoch_shape = (len(info['ch_names']), n_samp)
-        expected = len(events) * np.prod(epoch_shape)
-        if data_tag.size // 4 - 4 != expected:  # 32-bit floats stored
+        size_expected = len(events) * np.prod(epoch_shape)
+        # on read double-precision is always used
+        if data_tag.type == FIFF.FIFFT_FLOAT:
+            datatype = np.dtype('>f8')
+            size_actual = data_tag.size // 4 - 4
+        elif data_tag.type == FIFF.FIFFT_DOUBLE:
+            datatype = np.dtype('>f8')
+            size_actual = data_tag.size // 8 - 2
+        elif data_tag.type == FIFF.FIFFT_COMPLEX_FLOAT:
+            datatype = np.dtype('>c16')
+            size_actual = data_tag.size // 8 - 2
+        elif data_tag.type == FIFF.FIFFT_COMPLEX_DOUBLE:
+            datatype = np.dtype('>c16')
+            size_actual = data_tag.size // 16 - 1
+
+        if not size_actual == size_expected:
             raise ValueError('Incorrect number of samples (%d instead of %d)'
-                             % (data_tag.size // 4, expected))
+                             % (size_actual, size_expected))
 
         # Calibration factors
         cals = np.array([[info['chs'][k]['cal'] *
@@ -2552,7 +2603,7 @@ def _read_one_epoch_file(f, tree, preload):
 
         # Read the data
         if preload:
-            data = read_tag(fid, data_tag.pos).data.astype(np.float64)
+            data = read_tag(fid, data_tag.pos).data.astype(datatype)
             data *= cals[np.newaxis, :, :]
 
         # Put it all together

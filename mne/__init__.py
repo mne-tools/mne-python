@@ -45,7 +45,7 @@ from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
                       average_forward_solutions, Forward,
                       write_forward_solution, make_forward_solution,
                       convert_forward_solution, make_field_map,
-                      make_forward_dipole)
+                      make_forward_dipole, use_coil_def)
 from .source_estimate import (read_source_estimate, MixedSourceEstimate,
                               SourceEstimate, VectorSourceEstimate,
                               VolSourceEstimate, morph_data,

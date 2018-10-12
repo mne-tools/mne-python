@@ -14,9 +14,8 @@ import pytest
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
-                 VolSourceEstimate, make_sphere_model,
+                 VolSourceEstimate, make_sphere_model, use_coil_def,
                  setup_volume_source_space, read_forward_solution)
-from mne.forward import use_coil_def
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
 from mne.io.pick import pick_info

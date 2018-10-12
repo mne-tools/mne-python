@@ -51,7 +51,7 @@ def test_coil_trans():
 
 def test_make_info():
     """Test some create_info properties."""
-    n_ch = 1
+    n_ch = np.longlong(1)
     info = create_info(n_ch, 1000., 'eeg')
     assert set(info.keys()) == set(RAW_INFO_FIELDS)
 

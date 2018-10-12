@@ -22,7 +22,7 @@ from mne.utils import run_tests_if_main, requires_pandas, _TempDir
 from mne.io import read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.pick import channel_type
-from mne.io.edf.edf import _parse_tal_channel, find_edf_events
+from mne.io.edf.edf import _parse_tal_channel, find_edf_events, _read_annot
 from mne.event import find_events
 
 FILE = inspect.getfile(inspect.currentframe())
@@ -294,5 +294,45 @@ def test_to_data_frame():
         assert 'time' in df.index.names
         assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
 
+
+def test_read_annot(tmpdir):
+    """Test parsing the tal channel."""
+    EXPECTED_ANNOTATIONS = [[180.0, 0, 'Lights off'], [180.0, 0, 'Close door'],
+                            [180.0, 0, 'Lights off'], [180.0, 0, 'Close door'],
+                            [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']]
+    SFREQ = 100
+    DATA_LENGTH = int(EXPECTED_ANNOTATIONS[-1][0] * SFREQ) + 1
+    annot = (b'+180\x14Lights off\x14Close door\x14\x00\x00\x00\x00\x00'
+             b'+180\x14Lights off\x14\x00\x00\x00\x00\x00\x00\x00\x00'
+             b'+180\x14Close door\x14\x00\x00\x00\x00\x00\x00\x00\x00'
+             b'+3.14\x1504.20\x14nothing\x14\x00\x00\x00\x00'
+             b'+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00'
+             b'+123\x14\x14\x00\x00\x00\x00\x00\x00\x00')
+    annot_file = tmpdir.join('annotations.txt')
+    annot_file.write(annot)
+    annotmap_file = tmpdir.join('annotations_map.txt')
+    annotmap_file.write('Lights off:1,nothing:2,Apnea:3,Close door:4')
+
+    stim_ch = _read_annot(annot=str(annot_file), annotmap=str(annotmap_file),
+                          sfreq=SFREQ, data_length=DATA_LENGTH)
+
+    assert stim_ch.shape == (DATA_LENGTH,)
+    assert_array_equal(np.bincount(stim_ch), [180018, 0, 1, 1, 1])
+
+
+def test_read_raw_edf_deprecation_of_annot_annotmap(tmpdir):
+    """Test deprecation of annot and annotmap."""
+    annot = (b'+0.1344\x150.2560\x14two\x14\x00\x00\x00\x00'
+             b'+0.3904\x151.0\x14two\x14\x00\x00\x00\x00'
+             b'+2.0\x14three\x14\x00\x00\x00\x00\x00\x00\x00\x00'
+             b'+2.5\x152.5\x14two\x14\x00\x00\x00\x00')
+    annot_file = tmpdir.join('annotations.txt')
+    annot_file.write(annot)
+    annotmap_file = tmpdir.join('annotations_map.txt')
+    annotmap_file.write('two:2,three:3')
+
+    with pytest.warns(DeprecationWarning, match="annot.*annotmap.*"):
+        read_raw_edf(input_fname=edf_path, annot=str(annot_file),
+                     annotmap=str(annotmap_file), preload=True)
 
 run_tests_if_main()

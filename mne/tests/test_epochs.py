@@ -1056,7 +1056,7 @@ def test_reject_epochs():
     assert (n_events > n_clean_epochs)
     assert (n_clean_epochs == 3)
     assert (epochs.drop_log == [[], [], [], ['MEG 2443'], ['MEG 2443'],
-                                    ['MEG 2443'], ['MEG 2443']])
+                                ['MEG 2443'], ['MEG 2443']])
 
     # Ensure epochs are not dropped based on a bad channel
     raw_2 = raw.copy()
@@ -1486,7 +1486,7 @@ def test_epoch_eq():
     assert (not np.any(epochs.events[:, 2] == 2))
     epochs = combine_event_ids(epochs, ['c', 'd'], {'cd': 34})
     assert np.all(np.logical_or(epochs.events[:, 2] == 12,
-                  epochs.events[:, 2] == 34))
+                                epochs.events[:, 2] == 34))
     assert_equal(epochs['ab'].events.shape[0], old_shapes[0] + old_shapes[1])
     assert_equal(epochs['ab'].events.shape[0], epochs['cd'].events.shape[0])
 
@@ -2429,6 +2429,38 @@ def test_events_list():
                                         mne.create_info(10, 1000.)),
                         events=events)
     assert_array_equal(epochs.events, np.array(events))
+
+
+def test_save_complex_data(tmpdir):
+    """Test whether epochs of hilbert-transformed data can be saved."""
+    for is_complex in [False, True]:
+        for fmt, rtol in [('single', 1e-6), ('double', 1e-7)]:
+            raw, events = _get_data()[:2]
+            raw.load_data()
+            if is_complex:
+                raw.apply_hilbert(envelope=False, n_fft=None)
+            epochs = Epochs(raw, events[:1], preload=True)[0]
+            tempdir = _TempDir()
+            temp_fname = op.join(tempdir, 'test-epo.fif')
+            epochs.save(temp_fname, fmt=fmt)
+            epochs_read = read_epochs(temp_fname, proj=False, preload=True)
+            assert_allclose(epochs_read.get_data(),
+                            epochs.get_data(), rtol=rtol)
+    # smoke test that having the first epoch bad does not break writing,
+    # a regression noticed in #5564
+    raw, events = _get_data()[:2]
+    reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
+    raw.info['bads'] = ['MEG 2443', 'EEG 053']
+    epochs = mne.Epochs(raw, events, reject=reject)
+    epochs.save(op.join(str(tmpdir), 'sample-epo.fif'))
+    assert 0 not in epochs.selection
+    assert len(epochs) > 0
+    # and with no epochs remaining
+    raw.info['bads'] = []
+    epochs = mne.Epochs(raw, events, reject=reject)
+    with pytest.warns(RuntimeWarning, match='no data'):
+        epochs.save(op.join(str(tmpdir), 'sample-epo.fif'))
+    assert len(epochs) == 0  # all dropped
 
 
 run_tests_if_main()

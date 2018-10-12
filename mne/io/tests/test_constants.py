@@ -7,7 +7,10 @@ import re
 import shutil
 import zipfile
 
-from mne.io.constants import FIFF
+import numpy as np
+
+from mne.io.constants import FIFF, FWD
+from mne.forward._make_forward import _read_coil_defs
 from mne.utils import _fetch_file, requires_good_network
 
 
@@ -25,6 +28,38 @@ _missing_names = (
     'FIFFV_COIL_POINT_MAGNETOMETER_X',
     'FIFFV_COIL_POINT_MAGNETOMETER_Y',
 )
+# not in coil_def.dat but in DictionaryTypes:enum(coil)
+_missing_coil_def = (
+    0,      # The location info contains no data
+    1,      # EEG electrode position in r0
+    3,      # Old 24 channel system in HUT
+    4,      # The axial devices in the HUCS MCG system
+    5,      # Bipolar EEG electrode position
+    200,    # Time-varying dipole definition
+    300,    # FNIRS oxyhemoglobin
+    301,    # FNIRS deoxyhemoglobin
+    1000,   # For testing the MCG software
+    2001,   # Generic axial gradiometer
+    3011,   # VV prototype wirewound planar sensor
+    3014,   # Vectorview SQ20950N planar gradiometer
+    3015,   # MEG-MRI proto system planar gradiometer
+    3021,   # VV prototype wirewound magnetometer
+    3025,   # MEG-MRI proto system magnetometer
+)
+# explicit aliases in constants.py
+_aliases = dict(
+    FIFFV_COIL_MAGNES_R_MAG='FIFFV_COIL_MAGNES_REF_MAG',
+    FIFFV_COIL_MAGNES_R_GRAD='FIFFV_COIL_MAGNES_REF_GRAD',
+    FIFFV_COIL_MAGNES_R_GRAD_OFF='FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD',
+    FIFFV_MNE_COORD_CTF_HEAD='FIFFV_MNE_COORD_4D_HEAD',
+    FIFFV_MNE_COORD_KIT_HEAD='FIFFV_MNE_COORD_4D_HEAD',
+    FIFFV_MNE_COORD_DIGITIZER='FIFFV_COORD_ISOTRAK',
+    FIFFV_MNE_COORD_SURFACE_RAS='FIFFV_COORD_MRI',
+    FIFFV_MNE_SENSOR_COV='FIFFV_MNE_NOISE_COV',
+    FIFFV_POINT_EEG='FIFFV_POINT_ECG',
+    FIFF_DESCRIPTION='FIFF_COMMENT',
+    FIFF_REF_PATH='FIFF_MRI_SOURCE_PATH',
+)
 
 
 @requires_good_network
@@ -33,7 +68,7 @@ def test_constants(tmpdir):
     tmpdir = str(tmpdir)  # old pytest...
     dest = op.join(tmpdir, 'fiff.zip')
     _fetch_file('https://codeload.github.com/mne-tools/fiff-constants/zip/'
-                'master', dest)
+                '1407dc312384577bd0f4cdd0036958b4da60ff26', dest)
     names = list()
     with zipfile.ZipFile(dest, 'r') as ff:
         for name in ff.namelist():
@@ -47,7 +82,8 @@ def test_constants(tmpdir):
                      'DictionaryTags.txt', 'DictionaryTags_MNE.txt',
                      'DictionaryTypes.txt', 'DictionaryTypes_MNE.txt']
     # IOD (MEGIN and MNE)
-    iod = dict()
+    fif = dict(iod=dict(), tags=dict(), types=dict(), defines=dict())
+    con = dict(iod=dict(), tags=dict(), types=dict(), defines=dict())
     fiff_version = None
     for name in ['DictionaryIOD.txt', 'DictionaryIOD_MNE.txt']:
         with open(op.join(tmpdir, name), 'rb') as fid:
@@ -71,10 +107,9 @@ def test_constants(tmpdir):
                     assert tagged in ('tagged',)
                 id_ = int(id_)
                 if id_ not in iod_dups:
-                    assert id_ not in iod
-                iod[id_] = [kind, desc]
+                    assert id_ not in fif['iod']
+                fif['iod'][id_] = [kind, desc]
     # Tags (MEGIN)
-    tags = dict()
     with open(op.join(tmpdir, 'DictionaryTags.txt'), 'rb') as fid:
         for line in fid:
             line = line.decode('ISO-8859-1').strip()
@@ -89,8 +124,8 @@ def test_constants(tmpdir):
             kind, id_, dtype, unit = line
             id_ = int(id_)
             val = [kind, dtype, unit]
-            assert id_ not in tags, (tags.get(id_), val)
-            tags[id_] = val
+            assert id_ not in fif['tags'], (fif['tags'].get(id_), val)
+            fif['tags'][id_] = val
     # Tags (MNE)
     with open(op.join(tmpdir, 'DictionaryTags_MNE.txt'), 'rb') as fid:
         for li, line in enumerate(fid):
@@ -116,23 +151,16 @@ def test_constants(tmpdir):
             id_ = int(id_)
             val = [kind, dtype, unit]
             if id_ not in tag_dups:
-                assert id_ not in tags, (tags.get(id_), val)
-            tags[id_] = val
+                assert id_ not in fif['tags'], (fif['tags'].get(id_), val)
+            fif['tags'][id_] = val
 
     # Types and enums
-    defines = dict()  # maps the other way (name->val)
-    types = dict()
-    used_enums = ('unit', 'unitm', 'coil', 'aspect', 'bem_surf_id',
-                  'ch_type', 'coord', 'mri_pixel', 'point', 'role', 'next',
-                  'hand', 'sex', 'proj_item', 'bem_approx',
-                  'mne_cov_ch', 'mne_ori', 'mne_map', 'covariance_type',
-                  'mne_priors', 'mne_space', 'mne_surf')
-    enums = dict((k, dict()) for k in used_enums)
     in_ = None
     re_prim = re.compile(r'^primitive\((.*)\)\s*(\S*)\s*"(.*)"$')
     re_enum = re.compile(r'^enum\((\S*)\)\s*".*"$')
     re_enum_entry = re.compile(r'\s*(\S*)\s*(\S*)\s*"(.*)"$')
     re_defi = re.compile(r'#define\s*(\S*)\s*(\S*)\s*"(.*)"$')
+    used_enums = list()
     for extra in ('', '_MNE'):
         with open(op.join(tmpdir, 'DictionaryTypes%s.txt'
                           % (extra,)), 'rb') as fid:
@@ -145,17 +173,20 @@ def test_constants(tmpdir):
                     if p is not None:
                         t, s, d = p.groups()
                         s = int(s)
-                        assert s not in types
-                        types[s] = [t, d]
+                        assert s not in fif['types']
+                        fif['types'][s] = [t, d]
                     elif e is not None:
                         # entering an enum
                         this_enum = e.group(1)
-                        if this_enum in enums:
-                            in_ = enums[e.group(1)]
+                        if this_enum not in fif:
+                            used_enums.append(this_enum)
+                            fif[this_enum] = dict()
+                            con[this_enum] = dict()
+                        in_ = fif[this_enum]
                     elif d is not None:
                         t, s, d = d.groups()
                         s = int(s)
-                        defines[t] = [s, d]
+                        fif['defines'][t] = [s, d]
                     else:
                         assert not line.startswith('enum(')
                 else:  # in an enum
@@ -180,50 +211,87 @@ def test_constants(tmpdir):
     assert fiff_version == mne_version
     unknowns = list()
 
-    # Assert that all our constants are in the dict
-    # (we are not necessarily complete the other way)
+    # Assert that all our constants are in the FIF def
     for name in sorted(dir(FIFF)):
         if name.startswith('_') or name in _dir_ignore_names or \
                 name in _missing_names:
             continue
+        check = None
         val = getattr(FIFF, name)
-        if name in defines:
-            assert defines[name][0] == val
+        if name in fif['defines']:
+            assert fif['defines'][name][0] == val
         elif name.startswith('FIFFC_'):
             # Checked above
             assert name in ('FIFFC_MAJOR_VERSION', 'FIFFC_MINOR_VERSION',
                             'FIFFC_VERSION')
         elif name.startswith('FIFFB_'):
-            assert val in iod, (val, name)
+            check = 'iod'
         elif name.startswith('FIFFT_'):
-            assert val in types, (val, name)
+            check = 'types'
         elif name.startswith('FIFFV_'):
             if name.startswith('FIFFV_MNE_') and name.endswith('_ORI'):
-                this_enum = 'mne_ori'
+                check = 'mne_ori'
             elif name.startswith('FIFFV_MNE_') and name.endswith('_COV'):
-                this_enum = 'covariance_type'
+                check = 'covariance_type'
             elif name.startswith('FIFFV_MNE_COORD'):
-                this_enum = 'coord'  # weird wrapper
+                check = 'coord'  # weird wrapper
             elif name.endswith('_CH') or '_QUAT_' in name or name in \
                     ('FIFFV_DIPOLE_WAVE', 'FIFFV_GOODNESS_FIT',
                      'FIFFV_HPI_ERR', 'FIFFV_HPI_G', 'FIFFV_HPI_MOV'):
-                this_enum = 'ch_type'
+                check = 'ch_type'
             elif name.startswith('FIFFV_SUBJ_'):
-                this_enum = name.split('_')[2].lower()
+                check = name.split('_')[2].lower()
+            elif name in ('FIFFV_POINT_LPA', 'FIFFV_POINT_NASION',
+                          'FIFFV_POINT_RPA'):
+                check = 'cardinal_point'
             else:
-                for this_enum in used_enums:
-                    if name.startswith('FIFFV_' + this_enum.upper()):
+                for check in used_enums:
+                    if name.startswith('FIFFV_' + check.upper()):
                         break
                 else:
                     raise RuntimeError('Could not find %s' % (name,))
-            assert this_enum in used_enums, name
-            assert val in enums[this_enum], (val, name)
+            assert check in used_enums, name
         elif name.startswith('FIFF_UNIT'):  # units and multipliers
-            this_enum = name.split('_')[1].lower()
-            assert val in enums[this_enum], (name, val)
+            check = name.split('_')[1].lower()
         elif name.startswith('FIFF_'):
-            assert val in tags, (name, val)
+            check = 'tags'
         else:
             unknowns.append((name, val))
+        if check is not None:
+            assert val in fif[check], '%s: %s, %s' % (check, val, name)
+            if val in con[check]:
+                msg = "%s='%s'  ?" % (name, con[check][val])
+                assert _aliases.get(name) == con[check][val], msg
+            else:
+                con[check][val] = name
     unknowns = '\n\t'.join('%s (%s)' % u for u in unknowns)
     assert len(unknowns) == 0, 'Unknown types\n\t%s' % unknowns
+
+    # Assert that all the FIF defs are in our constants
+    for key in sorted(set(fif.keys()) - set(['defines'])):
+        this_fif, this_con = fif[key], con[key]
+        assert len(set(this_fif.keys())) == len(this_fif)
+        assert len(set(this_con.keys())) == len(this_con)
+        assert set(con.keys()) - set(fif.keys()) == set()
+        missing = sorted(set(fif.keys()) - set(con.keys()))
+        assert missing == [], key
+
+    # Assert that `coil_def.dat` has accurate descriptions of all enum(coil)
+    coil_def = _read_coil_defs()
+    coil_desc = np.array([c['desc'] for c in coil_def])
+    coil_def = np.array([(c['coil_type'], c['accuracy'])
+                         for c in coil_def], int)
+    mask = (coil_def[:, 1] == FWD.COIL_ACCURACY_ACCURATE)
+    coil_def = coil_def[mask, 0]
+    coil_desc = coil_desc[mask]
+    bad_list = []
+    for key in fif['coil']:
+        if key not in _missing_coil_def and key not in coil_def:
+            bad_list.append(('    %s,' % key).ljust(10) +
+                            '  # ' + fif['coil'][key][1])
+    assert len(bad_list) == 0, '\n' + '\n'.join(bad_list)
+    # Assert that enum(coil) has all `coil_def.dat` entries
+    for key, desc in zip(coil_def, coil_desc):
+        if key not in fif['coil']:
+            bad_list.append(('    %s,' % key).ljust(10) + '  # ' + desc)
+    assert len(bad_list) == 0, '\n' + '\n'.join(bad_list)

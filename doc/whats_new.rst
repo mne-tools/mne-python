@@ -23,6 +23,8 @@ Changelog
 
 - :func:`mne.io.eeglab.read_raw_eeglab` no longer warns when the stim channel is populated with an array of zeros by `Joan Massich`_
 
+- Add capability to read and save Epochs containing complex data (e.g. after Hilbert-transform) using :meth:`mne.Epochs.save` and :func:`mne.read_epochs`, by `Stefan Repplinger`_, `Eric Larson`_ and `Alex Gramfort`_
+
 - Add optically pumped magnetometer dataset and example by `Rasmus Zetter`_ and `Eric Larson`_
 
 - Add ``orgin`` parameter to :meth:`mne.io.Raw.time_as_index` to allow ``times`` to be relative to this ``origin`` by `Joan Massich`_
@@ -57,6 +59,8 @@ Changelog
 
 - Add :func:`mne.head_to_mri` to convert positions from head coordinates to MRI RAS coordinates, by `Joan Massich`_ and `Alex Gramfort`_
 
+- Add improved CTF helmet for :func:`mne.viz.plot_alignment` by `Eric Larson`_
+
 - :func:`mne.combine_evoked` and :func:`mne.grand_average` can now handle input with the same channels in different orders, if required, by `Jona Sassenhagen`_
 
 - Add `split_naming` parameter to the `Raw.save` method to allow for BIDS-compatible raw file name construction by `Teon Brooks`_
@@ -78,6 +82,8 @@ Changelog
 
 Bug
 ~~~
+
+- Fix reading edf file annotations by `Joan Massich`_
 
 - Fix bug with reading events from BrainVision files by `Stefan Appelhoff`_
 
@@ -116,6 +122,8 @@ Bug
 - Fix bug in :func:`mne.time_frequency.tfr_morlet`, :func:`mne.time_frequency.tfr_multitaper`, and :func:`mne.time_frequency.tfr_stockwell` where not all data channels were picked by `Eric Larson`_
 
 - Fix bug in :meth:`mne.preprocessing.ICA.plot_overlay` and :func:`mne.make_field_map` for CTF data with compensation by `Eric Larson`_
+
+- Fix bug in :func:`mne.create_info` passing ``int`` as ``ch_names`` on Windows by `Eric Larson`_
 
 - Fix bug in :class:`mne.realtime.RtEpochs` where events during the buildup of the buffer were not correctly processed when incoming data buffers are smaller than the epochs by `Henrich Kolkhorst`_
 
@@ -159,6 +167,10 @@ Bug
 API
 ~~~
 
+- Deprecation of ``annot`` and ``annotmap`` parameters in :meth:`mne.io.read_raw_edf` by `Joan Massich`_
+
+- :meth:`mne.Epochs.save` now has the parameter `fmt` to specify the desired format (precision) saving epoched data, by `Stefan Repplinger`_, `Eric Larson`_ and `Alex Gramfort`_
+
 - Deprecated ``mne.SourceEstimate.morph_precomputed``, ``mne.SourceEstimate.morph``, ``mne.compute_morph_matrix``, ``mne.morph_data_precomputed`` and ``mne.morph_data`` in favor of :func:`mne.compute_source_morph`, by `Tommy Clausner`_
 
 - Prepare transition to Python 3. This release will be the last release compatible with Python 2. The next version will be Python 3 only.
@@ -173,6 +185,8 @@ API
 
 - Removed blocking (waiting for new epochs) in :meth:`mne.realtime.RtEpochs.get_data()` by `Henrich Kolkhorst`_
 
+- Warning messages are now only emitted as :func:`warnings.warn_explicit` rather than also being emitted as ``logging`` messages (unless a logging file is being used) to avoid duplicate warning messages, by `Eric Larson`_
+
 - Deprecated save_stc_as_volume function in favor of :meth:`mne.VolSourceEstimate.as_volume` and
    :meth:`mne.VolSourceEstimate.save_as_volume` by `Alex Gramfort`_
 
@@ -181,6 +195,8 @@ API
 - Deprecation of :attr:`mne.io.Raw.annotations` property in favor of :meth:`mne.io.Raw.set_annotations` by `Joan Massich`_
 
 - The default value of ``stop_receive_thread`` in :meth:`mne.realtime.RtEpochs.stop` has been changed to ``True`` by `Henrich Kolkhorst`_
+
+- Using the :meth:`mne.io.Raw.add_channels` on an instance with memmapped data will now resize the memmap file to append the new channels on Windows and Linux, by `Eric Larson`_
 
 - :attr:`mne.io.Raw.annotations` when missing is set to an empty :class:`mne.Annotations` rather than ``None`` by `Joan Massich`_ and `Alex Gramfort`_
 
@@ -1345,7 +1361,7 @@ BUG
 
 - Time-cropping functions (e.g., :func:`mne.Epochs.crop`, :func:`mne.Evoked.crop`, :func:`mne.io.Raw.crop`, :func:`mne.SourceEstimate.crop`) made consistent with behavior of ``tmin`` and ``tmax`` of :class:`mne.Epochs`, where nearest sample is kept. For example, for MGH data acquired with ``sfreq=600.614990234``, constructing ``Epochs(..., tmin=-1, tmax=1)`` has bounds ``+/-1.00064103``, and now ``epochs.crop(-1, 1)`` will also have these bounds (previously they would have been ``+/-0.99897607``). Time cropping functions also no longer use relative tolerances when determining the boundaries. These changes have minor effects on functions that use cropping under the hood, such as :func:`mne.compute_covariance` and :func:`mne.connectivity.spectral_connectivity`. Changes by `Jaakko Leppakangas`_ and `Eric Larson`_
 
-- Fix EEG spherical spline interpolation code to account for average reference by `Mainak Jas`_ (`#2758 <https://github.com/mne-tools/mne-python/pull/2758>`_)
+- Fix EEG spherical spline interpolation code to account for average reference by `Mainak Jas`_
 
 - MEG projectors are removed after Maxwell filtering by `Eric Larson`_
 

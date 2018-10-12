@@ -111,7 +111,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         with reference channels is not currently supported.
     bad_condition : str
         How to deal with ill-conditioned SSS matrices. Can be "error"
-        (default), "warning", or "ignore".
+        (default), "warning", "info", or "ignore".
     head_pos : array | None
         If array, movement compensation will be performed.
         The array should be of shape (N, 10), holding the position
@@ -307,9 +307,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         if not 0. < st_correlation <= 1:
             raise ValueError('st_correlation must be between 0. and 1.')
     if not isinstance(bad_condition, string_types) or \
-            bad_condition not in ['error', 'warning', 'ignore']:
-        raise ValueError('bad_condition must be "error", "warning", or '
-                         '"ignore", not %s' % bad_condition)
+            bad_condition not in ['error', 'warning', 'ignore', 'info']:
+        raise ValueError('bad_condition must be "error", "warning", "info", or'
+                         ' "ignore", not %s' % bad_condition)
     if raw.info['dev_head_t'] is None and coord_frame == 'head':
         raise RuntimeError('coord_frame cannot be "head" because '
                            'info["dev_head_t"] is None; if this is an '
@@ -857,8 +857,10 @@ def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
         msg = 'Matrix is badly conditioned: %0.0f >= 1000' % cond
         if bad_condition == 'error':
             raise RuntimeError(msg)
-        else:  # condition == 'warning':
+        elif bad_condition == 'warning':
             warn(msg)
+        else:  # condition == 'info'
+            logger.info(msg)
 
     # Build in our data scaling here
     pS_decomp *= coil_scale[good_picks].T
