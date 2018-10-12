@@ -377,6 +377,8 @@ def _old_event_id_func(evts_desc):
     mapping.pop('start')
     return mapping
 
+
+@testing.requires_testing_data
 def test_find_events_and_events_from_annot_are_the_same():
     """Test that old behaviour and new produce the same events."""
     # test if stim channel is automatically detected
@@ -401,5 +403,37 @@ def test_find_events_and_events_from_annot_are_the_same():
 
     assert_array_equal(events_from_EFA, events_from_find_events)
 
+
+@testing.requires_testing_data
+def test_find_events_and_events_from_annot_are_the_same_B():
+    """Test BDF stim channel."""
+    # test BDF file with wrong scaling info in header - this should be ignored
+    # for BDF stim channels
+    EXPECTED_EVENTS = [[242, 0, 4],
+                       [310, 0, 2],
+                       [952, 0, 1],
+                       [1606, 0, 1],
+                       [2249, 0, 1],
+                       [2900, 0, 1],
+                       [3537, 0, 1],
+                       [4162, 0, 1],
+                       [4790, 0, 1]]
+    raw = read_raw_edf(bdf_stim_channel_path, preload=True)
+    raw_shell = _get_emtpy_raw_with_valid_annot(bdf_stim_channel_path)
+    assert raw_shell.info['meas_date'] == raw.info['meas_date']
+    assert raw_shell.info['sfreq'] == raw.info['sfreq']
+    assert raw_shell.first_samp == raw.first_samp
+
+
+    events_from_find_events = find_events(raw)
+    assert_array_equal(events_from_find_events, EXPECTED_EVENTS)
+
+    annot = read_annotations_edf(bdf_stim_channel_path, raw_shell.info['sfreq'])
+    raw_shell.set_annotations(annot)
+    event_id = _old_event_id_func(annot.description)
+    events_from_EFA, _ = events_from_annotations(raw_shell, event_id=event_id,
+                                                 use_rounding=False)
+
+    assert_array_equal(events_from_EFA, events_from_find_events)
 
 run_tests_if_main()
