@@ -93,11 +93,10 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
 
 def test_magnetic_dipole():
     """Test basic magnetic dipole forward calculation."""
-    trans = Transform('mri', 'head')
     info = read_info(fname_raw)
     picks = pick_types(info, meg=True, eeg=False, exclude=[])
     info = pick_info(info, picks[:12])
-    coils = _create_meg_coils(info['chs'], 'normal', trans)
+    coils = _create_meg_coils(info['chs'], 'normal', None)
     # magnetic dipole far (meters!) from device origin
     r0 = np.array([0., 13., -6.])
     for ch, coil in zip(info['chs'], coils):
@@ -106,6 +105,16 @@ def test_magnetic_dipole():
         near_fwd = _magnetic_dipole_field_vec(rr[np.newaxis, :], [coil])
         ratio = 8. if ch['ch_name'][-1] == '1' else 16.  # grad vs mag
         assert_allclose(np.median(near_fwd / far_fwd), ratio, atol=1e-1)
+    # degenerate case
+    r0 = coils[0]['rmag'][[0]]
+    with pytest.raises(RuntimeError, match='Coil too close'):
+        _magnetic_dipole_field_vec(r0, coils[:1])
+    with pytest.warns(RuntimeWarning, match='Coil too close'):
+        fwd = _magnetic_dipole_field_vec(r0, coils[:1], too_close='warning')
+    assert not np.isfinite(fwd).any()
+    with np.errstate(invalid='ignore'):
+        fwd = _magnetic_dipole_field_vec(r0, coils[:1], too_close='info')
+    assert not np.isfinite(fwd).any()
 
 
 @testing.requires_testing_data
@@ -330,11 +339,13 @@ def test_make_forward_dipole():
 
     evoked = read_evokeds(fname_evo)[0]
     cov = read_cov(fname_cov)
+    cov['projs'] = []  # avoid proj warning
     dip_c = read_dipole(fname_dip)
 
     # Only use magnetometers for speed!
-    picks = pick_types(evoked.info, meg='mag', eeg=False)
+    picks = pick_types(evoked.info, meg='mag', eeg=False)[::8]
     evoked.pick_channels([evoked.ch_names[p] for p in picks])
+    evoked.info.normalize_proj()
     info = evoked.info
 
     # Make new Dipole object with n_test_dipoles picked from the dipoles
@@ -391,7 +402,7 @@ def test_make_forward_dipole():
     assert_allclose(dip_fit.pos, dip_test.pos, rtol=0, atol=1e-2,
                     err_msg='position mismatch')
     assert dist < 1e-2  # within 1 cm
-    assert corr > 1 - 1e-2
+    assert corr > 0.985
     assert gc_dist < 20  # less than 20 degrees
     assert amp_err < 10e-9  # within 10 nAm
 
