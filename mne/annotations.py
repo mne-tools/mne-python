@@ -533,7 +533,8 @@ def _ensure_annotation_object(obj):
 
 
 @verbose
-def events_from_annotations(raw, event_id=None, regexp=None, verbose=None):
+def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
+                            verbose=None):
     """Get events and event_id from an Annotations object.
 
     Parameters
@@ -551,6 +552,9 @@ def events_from_annotations(raw, event_id=None, regexp=None, verbose=None):
     regexp : str | None
         Regular expression used to filter the annotations whose
         descriptions is a match.
+    use_rounding : boolean
+        If True, use rounding (instead of truncation) when converting
+        times to indices. This can help avoid non-unique indices.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see
         :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -568,7 +572,7 @@ def events_from_annotations(raw, event_id=None, regexp=None, verbose=None):
 
     annotations = raw.annotations
 
-    inds = raw.time_as_index(annotations.onset, use_rounding=True,
+    inds = raw.time_as_index(annotations.onset, use_rounding=use_rounding,
                              origin=annotations.orig_time) + raw.first_samp
 
     # Filter out the annotations that do not match regexp
