@@ -406,12 +406,15 @@ class RawEEGLAB(BaseRaw):
                             dropped=dropped_desc)
         events, _ = events_from_annotations(self, event_id=event_id_)
         annot_length = self.annotations.onset.size
-        if events.size < annot_length:
+        if events.shape[0] < annot_length:
             msg = ("{0}/{1} event codes could not be mapped to integers. Use "
                    "the 'event_id' parameter to map such events manually.")
-            warn(msg.format(annot_length - events.size, annot_length))
+            warn(msg.format(annot_length - events.shape[0], annot_length))
         if not events.size and len(annot):  # only if some events were in file
-            logger.info('No events found, returning empty stim channel ...')
+            logger.info('Returning empty stim channel. Some annotations were'
+                        'found but dropped during build of the raw.'
+                        'Please use `event_id` and `event_id_func` to drive'
+                        'the selection/rejection of events')
         self._create_event_ch(events, n_samples=eeg.pnts)
         if getattr(self, 'preload', False):
             self._data[-1] = self._event_ch
