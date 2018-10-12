@@ -425,13 +425,19 @@ def test_ctf_plotting():
 @testing.requires_testing_data
 def test_plot_arrowmap():
     """Test arrowmap plotting."""
-    import warnings
+    import matplotlib.pyplot as plt
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
-    evoked.pick_types(meg='mag')
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        plot_arrowmap(evoked.data[:, 0], evoked.info)
+    evoked_mag = evoked.copy().pick_types(meg='mag')
+    evoked_grad = evoked.copy().pick_types(meg='grad')
+    plot_arrowmap(evoked_mag.data[:, 0], evoked_mag.info)
+    plt.close('all')
+    ax = plt.subplot(111)
+    plot_arrowmap(evoked_mag.data[:, 0], evoked_mag.info, axes=ax)
+    plt.close('all')
+    plot_arrowmap(evoked_grad.data[:, 0], evoked_grad.info,
+                  info_to=evoked_mag.info)
+    plt.close('all')
 
 
 @testing.requires_testing_data

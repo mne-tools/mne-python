@@ -2388,12 +2388,18 @@ def _trigradient(x, y, z):
     """Take gradients of z on a mesh."""
     from matplotlib.tri import CubicTriInterpolator, Triangulation
     tri = Triangulation(x, y)
-    tci = CubicTriInterpolator(tri, z)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        tci = CubicTriInterpolator(tri, z)
     dx, dy = tci.gradient(tri.x, tri.y)
     return dx, dy
 
 
-def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, axes=None):
+def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
+                  vmax=None, cmap=None, sensors=True, res=64, axes=None,
+                  names=None, show_names=False, mask=None, mask_params=None,
+                  outlines='head', contours=6, image_interp='bilinear',
+                  show=True, head_pos=None, onselect=None):
     """Plot arrow map.
 
     Parameters
@@ -2406,19 +2412,79 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, axes=None):
         The measurement info to interpolate to.
     scale : float, default 1e-10
         To scale the arrows
+    vmin : float | callable | None
+        The value specifying the lower bound of the color range.
+        If None, and vmax is None, -vmax is used. Else np.min(data).
+        If callable, the output equals vmin(data). Defaults to None.
+    vmax : float | callable | None
+        The value specifying the upper bound of the color range.
+        If None, the maximum absolute value is used. If callable, the output
+        equals vmax(data). Defaults to None.
+    cmap : matplotlib colormap | None
+        Colormap to use. If None, 'Reds' is used for all positive data,
+        otherwise defaults to 'RdBu_r'.
+    sensors : bool | str
+        Add markers for sensor locations to the plot. Accepts matplotlib plot
+        format string (e.g., 'r+' for red plusses). If True (default), circles
+        will be used.
+    res : int
+        The resolution of the topomap image (n pixels along each side).
     axes : instance of Axes | None
-        The axes to plot to. If None, the current axes will be used.
+        The axes to plot to. If None, a new figure will be created.
+    names : list | None
+        List of channel names. If None, channel names are not plotted.
+    show_names : bool | callable
+        If True, show channel names on top of the map. If a callable is
+        passed, channel names will be formatted using the callable; e.g., to
+        delete the prefix 'MEG ' from all channel names, pass the function
+        lambda x: x.replace('MEG ', ''). If `mask` is not None, only
+        significant sensors will be shown.
+        If `True`, a list of names must be provided (see `names` keyword).
+    mask : ndarray of bool, shape (n_channels, n_times) | None
+        The channels to be marked as significant at a given time point.
+        Indices set to `True` will be considered. Defaults to None.
+    mask_params : dict | None
+        Additional plotting parameters for plotting significant sensors.
+        Default (None) equals::
+
+           dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                linewidth=0, markersize=4)
+
+    outlines : 'head' | 'skirt' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If 'skirt' the head scheme will be drawn, but sensors are
+        allowed to be plotted outside of the head circle. If dict, each key
+        refers to a tuple of x and y positions, the values in 'mask_pos' will
+        serve as image mask, and the 'autoshrink' (bool) field will trigger
+        automated shrinking of the positions due to points outside the outline.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axes plots). If None, nothing will be drawn.
+        Defaults to 'head'.
+    contours : int | array of float
+        The number of contour lines to draw. If 0, no contours will be drawn.
+        If an array, the values represent the levels for the contours. The
+        values are in uV for EEG, fT for magnetometers and fT/m for
+        gradiometers. Defaults to 6.
+    image_interp : str
+        The image interpolation to be used. All matplotlib options are
+        accepted.
+    show : bool
+        Show figure if True.
+    head_pos : dict | None
+        If None (default), the sensors are positioned such that they span
+        the head circle. If dict, can have entries 'center' (tuple) and
+        'scale' (tuple) for what the center and scale of the head should be
+        relative to the electrode locations.
+    onselect : callable | None
+        Handle for a function that is called when the user selects a set of
+        channels by rectangle selection (matplotlib ``RectangleSelector``). If
+        None interactive selection is disabled. Defaults to None.
 
     Returns
     -------
     fig : matplotlib.figure.Figure
         The Figure of the plot
-    ax : matplotlib.axes._subplots.AxesSubplot
-        The axes of the subplot
-    im : matplotlib.image.AxesImage
-        The interpolated data.
-    cn : matplotlib.contour.ContourSet
-        The fieldlines.
     """
     from matplotlib import pyplot as plt
     from ..forward import _map_meg_channels
@@ -2455,13 +2521,19 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, axes=None):
     pos = _prepare_topo_plot(info_to, ch_type='mag', layout=None)[1]
     pos = _check_outlines(pos, 'head', None)[0]
     if axes is None:
-        fig, ax = plt.subplots()
-    im, cn = plot_topomap(data, pos, axes=ax)
+        fig, axes = plt.subplots()
+    else:
+        fig = axes.figure
+    plot_topomap(data, pos, axes=axes, vmin=vmin, vmax=vmax, cmap=cmap,
+                 sensors=sensors, res=res, names=names, show_names=show_names,
+                 mask=mask, mask_params=mask_params, outlines=outlines,
+                 contours=contours, image_interp=image_interp, show=show,
+                 head_pos=head_pos, onselect=onselect)
     x, y = tuple(pos.T)
     dx, dy = _trigradient(x, y, data)
     dxx = dy.data
     dyy = -dx.data
-    ax.quiver(x, y, dxx, dyy, scale=scale, color='k', lw=1)
-    fig.tight_layout()
+    axes.quiver(x, y, dxx, dyy, scale=scale, color='k', lw=1)
+    tight_layout(fig=fig)
 
     return fig

@@ -34,9 +34,17 @@ fname = path + '/MEG/sample/sample_audvis-ave.fif'
 # load evoked and subtract baseline
 condition = 'Left Auditory'
 evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
+evoked_mag = evoked.copy().pick_types(meg='mag')
+evoked_grad = evoked.copy().pick_types(meg='grad')
 
 # plot magnetometer data as arrowmap along with topoplot at the time
 # of the maximum sensor space activity
-evoked.pick_types(meg='mag')
-max_time_idx = np.abs(evoked.data).mean(axis=0).argmax()
-plot_arrowmap(evoked.data[:, max_time_idx], evoked.info)
+max_time_idx = np.abs(evoked_mag.data).mean(axis=0).argmax()
+plot_arrowmap(evoked_mag.data[:, max_time_idx], evoked_mag.info)
+
+
+# plot gradiometer data as arrowmap along with topoplot at the time
+# of the maximum sensor space activity
+max_time_idx = np.abs(evoked_grad.data).mean(axis=0).argmax()
+plot_arrowmap(evoked_grad.data[:, max_time_idx], evoked_grad.info,
+              info_to=evoked_mag.info)
