@@ -374,7 +374,9 @@ def _old_event_id_func(evts_desc):
     unique_annots = sorted(set(evts_desc))
     mapping = dict((a, n + 1) for n, a in enumerate(unique_annots))
 
-    mapping.pop('start')
+    if 'start' in mapping.keys():
+        mapping.pop('start')
+
     return mapping
 
 
