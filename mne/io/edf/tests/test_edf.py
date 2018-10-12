@@ -366,6 +366,11 @@ def _get_emtpy_raw_with_valid_annot(fname):
     raw.time_as_index = _time_as_index
     return raw
 
+def _old_event_id_func(evts_desc):
+    unique_annots = sorted(set(evts_desc))
+    mapping = dict((a, n + 1) for n, a in enumerate(unique_annots))
+
+    return mapping
 
 def test_find_events_and_events_from_annot_are_the_same():
     """Test that old behaviour and new produce the same events."""
@@ -385,7 +390,7 @@ def test_find_events_and_events_from_annot_are_the_same():
 
     annot = read_annotations_edf(edf_path, raw_shell.info['sfreq'])
     raw_shell.set_annotations(annot)
-    event_id = {'type A':2, 'type B':3}
+    event_id = _old_event_id_func(annot.description)
     events_from_EFA, _ = events_from_annotations(raw_shell, event_id=event_id,
                                                  use_rounding=True)
 
