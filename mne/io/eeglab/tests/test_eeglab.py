@@ -54,6 +54,43 @@ def _check_h5(fname):
             raise SkipTest('h5py module required')
 
 
+@testing.requires_testing_data
+def test_io_set_negative_latencies_warn_and_errors(tmpdir):
+    tmpdir = str(tmpdir)
+    raw_fname, raw_fname_onefile = raw_mat_fnames
+    eeg = io.loadmat(raw_fname, struct_as_record=False,
+                     squeeze_me=True)['EEG']
+    negative_latency_fname = op.join(tmpdir, 'test_negative_latency.set')
+    shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
+                    negative_latency_fname.replace('.set', '.fdt'))
+
+    evnts = deepcopy(eeg.event[0])
+    evnts.latency = 0
+    io.savemat(negative_latency_fname, {'EEG':
+               {'trials': eeg.trials, 'srate': eeg.srate,
+                'nbchan': eeg.nbchan, 'data': 'test_negative_latency.fdt',
+                'epoch': eeg.epoch, 'event': evnts,
+                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
+               appendmat=False, oned_as='row')
+    event_id = {eeg.event[0].type: 1}
+    with pytest.warns(RuntimeWarning, match="has a sample index of -1."):
+        read_raw_eeglab(input_fname=negative_latency_fname, preload=True,
+                        event_id=event_id, montage=montage)
+
+    evnts = deepcopy(eeg.event[0])
+    evnts.latency = -1
+    io.savemat(negative_latency_fname, {'EEG':
+               {'trials': eeg.trials, 'srate': eeg.srate,
+                'nbchan': eeg.nbchan, 'data': 'test_negative_latency.fdt',
+                'epoch': eeg.epoch, 'event': evnts,
+                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
+               appendmat=False, oned_as='row')
+    event_id = {eeg.event[0].type: 1}
+    with pytest.raises(ValueError, match='event sample index is negative'):
+        with pytest.warns(RuntimeWarning, match="has a sample index of -1."):
+            read_raw_eeglab(input_fname=negative_latency_fname, preload=True,
+                            event_id=event_id, montage=montage)
+
 @requires_h5py
 @testing.requires_testing_data
 @pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
