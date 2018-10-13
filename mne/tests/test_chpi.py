@@ -370,6 +370,8 @@ def test_calculate_chpi_coil_locs():
     assert_allclose(cHPI_digs[2][0]['gof'], 0.9980471794552791, atol=1e-3)
     assert_allclose(cHPI_digs[2][0]['r'],
                     [-0.0157762, 0.06655744, 0.00545172], atol=1e-3)
+    with pytest.raises(ValueError, match='too_close must be'):
+        _calculate_chpi_coil_locs(raw, too_close='foo')
 
 
 @testing.requires_testing_data

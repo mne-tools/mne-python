@@ -19,7 +19,7 @@ from copy import deepcopy
 from ..surface import fast_cross_3d, _project_onto_surface
 from ..io.constants import FIFF, FWD
 from ..transforms import apply_trans
-from ..utils import logger, verbose, _pl
+from ..utils import logger, verbose, _pl, warn
 from ..parallel import parallel_func
 from ..io.compensator import get_current_comp, make_compensator
 from ..io.pick import pick_types
@@ -500,7 +500,7 @@ def _sphere_pot_or_field(rr, mri_rr, mri_Q, coils, sphere, bem_rr,
     fun = _eeg_spherepot_coil if coil_type == 'eeg' else _sphere_field
     parallel, p_fun, _ = parallel_func(fun, n_jobs)
     B = np.concatenate(parallel(p_fun(r, coils, sphere)
-                       for r in np.array_split(rr, n_jobs)))
+                                for r in np.array_split(rr, n_jobs)))
     return B
 
 
@@ -617,7 +617,7 @@ def _eeg_spherepot_coil(rrs, coils, sphere):
 # #############################################################################
 # MAGNETIC DIPOLE (e.g. CHPI)
 
-def _magnetic_dipole_field_vec(rrs, coils):
+def _magnetic_dipole_field_vec(rrs, coils, too_close='raise'):
     """Compute an MEG forward solution for a set of magnetic dipoles."""
     # The code below is a more efficient version (~30x) of this:
     # for ri, rr in enumerate(rrs):
@@ -645,7 +645,12 @@ def _magnetic_dipole_field_vec(rrs, coils):
         dist2 = np.sum(diff * diff, axis=1)[:, np.newaxis]
         dist = np.sqrt(dist2)
         if (dist < 1e-5).any():
-            raise RuntimeError('Coil too close (dist = %g m)' % dist.min())
+            msg = 'Coil too close (dist = %g m)' % dist.min()
+            if too_close == 'raise':
+                raise RuntimeError(msg)
+            else:  # warning
+                func = warn if too_close == 'warning' else logger.info
+                func('Coil too close (dist = %g m)' % dist.min())
         sum_ = ws[:, np.newaxis] * (3 * diff * np.sum(diff * cosmags,
                                                       axis=1)[:, np.newaxis] -
                                     dist2 * cosmags) / (dist2 * dist2 * dist)
