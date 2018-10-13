@@ -2377,6 +2377,19 @@ def _check_pandas_index_arguments(index, defaults):
                          'values are \'None\' or %s' % tuple(options))
 
 
+def _check_ch_locs(chs):
+    """Check if channel locations exist.
+
+    Parameters
+    ----------
+    chs : dict
+        The channels from info['chs']
+    """
+    locs3d = np.array([ch['loc'][:3] for ch in chs])
+    return (locs3d == 0).all() or \
+        (~np.isfinite(locs3d)).all() or np.allclose(locs3d, 0.)
+
+
 def _clean_names(names, remove_whitespace=False, before_dash=True):
     """Remove white-space on topo matching.
 

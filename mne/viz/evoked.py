@@ -32,7 +32,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _set_title_multiple_electrodes, _check_time_unit,
                     _plot_masked_image)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
-                     _check_if_nan)
+                     _check_if_nan, _check_ch_locs)
 
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
@@ -415,7 +415,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             if not gfp_only:
                 chs = [info['chs'][i] for i in idx]
                 locs3d = np.array([ch['loc'][:3] for ch in chs])
-                if spatial_colors is True and (locs3d == 0).all():
+                if spatial_colors is True and _check_ch_locs(chs):
                     warn('Channel locations not available. Disabling spatial '
                          'colors.')
                     spatial_colors = selectable = False
@@ -2122,15 +2122,16 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     # and now for 3 "legends" ..
     # a head plot showing the sensors that are being plotted
     if show_sensors:
+        if not _check_ch_locs(one_evoked.info['chs']):
+            pos = _auto_topomap_coords(one_evoked.info, pos_picks,
+                                       ignore_overlap=True, to_sphere=True)
+        else:
+            warn("Cannot find channel coordinates in the supplied Evokeds. "
+                 "Not showing channel locations.")
+
         if show_sensors is True:
             ymin, ymax = np.abs(ax.get_ylim())
             show_sensors = "lower right" if ymin > ymax else "upper right"
-        try:
-            pos = _auto_topomap_coords(one_evoked.info, pos_picks,
-                                       ignore_overlap=True, to_sphere=True)
-        except ValueError:
-            warn("Cannot find channel coordinates in the supplied Evokeds. "
-                 "Not showing channel locations.")
         else:
             head_pos = {'center': (0, 0), 'scale': (0.5, 0.5)}
             pos, outlines = _check_outlines(pos, np.array([1, 1]), head_pos)
