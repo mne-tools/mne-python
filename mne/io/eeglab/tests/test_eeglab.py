@@ -147,7 +147,7 @@ def test_io_set_raw(fnames, tmpdir):
     evnts.latency = 0
     io.savemat(negative_latency_fname, {'EEG':
                {'trials': eeg.trials, 'srate': eeg.srate,
-                'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
+                'nbchan': eeg.nbchan, 'data': 'test_negative_latency.fdt',
                 'epoch': eeg.epoch, 'event': evnts,
                 'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
                appendmat=False, oned_as='row')
