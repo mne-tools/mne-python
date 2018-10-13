@@ -67,6 +67,17 @@ def find_edf_events(raw):
     return raw.find_edf_events()
 
 
+def _edf_events_from_annotations(raw, event_id):
+    """Modify events_from_annotaitons so that events[:,1] corresponds to
+       the duration of the events instead of the id of the previous event.
+    """
+    events, event_id_ = events_from_annotations(raw, event_id=event_id)
+    durations = raw.annotations.duration
+    durations = np.array(durations * raw.info['sfreq'], int)
+    events[:, 1] = durations
+    return events, event_id_
+
+
 class RawEDF(BaseRaw):
     """Raw object from EDF, EDF+, BDF file.
 
@@ -313,7 +324,8 @@ class RawEDF(BaseRaw):
                 self.set_annotations(Annotations(evts_[:, 0], evts_[:, 1],
                                                  evts_[:, 2]))
                 event_id = _get_edf_default_event_id(evts_[:, 2])
-                events, _ = events_from_annotations(self, event_id=event_id)
+                events, _ = _edf_events_from_annotations(self,
+                                                         event_id=event_id)
                 stim_new = _synthesize_stim_channel(events, read_size)
 
                 unique_annots = sorted(set([e[2] for e in evts]))
@@ -351,6 +363,15 @@ class RawEDF(BaseRaw):
     def find_edf_events(self):
         return self._raw_extras[0]['events']
 
+    def _create_event_ch(self, events, n_samples=None):
+        """Create the event channel."""
+        if n_samples is None:
+            n_samples = self.last_samp - self.first_samp + 1
+        events = np.array(events, int)
+        if events.ndim != 2 or events.shape[1] != 3:
+            raise ValueError("[n_events x 3] shaped array required")
+        # update events
+        self._event_ch = _synthesize_stim_channel(events, n_samples)
 
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     """Read a number of samples for a single channel."""
