@@ -71,9 +71,11 @@ def _edf_events_from_annotations(raw, event_id):
     """Modify events_from_annotaitons so that events[:,1] corresponds to
        the duration of the events instead of the id of the previous event.
     """
-    events, event_id_ = events_from_annotations(raw, event_id=event_id)
+    events, event_id_ = events_from_annotations(raw, event_id=event_id,
+                                                use_rounding=False)
     durations = raw.annotations.duration
     durations = np.array(durations * raw.info['sfreq'], int)
+    durations[durations != 0] -= 1  # XXX
     events[:, 1] = durations
     return events, event_id_
 
@@ -348,10 +350,7 @@ class RawEDF(BaseRaw):
                              'file.'.format(annotation, evid, n_start))
                     stim[n_start:n_stop] += evid
 
-                stim_bincount = np.bincount(np.array(stim, int))
-                stim_new_bincount = np.bincount(np.array(stim_new, int))
-                np.testing.assert_array_equal(stim_new_bincount, stim_bincount)
-                # np.testing.assert_array_equal(stim, stim_new)
+                np.testing.assert_array_equal(stim, stim_new)
 
                 data[stim_channel_idx, :] = stim[start:stop]
 
@@ -1373,9 +1372,4 @@ def _read_annotations_edf(fname):
 def _get_edf_default_event_id(descriptions):
     mapping = dict((a, n) for n, a in
                    enumerate(sorted(set(descriptions)), start=1))
-
-    # XXX focus in one thing at a time, right now durations
-    # if 'start' in mapping.keys():
-    #     mapping.pop('start')
-
     return mapping
