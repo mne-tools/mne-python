@@ -432,9 +432,6 @@ def test_plot_arrowmap():
     evoked_grad = evoked.copy().pick_types(meg='grad')
     plot_arrowmap(evoked_mag.data[:, 0], evoked_mag.info)
     plt.close('all')
-    ax = plt.subplot(111)
-    plot_arrowmap(evoked_mag.data[:, 0], evoked_mag.info, axes=ax)
-    plt.close('all')
     plot_arrowmap(evoked_grad.data[:, 0], evoked_grad.info,
                   info_to=evoked_mag.info)
     plt.close('all')
