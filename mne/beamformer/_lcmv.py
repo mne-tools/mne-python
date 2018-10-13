@@ -19,7 +19,7 @@ from ..externals import six
 from ._compute_beamformer import (
     _reg_pinv, _setup_picks, _pick_channels_spatial_filter,
     _check_proj_match, _prepare_beamformer_input, _check_one_ch_type,
-    _compute_beamformer, _check_src_type)
+    _compute_beamformer, _check_src_type, Beamformer)
 
 
 @verbose
@@ -80,7 +80,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     Returns
     -------
-    filters : dict
+    filters : instance of Beamformer
         Dictionary containing filter weights from LCMV beamformer.
         Contains the following keys:
 
@@ -131,6 +131,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     data_cov = pick_channels_cov(data_cov, include=ch_names)
     Cm = data_cov['data']
+    if 'estimator' in data_cov:
+        del data_cov['estimator']
 
     # check number of sensor types present in the data
     _check_one_ch_type(info, picks, noise_cov, 'lcmv')
@@ -143,13 +145,18 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     if noise_cov is not None:
         # Handle whitening + data covariance
-        whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)
+        whitener, _, rank = compute_whitener(noise_cov, info, picks, rank=rank,
+                                             return_rank=True)
         # whiten the leadfield
         G = np.dot(whitener, G)
         # whiten  data covariance
         Cm = np.dot(whitener, np.dot(Cm, whitener.T))
+        noise_cov = noise_cov.copy()
+        if 'estimator' in noise_cov:
+            del noise_cov['estimator']
     else:
         whitener = None
+        rank = G.shape[0]
 
     # leadfield rank and optional rank reduction
     if reduce_rank:
@@ -172,13 +179,12 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     # get subject to store with filters
     subject_from = _subject_from_forward(forward)
 
-    filters = dict(weights=W, data_cov=data_cov, noise_cov=noise_cov,
-                   whitener=whitener, weight_norm=weight_norm,
-                   pick_ori=pick_ori, ch_names=ch_names, proj=proj,
-                   is_ssp=is_ssp, vertices=vertno, is_free_ori=is_free_ori,
-                   nsource=forward['nsource'], src_type=src_type,
-                   source_nn=forward['source_nn'].copy(),
-                   subject=subject_from)
+    filters = Beamformer(
+        kind='LCMV', weights=W, data_cov=data_cov, noise_cov=noise_cov,
+        whitener=whitener, weight_norm=weight_norm, pick_ori=pick_ori,
+        ch_names=ch_names, proj=proj, is_ssp=is_ssp, vertices=vertno,
+        is_free_ori=is_free_ori, nsource=forward['nsource'], src_type=src_type,
+        source_nn=forward['source_nn'].copy(), subject=subject_from, rank=rank)
 
     return filters
 
@@ -256,9 +262,9 @@ def apply_lcmv(evoked, filters, max_ori_out='signed', verbose=None):
     ----------
     evoked : Evoked
         Evoked data to invert.
-    filters : dict
+    filters : instance of Beamformer
         LCMV spatial filter (beamformer weights).
-        Filter weights returned from `make_lcmv`.
+        Filter weights returned from :func:`make_lcmv`.
     max_ori_out: 'signed'
         Specify in case of pick_ori='max-power'.
     verbose : bool, str, int, or None
@@ -301,9 +307,9 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='signed',
     ----------
     epochs : Epochs
         Single trial epochs.
-    filters : dict
+    filters : instance of Beamformer
         LCMV spatial filter (beamformer weights)
-        Filter weights returned from `make_lcmv`.
+        Filter weights returned from :func:`make_lcmv`.
     max_ori_out: 'signed'
         Specify in case of pick_ori='max-power'.
     return_generator : bool
@@ -354,9 +360,9 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
     ----------
     raw : mne.io.Raw
         Raw data to invert.
-    filters : dict
+    filters : instance of Beamformer
         LCMV spatial filter (beamformer weights).
-        Filter weights returned from `make_lcmv`.
+        Filter weights returned from :func:`make_lcmv`.
     start : int
         Index of first time sample (index not time is seconds).
     stop : int

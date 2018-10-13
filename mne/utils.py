@@ -274,6 +274,8 @@ def object_diff(a, b, pre=''):
             if c.nnz > 0:
                 out += pre + (' sparse matrix a and b differ on %s '
                               'elements' % c.nnz)
+    elif hasattr(a, '__getstate__'):
+        out += object_diff(a.__getstate__(), b.__getstate__(), pre)
     else:
         raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
     return out

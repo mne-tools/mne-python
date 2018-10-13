@@ -14,9 +14,10 @@ import numpy as np
 import mne
 from mne.datasets import testing
 from mne.beamformer import (make_dics, apply_dics, apply_dics_epochs,
-                            apply_dics_csd, tf_dics)
+                            apply_dics_csd, tf_dics, read_beamformer,
+                            Beamformer)
 from mne.time_frequency import csd_morlet
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, object_diff, requires_h5py
 from mne.externals.six import advance_iterator
 from mne.proj import compute_proj_evoked, make_projector
 
@@ -106,9 +107,10 @@ def _test_weight_norm(filters):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
+@requires_h5py
 @pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
                             ":RuntimeWarning")
-def test_make_dics():
+def test_make_dics(tmpdir):
     """Test making DICS beamformer filters."""
     # We only test proper handling of parameters here. Testing the results is
     # done in apply_dics_timeseries and apply_dics_csd.
@@ -162,6 +164,11 @@ def test_make_dics():
     assert filters['inversion'] == 'single'
     assert filters['normalize_fwd']
     assert filters['weight_norm'] == 'unit-noise-gain'
+    assert 'DICS' in repr(filters)
+    assert 'subject "sample"' in repr(filters)
+    assert '13' in repr(filters)
+    assert '62' in repr(filters)
+    assert 'rank' not in repr(filters)
     _test_weight_norm(filters)
 
     # Test picking orientations. Also test weight norming under these different
@@ -204,6 +211,15 @@ def test_make_dics():
 
     # Test whether spatial filter contains src_type
     assert 'src_type' in filters
+
+    fname = op.join(str(tmpdir), 'filters-dics.h5')
+    filters.save(fname)
+    filters_read = read_beamformer(fname)
+    assert isinstance(filters, Beamformer)
+    assert isinstance(filters_read, Beamformer)
+    for key in ['tmin', 'tmax']:  # deal with strictness of object_diff
+        setattr(filters['csd'], key, np.float(getattr(filters['csd'], key)))
+    assert object_diff(filters, filters_read) == ''
 
 
 @pytest.mark.slowtest

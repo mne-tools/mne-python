@@ -59,6 +59,7 @@ csd = csd_morlet(epochs, tmin=0, tmax=0.5, decim=20,
 
 # Compute DICS spatial filter and estimate source power.
 filters = make_dics(epochs.info, forward, csd, reg=0.5)
+print(filters)
 stc, freqs = apply_dics_csd(csd, filters)
 
 message = 'DICS source power in the 8-12 Hz frequency band'

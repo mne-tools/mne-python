@@ -78,6 +78,10 @@ data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
 filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
                     noise_cov=noise_cov, pick_ori='max-power',
                     weight_norm='nai')
+print(filters)
+
+# You can save these with:
+# filters.save('filters-lcmv.h5')
 
 # Apply this spatial filter to the evoked data.
 stc = apply_lcmv(evoked, filters, max_ori_out='signed')

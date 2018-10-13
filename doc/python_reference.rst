@@ -709,8 +709,15 @@ Inverse Solutions
 
 .. autosummary::
    :toctree: generated/
+   :template: class.rst
+
+   Beamformer
+
+.. autosummary::
+   :toctree: generated/
    :template: function.rst
 
+   read_beamformer
    make_lcmv
    apply_lcmv
    apply_lcmv_epochs

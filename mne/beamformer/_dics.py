@@ -17,7 +17,7 @@ from ._compute_beamformer import (_reg_pinv, _setup_picks,
                                   _pick_channels_spatial_filter,
                                   _check_proj_match, _prepare_beamformer_input,
                                   _compute_beamformer, _check_one_ch_type,
-                                  _check_src_type)
+                                  _check_src_type, Beamformer)
 from ..externals import six
 
 
@@ -95,7 +95,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
 
     Returns
     -------
-    filters : dict
+    filters : instance of Beamformer
         Dictionary containing filter weights from DICS beamformer.
         Contains the following keys:
 
@@ -238,12 +238,12 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
 
     subject = _subject_from_forward(forward)
     src_type = _get_src_type(forward['src'], vertices)
-    filters = dict(weights=Ws, csd=csd, ch_names=ch_names, proj=proj,
-                   vertices=vertices, subject=subject,
-                   pick_ori=pick_ori, inversion=inversion,
-                   weight_norm=weight_norm,
-                   normalize_fwd=normalize_fwd, src_type=src_type,
-                   n_orient=n_orient if pick_ori is None else 1)
+    filters = Beamformer(
+        kind='DICS', weights=Ws, csd=csd, ch_names=ch_names, proj=proj,
+        vertices=vertices, subject=subject, pick_ori=pick_ori,
+        inversion=inversion, weight_norm=weight_norm,
+        normalize_fwd=bool(normalize_fwd), src_type=src_type,
+        n_orient=n_orient if pick_ori is None else 1)
 
     return filters
 
@@ -315,7 +315,7 @@ def apply_dics(evoked, filters, verbose=None):
     ----------
     evoked : Evoked
         Evoked data to apply the DICS beamformer weights to.
-    filters : dict
+    filters : instance of Beamformer
         DICS spatial filter (beamformer weights)
         Filter weights returned from :func:`make_dics`.
     verbose : bool, str, int, None
@@ -368,7 +368,7 @@ def apply_dics_epochs(epochs, filters, return_generator=False, verbose=None):
     ----------
     epochs : Epochs
         Single trial epochs.
-    filters : dict
+    filters : instance of Beamformer
         DICS spatial filter (beamformer weights)
         Filter weights returned from :func:`make_dics`. The DICS filters must
         have been computed for a single frequency only.
@@ -427,7 +427,7 @@ def apply_dics_csd(csd, filters, verbose=None):
         The data cross-spectral density (CSD) matrices. A source estimate is
         performed for each frequency or frequency-bin defined in the CSD
         object.
-    filters : dict
+    filters : instance of Beamformer
         DICS spatial filter (beamformer weights)
         Filter weights returned from `make_dics`.
     verbose : bool, str, int, None
