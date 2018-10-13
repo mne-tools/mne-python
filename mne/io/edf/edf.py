@@ -326,7 +326,7 @@ class RawEDF(BaseRaw):
                 event_id = _get_edf_default_event_id(evts_[:, 2])
                 events, _ = _edf_events_from_annotations(self,
                                                          event_id=event_id)
-                stim_new = _synthesize_stim_channel(events, read_size)
+                stim_new = self._create_event_ch(events, read_size)
 
                 unique_annots = sorted(set([e[2] for e in evts]))
                 mapping = dict((a, n + 1) for n, a in enumerate(unique_annots))
@@ -348,7 +348,10 @@ class RawEDF(BaseRaw):
                              'file.'.format(annotation, evid, n_start))
                     stim[n_start:n_stop] += evid
 
-                np.testing.assert_array_equal(stim, stim_new)
+                stim_bincount = np.bincount(np.array(stim, int))
+                stim_new_bincount = np.bincount(np.array(stim_new, int))
+                np.testing.assert_array_equal(stim_new_bincount, stim_bincount)
+                # np.testing.assert_array_equal(stim, stim_new)
 
                 data[stim_channel_idx, :] = stim[start:stop]
 
@@ -372,6 +375,8 @@ class RawEDF(BaseRaw):
             raise ValueError("[n_events x 3] shaped array required")
         # update events
         self._event_ch = _synthesize_stim_channel(events, n_samples)
+        return self._event_ch
+
 
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     """Read a number of samples for a single channel."""
