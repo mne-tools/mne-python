@@ -19,6 +19,10 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Default parameters in :func:`mne.io.eeglab.read_annotations_eeglab` no longer filter out annotations by `Joan Massich`_ and `Alex Gramfort`_
+
+- :func:`mne.io.eeglab.read_raw_eeglab` no longer warns when the stim channel is populated with an array of zeros by `Joan Massich`_
+
 - Add capability to read and save Epochs containing complex data (e.g. after Hilbert-transform) using :meth:`mne.Epochs.save` and :func:`mne.read_epochs`, by `Stefan Repplinger`_, `Eric Larson`_ and `Alex Gramfort`_
 
 - Add optically pumped magnetometer dataset and example by `Rasmus Zetter`_ and `Eric Larson`_

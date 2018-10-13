@@ -7,6 +7,7 @@
 import os.path as op
 
 import numpy as np
+from functools import partial
 
 from ..utils import (_read_segments_file, _find_channels,
                      _synthesize_stim_channel)
@@ -19,7 +20,7 @@ from ...channels.montage import Montage
 from ...epochs import BaseEpochs
 from ...event import read_events
 from ...externals.six import string_types
-from ...annotations import Annotations
+from ...annotations import Annotations, events_from_annotations
 
 # just fix the scaling for now, EEGLAB doesn't seem to provide this info
 CAL = 1e-6
@@ -358,9 +359,8 @@ class RawEEGLAB(BaseRaw):
         info['chs'].append(stim_chan)
         info._update_redundant()
 
-        events = read_events_eeglab(eeg, event_id=event_id,
-                                    event_id_func=event_id_func)
-        self._create_event_ch(events, n_samples=eeg.pnts)
+        # dummy event channel to be populated from annotations later on
+        self._create_event_ch(np.empty((0, 3)), n_samples=eeg.pnts)
 
         # read the data
         if isinstance(eeg.data, string_types):
@@ -389,6 +389,43 @@ class RawEEGLAB(BaseRaw):
             super(RawEEGLAB, self).__init__(
                 info, data, filenames=[input_fname], last_samps=last_samps,
                 orig_format='double', verbose=verbose)
+
+        # create event_ch from annotations
+        annot = read_annotations_eeglab(input_fname)
+        self.set_annotations(annot)
+
+        _check_boundary(annot, event_id)
+
+        latencies = np.round(annot.onset * self.info['sfreq'])
+        _check_latencies(latencies)
+
+        dropped_desc = []  # use to collect dropped descriptions
+        event_id_ = partial(_event_id_func,
+                            event_id=event_id,
+                            event_id_func=event_id_func,
+                            dropped=dropped_desc)
+        events, _ = events_from_annotations(self, event_id=event_id_)
+        annot_length = self.annotations.onset.size
+        if events.shape[0] < annot_length:
+            msg = ("{0}/{1} event codes could not be mapped to integers. Use "
+                   "the 'event_id' parameter to map such events manually.")
+            warn(msg.format(annot_length - events.shape[0], annot_length))
+        if not events.size and len(annot):  # only if some events were in file
+            logger.info('Returning empty stim channel. Some annotations were'
+                        'found but dropped during build of the raw.'
+                        'Please use `event_id` and `event_id_func` to drive'
+                        'the selection/rejection of events')
+        self._create_event_ch(events, n_samples=eeg.pnts)
+        if getattr(self, 'preload', False):
+            self._data[-1] = self._event_ch
+
+        if len(dropped_desc) > 0:
+            dropped = list(set(dropped_desc))
+            logger.info("{0} annotation(s) will be dropped, such as {1}. "
+                        .format(len(dropped), dropped[:5]))
+            warn('Events like the following will be dropped entirely: {1},'
+                 ' {0} in total'.format(len(dropped), dropped[:5]),
+                 RuntimeWarning)
 
     def _create_event_ch(self, events, n_samples=None):
         """Create the event channel."""
@@ -596,6 +633,28 @@ class EpochsEEGLAB(BaseEpochs):
         logger.info('Ready.')
 
 
+def _check_boundary(annot, event_id):
+    if event_id is None:
+        event_id = dict()
+    if "boundary" in annot.description and "boundary" not in event_id:
+        warn("The data contains 'boundary' events, indicating data "
+             "discontinuities. Be cautious of filtering and epoching around "
+             "these events.")
+
+
+def _check_latencies(latencies):
+    if (latencies < -1).any():
+        raise ValueError('At least one event sample index is negative. Please'
+                         ' check if EEG.event.sample values are correct.')
+    if (latencies == -1).any():
+        warn("At least one event has a sample index of -1. This usually is "
+             "a consequence of how eeglab handles event latency after "
+             "resampling - especially when you had a boundary event at the "
+             "beginning of the file. Please make sure that the events at "
+             "the very beginning of your EEGLAB file can be safely dropped "
+             "(e.g., because they are boundary events).")
+
+
 @deprecated('read_events_eeglab is deprecated from 0.17 and will be removed'
             ' in 0.18. Please use read_annotations_eeglab and create events'
             ' using events_from_annotations.')
@@ -672,25 +731,14 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
     types = annotations.description
     latencies = annotations.onset * eeg.srate
 
-    if "boundary" in types and "boundary" not in event_id:
-        warn("The data contains 'boundary' events, indicating data "
-             "discontinuities. Be cautious of filtering and epoching around "
-             "these events.")
+    _check_boundary(annotations, event_id)
 
     if len(types) < 1:  # if there are 0 events, we can exit here
         logger.info('No events found, returning empty stim channel ...')
-        return np.zeros((0, 3))
+        return np.zeros((0, 3), dtype=int)
 
-    if (latencies < -1).any():
-        raise ValueError('At least one event sample index is negative. Please'
-                         ' check if EEG.event.sample values are correct.')
-    if (latencies == -1).any():
-        warn("At least one event has a sample index of -1. This usually is "
-             "a consequence of how eeglab handles event latency after "
-             "resampling - especially when you had a boundary event at the "
-             "beginning of the file. Please make sure that the events at "
-             "the very beginning of your EEGLAB file can be safely dropped "
-             "(e.g., because they are boundary events).")
+    _check_latencies(latencies)
+
     not_in_event_id = set(x for x in types if x not in event_id)
     not_purely_numeric = set(x for x in not_in_event_id if not x.isdigit())
     no_numbers = set([x for x in not_purely_numeric
@@ -726,7 +774,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
         warn(msg.format(missing, len(types)))
         if len(events) < 1:
             warn("As is, the trigger channel will consist entirely of zeros.")
-            return np.zeros((0, 3))
+            return np.zeros((0, 3), dtype=int)
 
     return np.asarray(events)
 
@@ -812,3 +860,18 @@ def read_annotations_eeglab(fname, uint16_codec=None):
 def _strip_to_integer(trigger):
     """Return only the integer part of a string."""
     return int("".join([x for x in trigger if x.isdigit()]))
+
+
+def _event_id_func(trigger, event_id, event_id_func, dropped):
+    """Mimic old behavior to be used with events_from_annotations."""
+    if event_id is not None and trigger in event_id:
+        return event_id[trigger]
+    if event_id_func == 'strip_to_integer':
+        trigger_new = "".join([x for x in trigger if x.isdigit()])
+        if trigger_new.isdigit():
+            return int(trigger_new)
+        else:
+            dropped.append(trigger)
+            return None
+    elif event_id_func is not None:
+        return event_id_func(trigger)
