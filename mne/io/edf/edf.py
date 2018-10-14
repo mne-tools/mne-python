@@ -319,40 +319,15 @@ class RawEDF(BaseRaw):
                 evts = _parse_tal_channel(np.atleast_2d(data[tal_channel_idx]))
                 self._raw_extras[fi]['events'] = evts
 
-                unique_annots = sorted(set([e[2] for e in evts]))
-                mapping = dict((a, n + 1) for n, a in enumerate(unique_annots))
-
                 evts_ = np.array(evts)
                 self.set_annotations(Annotations(evts_[:, 0], evts_[:, 1],
                                                  evts_[:, 2]))
                 event_id = _get_edf_default_event_id(evts_[:, 2])
                 events, _ = _edf_events_from_annotations(self,
                                                          event_id=event_id)
-                stim_new = self._create_event_ch(events, read_size)
-
-                unique_annots = sorted(set([e[2] for e in evts]))
-                mapping = dict((a, n + 1) for n, a in enumerate(unique_annots))
-                stim = np.zeros(read_size)
-                for t_start, t_duration, annotation in evts:
-                    evid = mapping[annotation]
-                    n_start = int(t_start * sfreq)
-                    n_stop = int(t_duration * sfreq) + n_start - 1
-                    # make sure events without duration get one sample
-                    n_stop = n_stop if n_stop > n_start else n_start + 1
-                    if any(stim[n_start:n_stop]):
-                        warn('EDF+ with overlapping events'
-                             ' are not fully supported')
-                    if n_start >= read_size:  # event out of bounds
-                        warn('Event "{}" (event ID {} with onset {}) is out of'
-                             ' bounds, it cannot be added to the stim channel.'
-                             ' Use find_edf_events to get a list of all EDF '
-                             'events as stored in the '
-                             'file.'.format(annotation, evid, n_start))
-                    stim[n_start:n_stop] += evid
-
-                np.testing.assert_array_equal(stim, stim_new)
 
                 self._check_events(events, read_size)
+                stim = self._create_event_ch(events, read_size)
                 data[stim_channel_idx, :] = stim[start:stop]
 
             elif stim_data is not None:  # GDF events
