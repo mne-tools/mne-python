@@ -352,6 +352,7 @@ class RawEDF(BaseRaw):
 
                 np.testing.assert_array_equal(stim, stim_new)
 
+                self._check_events(events, read_size)
                 data[stim_channel_idx, :] = stim[start:stop]
 
             elif stim_data is not None:  # GDF events
@@ -376,6 +377,28 @@ class RawEDF(BaseRaw):
         self._event_ch = _synthesize_stim_channel(events, n_samples)
         return self._event_ch
 
+    def _check_events(self, events, read_size):
+        """Check for:
+        - Overlapping events
+        - Events that expand over the read buffer
+        XXX: This can be vectorized
+        """
+        stim = np.zeros(read_size)
+        for n_start, n_duration, description in events:
+            n_stop = n_duration + n_start
+            # make sure events without duration get one sample
+            n_stop = n_stop if n_stop > n_start else n_start + 1
+            if any(stim[n_start:n_stop]):
+                warn('EDF+ with overlapping events'
+                        ' are not fully supported')
+            if n_start >= read_size:  # event out of bounds
+                # XXX This was (annot, evidi, n_stat) the message should change
+                warn('Event "{}" (event ID {} with onset {}) is out of'
+                        ' bounds, it cannot be added to the stim channel.'
+                        ' Use find_edf_events to get a list of all EDF '
+                        'events as stored in the '
+                        'file.'.format(description, description, n_start))
+            stim[n_start:n_stop] += 1
 
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     """Read a number of samples for a single channel."""
