@@ -115,6 +115,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_object_evoked.rst
     auto_tutorials/plot_object_source_estimate.rst
     auto_tutorials/plot_info.rst
+    auto_tutorials/plot_events_and_annotations.rst
 
 
 .. raw:: html
