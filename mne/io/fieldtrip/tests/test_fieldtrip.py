@@ -74,7 +74,8 @@ def test_read_evoked(cur_system, version, use_info):
                          all_test_params_epochs)
 def test_read_epochs(cur_system, version, use_info):
     """Test comparing reading an Epochs object and the FieldTrip version."""
-    has_pandas = _check_pandas_installed(strict=False) is not False
+    pandas = _check_pandas_installed(strict=False)
+    has_pandas = pandas is not False
     test_data_folder_ft = get_data_paths(cur_system)
     mne_epoched = get_epochs(cur_system)
     if use_info:
@@ -87,7 +88,6 @@ def test_read_epochs(cur_system, version, use_info):
     cur_fname = os.path.join(test_data_folder_ft,
                              'epoched_%s.mat' % (version,))
     if has_pandas:
-        pandas = _check_pandas_installed()
         if version == 'v73' and not _has_h5py():
             with pytest.raises(ImportError):
                 mne.io.read_epochs_fieldtrip(cur_fname, info)
