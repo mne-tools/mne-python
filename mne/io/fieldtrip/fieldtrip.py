@@ -157,7 +157,7 @@ def read_evoked_fieldtrip(fname, info, comment=None,
 
     Returns
     -------
-    evoked: EvokedArray
+    evoked: Instance of EvokedArray
         An EvokedArray containing the loaded data.
 
     """
