@@ -397,28 +397,6 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     return ch_data
 
 
-def _parse_tal_channel(tal_channel_data):
-    """Parse time-stamped annotation lists (TALs) in stim_channel.
-
-    Parameters
-    ----------
-    tal_channel_data : ndarray, shape = [n_chans, n_samples]
-        channel data in EDF+ TAL format
-
-    Returns
-    -------
-    events : list
-        List of events. Each event contains [start, duration, annotation].
-
-    References
-    ----------
-    http://www.edfplus.info/specs/edfplus.html#tal
-    """
-    onset, duration, desc = _read_annotations_edf(tal_channel_data)
-    evts = (onset, duration, desc)
-    return np.column_stack(evts)
-
-
 def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
               preload):
     """Extract all the information from the EDF+, BDF or GDF file."""
