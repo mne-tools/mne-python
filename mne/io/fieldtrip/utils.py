@@ -230,7 +230,8 @@ def _process_channel_eeg(cur_ch, elec):
 
     Returns
     -------
-    dict: The original dict (cur_ch) with the added information
+    cur_ch: dict
+        The original dict (cur_ch) with the added information
     """
     all_labels = np.asanyarray(elec['label'])
     chan_idx_in_elec = np.where(all_labels == cur_ch['ch_name'])[0][0]
