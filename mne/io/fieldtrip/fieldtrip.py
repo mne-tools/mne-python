@@ -40,9 +40,8 @@ def read_raw_fieldtrip(fname, info, data_name='data'):
 
     Returns
     -------
-    mne.io.RawArray
-        A MNE RawArray structure consisting of the raw array and measurement
-        info
+    raw: Instance of RawArray
+        A Raw Object containing the loaded data.
 
     """
     from ...externals.pymatreader.pymatreader import read_mat
@@ -67,8 +66,8 @@ def read_raw_fieldtrip(fname, info, data_name='data'):
         raise RuntimeError('The data you are trying to load does not seem to'
                            'be raw data')
 
-    custom_raw = RawArray(data, info)  # create an MNE RawArray
-    return custom_raw
+    raw = RawArray(data, info)  # create an MNE RawArray
+    return raw
 
 
 def read_epochs_fieldtrip(fname, info, data_name='data',
@@ -104,10 +103,8 @@ def read_epochs_fieldtrip(fname, info, data_name='data',
 
     Returns
     -------
-    mne.EpochsArray
-        A MNE EpochsArray structure consisting of the epochs arrays, an event
-        matrix, start time before event (if possible, else defaults to 0) and
-        measurement info.
+    epochs: Instance of EpochsArray
+        An EpochsArray containing the loaded data.
 
 
     """
@@ -125,9 +122,9 @@ def read_epochs_fieldtrip(fname, info, data_name='data',
     metadata = _create_event_metadata(ft_struct)
     tmin = _set_tmin(ft_struct)  # create start time
 
-    custom_epochs = EpochsArray(data=data, info=info, tmin=tmin,
+    epochs = EpochsArray(data=data, info=info, tmin=tmin,
                                 events=events, metadata=metadata, proj=False)
-    return custom_epochs
+    return epochs
 
 
 def read_evoked_fieldtrip(fname, info, comment=None,
@@ -160,9 +157,8 @@ def read_evoked_fieldtrip(fname, info, comment=None,
 
     Returns
     -------
-    mne.EvokedArray
-        A MNE EvokedArray structure consisting of the averaged data array,
-         comment and measurement info.
+    evoked: EvokedArray
+        An EvokedArray containing the loaded data.
 
     """
     from ...externals.pymatreader.pymatreader import read_mat
@@ -174,5 +170,5 @@ def read_evoked_fieldtrip(fname, info, comment=None,
     info = _create_info(ft_struct, info)  # create info structure
     data_evoked = ft_struct['avg']  # create evoked data
 
-    evoked_array = EvokedArray(data_evoked, info, comment=comment)
-    return evoked_array
+    evoked = EvokedArray(data_evoked, info, comment=comment)
+    return evoked
