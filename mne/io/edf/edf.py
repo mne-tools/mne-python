@@ -368,16 +368,15 @@ class RawEDF(BaseRaw):
             # make sure events without duration get one sample
             n_stop = n_stop if n_stop > n_start else n_start + 1
             if any(stim[n_start:n_stop]):
-                warn('EDF+ with overlapping events'
-                        ' are not fully supported')
+                warn('EDF+ with overlapping events are not fully supported')
             if n_start >= read_size:  # event out of bounds
-                # XXX This was (annot, evidi, n_stat) the message should change
-                warn('Event "{}" (event ID {} with onset {}) is out of'
-                        ' bounds, it cannot be added to the stim channel.'
-                        ' Use find_edf_events to get a list of all EDF '
-                        'events as stored in the '
-                        'file.'.format(description, description, n_start))
+                warn('Event "{}" (with onset {}) is out of'
+                     ' bounds, it cannot be added to the stim channel.'
+                     ' Use find_edf_events to get a list of all EDF '
+                     'events as stored in the '
+                     'file.'.format(description, n_start))
             stim[n_start:n_stop] += 1
+
 
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     """Read a number of samples for a single channel."""
