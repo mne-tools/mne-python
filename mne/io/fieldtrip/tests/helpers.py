@@ -186,7 +186,7 @@ def get_epochs(system):
     return epochs
 
 
-def get_averaged_data(system):
+def get_evoked(system):
     """Find, load and process the avg data."""
     data = get_epochs(system)
 

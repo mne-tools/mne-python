@@ -12,7 +12,7 @@ import itertools
 import numpy as np
 from mne.datasets import testing
 from .helpers import (check_info_fields, get_data_paths, get_raw_data,
-                      get_epochs, get_averaged_data, _has_h5py,
+                      get_epochs, get_evoked, _has_h5py,
                       pandas_not_found_warning_msg, get_raw_info, check_data,
                       assert_warning_in_record)
 from mne.io.fieldtrip.utils import NOINFO_WARNING
@@ -43,7 +43,7 @@ no_info_warning = {'expected_warning': RuntimeWarning,
 def test_read_evoked(cur_system, version, use_info):
     """Test comparing reading an Evoked object and the FieldTrip version."""
     test_data_folder_ft = get_data_paths(cur_system)
-    mne_avg = get_averaged_data(cur_system)
+    mne_avg = get_evoked(cur_system)
     if use_info:
         info = get_raw_info(cur_system)
         pytestwarning = {'expected_warning': None}
