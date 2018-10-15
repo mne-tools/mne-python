@@ -154,7 +154,7 @@ def get_raw_data(system, drop_sti_cnt=True, drop_extra_chs=False):
     return raw_data
 
 
-def get_epoched_data(system):
+def get_epochs(system):
     """Find, load and process the epoched data."""
     cfg_local = get_cfg_local(system)
     raw_data = get_raw_data(system, drop_sti_cnt=False)
@@ -188,7 +188,7 @@ def get_epoched_data(system):
 
 def get_averaged_data(system):
     """Find, load and process the avg data."""
-    data = get_epoched_data(system)
+    data = get_epochs(system)
 
     return data.average(picks=np.arange(len(data.ch_names)))
 
