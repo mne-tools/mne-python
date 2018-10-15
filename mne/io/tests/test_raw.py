@@ -8,6 +8,7 @@ from numpy.testing import (assert_allclose, assert_array_almost_equal,
                            assert_equal, assert_array_equal)
 
 from mne import concatenate_raws, create_info, Annotations
+from mne.annotations import _handle_meas_date
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray
 from mne.utils import _TempDir
@@ -61,6 +62,9 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
     full_data = raw._data
     assert raw.__class__.__name__ in repr(raw)  # to test repr
     assert raw.info.__class__.__name__ in repr(raw.info)
+
+    # gh-5604
+    assert _handle_meas_date(raw.info['meas_date']) >= 0
 
     # Test saving and reading
     out_fname = op.join(tempdir, 'test_raw.fif')

@@ -13,6 +13,8 @@ import pytest
 
 from mne.datasets import testing
 from mne.io import read_raw_edf
+from mne.io.meas_info import DATE_NONE
+from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main
 from mne import pick_types, find_events
 
@@ -48,6 +50,12 @@ def test_gdf_data():
     evs = raw.find_edf_events()
     assert (all([event in evs[1] for event in events[:, 0]]))
 
+    # gh-5604
+    assert raw.info['meas_date'] == DATE_NONE
+    with pytest.warns(RuntimeWarning, match='Overlapping events'):
+        _test_raw_reader(read_raw_edf, input_fname=gdf1_path + '.gdf',
+                         eog=None, misc=None, stim_channel='auto')
+
 
 @testing.requires_testing_data
 def test_gdf2_data():
@@ -79,6 +87,11 @@ def test_gdf2_data():
         raw = read_raw_edf(gdf2_path + '.gdf', stim_channel='auto')
     assert_equal(nchan, raw.info['nchan'])  # stim channel not constructed
     assert_array_equal(ch_names[1:], raw.ch_names[1:])
+
+    # gh-5604
+    assert raw.info['meas_date'] == DATE_NONE
+    _test_raw_reader(read_raw_edf, input_fname=gdf2_path + '.gdf',
+                     eog=None, misc=None, stim_channel='STATUS')
 
 
 run_tests_if_main()

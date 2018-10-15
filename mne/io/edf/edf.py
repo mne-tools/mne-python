@@ -17,7 +17,7 @@ from io import open as io_open  # python 2 backward compatible open
 from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims
 from ..base import BaseRaw, _check_update_montage
-from ..meas_info import _empty_info
+from ..meas_info import _empty_info, DATE_NONE
 from ..constants import FIFF
 from ...filter import resample
 from ...externals.six.moves import zip
@@ -553,6 +553,8 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         info['highpass'] = float(np.max(highpass))
         warn('Channels contain different highpass filters. Highest filter '
              'setting will be stored.')
+    if np.isnan(info['highpass']):
+        info['highpass'] = 0.
     if lowpass.size == 0:
         pass  # Placeholder for future use. Lowpass set in _empty_info.
     elif all(lowpass):
@@ -564,6 +566,8 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         info['lowpass'] = float(np.min(lowpass))
         warn('Channels contain different lowpass filters. Lowest filter '
              'setting will be stored.')
+    if np.isnan(info['lowpass']):
+        info['lowpass'] = info['sfreq'] / 2.
 
     # Some keys to be consistent with FIF measurement info
     info['description'] = None
@@ -605,6 +609,7 @@ def _read_edf_header(fname, annot, annotmap, exclude):
                              re.findall(r'(\d+)', fid.read(8).decode())]
         century = 2000 if year < 50 else 1900
         date = datetime.datetime(year + century, month, day, hour, minute, sec)
+        meas_date = (calendar.timegm(date.utctimetuple()), 0)
 
         header_nbytes = int(fid.read(8).decode())
 
@@ -665,8 +670,7 @@ def _read_edf_header(fname, annot, annotmap, exclude):
         edf_info.update(
             ch_names=ch_names, data_offset=header_nbytes,
             digital_max=digital_max, digital_min=digital_min,
-            highpass=highpass, sel=sel, lowpass=lowpass,
-            meas_date=(calendar.timegm(date.utctimetuple()), 0),
+            highpass=highpass, sel=sel, lowpass=lowpass, meas_date=meas_date,
             n_records=n_records, n_samps=n_samps, nchan=nchan,
             subject_info=patient, physical_max=physical_max,
             physical_min=physical_min, record_length=record_length,
@@ -716,6 +720,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
 
         edf_info['type'] = edf_info['subtype'] = version[:3]
         edf_info['number'] = float(version[4:])
+        meas_date = DATE_NONE
 
         # GDF 1.x
         # ---------------------------------------------------------------------
@@ -738,12 +743,13 @@ def _read_gdf_header(fname, stim_channel, exclude):
             try:
                 if tm[14:16] == '  ':
                     tm = tm[:14] + '00' + tm[16:]
-                date = (datetime.datetime(int(tm[0:4]), int(tm[4:6]),
-                                          int(tm[6:8]), int(tm[8:10]),
-                                          int(tm[10:12]), int(tm[12:14]),
-                                          int(tm[14:16]) * pow(10, 4)))
+                date = datetime.datetime(int(tm[0:4]), int(tm[4:6]),
+                                         int(tm[6:8]), int(tm[8:10]),
+                                         int(tm[10:12]), int(tm[12:14]),
+                                         int(tm[14:16]) * pow(10, 4))
+                meas_date = (calendar.timegm(date.utctimetuple()), 0)
             except Exception:
-                date = datetime.datetime(2000, 1, 1)
+                pass
 
             header_nbytes = np.fromfile(fid, np.int64, 1)[0]
             meas_id['equipment'] = np.fromfile(fid, np.uint8, 8)[0]
@@ -805,7 +811,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 dtype_byte=[gdftype_byte[t] for t in dtype],
                 dtype_np=[gdftype_np[t] for t in dtype], exclude=exclude,
                 highpass=highpass, sel=sel, lowpass=lowpass,
-                meas_date=(calendar.timegm(date.utctimetuple()), 0),
+                meas_date=meas_date,
                 meas_id=meas_id, n_records=n_records, n_samps=n_samps,
                 nchan=nchan, subject_info=patient, physical_max=physical_max,
                 physical_min=physical_min, record_length=record_length,
@@ -896,11 +902,10 @@ def _read_gdf_header(fname, stim_channel, exclude):
             meas_id['loc'] = loc
 
             date = np.fromfile(fid, np.uint64, 1)[0]
-            if date == 0:
-                date = datetime.datetime(1, 1, 1)
-            else:
+            if date != 0:
                 date = datetime.datetime(1, 1, 1) + \
                     datetime.timedelta(date * pow(2, -32) - 367)
+                meas_date = (calendar.timegm(date.utctimetuple()), 0)
 
             birthday = np.fromfile(fid, np.uint64, 1).tolist()[0]
             if birthday == 0:
@@ -1027,8 +1032,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 dtype_np=[gdftype_np[t] for t in dtype],
                 digital_min=digital_min, digital_max=digital_max,
                 exclude=exclude, gnd=gnd, highpass=highpass, sel=sel,
-                impedance=impedance, lowpass=lowpass,
-                meas_date=(calendar.timegm(date.utctimetuple()), 0),
+                impedance=impedance, lowpass=lowpass, meas_date=meas_date,
                 meas_id=meas_id, n_records=n_records, n_samps=n_samps,
                 nchan=nchan, notch=notch, subject_info=patient,
                 physical_max=physical_max, physical_min=physical_min,
