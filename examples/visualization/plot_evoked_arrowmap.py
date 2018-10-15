@@ -4,12 +4,12 @@ Plotting topographic arrowmaps of evoked data
 =============================================
 
 Load evoked data and plot arrowmaps along with the topomap for selected time
-points. Arrowmap is based upon Hosaka-Cohen transformation and represents
-actual current underneath the MEG sensors, they are poor man MNE
+points. An arrowmap is based upon the Hosaka-Cohen transformation and represents
+an estimation of the current flow underneath the MEG sensors. They are a poor man's MNE.
 
 See [1]_ for details.
 
-References
+Reference
 ----------
 .. [1] D. Cohen, H. Hosaka
    "Part II magnetic field produced by a current dipole",

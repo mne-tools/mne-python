@@ -2402,6 +2402,11 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
                   show=True, head_pos=None, onselect=None):
     """Plot arrow map.
 
+    Compute arrowmaps, based upon the Hosaka-Cohen transformation [1]_,
+    these arrows represents an estimation of the current flow underneath
+    the MEG sensors. They are a poor man's MNE.
+
+
     Parameters
     ----------
     data : array, shape (n_channels,)
@@ -2485,6 +2490,13 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
     -------
     fig : matplotlib.figure.Figure
         The Figure of the plot
+
+    Reference
+    ----------
+    .. [1] D. Cohen, H. Hosaka
+       "Part II magnetic field produced by a current dipole",
+        Journal of electrocardiology, Volume 9, Number 4, pp. 409-417, 1976.
+        DOI: 10.1016/S0022-0736(76)80041-6
     """
     from matplotlib import pyplot as plt
     from ..forward import _map_meg_channels
