@@ -69,8 +69,10 @@ def find_edf_events(raw):
 
 
 def _edf_events_from_annotations(raw, event_id):
-    """Modify events_from_annotaitons so that events[:,1] corresponds to
-       the duration of the events instead of the id of the previous event.
+    """Modify events_from_annotaitons for EDF specifics.
+
+    Modify events_from_annotaitons so that events[:,1] corresponds to
+    the duration of the events instead of the id of the previous event.
     """
     events, event_id_ = events_from_annotations(raw, event_id=event_id,
                                                 use_rounding=False)
@@ -358,9 +360,12 @@ class RawEDF(BaseRaw):
         return self._event_ch
 
     def _check_events(self, events, read_size):
-        """Check for:
+        """Emit warnings based on events.
+
+        Check for:
         - Overlapping events
         - Events that expand over the read buffer
+
         XXX: This can be vectorized
         """
         stim = np.zeros(read_size)

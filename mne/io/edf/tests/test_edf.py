@@ -17,7 +17,6 @@ from scipy.io import loadmat
 
 from mne import pick_types
 from mne.datasets import testing
-from mne.externals.six import iterbytes
 from mne.utils import run_tests_if_main, requires_pandas, _TempDir
 from mne.io import read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
@@ -343,6 +342,7 @@ def _get_emtpy_raw_with_valid_annot(fname):
     sfreq = _compute_sfreq_from_edf_info(edf_info)
     raw.info = _empty_info(sfreq)
     raw.info['meas_date'] = edf_info['meas_date']
+
     def _time_as_index(times, use_rounding, origin):
         if use_rounding:
             return np.round(np.atleast_1d(times) * sfreq)
@@ -358,8 +358,8 @@ def test_find_events_and_events_from_annot_are_the_same():
     """Test that old behaviour and new produce the same events."""
     from mne.io.edf.edf import _get_edf_default_event_id
 
-    EXPECTED_EVENTS = [[  68, 0, 2],
-                       [ 199, 0, 2],
+    EXPECTED_EVENTS = [[68, 0, 2],
+                       [199, 0, 2],
                        [1024, 0, 3],
                        [1280, 0, 2]]
     raw = read_raw_edf(edf_path, preload=True)
