@@ -123,7 +123,7 @@ def read_epochs_fieldtrip(fname, info, data_name='data',
     tmin = _set_tmin(ft_struct)  # create start time
 
     epochs = EpochsArray(data=data, info=info, tmin=tmin,
-                                events=events, metadata=metadata, proj=False)
+                         events=events, metadata=metadata, proj=False)
     return epochs
 
 
