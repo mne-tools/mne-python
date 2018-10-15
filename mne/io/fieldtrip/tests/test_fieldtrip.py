@@ -40,7 +40,7 @@ no_info_warning = {'expected_warning': RuntimeWarning,
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
 @pytest.mark.parametrize('cur_system, version, use_info',
                          all_test_params_epochs)
-def test_averaged(cur_system, version, use_info):
+def test_read_evoked(cur_system, version, use_info):
     """Test comparing reading an Evoked object and the FieldTrip version."""
     test_data_folder_ft = get_data_paths(cur_system)
     mne_avg = get_averaged_data(cur_system)
