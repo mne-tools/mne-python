@@ -72,7 +72,7 @@ def test_read_evoked(cur_system, version, use_info):
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
 @pytest.mark.parametrize('cur_system, version, use_info',
                          all_test_params_epochs)
-def test_epoched(cur_system, version, use_info):
+def test_read_epochs(cur_system, version, use_info):
     """Test comparing reading an Epochs object and the FieldTrip version."""
     has_pandas = _check_pandas_installed(strict=False) is not False
     test_data_folder_ft = get_data_paths(cur_system)
