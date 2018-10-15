@@ -17,6 +17,7 @@ from mne.io.meas_info import DATE_NONE
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main
 from mne import pick_types, find_events
+from mne.annotations import _handle_meas_date
 
 data_path = testing.data_path(download=False)
 gdf1_path = op.join(data_path, 'GDF', 'test_gdf_1.25')
@@ -57,12 +58,13 @@ def test_gdf_data():
                          eog=None, misc=None, stim_channel='auto')
 
 
-@pytest.mark.skip(reason="XXX negative meas_date (issue #5604)")
 @testing.requires_testing_data
 def test_gdf2_data():
     """Test reading raw GDF 2.x files."""
     raw = read_raw_edf(gdf2_path + '.gdf', eog=None, misc=None, preload=True,
                        stim_channel='STATUS')
+
+    assert _handle_meas_date(raw.info['meas_date']) > 0
 
     nchan = raw.info['nchan']
     ch_names = raw.ch_names  # Renamed STATUS -> STI 014.

@@ -16,6 +16,7 @@ from io import open as io_open  # python 2 backward compatible open
 
 from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims, _synthesize_stim_channel
+from ..write import DATE_NONE
 from ..base import BaseRaw, _check_update_montage
 from ..meas_info import _empty_info, DATE_NONE
 from ..constants import FIFF
@@ -1027,6 +1028,11 @@ def _read_gdf_header(fname, stim_channel, exclude):
                                 for i, t in enumerate(dtype)])
 
             # Populate edf_info
+            if date == DATE_NONE:
+                _meas_date = DATE_NONE
+            else:
+                _meas_date = (calendar.timegm(date.utctimetuple()), 0)
+
             edf_info.update(
                 bytes_tot=bytes_tot, ch_names=ch_names,
                 data_offset=header_nbytes,
@@ -1034,7 +1040,8 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 dtype_np=[gdftype_np[t] for t in dtype],
                 digital_min=digital_min, digital_max=digital_max,
                 exclude=exclude, gnd=gnd, highpass=highpass, sel=sel,
-                impedance=impedance, lowpass=lowpass, meas_date=meas_date,
+                impedance=impedance, lowpass=lowpass,
+                meas_date=_meas_date,
                 meas_id=meas_id, n_records=n_records, n_samps=n_samps,
                 nchan=nchan, notch=notch, subject_info=patient,
                 physical_max=physical_max, physical_min=physical_min,
