@@ -467,6 +467,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         #  Initialize the data and calibration vector
         n_sel_channels = self.info['nchan'] if sel is None else len(sel)
+        assert n_sel_channels <= self.info['nchan']
         # convert sel to a slice if possible for efficiency
         if sel is not None and len(sel) > 1 and np.all(np.diff(sel) == 1):
             sel = slice(sel[0], sel[-1] + 1)
@@ -831,6 +832,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 stop += nchan
                 if stop < 0:
                     raise ValueError('stop must be >= -%s' % nchan)
+            stop = min(stop, nchan)  # slices can legally exceed max
             step = item[0].step if item[0].step is not None else 1
             sel = list(range(start, stop, step))
         else:

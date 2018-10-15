@@ -127,7 +127,7 @@ class Info(dict):
         Name of the person that ran the experiment.
     file_id : dict | None
         The FIF globally unique ID. See Notes for more information.
-    highpass : float | None
+    highpass : float
         Highpass corner frequency in Hertz. Zero indicates a DC recording.
     hpi_meas : list of dict
         HPI measurements that were taken at the start of the recording
@@ -145,7 +145,7 @@ class Info(dict):
         Frequency of the power line in Hertz.
     gantry_angle : float | None
         Tilt angle of the gantry in degrees.
-    lowpass : float | None
+    lowpass : float
         Lowpass corner frequency in Hertz.
     meas_date : tuple of int
         The first element of this list is a UNIX timestamp (seconds since
