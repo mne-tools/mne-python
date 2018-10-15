@@ -12,6 +12,7 @@ from scipy import linalg
 
 from ._eloreta import _compute_eloreta
 from ..fixes import _safe_svd
+from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.open import fiff_open
 from ..io.tag import find_tag
@@ -474,6 +475,7 @@ def _check_ch_names(inv, info):
     if n_missing > 0:
         raise ValueError('%d channels in inverse operator ' % n_missing +
                          'are not present in the data (%s)' % missing_ch_names)
+    _check_comps(inv['info'], info, 'inverse')
 
 
 @verbose
@@ -715,6 +717,17 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
         K = np.sqrt(source_cov) * np.dot(eigen_leads, trans)
 
     return K, noise_norm, vertno, source_nn
+
+
+def _check_comps(info, data_info, kind):
+    """Check for compatibility between compensation grades."""
+    comp = get_current_comp(info)
+    data_comp = get_current_comp(data_info)
+    if comp != data_comp and \
+            any(c not in (None, 0) for c in (comp, data_comp)):
+        raise RuntimeError('compensation grade mismatch between %s (%s) '
+                           'and data (%s), consider recomputing the %s.'
+                           % (kind, comp, data_comp, kind))
 
 
 def _check_method(method):
@@ -1032,7 +1045,6 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     _check_reference(raw, inverse_operator['info']['ch_names'])
     _check_method(method)
     _check_ori(pick_ori, inverse_operator['source_ori'])
-
     _check_ch_names(inverse_operator, raw.info)
 
     #
@@ -1112,7 +1124,6 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
     """Generate inverse solutions for epochs. Used in apply_inverse_epochs."""
     _check_method(method)
     _check_ori(pick_ori, inverse_operator['source_ori'])
-
     _check_ch_names(inverse_operator, epochs.info)
 
     #
@@ -1307,6 +1318,9 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
             not all(b in noise_cov['bads'] for b in info['bads']):
         logger.info('info["bads"] and noise_cov["bads"] do not match, '
                     'excluding bad channels from both')
+
+    # check the compensation grade
+    _check_comps(forward['info'], info, 'forward')
 
     n_chan = len(ch_names)
     logger.info("Computing inverse operator with %d channels." % n_chan)

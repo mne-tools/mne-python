@@ -206,6 +206,8 @@ API
 
 - :attr:`mne.io.Raw.annotations` when missing is set to an empty :class:`mne.Annotations` rather than ``None`` by `Joan Massich`_ and `Alex Gramfort`_
 
+- Mismatches in CTF compensation grade are now checked in inverse computation by `Eric Larson`_
+
 .. _changes_0_16:
 
 Version 0.16

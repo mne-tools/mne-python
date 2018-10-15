@@ -54,6 +54,7 @@ fname_inv_meeg_diag = op.join(s_path,
 fname_data = op.join(s_path, 'sample_audvis_trunc-ave.fif')
 fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_raw = op.join(s_path, 'sample_audvis_trunc_raw.fif')
+fname_raw_ctf = op.join(test_path, 'CTF', 'somMDYO-18av.ds')
 fname_event = op.join(s_path, 'sample_audvis_trunc_raw-eve.fif')
 fname_label = op.join(s_path, 'labels', '%s.label')
 fname_vol_inv = op.join(s_path,
@@ -903,17 +904,22 @@ def test_make_inverse_operator_bads():
 @testing.requires_testing_data
 def test_inverse_ctf_comp():
     """Test interpolation with compensated CTF data."""
-    ctf_dir = op.join(testing.data_path(download=False), 'CTF')
-    raw_fname = op.join(ctf_dir, 'somMDYO-18av.ds')
-    raw = mne.io.read_raw_ctf(raw_fname)
+    raw = mne.io.read_raw_ctf(fname_raw_ctf).crop(0, 0)
     raw.apply_gradient_compensation(1)
     sphere = make_sphere_model()
     cov = make_ad_hoc_cov(raw.info)
     src = mne.setup_volume_source_space(
         pos=dict(rr=[[0., 0., 0.01]], nn=[[0., 1., 0.]]))
     fwd = make_forward_solution(raw.info, None, src, sphere, eeg=False)
+    raw.apply_gradient_compensation(0)
+    with pytest.raises(RuntimeError, match='compensation grade mismatch'):
+        make_inverse_operator(raw.info, fwd, cov, loose=1.)
+    raw.apply_gradient_compensation(1)
     inv = make_inverse_operator(raw.info, fwd, cov, loose=1.)
-    apply_inverse_raw(raw, inv, 1. / 9.)
+    apply_inverse_raw(raw, inv, 1. / 9.)  # smoke test
+    raw.apply_gradient_compensation(0)
+    with pytest.raises(RuntimeError, match='compensation grade mismatch'):
+        apply_inverse_raw(raw, inv, 1. / 9.)
 
 
 run_tests_if_main()
