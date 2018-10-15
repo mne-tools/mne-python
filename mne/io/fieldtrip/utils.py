@@ -6,7 +6,7 @@
 import numpy as np
 
 from ..meas_info import create_info
-from mne import transforms
+from ...transforms import rotation3d_align_z_axis
 from ...channels import DigMontage
 from ..constants import FIFF
 from ...utils import warn, _check_pandas_installed
@@ -288,8 +288,7 @@ def _process_channel_meg(cur_ch, grad):
     # TODO: this needs to be fixed!
     original_orientation = np.squeeze(grad['chanori'][chan_idx_in_grad, :])
     try:
-        orientation = \
-            transforms.rotation3d_align_z_axis(original_orientation).T
+        orientation = rotation3d_align_z_axis(original_orientation).T
         orientation = orientation.flatten()
     except AssertionError:
         orientation = np.eye(4, 4).flatten()
