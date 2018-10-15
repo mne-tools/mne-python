@@ -679,15 +679,21 @@ def reg_pinv(x, reg=0, rank=None, rcond=1e-15):
                          'the shape of the input matrix (%d x %d).' %
                          (rank, x.shape[0], x.shape[1]))
 
-    # Pseudo-inverse is computed by only using the requested number of singular
-    # values
-    s_inv = np.zeros(s.shape)
+    # Pick the requested number of singular values
     if rank == 'auto':
-        s_inv[:rank_before] = 1. / s[:rank_before]
+        sel_s = s[:rank_before]
     elif rank is None:
-        s_inv[:rank_after] = 1. / s[:rank_after]
+        sel_s = s[:rank_after]
     else:
-        s_inv[:rank] = 1. / s[:rank]
+        sel_s = s[:rank]
+
+    # Invert only non-zero singular values
+    s_inv = np.zeros(s.shape)
+    nonzero_inds = np.flatnonzero(sel_s != 0)
+    if len(nonzero_inds) > 0:
+        s_inv[nonzero_inds] = 1. / sel_s[nonzero_inds]
+
+    # Compute the pseudo inverse
     x_inv = np.dot(V.T, s_inv[:, np.newaxis] * U.T)
 
     if rank == 'auto' or rank is None:

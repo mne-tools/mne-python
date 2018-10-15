@@ -934,5 +934,11 @@ def test_reg_pinv():
     assert_array_equal(a_inv_np, a_inv_mne)
     assert estimated_rank == 1
 
+    # Test inverting an all zero cov
+    a_inv, loading_factor, estimated_rank = reg_pinv(np.zeros((3, 3)), reg=2)
+    assert_array_equal(a_inv, 0)
+    assert loading_factor == 0
+    assert estimated_rank == 0
+
 
 run_tests_if_main()

@@ -24,7 +24,6 @@ from ..time_frequency.csd import CrossSpectralDensity
 from ..externals.h5io import read_hdf5, write_hdf5
 
 
-
 def _setup_picks(info, forward, data_cov=None, noise_cov=None):
     """Return good channels common to forward model and covariance matrices."""
     # get a list of all channel names:
@@ -430,29 +429,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         W *= noise_norm_inv
         W = W.reshape(-1, W.shape[-1])
 
-        Parameters
-        ----------
-        fname : str
-            The filename to use to write the HDF5 data.
-            Should end in ``'-lcmv.h5'`` or ``'-dics.h5'``.
-        overwrite : bool
-            If True, overwrite the file (if it exists).
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
-        """
-        ending = '-%s.h5' % (self['kind'].lower(),)
-        check_fname(fname, self['kind'], (ending,))
-        csd_orig = None
-        try:
-            if 'csd' in self:
-                csd_orig = self['csd']
-                self['csd'] = self['csd'].__getstate__()
-            write_hdf5(fname, self, overwrite=overwrite, title='mnepython')
-        finally:
-            if csd_orig is not None:
-                self['csd'] = csd_orig
+    return W
 
 
 class Beamformer(dict):
@@ -496,6 +473,30 @@ class Beamformer(dict):
     @verbose
     def save(self, fname, overwrite=False, verbose=None):
         """Save the beamformer filter.
+
+        Parameters
+        ----------
+        fname : str
+            The filename to use to write the HDF5 data.
+            Should end in ``'-lcmv.h5'`` or ``'-dics.h5'``.
+        overwrite : bool
+            If True, overwrite the file (if it exists).
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
+        """
+        ending = '-%s.h5' % (self['kind'].lower(),)
+        check_fname(fname, self['kind'], (ending,))
+        csd_orig = None
+        try:
+            if 'csd' in self:
+                csd_orig = self['csd']
+                self['csd'] = self['csd'].__getstate__()
+            write_hdf5(fname, self, overwrite=overwrite, title='mnepython')
+        finally:
+            if csd_orig is not None:
+                self['csd'] = csd_orig
 
 
 def read_beamformer(fname):
