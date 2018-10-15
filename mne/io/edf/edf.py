@@ -113,7 +113,8 @@ class RawEDF(BaseRaw):
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
-    event_id : XXX
+    event_id : dict
+        The event_id variable that can be passed to Epochs.
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
@@ -1318,8 +1319,6 @@ def _read_annotations_edf(annotations):
         Array of strings containing description for each annotation. If a
         string, all the annotations are given the same description. To reject
         epochs, use description starting with keyword 'bad'. See example above.
-
-    XXX check that the output type is propper
     """
     pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
     if isinstance(annotations, str):
