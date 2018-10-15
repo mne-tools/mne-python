@@ -315,14 +315,17 @@ class RawEDF(BaseRaw):
                 data[stim_channel_idx, :] = evts[start:stop]
             elif len(tal_sel) > 0:
                 tal_channel_idx = np.in1d(orig_sel[idx], tal_sel)
-                # XXX this can be swapped by _read_annotations_edf if data
-                evts = _parse_tal_channel(np.atleast_2d(data[tal_channel_idx]))
-                self._raw_extras[fi]['events'] = evts
+                annotations_data = np.atleast_2d(data[tal_channel_idx])
+                onset, duration, desc = _read_annotations_edf(annotations_data)
 
-                evts_ = np.array(evts)
-                self.set_annotations(Annotations(evts_[:, 0], evts_[:, 1],
-                                                 evts_[:, 2]))
-                event_id = _get_edf_default_event_id(evts_[:, 2])
+                evts = (onset, duration, desc)
+                self._raw_extras[fi]['events'] = np.column_stack(evts)
+
+                self.set_annotations(Annotations(onset=onset,
+                                                 duration=duration,
+                                                 description=desc,
+                                                 orig_time=None))
+                event_id = _get_edf_default_event_id(desc)
                 events, _ = _edf_events_from_annotations(self,
                                                          event_id=event_id)
 
@@ -411,27 +414,9 @@ def _parse_tal_channel(tal_channel_data):
     ----------
     http://www.edfplus.info/specs/edfplus.html#tal
     """
-    # convert tal_channel to an ascii string
-    tals = bytearray()
-    for chan in tal_channel_data:
-        for s in chan:
-            i = int(s)
-            tals.extend(np.uint8([i % 256, i // 256]))
-
-    regex_tal = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
-    # use of latin-1 because characters are only encoded for the first 256
-    # code points and utf-8 can triggers an "invalid continuation byte" error
-    tal_list = re.findall(regex_tal, tals.decode('latin-1'))
-
-    events = []
-    for ev in tal_list:
-        onset = float(ev[0])
-        duration = float(ev[2]) if ev[2] else 0
-        for description in ev[3].split('\x14')[1:]:
-            if description:
-                events.append([onset, duration, description])
-
-    return events
+    onset, duration, desc = _read_annotations_edf(tal_channel_data)
+    evts = (onset, duration, desc)
+    return np.column_stack(evts)
 
 
 def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
@@ -1331,13 +1316,13 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
                   exclude=exclude, preload=preload, verbose=verbose)
 
 
-def _read_annotations_edf(fname):
+def _read_annotations_edf(annotations):
     """Annotation File Reader.
 
     Parameters
     ----------
-    fname : str
-        Path to annotation file.
+    annotations : ndarray (n_chans, n_samples) | str
+        Channel data in EDF+ TAL format or path to annotation file.
 
     Returns
     -------
@@ -1353,8 +1338,19 @@ def _read_annotations_edf(fname):
     XXX check that the output type is propper
     """
     pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
-    with io_open(fname, encoding='latin-1') as annot_file:
-        triggers = re.findall(pat, annot_file.read())
+    if isinstance(annotations, str):
+        with io_open(annotations, encoding='latin-1') as annot_file:
+            triggers = re.findall(pat, annot_file.read())
+    else:
+        tals = bytearray()
+        for chan in annotations:
+            for s in chan:
+                i = int(s)
+                tals.extend(np.uint8([i % 256, i // 256]))
+        # use of latin-1 because characters are only encoded for the first 256
+        # code points and utf-8 can triggers an "invalid continuation byte"
+        # error
+        triggers = re.findall(pat, tals.decode('latin-1'))
 
     events = []
     for ev in triggers:
