@@ -102,7 +102,6 @@ def read_epochs_fieldtrip(fname, info, data_name='data',
     trialinfo_column: int
         Column of the trialinfo matrix to use for the event codes
 
-
     Returns
     -------
     mne.EpochsArray
