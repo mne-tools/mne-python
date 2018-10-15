@@ -2491,7 +2491,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
     fig : matplotlib.figure.Figure
         The Figure of the plot
 
-    Reference
+    References
     ----------
     .. [1] D. Cohen, H. Hosaka
        "Part II magnetic field produced by a current dipole",

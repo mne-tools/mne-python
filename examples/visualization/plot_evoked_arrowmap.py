@@ -9,7 +9,7 @@ an estimation of the current flow underneath the MEG sensors. They are a poor ma
 
 See [1]_ for details.
 
-Reference
+References
 ----------
 .. [1] D. Cohen, H. Hosaka
    "Part II magnetic field produced by a current dipole",
