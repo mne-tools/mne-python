@@ -285,7 +285,6 @@ def _process_channel_meg(cur_ch, grad):
             tmp_pos = cur_coilpos - 0.0003 * cur_coilori
             position = np.average(tmp_pos, axis=0)
 
-    # TODO: this needs to be fixed!
     original_orientation = np.squeeze(grad['chanori'][chan_idx_in_grad, :])
     try:
         orientation = rotation3d_align_z_axis(original_orientation).T
