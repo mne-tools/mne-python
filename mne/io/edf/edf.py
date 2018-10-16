@@ -77,7 +77,13 @@ def _edf_events_from_annotations(raw, event_id):
                                                 use_rounding=False)
     durations = raw.annotations.duration
     durations = np.array(durations * raw.info['sfreq'], int)
-    durations[durations != 0] -= 1  # XXX
+
+    # XXX see discussion gh-5574, this is necessary due to the fact
+    # that stim channel cannot two consecutive events unless they are
+    # at least one sample apart (so that stim_ch can go from evnt_id to 0
+    # and back to evnt_id).
+    durations[durations != 0] -= 1
+
     events[:, 1] = durations
     return events, event_id_
 
