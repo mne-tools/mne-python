@@ -906,20 +906,21 @@ def _mouse_click(event, params):
     """Handle mouse clicks."""
     if event.button not in (1, 3):
         return
-    if event.button == 3:
-        if params['fig_annotation'] is None:
+
+    if event.button == 3:  # right click
+        if params['fig_annotation'] is not None:  # annotation mode
+            raw = params['raw']
+            if any(c.contains(event)[0] for c in params['ax'].collections):
+                xdata = event.xdata - params['first_time']
+                onset = _sync_onset(raw, raw.annotations.onset)
+                ends = onset + raw.annotations.duration
+                ann_idx = np.where((xdata > onset) & (xdata < ends))[0]
+                raw.annotations.delete(ann_idx)  # only first one deleted
+            _remove_segment_line(params)
+            _plot_annotations(raw, params)
+            params['plot_fun']()
+        else:  # right click in browse mode does nothing
             return
-        raw = params['raw']
-        if np.any([c.contains(event)[0] for c in params['ax'].collections]):
-            xdata = event.xdata - params['first_time']
-            onset = _sync_onset(raw, raw.annotations.onset)
-            ends = onset + raw.annotations.duration
-            ann_idx = np.where((xdata > onset) & (xdata < ends))[0]
-            raw.annotations.delete(ann_idx)  # only first one deleted
-        _remove_segment_line(params)
-        _plot_annotations(raw, params)
-        params['plot_fun']()
-        return
 
     if event.inaxes is None:  # check if channel label is clicked
         if params['n_channels'] > 100:
@@ -985,9 +986,9 @@ def _find_channel_idx(ch_name, params):
 
 def _draw_vert_line(xdata, params):
     """Draw vertical line."""
-    params['ax_vertline'].set_data(xdata, np.array(params['ax'].get_ylim()))
-    params['ax_hscroll_vertline'].set_data(xdata, np.array([0., 1.]))
-    params['vertline_t'].set_text('%0.3f' % xdata[0])
+    params['ax_vertline'].set_xdata(xdata)
+    params['ax_hscroll_vertline'].set_xdata(xdata)
+    params['vertline_t'].set_text('%0.2f  ' % xdata)
 
 
 def _select_bads(event, params, bads):
@@ -995,7 +996,7 @@ def _select_bads(event, params, bads):
     # trade-off, avoid selecting more than one channel when drifts are present
     # however for clean data don't click on peaks but on flat segments
     if params['butterfly']:
-        _draw_vert_line(np.array([event.xdata] * 2), params)
+        _draw_vert_line(event.xdata, params)
         return bads
 
     def f(x, y):
@@ -1028,7 +1029,7 @@ def _select_bads(event, params, bads):
                         params['ax_vscroll'].patches[idx].set_color(color)
                     break
     else:
-        _draw_vert_line(np.array([event.xdata] * 2), params)
+        _draw_vert_line(event.xdata, params)
 
     return bads
 
@@ -2014,9 +2015,6 @@ def _on_hover(event, params):
             line = params['segment_line'].line
             pe = [Stroke(linewidth=4, foreground=color, alpha=0.5), Normal()]
             line.set_path_effects(pe if line.contains(event)[0] else pe[1:])
-            params['vertline_t'].set_text('%.3f' % x)
-            params['ax_vertline'].set_data(0,
-                                           np.array(params['ax'].get_ylim()))
             params['ax'].selector.active = False
             params['fig'].canvas.draw()
             return
@@ -2029,7 +2027,6 @@ def _remove_segment_line(params):
         params['segment_line'].remove()
         params['segment_line'] = None
         params['ax'].selector.active = True
-        params['vertline_t'].set_text('')
 
 
 def _annotation_modify(old_x, new_x, params):

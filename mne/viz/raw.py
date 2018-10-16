@@ -29,7 +29,7 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
                     _handle_decim, _setup_plot_projector, _check_cov,
-                    _set_ax_label_style)
+                    _set_ax_label_style, _draw_vert_line)
 from .evoked import _plot_lines
 
 
@@ -445,6 +445,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     params['callback_key'] = callback_key
     # have to store this, or it could get garbage-collected
     params['opt_button'] = opt_button
+    params['update_vertline'] = partial(_draw_vert_line, params=params)
 
     # do initial plots
     callback_proj('none')
@@ -931,15 +932,14 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     ax_vscroll.set_title('Ch.')
 
     vertline_color = (0., 0.75, 0.)
-    params['ax_vertline'] = ax.plot([0, 0], ax.get_ylim(),
-                                    color=vertline_color, zorder=4)[0]
+    params['ax_vertline'] = ax.axvline(0, color=vertline_color, zorder=4)
     params['ax_vertline'].ch_name = ''
-    params['vertline_t'] = ax_hscroll.text(params['first_time'], 1, '',
-                                           color=vertline_color,
+    params['vertline_t'] = ax_hscroll.text(params['first_time'], 1.2, '',
+                                           color=vertline_color, fontsize=10,
                                            va='bottom', ha='right')
-    params['ax_hscroll_vertline'] = ax_hscroll.plot([0, 0], [0, 1],
-                                                    color=vertline_color,
-                                                    zorder=2)[0]
+    params['ax_hscroll_vertline'] = ax_hscroll.axvline(0,
+                                                       color=vertline_color,
+                                                       zorder=2)
     # make shells for plotting traces
     _setup_browser_offsets(params, n_channels)
     ax.set_xlim(params['t_start'], params['t_start'] + params['duration'],
