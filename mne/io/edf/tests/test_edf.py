@@ -371,7 +371,7 @@ def test_find_events_and_events_from_annot_are_the_same():
     events_from_find_events = find_events(raw)
     assert_array_equal(events_from_find_events, EXPECTED_EVENTS)
 
-    annot = read_annotations_edf(edf_path, raw_shell.info['sfreq'])
+    annot = read_annotations_edf(edf_path)
     raw_shell.set_annotations(annot)
     event_id = _get_edf_default_event_id(annot.description)
     event_id.pop('start')

@@ -171,7 +171,7 @@ class RawEDF(BaseRaw):
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
                  stim_channel='auto', annot=None, annotmap=None, exclude=(),
-                 preload=False, verbose=None, event_id=None):  # noqa: D102
+                 preload=False, verbose=None):  # noqa: D102
         logger.info('Extracting EDF parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         info, edf_info = _get_info(input_fname, stim_channel, annot,
@@ -1116,7 +1116,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
     return edf_info
 
 
-def read_annotations_edf(fname, sfreq='auto'):
+def read_annotations_edf(fname):
     """Create Annotations from EDF (and EDF+) files.
 
     This function reads a .edf file and makes an
@@ -1126,22 +1126,12 @@ def read_annotations_edf(fname, sfreq='auto'):
     ----------
     fname : str | object
         The path to the .vmrk file.
-    sfreq : float | 'auto'
-        The sampling frequency in the file. It's necessary
-        as Annotations are expressed in seconds and vmrk
-        files are in samples. If set to 'auto' then
-        the sfreq is taken from the .vhdr file that
-        has the same name (without file extension). So
-        data.vrmk looks for sfreq in data.vhdr.
 
     Returns
     -------
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    if sfreq == 'auto':
-        raise('blame @massich', NotImplementedError)
-
     onset, duration, description = _read_annotations_edf(fname)
     onset = np.array(onset, dtype=float)
     duration = np.array(duration, dtype=float)
