@@ -350,7 +350,7 @@ def _compute_sfreq_from_edf_info(edf_info):
     return sfreq
 
 
-def _get_emtpy_raw_with_valid_annot(fname):
+def _get_empty_raw_with_valid_annot(fname):
     from mne.io.base import _RawShell
     from mne.io.edf.edf import _read_edf_header
     from mne.io.meas_info import _empty_info
@@ -384,7 +384,7 @@ def test_find_events_and_events_from_annot_are_the_same():
                        [1024, 0, 3],
                        [1280, 0, 2]]
     raw = read_raw_edf(edf_path, preload=True)
-    raw_shell = _get_emtpy_raw_with_valid_annot(edf_path)
+    raw_shell = _get_empty_raw_with_valid_annot(edf_path)
     assert raw_shell.info['meas_date'] == raw.info['meas_date']
     assert raw_shell.info['sfreq'] == raw.info['sfreq']
     assert raw_shell.first_samp == raw.first_samp
