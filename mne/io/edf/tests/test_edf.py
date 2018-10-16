@@ -30,8 +30,6 @@ from mne.io.edf.edf import _read_edf_header
 from mne.event import find_events
 from mne.annotations import events_from_annotations
 
-
-
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 montage_path = op.join(data_dir, 'biosemi.hpts')

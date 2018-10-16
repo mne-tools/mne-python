@@ -16,7 +16,6 @@ from io import open as io_open  # python 2 backward compatible open
 
 from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims, _synthesize_stim_channel
-from ..write import DATE_NONE
 from ..base import BaseRaw, _check_update_montage
 from ..meas_info import _empty_info, DATE_NONE
 from ..constants import FIFF
