@@ -17,11 +17,12 @@ from scipy.io import loadmat
 
 from mne import pick_types
 from mne.datasets import testing
+from mne.externals.six import iterbytes
 from mne.utils import run_tests_if_main, requires_pandas, _TempDir
 from mne.io import read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.pick import channel_type
-from mne.io.edf.edf import find_edf_events, _read_annot
+from mne.io.edf.edf import find_edf_events, _read_annot, _read_annotations_edf
 from mne.io.edf.edf import read_annotations_edf
 from mne.event import find_events
 from mne.annotations import events_from_annotations
@@ -211,6 +212,26 @@ def test_stim_channel():
 
     events = raw_py.find_edf_events()
     assert len(events) == 0
+
+
+def test_parse_annotation():
+    """Test parsing the tal channel."""
+    # test the parser
+    annot = (b'+180\x14Lights off\x14Close door\x14\x00\x00\x00\x00\x00'
+             b'+180\x14Lights off\x14\x00\x00\x00\x00\x00\x00\x00\x00'
+             b'+180\x14Close door\x14\x00\x00\x00\x00\x00\x00\x00\x00'
+             b'+3.14\x1504.20\x14nothing\x14\x00\x00\x00\x00'
+             b'+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00'
+             b'+123\x14\x14\x00\x00\x00\x00\x00\x00\x00')
+    annot = [a for a in iterbytes(annot)]
+    annot[1::2] = [a * 256 for a in annot[1::2]]
+    tal_channel = map(sum, zip(annot[0::2], annot[1::2]))
+
+    onset, duration, description = _read_annotations_edf([tal_channel])
+    assert_equal(np.column_stack((onset, duration, description)),
+                 [[180., 0., 'Lights off'], [180., 0., 'Close door'],
+                  [180., 0., 'Lights off'], [180., 0., 'Close door'],
+                  [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']])
 
 
 def test_edf_annotations():
