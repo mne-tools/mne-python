@@ -63,9 +63,9 @@ class CSP(TransformerMixin, BaseEstimator):
 
     Attributes
     ----------
-    filters_ :  ndarray, shape (n_components, n_channels)
+    filters_ :  ndarray, shape (n_channels, n_channels)
         If fit, the CSP components used to decompose the data, else None.
-    patterns_ : ndarray, shape (n_components, n_channels)
+    patterns_ : ndarray, shape (n_channels, n_channels)
         If fit, the CSP patterns used to restore M/EEG signals, else None.
     mean_ : ndarray, shape (n_components,)
         If fit, the mean squared power for each component.
@@ -702,9 +702,9 @@ class SPoC(CSP):
 
     Attributes
     ----------
-    filters_ : ndarray, shape (n_components, n_channels)
+    filters_ : ndarray, shape (n_channels, n_channels)
         If fit, the SPoC spatial filters, else None.
-    patterns_ : ndarray, shape (n_components, n_channels)
+    patterns_ : ndarray, shape (n_channels, n_channels)
         If fit, the SPoC spatial patterns, else None.
     mean_ : ndarray, shape (n_components,)
         If fit, the mean squared power for each component.
