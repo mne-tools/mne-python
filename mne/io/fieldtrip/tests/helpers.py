@@ -187,9 +187,9 @@ def get_epochs(system):
 
 def get_evoked(system):
     """Find, load and process the avg data."""
-    data = get_epochs(system)
+    epochs = get_epochs(system)
 
-    return data.average(picks=np.arange(len(data.ch_names)))
+    return epochs.average(picks=np.arange(len(epochs.ch_names)))
 
 
 def check_info_fields(expected, actual, has_raw_info, ignore_long=True):
