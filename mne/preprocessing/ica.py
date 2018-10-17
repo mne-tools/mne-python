@@ -124,18 +124,18 @@ class ICA(ContainsMixin):
     
     Prior to fitting and applying the ICA, data is whitened (de-correlated and
     scaled to unit variance, also called sphering transformation) by means of
-    a Principle Component Analysis (PCA). This step additionally introduces the
-    option to reduce the dimensionality of the data prior to fitting/reverting
-    the ICA,controllable by the two parameters `max_pca_components` (for 
-    decomposition) and `n_pca_components` (for re-composition).
+    a Principle Component Analysis (PCA). In addition to the whitening, this step
+    introduces the option to reduce the dimensionality of the data, both, prior to
+    fitting the ICA and prior to reverting to sensor space, controllable by the
+    two parameters `max_pca_components` and `n_pca_components`, respectively.
     .. note:: Commonly used for reasons of i) computational efficiency and
               ii) additional noise reduction, it is a matter of current debate
-              whether pre-ICA dimensionality reduction could decrease reliability/
-              stability of ICA, especially during preprocessing (see e.g. [5]).
+              whether pre-ICA dimensionality reduction could decrease the reliability
+              and stability of the ICA, at least for EEG data and especially during
+              preprocessing [5].
               On the other hand, for rank-deficient data such as EEG data after 
-              average reference, it is recommended to reduce dimensionality by 1
-              for the ICA to work optimally.
-              See here: https://sccn.ucsd.edu/wiki/Chapter_09:_Decomposing_Data_Using_ICA#Issue:_ICA_returns_near-identical_components_with_opposite_polarities
+              average reference, it is recommended to reduce the dimensionality by 1
+              for optimal ICA performance [6].
 
 
     Caveat! If supplying a noise covariance, keep track of the projections
@@ -160,17 +160,23 @@ class ICA(ContainsMixin):
     Parameters
     ----------
     n_components : int | float | None
-        The number of PCA components from the pre-ICA PCA entering the ICA 
-        decomposition in the `fit()` method.
-        If int, it must be <= `max_pca_components`. 
-        If None, all PCA components will be used. If float between 0 and 1, 
-        components will be selected by the cumulative percentage of their 
-        explained variance.
+        Controls the number of PCA components from the pre-ICA PCA entering the
+        ICA decomposition in the `fit()` method.
+        If None (default), all PCA components will be used (== `max_pca_components`). 
+        If int, must be <= `max_pca_components`.
+        If float between 0 and 1, the number of components selected matches the
+        number of components with a cumulative explained variance below `n_components`
+        (<1> resulting in `max_pca_components`).
+        The actual number of components resulting from evaluating this parameter
+        in the `fit()` method is stored in the attribute `n_components_`.
+        (Note that the trailing ``_`` signifies attributes added to the object by
+        methods to store results from the actual calculations.)
     max_pca_components : int | None
         The number of components returned by the PCA decomposition in the `fit()`
         method. 
-        If None, no dimensionality reduction will be applied and `max_pca_components`
-        will equal the number of channels supplied for decomposing the data. 
+        If None (default), no dimensionality reduction will be applied and
+        `max_pca_components` will equal the number of channels supplied for
+        decomposing the data. 
         If > `n_components_`, the additional PCA-only-components can later be used
         for re-projecting the data into sensor space, additinally controllable 
         by the `n_pca_components` parameter. It potentially [TO CHECK] 
@@ -183,14 +189,14 @@ class ICA(ContainsMixin):
         minus `n_components` PCA components will be added before restoring the sensor 
         space data.
         If None (default), all PCA components will be used.
-        If float, the number of components selected matches the number of components 
-        with a cumulative explained variance below `n_pca_components`.
+        If float between 0 and 1, the number of components selected matches the number
+        of components with a cumulative explained variance below `n_pca_components`.
         This attribute allows to balance noise reduction against potential loss of 
         features due to dimensionality reduction, independently of the number of ICA
         components.
     noise_cov : None | instance of mne.cov.Covariance
-        Noise covariance used for pre-whitening. If None, channels are scaled
-        to unit variance (z-standardized) prior to whitening (by the PCA).
+        Noise covariance used for pre-whitening. If None (default), channels are
+        scaled to unit variance ("z-standardized") prior to the whitening by PCA.
     random_state : None | int | instance of np.random.RandomState
         Random state to initialize ICA estimation for reproducible results.
     method : {'fastica', 'infomax', 'extended-infomax', 'picard'}
@@ -255,7 +261,7 @@ class ICA(ContainsMixin):
     Reducing the tolerance (set in `fit_params`) speeds up estimation at the
     cost of consistency of the obtained results. It is difficult to directly
     compare tolerance levels between Infomax and Picard, but for Picard and
-    FastICA a good rule of thumb is ``tol_fastica = tol_picard ** 2``.
+    FastICA a good rule of thumb is ``tol_fastica == tol_picard ** 2``.
 
     References
     ----------
@@ -280,6 +286,9 @@ class ICA(ContainsMixin):
            to EEG Data by Principal Component Analysis Reduces the Quality of 
            Its Subsequent Independent Component Decomposition. NeuroImage 175,
            pp.176–187. https://sccn.ucsd.edu/%7Earno/mypapers/Artoni2018.pdf
+ 
+     .. [6] https://sccn.ucsd.edu/wiki/Chapter_09:_Decomposing_Data_Using_ICA#Issue:_ICA_returns_near-identical_components_with_opposite_polarities
+ 
     """
 
     @verbose
