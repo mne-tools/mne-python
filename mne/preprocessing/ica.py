@@ -125,12 +125,18 @@ class ICA(ContainsMixin):
     Prior to fitting and applying the ICA, data is whitened (de-correlated and
     scaled to unit variance, also called sphering transformation) by means of
     a Principle Component Analysis (PCA). This step additionally introduces the
-    option to reduce the dimensionality of the data prior to fitting the ICA,
-    controllable by the two parameters `max_pca_components` (for decomposition)
-    and `n_pca_components` (for re-composition).
-    Commonly used for reasons of computational efficiency and noise reduction,
-    it is a matter of current debate whether pre-ICA dimensionality reduction 
-    should be applied, especially during preprocessing (see e.g. [5]).
+    option to reduce the dimensionality of the data prior to fitting/reverting
+    the ICA,controllable by the two parameters `max_pca_components` (for 
+    decomposition) and `n_pca_components` (for re-composition).
+    .. note:: Commonly used for reasons of i) computational efficiency and
+              ii) additional noise reduction, it is a matter of current debate
+              whether pre-ICA dimensionality reduction could decrease reliability/
+              stability of ICA, especially during preprocessing (see e.g. [5]).
+              On the other hand, for rank-deficient data such as EEG data after 
+              average reference, it is recommended to reduce dimensionality by 1
+              for the ICA to work optimally.
+              See here: https://sccn.ucsd.edu/wiki/Chapter_09:_Decomposing_Data_Using_ICA#Issue:_ICA_returns_near-identical_components_with_opposite_polarities
+
 
     Caveat! If supplying a noise covariance, keep track of the projections
     available in the cov or in the raw object. For example, if you are
@@ -155,17 +161,19 @@ class ICA(ContainsMixin):
     ----------
     n_components : int | float | None
         The number of PCA components from the pre-ICA PCA entering the ICA 
-        decomposition. If int, it must be <= `max_pca_components`. 
+        decomposition in the `fit()` method.
+        If int, it must be <= `max_pca_components`. 
         If None, all PCA components will be used. If float between 0 and 1, 
         components will be selected by the cumulative percentage of their 
         explained variance.
     max_pca_components : int | None
-        The number of components returned by the PCA decomposition. If None, no
-        dimensionality reduction will be applied and `max_pca_components` will
-        equal the number of channels supplied for decomposing the data. 
+        The number of components returned by the PCA decomposition in the `fit()`
+        method. 
+        If None, no dimensionality reduction will be applied and `max_pca_components`
+        will equal the number of channels supplied for decomposing the data. 
         If > `n_components_`, the additional PCA-only-components can later be used
         for re-projecting the data into sensor space, additinally controllable 
-        by the `n_pca_components` parameter. It potentially [I don't know this] 
+        by the `n_pca_components` parameter. It potentially [TO CHECK] 
         also influences the choice of the actual PCA-algorithm used. Refer to the
         docstring of sklearn.PCA() for details.
     n_pca_components : int | float
@@ -173,7 +181,8 @@ class ICA(ContainsMixin):
         the decomposed data into sensor space. Has to be >= `n_components(_)` and <= 
         `max_pca_components`. If greater than `n_components_`, the next `n_pca_components`
         minus `n_components` PCA components will be added before restoring the sensor 
-        space data. If None (default), all PCA components will be used.
+        space data.
+        If None (default), all PCA components will be used.
         If float, the number of components selected matches the number of components 
         with a cumulative explained variance below `n_pca_components`.
         This attribute allows to balance noise reduction against potential loss of 
@@ -181,17 +190,17 @@ class ICA(ContainsMixin):
         components.
     noise_cov : None | instance of mne.cov.Covariance
         Noise covariance used for pre-whitening. If None, channels are scaled
-        to unit variance prior to whitening.
+        to unit variance (z-standardized) prior to whitening (by the PCA).
     random_state : None | int | instance of np.random.RandomState
         Random state to initialize ICA estimation for reproducible results.
     method : {'fastica', 'infomax', 'extended-infomax', 'picard'}
-        The ICA method to use. Defaults to 'fastica'. For reference, see [1]_,
-        [2]_, [3]_ and [4]_.
+        The ICA method to use in the fit() method. Defaults to 'fastica'.
+        For reference, see [1]_, [2]_, [3]_ and [4]_.
     fit_params : dict | None
         Additional parameters passed to the ICA estimator as specified by
         `method`.
     max_iter : int
-        Maximum number of iterations during fit.
+        Maximum number of iterations during fit. Defaults to 200.
     verbose : bool | str | int | None
         If not None, override default verbosity level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>`).
@@ -217,8 +226,8 @@ class ICA(ContainsMixin):
         If fit, the whitened mixing matrix to go back from ICA space to PCA space.
         It is, in combination with the `pca_components_`, used by the `apply()`
         and the `get_components()` methods to re-mix/project (a subset of) the ICA 
-        components into the observed channel space. The former method also takes
-        care of the whitening and re-scaling.
+        components into the observed channel space. The former method also removes
+        the pre-whitening (z-scaling) and the de-meaning.
     unmixing_matrix_ : ndarray, shape (`n_components_`, `n_components_`)
         If fit, the whitened matrix to go from PCA space to ICA space.
         Used, in combination with the `pca_components_`, by the methods
