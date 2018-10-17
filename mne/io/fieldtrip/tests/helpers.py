@@ -63,14 +63,6 @@ def _remove_ignored_ch_fields(info):
                     del cur_ch[cur_field]
 
 
-def _remove_tangential_plane_from_ori(info):
-    if 'chs' in info:
-        for cur_ch in info['chs']:
-            cur_ch['loc'][3:9] = 0
-            cur_ch['loc'][3:] = np.around(cur_ch['loc'][3:], 2)
-            cur_ch['loc'] = np.around(cur_ch['loc'], 3)
-
-
 def _remove_long_info_fields(info):
     for cur_field in info_long_fields:
         if cur_field in info:
