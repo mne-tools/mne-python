@@ -11,12 +11,12 @@ import copy
 import itertools
 import numpy as np
 from mne.datasets import testing
+from mne.io.fieldtrip.utils import NOINFO_WARNING
+from mne.utils import _check_pandas_installed
 from .helpers import (check_info_fields, get_data_paths, get_raw_data,
                       get_epochs, get_evoked, _has_h5py,
                       pandas_not_found_warning_msg, get_raw_info, check_data,
                       assert_warning_in_record)
-from mne.io.fieldtrip.utils import NOINFO_WARNING
-from mne.utils import _check_pandas_installed
 
 # missing: KIT: biggest problem here is that the channels do not have the same
 # names.
