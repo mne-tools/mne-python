@@ -29,8 +29,10 @@ Brainstorm
 ==========
 Dataset fetchers for three Brainstorm tutorials are available. Users must agree to the
 license terms of these datasets before downloading them. These files are recorded in a CTF 275 system.
-The data is converted to `fif` format before being made available to MNE users. However, MNE-Python now supports
+~The data is converted to `fif` format before being made available to MNE users.~ However, MNE-Python now supports
 IO for the `ctf` format as well in addition to the C converter utilities. Please consult the :ref:`IO section <ch_convert>` for details.
+
+edit: From version 0.17 onward, **Brainstorm** `ctf` files are no longer converted to `fif`. MNE users are provided with the original `ctf` files.
 
 Auditory
 ^^^^^^^^
