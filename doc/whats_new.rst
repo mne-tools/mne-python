@@ -145,8 +145,6 @@ Bug
 
 - Fix problem with :meth:`mne.io.Raw.add_channels` where ``raw.info['bads']`` was replicated by `Eric Larson`_
 
-- Fix bug when trying to filter epochs loaded from disk with :func:`mne.read_epochs` by `Eric Larson`_
-
 - Fix bug with :class:`mne.Epochs` where an error was thrown when resizing data (e.g., during :meth:`mne.Epochs.drop_bad`) by `Eric Larson`_
 
 - Rename ``raw.info['buffer_size_sec']`` to ``raw.buffer_size_sec`` as it is a writing parameter rather than a measurement parameter by `Eric Larson`_
