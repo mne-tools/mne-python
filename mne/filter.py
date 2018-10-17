@@ -265,9 +265,9 @@ def _filter_attenuation(h, freq, gain):
 
 def _prep_for_filtering(x, copy, picks=None):
     """Set up array as 2D for filtering ease."""
-    if x.dtype not in ('<f8', '>f8'):
+    if x.dtype != np.float64:
         raise TypeError("Arrays passed for filtering must have a dtype of "
-                        "np.float64")
+                        "np.float64, got type %s" % (x.dtype,))
     if copy is True:
         x = x.copy()
     orig_shape = x.shape
