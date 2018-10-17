@@ -243,9 +243,8 @@ class ICA(ContainsMixin):
         `apply()` method, i.e. artifactual ICA components.
         The components identified manually and by the various automatic artifact 
         detection methods should be (manually) appended to this list
-        (e.g. ica.exclude.extend(eog_inds)).
-        (There is also an `exclude` parameter in the `apply()` method, which
-        is also appended to this attribute.)
+        (e.g. ``ica.exclude.extend(eog_inds)``).
+        (There is also an `exclude` parameter in the `apply()` method.)
         To scrap all marked components, set this attribute to an empty list.
     info : None | instance of Info
         The measurement info copied from the object fitted.
