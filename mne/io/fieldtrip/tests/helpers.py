@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 import types
 import numpy as np
-import copy
 import os
 import mne
 
@@ -199,8 +198,8 @@ def check_info_fields(expected, actual, has_raw_info, ignore_long=True):
 
     Some fields are ignored.
     """
-    expected = copy.deepcopy(expected.info)
-    actual = copy.deepcopy(actual.info)
+    expected = expected.info.copy()
+    actual = actual.info.copy()
 
     if not has_raw_info:
         _remove_ignored_info_fields(expected)
