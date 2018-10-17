@@ -206,8 +206,8 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
     return is_free_ori, ch_names, proj, vertno, G, nn
 
 
-def _shortcut(Wk, Gk, Cm_inv_sq, reduce_rank, nn):
-    """Shortcut to compute the normalized weights in max-power orientation.
+def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn):
+    """Compute the normalized weights in max-power orientation.
 
     Uses Eq. 4.47 from [1]_.
 
@@ -339,7 +339,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         if (inversion == 'matrix' and pick_ori == 'max-power' and
                 weight_norm in ['unit-noise-gain', 'nai']):
             # In this case, take a shortcut to compute the filter
-            Wk[:] = _shortcut(Wk, Gk, Cm_inv_sq, reduce_rank, nn[k])
+            Wk[:] = _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn[k])
         else:
             # Normalize the spatial filters
             if Wk.ndim == 2 and len(Wk) > 1:
