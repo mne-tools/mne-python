@@ -23,11 +23,6 @@ _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'has_key', 'iteritems', 'iterkeys', 'itervalues',  # Py2
                      'viewitems', 'viewkeys', 'viewvalues',  # Py2
                      )
-# XXX These should all probably be added to the FIFF constants
-_missing_names = (
-    'FIFFV_COIL_POINT_MAGNETOMETER_X',
-    'FIFFV_COIL_POINT_MAGNETOMETER_Y',
-)
 # not in coil_def.dat but in DictionaryTypes:enum(coil)
 _missing_coil_def = (
     0,      # The location info contains no data
@@ -213,8 +208,7 @@ def test_constants(tmpdir):
 
     # Assert that all our constants are in the FIF def
     for name in sorted(dir(FIFF)):
-        if name.startswith('_') or name in _dir_ignore_names or \
-                name in _missing_names:
+        if name.startswith('_') or name in _dir_ignore_names:
             continue
         check = None
         val = getattr(FIFF, name)

@@ -43,7 +43,7 @@ from .io.pick import pick_types, pick_channels, pick_channels_regexp
 from .io.constants import FIFF
 from .io.ctf.trans import _make_ctf_coord_trans_set
 from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
-                      _concatenate_coils, _read_coil_defs)
+                      _concatenate_coils)
 from .cov import make_ad_hoc_cov, compute_whitener
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
@@ -512,8 +512,7 @@ def _setup_hpi_struct(info, model_n_window,
                      % (len(msg), u' '.join(msg)))
 
     megchs = [ch for ci, ch in enumerate(info['chs']) if ci in meg_picks]
-    templates = _read_coil_defs(elekta_defs=True, verbose=False)
-    coils = _create_meg_coils(megchs, 'accurate', coilset=templates)
+    coils = _create_meg_coils(megchs, 'accurate')
     if method == 'forward':
         coils = _concatenate_coils(coils)
     else:  # == 'multipole'

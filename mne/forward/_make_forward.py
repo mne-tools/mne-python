@@ -37,17 +37,11 @@ _extra_coil_def_fname = None
 
 
 @verbose
-def _read_coil_defs(elekta_defs=False, verbose=None):
+def _read_coil_defs(verbose=None):
     """Read a coil definition file.
 
     Parameters
     ----------
-    elekta_defs : bool
-        If true, prepend Elekta's coil definitions for numerical
-        integration (from Abramowitz and Stegun section 25.4.62).
-        Note that this will likely cause duplicate coil definitions,
-        so the first matching coil should be selected for optimal
-        integration parameters.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -68,8 +62,6 @@ def _read_coil_defs(elekta_defs=False, verbose=None):
     """
     coil_dir = op.join(op.split(__file__)[0], '..', 'data')
     coils = list()
-    if elekta_defs:
-        coils += _read_coil_def_file(op.join(coil_dir, 'coil_def_Elekta.dat'))
     if _extra_coil_def_fname is not None:
         coils += _read_coil_def_file(_extra_coil_def_fname, use_registry=False)
     coils += _read_coil_def_file(op.join(coil_dir, 'coil_def.dat'))
@@ -269,8 +261,8 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False,
 
 @verbose
 def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
-                       elekta_defs=False, head_frame=True, do_es=False,
-                       do_picking=True, verbose=None):
+                       head_frame=True, do_es=False, do_picking=True,
+                       verbose=None):
     """Prepare MEG coil definitions for forward calculation.
 
     Parameters
@@ -285,9 +277,6 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         info['bads']
     ignore_ref : bool
         If true, ignore compensation coils
-    elekta_defs : bool
-        If True, use Elekta's coil definitions, which use different integration
-        point geometry. False by default.
     head_frame : bool
         If True (default), use head frame coords. Otherwise, use device frame.
     do_es : bool
@@ -351,7 +340,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=exclude)
 
     # Create coil descriptions with transformation to head or device frame
-    templates = _read_coil_defs(elekta_defs=elekta_defs)
+    templates = _read_coil_defs()
 
     if head_frame:
         _print_coord_trans(info['dev_head_t'])
