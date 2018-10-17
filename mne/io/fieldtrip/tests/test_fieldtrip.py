@@ -37,6 +37,8 @@ no_info_warning = {'expected_warning': RuntimeWarning,
 
 
 @testing.requires_testing_data
+# Reading the sample CNT data results in a RuntimeWarning because it cannot
+# parse the measurement date. We need to ignore that warning.
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
 @pytest.mark.parametrize('cur_system, version, use_info',
                          all_test_params_epochs)
@@ -69,6 +71,8 @@ def test_read_evoked(cur_system, version, use_info):
 
 
 @testing.requires_testing_data
+# Reading the sample CNT data results in a RuntimeWarning because it cannot
+# parse the measurement date. We need to ignore that warning.
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
 @pytest.mark.parametrize('cur_system, version, use_info',
                          all_test_params_epochs)
@@ -115,6 +119,8 @@ def test_read_epochs(cur_system, version, use_info):
 
 
 @testing.requires_testing_data
+# Reading the sample CNT data results in a RuntimeWarning because it cannot
+# parse the measurement date. We need to ignore that warning.
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
 @pytest.mark.parametrize('cur_system, version, use_info', all_test_params_raw)
 def test_raw(cur_system, version, use_info):
