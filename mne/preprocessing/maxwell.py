@@ -27,7 +27,7 @@ from ..io.constants import FIFF, FWD
 from ..io.meas_info import _simplify_info
 from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, DATE_NONE
-from ..io import _loc_to_coil_trans, BaseRaw
+from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw
 from ..io.pick import pick_types, pick_info
 from ..utils import verbose, logger, _clean_names, warn, _time_mask, _pl
 from ..fixes import _get_args, _safe_svd, _get_sph_harm, einsum
@@ -655,7 +655,7 @@ def _check_destination(destination, info, head_frame):
 def _prep_mf_coils(info, ignore_ref=True):
     """Get all coil integration information loaded and sorted."""
     coils, comp_coils = _prep_meg_channels(
-        info, accurate=True, elekta_defs=True, head_frame=False,
+        info, accurate=True, head_frame=False,
         ignore_ref=ignore_ref, do_picking=False, verbose=False)[:2]
     mag_mask = _get_mag_mask(coils)
     if len(comp_coils) > 0:
@@ -1653,17 +1653,24 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
 
 def _get_grad_point_coilsets(info, n_types, ignore_ref):
     """Get point-type coilsets for gradiometers."""
+    _rotations = dict(
+        x=np.array([[0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1.]]),
+        y=np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1.]]),
+        z=np.eye(4))
     grad_coilsets = list()
     grad_info = pick_info(
         _simplify_info(info), pick_types(info, meg='grad', exclude=[]))
     # Coil_type values for x, y, z point magnetometers
     # Note: 1D correction files only have x-direction corrections
-    pt_types = [FIFF.FIFFV_COIL_POINT_MAGNETOMETER_X,
-                FIFF.FIFFV_COIL_POINT_MAGNETOMETER_Y,
-                FIFF.FIFFV_COIL_POINT_MAGNETOMETER]
-    for pt_type in pt_types[:n_types]:
-        for ch in grad_info['chs']:
-            ch['coil_type'] = pt_type
+    for ch in grad_info['chs']:
+        ch['coil_type'] = FIFF.FIFFV_COIL_POINT_MAGNETOMETER
+    orig_locs = [ch['loc'].copy() for ch in grad_info['chs']]
+    for rot in 'xyz'[:n_types]:
+        # Rotate the Z magnetometer orientation to the destination orientation
+        for ci, ch in enumerate(grad_info['chs']):
+            ch['loc'][3:] = _coil_trans_to_loc(np.dot(
+                _loc_to_coil_trans(orig_locs[ci]),
+                _rotations[rot]))[3:]
         grad_coilsets.append(_prep_mf_coils(grad_info, ignore_ref))
     return grad_coilsets
 
