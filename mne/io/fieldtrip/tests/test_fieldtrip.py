@@ -156,28 +156,28 @@ def test_raw(cur_system, version, use_info):
 
 
 @testing.requires_testing_data
-@pytest.mark.filterwarnings('ignore::RuntimeWarning')
 def test_load_epoched_as_raw():
     """Test whether exception is thrown when loading epochs as raw."""
     test_data_folder_ft = get_data_paths('neuromag306')
+    info = get_raw_info('neuromag306')
     cur_fname = os.path.join(test_data_folder_ft, 'epoched_v7.mat')
 
     with pytest.raises(RuntimeError):
-        mne.io.read_raw_fieldtrip(cur_fname, None)
+        mne.io.read_raw_fieldtrip(cur_fname, info)
 
 
 @testing.requires_testing_data
-@pytest.mark.filterwarnings('ignore::RuntimeWarning')
 def test_invalid_trialinfocolumn():
     """Test for exceptions when using wrong values for trialinfo parameter."""
     test_data_folder_ft = get_data_paths('neuromag306')
+    info = get_raw_info('neuromag306')
     cur_fname = os.path.join(test_data_folder_ft, 'epoched_v7.mat')
 
     with pytest.raises(ValueError):
-        mne.io.read_epochs_fieldtrip(cur_fname, None, trialinfo_column=-1)
+        mne.io.read_epochs_fieldtrip(cur_fname, info, trialinfo_column=-1)
 
     with pytest.raises(ValueError):
-        mne.io.read_epochs_fieldtrip(cur_fname, None, trialinfo_column=3)
+        mne.io.read_epochs_fieldtrip(cur_fname, info, trialinfo_column=3)
 
 
 @testing.requires_testing_data
