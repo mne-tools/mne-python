@@ -31,7 +31,6 @@ system_to_reader_fn_dict = {'neuromag306': mne.io.read_raw_fif,
                                            rename_channels=False,
                                            sort_by_ch_name=False),
                             'EGI': mne.io.read_raw_egi,
-                            'KIT': mne.io.read_raw_kit,
                             'eximia': mne.io.read_raw_eximia}
 
 ignore_channels_dict = {'BTI': ['MUz', 'MLx', 'MLy', 'MUx', 'MUy', 'MLz']}
@@ -123,12 +122,7 @@ def get_raw_data(system, drop_sti_cnt=True, drop_extra_chs=False):
     raw_data.set_eeg_reference([])
     raw_data.del_proj('all')
     raw_data.info['comps'] = []
-    if system == 'KIT':
-        dropped_chan_idx = [9, 19, 29]
-        drop_chans = [raw_data.ch_names[idx] for idx in dropped_chan_idx]
-        raw_data.drop_channels(drop_chans)
-    else:
-        raw_data.drop_channels(cfg_local['removed_chan_names'])
+    raw_data.drop_channels(cfg_local['removed_chan_names'])
 
     if system in ['CNT', 'EGI']:
         raw_data._data[0:-1, :] = raw_data._data[0:-1, :] * 1e6
