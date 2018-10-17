@@ -469,20 +469,9 @@ Importing MEG/EEG data from FieldTrip
 
 MNE-Python includes :func:`mne.io.read_raw_fieldtrip`, :func:`mne.read_epochs_fieldtrip` and :func:`mne.read_evoked_fieldtrip` to read data coming from FieldTrip.
 
-.. note::
-    FieldTrip and MNE-Python handle and store data differently. Although much care is taken to import data correctly, the quality of the result depends on factors like what system was used to acquire the data and how it was processed in FieldTrip. The functionality has been tested on some major systems as outlined in the table below.
+The data is imported directly from a ``.mat`` file.
 
-The data is imported directly from a `.mat` file. It is **highly recommended** to provide the `info` parameter as well. FieldTrip and MNE-Python handle information like channel locations and orientation, coil-type etc. differently. The `info` dictionary can be extracted by loading the original raw data file with the corresponding MNE-Python functions:
-
-.. code-block:: python
-
-    original_data = mne.io.read_raw_fiff('original_data.fif', preload=False)
-    original_info = original_data.info
-    data_from_ft = mne.read_evoked_fieldtrip('evoked_data.mat', original_info)
-
-The imported data can have less channels than the original data. Only the information for the present ones is extracted from the `info` dictionary.
-
-The `info` parameter can be explicitly set to `None`. The import functions will still work but:
+The ``info`` parameter can be explicitly set to ``None``. The import functions will still work but:
 
 #. All channel locations will be in head coordinates.
 #. Channel orientations cannot be guaranteed to be accurate.
@@ -490,7 +479,17 @@ The `info` parameter can be explicitly set to `None`. The import functions will 
 
 This is probably fine for anything that does not need that information, but if you intent to do things like interpolation of missing channels, source analysis or look at the RMS pairs of planar gradiometers, you most likely run into problems.
 
-Importing FieldTrip data has been tested on a variety of systems with the following results:
+It is **highly recommended** to provide the ``info`` parameter as well. The ``info`` dictionary can be extracted by loading the original raw data file with the corresponding MNE-Python functions:
+
+.. code-block::
+
+    original_data = mne.io.read_raw_fiff('original_data.fif', preload=False)
+    original_info = original_data.info
+    data_from_ft = mne.read_evoked_fieldtrip('evoked_data.mat', original_info)
+
+The imported data can have less channels than the original data. Only the information for the present ones is extracted from the ``info`` dictionary.
+
+As of version 0.17, importing FieldTrip data has been tested on a variety of systems with the following results:
 
 +----------+------------------------------------------------------------------------------+------------------------------------------------------------------------------+------------------------------------------------------------------------------+
 | System   | Read Raw Data                                                                | Read Epoched Data                                                            | Read Evoked Data                                                             |
