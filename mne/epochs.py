@@ -2580,16 +2580,16 @@ def _read_one_epoch_file(f, tree, preload):
         size_expected = len(events) * np.prod(epoch_shape)
         # on read double-precision is always used
         if data_tag.type == FIFF.FIFFT_FLOAT:
-            datatype = np.dtype('>f8')
+            datatype = np.float64
             size_actual = data_tag.size // 4 - 4
         elif data_tag.type == FIFF.FIFFT_DOUBLE:
-            datatype = np.dtype('>f8')
+            datatype = np.float64
             size_actual = data_tag.size // 8 - 2
         elif data_tag.type == FIFF.FIFFT_COMPLEX_FLOAT:
-            datatype = np.dtype('>c16')
+            datatype = np.complex128
             size_actual = data_tag.size // 8 - 2
         elif data_tag.type == FIFF.FIFFT_COMPLEX_DOUBLE:
-            datatype = np.dtype('>c16')
+            datatype = np.complex128
             size_actual = data_tag.size // 16 - 1
 
         if not size_actual == size_expected:

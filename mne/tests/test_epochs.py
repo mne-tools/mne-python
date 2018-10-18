@@ -25,7 +25,7 @@ from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements)
-from mne.utils import (_TempDir, requires_pandas, run_tests_if_main,
+from mne.utils import (requires_pandas, run_tests_if_main,
                        requires_version, _check_pandas_installed,
                        catch_logging)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
@@ -474,7 +474,7 @@ def test_savgol_filter():
             np.mean(data_filt[:, :, stop_mask]) * 5)
 
 
-def test_filter():
+def test_filter(tmpdir):
     """Test filtering."""
     h_freq = 40.
     raw, events = _get_data()[:2]
@@ -484,19 +484,28 @@ def test_filter():
     epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True)
     epochs.pick_types(meg='grad')
     freqs = np.fft.rfftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
-    data = np.abs(np.fft.rfft(epochs.get_data()))
+    data_fft = np.abs(np.fft.rfft(epochs.get_data()))
     pass_mask = (freqs <= h_freq / 2. - 5.)
     stop_mask = (freqs >= h_freq * 2 + 5.)
-    epochs.filter(None, h_freq, fir_design='firwin')
+    epochs_orig = epochs.copy()
+    epochs.filter(None, h_freq)
     assert epochs.info['lowpass'] == h_freq
-    data_filt = np.abs(np.fft.rfft(epochs.get_data()))
+    data_filt = epochs.get_data()
+    data_filt_fft = np.abs(np.fft.rfft(data_filt))
     # decent in pass-band
-    assert_allclose(np.mean(data_filt[:, :, pass_mask], 0),
-                    np.mean(data[:, :, pass_mask], 0),
+    assert_allclose(np.mean(data_filt_fft[:, :, pass_mask], 0),
+                    np.mean(data_fft[:, :, pass_mask], 0),
                     rtol=5e-2, atol=1e-16)
     # suppression in stop-band
-    assert (np.mean(data[:, :, stop_mask]) >
-            np.mean(data_filt[:, :, stop_mask]) * 10)
+    assert (np.mean(data_fft[:, :, stop_mask]) >
+            np.mean(data_filt_fft[:, :, stop_mask]) * 10)
+
+    # smoke test for filtering I/O data (gh-5614)
+    temp_fname = op.join(str(tmpdir), 'test-epo.fif')
+    epochs_orig.save(temp_fname)
+    epochs = mne.read_epochs(temp_fname)
+    epochs.filter(None, h_freq)
+    assert_allclose(epochs.get_data(), data_filt, atol=1e-17)
 
 
 def test_epochs_hash():
@@ -660,10 +669,10 @@ def test_read_epochs_bad_events():
 
 
 @pytest.mark.slowtest
-def test_read_write_epochs():
+def test_read_write_epochs(tmpdir):
     """Test epochs from raw files with IO as fif file."""
     raw, events, picks = _get_data(preload=True)
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     temp_fname = op.join(tempdir, 'test-epo.fif')
     temp_fname_no_bl = op.join(tempdir, 'test_no_bl-epo.fif')
     baseline = (None, 0)
@@ -856,10 +865,10 @@ def test_read_write_epochs():
         assert_equal(epochs.get_data().shape[-1], 1)
 
 
-def test_split_saving():
+def test_split_saving(tmpdir):
     """Test saving split epochs."""
     # See gh-5102
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     raw = mne.io.RawArray(np.random.RandomState(0).randn(100, 10000),
                           mne.create_info(100, 1000.))
     events = mne.make_fixed_length_events(raw, 1)
@@ -877,9 +886,9 @@ def test_split_saving():
         assert_array_equal(epochs.events, epochs2.events)
 
 
-def test_epochs_proj():
+def test_epochs_proj(tmpdir):
     """Test handling projection (apply proj in Raw or in Epochs)."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     raw, events, picks = _get_data()
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
     this_picks = pick_types(raw.info, meg=True, eeg=False, stim=True,
@@ -977,9 +986,9 @@ def test_evoked_arithmetic():
     assert_array_equal(np.zeros_like(evoked.data), evoked_diff.data)
 
 
-def test_evoked_io_from_epochs():
+def test_evoked_io_from_epochs(tmpdir):
     """Test IO of evoked data made from epochs."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     raw, events, picks = _get_data()
     raw.info['lowpass'] = 40  # avoid aliasing warnings
     # offset our tmin so we don't get exactly a zero value when decimating
@@ -1012,10 +1021,10 @@ def test_evoked_io_from_epochs():
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
 
 
-def test_evoked_standard_error():
+def test_evoked_standard_error(tmpdir):
     """Test calculation and read/write of standard error."""
     raw, events, picks = _get_data()
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks)
     evoked = [epochs.average(), epochs.standard_error()]
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), evoked)
@@ -1511,9 +1520,9 @@ def test_epoch_eq():
     assert_equal(len(epochs['a/y']), 0)
 
 
-def test_access_by_name():
+def test_access_by_name(tmpdir):
     """Test accessing epochs by event name and on_missing for rare events."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     raw, events, picks = _get_data()
 
     # Test various invalid inputs
@@ -2018,10 +2027,10 @@ def test_add_channels_epochs():
                   [epochs_meg2, epochs_eeg])
 
 
-def test_array_epochs():
+def test_array_epochs(tmpdir):
     """Test creating epochs from array."""
     import matplotlib.pyplot as plt
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
 
     # creating
     data = rng.random_sample((10, 20, 300))
@@ -2248,7 +2257,7 @@ class FakeNoPandas(object):  # noqa: D101
 
 
 @requires_pandas
-def test_metadata():
+def test_metadata(tmpdir):
     """Test metadata support with pandas."""
     from pandas import DataFrame
 
@@ -2314,7 +2323,7 @@ def test_metadata():
 
     # I/O
     # Make sure values don't change with I/O
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     temp_fname = op.join(tempdir, 'tmp-epo.fif')
     temp_one_fname = op.join(tempdir, 'tmp-one-epo.fif')
     with catch_logging() as log:
@@ -2440,8 +2449,7 @@ def test_save_complex_data(tmpdir):
             if is_complex:
                 raw.apply_hilbert(envelope=False, n_fft=None)
             epochs = Epochs(raw, events[:1], preload=True)[0]
-            tempdir = _TempDir()
-            temp_fname = op.join(tempdir, 'test-epo.fif')
+            temp_fname = op.join(str(tmpdir), 'test-epo.fif')
             epochs.save(temp_fname, fmt=fmt)
             epochs_read = read_epochs(temp_fname, proj=False, preload=True)
             assert_allclose(epochs_read.get_data(),
