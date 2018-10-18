@@ -439,7 +439,6 @@ def test_plot_arrowmap():
                   info_to=evoked_mag.info)
 
 
-
 @testing.requires_testing_data
 def test_plot_topomap_neuromag122():
     """Test topomap plotting."""
