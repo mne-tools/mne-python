@@ -135,7 +135,10 @@ def _create_montage(ft_struct):
             cur_ch_struct = ft_struct[cur_ch_type]
             available_channels = np.where(np.in1d(cur_ch_struct['label'],
                                                   ft_struct['label']))[0]
-            cur_labels = np.asanyarray(cur_ch_struct['label'])
+            tmp_labels = cur_ch_struct['label']
+            if not isinstance(tmp_labels, list):
+                tmp_labels = [tmp_labels]
+            cur_labels = np.asanyarray(tmp_labels)
             montage_ch_names.extend(
                 cur_labels[available_channels])
             montage_pos.extend(
