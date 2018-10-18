@@ -12,7 +12,7 @@ import itertools
 import numpy as np
 from mne.datasets import testing
 from mne.io.fieldtrip.utils import NOINFO_WARNING, _create_events
-from mne.utils import _check_pandas_installed
+from mne.utils import _check_pandas_installed, requires_h5py
 from mne.io.fieldtrip.tests.helpers import (check_info_fields, get_data_paths,
                                             get_raw_data, get_epochs,
                                             get_evoked, _has_h5py,
@@ -215,6 +215,7 @@ def test_create_events():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('version', all_versions)
+@requires_h5py
 def test_one_channel_elec_bug(version):
     """Test if loading data having only one elec in the elec field works."""
     fname = os.path.join(mne.datasets.testing.data_path(), 'fieldtrip',
