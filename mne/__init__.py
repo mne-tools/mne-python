@@ -89,6 +89,8 @@ from .dipole import read_dipole, Dipole, DipoleFixed, fit_dipole
 from .channels import equalize_channels, rename_channels, find_layout
 from .report import Report, open_report
 
+from .io import read_epochs_fieldtrip, read_evoked_fieldtrip
+
 from . import beamformer
 from . import channels
 from . import chpi

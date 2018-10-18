@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add :func:`mne.io.read_raw_fieldtrip`, :func:`mne.read_epochs_fieldtrip` and :func:`mne.read_evoked_fieldtrip` to import FieldTrip data. By `Thomas Hartmann`_ and `Dirk Gütlin`_.
+
 - Default parameters in :func:`mne.io.eeglab.read_annotations_eeglab` no longer filter out annotations by `Joan Massich`_ and `Alex Gramfort`_
 
 - :func:`mne.io.eeglab.read_raw_eeglab` no longer warns when the stim channel is populated with an array of zeros by `Joan Massich`_
@@ -2934,6 +2936,8 @@ of commits):
 .. _Steven Gutstein: http://robust.cs.utep.edu/~gutstein
 
 .. _Peter Molfese: https://github.com/pmolfese
+
+.. _Dirk Gütlin: https://github.com/DiGyt
 
 .. _Jasper van den Bosch: https://github.com/ilogue
 

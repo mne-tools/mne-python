@@ -28,14 +28,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-import sys
-import numpy
 import scipy.io
-import types
 import os
 
-if sys.version_info <= (2, 7):
-    chr = unichr  # noqa This is needed for python 2 and 3 compatibility
+from .utils import _import_h5py, _hdf5todict, _check_for_scipy_mat_struct
 
 __all__ = 'read_mat'
 
@@ -44,15 +40,6 @@ This is a small module intended to facilitate reading .mat files containing
 large data structures into python, disregarding of the underlying .mat
 file version.
 """
-
-
-def _import_h5py():
-    try:
-        import h5py
-    except Exception as exc:
-        raise ImportError('h5py is required to read MATLAB files >= v7.3 '
-                          '(%s)' % (exc,))
-    return h5py
 
 
 def read_mat(filename, variable_names=None, ignore_fields=None,
@@ -104,166 +91,3 @@ def read_mat(filename, variable_names=None, ignore_fields=None,
             data = _hdf5todict(hdf5_file, variable_names=variable_names,
                                ignore_fields=ignore_fields)
     return data
-
-
-def _hdf5todict(hdf5_object, variable_names=None, ignore_fields=None):
-    """
-    Recursively converts a hdf5 object to a python dictionary,
-    converting all types as well.
-
-    Parameters
-    ----------
-    hdf5_object: Union[h5py.Group, h5py.Dataset]
-        Object to convert. Can be a h5py File, Group or Dataset
-    variable_names: iterable, optional
-        Tuple or list of variables to include. If set to none, all
-        variable are read.
-    ignore_fields: iterable, optional
-        Tuple or list of fields to ignore. If set to none, all fields will
-        be read.
-
-    Returns
-    -------
-    dict
-        Python dictionary
-    """
-
-    h5py = _import_h5py()
-
-    if isinstance(hdf5_object, h5py.Group):
-        all_keys = set(hdf5_object.keys())
-        if ignore_fields:
-            all_keys = all_keys - set(ignore_fields)
-
-        if variable_names:
-            all_keys = all_keys & set(variable_names)
-
-        return_dict = dict()
-
-        for key in all_keys:
-            return_dict[key] = _hdf5todict(hdf5_object[key],
-                                           variable_names=None,
-                                           ignore_fields=ignore_fields)
-
-        return return_dict
-    elif isinstance(hdf5_object, h5py.Dataset):
-        if 'MATLAB_empty' in hdf5_object.attrs.keys():
-            data = numpy.empty((0,))
-        else:
-            data = hdf5_object.value
-
-        if isinstance(data, numpy.ndarray) and \
-                data.dtype == numpy.dtype('object'):
-
-            data = [hdf5_object.file[cur_data] for cur_data in data.flatten()]
-            data = _hdf5todict(data)
-            if isinstance(data, numpy.ndarray):
-                data = numpy.squeeze(data).T
-
-        return _assign_types(data)
-    elif isinstance(hdf5_object, (list, types.GeneratorType)):
-        return [_hdf5todict(item) for item in hdf5_object]
-    else:
-        raise TypeError('Unknown type in hdf5 file')
-
-
-def _convert_string_hdf5(values):
-    if values.size == 2 and numpy.all(
-            values == [0, 0]):  # this is most probably the empty string
-        assigned_values = u''
-    elif values.size > 1:
-        assigned_values = u''.join(chr(c) for c in values.flatten())
-    else:
-        assigned_values = chr(values)
-
-    return assigned_values
-
-
-def _assign_types(values):
-    """private function, which assigns correct types to h5py extracted values
-    from _browse_dataset()"""
-
-    if type(values) == numpy.ndarray:
-        values = numpy.squeeze(values).T
-        if values.dtype in ("uint8", "uint16", "uint32", "uint64"):
-            if values.ndim in (0, 1):
-                assigned_values = _convert_string_hdf5(values)
-            elif values.ndim == 2:
-                assigned_values = [_convert_string_hdf5(cur_val)
-                                   for cur_val in values]
-            else:
-                raise RuntimeError('String arrays with more than 2 dimensions'
-                                   'are not supported at the moment.')
-        else:
-            assigned_values = values
-
-        if isinstance(assigned_values, numpy.ndarray) and \
-                assigned_values.size == 1:
-
-            assigned_values = assigned_values.item()
-
-    elif type(values) == numpy.float64:
-        assigned_values = float(values)
-    else:
-        assigned_values = values
-    return assigned_values
-
-
-def _check_for_scipy_mat_struct(data):
-    """
-    Private function to check all entries of data for occurrences of
-    scipy.io.matlab.mio5_params.mat_struct and convert them.
-
-    Parameters
-    ==========
-    data: any
-        data to be checked
-
-    Returns
-    =========
-    object
-        checked and converted data
-    """
-    if isinstance(data, dict):
-        for key in data:
-            data[key] = _check_for_scipy_mat_struct(data[key])
-
-    if isinstance(data, numpy.ndarray) and \
-            data.dtype == numpy.dtype('object') and not \
-            isinstance(data, scipy.io.matlab.mio5.MatlabFunction):
-
-        as_list = []
-        for element in data:
-            as_list.append(_check_for_scipy_mat_struct(element))
-        data = as_list
-
-    if isinstance(data, numpy.ndarray) and isinstance(data.dtype.names, tuple):
-        data = _todict_from_np_struct(data)
-        data = _check_for_scipy_mat_struct(data)
-
-    if isinstance(data, numpy.ndarray):
-        data = numpy.array(data)
-
-    return data
-
-
-def _todict_from_np_struct(data):
-    data_dict = dict()
-
-    for cur_field_name in data.dtype.names:
-        try:
-            n_items = len(data[cur_field_name])
-            cur_list = list()
-
-            for idx in numpy.arange(n_items):
-                cur_value = data[cur_field_name].item(idx)
-                cur_value = _check_for_scipy_mat_struct(cur_value)
-                cur_list.append(cur_value)
-
-            data_dict[cur_field_name] = cur_list
-        except TypeError:
-            cur_value = data[cur_field_name].item(0)
-            cur_value = _check_for_scipy_mat_struct(cur_value)
-            data_dict[cur_field_name] = cur_value
-
-    return data_dict
