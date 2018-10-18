@@ -425,16 +425,19 @@ def test_ctf_plotting():
 @testing.requires_testing_data
 def test_plot_arrowmap():
     """Test arrowmap plotting."""
-    import matplotlib.pyplot as plt
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
+    with pytest.raises(ValueError, match='Multiple Channel type'):
+        plot_arrowmap(evoked.data[:, 0], evoked.info)
+    evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
+    with pytest.raises(ValueError, match='Channel type not supported'):
+        plot_arrowmap(evoked_eeg.data[:, 0], evoked.info)
     evoked_mag = evoked.copy().pick_types(meg='mag')
     evoked_grad = evoked.copy().pick_types(meg='grad')
     plot_arrowmap(evoked_mag.data[:, 0], evoked_mag.info)
-    plt.close('all')
     plot_arrowmap(evoked_grad.data[:, 0], evoked_grad.info,
                   info_to=evoked_mag.info)
-    plt.close('all')
+
 
 
 @testing.requires_testing_data

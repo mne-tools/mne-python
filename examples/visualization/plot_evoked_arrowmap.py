@@ -45,17 +45,24 @@ evoked_grad = evoked.copy().pick_types(meg='grad')
 max_time_idx = np.abs(evoked_mag.data).mean(axis=0).argmax()
 plot_arrowmap(evoked_mag.data[:, max_time_idx], evoked_mag.info)
 
-# data can be projected from info_from to info_to using mne mapping
+
+# Since planar gradiometers takes gradients along latitude and longitude,
+# they need to be projected to the flatten manifold span by magnetometer
+# or radial gradiometers before taking the gradients in the 2D Cartesian
+# coordinate system for visualization on the 2D topoplot.
+
 # plot gradiometer data as an arrowmap along with the topoplot at the time
 # of the maximum sensor space activity
 plot_arrowmap(evoked_grad.data[:, max_time_idx], info_from=evoked_grad.info,
               info_to=evoked_mag.info)
 
 
-# data can be projected from info_from (Vectorview 101) to
-# high density info_to (CTF 272)
-# info_to can be use to project data from in_from
+# Since Vectorview 102 system perform sparse spatial sampling of the magnetic
+# field, data from the Vectorview (info_from) can be projected to the high
+# density CTF 272 system (info_to) for visualization
+
 # plot gradiometer data as an arrowmap along with the topoplot at the time
+# of the maximum sensor space activity
 path = bst_raw.data_path()
 raw_fname = path + '/MEG/bst_raw/' \
                    'subj001_somatosensory_20111109_01_AUX-f_raw.fif'

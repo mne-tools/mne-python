@@ -18,7 +18,7 @@ Current
 
 Changelog
 ~~~~~~~~~
-- Add :func:`mne.viz.plot_arrowmap` which computes Hosaka-Cohen transformation from magnetometer or gradiometer data, revealing actual current sources underneath the sensors represented by arrowmaps by `Sheraz Khan`_
+- Add :func:`mne.viz.plot_arrowmap` which computes Hosaka-Cohen transformation arrowmaps from magnetometer or gradiometer data, these arrows represents an estimation of the current flow underneath the MEG sensors by `Sheraz Khan`_
 
 - Default parameters in :func:`mne.io.eeglab.read_annotations_eeglab` no longer filter out annotations by `Joan Massich`_ and `Alex Gramfort`_
 
