@@ -211,3 +211,14 @@ def test_create_events():
 
     with pytest.raises(ValueError):
         _create_events(new_data, 4)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('version', all_versions)
+def test_one_channel_elec_bug(version):
+    """Test if loading data having only one elec in the elec field works."""
+    fname = os.path.join(mne.datasets.testing.data_path(), 'fieldtrip',
+                         'one_channel_elec_bug_data_%s.mat' % (version, ))
+
+    with pytest.warns(**no_info_warning):
+        mne.io.read_raw_fieldtrip(fname, info=None)
