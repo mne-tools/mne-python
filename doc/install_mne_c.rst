@@ -90,13 +90,13 @@ can be used conveniently:
 
 .. code-block:: console
 
-    $ $MNE_ROOT/bin/mne_setup_sh
+    $ . $MNE_ROOT/bin/mne_setup_sh
 
 and
 
 .. code-block:: console
 
-    $ $MNE_ROOT/bin/mne_setup
+    $ . $MNE_ROOT/bin/mne_setup
 
 compatible with the POSIX and csh/tcsh shells, respectively. Since
 the scripts set environment variables they should be 'sourced' to
@@ -230,7 +230,7 @@ in the ``bin`` directory and is thus started as:
 
 .. code-block:: console
 
-    $ $MNE_ROOT/bin/mne_opengl_test
+    $ . $MNE_ROOT/bin/mne_opengl_test
 
 On the fastest graphics cards, the time per revolution is
 well below 1 second. If this time longer than 10 seconds either
