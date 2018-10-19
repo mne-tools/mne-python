@@ -64,7 +64,8 @@ event_id = {'Sync On': 5}
 
 def test_orig_units():
     """Test exposure of original channel units."""
-    raw = read_raw_brainvision(vhdr_path)
+    with pytest.warns(RuntimeWarning, match='will be dropped'):
+        raw = read_raw_brainvision(vhdr_path)
     orig_units = raw._orig_units
     assert len(orig_units) == 32
     assert orig_units['FP1'] == 'µV'
