@@ -15,13 +15,14 @@ import numpy as np
 from io import open as io_open  # python 2 backward compatible open
 
 from ...utils import verbose, logger, warn
-from ..utils import _blk_read_lims
+from ..utils import _blk_read_lims, _synthesize_stim_channel
 from ..base import BaseRaw, _check_update_montage
 from ..meas_info import _empty_info, DATE_NONE
 from ..constants import FIFF
 from ...filter import resample
 from ...externals.six.moves import zip
 from ...utils import copy_function_doc_to_method_doc
+from ...annotations import Annotations, events_from_annotations
 
 
 def find_edf_events(raw):
@@ -66,6 +67,27 @@ def find_edf_events(raw):
     return raw.find_edf_events()
 
 
+def _edf_events_from_annotations(raw, event_id):
+    """Modify events_from_annotaitons for EDF specifics.
+
+    Modify events_from_annotaitons so that events[:,1] corresponds to
+    the duration of the events instead of the id of the previous event.
+    """
+    events, event_id_ = events_from_annotations(raw, event_id=event_id,
+                                                use_rounding=False)
+    durations = raw.annotations.duration
+    durations = np.array(durations * raw.info['sfreq'], int)
+
+    # XXX see discussion gh-5574, this is necessary due to the fact
+    # that stim channel cannot two consecutive events unless they are
+    # at least one sample apart (so that stim_ch can go from evnt_id to 0
+    # and back to evnt_id).
+    durations[durations != 0] -= 1
+
+    events[:, 1] = durations
+    return events, event_id_
+
+
 class RawEDF(BaseRaw):
     """Raw object from EDF, EDF+, BDF file.
 
@@ -98,6 +120,8 @@ class RawEDF(BaseRaw):
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
+    event_id : dict
+        The event_id variable that can be passed to Epochs.
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
@@ -300,30 +324,24 @@ class RawEDF(BaseRaw):
                 data[stim_channel_idx, :] = evts[start:stop]
             elif len(tal_sel) > 0:
                 tal_channel_idx = np.in1d(orig_sel[idx], tal_sel)
-                evts = _parse_tal_channel(np.atleast_2d(data[tal_channel_idx]))
-                self._raw_extras[fi]['events'] = evts
+                annotations_data = np.atleast_2d(data[tal_channel_idx])
+                onset, duration, desc = _read_annotations_edf(annotations_data)
 
-                unique_annots = sorted(set([e[2] for e in evts]))
-                mapping = dict((a, n + 1) for n, a in enumerate(unique_annots))
+                evts = (onset, duration, desc)
+                self._raw_extras[fi]['events'] = np.column_stack(evts)
 
-                stim = np.zeros(read_size)
-                for t_start, t_duration, annotation in evts:
-                    evid = mapping[annotation]
-                    n_start = int(t_start * sfreq)
-                    n_stop = int(t_duration * sfreq) + n_start - 1
-                    # make sure events without duration get one sample
-                    n_stop = n_stop if n_stop > n_start else n_start + 1
-                    if any(stim[n_start:n_stop]):
-                        warn('EDF+ with overlapping events'
-                             ' are not fully supported')
-                    if n_start >= read_size:  # event out of bounds
-                        warn('Event "{}" (event ID {} with onset {}) is out of'
-                             ' bounds, it cannot be added to the stim channel.'
-                             ' Use find_edf_events to get a list of all EDF '
-                             'events as stored in the '
-                             'file.'.format(annotation, evid, n_start))
-                    stim[n_start:n_stop] += evid
+                self.set_annotations(Annotations(onset=onset,
+                                                 duration=duration,
+                                                 description=desc,
+                                                 orig_time=None))
+                event_id = _get_edf_default_event_id(desc)
+                events, _ = _edf_events_from_annotations(self,
+                                                         event_id=event_id)
+
+                self._check_events(events, read_size)
+                stim = self._create_event_ch(events, read_size)
                 data[stim_channel_idx, :] = stim[start:stop]
+
             elif stim_data is not None:  # GDF events
                 data[stim_channel_idx, :] = stim_data[start:stop]
             else:
@@ -334,6 +352,41 @@ class RawEDF(BaseRaw):
     @copy_function_doc_to_method_doc(find_edf_events)
     def find_edf_events(self):
         return self._raw_extras[0]['events']
+
+    def _create_event_ch(self, events, n_samples=None):
+        """Create the event channel."""
+        if n_samples is None:
+            n_samples = self.last_samp - self.first_samp + 1
+        events = np.array(events, int)
+        if events.ndim != 2 or events.shape[1] != 3:
+            raise ValueError("[n_events x 3] shaped array required")
+        # update events
+        self._event_ch = _synthesize_stim_channel(events, n_samples)
+        return self._event_ch
+
+    def _check_events(self, events, read_size):
+        """Emit warnings based on events.
+
+        Check for:
+        - Overlapping events
+        - Events that expand over the read buffer
+
+        XXX: This can be vectorized
+        """
+        stim = np.zeros(read_size)
+        for n_start, n_duration, description in events:
+            n_stop = n_duration + n_start
+            # make sure events without duration get one sample
+            n_stop = n_stop if n_stop > n_start else n_start + 1
+            if any(stim[n_start:n_stop]):
+                warn('EDF+ with overlapping events are not fully supported')
+            if n_start >= read_size:  # event out of bounds
+                warn('Event "{}" (with onset {}) is out of'
+                     ' bounds, it cannot be added to the stim channel.'
+                     ' Use find_edf_events to get a list of all EDF '
+                     'events as stored in the '
+                     'file.'.format(description, n_start))
+            stim[n_start:n_stop] += 1
 
 
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
@@ -353,46 +406,6 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
         ch_data = np.fromfile(fid, dtype=dtype, count=samp)
 
     return ch_data
-
-
-def _parse_tal_channel(tal_channel_data):
-    """Parse time-stamped annotation lists (TALs) in stim_channel.
-
-    Parameters
-    ----------
-    tal_channel_data : ndarray, shape = [n_chans, n_samples]
-        channel data in EDF+ TAL format
-
-    Returns
-    -------
-    events : list
-        List of events. Each event contains [start, duration, annotation].
-
-    References
-    ----------
-    http://www.edfplus.info/specs/edfplus.html#tal
-    """
-    # convert tal_channel to an ascii string
-    tals = bytearray()
-    for chan in tal_channel_data:
-        for s in chan:
-            i = int(s)
-            tals.extend(np.uint8([i % 256, i // 256]))
-
-    regex_tal = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
-    # use of latin-1 because characters are only encoded for the first 256
-    # code points and utf-8 can triggers an "invalid continuation byte" error
-    tal_list = re.findall(regex_tal, tals.decode('latin-1'))
-
-    events = []
-    for ev in tal_list:
-        onset = float(ev[0])
-        duration = float(ev[2]) if ev[2] else 0
-        for description in ev[3].split('\x14')[1:]:
-            if description:
-                events.append([onset, duration, description])
-
-    return events
 
 
 def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
@@ -1102,6 +1115,32 @@ def _read_gdf_header(fname, stim_channel, exclude):
     return edf_info
 
 
+def read_annotations_edf(fname):
+    """Create Annotations from EDF (and EDF+) files.
+
+    This function reads a .edf file and makes an
+    :class:`mne.Annotations` object.
+
+    Parameters
+    ----------
+    fname : str | object
+        The path to the .vmrk file.
+
+    Returns
+    -------
+    annotations : instance of Annotations
+        The annotations present in the file.
+    """
+    onset, duration, description = _read_annotations_edf(fname)
+    onset = np.array(onset, dtype=float)
+    duration = np.array(duration, dtype=float)
+    annotations = Annotations(onset=onset, duration=duration,
+                              description=description,
+                              orig_time=None)
+
+    return annotations
+
+
 def _read_annot(annot, annotmap, sfreq, data_length):
     """Annotation File Reader.
 
@@ -1121,19 +1160,7 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     stim_channel : ndarray
         An array containing stimulus trigger events.
     """
-    pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
-    with io_open(annot, encoding='latin-1') as annot_file:
-        triggers = re.findall(pat, annot_file.read())
-
-    events = []
-    for ev in triggers:
-        onset = float(ev[0])
-        duration = float(ev[2]) if ev[2] else 0
-        for description in ev[3].split('\x14')[1:]:
-            if description:
-                events.append([onset, duration, description])
-
-    times, durations, descriptions = zip(*events)
+    times, durations, descriptions = _read_annotations_edf(annot)
     times = [float(time) * sfreq for time in times]
 
     pat = r'([\w\s]+):(\d+)'
@@ -1266,3 +1293,54 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
                   stim_channel=stim_channel, annot=annot, annotmap=annotmap,
                   exclude=exclude, preload=preload, verbose=verbose)
+
+
+def _read_annotations_edf(annotations):
+    """Annotation File Reader.
+
+    Parameters
+    ----------
+    annotations : ndarray (n_chans, n_samples) | str
+        Channel data in EDF+ TAL format or path to annotation file.
+
+    Returns
+    -------
+    onset : array of float, shape (n_annotations,)
+        The starting time of annotations in seconds after ``orig_time``.
+    duration : array of float, shape (n_annotations,)
+        Durations of the annotations in seconds.
+    description : array of str, shape (n_annotations,)
+        Array of strings containing description for each annotation. If a
+        string, all the annotations are given the same description. To reject
+        epochs, use description starting with keyword 'bad'. See example above.
+    """
+    pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
+    if isinstance(annotations, str):
+        with io_open(annotations, encoding='latin-1') as annot_file:
+            triggers = re.findall(pat, annot_file.read())
+    else:
+        tals = bytearray()
+        for chan in annotations:
+            for s in chan:
+                i = int(s)
+                tals.extend(np.uint8([i % 256, i // 256]))
+        # use of latin-1 because characters are only encoded for the first 256
+        # code points and utf-8 can triggers an "invalid continuation byte"
+        # error
+        triggers = re.findall(pat, tals.decode('latin-1'))
+
+    events = []
+    for ev in triggers:
+        onset = float(ev[0])
+        duration = float(ev[2]) if ev[2] else 0
+        for description in ev[3].split('\x14')[1:]:
+            if description:
+                events.append([onset, duration, description])
+
+    return zip(*events) if events else (list(), list(), list())
+
+
+def _get_edf_default_event_id(descriptions):
+    mapping = dict((a, n) for n, a in
+                   enumerate(sorted(set(descriptions)), start=1))
+    return mapping
