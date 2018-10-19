@@ -119,7 +119,6 @@ class RawBrainVision(BaseRaw):
          orig_units) = _get_vhdr_info(vhdr_fname, eog, misc, scale, montage)
         self._order = order
         self._n_samples = n_samples
-        self._orig_units = orig_units
 
         _check_update_montage(info, montage)
         with open(data_fname, 'rb') as f:
@@ -145,7 +144,7 @@ class RawBrainVision(BaseRaw):
         super(RawBrainVision, self).__init__(
             info, last_samps=[n_samples - 1], filenames=[data_fname],
             orig_format=fmt, preload=preload, verbose=verbose,
-            raw_extras=[offsets])
+            raw_extras=[offsets], orig_units=orig_units)
 
         # Get annotations from vmrk file
         annots = read_annotations_brainvision(mrk_fname, info['sfreq'])

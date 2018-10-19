@@ -4,6 +4,7 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -314,7 +315,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  first_samps=(0,), last_samps=None,
                  filenames=(None,), raw_extras=(None,),
                  orig_format='double', dtype=np.float64,
-                 buffer_size_sec=1., verbose=None):  # noqa: D102
+                 buffer_size_sec=1., orig_units=None,
+                 verbose=None):  # noqa: D102
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
@@ -363,6 +365,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._comp = None
         self._filenames = list(filenames)
         self.orig_format = orig_format
+        # Sanity check and set original units, if provided by the reader:
+        if orig_units:
+            ch_l = list(info['ch_names'])
+            ch_l.remove('STI 014')
+            ch_correspond = [ch in orig_units.keys() for ch in ch_l]
+            if not all(ch_correspond):
+                raise ValueError('Channels and original unit dict to not match'
+                                 '. {0}, {1}'.format(ch_l, orig_units.keys()))
+            self._orig_units = orig_units
         self._projectors = list()
         self._projector = None
         self._dtype_ = dtype
