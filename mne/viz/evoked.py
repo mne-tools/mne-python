@@ -415,7 +415,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             if not gfp_only:
                 chs = [info['chs'][i] for i in idx]
                 locs3d = np.array([ch['loc'][:3] for ch in chs])
-                if spatial_colors is True and _check_ch_locs(chs):
+                if spatial_colors is True and not _check_ch_locs(chs):
                     warn('Channel locations not available. Disabling spatial '
                          'colors.')
                     spatial_colors = selectable = False
@@ -2122,22 +2122,21 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     # and now for 3 "legends" ..
     # a head plot showing the sensors that are being plotted
     if show_sensors:
-        if not _check_ch_locs(one_evoked.info['chs']):
-            pos = _auto_topomap_coords(one_evoked.info, pos_picks,
-                                       ignore_overlap=True, to_sphere=True)
-        else:
+        _validate_type(show_sensors, (np.int, bool, str, type(None)),
+                       "show_sensors", "numeric, str, None or bool")
+        if not _check_ch_locs(np.array(one_evoked.info['chs'])[pos_picks]):
             warn("Cannot find channel coordinates in the supplied Evokeds. "
                  "Not showing channel locations.")
-
-        if show_sensors is True:
-            ymin, ymax = np.abs(ax.get_ylim())
-            show_sensors = "lower right" if ymin > ymax else "upper right"
         else:
+            if show_sensors is True:
+                ymin, ymax = np.abs(ax.get_ylim())
+                show_sensors = "lower right" if ymin > ymax else "upper right"
+
+            pos = _auto_topomap_coords(one_evoked.info, pos_picks,
+                                       ignore_overlap=True, to_sphere=True)
             head_pos = {'center': (0, 0), 'scale': (0.5, 0.5)}
             pos, outlines = _check_outlines(pos, np.array([1, 1]), head_pos)
 
-            _validate_type(show_sensors, (np.int, bool, str),
-                           "show_sensors", "numeric, str or bool")
             show_sensors = _check_loc_legal(show_sensors, "show_sensors")
             _plot_legend(pos, ["k"] * len(picks), ax, list(), outlines,
                          show_sensors, size=25)
