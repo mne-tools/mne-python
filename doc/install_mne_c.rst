@@ -230,7 +230,7 @@ in the ``bin`` directory and is thus started as:
 
 .. code-block:: console
 
-    $ . $MNE_ROOT/bin/mne_opengl_test
+    $ $MNE_ROOT/bin/mne_opengl_test
 
 On the fastest graphics cards, the time per revolution is
 well below 1 second. If this time longer than 10 seconds either
