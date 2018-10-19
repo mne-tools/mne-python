@@ -64,8 +64,6 @@ def test_gdf2_data():
     raw = read_raw_edf(gdf2_path + '.gdf', eog=None, misc=None, preload=True,
                        stim_channel='STATUS')
 
-    assert _handle_meas_date(raw.info['meas_date']) > 0
-
     nchan = raw.info['nchan']
     ch_names = raw.ch_names  # Renamed STATUS -> STI 014.
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
