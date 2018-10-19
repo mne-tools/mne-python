@@ -173,7 +173,7 @@ mne.viz.plot_evoked_topo(evoked, title=title % 'Left/Right Auditory/Visual',
 ###############################################################################
 # We can also plot the activations as arrow maps on the top of the topoplot
 # the arrows represent an estimation of the current flow underneath the MEG
-# sensors, here 175 is the time of the maximum sensor space activity
+# sensors, here 175 is the time of the maximum sensor space activity.
 evoked_l_aud_mag = evoked_l_aud.copy().pick_types(meg='mag')
 mne.viz.plot_arrowmap(evoked_l_aud_mag.data[:, 175], evoked_l_aud_mag.info)
 
