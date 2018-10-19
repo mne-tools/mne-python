@@ -62,6 +62,20 @@ eog = ['HL', 'HR', 'Vb']
 event_id = {'Sync On': 5}
 
 
+def test_orig_units():
+    """Test exposure of original channel units."""
+    raw = read_raw_brainvision(vhdr_path)
+    orig_units = raw._orig_units
+    assert len(orig_units) == 32
+    assert orig_units['FP1'] == 'µV'
+    assert orig_units['CP5'] == 'BS'
+    assert orig_units['CP6'] == 'µS'
+    assert orig_units['HL'] == 'ARU'
+    assert orig_units['HR'] == 'uS'
+    assert orig_units['Vb'] == 'S'
+    assert orig_units['ReRef'] == 'C'
+
+
 def test_vmrk_meas_date():
     """Test successful extraction of measurement date."""
     # Test file that does have a specific date
