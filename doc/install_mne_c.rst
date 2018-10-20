@@ -168,7 +168,7 @@ listed in :ref:`CIHDGFAA`.
     +-------------------------+--------------------------------------------+
 
 
-Troobleshooting
+Troubleshooting
 ###############
 
 Missing libXp.so.6
