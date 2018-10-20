@@ -171,7 +171,10 @@ listed in :ref:`CIHDGFAA`.
 Troobleshooting
 ###############
 
-If when running an MNE command you get an error about a missing library such as:
+Missing libXp.so.6
+^^^^^^^^^^^^^^^^^^
+
+If when running an MNE command you get an error about a missing library ``libXp.so.6`` such as:
 
 .. code-block:: console
 
