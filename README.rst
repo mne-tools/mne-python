@@ -30,7 +30,7 @@ MNE-Python
 visualizing, and analyzing human neurophysiological data such as MEG, EEG, sEEG,
 ECoG, and more. It includes modules for data input/output, preprocessing,
 visualization, source estimation, time-frequency analysis, connectivity analysis,
-machine learning, and statistics.
+machine learning, and statistics...
 
 
 Documentation
