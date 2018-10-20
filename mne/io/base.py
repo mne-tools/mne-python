@@ -287,6 +287,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     buffer_size_sec : float
         The buffer size in seconds that should be written by default using
         :meth:`mne.io.Raw.save`.
+    orig_units : dict | None
+        Dictionary mapping channel names to their units as specified in
+        the header file.
 
         .. versionadded:: 0.17
     verbose : bool, str, int, or None
