@@ -196,7 +196,10 @@ def test_plot_evoked():
     evoked.plot_white([cov, cov], time_unit='s')
 
     # plot_compare_evokeds: test condition contrast, CI, color assignment
-    plot_compare_evokeds(evoked.copy().pick_types(meg='mag'))
+    fig = plot_compare_evokeds(evoked.copy().pick_types(meg='mag'),
+                               show_sensors=True)
+    assert len(fig.axes) == 2
+
     plot_compare_evokeds(
         evoked.copy().pick_types(meg='grad'), picks=[1, 2],
         show_sensors="upper right", show_legend="upper left")
