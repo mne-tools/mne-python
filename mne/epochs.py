@@ -3038,7 +3038,8 @@ def concatenate_epochs(epochs_list, add_offset=True):
     -----
     .. versionadded:: 0.9.0
     """
-    return _finish_concat(*_concatenate_epochs(epochs_list, add_offset=add_offset))
+    return _finish_concat(*_concatenate_epochs(epochs_list,
+                                               add_offset=add_offset))
 
 
 @verbose
