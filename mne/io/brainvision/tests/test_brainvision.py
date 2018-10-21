@@ -17,9 +17,9 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 import pytest
 
 from mne.utils import _TempDir, run_tests_if_main
-from mne import pick_types, find_events
+from mne import pick_types, find_events, create_info
 from mne.io.constants import FIFF
-from mne.io import read_raw_fif, read_raw_brainvision
+from mne.io import read_raw_fif, read_raw_brainvision, BaseRaw
 from mne.io.brainvision import read_annotations_brainvision
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
@@ -76,6 +76,13 @@ def test_orig_units():
     assert orig_units['HR'] == 'uS'
     assert orig_units['Vb'] == 'S'
     assert orig_units['ReRef'] == 'C'
+
+    # Also test handling in base.py
+    # Should complain that channel Cz does not have a corresponding original
+    # unit.
+    with pytest.raises(ValueError, match='has no associated original unit.'):
+        info = create_info(ch_names=['Cz'], sfreq=100, ch_types='eeg')
+        raw = BaseRaw(info, last_samps=[1], orig_units=['not_Cz'])
 
 
 def test_vmrk_meas_date():
