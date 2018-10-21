@@ -371,7 +371,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # Sanity check and set original units, if provided by the reader:
         if orig_units:
             ch_l = list(info['ch_names'])
-            ch_l.remove('STI 014')
+
+            # STI 014 channel is native only to fif ... for all other formats
+            # this was artificially added by the IO procedure
+            if 'STI 014' in ch_l and not self.filenames[0].endswith('.fif'):
+                ch_l.remove('STI 014')
             ch_correspond = [ch in orig_units.keys() for ch in ch_l]
             if not all(ch_correspond):
                 raise ValueError('Channels and original unit dict to not match'
