@@ -378,8 +378,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 ch_l.remove('STI 014')
             ch_correspond = [ch in orig_units.keys() for ch in ch_l]
             if not all(ch_correspond):
-                raise ValueError('Channels and original unit dict to not match'
-                                 '. {0}, {1}'.format(ch_l, orig_units.keys()))
+                ch_without_orig_unit = ch_l[ch_correspond.index(False)]
+                raise ValueError('Channel {0} has no associated original '
+                                 'unit.'.format(ch_without_orig_unit))
             self._orig_units = orig_units
         self._projectors = list()
         self._projector = None
