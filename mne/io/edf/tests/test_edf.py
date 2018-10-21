@@ -123,6 +123,12 @@ def test_edf_data():
                            stim_channel=None, exclude=['Ergo-Left', 'H10'],
                            verbose='error')
     raw_py = read_raw_edf(edf_path, stim_channel='auto', preload=True)
+
+    # Test original units
+    orig_units = raw_py._orig_units
+    assert len(orig_units) == 140
+    assert orig_units['A1'] == 'uV'
+
     assert_equal(len(raw.ch_names) + 2, len(raw_py.ch_names))
     # Test saving and loading when annotations were parsed.
     edf_events = find_events(raw_py, output='step', shortest_event=0,

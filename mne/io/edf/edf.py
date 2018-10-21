@@ -179,8 +179,9 @@ class RawEDF(BaseRaw):
                  preload=False, verbose=None):  # noqa: D102
         logger.info('Extracting EDF parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
-        info, edf_info = _get_info(input_fname, stim_channel, annot,
-                                   annotmap, eog, misc, exclude, preload)
+        info, edf_info, orig_units = _get_info(input_fname, stim_channel,
+                                               annot, annotmap, eog, misc,
+                                               exclude, preload)
         logger.info('Creating raw.info structure...')
         _check_update_montage(info, montage)
 
@@ -196,7 +197,8 @@ class RawEDF(BaseRaw):
         last_samps = [edf_info['nsamples'] - 1]
         super(RawEDF, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[edf_info],
-            last_samps=last_samps, orig_format='int', verbose=verbose)
+            last_samps=last_samps, orig_format='int', orig_units=orig_units,
+            verbose=verbose)
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -420,11 +422,16 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     ext = os.path.splitext(fname)[1][1:].lower()
     logger.info('%s file detected' % ext.upper())
     if ext in ('bdf', 'edf'):
-        edf_info = _read_edf_header(fname, annot, annotmap, exclude)
+        edf_info, orig_units = _read_edf_header(fname, annot, annotmap,
+                                                exclude)
     elif ext in ('gdf'):
         if annot is not None:
             warn('Annotations not yet supported for GDF files.')
         edf_info = _read_gdf_header(fname, stim_channel, exclude)
+
+        # orig_units not yet implemented for gdf
+        orig_units = None
+
         if 'stim_data' not in edf_info and stim_channel == 'auto':
             stim_channel = None  # Cannot construct stim channel.
     else:
@@ -592,7 +599,7 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         warn('Interpolating stim channel. Events may jitter.')
     info._update_redundant()
 
-    return info, edf_info
+    return info, edf_info, orig_units
 
 
 def _read_edf_header(fname, annot, annotmap, exclude):
@@ -650,6 +657,7 @@ def _read_edf_header(fname, annot, annotmap, exclude):
         for ch in channels:
             fid.read(80)  # transducer
         units = [fid.read(8).strip().decode() for ch in channels]
+        orig_units = dict(zip(ch_names, units))
         edf_info['units'] = list()
         for i, unit in enumerate(units):
             if i in exclude:
@@ -711,7 +719,7 @@ def _read_edf_header(fname, annot, annotmap, exclude):
             edf_info['dtype_byte'] = 2  # 16-bit (2 byte) integers
             edf_info['dtype_np'] = np.int16
 
-    return edf_info
+    return edf_info, orig_units
 
 
 def _read_gdf_header(fname, stim_channel, exclude):
@@ -784,7 +792,6 @@ def _read_gdf_header(fname, stim_channel, exclude):
             fid.seek(80 * len(channels), 1)  # transducer
             units = [fid.read(8).decode('latin-1').strip(' \x00')
                      for ch in channels]
-
             exclude = _find_exclude_idx(ch_names, exclude)
             sel = list()
             for i, unit in enumerate(units):
