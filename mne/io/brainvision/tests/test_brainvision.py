@@ -82,7 +82,7 @@ def test_orig_units():
     # unit.
     with pytest.raises(ValueError, match='has no associated original unit.'):
         info = create_info(ch_names=['Cz'], sfreq=100, ch_types='eeg')
-        raw = BaseRaw(info, last_samps=[1], orig_units=['not_Cz'])
+        raw = BaseRaw(info, last_samps=[1], orig_units={'not_Cz': 'uV'})
 
 
 def test_vmrk_meas_date():

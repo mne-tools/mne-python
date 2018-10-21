@@ -370,17 +370,19 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self.orig_format = orig_format
         # Sanity check and set original units, if provided by the reader:
         if orig_units:
-            ch_l = list(info['ch_names'])
+            # original units need to be truncated to 15 chars, which is what
+            # the MNE IO procedure also does with the other channels
+            orig_units_trunc = [ch[:15] for ch in orig_units]
 
             # STI 014 channel is native only to fif ... for all other formats
-            # this was artificially added by the IO procedure
+            # this was artificially added by the IO procedure, so remove it
+            ch_l = list(info['ch_names'])
             if 'STI 014' in ch_l and not self.filenames[0].endswith('.fif'):
                 ch_l.remove('STI 014')
 
-            # check that channels correspond. note that long ch_names get
-            # truncated, so check first 15 characters
-            orig_units_chs = [ch[:15] for ch in orig_units.keys()]
-            ch_correspond = [ch in orig_units_chs for ch in ch_l]
+            # Each channel in the data must have a corresponding channel in
+            # the original units.
+            ch_correspond = [ch in orig_units_trunc for ch in ch_l]
             if not all(ch_correspond):
                 ch_without_orig_unit = ch_l[ch_correspond.index(False)]
                 raise ValueError('Channel {0} has no associated original '
