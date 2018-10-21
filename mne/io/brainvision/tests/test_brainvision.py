@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Data Equivalence Tests."""
 from __future__ import print_function
 
