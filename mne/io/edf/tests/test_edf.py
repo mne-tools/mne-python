@@ -362,8 +362,8 @@ def _compute_sfreq_from_edf_info(edf_info):
 def _get_empty_raw_with_valid_annot(fname):
     raw = _RawShell()
     raw.first_samp = 0
-    edf_info = _read_edf_header(fname=fname, annot=None, annotmap=None,
-                                exclude=())
+    edf_info, orig_units = _read_edf_header(fname=fname, annot=None,
+                                            annotmap=None, exclude=())
 
     sfreq = _compute_sfreq_from_edf_info(edf_info)
     raw.info = _empty_info(sfreq)
