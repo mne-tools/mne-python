@@ -376,7 +376,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # this was artificially added by the IO procedure
             if 'STI 014' in ch_l and not self.filenames[0].endswith('.fif'):
                 ch_l.remove('STI 014')
-            ch_correspond = [ch in orig_units.keys() for ch in ch_l]
+
+            # check that channels correspond. note that long ch_names get
+            # truncated, so check first 15 characters
+            orig_units_chs = [ch[:15] for ch in orig_units.keys()]
+            ch_correspond = [ch in orig_units_chs for ch in ch_l]
             if not all(ch_correspond):
                 ch_without_orig_unit = ch_l[ch_correspond.index(False)]
                 raise ValueError('Channel {0} has no associated original '
