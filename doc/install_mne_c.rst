@@ -167,6 +167,29 @@ listed in :ref:`CIHDGFAA`.
     |                         | values, see :ref:`mne_process_raw`.        |
     +-------------------------+--------------------------------------------+
 
+
+Troubleshooting
+###############
+
+Missing libXp.so.6
+^^^^^^^^^^^^^^^^^^
+
+If when running an MNE command you get an error about a missing library ``libXp.so.6`` such as:
+
+.. code-block:: console
+
+    $ mne_process_raw
+    mne_process_raw: error while loading shared libraries: libXp.so.6: cannot open shared object file: No such file or directory
+
+If you are using Ubuntu Linux and you have admin access to the machine you can do:
+
+.. code-block:: console
+
+    $ sudo add-apt-repository "deb http://security.ubuntu.com/ubuntu precise-security main"
+    $ sudo apt update
+    $ sudo apt install libxp6
+    $ sudo add-apt-repository -r "deb http://security.ubuntu.com/ubuntu precise-security main"
+
 .. _BABDBCJE:
 
 Additional options
