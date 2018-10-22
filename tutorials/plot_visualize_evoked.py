@@ -171,6 +171,14 @@ mne.viz.plot_evoked_topo(evoked, title=title % 'Left/Right Auditory/Visual',
                          background_color='w')
 
 ###############################################################################
+# We can also plot the activations as arrow maps on top of the topoplot.
+# The arrows represent an estimation of the current flow underneath the MEG
+# sensors. Here, sample number 175 corresponds to the time of the maximum
+# sensor space activity.
+evoked_l_aud_mag = evoked_l_aud.copy().pick_types(meg='mag')
+mne.viz.plot_arrowmap(evoked_l_aud_mag.data[:, 175], evoked_l_aud_mag.info)
+
+###############################################################################
 # Visualizing field lines in 3D
 # -----------------------------
 # We now compute the field maps to project MEG and EEG data to the MEG helmet

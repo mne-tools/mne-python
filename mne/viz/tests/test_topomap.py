@@ -27,7 +27,7 @@ from mne.utils import run_tests_if_main
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap
 from mne.viz.topomap import (_check_outlines, _onselect, plot_topomap,
-                             plot_psds_topomap)
+                             plot_arrowmap, plot_psds_topomap)
 from mne.viz.utils import _find_peaks, _fake_click
 
 
@@ -420,6 +420,23 @@ def test_ctf_plotting():
     # better test that topomaps can still be used without plotting ref
     evoked.pick_types(meg=True, ref_meg=False)
     evoked.plot_topomap()
+
+
+@testing.requires_testing_data
+def test_plot_arrowmap():
+    """Test arrowmap plotting."""
+    evoked = read_evokeds(evoked_fname, 'Left Auditory',
+                          baseline=(None, 0))
+    with pytest.raises(ValueError, match='Multiple Channel type'):
+        plot_arrowmap(evoked.data[:, 0], evoked.info)
+    evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
+    with pytest.raises(ValueError, match='Channel type not supported'):
+        plot_arrowmap(evoked_eeg.data[:, 0], evoked.info)
+    evoked_mag = evoked.copy().pick_types(meg='mag')
+    evoked_grad = evoked.copy().pick_types(meg='grad')
+    plot_arrowmap(evoked_mag.data[:, 0], evoked_mag.info)
+    plot_arrowmap(evoked_grad.data[:, 0], evoked_grad.info,
+                  info_to=evoked_mag.info)
 
 
 @testing.requires_testing_data

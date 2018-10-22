@@ -280,6 +280,7 @@ Visualization
    plot_topomap
    plot_alignment
    snapshot_brain_montage
+   plot_arrowmap
 
 
 Preprocessing

@@ -18,6 +18,7 @@ Current
 
 Changelog
 ~~~~~~~~~
+- Add :func:`mne.viz.plot_arrowmap` computes arrowmaps using Hosaka-Cohen transformation from magnetometer or gradiometer data, these arrows represents an estimation of the current flow underneath the MEG sensors by `Sheraz Khan`_
 
 - Add :func:`mne.io.read_raw_fieldtrip`, :func:`mne.read_epochs_fieldtrip` and :func:`mne.read_evoked_fieldtrip` to import FieldTrip data. By `Thomas Hartmann`_ and `Dirk Gütlin`_.
 
