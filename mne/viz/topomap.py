@@ -2406,6 +2406,12 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
     these arrows represents an estimation of the current flow underneath
     the MEG sensors. They are a poor man's MNE.
 
+    Since planar gradiometers takes gradients along latitude and longitude,
+    they need to be projected to the flatten manifold span by magnetometer
+    or radial gradiometers before taking the gradients in the 2D Cartesian
+    coordinate system for visualization on the 2D topoplot. You can use the
+    ``info_from`` and ``info_to`` parameters to interpolate from
+    gradiometer data to magnetometer data.
 
     Parameters
     ----------
@@ -2511,8 +2517,9 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
         ch_type = ch_type[0][0]
 
     if ch_type not in ('mag', 'grad'):
-        raise ValueError("Channel type not supported. Supported channel "
-                         "types include 'mag' and 'grad'. Got %s" % ch_type)
+        raise ValueError('Multiple channel types are not supported.'
+                         'All channels must either be of type \'grad\' '
+                         'or \'mag\'.')
 
     if info_to is None and ch_type == 'mag':
         info_to = info_from

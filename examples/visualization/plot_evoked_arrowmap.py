@@ -49,7 +49,9 @@ plot_arrowmap(evoked_mag.data[:, max_time_idx], evoked_mag.info)
 # Since planar gradiometers takes gradients along latitude and longitude,
 # they need to be projected to the flatten manifold span by magnetometer
 # or radial gradiometers before taking the gradients in the 2D Cartesian
-# coordinate system for visualization on the 2D topoplot.
+# coordinate system for visualization on the 2D topoplot. You can use the
+# ``info_from`` and ``info_to`` parameters to interpolate from
+# gradiometer data to magnetometer data.
 
 # plot gradiometer data as an arrowmap along with the topoplot at the time
 # of the maximum sensor space activity
