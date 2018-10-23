@@ -53,6 +53,9 @@ _kind_dict = dict(
     hbr=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBR, FIFF.FIFF_UNIT_MOL)
 )
 
+# Valid units to be exposed in raw._orig_units
+valid_units = ['uV', u'µV']
+
 
 def _summarize_str(st):
     """Make summary string."""

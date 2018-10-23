@@ -12,6 +12,7 @@ from mne.annotations import _handle_meas_date
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray
 from mne.utils import _TempDir
+from mne.meas_info import valid_units
 
 
 def _test_raw_reader(reader, test_preloading=True, **kwargs):
