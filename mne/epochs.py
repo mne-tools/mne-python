@@ -561,10 +561,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 self._data = np.ascontiguousarray(self._data)
             self._decim_slice = slice(None)
             self._decim = 1
-            self.times = self._raw_times
+            self._times = self._raw_times
         else:
             self._decim_slice = decim_slice
-            self.times = self._raw_times[self._decim_slice]
+            self._times = self._raw_times[self._decim_slice]
         return self
 
     @verbose
@@ -1667,7 +1667,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             tmax = self.tmax
 
         tmask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
-        self.times = self.times[tmask]
+        self._times = self._times[tmask]
         self._raw_times = self._raw_times[tmask]
         self._data = self._data[:, :, tmask]
         return self

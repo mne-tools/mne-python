@@ -2007,12 +2007,12 @@ def test_add_channels_epochs():
     pytest.raises(ValueError, add_channels_epochs, [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.times += 0.4
+    epochs_meg2._times += 0.4
     pytest.raises(NotImplementedError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.times += 0.5
+    epochs_meg2._times += 0.5
     pytest.raises(NotImplementedError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
@@ -2138,7 +2138,7 @@ def test_concatenate_epochs():
         ValueError, concatenate_epochs,
         [epochs, epochs2.copy().drop_channels(epochs2.ch_names[:1])])
 
-    epochs2.times = np.delete(epochs2.times, 1)
+    epochs2._times = np.delete(epochs2._times, 1)
     pytest.raises(
         ValueError,
         concatenate_epochs, [epochs, epochs2])
