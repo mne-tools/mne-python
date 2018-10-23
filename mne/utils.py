@@ -2848,6 +2848,12 @@ def sys_info(fid=None, show_paths=False):
                     from pyface.qt import qt_api
                 except Exception:
                     qt_api = 'unknown'
+                if qt_api == 'pyqt5':
+                    try:
+                        from PyQt5.Qt import PYQT_VERSION_STR
+                        qt_api += ', PyQt5=%s' % (PYQT_VERSION_STR,)
+                    except Exception:
+                        pass
                 extra = ' {qt_api=%s}%s' % (qt_api, extra)
             out += '%s%s\n' % (mod.__version__, extra)
     print(out, end='', file=fid)

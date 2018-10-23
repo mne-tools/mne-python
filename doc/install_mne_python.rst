@@ -46,7 +46,7 @@ if you do not have ``curl``.
 
   .. code-block:: console
 
-    $ pip install --upgrade pyqt5>=5.10
+    $ pip install --upgrade "pyqt5>=5.10"
 
 
 3. Check that everything works
@@ -92,7 +92,7 @@ all default dependencies are installed by listing their versions with::
 
     sklearn:       0.19.1
     nibabel:       2.3.0
-    mayavi:        4.6.1 {qt_api=pyqt5}
+    mayavi:        4.6.1 {qt_api=pyqt5, PyQt5=5.10.1}
     cupy:          Not found
     pandas:        0.23.4
 
