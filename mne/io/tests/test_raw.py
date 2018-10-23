@@ -110,6 +110,11 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
 
     assert isinstance(raw.annotations, Annotations)
 
+    if raw._orig_units is not None:
+        assert isinstance(raw._orig_units, dict())
+        for ch_name, val in raw._orig_units.items():
+            assert val in valid_units, ch_name
+
     return raw
 
 

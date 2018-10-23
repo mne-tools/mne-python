@@ -392,7 +392,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 ch_without_orig_unit = ch_names[ch_correspond.index(False)]
                 raise ValueError('Channel {0} has no associated original '
                                  'unit.'.format(ch_without_orig_unit))
-            self._orig_units = orig_units
+        self._orig_units = orig_units
         self._projectors = list()
         self._projector = None
         self._dtype_ = dtype
