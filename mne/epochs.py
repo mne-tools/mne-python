@@ -1423,7 +1423,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @property
     def times(self):
         """Time vector in seconds."""
-        return self._times.copy()
+        self._times.flags['WRITEABLE'] = False
+        return self._times
 
     @property
     def tmin(self):
