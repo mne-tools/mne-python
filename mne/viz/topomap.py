@@ -675,8 +675,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         raise ValueError("Data and pos need to be of same length. Got data of "
                          "length %s, pos of length %s" % (len(data), len(pos)))
 
-    norm = min(data) >= 0
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm=False)
     if cmap is None:
         cmap = 'Reds' if norm else 'RdBu_r'
 
