@@ -427,10 +427,10 @@ def test_plot_arrowmap():
     """Test arrowmap plotting."""
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
-    with pytest.raises(ValueError, match='Multiple Channel type'):
+    with pytest.raises(ValueError, match='Multiple channel types'):
         plot_arrowmap(evoked.data[:, 0], evoked.info)
     evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
-    with pytest.raises(ValueError, match='Channel type not supported'):
+    with pytest.raises(ValueError, match='Multiple channel types'):
         plot_arrowmap(evoked_eeg.data[:, 0], evoked.info)
     evoked_mag = evoked.copy().pick_types(meg='mag')
     evoked_grad = evoked.copy().pick_types(meg='grad')
