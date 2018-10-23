@@ -186,5 +186,5 @@ subjects_dir = op.join(data_path, 'subjects')
 brain = stc_all_cluster_vis.plot(
     hemi='both', views='lateral', subjects_dir=subjects_dir,
     time_label='Duration significant (ms)', size=(800, 800),
-    smoothing_steps=5)
+    smoothing_steps=5, clim=dict(kind='value', pos_lims=[0, 1, 40]))
 # brain.save_image('clusters.png')
