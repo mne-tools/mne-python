@@ -1937,6 +1937,7 @@ def test_add_channels_epochs():
     for proj in (False, True):
         epochs = make_epochs(picks=picks, proj=proj)
         epochs_meg = make_epochs(picks=picks_meg, proj=proj)
+        assert not epochs_meg._times.flags['WRITEABLE']
         epochs_eeg = make_epochs(picks=picks_eeg, proj=proj)
         epochs.info._check_consistency()
         epochs_meg.info._check_consistency()
@@ -1957,7 +1958,10 @@ def test_add_channels_epochs():
         assert_allclose(data1, data3, atol=1e-25)
         assert_allclose(data1, data2, atol=1e-25)
 
+    assert not epochs_meg._times.flags['WRITEABLE']
     epochs_meg2 = epochs_meg.copy()
+    assert not epochs_meg._times.flags['WRITEABLE']
+    assert not epochs_meg2._times.flags['WRITEABLE']
     epochs_meg2.info['meas_date'] = (0, 0)
     add_channels_epochs([epochs_meg2, epochs_eeg])
 
@@ -2007,12 +2011,13 @@ def test_add_channels_epochs():
     pytest.raises(ValueError, add_channels_epochs, [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2._times += 0.4
+    epochs_meg2._set_times(epochs_meg.times + 0.4)
     pytest.raises(NotImplementedError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2._times += 0.5
+    epochs_meg2._set_times(epochs_meg2.times + 0.5)
+    assert not epochs_meg2._times.flags['WRITEABLE']
     pytest.raises(NotImplementedError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
@@ -2138,7 +2143,7 @@ def test_concatenate_epochs():
         ValueError, concatenate_epochs,
         [epochs, epochs2.copy().drop_channels(epochs2.ch_names[:1])])
 
-    epochs2._times = np.delete(epochs2._times, 1)
+    epochs2._set_times(np.delete(epochs2._times, 1))
     pytest.raises(
         ValueError,
         concatenate_epochs, [epochs, epochs2])
@@ -2475,11 +2480,12 @@ def test_readonly_times():
     """Test that the times property is read only."""
     raw, events = _get_data()[:2]
     epochs = Epochs(raw, events[:1], preload=True)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='read-only'):
         epochs.times += 1
-
-    with pytest.raises(ValueError):
-        epochs.times[:] = np.random.rand(*epochs.times.shape)
+    with pytest.raises(ValueError, match='read-only'):
+        epochs._times += 1
+    with pytest.raises(ValueError, match='read-only'):
+        epochs.times[:] = 0.
 
 
 run_tests_if_main()

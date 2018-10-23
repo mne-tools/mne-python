@@ -2103,7 +2103,7 @@ class FilterMixin(object):
                      sfreq + self.times[0])
         # adjust indirectly affected variables
         if isinstance(self, BaseEpochs):
-            self._times = new_times
+            self._set_times(new_times)
             self._raw_times = self.times
         else:
             self.times = new_times
