@@ -625,7 +625,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         Coordinates of the channels, if present in the header file.
     orig_units : dict
         Dictionary mapping channel names to their units as specified in
-        the header file.
+        the header file. Example: {'FC1': 'uV'}
     """
     scale = float(scale)
     ext = op.splitext(vhdr_fname)[-1]

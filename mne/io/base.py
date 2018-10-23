@@ -289,7 +289,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         :meth:`mne.io.Raw.save`.
     orig_units : dict | None
         Dictionary mapping channel names to their units as specified in
-        the header file.
+        the header file. Example: {'FC1': 'uV'}
 
         .. versionadded:: 0.17
     verbose : bool, str, int, or None
@@ -370,21 +370,26 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self.orig_format = orig_format
         # Sanity check and set original units, if provided by the reader:
         if orig_units:
+            if not isinstance(orig_units, dict):
+                raise ValueError('orig_units must be of type dict, but got '
+                                 ' {}'.format(type(orig_units)))
+
             # original units need to be truncated to 15 chars, which is what
             # the MNE IO procedure also does with the other channels
             orig_units_trunc = [ch[:15] for ch in orig_units]
 
             # STI 014 channel is native only to fif ... for all other formats
             # this was artificially added by the IO procedure, so remove it
-            ch_l = list(info['ch_names'])
-            if 'STI 014' in ch_l and not self.filenames[0].endswith('.fif'):
-                ch_l.remove('STI 014')
+            ch_names = list(info['ch_names'])
+            if ('STI 014' in ch_names) and not \
+               (self.filenames[0].endswith('.fif')):
+                ch_names.remove('STI 014')
 
             # Each channel in the data must have a corresponding channel in
             # the original units.
-            ch_correspond = [ch in orig_units_trunc for ch in ch_l]
+            ch_correspond = [ch in orig_units_trunc for ch in ch_names]
             if not all(ch_correspond):
-                ch_without_orig_unit = ch_l[ch_correspond.index(False)]
+                ch_without_orig_unit = ch_names[ch_correspond.index(False)]
                 raise ValueError('Channel {0} has no associated original '
                                  'unit.'.format(ch_without_orig_unit))
             self._orig_units = orig_units

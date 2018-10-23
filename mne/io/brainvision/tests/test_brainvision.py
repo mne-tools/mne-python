@@ -84,6 +84,11 @@ def test_orig_units():
         info = create_info(ch_names=['Cz'], sfreq=100, ch_types='eeg')
         raw = BaseRaw(info, last_samps=[1], orig_units={'not_Cz': 'uV'})
 
+    # Test that a non-dict orig_units argument raises a ValueError
+    with pytest.raises(ValueError, match='orig_units must be of type dict'):
+        info = create_info(ch_names=['Cz'], sfreq=100, ch_types='eeg')
+        raw = BaseRaw(info, last_samps=[1], orig_units=True)
+
 
 def test_vmrk_meas_date():
     """Test successful extraction of measurement date."""
