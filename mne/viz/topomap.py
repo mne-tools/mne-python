@@ -152,26 +152,24 @@ def _add_colorbar(ax, im, cmap, side="right", pad=.05, title=None,
     return cbar, cax
 
 
-def _fix_proj_for_backward_compatibility(proj):
-    """Fix proj to pass 5641.
-
-    Things that I don't like:
-    - Extra copy vs inplace modification
-    - no idea of colateral effects
-    """
+def _remove_zeros(proj):
+    """Remove grad or mag data if only contains 0s (gh 5641). """
     import re
     grad_regex = '^MEG.*[23]$'
     meg_regex = '^MEG.*1$'
 
+    proj = copy.deepcopy(proj)
+
     for regex in (grad_regex, meg_regex):
         names = proj['data']['col_names']
-        idx = [i for i, item in enumerate(names) if re.search(regex, item)]
-        if not proj['data']['data'][0][idx].reshape(-1).any():
+        idx = [i for i, name in enumerate(names) if re.search(regex, name)]
+
+        # if all 0, remove the 0s an their labels
+        if not proj['data']['data'][0][idx].any():
             proj['data']['col_names'] = np.delete(np.array(names), idx).tolist()
             new_data = np.delete(np.array(proj['data']['data'][0]), idx)
             proj['data']['data'] = np.array([new_data])
 
-    # np.array(xx)[np.where((proj['data']['data']==0).flatten())]
     proj['data']['ncol'] = len(proj['data']['col_names'])
     return proj
 
@@ -293,7 +291,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
         title = proj['desc']
         title = '\n'.join(title[ii:ii + 22] for ii in range(0, len(title), 22))
         axes[proj_idx].set_title(title, fontsize=10)
-        proj = _fix_proj_for_backward_compatibility(proj)
+        proj = _remove_zeros(proj)  # gh 5641
         ch_names = _clean_names(proj['data']['col_names'],
                                 remove_whitespace=True)
         data = proj['data']['data'].ravel()
