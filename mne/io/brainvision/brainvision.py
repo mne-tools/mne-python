@@ -464,11 +464,16 @@ def read_annotations_brainvision(fname, sfreq='auto'):
     return annotations
 
 
+  
 def _check_hdr_version(header):
     """Check the header version."""
     if header == 'Brain Vision Data Exchange Header File Version 1.0':
         return 1
+    elif header == 'BrainVision Data Exchange Header File Version 1.0':
+        return 1
     elif header == 'Brain Vision Data Exchange Header File Version 2.0':
+        return 2
+    elif header == 'BrainVision Data Exchange Header File Version 2.0':
         return 2
     else:
         raise ValueError("Currently only support versions 1.0 and 2.0, not %r "
@@ -478,8 +483,10 @@ def _check_hdr_version(header):
 def _check_mrk_version(header):
     """Check the marker version."""
     tags = ['Brain Vision Data Exchange Marker File, Version 1.0',
-            'Brain Vision Data Exchange Marker File Version 1.0',
-            'Brain Vision Data Exchange Marker File, Version 2.0']
+            'BrainVision Data Exchange Marker File, Version 1.0',
+            'BrainVision Data Exchange Marker File Version 1.0',
+            'Brain Vision Data Exchange Marker File, Version 2.0',
+            'BrainVision Data Exchange Marker File, Version 1.0']
     if header not in tags:
         raise ValueError("Currently only support %r, not %r"
                          "Contact MNE-Developers for support."
