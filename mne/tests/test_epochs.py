@@ -2478,5 +2478,8 @@ def test_readonly_times():
     with pytest.raises(AttributeError):
         epochs.times += 1
 
+    with pytest.raises(ValueError):
+        epochs.times[:] = np.random.rand(*epochs.times.shape)
+
 
 run_tests_if_main()
