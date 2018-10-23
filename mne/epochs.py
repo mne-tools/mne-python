@@ -385,7 +385,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         start_idx = int(round(tmin * sfreq))
         self._raw_times = np.arange(start_idx,
                                     int(round(tmax * sfreq)) + 1) / sfreq
-        self.times = self._raw_times.copy()
+        self._times = self._raw_times.copy()
         self._decim = 1
         self.decimate(decim)
 
@@ -1419,6 +1419,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             return epoch, self.events[self._current - 1][-1]
 
         return epoch if not return_event_id else epoch, self.event_id
+
+    @property
+    def times(self):
+        """Time vector in seconds."""
+        return self._times.copy()
 
     @property
     def tmin(self):
