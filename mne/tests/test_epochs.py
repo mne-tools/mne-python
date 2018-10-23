@@ -2471,4 +2471,12 @@ def test_save_complex_data(tmpdir):
     assert len(epochs) == 0  # all dropped
 
 
+def test_readonly_times():
+    """Test that the times property is read only."""
+    raw, events = _get_data()[:2]
+    epochs = Epochs(raw, events[:1], preload=True)
+    with pytest.raises(AttributeError):
+        epochs.times += 1
+
+
 run_tests_if_main()
