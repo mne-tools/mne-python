@@ -2100,7 +2100,7 @@ class FilterMixin(object):
                               n_jobs=n_jobs, pad=pad)
         self.info['sfreq'] = float(sfreq)
         new_times = (np.arange(self._data.shape[-1], dtype=np.float) /
-                      sfreq + self.times[0])
+                     sfreq + self.times[0])
         # adjust indirectly affected variables
         if isinstance(self, BaseEpochs):
             self._times = new_times
