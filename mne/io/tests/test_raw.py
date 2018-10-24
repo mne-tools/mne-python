@@ -120,8 +120,8 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
     valid_units_lower = [unit.lower() for unit in valid_units]
     if raw._orig_units is not None:
         assert isinstance(raw._orig_units, dict)
-        for ch_name, val in raw._orig_units.items():
-            assert val.lower() in valid_units_lower, ch_name
+        for ch_name, unit in raw._orig_units.items():
+            assert unit.lower() in valid_units_lower, ch_name
 
     return raw
 

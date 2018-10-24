@@ -38,7 +38,7 @@ def _check_orig_units(orig_units, valid_units=valid_units):
     -------
     orig_units_remapped : dict
         Dictionary mapping channel names to their VALID units as specified in
-        the header file. Invalid units are now labled "n/a".
+        the header file. Invalid units are now labeled "n/a".
         Example: {'FC1': 'nV', 'Hfp3erz': 'n/a'}
     """
     if orig_units is None:
@@ -54,6 +54,7 @@ def _check_orig_units(orig_units, valid_units=valid_units):
         # Common "invalid units" can be remapped to their valid equivalent
         remap_dict = dict()
         remap_dict['uv'] = u'µV'
+        remap_dict[u'μv'] = u'µV'  # greek letter mu vs micro sign ... use micro
         if unit.lower() in remap_dict:
             orig_units_remapped[ch_name] = remap_dict[unit.lower()]
             continue

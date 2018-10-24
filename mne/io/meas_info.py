@@ -61,7 +61,7 @@ valid_prefix_names = ['yocto', 'zepto', 'atto', 'femto', 'pico', 'nano',
                       'micro', 'milli', 'centi', 'deci', 'deca', 'hecto',
                       'kilo', 'mega', 'giga', 'tera', 'peta', 'exa', 'zetta',
                       'yotta']
-valid_prefix_symbols = ['y', 'z', 'a', 'f', 'p', 'n', u'μ', 'm', 'c', 'd',
+valid_prefix_symbols = ['y', 'z', 'a', 'f', 'p', 'n', u'µ', 'm', 'c', 'd',
                         'da', 'h', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
 valid_unit_names = ['metre', 'kilogram', 'second', 'ampere', 'kelvin', 'mole',
                     'candela', 'radian', 'steradian', 'hertz', 'newton',
@@ -70,7 +70,7 @@ valid_unit_names = ['metre', 'kilogram', 'second', 'ampere', 'kelvin', 'mole',
                     'degree Celsius', 'lumen', 'lux', 'becquerel', 'gray',
                     'sievert', 'katal']
 valid_unit_symbols = ['m', 'kg', 's', 'A', 'K', 'mol', 'cd', 'rad', 'sr', 'Hz',
-                      'N', 'Pa', 'J', 'W', 'C', 'V', 'F', u'Ω', 'S', 'Wb', 'T',
+                      'N', 'Pa', 'J', 'W', 'C', 'V', 'F', u'Ω', 'S', 'Wb', 'T',
                       'H', u'°C', 'lm', 'lx', 'Bq', 'Gy', 'Sv', 'kat']
 
 # Valid units are all possible combinations of either prefix name or prefix

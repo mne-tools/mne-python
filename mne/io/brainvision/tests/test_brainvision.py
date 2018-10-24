@@ -73,7 +73,7 @@ def test_orig_units():
     assert orig_units['CP5'] == 'n/a'  # originally BS, not a valid unit
     assert orig_units['CP6'] == u'µS'
     assert orig_units['HL'] == 'n/a'  # originally ARU, not a valid unit
-    assert orig_units['HR'] == 'uS'
+    assert orig_units['HR'] == 'n/a'  # originally uS ...
     assert orig_units['Vb'] == 'S'
     assert orig_units['ReRef'] == 'C'
 
