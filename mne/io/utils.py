@@ -5,6 +5,7 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Mainak Jas <mainak.jas@telecom-paristech.fr>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -13,6 +14,50 @@ import os
 
 from ..externals.six import b
 from .constants import FIFF
+from .meas_info import valid_units
+
+
+def _check_orig_units(orig_units, valid_units=valid_units):
+    """Check original units from a raw file.
+
+    Units that are close to a valid_unit but not equal can be remapped to fit
+    into the valid_units. All other units that are not valid will be replaced
+    with "n/a".
+
+    Parameters
+    ----------
+    orig_units : dict
+        Dictionary mapping channel names to their units as specified in
+        the header file. Example: {'FC1': 'nV'}
+
+    valid_units: list
+        List of strings containing the valid units according to the Brain
+        Imaging Data Structure (BIDS)
+
+    Returns
+    -------
+    orig_units_remapped : dict
+        Dictionary mapping channel names to their VALID units as specified in
+        the header file. Invalid units are now labled "n/a".
+        Example: {'FC1': 'nV', 'Hfp3erz': 'n/a'}
+    """
+    valid_units_lowered = [unit.lower() for unit in valid_units]
+    orig_units_remapped = dict(orig_units)
+    for ch_name, unit in orig_units_remapped.items():
+
+        # Be lenient: we ignore case for now.
+        if unit.lower() in valid_units_lowered:
+            continue
+
+        # Common "invalid units" can be remapped to their valid equivalent
+        if unit.lower() == 'uv':
+            orig_units_remapped[ch_name] = u'µV'
+            continue
+
+        # Some units cannot be saved, they are invalid: assign "n/a"
+        orig_units_remapped[ch_name] = 'n/a'
+
+    return orig_units_remapped
 
 
 def _find_channels(ch_names, ch_type='EOG'):
