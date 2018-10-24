@@ -52,8 +52,10 @@ def _check_orig_units(orig_units, valid_units=valid_units):
             continue
 
         # Common "invalid units" can be remapped to their valid equivalent
-        if unit.lower() == 'uv':
-            orig_units_remapped[ch_name] = u'µV'
+        remap_dict = dict()
+        remap_dict['uv'] = u'µV'
+        if unit.lower() == remap_dict:
+            orig_units_remapped[ch_name] = remap_dict[unit.lower()]
             continue
 
         # Some units cannot be saved, they are invalid: assign "n/a"
