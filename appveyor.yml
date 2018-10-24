@@ -18,6 +18,7 @@ install:
   - "SET MNE_FORCE_SERIAL=true"  # otherwise joblib will bomb
   - "SET MNE_LOGGING_LEVEL=warning"
   - "python -c \"import mne; mne.datasets.testing.data_path()\""
+  - "python -c \"from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()\""
 
 build: false  # Not a C# project, build stuff at the test step instead.
 

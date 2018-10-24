@@ -62,7 +62,7 @@ before_install:
           pip uninstall --yes mne;
         fi;
         if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-          pip install --upgrade pyqt5>=5.10;
+          pip install --upgrade "pyqt5>=5.10";
         fi;
       fi
     # Don't source mne_setup_sh here because changing PATH etc. can't be done in a script
@@ -79,6 +79,8 @@ before_install:
         fi;
         mne_surf2bem --version;
       fi;
+    # Make sure `matplotlib` works
+    - python -c "import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
 
 install:
     # Rvm overrides cd with a function so that it can hook into it to run
