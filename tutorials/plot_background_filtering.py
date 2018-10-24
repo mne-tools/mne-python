@@ -663,7 +663,7 @@ x_hp_2 = signal.filtfilt(iir_hp_2[0], iir_hp_2[1], x, padlen=0)
 xlim = t[[0, -1]]
 ylim = [-2, 6]
 xlabel = 'Time (sec)'
-ylabel = 'Amplitude ($\mu$V)'
+ylabel = r'Amplitude ($\mu$V)'
 tticks = [0, 0.5, 1.3, t[-1]]
 axes = plt.subplots(2, 2)[1].ravel()
 for ax, x_f, title in zip(axes, [x_lp_2, x_lp_30, x_hp_2, x_hp_p1],

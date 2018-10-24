@@ -154,7 +154,7 @@ def plot_t_p(t, p, title, mcc, axes=None):
                         fraction=0.1, pad=0.025, mappable=img)
     cbar.set_ticks(p_lims)
     cbar.set_ticklabels(['%0.1f' % p_lim for p_lim in p_lims])
-    cbar.set_label('$-\log_{10}(p)$')
+    cbar.set_label(r'$-\log_{10}(p)$')
     cbar.ax.get_xaxis().set_label_coords(0.5, -0.3)
     if show:
         text = fig.suptitle(title)
@@ -173,7 +173,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # calculation [1]_ to compensate for implausibly small variances.
 ts.append(ttest_1samp_no_p(X, sigma=sigma))
 ps.append(stats.distributions.t.sf(np.abs(ts[-1]), len(X) - 1) * 2)
-titles.append('$\mathrm{t_{hat}}$')
+titles.append(r'$\mathrm{t_{hat}}$')
 mccs.append(False)
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
@@ -252,7 +252,7 @@ alpha = 0.05
 p_type_I = 1 - (1 - alpha) ** N
 fig, ax = plt.subplots(figsize=(4, 3))
 ax.scatter(N, p_type_I, 3)
-ax.set(xlim=N[[0, -1]], ylim=[0, 1], xlabel='$N_{\mathrm{test}}$',
+ax.set(xlim=N[[0, -1]], ylim=[0, 1], xlabel=r'$N_{\mathrm{test}}$',
        ylabel=u'Probability of at least\none type I error')
 ax.grid(True)
 fig.tight_layout()
@@ -328,7 +328,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 #    (which do hold for this example, but do not in general for some types
 #    of processed neuroimaging data).
 
-titles.append('$\mathbf{Perm_{max}}$')
+titles.append(r'$\mathbf{Perm_{max}}$')
 out = permutation_t_test(X, verbose=False)[:2]
 ts.append(out[0])
 ps.append(out[1])
