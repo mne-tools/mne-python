@@ -159,6 +159,7 @@ def _remove_zeros(proj):
     meg_regex = '^MEG.*1$'
 
     proj = copy.deepcopy(proj)
+    proj['data']['data'] = np.atleast_2d(proj['data']['data'])
 
     for regex in (grad_regex, meg_regex):
         names = proj['data']['col_names']
