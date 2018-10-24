@@ -44,7 +44,7 @@ def run():
                       "('type' or 'original')", default='type')
     parser.add_option("-p", "--preload", dest="preload",
                       help="Preload raw data (for faster navigaton)",
-                      default=False)
+                      default=False, action="store_true")
     parser.add_option("-s", "--show_options", dest="show_options",
                       help="Show projection options dialog",
                       default=False)
