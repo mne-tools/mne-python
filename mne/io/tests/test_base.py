@@ -12,13 +12,13 @@ def test_orig_units():
     """Test the error handling for original units."""
     # Should work fine
     info = create_info(ch_names=['Cz'], sfreq=100, ch_types='eeg')
-    BaseRaw(info, last_samps=[1], orig_units={'Cz': 'uV'})
+    BaseRaw(info, last_samps=[1], orig_units={'Cz': 'nV'})
 
     # Should complain that channel Cz does not have a corresponding original
     # unit.
     with pytest.raises(ValueError, match='has no associated original unit.'):
         info = create_info(ch_names=['Cz'], sfreq=100, ch_types='eeg')
-        BaseRaw(info, last_samps=[1], orig_units={'not_Cz': 'uV'})
+        BaseRaw(info, last_samps=[1], orig_units={'not_Cz': 'nV'})
 
     # Test that a non-dict orig_units argument raises a ValueError
     with pytest.raises(ValueError, match='orig_units must be of type dict'):

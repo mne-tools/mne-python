@@ -289,7 +289,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         :meth:`mne.io.Raw.save`.
     orig_units : dict | None
         Dictionary mapping channel names to their units as specified in
-        the header file. Example: {'FC1': 'uV'}
+        the header file. Example: {'FC1': 'nV'}
 
         .. versionadded:: 0.17
     verbose : bool, str, int, or None
