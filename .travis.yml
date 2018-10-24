@@ -27,8 +27,10 @@ matrix:
           env: CONDA_ENVIRONMENT="environment.yml"
 
         # OSX conda
+        # (MPLBACKEND to avoid an annoying circular import problem in mpl 3.0.0)
         - os: osx
           env: CONDA_ENVIRONMENT="environment.yml"
+               MPLBACKEND=Agg
 
         # PIP + non-default stim channel
         - os: linux
