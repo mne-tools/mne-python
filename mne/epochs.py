@@ -427,6 +427,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         assert len(self.selection) == sum(
             (len(dl) == 0 for dl in self.drop_log))
         assert len(self.drop_log) >= len(self.events)
+        assert hasattr(self, '_times_readonly')
+        assert not self.times.flags['WRITEABLE']
 
     def _check_metadata(self, metadata=None, reset_index=False):
         """Check metadata consistency."""
@@ -1422,12 +1424,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @property
     def times(self):
         """Time vector in seconds."""
-        return self._times
+        return self._times_readonly
 
     def _set_times(self, times):
-        """Set self._times and make it read only."""
-        self._times = times.copy()
-        self._times.flags['WRITEABLE'] = False
+        """Set self._times_readonly (and make it read only)."""
+        # double underscore on private here to indicate shouldn't be
+        # changed directly, but rather via this method
+        self._times_readonly = times.copy()
+        self._times_readonly.flags['WRITEABLE'] = False
 
     @property
     def tmin(self):
@@ -1671,7 +1675,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             tmax = self.tmax
 
         tmask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
-        self._set_times(self._times[tmask])
+        self._set_times(self.times[tmask])
         self._raw_times = self._raw_times[tmask]
         self._data = self._data[:, :, tmask]
         return self
@@ -1683,7 +1687,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         new = deepcopy(self)
         self._raw = raw
         new._raw = raw
-        new._set_times(new._times)  # sets RO
+        new._set_times(new.times)  # sets RO
         return new
 
     @verbose
