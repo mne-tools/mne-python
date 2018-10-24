@@ -464,7 +464,6 @@ def read_annotations_brainvision(fname, sfreq='auto'):
     return annotations
 
 
-  
 def _check_hdr_version(header):
     """Check the header version."""
     if header == 'Brain Vision Data Exchange Header File Version 1.0':
@@ -484,6 +483,8 @@ def _check_mrk_version(header):
     """Check the marker version."""
     tags = ['Brain Vision Data Exchange Marker File, Version 1.0',
             'BrainVision Data Exchange Marker File, Version 1.0',
+            'Brain Vision Data Exchange Marker File Version 1.0',
+            'Brain Vision Data Exchange Marker File, Version 2.0',
             'BrainVision Data Exchange Marker File Version 1.0',
             'Brain Vision Data Exchange Marker File, Version 2.0',
             'BrainVision Data Exchange Marker File, Version 1.0']
