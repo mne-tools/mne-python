@@ -754,16 +754,14 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             trans = _find_trans(subject, subjects_dir)
         trans = read_trans(trans, return_all=True)
-        exp = None
-        for trans in trans:  # we got at least 1
+        for ti, trans in enumerate(trans):  # we got at least 1
             try:
                 trans = _ensure_trans(trans, 'head', 'mri')
-            except Exception as exp:
-                pass
+            except Exception:
+                if ti == len(trans) - 1:
+                    raise
             else:
                 break
-        else:
-            raise exp
     elif trans is None:
         trans = Transform('head', 'mri')
     else:

@@ -125,7 +125,7 @@ def _block_diag(A, n):
         The block diagonal matrix
     """
     if sparse.issparse(A):  # then make block sparse
-        raise NotImplemented('sparse reversal not implemented yet')
+        raise NotImplementedError('sparse reversal not implemented yet')
     ma, na = A.shape
     bdn = na // int(n)  # number of submatrices
 
