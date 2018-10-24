@@ -47,6 +47,7 @@ print(__doc__)
 # [1]_ and construct a toy dataset consisting of a 40 x 40 square with a
 # "signal" present in the center with white noise added and a Gaussian
 # smoothing kernel applied.
+
 width = 40
 n_subjects = 10
 signal_mean = 100
@@ -99,14 +100,16 @@ ax.set(xticks=[], yticks=[], title="Data averaged over subjects")
 #
 # Parametric tests
 # ^^^^^^^^^^^^^^^^
-# Let's start with a **1-sample t-test**, which is a standard test
-# for differences in paired sample means. This test is **parametric**,
+# Let's start with a **paired t-test**, which is a standard test
+# for differences in paired samples. Mathematically, it is equivalent
+# to a 1-sample t-test on the difference between the samples in each condition.
+# The paired t-test is **parametric**
 # because it assumes that the underlying sample distribution is Gaussian, and
 # is only valid in this case. This happens to be satisfied by our toy dataset,
 # but is not always satisfied for neuroimaging data.
 #
 # In the context of our toy dataset, which has many voxels
-# (:math:`40 \cdot 40 = 1600`), applying the 1-sample t-test is called a
+# (:math:`40 \cdot 40 = 1600`), applying the paired t-test is called a
 # *mass-univariate* approach as it treats each voxel independently.
 
 titles = ['t']
@@ -181,29 +184,36 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # Non-parametric tests
 # ^^^^^^^^^^^^^^^^^^^^
 # Instead of assuming an underlying Gaussian distribution, we could instead
-# use a **non-parametric resampling** method. Under the null hypothesis,
-# we have the principle of **exchangeability**, which means that, if the null
-# is true, we should be able to exchange conditions and not change the
-# distribution of the test statistic.
+# use a **non-parametric resampling** method. In the case of a paired t-test
+# between two conditions A and B, which is mathematically equivalent to a
+# one-sample t-test between the difference in the conditions A-B, under the
+# null hypothesis we have the principle of **exchangeability**. This means
+# that, if the null is true, we can exchange conditions and not change
+# the distribution of the test statistic.
 #
-# In the case of a two-tailed 1-sample t-test (which can also be used to test
-# the difference between two conditions against zero), exchangeability means
-# that we can flip the signs of our data. Therefore, we can construct the
+# When using a paired t-test, exchangeability thus means that we can flip the
+# signs of the difference between A and B. Therefore, we can construct the
 # **null distribution** values for each voxel by taking random subsets of
-# samples (subjects), flipping the sign of their data, and recording the
+# samples (subjects), flipping the sign of their difference, and recording the
 # absolute value of the resulting statistic (we record the absolute value
 # because we conduct a two-tailed test). The absolute value of the statistic
 # evaluated on the veridical data can then be compared to this distribution,
 # and the p-value is simply the proportion of null distribution values that
 # are smaller.
 #
-# .. note:: In the case where ``n_permutations`` is large enough (or "all") so
-#           that the complete set of unique resampling exchanges can be done
-#           (which is :math:`2^{N_{samp}}-1` for a one-tailed and
-#           :math:`2^{N_{samp}-1}-1` for a two-tailed test, not counting the
-#           veridical distribution), instead of randomly exchanging conditions
-#           the null is formed from using all possible exchanges. This is known
-#           as a permutation test (or exact test).
+# .. warning:: In the case of a true one-sample t-test, i.e. analyzing a single
+#              condition rather than the difference between two conditions,
+#              it is not clear where/how exchangeability applies; see
+#              `this FieldTrip discussion <ft_exch_>`_   # noqa: E501
+#              for more insight. Thus for these non-parametric tests, we will
+#
+# In the case where ``n_permutations`` is large enough (or "all") so
+# that the complete set of unique resampling exchanges can be done
+# (which is :math:`2^{N_{samp}}-1` for a one-tailed and
+# :math:`2^{N_{samp}-1}-1` for a two-tailed test, not counting the
+# veridical distribution), instead of randomly exchanging conditions
+# the null is formed from using all possible exchanges. This is known
+# as a permutation test (or exact test).
 
 # Here we have to do a bit of gymnastics to get our function to do
 # a permutation test without correcting for multiple comparisons:

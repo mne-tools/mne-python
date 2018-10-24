@@ -398,7 +398,7 @@ def _check_outlines(pos, outlines, head_pos=None):
         nose_x = np.array([0.18, 0, -0.18]) * radius
         nose_y = np.array([radius - .004, radius * 1.15, radius - .004])
         ear_x = np.array([.497, .510, .518, .5299, .5419, .54, .547,
-                         .532, .510, .489])
+                          .532, .510, .489])
         ear_y = np.array([.0555, .0775, .0783, .0746, .0555, -.0055, -.0932,
                           -.1313, -.1384, -.1199])
 
@@ -1567,7 +1567,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         top=1 - top_frame)
     # find first index that's >= (to rounding error) to each time point
     time_idx = [np.where(_time_mask(evoked.times, tmin=t,
-                         tmax=None, sfreq=evoked.info['sfreq']))[0][0]
+                                    tmax=None,
+                                    sfreq=evoked.info['sfreq']))[0][0]
                 for t in times]
 
     if average is None:
@@ -2392,9 +2393,9 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
     if len(picks) > p:  # plot components by sets of 20
         n_components = len(picks)
         figs = [_plot_corrmap(data[k:k + p], subjs[k:k + p],
-                indices[k:k + p], ch_type, ica, label, show,
-                outlines=outlines, layout=layout, cmap=cmap,
-                contours=contours)
+                              indices[k:k + p], ch_type, ica, label, show,
+                              outlines=outlines, layout=layout, cmap=cmap,
+                              contours=contours)
                 for k in range(0, n_components, p)]
         return figs
     elif np.isscalar(picks):
@@ -2505,8 +2506,8 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
         Additional plotting parameters for plotting significant sensors.
         Default (None) equals::
 
-           dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-                linewidth=0, markersize=4)
+            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                 linewidth=0, markersize=4)
 
     outlines : 'head' | 'skirt' | dict | None
         The outlines to be drawn. If 'head', the default head scheme will be
@@ -2543,6 +2544,10 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
     -------
     fig : matplotlib.figure.Figure
         The Figure of the plot
+
+    Notes
+    -----
+    .. versionadded:: 0.17
 
     References
     ----------
