@@ -119,7 +119,7 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
     # mne.io.meas_info.valid_units, but we accept any lower/upper case for now.
     valid_units_lower = [unit.lower() for unit in valid_units]
     if raw._orig_units is not None:
-        assert isinstance(raw._orig_units, dict())
+        assert isinstance(raw._orig_units, dict)
         for ch_name, val in raw._orig_units.items():
             assert val.lower() in valid_units_lower, ch_name
 

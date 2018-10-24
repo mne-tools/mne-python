@@ -90,7 +90,7 @@ valid_units += valid_unit_names
 valid_units += valid_unit_symbols
 
 # we also accept "n/a" as a unit, which is the default missing value in BIDS
-valid_units += "n/a"
+valid_units += ["n/a"]
 
 
 def _summarize_str(st):

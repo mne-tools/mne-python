@@ -41,6 +41,8 @@ def _check_orig_units(orig_units, valid_units=valid_units):
         the header file. Invalid units are now labled "n/a".
         Example: {'FC1': 'nV', 'Hfp3erz': 'n/a'}
     """
+    if orig_units is None:
+        return
     valid_units_lowered = [unit.lower() for unit in valid_units]
     orig_units_remapped = dict(orig_units)
     for ch_name, unit in orig_units_remapped.items():
