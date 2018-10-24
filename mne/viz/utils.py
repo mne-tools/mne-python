@@ -56,22 +56,27 @@ def _setup_vmin_vmax(data, vmin, vmax, norm=False):
 
     Otherwise, vmin and vmax are callables that drive the operation.
     """
+    should_warn = False
     if vmax is None and vmin is None:
         vmax = np.abs(data).max()
         vmin = 0. if norm else -vmax
+        if vmin == 0 and np.min(data) < 0:
+            should_warn = True
 
     else:
         if callable(vmin):
             vmin = vmin(data)
         elif vmin is None:
             vmin = 0. if norm else np.min(data)
+            if vmin == 0 and np.min(data) < 0:
+                should_warn = True
 
         if callable(vmax):
             vmax = vmax(data)
         elif vmax is None:
             vmax = np.max(data)
 
-    if vmin == 0 and np.min(data) < 0:
+    if should_warn:
         warn_msg = ("_setup_vmin_vmax output a (min={vmin}, max={vmax})"
                     " range whereas the minimum of data is {data_min}")
         warn_val = {'vmin': vmin, 'vmax': vmax, 'data_min': np.min(data)}
