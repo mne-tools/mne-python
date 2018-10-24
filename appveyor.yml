@@ -9,7 +9,9 @@ environment:
 
 install:
   - "git clone git://github.com/astropy/ci-helpers.git"
+  - "SET DEBUG=True"
   - "powershell ci-helpers/appveyor/install-miniconda.ps1"
+  - "SET DEBUG="
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "activate test"
   - "pip uninstall -yq mne"

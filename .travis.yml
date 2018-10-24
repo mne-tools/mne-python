@@ -57,7 +57,7 @@ before_install:
         pip install -r requirements.txt;
       else
         git clone https://github.com/astropy/ci-helpers.git;
-        source ci-helpers/travis/setup_conda.sh;
+        DEBUG=True source ci-helpers/travis/setup_conda.sh;
         if [ ! -z "$CONDA_ENVIRONMENT" ]; then
           pip uninstall --yes mne;
         fi;
