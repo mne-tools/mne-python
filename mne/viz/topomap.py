@@ -276,7 +276,6 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     nrows = math.floor(math.sqrt(n_projs))
     ncols = math.ceil(n_projs / nrows)
 
-    cmap = _setup_cmap(cmap)
     if axes is None:
         plt.figure()
         axes = list()
@@ -338,7 +337,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                                    'passing a Layout or Info as the layout '
                                    'parameter.' % proj['desc'])
 
-        im = plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap[0],
+        im = plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap,
                           sensors=sensors, res=res, axes=axes[proj_idx],
                           outlines=outlines, contours=contours,
                           image_interp=image_interp, show=False)[0]
@@ -675,7 +674,8 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         raise ValueError("Data and pos need to be of same length. Got data of "
                          "length %s, pos of length %s" % (len(data), len(pos)))
 
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm=False)
+    norm = min(data) >= 0
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
     if cmap is None:
         cmap = 'Reds' if norm else 'RdBu_r'
 
