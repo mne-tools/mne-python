@@ -45,7 +45,7 @@ def _check_orig_units(orig_units, valid_units=valid_units):
         return
     valid_units_lowered = [unit.lower() for unit in valid_units]
     orig_units_remapped = dict(orig_units)
-    for ch_name, unit in orig_units_remapped.items():
+    for ch_name, unit in orig_units.items():
 
         # Be lenient: we ignore case for now.
         if unit.lower() in valid_units_lowered:
@@ -54,7 +54,7 @@ def _check_orig_units(orig_units, valid_units=valid_units):
         # Common "invalid units" can be remapped to their valid equivalent
         remap_dict = dict()
         remap_dict['uv'] = u'µV'
-        if unit.lower() == remap_dict:
+        if unit.lower() in remap_dict:
             orig_units_remapped[ch_name] = remap_dict[unit.lower()]
             continue
 
