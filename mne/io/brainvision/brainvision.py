@@ -24,7 +24,7 @@ from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
 from ..utils import (_read_segments_file, _synthesize_stim_channel,
-                     _mult_cal_one)
+                     _mult_cal_one, _check_orig_units)
 from ...annotations import Annotations, events_from_annotations
 
 from ...externals.six import StringIO, string_types
@@ -140,6 +140,9 @@ class RawBrainVision(BaseRaw):
 
         # Create a dummy event channel first
         self._create_event_ch(np.empty((0, 3)), n_samples)
+
+        # Final check of orig_units, editing a unit if it is not a valid unit
+        orig_units = _check_orig_units(orig_units)
 
         super(RawBrainVision, self).__init__(
             info, last_samps=[n_samples - 1], filenames=[data_fname],
@@ -625,7 +628,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         Coordinates of the channels, if present in the header file.
     orig_units : dict
         Dictionary mapping channel names to their units as specified in
-        the header file. Example: {'FC1': 'uV'}
+        the header file. Example: {'FC1': 'nV'}
     """
     scale = float(scale)
     ext = op.splitext(vhdr_fname)[-1]

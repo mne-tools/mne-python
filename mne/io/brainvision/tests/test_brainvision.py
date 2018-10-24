@@ -70,9 +70,9 @@ def test_orig_units():
     orig_units = raw._orig_units
     assert len(orig_units) == 32
     assert orig_units['FP1'] == u'µV'
-    assert orig_units['CP5'] == 'BS'
+    assert orig_units['CP5'] == 'n/a'  # originally BS, not a valid unit
     assert orig_units['CP6'] == u'µS'
-    assert orig_units['HL'] == 'ARU'
+    assert orig_units['HL'] == 'n/a'  # originally ARU, not a valid unit
     assert orig_units['HR'] == 'uS'
     assert orig_units['Vb'] == 'S'
     assert orig_units['ReRef'] == 'C'

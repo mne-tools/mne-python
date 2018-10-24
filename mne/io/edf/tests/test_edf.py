@@ -127,7 +127,7 @@ def test_edf_data():
     # Test original units
     orig_units = raw_py._orig_units
     assert len(orig_units) == 140
-    assert orig_units['A1'] == 'uV'
+    assert orig_units['A1'] == u'μV'  # formerly 'uV' edit by _check_orig_units
 
     assert_equal(len(raw.ch_names) + 2, len(raw_py.ch_names))
     # Test saving and loading when annotations were parsed.
