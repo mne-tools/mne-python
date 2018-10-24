@@ -153,7 +153,7 @@ def _add_colorbar(ax, im, cmap, side="right", pad=.05, title=None,
 
 
 def _remove_zeros(proj):
-    """Remove grad or mag data if only contains 0s (gh 5641). """
+    """Remove grad or mag data if only contains 0s (gh 5641)."""
     import re
     grad_regex = '^MEG.*[23]$'
     meg_regex = '^MEG.*1$'
@@ -166,8 +166,9 @@ def _remove_zeros(proj):
 
         # if all 0, remove the 0s an their labels
         if not proj['data']['data'][0][idx].any():
-            proj['data']['col_names'] = np.delete(np.array(names), idx).tolist()
+            new_col_names = np.delete(np.array(names), idx).tolist()
             new_data = np.delete(np.array(proj['data']['data'][0]), idx)
+            proj['data']['col_names'] = new_col_names
             proj['data']['data'] = np.array([new_data])
 
     proj['data']['ncol'] = len(proj['data']['col_names'])
