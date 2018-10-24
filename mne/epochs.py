@@ -1428,7 +1428,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def _set_times(self, times):
         """Set self._times_readonly (and make it read only)."""
-        # double underscore on private here to indicate shouldn't be
+        # naming used to indicate that it shouldn't be
         # changed directly, but rather via this method
         self._times_readonly = times.copy()
         self._times_readonly.flags['WRITEABLE'] = False
