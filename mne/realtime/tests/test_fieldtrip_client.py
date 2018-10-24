@@ -21,7 +21,7 @@ from mne.utils import run_tests_if_main
 from mne.realtime import FieldTripClient, RtEpochs
 from mne.externals.six.moves import queue
 
-from .test_mockclient import _call_base_epochs_public_api
+from mne.realtime.tests.test_mockclient import _call_base_epochs_public_api
 
 # Set our plotters to test mode
 import matplotlib
