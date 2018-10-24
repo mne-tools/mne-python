@@ -145,7 +145,7 @@ def _add_colorbar(ax, im, cmap, side="right", pad=.05, title=None,
     divider = make_axes_locatable(ax)
     cax = divider.append_axes(side, size=size, pad=pad)
     cbar = plt.colorbar(im, cax=cax, cmap=cmap, format=format)
-    if cmap[1]:
+    if cmap is not None and cmap[1]:
         ax.CB = DraggableColorbar(cbar, im)
     if title is not None:
         cax.set_title(title, y=1.05, fontsize=10)
