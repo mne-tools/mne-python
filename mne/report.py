@@ -29,8 +29,7 @@ from .parallel import parallel_func, check_n_jobs
 from .viz.raw import _data_types
 
 from .externals.tempita import HTMLTemplate, Template
-from .externals.six import BytesIO
-from .externals.six import moves
+from .externals.six import BytesIO, moves, string_types
 from .externals.h5io import read_hdf5, write_hdf5
 
 VALID_EXTENSIONS = ['raw.fif', 'raw.fif.gz', 'sss.fif', 'sss.fif.gz',
@@ -1021,6 +1020,7 @@ class Report(object):
             Existing figures are only replaced if this is set to ``True``.
             Defaults to ``False``.
         """
+        assert isinstance(html, string_types)  # otherwise later will break
         if replace and fname in self.fnames:
             # Find last occurrence of the figure
             ind = max([i for i, existing in enumerate(self.fnames)
@@ -1220,6 +1220,9 @@ class Report(object):
                                 caption=caption)
         html, caption, _ = self._validate_input(html, caption, section)
         sectionvar = self._sectionvars[section]
+        # convert list->str
+        assert isinstance(html, list)
+        html = u''.join(html)
         self._add_or_replace('%s-#-%s-#-custom' % (caption[0], sectionvar),
                              sectionvar, html)
 
