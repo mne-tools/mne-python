@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+# # Authors: MNE Developers
+#            Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#
+# License: BSD (3-clause)
 import hashlib
 import os.path as op
 
@@ -18,7 +22,9 @@ from mne.io.write import DATE_NONE
 from mne.io.meas_info import (Info, create_info, _write_dig_points,
                               _read_dig_points, _make_dig_points, _merge_info,
                               _force_update_info, RAW_INFO_FIELDS,
-                              _bad_chans_comp)
+                              _bad_chans_comp, valid_prefix_names,
+                              valid_prefix_symbols, valid_unit_names,
+                              valid_unit_symbols, valid_units)
 from mne.io import read_raw_ctf
 from mne.utils import _TempDir, run_tests_if_main, catch_logging
 from mne.channels.montage import read_montage, read_dig_montage
@@ -37,6 +43,15 @@ sss_path = op.join(data_path, 'SSS')
 pre = op.join(sss_path, 'test_move_anon_')
 sss_ctc_fname = pre + 'crossTalk_raw_sss.fif'
 ctf_fname = op.join(data_path, 'CTF', 'testdata_ctf.ds')
+
+
+def test_valid_units():
+    """Test the BIDS-valid units."""
+    assert len(valid_prefix_names) == len(valid_prefix_symbols)
+    assert len(valid_unit_names) == len(valid_unit_symbols)
+    assert isinstance(valid_units, list)
+    assert all(isinstance(unit, str) for unit in valid_units)
+    assert "n/a" in valid_units
 
 
 def test_coil_trans():
