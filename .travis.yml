@@ -78,9 +78,13 @@ before_install:
           export DYLD_LIBRARY_PATH=${MNE_ROOT}/lib:$DYLD_LIBRARY_PATH;
         fi;
         mne_surf2bem --version;
-      fi;
+      fi
     # Make sure `matplotlib` works
-    - python -c "import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
+    - if [ -z "$CONDA_DEPENDENCIES" ]; then
+        python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()";
+      else
+        python -c "import matplotlib.pyplot as plt; plt.figure()";
+      fi
 
 install:
     # Rvm overrides cd with a function so that it can hook into it to run
