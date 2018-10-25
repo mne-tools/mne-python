@@ -23,7 +23,6 @@ from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
 from mne.viz import plot_alignment
 
 import matplotlib
-from matplotlib import pyplot as plt
 matplotlib.use('Agg')  # for testing don't use X server
 
 data_dir = testing.data_path(download=False)
@@ -43,9 +42,13 @@ base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
                                'data'))
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 
-# Two example figures
-fig1 = plt.plot([1, 2], [1, 2])[0].figure
-fig2 = plt.plot([3, 4], [3, 4])[0].figure
+
+def _get_example_figures():
+    """Create two example figures."""
+    from matplotlib import pyplot as plt
+    fig1 = plt.plot([1, 2], [1, 2])[0].figure
+    fig2 = plt.plot([3, 4], [3, 4])[0].figure
+    return [fig1, fig2]
 
 
 @pytest.mark.slowtest
@@ -233,6 +236,10 @@ def test_render_mri():
     report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*')
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
     assert repr(report)
+    report.add_bem_to_section('sample', caption='extra', section='foo',
+                              subjects_dir=subjects_dir, decim=30)
+    report.save(op.join(tempdir, 'report.html'), open_browser=False,
+                overwrite=True)
 
 
 @testing.requires_testing_data
@@ -271,7 +278,7 @@ def test_add_slider_to_section():
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     section = 'slider_section'
-    figs = [fig1, fig2]
+    figs = _get_example_figures()
     report.add_slider_to_section(figs, section=section)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
@@ -314,6 +321,7 @@ def test_open_report():
     hdf5 = op.join(tempdir, 'report.h5')
 
     # Test creating a new report through the open_report function
+    fig1 = _get_example_figures()[0]
     with open_report(hdf5, subjects_dir=subjects_dir) as report:
         assert report.subjects_dir == subjects_dir
         assert report._fname == hdf5
@@ -338,6 +346,7 @@ def test_open_report():
 def test_remove():
     """Test removing figures from a report."""
     r = Report()
+    fig1, fig2 = _get_example_figures()
     r.add_figs_to_section(fig1, 'figure1', 'mysection')
     r.add_figs_to_section(fig1, 'figure1', 'othersection')
     r.add_figs_to_section(fig2, 'figure1', 'mysection')
@@ -371,6 +380,7 @@ def test_remove():
 def test_add_or_replace():
     """Test replacing existing figures in a report."""
     r = Report()
+    fig1, fig2 = _get_example_figures()
     r.add_figs_to_section(fig1, 'duplicate', 'mysection')
     r.add_figs_to_section(fig1, 'duplicate', 'mysection')
     r.add_figs_to_section(fig1, 'duplicate', 'othersection')
