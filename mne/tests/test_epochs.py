@@ -2499,8 +2499,8 @@ def test_timeshift(relative):
     epochs.shift_time(timeshift, relative=relative)
     avg2 = epochs.average()
     assert_array_equal(avg.times, avg2.times)
-    assert_equal(avg.tmin, avg2.tmin)
-    assert_equal(avg.tmax, avg2.tmax)
+    assert_equal(avg.first, avg2.first)
+    assert_equal(avg.last, avg2.last)
     assert_allclose(avg.data, avg2.data, atol=1e-16, rtol=1e-3)
 
 
