@@ -2501,7 +2501,7 @@ def test_timeshift(relative):
     assert_array_equal(avg.times, avg2.times)
     assert_equal(avg.first, avg2.first)
     assert_equal(avg.last, avg2.last)
-    assert_allclose(avg.data, avg2.data, atol=1e-16, rtol=1e-3)
+    assert_array_equal(avg.data, avg2.data)
 
 
 @pytest.mark.parametrize('preload', (True, False))
