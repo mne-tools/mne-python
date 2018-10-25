@@ -23,7 +23,7 @@ References
 import numpy as np
 
 import mne
-from mne.datasets.brainstorm import bst_auditory
+from mne.datasets.brainstorm import bst_raw
 from mne.io import read_raw_ctf
 
 print(__doc__)
@@ -31,9 +31,10 @@ print(__doc__)
 tmin, tmax, event_id = -0.1, 0.3, 2  # take right-hand somato
 reject = dict(mag=4e-12, eog=250e-6)
 
-data_path = bst_auditory.data_path()
+data_path = bst_raw.data_path()
 
-raw_path = data_path + '/MEG/bst_auditory/S01_AEF_20131218_01.ds'
+raw_path = (data_path + '/MEG/bst_raw/' +
+            'subj001_somatosensory_20111109_01_AUX-f.ds')
 raw = read_raw_ctf(raw_path, preload=True)
 raw.plot()
 
