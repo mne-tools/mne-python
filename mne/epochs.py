@@ -1885,8 +1885,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         _check_preload(self, 'shift_time')
         times = self.times
         sfreq = self.info['sfreq']
+        old_first = int(self.tmin * sfreq)
 
-        offset = self.tmin if relative else 0
+        offset = old_first if relative else 0
 
         first = int(tshift * sfreq) + offset
         last = first + len(times) - 1
