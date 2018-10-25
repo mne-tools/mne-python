@@ -36,19 +36,19 @@ subject = 'bst_resting'
 
 subjects_dir = op.join(data_path, 'subjects')
 
-raw_fname = data_path + '/MEG/' + subject + '/' + \
-                        'subj002_spontaneous_20111102_01_AUX_raw.fif'
+raw_fname = (data_path + '/MEG/%s/subj002_spontaneous_20111102_01_AUX.ds'
+             % subject)
 
-raw_noise_fname = op.join(
-    data_path,
-    'MEG/%s/subj002_noise_20111104_02_raw.fif' % subject)
+raw_noise_fname = data_path + '/MEG/%s/subj002_noise_20111104_02.ds' % subject
+
+trans_fname = data_path + '/MEG/%s/%s-trans.fif' % (subject, subject)
 
 
 ##############################################################################
 # Load data, set types and rename ExG channels
 
-raw = mne.io.read_raw_fif(raw_fname, preload=True)
-raw_er = mne.io.read_raw_fif(raw_noise_fname, preload=True)
+raw = mne.io.read_raw_ctf(raw_fname, preload=True)
+raw_er = mne.io.read_raw_ctf(raw_noise_fname, preload=True)
 
 # clean up bad ch names and do common preprocessing
 raw.set_channel_types({'EEG057': 'ecg', 'EEG058': 'eog'})
@@ -93,36 +93,24 @@ raw.plot_psd(n_fft=2048, fmin=1, fmax=50, xscale='log', proj=True)
 spacing = 'oct6'
 src = mne.setup_source_space(
     subject=subject, spacing=spacing, subjects_dir=subjects_dir,
-    add_dist=False)
-
+    add_dist=True)
 
 conductivity = (0.3,)  # for single layer
 model = mne.make_bem_model(subject='bst_resting', ico=4,
                            conductivity=conductivity,
                            subjects_dir=subjects_dir)
 bem = mne.make_bem_solution(model)
+raise RuntimeError
 
 picks = mne.pick_types(raw.info, meg=True, eeg=False, ref_meg=True)
 
 
-# this was not guessed but is from a file that we don't ship.
-trans = mne.Transform(  # Kids please do not do this at home.
-    fro=4,  # head
-    to=5,  # mri
-    trans=np.array(  # run 1
-        [[0.99979711, 0.01138957, 0.01660261, -0.00337221],
-         [-0.00577519, 0.95219451, -0.30543712, -0.00715041],
-         [-0.01928758, 0.30527931, 0.95206732, -0.03214351],
-         [0., 0., 0, 1.]]))
-
-
-fwd = mne.make_forward_solution(raw.info, trans, src=src, bem=bem,
-                                eeg=False)
-
-# plot trans
+trans = mne.read_trans(trans_fname)
 mne.viz.plot_alignment(
     raw.info, trans=trans, subject=subject, subjects_dir=subjects_dir)
 
+fwd = mne.make_forward_solution(raw.info, trans, src=src, bem=bem,
+                                eeg=False)
 
 ##############################################################################
 # Make epochs and look at power
