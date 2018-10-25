@@ -1880,7 +1880,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Notes
         -----
-        Maximum accuracy of time shift is 1 / evoked.info['sfreq']
+        Maximum accuracy of time shift is 1 / epochs.info['sfreq']
         """
         _check_preload(self, 'shift_time')
 
