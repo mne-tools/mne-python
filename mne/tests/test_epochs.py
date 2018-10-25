@@ -2488,14 +2488,15 @@ def test_readonly_times():
         epochs.times[:] = 0.
 
 
-def test_timeshift():
+@pytest.mark.parametrize('relative', (True, False))
+def test_timeshift(relative):
     """Test the timeshift method."""
     timeshift = 13.5e-3  # Using sub-ms timeshift to test for sample accuracy.
     raw, events = _get_data()[:2]
     epochs = Epochs(raw, events[:1], preload=True, baseline=None)
     avg = epochs.average()
-    avg.shift_time(timeshift, relative=True)
-    epochs.shift_time(timeshift, relative=True)
+    avg.shift_time(timeshift, relative=relative)
+    epochs.shift_time(timeshift, relative=relative)
     avg2 = epochs.average()
     assert_array_equal(avg.times, avg2.times)
     assert_equal(avg.tmin, avg2.tmin)
