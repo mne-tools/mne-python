@@ -878,12 +878,12 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
             this_include = step_down_include
         logger.info('Permuting %d times%s...' % (len(orders), extra))
         with ProgressBar(len(orders), verbose_bool='auto') as progress_bar:
-            H0 = parallel(my_do_perm_func(
-                X_full, slices, threshold, tail, connectivity, stat_fun,
-                max_step, this_include, partitions, t_power, order,
-                sample_shape, buffer_size, progress_bar.subset(idx))
-                          for idx, order in split_list(
-                              orders, n_jobs, idx=True))
+            H0 = parallel(
+                my_do_perm_func(X_full, slices, threshold, tail, connectivity,
+                                stat_fun, max_step, this_include, partitions,
+                                t_power, order, sample_shape, buffer_size,
+                                progress_bar.subset(idx))
+                for idx, order in split_list(orders, n_jobs, idx=True))
         # include original (true) ordering
         if tail == -1:  # up tail
             orig = cluster_stats.min()
