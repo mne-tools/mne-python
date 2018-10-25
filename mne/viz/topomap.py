@@ -255,6 +255,10 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                                    _pair_grad_sensors_ch_names_neuromag122,
                                    Layout, _merge_grad_data)
     from ..channels import _get_ch_type
+
+    is_layout_parameter_none = layout == None
+    is_info_parameter_none = info == None
+
     if info is not None:
         if not isinstance(info, Info):
             raise TypeError('info must be an instance of Info, got %s'
@@ -334,10 +338,28 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                     data = _merge_grad_data(data[grad_pairs]).ravel()
                 break
             if len(idx) == 0:
-                raise RuntimeError('Cannot find a proper layout for '
-                                   'projection %s, consider explicitly '
-                                   'passing a Layout or Info as the layout '
-                                   'parameter.' % proj['desc'])
+                if ch_names[0].startswith('EEG'):
+                    msg = ('Cannot find a proper layout for projection {0}.'
+                           ' The proper layout of an EEG topomap cannot be'
+                           ' inferred from the data. '.format(proj['desc']))
+                    if is_layout_parameter_none and is_info_parameter_none:
+                        msg += (' For EEG data, valid `layout` or `info` is'
+                                ' reauired. None was provided, please consider'
+                                ' passing one of them.')
+                    elif not is_layout_parameter_none:
+                        msg += (' A `layout` was provided but could not be'
+                                ' used for display. Please review the `layout`'
+                                ' parameter.')
+                    else:  # layout is none, but we have info
+                        msg += (' The `info` parameter was provided but could'
+                                ' not be for display. Please review the `info`'
+                                ' parameter.')
+                    raise RuntimeError(msg)
+                else:
+                    raise RuntimeError('Cannot find a proper layout for '
+                                    'projection %s, consider explicitly '
+                                    'passing a Layout or Info as the layout '
+                                    'parameter.' % proj['desc'])
 
         im = plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap,
                           sensors=sensors, res=res, axes=axes[proj_idx],
