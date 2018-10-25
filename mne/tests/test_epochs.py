@@ -2489,7 +2489,7 @@ def test_readonly_times():
 
 
 @pytest.mark.parametrize('relative', (True, False))
-def test_timeshift(relative):
+def test_shift_time(relative):
     """Test the timeshift method."""
     timeshift = 13.5e-3  # Using sub-ms timeshift to test for sample accuracy.
     raw, events = _get_data()[:2]
@@ -2505,7 +2505,7 @@ def test_timeshift(relative):
 
 
 @pytest.mark.parametrize('preload', (True, False))
-def test_timeshift_raises_when_not_loaded(preload):
+def test_shift_time_raises_when_not_loaded(preload):
     """Test whether shift_time throws an exception when data is not loaded."""
     timeshift = 13.5e-3  # Using sub-ms timeshift to test for sample accuracy.
     raw, events = _get_data()[:2]
