@@ -2504,4 +2504,16 @@ def test_timeshift(relative):
     assert_allclose(avg.data, avg2.data, atol=1e-16, rtol=1e-3)
 
 
+@pytest.mark.parametrize('preload', (True, False))
+def test_timeshift_raises_when_not_loaded(preload):
+    """Test whether shift_time throws an exception when data is not loaded."""
+    timeshift = 13.5e-3  # Using sub-ms timeshift to test for sample accuracy.
+    raw, events = _get_data()[:2]
+    epochs = Epochs(raw, events[:1], preload=preload, baseline=None)
+    if not preload:
+        pytest.raises(RuntimeError, epochs.shift_time, timeshift)
+    else:
+        epochs.shift_time(timeshift)
+
+
 run_tests_if_main()
