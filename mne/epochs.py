@@ -1882,7 +1882,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         Maximum accuracy of time shift is 1 / evoked.info['sfreq']
         """
-        pass
+        _check_preload(self, 'shift_time')
 
 
 def _hid_match(event_id, keys):
