@@ -1883,6 +1883,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Maximum accuracy of time shift is 1 / epochs.info['sfreq']
         """
         _check_preload(self, 'shift_time')
+        times = self.times
+        sfreq = self.info['sfreq']
+
+        offset = self.tmin if relative else 0
+
+        first = int(tshift * sfreq) + offset
+        last = first + len(times) - 1
+        self._set_times(np.arange(first, last + 1, dtype=np.float) / sfreq)
 
 
 def _hid_match(event_id, keys):
