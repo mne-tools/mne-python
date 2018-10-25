@@ -352,6 +352,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                                      np.tile([255., 0., 0., 255.], (127, 1))])
 
     fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+    fig.scene.renderer.use_fxaa = True
     _toggle_mlab_render(fig, False)
 
     for ii, this_map in enumerate(surf_maps):
@@ -1063,6 +1064,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     # initialize figure
     if fig is None:
         fig = mlab.figure(bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
+    fig.scene.renderer.use_fxaa = True
     if interaction == 'terrain' and fig.scene is not None:
         fig.scene.interactor.interactor_style = \
             tvtk.InteractorStyleTerrain()
@@ -2381,6 +2383,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     color_converter = ColorConverter()
 
     f = mlab.figure(figure=fig_name, bgcolor=bgcolor, size=(600, 600))
+    f.scene.renderer.use_fxaa = True
     mlab.clf()
     _toggle_mlab_render(f, False)
     with warnings.catch_warnings(record=True):  # traits warnings

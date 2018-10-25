@@ -1841,12 +1841,16 @@ class CoregFrame(HasTraits):
     @on_trait_change('scene:activated')
     def _init_plot(self):
         _toggle_mlab_render(self, False)
+        self.scene.renderer.use_fxaa = True
 
         lpa_color = defaults['lpa_color']
         nasion_color = defaults['nasion_color']
         rpa_color = defaults['rpa_color']
 
         # MRI scalp
+        #
+        # Due to MESA rendering / z-order bugs, this should be added and
+        # rendered first (see gh-5375).
         color = defaults['head_color']
         self.mri_obj = SurfaceObject(
             points=np.empty((0, 3)), color=color, tris=np.empty((0, 3)),
@@ -1857,6 +1861,8 @@ class CoregFrame(HasTraits):
         )
         self.mri_obj.opacity = self._initial_kwargs['head_opacity']
         self.data_panel.fid_panel.hsp_obj = self.mri_obj
+        self._update_mri_obj()
+        self.mri_obj.plot()
         # Do not do sync_trait here, instead use notifiers elsewhere
 
         # MRI Fiducials
@@ -1952,9 +1958,7 @@ class CoregFrame(HasTraits):
 
         self.sync_trait('bgcolor', self.scene, 'background')
 
-        self._update_mri_obj()
         self._update_projections()
-        self.mri_obj.plot()
 
         _toggle_mlab_render(self, True)
         self.scene.render()
