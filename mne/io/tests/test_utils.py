@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
 """Run tests for the utilities."""
 # Author: Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
+
 from ..utils import _check_orig_units
 from ..meas_info import valid_units
 

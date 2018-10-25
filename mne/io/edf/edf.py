@@ -1,8 +1,10 @@
+# -*- coding: utf-8 -*-
 """Conversion tool from EDF, EDF+, BDF to FIF."""
 
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Martin Billinger <martin.billinger@tugraz.at>
 #          Nicolas Barascud <nicolas.barascud@ens.fr>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -24,6 +26,7 @@ from ...externals.six.moves import zip
 from ...utils import copy_function_doc_to_method_doc
 from ...annotations import Annotations, events_from_annotations
 from ..utils import _check_orig_units
+
 
 def find_edf_events(raw):
     """Get original EDF events as read from the header.

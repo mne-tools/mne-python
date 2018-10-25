@@ -8,6 +8,7 @@
 #          Phillip Alday <phillip.alday@unisa.edu.au>
 #          Okba Bekhelifi <okba.bekhelifi@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#
 # License: BSD (3-clause)
 
 import os

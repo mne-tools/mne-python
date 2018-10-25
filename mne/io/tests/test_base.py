@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
 """Run tests for the BaseRaw class."""
 # Author: Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
+
 import pytest
 
 from mne import create_info

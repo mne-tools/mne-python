@@ -3,6 +3,7 @@
 #            Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
+
 import hashlib
 import os.path as op
 
