@@ -1864,6 +1864,26 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # actually remove the indices
         return self, indices
 
+    def shift_time(self, tshift, relative=True):
+        """Shift time scale in epoched data.
+
+        Parameters
+        ----------
+        tshift : float
+            The amount of time shift to be applied if relative is True
+            else the first time point. When relative is True, positive value
+            of tshift moves the data forward while negative tshift moves it
+            backward.
+        relative : bool
+            If true, move the time backwards or forwards by specified amount.
+            Else, set the starting time point to the value of tshift.
+
+        Notes
+        -----
+        Maximum accuracy of time shift is 1 / evoked.info['sfreq']
+        """
+        pass
+
 
 def _hid_match(event_id, keys):
     """Match event IDs using HID selection.
