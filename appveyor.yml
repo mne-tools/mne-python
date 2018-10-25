@@ -3,7 +3,7 @@ environment:
       PYTHON: "C:\\conda"
       CONDA_ENVIRONMENT: "environment.yml"
       PIP_DEPENDENCIES: "codecov pytest-faulthandler"
-      MPLBACKEND: "Agg"
+      NUMPY_VERSION: "1.15"
   matrix:
       - PYTHON_VERSION: "2.7"
         PYTHON_ARCH: "64"

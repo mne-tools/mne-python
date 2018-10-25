@@ -27,10 +27,12 @@ matrix:
           env: CONDA_ENVIRONMENT="environment.yml"
 
         # OSX conda
-        # (MPLBACKEND to avoid an annoying circular import problem in mpl 3.0.0)
+        # The NumPy version pinning can be removed once ci-helpers gets rid of
+        # their pinning:
+        # https://github.com/astropy/ci-helpers/commit/d936c25a0f2191c9eacd2cdf4c740e4e6a3d1612#diff-ee1b658811190e8695c7b64c9d889e3a
         - os: osx
           env: CONDA_ENVIRONMENT="environment.yml"
-               MPLBACKEND=Agg
+               NUMPY_VERSION=1.15
 
         # PIP + non-default stim channel
         - os: linux
