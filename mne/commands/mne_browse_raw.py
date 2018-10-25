@@ -64,7 +64,8 @@ def run():
                       help="Enable trace clipping mode, either 'clip' or "
                       "'transparent'", default=None)
     parser.add_option("--filterchpi", dest="filterchpi",
-                      help="Enable filtering cHPI signals.", default=None)
+                      help="Enable filtering cHPI signals.", default=None,
+                      action="store_true")
 
     options, args = parser.parse_args()
 
