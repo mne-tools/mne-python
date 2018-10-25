@@ -2099,12 +2099,14 @@ class FilterMixin(object):
         self._data = resample(self._data, sfreq, o_sfreq, npad, window=window,
                               n_jobs=n_jobs, pad=pad)
         self.info['sfreq'] = float(sfreq)
-        self.times = (np.arange(self._data.shape[-1], dtype=np.float) /
-                      sfreq + self.times[0])
+        new_times = (np.arange(self._data.shape[-1], dtype=np.float) /
+                     sfreq + self.times[0])
         # adjust indirectly affected variables
         if isinstance(self, BaseEpochs):
+            self._set_times(new_times)
             self._raw_times = self.times
         else:
+            self.times = new_times
             self.first = int(self.times[0] * self.info['sfreq'])
             self.last = len(self.times) + self.first - 1
         return self
