@@ -55,18 +55,14 @@ raw_erm_fname = data_path + '/MEG/%s/subj002_noise_20111104_02.ds' % subject
 trans_fname = data_path + '/MEG/%s/%s-trans.fif' % (subject, subject)
 
 ##############################################################################
-# Load data, set types and rename ExG channels
+# Load data, resample, set types, and unify channel names
 
-raw = mne.io.read_raw_ctf(raw_fname).load_data()
-raw_erm = mne.io.read_raw_ctf(raw_erm_fname).load_data()
-new_sfreq = 100
-
-# clean up bad ch names and downsample
+new_sfreq = 100.
+raw = mne.io.read_raw_ctf(raw_fname).load_data().resample(new_sfreq)
+# Just use 30 sec of empty room for the covariance
+raw_erm = mne.io.read_raw_ctf(raw_erm_fname).crop(0, 30)
+raw_erm.load_data().resample(new_sfreq)
 raw.set_channel_types({'EEG057': 'ecg', 'EEG058': 'eog'})
-raw.resample(new_sfreq)
-raw_erm.resample(new_sfreq)
-
-# unify channel names
 raw_erm.rename_channels(lambda x: x.replace('-4408', '-4407'))
 
 ##############################################################################
@@ -81,7 +77,7 @@ raw_erm.add_proj(ssp_eog + ssp_ecg)
 # Explore data
 
 # Alpha peak @ 8 Hz (and likely harmonic @ 16 Hz)
-n_fft = 4 * new_sfreq
+n_fft = int(round(4 * new_sfreq))
 fig = raw.plot_psd(n_fft=n_fft, proj=True)
 
 ##############################################################################
