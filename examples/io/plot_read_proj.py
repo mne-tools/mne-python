@@ -4,8 +4,10 @@
 Read and visualize projections (SSP and other)
 ==============================================
 
-This example shows how to read and visualize SSP vector
+This example shows how to read and visualize Signal Subspace Projectors (SSP)
+vector. Such projections are sometimes referred to as PCA projections.
 """
+
 # Author: Joan Massich <mailsik@gmail.com>
 #
 # License: BSD (3-clause)
@@ -27,14 +29,16 @@ fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 ecg_fname = data_path + '/MEG/sample/sample_audvis_ecg-proj.fif'
 
 ###############################################################################
-# Load the FIF file and display the recorded projections within the file from
-# the empty room recording.
+# Load the FIF file and display the projections present in the file. Here the
+# projections are added to the file during the acquisition and are obtained
+# from empty room recordings.
 raw = read_raw_fif(fname)
 empty_room_proj = raw.info['projs']
 
 # Display the projections stored in `info['projs']` from the raw object
 raw.plot_projs_topomap()
 
+###############################################################################
 # Display the projections one by one
 fig, axes = plt.subplots(1, len(empty_room_proj))
 for proj, ax in zip(empty_room_proj, axes):
@@ -45,9 +49,9 @@ assert isinstance(empty_room_proj, list)
 mne.viz.plot_projs_topomap(empty_room_proj)
 
 ###############################################################################
-# As shown in the tutorial on how to 
-# :ref:`<sphx_glr_download_auto_tutorials_plot_visualize_raw.py>`
-# the ECG projections can be loaded from a file and added to the raw object 
+# As shown in the tutorial on how to
+# :ref:`<sphx_glr_auto_tutorials_plot_visualize_raw.py>`
+# the ECG projections can be loaded from a file and added to the raw object
 
 # read the projections
 ecg_projs = read_proj(ecg_fname)
@@ -60,11 +64,11 @@ raw.plot_projs_topomap()
 # Displaying the projections from a raw object requires no extra information
 # since all the layout information is present in `raw.info`.
 # MNE is able to automatically determine the layout for some magnetometer and
-# gradiomiter configurations but not the layout of EEG electrodes.
+# gradiometer configurations but not the layout of EEG electrodes.
 #
 # Here we display the `ecg_projs` individually and we provide extra parameters
-# for EEG. (Notice that planar projection refers to the gradiomiters and axial
-# refers to magnetomiters.)
+# for EEG. (Notice that planar projection refers to the gradiometers and axial
+# refers to magnetometers.)
 fig, axes = plt.subplots(1, len(ecg_projs))
 for proj, ax in zip(ecg_projs, axes):
     if proj['desc'].startswith('ECG-eeg'):
@@ -72,6 +76,7 @@ for proj, ax in zip(ecg_projs, axes):
     else:
         proj.plot_topomap(axes=ax)
 
+###############################################################################
 # To display it in one go we can provide always info and avoid the guesswork
 mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
 
