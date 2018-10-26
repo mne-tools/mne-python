@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 ================================
 Brainstorm resting state dataset
@@ -17,7 +18,7 @@ Brainstorm pipline is
 2. Band-pass filter
      High-pass filter at 0.3Hz.
 3. Artifact (EOG/ECG) detection
-     XXX skipped.
+     Use SSP.
 4. Source localization
      dSPM, some depth weighting, constrained.
 5. Frequency
@@ -36,10 +37,10 @@ References
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Luke Bloy <luke.bloy@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
 
-import mayavi.mlab as mlab
 import os.path as op
 
 import mne
@@ -66,23 +67,25 @@ trans_fname = data_path + '/MEG/%s/%s-trans.fif' % (subject, subject)
 ##############################################################################
 # Load data, set types and rename ExG channels
 
-raw = mne.io.read_raw_ctf(raw_fname, preload=True)
-raw_erm = mne.io.read_raw_ctf(raw_erm_fname, preload=True)
-
-# raw.crop(0, 60)
+raw = mne.io.read_raw_ctf(raw_fname).crop(0, 60).load_data()
+raw_erm = mne.io.read_raw_ctf(raw_erm_fname).crop(0, 60).load_data()
 
 # clean up bad ch names and do common preprocessing
 raw.set_channel_types({'EEG057': 'ecg', 'EEG058': 'eog'})
 for raw_ in (raw, raw_erm):
-    raw.apply_gradient_compensation(3)
-    raw_.resample(300)
-    picks = mne.pick_types(raw_.info, meg=True, eog=True, ecg=True)
-    raw_.notch_filter([60., 120.], filter_length='auto', phase='zero')
-    raw_.filter(0.3, None)
-
+    raw_.resample(200)
+    raw_.notch_filter(60.)
 
 # unify channel names
 raw_erm.rename_channels(lambda x: x.replace('-4408', '-4407'))
+
+##############################################################################
+# Do some minimal artifact rejection
+
+#ssp_ecg, _ = mne.preprocessing.compute_proj_ecg(raw, n_mag=2)
+#ssp_eog, _ = mne.preprocessing.compute_proj_eog(raw, n_mag=2)
+#raw.add_proj(ssp_eog + ssp_ecg)
+#raw_erm.add_proj(ssp_eog + ssp_ecg)
 
 ##############################################################################
 # Explore data
@@ -111,7 +114,7 @@ mne.viz.plot_alignment(
 ##############################################################################
 # Make inverse
 
-noise_cov = mne.compute_raw_covariance(raw_erm, tmax=30)
+noise_cov = mne.compute_raw_covariance(raw_erm)
 
 inverse_operator = mne.minimum_norm.make_inverse_operator(
     raw.info, forward=fwd, noise_cov=noise_cov)
@@ -122,17 +125,9 @@ snr = 1.0  # use smaller SNR for raw data
 lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 
-psd_raw_db = mne.minimum_norm.compute_source_psd(
-    raw, inverse_operator, lambda2=lambda2, method=method,
-    fmin=fmin, fmax=fmax, n_fft=2048, label=None, out_decibels=True)
-
 psd_raw = mne.minimum_norm.compute_source_psd(
     raw, inverse_operator, lambda2=lambda2, method=method,
     fmin=fmin, fmax=fmax, n_fft=2048, label=None, out_decibels=False)
-
-# compute total and relative power.
-psd_total_raw_db = psd_raw_db.mean() * len(psd_raw_db.times)
-psd_rel_raw_db = psd_raw_db / psd_total_raw_db
 
 psd_total_raw = psd_raw.mean() * len(psd_raw.times)
 psd_rel_raw = psd_raw / psd_total_raw
@@ -142,57 +137,18 @@ psd_rel_raw = psd_raw / psd_total_raw
 freq_bands = [(2, 4, 'delta'), (5, 7, 'theta'), (8, 12, 'alpha'),
               (15, 29, 'beta'), (30, 59, 'gamma_1'), (60, 90, 'gamma_2')]
 
-stc_bands_db = dict()
 stc_bands = dict()
 for r_min, r_max, b in freq_bands:
     f_min = 1e-3 * r_min
     f_max = 1e-3 * r_max
-    stc_tmp = psd_rel_raw_db.copy().crop(f_min, f_max)
-    stc_bands_db[b] = stc_tmp.mean() * len(stc_tmp.times)
-
     stc_tmp = psd_rel_raw.copy().crop(f_min, f_max)
     stc_bands[b] = stc_tmp.mean() * len(stc_tmp.times)
 
 ##############################################################################
-# plot beta. notice the ventral surface is the peak activity with DB
+# Plot beta
+
 b = 'beta'
-for stc, u in zip([stc_bands[b], stc_bands_db[b]], ['Not DB', 'DB']):
-    fig = mlab.figure(size=(800, 600))
-    mlab.clf()
-    brain = stc.plot(subject, 'pial', 'both', figure=fig,
-                     colorbar=True, colormap='jet',
-                     subjects_dir=subjects_dir,
-                     clim=dict(kind='percent', lims=(0, 50, 100)),
-                     views=['ven'])
-    mlab.title('rel beta power - %s' % u)
-
-mlab.show()
-
-##############################################################################
-# plot relative power in each band
-# for _, _, b in freq_bands:
-#     fig = mlab.figure(size=(800, 600))
-#     mlab.clf()
-#     brain = stc_bands[b].plot(subject, 'pial', 'both', figure=fig,
-#                               colorbar=True, colormap='jet',
-#                               subjects_dir=subjects_dir,
-#                               clim=dict(kind='percent', lims=(0, 50, 100)))
-#     mlab.title('%s - power' % b)
-# mlab.show()
-#
-#
-# ##############################################################################
-# # crop to the frequency of interest to satisfy colormap mechanism
-#
-# f = 1e-3 * 8
-# psd_rel_raw.copy().crop(f, f + psd_rel_raw.tstep).mean().plot(
-#     subject=subject,
-#     subjects_dir=subjects_dir,
-#     views='cau',
-#     hemi='both',
-#     time_label="Freq=%0.4f Hz",
-#     colormap='viridis',
-#     clim=dict(kind='percent', lims=(0, 80, 99))
-# )
-# mlab.show()
-#
+brain = stc_bands[b].plot(
+    subject, 'inflated', 'both', size=(800, 600), colorbar=True, views=['ven'],
+    colormap='viridis', subjects_dir=subjects_dir, title=u'Relative β power',
+    clim=dict(kind='percent', lims=(33, 66, 100)), time_label=None)

@@ -17,6 +17,7 @@ References
 """
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -47,8 +48,8 @@ trans_fname = data_path + '/MEG/%s/%s-trans.fif' % (subject, subject)
 ##############################################################################
 # Load data, set types and rename ExG channels
 
-raw = mne.io.read_raw_ctf(raw_fname, preload=True)
-raw_erm = mne.io.read_raw_ctf(raw_erm_fname, preload=True)
+raw = mne.io.read_raw_ctf(raw_fname).crop(0, 60).load_data()
+raw_erm = mne.io.read_raw_ctf(raw_erm_fname).crop(0, 60).load_data()
 
 # clean up bad ch names and do common preprocessing
 raw.set_channel_types({'EEG057': 'ecg', 'EEG058': 'eog'})
@@ -63,7 +64,6 @@ raw_erm.rename_channels(lambda x: x.replace('-4408', '-4407'))
 
 ssp_ecg, _ = mne.preprocessing.compute_proj_ecg(raw, n_mag=2)
 ssp_eog, _ = mne.preprocessing.compute_proj_eog(raw, n_mag=2)
-
 raw.add_proj(ssp_eog + ssp_ecg)
 raw_erm.add_proj(ssp_eog + ssp_ecg)
 
@@ -91,31 +91,30 @@ fwd = mne.make_forward_solution(raw.info, trans, src=src, bem=bem,
 ##############################################################################
 # Make epochs and look at power
 
-overlap = 4
-tmax = 12
+duration = 1.
 reject = dict(mag=5e-12)
-
-events = mne.make_fixed_length_events(raw, id=42, duration=overlap)
+events = mne.make_fixed_length_events(raw, duration=duration)
 
 # pick MEG channels
 picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
-                       ref_meg=True,
-                       exclude='bads')
+                       ref_meg=True, exclude='bads')
 
 # Compute epochs
-epochs = mne.Epochs(raw, events, event_id=42, tmin=0, tmax=tmax, picks=picks,
-                    baseline=None, reject=reject, preload=False,
-                    proj=True)
-
-# epochs.plot_psd_topomap(normalize=True)  # very slow!
+epochs = mne.Epochs(raw, events, tmin=0, tmax=duration, baseline=(None, None),
+                    picks=picks, reject=reject, preload=False, proj=True)
 
 ##############################################################################
-# Make inverse
+# Compute noise covariance, look at how much larger the resting state
+# activity is compared to the empty room.
 
 noise_cov = mne.compute_raw_covariance(raw_erm, tmax=30)
+epochs.average().plot_white(noise_cov)
+
+##############################################################################
+# Compute and apply inverse
 
 inverse_operator = mne.minimum_norm.make_inverse_operator(
-    epochs.info, forward=fwd, noise_cov=noise_cov)
+    epochs.info, forward=fwd, noise_cov=noise_cov, verbose=True)
 
 stc_gen = mne.minimum_norm.apply_inverse_epochs(
     epochs, inverse_operator, lambda2=1., method='MNE', nave=1,
@@ -126,36 +125,20 @@ psd_src = list()
 for ii, this_stc in enumerate(stc_gen):
     psd, freqs = mne.time_frequency.psd_array_welch(
         this_stc.data, sfreq=epochs.info['sfreq'],
-        n_fft=1024, fmin=1, fmax=50)
-# changing this makes a big difference.
-#    psd = np.log10(psd)
-
-    if True:  # compute relative power
-        psd /= psd.sum(axis=1, keepdims=True)
+        n_fft=128, n_per_seg=128, fmin=1, fmax=50)
+    psd /= psd.sum(axis=1, keepdims=True)
     psd_src.append(psd)
 psd_src = np.mean(psd_src, axis=0)
 
-if False:
-    # normalize each frequency bin across space to deal with color map.
-    # and make sure it's positive.
-    psd_src = 10 + stats.zscore(psd_src, axis=0)
-
 # make STC where time is frequency.
 stc_psd = mne.SourceEstimate(
-    data=psd_src,
-    subject=subject,
+    data=psd_src, subject=subject,
     vertices=[fwd['src'][ii]['vertno'] for ii in [0, 1]],
     tmin=freqs[0],
     tstep=np.diff(freqs)[0])
 
 # crop to the frequency of interest to satisfy colormap mechanism
-stc_psd.copy().crop(8, 8 + stc_psd.tstep).plot(
-    subject=subject,
-    subjects_dir=subjects_dir,
-    views='cau',
-    hemi='both',
-    time_viewer=True,
-    time_label="Freq=%0.2f Hz",
-    colormap='viridis',
-    clim=dict(kind='percent', lims=(0, 80, 99))
-)
+brain = stc_psd.copy().crop(8, 8).plot(
+    subject=subject, subjects_dir=subjects_dir, views='cau', hemi='both',
+    time_label="Freq=%0.2f Hz", colormap='viridis',
+    clim=dict(kind='percent', lims=(0, 80, 99)))

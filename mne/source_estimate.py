@@ -1477,21 +1477,16 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
              figure=None, views='lat', colorbar=True, clim='auto',
              cortex="classic", size=800, background="black",
              foreground="white", initial_time=None, time_unit='s',
-             backend='auto', spacing='oct6', verbose=None):
-        brain = plot_source_estimates(self, subject, surface=surface,
-                                      hemi=hemi, colormap=colormap,
-                                      time_label=time_label,
-                                      smoothing_steps=smoothing_steps,
-                                      transparent=transparent, alpha=alpha,
-                                      time_viewer=time_viewer,
-                                      subjects_dir=subjects_dir, figure=figure,
-                                      views=views, colorbar=colorbar,
-                                      clim=clim, cortex=cortex, size=size,
-                                      background=background,
-                                      foreground=foreground,
-                                      initial_time=initial_time,
-                                      time_unit=time_unit, backend=backend,
-                                      spacing=spacing, verbose=verbose)
+             backend='auto', spacing='oct6', title=None, verbose=None):
+        brain = plot_source_estimates(
+            self, subject, surface=surface, hemi=hemi, colormap=colormap,
+            time_label=time_label, smoothing_steps=smoothing_steps,
+            transparent=transparent, alpha=alpha, time_viewer=time_viewer,
+            subjects_dir=subjects_dir, figure=figure, views=views,
+            colorbar=colorbar, clim=clim, cortex=cortex, size=size,
+            background=background, foreground=foreground,
+            initial_time=initial_time, time_unit=time_unit, backend=backend,
+            spacing=spacing, title=title, verbose=verbose)
         return brain
 
     @verbose
