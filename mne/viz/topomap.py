@@ -256,8 +256,8 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                                    Layout, _merge_grad_data)
     from ..channels import _get_ch_type
 
-    is_layout_parameter_none = layout == None
-    is_info_parameter_none = info == None
+    is_layout_parameter_none = layout is None
+    is_info_parameter_none = info is None
 
     if info is not None:
         if not isinstance(info, Info):
@@ -357,9 +357,9 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                     raise RuntimeError(msg)
                 else:
                     raise RuntimeError('Cannot find a proper layout for '
-                                    'projection %s, consider explicitly '
-                                    'passing a Layout or Info as the layout '
-                                    'parameter.' % proj['desc'])
+                                       'projection %s, consider explicitly '
+                                       'passing a Layout or Info as the layout'
+                                       ' parameter.' % proj['desc'])
 
         im = plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap,
                           sensors=sensors, res=res, axes=axes[proj_idx],

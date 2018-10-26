@@ -28,7 +28,8 @@ ev_fname = op.join(base_dir, 'test_raw-eve.fif')
 
 
 def test_setup_vmin_vmax_warns():
-    expected_msg = '\(min=0.0, max=1\) range.*minimum of data is -1'
+    """Test that _setup_vmin_vmax warns properly."""
+    expected_msg = r'\(min=0.0, max=1\) range.*minimum of data is -1'
     with pytest.warns(UserWarning, match=expected_msg):
         _setup_vmin_vmax(data=[-1, 0], vmin=None, vmax=None, norm=True)
 
