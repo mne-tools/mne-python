@@ -44,13 +44,14 @@ fig, axes = plt.subplots(1, len(empty_room_proj))
 for proj, ax in zip(empty_room_proj, axes):
     proj.plot_topomap(axes=ax)
 
+###############################################################################
 # Use the function in `mne.viz` to display a list of projections
 assert isinstance(empty_room_proj, list)
 mne.viz.plot_projs_topomap(empty_room_proj)
 
 ###############################################################################
 # As shown in the tutorial on how to
-# :ref:`<sphx_glr_auto_tutorials_plot_visualize_raw.py>`
+# :ref:`sphx_glr_auto_tutorials_plot_visualize_raw.py`
 # the ECG projections can be loaded from a file and added to the raw object
 
 # read the projections
