@@ -1323,7 +1323,8 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
                          'increasing, got %s' % (ctrl_pts,))
     clim_kind = clim.get('kind', 'percent')
     if clim_kind == 'percent':
-        ctrl_pts = np.percentile(np.abs(stc_data), ctrl_pts)
+        perc_data = np.abs(stc_data) if diverging_lims else stc_data
+        ctrl_pts = np.percentile(perc_data, ctrl_pts)
         logger.info('Using control points %s' % (ctrl_pts,))
     elif clim_kind not in ('value', 'values'):
         raise ValueError('clim["kind"] must be "value" or "percent", got %s'

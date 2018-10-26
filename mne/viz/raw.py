@@ -845,9 +845,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     for ax in ax_list:
         ax.grid(True, linestyle=':')
         if xscale == 'log':
-            ax.set(xlim=[freqs[1] if freqs[0] == 0 else freqs[0], freqs[-1]])
             ax.set(xscale='log')
-            ax.get_xaxis().set_major_formatter(ScalarFormatter())
+            ax.get_xaxis().set_minor_formatter(ScalarFormatter())
+            ax.set(xlim=[freqs[1] if freqs[0] == 0 else freqs[0], freqs[-1]])
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
     plt_show(show)

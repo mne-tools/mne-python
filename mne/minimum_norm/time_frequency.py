@@ -454,7 +454,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     Returns
     -------
     stc : SourceEstimate | VolSourceEstimate
-        The PSD (in dB) of each of the sources.
+        The PSD of each of the sources.
     """
     from scipy.signal import hann
     _check_ori(pick_ori, inverse_operator['source_ori'])
@@ -514,8 +514,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         psd = 10 * np.log10(psd)
 
     subject = _subject_from_inverse(inverse_operator)
-    stc = _make_stc(psd, vertices=vertno, tmin=fmin * 1e-3,
-                    tstep=fstep * 1e-3, subject=subject,
+    stc = _make_stc(psd, vertices=vertno, tmin=fmin,
+                    tstep=fstep, subject=subject,
                     src_type=inverse_operator['src'].kind)
     return stc
 

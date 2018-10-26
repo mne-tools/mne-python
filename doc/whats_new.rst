@@ -93,6 +93,8 @@ Bug
 ~~~
 - Fix :func:`mne.io.Raw.plot_proj_topomap` by `Joan Massich`_
 
+- Fix bug in :func:`mne.minimum_norm.compute_source_psd` where the ``stc.times`` output was scaled by 1000, by `Eric Larson`_
+
 - Fix reading edf file annotations by `Joan Massich`_
 
 - Fix bug with reading events from BrainVision files by `Stefan Appelhoff`_

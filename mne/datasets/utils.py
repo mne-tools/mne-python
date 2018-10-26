@@ -552,6 +552,7 @@ def _download_all_example_data(verbose=True):
     try:
         brainstorm.bst_raw.data_path()
         brainstorm.bst_auditory.data_path()
+        brainstorm.bst_resting.data_path()
         brainstorm.bst_phantom_elekta.data_path()
         brainstorm.bst_phantom_ctf.data_path()
     finally:
