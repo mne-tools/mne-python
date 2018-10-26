@@ -7,13 +7,11 @@ Here we compute the resting state from raw for the
 Brainstorm tutorial dataset, see [1]_.
 
 The pipeline is meant to mirror the Brainstorm
-`resting tutorial pipeline <bst_tut_>`_.
+`resting tutorial pipeline <bst_tut_>`_. The steps we use are:
 
-The pipline adapted from Brainstorm is:
-
-1. Filtering: we downsample heavily.
-2. Artifact detection: we use SSP for EOG and ECG.
-3. Source localization: dSPM, some depth weighting, constrained.
+1. Filtering: downsample heavily.
+2. Artifact detection: use SSP for EOG and ECG.
+3. Source localization: dSPM, depth weighting, cortically constrained.
 4. Frequency: power spectrum density (Welch), 4 sec window, 50% overlap.
 5. Standardize: normalize by relative power for each source.
 
@@ -57,21 +55,26 @@ trans_fname = data_path + '/MEG/%s/%s-trans.fif' % (subject, subject)
 ##############################################################################
 # Load data, resample, set types, and unify channel names
 
+# To save memory and computation time, we just use 200 sec of resting state
+# data and 30 sec of empty room data
+
 new_sfreq = 100.
-raw = mne.io.read_raw_ctf(raw_fname).load_data().resample(new_sfreq)
-# Just use 30 sec of empty room for the covariance
-raw_erm = mne.io.read_raw_ctf(raw_erm_fname).crop(0, 30)
-raw_erm.load_data().resample(new_sfreq)
+raw = mne.io.read_raw_ctf(raw_fname)
+raw.crop(0, 200).load_data().resample(new_sfreq)
 raw.set_channel_types({'EEG057': 'ecg', 'EEG058': 'eog'})
+raw_erm = mne.io.read_raw_ctf(raw_erm_fname)
+raw_erm.crop(0, 30).load_data().resample(new_sfreq)
 raw_erm.rename_channels(lambda x: x.replace('-4408', '-4407'))
 
 ##############################################################################
 # Do some minimal artifact rejection
 
-ssp_ecg, _ = mne.preprocessing.compute_proj_ecg(raw, n_mag=2)
-ssp_eog, _ = mne.preprocessing.compute_proj_eog(raw, n_mag=2)
-raw.add_proj(ssp_eog + ssp_ecg)
-raw_erm.add_proj(ssp_eog + ssp_ecg)
+ssp_ecg, _ = mne.preprocessing.compute_proj_ecg(raw, tmin=-0.1, tmax=0.1,
+                                                n_mag=2)
+raw.add_proj(ssp_ecg)
+ssp_ecg_eog, _ = mne.preprocessing.compute_proj_eog(raw, n_mag=2)
+raw.add_proj(ssp_ecg_eog, remove_existing=True)
+raw_erm.add_proj(ssp_ecg_eog)
 
 ##############################################################################
 # Explore data
@@ -106,13 +109,13 @@ stc_psd = mne.minimum_norm.compute_source_psd(
     n_fft=n_fft, label=None, out_decibels=True)
 
 # Normalize each source point independently
-stc_psd /= stc_psd.mean()
+stc_psd_norm = stc_psd / stc_psd.mean()
 
 ###############################################################################
 # Look at alpha
 
 # crop to the frequency of interest to satisfy colormap mechanism
-brain_alpha = stc_psd.copy().crop(8, 8).plot(
+brain_alpha = stc_psd_norm.copy().crop(8, 8).plot(
     subject=subject, subjects_dir=subjects_dir, views='cau', hemi='both',
     time_label="%0.1f Hz", title=u'Relative α power',
     clim=dict(kind='percent', lims=(70, 85, 99)))
@@ -120,7 +123,7 @@ brain_alpha = stc_psd.copy().crop(8, 8).plot(
 ###############################################################################
 # Also look at beta
 
-brain_beta = stc_psd.copy().crop(35, 35).plot(
+brain_beta = stc_psd_norm.copy().crop(35, 35).plot(
     subject=subject, subjects_dir=subjects_dir, views='dor', hemi='both',
     time_label="%0.1f Hz", title=u'Relative β power',
     clim=dict(kind='percent', lims=(70, 85, 99)))
