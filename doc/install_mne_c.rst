@@ -186,9 +186,10 @@ If you are using Ubuntu Linux and you have admin access to the machine you can d
 .. code-block:: console
 
     $ sudo add-apt-repository "deb http://security.ubuntu.com/ubuntu precise-security main"
-    $ sudo apt update
-    $ sudo apt install libxp6
+    $ sudo apt -o Acquire::AllowInsecureRepositories=true -o Acquire::AllowDowngradeToInsecureRepositories=true update
+    $ sudo apt -o APT::Get::AllowUnauthenticated=true install libxp6
     $ sudo add-apt-repository -r "deb http://security.ubuntu.com/ubuntu precise-security main"
+    $ sudo apt update
 
 .. _BABDBCJE:
 
