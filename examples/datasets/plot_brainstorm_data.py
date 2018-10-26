@@ -24,6 +24,7 @@ import numpy as np
 
 import mne
 from mne.datasets.brainstorm import bst_raw
+from mne.io import read_raw_ctf
 
 print(__doc__)
 
@@ -32,9 +33,9 @@ reject = dict(mag=4e-12, eog=250e-6)
 
 data_path = bst_raw.data_path()
 
-raw_fname = data_path + '/MEG/bst_raw/' + \
-                        'subj001_somatosensory_20111109_01_AUX-f_raw.fif'
-raw = mne.io.read_raw_fif(raw_fname, preload=True)
+raw_path = (data_path + '/MEG/bst_raw/' +
+            'subj001_somatosensory_20111109_01_AUX-f.ds')
+raw = read_raw_ctf(raw_path, preload=True)
 raw.plot()
 
 # set EOG channel
