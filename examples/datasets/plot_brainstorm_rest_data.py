@@ -105,8 +105,7 @@ inverse_operator = mne.minimum_norm.make_inverse_operator(
     raw.info, forward=fwd, noise_cov=noise_cov)
 
 stc_psd = mne.minimum_norm.compute_source_psd(
-    raw, inverse_operator, lambda2=1. / 9., method='MNE',
-    n_fft=n_fft, label=None, out_decibels=True)
+    raw, inverse_operator, lambda2=1. / 9., method='MNE', n_fft=n_fft)
 
 # Normalize each source point independently
 stc_psd_norm = stc_psd / stc_psd.mean()

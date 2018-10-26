@@ -401,7 +401,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                        tmin=None, tmax=None, fmin=0., fmax=200.,
                        n_fft=2048, overlap=0.5, pick_ori=None, label=None,
                        nave=1, pca=True, prepared=False, method_params=None,
-                       out_decibels=True, verbose=None):
+                       verbose=None):
     """Compute source power spectrum density (PSD).
 
     Parameters
@@ -454,7 +454,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     Returns
     -------
     stc : SourceEstimate | VolSourceEstimate
-        The PSD of each of the sources.
+        The PSD (in dB) of each of the sources.
     """
     from scipy.signal import hann
     _check_ori(pick_ori, inverse_operator['source_ori'])
@@ -510,8 +510,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         n_windows += 1
 
     psd /= n_windows
-    if out_decibels:
-        psd = 10 * np.log10(psd)
+
+    psd = 10 * np.log10(psd)
 
     subject = _subject_from_inverse(inverse_operator)
     stc = _make_stc(psd, vertices=vertno, tmin=fmin,
