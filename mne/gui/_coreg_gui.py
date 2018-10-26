@@ -1841,7 +1841,8 @@ class CoregFrame(HasTraits):
     @on_trait_change('scene:activated')
     def _init_plot(self):
         _toggle_mlab_render(self, False)
-        self.scene.renderer.use_fxaa = True
+        if hasattr(getattr(self.scene, 'renderer', None), 'use_fxaa'):
+            self.scene.renderer.use_fxaa = True
 
         lpa_color = defaults['lpa_color']
         nasion_color = defaults['nasion_color']
