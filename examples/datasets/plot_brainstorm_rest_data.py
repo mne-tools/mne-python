@@ -24,7 +24,7 @@ References
 
 .. _bst_tut: https://neuroimage.usc.edu/brainstorm/Tutorials/RestingOmega
 """
-# sphinx_gallery_thumbnail_number = 3
+# sphinx_gallery_thumbnail_number = 4
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Luke Bloy <luke.bloy@gmail.com>
@@ -106,23 +106,57 @@ inverse_operator = mne.minimum_norm.make_inverse_operator(
 
 stc_psd = mne.minimum_norm.compute_source_psd(
     raw, inverse_operator, lambda2=1. / 9., method='MNE', n_fft=n_fft)
+stc_psd_amp = stc_psd.copy()
+stc_psd_amp.data = 10 ** (stc_psd_amp.data / 10.)
 
-# Normalize each source point independently
-stc_psd_norm = stc_psd / stc_psd.mean()
+# Group into frequency bands, then normalize each source point independently
+freqs = dict(delta=(2, 4), theta=(5, 7), alpha=(8, 12),
+             beta=(15, 29), gamma=(30, 50))
+stcs = dict()
+norm = 0.
+for band, limits in freqs.items():
+    stcs[band] = stc_psd_amp.copy().crop(*limits).mean()
+    norm += stcs[band].data
+# Normalize each source point by the total power across freqs
+for band in freqs.keys():
+    stcs[band] /= norm
+
+stc_psd_norm = stc_psd.copy()
+stc_psd_norm.data = 10 ** (stc_psd.data / 10.)
+stc_psd_norm = stc_psd_norm / stc_psd_norm.mean()
 
 ###############################################################################
-# Look at alpha
+# Theta:
 
-# crop to the frequency of interest to satisfy colormap mechanism
-brain_alpha = stc_psd_norm.copy().crop(8, 8).plot(
+brain_theta = stcs['theta'].plot(
     subject=subject, subjects_dir=subjects_dir, views='cau', hemi='both',
-    time_label="%0.1f Hz", title=u'Relative α power',
+    time_label="Theta (%d-%d Hz)" % freqs['theta'], title=u'Relative θ power',
     clim=dict(kind='percent', lims=(70, 85, 99)))
+brain_theta.show_view(dict(azimuth=0, elevation=0), roll=0)
 
 ###############################################################################
-# Also look at beta
+# Alpha:
 
-brain_beta = stc_psd_norm.copy().crop(35, 35).plot(
-    subject=subject, subjects_dir=subjects_dir, views='dor', hemi='both',
-    time_label="%0.1f Hz", title=u'Relative β power',
+brain_alpha = stcs['alpha'].plot(
+    subject=subject, subjects_dir=subjects_dir, views='cau', hemi='both',
+    time_label="Alpha (%d-%d Hz)" % freqs['alpha'], title=u'Relative α power',
     clim=dict(kind='percent', lims=(70, 85, 99)))
+brain_alpha.show_view(dict(azimuth=0, elevation=0), roll=0)
+
+###############################################################################
+# Beta:
+
+brain_beta = stcs['beta'].plot(
+    subject=subject, subjects_dir=subjects_dir, views='dor', hemi='both',
+    time_label=u"Beta (%d-%d Hz)" % freqs['beta'], title=u'Relative β power',
+    clim=dict(kind='percent', lims=(70, 85, 99)))
+brain_beta.show_view(dict(azimuth=0, elevation=0), roll=0)
+
+###############################################################################
+# Gamma:
+
+brain_delta = stcs['gamma'].plot(
+    subject=subject, subjects_dir=subjects_dir, views='dor', hemi='both',
+    time_label="Gamma (%d-%d Hz)" % freqs['gamma'], title=u'Relative γ power',
+    clim=dict(kind='percent', lims=(70, 85, 99)))
+brain_delta.show_view(dict(azimuth=0, elevation=0), roll=0)
