@@ -110,6 +110,8 @@ Bug
 
 - Fix bug with channel names in ``mgh70`` montage in :func:`mne.channels.read_montage` by `Eric Larson`_
 
+- Fix bug with :func:`mne.channels.read_dig_montage` where channel digitization locations were not stored properly by `Eric Larson`_
+
 - Fix bug in :func:`mne.io.read_raw_edf` where GDF files had ``info['highpass']`` and ``info['lowpass']`` set to NaN and ``info['meas_date']`` set incorrectly, by `Eric Larson`_
 
 - Fix bug in :func:`mne.preprocessing.ICA.apply` to handle arrays as `exclude` property by `Joan Massich`_

@@ -36,6 +36,7 @@ def test_plot_montage():
     m.plot(kind='topomap', show_names=True)
     plt.close('all')
     d = read_dig_montage(hsp, hpi, elp, point_names)
+    assert '8 channels' in repr(d)
     d.plot()
     plt.close('all')
     d.plot(kind='3d')
