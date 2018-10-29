@@ -54,43 +54,56 @@ _kind_dict = dict(
     hbr=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBR, FIFF.FIFF_UNIT_MOL)
 )
 
-# Valid units to be exposed in raw._orig_units ... these are valid according
-# to the Brain Imaging Data Specification (BIDS), see Appendix 15 ("Units")
-# within http://bids.neuroimaging.io/bids_spec.pdf
-valid_prefix_names = ['yocto', 'zepto', 'atto', 'femto', 'pico', 'nano',
-                      'micro', 'milli', 'centi', 'deci', 'deca', 'hecto',
-                      'kilo', 'mega', 'giga', 'tera', 'peta', 'exa', 'zetta',
-                      'yotta']
-valid_prefix_symbols = ['y', 'z', 'a', 'f', 'p', 'n', u'µ', 'm', 'c', 'd',
-                        'da', 'h', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
-valid_unit_names = ['metre', 'kilogram', 'second', 'ampere', 'kelvin', 'mole',
-                    'candela', 'radian', 'steradian', 'hertz', 'newton',
-                    'pascal', 'joule', 'watt', 'coulomb', 'volt', 'farad',
-                    'ohm', 'siemens', 'weber', 'tesla', 'henry',
-                    'degree Celsius', 'lumen', 'lux', 'becquerel', 'gray',
-                    'sievert', 'katal']
-valid_unit_symbols = ['m', 'kg', 's', 'A', 'K', 'mol', 'cd', 'rad', 'sr', 'Hz',
-                      'N', 'Pa', 'J', 'W', 'C', 'V', 'F', u'Ω', 'S', 'Wb', 'T',
-                      'H', u'°C', 'lm', 'lx', 'Bq', 'Gy', 'Sv', 'kat']
 
-# Valid units are all possible combinations of either prefix name or prefix
-# symbol together with either unit name or unit symbol. E.g., nV for nanovolt
-valid_units = []
-valid_units += ([''.join([prefix, unit]) for prefix in valid_prefix_names
-                 for unit in valid_unit_names])
-valid_units += ([''.join([prefix, unit]) for prefix in valid_prefix_names
-                 for unit in valid_unit_symbols])
-valid_units += ([''.join([prefix, unit]) for prefix in valid_prefix_symbols
-                 for unit in valid_unit_names])
-valid_units += ([''.join([prefix, unit]) for prefix in valid_prefix_symbols
-                 for unit in valid_unit_symbols])
+def _get_valid_units():
+    """Get valid units (according to SI, as accepted by BIDS).
 
-# units are also valid without a prefix
-valid_units += valid_unit_names
-valid_units += valid_unit_symbols
+    Notes
+    -----
+    Valid units to be exposed in raw._orig_units ... these are valid according
+    to the Brain Imaging Data Specification (BIDS), see Appendix 15 ("Units")
+    within http://bids.neuroimaging.io/bids_spec.pdf
+    """
 
-# we also accept "n/a" as a unit, which is the default missing value in BIDS
-valid_units += ["n/a"]
+    valid_prefix_names = ['yocto', 'zepto', 'atto', 'femto', 'pico', 'nano',
+                          'micro', 'milli', 'centi', 'deci', 'deca', 'hecto',
+                          'kilo', 'mega', 'giga', 'tera', 'peta', 'exa',
+                          'zetta', 'yotta']
+    valid_prefix_symbols = ['y', 'z', 'a', 'f', 'p', 'n', u'µ', 'm', 'c', 'd',
+                            'da', 'h', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
+    valid_unit_names = ['metre', 'kilogram', 'second', 'ampere', 'kelvin',
+                        'mole', 'candela', 'radian', 'steradian', 'hertz',
+                        'newton', 'pascal', 'joule', 'watt', 'coulomb', 'volt',
+                        'farad', 'ohm', 'siemens', 'weber', 'tesla', 'henry',
+                        'degree Celsius', 'lumen', 'lux', 'becquerel', 'gray',
+                        'sievert', 'katal']
+    valid_unit_symbols = ['m', 'kg', 's', 'A', 'K', 'mol', 'cd', 'rad', 'sr',
+                          'Hz', 'N', 'Pa', 'J', 'W', 'C', 'V', 'F', u'Ω', 'S',
+                          'Wb', 'T', 'H', u'°C', 'lm', 'lx', 'Bq', 'Gy', 'Sv',
+                          'kat']
+
+    # Valid units are all possible combinations of either prefix name or prefix
+    # symbol together with either unit name or unit symbol. E.g., nV for
+    # nanovolt
+    valid_units = []
+    valid_units += ([''.join([prefix, unit]) for prefix in valid_prefix_names
+                     for unit in valid_unit_names])
+    valid_units += ([''.join([prefix, unit]) for prefix in valid_prefix_names
+                     for unit in valid_unit_symbols])
+    valid_units += ([''.join([prefix, unit]) for prefix in valid_prefix_symbols
+                     for unit in valid_unit_names])
+    valid_units += ([''.join([prefix, unit]) for prefix in valid_prefix_symbols
+                     for unit in valid_unit_symbols])
+
+    # units are also valid without a prefix
+    valid_units += valid_unit_names
+    valid_units += valid_unit_symbols
+
+    # we also accept "n/a" as a unit, which is the default missing value in
+    # BIDS
+    valid_units += ["n/a"]
+
+    return tuple(valid_units)
 
 
 def _summarize_str(st):

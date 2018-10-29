@@ -18,7 +18,7 @@ from mne.annotations import _handle_meas_date
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray
 from mne.utils import _TempDir
-from mne.io.meas_info import valid_units
+from mne.io.meas_info import _get_valid_units
 
 
 def _test_raw_reader(reader, test_preloading=True, **kwargs):
@@ -119,6 +119,7 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
 
     # Make a "soft" test on units: They have to be valid for BIDS as in
     # mne.io.meas_info.valid_units, but we accept any lower/upper case for now.
+    valid_units = _get_valid_units()
     valid_units_lower = [unit.lower() for unit in valid_units]
     if raw._orig_units is not None:
         assert isinstance(raw._orig_units, dict)

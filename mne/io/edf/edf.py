@@ -25,7 +25,6 @@ from ...filter import resample
 from ...externals.six.moves import zip
 from ...utils import copy_function_doc_to_method_doc
 from ...annotations import Annotations, events_from_annotations
-from ..utils import _check_orig_units
 
 
 def find_edf_events(raw):
@@ -195,9 +194,6 @@ class RawEDF(BaseRaw):
         if annot or annotmap:
             warn("'annot' and 'annotmap' parameters are deprecated and will be"
                  " removed in 0.18", DeprecationWarning)
-
-        # Final check of orig_units, editing a unit if it is not a valid unit
-        orig_units = _check_orig_units(orig_units)
 
         # Raw attributes
         last_samps = [edf_info['nsamples'] - 1]

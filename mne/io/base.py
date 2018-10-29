@@ -16,7 +16,7 @@ import os.path as op
 import numpy as np
 
 from .constants import FIFF
-from .utils import _construct_bids_filename
+from .utils import _construct_bids_filename, _check_orig_units
 from .pick import pick_types, channel_type, pick_channels, pick_info
 from .pick import _pick_data_channels, _pick_data_or_ica
 from .meas_info import write_meas_info
@@ -393,6 +393,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 ch_without_orig_unit = ch_names[ch_correspond.index(False)]
                 raise ValueError('Channel {0} has no associated original '
                                  'unit.'.format(ch_without_orig_unit))
+
+            # Final check of orig_units, editing a unit if it is not a valid
+            # unit
+            orig_units = _check_orig_units(orig_units)
         self._orig_units = orig_units
         self._projectors = list()
         self._projector = None
