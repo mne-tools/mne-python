@@ -4,7 +4,7 @@ environment:
       CONDA_ENVIRONMENT: "environment.yml"
       PIP_DEPENDENCIES: "codecov pytest-faulthandler"
   matrix:
-      - PYTHON_VERSION: "2.7"
+      - PYTHON_VERSION: "3.6"
         PYTHON_ARCH: "64"
 
 install:
