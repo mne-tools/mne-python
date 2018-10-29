@@ -56,6 +56,16 @@ eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
 
 
+def test_orig_units():
+    """Test exposure of original channel units."""
+    raw = read_raw_edf(edf_path, stim_channel='auto', preload=True)
+
+    # Test original units
+    orig_units = raw._orig_units
+    assert len(orig_units) == 140
+    assert orig_units['A1'] == u'µV'  # formerly 'uV' edit by _check_orig_units
+
+
 def test_bdf_data():
     """Test reading raw bdf files."""
     raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
