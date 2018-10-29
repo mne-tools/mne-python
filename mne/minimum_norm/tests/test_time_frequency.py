@@ -1,7 +1,7 @@
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_equal
+from numpy.testing import assert_allclose
 import pytest
 
 from mne.datasets import testing
@@ -65,14 +65,14 @@ def test_tfr_with_inverse_operator():
     stc = stcs['alpha']
     assert len(stcs) == len(list(bands.keys()))
     assert np.all(stc.data > 0)
-    assert_array_almost_equal(stc.times, epochs.times)
+    assert_allclose(stc.times, epochs.times, atol=1e-6)
 
     stcs_no_pca = source_band_induced_power(epochs, inv, bands,
                                             n_cycles=2, use_fft=False,
                                             pca=False, label=label,
                                             prepared=True)
 
-    assert_array_almost_equal(stcs['alpha'].data, stcs_no_pca['alpha'].data)
+    assert_allclose(stcs['alpha'].data, stcs_no_pca['alpha'].data)
 
     # Compute a source estimate per frequency band
     epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
@@ -92,25 +92,35 @@ def test_tfr_with_inverse_operator():
 def test_source_psd():
     """Test source PSD computation in label."""
     raw = read_raw_fif(fname_data)
+    raw.crop(0, 5).load_data()
     inverse_operator = read_inverse_operator(fname_inv)
-    tmin, tmax = 0, 20  # seconds
     fmin, fmax = 55, 65  # Hz
-    n_fft = 2048
+    n_fft = 512
 
-    assert_equal(inverse_operator['source_ori'], FIFF.FIFFV_MNE_FREE_ORI)
+    assert inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
 
-    for pick_ori in ('normal', None):
-        stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9.,
-                                 method="dSPM", tmin=tmin, tmax=tmax,
-                                 fmin=fmin, fmax=fmax, pick_ori=pick_ori,
-                                 n_fft=n_fft, overlap=0.1)
+    stcs = list()
+    for pick_ori, method in zip((None, 'normal', 'normal'),
+                                ('dSPM', 'dSPM', 'MNE')):
+        stc = compute_source_psd(
+            raw, inverse_operator, lambda2=1. / 9., method=method,
+            fmin=fmin, fmax=fmax, pick_ori=pick_ori, n_fft=n_fft, overlap=0.)
 
-        assert_equal(stc.shape[0], inverse_operator['nsource'])
+        assert stc.shape[0] == inverse_operator['nsource']
 
-        assert stc.times[0] >= fmin * 1e-3
-        assert stc.times[-1] <= fmax * 1e-3
+        assert stc.times[0] >= fmin
+        assert stc.times[-1] <= fmax
         # Time max at line frequency (60 Hz in US)
-        assert 58e-3 <= stc.times[np.argmax(np.sum(stc.data, axis=0))] <= 61e-3
+        assert 58 <= stc.times[np.argmax(np.sum(stc.data, axis=0))] <= 61
+        stcs.append(stc)
+    stc_dspm = stcs[-2]
+    stc_mne = stcs[-1]
+    # normalize each source point by its power after undoing the dB
+    stc_dspm.data = 10 ** (stc_dspm.data / 10.)
+    stc_dspm /= stc_dspm.mean()
+    stc_mne.data = 10 ** (stc_mne.data / 10.)
+    stc_mne /= stc_mne.mean()
+    assert_allclose(stc_dspm.data, stc_mne.data, atol=1e-4)
 
 
 @testing.requires_testing_data
@@ -160,7 +170,7 @@ def test_source_psd_epochs():
     for stc in stcs:
         stc_psd_gen = stc
 
-    assert_array_almost_equal(stc_psd.data, stc_psd_gen.data)
+    assert_allclose(stc_psd.data, stc_psd_gen.data, atol=1e-7)
 
     # compare with direct computation
     stc = apply_inverse_epochs(one_epochs, inv,
@@ -173,8 +183,8 @@ def test_source_psd_epochs():
                                       bandwidth=bandwidth, fmin=fmin,
                                       fmax=fmax)
 
-    assert_array_almost_equal(psd, stc_psd.data)
-    assert_array_almost_equal(freqs, stc_psd.times)
+    assert_allclose(psd, stc_psd.data, atol=1e-7)
+    assert_allclose(freqs, stc_psd.times)
 
     # Check corner cases caused by tiny bandwidth
     with pytest.raises(ValueError, match='use a value of at least'):

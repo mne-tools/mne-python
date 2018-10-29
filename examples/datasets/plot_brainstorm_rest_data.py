@@ -55,12 +55,12 @@ trans_fname = data_path + '/MEG/%s/%s-trans.fif' % (subject, subject)
 ##############################################################################
 # Load data, resample, set types, and unify channel names
 
-# To save memory and computation time, we just use 200 sec of resting state
+# To save memory and computation time, we just use 60 sec of resting state
 # data and 30 sec of empty room data
 
 new_sfreq = 100.
 raw = mne.io.read_raw_ctf(raw_fname)
-raw.crop(0, 200).load_data().resample(new_sfreq)
+raw.crop(0, 60).load_data().resample(new_sfreq)
 raw.set_channel_types({'EEG057': 'ecg', 'EEG058': 'eog'})
 raw_erm = mne.io.read_raw_ctf(raw_erm_fname)
 raw_erm.crop(0, 30).load_data().resample(new_sfreq)
@@ -79,7 +79,6 @@ raw_erm.add_proj(ssp_ecg_eog)
 ##############################################################################
 # Explore data
 
-# Alpha peak @ 8 Hz (and likely harmonic @ 16 Hz)
 n_fft = int(round(4 * new_sfreq))
 fig = raw.plot_psd(n_fft=n_fft, proj=True)
 
@@ -110,8 +109,8 @@ stc_psd_amp = stc_psd.copy()
 stc_psd_amp.data = 10 ** (stc_psd_amp.data / 10.)
 
 # Group into frequency bands, then normalize each source point independently
-freqs = dict(delta=(2, 4), theta=(5, 7), alpha=(8, 12),
-             beta=(15, 29), gamma=(30, 50))
+freqs = dict(
+    delta=(2, 4), theta=(5, 7), alpha=(8, 12), beta=(15, 29), gamma=(30, 50))
 stcs = dict()
 norm = 0.
 for band, limits in freqs.items():
@@ -120,10 +119,6 @@ for band, limits in freqs.items():
 # Normalize each source point by the total power across freqs
 for band in freqs.keys():
     stcs[band] /= norm
-
-stc_psd_norm = stc_psd.copy()
-stc_psd_norm.data = 10 ** (stc_psd.data / 10.)
-stc_psd_norm = stc_psd_norm / stc_psd_norm.mean()
 
 ###############################################################################
 # Theta:
