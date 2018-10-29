@@ -110,7 +110,7 @@ Bug
 
 - Fix bug with channel names in ``mgh70`` montage in :func:`mne.channels.read_montage` by `Eric Larson`_
 
-- Fix check in :func:`mne.vis.plot_sensors` for inalid channel locations by `Eric Larson`_
+- Fix check in :func:`mne.vis.plot_sensors` for invalid channel locations by `Eric Larson`_
 
 - Fix bug in :func:`mne.io.read_raw_edf` where GDF files had ``info['highpass']`` and ``info['lowpass']`` set to NaN and ``info['meas_date']`` set incorrectly, by `Eric Larson`_
 
