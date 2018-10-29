@@ -9,7 +9,7 @@ dependencies:
 - scipy
 - matplotlib
 - cython
-- pyqt>=5.9
+- pyqt
 - vtk
 - pandas
 - scikit-learn
