@@ -8,6 +8,7 @@
 import os.path as op
 
 import matplotlib
+import pytest
 
 from mne.channels import read_montage, read_dig_montage
 
@@ -21,6 +22,7 @@ hpi = op.join(p_dir, 'test_mrk.sqd')
 point_names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
 
 
+@pytest.mark.skip(reason="matplotlib issue")
 def test_plot_montage():
     """Test plotting montages."""
     import matplotlib.pyplot as plt
