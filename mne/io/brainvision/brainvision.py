@@ -68,8 +68,9 @@ class RawBrainVision(BaseRaw):
     event_id : dict | None
         Special events to consider in addition to those that follow the normal
         BrainVision trigger format ('###' with an optional single character
-        prefix). If dict, the keys will be mapped to trigger values on the
-        stimulus channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}.
+        prefix, e.g., "111", "S  1", "R128", "S 21"). If dict, the keys will be
+        mapped to trigger values on the stimulus channel.
+        Example: {'SyncStatus': 1, 'Pulse Artifact': 3}.
         If None or an empty dict (default), only BrainVision format events are
         added to the stimulus channel. Keys are case sensitive. "New Segment"
         markers are always dropped.
@@ -160,9 +161,10 @@ class RawBrainVision(BaseRaw):
         events, _ = events_from_annotations(self, event_id)
         if len(dropped_desc) > 0:
             dropped = list(set(dropped_desc))
-            warn("{0} annotation(s) will be dropped, such as {1}. "
-                 "Consider using ``regexp`` to ignore annotations that "
-                 "do not follow a specific pattern."
+            warn("{0} event(s) will be dropped, such as {1}. "
+                 "Consider using the event_id parameter to parse events "
+                 "that do not follow the BrainVision format. For more "
+                 "information, see the docstring of read_raw_brainvision."
                  .format(len(dropped), dropped[:5]))
         self._create_event_ch(events, n_samples)
 
@@ -1000,7 +1002,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         Special events to consider in addition to those that follow the normal
         BrainVision trigger format ('###' with an optional single character
         prefix). If dict, the keys will be mapped to trigger values on the
-        stimulus channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}.
+        stimulus channel. Example: {'SyncStatus': 1, 'Pulse Artifact': 3}.
         If None or an empty dict (default), only BrainVision format events are
         added to the stimulus channel. Keys are case sensitive. "New Segment"
         markers are always dropped.
