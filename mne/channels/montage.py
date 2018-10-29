@@ -632,7 +632,6 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
 
     .. versionadded:: 0.9.0
     """
-    fid_keys = ('nasion', 'lpa', 'rpa')
     if fif is not None:
         # Use a different code path
         if dev_head_t or not transform:
@@ -668,7 +667,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
             elif d['kind'] == FIFF.FIFFV_POINT_EEG:
                 _check_frame(d, 'head')
                 dig_ch_pos['EEG%03d' % d['ident']] = d['r']
-        fids = [fids.get(key) for key in fid_keys]
+        fids = [fids.get(key) for key in ('nasion', 'lpa', 'rpa')]
         hsp = np.array(hsp) if len(hsp) else None
         elp = np.array(elp) if len(elp) else None
         coord_frame = 'head'
@@ -716,7 +715,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                 warn('Unknown sensor type %s detected. Skipping sensor...'
                      'Proceed with caution!' % kind)
 
-        fids = [fids[key] for key in fid_keys]
+        fids = [fids[key] for key in ('nasion', 'lpa', 'rpa')]
         coord_frame = 'unknown'
 
     else:
@@ -751,16 +750,6 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
             elp = _read_dig_points(elp, unit=unit)
         elif elp is not None and scale[unit]:
             elp *= scale[unit]
-        if point_names is not None:
-            if len(point_names) != len(elp):
-                raise ValueError('point_names (%d) must be the same length '
-                                 'as elp (%d)' % (len(point_names), len(elp)))
-            dig_ch_pos = dict()
-            for name, el in zip(point_names, elp):
-                if name in fid_keys:
-                    fids[fid_keys.index(name)] = elp[point_names.index(name)]
-                dig_ch_pos[name] = el
-
         coord_frame = 'unknown'
 
     # Transform digitizer coordinates to neuromag space

@@ -30,7 +30,7 @@ from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        pick_info, _picks_by_type)
 from ..io.proc_history import _get_rank_sss
 from ..io.proj import setup_proj
-from ..utils import logger, verbose, set_config, warn
+from ..utils import logger, verbose, set_config, warn, _check_ch_locs
 
 from ..externals.six import string_types
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
@@ -1405,8 +1405,11 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     if len(picks) == 0:
         raise ValueError('Could not find any channels of type %s.' % ch_type)
 
-    pos = np.asarray([ch['loc'][:3] for ch in info['chs']])[picks]
-    ch_names = np.array(info['ch_names'])[picks]
+    chs = [info['chs'][pick] for pick in picks]
+    if not _check_ch_locs(chs):
+        raise RuntimeError('No valid channel positions found')
+    pos = np.array([ch['loc'][:3] for ch in chs])
+    ch_names = np.array([ch['ch_name'] for ch in chs])
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
     if ch_groups is None:
         def_colors = _handle_default('color')
