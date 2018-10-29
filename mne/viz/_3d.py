@@ -1696,7 +1696,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     title : str | None
         Title for the figure. If None, the subject name will be used.
 
-        .. versionadded:: 0.18.0
+        .. versionadded:: 0.17.0
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
