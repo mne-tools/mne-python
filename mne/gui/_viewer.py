@@ -186,7 +186,8 @@ class Object(HasPrivateTraits):
 
     # This should be Tuple, but it is broken on Anaconda as of 2016/12/16
     color = RGBColor((1., 1., 1.))
-    opacity = Range(low=0., high=1., value=1.)
+    # Due to a MESA bug, we use 0.99 opacity to force alpha blending
+    opacity = Range(low=0., high=1., value=0.99)
     visible = Bool(True)
 
     def _update_points(self):

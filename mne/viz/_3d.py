@@ -351,7 +351,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                                      np.tile([0., 0., 0., 255.], (2, 1)),
                                      np.tile([255., 0., 0., 255.], (127, 1))])
 
-    fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+    fig = _mlab_figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
     _toggle_mlab_render(fig, False)
 
     for ii, this_map in enumerate(surf_maps):
@@ -1041,7 +1041,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
             hpi_loc = np.array([d['r'] for d in info['dig']
                                 if d['kind'] == FIFF.FIFFV_POINT_HPI])
             ext_loc = np.array([d['r'] for d in info['dig']
-                               if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
+                                if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
         car_loc = _fiducial_coords(info['dig'])
         # Transform from head coords if necessary
         if coord_frame == 'meg':
@@ -1062,7 +1062,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
 
     # initialize figure
     if fig is None:
-        fig = mlab.figure(bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
+        fig = _mlab_figure(bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
     if interaction == 'terrain' and fig.scene is not None:
         fig.scene.interactor.interactor_style = \
             tvtk.InteractorStyleTerrain()
@@ -1976,7 +1976,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             ax_z.clear()
             params.update({'img_idx': index_img(img, idx)})
             params.update({'title': 'Activation (t=%.3f s.)'
-                          % params['stc'].times[idx]})
+                           % params['stc'].times[idx]})
             plot_map_callback(
                 params['img_idx'], title='',
                 cut_coords=cut_coords)
@@ -2380,8 +2380,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     color_converter = ColorConverter()
 
-    f = mlab.figure(figure=fig_name, bgcolor=bgcolor, size=(600, 600))
-    mlab.clf()
+    f = _mlab_figure(figure=fig_name, bgcolor=bgcolor, size=(600, 600))
     _toggle_mlab_render(f, False)
     with warnings.catch_warnings(record=True):  # traits warnings
         surface = mlab.triangular_mesh(points[:, 0], points[:, 1],
@@ -2446,6 +2445,16 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     surface.actor.property.shading = True
     _toggle_mlab_render(f, True)
     return surface
+
+
+def _mlab_figure(**kwargs):
+    """Create a Mayavi figure using our defaults."""
+    from mayavi import mlab
+    fig = mlab.figure(**kwargs)
+    # If using modern VTK/Mayavi, improve rendering with FXAA
+    if hasattr(getattr(fig.scene, 'renderer', None), 'use_fxaa'):
+        fig.scene.renderer.use_fxaa = True
+    return fig
 
 
 def _toggle_mlab_render(fig, render):
