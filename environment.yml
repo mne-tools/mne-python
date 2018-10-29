@@ -7,7 +7,7 @@ dependencies:
 - mkl
 - numpy
 - scipy
-- matplotlib
+- matplotlib<=3.0
 - cython
 - pyqt>=5.9
 - vtk
