@@ -7,7 +7,8 @@ Here we compute the resting state from raw for the
 Brainstorm tutorial dataset, see [1]_.
 
 The pipeline is meant to mirror the Brainstorm
-`resting tutorial pipeline <bst_tut_>`_. The steps we use are:
+`OMEGA resting tutorial pipeline <bst_omega_>`_, though these data come
+from the Brainstorm `resting dataset <bst_resting_>`_. The steps we use are:
 
 1. Filtering: downsample heavily.
 2. Artifact detection: use SSP for EOG and ECG.
@@ -22,7 +23,8 @@ References
        Computational Intelligence and Neuroscience, vol. 2011, Article ID
        879716, 13 pages, 2011. doi:10.1155/2011/879716
 
-.. _bst_tut: https://neuroimage.usc.edu/brainstorm/Tutorials/RestingOmega
+.. _bst_omega: https://neuroimage.usc.edu/brainstorm/Tutorials/RestingOmega
+.. _bst_resting: https://neuroimage.usc.edu/brainstorm/Tutorials/Resting
 """
 # sphinx_gallery_thumbnail_number = 4
 
