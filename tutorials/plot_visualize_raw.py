@@ -107,8 +107,8 @@ raw.plot_projs_topomap()
 
 ###############################################################################
 # Note that the projections in ``raw.info['projs']`` can be visualized using
-# ``raw.plot_projs_topomap`` or calling
-# :func:`proj.plot_topomap <mne.io.proj.Projection.plot_topomap>`
+# :meth:`raw.plot_projs_topomap <mne.io.Raw.plot_projs_topomap>` or calling
+# :func:`proj.plot_topomap <mne.Projection.plot_topomap>`
 #
 # more examples can be found in
 # :ref:`sphx_glr_auto_examples_io_plot_read_proj.py`
