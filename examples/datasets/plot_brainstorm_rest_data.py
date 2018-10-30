@@ -34,6 +34,10 @@ References
 
 import os.path as op
 
+from mne.filter import next_fast_len
+import matplotlib.pyplot as plt
+from mayavi import mlab
+
 import mne
 from mne.datasets.brainstorm import bst_resting
 
@@ -56,14 +60,14 @@ trans_fname = data_path + '/MEG/%s/%s-trans.fif' % (subject, subject)
 # Load data, resample, set types, and unify channel names
 
 # To save memory and computation time, we just use 60 sec of resting state
-# data and 30 sec of empty room data
+# data and 30 sec of empty room data.
 
 new_sfreq = 100.
 raw = mne.io.read_raw_ctf(raw_fname)
-raw.crop(0, 60).load_data().resample(new_sfreq)
+raw.crop(220, 280).load_data().resample(new_sfreq)
 raw.set_channel_types({'EEG057': 'ecg', 'EEG058': 'eog'})
 raw_erm = mne.io.read_raw_ctf(raw_erm_fname)
-raw_erm.crop(0, 30).load_data().resample(new_sfreq)
+raw_erm.crop(0, None).load_data().resample(new_sfreq)
 raw_erm.rename_channels(lambda x: x.replace('-4408', '-4407'))
 
 ##############################################################################
@@ -72,15 +76,17 @@ raw_erm.rename_channels(lambda x: x.replace('-4408', '-4407'))
 ssp_ecg, _ = mne.preprocessing.compute_proj_ecg(raw, tmin=-0.1, tmax=0.1,
                                                 n_mag=2)
 raw.add_proj(ssp_ecg)
-ssp_ecg_eog, _ = mne.preprocessing.compute_proj_eog(raw, n_mag=2)
+ssp_ecg_eog, _ = mne.preprocessing.compute_proj_eog(raw, n_mag=1)
 raw.add_proj(ssp_ecg_eog, remove_existing=True)
 raw_erm.add_proj(ssp_ecg_eog)
+mne.viz.plot_projs_topomap(raw.info['projs'], info=raw.info)
 
 ##############################################################################
 # Explore data
 
-n_fft = int(round(4 * new_sfreq))
-fig = raw.plot_psd(n_fft=n_fft, proj=True)
+n_fft = next_fast_len(int(round(4 * new_sfreq)))
+print('Using n_fft=%d (%0.1f sec)' % (n_fft, n_fft / raw.info['sfreq']))
+raw.plot_psd(n_fft=n_fft, proj=True)
 
 ##############################################################################
 # Make forward stack and get transformation matrix
@@ -90,31 +96,35 @@ bem = mne.read_bem_solution(bem_fname)
 trans = mne.read_trans(trans_fname)
 
 # check alignment
-mne.viz.plot_alignment(
+fig = mne.viz.plot_alignment(
     raw.info, trans=trans, subject=subject, subjects_dir=subjects_dir,
-    dig=True)
-fwd = mne.make_forward_solution(raw.info, trans, src=src, bem=bem, eeg=False)
+    dig=True, coord_frame='meg')
+mlab.view(180, 90, figure=fig)
+
+fwd = mne.make_forward_solution(
+    raw.info, trans, src=src, bem=bem, eeg=False, verbose=True)
 
 ##############################################################################
-# Compute and apply inverse
+# Compute and apply inverse to PSD estimated using multitaper + Welch
 
-noise_cov = mne.compute_raw_covariance(raw_erm, method='shrunk')
+noise_cov = mne.compute_raw_covariance(raw_erm, method='oas')
 
 inverse_operator = mne.minimum_norm.make_inverse_operator(
-    raw.info, forward=fwd, noise_cov=noise_cov)
+    raw.info, forward=fwd, noise_cov=noise_cov, verbose=True)
 
-stc_psd = mne.minimum_norm.compute_source_psd(
-    raw, inverse_operator, lambda2=1. / 9., method='MNE', n_fft=n_fft)
-stc_psd_amp = stc_psd.copy()
-stc_psd_amp.data = 10 ** (stc_psd_amp.data / 10.)
+stc_psd, evoked_psd = mne.minimum_norm.compute_source_psd(
+    raw, inverse_operator, lambda2=1. / 9., method='MNE', n_fft=n_fft,
+    dB=False, return_sensor=True, verbose=True)
 
 # Group into frequency bands, then normalize each source point independently
 freqs = dict(
     delta=(2, 4), theta=(5, 7), alpha=(8, 12), beta=(15, 29), gamma=(30, 50))
+topos = dict()
 stcs = dict()
 norm = 0.
 for band, limits in freqs.items():
-    stcs[band] = stc_psd_amp.copy().crop(*limits).mean()
+    topos[band] = evoked_psd.copy().crop(*limits).data.mean(axis=1)
+    stcs[band] = stc_psd.copy().crop(*limits).mean()
     norm += stcs[band].data
 # Normalize each source point by the total power across freqs
 for band in freqs.keys():
@@ -123,35 +133,35 @@ for band in freqs.keys():
 ###############################################################################
 # Theta:
 
-brain_theta = stcs['theta'].plot(
-    subject=subject, subjects_dir=subjects_dir, views='cau', hemi='both',
-    time_label="Theta (%d-%d Hz)" % freqs['theta'], title=u'Relative θ power',
-    clim=dict(kind='percent', lims=(70, 85, 99)))
-brain_theta.show_view(dict(azimuth=0, elevation=0), roll=0)
+
+def plot_band(band):
+    title = "%s (%d-%d Hz)" % ((band.capitalize(),) + freqs[band])
+    fig, ax = plt.subplots(1, figsize=(4, 4))
+    mne.viz.plot_topomap(topos[band], evoked_psd.info, outlines='skirt',
+                         axes=ax)
+    ax.set_xlabel(title)
+    fig.tight_layout()
+    brain = stcs[band].plot(
+        subject=subject, subjects_dir=subjects_dir, views='cau', hemi='both',
+        time_label=title, title=u'Relative %s power' % band,
+        clim=dict(kind='percent', lims=(70, 85, 99)))
+    brain.show_view(dict(azimuth=0, elevation=0), roll=0)
+    return fig, brain
+
+
+fig_theta, brain_theta = plot_band('theta')
 
 ###############################################################################
 # Alpha:
 
-brain_alpha = stcs['alpha'].plot(
-    subject=subject, subjects_dir=subjects_dir, views='cau', hemi='both',
-    time_label="Alpha (%d-%d Hz)" % freqs['alpha'], title=u'Relative α power',
-    clim=dict(kind='percent', lims=(70, 85, 99)))
-brain_alpha.show_view(dict(azimuth=0, elevation=0), roll=0)
+fig_alpha, brain_alpha = plot_band('alpha')
 
 ###############################################################################
 # Beta:
 
-brain_beta = stcs['beta'].plot(
-    subject=subject, subjects_dir=subjects_dir, views='dor', hemi='both',
-    time_label=u"Beta (%d-%d Hz)" % freqs['beta'], title=u'Relative β power',
-    clim=dict(kind='percent', lims=(70, 85, 99)))
-brain_beta.show_view(dict(azimuth=0, elevation=0), roll=0)
+fig_beta, brain_beta = plot_band('beta')
 
 ###############################################################################
 # Gamma:
 
-brain_delta = stcs['gamma'].plot(
-    subject=subject, subjects_dir=subjects_dir, views='dor', hemi='both',
-    time_label="Gamma (%d-%d Hz)" % freqs['gamma'], title=u'Relative γ power',
-    clim=dict(kind='percent', lims=(70, 85, 99)))
-brain_delta.show_view(dict(azimuth=0, elevation=0), roll=0)
+fig_gamma, brain_gamma = plot_band('gamma')

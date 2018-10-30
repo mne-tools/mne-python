@@ -90,11 +90,11 @@ def test_tfr_with_inverse_operator():
 
 @testing.requires_testing_data
 def test_source_psd():
-    """Test source PSD computation in label."""
+    """Test source PSD computation from raw."""
     raw = read_raw_fif(fname_data)
     raw.crop(0, 5).load_data()
     inverse_operator = read_inverse_operator(fname_inv)
-    fmin, fmax = 55, 65  # Hz
+    fmin, fmax = 40, 65  # Hz
     n_fft = 512
 
     assert inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
@@ -102,16 +102,23 @@ def test_source_psd():
     stcs = list()
     for pick_ori, method in zip((None, 'normal', 'normal'),
                                 ('dSPM', 'dSPM', 'MNE')):
-        stc = compute_source_psd(
+        stc, ev = compute_source_psd(
             raw, inverse_operator, lambda2=1. / 9., method=method,
-            fmin=fmin, fmax=fmax, pick_ori=pick_ori, n_fft=n_fft, overlap=0.)
+            fmin=fmin, fmax=fmax, pick_ori=pick_ori, n_fft=n_fft, overlap=0.,
+            return_sensor=True)
+
+        assert ev.data.shape == (len(ev.info['ch_names']), len(stc.times))
+        assert ev.times[0] >= fmin
+        assert ev.times[-1] <= fmax
+        # Time max at line frequency (60 Hz in US)
+        assert 58 <= ev.times[np.argmax(np.sum(ev.data, axis=0))] <= 61
+        assert ev.nave == 2
 
         assert stc.shape[0] == inverse_operator['nsource']
-
         assert stc.times[0] >= fmin
         assert stc.times[-1] <= fmax
-        # Time max at line frequency (60 Hz in US)
         assert 58 <= stc.times[np.argmax(np.sum(stc.data, axis=0))] <= 61
+
         stcs.append(stc)
     stc_dspm = stcs[-2]
     stc_mne = stcs[-1]

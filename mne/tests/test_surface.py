@@ -49,7 +49,7 @@ def test_helmet():
     for info, n, name in [(read_info(fname_raw), 304, '306m'),
                           (read_info(fname_kit_raw), 304, 'KIT'),
                           (read_info(fname_bti_raw), 304, 'Magnes'),
-                          (read_info(fname_ctf_raw), 348, 'CTF'),
+                          (read_info(fname_ctf_raw), 343, 'CTF'),
                           (new_info, 102, 'unknown'),
                           (artemis_info, 102, 'ARTEMIS123')
                           ]:

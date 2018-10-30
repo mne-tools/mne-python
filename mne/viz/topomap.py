@@ -273,9 +273,10 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
         if not isinstance(layout, (list, tuple)):
             raise TypeError('layout must be an instance of Layout, list, '
                             'or None, got %s' % (type(layout),))
-        if not all(isinstance(l, Layout) for l in layout):
-            raise TypeError('All entries in layout list must be of type '
-                            'Layout')
+        for l in layout:
+            if not isinstance(l, Layout):
+                raise TypeError('All entries in layout list must be of type '
+                                'Layout, got type %s' % (type(l),))
 
     n_projs = len(projs)
     nrows = math.floor(math.sqrt(n_projs))
