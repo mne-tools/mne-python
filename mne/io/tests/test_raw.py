@@ -91,6 +91,11 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
     # gh-5604
     assert _handle_meas_date(raw.info['meas_date']) >= 0
 
+    # test resetting raw
+    raw2 = reader(**raw._init_kwargs)
+    assert set(raw.info.keys()) == set(raw2.info.keys())
+    assert_array_almost_equal(raw.times, raw2.times)
+
     # Test saving and reading
     out_fname = op.join(tempdir, 'test_raw.fif')
     raw = concatenate_raws([raw])
