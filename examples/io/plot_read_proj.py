@@ -70,16 +70,16 @@ raw.plot_projs_topomap()
 # Here we display the `ecg_projs` individually and we provide extra parameters
 # for EEG. (Notice that planar projection refers to the gradiometers and axial
 # refers to magnetometers.)
+#
+# Notice that the conditional is just for illustration purposes. We could
+# `raw.info` in all cases to avoid the guesswork in `plot_topomap` and ensure
+# that the right layout is always found
 fig, axes = plt.subplots(1, len(ecg_projs))
 for proj, ax in zip(ecg_projs, axes):
     if proj['desc'].startswith('ECG-eeg'):
         proj.plot_topomap(axes=ax, info=raw.info)
     else:
         proj.plot_topomap(axes=ax)
-
-###############################################################################
-# To display it in one go we can provide always info and avoid the guesswork
-mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
 
 ###############################################################################
 # The correct layout or a list of layouts from where to choose can also be
