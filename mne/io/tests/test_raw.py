@@ -117,7 +117,7 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
 
     assert isinstance(raw.annotations, Annotations)
 
-    # Make a "soft" test on units: They have to be valid for BIDS as in
+    # Make a "soft" test on units: They have to be valid SI units as in
     # mne.io.meas_info.valid_units, but we accept any lower/upper case for now.
     valid_units = _get_valid_units()
     valid_units_lower = [unit.lower() for unit in valid_units]

@@ -47,7 +47,7 @@ ctf_fname = op.join(data_path, 'CTF', 'testdata_ctf.ds')
 
 
 def test_get_valid_units():
-    """Test the BIDS-valid units."""
+    """Test the valid units."""
     valid_units = _get_valid_units()
     assert isinstance(valid_units, tuple)
     assert all(isinstance(unit, string_types) for unit in valid_units)

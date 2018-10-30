@@ -56,15 +56,18 @@ _kind_dict = dict(
 
 
 def _get_valid_units():
-    """Get valid units (according to SI, as accepted by BIDS).
+    """Get valid units according to the International System of Units (SI).
 
-    Notes
-    -----
-    Valid units to be exposed in raw._orig_units ... these are valid according
-    to the Brain Imaging Data Specification (BIDS), see Appendix 15 ("Units")
-    within http://bids.neuroimaging.io/bids_spec.pdf
+    The International System of Units (SI, [1]) is the default system for
+    describing units in the Brain Imaging Data Structure (BIDS). For more
+    information, see the BIDS specification [2] and the appendix "Units"
+    therein.
+
+    References
+    ----------
+    [1] .. https://en.wikipedia.org/wiki/International_System_of_Units
+    [2] .. http://bids.neuroimaging.io/bids_spec.pdf
     """
-
     valid_prefix_names = ['yocto', 'zepto', 'atto', 'femto', 'pico', 'nano',
                           'micro', 'milli', 'centi', 'deci', 'deca', 'hecto',
                           'kilo', 'mega', 'giga', 'tera', 'peta', 'exa',
