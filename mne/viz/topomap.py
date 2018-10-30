@@ -344,7 +344,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                            ' inferred from the data. '.format(proj['desc']))
                     if is_layout_parameter_none and is_info_parameter_none:
                         msg += (' For EEG data, valid `layout` or `info` is'
-                                ' reauired. None was provided, please consider'
+                                ' required. None was provided, please consider'
                                 ' passing one of them.')
                     elif not is_layout_parameter_none:
                         msg += (' A `layout` was provided but could not be'
