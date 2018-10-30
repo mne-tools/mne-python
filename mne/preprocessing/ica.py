@@ -293,7 +293,7 @@ class ICA(ContainsMixin):
            NeuroImage 175, pp.176–187.
            https://sccn.ucsd.edu/%7Earno/mypapers/Artoni2018.pdf
 
-     .. [6] https://sccn.ucsd.edu/wiki/Chapter_09:_Decomposing_Data_Using_ICA#Issue:_ICA_returns_near-identical_components_with_opposite_polarities
+     .. [6] https://sccn.ucsd.edu/wiki/Chapter_09:_Decomposing_Data_Using_ICA#Issue:_ICA_returns_near-identical_components_with_opposite_polarities  # noqa
 
     """
 
