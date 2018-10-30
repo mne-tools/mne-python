@@ -628,11 +628,14 @@ def test_read_vmrk_annotations():
 
 def test_read_raw_brainvision_warn_on_marker_drop():
     """Test that loading test.vhdr warns a summary of each dropped type."""
-    EXPECTED_WARN_MSG = \
-        r"1 annotation\(s\) will be dropped, such as \['SyncStatus/Sync On'\]"
+    EXPECTED_WARN_MSG = (r"1 event\(s\) will be dropped, such as "
+                         r"\[\'SyncStatus\/Sync On\'\]. Consider using the "
+                         r"event\_id parameter to parse events that do not "
+                         r"follow the BrainVision format. For more "
+                         r"information, see the docstring of "
+                         r"read_raw_brainvision.")
     with pytest.warns(RuntimeWarning, match=EXPECTED_WARN_MSG) as recwarn:
         read_raw_brainvision(vhdr_path, verbose=True)
     assert len(recwarn) == 1
-
 
 run_tests_if_main()
