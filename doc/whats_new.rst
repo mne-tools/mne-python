@@ -89,7 +89,7 @@ Changelog
 
 Bug
 ~~~
-- Fix :func:`mne.io.BaseRaw.plot_proj_topomap` by `Joan Massich`_
+- Fix :func:`mne.io.Raw.plot_proj_topomap` by `Joan Massich`_
 
 - Fix reading edf file annotations by `Joan Massich`_
 
