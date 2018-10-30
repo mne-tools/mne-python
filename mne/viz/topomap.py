@@ -152,7 +152,7 @@ def _add_colorbar(ax, im, cmap, side="right", pad=.05, title=None,
     return cbar, cax
 
 
-def _remove_zeros(proj):
+def _eliminate_zeros(proj):
     """Remove grad or mag data if only contains 0s (gh 5641)."""
     import re
     grad_regex = '^MEG.*[23]$'
@@ -296,7 +296,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
         title = proj['desc']
         title = '\n'.join(title[ii:ii + 22] for ii in range(0, len(title), 22))
         axes[proj_idx].set_title(title, fontsize=10)
-        proj = _remove_zeros(proj)  # gh 5641
+        proj = _eliminate_zeros(proj)  # gh 5641
         ch_names = _clean_names(proj['data']['col_names'],
                                 remove_whitespace=True)
         data = proj['data']['data'].ravel()
