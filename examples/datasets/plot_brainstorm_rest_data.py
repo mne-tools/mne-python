@@ -37,7 +37,6 @@ References
 import os.path as op
 
 from mne.filter import next_fast_len
-import matplotlib.pyplot as plt
 from mayavi import mlab
 
 import mne
@@ -69,7 +68,7 @@ raw = mne.io.read_raw_ctf(raw_fname)
 raw.crop(220, 280).load_data().resample(new_sfreq)
 raw.set_channel_types({'EEG057': 'ecg', 'EEG058': 'eog'})
 raw_erm = mne.io.read_raw_ctf(raw_erm_fname)
-raw_erm.crop(0, None).load_data().resample(new_sfreq)
+raw_erm.crop(0, 30).load_data().resample(new_sfreq)
 raw_erm.rename_channels(lambda x: x.replace('-4408', '-4407'))
 
 ##############################################################################
@@ -109,7 +108,7 @@ fwd = mne.make_forward_solution(
 ##############################################################################
 # Compute and apply inverse to PSD estimated using multitaper + Welch
 
-noise_cov = mne.compute_raw_covariance(raw_erm, method='oas')
+noise_cov = mne.compute_raw_covariance(raw_erm)
 
 inverse_operator = mne.minimum_norm.make_inverse_operator(
     raw.info, forward=fwd, noise_cov=noise_cov, verbose=True)
@@ -118,34 +117,35 @@ stc_psd, evoked_psd = mne.minimum_norm.compute_source_psd(
     raw, inverse_operator, lambda2=1. / 9., method='MNE', n_fft=n_fft,
     dB=False, return_sensor=True, verbose=True)
 
-# Group into frequency bands, then normalize each source point independently
-freqs = dict(
+##############################################################################
+# Group into frequency bands, then normalize each source point and sensor
+# independently. This makes the value of each sensor point and source location
+# in each frequency band the percentage of the PSD accounted for by that band.
+
+freq_bands = dict(
     delta=(2, 4), theta=(5, 7), alpha=(8, 12), beta=(15, 29), gamma=(30, 50))
 topos = dict()
 stcs = dict()
-norm = 0.
-for band, limits in freqs.items():
-    topos[band] = evoked_psd.copy().crop(*limits).data.mean(axis=1)
-    stcs[band] = stc_psd.copy().crop(*limits).mean()
-    norm += stcs[band].data
+topo_norm = evoked_psd.data.sum(axis=1, keepdims=True)
+stc_norm = stc_psd.sum()
 # Normalize each source point by the total power across freqs
-for band in freqs.keys():
-    stcs[band] /= norm
+for band, limits in freq_bands.items():
+    data = evoked_psd.copy().crop(*limits).data.sum(axis=1, keepdims=True)
+    topos[band] = mne.EvokedArray(100 * data / topo_norm, evoked_psd.info)
+    stcs[band] = 100 * stc_psd.copy().crop(*limits).sum() / stc_norm.data
 
 ###############################################################################
 # Theta:
 
 
 def plot_band(band):
-    title = "%s (%d-%d Hz)" % ((band.capitalize(),) + freqs[band])
-    fig, ax = plt.subplots(1, figsize=(4, 4))
-    mne.viz.plot_topomap(topos[band], evoked_psd.info, outlines='skirt',
-                         axes=ax)
-    ax.set_xlabel(title)
-    fig.tight_layout()
+    title = "%s (%d-%d Hz)" % ((band.capitalize(),) + freq_bands[band])
+    topos[band].plot_topomap(
+        times=0., scalings=1., cbar_fmt='%0.1f', vmin=0, cmap='inferno_r',
+        time_format=title)
     brain = stcs[band].plot(
         subject=subject, subjects_dir=subjects_dir, views='cau', hemi='both',
-        time_label=title, title=u'Relative %s power' % band,
+        time_label=title, title=title, colormap='inferno_r',
         clim=dict(kind='percent', lims=(70, 85, 99)))
     brain.show_view(dict(azimuth=0, elevation=0), roll=0)
     return fig, brain

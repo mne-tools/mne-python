@@ -388,11 +388,12 @@ def test_stc_arithmetic():
     assert_array_equal(abs(stc).data, abs(stc.data))
     assert_array_equal(abs(vec_stc).data, abs(vec_stc.data))
 
+    stc_sum = stc.sum()
+    assert_array_equal(stc_sum.data, stc.data.sum(1, keepdims=True))
     stc_mean = stc.mean()
-    assert_array_equal(stc_mean.data, np.mean(stc.data, 1)[:, None])
+    assert_array_equal(stc_mean.data, stc.data.mean(1, keepdims=True))
     vec_stc_mean = vec_stc.mean()
-    assert_array_equal(vec_stc_mean.data,
-                       np.mean(vec_stc.data, 2)[:, :, None])
+    assert_array_equal(vec_stc_mean.data, vec_stc.data.mean(2, keepdims=True))
 
 
 @pytest.mark.slowtest

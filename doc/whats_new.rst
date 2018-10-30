@@ -82,6 +82,8 @@ Changelog
 
 - Add :func:`mne.open_report` to read back a :class:`mne.Report` object that was saved to an HDF5 file by `Marijn van Vliet`_
 
+- Add multi-taper estimation to :func:`mne.minimum_norm.compute_source_psd` by `Eric Larson`_
+
 - :meth:`mne.Epochs.average` now supports custom, e.g. robust, averaging methods, by `Jona Sassenhagen`_
 
 - Add support for Neuromag 122 system by `Alex Gramfort`_
