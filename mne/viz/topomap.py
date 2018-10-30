@@ -154,16 +154,15 @@ def _add_colorbar(ax, im, cmap, side="right", pad=.05, title=None,
 
 def _eliminate_zeros(proj):
     """Remove grad or mag data if only contains 0s (gh 5641)."""
-    import re
-    grad_regex = '^MEG.*[23]$'
-    meg_regex = '^MEG.*1$'
+    GRAD_ENDING = ('2', '3')
+    MAG_ENDING = '1'
 
     proj = copy.deepcopy(proj)
     proj['data']['data'] = np.atleast_2d(proj['data']['data'])
 
-    for regex in (grad_regex, meg_regex):
+    for ending in (GRAD_ENDING, MAG_ENDING):
         names = proj['data']['col_names']
-        idx = [i for i, name in enumerate(names) if re.search(regex, name)]
+        idx = [i for i, name in enumerate(names) if name.endswith(ending)]
 
         # if all 0, remove the 0s an their labels
         if not proj['data']['data'][0][idx].any():
