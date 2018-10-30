@@ -9,7 +9,8 @@ from numpy.testing import assert_allclose
 import pytest
 
 from mne.viz.utils import (compare_fiff, _fake_click, _compute_scalings,
-                           _validate_if_list_of_axes, _get_color_list)
+                           _validate_if_list_of_axes, _get_color_list,
+                           _setup_vmin_vmax)
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.utils import run_tests_if_main
 from mne.io import read_raw_fif
@@ -24,6 +25,13 @@ base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 ev_fname = op.join(base_dir, 'test_raw-eve.fif')
+
+
+def test_setup_vmin_vmax_warns():
+    """Test that _setup_vmin_vmax warns properly."""
+    expected_msg = r'\(min=0.0, max=1\) range.*minimum of data is -1'
+    with pytest.warns(UserWarning, match=expected_msg):
+        _setup_vmin_vmax(data=[-1, 0], vmin=None, vmax=None, norm=True)
 
 
 def test_get_color_list():

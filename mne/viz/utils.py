@@ -46,25 +46,42 @@ _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
 
 
 def _setup_vmin_vmax(data, vmin, vmax, norm=False):
-    """Handle vmin and vmax parameters."""
+    """Handle vmin and vmax parameters for visualizing topomaps.
+
+    For the normal use-case (when `vmin` and `vmax` are None), the parameter
+    `norm` drives the computation. When norm=False, data is supposed to come
+    from a mag and the output tuple (vmin, vmax) is symmetric range
+    (-x, x) where x is the max(abs(data)). When norm=False (aka data is the L2
+    norm of a gradiometer pair) the output tuple corresponds to (0, x).
+
+    Otherwise, vmin and vmax are callables that drive the operation.
+    """
+    should_warn = False
     if vmax is None and vmin is None:
         vmax = np.abs(data).max()
-        if norm:
-            vmin = 0.
-        else:
-            vmin = -vmax
+        vmin = 0. if norm else -vmax
+        if vmin == 0 and np.min(data) < 0:
+            should_warn = True
+
     else:
         if callable(vmin):
             vmin = vmin(data)
         elif vmin is None:
-            if norm:
-                vmin = 0.
-            else:
-                vmin = np.min(data)
+            vmin = 0. if norm else np.min(data)
+            if vmin == 0 and np.min(data) < 0:
+                should_warn = True
+
         if callable(vmax):
             vmax = vmax(data)
         elif vmax is None:
             vmax = np.max(data)
+
+    if should_warn:
+        warn_msg = ("_setup_vmin_vmax output a (min={vmin}, max={vmax})"
+                    " range whereas the minimum of data is {data_min}")
+        warn_val = {'vmin': vmin, 'vmax': vmax, 'data_min': np.min(data)}
+        warn(warn_msg.format(**warn_val), UserWarning)
+
     return vmin, vmax
 
 

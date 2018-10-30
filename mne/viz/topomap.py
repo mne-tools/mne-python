@@ -145,11 +145,34 @@ def _add_colorbar(ax, im, cmap, side="right", pad=.05, title=None,
     divider = make_axes_locatable(ax)
     cax = divider.append_axes(side, size=size, pad=pad)
     cbar = plt.colorbar(im, cax=cax, cmap=cmap, format=format)
-    if cmap[1]:
+    if cmap is not None and cmap[1]:
         ax.CB = DraggableColorbar(cbar, im)
     if title is not None:
         cax.set_title(title, y=1.05, fontsize=10)
     return cbar, cax
+
+
+def _eliminate_zeros(proj):
+    """Remove grad or mag data if only contains 0s (gh 5641)."""
+    GRAD_ENDING = ('2', '3')
+    MAG_ENDING = '1'
+
+    proj = copy.deepcopy(proj)
+    proj['data']['data'] = np.atleast_2d(proj['data']['data'])
+
+    for ending in (GRAD_ENDING, MAG_ENDING):
+        names = proj['data']['col_names']
+        idx = [i for i, name in enumerate(names) if name.endswith(ending)]
+
+        # if all 0, remove the 0s an their labels
+        if not proj['data']['data'][0][idx].any():
+            new_col_names = np.delete(np.array(names), idx).tolist()
+            new_data = np.delete(np.array(proj['data']['data'][0]), idx)
+            proj['data']['col_names'] = new_col_names
+            proj['data']['data'] = np.array([new_data])
+
+    proj['data']['ncol'] = len(proj['data']['col_names'])
+    return proj
 
 
 def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
@@ -231,6 +254,10 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                                    _pair_grad_sensors_ch_names_neuromag122,
                                    Layout, _merge_grad_data)
     from ..channels import _get_ch_type
+
+    is_layout_parameter_none = layout is None
+    is_info_parameter_none = info is None
+
     if info is not None:
         if not isinstance(info, Info):
             raise TypeError('info must be an instance of Info, got %s'
@@ -254,7 +281,6 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     nrows = math.floor(math.sqrt(n_projs))
     ncols = math.ceil(n_projs / nrows)
 
-    cmap = _setup_cmap(cmap)
     if axes is None:
         plt.figure()
         axes = list()
@@ -269,6 +295,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
         title = proj['desc']
         title = '\n'.join(title[ii:ii + 22] for ii in range(0, len(title), 22))
         axes[proj_idx].set_title(title, fontsize=10)
+        proj = _eliminate_zeros(proj)  # gh 5641
         ch_names = _clean_names(proj['data']['col_names'],
                                 remove_whitespace=True)
         data = proj['data']['data'].ravel()
@@ -310,12 +337,30 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                     data = _merge_grad_data(data[grad_pairs]).ravel()
                 break
             if len(idx) == 0:
-                raise RuntimeError('Cannot find a proper layout for '
-                                   'projection %s, consider explicitly '
-                                   'passing a Layout or Info as the layout '
-                                   'parameter.' % proj['desc'])
+                if ch_names[0].startswith('EEG'):
+                    msg = ('Cannot find a proper layout for projection {0}.'
+                           ' The proper layout of an EEG topomap cannot be'
+                           ' inferred from the data. '.format(proj['desc']))
+                    if is_layout_parameter_none and is_info_parameter_none:
+                        msg += (' For EEG data, valid `layout` or `info` is'
+                                ' required. None was provided, please consider'
+                                ' passing one of them.')
+                    elif not is_layout_parameter_none:
+                        msg += (' A `layout` was provided but could not be'
+                                ' used for display. Please review the `layout`'
+                                ' parameter.')
+                    else:  # layout is none, but we have info
+                        msg += (' The `info` parameter was provided but could'
+                                ' not be for display. Please review the `info`'
+                                ' parameter.')
+                    raise RuntimeError(msg)
+                else:
+                    raise RuntimeError('Cannot find a proper layout for '
+                                       'projection %s, consider explicitly '
+                                       'passing a Layout or Info as the layout'
+                                       ' parameter.' % proj['desc'])
 
-        im = plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap[0],
+        im = plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap,
                           sensors=sensors, res=res, axes=axes[proj_idx],
                           outlines=outlines, contours=contours,
                           image_interp=image_interp, show=False)[0]
