@@ -141,11 +141,11 @@ for band, limits in freq_bands.items():
 def plot_band(band):
     title = "%s (%d-%d Hz)" % ((band.capitalize(),) + freq_bands[band])
     topos[band].plot_topomap(
-        times=0., scalings=1., cbar_fmt='%0.1f', vmin=0, cmap='inferno_r',
+        times=0., scalings=1., cbar_fmt='%0.1f', vmin=0, cmap='inferno',
         time_format=title)
     brain = stcs[band].plot(
         subject=subject, subjects_dir=subjects_dir, views='cau', hemi='both',
-        time_label=title, title=title, colormap='inferno_r',
+        time_label=title, title=title, colormap='inferno',
         clim=dict(kind='percent', lims=(70, 85, 99)))
     brain.show_view(dict(azimuth=0, elevation=0), roll=0)
     return fig, brain
