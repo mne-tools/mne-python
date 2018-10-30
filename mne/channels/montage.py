@@ -600,7 +600,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
 
         .. versionadded:: 0.14
 
-    bvct : srt | None
+    bvct : str | None
         BVCT XML coordinates file from which to read digitization locations.
         (BrainVision)
         If str (filename), all other arguments are ignored.
