@@ -6,7 +6,7 @@
 |MNE|_
 
 .. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.png?branch=master
-.. _Travis: https://travis-ci.org/mne-tools/mne-python
+.. _Travis: https://travis-ci.org/mne-tools/mne-python/branches
 
 .. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/jg8ncqql9wayo8mg/branch/master?svg=true
 .. _Appveyor: https://ci.appveyor.com/project/mne-tools/mne-python/branch/master
