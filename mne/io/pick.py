@@ -397,6 +397,10 @@ def pick_info(info, sel=(), copy=True, verbose=None):
         return info
     elif len(sel) == 0:
         raise ValueError('No channels match the selection.')
+    n_unique = len(np.unique(np.arange(len(info['ch_names']))[sel]))
+    if n_unique != len(sel):
+        raise ValueError('Found %d / %d unique names, sel is not unique'
+                         % (n_unique, len(sel)))
 
     # make sure required the compensation channels are present
     if len(info.get('comps', [])) > 0:
@@ -423,6 +427,7 @@ def pick_info(info, sel=(), copy=True, verbose=None):
             c['data']['row_names'] = row_names
             c['data']['data'] = c['data']['data'][row_idx]
         info['comps'] = comps
+    info._check_consistency()
     info._check_consistency()
     return info
 

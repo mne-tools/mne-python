@@ -9,6 +9,7 @@ import os
 import struct
 
 import numpy as np
+from scipy import sparse
 
 from .constants import FIFF
 from ..externals.six import text_type
@@ -280,7 +281,6 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
                             % matrix_type)
         data.shape = dims
     elif matrix_coding in (_matrix_coding_CCS, _matrix_coding_RCS):
-        from scipy import sparse
         # Find dimensions and return to the beginning of tag data
         pos = fid.tell()
         fid.seek(tag.size - 4, 1)

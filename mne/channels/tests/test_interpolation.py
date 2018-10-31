@@ -23,10 +23,9 @@ def _load_data():
     # function so it's loaded on-demand
     raw = io.read_raw_fif(raw_fname)
     events = read_events(event_name)
-    picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude=[])
-    # select every second channel for faster speed but compensate by using
-    # mode='accurate'.
-    picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude=[])[1::2]
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude=[])[:15]
+    # subselect channels for speed
+    picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude=[])[1:200:2]
     picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
 
     epochs_eeg = Epochs(raw, events, event_id, tmin, tmax, picks=picks_eeg,
@@ -46,10 +45,9 @@ def test_interpolation():
     """Test interpolation."""
     raw, epochs, epochs_eeg, epochs_meg = _load_data()
 
-    # It's a trade of between speed and accuracy. If every second channel is
-    # selected the tests are more than 3x faster but the correlation
-    # drops to 0.8
-    thresh = 0.80
+    # speed accuracy tradeoff: channel subselection is faster but the
+    # correlation drops
+    thresh = 0.7
 
     # check that interpolation does nothing if no bads are marked
     epochs_eeg.info['bads'] = []
@@ -119,7 +117,7 @@ def test_interpolation():
         raw.set_channel_types({'TRIGGER': 'stim'})
     raw.info['bads'] = [raw.info['ch_names'][1]]
     raw.load_data()
-    raw.interpolate_bads()
+    raw.interpolate_bads(mode='fast')
 
     # check that interpolation works for MEG
     epochs_meg.info['bads'] = ['MEG 0141']
@@ -132,7 +130,8 @@ def test_interpolation():
     data1 = raw_meg[pick, :][0][0]
 
     raw_meg.info.normalize_proj()
-    data2 = raw_meg.interpolate_bads(reset_bads=False)[pick, :][0][0]
+    data2 = raw_meg.interpolate_bads(reset_bads=False,
+                                     mode='fast')[pick, :][0][0]
     assert np.corrcoef(data1, data2)[0, 1] > thresh
     # the same number of bads as before
     assert len(raw_meg.info['bads']) == len(raw_meg.info['bads'])
@@ -140,7 +139,7 @@ def test_interpolation():
     # MEG -- epochs
     data1 = epochs_meg.get_data()[:, pick, :].ravel()
     epochs_meg.info.normalize_proj()
-    epochs_meg.interpolate_bads()
+    epochs_meg.interpolate_bads(mode='fast')
     data2 = epochs_meg.get_data()[:, pick, :].ravel()
     assert np.corrcoef(data1, data2)[0, 1] > thresh
     assert len(epochs_meg.info['bads']) == 0

@@ -19,7 +19,7 @@ import warnings
 from functools import partial
 
 import numpy as np
-from scipy import linalg
+from scipy import linalg, sparse
 
 from ..defaults import DEFAULTS
 from ..externals.six import BytesIO, string_types, advance_iterator
@@ -1473,7 +1473,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     from matplotlib import cm
     from matplotlib.widgets import Slider
     import nibabel as nib
-    from scipy import sparse, stats
+    from scipy import stats
     from ..morph import _get_subject_sphere_tris
     if hemi not in ['lh', 'rh']:
         raise ValueError("hemi must be 'lh' or 'rh' when using matplotlib. "

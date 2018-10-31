@@ -9,6 +9,7 @@ from io import BytesIO
 from gzip import GzipFile
 
 import numpy as np
+from scipy import sparse
 
 from .tag import read_tag_info, read_tag, read_big, Tag, _call_dict_names
 from .tree import make_dir_tree, dir_tree_find
@@ -66,8 +67,8 @@ def _get_next_fname(fid, fname, tree):
                 num_str = base[idx2 + 1:idx]
                 if not num_str.isdigit():
                     continue
-                next_fname = op.join(path, '%s-%d.%s' % (base[:idx2],
-                                     next_num, base[idx + 1:]))
+                next_fname = op.join(path, '%s-%d.%s'
+                                     % (base[:idx2], next_num, base[idx + 1:]))
         if next_fname is not None:
             break
     return next_fname
@@ -210,7 +211,6 @@ def _find_type(value, fmts=['FIFF_'], exclude=['FIFF_UNIT']):
 
 def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
     """Show FIFF tree."""
-    from scipy import sparse
     this_idt = indent * level
     next_idt = indent * (level + 1)
     # print block-level information

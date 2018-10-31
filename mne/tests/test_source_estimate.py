@@ -6,6 +6,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
 from scipy.fftpack import fft
+from scipy import sparse
 
 from mne.datasets import testing
 from mne import (stats, SourceEstimate, VectorSourceEstimate,
@@ -850,7 +851,6 @@ def test_epochs_vector_inverse():
 @testing.requires_testing_data
 def test_vol_connectivity():
     """Test volume connectivity."""
-    from scipy import sparse
     vol = read_source_spaces(fname_vsrc)
 
     pytest.raises(ValueError, spatial_src_connectivity, vol, dist=1.)

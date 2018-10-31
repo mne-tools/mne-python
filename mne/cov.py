@@ -10,7 +10,7 @@ from math import log
 import os
 
 import numpy as np
-from scipy import linalg
+from scipy import linalg, sparse
 
 from .io.write import start_file, end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
@@ -1769,7 +1769,6 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
                                 '%d) found.' % (dim, dim, cov_kind))
 
             else:
-                from scipy import sparse
                 if not sparse.issparse(tag.data):
                     #   Lower diagonal is stored
                     vals = tag.data

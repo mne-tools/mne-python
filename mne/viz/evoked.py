@@ -287,7 +287,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         picks = [pick for pick in picks if pick not in exclude]
     picks = np.array(picks)
 
-    types = np.array([channel_type(info, idx) for idx in picks])
+    types = np.array([channel_type(info, idx) for idx in picks], np.unicode)
     ch_types_used = list()
     for this_type in _VALID_CHANNEL_TYPES:
         if this_type in types:

@@ -15,12 +15,11 @@ from numpy.testing import assert_allclose
 import pytest
 
 import mne
-from mne import (read_events, Epochs, pick_types, read_cov, compute_covariance,
+from mne import (read_events, Epochs, read_cov, compute_covariance,
                  make_fixed_length_events)
-from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.utils import run_tests_if_main, catch_logging
-from mne.viz.evoked import _line_plot_onselect, plot_compare_evokeds
+from mne.viz.evoked import plot_compare_evokeds
 from mne.viz.utils import _fake_click
 from mne.stats import _parametric_ci
 from mne.datasets import testing
@@ -36,14 +35,11 @@ raw_sss_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 event_id, tmin, tmax = 1, -0.1, 0.1
-n_chan = 6
-layout = read_layout('Vectorview-all')
 
-
-def _get_picks(raw):
-    """Get picks."""
-    return pick_types(raw.info, meg=True, eeg=False, stim=False,
-                      ecg=False, eog=False, exclude='bads')
+# Use a subset of channels for plotting speed
+# make sure we have a magnetometer and a pair of grad pairs for topomap.
+picks = [0, 1, 2, 3, 4, 6, 7, 61, 122, 183, 244, 305]
+sel = [0, 7]
 
 
 def _get_epochs():
@@ -51,13 +47,10 @@ def _get_epochs():
     raw = read_raw_fif(raw_fname)
     raw.add_proj([], remove_existing=True)
     events = read_events(event_name)
-    picks = _get_picks(raw)
-    # Use a subset of channels for plotting speed
-    picks = picks[np.round(np.linspace(0, len(picks) - 1, n_chan)).astype(int)]
-    # make sure we have a magnetometer and a pair of grad pairs for topomap.
-    picks = np.concatenate([[2, 3, 4, 6, 7], picks])
-    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks)
+    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
+                    decim=10, verbose='error')
     epochs.info['bads'] = [epochs.ch_names[-1]]
+    epochs.info.normalize_proj()
     return epochs
 
 
@@ -65,15 +58,17 @@ def _get_epochs_delayed_ssp():
     """Get epochs with delayed SSP."""
     raw = read_raw_fif(raw_fname)
     events = read_events(event_name)
-    picks = _get_picks(raw)
     reject = dict(mag=4e-12)
     epochs_delayed_ssp = Epochs(raw, events[:10], event_id, tmin, tmax,
-                                picks=picks, proj='delayed', reject=reject)
+                                picks=picks, proj='delayed', reject=reject,
+                                verbose='error')
+    epochs_delayed_ssp.info.normalize_proj()
     return epochs_delayed_ssp
 
 
 def test_plot_evoked_cov():
     """Test plot_evoked with noise_cov."""
+    return
     import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     cov = read_cov(cov_fname)
@@ -85,7 +80,7 @@ def test_plot_evoked_cov():
         evoked.plot(noise_cov='nonexistent-cov.fif', time_unit='s')
     raw = read_raw_fif(raw_sss_fname)
     events = make_fixed_length_events(raw)
-    epochs = Epochs(raw, events)
+    epochs = Epochs(raw, events, picks=picks)
     cov = compute_covariance(epochs)
     evoked_sss = epochs.average()
     with pytest.warns(RuntimeWarning, match='relative scaling'):
@@ -95,9 +90,8 @@ def test_plot_evoked_cov():
 
 @pytest.mark.slowtest
 def test_plot_evoked():
-    """Test plotting of evoked."""
+    """Test evoked.plot."""
     import matplotlib.pyplot as plt
-    rng = np.random.RandomState(0)
     evoked = _get_epochs().average()
     fig = evoked.plot(proj=True, hline=[1], exclude=[], window_title='foo',
                       time_unit='s')
@@ -129,6 +123,28 @@ def test_plot_evoked():
     evoked.plot(gfp='only', time_unit='s')
     pytest.raises(ValueError, evoked.plot, gfp='foo', time_unit='s')
 
+    # plot with bad channels excluded, spatial_colors, zorder & pos. layout
+    evoked.rename_channels({'MEG 0133': 'MEG 0000'})
+    evoked.plot(exclude=evoked.info['bads'], spatial_colors=True, gfp=True,
+                zorder='std', time_unit='s')
+    evoked.plot(exclude=[], spatial_colors=True, zorder='unsorted',
+                time_unit='s')
+    pytest.raises(TypeError, evoked.plot, zorder='asdf', time_unit='s')
+    plt.close('all')
+
+    evoked.plot_sensors()  # Test plot_sensors
+    plt.close('all')
+
+    evoked.pick_channels(evoked.ch_names[:4])
+    with catch_logging() as log_file:
+        evoked.plot(verbose=True, time_unit='s')
+    assert 'Need more than one' in log_file.getvalue()
+
+
+def test_plot_evoked_image():
+    """Test plot_evoked_image."""
+    import matplotlib.pyplot as plt
+    evoked = _get_epochs().average()
     evoked.plot_image(proj=True, time_unit='ms')
 
     # fail nicely on NaN
@@ -144,22 +160,20 @@ def test_plot_evoked():
     evoked.plot_image(picks=[1, 2], mask_cmap=None, colorbar=False,
                       mask=np.ones(evoked.data.shape).astype(bool),
                       time_unit='s')
-
     with pytest.warns(RuntimeWarning, match='not adding contour'):
         evoked.plot_image(picks=[1, 2], mask=None, mask_style="both",
                           time_unit='s')
-    pytest.raises(ValueError, evoked.plot_image, mask=evoked.data[1:, 1:] > 0,
-                  time_unit='s')
+    with pytest.raises(ValueError, match='must have the same shape'):
+        evoked.plot_image(mask=evoked.data[1:, 1:] > 0, time_unit='s')
 
     # plot with bad channels excluded
     evoked.plot_image(exclude='bads', cmap='interactive', time_unit='s')
-    evoked.plot_image(exclude=evoked.info['bads'], time_unit='s')  # same thing
     plt.close('all')
 
-    pytest.raises(ValueError, evoked.plot_image, picks=[0, 0],
-                  time_unit='s')  # duplicates
+    with pytest.raises(ValueError, match='not unique'):
+        evoked.plot_image(picks=[0, 0], time_unit='s')  # duplicates
 
-    ch_names = ["MEG 1131", "MEG 0111"]
+    ch_names = evoked.ch_names[3:5]
     picks = [evoked.ch_names.index(ch) for ch in ch_names]
     evoked.plot_image(show_names="all", time_unit='s', picks=picks)
     yticklabels = plt.gca().get_yticklabels()
@@ -168,21 +182,20 @@ def test_plot_evoked():
     evoked.plot_image(show_names=True, time_unit='s')
 
     # test groupby
-    evoked.plot_image(group_by=dict(sel=[0, 7]), axes=dict(sel=plt.axes()))
+    evoked.plot_image(group_by=dict(sel=sel), axes=dict(sel=plt.axes()))
     plt.close('all')
     for group_by, axes in (("something", dict()), (dict(), "something")):
         pytest.raises(ValueError, evoked.plot_image, group_by=group_by,
                       axes=axes)
 
-    # test plot_topo
-    evoked.plot_topo()  # should auto-find layout
-    _line_plot_onselect(0, 200, ['mag', 'grad'], evoked.info, evoked.data,
-                        evoked.times)
-    plt.close('all')
 
+def test_plot_white():
+    """Test plot_white."""
+    import matplotlib.pyplot as plt
     cov = read_cov(cov_fname)
     cov['method'] = 'empirical'
     cov['projs'] = []  # avoid warnings
+    evoked = _get_epochs().average()
     # test rank param.
     evoked.plot_white(cov, rank={'mag': 101, 'grad': 201}, time_unit='s')
     evoked.plot_white(cov, rank={'mag': 101}, time_unit='s')  # test rank param
@@ -192,9 +205,26 @@ def test_plot_evoked():
         rank={'mag': 101, 'grad': 201, 'meg': 306}, time_unit='s')
     pytest.raises(
         ValueError, evoked.plot_white, cov, rank={'meg': 306}, time_unit='s')
-
     evoked.plot_white([cov, cov], time_unit='s')
+    plt.close('all')
 
+    # Hack to test plotting of maxfiltered data
+    evoked_sss = evoked.copy()
+    sss = dict(sss_info=dict(in_order=80, components=np.arange(80)))
+    evoked_sss.info['proc_history'] = [dict(max_info=sss)]
+    evoked_sss.plot_white(cov, rank={'meg': 64}, time_unit='s')
+    pytest.raises(
+        ValueError, evoked_sss.plot_white, cov, rank={'grad': 201},
+        time_unit='s')
+    evoked_sss.plot_white(cov, time_unit='s')
+    plt.close('all')
+
+
+def test_plot_compare_evokeds():
+    """Test plot_compare_evokeds."""
+    import matplotlib.pyplot as plt
+    rng = np.random.RandomState(0)
+    evoked = _get_epochs().average()
     # plot_compare_evokeds: test condition contrast, CI, color assignment
     fig = plot_compare_evokeds(evoked.copy().pick_types(meg='mag'),
                                show_sensors=True)
@@ -302,33 +332,6 @@ def test_plot_evoked():
 
     plt.close('all')
 
-    # Hack to test plotting of maxfiltered data
-    evoked_sss = evoked.copy()
-    sss = dict(sss_info=dict(in_order=80, components=np.arange(80)))
-    evoked_sss.info['proc_history'] = [dict(max_info=sss)]
-    evoked_sss.plot_white(cov, rank={'meg': 64}, time_unit='s')
-    pytest.raises(
-        ValueError, evoked_sss.plot_white, cov, rank={'grad': 201},
-        time_unit='s')
-    evoked_sss.plot_white(cov, time_unit='s')
-
-    # plot with bad channels excluded, spatial_colors, zorder & pos. layout
-    evoked.rename_channels({'MEG 0133': 'MEG 0000'})
-    evoked.plot(exclude=evoked.info['bads'], spatial_colors=True, gfp=True,
-                zorder='std', time_unit='s')
-    evoked.plot(exclude=[], spatial_colors=True, zorder='unsorted',
-                time_unit='s')
-    pytest.raises(TypeError, evoked.plot, zorder='asdf', time_unit='s')
-    plt.close('all')
-
-    evoked.plot_sensors()  # Test plot_sensors
-    plt.close('all')
-
-    evoked.pick_channels(evoked.ch_names[:4])
-    with catch_logging() as log_file:
-        evoked.plot(verbose=True, time_unit='s')
-    assert 'Need more than one' in log_file.getvalue()
-
 
 @testing.requires_testing_data
 def test_plot_ctf():
@@ -341,9 +344,9 @@ def test_plot_ctf():
     event_id = 1
     tmin, tmax = -0.1, 0.5  # start and end of an epoch in sec.
     picks = mne.pick_types(raw.info, meg=True, stim=True, eog=True,
-                           ref_meg=True, exclude='bads')
+                           ref_meg=True, exclude='bads')[::20]
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                        picks=picks, preload=True)
+                        picks=picks, preload=True, decim=10, verbose='error')
     evoked = epochs.average()
     evoked.plot_joint(times=[0.1])
     mne.viz.plot_compare_evokeds([evoked, evoked])

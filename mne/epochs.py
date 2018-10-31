@@ -354,6 +354,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self.reject_tmax = reject_tmax
         self.detrend = detrend
         self._raw = raw
+        info._check_consistency()
         self.info = info
         del info
         self._metadata = None

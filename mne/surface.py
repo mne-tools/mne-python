@@ -216,23 +216,17 @@ def _accumulate_normals(tris, tri_nn, npts):
 def _triangle_neighbors(tris, npts):
     """Efficiently compute vertex neighboring triangles."""
     # this code replaces the following, but is faster (vectorized):
-    #
-    # this['neighbor_tri'] = [list() for _ in xrange(this['np'])]
-    # for p in xrange(this['ntri']):
-    #     verts = this['tris'][p]
-    #     this['neighbor_tri'][verts[0]].append(p)
-    #     this['neighbor_tri'][verts[1]].append(p)
-    #     this['neighbor_tri'][verts[2]].append(p)
-    # this['neighbor_tri'] = [np.array(nb, int) for nb in this['neighbor_tri']]
-    #
-    verts = tris.ravel()
-    counts = np.bincount(verts, minlength=npts)
-    reord = np.argsort(verts)
-    tri_idx = np.unravel_index(reord, (len(tris), 3))[0]
-    idx = np.cumsum(np.r_[0, counts])
-    # the sort below slows it down a bit, but is needed for equivalence
-    neighbor_tri = [np.sort(tri_idx[v1:v2])
-                    for v1, v2 in zip(idx[:-1], idx[1:])]
+    # neighbor_tri = [list() for _ in range(npts)]
+    # for ti, tri in enumerate(tris):
+    #     for t in tri:
+    #         neighbor_tri[t].append(ti)
+    rows = tris.ravel()
+    cols = np.repeat(np.arange(len(tris)), 3)
+    data = np.ones(len(cols))
+    csr = coo_matrix((data, (rows, cols)), shape=(npts, len(tris))).tocsr()
+    neighbor_tri = [csr.indices[start:stop]
+                    for start, stop in zip(csr.indptr[:-1], csr.indptr[1:])]
+    assert len(neighbor_tri) == npts
     return neighbor_tri
 
 
@@ -684,7 +678,6 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
         surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
         logger.info('Loading geometry from %s...' % surf_name)
         from_surf = read_surface(surf_name, return_dict=True)[-1]
-        complete_surface_info(from_surf, copy=False)
         _normalize_vectors(from_surf['rr'])
         if from_surf['np'] != surf['np']:
             raise RuntimeError('Mismatch between number of surface vertices, '

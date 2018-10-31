@@ -46,13 +46,20 @@ def test_array_raw():
     sfreq = raw.info['sfreq']
     ch_names = [(ch[4:] if 'STI' not in ch else ch)
                 for ch in raw.info['ch_names']]  # change them, why not
-    # del raw
     types = list()
     for ci in range(101):
         types.extend(('grad', 'grad', 'mag'))
     types.extend(['ecog', 'seeg', 'hbo'])  # really 3 meg channels
     types.extend(['stim'] * 9)
     types.extend(['eeg'] * 60)
+    picks = np.concatenate([pick_types(raw.info)[::20],
+                            pick_types(raw.info, meg=False, stim=True),
+                            pick_types(raw.info, meg=False, eeg=True)[::20]])
+    del raw
+    data = data[picks]
+    ch_names = np.array(ch_names)[picks].tolist()
+    types = np.array(types)[picks].tolist()
+    types.pop(-1)
     # wrong length
     pytest.raises(ValueError, create_info, ch_names, sfreq, types)
     # bad entry
@@ -77,15 +84,15 @@ def test_array_raw():
     assert_equal(len(picks), 4)
     raw_lp = raw2.copy()
     kwargs = dict(fir_design='firwin', picks=picks)
-    raw_lp.filter(None, 4.0, h_trans_bandwidth=4., n_jobs=2, **kwargs)
+    raw_lp.filter(None, 4.0, h_trans_bandwidth=4., **kwargs)
     raw_hp = raw2.copy()
-    raw_hp.filter(16.0, None, l_trans_bandwidth=4., n_jobs=2, **kwargs)
+    raw_hp.filter(16.0, None, l_trans_bandwidth=4., **kwargs)
     raw_bp = raw2.copy()
     raw_bp.filter(8.0, 12.0, l_trans_bandwidth=4., h_trans_bandwidth=4.,
                   **kwargs)
     raw_bs = raw2.copy()
     raw_bs.filter(16.0, 4.0, l_trans_bandwidth=4., h_trans_bandwidth=4.,
-                  n_jobs=2, **kwargs)
+                  **kwargs)
     data, _ = raw2[picks, :]
     lp_data, _ = raw_lp[picks, :]
     hp_data, _ = raw_hp[picks, :]
@@ -97,20 +104,16 @@ def test_array_raw():
 
     # plotting
     raw2.plot()
-    raw2.plot_psd(tmax=np.inf, average=True, n_fft=1024, spatial_colors=False)
+    raw2.plot_psd(tmax=2., average=True, n_fft=1024, spatial_colors=False)
     plt.close('all')
 
     # epoching
     events = find_events(raw2, stim_channel='STI 014')
     events[:, 2] = 1
-    assert (len(events) > 2)
+    assert len(events) > 2
     epochs = Epochs(raw2, events, 1, -0.2, 0.4, preload=True)
-    epochs.plot_drop_log()
-    epochs.plot()
     evoked = epochs.average()
-    evoked.plot(time_unit='s')
     assert_equal(evoked.nave, len(events) - 1)
-    plt.close('all')
 
     # complex data
     rng = np.random.RandomState(0)
