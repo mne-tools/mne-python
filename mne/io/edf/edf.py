@@ -1133,7 +1133,7 @@ def read_annotations_edf(fname):
     Parameters
     ----------
     fname : str | object
-        The path to the .vmrk file.
+        The path to the .edf file.
 
     Returns
     -------
