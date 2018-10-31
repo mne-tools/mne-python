@@ -16,9 +16,27 @@ from numpy.testing import (assert_allclose, assert_array_almost_equal,
 from mne import concatenate_raws, create_info, Annotations
 from mne.annotations import _handle_meas_date
 from mne.datasets import testing
-from mne.io import read_raw_fif, RawArray
+from mne.io import read_raw_fif, RawArray, BaseRaw
 from mne.utils import _TempDir
 from mne.io.meas_info import _get_valid_units
+
+
+def test_orig_units():
+    """Test the error handling for original units."""
+    # Should work fine
+    info = create_info(ch_names=['Cz'], sfreq=100, ch_types='eeg')
+    BaseRaw(info, last_samps=[1], orig_units={'Cz': 'nV'})
+
+    # Should complain that channel Cz does not have a corresponding original
+    # unit.
+    with pytest.raises(ValueError, match='has no associated original unit.'):
+        info = create_info(ch_names=['Cz'], sfreq=100, ch_types='eeg')
+        BaseRaw(info, last_samps=[1], orig_units={'not_Cz': 'nV'})
+
+    # Test that a non-dict orig_units argument raises a ValueError
+    with pytest.raises(ValueError, match='orig_units must be of type dict'):
+        info = create_info(ch_names=['Cz'], sfreq=100, ch_types='eeg')
+        BaseRaw(info, last_samps=[1], orig_units=True)
 
 
 def _test_raw_reader(reader, test_preloading=True, **kwargs):
