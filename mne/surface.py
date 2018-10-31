@@ -156,10 +156,7 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
                     'channel locations)' % (system, len(rr)))
         rr = rr[np.unique(ConvexHull(rr).simplices)]
         com = rr.mean(axis=0)
-        rr -= com
-        lengths = np.linalg.norm(rr, axis=-1, keepdims=True)
-        xy = _pol_to_cart(_cart_to_sph(rr / lengths)[:, 1:][:, ::-1])
-        rr += com
+        xy = _pol_to_cart(_cart_to_sph(rr - com)[:, 1:][:, ::-1])
         tris = _reorder_ccw(rr, Delaunay(xy).simplices)
 
         surf = dict(rr=rr, tris=tris)
