@@ -1,4 +1,10 @@
-# Generic tests that all raw classes should run
+# -*- coding: utf-8 -*-
+"""Generic tests that all raw classes should run."""
+# # Authors: MNE Developers
+#            Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#
+# License: BSD (3-clause)
+
 from os import path as op
 import math
 
@@ -10,8 +16,27 @@ from numpy.testing import (assert_allclose, assert_array_almost_equal,
 from mne import concatenate_raws, create_info, Annotations
 from mne.annotations import _handle_meas_date
 from mne.datasets import testing
-from mne.io import read_raw_fif, RawArray
+from mne.io import read_raw_fif, RawArray, BaseRaw
 from mne.utils import _TempDir
+from mne.io.meas_info import _get_valid_units
+
+
+def test_orig_units():
+    """Test the error handling for original units."""
+    # Should work fine
+    info = create_info(ch_names=['Cz'], sfreq=100, ch_types='eeg')
+    BaseRaw(info, last_samps=[1], orig_units={'Cz': 'nV'})
+
+    # Should complain that channel Cz does not have a corresponding original
+    # unit.
+    with pytest.raises(ValueError, match='has no associated original unit.'):
+        info = create_info(ch_names=['Cz'], sfreq=100, ch_types='eeg')
+        BaseRaw(info, last_samps=[1], orig_units={'not_Cz': 'nV'})
+
+    # Test that a non-dict orig_units argument raises a ValueError
+    with pytest.raises(ValueError, match='orig_units must be of type dict'):
+        info = create_info(ch_names=['Cz'], sfreq=100, ch_types='eeg')
+        BaseRaw(info, last_samps=[1], orig_units=True)
 
 
 def _test_raw_reader(reader, test_preloading=True, **kwargs):
@@ -109,6 +134,15 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
                            raw3.info['meas_id']['machid'])
 
     assert isinstance(raw.annotations, Annotations)
+
+    # Make a "soft" test on units: They have to be valid SI units as in
+    # mne.io.meas_info.valid_units, but we accept any lower/upper case for now.
+    valid_units = _get_valid_units()
+    valid_units_lower = [unit.lower() for unit in valid_units]
+    if raw._orig_units is not None:
+        assert isinstance(raw._orig_units, dict)
+        for ch_name, unit in raw._orig_units.items():
+            assert unit.lower() in valid_units_lower, ch_name
 
     return raw
 

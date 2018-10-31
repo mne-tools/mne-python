@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
@@ -5,6 +6,7 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Mainak Jas <mainak.jas@telecom-paristech.fr>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -13,6 +15,52 @@ import os
 
 from ..externals.six import b
 from .constants import FIFF
+from .meas_info import _get_valid_units
+
+
+def _check_orig_units(orig_units):
+    """Check original units from a raw file.
+
+    Units that are close to a valid_unit but not equal can be remapped to fit
+    into the valid_units. All other units that are not valid will be replaced
+    with "n/a".
+
+    Parameters
+    ----------
+    orig_units : dict
+        Dictionary mapping channel names to their units as specified in
+        the header file. Example: {'FC1': 'nV'}
+
+    Returns
+    -------
+    orig_units_remapped : dict
+        Dictionary mapping channel names to their VALID units as specified in
+        the header file. Invalid units are now labeled "n/a".
+        Example: {'FC1': 'nV', 'Hfp3erz': 'n/a'}
+    """
+    if orig_units is None:
+        return
+    valid_units = _get_valid_units()
+    valid_units_lowered = [unit.lower() for unit in valid_units]
+    orig_units_remapped = dict(orig_units)
+    for ch_name, unit in orig_units.items():
+
+        # Be lenient: we ignore case for now.
+        if unit.lower() in valid_units_lowered:
+            continue
+
+        # Common "invalid units" can be remapped to their valid equivalent
+        remap_dict = dict()
+        remap_dict['uv'] = u'µV'
+        remap_dict[u'μv'] = u'µV'  # greek letter mu vs micro sign. use micro
+        if unit.lower() in remap_dict:
+            orig_units_remapped[ch_name] = remap_dict[unit.lower()]
+            continue
+
+        # Some units cannot be saved, they are invalid: assign "n/a"
+        orig_units_remapped[ch_name] = 'n/a'
+
+    return orig_units_remapped
 
 
 def _find_channels(ch_names, ch_type='EOG'):

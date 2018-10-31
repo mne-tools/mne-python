@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Data Equivalence Tests."""
 from __future__ import print_function
 
@@ -60,6 +61,20 @@ montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 eog = ['HL', 'HR', 'Vb']
 event_id = {'Sync On': 5}
+
+
+def test_orig_units(recwarn):
+    """Test exposure of original channel units."""
+    raw = read_raw_brainvision(vhdr_path)
+    orig_units = raw._orig_units
+    assert len(orig_units) == 32
+    assert orig_units['FP1'] == u'µV'
+    assert orig_units['CP5'] == 'n/a'  # originally BS, not a valid unit
+    assert orig_units['CP6'] == u'µS'
+    assert orig_units['HL'] == 'n/a'  # originally ARU, not a valid unit
+    assert orig_units['HR'] == 'n/a'  # originally uS ...
+    assert orig_units['Vb'] == 'S'
+    assert orig_units['ReRef'] == 'C'
 
 
 def test_vmrk_meas_date():

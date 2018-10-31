@@ -1,9 +1,11 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -14,7 +16,7 @@ import os.path as op
 import numpy as np
 
 from .constants import FIFF
-from .utils import _construct_bids_filename
+from .utils import _construct_bids_filename, _check_orig_units
 from .pick import pick_types, channel_type, pick_channels, pick_info
 from .pick import _pick_data_channels, _pick_data_or_ica
 from .meas_info import write_meas_info
@@ -286,6 +288,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     buffer_size_sec : float
         The buffer size in seconds that should be written by default using
         :meth:`mne.io.Raw.save`.
+    orig_units : dict | None
+        Dictionary mapping channel names to their units as specified in
+        the header file. Example: {'FC1': 'nV'}
 
         .. versionadded:: 0.17
     verbose : bool, str, int, or None
@@ -314,7 +319,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  first_samps=(0,), last_samps=None,
                  filenames=(None,), raw_extras=(None,),
                  orig_format='double', dtype=np.float64,
-                 buffer_size_sec=1., verbose=None):  # noqa: D102
+                 buffer_size_sec=1., orig_units=None,
+                 verbose=None):  # noqa: D102
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
@@ -363,6 +369,35 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._comp = None
         self._filenames = list(filenames)
         self.orig_format = orig_format
+        # Sanity check and set original units, if provided by the reader:
+        if orig_units:
+            if not isinstance(orig_units, dict):
+                raise ValueError('orig_units must be of type dict, but got '
+                                 ' {}'.format(type(orig_units)))
+
+            # original units need to be truncated to 15 chars, which is what
+            # the MNE IO procedure also does with the other channels
+            orig_units_trunc = [ch[:15] for ch in orig_units]
+
+            # STI 014 channel is native only to fif ... for all other formats
+            # this was artificially added by the IO procedure, so remove it
+            ch_names = list(info['ch_names'])
+            if ('STI 014' in ch_names) and not \
+               (self.filenames[0].endswith('.fif')):
+                ch_names.remove('STI 014')
+
+            # Each channel in the data must have a corresponding channel in
+            # the original units.
+            ch_correspond = [ch in orig_units_trunc for ch in ch_names]
+            if not all(ch_correspond):
+                ch_without_orig_unit = ch_names[ch_correspond.index(False)]
+                raise ValueError('Channel {0} has no associated original '
+                                 'unit.'.format(ch_without_orig_unit))
+
+            # Final check of orig_units, editing a unit if it is not a valid
+            # unit
+            orig_units = _check_orig_units(orig_units)
+        self._orig_units = orig_units
         self._projectors = list()
         self._projector = None
         self._dtype_ = dtype

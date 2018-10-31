@@ -8,6 +8,7 @@
 #          Phillip Alday <phillip.alday@unisa.edu.au>
 #          Okba Bekhelifi <okba.bekhelifi@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#
 # License: BSD (3-clause)
 
 import os
@@ -116,13 +117,13 @@ class RawBrainVision(BaseRaw):
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = op.abspath(vhdr_fname)
-        info, data_filename, fmt, order, mrk_fname, montage, n_samples = \
-            _get_vhdr_info(vhdr_fname, eog, misc, scale, montage)
+        (info, data_fname, fmt, order, n_samples, mrk_fname, montage,
+         orig_units) = _get_vhdr_info(vhdr_fname, eog, misc, scale, montage)
         self._order = order
         self._n_samples = n_samples
 
         _check_update_montage(info, montage)
-        with open(data_filename, 'rb') as f:
+        with open(data_fname, 'rb') as f:
             if isinstance(fmt, dict):  # ASCII, this will be slow :(
                 if self._order == 'F':  # multiplexed, channels in columns
                     n_skip = 0
@@ -143,9 +144,9 @@ class RawBrainVision(BaseRaw):
         self._create_event_ch(np.empty((0, 3)), n_samples)
 
         super(RawBrainVision, self).__init__(
-            info, last_samps=[n_samples - 1], filenames=[data_filename],
+            info, last_samps=[n_samples - 1], filenames=[data_fname],
             orig_format=fmt, preload=preload, verbose=verbose,
-            raw_extras=[offsets])
+            raw_extras=[offsets], orig_units=orig_units)
 
         # Get annotations from vmrk file
         annots = read_annotations_brainvision(mrk_fname, info['sfreq'])
@@ -613,12 +614,21 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     -------
     info : Info
         The measurement info.
+    data_fname : str
+        Path to the binary data file.
     fmt : str
-        The data format in the file.
-    edf_info : dict
-        A dict containing Brain Vision specific parameters.
-    events : array, shape (n_events, 3)
-        Events from the corresponding vmrk file.
+        The format of the binary data file.
+    order : str
+        Orientation of the binary data.
+    n_samples : int
+        Number of data points in the binary data file.
+    mrk_fname : str
+        Path to the marker file.
+    montage : Montage
+        Coordinates of the channels, if present in the header file.
+    orig_units : dict
+        Dictionary mapping channel names to their units as specified in
+        the header file. Example: {'FC1': 'nV'}
     """
     scale = float(scale)
     ext = op.splitext(vhdr_fname)[-1]
@@ -650,7 +660,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
     # locate EEG binary file and marker file for the stim channel
     path = op.dirname(vhdr_fname)
-    data_filename = op.join(path, cfg.get(cinfostr, 'DataFile'))
+    data_fname = op.join(path, cfg.get(cinfostr, 'DataFile'))
     mrk_fname = op.join(path, cfg.get(cinfostr, 'MarkerFile'))
 
     # Try to get measurement date from marker file
@@ -680,7 +690,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         except configparser.NoOptionError:
             logger.warning('No info on DataPoints found. Inferring number of '
                            'samples from the data file size.')
-            with open(data_filename, 'rb') as fid:
+            with open(data_fname, 'rb') as fid:
                 fid.seek(0, 2)
                 n_bytes = fid.tell()
                 n_samples = n_bytes // _fmt_byte_dict[fmt] // (nchan - 1)
@@ -691,6 +701,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     cals.fill(np.nan)
     ch_dict = dict()
     misc_chs = dict()
+    orig_units = dict()
     for chan, props in cfg.items('Channel Infos'):
         n = int(re.findall(r'ch(\d+)', chan)[0]) - 1
         props = props.split(',')
@@ -708,6 +719,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             else:
                 resolution = 1.  # for files with units specified, but not res
         unit = unit.replace(u'\xc2', u'')  # Remove unwanted control characters
+        orig_units[name] = unit  # Save the original units to expose later
         cals[n] = float(resolution)
         ranges[n] = _unit_dict.get(unit, 1) * scale
         if unit not in ('V', 'nV', u'µV', 'uV'):
@@ -958,7 +970,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
     info._update_redundant()
     info._check_consistency()
-    return info, data_filename, fmt, order, mrk_fname, montage, n_samples
+    return (info, data_fname, fmt, order, n_samples, mrk_fname, montage,
+            orig_units)
 
 
 def read_raw_brainvision(vhdr_fname, montage=None,

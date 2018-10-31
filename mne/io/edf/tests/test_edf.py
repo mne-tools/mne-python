@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Martin Billinger <martin.billinger@tugraz.at>
 #          Alan Leggitt <alan.leggitt@ucsf.edu>
 #          Alexandre Barachant <alexandre.barachant@gmail.com>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -52,6 +54,16 @@ bdf_stim_channel_path = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
+
+
+def test_orig_units():
+    """Test exposure of original channel units."""
+    raw = read_raw_edf(edf_path, stim_channel='auto', preload=True)
+
+    # Test original units
+    orig_units = raw._orig_units
+    assert len(orig_units) == 140
+    assert orig_units['A1'] == u'µV'  # formerly 'uV' edit by _check_orig_units
 
 
 def test_bdf_data():
@@ -123,6 +135,7 @@ def test_edf_data():
                            stim_channel=None, exclude=['Ergo-Left', 'H10'],
                            verbose='error')
     raw_py = read_raw_edf(edf_path, stim_channel='auto', preload=True)
+
     assert_equal(len(raw.ch_names) + 2, len(raw_py.ch_names))
     # Test saving and loading when annotations were parsed.
     edf_events = find_events(raw_py, output='step', shortest_event=0,
@@ -356,8 +369,8 @@ def _compute_sfreq_from_edf_info(edf_info):
 def _get_empty_raw_with_valid_annot(fname):
     raw = _RawShell()
     raw.first_samp = 0
-    edf_info = _read_edf_header(fname=fname, annot=None, annotmap=None,
-                                exclude=())
+    edf_info, orig_units = _read_edf_header(fname=fname, annot=None,
+                                            annotmap=None, exclude=())
 
     sfreq = _compute_sfreq_from_edf_info(edf_info)
     raw.info = _empty_info(sfreq)
