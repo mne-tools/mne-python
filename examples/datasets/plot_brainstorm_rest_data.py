@@ -26,7 +26,7 @@ References
 .. _bst_omega: https://neuroimage.usc.edu/brainstorm/Tutorials/RestingOmega
 .. _bst_resting: https://neuroimage.usc.edu/brainstorm/Tutorials/Resting
 """
-# sphinx_gallery_thumbnail_number = 4
+# sphinx_gallery_thumbnail_number = 5
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Luke Bloy <luke.bloy@gmail.com>
