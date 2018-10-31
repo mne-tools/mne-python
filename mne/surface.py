@@ -162,29 +162,28 @@ def fast_cross_3d(x, y):
     Parameters
     ----------
     x : array
-        Input array 1.
+        Input array 1, shape (..., 3).
     y : array
-        Input array 2.
+        Input array 2, shape (..., 3).
 
     Returns
     -------
-    z : array
-        Cross product of x and y.
+    z : array, shape (..., 3)
+        Cross product of x and y along the last dimension.
 
     Notes
     -----
-    x and y must both be 2D row vectors. One must have length 1, or both
-    lengths must match.
+    x and y must broadcast against each other.
     """
-    assert x.ndim == 2
-    assert y.ndim == 2
-    assert x.shape[1] == 3
-    assert y.shape[1] == 3
-    assert (x.shape[0] == 1 or y.shape[0] == 1) or x.shape[0] == y.shape[0]
-    if max([x.shape[0], y.shape[0]]) >= 500:
-        return np.c_[x[:, 1] * y[:, 2] - x[:, 2] * y[:, 1],
-                     x[:, 2] * y[:, 0] - x[:, 0] * y[:, 2],
-                     x[:, 0] * y[:, 1] - x[:, 1] * y[:, 0]]
+    assert x.ndim >= 1
+    assert y.ndim >= 1
+    assert x.shape[-1] == 3
+    assert y.shape[-1] == 3
+    if max(x.size, y.size) >= 1500:
+        return np.stack([x[..., 1] * y[..., 2] - x[..., 2] * y[..., 1],
+                         x[..., 2] * y[..., 0] - x[..., 0] * y[..., 2],
+                         x[..., 0] * y[..., 1] - x[..., 1] * y[..., 0]],
+                        axis=-1)
     else:
         return np.cross(x, y)
 
