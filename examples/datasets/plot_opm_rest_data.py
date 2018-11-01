@@ -25,7 +25,7 @@ The steps we use are:
 Preprocessing
 -------------
 """
-# sphinx_gallery_thumbnail_number = 10
+# sphinx_gallery_thumbnail_number = 14
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Luke Bloy <luke.bloy@gmail.com>
@@ -65,7 +65,7 @@ opm_coil_def_fname = op.join(data_path, 'MEG', 'OPM', 'coil_def.dat')
 
 raws = dict()
 raw_erms = dict()
-new_sfreq = 100.
+new_sfreq = 90.  # Nyquist frequency (45 Hz) < line noise freq (50 Hz)
 raws['vv'] = mne.io.read_raw_fif(vv_fname, verbose='error')  # ignore naming
 raws['vv'].load_data().resample(new_sfreq)
 raws['vv'].info['bads'] = ['MEG2233', 'MEG1842']
@@ -81,29 +81,25 @@ raw_erms['opm'].load_data().resample(new_sfreq)
 assert raws['opm'].info['sfreq'] == raws['vv'].info['sfreq']
 
 ##############################################################################
-# Do some minimal artifact rejection
+# Do some minimal artifact rejection just for VectorView data
 
-kinds = ('vv', 'opm')
 titles = dict(vv='VectorView', opm='OPM')
-for kind in kinds:
-    ssp_ecg, _ = mne.preprocessing.compute_proj_ecg(
-        raws[kind], tmin=-0.1, tmax=0.1, n_grad=1, n_mag=2)
-    raws[kind].add_proj(ssp_ecg, remove_existing=True)
-    if kind == 'vv':
-        ssp_ecg_eog, _ = mne.preprocessing.compute_proj_eog(
-            raws[kind], n_grad=1, n_mag=1, ch_name='MEG0112')
-        raws[kind].add_proj(ssp_ecg_eog, remove_existing=True)
-        raw_erms[kind].add_proj(ssp_ecg_eog)
-    else:
-        raw_erms[kind].add_proj(ssp_ecg)
-    fig = mne.viz.plot_projs_topomap(raws[kind].info['projs'][-5:],
-                                     info=raws[kind].info)
-    fig.suptitle(titles[kind])
-    fig.subplots_adjust(0.05, 0.05, 0.95, 0.85)
+ssp_ecg, _ = mne.preprocessing.compute_proj_ecg(
+    raws['vv'], tmin=-0.1, tmax=0.1, n_grad=1, n_mag=2)
+raws['vv'].add_proj(ssp_ecg, remove_existing=True)
+ssp_ecg_eog, _ = mne.preprocessing.compute_proj_eog(
+    raws['vv'], n_grad=1, n_mag=1, ch_name='MEG0112')
+raws['vv'].add_proj(ssp_ecg_eog, remove_existing=True)
+raw_erms['vv'].add_proj(ssp_ecg_eog)
+fig = mne.viz.plot_projs_topomap(raws['vv'].info['projs'][-5:],
+                                 info=raws['vv'].info)
+fig.suptitle(titles['vv'])
+fig.subplots_adjust(0.05, 0.05, 0.95, 0.85)
 
 ##############################################################################
 # Explore data
 
+kinds = ('vv', 'opm')
 n_fft = next_fast_len(int(round(4 * new_sfreq)))
 print('Using n_fft=%d (%0.1f sec)' % (n_fft, n_fft / raws['vv'].info['sfreq']))
 for kind in kinds:
@@ -138,7 +134,7 @@ with mne.use_coil_def(opm_coil_def_fname):
 # in each frequency band the percentage of the PSD accounted for by that band.
 
 freq_bands = dict(
-    delta=(2, 4), theta=(5, 7), alpha=(8, 12), beta=(15, 29), gamma=(30, 50))
+    delta=(2, 4), theta=(5, 7), alpha=(8, 12), beta=(15, 29), gamma=(30, 45))
 topos = dict(vv=dict(), opm=dict())
 stcs = dict(vv=dict(), opm=dict())
 
@@ -193,8 +189,7 @@ fig_alpha, brain_alpha = plot_band('vv', 'alpha')
 # Beta
 # ----
 # Here we also show OPM data, which shows a profile similar to the VectorView
-# data beneath the sensors. Other areas farther from the OPM sensors are
-# not likely to be sampled properly.
+# data beneath the sensors.
 
 fig_beta, brain_beta = plot_band('vv', 'beta')
 fig_beta_opm, brain_beta_opm = plot_band('opm', 'beta')
