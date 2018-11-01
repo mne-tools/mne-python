@@ -47,10 +47,6 @@ Resting state
 
 Details can be found at the Brainstorm `resting state dataset tutorial`_.
 
-.. topic:: Examples
-
-    * :ref:`Brainstorm resting dataset tutorial <sphx_glr_auto_examples_datasets_plot_brainstorm_rest_data.py>`: Partially replicates the original Brainstorm tutorial.
-
 Median nerve
 ^^^^^^^^^^^^
 :func:`mne.datasets.brainstorm.bst_raw.data_path`

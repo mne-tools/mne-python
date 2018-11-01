@@ -2548,8 +2548,8 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
     ----------
     .. [1] D. Cohen, H. Hosaka
        "Part II magnetic field produced by a current dipole",
-        Journal of electrocardiology, Volume 9, Number 4, pp. 409-417, 1976.
-        DOI: 10.1016/S0022-0736(76)80041-6
+       Journal of electrocardiology, Volume 9, Number 4, pp. 409-417, 1976.
+       DOI: 10.1016/S0022-0736(76)80041-6
     """
     from matplotlib import pyplot as plt
     from ..forward import _map_meg_channels

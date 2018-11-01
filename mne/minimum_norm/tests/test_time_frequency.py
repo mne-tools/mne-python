@@ -102,10 +102,11 @@ def test_source_psd():
     stcs = list()
     for pick_ori, method in zip((None, 'normal', 'normal'),
                                 ('dSPM', 'dSPM', 'MNE')):
-        stc, ev = compute_source_psd(
-            raw, inverse_operator, lambda2=1. / 9., method=method,
-            fmin=fmin, fmax=fmax, pick_ori=pick_ori, n_fft=n_fft, overlap=0.,
-            return_sensor=True)
+        with pytest.deprecated_call(match='dB=True'):
+            stc, ev = compute_source_psd(
+                raw, inverse_operator, lambda2=1. / 9., method=method,
+                fmin=fmin, fmax=fmax, pick_ori=pick_ori, n_fft=n_fft,
+                overlap=0., return_sensor=True)
 
         assert ev.data.shape == (len(ev.info['ch_names']), len(stc.times))
         assert ev.times[0] >= fmin

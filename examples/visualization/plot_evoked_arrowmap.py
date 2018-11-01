@@ -14,8 +14,8 @@ References
 ----------
 .. [1] D. Cohen, H. Hosaka
    "Part II magnetic field produced by a current dipole",
-    Journal of electrocardiology, Volume 9, Number 4, pp. 409-417, 1976.
-    DOI: 10.1016/S0022-0736(76)80041-6
+   Journal of electrocardiology, Volume 9, Number 4, pp. 409-417, 1976.
+   DOI: 10.1016/S0022-0736(76)80041-6
 """
 
 # Authors: Sheraz Khan <sheraz@khansheraz.com>

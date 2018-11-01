@@ -1989,7 +1989,8 @@ class ProgressBar(object):
         # we can't put this in __del__ b/c then each worker will delete the
         # file, which is not so good
         self._mmap = None
-        os.remove(self._mmap_fname)
+        if op.isfile(self._mmap_fname):
+            os.remove(self._mmap_fname)
         print('')
 
 
