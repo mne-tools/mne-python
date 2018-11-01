@@ -462,7 +462,7 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
     # Compute standardized half-bandwidth
     from scipy.signal import get_window
     if isinstance(bandwidth, string_types):
-        logger.info('    using standard spectrum estimation with %s windowing'
+        logger.info('    Using standard spectrum estimation with "%s" window'
                     % (bandwidth,))
         window_fun = get_window(bandwidth, n_times)[np.newaxis]
         return window_fun, np.ones(1), False
