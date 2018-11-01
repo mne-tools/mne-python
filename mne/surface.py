@@ -180,10 +180,12 @@ def fast_cross_3d(x, y):
     assert x.shape[-1] == 3
     assert y.shape[-1] == 3
     if max(x.size, y.size) >= 1500:
-        return np.stack([x[..., 1] * y[..., 2] - x[..., 2] * y[..., 1],
-                         x[..., 2] * y[..., 0] - x[..., 0] * y[..., 2],
-                         x[..., 0] * y[..., 1] - x[..., 1] * y[..., 0]],
-                        axis=-1)
+        a = x[..., 1] * y[..., 2] - x[..., 2] * y[..., 1]
+        b = x[..., 2] * y[..., 0] - x[..., 0] * y[..., 2]
+        c = x[..., 0] * y[..., 1] - x[..., 1] * y[..., 0]
+        # Once we bump to NumPy 1.10, np.stack simplifies this
+        return np.concatenate([
+            a[..., np.newaxis], b[..., np.newaxis], c[..., np.newaxis]], -1)
     else:
         return np.cross(x, y)
 
