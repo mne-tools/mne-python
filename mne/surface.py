@@ -171,7 +171,8 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
 
 
 def _reorder_ccw(rrs, tris):
-    """Reorder tris of a convex hull to be CCW-ordered."""
+    """Reorder tris of a convex hull to be wound counter-clockwise."""
+    # This ensures that rendering with front-/back-face culling works properly
     com = np.mean(rrs, axis=0)
     rr_tris = rrs[tris]
     dirs = np.sign((np.cross(rr_tris[:, 1] - rr_tris[:, 0],
