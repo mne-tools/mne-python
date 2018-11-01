@@ -126,28 +126,31 @@ def _do_lin_field_coeff(bem_rr, tris, tn, ta, rmags, cosmags, ws, bins):
         Linear coefficients with effect of each BEM vertex on each sensor (?)
     """
     coeff = np.zeros((bins[-1] + 1, len(bem_rr)))
+    w_cosmags = ws[:, np.newaxis] * cosmags
+    diff = rmags[:, np.newaxis, :] - bem_rr
+    den = np.sum(diff * diff, axis=-1)
+    den *= np.sqrt(den)
+    den *= 3
     for tri, tri_nn, tri_area in zip(tris, tn, ta):
         # Accumulate the coefficients for each triangle node and add to the
         # corresponding coefficient matrix
-        tri_rr = bem_rr[tri]
 
+        # Simple version (bem_lin_field_coeffs_simple)
         # The following is equivalent to:
+        # tri_rr = bem_rr[tri]
         # for j, coil in enumerate(coils['coils']):
         #     x = func(coil['rmag'], coil['cosmag'],
         #              tri_rr, tri_nn, tri_area)
         #     res = np.sum(coil['w'][np.newaxis, :] * x, axis=1)
         #     coeff[j][tri + off] += mult * res
 
-        # Simple version (bem_lin_field_coeffs_simple)
-        zz = []
-        for trr in tri_rr:
-            diff = rmags - trr
-            dl = np.sum(diff * diff, axis=1)
-            c = fast_cross_3d(diff, tri_nn[np.newaxis, :])
-            x = tri_area * np.sum(c * cosmags, axis=1) / \
-                (3.0 * dl * np.sqrt(dl))
-            zz += [np.bincount(bins, weights=x * ws, minlength=bins[-1] + 1)]
-        coeff[:, tri] += np.array(zz).T
+        c = fast_cross_3d(diff[:, tri], tri_nn)
+        c *= w_cosmags[:, np.newaxis]
+        for ti in range(3):
+            x = np.sum(c[:, ti], axis=-1)
+            x /= den[:, tri[ti]] / tri_area
+            coeff[:, tri[ti]] += \
+                np.bincount(bins, weights=x, minlength=bins[-1] + 1)
     return coeff
 
 
@@ -312,13 +315,17 @@ def _bem_inf_pots(mri_rr, bem_rr, mri_Q=None):
     """
     # NOTE: the (μ_0 / (4π) factor has been moved to _prep_field_communication
     # Get position difference vector between BEM vertex and dipole
-    diff = bem_rr.T[np.newaxis, :, :] - mri_rr[:, :, np.newaxis]
-    diff_norm = np.sum(diff * diff, axis=1)
-    diff_norm *= np.sqrt(diff_norm)  # Position difference magnitude cubed
-    diff_norm[diff_norm == 0] = 1  # avoid nans
-    if mri_Q is not None:  # save time when mri_Q=np.eye(3) (e.g., MEG sensors)
-        diff = einsum('ijk,mj->imk', diff, mri_Q)
-    diff /= diff_norm[:, np.newaxis, :]
+    diff = np.empty((len(mri_rr), 3, len(bem_rr)))
+    for ri, rr in enumerate(mri_rr):
+        this_diff = bem_rr - rr
+        diff_norm = np.sum(this_diff * this_diff, axis=1, keepdims=True)
+        diff_norm *= np.sqrt(diff_norm)
+        diff_norm[diff_norm == 0] = 1
+        if mri_Q is not None:
+            this_diff = np.dot(this_diff, mri_Q.T)
+        this_diff /= diff_norm
+        diff[ri] = this_diff.T
+
     return diff
 
 
@@ -486,7 +493,7 @@ def _do_inf_pots(mri_rr, bem_rr, mri_Q, sol):
     for bi in range(len(bounds) - 1):
         # v0 in Hamalainen et al., 1989 == v_inf in Mosher, et al., 1999
         v0s = _bem_inf_pots(mri_rr[bounds[bi]:bounds[bi + 1]], bem_rr, mri_Q)
-        v0s = np.reshape(v0s, (v0s.shape[0] * 3, v0s.shape[2]))
+        v0s = v0s.reshape(-1, v0s.shape[2])
         B[3 * bounds[bi]:3 * bounds[bi + 1]] = np.dot(v0s, sol)
     return B
 
@@ -697,7 +704,7 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
 
         # The dipole location and orientation must be transformed
         head_mri_t = bem['head_mri_t']
-        mri_Q = apply_trans(bem['head_mri_t']['trans'], np.eye(3), False)
+        mri_Q = bem['head_mri_t']['trans'][:3, :3].T
 
     # Compute solution and compensation for dif sensor types ('meg', 'eeg')
     if len(set(fwd_data['coil_types'])) != len(fwd_data['coil_types']):

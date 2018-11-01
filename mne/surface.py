@@ -194,29 +194,30 @@ def fast_cross_3d(x, y):
     Parameters
     ----------
     x : array
-        Input array 1.
+        Input array 1, shape (..., 3).
     y : array
-        Input array 2.
+        Input array 2, shape (..., 3).
 
     Returns
     -------
-    z : array
-        Cross product of x and y.
+    z : array, shape (..., 3)
+        Cross product of x and y along the last dimension.
 
     Notes
     -----
-    x and y must both be 2D row vectors. One must have length 1, or both
-    lengths must match.
+    x and y must broadcast against each other.
     """
-    assert x.ndim == 2
-    assert y.ndim == 2
-    assert x.shape[1] == 3
-    assert y.shape[1] == 3
-    assert (x.shape[0] == 1 or y.shape[0] == 1) or x.shape[0] == y.shape[0]
-    if max([x.shape[0], y.shape[0]]) >= 500:
-        return np.c_[x[:, 1] * y[:, 2] - x[:, 2] * y[:, 1],
-                     x[:, 2] * y[:, 0] - x[:, 0] * y[:, 2],
-                     x[:, 0] * y[:, 1] - x[:, 1] * y[:, 0]]
+    assert x.ndim >= 1
+    assert y.ndim >= 1
+    assert x.shape[-1] == 3
+    assert y.shape[-1] == 3
+    if max(x.size, y.size) >= 1500:
+        a = x[..., 1] * y[..., 2] - x[..., 2] * y[..., 1]
+        b = x[..., 2] * y[..., 0] - x[..., 0] * y[..., 2]
+        c = x[..., 0] * y[..., 1] - x[..., 1] * y[..., 0]
+        # Once we bump to NumPy 1.10, np.stack simplifies this
+        return np.concatenate([
+            a[..., np.newaxis], b[..., np.newaxis], c[..., np.newaxis]], -1)
     else:
         return np.cross(x, y)
 
@@ -248,23 +249,17 @@ def _accumulate_normals(tris, tri_nn, npts):
 def _triangle_neighbors(tris, npts):
     """Efficiently compute vertex neighboring triangles."""
     # this code replaces the following, but is faster (vectorized):
-    #
-    # this['neighbor_tri'] = [list() for _ in xrange(this['np'])]
-    # for p in xrange(this['ntri']):
-    #     verts = this['tris'][p]
-    #     this['neighbor_tri'][verts[0]].append(p)
-    #     this['neighbor_tri'][verts[1]].append(p)
-    #     this['neighbor_tri'][verts[2]].append(p)
-    # this['neighbor_tri'] = [np.array(nb, int) for nb in this['neighbor_tri']]
-    #
-    verts = tris.ravel()
-    counts = np.bincount(verts, minlength=npts)
-    reord = np.argsort(verts)
-    tri_idx = np.unravel_index(reord, (len(tris), 3))[0]
-    idx = np.cumsum(np.r_[0, counts])
-    # the sort below slows it down a bit, but is needed for equivalence
-    neighbor_tri = [np.sort(tri_idx[v1:v2])
-                    for v1, v2 in zip(idx[:-1], idx[1:])]
+    # neighbor_tri = [list() for _ in range(npts)]
+    # for ti, tri in enumerate(tris):
+    #     for t in tri:
+    #         neighbor_tri[t].append(ti)
+    rows = tris.ravel()
+    cols = np.repeat(np.arange(len(tris)), 3)
+    data = np.ones(len(cols))
+    csr = coo_matrix((data, (rows, cols)), shape=(npts, len(tris))).tocsr()
+    neighbor_tri = [csr.indices[start:stop]
+                    for start, stop in zip(csr.indptr[:-1], csr.indptr[1:])]
+    assert len(neighbor_tri) == npts
     return neighbor_tri
 
 
@@ -716,7 +711,6 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
         surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
         logger.info('Loading geometry from %s...' % surf_name)
         from_surf = read_surface(surf_name, return_dict=True)[-1]
-        complete_surface_info(from_surf, copy=False)
         _normalize_vectors(from_surf['rr'])
         if from_surf['np'] != surf['np']:
             raise RuntimeError('Mismatch between number of surface vertices, '

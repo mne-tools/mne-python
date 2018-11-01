@@ -81,7 +81,6 @@ def test_scale_mri():
     path = op.join(tempdir, 'fsaverage', 'bem', 'fsaverage-%s-src.fif')
     src = mne.setup_source_space('fsaverage', 'ico0', subjects_dir=tempdir,
                                  add_dist=False)
-    write_source_spaces(path % 'ico-0', src)
     mri = op.join(tempdir, 'fsaverage', 'mri', 'orig.mgz')
     print('Creating volume source space')
     vsrc = mne.setup_volume_source_space(
@@ -91,6 +90,7 @@ def test_scale_mri():
 
     # scale fsaverage
     for scale in (.9, [1, .2, .8]):
+        write_source_spaces(path % 'ico-0', src, overwrite=True)
         os.environ['_MNE_FEW_SURFACES'] = 'true'
         with pytest.warns(None):  # sometimes missing nibabel
             scale_mri('fsaverage', 'flachkopf', scale, True,
@@ -109,9 +109,17 @@ def test_scale_mri():
             apply_trans(vsrc[0]['src_mri_t'], pt))
         scale_labels('flachkopf', subjects_dir=tempdir)
 
-        # add distances to source space
-        mne.add_source_space_distances(src)
-        src.save(path % 'ico-0', overwrite=True)
+        # add distances to source space after hacking the properties to make
+        # it run *much* faster
+        src_dist = src.copy()
+        for s in src_dist:
+            s.update(rr=s['rr'][s['vertno']], nn=s['nn'][s['vertno']],
+                     tris=s['use_tris'])
+            s.update(np=len(s['rr']), ntri=len(s['tris']),
+                     vertno=np.arange(len(s['rr'])),
+                     inuse=np.ones(len(s['rr']), int))
+        mne.add_source_space_distances(src_dist)
+        write_source_spaces(path % 'ico-0', src_dist, overwrite=True)
 
         # scale with distances
         os.remove(spath % 'ico-0')

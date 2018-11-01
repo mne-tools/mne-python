@@ -547,8 +547,8 @@ class Info(dict):
                     self['chs'][ch_idx]['ch_name'] = ch_name
 
         if 'filename' in self:
-            warn('the "filename" key is misleading\
-                 and info should not have it')
+            warn('the "filename" key is misleading '
+                 'and info should not have it')
 
     def _check_ch_name_length(self):
         """Check that channel names are sufficiently short."""

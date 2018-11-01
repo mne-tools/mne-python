@@ -219,8 +219,7 @@ def test_make_forward_solution_kit():
 def test_make_forward_solution():
     """Test making M-EEG forward solution from python."""
     fwd_py = make_forward_solution(fname_raw, fname_trans, fname_src,
-                                   fname_bem, mindist=5.0, eeg=True, meg=True,
-                                   n_jobs=-1)
+                                   fname_bem, mindist=5.0, eeg=True, meg=True)
     assert (isinstance(fwd_py, Forward))
     fwd = read_forward_solution(fname_meeg)
     assert (isinstance(fwd, Forward))

@@ -312,6 +312,8 @@ def test_clean_info_bads():
     info._check_consistency()
     info['bads'] += ['EEG 053']
     pytest.raises(RuntimeError, info._check_consistency)
+    with pytest.raises(ValueError, match='unique'):
+        pick_info(raw.info, [0, 0])
 
 
 run_tests_if_main()

@@ -71,13 +71,16 @@ def test_head():
                   subjects_dir=subjects_dir)
 
 
-def test_huge_cross():
+def test_fast_cross_3d():
     """Test cross product with lots of elements."""
     x = rng.rand(100000, 3)
     y = rng.rand(1, 3)
     z = np.cross(x, y)
     zz = fast_cross_3d(x, y)
     assert_array_equal(z, zz)
+    # broadcasting and non-2D
+    zz = fast_cross_3d(x[:, np.newaxis], y[0])
+    assert_array_equal(z, zz[:, 0])
 
 
 def test_compute_nearest():

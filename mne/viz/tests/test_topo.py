@@ -19,7 +19,9 @@ from mne.utils import run_tests_if_main
 
 from mne.viz import (plot_topo_image_epochs, _get_presser,
                      mne_analyze_colormap, plot_evoked_topo)
+from mne.viz.evoked import _line_plot_onselect
 from mne.viz.utils import _fake_click
+
 from mne.viz.topo import (_plot_update_evoked_topo_proj, iter_topography,
                           _imshow_tfr)
 
@@ -143,6 +145,12 @@ def test_plot_topo():
     cov = read_cov(cov_fname)
     cov['projs'] = []
     evoked.pick_types(meg=True).plot_topo(noise_cov=cov)
+    plt.close('all')
+
+    # test plot_topo
+    evoked.plot_topo()  # should auto-find layout
+    _line_plot_onselect(0, 200, ['mag', 'grad'], evoked.info, evoked.data,
+                        evoked.times)
     plt.close('all')
 
 
