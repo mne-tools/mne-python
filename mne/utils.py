@@ -16,6 +16,8 @@ import hashlib
 import inspect
 import json
 import logging
+import fnmatch
+
 from math import log, ceil
 import multiprocessing
 import operator
@@ -84,6 +86,9 @@ def _get_argvalues():
     # call stack
     # read_raw_xxx -> EOF -> verbose() -> BaseRaw.__init__ -> get_argvalues
     frame = inspect.stack()[4][0]
+    fname = frame.f_code.co_filename
+    if not fnmatch.fnmatch(fname, '*/mne/io/*'):
+        return None
     args, _, _, values = inspect.getargvalues(frame)
     params = dict()
     for arg in args:
