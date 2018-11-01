@@ -10,13 +10,14 @@ import pytest
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
 from mne.datasets import testing
-from mne import read_surface, write_surface, decimate_surface
+from mne import read_surface, write_surface, decimate_surface, pick_types
 from mne.surface import (read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf, read_curvature,
                          get_meg_helmet_surf)
-from mne.utils import (_TempDir, requires_mayavi, requires_tvtk,
+from mne.utils import (_TempDir, requires_mayavi, requires_tvtk, catch_logging,
                        run_tests_if_main, object_diff, traits_test)
 from mne.io import read_info
+from mne.io.constants import FIFF
 from mne.transforms import _get_trans
 
 data_path = testing.data_path(download=False)
@@ -39,11 +40,23 @@ def test_helmet():
     fname_trans = op.join(base_dir, 'tests', 'data',
                           'sample-audvis-raw-trans.txt')
     trans = _get_trans(fname_trans)[0]
-    for fname, n in [(fname_raw, 304),
-                     (fname_kit_raw, 304),
-                     (fname_bti_raw, 304),
-                     (fname_ctf_raw, 348)]:
-        helmet = get_meg_helmet_surf(read_info(fname), trans)
+    new_info = read_info(fname_raw)
+    artemis_info = new_info.copy()
+    for pick in pick_types(new_info):
+        new_info['chs'][pick]['coil_type'] = 9999
+        artemis_info['chs'][pick]['coil_type'] = \
+            FIFF.FIFFV_COIL_ARTEMIS123_GRAD
+    for info, n, name in [(read_info(fname_raw), 304, '306m'),
+                          (read_info(fname_kit_raw), 304, 'KIT'),
+                          (read_info(fname_bti_raw), 304, 'Magnes'),
+                          (read_info(fname_ctf_raw), 348, 'CTF'),
+                          (new_info, 102, 'unknown'),
+                          (artemis_info, 102, 'ARTEMIS123')
+                          ]:
+        with catch_logging() as log:
+            helmet = get_meg_helmet_surf(info, trans, verbose=True)
+        log = log.getvalue()
+        assert name in log
         assert_equal(len(helmet['rr']), n)
         assert_equal(len(helmet['rr']), len(helmet['nn']))
 

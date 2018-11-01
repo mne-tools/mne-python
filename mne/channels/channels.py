@@ -26,7 +26,7 @@ from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
 
 def _get_meg_system(info):
     """Educated guess for the helmet type based on channels."""
-    system = '306m'
+    have_helmet = True
     for ch in info['chs']:
         if ch['kind'] == FIFF.FIFFV_MEG_CH:
             # Only take first 16 bits, as higher bits store CTF grad comp order
@@ -54,8 +54,12 @@ def _get_meg_system(info):
                 break
             elif coil_type == FIFF.FIFFV_COIL_ARTEMIS123_GRAD:
                 system = 'ARTEMIS123'
+                have_helmet = False
                 break
-    return system
+    else:
+        system = 'unknown'
+        have_helmet = False
+    return system, have_helmet
 
 
 def _contains_ch_type(info, ch_type):

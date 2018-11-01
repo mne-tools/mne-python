@@ -32,7 +32,7 @@ from ..source_space import SourceSpaces, _create_surf_spacing, _check_spacing
 
 from ..surface import (get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
-                       mesh_edges,
+                       mesh_edges, _reorder_ccw,
                        _complete_sphere_surf, _normalize_vectors)
 from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
@@ -52,6 +52,7 @@ FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
 
 def _fiducial_coords(points, coord_frame=None):
     """Generate 3x3 array of fiducial coordinates."""
+    points = points or []  # None -> list
     if coord_frame is not None:
         points = [p for p in points if p['coord_frame'] == coord_frame]
     points_ = dict((p['ident'], p) for p in points if
@@ -1038,9 +1039,9 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
             raise ValueError("dig needs to be True, False or 'fiducials', "
                              "not %s" % repr(dig))
         else:
-            hpi_loc = np.array([d['r'] for d in info['dig']
+            hpi_loc = np.array([d['r'] for d in (info['dig'] or [])
                                 if d['kind'] == FIFF.FIFFV_POINT_HPI])
-            ext_loc = np.array([d['r'] for d in info['dig']
+            ext_loc = np.array([d['r'] for d in (info['dig'] or [])
                                 if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
         car_loc = _fiducial_coords(info['dig'])
         # Transform from head coords if necessary
@@ -1259,14 +1260,7 @@ def _sensor_shape(coil):
     else:
         rrs = coil['rmag_orig'].copy()
         pad = False
-        tris = ConvexHull(rrs).simplices
-        # reorder tris to be CCW-ordered
-        com = np.mean(rrs, axis=0)
-        rr_tris = rrs[tris]
-        dirs = np.sign((np.cross(rr_tris[:, 1] - rr_tris[:, 0],
-                                 rr_tris[:, 2] - rr_tris[:, 0]) *
-                        (rr_tris[:, 0] - com)).sum(-1)).astype(int)
-        tris = np.array([t[::d] for d, t in zip(dirs, tris)])
+        tris = _reorder_ccw(rrs, ConvexHull(rrs).simplices)
 
     # Go from (x,y) -> (x,y,z)
     if pad:

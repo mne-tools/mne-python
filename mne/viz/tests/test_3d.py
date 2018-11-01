@@ -258,6 +258,7 @@ def test_plot_alignment(tmpdir):
 
     # 3D coil with no defined draw (ConvexHull)
     info_cube = pick_info(info, [0])
+    info['dig'] = None
     info_cube['chs'][0]['coil_type'] = 9999
     with pytest.raises(RuntimeError, match='coil definition not found'):
         plot_alignment(info_cube, meg='sensors', surfaces=())
@@ -265,7 +266,7 @@ def test_plot_alignment(tmpdir):
     with open(coil_def_fname, 'w') as fid:
         fid.write(coil_3d)
     with use_coil_def(coil_def_fname):
-        plot_alignment(info_cube, meg='sensors', surfaces=())
+        plot_alignment(info_cube, meg='sensors', surfaces=(), dig=True)
 
     # one layer bem with skull surfaces:
     pytest.raises(ValueError, plot_alignment, info=info, trans=trans_fname,

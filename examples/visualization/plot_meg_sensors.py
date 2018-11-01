@@ -3,7 +3,7 @@
 Plotting sensor layouts of MEG systems
 ======================================
 
-Sensor layouts of different MEG systems are shown.
+Show sensor layouts of different MEG systems.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #

@@ -18,12 +18,13 @@ from scipy.sparse import coo_matrix, csr_matrix, eye as speye
 
 from .io.constants import FIFF
 from .io.open import fiff_open
+from .io.pick import pick_types
 from .io.tree import dir_tree_find
 from .io.tag import find_tag
 from .io.write import (write_int, start_file, end_block, start_block, end_file,
                        write_string, write_float_sparse_rcs)
 from .channels.channels import _get_meg_system
-from .transforms import transform_surface_to
+from .transforms import transform_surface_to, _pol_to_cart, _cart_to_sph
 from .utils import logger, verbose, get_subjects_dir, warn
 from .externals.six import string_types
 from .fixes import _serialize_volume_info, _get_read_geometry, einsum
@@ -132,14 +133,34 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
     -------
     surf : dict
         The MEG helmet as a surface.
+
+    Notes
+    -----
+    A built-in helmet is loaded if possible. If not, a helmet surface
+    will be approximated based on the sensor locations.
     """
+    from scipy.spatial import ConvexHull, Delaunay
     from .bem import read_bem_surfaces
-    system = _get_meg_system(info)
-    logger.info('Getting helmet for system %s' % system)
-    fname = op.join(op.split(__file__)[0], 'data', 'helmets',
-                    system + '.fif.gz')
-    surf = read_bem_surfaces(fname, False, FIFF.FIFFV_MNE_SURF_MEG_HELMET,
-                             verbose=False)
+    system, have_helmet = _get_meg_system(info)
+    if have_helmet:
+        logger.info('Getting helmet for system %s' % system)
+        fname = op.join(op.split(__file__)[0], 'data', 'helmets',
+                        system + '.fif.gz')
+        surf = read_bem_surfaces(fname, False, FIFF.FIFFV_MNE_SURF_MEG_HELMET,
+                                 verbose=False)
+    else:
+        rr = np.array([info['chs'][pick]['loc'][:3]
+                       for pick in pick_types(info, meg=True, ref_meg=False,
+                                              exclude=())])
+        logger.info('Getting helmet for system %s (derived from %d MEG '
+                    'channel locations)' % (system, len(rr)))
+        rr = rr[np.unique(ConvexHull(rr).simplices)]
+        com = rr.mean(axis=0)
+        xy = _pol_to_cart(_cart_to_sph(rr - com)[:, 1:][:, ::-1])
+        tris = _reorder_ccw(rr, Delaunay(xy).simplices)
+
+        surf = dict(rr=rr, tris=tris)
+        complete_surface_info(surf, copy=False, verbose=False)
 
     # Ignore what the file says, it's in device coords and we want MRI coords
     surf['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
@@ -147,6 +168,17 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
     if trans is not None:
         transform_surface_to(surf, 'mri', trans)
     return surf
+
+
+def _reorder_ccw(rrs, tris):
+    """Reorder tris of a convex hull to be wound counter-clockwise."""
+    # This ensures that rendering with front-/back-face culling works properly
+    com = np.mean(rrs, axis=0)
+    rr_tris = rrs[tris]
+    dirs = np.sign((np.cross(rr_tris[:, 1] - rr_tris[:, 0],
+                             rr_tris[:, 2] - rr_tris[:, 0]) *
+                    (rr_tris[:, 0] - com)).sum(-1)).astype(int)
+    return np.array([t[::d] for d, t in zip(dirs, tris)])
 
 
 ###############################################################################
@@ -269,7 +301,7 @@ def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False,
             # get coords of pt projected onto closest triangle
             coords[ri] = _triangle_coords(rr, surf_geom, tri_idx[ri])
         weights = np.array([1. - coords[:, 0] - coords[:, 1], coords[:, 0],
-                           coords[:, 1]])
+                            coords[:, 1]])
         out = (weights, tri_idx)
         if project_rrs:  #
             out += (einsum('ij,jik->jk', weights,
