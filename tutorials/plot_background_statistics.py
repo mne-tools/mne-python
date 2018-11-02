@@ -205,7 +205,6 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 #              condition rather than the difference between two conditions,
 #              it is not clear where/how exchangeability applies; see
 #              `this FieldTrip discussion <ft_exch_>`_   # noqa: E501
-#              for more insight. Thus for these non-parametric tests, we will
 #
 # In the case where ``n_permutations`` is large enough (or "all") so
 # that the complete set of unique resampling exchanges can be done
