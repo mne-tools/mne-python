@@ -410,7 +410,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # Reconstruct raw file object with spatiotemporal processed data
     max_st = dict()
     if st_duration is not None:
-        max_st.update(job=10, subspcorr=st_correlation,
+        if st_only:
+            job = FIFF.FIFFV_SSS_JOB_TPROJ
+        else:
+            job = FIFF.FIFFV_SSS_JOB_ST
+        max_st.update(job=job, subspcorr=st_correlation,
                       buflen=st_duration / info['sfreq'])
         logger.info('    Processing data using tSSS with st_duration=%s'
                     % max_st['buflen'])
@@ -1464,7 +1468,8 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
     components[reg_moments] = 1
     sss_info_dict = dict(in_order=int_order, out_order=ext_order,
                          nchan=nchan, origin=origin.astype('float32'),
-                         job=np.array([2]), nfree=np.sum(components[:n_in]),
+                         job=FIFF.FIFFV_SSS_JOB_FILTER,
+                         nfree=np.sum(components[:n_in]),
                          frame=_str_to_frame[coord_frame],
                          components=components)
     max_info_dict = dict(max_st=max_st)

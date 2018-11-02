@@ -696,7 +696,7 @@ The documented structures are:
     | FIFFV_PROJ_ITEM_HOMOG_FIELD   | 5     | This projection item contains the three homogeneous field|
     |                               |       | components as seen by the sensor array.                  |
     +-------------------------------+-------+----------------------------------------------------------+
-    | FIFFV_MNE_PROJ_ITEM_EEG_AVREF | 10    | This projection item corresponds to the average EEG      |
+    | FIFFV_PROJ_ITEM_EEG_AVREF     | 10    | This projection item corresponds to the average EEG      |
     |                               |       | reference.                                               |
     +-------------------------------+-------+----------------------------------------------------------+
 
