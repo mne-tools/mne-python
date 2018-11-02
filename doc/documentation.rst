@@ -420,7 +420,6 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    auto_examples/datasets/plot_opm_rest_data.rst
     auto_examples/inverse/plot_compute_mne_inverse_epochs_in_label.rst
     auto_examples/inverse/plot_compute_mne_inverse_raw_in_label.rst
     auto_examples/inverse/plot_compute_mne_inverse_volume.rst

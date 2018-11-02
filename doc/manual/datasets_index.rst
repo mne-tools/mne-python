@@ -243,7 +243,6 @@ Triggers include:
 .. topic:: Examples
 
     * :ref:`sphx_glr_auto_examples_datasets_plot_opm_data.py`
-    * :ref:`sphx_glr_auto_examples_datasets_plot_opm_rest_data.py`
 
 
 References
