@@ -247,7 +247,7 @@ class RawEDF(BaseRaw):
         this_sel = orig_sel[idx]
 
         # We could read this one EDF block at a time, which would be this:
-        ch_offsets = np.cumsum(np.concatenate([[0], n_samps]))
+        ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
         block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
         # But to speed it up, we really need to read multiple blocks at once,
         # Otherwise we can end up with e.g. 18,181 chunks for a 20 MB file!
