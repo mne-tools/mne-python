@@ -13,6 +13,9 @@ ALLSPHINXOPTS   = -d _build/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
 .PHONY: help clean html dirhtml pickle json htmlhelp qthelp latex changes linkcheck doctest
 
+# make with no arguments will build the first target by default, i.e., build standalone HTML files
+first_target: html_dev-noplot
+
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
 	@echo "  html_stable      to make standalone HTML files (stable version)"
