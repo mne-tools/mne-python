@@ -16,6 +16,8 @@ import hashlib
 import inspect
 import json
 import logging
+import fnmatch
+
 from math import log, ceil
 import multiprocessing
 import operator
@@ -77,6 +79,22 @@ _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
 
 ###############################################################################
 # RANDOM UTILITIES
+
+
+def _get_argvalues():
+    """Return all arguments (except self) and values of read_raw_xxx."""
+    # call stack
+    # read_raw_xxx -> EOF -> verbose() -> BaseRaw.__init__ -> get_argvalues
+    frame = inspect.stack()[4][0]
+    fname = frame.f_code.co_filename
+    if not fnmatch.fnmatch(fname, '*/mne/io/*'):
+        return None
+    args, _, _, values = inspect.getargvalues(frame)
+    params = dict()
+    for arg in args:
+        params[arg] = values[arg]
+    params.pop('self', None)
+    return params
 
 
 def _ensure_int(x, name='unknown', must_be='an int'):

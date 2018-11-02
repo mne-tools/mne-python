@@ -41,7 +41,7 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      check_fname, _get_stim_channel,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc,
-                     _check_preload)
+                     _check_preload, _get_argvalues)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
@@ -406,6 +406,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._update_times()
         if load_from_disk:
             self._preload_data(preload)
+        self._init_kwargs = _get_argvalues()
 
     @verbose
     def apply_gradient_compensation(self, grade, verbose=None):
