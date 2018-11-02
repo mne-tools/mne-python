@@ -81,6 +81,18 @@ Changelog
 
 - Add :meth:`mne.Report.remove` method to remove existing figures from a report, by `Marijn van Vliet`_
 
+- Add sign to output of max-power orientation for :func:`mne.beamformer.make_dics` by `Eric Larson`_
+
+- Add support for ``pick_ori='max-power'`` when ``weight_norm=None`` in :func:`mne.beamformer.make_lcmv` by `Marijn van Vliet`_
+
+- Add support for ``weight_norm='nai'`` for all ``pick_ori`` options in :func:`mne.beamformer.make_lcmv` by `Marijn van Vliet`_
+
+- Add support for ``weight_norm='nai'`` to :func:`mne.beamformer.make_dics` by `Marijn van Vliet`_
+
+- Add ``rank`` parameter for specifying the rank of the covariance matrix to :func:`mne.beamformer.make_dics` by `Marijn van Vliet`_
+
+- Add ``rank='auto'`` parameter for automatically determining the rank of the covariance matrix to :func:`mne.beamformer.lcmv` and :func:`mne.beamformer.make_dics` by `Marijn van Vliet`_
+
 
 Bug
 ~~~
@@ -164,6 +176,10 @@ Bug
 - Fix symlinking to use relative paths in ``mne flash_bem` and ``mne watershed_bem`` by `Eric Larson`_
 
 - Fix error in mne coreg when saving with scaled MRI if fiducials haven't been saved by `Ezequiel Mikulan`_
+
+- Fix normalization error in :func:`mne.beamformer.make_lcmv` when ``pick_ori='normal', weight_norm='unit_noise_gain'`` by `Marijn van Vliet`_
+
+- Fix computation of max-power orientation in :func:`mne.beamformer.make_dics` when ``pick_ori='max-power', weight_norm='unit_noise_gain'`` by `Marijn van Vliet`_
 
 
 API
