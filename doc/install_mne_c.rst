@@ -83,48 +83,49 @@ Installing from a Mac OSX disk image
 Setting up MNE-C environment
 ############################
 
-Your system-dependent path to the MNE Software will be referred to by the environment variable MNE_ROOT. 
+Your system-dependent path to the MNE Software will be referred to by
+the environment variable MNE_ROOT. 
 
-Your system-dependent path to MATLAB Software will be referred to by the environment variable MATLAB_ROOT.
+Your system-dependent path to MATLAB Software will be referred to by
+the environment variable MATLAB_ROOT.
 
-You can download a free runtime distribution of Matlab with the libraries necessary to run Matlab code from,
+You can download a free runtime distribution of Matlab with the libraries
+necessary to run Matlab code from,
 https://www.mathworks.com/products/compiler/matlab-runtime.html
 
-If you do not have a Matlab distribution, then leave MATLAB_ROOT undefined. Please note however that if Matlab
-is not available, the utilities mne_convert_mne_data, mne_epochs2mat, mne_raw2mat, and mne_simu will not work.
+If you do not have a Matlab distribution, then leave MATLAB_ROOT undefined.
+Please note however that if Matlab is not available, the utilities
+mne_convert_mne_data, mne_epochs2mat, mne_raw2mat, and mne_simu will not work.
 
 To setup the MNE environment, a script must be sourced into your current shell.
-The result will be that additional environment varaibles like MNE_LIB_PATH will be set in your current shell 
-in order to run the MNE Software.
+The result will be that additional environment varaibles like MNE_LIB_PATH
+will be set in your current shell in order to run the MNE Software.
 
-A note about source-ing scripts with "source" and "." (dot). The hash bang at the top of a script tells 
-exec what shell to use by default to interpret the script. But the hash bang line is ignored when you 
-source a script via either the builtin "source" or "." directive.  So there needs to be a setup script
-compatible with your current shell, i.e., if you use csh you cannot source a bash script.  (BTW, the "." (dot)
-directive will search for the script in $PATH if there is no slash in the script argument while "source" 
-does not search $PATH).
+A note about source-ing scripts with "source" and "." (dot). The hash bang at
+the top of a script tells exec what shell to use by default to interpret the
+script. But the hash bang line is ignored when you source a script via either
+the builtin "source" or "." directive.  So there needs to be a setup script
+compatible with your current shell, i.e., if you use csh you cannot source a
+bash script.  (BTW, the "." (dot) directive will search for the script in 
+$PATH if there is no slash in the script argument while "source" does not 
+search $PATH).
 
-For Bourne or bash compatible shells, e.g., sh/bash/zsh, the script to source is:
+For Bourne or bash compatible shells, e.g., sh/bash/zsh, the script to source
+is ``$MNE_ROOT/bin/mne_setup_sh``.
 
-.. code-block:: console
+For C shells, e.g., csh/tcsh, the script to source
+is ``$MNE_ROOT/bin/mne_setup``.
 
-    $ $MNE_ROOT/bin/mne_setup_sh
-
-For C shells, e.g., csh/tcsh, the script to source is:
-
-.. code-block:: console
-
-    $ $MNE_ROOT/bin/mne_setup
-
-The SHELL variable should already be set in your current shell by your login or profile init file. 
-You can echo $SHELL on the command line to see what type of shell you are using with:
+The SHELL variable should already be set in your current shell by your login or
+profile init file.  You can echo $SHELL on the command line to see what type of
+shell you are using with:
 
 .. code-block:: console
 
     $ echo $SHELL
 
-If the output indicates a POSIX shell ``bash`` or ``sh`` then you should export variables and 
-source the bash/sh setup file with three commands:
+If the output indicates a POSIX shell ``bash`` or ``sh`` then you should export
+variables and source the bash/sh setup file with three commands:
 
 .. code-block:: console
 
@@ -132,14 +133,16 @@ source the bash/sh setup file with three commands:
     $ export MATLAB_ROOT=<Matlab>
     $ . $MNE_ROOT/bin/mne_setup_sh
 
-where ``<MNE>`` is replaced by the absolute path to where you have installed the MNE software. This path
-will be the parent path to the ./bin and ./lib subdirecotries in the MNE distribution. Or the command 
-"ls $MNE_ROOT/bin/mne_setup_sh" should succeed if you have set MNE_ROOT correctly.
+where ``<MNE>`` is replaced by the absolute path to where you have installed
+the MNE software. This path will be the parent path to the ./bin and ./lib
+subdirecotries in the MNE distribution. Or the command
+"ls $MNE_ROOT/bin/mne_setup_sh" should succeed if you have set MNE_ROOT
+correctly.
 
-If you do not have a Matlab distribution, then leave MATLAB_ROOT undefined. 
+If you do not have a Matlab distribution, then leave MATLAB_ROOT undefined.
 
-For the bash compatible ``zsh`` use the builtin emulate command to source the bash/sh setup script
-(after exporting variables):
+For the bash compatible ``zsh`` use the builtin emulate command to source
+the bash/sh setup script (after exporting variables):
 
 .. code-block:: console
 
