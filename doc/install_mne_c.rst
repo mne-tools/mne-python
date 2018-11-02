@@ -98,7 +98,7 @@ Please note however that if Matlab is not available, the utilities
 mne_convert_mne_data, mne_epochs2mat, mne_raw2mat, and mne_simu will not work.
 
 To setup the MNE environment, a script must be sourced into your current shell.
-The result will be that additional environment varaibles like MNE_LIB_PATH
+The result will be that additional environment variables like MNE_LIB_PATH
 will be set in your current shell in order to run the MNE Software.
 
 A note about source-ing scripts with "source" and "." (dot). The hash bang at
