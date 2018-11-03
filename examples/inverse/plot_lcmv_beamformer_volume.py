@@ -1,7 +1,7 @@
 """
-===================================================================
-Compute LCMV inverse solution on evoked data in volume source space
-===================================================================
+====================================================
+Compute LCMV inverse solution in volume source space
+====================================================
 
 Compute LCMV inverse solution on an auditory evoked dataset in a volume source
 space.

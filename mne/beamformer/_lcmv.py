@@ -13,7 +13,7 @@ from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate, _get_src_type
-from ..utils import logger, verbose, warn, _validate_type, reg_pinv
+from ..utils import logger, verbose, warn, _validate_type, _reg_pinv
 from .. import Epochs
 from ..externals import six
 from ._compute_beamformer import (
@@ -60,11 +60,10 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
             'vector'
                 Keeps the currents for each direction separate
 
-    rank : int | dict | 'auto' | None
-        The effective rank of the covariance matrix. A dictionary with entries
-        'eeg' and/or 'meg' can be used to specify the rank for each sensor
-        type. If 'auto', the rank will be estimated before regularization is
-        applied. If ``None``, the rank will be estimated after regularization
+    rank : None | False | int
+        The effective rank of the covariance matrix.
+        If None, the rank will be estimated before regularization is
+        applied. If False, the rank will be estimated after regularization
         is applied. Defaults to ``None``.
     weight_norm : 'unit-noise-gain' | 'nai' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
@@ -423,6 +422,8 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
         info, [info['ch_names'].index(k) for k in ch_names
                if k in info['ch_names']])
 
+    # XXX this could maybe use pca=True to avoid needing to use
+    # _reg_pinv(..., rank=rank) later
     if noise_cov is not None:
         whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)
 
@@ -441,7 +442,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
     # This modifies Cm inplace, regularizing it
-    Cm_inv, d, _ = reg_pinv(Cm, reg)
+    Cm_inv, d, _ = _reg_pinv(Cm, reg, rank=rank)
 
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
@@ -541,11 +542,11 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     n_jobs : int | str
         Number of jobs to run in parallel.
         Can be 'cuda' if ``cupy`` is installed properly.
-    rank : None | int | dict
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
-        to specify the rank for each modality.
+    rank : None | False | int
+        The effective rank of the covariance matrix.
+        If None, the rank will be estimated before regularization is
+        applied. If False, the rank will be estimated after regularization
+        is applied. Defaults to ``None``.
     weight_norm : 'unit-noise-gain' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
@@ -669,7 +670,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
 
                 stc = _lcmv_source_power(epochs_band.info, forward, noise_cov,
                                          data_cov, reg=reg, label=label,
-                                         pick_ori=pick_ori,
+                                         pick_ori=pick_ori, rank=rank,
                                          weight_norm=weight_norm,
                                          verbose=verbose)
                 sol_single.append(stc.data[:, 0])

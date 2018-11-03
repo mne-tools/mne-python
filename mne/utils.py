@@ -605,7 +605,7 @@ def _compute_row_norms(data):
     return norms
 
 
-def reg_pinv(x, reg=0, rank=None, rcond=1e-15):
+def _reg_pinv(x, reg=0, rank=False, rcond=1e-15):
     """Compute a regularized pseudoinverse of a square matrix.
 
     Regularization is performed by adding a constant value to each diagonal
@@ -624,14 +624,14 @@ def reg_pinv(x, reg=0, rank=None, rcond=1e-15):
         Square matrix to invert.
     reg : float
         Regularization parameter. Defaults to 0.
-    rank : int | 'auto' | None
+    rank : None | False | int
         Estimated rank of the matrix. This determines the number of singular
-        values used to compute the pseudo-inverse. When set to 'auto', the rank
+        values used to compute the pseudo-inverse. When set to None, the rank
         is estimated on the non-regularized matrix using the ``rcond`` cutoff
-        for small singular values. When set to ``None``, the behavior of
-        ``numpy.linalg.pinv`` is mimicked: the rank is estimated on the
+        for small singular values. When set to False, the behavior of
+        :func:`numpy.linalg.pinv` is mimicked: the rank is estimated on the
         regularized matrix using the ``rcond`` cutoff for small singular
-        values. Defaults to ``None``.
+        values. Defaults to False.
     rcond : float | 'auto'
         Cutoff for detecting small singular values when attempting to estimate
         the rank of the matrix (``rank='auto'``). Singular values smaller than
@@ -646,9 +646,11 @@ def reg_pinv(x, reg=0, rank=None, rcond=1e-15):
         Value added to the diagonal of the matrix during regularization.
     rank : int
         If ``rank`` was set to an integer value, this value is returned.
-        If ``rank='auto'`` or ``rank=None``, the estimated rank of the matrix,
+        If ``rank=None`` or ``rank=False``, the estimated rank of the matrix,
         before regularization, is returned.
     """
+    if rank is not None and rank is not False:
+        rank = int(operator.index(rank))
     if x.ndim != 2 or x.shape[0] != x.shape[1]:
         raise ValueError('Input matrix must be square.')
     if not np.allclose(x, x.conj().T):
@@ -671,18 +673,18 @@ def reg_pinv(x, reg=0, rank=None, rcond=1e-15):
 
     # Warn the user if both all parameters were kept at their defaults and the
     # matrix is rank deficient.
-    if rank_after < len(x) and reg == 0 and rank is None and rcond == 1e-15:
+    if rank_after < len(x) and reg == 0 and rank is False and rcond == 1e-15:
         warn('Covariance matrix is rank-deficient and no regularization is '
              'done.')
-    elif _is_numeric(rank) and rank > len(x):
+    elif isinstance(rank, int) and rank > len(x):
         raise ValueError('Invalid value for the rank parameter (%d) given '
                          'the shape of the input matrix (%d x %d).' %
                          (rank, x.shape[0], x.shape[1]))
 
     # Pick the requested number of singular values
-    if rank == 'auto':
+    if rank is None:
         sel_s = s[:rank_before]
-    elif rank is None:
+    elif rank is False:
         sel_s = s[:rank_after]
     else:
         sel_s = s[:rank]
@@ -696,7 +698,7 @@ def reg_pinv(x, reg=0, rank=None, rcond=1e-15):
     # Compute the pseudo inverse
     x_inv = np.dot(V.T, s_inv[:, np.newaxis] * U.T)
 
-    if rank == 'auto' or rank is None:
+    if rank is None or rank is False:
         return x_inv, loading_factor, rank_before
     else:
         return x_inv, loading_factor, rank

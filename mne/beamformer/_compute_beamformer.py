@@ -17,7 +17,7 @@ from ..io.proj import make_projector, Projection
 from ..io.pick import (pick_channels_forward, pick_info)
 from ..minimum_norm.inverse import _get_vertno
 from ..source_space import label_src_vertno_sel
-from ..utils import logger, warn, verbose, check_fname, reg_pinv
+from ..utils import logger, warn, verbose, check_fname, _reg_pinv
 from ..channels.channels import _contains_ch_type
 from ..time_frequency.csd import CrossSpectralDensity
 
@@ -239,7 +239,7 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn):
     if reduce_rank:
         # Use pseudo inverse computation setting smallest
         # component to zero if the leadfield is not full rank
-        norm = reg_pinv(norm_inv, rank=norm_inv.shape[0] - 1)[0]
+        norm = _reg_pinv(norm_inv, rank=norm_inv.shape[0] - 1)[0]
     else:
         # Use straight inverse with full rank leadfield
         try:
@@ -301,10 +301,11 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         The source orientation to compute the beamformer in.
     reduce_rank : bool
         Whether to reduce the rank by one during computation of the filter.
-    rank : int | 'auto' | None
-        The effective rank of the covariance matrix. If 'auto', it will be
-        estimated before regularization is applied. If ``None``, it will be
-        estimated after regularization is applied.
+    rank : None | False | int
+        The effective rank of the covariance matrix.
+        If None, the rank will be estimated before regularization is
+        applied. If False, the rank will be estimated after regularization
+        is applied. Defaults to ``None``.
     inversion : 'matrix' | 'single'
         The inversion scheme to compute the weights.
     nn : ndarray, shape (n_dipoles, 3)
@@ -318,7 +319,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
     # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
-    Cm_inv, loading_factor, rank = reg_pinv(Cm, reg, rank)
+    Cm_inv, loading_factor, rank = _reg_pinv(Cm, reg, rank)
 
     if (inversion == 'matrix' and pick_ori == 'max-power' and
             weight_norm in ['unit-noise-gain', 'nai']):

@@ -8,7 +8,7 @@
 # License: BSD (3-clause)
 import numpy as np
 
-from ..utils import logger, verbose, warn, reg_pinv
+from ..utils import logger, verbose, warn, _reg_pinv
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc, _get_src_type
@@ -23,7 +23,7 @@ from ..externals import six
 
 @verbose
 def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
-              rank='auto', inversion='single', weight_norm=None,
+              rank=None, inversion='single', weight_norm=None,
               normalize_fwd=True, real_filter=False, reduce_rank=False,
               verbose=None):
     """Compute a Dynamic Imaging of Coherent Sources (DICS) spatial filter.
@@ -63,11 +63,11 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                 filters are computer for the orientation that maximizes
                 spectral power.
 
-    rank : int | 'auto' | None
-        The effective rank of the covariance matrix. If 'auto', the rank will
-        be estimated before regularization is applied. If ``None``, the rank
-        will be estimated after regularization is applied.
-        Defaults to 'auto'.
+    rank : None | False | int
+        The effective rank of the covariance matrix.
+        If None, the rank will be estimated before regularization is
+        applied. If False, the rank will be estimated after regularization
+        is applied. Defaults to ``None``.
 
         .. versionadded:: 0.17
     inversion : 'single' | 'matrix'
@@ -527,7 +527,7 @@ def _apply_old_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
     # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
-    Cm_inv, _ = reg_pinv(Cm, reg, rank='auto')
+    Cm_inv, _ = _reg_pinv(Cm, reg, rank=None)
     del Cm
 
     # Compute spatial filters
