@@ -611,7 +611,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
                     orig_n = p['data']['data'].any(axis=0).sum()
                     # Average ref still works if channels are removed
                     if len(vecsel) < 0.9 * orig_n and not inplace and \
-                            (p['kind'] != FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF or
+                            (p['kind'] != FIFF.FIFFV_PROJ_ITEM_EEG_AVREF or
                              len(vecsel) == 1):
                         warn('Projection vector "%s" has magnitude %0.2f '
                              '(should be unity), applying projector with '
@@ -794,7 +794,7 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
                          data=vec, nrow=1, ncol=n_eeg)
     eeg_proj = Projection(active=activate, data=eeg_proj_data,
                           desc='Average EEG reference',
-                          kind=FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF,
+                          kind=FIFF.FIFFV_PROJ_ITEM_EEG_AVREF,
                           explained_var=explained_var)
     return eeg_proj
 
@@ -807,7 +807,7 @@ def _has_eeg_average_ref_proj(projs, check_active=False):
     """
     for proj in projs:
         if (proj['desc'] == 'Average EEG reference' or
-                proj['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF):
+                proj['kind'] == FIFF.FIFFV_PROJ_ITEM_EEG_AVREF):
             if not check_active or proj['active']:
                 return True
     return False

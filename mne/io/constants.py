@@ -290,7 +290,9 @@ FIFF.FIFFV_ASPECT_DIPOLE_WAVE   = 200  # Dipole amplitude curve
 # BEM surface IDs
 #
 FIFF.FIFFV_BEM_SURF_ID_UNKNOWN    = -1
+FIFF.FIFFV_BEM_SURF_ID_NOT_KNOWN  = 0
 FIFF.FIFFV_BEM_SURF_ID_BRAIN      = 1
+FIFF.FIFFV_BEM_SURF_ID_CSF        = 2
 FIFF.FIFFV_BEM_SURF_ID_SKULL      = 3
 FIFF.FIFFV_BEM_SURF_ID_HEAD       = 4
 
@@ -327,6 +329,7 @@ FIFF.FIFFV_POINT_HPI      = 2
 FIFF.FIFFV_POINT_EEG      = 3
 FIFF.FIFFV_POINT_ECG      = FIFF.FIFFV_POINT_EEG
 FIFF.FIFFV_POINT_EXTRA    = 4
+FIFF.FIFFV_POINT_HEAD     = 5  # Point on the surface of the head
 
 FIFF.FIFFV_POINT_LPA = 1
 FIFF.FIFFV_POINT_NASION = 2
@@ -584,7 +587,6 @@ FIFF.FIFFV_MNE_SIGNAL_COV           = 4         # This will be potentially emplo
 FIFF.FIFFV_MNE_DEPTH_PRIOR_COV      = 5         # The depth weighting prior
 FIFF.FIFFV_MNE_ORIENT_PRIOR_COV     = 6         # The orientation prior
 
-FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF  = 10        # Linear projection related to EEG average reference
 #
 # Output map types
 #
@@ -623,6 +625,30 @@ FIFF.FIFFV_PROJ_ITEM_DIP_FIX        = 2
 FIFF.FIFFV_PROJ_ITEM_DIP_ROT        = 3
 FIFF.FIFFV_PROJ_ITEM_HOMOG_GRAD     = 4
 FIFF.FIFFV_PROJ_ITEM_HOMOG_FIELD    = 5
+FIFF.FIFFV_PROJ_ITEM_EEG_AVREF      = 10  # Linear projection related to EEG average reference
+FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF  = FIFF.FIFFV_PROJ_ITEM_EEG_AVREF  # backward compat alias
+#
+# SSS job options
+#
+FIFF.FIFFV_SSS_JOB_NOTHING          = 0   # No SSS, just copy input to output
+FIFF.FIFFV_SSS_JOB_CTC              = 1   # No SSS, only cross-talk correction
+FIFF.FIFFV_SSS_JOB_FILTER           = 2   # Spatial maxwell filtering
+FIFF.FIFFV_SSS_JOB_VIRT             = 3   # Transform data to another sensor array
+FIFF.FIFFV_SSS_JOB_HEAD_POS         = 4   # Estimate head positions, no SSS
+FIFF.FIFFV_SSS_JOB_MOVEC_FIT        = 5   # Estimate and compensate head movement
+FIFF.FIFFV_SSS_JOB_MOVEC_QUA        = 6   # Compensate head movement from previously estimated head positions
+FIFF.FIFFV_SSS_JOB_REC_ALL          = 7   # Reconstruct inside and outside signals
+FIFF.FIFFV_SSS_JOB_REC_IN           = 8   # Reconstruct inside signals
+FIFF.FIFFV_SSS_JOB_REC_OUT          = 9   # Reconstruct outside signals
+FIFF.FIFFV_SSS_JOB_ST               = 10  # Spatio-temporal maxwell filtering
+FIFF.FIFFV_SSS_JOB_TPROJ            = 11  # Temporal projection, no SSS
+FIFF.FIFFV_SSS_JOB_XSSS             = 12  # Cross-validation SSS
+FIFF.FIFFV_SSS_JOB_XSUB             = 13  # Cross-validation subtraction, no SSS
+FIFF.FIFFV_SSS_JOB_XWAV             = 14  # Cross-validation noise waveforms
+FIFF.FIFFV_SSS_JOB_NCOV             = 15  # Noise covariance estimation
+FIFF.FIFFV_SSS_JOB_SCOV             = 16  # SSS sample covariance estimation
+#}
+
 #
 # Additional coordinate frames
 #
@@ -707,6 +733,7 @@ FIFF.FIFF_UNIT_NONE = -1
 #
 # SI base units
 #
+FIFF.FIFF_UNIT_UNITLESS = 0
 FIFF.FIFF_UNIT_M   = 1  # meter
 FIFF.FIFF_UNIT_KG  = 2  # kilogram
 FIFF.FIFF_UNIT_SEC = 3  # second
@@ -725,6 +752,7 @@ FIFF.FIFF_UNIT_CD  = 9  # candela
 #
 # SI derived units
 #
+FIFF.FIFF_UNIT_MOL_M3 = 10  # mol/m^3
 FIFF.FIFF_UNIT_HZ  = 101  # hertz
 FIFF.FIFF_UNIT_N   = 102  # Newton
 FIFF.FIFF_UNIT_PA  = 103  # pascal
@@ -754,6 +782,7 @@ FIFF.FIFF_UNIT_AM_M3 = 204  # Am/m^3
 FIFF.FIFF_UNITM_E    = 18
 FIFF.FIFF_UNITM_PET  = 15
 FIFF.FIFF_UNITM_T    = 12
+FIFF.FIFF_UNITM_GIG  = 9
 FIFF.FIFF_UNITM_MEG  = 6
 FIFF.FIFF_UNITM_K    = 3
 FIFF.FIFF_UNITM_H    = 2

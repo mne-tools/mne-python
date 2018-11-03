@@ -103,7 +103,7 @@ def _apply_reference(inst, ref_from, ref_to=None):
     for i, proj in enumerate(inst.info['projs']):
         # Remove any average reference projections
         if proj['desc'] == 'Average EEG reference' or \
-                proj['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF:
+                proj['kind'] == FIFF.FIFFV_PROJ_ITEM_EEG_AVREF:
             logger.info('Removing existing average EEG reference '
                         'projection.')
             # Don't remove the projection right away, but do this at the end of
