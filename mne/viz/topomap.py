@@ -273,9 +273,10 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
         if not isinstance(layout, (list, tuple)):
             raise TypeError('layout must be an instance of Layout, list, '
                             'or None, got %s' % (type(layout),))
-        if not all(isinstance(l, Layout) for l in layout):
-            raise TypeError('All entries in layout list must be of type '
-                            'Layout')
+        for l in layout:
+            if not isinstance(l, Layout):
+                raise TypeError('All entries in layout list must be of type '
+                                'Layout, got type %s' % (type(l),))
 
     n_projs = len(projs)
     nrows = math.floor(math.sqrt(n_projs))
@@ -2547,8 +2548,8 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
     ----------
     .. [1] D. Cohen, H. Hosaka
        "Part II magnetic field produced by a current dipole",
-        Journal of electrocardiology, Volume 9, Number 4, pp. 409-417, 1976.
-        DOI: 10.1016/S0022-0736(76)80041-6
+       Journal of electrocardiology, Volume 9, Number 4, pp. 409-417, 1976.
+       DOI: 10.1016/S0022-0736(76)80041-6
     """
     from matplotlib import pyplot as plt
     from ..forward import _map_meg_channels

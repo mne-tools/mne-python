@@ -1989,7 +1989,8 @@ class ProgressBar(object):
         # we can't put this in __del__ b/c then each worker will delete the
         # file, which is not so good
         self._mmap = None
-        os.remove(self._mmap_fname)
+        if op.isfile(self._mmap_fname):
+            os.remove(self._mmap_fname)
         print('')
 
 
@@ -2956,8 +2957,8 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
                       else types)
         type_name = ', '.join(cls.__name__ for cls in iter_types)
     if not isinstance(item, types):
-        raise TypeError(item_name, ' must be an instance of ', type_name,
-                        ', got %s instead.' % (type(item),))
+        raise TypeError('%s must be an instance of %s, got %s instead'
+                        % (type_name, types, type(item),))
 
 
 def linkcode_resolve(domain, info):

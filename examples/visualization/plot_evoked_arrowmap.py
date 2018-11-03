@@ -14,8 +14,8 @@ References
 ----------
 .. [1] D. Cohen, H. Hosaka
    "Part II magnetic field produced by a current dipole",
-    Journal of electrocardiology, Volume 9, Number 4, pp. 409-417, 1976.
-    DOI: 10.1016/S0022-0736(76)80041-6
+   Journal of electrocardiology, Volume 9, Number 4, pp. 409-417, 1976.
+   DOI: 10.1016/S0022-0736(76)80041-6
 """
 
 # Authors: Sheraz Khan <sheraz@khansheraz.com>
@@ -40,11 +40,11 @@ evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
 evoked_mag = evoked.copy().pick_types(meg='mag')
 evoked_grad = evoked.copy().pick_types(meg='grad')
 
-# plot magnetometer data as an arrowmap along with the topoplot at the time
-# of the maximum sensor space activity
+###############################################################################
+# Plot magnetometer data as an arrowmap along with the topoplot at the time
+# of the maximum sensor space activity:
 max_time_idx = np.abs(evoked_mag.data).mean(axis=0).argmax()
 plot_arrowmap(evoked_mag.data[:, max_time_idx], evoked_mag.info)
-
 
 # Since planar gradiometers takes gradients along latitude and longitude,
 # they need to be projected to the flatten manifold span by magnetometer
@@ -53,22 +53,24 @@ plot_arrowmap(evoked_mag.data[:, max_time_idx], evoked_mag.info)
 # ``info_from`` and ``info_to`` parameters to interpolate from
 # gradiometer data to magnetometer data.
 
-# plot gradiometer data as an arrowmap along with the topoplot at the time
-# of the maximum sensor space activity
+###############################################################################
+# Plot gradiometer data as an arrowmap along with the topoplot at the time
+# of the maximum sensor space activity:
 plot_arrowmap(evoked_grad.data[:, max_time_idx], info_from=evoked_grad.info,
               info_to=evoked_mag.info)
 
-
+###############################################################################
 # Since Vectorview 102 system perform sparse spatial sampling of the magnetic
 # field, data from the Vectorview (info_from) can be projected to the high
 # density CTF 272 system (info_to) for visualization
-
-# plot gradiometer data as an arrowmap along with the topoplot at the time
-# of the maximum sensor space activity
+#
+# Plot gradiometer data as an arrowmap along with the topoplot at the time
+# of the maximum sensor space activity:
 path = bst_raw.data_path()
 raw_fname = path + '/MEG/bst_raw/' \
-                   'subj001_somatosensory_20111109_01_AUX-f_raw.fif'
-raw_ctf = mne.io.read_raw_fif(raw_fname, preload=True)
-raw_ctf.pick_types(meg=True, ref_meg=False)
+                   'subj001_somatosensory_20111109_01_AUX-f.ds'
+raw_ctf = mne.io.read_raw_ctf(raw_fname)
+raw_ctf_info = mne.pick_info(
+    raw_ctf.info, mne.pick_types(raw_ctf.info, meg=True, ref_meg=False))
 plot_arrowmap(evoked_grad.data[:, max_time_idx], info_from=evoked_grad.info,
-              info_to=raw_ctf.info, scale=2e-10)
+              info_to=raw_ctf_info, scale=2e-10)

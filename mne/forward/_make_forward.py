@@ -791,7 +791,7 @@ def use_coil_def(fname):
 
     Notes
     -----
-    This is meant to be used a context manager such as::
+    This is meant to be used a context manager such as:
 
     >>> with use_coil_def(my_fname):  # doctest:+SKIP
     ...     make_forward_solution(...)

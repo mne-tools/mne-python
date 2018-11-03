@@ -1323,7 +1323,8 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
                          'increasing, got %s' % (ctrl_pts,))
     clim_kind = clim.get('kind', 'percent')
     if clim_kind == 'percent':
-        ctrl_pts = np.percentile(np.abs(stc_data), ctrl_pts)
+        perc_data = np.abs(stc_data) if diverging_lims else stc_data
+        ctrl_pts = np.percentile(perc_data, ctrl_pts)
         logger.info('Using control points %s' % (ctrl_pts,))
     elif clim_kind not in ('value', 'values'):
         raise ValueError('clim["kind"] must be "value" or "percent", got %s'
@@ -1590,7 +1591,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           cortex="classic", size=800, background="black",
                           foreground="white", initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
-                          verbose=None):
+                          title=None, verbose=None):
     """Plot SourceEstimates with PySurfer.
 
     By default this function uses :mod:`mayavi.mlab` to plot the source
@@ -1692,6 +1693,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         effect with mayavi backend. Defaults  to 'oct6'.
 
         .. versionadded:: 0.15.0
+    title : str | None
+        Title for the figure. If None, the subject name will be used.
+
+        .. versionadded:: 0.17.0
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1747,7 +1752,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     else:
         hemis = [hemi]
 
-    title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
+    if title is None:
+        title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(subject, hemi=hemi, surf=surface,
                       title=title, cortex=cortex, size=size,

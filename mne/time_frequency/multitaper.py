@@ -9,6 +9,7 @@ from scipy import linalg
 
 from ..parallel import parallel_func
 from ..utils import sum_squared, warn, verbose, logger
+from ..externals.six import string_types
 
 
 def tridisolve(d, e, b, overwrite_b=True):
@@ -459,6 +460,13 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
                        interp_from=None, verbose=None):
     """Triage windowing and multitaper parameters."""
     # Compute standardized half-bandwidth
+    from scipy.signal import get_window
+    if isinstance(bandwidth, string_types):
+        logger.info('    Using standard spectrum estimation with "%s" window'
+                    % (bandwidth,))
+        window_fun = get_window(bandwidth, n_times)[np.newaxis]
+        return window_fun, np.ones(1), False
+
     if bandwidth is not None:
         half_nbw = float(bandwidth) * n_times / (2. * sfreq)
     else:
@@ -474,7 +482,7 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
     window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
                                        low_bias=low_bias,
                                        interp_from=interp_from)
-    logger.info('    using multitaper spectrum estimation with %d DPSS '
+    logger.info('    Using multitaper spectrum estimation with %d DPSS '
                 'windows' % len(eigvals))
 
     if adaptive and len(eigvals) < 3:

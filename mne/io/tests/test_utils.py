@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-from ..utils import _check_orig_units
+from mne.io.utils import _check_orig_units
 
 
 def test_check_orig_units():

@@ -552,6 +552,9 @@ def _download_all_example_data(verbose=True):
     try:
         brainstorm.bst_raw.data_path()
         brainstorm.bst_auditory.data_path()
+        # not currently used; remember to add entry to .circleci/config.yml if
+        # we ever do use it
+        # brainstorm.bst_resting.data_path()
         brainstorm.bst_phantom_elekta.data_path()
         brainstorm.bst_phantom_ctf.data_path()
     finally:

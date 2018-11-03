@@ -479,9 +479,7 @@ The ``info`` parameter can be explicitly set to ``None``. The import functions w
 
 This is probably fine for anything that does not need that information, but if you intent to do things like interpolation of missing channels, source analysis or look at the RMS pairs of planar gradiometers, you most likely run into problems.
 
-It is **highly recommended** to provide the ``info`` parameter as well. The ``info`` dictionary can be extracted by loading the original raw data file with the corresponding MNE-Python functions:
-
-.. code-block::
+It is **highly recommended** to provide the ``info`` parameter as well. The ``info`` dictionary can be extracted by loading the original raw data file with the corresponding MNE-Python functions::
 
     original_data = mne.io.read_raw_fiff('original_data.fif', preload=False)
     original_info = original_data.info

@@ -762,9 +762,11 @@ def _check_loose_forward(loose, forward):
             loose = 0.2
         # put the forward solution in fixed orientation if it's not already
         if loose == 0. and not is_fixed_orient(forward):
+            logger.info('Converting forward solution to fixed orietnation')
             forward = convert_forward_solution(forward, force_fixed=True,
                                                use_cps=True)
         elif loose < 1. and not forward['surf_ori']:
+            logger.info('Converting forward solution to surface orientation')
             forward = convert_forward_solution(forward, surf_ori=True,
                                                use_cps=True)
 

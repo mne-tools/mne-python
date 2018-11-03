@@ -24,15 +24,17 @@ Changelog
 
 - Add :func:`mne.io.read_raw_fieldtrip`, :func:`mne.read_epochs_fieldtrip` and :func:`mne.read_evoked_fieldtrip` to import FieldTrip data. By `Thomas Hartmann`_ and `Dirk Gütlin`_.
 
-- Default parameters in :func:`mne.io.eeglab.read_annotations_eeglab` no longer filter out annotations by `Joan Massich`_ and `Alex Gramfort`_
+- Default parameters in :func:`mne.io.read_annotations_eeglab` no longer filter out annotations by `Joan Massich`_ and `Alex Gramfort`_
 
-- :func:`mne.io.eeglab.read_raw_eeglab` no longer warns when the stim channel is populated with an array of zeros by `Joan Massich`_
+- :func:`mne.io.read_raw_eeglab` no longer warns when the stim channel is populated with an array of zeros by `Joan Massich`_
 
 - Add capability to read and save Epochs containing complex data (e.g. after Hilbert-transform) using :meth:`mne.Epochs.save` and :func:`mne.read_epochs`, by `Stefan Repplinger`_, `Eric Larson`_ and `Alex Gramfort`_
 
 - Add optically pumped magnetometer dataset and example by `Rasmus Zetter`_ and `Eric Larson`_
 
 - Add ``orgin`` parameter to :meth:`mne.io.Raw.time_as_index` to allow ``times`` to be relative to this ``origin`` by `Joan Massich`_
+
+- Add ``title`` argument to :meth:`mne.SourceEstimate.plot` by `Eric Larson`_
 
 - :func:`mne.io.Raw.set_annotations` now changes ``orig_time`` to match ``meas_date`` and shift ``self.annotations.onset`` accordingly. Previous behavior is deprecated and would be removed in 0.18. Work by `Joan Massich`_
 
@@ -80,6 +82,8 @@ Changelog
 
 - Add :func:`mne.open_report` to read back a :class:`mne.Report` object that was saved to an HDF5 file by `Marijn van Vliet`_
 
+- Add multi-taper estimation to :func:`mne.minimum_norm.compute_source_psd` by `Eric Larson`_
+
 - :meth:`mne.Epochs.average` now supports custom, e.g. robust, averaging methods, by `Jona Sassenhagen`_
 
 - Add support for Neuromag 122 system by `Alex Gramfort`_
@@ -91,7 +95,9 @@ Changelog
 
 Bug
 ~~~
-- Fix :func:`mne.io.Raw.plot_proj_topomap` by `Joan Massich`_
+- Fix :func:`mne.io.Raw.plot_projs_topomap` by `Joan Massich`_
+
+- Fix bug in :func:`mne.minimum_norm.compute_source_psd` where the ``stc.times`` output was scaled by 1000, by `Eric Larson`_
 
 - Fix reading edf file annotations by `Joan Massich`_
 
@@ -115,7 +121,7 @@ Bug
 
 - Fix bug in :func:`mne.io.read_raw_edf` when reading large files on Windows by `Marcin Koculak`_
 
-- Fix check in :func:`mne.vis.plot_sensors` for invalid channel locations by `Eric Larson`_
+- Fix check in :func:`mne.viz.plot_sensors` for invalid channel locations by `Eric Larson`_
 
 - Fix bug in :func:`mne.io.read_raw_edf` where GDF files had ``info['highpass']`` and ``info['lowpass']`` set to NaN and ``info['meas_date']`` set incorrectly, by `Eric Larson`_
 
@@ -205,8 +211,7 @@ API
 
 - Warning messages are now only emitted as :func:`warnings.warn_explicit` rather than also being emitted as ``logging`` messages (unless a logging file is being used) to avoid duplicate warning messages, by `Eric Larson`_
 
-- Deprecated save_stc_as_volume function in favor of :meth:`mne.VolSourceEstimate.as_volume` and
-   :meth:`mne.VolSourceEstimate.save_as_volume` by `Alex Gramfort`_
+- Deprecated save_stc_as_volume function in favor of :meth:`mne.VolSourceEstimate.as_volume` and :meth:`mne.VolSourceEstimate.save_as_volume` by `Alex Gramfort`_
 
 - `src.kind` now equals to `'mixed'` (and not `'combined'`) for a mixed source space (made of surfaces and volume grids) by `Alex Gramfort`_
 
