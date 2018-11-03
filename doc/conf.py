@@ -275,16 +275,16 @@ latex_toplevel_sectioning = 'part'
 # latex_appendices = []
 
 # If false, no module index is generated.
-#latex_domain_indices = True
+# latex_domain_indices = True
 
 trim_doctests_flags = True
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'numpy': ('http://numpy.org/devdocs', None),
+    'numpy': ('https://www.numpy.org/devdocs', None),
     'scipy': ('https://scipy.github.io/devdocs', None),
-    'matplotlib': ('http://matplotlib.org', None),
+    'matplotlib': ('https://matplotlib.org', None),
     'sklearn': ('http://scikit-learn.org/stable', None),
     'mayavi': ('http://docs.enthought.com/mayavi/mayavi', None),
     'nibabel': ('http://nipy.org/nibabel', None),

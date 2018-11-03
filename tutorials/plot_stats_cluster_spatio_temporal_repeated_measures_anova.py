@@ -238,9 +238,9 @@ subjects_dir = op.join(data_path, 'subjects')
 # The brighter the color, the stronger the interaction between
 # stimulus modality and stimulus location
 
-brain = stc_all_cluster_vis.plot(subjects_dir=subjects_dir, colormap='mne',
-                                 views='lateral',
-                                 time_label='Duration significant (ms)')
+brain = stc_all_cluster_vis.plot(subjects_dir=subjects_dir, views='lat',
+                                 time_label='Duration significant (ms)',
+                                 clim=dict(kind='value', lims=[0, 1, 40]))
 brain.save_image('cluster-lh.png')
 brain.show_view('medial')
 

@@ -463,7 +463,7 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
             sums = np.array([np.sum(x[c]) for c in clusters])
         else:
             sums = np.array([np.sum(np.sign(x[c]) * np.abs(x[c]) ** t_power)
-                            for c in clusters])
+                             for c in clusters])
 
     return clusters, np.atleast_1d(sums)
 
@@ -517,8 +517,8 @@ def _setup_connectivity(connectivity, n_vertices, n_times):
         # we claim to only use upper triangular part... not true here
         connectivity = (connectivity + connectivity.transpose()).tocsr()
         connectivity = [connectivity.indices[connectivity.indptr[i]:
-                        connectivity.indptr[i + 1]] for i in
-                        range(len(connectivity.indptr) - 1)]
+                                             connectivity.indptr[i + 1]]
+                        for i in range(len(connectivity.indptr) - 1)]
     return connectivity
 
 
@@ -878,12 +878,12 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
             this_include = step_down_include
         logger.info('Permuting %d times%s...' % (len(orders), extra))
         with ProgressBar(len(orders), verbose_bool='auto') as progress_bar:
-            H0 = parallel(my_do_perm_func(X_full, slices, threshold, tail,
-                          connectivity, stat_fun, max_step, this_include,
-                          partitions, t_power, order, sample_shape,
-                          buffer_size, progress_bar.subset(idx))
-                          for idx, order in split_list(
-                              orders, n_jobs, idx=True))
+            H0 = parallel(
+                my_do_perm_func(X_full, slices, threshold, tail, connectivity,
+                                stat_fun, max_step, this_include, partitions,
+                                t_power, order, sample_shape, buffer_size,
+                                progress_bar.subset(idx))
+                for idx, order in split_list(orders, n_jobs, idx=True))
         # include original (true) ordering
         if tail == -1:  # up tail
             orig = cluster_stats.min()
@@ -1078,19 +1078,14 @@ def permutation_cluster_1samp_test(
         connectivity=None, verbose=None, n_jobs=1, seed=None, max_step=1,
         exclude=None, step_down_p=0, t_power=1, out_type='mask',
         check_disjoint=False, buffer_size=1000):
-    """Non-parametric cluster-level 1 sample t-test.
-
-    From a array of observations, e.g. signal amplitudes or power spectrum
-    estimates etc., calculate if the observed mean significantly deviates
-    from 0. The procedure uses a cluster analysis with permutation test
-    for calculating corrected p-values. Randomized data are generated with
-    random sign flips. See [1]_ for more information.
+    """Non-parametric cluster-level paired t-test.
 
     Parameters
     ----------
     X : array, shape=(n_samples, p[, q])
         Array where the first dimension corresponds to the
-        samples (observations). X[k] can be a 1D or 2D array (time series
+        difference in paired samples (observations) in two conditions.
+        ``X[k]`` can be a 1D or 2D array (time series
         or TF image) associated to the kth observation.
     threshold : float | dict | None
         If threshold is None, it will choose a t-threshold equivalent to
@@ -1177,6 +1172,20 @@ def permutation_cluster_1samp_test(
 
     Notes
     -----
+    From an array of paired observations, e.g. a difference in signal
+    amplitudes or power spectra in two conditions, calculate if the data
+    distributions in the two conditions are significantly different.
+    The procedure uses a cluster analysis with permutation test
+    for calculating corrected p-values. Randomized data are generated with
+    random sign flips. See [1]_ for more information.
+
+    Because a 1-sample t-test on the difference in observations is
+    mathematically equivalent to a paired t-test, internally this function
+    computes a 1-sample t-test (by default) and uses sign flipping (always)
+    to perform permutations. This might not be suitable for the case where
+    there is truly a single observation under test; see
+    :ref:`sphx_glr_auto_tutorials_plot_background_statistics.py`.
+
     If ``n_permutations >= 2 ** (n_samples - (tail == 0))``,
     ``n_permutations`` and ``seed`` will be ignored since an exact test
     (full permutation test) will be performed.
@@ -1207,17 +1216,17 @@ def spatio_temporal_cluster_1samp_test(
         max_step=1, spatial_exclude=None, step_down_p=0, t_power=1,
         out_type='indices', check_disjoint=False, buffer_size=1000,
         verbose=None):
-    """Non-parametric cluster-level 1 sample t-test for spatio-temporal data.
+    """Non-parametric cluster-level paired t-test for spatio-temporal data.
 
     This function provides a convenient wrapper for data organized in the form
     (observations x time x space) to use
-    :func:`mne.stats.permutation_cluster_1samp_test`. See [1]_ for more
-    information.
+    :func:`mne.stats.permutation_cluster_1samp_test`, which contains more
+    complete documentation.
 
     Parameters
     ----------
     X : array, shape (n_observations, n_times, n_vertices)
-        Array data.
+        Array data of the difference between two conditions.
     threshold : float | dict | None
         If threshold is None, it will choose a t-threshold equivalent to
         p < 0.05 for the given number of observations (only valid when
@@ -1297,16 +1306,6 @@ def spatio_temporal_cluster_1samp_test(
         P-value for each cluster
     H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
-
-    Notes
-    -----
-    If ``n_permutations >= 2 ** (n_samples - (tail == 0))``,
-    ``n_permutations`` and ``seed`` will be ignored since an exact test
-    (full permutation test) will be performed.
-
-    If no initial clusters are found, i.e., all points in the true
-    distribution are below the threshold, then ``clusters``, ``cluster_pv``,
-    and ``H0`` will all be empty arrays.
 
     References
     ----------
