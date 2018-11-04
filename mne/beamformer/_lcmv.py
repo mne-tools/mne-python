@@ -19,12 +19,12 @@ from ..externals import six
 from ._compute_beamformer import (
     _setup_picks, _pick_channels_spatial_filter,
     _check_proj_match, _prepare_beamformer_input, _check_one_ch_type,
-    _compute_beamformer, _check_src_type, Beamformer)
+    _compute_beamformer, _check_src_type, Beamformer, _check_rank)
 
 
 @verbose
 def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
-              pick_ori=None, rank='full', weight_norm='unit-noise-gain',
+              pick_ori=None, rank='', weight_norm='unit-noise-gain',
               reduce_rank=False, verbose=None):
     """Compute LCMV spatial filter.
 
@@ -68,7 +68,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         full rank, the rank is estimated before regularization in this case. If
         'full', the rank will be estimated after regularization and hence
         will mean using the full rank, unless ``reg=0`` is used.
-        Defaults to 'full'.
+        The default in 0.17 is 'full' and this will change to None in 0.18.
     weight_norm : 'unit-noise-gain' | 'nai' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
@@ -129,6 +129,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
            brain imaging (2008) Springer Science & Business Media
     """
     picks = _setup_picks(info, forward, data_cov, noise_cov)
+    rank = _check_rank(rank)
 
     is_free_ori, ch_names, proj, vertno, G, nn = \
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
@@ -493,7 +494,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
 @verbose
 def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
             freq_bins, subtract_evoked=False, reg=0.05, label=None,
-            pick_ori=None, n_jobs=1, rank='full',
+            pick_ori=None, n_jobs=1, rank='',
             weight_norm='unit-noise-gain', raw=None, verbose=None):
     """5D time-frequency beamforming based on LCMV.
 
@@ -557,7 +558,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         full rank, the rank is estimated before regularization in this case. If
         'full', the rank will be estimated after regularization and hence
         will mean using the full rank, unless ``reg=0`` is used.
-        Defaults to 'full'.
+        The default in 0.17 is 'full' and this will change to None in 0.18.
     weight_norm : 'unit-noise-gain' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
@@ -585,6 +586,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
            brain imaging (2008) Springer Science & Business Media
     """
     _check_reference(epochs)
+    rank = _check_rank(rank)
 
     if pick_ori not in [None, 'normal']:
         raise ValueError('pick_ori must be one of "normal" and None, '

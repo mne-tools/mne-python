@@ -79,7 +79,7 @@ for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
     # data (enabled by passing a noise covariance matrix)
     filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
                         noise_cov=noise_cov, pick_ori=pick_ori,
-                        weight_norm='unit-noise-gain')
+                        weight_norm='unit-noise-gain', rank=None)
     print(filters)
     # apply this spatial filter to source-reconstruct the evoked data
     stc = apply_lcmv(evoked, filters, max_ori_out='signed')

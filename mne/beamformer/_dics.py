@@ -17,13 +17,13 @@ from ._compute_beamformer import (_setup_picks,
                                   _pick_channels_spatial_filter,
                                   _check_proj_match, _prepare_beamformer_input,
                                   _compute_beamformer, _check_one_ch_type,
-                                  _check_src_type, Beamformer)
+                                  _check_src_type, Beamformer, _check_rank)
 from ..externals import six
 
 
 @verbose
 def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
-              rank=None, inversion='single', weight_norm=None,
+              rank='', inversion='single', weight_norm=None,
               normalize_fwd=True, real_filter=False, reduce_rank=False,
               verbose=None):
     """Compute a Dynamic Imaging of Coherent Sources (DICS) spatial filter.
@@ -71,7 +71,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         full rank, the rank is estimated before regularization in this case. If
         'full', the rank will be estimated after regularization and hence
         will mean using the full rank, unless ``reg=0`` is used.
-        Defaults to ``None``.
+        The default in 0.17 is 'full' and this will change to None in 0.18.
 
         .. versionadded:: 0.17
     inversion : 'single' | 'matrix'
@@ -186,6 +186,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
            https://doi.org/10.1101/245530
     """  # noqa: E501
     allowed_ori = [None, 'normal', 'max-power']
+    rank = _check_rank(rank)
     if pick_ori not in allowed_ori:
         raise ValueError('"pick_ori" should be one of %s.' % allowed_ori)
 
@@ -604,7 +605,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
             subtract_evoked=False, mode='fourier', freq_bins=None,
             frequencies=None, n_ffts=None, mt_bandwidths=None,
             mt_adaptive=False, mt_low_bias=True, cwt_n_cycles=7, decim=1,
-            reg=0.05, label=None, pick_ori=None, rank=None, inversion='single',
+            reg=0.05, label=None, pick_ori=None, rank='', inversion='single',
             weight_norm=None, normalize_fwd=True, real_filter=False,
             reduce_rank=False, verbose=None):
     """5D time-frequency beamforming based on DICS.
@@ -704,7 +705,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         full rank, the rank is estimated before regularization in this case. If
         'full', the rank will be estimated after regularization and hence
         will mean using the full rank, unless ``reg=0`` is used.
-        Defaults to ``None``.
+        The default in 0.17 is 'full' and this will change to None in 0.18.
 
         .. versionadded:: 0.17
     inversion : 'single' | 'matrix'
@@ -762,6 +763,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
            brain imaging (2008) Springer Science & Business Media
     """
     _check_reference(epochs)
+    rank = _check_rank(rank)
 
     if mode == 'cwt_morlet' and frequencies is None:
         raise ValueError('In "cwt_morlet" mode, the "frequencies" parameter '

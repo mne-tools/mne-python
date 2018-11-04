@@ -77,7 +77,7 @@ data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
 # of orientation selection and weight normalization are implemented yet.
 filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
                     noise_cov=noise_cov, pick_ori='max-power',
-                    weight_norm='nai')
+                    weight_norm='nai', rank=None)
 print(filters)
 
 # You can save these with:

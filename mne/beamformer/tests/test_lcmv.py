@@ -1,4 +1,5 @@
 from copy import deepcopy
+from functools import partial
 import os.path as op
 
 import pytest
@@ -33,6 +34,12 @@ fname_event = op.join(data_path, 'MEG', 'sample',
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
 
 reject = dict(grad=4000e-13, mag=4e-12)
+
+# deal with deprecation
+make_lcmv_orig = make_lcmv
+make_lcmv = partial(make_lcmv, rank=None)
+orig_tf_lcmv = tf_lcmv
+tf_lcmv = partial(tf_lcmv, rank=None)
 
 
 def _read_forward_solution_meg(*args, **kwargs):
@@ -269,9 +276,10 @@ def test_make_lcmv(tmpdir):
                                            bem=sphere, eeg=False, meg=True)
 
     # Test that we get an error if not reducing rank
-    pytest.raises(ValueError, make_lcmv, evoked.info, fwd_sphere, data_cov,
-                  reg=0.1, noise_cov=noise_cov, weight_norm='unit-noise-gain',
-                  pick_ori='max-power', reduce_rank=False)
+    with pytest.raises(ValueError, match='Singular matrix'):
+        make_lcmv_orig(evoked.info, fwd_sphere, data_cov, reg=0.1,
+                       noise_cov=noise_cov, weight_norm='unit-noise-gain',
+                       pick_ori='max-power', reduce_rank=False, rank='full')
 
     # Now let's reduce it
     filters = make_lcmv(evoked.info, fwd_sphere, data_cov, reg=0.1,
@@ -637,7 +645,7 @@ def test_lcmv_ctf_comp():
     fwd = mne.make_forward_solution(evoked.info, None,
                                     mne.setup_volume_source_space(pos=15.0),
                                     mne.make_sphere_model())
-    filters = mne.beamformer.make_lcmv(evoked.info, fwd, data_cov)
+    filters = make_lcmv(evoked.info, fwd, data_cov)
     assert 'weights' in filters
 
 

@@ -89,11 +89,6 @@ Changelog
 
 - Add support for ``weight_norm='nai'`` to :func:`mne.beamformer.make_dics` by `Marijn van Vliet`_
 
-- Add ``rank`` parameter for specifying the rank of the covariance matrix to :func:`mne.beamformer.make_dics` by `Marijn van Vliet`_
-
-- Add ``rank='auto'`` parameter for automatically determining the rank of the covariance matrix to :func:`mne.beamformer.lcmv` and :func:`mne.beamformer.make_dics` by `Marijn van Vliet`_
-
-
 Bug
 ~~~
 
@@ -181,9 +176,10 @@ Bug
 
 - Fix computation of max-power orientation in :func:`mne.beamformer.make_dics` when ``pick_ori='max-power', weight_norm='unit_noise_gain'`` by `Marijn van Vliet`_
 
-
 API
 ~~~
+
+- The parameter ``rank`` was added to :func:`mne.beamformer.make_dics` and :func:`mne.beamformer.make_lcmv`` with a default of ``'full'`` that will change to ``None`` in 0.18 to auto-compute the rank of the covariance matrix before regularization by `Marijn van Vliet`_
 
 - Calling :meth:``mne.io.pick.pick_info`` removing channels that are needed by compensation matrices (``info['comps']``) no longer raises ``RuntimeException`` but instead logs an info level message. By `Luke Bloy`_
 

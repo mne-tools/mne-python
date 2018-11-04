@@ -7,6 +7,7 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
+import operator
 
 import numpy as np
 from scipy import linalg
@@ -22,6 +23,26 @@ from ..channels.channels import _contains_ch_type
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
+from ..externals.six import string_types
+
+
+def _check_rank(rank):
+    """Check rank parameter and deal with deprecation."""
+    if isinstance(rank, string_types):
+        if rank == '':
+            warn('The rank parameter default in 0.17 of "full" will change '
+                 'to None in 0.18, set it explicitly to aviod this warning',
+                 DeprecationWarning)
+            rank = 'full'
+        if rank != 'full':
+            raise ValueError('rank, if str, must be "full", got %s' % (rank,))
+    elif rank is not None and not isinstance(rank, dict):
+        try:
+            rank = int(operator.index(rank))
+        except TypeError:
+            raise TypeError('rank must be None, dict, "full", or int-like, '
+                            'got %s (type %s)' % (rank, type(rank)))
+    return rank
 
 
 def _setup_picks(info, forward, data_cov=None, noise_cov=None):
