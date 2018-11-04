@@ -3,8 +3,7 @@
 Time-frequency beamforming using DICS
 =====================================
 
-Compute DICS source power [1]_ in a grid of time-frequency windows and
-display results.
+Compute DICS source power [1]_ in a grid of time-frequency windows.
 
 References
 ----------
@@ -114,8 +113,7 @@ for freq_bin, win_length, n_fft in zip(freq_bins, win_lengths, n_ffts):
 # space for faster computation, use label=None for full solution
 stcs = tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                freq_bins=freq_bins, subtract_evoked=subtract_evoked,
-               n_ffts=n_ffts, reg=0.05, label=label, inversion='matrix',
-               rank=None)
+               n_ffts=n_ffts, reg=0.05, label=label, inversion='matrix')
 
 # Plotting source spectrogram for source with maximum activity
 # Note that tmin and tmax are set to display a time range that is smaller than

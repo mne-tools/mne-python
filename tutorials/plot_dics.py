@@ -7,7 +7,7 @@ In this tutorial, we'll simulate two signals originating from two
 locations on the cortex. These signals will be sinusoids, so we'll be looking
 at oscillatory activity (as opposed to evoked activity).
 
-We'll be using dynamic imaging of coherent sources (DICS) [1]_ to map out
+We'll use dynamic imaging of coherent sources (DICS) [1]_ to map out
 spectral power along the cortex. Let's see if we can find our two simulated
 sources.
 """
@@ -264,12 +264,12 @@ csd_signal = csd_morlet(epochs['signal'], frequencies=[10])
 # Compute the spatial filters for each vertex, using two approaches.
 filters_approach1 = make_dics(
     info, fwd, csd_signal, reg=0.05, pick_ori='max-power', normalize_fwd=True,
-    inversion='single', weight_norm=None, rank=None)
+    inversion='single', weight_norm=None)
 print(filters_approach1)
 
 filters_approach2 = make_dics(
     info, fwd, csd_signal, reg=0.1, pick_ori='max-power', normalize_fwd=False,
-    inversion='matrix', weight_norm='unit-noise-gain', rank=None)
+    inversion='matrix', weight_norm='unit-noise-gain')
 print(filters_approach2)
 
 # You can save these to disk with:

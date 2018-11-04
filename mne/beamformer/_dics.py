@@ -23,7 +23,7 @@ from ..externals import six
 
 @verbose
 def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
-              rank='', inversion='single', weight_norm=None,
+              rank=None, inversion='single', weight_norm=None,
               normalize_fwd=True, real_filter=False, reduce_rank=False,
               verbose=None):
     """Compute a Dynamic Imaging of Coherent Sources (DICS) spatial filter.
@@ -71,7 +71,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         full rank, the rank is estimated before regularization in this case. If
         'full', the rank will be estimated after regularization and hence
         will mean using the full rank, unless ``reg=0`` is used.
-        The default in 0.17 is 'full' and this will change to None in 0.18.
+        The default is None.
 
         .. versionadded:: 0.17
     inversion : 'single' | 'matrix'
@@ -605,7 +605,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
             subtract_evoked=False, mode='fourier', freq_bins=None,
             frequencies=None, n_ffts=None, mt_bandwidths=None,
             mt_adaptive=False, mt_low_bias=True, cwt_n_cycles=7, decim=1,
-            reg=0.05, label=None, pick_ori=None, rank='', inversion='single',
+            reg=0.05, label=None, pick_ori=None, rank=None, inversion='single',
             weight_norm=None, normalize_fwd=True, real_filter=False,
             reduce_rank=False, verbose=None):
     """5D time-frequency beamforming based on DICS.
@@ -705,7 +705,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         full rank, the rank is estimated before regularization in this case. If
         'full', the rank will be estimated after regularization and hence
         will mean using the full rank, unless ``reg=0`` is used.
-        The default in 0.17 is 'full' and this will change to None in 0.18.
+        The default is None.
 
         .. versionadded:: 0.17
     inversion : 'single' | 'matrix'

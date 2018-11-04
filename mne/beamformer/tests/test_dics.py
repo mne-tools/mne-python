@@ -4,7 +4,6 @@
 # License: BSD 3 clause
 
 import copy as cp
-from functools import partial
 import os.path as op
 
 import pytest
@@ -34,12 +33,6 @@ fname_event = op.join(data_path, 'MEG', 'sample',
 subjects_dir = op.join(data_path, 'subjects')
 fname_label = op.join(subjects_dir, 'sample', 'label', 'aparc',
                       'rostralmiddlefrontal-lh.label')
-
-# deal with deprecation
-make_dics_orig = make_dics
-make_dics = partial(make_dics, rank=None)
-tf_dics_orig = tf_dics
-tf_dics = partial(tf_dics, rank=None)
 
 
 def _load_forward():
@@ -128,9 +121,9 @@ def test_make_dics(tmpdir):
     raises(ValueError, make_dics, epochs.info, fwd_fixed, csd,
            pick_ori="notexistent")
     with raises(ValueError, match='rank, if str'):
-        make_dics_orig(epochs.info, fwd_fixed, csd, rank='foo')
+        make_dics(epochs.info, fwd_fixed, csd, rank='foo')
     with raises(TypeError, match='rank must be'):
-        make_dics_orig(epochs.info, fwd_fixed, csd, rank=1.)
+        make_dics(epochs.info, fwd_fixed, csd, rank=1.)
 
     # Test if fixed forward operator is detected when picking normal
     # orientation
