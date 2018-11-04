@@ -24,7 +24,7 @@ from ._compute_beamformer import (
 
 @verbose
 def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
-              pick_ori=None, rank=None, weight_norm='unit-noise-gain',
+              pick_ori=None, rank='full', weight_norm='unit-noise-gain',
               reduce_rank=False, verbose=None):
     """Compute LCMV spatial filter.
 
@@ -60,11 +60,15 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
             'vector'
                 Keeps the currents for each direction separate
 
-    rank : None | False | int
-        The effective rank of the covariance matrix.
-        If None, the rank will be estimated before regularization is
-        applied. If False, the rank will be estimated after regularization
-        is applied. Defaults to ``None``.
+    rank : int | None | 'full'
+        This controls the effective rank of the covariance matrix when
+        computing the inverse. The rank can be set explicitly by specifying an
+        integer value. If ``None``, the rank will be automatically estimated.
+        Since applying regularization will always make the covariance matrix
+        full rank, the rank is estimated before regularization in this case. If
+        'full', the rank will be estimated after regularization and hence
+        will mean using the full rank, unless ``reg=0`` is used.
+        Defaults to 'full'.
     weight_norm : 'unit-noise-gain' | 'nai' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
@@ -486,7 +490,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
 @verbose
 def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
             freq_bins, subtract_evoked=False, reg=0.05, label=None,
-            pick_ori=None, n_jobs=1, rank=None,
+            pick_ori=None, n_jobs=1, rank='full',
             weight_norm='unit-noise-gain', raw=None, verbose=None):
     """5D time-frequency beamforming based on LCMV.
 
@@ -542,11 +546,15 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     n_jobs : int | str
         Number of jobs to run in parallel.
         Can be 'cuda' if ``cupy`` is installed properly.
-    rank : None | False | int
-        The effective rank of the covariance matrix.
-        If None, the rank will be estimated before regularization is
-        applied. If False, the rank will be estimated after regularization
-        is applied. Defaults to ``None``.
+    rank : int | None | 'full'
+        This controls the effective rank of the covariance matrix when
+        computing the inverse. The rank can be set explicitly by specifying an
+        integer value. If ``None``, the rank will be automatically estimated.
+        Since applying regularization will always make the covariance matrix
+        full rank, the rank is estimated before regularization in this case. If
+        'full', the rank will be estimated after regularization and hence
+        will mean using the full rank, unless ``reg=0`` is used.
+        Defaults to 'full'.
     weight_norm : 'unit-noise-gain' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,

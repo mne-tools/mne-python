@@ -63,11 +63,15 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                 filters are computer for the orientation that maximizes
                 spectral power.
 
-    rank : None | False | int
-        The effective rank of the covariance matrix.
-        If None, the rank will be estimated before regularization is
-        applied. If False, the rank will be estimated after regularization
-        is applied. Defaults to ``None``.
+    rank : int | None | 'full'
+        This controls the effective rank of the covariance matrix when
+        computing the inverse. The rank can be set explicitly by specifying an
+        integer value. If ``None``, the rank will be automatically estimated.
+        Since applying regularization will always make the covariance matrix
+        full rank, the rank is estimated before regularization in this case. If
+        'full', the rank will be estimated after regularization and hence
+        will mean using the full rank, unless ``reg=0`` is used.
+        Defaults to 'full'.
 
         .. versionadded:: 0.17
     inversion : 'single' | 'matrix'
@@ -600,7 +604,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
             subtract_evoked=False, mode='fourier', freq_bins=None,
             frequencies=None, n_ffts=None, mt_bandwidths=None,
             mt_adaptive=False, mt_low_bias=True, cwt_n_cycles=7, decim=1,
-            reg=0.05, label=None, pick_ori=None, inversion='single',
+            reg=0.05, label=None, pick_ori=None, rank=None, inversion='single',
             weight_norm=None, normalize_fwd=True, real_filter=False,
             reduce_rank=False, verbose=None):
     """5D time-frequency beamforming based on DICS.
@@ -691,6 +695,18 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                 spectral power.
 
         Defaults to ``None``.
+
+    rank : int | None | 'full'
+        This controls the effective rank of the covariance matrix when
+        computing the inverse. The rank can be set explicitly by specifying an
+        integer value. If ``None``, the rank will be automatically estimated.
+        Since applying regularization will always make the covariance matrix
+        full rank, the rank is estimated before regularization in this case. If
+        'full', the rank will be estimated after regularization and hence
+        will mean using the full rank, unless ``reg=0`` is used.
+        Defaults to 'full'.
+        
+        .. versionadded:: 0.17
     inversion : 'single' | 'matrix'
         This determines how the beamformer deals with source spaces in "free"
         orientation. Such source spaces define three orthogonal dipoles at each
@@ -867,7 +883,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
 
                 filters = make_dics(epochs.info, forward, csd, reg=reg,
                                     label=label, pick_ori=pick_ori,
-                                    inversion=inversion,
+                                    rank=rank, inversion=inversion,
                                     weight_norm=weight_norm,
                                     normalize_fwd=normalize_fwd,
                                     reduce_rank=reduce_rank,

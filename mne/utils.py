@@ -605,7 +605,7 @@ def _compute_row_norms(data):
     return norms
 
 
-def _reg_pinv(x, reg=0, rank=False, rcond=1e-15):
+def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
     """Compute a regularized pseudoinverse of a square matrix.
 
     Regularization is performed by adding a constant value to each diagonal
@@ -624,14 +624,15 @@ def _reg_pinv(x, reg=0, rank=False, rcond=1e-15):
         Square matrix to invert.
     reg : float
         Regularization parameter. Defaults to 0.
-    rank : None | False | int
-        Estimated rank of the matrix. This determines the number of singular
-        values used to compute the pseudo-inverse. When set to None, the rank
-        is estimated on the non-regularized matrix using the ``rcond`` cutoff
-        for small singular values. When set to False, the behavior of
-        :func:`numpy.linalg.pinv` is mimicked: the rank is estimated on the
-        regularized matrix using the ``rcond`` cutoff for small singular
-        values. Defaults to False.
+    rank : int | None | 'full'
+        This controls the effective rank of the covariance matrix when
+        computing the inverse. The rank can be set explicitly by specifying an
+        integer value. If ``None``, the rank will be automatically estimated.
+        Since applying regularization will always make the covariance matrix
+        full rank, the rank is estimated before regularization in this case. If
+        'full', the rank will be estimated after regularization and hence
+        will mean using the full rank, unless ``reg=0`` is used.
+        Defaults to 'full'.
     rcond : float | 'auto'
         Cutoff for detecting small singular values when attempting to estimate
         the rank of the matrix (``rank='auto'``). Singular values smaller than

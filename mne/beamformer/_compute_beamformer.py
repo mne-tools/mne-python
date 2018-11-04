@@ -301,11 +301,14 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         The source orientation to compute the beamformer in.
     reduce_rank : bool
         Whether to reduce the rank by one during computation of the filter.
-    rank : None | False | int
-        The effective rank of the covariance matrix.
-        If None, the rank will be estimated before regularization is
-        applied. If False, the rank will be estimated after regularization
-        is applied. Defaults to ``None``.
+    rank : int | None | 'full'
+        This controls the effective rank of the covariance matrix when
+        computing the inverse. The rank can be set explicitly by specifying an
+        integer value. If ``None``, the rank will be automatically estimated.
+        Since applying regularization will always make the covariance matrix
+        full rank, the rank is estimated before regularization in this case. If
+        'full', the rank will be estimated after regularization and hence
+        will mean using the full rank, unless ``reg=0`` is used.
     inversion : 'matrix' | 'single'
         The inversion scheme to compute the weights.
     nn : ndarray, shape (n_dipoles, 3)

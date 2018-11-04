@@ -268,7 +268,7 @@ filters_approach1 = make_dics(
 print(filters_approach1)
 
 filters_approach2 = make_dics(
-    info, fwd, csd_signal, reg=0.05, pick_ori='max-power', normalize_fwd=False,
+    info, fwd, csd_signal, reg=0.1, pick_ori='max-power', normalize_fwd=False,
     inversion='matrix', weight_norm='unit-noise-gain')
 print(filters_approach2)
 
