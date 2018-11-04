@@ -71,7 +71,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         full rank, the rank is estimated before regularization in this case. If
         'full', the rank will be estimated after regularization and hence
         will mean using the full rank, unless ``reg=0`` is used.
-        Defaults to 'full'.
+        Defaults to ``None``.
 
         .. versionadded:: 0.17
     inversion : 'single' | 'matrix'
@@ -704,7 +704,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         full rank, the rank is estimated before regularization in this case. If
         'full', the rank will be estimated after regularization and hence
         will mean using the full rank, unless ``reg=0`` is used.
-        Defaults to 'full'.
+        Defaults to '``None``.
         
         .. versionadded:: 0.17
     inversion : 'single' | 'matrix'
