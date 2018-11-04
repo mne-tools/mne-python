@@ -149,8 +149,9 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     if noise_cov is not None:
         # Handle whitening + data covariance
-        whitener, _, rank = compute_whitener(noise_cov, info, picks, rank=rank,
-                                             return_rank=True)
+        whitener_rank = None if rank == 'full' else rank
+        whitener, _, rank = compute_whitener(
+            noise_cov, info, picks, rank=whitener_rank, return_rank=True)
         # whiten the leadfield
         G = np.dot(whitener, G)
         # whiten data covariance
@@ -429,7 +430,9 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
     # XXX this could maybe use pca=True to avoid needing to use
     # _reg_pinv(..., rank=rank) later
     if noise_cov is not None:
-        whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)
+        whitener_rank = None if rank == 'full' else rank
+        whitener, _ = compute_whitener(
+            noise_cov, info, picks, rank=whitener_rank)
 
         # whiten the leadfield
         G = np.dot(whitener, G)

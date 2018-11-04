@@ -63,7 +63,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                 filters are computer for the orientation that maximizes
                 spectral power.
 
-    rank : int | None | 'full'
+    rank : None | int | 'full'
         This controls the effective rank of the covariance matrix when
         computing the inverse. The rank can be set explicitly by specifying an
         integer value. If ``None``, the rank will be automatically estimated.
@@ -696,7 +696,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
 
         Defaults to ``None``.
 
-    rank : int | None | 'full'
+    rank : None | int | 'full'
         This controls the effective rank of the covariance matrix when
         computing the inverse. The rank can be set explicitly by specifying an
         integer value. If ``None``, the rank will be automatically estimated.
@@ -704,8 +704,8 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         full rank, the rank is estimated before regularization in this case. If
         'full', the rank will be estimated after regularization and hence
         will mean using the full rank, unless ``reg=0`` is used.
-        Defaults to '``None``.
-        
+        Defaults to ``None``.
+
         .. versionadded:: 0.17
     inversion : 'single' | 'matrix'
         This determines how the beamformer deals with source spaces in "free"
