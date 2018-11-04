@@ -91,6 +91,9 @@ Changelog
 
 - Add parameter ``rank=None`` to :func:`mne.beamformer.make_dics` by `Marijn van Vliet`_
 
+- Add parameter ``rank='full'`` to :func:`mne.beamformer.make_lcmv``, which can be set to ``None`` to auto-compute the rank of the covariance matrix before regularization by `Marijn van Vliet`_
+
+
 Bug
 ~~~
 
@@ -180,8 +183,6 @@ Bug
 
 API
 ~~~
-
-- The parameter ``rank`` was added to :func:`mne.beamformer.make_lcmv`` with a default of ``'full'`` that will change to ``None`` in 0.18 to auto-compute the rank of the covariance matrix before regularization by `Marijn van Vliet`_
 
 - Calling :meth:``mne.io.pick.pick_info`` removing channels that are needed by compensation matrices (``info['comps']``) no longer raises ``RuntimeException`` but instead logs an info level message. By `Luke Bloy`_
 

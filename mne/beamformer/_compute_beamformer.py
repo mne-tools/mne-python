@@ -29,11 +29,12 @@ from ..externals.six import string_types
 def _check_rank(rank):
     """Check rank parameter and deal with deprecation."""
     if isinstance(rank, string_types):
-        if rank == '':
-            warn('The rank parameter default in 0.17 of "full" will change '
-                 'to None in 0.18, set it explicitly to avoid this warning',
-                 DeprecationWarning)
-            rank = 'full'
+        # XXX we can use rank='' to deprecate to get to None eventually:
+        # if rank == '':
+        #     warn('The rank parameter default in 0.18 of "full" will change '
+        #          'to None in 0.19, set it explicitly to avoid this warning',
+        #          DeprecationWarning)
+        #     rank = 'full'
         if rank != 'full':
             raise ValueError('rank, if str, must be "full", got %s' % (rank,))
     elif rank is not None and not isinstance(rank, dict):

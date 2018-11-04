@@ -24,7 +24,7 @@ from ._compute_beamformer import (
 
 @verbose
 def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
-              pick_ori=None, rank='', weight_norm='unit-noise-gain',
+              pick_ori=None, rank='full', weight_norm='unit-noise-gain',
               reduce_rank=False, verbose=None):
     """Compute LCMV spatial filter.
 
@@ -68,7 +68,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         full rank, the rank is estimated before regularization in this case. If
         'full', the rank will be estimated after regularization and hence
         will mean using the full rank, unless ``reg=0`` is used.
-        The default in 0.17 is 'full' and this will change to None in 0.18.
+        The default in ``'full'``.
     weight_norm : 'unit-noise-gain' | 'nai' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
@@ -494,7 +494,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
 @verbose
 def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
             freq_bins, subtract_evoked=False, reg=0.05, label=None,
-            pick_ori=None, n_jobs=1, rank='',
+            pick_ori=None, n_jobs=1, rank='full',
             weight_norm='unit-noise-gain', raw=None, verbose=None):
     """5D time-frequency beamforming based on LCMV.
 
@@ -558,7 +558,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         full rank, the rank is estimated before regularization in this case. If
         'full', the rank will be estimated after regularization and hence
         will mean using the full rank, unless ``reg=0`` is used.
-        The default in 0.17 is 'full' and this will change to None in 0.18.
+        The default is ``'full'``.
     weight_norm : 'unit-noise-gain' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
