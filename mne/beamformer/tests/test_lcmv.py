@@ -276,7 +276,7 @@ def test_make_lcmv(tmpdir):
                                            bem=sphere, eeg=False, meg=True)
 
     # Test that we get an error if not reducing rank
-    with pytest.raises(ValueError, match='Singular matrix'):
+    with pytest.raises(ValueError):  # Singular matrix or complex spectrum
         make_lcmv_orig(evoked.info, fwd_sphere, data_cov, reg=0.1,
                        noise_cov=noise_cov, weight_norm='unit-noise-gain',
                        pick_ori='max-power', reduce_rank=False, rank='full')
