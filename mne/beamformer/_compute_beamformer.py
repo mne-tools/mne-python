@@ -31,7 +31,7 @@ def _check_rank(rank):
     if isinstance(rank, string_types):
         if rank == '':
             warn('The rank parameter default in 0.17 of "full" will change '
-                 'to None in 0.18, set it explicitly to aviod this warning',
+                 'to None in 0.18, set it explicitly to avoid this warning',
                  DeprecationWarning)
             rank = 'full'
         if rank != 'full':
