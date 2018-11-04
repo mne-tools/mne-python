@@ -646,11 +646,11 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
     loading_factor : float
         Value added to the diagonal of the matrix during regularization.
     rank : int
-        If ``rank`` was set to an integer value, this value is returned.
-        If ``rank=None`` or ``rank=False``, the estimated rank of the matrix,
-        before regularization, is returned.
+        If ``rank`` was set to an integer value, this value is returned,
+        else the estimated rank of the matrix, before regularization, is
+        returned.
     """
-    if rank is not None and rank is not False:
+    if rank is not None and rank != 'full':
         rank = int(operator.index(rank))
     if x.ndim != 2 or x.shape[0] != x.shape[1]:
         raise ValueError('Input matrix must be square.')
@@ -674,7 +674,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
 
     # Warn the user if both all parameters were kept at their defaults and the
     # matrix is rank deficient.
-    if rank_after < len(x) and reg == 0 and rank is False and rcond == 1e-15:
+    if rank_after < len(x) and reg == 0 and rank == 'full' and rcond == 1e-15:
         warn('Covariance matrix is rank-deficient and no regularization is '
              'done.')
     elif isinstance(rank, int) and rank > len(x):
@@ -685,7 +685,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
     # Pick the requested number of singular values
     if rank is None:
         sel_s = s[:rank_before]
-    elif rank is False:
+    elif rank == 'full':
         sel_s = s[:rank_after]
     else:
         sel_s = s[:rank]
@@ -699,7 +699,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
     # Compute the pseudo inverse
     x_inv = np.dot(V.T, s_inv[:, np.newaxis] * U.T)
 
-    if rank is None or rank is False:
+    if rank is None or rank == 'full':
         return x_inv, loading_factor, rank_before
     else:
         return x_inv, loading_factor, rank
