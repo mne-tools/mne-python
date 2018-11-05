@@ -4,6 +4,7 @@
 
 from datetime import datetime
 import time
+import os.path as op
 import re
 from copy import deepcopy
 
@@ -465,16 +466,21 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     from mne.io.eeglab.eeglab import _read_annotations_eeglab_caller
     from mne.io.edf.edf import _read_annotations_edf_caller
 
-    if fname.endswith(('fif', 'fif.gz')):
         annotations = _read_annotations_fif_caller(fname)
-    elif fname.endswith('vmrk'):
+    name = op.basename(fname)
+    if name.endswith(('fif', 'fif.gz')):
+
+    elif name.endswith('vmrk'):
         annotations = _read_annotations_brainvision(fname, sfreq=sfreq)
-    elif fname.endswith('set'):
+
+    elif name.endswith('set'):
         annotations = _read_annotations_eeglab_caller(fname,
                                                   uint16_codec=uint16_codec)
-    elif fname.endswith('edf'):
+
+    elif name.endswith('edf'):
         annotations = _read_annotations_edf_caller(fname)
-    elif fname.startswith('events_') and fname.endswith('mat'):
+
+    elif name.startswith('events_') and fname.endswith('mat'):
         annotations = _read_brainstorm_annotations(fname)
     else:
         raise IOError('Unknown annotation file format "%s"' % fname)
