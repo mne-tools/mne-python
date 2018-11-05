@@ -335,47 +335,6 @@ def _read_vmrk(fname):
     return np.array(onset), np.array(duration), np.array(description), date_str
 
 
-def _read_annotations_brainvision(fname, sfreq='auto'):
-    """Create Annotations from BrainVision vrmk.
-
-    This function reads a .vrmk file and makes an
-    :class:`mne.Annotations` object.
-
-    Parameters
-    ----------
-    fname : str | object
-        The path to the .vmrk file.
-    sfreq : float | 'auto'
-        The sampling frequency in the file. It's necessary
-        as Annotations are expressed in seconds and vmrk
-        files are in samples. If set to 'auto' then
-        the sfreq is taken from the .vhdr file that
-        has the same name (without file extension). So
-        data.vrmk looks for sfreq in data.vhdr.
-
-    Returns
-    -------
-    annotations : instance of Annotations
-        The annotations present in the file.
-    """
-    onset, duration, description, date_str = _read_vmrk(fname)
-    orig_time = _str_to_meas_date(date_str)
-
-    if sfreq == 'auto':
-        vhdr_fname = op.splitext(fname)[0] + '.vhdr'
-        logger.info("Finding 'sfreq' from header file: %s" % vhdr_fname)
-        _, _, _, info = _aux_vhdr_info(vhdr_fname)
-        sfreq = info['sfreq']
-
-    onset = np.array(onset, dtype=float) / sfreq
-    duration = np.array(duration, dtype=float) / sfreq
-    annotations = Annotations(onset=onset, duration=duration,
-                              description=description,
-                              orig_time=orig_time)
-
-    return annotations
-
-
 def _event_id_func(desc, event_id, trig_shift_by_type, dropped_desc):
     """Get integers from string description.
 
@@ -441,6 +400,33 @@ def _event_id_func(desc, event_id, trig_shift_by_type, dropped_desc):
     return trigger
 
 
+def _check_trig_shift_by_type(trig_shift_by_type):
+    """Check the trig_shift_by_type parameter.
+
+    trig_shift_by_type is used to offset event numbers depending
+    of the type of marker (eg. Response, Stimulus).
+    """
+    if trig_shift_by_type is None:
+        trig_shift_by_type = dict()
+    elif not isinstance(trig_shift_by_type, dict):
+        raise TypeError("'trig_shift_by_type' must be None or dict")
+
+    for mrk_type in list(trig_shift_by_type.keys()):
+        cur_shift = trig_shift_by_type[mrk_type]
+        if not isinstance(cur_shift, int) and cur_shift is not None:
+            raise TypeError('shift for type {} must be int or None'.format(
+                mrk_type
+            ))
+        mrk_type_lc = mrk_type.lower()
+        if mrk_type_lc != mrk_type:
+            if mrk_type_lc in trig_shift_by_type:
+                raise ValueError('marker type {} specified twice with'
+                                 'different case'.format(mrk_type_lc))
+            trig_shift_by_type[mrk_type_lc] = cur_shift
+            del trig_shift_by_type[mrk_type]
+    return trig_shift_by_type
+
+
 def _read_annotations_brainvision(fname, sfreq='auto'):
     """Create Annotations from BrainVision vrmk.
 
@@ -480,33 +466,6 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
                               orig_time=orig_time)
 
     return annotations
-
-
-def _check_trig_shift_by_type(trig_shift_by_type):
-    """Check the trig_shift_by_type parameter.
-
-    trig_shift_by_type is used to offset event numbers depending
-    of the type of marker (eg. Response, Stimulus).
-    """
-    if trig_shift_by_type is None:
-        trig_shift_by_type = dict()
-    elif not isinstance(trig_shift_by_type, dict):
-        raise TypeError("'trig_shift_by_type' must be None or dict")
-
-    for mrk_type in list(trig_shift_by_type.keys()):
-        cur_shift = trig_shift_by_type[mrk_type]
-        if not isinstance(cur_shift, int) and cur_shift is not None:
-            raise TypeError('shift for type {} must be int or None'.format(
-                mrk_type
-            ))
-        mrk_type_lc = mrk_type.lower()
-        if mrk_type_lc != mrk_type:
-            if mrk_type_lc in trig_shift_by_type:
-                raise ValueError('marker type {} specified twice with'
-                                 'different case'.format(mrk_type_lc))
-            trig_shift_by_type[mrk_type_lc] = cur_shift
-            del trig_shift_by_type[mrk_type]
-    return trig_shift_by_type
 
 
 def _check_hdr_version(header):

@@ -583,8 +583,6 @@ class EpochsEEGLAB(BaseEpochs):
                 warn('At least one epoch has multiple events. Only the latency'
                      ' of the first event will be retained.')
 
-
-
             # now fill up the event array
             events = np.zeros((eeg.trials, 3), dtype=int)
             for idx in range(0, eeg.trials):
