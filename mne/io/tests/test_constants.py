@@ -37,9 +37,7 @@ _missing_coil_def = (
     2001,   # Generic axial gradiometer
     3011,   # VV prototype wirewound planar sensor
     3014,   # Vectorview SQ20950N planar gradiometer
-    3015,   # MEG-MRI proto system planar gradiometer
     3021,   # VV prototype wirewound magnetometer
-    3025,   # MEG-MRI proto system magnetometer
 )
 # explicit aliases in constants.py
 _aliases = dict(
@@ -63,7 +61,7 @@ def test_constants(tmpdir):
     tmpdir = str(tmpdir)  # old pytest...
     dest = op.join(tmpdir, 'fiff.zip')
     _fetch_file('https://codeload.github.com/mne-tools/fiff-constants/zip/'
-                '1407dc312384577bd0f4cdd0036958b4da60ff26', dest)
+                '066541057377b694a7d65fc18838fd80d8ffc284', dest)
     names = list()
     with zipfile.ZipFile(dest, 'r') as ff:
         for name in ff.namelist():
