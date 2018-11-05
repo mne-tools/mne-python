@@ -26,7 +26,8 @@ from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
 from ..utils import (_read_segments_file, _synthesize_stim_channel,
                      _mult_cal_one)
-from ...annotations import Annotations, events_from_annotations
+from ...annotations import Annotations, events_from_annotations, read_annotations
+# from mne import read_annotations
 
 from ...externals.six import StringIO, string_types
 from ...externals.six.moves import configparser
@@ -149,7 +150,7 @@ class RawBrainVision(BaseRaw):
             raw_extras=[offsets], orig_units=orig_units)
 
         # Get annotations from vmrk file
-        annots = read_annotations_brainvision(mrk_fname, info['sfreq'])
+        annots = read_annotations(mrk_fname, info['sfreq'])
         self.set_annotations(annots)
 
         # Use events_from_annotations to properly set the events
@@ -399,34 +400,7 @@ def _event_id_func(desc, event_id, trig_shift_by_type, dropped_desc):
     return trigger
 
 
-def _check_trig_shift_by_type(trig_shift_by_type):
-    """Check the trig_shift_by_type parameter.
-
-    trig_shift_by_type is used to offset event numbers depending
-    of the type of marker (eg. Response, Stimulus).
-    """
-    if trig_shift_by_type is None:
-        trig_shift_by_type = dict()
-    elif not isinstance(trig_shift_by_type, dict):
-        raise TypeError("'trig_shift_by_type' must be None or dict")
-
-    for mrk_type in list(trig_shift_by_type.keys()):
-        cur_shift = trig_shift_by_type[mrk_type]
-        if not isinstance(cur_shift, int) and cur_shift is not None:
-            raise TypeError('shift for type {} must be int or None'.format(
-                mrk_type
-            ))
-        mrk_type_lc = mrk_type.lower()
-        if mrk_type_lc != mrk_type:
-            if mrk_type_lc in trig_shift_by_type:
-                raise ValueError('marker type {} specified twice with'
-                                 'different case'.format(mrk_type_lc))
-            trig_shift_by_type[mrk_type_lc] = cur_shift
-            del trig_shift_by_type[mrk_type]
-    return trig_shift_by_type
-
-
-def read_annotations_brainvision(fname, sfreq='auto'):
+def _read_annotations_brainvision(fname, sfreq='auto'):
     """Create Annotations from BrainVision vrmk.
 
     This function reads a .vrmk file and makes an
@@ -465,6 +439,33 @@ def read_annotations_brainvision(fname, sfreq='auto'):
                               orig_time=orig_time)
 
     return annotations
+
+
+def _check_trig_shift_by_type(trig_shift_by_type):
+    """Check the trig_shift_by_type parameter.
+
+    trig_shift_by_type is used to offset event numbers depending
+    of the type of marker (eg. Response, Stimulus).
+    """
+    if trig_shift_by_type is None:
+        trig_shift_by_type = dict()
+    elif not isinstance(trig_shift_by_type, dict):
+        raise TypeError("'trig_shift_by_type' must be None or dict")
+
+    for mrk_type in list(trig_shift_by_type.keys()):
+        cur_shift = trig_shift_by_type[mrk_type]
+        if not isinstance(cur_shift, int) and cur_shift is not None:
+            raise TypeError('shift for type {} must be int or None'.format(
+                mrk_type
+            ))
+        mrk_type_lc = mrk_type.lower()
+        if mrk_type_lc != mrk_type:
+            if mrk_type_lc in trig_shift_by_type:
+                raise ValueError('marker type {} specified twice with'
+                                 'different case'.format(mrk_type_lc))
+            trig_shift_by_type[mrk_type_lc] = cur_shift
+            del trig_shift_by_type[mrk_type]
+    return trig_shift_by_type
 
 
 def _check_hdr_version(header):

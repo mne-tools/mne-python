@@ -430,21 +430,35 @@ def _write_annotations(fid, annotations):
     end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
 
-def read_annotations(fname):
+def read_annotations(fname, sfreq='auto'):
     """Read annotations from a file.
+
+    This function reads a .fif, .fif.gz, .vrmk file and makes an
+    :class:`mne.Annotations` object.
 
     Parameters
     ----------
     fname : str
         The filename.
 
+    sfreq : float | 'auto'
+        The sampling frequency in the file. This parameter is necessary for
+        vmrk files as Annotations are expressed in seconds and vmrk files are
+        in samples. If set to 'auto' then the sfreq is taken from the .vhdr
+        file that has the same name (without file extension). So data.vrmk
+        looks for sfreq in data.vhdr.
+
     Returns
     -------
     annot : instance of Annotations | None
         The annotations.
     """
+    # XXX: I've issues with circular imports
+    from mne.io.brainvision.brainvision import _read_annotations_brainvision_xx
     if fname.endswith(('fif', 'fif.gz')):
         annotations = _read_annotations_fif_xx(fname)
+    elif fname.endswith('vmrk'):
+        annotations = _read_annotations_brainvision_xx(fname, sfreq=sfreq)
     else:
         raise IOError('Unknown annotation file format "%s"' % fname)
 
