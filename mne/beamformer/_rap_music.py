@@ -46,7 +46,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         selected active dipoles and their estimated orientation.
         Computed only if return_explained_data is True.
     """
-    is_free_ori, ch_names, proj, vertno, G = _prepare_beamformer_input(
+    is_free_ori, ch_names, proj, vertno, G, _ = _prepare_beamformer_input(
         info, forward, label=None, picks=picks, pick_ori=None)
 
     gain = G.copy()

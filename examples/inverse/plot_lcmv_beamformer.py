@@ -79,33 +79,29 @@ for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
     # data (enabled by passing a noise covariance matrix)
     filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
                         noise_cov=noise_cov, pick_ori=pick_ori,
-                        weight_norm='unit-noise-gain')
+                        weight_norm='unit-noise-gain', rank=None)
     print(filters)
     # apply this spatial filter to source-reconstruct the evoked data
     stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 
     # View activation time-series in maximum voxel at 100 ms:
     time_idx = stc.time_as_index(0.1)
-    max_idx = np.argmax(stc.data[:, time_idx])
+    max_idx = np.argmax(np.abs(stc.data[:, time_idx]))
     # we know these are all left hemi, so we can just use vertices[0]
     max_voxs.append(stc.vertices[0][max_idx])
     ax.plot(stc.times, stc.data[max_idx, :], color, label=desc % max_idx)
 
-ax.set(xlabel='Time (ms)', ylabel='LCMV value', ylim=(-0.8, 2.2),
+ax.set(xlabel='Time (ms)', ylabel='LCMV value',
        title='LCMV in maximum voxel')
-ax.legend()
+ax.legend(loc='lower right')
 mne.viz.utils.plt_show()
 
 ###############################################################################
 # We can also look at the spatial distribution
 
-# take absolute value for plotting
-np.abs(stc.data, out=stc.data)
-
 # Plot last stc in the brain in 3D with PySurfer if available
-brain = stc.plot(hemi='lh', subjects_dir=subjects_dir,
-                 initial_time=0.1, time_unit='s')
-brain.show_view('lateral')
+brain = stc.plot(hemi='lh', views='lat', subjects_dir=subjects_dir,
+                 initial_time=0.1, time_unit='s', smoothing_steps=5)
 for color, vertex in zip(colors, max_voxs):
     brain.add_foci([vertex], coords_as_verts=True, scale_factor=0.5,
                    hemi='lh', color=color)

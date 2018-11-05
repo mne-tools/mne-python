@@ -13,18 +13,18 @@ from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate, _get_src_type
-from ..utils import logger, verbose, warn, _validate_type
+from ..utils import logger, verbose, warn, _validate_type, _reg_pinv
 from .. import Epochs
 from ..externals import six
 from ._compute_beamformer import (
-    _reg_pinv, _setup_picks, _pick_channels_spatial_filter,
+    _setup_picks, _pick_channels_spatial_filter,
     _check_proj_match, _prepare_beamformer_input, _check_one_ch_type,
-    _compute_beamformer, _check_src_type, Beamformer)
+    _compute_beamformer, _check_src_type, Beamformer, _check_rank)
 
 
 @verbose
 def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
-              pick_ori=None, rank=None, weight_norm='unit-noise-gain',
+              pick_ori=None, rank='full', weight_norm='unit-noise-gain',
               reduce_rank=False, verbose=None):
     """Compute LCMV spatial filter.
 
@@ -60,11 +60,15 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
             'vector'
                 Keeps the currents for each direction separate
 
-    rank : None | int | dict
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
-        to specify the rank for each modality.
+    rank : int | None | 'full'
+        This controls the effective rank of the covariance matrix when
+        computing the inverse. The rank can be set explicitly by specifying an
+        integer value. If ``None``, the rank will be automatically estimated.
+        Since applying regularization will always make the covariance matrix
+        full rank, the rank is estimated before regularization in this case. If
+        'full', the rank will be estimated after regularization and hence
+        will mean using the full rank, unless ``reg=0`` is used.
+        The default in ``'full'``.
     weight_norm : 'unit-noise-gain' | 'nai' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
@@ -125,8 +129,9 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
            brain imaging (2008) Springer Science & Business Media
     """
     picks = _setup_picks(info, forward, data_cov, noise_cov)
+    rank = _check_rank(rank)
 
-    is_free_ori, ch_names, proj, vertno, G = \
+    is_free_ori, ch_names, proj, vertno, G, nn = \
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
     data_cov = pick_channels_cov(data_cov, include=ch_names)
@@ -145,11 +150,12 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     if noise_cov is not None:
         # Handle whitening + data covariance
-        whitener, _, rank = compute_whitener(noise_cov, info, picks, rank=rank,
-                                             return_rank=True)
+        whitener_rank = None if rank == 'full' else rank
+        whitener, _, rank = compute_whitener(
+            noise_cov, info, picks, rank=whitener_rank, return_rank=True)
         # whiten the leadfield
         G = np.dot(whitener, G)
-        # whiten  data covariance
+        # whiten data covariance
         Cm = np.dot(whitener, np.dot(Cm, whitener.T))
         noise_cov = noise_cov.copy()
         if 'estimator' in noise_cov:
@@ -169,15 +175,18 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     # compute spatial filter
     n_orient = 3 if is_free_ori else 1
-    W, is_free_ori = _compute_beamformer('lcmv', G, Cm, reg, n_orient,
-                                         weight_norm, pick_ori, reduce_rank,
-                                         rank, is_free_ori)
+    W = _compute_beamformer(G, Cm, reg, n_orient, weight_norm,
+                            pick_ori, reduce_rank, rank,
+                            inversion='matrix', nn=nn)
 
     # get src type to store with filters for _make_stc
     src_type = _get_src_type(forward['src'], vertno)
 
     # get subject to store with filters
     subject_from = _subject_from_forward(forward)
+
+    # Is the computed beamformer a scalar or vector beamformer?
+    is_free_ori = is_free_ori if pick_ori in [None, 'vector'] else False
 
     filters = Beamformer(
         kind='LCMV', weights=W, data_cov=data_cov, noise_cov=noise_cov,
@@ -410,7 +419,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
 
-    is_free_ori, ch_names, proj, vertno, G =\
+    is_free_ori, ch_names, proj, vertno, G, _ =\
         _prepare_beamformer_input(
             info, forward, label, picks, pick_ori)
 
@@ -419,8 +428,12 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
         info, [info['ch_names'].index(k) for k in ch_names
                if k in info['ch_names']])
 
+    # XXX this could maybe use pca=True to avoid needing to use
+    # _reg_pinv(..., rank=rank) later
     if noise_cov is not None:
-        whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)
+        whitener_rank = None if rank == 'full' else rank
+        whitener, _ = compute_whitener(
+            noise_cov, info, picks, rank=whitener_rank)
 
         # whiten the leadfield
         G = np.dot(whitener, G)
@@ -437,7 +450,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
     # This modifies Cm inplace, regularizing it
-    Cm_inv, d = _reg_pinv(Cm, reg)
+    Cm_inv, d, _ = _reg_pinv(Cm, reg, rank=rank)
 
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
@@ -481,7 +494,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
 @verbose
 def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
             freq_bins, subtract_evoked=False, reg=0.05, label=None,
-            pick_ori=None, n_jobs=1, rank=None,
+            pick_ori=None, n_jobs=1, rank='full',
             weight_norm='unit-noise-gain', raw=None, verbose=None):
     """5D time-frequency beamforming based on LCMV.
 
@@ -537,11 +550,15 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     n_jobs : int | str
         Number of jobs to run in parallel.
         Can be 'cuda' if ``cupy`` is installed properly.
-    rank : None | int | dict
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
-        to specify the rank for each modality.
+    rank : int | None | 'full'
+        This controls the effective rank of the covariance matrix when
+        computing the inverse. The rank can be set explicitly by specifying an
+        integer value. If ``None``, the rank will be automatically estimated.
+        Since applying regularization will always make the covariance matrix
+        full rank, the rank is estimated before regularization in this case. If
+        'full', the rank will be estimated after regularization and hence
+        will mean using the full rank, unless ``reg=0`` is used.
+        The default is ``'full'``.
     weight_norm : 'unit-noise-gain' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
@@ -569,6 +586,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
            brain imaging (2008) Springer Science & Business Media
     """
     _check_reference(epochs)
+    rank = _check_rank(rank)
 
     if pick_ori not in [None, 'normal']:
         raise ValueError('pick_ori must be one of "normal" and None, '
@@ -665,7 +683,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
 
                 stc = _lcmv_source_power(epochs_band.info, forward, noise_cov,
                                          data_cov, reg=reg, label=label,
-                                         pick_ori=pick_ori,
+                                         pick_ori=pick_ori, rank=rank,
                                          weight_norm=weight_norm,
                                          verbose=verbose)
                 sol_single.append(stc.data[:, 0])

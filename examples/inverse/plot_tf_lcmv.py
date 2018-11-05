@@ -134,7 +134,7 @@ for (l_freq, h_freq) in freq_bins:
 # space for faster computation, use label=None for full solution
 stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                freq_bins=freq_bins, subtract_evoked=subtract_evoked,
-               reg=data_reg, label=label)
+               reg=data_reg, label=label, rank=None)
 
 # Plotting source spectrogram for source with maximum activity.
 # Note that tmin and tmax are set to display a time range that is smaller than

@@ -3,11 +3,11 @@
 DICS for power mapping
 ======================
 
-In this tutorial, we're going to simulate two signals originating from two
-locations on the cortex. These signals will be sine waves, so we'll be looking
+In this tutorial, we'll simulate two signals originating from two
+locations on the cortex. These signals will be sinusoids, so we'll be looking
 at oscillatory activity (as opposed to evoked activity).
 
-We'll be using dynamic imaging of coherent sources (DICS) [1]_ to map out
+We'll use dynamic imaging of coherent sources (DICS) [1]_ to map out
 spectral power along the cortex. Let's see if we can find our two simulated
 sources.
 """
@@ -268,7 +268,7 @@ filters_approach1 = make_dics(
 print(filters_approach1)
 
 filters_approach2 = make_dics(
-    info, fwd, csd_signal, reg=0.05, pick_ori='max-power', normalize_fwd=False,
+    info, fwd, csd_signal, reg=0.1, pick_ori='max-power', normalize_fwd=False,
     inversion='matrix', weight_norm='unit-noise-gain')
 print(filters_approach2)
 

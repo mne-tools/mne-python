@@ -7,6 +7,7 @@
 from copy import deepcopy
 import itertools as itt
 from math import log
+import operator
 import os
 
 import numpy as np
@@ -1386,7 +1387,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
             for ch_type in out_idx_type:
                 ranks_type[ch_type] = rank.get(ch_type, None)
         else:
-            ranks_type['meg'] = int(rank)
+            ranks_type['meg'] = int(operator.index(rank))
 
     for ch_type, this_has in has_type.items():
         if not this_has:
