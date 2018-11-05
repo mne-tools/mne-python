@@ -22,7 +22,7 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.eeglab import read_events_eeglab
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, requires_h5py, filter_out_warnings
-from mne.annotations import events_from_annotations, read_annotations 
+from mne.annotations import events_from_annotations, read_annotations
 
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
@@ -352,6 +352,14 @@ def test_eeglab_read_annotations():
     assert annotations.orig_time is None
     assert_array_almost_equal(annotations.onset[validation_samples],
                               expected_onset, decimal=2)
+
+
+@testing.requires_testing_data
+def test_read_annotations_eeglab_is_deprecated():
+    """Test read_annotations_eeglab is deprecated."""
+    from mne.io import read_annotations_eeglab
+    with pytest.deprecated_call():
+        annotations = read_annotations_eeglab(raw_fname_mat)
 
 
 @testing.requires_testing_data
