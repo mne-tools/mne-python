@@ -20,7 +20,8 @@ from ...channels.montage import Montage
 from ...epochs import BaseEpochs
 from ...event import read_events
 from ...externals.six import string_types
-from ...annotations import Annotations, events_from_annotations
+from ...annotations import (Annotations, events_from_annotations,
+                            read_annotations)
 
 # just fix the scaling for now, EEGLAB doesn't seem to provide this info
 CAL = 1e-6
@@ -391,7 +392,7 @@ class RawEEGLAB(BaseRaw):
                 orig_format='double', verbose=verbose)
 
         # create event_ch from annotations
-        annot = read_annotations_eeglab(input_fname)
+        annot = read_annotations(input_fname)
         self.set_annotations(annot)
 
         _check_boundary(annot, event_id)
@@ -658,8 +659,8 @@ def _check_latencies(latencies):
 
 
 @deprecated('read_events_eeglab is deprecated from 0.17 and will be removed'
-            ' in 0.18. Please use read_annotations_eeglab and create events'
-            ' using events_from_annotations.')
+            ' in 0.18. Please use read_annotations and create events using'
+            ' events_from_annotations.')
 def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
                        uint16_codec=None):
     r"""Create events array from EEGLAB structure.
@@ -833,7 +834,7 @@ def _dol_to_lod(dol):
             for ii in range(len(dol[list(dol.keys())[0]]))]
 
 
-def read_annotations_eeglab(fname, uint16_codec=None):
+def _read_annotations_eeglab_xx(fname, uint16_codec=None):
     r"""Create Annotations from EEGLAB file.
 
     This function reads the event attribute from the EEGLAB

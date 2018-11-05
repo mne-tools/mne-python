@@ -430,10 +430,10 @@ def _write_annotations(fid, annotations):
     end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
 
-def read_annotations(fname, sfreq='auto'):
+def read_annotations(fname, sfreq='auto', uint16_codec=None):
     """Read annotations from a file.
 
-    This function reads a .fif, .fif.gz, .vrmk file and makes an
+    This function reads a .fif, .fif.gz, .vrmk or .set file and makes an
     :class:`mne.Annotations` object.
 
     Parameters
@@ -448,6 +448,13 @@ def read_annotations(fname, sfreq='auto'):
         file that has the same name (without file extension). So data.vrmk
         looks for sfreq in data.vhdr.
 
+    uint16_codec : str | None
+        If your \*.set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
+
     Returns
     -------
     annot : instance of Annotations | None
@@ -455,10 +462,15 @@ def read_annotations(fname, sfreq='auto'):
     """
     # XXX: I've issues with circular imports
     from mne.io.brainvision.brainvision import _read_annotations_brainvision_xx
+    from mne.io.eeglab.eeglab import _read_annotations_eeglab_xx
+
     if fname.endswith(('fif', 'fif.gz')):
         annotations = _read_annotations_fif_xx(fname)
     elif fname.endswith('vmrk'):
         annotations = _read_annotations_brainvision_xx(fname, sfreq=sfreq)
+    elif fname.endswith('set'):
+        annotations = _read_annotations_eeglab_xx(fname,
+                                                  uint16_codec=uint16_codec)
     else:
         raise IOError('Unknown annotation file format "%s"' % fname)
 

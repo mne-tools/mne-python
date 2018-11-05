@@ -19,10 +19,10 @@ from scipy import io
 from mne import write_events, read_epochs_eeglab, Epochs, find_events
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.eeglab import read_annotations_eeglab, read_events_eeglab
+from mne.io.eeglab import read_events_eeglab
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, requires_h5py, filter_out_warnings
-from mne.annotations import events_from_annotations
+from mne.annotations import events_from_annotations, read_annotations 
 
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
@@ -336,16 +336,16 @@ def test_degenerate(tmpdir):
 def test_eeglab_annotations(fname):
     """Test reading annotations in EEGLAB files."""
     _check_h5(fname)
-    annotations = read_annotations_eeglab(fname)
+    annotations = read_annotations(fname)
     assert len(annotations) == 154
     assert set(annotations.description) == set(['rt', 'square'])
     assert np.all(annotations.duration == 0.)
 
 
 @testing.requires_testing_data
-def test_read_annotations_eeglab():
+def test_eeglab_read_annotations():
     """Test annotations onsets are timestamps (+ validate some)."""
-    annotations = read_annotations_eeglab(raw_fname_mat)
+    annotations = read_annotations(raw_fname_mat)
     validation_samples = [0, 1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31]
     expected_onset = np.array([1.00, 1.69, 2.08, 4.70, 7.71, 11.30, 17.18,
                                20.20, 26.12, 29.14, 35.25, 44.30, 47.15])
@@ -367,7 +367,7 @@ def test_eeglab_event_from_annot(recwarn):
 
     events_a = find_events(raw1)
     events_b = read_events_eeglab(raw_fname, event_id=event_id)
-    annotations = read_annotations_eeglab(raw_fname)
+    annotations = read_annotations(raw_fname)
     assert len(raw1.annotations) == 154
     raw1.set_annotations(annotations)
     events_c, _ = events_from_annotations(raw1, event_id=event_id)
