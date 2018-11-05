@@ -463,22 +463,30 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     """
     # XXX: I've issues with circular imports
     from mne.io.brainvision.brainvision import _read_annotations_brainvision
-    from mne.io.eeglab.eeglab import _read_annotations_eeglab_caller
-    from mne.io.edf.edf import _read_annotations_edf_caller
+    from mne.io.eeglab.eeglab import _read_annotations_eeglab
+    from mne.io.edf.edf import _read_annotations_edf
 
-        annotations = _read_annotations_fif_caller(fname)
     name = op.basename(fname)
     if name.endswith(('fif', 'fif.gz')):
+        # Read FiF files
+        ff, tree, _ = fiff_open(fname, preload=False)
+        with ff as fid:
+            annotations = _read_annotations_fif(fid, tree)
 
     elif name.endswith('vmrk'):
         annotations = _read_annotations_brainvision(fname, sfreq=sfreq)
 
     elif name.endswith('set'):
-        annotations = _read_annotations_eeglab_caller(fname,
-                                                  uint16_codec=uint16_codec)
+        annotations = _read_annotations_eeglab(fname,
+                                               uint16_codec=uint16_codec)
 
     elif name.endswith('edf'):
-        annotations = _read_annotations_edf_caller(fname)
+        onset, duration, description = _read_annotations_edf(fname)
+        onset = np.array(onset, dtype=float)
+        duration = np.array(duration, dtype=float)
+        annotations = Annotations(onset=onset, duration=duration,
+                                description=description,
+                                orig_time=None)
 
     elif name.startswith('events_') and fname.endswith('mat'):
         annotations = _read_brainstorm_annotations(fname)
@@ -488,13 +496,6 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
 
     if annotations is None:
         raise IOError('No annotation data found in file "%s"' % fname)
-    return annotations
-
-
-def _read_annotations_fif_caller(fname):
-    ff, tree, _ = fiff_open(fname, preload=False)
-    with ff as fid:
-        annotations = _read_annotations_fif(fid, tree)
     return annotations
 
 
