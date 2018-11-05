@@ -203,6 +203,10 @@ Bug
 
 API
 ~~~
+- Remove :func:`mne.io.read_annotations_brainvision`, :func:`mne.io.read_annotations_eeglab`,
+:func:`mne.io.edf.edf.read_annotations_edf` and :func:`mne.annotations.read_brainstorm_annotations` to unify their behavior under :func:`mne.read_annotations` by `Joan Massich`_
+
+- Deprecate :func:`mne.io.read_annotations_eeglab` by `Joan Massich`_
 
 - Calling :meth:``mne.io.pick.pick_info`` removing channels that are needed by compensation matrices (``info['comps']``) no longer raises ``RuntimeException`` but instead logs an info level message. By `Luke Bloy`_
 
