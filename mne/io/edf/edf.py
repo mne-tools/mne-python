@@ -1124,7 +1124,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
     return edf_info
 
 
-def read_annotations_edf(fname):
+def _read_annotations_edf_xx(fname):
     """Create Annotations from EDF (and EDF+) files.
 
     This function reads a .edf file and makes an

@@ -21,7 +21,6 @@ from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_fif, RawArray, concatenate_raws
 from mne.io.tests.test_raw import _raw_annot
 from mne.annotations import _sync_onset, _handle_meas_date
-from mne.annotations import read_brainstorm_annotations
 from mne.datasets import testing
 
 
@@ -225,14 +224,14 @@ def test_crop_more():
 def test_read_brainstorm_annotations():
     """Test reading for Brainstorm events file."""
     fname = op.join(data_dir, 'events_sample_audvis_raw_bst.mat')
-    annot = read_brainstorm_annotations(fname)
+    annot = read_annotations(fname)
     assert len(annot) == 238
     assert annot.onset.min() > 40  # takes into account first_samp
     assert np.unique(annot.description).size == 5
 
     # Now test with orig_time
     orig_time = np.array([1038942070, 720100], dtype=np.int32)
-    annot = read_brainstorm_annotations(fname, orig_time=orig_time)
+    annot = read_annotations(fname, orig_time=orig_time)
     orig_time_as_scalar = orig_time[0] + orig_time[1] / 1000000.
     assert annot.orig_time == orig_time_as_scalar
 
