@@ -470,19 +470,19 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None, orig_time=None):
         The annotations.
     """
     # XXX: I've issues with circular imports
-    from mne.io.brainvision.brainvision import _read_annotations_brainvision_xx
-    from mne.io.eeglab.eeglab import _read_annotations_eeglab_xx
-    from mne.io.edf.edf import _read_annotations_edf_xx
+    from mne.io.brainvision.brainvision import _read_annotations_brainvision
+    from mne.io.eeglab.eeglab import _read_annotations_eeglab_caller
+    from mne.io.edf.edf import _read_annotations_edf_caller
 
     if fname.endswith(('fif', 'fif.gz')):
-        annotations = _read_annotations_fif_xx(fname)
+        annotations = _read_annotations_fif_caller(fname)
     elif fname.endswith('vmrk'):
-        annotations = _read_annotations_brainvision_xx(fname, sfreq=sfreq)
+        annotations = _read_annotations_brainvision(fname, sfreq=sfreq)
     elif fname.endswith('set'):
-        annotations = _read_annotations_eeglab_xx(fname,
+        annotations = _read_annotations_eeglab_caller(fname,
                                                   uint16_codec=uint16_codec)
     elif fname.endswith('edf'):
-        annotations = _read_annotations_edf_xx(fname)
+        annotations = _read_annotations_edf_caller(fname)
     elif fname.startswith('events_') and fname.endswith('mat'):
         annotations = _read_brainstorm_annotations(fname, orig_time=orig_time)
     else:
@@ -494,7 +494,7 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None, orig_time=None):
     return annotations
 
 
-def _read_annotations_fif_xx(fname):
+def _read_annotations_fif_caller(fname):
     ff, tree, _ = fiff_open(fname, preload=False)
     with ff as fid:
         annotations = _read_annotations_fif(fid, tree)

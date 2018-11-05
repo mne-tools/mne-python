@@ -834,7 +834,7 @@ def _dol_to_lod(dol):
             for ii in range(len(dol[list(dol.keys())[0]]))]
 
 
-def _read_annotations_eeglab_xx(fname, uint16_codec=None):
+def _read_annotations_eeglab(fname, uint16_codec=None):
     r"""Create Annotations from EEGLAB file.
 
     This function reads the event attribute from the EEGLAB
