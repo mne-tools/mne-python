@@ -722,6 +722,11 @@ def test_low_rank():
     epochs.pick_channels(epochs.ch_names[:103])
     with pytest.deprecated_call(match='rank'):
         compute_covariance(epochs, method='oas')
+    # degenerate
+    with pytest.raises(ValueError, match='can only be used with rank="full"'):
+        compute_covariance(epochs, rank=None, method='pca')
+    with pytest.raises(ValueError, match='can only be used with rank="full"'):
+        compute_covariance(epochs, rank=None, method='factor_analysis')
 
 
 @testing.requires_testing_data

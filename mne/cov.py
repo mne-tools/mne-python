@@ -964,7 +964,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     ok_sklearn = check_version('sklearn', '0.15')
     if not ok_sklearn and (len(method) != 1 or method[0] != 'empirical'):
         raise ValueError('scikit-learn is not installed, `method` must be '
-                         '`empirical`')
+                         '`empirical`, got %s' % (method,))
 
     for this_method in method:
         data_ = data.copy()
@@ -1038,7 +1038,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             del shrinkage, sc
 
         elif this_method == 'pca':
-            # XXX Disallow unless rank='full'?
+            assert rank == 'full'  # guaranteed above
             pca, _info = _auto_low_rank_model(
                 data_, this_method, n_jobs=n_jobs, method_params=mp, cv=cv,
                 stop_early=stop_early)
@@ -1047,7 +1047,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             del pca
 
         elif this_method == 'factor_analysis':
-            # XXX Disallow unless rank='full'?
+            assert rank == 'full'
             fa, _info = _auto_low_rank_model(
                 data_, this_method, n_jobs=n_jobs, method_params=mp, cv=cv,
                 stop_early=stop_early)
@@ -1176,8 +1176,8 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
 class _RegCovariance(BaseEstimator):
     """Aux class."""
 
-    def __init__(self, info, grad=0.01, mag=0.01, eeg=0., seeg=0., ecog=0.,
-                 hbo=0., hbr=0., store_precision=False,
+    def __init__(self, info, grad=0.1, mag=0.1, eeg=0.1, seeg=0.1, ecog=0.1,
+                 hbo=0.1, hbr=0.1, store_precision=False,
                  assume_centered=False):
         self.info = info
         # For sklearn compat, these cannot (easily?) be combined into
@@ -1209,7 +1209,7 @@ class _RegCovariance(BaseEstimator):
             cov_, self.info, proj=False, exclude='bads',
             grad=self.grad, mag=self.mag, eeg=self.eeg,
             ecog=self.ecog, seeg=self.seeg,
-            hbo=self.hbo, hbr=self.hbr, rank='full')  # ~proj == important!!
+            hbo=self.hbo, hbr=self.hbr, rank='full')
         self.estimator_.covariance_ = self.covariance_ = cov_.data
         return self
 
