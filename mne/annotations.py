@@ -431,7 +431,7 @@ def _write_annotations(fid, annotations):
 
 
 def read_annotations(fname):
-    """Read annotations from a FIF file.
+    """Read annotations from a file.
 
     Parameters
     ----------
@@ -443,11 +443,21 @@ def read_annotations(fname):
     annot : instance of Annotations | None
         The annotations.
     """
-    ff, tree, _ = fiff_open(fname, preload=False)
-    with ff as fid:
-        annotations = _read_annotations(fid, tree)
+    if fname.endswith(('fif', 'fif.gz')):
+        annotations = _read_annotations_fif_xx(fname)
+    else:
+        raise IOError('Unknown annotation file format "%s"' % fname)
+
+
     if annotations is None:
         raise IOError('No annotation data found in file "%s"' % fname)
+    return annotations
+
+
+def _read_annotations_fif_xx(fname):
+    ff, tree, _ = fiff_open(fname, preload=False)
+    with ff as fid:
+        annotations = _read_annotations_fif(fid, tree)
     return annotations
 
 
@@ -491,7 +501,7 @@ def read_brainstorm_annotations(fname, orig_time=None):
                        orig_time=orig_time)
 
 
-def _read_annotations(fid, tree):
+def _read_annotations_fif(fid, tree):
     """Read annotations."""
     annot_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ANNOTATIONS)
     if len(annot_data) == 0:

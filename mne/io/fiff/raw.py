@@ -22,7 +22,7 @@ from ..base import (BaseRaw, _RawShell, _check_raw_compatibility,
 from ..utils import _mult_cal_one
 
 from ...annotations import (Annotations, _combine_annotations,
-                            _read_annotations)
+                            _read_annotations_fif)
 
 from ...event import AcqParserFIF
 from ...utils import check_fname, logger, verbose, warn
@@ -153,7 +153,7 @@ class Raw(BaseRaw):
             #   Read the measurement info
 
             info, meas = read_meas_info(fid, tree, clean_bads=True)
-            annotations = _read_annotations(fid, tree)
+            annotations = _read_annotations_fif(fid, tree)
 
             #   Locate the data of interest
             raw_node = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)
