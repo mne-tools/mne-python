@@ -430,7 +430,7 @@ def _write_annotations(fid, annotations):
     end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
 
-def read_annotations(fname, sfreq='auto', uint16_codec=None, orig_time=None):
+def read_annotations(fname, sfreq='auto', uint16_codec=None):
     """Read annotations from a file.
 
     This function reads a .fif, .fif.gz, .vrmk, .edf or .set file and makes an
@@ -455,15 +455,6 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None, orig_time=None):
         'latin1' or 'utf-8') should be used when reading character arrays and
         can therefore help you solve this problem.
 
-    orig_time : float | int | instance of datetime | array of int | None
-        A POSIX Timestamp, datetime or an array containing the timestamp as the
-        first element and microseconds as the second element. Determines the
-        starting time of annotation acquisition. If None (default),
-        starting time is determined from beginning of raw data acquisition.
-        In general, ``raw.info['meas_date']`` (or None) can be used for syncing
-        the annotations with raw data if their acquisiton is started at the
-        same time.
-
     Returns
     -------
     annot : instance of Annotations | None
@@ -484,7 +475,7 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None, orig_time=None):
     elif fname.endswith('edf'):
         annotations = _read_annotations_edf_caller(fname)
     elif fname.startswith('events_') and fname.endswith('mat'):
-        annotations = _read_brainstorm_annotations(fname, orig_time=orig_time)
+        annotations = _read_brainstorm_annotations(fname)
     else:
         raise IOError('Unknown annotation file format "%s"' % fname)
 
