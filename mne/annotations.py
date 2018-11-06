@@ -441,7 +441,6 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     ----------
     fname : str
         The filename.
-
     sfreq : float | 'auto'
         The sampling frequency in the file. This parameter is necessary for
         \*.vmrk files as Annotations are expressed in seconds and \*.vmrk files
@@ -449,7 +448,6 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
         If set to 'auto' then the ``sfreq`` is taken from the \*.vhdr
         file that has the same name (without file extension). So data.vrmk
         looks for sfreq in data.vhdr.
-
     uint16_codec : str | None
         This parameter is only used in EEGLAB (\*.set) and omitted otherwise.
         If your \*.set file contains non-ascii characters, sometimes reading

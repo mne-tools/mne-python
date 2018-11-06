@@ -798,7 +798,6 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
     ----------
     eeg : object | str
         'EEG' struct or the path to the (EEGLAB) .set file.
-
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
