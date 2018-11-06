@@ -21,7 +21,6 @@ from copy import deepcopy
 from distutils.version import LooseVersion
 from itertools import cycle
 from warnings import catch_warnings
-from matplotlib.colors import LinearSegmentedColormap
 
 from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
@@ -2765,6 +2764,8 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
     here:
     https://matplotlib.org/users/colormapnorms.html#custom-normalization-two-linear-ranges
     """  # noqa: E501
+    from matplotlib.colors import LinearSegmentedColormap
+
     vzero = abs(vmin) / (vmax - vmin)
     index_old = np.linspace(0, 1, cmap.N)
     index_new = np.hstack([np.linspace(0, vzero, cmap.N // 2, endpoint=False),
