@@ -120,22 +120,8 @@ class ICA(ContainsMixin):
     u"""M/EEG signal decomposition using Independent Component Analysis (ICA).
 
     This object can be used to estimate ICA components and then remove some
-    from Raw or Epochs for data exploration or artifact correction.
-
-    Caveat! If supplying a noise covariance, keep track of the projections
-    available in the cov or in the raw object. For example, if you are
-    interested in EOG or ECG artifacts, EOG and ECG projections should be
-    temporally removed before fitting ICA, for example::
-
-        >> projs, raw.info['projs'] = raw.info['projs'], []
-        >> ica.fit(raw)
-        >> raw.info['projs'] = projs
-
-    .. note:: Methods currently implemented are FastICA (default), Infomax,
-              Extended Infomax, and Picard. Infomax can be quite sensitive to
-              differences in floating point arithmetic. Extended Infomax seems
-              to be more stable in this respect enhancing reproducibility and
-              stability of results.
+    from :class:`mne.io.Raw`, :class:`mne.Epochs`, or :class:`mne.Evoked`
+    for data exploration or artifact correction.
 
     .. warning:: ICA is sensitive to low-frequency drifts and therefore
                  requires the data to be high-pass filtered prior to fitting.
@@ -144,36 +130,53 @@ class ICA(ContainsMixin):
     Parameters
     ----------
     n_components : int | float | None
-        The number of components used for ICA decomposition. If int, it must be
-        smaller than `max_pca_components`. If None, all PCA components will
-        be used. If float between 0 and 1, components will be selected by the
-        cumulative percentage of explained variance.
+        Controls the number of PCA components from the pre-ICA PCA entering the
+        ICA decomposition in the :meth:`ICA.fit` method.
+        If None (default), all PCA components will be used
+        (== `max_pca_components`).
+        If int, must be <= `max_pca_components`.
+        If float between 0 and 1, the number of components selected matches the
+        number of components with a cumulative explained variance below
+        `n_components` (a value of 1. resulting in `max_pca_components`).
+        The actual number of components resulting from evaluating this
+        parameter in the :meth:`ICA.fit` method is stored in the attribute
+        `n_components_` after fitting.
     max_pca_components : int | None
-        The number of components used for PCA decomposition. If None, no
-        dimensionality reduction will be applied and `max_pca_components` will
-        equal the number of channels supplied for decomposing data.
+        The number of components returned by the PCA decomposition in the
+        :meth:`ICA.fit` method.
+        If None (default), no dimensionality reduction will be applied and
+        `max_pca_components` will equal the number of channels supplied for
+        decomposing the data.
+        If > `n_components_`, the additional PCA-only-components can later be
+        used for re-projecting the data into sensor space, additionally
+        controllable by the `n_pca_components` parameter.
     n_pca_components : int | float
-        The number of PCA components used after ICA recomposition. The ensuing
-        attribute `n_components_` allows to balance noise reduction against
-        potential loss of information due to dimensionality reduction. If
-        greater than `n_components_`, the next `n_pca_components` minus
-        `n_components_` PCA components will be added before restoring the
-        sensor space data. If float, the number of components selected matches
-        the number of components with a cumulative explained variance below
-        `n_pca_components`.
+        The number of PCA components used by the :meth:`ICA.apply` method for
+        re-projecting the decomposed data into sensor space. Has to be
+        >= `n_components(_)` and <= `max_pca_components`.
+        If greater than `n_components_`, the next `n_pca_components` minus
+        `n_components` PCA components will be added before restoring the sensor
+        space data.
+        If None (default), all PCA components will be used.
+        If float between 0 and 1, the number of components selected matches the
+        number of components with a cumulative explained variance below
+        `n_pca_components`. This attribute allows to balance noise reduction
+        against potential loss of features due to dimensionality reduction,
+        independently of the number of ICA components.
     noise_cov : None | instance of mne.cov.Covariance
-        Noise covariance used for pre-whitening. If None, channels are scaled
-        to unit variance prior to whitening.
+        Noise covariance used for pre-whitening. If None (default), channels
+        are scaled to unit variance ("z-standardized") prior to the whitening
+        by PCA.
     random_state : None | int | instance of np.random.RandomState
         Random state to initialize ICA estimation for reproducible results.
     method : {'fastica', 'infomax', 'extended-infomax', 'picard'}
-        The ICA method to use. Defaults to 'fastica'. For reference, see [1]_,
-        [2]_, [3]_ and [4]_.
+        The ICA method to use in the fit() method. Defaults to 'fastica'.
+        For reference, see [1]_, [2]_, [3]_ and [4]_.
     fit_params : dict | None
         Additional parameters passed to the ICA estimator as specified by
         `method`.
     max_iter : int
-        Maximum number of iterations during fit.
+        Maximum number of iterations during fit. Defaults to 200.
     verbose : bool | str | int | None
         If not None, override default verbosity level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>`).
@@ -186,23 +189,35 @@ class ICA(ContainsMixin):
     ch_names : list-like
         Channel names resulting from initial picking.
     n_components_ : int
-        If fit, the actual number of components used for ICA decomposition.
+        If fit, the actual number of PCA components used for ICA decomposition.
     pre_whitener_ : ndarray, shape (n_channels, 1)
         If fit, array used to pre-whiten the data prior to PCA.
-    pca_components_ : ndarray, shape (`n_components_`, n_channels)
+    pca_components_ : ndarray, shape (`max_pca_components`, n_channels)
         If fit, the PCA components.
     pca_mean_ : ndarray, shape (n_channels,)
         If fit, the mean vector used to center the data before doing the PCA.
-    pca_explained_variance_ : ndarray, shape (`n_components_`,)
-        If fit, the variance explained by each PCA component
+    pca_explained_variance_ : ndarray, shape (`max_pca_components`,)
+        If fit, the variance explained by each PCA component.
     mixing_matrix_ : ndarray, shape (`n_components_`, `n_components_`)
-        If fit, the mixing matrix to restore observed data.
+        If fit, the whitened mixing matrix to go back from ICA space to PCA
+        space.
+        It is, in combination with the `pca_components_`, used by
+        :meth:`ICA.apply` and :meth:`ICA.get_components` to re-mix/project
+        a subset of the ICA components into the observed channel space.
+        The former method also removes the pre-whitening (z-scaling) and the
+        de-meaning.
     unmixing_matrix_ : ndarray, shape (`n_components_`, `n_components_`)
-        If fit, the matrix to unmix observed data.
+        If fit, the whitened matrix to go from PCA space to ICA space.
+        Used, in combination with the `pca_components_`, by the methods
+        :meth:`ICA.get_sources` and :meth:`ICA.apply` to unmix the observed data.
     exclude : list
-        List of sources indices to exclude, i.e. artifact components identified
-        throughout the ICA solution. To scrap all marked components, you can
-        set this attribute to an empty list.
+        List of sources indices to exclude when re-mixing the data in the
+        :meth:`ICA.apply` method, i.e. artifactual ICA components.
+        The components identified manually and by the various automatic
+        artifact detection methods should be (manually) appended to this list
+        (e.g. ``ica.exclude.extend(eog_inds)``).
+        (There is also an `exclude` parameter in the :meth:`ICA.apply` method.)
+        To scrap all marked components, set this attribute to an empty list.
     info : None | instance of Info
         The measurement info copied from the object fitted.
     n_samples_ : int
@@ -214,10 +229,48 @@ class ICA(ContainsMixin):
 
     Notes
     -----
-    Reducing the tolerance speeds up estimation at the cost of consistency of
-    the obtained results. It is difficult to directly compare tolerance levels
-    between Infomax and Picard, but for Picard and FastICA a good rule of thumb
-    is ``tol_fastica = tol_picard ** 2``.
+    A trailing ``_`` in an attribute name signifies that the attribute was
+    added to the object during fitting, consistent with standard scikit-learn
+    practice.
+
+    Prior to fitting and applying the ICA, data is whitened (de-correlated and
+    scaled to unit variance, also called sphering transformation) by means of
+    a Principle Component Analysis (PCA). In addition to the whitening, this
+    step introduces the option to reduce the dimensionality of the data, both
+    prior to fitting the ICA and prior to reverting to sensor space.
+    This is controllable by the two parameters `max_pca_components` and
+    `n_pca_components`, respectively.
+
+    .. note:: Commonly used for reasons of i) computational efficiency and
+              ii) additional noise reduction, it is a matter of current debate
+              whether pre-ICA dimensionality reduction could decrease the
+              reliability and stability of the ICA, at least for EEG data and
+              especially during preprocessing [5]_.
+              On the other hand, for rank-deficient data such as EEG data after
+              average reference or interpolation, it is recommended to reduce
+              the dimensionality by 1 for optimal ICA performance
+              (see the `EEGLAB wiki <eeglab_wiki_>`_).
+
+    Caveat! If supplying a noise covariance, keep track of the projections
+    available in the cov or in the raw object. For example, if you are
+    interested in EOG or ECG artifacts, EOG and ECG projections should be
+    temporally removed before fitting ICA, for example::
+
+        >> projs, raw.info['projs'] = raw.info['projs'], []
+        >> ica.fit(raw)
+        >> raw.info['projs'] = projs
+
+    Methods currently implemented are FastICA (default), Infomax,
+    Extended Infomax, and Picard. Infomax can be quite sensitive to differences
+    in floating point arithmetic. Extended Infomax seems to be more stable in
+    this respect enhancing reproducibility and stability of results.
+
+    Reducing the tolerance (set in `fit_params`) speeds up estimation at the
+    cost of consistency of the obtained results. It is difficult to directly
+    compare tolerance levels between Infomax and Picard, but for Picard and
+    FastICA a good rule of thumb is ``tol_fastica == tol_picard ** 2``.
+
+    .. _eeglab_wiki: https://sccn.ucsd.edu/wiki/Chapter_09:_Decomposing_Data_Using_ICA#Issue:_ICA_returns_near-identical_components_with_opposite_polarities  # noqa
 
     References
     ----------
@@ -237,7 +290,13 @@ class ICA(ContainsMixin):
     .. [4] Ablin, P., Cardoso, J.F., Gramfort, A., 2017. Faster Independent
            Component Analysis by preconditioning with Hessian approximations.
            arXiv:1706.08171
-    """
+
+    .. [5] Artoni, F., Delorme, A., und Makeig, S, 2018. Applying Dimension
+           Reduction to EEG Data by Principal Component Analysis Reduces the
+           Quality of Its Subsequent Independent Component Decomposition.
+           NeuroImage 175, pp.176–187.
+           https://sccn.ucsd.edu/%7Earno/mypapers/Artoni2018.pdf
+    """  # noqa: E501
 
     @verbose
     def __init__(self, n_components=None, max_pca_components=None,
@@ -283,7 +342,7 @@ class ICA(ContainsMixin):
             update = {'algorithm': 'parallel', 'fun': 'logcosh',
                       'fun_args': None}
             fit_params.update(dict((k, v) for k, v in update.items() if k
-                              not in fit_params))
+                                   not in fit_params))
         elif method == 'infomax':
             fit_params.update({'extended': False})
         elif method == 'extended-infomax':
@@ -291,7 +350,7 @@ class ICA(ContainsMixin):
         elif method == 'picard':
             update = {'ortho': True, 'fun': 'tanh', 'tol': 1e-5}
             fit_params.update(dict((k, v) for k, v in update.items() if k
-                              not in fit_params))
+                                   not in fit_params))
         if 'max_iter' not in fit_params:
             fit_params['max_iter'] = max_iter
         self.max_iter = max_iter
@@ -1302,8 +1361,8 @@ class ICA(ContainsMixin):
         data = self._pick_sources(data, include=include, exclude=exclude)
 
         # restore epochs, channels, tsl order
-        epochs._data[:, picks] = np.array(np.split(data,
-                                          len(epochs.events), 1))
+        epochs._data[:, picks] = np.array(
+            np.split(data, len(epochs.events), 1))
         epochs.preload = True
 
         return epochs
@@ -1594,7 +1653,7 @@ class ICA(ContainsMixin):
         """Aux function."""
         if isinstance(_n_pca_comp, float):
             _n_pca_comp = ((self.pca_explained_variance_ /
-                           self.pca_explained_variance_.sum()).cumsum() <=
+                            self.pca_explained_variance_.sum()).cumsum() <=
                            _n_pca_comp).sum()
             logger.info('Selected %i PCA components by explained '
                         'variance' % _n_pca_comp)
@@ -2038,7 +2097,7 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
             eog_ch = [eog_ch]
         for idx, ch in enumerate(eog_ch):
             nodes += [_ica_node('EOG %02d' % idx, ch, eog_score_func,
-                      eog_criterion)]
+                                eog_criterion)]
 
     if skew_criterion is not None:
         nodes += [_ica_node('skewness', None, stats.skew, skew_criterion)]
@@ -2463,7 +2522,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
                 max_corr = max_corr[0]
             if label is not None:
                 ica.labels_[label] = list(set(list(max_corr) +
-                                          ica.labels_.get(label, list())))
+                                              ica.labels_.get(label, list())))
             if plot is True:
                 allmaps.extend(ica.get_components()[:, max_corr].T)
                 subjs.extend([ii] * len(max_corr))
