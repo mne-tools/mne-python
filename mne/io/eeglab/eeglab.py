@@ -789,7 +789,7 @@ def _bunchify(items):
 
 
 def _read_annotations_eeglab(eeg, uint16_codec=None):
-    """Create Annotations from EEGLAB file.
+    r"""Create Annotations from EEGLAB file.
 
     This function reads the event attribute from the EEGLAB
     structure and makes an :class:`mne.Annotations` object.
@@ -842,8 +842,8 @@ def _dol_to_lod(dol):
             for ii in range(len(dol[list(dol.keys())[0]]))]
 
 
-@deprecated('read_annotations_eeglab is deprecated from 0.17 and will be removed'
-            ' in 0.18. Please use mne.read_annotations')
+@deprecated('read_annotations_eeglab is deprecated from 0.17 and will be'
+            ' removed in 0.18. Please use mne.read_annotations')
 def read_annotations_eeglab(fname, uint16_codec=None):
     r"""Create Annotations from EEGLAB file.
 

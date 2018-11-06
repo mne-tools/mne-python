@@ -359,7 +359,7 @@ def test_read_annotations_eeglab_is_deprecated():
     """Test read_annotations_eeglab is deprecated."""
     from mne.io import read_annotations_eeglab
     with pytest.deprecated_call():
-        annotations = read_annotations_eeglab(raw_fname_mat)
+        read_annotations_eeglab(raw_fname_mat)
 
 
 @testing.requires_testing_data

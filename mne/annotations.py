@@ -432,7 +432,7 @@ def _write_annotations(fid, annotations):
 
 
 def read_annotations(fname, sfreq='auto', uint16_codec=None):
-    """Read annotations from a file.
+    r"""Read annotations from a file.
 
     This function reads a .fif, .fif.gz, .vrmk, .edf or .set file and makes an
     :class:`mne.Annotations` object.
@@ -444,12 +444,14 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
 
     sfreq : float | 'auto'
         The sampling frequency in the file. This parameter is necessary for
-        vmrk files as Annotations are expressed in seconds and vmrk files are
-        in samples. If set to 'auto' then the sfreq is taken from the .vhdr
+        \*.vmrk files as Annotations are expressed in seconds and \*.vmrk files
+        are in samples. For any other file format, ``sfreq`` is omitted.
+        If set to 'auto' then the ``sfreq`` is taken from the \*.vhdr
         file that has the same name (without file extension). So data.vrmk
         looks for sfreq in data.vhdr.
 
     uint16_codec : str | None
+        This parameter is only used in EEGLAB (\*.set) and omitted otherwise.
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
         too small". ``uint16_codec`` allows to specify what codec (for example:
@@ -485,14 +487,13 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
         onset = np.array(onset, dtype=float)
         duration = np.array(duration, dtype=float)
         annotations = Annotations(onset=onset, duration=duration,
-                                description=description,
-                                orig_time=None)
+                                  description=description,
+                                  orig_time=None)
 
     elif name.startswith('events_') and fname.endswith('mat'):
         annotations = _read_brainstorm_annotations(fname)
     else:
         raise IOError('Unknown annotation file format "%s"' % fname)
-
 
     if annotations is None:
         raise IOError('No annotation data found in file "%s"' % fname)

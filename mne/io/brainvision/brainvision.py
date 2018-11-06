@@ -26,9 +26,8 @@ from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
 from ..utils import (_read_segments_file, _synthesize_stim_channel,
                      _mult_cal_one)
-from ...annotations import Annotations, events_from_annotations, read_annotations
-# from mne import read_annotations
-
+from ...annotations import (Annotations, events_from_annotations,
+                            read_annotations)
 from ...externals.six import StringIO, string_types
 from ...externals.six.moves import configparser
 
