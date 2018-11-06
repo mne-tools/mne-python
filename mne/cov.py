@@ -557,10 +557,11 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
     return method, _method_params, rank
 
 
-def _check_rank(rank, method, was_auto=False):
+def _check_rank(rank, methods, was_auto=False):
+    """Check validity of rank input argument."""
     if isinstance(rank, string_types):
         if rank == '':
-            if not all(m == 'empirical' for m in method):
+            if not all(method == 'empirical' for method in methods):
                 warn('rank defaults to "full" in 0.17 but will change to None '
                      'in 0.18, set it explicitly to avoid this warning',
                      DeprecationWarning)
@@ -569,11 +570,11 @@ def _check_rank(rank, method, was_auto=False):
             raise ValueError('rank, if str, must be "full", got %s' % (rank,))
     if not (isinstance(rank, string_types) and rank == 'full'):
         if was_auto:
-            method.pop(method.index('factor_analysis'))
-        for m in method:
-            if m in ('pca', 'factor_analysis'):
+            methods.pop(methods.index('factor_analysis'))
+        for method in methods:
+            if method in ('pca', 'factor_analysis'):
                 raise ValueError('%s can only be used with rank="full", '
-                                 'got rank=%r' % (m, rank))
+                                 'got rank=%r' % (method, rank))
         rank = dict() if rank is None else rank
         orig_rank = rank
         try:
@@ -585,7 +586,7 @@ def _check_rank(rank, method, was_auto=False):
         if not isinstance(rank, dict) or orig_rank is False:
             raise ValueError('rank must be an int, dict, None, or "full", '
                              'got %s (type %s)' % (rank, type(rank)))
-    return rank, method
+    return rank, methods
 
 
 @verbose
@@ -971,17 +972,18 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         name = this_method.__name__ if callable(this_method) else this_method
         logger.info(msg % name.upper())
         mp = method_params[this_method]
+        _info = {}
 
         if this_method == 'empirical':
             est = EmpiricalCovariance(**mp)
             est.fit(data_)
-            estimator_cov_info.append([est, est.covariance_, None])
+            estimator_cov_info.append((est, est.covariance_, _info))
             del est
 
         elif this_method == 'diagonal_fixed':
             est = _RegCovariance(info=sub_info, **mp)
             est.fit(data_)
-            estimator_cov_info.append([est, est.covariance_, None])
+            estimator_cov_info.append((est, est.covariance_, _info))
             del est
 
         elif this_method == 'ledoit_wolf':
@@ -994,7 +996,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 shrinkages.append((ch_type, lw.shrinkage_, picks))
             sc = _ShrunkCovariance(shrinkage=shrinkages, **mp)
             sc.fit(data_)
-            estimator_cov_info.append([sc, sc.covariance_, None])
+            estimator_cov_info.append((sc, sc.covariance_, _info))
             del lw, sc
 
         elif this_method == 'oas':
@@ -1007,13 +1009,13 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 shrinkages.append((ch_type, oas.shrinkage_, picks))
             sc = _ShrunkCovariance(shrinkage=shrinkages, **mp)
             sc.fit(data_)
-            estimator_cov_info.append([sc, sc.covariance_, None])
+            estimator_cov_info.append((sc, sc.covariance_, _info))
             del oas, sc
 
         elif this_method == 'shrinkage':
             sc = _ShrunkCovariance(**mp)
             sc.fit(data_)
-            estimator_cov_info.append([sc, sc.covariance_, None])
+            estimator_cov_info.append((sc, sc.covariance_, _info))
             del sc
 
         elif this_method == 'shrunk':
@@ -1034,7 +1036,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             shrinkages = [c[0] for c in zip(shrinkages)]
             sc = _ShrunkCovariance(shrinkage=shrinkages, **mp)
             sc.fit(data_)
-            estimator_cov_info.append([sc, sc.covariance_, None])
+            estimator_cov_info.append((sc, sc.covariance_, _info))
             del shrinkage, sc
 
         elif this_method == 'pca':
@@ -1043,7 +1045,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 data_, this_method, n_jobs=n_jobs, method_params=mp, cv=cv,
                 stop_early=stop_early)
             pca.fit(data_)
-            estimator_cov_info.append([pca, pca.get_covariance(), _info])
+            estimator_cov_info.append((pca, pca.get_covariance(), _info))
             del pca
 
         elif this_method == 'factor_analysis':
@@ -1052,39 +1054,33 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 data_, this_method, n_jobs=n_jobs, method_params=mp, cv=cv,
                 stop_early=stop_early)
             fa.fit(data_)
-            estimator_cov_info.append([fa, fa.get_covariance(), _info])
+            estimator_cov_info.append((fa, fa.get_covariance(), _info))
             del fa
         else:
             raise ValueError('Oh no! Your estimator does not have'
                              ' a .fit method')
         logger.info('Done.')
 
-    estimators, _, _ = zip(*estimator_cov_info)
     if len(method) > 1:
         logger.info('Using cross-validation to select the best estimator.')
-        logliks = np.array(
-            [_cross_val(data, e, cv, n_jobs) for e in estimators])
-    else:
-        logliks = [None]
 
     # undo scaling
     _undo_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
-    for c in estimator_cov_info:
+    out = dict()
+    for ei, (estimator, cov, runtime_info) in enumerate(estimator_cov_info):
+        if len(method) > 1:
+            loglik = _cross_val(data, estimator, cv, n_jobs)
+        else:
+            loglik = None
+        # undo scaling
         if eigvec is not None:
             # project back if necessary
-            c[1] = np.dot(eigvec.T, np.dot(c[1], eigvec))
-        _undo_scaling_cov(c[1], picks_list, scalings)
-
-    out = dict()
-    estimators, covs, runtime_infos = zip(*estimator_cov_info)
-    cov_methods = [c.__name__ if callable(c) else c for c in method]
-    runtime_infos, covs = list(runtime_infos), list(covs)
-    my_zip = zip(cov_methods, runtime_infos, logliks, covs, estimators)
-    for this_method, runtime_info, loglik, cov_data, est in my_zip:
-        out[this_method] = {
-            'loglik': loglik, 'data': cov_data, 'estimator': est}
-        if runtime_info is not None:
-            out[this_method].update(runtime_info)
+            cov = np.dot(eigvec.T, np.dot(cov, eigvec))
+        _undo_scaling_cov(cov, picks_list, scalings)
+        method_ = method[ei]
+        this_method = method_.__name__ if callable(method_) else method_
+        out[this_method] = dict(loglik=loglik, data=cov, estimator=estimator)
+        out[this_method].update(runtime_info)
 
     return out
 
