@@ -43,33 +43,12 @@ References
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
 import mne
 from mne.datasets import eegbci
 from mne.io import concatenate_raws, read_raw_edf
 from mne.time_frequency import tfr_multitaper
 from mne.stats import permutation_cluster_1samp_test as pcluster_test
-
-
-def center_cmap(cmap, vmin, vmax):
-    """Center given colormap (ranging from vmin to vmax) at value 0.
-
-    Note that eventually this could also be achieved by re-normalizing a given
-    colormap by subclassing matplotlib.colors.Normalize as described here:
-    https://matplotlib.org/users/colormapnorms.html#custom-normalization-two-linear-ranges
-    """  # noqa: E501
-    vzero = abs(vmin) / (vmax - vmin)
-    index_old = np.linspace(0, 1, cmap.N)
-    index_new = np.hstack([np.linspace(0, vzero, cmap.N // 2, endpoint=False),
-                           np.linspace(vzero, 1, cmap.N // 2)])
-    cdict = {"red": [], "green": [], "blue": [], "alpha": []}
-    for old, new in zip(index_old, index_new):
-        r, g, b, a = cmap(old)
-        cdict["red"].append((new, r, r))
-        cdict["green"].append((new, g, g))
-        cdict["blue"].append((new, b, b))
-        cdict["alpha"].append((new, a, a))
-    return LinearSegmentedColormap("erds", cdict)
+from mne.viz.utils import center_cmap
 
 
 # load and preprocess data ####################################################

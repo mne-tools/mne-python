@@ -7,6 +7,7 @@ from __future__ import print_function
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#          Clemens Brunner <clemens.brunner@gmail.com>
 #
 # License: Simplified BSD
 
@@ -20,6 +21,7 @@ from copy import deepcopy
 from distutils.version import LooseVersion
 from itertools import cycle
 from warnings import catch_warnings
+from matplotlib.colors import LinearSegmentedColormap
 
 from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
@@ -2731,3 +2733,29 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
         t_end = ")"
 
     return im, t_end
+
+
+def center_cmap(cmap, vmin, vmax):
+    """Center given colormap (ranging from vmin to vmax) at value 0.
+
+    This function can be used in situations where vmin and vmax are not
+    symmetric around zero. Normally, this results in the value zero not being
+    mapped to white anymore in many colormaps. Using this function, the value
+    zero will be mapped to white even for asymmetric positive and negative
+    value ranges. Note that this could also be achieved by re-normalizing a
+    given colormap by subclassing matplotlib.colors.Normalize as described
+    here:
+    https://matplotlib.org/users/colormapnorms.html#custom-normalization-two-linear-ranges
+    """  # noqa: E501
+    vzero = abs(vmin) / (vmax - vmin)
+    index_old = np.linspace(0, 1, cmap.N)
+    index_new = np.hstack([np.linspace(0, vzero, cmap.N // 2, endpoint=False),
+                           np.linspace(vzero, 1, cmap.N // 2)])
+    cdict = {"red": [], "green": [], "blue": [], "alpha": []}
+    for old, new in zip(index_old, index_new):
+        r, g, b, a = cmap(old)
+        cdict["red"].append((new, r, r))
+        cdict["green"].append((new, g, g))
+        cdict["blue"].append((new, b, b))
+        cdict["alpha"].append((new, a, a))
+    return LinearSegmentedColormap("erds", cdict)
