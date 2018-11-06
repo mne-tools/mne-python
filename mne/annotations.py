@@ -463,10 +463,9 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     annot : instance of Annotations | None
         The annotations.
     """
-    # XXX: I've issues with circular imports
-    from mne.io.brainvision.brainvision import _read_annotations_brainvision
-    from mne.io.eeglab.eeglab import _read_annotations_eeglab
-    from mne.io.edf.edf import _read_annotations_edf
+    from .io.brainvision.brainvision import _read_annotations_brainvision
+    from .io.eeglab.eeglab import _read_annotations_eeglab
+    from .io.edf.edf import _read_annotations_edf
 
     name = op.basename(fname)
     if name.endswith(('fif', 'fif.gz')):
