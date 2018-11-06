@@ -2736,7 +2736,7 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
 
 def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
     """Center given colormap (ranging from vmin to vmax) at value 0.
-    
+
     Parameters
     ----------
     cmap : matplotlib.colors.Colormap
@@ -2747,12 +2747,12 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
         Maximum value in the data to map to the upper end of the colormap.
     name : str
         Name of the new colormap.
-    
+
     Returns
     -------
     cmap_centered : matplotlib.colors.Colormap
         The new colormap centered around 0.
-    
+
     Notes
     -----
     This function can be used in situations where vmin and vmax are not
