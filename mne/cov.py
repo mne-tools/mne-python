@@ -989,6 +989,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         logliks = [None]
 
     # undo scaling
+    _undo_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
     for c in estimator_cov_info:
         _undo_scaling_cov(c[1], picks_list, scalings)
 
@@ -997,8 +998,9 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     cov_methods = [c.__name__ if callable(c) else c for c in method]
     runtime_infos, covs = list(runtime_infos), list(covs)
     my_zip = zip(cov_methods, runtime_infos, logliks, covs, estimators)
-    for this_method, runtime_info, loglik, data, est in my_zip:
-        out[this_method] = {'loglik': loglik, 'data': data, 'estimator': est}
+    for this_method, runtime_info, loglik, cov_data, est in my_zip:
+        out[this_method] = {
+            'loglik': loglik, 'data': cov_data, 'estimator': est}
         if runtime_info is not None:
             out[this_method].update(runtime_info)
 

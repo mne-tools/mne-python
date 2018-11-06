@@ -506,7 +506,7 @@ def test_cov_scaling():
     data = np.hstack(epochs.get_data())
     data_orig = data.copy()
     _ = _regularized_covariance(data, info=epochs.info)
-    assert_array_equal(data, data_orig)
+    assert_array_almost_equal(data, data_orig)
 
 
 @requires_version('sklearn', '0.15')
