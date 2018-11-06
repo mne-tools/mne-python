@@ -4,6 +4,7 @@
 
 from datetime import datetime
 import time
+import os.path as op
 import re
 from copy import deepcopy
 
@@ -430,28 +431,73 @@ def _write_annotations(fid, annotations):
     end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
 
-def read_annotations(fname):
-    """Read annotations from a FIF file.
+def read_annotations(fname, sfreq='auto', uint16_codec=None):
+    r"""Read annotations from a file.
+
+    This function reads a .fif, .fif.gz, .vrmk, .edf or .set file and makes an
+    :class:`mne.Annotations` object.
 
     Parameters
     ----------
     fname : str
         The filename.
+    sfreq : float | 'auto'
+        The sampling frequency in the file. This parameter is necessary for
+        \*.vmrk files as Annotations are expressed in seconds and \*.vmrk files
+        are in samples. For any other file format, ``sfreq`` is omitted.
+        If set to 'auto' then the ``sfreq`` is taken from the \*.vhdr
+        file that has the same name (without file extension). So data.vrmk
+        looks for sfreq in data.vhdr.
+    uint16_codec : str | None
+        This parameter is only used in EEGLAB (\*.set) and omitted otherwise.
+        If your \*.set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
 
     Returns
     -------
     annot : instance of Annotations | None
         The annotations.
     """
-    ff, tree, _ = fiff_open(fname, preload=False)
-    with ff as fid:
-        annotations = _read_annotations(fid, tree)
+    from .io.brainvision.brainvision import _read_annotations_brainvision
+    from .io.eeglab.eeglab import _read_annotations_eeglab
+    from .io.edf.edf import _read_annotations_edf
+
+    name = op.basename(fname)
+    if name.endswith(('fif', 'fif.gz')):
+        # Read FiF files
+        ff, tree, _ = fiff_open(fname, preload=False)
+        with ff as fid:
+            annotations = _read_annotations_fif(fid, tree)
+
+    elif name.endswith('vmrk'):
+        annotations = _read_annotations_brainvision(fname, sfreq=sfreq)
+
+    elif name.endswith('set'):
+        annotations = _read_annotations_eeglab(fname,
+                                               uint16_codec=uint16_codec)
+
+    elif name.endswith('edf'):
+        onset, duration, description = _read_annotations_edf(fname)
+        onset = np.array(onset, dtype=float)
+        duration = np.array(duration, dtype=float)
+        annotations = Annotations(onset=onset, duration=duration,
+                                  description=description,
+                                  orig_time=None)
+
+    elif name.startswith('events_') and fname.endswith('mat'):
+        annotations = _read_brainstorm_annotations(fname)
+    else:
+        raise IOError('Unknown annotation file format "%s"' % fname)
+
     if annotations is None:
         raise IOError('No annotation data found in file "%s"' % fname)
     return annotations
 
 
-def read_brainstorm_annotations(fname, orig_time=None):
+def _read_brainstorm_annotations(fname, orig_time=None):
     """Read annotations from a Brainstorm events_ file.
 
     Parameters
@@ -491,7 +537,7 @@ def read_brainstorm_annotations(fname, orig_time=None):
                        orig_time=orig_time)
 
 
-def _read_annotations(fid, tree):
+def _read_annotations_fif(fid, tree):
     """Read annotations."""
     annot_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ANNOTATIONS)
     if len(annot_data) == 0:

@@ -57,7 +57,6 @@ Reading raw data
   anonymize_info
   find_edf_events
   read_events_eeglab
-  read_annotations_eeglab
   read_raw_artemis123
   read_raw_bti
   read_raw_cnt
@@ -67,7 +66,6 @@ Reading raw data
   read_raw_nicolet
   read_raw_eeglab
   read_raw_brainvision
-  read_annotations_brainvision
   read_raw_egi
   read_raw_fif
   read_raw_eximia

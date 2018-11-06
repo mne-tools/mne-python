@@ -30,7 +30,7 @@ from . import eeglab
 from . import pick
 
 from .array import RawArray
-from .brainvision import read_raw_brainvision, read_annotations_brainvision
+from .brainvision import read_raw_brainvision
 from .bti import read_raw_bti
 from .cnt import read_raw_cnt
 from .ctf import read_raw_ctf
@@ -41,7 +41,7 @@ from .fiff import read_raw_fif
 from .nicolet import read_raw_nicolet
 from .artemis123 import read_raw_artemis123
 from .eeglab import read_raw_eeglab, read_epochs_eeglab, read_events_eeglab
-from .eeglab import read_annotations_eeglab
+from .eeglab.eeglab import read_annotations_eeglab
 from .eximia import read_raw_eximia
 from .fieldtrip import (read_raw_fieldtrip, read_epochs_fieldtrip,
                         read_evoked_fieldtrip)

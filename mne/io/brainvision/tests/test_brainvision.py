@@ -17,10 +17,9 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 import pytest
 
 from mne.utils import _TempDir, run_tests_if_main
-from mne import pick_types, find_events
+from mne import pick_types, find_events, read_annotations
 from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
-from mne.io.brainvision import read_annotations_brainvision
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
 
@@ -622,7 +621,7 @@ def test_brainvision_neuroone_export():
 def test_read_vmrk_annotations():
     """Test load brainvision annotations."""
     sfreq = 1000.0
-    annotations = read_annotations_brainvision(vmrk_path, sfreq=sfreq)
+    annotations = read_annotations(vmrk_path, sfreq=sfreq)
     assert annotations.orig_time == 1384359243.794231
     expected = np.array([0, 486., 496., 1769., 1779., 3252., 3262., 4935.,
                          4945., 5999., 6619., 6629., 7629., 7699.]) / sfreq
@@ -637,7 +636,7 @@ def test_read_vmrk_annotations():
     assert_array_equal(annotations.description, description)
 
     # Test automatic detection of sfreq from header file
-    annotations_auto = read_annotations_brainvision(vmrk_path)
+    annotations_auto = read_annotations(vmrk_path)
     assert_array_equal(annotations.onset, annotations_auto.onset)
 
 

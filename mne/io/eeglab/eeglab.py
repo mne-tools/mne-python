@@ -20,7 +20,8 @@ from ...channels.montage import Montage
 from ...epochs import BaseEpochs
 from ...event import read_events
 from ...externals.six import string_types
-from ...annotations import Annotations, events_from_annotations
+from ...annotations import (Annotations, events_from_annotations,
+                            read_annotations)
 
 # just fix the scaling for now, EEGLAB doesn't seem to provide this info
 CAL = 1e-6
@@ -391,7 +392,7 @@ class RawEEGLAB(BaseRaw):
                 orig_format='double', verbose=verbose)
 
         # create event_ch from annotations
-        annot = read_annotations_eeglab(input_fname)
+        annot = read_annotations(input_fname)
         self.set_annotations(annot)
 
         _check_boundary(annot, event_id)
@@ -656,8 +657,8 @@ def _check_latencies(latencies):
 
 
 @deprecated('read_events_eeglab is deprecated from 0.17 and will be removed'
-            ' in 0.18. Please use read_annotations_eeglab and create events'
-            ' using events_from_annotations.')
+            ' in 0.18. Please use read_annotations and create events using'
+            ' events_from_annotations.')
 def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
                        uint16_codec=None):
     r"""Create events array from EEGLAB structure.
@@ -787,22 +788,31 @@ def _bunchify(items):
     return items
 
 
-def _read_annotations_eeglab(eeg):
-    """Create Annotations from EEGLAB file.
+def _read_annotations_eeglab(eeg, uint16_codec=None):
+    r"""Create Annotations from EEGLAB file.
 
     This function reads the event attribute from the EEGLAB
     structure and makes an :class:`mne.Annotations` object.
 
     Parameters
     ----------
-    eeg : object
-        'EEG' struct
+    eeg : object | str
+        'EEG' struct or the path to the (EEGLAB) .set file.
+    uint16_codec : str | None
+        If your \*.set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
 
     Returns
     -------
     annotations : instance of Annotations
         The annotations present in the file.
     """
+    if isinstance(eeg, string_types):
+        eeg = _check_load_mat(eeg, uint16_codec=uint16_codec)
+
     if not hasattr(eeg, 'event'):
         events = []
     elif isinstance(eeg.event, dict) and \
@@ -831,6 +841,8 @@ def _dol_to_lod(dol):
             for ii in range(len(dol[list(dol.keys())[0]]))]
 
 
+@deprecated('read_annotations_eeglab is deprecated from 0.17 and will be'
+            ' removed in 0.18. Please use mne.read_annotations')
 def read_annotations_eeglab(fname, uint16_codec=None):
     r"""Create Annotations from EEGLAB file.
 

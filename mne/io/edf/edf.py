@@ -1124,32 +1124,6 @@ def _read_gdf_header(fname, stim_channel, exclude):
     return edf_info
 
 
-def read_annotations_edf(fname):
-    """Create Annotations from EDF (and EDF+) files.
-
-    This function reads a .edf file and makes an
-    :class:`mne.Annotations` object.
-
-    Parameters
-    ----------
-    fname : str | object
-        The path to the .vmrk file.
-
-    Returns
-    -------
-    annotations : instance of Annotations
-        The annotations present in the file.
-    """
-    onset, duration, description = _read_annotations_edf(fname)
-    onset = np.array(onset, dtype=float)
-    duration = np.array(duration, dtype=float)
-    annotations = Annotations(onset=onset, duration=duration,
-                              description=description,
-                              orig_time=None)
-
-    return annotations
-
-
 def _read_annot(annot, annotmap, sfreq, data_length):
     """Annotation File Reader.
 

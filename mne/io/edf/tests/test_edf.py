@@ -27,10 +27,10 @@ from mne.io.meas_info import _empty_info
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.pick import channel_type
 from mne.io.edf.edf import find_edf_events, _read_annot, _read_annotations_edf
-from mne.io.edf.edf import read_annotations_edf, _get_edf_default_event_id
+from mne.io.edf.edf import _get_edf_default_event_id
 from mne.io.edf.edf import _read_edf_header
 from mne.event import find_events
-from mne.annotations import events_from_annotations
+from mne.annotations import events_from_annotations, read_annotations
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -402,7 +402,7 @@ def test_find_events_and_events_from_annot_are_the_same():
     events_from_find_events = find_events(raw)
     assert_array_equal(events_from_find_events, EXPECTED_EVENTS)
 
-    annot = read_annotations_edf(edf_path)
+    annot = read_annotations(edf_path)
     raw_shell.set_annotations(annot)
     event_id = _get_edf_default_event_id(annot.description)
     event_id.pop('start')

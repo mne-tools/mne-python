@@ -26,8 +26,8 @@ from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
 from ..utils import (_read_segments_file, _synthesize_stim_channel,
                      _mult_cal_one)
-from ...annotations import Annotations, events_from_annotations
-
+from ...annotations import (Annotations, events_from_annotations,
+                            read_annotations)
 from ...externals.six import StringIO, string_types
 from ...externals.six.moves import configparser
 
@@ -149,7 +149,7 @@ class RawBrainVision(BaseRaw):
             raw_extras=[offsets], orig_units=orig_units)
 
         # Get annotations from vmrk file
-        annots = read_annotations_brainvision(mrk_fname, info['sfreq'])
+        annots = read_annotations(mrk_fname, info['sfreq'])
         self.set_annotations(annots)
 
         # Use events_from_annotations to properly set the events
@@ -426,7 +426,7 @@ def _check_trig_shift_by_type(trig_shift_by_type):
     return trig_shift_by_type
 
 
-def read_annotations_brainvision(fname, sfreq='auto'):
+def _read_annotations_brainvision(fname, sfreq='auto'):
     """Create Annotations from BrainVision vrmk.
 
     This function reads a .vrmk file and makes an

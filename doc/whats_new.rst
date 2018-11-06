@@ -24,7 +24,7 @@ Changelog
 
 - Add :func:`mne.io.read_raw_fieldtrip`, :func:`mne.read_epochs_fieldtrip` and :func:`mne.read_evoked_fieldtrip` to import FieldTrip data. By `Thomas Hartmann`_ and `Dirk Gütlin`_.
 
-- Default parameters in :func:`mne.io.read_annotations_eeglab` no longer filter out annotations by `Joan Massich`_ and `Alex Gramfort`_
+- Default parameters in ``mne.io.read_annotations_eeglab`` no longer filter out annotations by `Joan Massich`_ and `Alex Gramfort`_
 
 - :func:`mne.io.read_raw_eeglab` no longer warns when the stim channel is populated with an array of zeros by `Joan Massich`_
 
@@ -88,7 +88,7 @@ Changelog
 
 - Add support for Neuromag 122 system by `Alex Gramfort`_
 
-- Add function :func:`mne.io.read_annotations_brainvision` for reading directly Brainvision marker files by `Alex Gramfort`_
+- Add function ``mne.io.read_annotations_brainvision`` for reading directly Brainvision marker files by `Alex Gramfort`_
 
 - Add :meth:`mne.Report.remove` method to remove existing figures from a report, by `Marijn van Vliet`_
 
@@ -204,6 +204,10 @@ Bug
 API
 ~~~
 
+- Remove ``mne.io.read_annotations_brainvision``, ``mne.io.read_annotations_eeglab``, ``mne.io.edf.edf.read_annotations_edf`` and ``mne.annotations.read_brainstorm_annotations`` to unify their behavior under :func:`mne.read_annotations` by `Joan Massich`_
+
+- Deprecate ``mne.io.read_annotations_eeglab`` by `Joan Massich`_
+
 - Calling :meth:``mne.io.pick.pick_info`` removing channels that are needed by compensation matrices (``info['comps']``) no longer raises ``RuntimeException`` but instead logs an info level message. By `Luke Bloy`_
 
 - Deprecation of ``annot`` and ``annotmap`` parameters in :meth:`mne.io.read_raw_edf` by `Joan Massich`_
@@ -296,7 +300,7 @@ Changelog
 
 - Add support for any data type like sEEG or ECoG in covariance related functions (estimation, whitening and plotting) by `Alex Gramfort`_ and `Eric Larson`_
 
-- Add function :func:`mne.io.read_annotations_eeglab` to allow loading annotations from EEGLAB files, by `Alex Gramfort`_
+- Add function ``mne.io.read_annotations_eeglab`` to allow loading annotations from EEGLAB files, by `Alex Gramfort`_
 
 - :meth:`mne.io.Raw.set_montage` now accepts a string as its ``montage`` argument; this will set a builtin montage, by `Clemens Brunner`_
 
