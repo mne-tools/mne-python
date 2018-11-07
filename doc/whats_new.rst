@@ -18,13 +18,14 @@ Current
 
 Changelog
 ~~~~~~~~~
+
 - Add :meth:`mne.Epochs.shift_time` that shifts the time axis of :class:`mne.Epochs` by `Thomas Hartmann`_
 
 - Add :func:`mne.viz.plot_arrowmap` computes arrowmaps using Hosaka-Cohen transformation from magnetometer or gradiometer data, these arrows represents an estimation of the current flow underneath the MEG sensors by `Sheraz Khan`_
 
 - Add :func:`mne.io.read_raw_fieldtrip`, :func:`mne.read_epochs_fieldtrip` and :func:`mne.read_evoked_fieldtrip` to import FieldTrip data. By `Thomas Hartmann`_ and `Dirk Gütlin`_.
 
-- Default parameters in ``mne.io.read_annotations_eeglab`` no longer filter out annotations by `Joan Massich`_ and `Alex Gramfort`_
+- Add new function :func:`mne.read_annotations` that can read annotations in EEGLAB, BrainVision, EDF and Brainstorm formats by `Joan Massich`_ and `Alex Gramfort`_.
 
 - :func:`mne.io.read_raw_eeglab` no longer warns when the stim channel is populated with an array of zeros by `Joan Massich`_
 
@@ -108,7 +109,7 @@ Changelog
 Bug
 ~~~
 
-- Fix: bug with scaling of data in func:`mne.cov._compute_covariance_auto` by `David Sabbagh `_ 
+- Fix bug with scaling of data in ``mne.cov._compute_covariance_auto`` that was affecting the :class:`mne.decoding.SPoC` estimator by `David Sabbagh`_
 
 - Fix :func:`mne.io.Raw.plot_projs_topomap` by `Joan Massich`_
 
@@ -206,8 +207,6 @@ Bug
 
 API
 ~~~
-
-- Remove ``mne.io.read_annotations_brainvision``, ``mne.io.read_annotations_eeglab``, ``mne.io.edf.edf.read_annotations_edf`` and ``mne.annotations.read_brainstorm_annotations`` to unify their behavior under :func:`mne.read_annotations` by `Joan Massich`_
 
 - Deprecate ``mne.io.read_annotations_eeglab`` by `Joan Massich`_
 
