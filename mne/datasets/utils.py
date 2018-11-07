@@ -503,25 +503,39 @@ def _get_version(name):
 
 
 def has_dataset(name):
-    """Check for dataset presence."""
-    endswith = {
-        'brainstorm': 'MNE_brainstorm-data',
-        'fieldtrip_cmc': 'MNE-fieldtrip_cmc-data',
-        'fake': 'foo',
-        'misc': 'MNE-misc-data',
-        'sample': 'MNE-sample-data',
-        'somato': 'MNE-somato-data',
-        'spm': 'MNE-spm-face',
-        'multimodal': 'MNE-multimodal-data',
-        'opm': 'MNE-OPM-data',
-        'testing': 'MNE-testing-data',
-        'visual_92_categories': 'MNE-visual_92_categories-data',
-        'kiloword': 'MNE-kiloword-data',
-        'phantom_4dbti': 'MNE-phantom-4DBTi',
-    }[name]
-    archive_name = None
-    if name == 'brainstorm':
-        archive_name = dict(brainstorm='bst_raw')
+    """Check for dataset presence.
+
+    Parameters
+    ----------
+    name : str
+        The dataset name.
+        For brainstorm datasets, should be formatted like
+        "brainstorm.bst_raw".
+
+    Returns
+    -------
+    has : bool
+        True if the dataset is present.
+    """
+    if name.startswith('brainstorm'):
+        name, archive_name = name.split('.')
+        endswith = archive_name
+    else:
+        archive_name = None
+        endswith = {
+            'fieldtrip_cmc': 'MNE-fieldtrip_cmc-data',
+            'fake': 'foo',
+            'misc': 'MNE-misc-data',
+            'sample': 'MNE-sample-data',
+            'somato': 'MNE-somato-data',
+            'spm': 'MNE-spm-face',
+            'multimodal': 'MNE-multimodal-data',
+            'opm': 'MNE-OPM-data',
+            'testing': 'MNE-testing-data',
+            'visual_92_categories': 'MNE-visual_92_categories-data',
+            'kiloword': 'MNE-kiloword-data',
+            'phantom_4dbti': 'MNE-phantom-4DBTi',
+        }[name]
     dp = _data_path(download=False, name=name, check_version=False,
                     archive_name=archive_name)
     return dp.endswith(endswith)
