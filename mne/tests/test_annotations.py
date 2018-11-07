@@ -635,6 +635,37 @@ def test_event_id_function_using_custom_function():
     assert event_id == expected_event_id
 
 
+@pytest.fixture(scope='session')
+def dummy_annotation_csv_file(tmpdir_factory):
+    content = ("3.14, 42, AA \n"
+               "6.28, 48, BB")
+
+    fname = tmpdir_factory.mktemp('data').join('annotations.csv')
+    fname.write(content)
+    return fname
+
+
+def test_read_annotation_csv(dummy_annotation_csv_file):
+
+    annot = read_annotations(str(dummy_annotation_csv_file))
+
+    assert annot.orig_time is None
+    assert_array_equal(annot.onset, np.array([3.14, 6.28], dtype=np.float32))
+    assert_array_equal(annot.duration, np.array([42., 48], dtype=np.float32))
+    assert_array_equal(annot.description, ['AA', 'BB'])
+
+@pytest.fixture(scope='session')
+def dummy_annotation_csv_header(tmpdir_factory):
+    content = ("# A something \n"
+               "# orig_time : 42\n"
+               "# orig_time : 2002-12-03 19:01:11.720100\n"
+               "# orig_time : 42\n"
+               "# C\n"
+               "Done")
+    fname = tmpdir_factory.mktemp('data').join('xx.txt')
+    fname.write(content)
+    return fname
+
 @pytest.mark.parametrize('meas_date, out', [
     pytest.param('toto', 0, id='invalid string'),
     pytest.param(None, 0, id='None'),
@@ -649,5 +680,33 @@ def test_handle_meas_date(meas_date, out):
     """Test meas date formats."""
     assert _handle_meas_date(meas_date) == out
 
+
+def test_read_annotation_csv_header(dummy_annotation_csv_header):
+    from mne.annotations import _read_annotations_csv_parse_header
+    orig_time = _read_annotations_csv_parse_header(dummy_annotation_csv_header)
+    assert orig_time == 1038942071.7201
+
+
+@pytest.fixture(scope='session')
+def dummy_annotation_csv_file_with_orig_time(tmpdir_factory):
+    content = ("# MNE-Annotations\n"
+               "# orig_time : 2002-12-03 19:01:11.720100\n"
+               "# onset, duration, description\n"
+               "3.14, 42, AA \n"
+               "6.28, 48, BB")
+
+    fname = tmpdir_factory.mktemp('data').join('annotations.csv')
+    fname.write(content)
+    return fname
+
+
+def test_read_annotation_csv_orig_time(dummy_annotation_csv_file_with_orig_time):
+
+    annot = read_annotations(str(dummy_annotation_csv_file_with_orig_time))
+
+    assert annot.orig_time == 1038942071.7201
+    assert_array_equal(annot.onset, np.array([3.14, 6.28], dtype=np.float32))
+    assert_array_equal(annot.duration, np.array([42., 48], dtype=np.float32))
+    assert_array_equal(annot.description, ['AA', 'BB'])
 
 run_tests_if_main()

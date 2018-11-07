@@ -455,8 +455,8 @@ def _write_annotations(fid, annotations):
 def read_annotations(fname, sfreq='auto', uint16_codec=None):
     r"""Read annotations from a file.
 
-    This function reads a .fif, .fif.gz, .vrmk, .edf or .set file and makes an
-    :class:`mne.Annotations` object.
+    This function reads a .fif, .fif.gz, .vrmk, .edf, .csv or .set file and
+    makes an :class:`mne.Annotations` object.
 
     Parameters
     ----------
@@ -492,6 +492,12 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
         ff, tree, _ = fiff_open(fname, preload=False)
         with ff as fid:
             annotations = _read_annotations_fif(fid, tree)
+    elif name.endswith('csv'):
+        orig_time = _read_annotations_csv_parse_header(fname)
+        onset, duration, description = _read_annotations_csv(fname)
+        annotations = Annotations(onset=onset, duration=duration,
+                                  description=description,
+                                  orig_time=orig_time)
 
     elif name.endswith('vmrk'):
         annotations = _read_annotations_brainvision(fname, sfreq=sfreq)
@@ -556,6 +562,38 @@ def _read_brainstorm_annotations(fname, orig_time=None):
                        duration=np.concatenate(durations),
                        description=descriptions,
                        orig_time=orig_time)
+
+def _is_iso8601(candidate_str):
+    import re
+    ISO8601 = r'^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}\.\d{6}$'
+    return re.compile(ISO8601).match(candidate_str) is not None
+
+
+def _read_annotations_csv_parse_header(fname):
+    is_header = lambda x: x.startswith('#')
+    is_orig_time = lambda x: x.startswith('# orig_time :')
+
+    from itertools import takewhile
+    with open(fname) as fid:
+        header = list(takewhile(is_header, fid))
+
+    orig_values = [h[13:].strip() for h in header if is_orig_time(h)]
+    orig_values = [_handle_meas_date(orig) for orig in orig_values
+                   if _is_iso8601(orig)]
+
+    return None if not orig_values else orig_values[0]
+
+
+def _read_annotations_csv(fname):
+    csv_annotation_format = {
+        'names': ('onset', 'duration', 'description'),
+        'formats': ('f4', 'f4', object)}
+
+    onset, duration, desc = np.loadtxt(fname, delimiter=',',
+                                       dtype=csv_annotation_format,
+                                       unpack=True)
+    desc = [str(d).strip() for d in desc]
+    return onset, duration, desc
 
 
 def _read_annotations_fif(fid, tree):
