@@ -2746,7 +2746,7 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
     vmax : float
         Maximum value in the data to map to the upper end of the colormap.
     name : str
-        Name of the new colormap.
+        Name of the new colormap. Defaults to 'cmap_centered'.
 
     Returns
     -------
