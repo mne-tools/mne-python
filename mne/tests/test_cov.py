@@ -498,15 +498,6 @@ def test_cov_scaling():
     assert_allclose(data, evoked.data, atol=1e-20)
 
     # check that input data remain unchanged. gh-5698
-#     raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
-#     events = find_events(raw, stim_channel='STI 014')
-#     raw.pick_channels(raw.ch_names[:5])
-#     raw.add_proj([], remove_existing=True)
-#     epochs = Epochs(raw, events, None, tmin=-0.2, tmax=0., preload=True)
-#     data = np.hstack(epochs.get_data())
-#     data_orig = data.copy()
-#     _regularized_covariance(data, info=epochs.info)
-#     assert_array_almost_equal(data, data_orig)
     _regularized_covariance(data)
     assert_array_almost_equal(data, evoked.data)
 
