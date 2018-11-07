@@ -937,6 +937,18 @@ def _check_scalings_user(scalings):
     return scalings
 
 
+def _eigvec_subspace(eigvec, mask):
+    """Compute the subspace from eigenvectors."""
+    # If we just use:
+    #     eigvec = eigvec[mask]
+    # This does produces a rotation in the full-rank case. So instead we do
+    # the same thing we do with projectors:
+    n_remove = len(mask) - mask.sum()
+    P = np.eye(len(eigvec)) - np.dot(eigvec[~mask].T, eigvec[~mask])
+    eigvec = linalg.svd(P)[0][:, :len(mask) - n_remove].T
+    return eigvec
+
+
 def _compute_covariance_auto(data, method, info, method_params, cv,
                              scalings, n_jobs, stop_early, picks_list, rank):
     """Compute covariance auto mode."""
@@ -944,10 +956,9 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     _apply_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
     if rank != 'full':
         C = np.dot(data.T, data)
-        eig, eigvec = _smart_eigh(C, info, rank, scalings=1.)  # already scaled
-        mask = eig > 0
-        del eig
-        eigvec = eigvec[mask]
+        # already scaled
+        _, eigvec, mask = _smart_eigh(C, info, rank, scalings=1.)
+        eigvec = _eigvec_subspace(eigvec, mask)
         data = np.dot(data, eigvec.T)
         used = np.where(mask)[0]
         sub_picks_list = [(key, np.searchsorted(used, picks))
@@ -1328,7 +1339,9 @@ def _get_ch_whitener(A, pca, ch_type, rank):
     # whitening operator
     eig, eigvec = linalg.eigh(A, overwrite_a=True)
     eigvec = eigvec.T
+    mask = np.ones(len(eig), bool)
     eig[:-rank] = 0.0
+    mask[:-rank] = False
 
     logger.info('Setting small %s eigenvalues to zero.' % ch_type)
     if not pca:  # No PCA case.
@@ -1338,7 +1351,7 @@ def _get_ch_whitener(A, pca, ch_type, rank):
         # This line will reduce the actual number of variables in data
         # and leadfield to the true rank.
         eigvec = eigvec[:-rank].copy()
-    return eig, eigvec
+    return eig, eigvec, mask
 
 
 def _get_whitener(noise_cov, info=None, ch_names=None, rank=None,
@@ -1413,7 +1426,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         C = np.diag(noise_cov.data[noise_cov_idx])
     projs = info['projs'] + noise_cov['projs']
 
-    eig, eigvec = _smart_eigh(C, info, rank, scalings, projs, ch_names)
+    eig, eigvec, _ = _smart_eigh(C, info, rank, scalings, projs, ch_names)
 
     noise_cov = Covariance(
         data=C, names=ch_names, bads=list(noise_cov['bads']),
@@ -1425,6 +1438,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
 
 
 def _smart_eigh(C, info, rank, scalings, projs=None, ch_names=None):
+    """Compute eigh of C taking into account rank and ch_type scalings."""
     info = info.copy()
     projs = info['projs'] if projs is None else projs
     ch_names = info['ch_names'] if ch_names is None else ch_names
@@ -1448,19 +1462,20 @@ def _smart_eigh(C, info, rank, scalings, projs=None, ch_names=None):
 
     eig = np.zeros(n_chan)
     eigvec = np.zeros((n_chan, n_chan))
-    for ch_type, this_picks in _picks_by_type(info, meg_combined=True,
-                                              ref_meg=False, exclude='bads'):
-        if len(this_picks) == 0:
+    mask = np.zeros(n_chan, bool)
+    for ch_type, picks in _picks_by_type(info, meg_combined=True,
+                                         ref_meg=False, exclude='bads'):
+        if len(picks) == 0:
             continue
-        this_C = C[np.ix_(this_picks, this_picks)]
-        this_info = pick_info(_simplify_info(info), this_picks, copy=False)
+        this_C = C[np.ix_(picks, picks)]
+        this_info = pick_info(_simplify_info(info), picks, copy=False)
         if rank == 'full':
             this_rank = len(this_C)
         else:
             this_rank = rank.get(ch_type)
         if this_rank is None:
             this_rank = _estimate_rank_meeg_cov(this_C, this_info, scalings)
-        eig[this_picks], eigvec[np.ix_(this_picks, this_picks)] = \
+        eig[picks], eigvec[np.ix_(picks, picks)], mask[picks] = \
             _get_ch_whitener(this_C, False, ch_type.upper(), this_rank)
 
         # XXX : also handle ref for sEEG and ECoG
@@ -1470,7 +1485,7 @@ def _smart_eigh(C, info, rank, scalings, projs=None, ch_names=None):
                  'covariance may be adversely affected. Consider recomputing '
                  'covariance using with an average eeg reference projector '
                  'added.')
-    return eig, eigvec
+    return eig, eigvec, mask
 
 
 @verbose
@@ -1623,9 +1638,9 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         else:
             this_picks = pick_channels(info['ch_names'], this_ch_names)
             this_info = pick_info(info, this_picks)
-            eig, U = _smart_eigh(this_C, this_info, rank, scalings=scalings)
-            U = U[eig > 0].T
-            del eig
+            _, eigvec, mask = _smart_eigh(
+                this_C, this_info, rank, scalings=scalings)
+            U = _eigvec_subspace(eigvec, mask).T
         this_C = np.dot(U.T, np.dot(this_C, U))
 
         sigma = np.mean(np.diag(this_C))

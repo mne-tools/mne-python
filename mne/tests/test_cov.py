@@ -642,7 +642,7 @@ def test_compute_covariance_auto_reg(rank):
 
 
 def _cov_rank(cov, info):
-    return compute_whitener(cov, info, return_rank=True)[2]
+    return compute_whitener(cov, info, return_rank=True, verbose='error')[2]
 
 
 @requires_version('sklearn', '0.15')
@@ -659,7 +659,7 @@ def test_low_rank():
     bounds = {
         'None': dict(empirical=(-6000, -5000),
                      diagonal_fixed=(-1500, -500),
-                     oas=(-700, -600)),
+                     oas=(-800, -700)),
         'full': dict(empirical=(-9000, -8000),
                      diagonal_fixed=(-2000, -1600),
                      oas=(-1600, -1000)),
@@ -698,6 +698,18 @@ def test_low_rank():
     assert _cov_rank(reg_r_only_cov, epochs.info) == sss_proj_rank
     assert_allclose(reg_r_only_cov['data'], reg_r_cov['data'])
     del reg_r_only_cov, reg_r_cov
+
+    # test that rank=306 is same as rank='full'
+    epochs_meg = epochs.copy().pick_types()
+    assert len(epochs_meg.ch_names) == 306
+    epochs_meg.info.update(bads=[], projs=[])
+    cov_full = compute_covariance(epochs_meg, method='oas',
+                                  rank='full', verbose='error')
+    assert _cov_rank(cov_full, epochs_meg.info) == 306
+    cov_dict = compute_covariance(epochs_meg, method='oas',
+                                  rank=306, verbose='error')
+    assert _cov_rank(cov_dict, epochs_meg.info) == 306
+    assert_allclose(cov_full['data'], cov_dict['data'])
 
     # Work with just EEG data to simplify projection / rank reduction
     raw.pick_types(meg=False, eeg=True)
