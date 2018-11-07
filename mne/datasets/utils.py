@@ -499,7 +499,12 @@ def _get_version(name):
     """Get a dataset version."""
     if not has_dataset(name):
         return None
-    return _data_path(name=name, return_version=True)[1]
+    if name.startswith('brainstorm'):
+        name, archive_name = name.split('.')
+    else:
+        archive_name = None
+    return _data_path(name=name, archive_name=archive_name,
+                      return_version=True)[1]
 
 
 def has_dataset(name):
@@ -517,11 +522,13 @@ def has_dataset(name):
     has : bool
         True if the dataset is present.
     """
+    name = 'spm' if name == 'spm_face' else name
     if name.startswith('brainstorm'):
         name, archive_name = name.split('.')
         endswith = archive_name
     else:
         archive_name = None
+        # XXX eventually should be refactored with data_path
         endswith = {
             'fieldtrip_cmc': 'MNE-fieldtrip_cmc-data',
             'fake': 'foo',
@@ -535,6 +542,7 @@ def has_dataset(name):
             'visual_92_categories': 'MNE-visual_92_categories-data',
             'kiloword': 'MNE-kiloword-data',
             'phantom_4dbti': 'MNE-phantom-4DBTi',
+            'mtrf': 'mTRF_1.5',
         }[name]
     dp = _data_path(download=False, name=name, check_version=False,
                     archive_name=archive_name)
