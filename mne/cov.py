@@ -1075,8 +1075,6 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     if len(method) > 1:
         logger.info('Using cross-validation to select the best estimator.')
 
-    # undo scaling
-    _undo_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
     out = dict()
     for ei, (estimator, cov, runtime_info) in enumerate(estimator_cov_info):
         if len(method) > 1:
@@ -1092,6 +1090,9 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         this_method = method_.__name__ if callable(method_) else method_
         out[this_method] = dict(loglik=loglik, data=cov, estimator=estimator)
         out[this_method].update(runtime_info)
+    # undo scaling if we need to, as we might have been operating inplace
+    if eigvec is None:
+        _undo_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
 
     return out
 
