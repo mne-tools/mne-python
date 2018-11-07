@@ -658,7 +658,7 @@ def test_low_rank():
     bounds = {
         'None': dict(empirical=(-6000, -5000),
                      diagonal_fixed=(-1500, -500),
-                     oas=(-800, -700)),
+                     oas=(-700, -600)),
         'full': dict(empirical=(-9000, -8000),
                      diagonal_fixed=(-2000, -1600),
                      oas=(-1600, -1000)),

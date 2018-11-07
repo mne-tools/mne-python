@@ -937,16 +937,13 @@ def _check_scalings_user(scalings):
     return scalings
 
 
-def _eigvec_subspace(eigvec, mask):
-    """Compute the subspace from eigenvectors."""
-    # If we just use:
-    #     eigvec = eigvec[mask]
-    # This does produces a rotation in the full-rank case. So instead we do
-    # the same thing we do with projectors:
-    n_remove = len(mask) - mask.sum()
+def _eigvec_subspace(eig, eigvec, mask):
+    """Compute the subspace from a subset of eigenvectors."""
+    # We do the same thing we do with projectors:
     P = np.eye(len(eigvec)) - np.dot(eigvec[~mask].T, eigvec[~mask])
-    eigvec = linalg.svd(P)[0][:, :len(mask) - n_remove].T
-    return eigvec
+    eig, eigvec = linalg.eigh(P)
+    eigvec = eigvec.T
+    return eig, eigvec
 
 
 def _compute_covariance_auto(data, method, info, method_params, cv,
@@ -957,8 +954,9 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     if rank != 'full':
         C = np.dot(data.T, data)
         # already scaled
-        _, eigvec, mask = _smart_eigh(C, info, rank, scalings=1.)
-        eigvec = _eigvec_subspace(eigvec, mask)
+        _, eigvec, mask = _smart_eigh(C, info, rank, scalings=1.,
+                                      proj_subspace=True)
+        eigvec = eigvec[mask]
         data = np.dot(data, eigvec.T)
         used = np.where(mask)[0]
         sub_picks_list = [(key, np.searchsorted(used, picks))
@@ -1081,18 +1079,19 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             loglik = _cross_val(data, estimator, cv, n_jobs)
         else:
             loglik = None
-        # undo scaling
         if eigvec is not None:
             # project back if necessary
             cov = np.dot(eigvec.T, np.dot(cov, eigvec))
+        # undo scaling
         _undo_scaling_cov(cov, picks_list, scalings)
         method_ = method[ei]
         this_method = method_.__name__ if callable(method_) else method_
         out[this_method] = dict(loglik=loglik, data=cov, estimator=estimator)
         out[this_method].update(runtime_info)
-    # undo scaling if we need to, as we might have been operating inplace
-    if eigvec is None:
-        _undo_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
+    # undo scaling
+    if eigvec is not None:
+        data = np.dot(data, eigvec)
+    _undo_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
 
     return out
 
@@ -1180,6 +1179,7 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
 
 ###############################################################################
 # Sklearn Estimators
+
 
 class _RegCovariance(BaseEstimator):
     """Aux class."""
@@ -1438,7 +1438,8 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     return noise_cov
 
 
-def _smart_eigh(C, info, rank, scalings, projs=None, ch_names=None):
+def _smart_eigh(C, info, rank, scalings, projs=None, ch_names=None,
+                proj_subspace=False):
     """Compute eigh of C taking into account rank and ch_type scalings."""
     info = info.copy()
     projs = info['projs'] if projs is None else projs
@@ -1476,8 +1477,11 @@ def _smart_eigh(C, info, rank, scalings, projs=None, ch_names=None):
             this_rank = rank.get(ch_type)
         if this_rank is None:
             this_rank = _estimate_rank_meeg_cov(this_C, this_info, scalings)
-        eig[picks], eigvec[np.ix_(picks, picks)], mask[picks] = \
-            _get_ch_whitener(this_C, False, ch_type.upper(), this_rank)
+        e, ev, m = _get_ch_whitener(this_C, False, ch_type.upper(), this_rank)
+        if proj_subspace:
+            # Choose the subspace the same way we do for projections
+            e, ev = _eigvec_subspace(e, ev, m)
+        eig[picks], eigvec[np.ix_(picks, picks)], mask[picks] = e, ev, m
 
         # XXX : also handle ref for sEEG and ECoG
         if ch_type == 'eeg' and _needs_eeg_average_ref_proj(info) and not \
@@ -1639,9 +1643,11 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         else:
             this_picks = pick_channels(info['ch_names'], this_ch_names)
             this_info = pick_info(info, this_picks)
+            # Here we could use proj_subspace=True, but this should not matter
+            # since this is already in a loop over channel types
             _, eigvec, mask = _smart_eigh(
                 this_C, this_info, rank, scalings=scalings)
-            U = _eigvec_subspace(eigvec, mask).T
+            U = eigvec[mask].T
         this_C = np.dot(U.T, np.dot(this_C, U))
 
         sigma = np.mean(np.diag(this_C))
