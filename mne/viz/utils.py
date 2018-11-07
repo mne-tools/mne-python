@@ -2770,11 +2770,10 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
     index_old = np.linspace(0, 1, cmap.N)
     index_new = np.hstack([np.linspace(0, vzero, cmap.N // 2, endpoint=False),
                            np.linspace(vzero, 1, cmap.N // 2)])
-    cdict = {"red": [], "green": [], "blue": [], "alpha": []}
+
+    colors = "red", "green", "blue", "alpha"
+    cdict = {name: [] for name in colors}
     for old, new in zip(index_old, index_new):
-        r, g, b, a = cmap(old)
-        cdict["red"].append((new, r, r))
-        cdict["green"].append((new, g, g))
-        cdict["blue"].append((new, b, b))
-        cdict["alpha"].append((new, a, a))
+        for color, name in zip(cmap(old), colors):
+            cdict[name].append((new, color, color))
     return LinearSegmentedColormap(name, cdict)
