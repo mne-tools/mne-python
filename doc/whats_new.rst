@@ -107,6 +107,7 @@ Changelog
 
 Bug
 ~~~
+
 - Fix: bug with scaling of data in func:`mne.cov._compute_covariance_auto` by `David Sabbagh `_ 
 
 - Fix :func:`mne.io.Raw.plot_projs_topomap` by `Joan Massich`_
