@@ -350,7 +350,6 @@ def test_arithmetic_cov():
 
 def test_regularize_cov():
     """Test cov regularization."""
-    # XXX this needs to be fixed to properly support SSS / rank
     raw = read_raw_fif(raw_fname)
     raw.info['bads'].append(raw.ch_names[0])  # test with bad channels
     noise_cov = read_cov(cov_fname)
