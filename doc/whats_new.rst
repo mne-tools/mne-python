@@ -2978,3 +2978,5 @@ of commits):
 .. _Rasmus Zetter: https://people.aalto.fi/rasmus.zetter
 
 .. _Marcin Koculak: https://github.com/mkoculak
+
+.. _David Sabbagh: https://github.com/DavidSabbagh
