@@ -15,7 +15,8 @@ from scipy import linalg
 from mne.cov import (regularize, whiten_evoked, _estimate_rank_meeg_cov,
                      _auto_low_rank_model, _apply_scaling_cov,
                      _undo_scaling_cov, prepare_noise_cov, compute_whitener,
-                     _apply_scaling_array, _undo_scaling_array)
+                     _apply_scaling_array, _undo_scaling_array,
+                     _regularized_covariance)
 
 from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_covariance,
@@ -495,6 +496,10 @@ def test_cov_scaling():
     _apply_scaling_array(data, picks_list, scalings=scalings)
     _undo_scaling_array(data, picks_list, scalings=scalings)
     assert_allclose(data, evoked.data, atol=1e-20)
+
+    # check that input data remain unchanged. gh-5698
+    _regularized_covariance(data)
+    assert_array_almost_equal(data, evoked.data)
 
 
 @requires_version('sklearn', '0.15')

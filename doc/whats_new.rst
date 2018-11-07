@@ -107,6 +107,9 @@ Changelog
 
 Bug
 ~~~
+
+- Fix: bug with scaling of data in func:`mne.cov._compute_covariance_auto` by `David Sabbagh `_ 
+
 - Fix :func:`mne.io.Raw.plot_projs_topomap` by `Joan Massich`_
 
 - Fix bug in :func:`mne.minimum_norm.compute_source_psd` where the ``stc.times`` output was scaled by 1000, by `Eric Larson`_
@@ -2980,3 +2983,5 @@ of commits):
 .. _Rasmus Zetter: https://people.aalto.fi/rasmus.zetter
 
 .. _Marcin Koculak: https://github.com/mkoculak
+
+.. _David Sabbagh: https://github.com/DavidSabbagh

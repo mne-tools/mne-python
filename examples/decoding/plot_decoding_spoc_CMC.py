@@ -36,7 +36,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import KFold, cross_val_predict
 
-# define parameters
+# Define parameters
 fname = data_path() + '/SubjectCMC.ds'
 raw = mne.io.read_raw_ctf(fname)
 raw.crop(50., 250.).load_data()  # crop for memory purposes
@@ -45,7 +45,7 @@ raw.crop(50., 250.).load_data()  # crop for memory purposes
 emg = raw.copy().pick_channels(['EMGlft'])
 emg.filter(20., None, fir_design='firwin')
 
-# Filter MEG data to focus on alpha band
+# Filter MEG data to focus on beta band
 raw.pick_types(meg=True, ref_meg=True, eeg=False, eog=False)
 raw.filter(15., 30., fir_design='firwin')
 
@@ -70,7 +70,7 @@ cv = KFold(n_splits=2, shuffle=False)
 # Run cross validaton
 y_preds = cross_val_predict(clf, X, y, cv=cv)
 
-# plot the True EMG power and the EMG power predicted from MEG data
+# Plot the True EMG power and the EMG power predicted from MEG data
 fig, ax = plt.subplots(1, 1, figsize=[10, 4])
 times = raw.times[meg_epochs.events[:, 0] - raw.first_samp]
 ax.plot(times, y_preds, color='b', label='Predicted EMG')
