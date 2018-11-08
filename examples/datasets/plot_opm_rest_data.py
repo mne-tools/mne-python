@@ -142,16 +142,16 @@ for kind in kinds:
     noise_cov = mne.compute_raw_covariance(raw_erms[kind])
     inverse_operator = mne.minimum_norm.make_inverse_operator(
         raws[kind].info, forward=fwd[kind], noise_cov=noise_cov, verbose=True)
-    stc_psd, evoked_psd = mne.minimum_norm.compute_source_psd(
+    stc_psd, sensor_psd = mne.minimum_norm.compute_source_psd(
         raws[kind], inverse_operator, lambda2=1. / 9.,
         n_fft=n_fft, dB=False, return_sensor=True, verbose=True)
-    topo_norm = evoked_psd.data.sum(axis=1, keepdims=True)
-    stc_norm = stc_psd.sum()
+    topo_norm = sensor_psd.data.sum(axis=1, keepdims=True)
+    stc_norm = stc_psd.sum()  # same operation on MNE object, sum across freqs
     # Normalize each source point by the total power across freqs
     for band, limits in freq_bands.items():
-        data = evoked_psd.copy().crop(*limits).data.sum(axis=1, keepdims=True)
+        data = sensor_psd.copy().crop(*limits).data.sum(axis=1, keepdims=True)
         topos[kind][band] = mne.EvokedArray(
-            100 * data / topo_norm, evoked_psd.info)
+            100 * data / topo_norm, sensor_psd.info)
         stcs[kind][band] = \
             100 * stc_psd.copy().crop(*limits).sum() / stc_norm.data
 
