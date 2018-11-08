@@ -121,6 +121,8 @@ Bug
 
 - Don't use 2nd column of events in BrainVision to store duration but rather raw.annotations by `Alex Gramfort`_
 
+- Fix checking of the correctness of the ``prepared=True`` argument in :func:`mne.minimum_norm.apply_inverse` and related functions by `Eric Larson`_
+
 - Fix bug of not showing ERD's in baseline rescaled tfr topomaps if grads are combined by `Erkka Heinila`_
 
 - Fix bug with FIF I/O where strings were written in UTF-8 format instead of Latin-1 by `Eric Larson`_

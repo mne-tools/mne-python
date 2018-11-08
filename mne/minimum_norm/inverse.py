@@ -478,6 +478,18 @@ def _check_ch_names(inv, info):
     _check_comps(inv['info'], info, 'inverse')
 
 
+def _check_or_prepare(inv, nave, lambda2, method, method_params, prepared):
+    """Check if inverse was prepared, or prepare it."""
+    if not prepared:
+        inv = prepare_inverse_operator(
+            inv, nave, lambda2, method, method_params)
+    elif 'colorer' not in inv:
+        raise ValueError('inverse operator has not been prepared, but got '
+                         'argument prepared=True. Either pass prepared=False '
+                         'or use prepare_inverse_operator.')
+    return inv
+
+
 @verbose
 def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
                              method_params=None, verbose=None):
@@ -922,11 +934,9 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     _check_ch_names(inverse_operator, evoked.info)
 
-    if not prepared:
-        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method,
-                                       method_params)
-    else:
-        inv = inverse_operator
+    inv = _check_or_prepare(inverse_operator, nave, lambda2, method,
+                            method_params, prepared)
+
     #
     #   Pick the correct channels from the data
     #
@@ -1052,11 +1062,9 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     #
     #   Set up the inverse according to the parameters
     #
-    if not prepared:
-        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method,
-                                       method_params)
-    else:
-        inv = inverse_operator
+    inv = _check_or_prepare(inverse_operator, nave, lambda2, method,
+                            method_params, prepared)
+
     #
     #   Pick the correct channels from the data
     #
@@ -1131,11 +1139,9 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
     #
     #   Set up the inverse according to the parameters
     #
-    if not prepared:
-        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method,
-                                       method_params)
-    else:
-        inv = inverse_operator
+    inv = _check_or_prepare(inverse_operator, nave, lambda2, method,
+                            method_params, prepared)
+
     #
     #   Pick the correct channels from the data
     #

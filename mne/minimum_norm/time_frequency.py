@@ -15,7 +15,7 @@ from ..time_frequency.tfr import cwt, morlet
 from ..time_frequency.multitaper import (_psd_from_mt, _compute_mt_params,
                                          _psd_from_mt_adaptive, _mt_spectra)
 from ..baseline import rescale, _log_rescale
-from .inverse import (combine_xyz, prepare_inverse_operator, _assemble_kernel,
+from .inverse import (combine_xyz, _check_or_prepare, _assemble_kernel,
                       _pick_channels_inverse_operator, _check_method,
                       _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
@@ -28,11 +28,9 @@ def _prepare_source_params(inst, inverse_operator, label=None,
                            decim=1, pca=True, pick_ori="normal",
                            prepared=False, method_params=None, verbose=None):
     """Prepare inverse operator and params for spectral / TFR analysis."""
-    if not prepared:
-        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method,
-                                       method_params)
-    else:
-        inv = inverse_operator
+    inv = _check_or_prepare(inverse_operator, nave, lambda2, method,
+                            method_params, prepared)
+
     #
     #   Pick the correct channels from the data
     #

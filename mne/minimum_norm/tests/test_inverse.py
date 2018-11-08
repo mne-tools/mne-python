@@ -746,6 +746,8 @@ def test_apply_mne_inverse_raw():
     label_lh = read_label(fname_label % 'Aud-lh')
     _, times = raw[0, start:stop]
     inverse_operator = read_inverse_operator(fname_full)
+    with pytest.raises(ValueError, match='has not been prepared'):
+        apply_inverse_raw(raw, inverse_operator, lambda2, prepared=True)
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
                                                 lambda2=lambda2, method="dSPM")
     for pick_ori in [None, "normal", "vector"]:
