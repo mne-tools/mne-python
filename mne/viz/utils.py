@@ -2766,7 +2766,7 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
     """  # noqa: E501
     from matplotlib.colors import LinearSegmentedColormap
 
-    vzero = abs(vmin) / (vmax - vmin)
+    vzero = abs(vmin) / float(vmax - vmin)
     index_old = np.linspace(0, 1, cmap.N)
     index_new = np.hstack([np.linspace(0, vzero, cmap.N // 2, endpoint=False),
                            np.linspace(vzero, 1, cmap.N // 2)])
