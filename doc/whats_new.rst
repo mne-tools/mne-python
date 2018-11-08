@@ -53,6 +53,8 @@ Changelog
 
 - Add ability to read and write beamformers with :func:`mne.beamformer.read_beamformer` and :class:`mne.beamformer.Beamformer.save` by `Eric Larson`_
 
+- Add resting-state source power spectral estimation example :ref:`sphx_glr_auto_examples_datasets_plot_opm_rest_data.py` by `Eric Larson`_, `Denis Engemann`_, and `Luke Bloy`_
+
 - Add :func:`mne.channels.make_1020_channel_selections` to group 10/20-named EEG channels by location, by `Jona Sassenhagen`_
 
 - Add helmet for Artemis123 for :func:`mne.viz.plot_alignment` by `Eric Larson`_
