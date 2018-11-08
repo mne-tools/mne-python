@@ -25,7 +25,7 @@ Changelog
 
 - Add :func:`mne.io.read_raw_fieldtrip`, :func:`mne.read_epochs_fieldtrip` and :func:`mne.read_evoked_fieldtrip` to import FieldTrip data. By `Thomas Hartmann`_ and `Dirk Gütlin`_.
 
-- Add ``rank`` parameter to :func:`mne.compute_covariance`, :func:`mne.cov.regularize` and related functions to preserve data rank during regularization by `Eric Larson`_ and `Denis Engemann`_
+- Add ``rank`` parameter to :func:`mne.compute_covariance`, :func:`mne.cov.regularize` and related functions to preserve data rank and speed up computation using low-rank computations during regularization by `Eric Larson`_ and `Denis Engemann`_
 
 - Add new function :func:`mne.read_annotations` that can read annotations in EEGLAB, BrainVision, EDF and Brainstorm formats by `Joan Massich`_ and `Alex Gramfort`_.
 
