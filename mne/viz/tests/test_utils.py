@@ -10,7 +10,7 @@ import pytest
 
 from mne.viz.utils import (compare_fiff, _fake_click, _compute_scalings,
                            _validate_if_list_of_axes, _get_color_list,
-                           _setup_vmin_vmax)
+                           _setup_vmin_vmax, center_cmap)
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.utils import run_tests_if_main
 from mne.io import read_raw_fif
@@ -159,6 +159,24 @@ def test_validate_if_list_of_axes():
     pytest.raises(ValueError, _validate_if_list_of_axes, ax_flat)
     _validate_if_list_of_axes(ax, 4)
     plt.close('all')
+
+
+def test_center_cmap():
+    """Test centering of colormap."""
+    import matplotlib.cm as cm
+    from matplotlib.colors import LinearSegmentedColormap
+    from matplotlib.pyplot import Normalize
+    cmap = center_cmap(cm.get_cmap("RdBu"), -5, 10)
+
+    assert isinstance(cmap, LinearSegmentedColormap)
+
+    # get new colors for values -5 (red), 0 (white), and 10 (blue)
+    new_colors = cmap(Normalize(-5, 10)([-5, 0, 10]))
+    # get original colors for 0 (red), 0.5 (white), and 1 (blue)
+    reference = cm.RdBu([0., 0.5, 1.])
+    assert_allclose(new_colors, reference)
+    # new and old colors at 0.5 must be different
+    assert not np.allclose(cmap(0.5), reference[1])
 
 
 run_tests_if_main()
