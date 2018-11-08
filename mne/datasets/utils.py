@@ -499,29 +499,51 @@ def _get_version(name):
     """Get a dataset version."""
     if not has_dataset(name):
         return None
-    return _data_path(name=name, return_version=True)[1]
+    if name.startswith('brainstorm'):
+        name, archive_name = name.split('.')
+    else:
+        archive_name = None
+    return _data_path(name=name, archive_name=archive_name,
+                      return_version=True)[1]
 
 
 def has_dataset(name):
-    """Check for dataset presence."""
-    endswith = {
-        'brainstorm': 'MNE_brainstorm-data',
-        'fieldtrip_cmc': 'MNE-fieldtrip_cmc-data',
-        'fake': 'foo',
-        'misc': 'MNE-misc-data',
-        'sample': 'MNE-sample-data',
-        'somato': 'MNE-somato-data',
-        'spm': 'MNE-spm-face',
-        'multimodal': 'MNE-multimodal-data',
-        'opm': 'MNE-OPM-data',
-        'testing': 'MNE-testing-data',
-        'visual_92_categories': 'MNE-visual_92_categories-data',
-        'kiloword': 'MNE-kiloword-data',
-        'phantom_4dbti': 'MNE-phantom-4DBTi',
-    }[name]
-    archive_name = None
-    if name == 'brainstorm':
-        archive_name = dict(brainstorm='bst_raw')
+    """Check for dataset presence.
+
+    Parameters
+    ----------
+    name : str
+        The dataset name.
+        For brainstorm datasets, should be formatted like
+        "brainstorm.bst_raw".
+
+    Returns
+    -------
+    has : bool
+        True if the dataset is present.
+    """
+    name = 'spm' if name == 'spm_face' else name
+    if name.startswith('brainstorm'):
+        name, archive_name = name.split('.')
+        endswith = archive_name
+    else:
+        archive_name = None
+        # XXX eventually should be refactored with data_path
+        endswith = {
+            'fieldtrip_cmc': 'MNE-fieldtrip_cmc-data',
+            'fake': 'foo',
+            'misc': 'MNE-misc-data',
+            'sample': 'MNE-sample-data',
+            'somato': 'MNE-somato-data',
+            'spm': 'MNE-spm-face',
+            'multimodal': 'MNE-multimodal-data',
+            'opm': 'MNE-OPM-data',
+            'testing': 'MNE-testing-data',
+            'visual_92_categories': 'MNE-visual_92_categories-data',
+            'kiloword': 'MNE-kiloword-data',
+            'phantom_4dbti': 'MNE-phantom-4DBTi',
+            'mtrf': 'mTRF_1.5',
+        }[name]
     dp = _data_path(download=False, name=name, check_version=False,
                     archive_name=archive_name)
     return dp.endswith(endswith)
