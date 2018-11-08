@@ -362,9 +362,24 @@ def _combine_annotations(one, two, one_n_samples, one_first_samp,
 
 
 def _handle_meas_date(meas_date):
-    """Convert meas_date to seconds."""
+    """Convert meas_date to seconds.
+
+    if meas_date is string, it should conform to '%Y-%m-%d %H:%M:%S.%f'
+    otherwise it would be return 0. Take into account that the iso8601 allows
+    for ' ' or 'T' as delimiter between date and time.
+    """
     if meas_date is None:
         meas_date = 0
+    elif isinstance(meas_date, string_types):
+        ACCEPTED_ISO8601 = '%Y-%m-%d %H:%M:%S.%f'
+        try:
+            meas_date = datetime.strptime(meas_date, ACCEPTED_ISO8601)
+        except ValueError:
+            meas_date = 0
+        else:
+            unix_ref_time = datetime.utcfromtimestamp(0)
+            meas_date = (meas_date - unix_ref_time).total_seconds()
+
     elif not np.isscalar(meas_date):
         if len(meas_date) > 1:
             meas_date = meas_date[0] + meas_date[1] / 1000000.
