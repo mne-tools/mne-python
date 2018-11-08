@@ -2,15 +2,18 @@
 #
 # License: BSD (3-clause)
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import os.path as op
 import re
 from copy import deepcopy
+from itertools import takewhile
+
 
 import numpy as np
 
 from .utils import _pl, check_fname, _validate_type, verbose, warn, logger
+from .utils import _check_pandas_installed
 from .utils import _Counter as Counter
 from .externals.six import string_types
 from .io.write import (start_block, end_block, write_float, write_name_list,
@@ -249,21 +252,29 @@ class Annotations(object):
         self.description = np.delete(self.description, idx)
 
     def save(self, fname):
-        """Save annotations to FIF.
+        """Save annotations to FIF, CSV or TXT.
 
         Typically annotations get saved in the FIF file for raw data
         (e.g., as ``raw.annotations``), but this offers the possibility
-        to also save them to disk separately.
+        to also save them to disk separately in different file formats
+        which are easier to share between packages.
 
         Parameters
         ----------
         fname : str
             The filename to use.
         """
+
         check_fname(fname, 'annotations', ('-annot.fif', '-annot.fif.gz',
-                                           '_annot.fif', '_annot.fif.gz'))
-        with start_file(fname) as fid:
-            _write_annotations(fid, self)
+                                           '_annot.fif', '_annot.fif.gz',
+                                           '.txt', '.csv'))
+        if fname.endswith(".txt"):
+            _write_annotations_txt(fname, self)
+        elif fname.endswith(".csv"):
+            _write_annotations_csv(fname, self)
+        else:
+            with start_file(fname) as fid:
+                _write_annotations(fid, self)
 
     def crop(self, tmin=None, tmax=None, emit_warning=False):
         """Remove all annotation that are outside of [tmin, tmax].
@@ -452,10 +463,34 @@ def _write_annotations(fid, annotations):
     end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
 
+def _write_annotations_csv(fname, annot):
+    pd = _check_pandas_installed(strict=True)
+    meas_date = _handle_meas_date(annot.orig_time)
+    dt = datetime.utcfromtimestamp(meas_date)
+    onsets_dt = [dt + timedelta(seconds=o) for o in annot.onset]
+    df = pd.DataFrame(dict(onset=onsets_dt, duration=annot.duration,
+                           description=annot.description))
+    df.to_csv(fname, index=False)
+
+
+def _write_annotations_txt(fname, annot):
+    content  = "# MNE-Annotations\n"
+    if annot.orig_time is not None:
+        meas_date = _handle_meas_date(annot.orig_time)
+        orig_dt = datetime.utcfromtimestamp(meas_date)
+        content += "# orig_time : %s   \n" % orig_dt
+    content += "# onset, duration, description\n"
+
+    data = np.array([annot.onset, annot.duration, annot.description]).T
+    with open(fname, 'w') as fid:
+        fid.write(content)
+        np.savetxt(fid, data, delimiter=',', fmt="%s")
+
+
 def read_annotations(fname, sfreq='auto', uint16_codec=None):
     r"""Read annotations from a file.
 
-    This function reads a .fif, .fif.gz, .vrmk, .edf, .csv or .set file and
+    This function reads a .fif, .fif.gz, .vrmk, .edf, .txt or .set file and
     makes an :class:`mne.Annotations` object.
 
     Parameters
@@ -492,15 +527,18 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
         ff, tree, _ = fiff_open(fname, preload=False)
         with ff as fid:
             annotations = _read_annotations_fif(fid, tree)
-    elif name.endswith('csv'):
-        orig_time = _read_annotations_csv_parse_header(fname)
-        onset, duration, description = _read_annotations_csv(fname)
+    elif name.endswith('txt'):
+        orig_time = _read_annotations_txt_parse_header(fname)
+        onset, duration, description = _read_annotations_txt(fname)
         annotations = Annotations(onset=onset, duration=duration,
                                   description=description,
                                   orig_time=orig_time)
 
     elif name.endswith('vmrk'):
         annotations = _read_annotations_brainvision(fname, sfreq=sfreq)
+
+    elif name.endswith('csv'):
+        annotations = _read_annotations_csv(fname)
 
     elif name.endswith('set'):
         annotations = _read_annotations_eeglab(fname,
@@ -522,6 +560,32 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     if annotations is None:
         raise IOError('No annotation data found in file "%s"' % fname)
     return annotations
+
+
+def _read_annotations_csv(fname):
+    """Write annotations to csv.
+
+    Parameters
+    ----------
+    fname : str
+        The filename.
+
+    Returns
+    -------
+    annot : instance of Annotations
+        The annotations.
+    """
+    pd = _check_pandas_installed(strict=True)
+    df = pd.read_csv(fname)
+    orig_time = df['onset'].values[0]
+    orig_time = _handle_meas_date(orig_time)
+    onset_dt = pd.to_datetime(df['onset'])
+    onset = (onset_dt - onset_dt[0]).dt.seconds.astype(float)
+    duration = df['duration'].values.astype(float)
+    description = df['description'].values
+    if orig_time == 0:
+        orig_time = None
+    return Annotations(onset, duration, description, orig_time)
 
 
 def _read_brainstorm_annotations(fname, orig_time=None):
@@ -563,19 +627,19 @@ def _read_brainstorm_annotations(fname, orig_time=None):
                        description=descriptions,
                        orig_time=orig_time)
 
+
 def _is_iso8601(candidate_str):
     import re
     ISO8601 = r'^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}\.\d{6}$'
     return re.compile(ISO8601).match(candidate_str) is not None
 
 
-def _read_annotations_csv_parse_header(fname):
-    is_header = lambda x: x.startswith('#')
-    is_orig_time = lambda x: x.startswith('# orig_time :')
+def _read_annotations_txt_parse_header(fname):
+    def is_orig_time(x):
+        return x.startswith('# orig_time :')
 
-    from itertools import takewhile
     with open(fname) as fid:
-        header = list(takewhile(is_header, fid))
+        header = list(takewhile(lambda x: x.startswith('#'), fid))
 
     orig_values = [h[13:].strip() for h in header if is_orig_time(h)]
     orig_values = [_handle_meas_date(orig) for orig in orig_values
@@ -584,13 +648,13 @@ def _read_annotations_csv_parse_header(fname):
     return None if not orig_values else orig_values[0]
 
 
-def _read_annotations_csv(fname):
-    csv_annotation_format = {
+def _read_annotations_txt(fname):
+    txt_annotation_format = {
         'names': ('onset', 'duration', 'description'),
         'formats': ('f4', 'f4', object)}
 
     onset, duration, desc = np.loadtxt(fname, delimiter=',',
-                                       dtype=csv_annotation_format,
+                                       dtype=txt_annotation_format,
                                        unpack=True)
     desc = [str(d).strip() for d in desc]
     return onset, duration, desc
