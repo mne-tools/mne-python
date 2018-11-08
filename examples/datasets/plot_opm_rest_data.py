@@ -85,13 +85,16 @@ assert raws['opm'].info['sfreq'] == raws['vv'].info['sfreq']
 
 titles = dict(vv='VectorView', opm='OPM')
 ssp_ecg, _ = mne.preprocessing.compute_proj_ecg(
-    raws['vv'], tmin=-0.1, tmax=0.1, n_grad=1, n_mag=2)
+    raws['vv'], tmin=-0.1, tmax=0.1, n_grad=1, n_mag=1)
 raws['vv'].add_proj(ssp_ecg, remove_existing=True)
+# due to how compute_proj_eog works, it keeps the old projectors, so
+# the output contains both projector types (and also the original empty-room
+# projectors)
 ssp_ecg_eog, _ = mne.preprocessing.compute_proj_eog(
     raws['vv'], n_grad=1, n_mag=1, ch_name='MEG0112')
 raws['vv'].add_proj(ssp_ecg_eog, remove_existing=True)
 raw_erms['vv'].add_proj(ssp_ecg_eog)
-fig = mne.viz.plot_projs_topomap(raws['vv'].info['projs'][-5:],
+fig = mne.viz.plot_projs_topomap(raws['vv'].info['projs'][-4:],
                                  info=raws['vv'].info)
 fig.suptitle(titles['vv'])
 fig.subplots_adjust(0.05, 0.05, 0.95, 0.85)
@@ -138,12 +141,14 @@ freq_bands = dict(
 topos = dict(vv=dict(), opm=dict())
 stcs = dict(vv=dict(), opm=dict())
 
+snr = 3.
+lambda2 = 1. / snr ** 2
 for kind in kinds:
     noise_cov = mne.compute_raw_covariance(raw_erms[kind])
     inverse_operator = mne.minimum_norm.make_inverse_operator(
         raws[kind].info, forward=fwd[kind], noise_cov=noise_cov, verbose=True)
     stc_psd, sensor_psd = mne.minimum_norm.compute_source_psd(
-        raws[kind], inverse_operator, lambda2=1. / 9.,
+        raws[kind], inverse_operator, lambda2=lambda2,
         n_fft=n_fft, dB=False, return_sensor=True, verbose=True)
     topo_norm = sensor_psd.data.sum(axis=1, keepdims=True)
     stc_norm = stc_psd.sum()  # same operation on MNE object, sum across freqs
