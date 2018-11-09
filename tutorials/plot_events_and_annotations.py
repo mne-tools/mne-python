@@ -42,7 +42,7 @@ What are events, annotations and how to load / interpret them
 # - [ ] 2. `events` column values
 # - [ ] 3. `raw.first_samp`, what it is, how it changes with `.crop`, how to get
 #           event times relative to the start of the instance
-# - [ ] 4. `Annotations` and `orig_time`
+# - [x] 4. `Annotations` and `orig_time`
 
 ###############################################################################
 # links 
@@ -102,62 +102,38 @@ annotated_blink_raw.plot()  # plot the annotated raw
 # :class:`mne.Annotations` documentation notes to see the expected behavior
 # depending of `meas_date` and `orig_time`)
 
-# empty_annot = mne.Annotations(onset=list(), duration=list(),
-#                               description=list(), orig_time=None)
+# check raw.info['meas_date']
+print(raw.info)
 
-
-# XXXX This should not be done like that, I should be able to get something
-# printable using MNE.
-def _print_meas_date(stamp):
-    if stamp is None:
-        print('None')
-    else:
-        from datetime import datetime
-        stamp = mne.annotations._handle_meas_date(stamp)
-        print(datetime.utcfromtimestamp(stamp))
-
+# create annotation object without orig_time
 annot_none = mne.Annotations(onset=[0, 2, 9], duration=[0.5, 4, 0],
                              description=['AA', 'BB', 'CC'],
                              orig_time=None)
-print('annotation without orig_time')
-_print_meas_date(annot_none.orig_time)
+print(annot_none)
 
 
+# create annotation object with orig_time
 annot_orig = mne.Annotations(onset=[22, 24, 31], duration=[0.5, 4, 0],
                              description=['AA', 'BB', 'CC'],
                              orig_time=1038942091.6760709)
-print('annotation with orig_time')
-_print_meas_date(annot_orig.orig_time)
-
-print('raw.info[\'meas_date\']')
-_print_meas_date(raw.info['meas_date'])
+print(annot_orig)
 
 
+# create two cropped copies of raw with the previous annotations
 raw_a = raw.copy().crop(tmax=12).set_annotations(annot_none)
 raw_b = raw.copy().crop(tmax=12).set_annotations(annot_orig)
 
-# Plot both raw files side to side to see they are the same
-#
-# fig, axs = plt.subplots(1, 2, figsize=(15, 5))
-# raw_a.plot(axes=axs[0])
-# axs[0].set(title="using None")
-# raw_b.plot(axes=axs[0])
-# axs[0].set(title="using orig_time")
-# plt.tight_layout()
-# plt.show()
-#
+# plot the raw objects
 raw_a.plot()
 raw_b.plot()
 
-# show the new origin
-print('raw_a.annotation.orig_time')
-_print_meas_date(raw_a.annotations.orig_time)
-print('raw_b.annotation.orig_time')
-_print_meas_date(raw_b.annotations.orig_time)
+# show the annotations in the raw objects
+print(raw_a.annotations)
+print(raw_b.annotations)
 
-print(raw_a.annotations.onset == raw_b.annotations.onset)
-
-
+# show that the onsets are the same
+print(raw_a.annotations.onset)
+print(raw_b.annotations.onset)
 
 
 
