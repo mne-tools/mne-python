@@ -180,8 +180,12 @@ class Annotations(object):
                  for kind in kinds]
         kinds = ', '.join(kinds[:3]) + ('' if len(kinds) <= 3 else '...')
         kinds = (': ' if len(kinds) > 0 else '') + kinds
-        return ('<Annotations  |  %s segment%s %s >'
-                % (len(self.onset), _pl(len(self.onset)), kinds))
+        if self.orig_time is None:
+            orig = 'orig_time : None'
+        else:
+            orig = 'orig_time : %s' % datetime.utcfromtimestamp(self.orig_time)
+        return ('<Annotations  |  %s segment%s %s \n\t%s\n>'
+                % (len(self.onset), _pl(len(self.onset)), kinds, orig))
 
     def __len__(self):
         """Return the number of annotations."""
