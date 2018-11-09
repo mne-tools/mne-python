@@ -24,7 +24,7 @@ Here follows both terms definition from the glossary.
 
 See :ref:`sphx_glr_auto_examples_io_plot_read_events.py`
 for a complete example in how to read, select and visualize **events**;
-and ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_rejection.py` to
+and :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_rejection.py` to
 know how :class:`mne.Annotations` are used to mark bad segments of data.
 
 An example of events and annotations
