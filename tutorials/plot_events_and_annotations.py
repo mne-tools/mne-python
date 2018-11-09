@@ -27,51 +27,17 @@ mark bad segments of data.
         sleep scores, sleep events (spindles, K-complex) etc.
 
 
-What are events, annotations and how to load / interpret them
--------------------------------------------------------------
+What are events vs annotations
+------------------------------
+
+The following example shows the recorded events in `sample_audvis_raw.fif` and
+marks bad segments due to eye blinks.
 """
-
-# XXX I should put somewhere which file formats use stim channel and which ones prefer annotation
-# see agramfort comment:
-#     bst is coming from a ctf system
-#     so .ds files
-#     that also have stim channels usually
-#     annotations are from EEG files / vendors
-
-# - [ ] 1. `find_events`, with event masking
-# - [ ] 2. `events` column values
-# - [ ] 3. `raw.first_samp`, what it is, how it changes with `.crop`, how to get
-#           event times relative to the start of the instance
-# - [x] 4. `Annotations` and `orig_time`
-
-###############################################################################
-# links 
-# :ref:`sphx_glr_auto_tutorials_plot_epoching_and_averaging.py`
-# :ref:`sphx_glr_download_auto_examples_io_plot_read_events.py`
-# https://mne-tools.github.io/stable/auto_tutorials/plot_artifacts_correction_rejection.html?highlight=marking%20bad%20segments
-# :class:`mne.Annotations` and :ref:`marking_bad_segments`. To see all the
 
 import os.path as op
 import numpy as np
 
 import mne
-
-# Define some helper functions & constants
-def _get_blink_annotations(raw):
-    eog_events = mne.preprocessing.find_eog_events(raw)
-    n_blinks = len(eog_events)
-    # Center to cover the whole blink with full duration of 0.5s:
-    onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25
-    duration = np.repeat(0.5, n_blinks)
-    return mne.Annotations(onset, duration, ['bad blink'] * n_blinks,
-                           orig_time=raw.info['meas_date'])
-
-# Specify event_id dictionary based on the experiment
-event_id = {'Auditory/Left': 1, 'Auditory/Right': 2,
-            'Visual/Left': 3, 'Visual/Right': 4,
-            'smiley': 5, 'button': 32}
-
-color = {1: 'green', 2: 'yellow', 3: 'red', 4: 'c', 5: 'black', 32: 'blue'}
 
 # load the data
 data_path = mne.datasets.sample.data_path()
@@ -80,20 +46,33 @@ raw = mne.io.read_raw_fif(fname)
 
 # plot the events
 events = mne.find_events(raw)
+
+# Specify event_id dictionary based on the experiment
+event_id = {'Auditory/Left': 1, 'Auditory/Right': 2,
+            'Visual/Left': 3, 'Visual/Right': 4,
+            'smiley': 5, 'button': 32}
+color = {1: 'green', 2: 'yellow', 3: 'red', 4: 'c', 5: 'black', 32: 'blue'}
+
 mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp, color=color,
                     event_id=event_id)
 
 # create some annotations
 annotated_blink_raw = raw.copy()
-annot = _get_blink_annotations(annotated_blink_raw)
+eog_events = mne.preprocessing.find_eog_events(raw)
+n_blinks = len(eog_events)
+# Center to cover the whole blink with full duration of 0.5s:
+onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25
+duration = np.repeat(0.5, n_blinks)
+annot =  mne.Annotations(onset, duration, ['bad blink'] * n_blinks,
+                            orig_time=raw.info['meas_date'])
 annotated_blink_raw.set_annotations(annot)
 
-print(annotated_blink_raw.annotations)  # check the annotations
 annotated_blink_raw.plot()  # plot the annotated raw
 
 
 ###############################################################################
-# Annotations
+# Working with Annotations
+# ------------------------
 #
 # An important element of the :class:`mne.Annotations` is ``orig_time`` which
 # is the time reference for the ``onset``. It is key to understand that when
@@ -102,8 +81,8 @@ annotated_blink_raw.plot()  # plot the annotated raw
 # :class:`mne.Annotations` documentation notes to see the expected behavior
 # depending of `meas_date` and `orig_time`)
 
-# check raw.info['meas_date']
-print(raw.info)
+
+###############################################################################
 
 # create annotation object without orig_time
 annot_none = mne.Annotations(onset=[0, 2, 9], duration=[0.5, 4, 0],
@@ -112,12 +91,15 @@ annot_none = mne.Annotations(onset=[0, 2, 9], duration=[0.5, 4, 0],
 print(annot_none)
 
 
+###############################################################################
+
 # create annotation object with orig_time
 annot_orig = mne.Annotations(onset=[22, 24, 31], duration=[0.5, 4, 0],
                              description=['AA', 'BB', 'CC'],
                              orig_time=1038942091.6760709)
 print(annot_orig)
 
+###############################################################################
 
 # create two cropped copies of raw with the previous annotations
 raw_a = raw.copy().crop(tmax=12).set_annotations(annot_none)
@@ -127,9 +109,13 @@ raw_b = raw.copy().crop(tmax=12).set_annotations(annot_orig)
 raw_a.plot()
 raw_b.plot()
 
+###############################################################################
+
 # show the annotations in the raw objects
 print(raw_a.annotations)
 print(raw_b.annotations)
+
+###############################################################################
 
 # show that the onsets are the same
 print(raw_a.annotations.onset)
