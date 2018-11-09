@@ -8,10 +8,6 @@ Events and annotations are quite similar. This tutorial highlights their
 differences and similitudes and tries to shade some light to which one is
 preferred to use in different situations when using MNE.
 Here follows both terms definition from the glossary.
-We refer the reader to :ref:`sphx_glr_auto_examples_io_plot_read_events.py`
-for a complete example in how to read, select and visualize **events**;
-and ref:`marking_bad_segments` to know how :class:`mne.Annotations` are used to
-mark bad segments of data.
 
     events
         Events correspond to specific time points in raw data; e.g.,
@@ -26,9 +22,13 @@ mark bad segments of data.
         also details on signals marked by a human: bad data segments,
         sleep scores, sleep events (spindles, K-complex) etc.
 
+See :ref:`sphx_glr_auto_examples_io_plot_read_events.py`
+for a complete example in how to read, select and visualize **events**;
+and ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_rejection.py` to
+know how :class:`mne.Annotations` are used to mark bad segments of data.
 
-What are events vs annotations
-------------------------------
+An example of events and annotations
+------------------------------------
 
 The following example shows the recorded events in `sample_audvis_raw.fif` and
 marks bad segments due to eye blinks.
