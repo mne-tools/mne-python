@@ -8,11 +8,11 @@ preferred to use in different situations when using MNE.
 Here follows both terms definition from the glossary.
 
     events
-        Events correspond to specific time points in raw data; e.g.,
-        triggers, experimental condition events, etc. MNE represents events with
-        integers that are stored in numpy arrays of shape (n_events, 3). Such arrays
-        are classically obtained from a trigger channel, also referred to as
-        stim channel.
+        Events correspond to specific time points in raw data; e.g., triggers,
+        experimental condition events, etc. MNE represents events with integers
+        that are stored in numpy arrays of shape (n_events, 3). Such arrays are
+        classically obtained from a trigger channel, also referred to as stim
+        channel.
 
     annotations
         One annotation is defined by an onset, a duration and a string
@@ -61,8 +61,8 @@ n_blinks = len(eog_events)
 # Center to cover the whole blink with full duration of 0.5s:
 onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25
 duration = np.repeat(0.5, n_blinks)
-annot =  mne.Annotations(onset, duration, ['bad blink'] * n_blinks,
-                            orig_time=raw.info['meas_date'])
+annot = mne.Annotations(onset, duration, ['bad blink'] * n_blinks,
+                        orig_time=raw.info['meas_date'])
 annotated_blink_raw.set_annotations(annot)
 
 annotated_blink_raw.plot()  # plot the annotated raw
@@ -118,15 +118,3 @@ print(raw_b.annotations)
 # show that the onsets are the same
 print(raw_a.annotations.onset)
 print(raw_b.annotations.onset)
-
-
-
-
-
-
-
-
-
- 
-
-
