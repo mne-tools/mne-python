@@ -1,6 +1,4 @@
 """
-.. _tut_events_and_annotation_objects:
-
 The **events** and :class:`Annotations <mne.Annotations>` data structures
 =========================================================================
 
