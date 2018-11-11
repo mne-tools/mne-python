@@ -573,8 +573,8 @@ def _check_rank(rank, methods, was_auto=False):
             methods.pop(methods.index('factor_analysis'))
         for method in methods:
             if method in ('pca', 'factor_analysis'):
-                raise ValueError('%s can only be used with rank="full", '
-                                 'got rank=%r' % (method, rank))
+                raise ValueError('%s can so far only be used with rank="full",'
+                                 ' got rank=%r' % (method, rank))
         rank = dict() if rank is None else rank
         orig_rank = rank
         try:

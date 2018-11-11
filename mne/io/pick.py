@@ -678,7 +678,7 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False, exclude='bads'):
     ----------
     info : instance of mne.measuerment_info.Info
         The info.
-    meg_combined : bool
+    meg_combined : bool | 'auto'
         Whether to return combined picks for grad and mag.
         Can be 'auto' to choose based on Maxwell filtering status.
     ref_meg : bool
