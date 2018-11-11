@@ -648,6 +648,7 @@ def _assert_annotations_equal(a, b):
 
 @pytest.fixture(scope='session')
 def dummy_annotation_csv_file(tmpdir_factory):
+    """Create csv file for testing."""
     content = ("onset,duration,description\n"
                "2002-12-03 19:01:11.720100,1.0,AA\n"
                "2002-12-03 19:01:20.720100,2.425,BB")
@@ -659,6 +660,7 @@ def dummy_annotation_csv_file(tmpdir_factory):
 
 @requires_pandas
 def test_io_annotation_csv(dummy_annotation_csv_file, tmpdir_factory):
+    """Test CSV input/output."""
     annot = read_annotations(str(dummy_annotation_csv_file))
     assert annot.orig_time == 1038942071.7201
     assert_array_equal(annot.onset, np.array([0., 9.], dtype=np.float32))
@@ -682,6 +684,7 @@ def test_io_annotation_csv(dummy_annotation_csv_file, tmpdir_factory):
 
 @pytest.fixture(scope='session')
 def dummy_annotation_txt_file(tmpdir_factory):
+    """Create txt file for testing."""
     content = ("3.14, 42, AA \n"
                "6.28, 48, BB")
 
@@ -691,6 +694,7 @@ def dummy_annotation_txt_file(tmpdir_factory):
 
 
 def test_io_annotation_txt(dummy_annotation_txt_file, tmpdir_factory):
+    """Test TXT input/output."""
     annot = read_annotations(str(dummy_annotation_txt_file))
     assert annot.orig_time is None
     assert_array_equal(annot.onset, np.array([3.14, 6.28], dtype=np.float32))
@@ -712,15 +716,16 @@ def test_io_annotation_txt(dummy_annotation_txt_file, tmpdir_factory):
 
 @pytest.fixture(scope='session')
 def dummy_annotation_txt_header(tmpdir_factory):
+    """Create txt header."""
     content = ("# A something \n"
                "# orig_time : 42\n"
                "# orig_time : 2002-12-03 19:01:11.720100\n"
                "# orig_time : 42\n"
                "# C\n"
                "Done")
-    fname = tmpdir_factory.mktemp('data').join('xx.txt')
+    fname = tmpdir_factory.mktemp('data').join('header.txt')
     fname.write(content)
-    return fname
+    return str(fname)
 
 
 @pytest.mark.parametrize('meas_date, out', [
@@ -739,12 +744,14 @@ def test_handle_meas_date(meas_date, out):
 
 
 def test_read_annotation_txt_header(dummy_annotation_txt_header):
+    """Test TXT orig_time recovery."""
     orig_time = _read_annotations_txt_parse_header(dummy_annotation_txt_header)
     assert orig_time == 1038942071.7201
 
 
 @pytest.fixture(scope='session')
 def dummy_annotation_txt_file_with_orig_time(tmpdir_factory):
+    """Create TXT annotations with header."""
     content = ("# MNE-Annotations\n"
                "# orig_time : 2002-12-03 19:01:11.720100\n"
                "# onset, duration, description\n"
@@ -758,7 +765,7 @@ def dummy_annotation_txt_file_with_orig_time(tmpdir_factory):
 
 def test_read_annotation_txt_orig_time(
         dummy_annotation_txt_file_with_orig_time):
-
+    """Test TXT input/output."""
     annot = read_annotations(str(dummy_annotation_txt_file_with_orig_time))
     assert annot.orig_time == 1038942071.7201
     assert_array_equal(annot.onset, np.array([3.14, 6.28], dtype=np.float32))

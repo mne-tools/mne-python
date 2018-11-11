@@ -264,7 +264,6 @@ class Annotations(object):
         fname : str
             The filename to use.
         """
-
         check_fname(fname, 'annotations', ('-annot.fif', '-annot.fif.gz',
                                            '_annot.fif', '_annot.fif.gz',
                                            '.txt', '.csv'))
@@ -474,7 +473,7 @@ def _write_annotations_csv(fname, annot):
 
 
 def _write_annotations_txt(fname, annot):
-    content  = "# MNE-Annotations\n"
+    content = "# MNE-Annotations\n"
     if annot.orig_time is not None:
         meas_date = _handle_meas_date(annot.orig_time)
         orig_dt = datetime.utcfromtimestamp(meas_date)
@@ -490,8 +489,8 @@ def _write_annotations_txt(fname, annot):
 def read_annotations(fname, sfreq='auto', uint16_codec=None):
     r"""Read annotations from a file.
 
-    This function reads a .fif, .fif.gz, .vrmk, .edf, .txt or .set file and
-    makes an :class:`mne.Annotations` object.
+    This function reads a .fif, .fif.gz, .vrmk, .edf, .txt, .csv or .set file
+    and makes an :class:`mne.Annotations` object.
 
     Parameters
     ----------
@@ -563,7 +562,7 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
 
 
 def _read_annotations_csv(fname):
-    """Write annotations to csv.
+    """Read annotations from csv.
 
     Parameters
     ----------

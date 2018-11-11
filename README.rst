@@ -89,7 +89,7 @@ For full functionality, some functions require:
 - PySurfer >= 0.8
 - Scikit-learn >= 0.15 (>= 0.18 recommended)
 - NiBabel >= 2.1.0
-- Pandas >= 0.13
+- Pandas >= 0.16
 - Picard >= 0.3
 - CuPy >= 4.0 (for NVIDIA CUDA acceleration)
 - DIPY >= 0.10.1
