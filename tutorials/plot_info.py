@@ -83,7 +83,7 @@ channel_indices = mne.pick_channels_regexp(info['ch_names'], 'MEG *')
 #
 # Get channel indices by type
 channel_indices = mne.pick_types(info, meg=True)  # MEG only
-channel_indices = mne.pick_types(info, eeg=True)  # EEG only
+channel_indices = mne.pick_types(info, meg=False, eeg=True)  # EEG only
 
 ###############################################################################
 # MEG gradiometers and EEG channels
