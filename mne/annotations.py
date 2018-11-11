@@ -184,7 +184,7 @@ class Annotations(object):
             orig = 'orig_time : None'
         else:
             orig = 'orig_time : %s' % datetime.utcfromtimestamp(self.orig_time)
-        return ('<Annotations  |  %s segment%s %s \n\t%s\n>'
+        return ('<Annotations  |  %s segment%s %s, %s>'
                 % (len(self.onset), _pl(len(self.onset)), kinds, orig))
 
     def __len__(self):

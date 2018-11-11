@@ -5,7 +5,7 @@ The **events** and :class:`Annotations <mne.Annotations>` data structures
 Events and annotations are quite similar. This tutorial highlights their
 differences and similitudes and tries to shade some light to which one is
 preferred to use in different situations when using MNE.
-Here follows both terms definition from the glossary.
+Here follows both terms definition from the :ref:`glossary`.
 
     events
         Events correspond to specific time points in raw data; e.g., triggers,
@@ -90,28 +90,26 @@ annotated_blink_raw.plot()  # plot the annotated raw
 # expected behavior depending of `meas_date` and `orig_time`. Notice that
 # `meas_date` is the :class:`Info <mne.Info>` attribute of the recording time.
 # Find more in :ref:`sphx_glr_auto_tutorials_plot_info.py`)
-
-
-###############################################################################
-
-# create annotation object without orig_time
+#
+# We'll now manipulate some simulated annotations objects.
+#
+# First let's create an annotation object without orig_time. It this case
+# one assumes that the orig_time is the time of the first sample of data.
 annot_none = mne.Annotations(onset=[0, 2, 9], duration=[0.5, 4, 0],
-                             description=['AA', 'BB', 'CC'],
+                             description=['foo', 'bar', 'foo'],
                              orig_time=None)
 print(annot_none)
 
 
 ###############################################################################
-
-# create annotation object with orig_time
+# Now let's create annotation object with orig_time
 annot_orig = mne.Annotations(onset=[22, 24, 31], duration=[0.5, 4, 0],
-                             description=['AA', 'BB', 'CC'],
+                             description=['foo', 'bar', 'foo'],
                              orig_time=1038942091.6760709)
 print(annot_orig)
 
 ###############################################################################
-
-# create two cropped copies of raw with the previous annotations
+# create two cropped copies of raw with the two previous annotations
 raw_a = raw.copy().crop(tmax=12).set_annotations(annot_none)
 raw_b = raw.copy().crop(tmax=12).set_annotations(annot_orig)
 
@@ -120,13 +118,20 @@ raw_a.plot()
 raw_b.plot()
 
 ###############################################################################
-
 # show the annotations in the raw objects
 print(raw_a.annotations)
 print(raw_b.annotations)
 
 ###############################################################################
-
 # show that the onsets are the same
 print(raw_a.annotations.onset)
 print(raw_b.annotations.onset)
+
+###############################################################################
+# It is possible to concatenate two annotations with the + like for lists.
+
+annot = mne.Annotations(onset=[10], duration=[0.5],
+                        description=['foobar'],
+                        orig_time=1038942091.6760709)
+annot = annot_orig + annot  # concatenation
+print(annot)
