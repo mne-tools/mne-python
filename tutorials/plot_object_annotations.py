@@ -102,6 +102,7 @@ print(annot_none)
 
 
 ###############################################################################
+
 # Now let's create annotation object with orig_time
 annot_orig = mne.Annotations(onset=[22, 24, 31], duration=[0.5, 4, 0],
                              description=['foo', 'bar', 'foo'],
@@ -109,6 +110,7 @@ annot_orig = mne.Annotations(onset=[22, 24, 31], duration=[0.5, 4, 0],
 print(annot_orig)
 
 ###############################################################################
+
 # create two cropped copies of raw with the two previous annotations
 raw_a = raw.copy().crop(tmax=12).set_annotations(annot_none)
 raw_b = raw.copy().crop(tmax=12).set_annotations(annot_orig)
@@ -118,6 +120,7 @@ raw_a.plot()
 raw_b.plot()
 
 ###############################################################################
+
 # show the annotations in the raw objects
 print(raw_a.annotations)
 print(raw_b.annotations)
@@ -128,6 +131,7 @@ print(raw_a.annotations.onset)
 print(raw_b.annotations.onset)
 
 ###############################################################################
+#
 # It is possible to concatenate two annotations with the + like for lists.
 
 annot = mne.Annotations(onset=[10], duration=[0.5],
