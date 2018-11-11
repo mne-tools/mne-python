@@ -85,9 +85,11 @@ annotated_blink_raw.plot()  # plot the annotated raw
 # An important element of the :class:`mne.Annotations` is ``orig_time`` which
 # is the time reference for the ``onset``. It is key to understand that when
 # calling `raw.set_annotation`, the given annotations is copied and transformed
-# so that `raw.annotations.orig_time` matches meas_date. (check
-# :class:`mne.Annotations` documentation notes to see the expected behavior
-# depending of `meas_date` and `orig_time`)
+# so that `raw.annotations.orig_time` matches the recording time of the raw
+# object. (check :class:`mne.Annotations` documentation notes to see the
+# expected behavior depending of `meas_date` and `orig_time`. Notice that
+# `meas_date` is the :class:`Info <mne.Info>` attribute of the recording time.
+# Find more in :ref:`sphx_glr_auto_tutorials_plot_info.py`)
 
 
 ###############################################################################
