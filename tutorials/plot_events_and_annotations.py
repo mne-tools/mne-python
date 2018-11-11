@@ -20,6 +20,16 @@ Here follows both terms definition from the glossary.
         also details on signals marked by a human: bad data segments,
         sleep scores, sleep events (spindles, K-complex) etc.
 
+They both can be seen as triplets where the first element answers to **when**
+something happens and the last element refers to **what** is it. The
+main differnce is that events the when is samples with respect to the first
+sample and the what is an integer id; while in annotations the when is in
+seconds with respect to an origin and the what is an arbitrary string.
+The second element of the triplets have no direct relation between the two
+structures. For the events case, the second element corresponds to id of the
+previous active event. Whereas, the second element of the
+:class:`mne.Annotations` is a float indicating its duration in seconds.
+
 See :ref:`sphx_glr_auto_examples_io_plot_read_events.py`
 for a complete example in how to read, select and visualize **events**;
 and :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_rejection.py` to
