@@ -21,7 +21,7 @@ MNE-Python core terminology and general concepts
 
 
     annotations
-        One annotation is defined by an onset, a duration and a string
+        An annotation is defined by an onset, a duration, and a string
         description. It can contain information about the experiments, but
         also details on signals marked by a human: bad data segments,
         sleep scores, sleep events (spindles, K-complex) etc.

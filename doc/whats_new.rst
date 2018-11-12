@@ -19,7 +19,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-- New tutorial in the documentation regarding :class:`mne.Annotations` by `Joan Massich`_ and  `Alex Gramfort`_.
+- New tutorial in the documentation regarding :class:`mne.Annotations` by `Joan Massich`_ and  `Alex Gramfort`_
 
 - Add :meth:`mne.Epochs.shift_time` that shifts the time axis of :class:`mne.Epochs` by `Thomas Hartmann`_
 
