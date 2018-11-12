@@ -361,9 +361,12 @@ def _combine_annotations(one, two, one_n_samples, one_first_samp,
 def _handle_meas_date(meas_date):
     """Convert meas_date to seconds.
 
-    if meas_date is string, it should conform to '%Y-%m-%d %H:%M:%S.%f'
-    otherwise it would be return 0. Take into account that the iso8601 allows
-    for ' ' or 'T' as delimiter between date and time.
+    If `meas_date` is a string, it should conform to the ISO8601 format.
+    More precisely to this '%Y-%m-%d %H:%M:%S.%f' particular case of the
+    ISO8601 format where the delimiter between date and time is ' '.
+
+    Otherwise, this function returns 0. Note that ISO8601 allows for ' ' or 'T'
+    as delimiters between date and time.
     """
     if meas_date is None:
         meas_date = 0

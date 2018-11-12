@@ -640,12 +640,13 @@ def test_event_id_function_using_custom_function():
     pytest.param(None, 0, id='None'),
     pytest.param(42, 42.0, id='Scalar'),
     pytest.param(3.14, 3.14, id='Float'),
-    # pytest.param((3, 1400000), 3.14, id='Scalar touple')
+    pytest.param((3, 140000), 3.14, id='Scalar touple'),
     pytest.param('2002-12-03 19:01:11.720100', 1038942071.7201,
                  id='valid iso8601 string'),
     pytest.param('2002-12-03T19:01:11.720100', 0,
                  id='invalid iso8601 string')])
 def test_handle_meas_date(meas_date, out):
+    """Test meas date formats."""
     assert _handle_meas_date(meas_date) == out
 
 
