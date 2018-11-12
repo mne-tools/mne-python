@@ -50,14 +50,16 @@ class Annotations(object):
         Array of strings containing description for each annotation. If a
         string, all the annotations are given the same description. To reject
         epochs, use description starting with keyword 'bad'. See example above.
-    orig_time : float | int | instance of datetime | array of int | None
+    orig_time : float | int | instance of datetime | array of int | None | str
         A POSIX Timestamp, datetime or an array containing the timestamp as the
         first element and microseconds as the second element. Determines the
         starting time of annotation acquisition. If None (default),
         starting time is determined from beginning of raw data acquisition.
         In general, ``raw.info['meas_date']`` (or None) can be used for syncing
         the annotations with raw data if their acquisiton is started at the
-        same time.
+        same time. If it is a string, it should conform to the ISO8601 format.
+        More precisely to this '%Y-%m-%d %H:%M:%S.%f' particular case of the
+        ISO8601 format where the delimiter between date and time is ' '.
 
     Notes
     -----
@@ -143,12 +145,7 @@ class Annotations(object):
     def __init__(self, onset, duration, description,
                  orig_time=None):  # noqa: D102
         if orig_time is not None:
-            if isinstance(orig_time, datetime):
-                orig_time = float(time.mktime(orig_time.timetuple()))
-            elif not np.isscalar(orig_time):
-                orig_time = orig_time[0] + orig_time[1] / 1000000.
-            else:  # isscalar
-                orig_time = float(orig_time)  # np.int not serializable
+            orig_time = _handle_meas_date(orig_time)
         self.orig_time = orig_time
 
         onset = np.array(onset, dtype=float)
@@ -379,13 +376,15 @@ def _handle_meas_date(meas_date):
         else:
             unix_ref_time = datetime.utcfromtimestamp(0)
             meas_date = (meas_date - unix_ref_time).total_seconds()
-
+        meas_date = round(meas_date, 6)  # round that 6th decimal
+    elif isinstance(meas_date, datetime):
+        meas_date = float(time.mktime(meas_date.timetuple()))
     elif not np.isscalar(meas_date):
         if len(meas_date) > 1:
             meas_date = meas_date[0] + meas_date[1] / 1000000.
         else:
             meas_date = meas_date[0]
-    return meas_date
+    return float(meas_date)
 
 
 def _sync_onset(raw, onset, inverse=False):

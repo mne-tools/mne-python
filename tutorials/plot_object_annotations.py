@@ -55,7 +55,6 @@ marks bad segments due to eye blinks.
 
 import os.path as op
 import numpy as np
-from datetime import datetime
 
 import mne
 
@@ -123,14 +122,9 @@ print(annot_none)
 
 # Create an annotation object with orig_time
 orig_time = '2002-12-03 19:01:31.676071'
-my_datetime = datetime.strptime(orig_time, '%Y-%m-%d %H:%M:%S.%f')
-posix_timestamp = (my_datetime - datetime(1970, 1, 1)).total_seconds()
-print('{0:f} is the POSIX timestamp of {1:s}'.format(posix_timestamp,
-                                                     orig_time))
-
 annot_orig = mne.Annotations(onset=[22, 24, 31], duration=[0.5, 4, 0],
                              description=['foo', 'bar', 'foo'],
-                             orig_time=1038942091.6760709)
+                             orig_time=orig_time)
 print(annot_orig)
 
 ###############################################################################
@@ -170,6 +164,6 @@ print('raw_a.annotations.onset[0] is {}'.format(raw_a.annotations.onset[0]))
 
 annot = mne.Annotations(onset=[10], duration=[0.5],
                         description=['foobar'],
-                        orig_time=1038942091.6760709)
+                        orig_time=orig_time)
 annot = annot_orig + annot  # concatenation
 print(annot)
