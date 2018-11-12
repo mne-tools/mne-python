@@ -22,19 +22,21 @@ Here are the definitions from the :ref:`glossary`.
         also details on signals marked by a human: bad data segments,
         sleep scores, sleep events (spindles, K-complex) etc.
 
-Both events and :class:`Annotations <mne.Annotations>` be seen as triplets
+Both events and :class:`Annotations <mne.Annotations>` can be seen as triplets
 where the first element answers to **when** something happens and the last
 element refers to **what** it is.
-The main difference is that events represent the onset in samples relative to
-the first sample value (:attr:`raw.first_samp <mne.io.Raw.first_samp>`), and
-the description is an integer value.
+The main difference is that events represent the onset in samples taking into
+account the first sample value
+(:attr:`raw.first_samp <mne.io.Raw.first_samp>`), and the description is
+an integer value.
 In contrast, :class:`Annotations <mne.Annotations>` represents the
 ``onset`` in seconds (relative to the reference ``orig_time``),
 and the ``description`` is an arbitrary string.
 There is no correspondence between the second element of events and
 :class:`Annotations <mne.Annotations>`.
-For events, the second element corresponds to the ID of the previously active
-event.
+For events, the second element corresponds to the previous value on the
+stimulus channel from which events are extracted. In practice, the second
+element is therefore in most cases zero.
 The second element of :class:`Annotations <mne.Annotations>` is a float
 indicating its duration in seconds.
 
@@ -74,14 +76,15 @@ color = {1: 'green', 2: 'yellow', 3: 'red', 4: 'c', 5: 'black', 32: 'blue'}
 mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp, color=color,
                     event_id=event_id)
 
-# Create some annotations
+# Create some annotations specifying onset, duration and description
 annotated_blink_raw = raw.copy()
 eog_events = mne.preprocessing.find_eog_events(raw)
 n_blinks = len(eog_events)
 # Center to cover the whole blink with full duration of 0.5s:
 onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25
 duration = np.repeat(0.5, n_blinks)
-annot = mne.Annotations(onset, duration, ['bad blink'] * n_blinks,
+description = ['bad blink'] * n_blinks
+annot = mne.Annotations(onset, duration, description,
                         orig_time=raw.info['meas_date'])
 annotated_blink_raw.set_annotations(annot)
 
@@ -101,7 +104,7 @@ annotated_blink_raw.plot()  # plot the annotated raw
 # matches the recording time of the raw object.
 # Refer to the documentation of :class:`Annotations <mne.Annotations>` to see
 # the expected behavior depending on ``meas_date`` and ``orig_time``.
-# Where ``meas_date`` is the recording time of the stored in
+# Where ``meas_date`` is the recording time stored in
 # :class:`Info <mne.Info>`.
 # You can find more information about :class:`Info <mne.Info>` in
 # :ref:`sphx_glr_auto_tutorials_plot_info.py`.
