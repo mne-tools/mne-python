@@ -24,13 +24,13 @@ Here are the definitions from the :ref:`glossary`.
 
 Both events and :class:`Annotations <mne.Annotations>` be seen as triplets
 where the first element answers to **when** something happens and the last
-element refers to **what** is it.
+element refers to **what** it is.
 The main difference is that events represent the onset in samples relative to
 the first sample value (:attr:`raw.first_samp <mne.io.Raw.first_samp>`), and
 the description is an integer value.
 In contrast, :class:`Annotations <mne.Annotations>` represents the
 ``onset`` in seconds (relative to the reference ``orig_time``),
- and the ``description`` is an arbitrary string.
+and the ``description`` is an arbitrary string.
 There is no correspondence between the second element of events and
 :class:`Annotations <mne.Annotations>`.
 For events, the second element corresponds to the ID of the previously active
