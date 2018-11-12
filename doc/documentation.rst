@@ -553,7 +553,6 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    manual/decoding.rst
     auto_tutorials/plot_sensors_decoding.rst
 
 .. raw:: html
@@ -566,7 +565,6 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 
     auto_examples/decoding/decoding_rsa.rst
     auto_examples/decoding/plot_decoding_csp_eeg.rst
-    auto_examples/decoding/plot_decoding_csp_space.rst
     auto_examples/decoding/plot_decoding_csp_timefreq.rst
     auto_examples/decoding/plot_decoding_spatio_temporal_source.rst
     auto_examples/decoding/plot_decoding_spoc_CMC.rst

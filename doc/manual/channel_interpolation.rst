@@ -60,11 +60,7 @@ To interpolate bad channels, one can simply do:
 
 	>>> evoked.interpolate_bads(reset_bads=False)  # doctest: +SKIP
 
-and the bad channel will be fixed
-
-.. image:: ../../_images/sphx_glr_plot_interpolate_bad_channels_002.png
-   :align: center
-   :height: 300 px
+and the bad channel will be fixed.
 
 .. topic:: Examples:
 

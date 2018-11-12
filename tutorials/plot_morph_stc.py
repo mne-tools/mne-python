@@ -100,12 +100,6 @@ usage and for more details on:
 
     - Save a SourceMorph object to disk
 
-Here is an example result for morphing **volume** source estimates:
-
-:ref:`sphx_glr_auto_examples_inverse_plot_morph_volume_stc.py`
-
-.. image:: ../../_images/sphx_glr_plot_morph_volume_stc_001.png
-
 Morphing **surface** source estimates
 =====================================
 
@@ -235,12 +229,6 @@ usage and for more details:
     - Save a :class:`mne.SourceMorph` object to disk
 
 Please see also Gramfort *et al.* (2013) [4]_.
-
-Example result for morphing **surface** source estimates:
-
-:ref:`sphx_glr_auto_examples_inverse_plot_morph_surface_stc.py`
-
-.. image:: ../../_images/sphx_glr_plot_morph_surface_stc_001.png
 
 References
 ==========

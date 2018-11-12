@@ -12,12 +12,12 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import inspect
-import os
-from os.path import relpath, dirname
-import sys
 from datetime import date
-import sphinx_gallery  # noqa
+from distutils.version import LooseVersion
+import os
+import sys
+
+import sphinx_gallery
 import sphinx_bootstrap_theme
 from numpydoc import numpydoc, docscrape  # noqa
 import sphinx_fontawesome
@@ -285,7 +285,7 @@ intersphinx_mapping = {
     'numpy': ('https://www.numpy.org/devdocs', None),
     'scipy': ('https://scipy.github.io/devdocs', None),
     'matplotlib': ('https://matplotlib.org', None),
-    'sklearn': ('http://scikit-learn.org/stable', None),
+    'sklearn': ('https://scikit-learn.org/stable', None),
     'mayavi': ('http://docs.enthought.com/mayavi/mayavi', None),
     'nibabel': ('http://nipy.org/nibabel', None),
     'nilearn': ('http://nilearn.github.io', None),
@@ -314,7 +314,6 @@ sphinx_gallery_conf = {
         },
     'examples_dirs': examples_dirs,
     'gallery_dirs': gallery_dirs,
-    'find_mayavi_figures': find_mayavi_figures,
     'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),
     'backreferences_dir': 'generated',
     'plot_gallery': 'True',  # Avoid annoying Unicode/bool default warning
@@ -323,5 +322,11 @@ sphinx_gallery_conf = {
     'min_reported_time': 1.,
     'abort_on_example_error': False,
 }
+
+if LooseVersion(sphinx_gallery.__version__) < LooseVersion('0.2.0'):
+    sphinx_gallery_conf['find_mayavi_figures'] = find_mayavi_figures
+else:
+    scrapers = ('matplotlib',) + (('mayavi',) if find_mayavi_figures else ())
+    sphinx_gallery_conf['image_scrapers'] = scrapers
 
 numpydoc_class_members_toctree = False

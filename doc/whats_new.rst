@@ -111,7 +111,7 @@ Changelog
 
 - Add parameter ``rank=None`` to :func:`mne.beamformer.make_dics` by `Marijn van Vliet`_
 
-- Add parameter ``rank='full'`` to :func:`mne.beamformer.make_lcmv``, which can be set to ``None`` to auto-compute the rank of the covariance matrix before regularization by `Marijn van Vliet`_
+- Add parameter ``rank='full'`` to :func:`mne.beamformer.make_lcmv`, which can be set to ``None`` to auto-compute the rank of the covariance matrix before regularization by `Marijn van Vliet`_
 
 
 Bug

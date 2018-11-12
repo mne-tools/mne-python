@@ -882,10 +882,16 @@ class deprecated(object):
 
     def _update_doc(self, olddoc):
         newdoc = ".. warning:: DEPRECATED"
+        # Get the spacing right to avoid sphinx warnings
+        n_space = 4
+        for li, line in enumerate(olddoc.split('\n')):
+            if li > 0 and len(line.strip()):
+                n_space = len(line) - len(line.lstrip())
+                break
         if self.extra:
             newdoc = "%s: %s" % (newdoc, self.extra)
         if olddoc:
-            newdoc = "%s\n\n    %s" % (newdoc, olddoc)
+            newdoc = "%s\n\n%s%s" % (newdoc, ' ' * n_space, olddoc)
         return newdoc
 
 
