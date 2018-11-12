@@ -1,6 +1,6 @@
 r"""
 ===============
-Decoding in MNE
+Decoding (MVPA)
 ===============
 
 .. contents:: Contents
@@ -11,10 +11,10 @@ Decoding in MNE
 
 Design philosophy
 =================
-MNE follows the API of the Scikit-learn package.
-Each estimator implements a ``fit``, a ``transform`` and
-a ``fit_transform`` method. In some cases, they also implement an
-``inverse_transform`` method. For more details on this design,
+Decoding (a.k.a. MVPA) in MNE largely follows the machine
+learning API of the scikit-learn package.
+Each estimator implements ``fit``, ``transform``, ``fit_transform``, and
+(optionally) ``inverse_transform`` methods. For more details on this design,
 visit scikit-learn_.
 
 For ease of comprehension, we will denote instantiations of the class using
