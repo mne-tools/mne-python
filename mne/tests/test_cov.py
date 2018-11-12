@@ -734,9 +734,9 @@ def test_low_rank():
     with pytest.deprecated_call(match='rank'):
         compute_covariance(epochs, method='oas')
     # degenerate
-    with pytest.raises(ValueError, match='can only be used with rank="full"'):
+    with pytest.raises(ValueError, match='can.*only be used with rank="full"'):
         compute_covariance(epochs, rank=None, method='pca')
-    with pytest.raises(ValueError, match='can only be used with rank="full"'):
+    with pytest.raises(ValueError, match='can.*only be used with rank="full"'):
         compute_covariance(epochs, rank=None, method='factor_analysis')
 
 
