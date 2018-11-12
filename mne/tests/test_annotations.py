@@ -17,7 +17,7 @@ import numpy as np
 import mne
 from mne import create_info, read_annotations, events_from_annotations
 from mne import Epochs, Annotations
-from mne.utils import run_tests_if_main, _TempDir, requires_pandas
+from mne.utils import run_tests_if_main, _TempDir, requires_version
 from mne.io import read_raw_fif, RawArray, concatenate_raws
 from mne.io.tests.test_raw import _raw_annot
 from mne.annotations import _sync_onset, _handle_meas_date
@@ -658,7 +658,7 @@ def dummy_annotation_csv_file(tmpdir_factory):
     return fname
 
 
-@requires_pandas
+@requires_version('pandas', '0.16')
 def test_io_annotation_csv(dummy_annotation_csv_file, tmpdir_factory):
     """Test CSV input/output."""
     annot = read_annotations(str(dummy_annotation_csv_file))
