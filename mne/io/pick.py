@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
@@ -678,7 +679,7 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False, exclude='bads'):
     ----------
     info : instance of mne.measuerment_info.Info
         The info.
-    meg_combined : bool | 'auto'
+    meg_combined : bool | 'auto'
         Whether to return combined picks for grad and mag.
         Can be 'auto' to choose based on Maxwell filtering status.
     ref_meg : bool
