@@ -147,7 +147,7 @@ Bug
 
 - Fix bug with channel names in ``mgh70`` montage in :func:`mne.channels.read_montage` by `Eric Larson`_
 
-- Fix duplication of ``info['hpi_meas']`` and ``info['hpi_results']`` by `sarasommariva`_
+- Fix duplication of ``info['hpi_meas']`` and ``info['hpi_results']`` by `Sara Sommariva`_
 
 - Fix bug in :func:`mne.io.read_raw_edf` when reading large files on Windows by `Marcin Koculak`_
 
@@ -3009,4 +3009,4 @@ of commits):
 
 .. _jeythekey: https://github.com/jeythekey
 
-.. _sarasommariva: https://github.com/sarasommariva
+.. _Sara Sommariva: http://www.dima.unige.it/~sommariva/
