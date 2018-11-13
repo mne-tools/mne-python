@@ -45,7 +45,7 @@ jobs:
               conda env create --quiet -f environment.yml;
               source activate mne;
               conda install sphinx;
-              pip install sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master"
+              pip install sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler
               pip uninstall --yes mne;
               echo "source activate mne" >> $BASH_ENV;
         - save_cache:

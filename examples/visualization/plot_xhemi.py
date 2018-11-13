@@ -31,7 +31,8 @@ stc = mne.compute_source_morph(stc, 'sample', 'fsaverage_sym', smooth=5,
 # and vice-versa.
 morph = mne.compute_source_morph(stc, 'fsaverage_sym', 'fsaverage_sym',
                                  spacing=stc.vertices, warn=False,
-                                 subjects_dir=subjects_dir, xhemi=True)
+                                 subjects_dir=subjects_dir, xhemi=True,
+                                 verbose='error')  # creating morph map
 stc_xhemi = morph.apply(stc)
 
 # Now we can subtract them and plot the result:

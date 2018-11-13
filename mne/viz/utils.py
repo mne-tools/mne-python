@@ -20,7 +20,7 @@ import numpy as np
 from copy import deepcopy
 from distutils.version import LooseVersion
 from itertools import cycle
-from warnings import catch_warnings
+import warnings
 
 from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
@@ -129,20 +129,20 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
 
     fig.canvas.draw()
     try:  # see https://github.com/matplotlib/matplotlib/issues/2654
-        with catch_warnings(record=True) as ws:
+        with warnings.catch_warnings(record=True) as ws:
             fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
     except Exception:
         try:
-            with catch_warnings(record=True) as ws:
+            with warnings.catch_warnings(record=True) as ws:
                 fig.set_tight_layout(dict(pad=pad, h_pad=h_pad, w_pad=w_pad))
         except Exception:
             warn('Matplotlib function "tight_layout" is not supported.'
                  ' Skipping subplot adjustment.')
             return
     for w in ws:
-        w = str(w.message) if hasattr(w, 'message') else w.get_message()
-        if not w.startswith('This figure includes Axes'):
-            warn(w)
+        w_msg = str(w.message) if hasattr(w, 'message') else w.get_message()
+        if not w_msg.startswith('This figure includes Axes'):
+            warn(w_msg, w.category, 'matplotlib')
 
 
 def _check_delayed_ssp(container):
@@ -170,7 +170,7 @@ def _validate_if_list_of_axes(axes, obligatory_len=None):
                          'dimensions however. Try using ravel or flatten '
                          'method of the array.' % axes.ndim)
     is_correct_type = np.array([isinstance(x, mpl.axes.Axes)
-                               for x in axes])
+                                for x in axes])
     if not np.all(is_correct_type):
         first_bad = np.where(np.logical_not(is_correct_type))[0][0]
         raise ValueError('axes must be a list or numpy array of matplotlib '
@@ -2666,10 +2666,10 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
         # compute bounds between time samples
         time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]
         time_lims = np.concatenate([[times[0] - time_diff[0]], times[:-1] +
-                                   time_diff, [times[-1] + time_diff[-1]]])
+                                    time_diff, [times[-1] + time_diff[-1]]])
 
         log_yvals = np.concatenate([[yvals[0] / ratio[0]], yvals,
-                                   [yvals[-1] * ratio[0]]])
+                                    [yvals[-1] * ratio[0]]])
         yval_lims = np.sqrt(log_yvals[:-1] * log_yvals[1:])
 
         # construct a time-yvaluency bounds grid

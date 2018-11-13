@@ -8,7 +8,6 @@ from __future__ import print_function
 
 import copy
 from functools import partial
-from warnings import warn
 
 import numpy as np
 
@@ -29,7 +28,7 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
                     _handle_decim, _setup_plot_projector, _check_cov,
-                    _set_ax_label_style, _draw_vert_line)
+                    _set_ax_label_style, _draw_vert_line, warn)
 from .evoked import _plot_lines
 
 

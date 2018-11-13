@@ -31,6 +31,7 @@ References
 #
 # License: BSD (3-clause)
 import os
+import warnings
 
 import matplotlib.pyplot as plt
 
@@ -41,6 +42,8 @@ from mne.minimum_norm import apply_inverse, read_inverse_operator
 from nilearn.plotting import plot_glass_brain
 
 print(__doc__)
+
+print(len(warnings.filters))
 
 ###############################################################################
 # Setup paths
@@ -158,3 +161,4 @@ stc_fsaverage = mne.compute_source_morph(inverse_operator['src'],
                                          subjects_dir=subjects_dir).apply(stc)
 
 plt.show()
+print(len(warnings.filters))

@@ -371,7 +371,7 @@ def sum_squared(X):
     return np.dot(X_flat, X_flat)
 
 
-def warn(message, category=RuntimeWarning):
+def warn(message, category=RuntimeWarning, module='mne'):
     """Emit a warning with trace outside the mne namespace.
 
     This function takes arguments like warnings.warn, and sends messages
@@ -386,6 +386,8 @@ def warn(message, category=RuntimeWarning):
         Warning message.
     category : instance of Warning
         The warning class. Defaults to ``RuntimeWarning``.
+    module : str
+        The name of the module emitting the warning.
     """
     root_dir = op.dirname(__file__)
     frame = None
@@ -412,8 +414,9 @@ def warn(message, category=RuntimeWarning):
         # We need to use this instead of warn(message, category, stacklevel)
         # because we move out of the MNE stack, so warnings won't properly
         # recognize the module name (and our warnings.simplefilter will fail)
-        warnings.warn_explicit(message, category, fname, lineno,
-                               'mne', globals().get('__warningregistry__', {}))
+        warnings.warn_explicit(
+            message, category, fname, lineno, module,
+            globals().get('__warningregistry__', {}))
     # To avoid a duplicate warning print, we only emit the logger.warning if
     # one of the handlers is a FileHandler. See gh-5592
     if any(isinstance(h, logging.FileHandler) or getattr(h, '_mne_file_like',

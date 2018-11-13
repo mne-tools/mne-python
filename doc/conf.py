@@ -16,13 +16,19 @@ from datetime import date
 from distutils.version import LooseVersion
 import os
 import sys
+import warnings
 
 import sphinx_gallery
+from sphinx_gallery.sorting import FileNameSortKey
 import sphinx_bootstrap_theme
 from numpydoc import numpydoc, docscrape  # noqa
 import sphinx_fontawesome
 import mne
 from mne.utils import linkcode_resolve  # noqa, analysis:ignore
+
+if LooseVersion(sphinx_gallery.__version__) < LooseVersion('0.2'):
+    raise ImportError('Must have at least version 0.2 of sphinx-gallery, got '
+                      '%s' % (sphinx_gallery.__version__,))
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -37,7 +43,7 @@ if not os.path.isdir('_images'):
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-#needs_sphinx = '1.0'
+needs_sphinx = '1.8'
 
 # XXX This hack defines what extra methods numpydoc will document
 docscrape.ClassDoc.extra_public_methods = mne.utils._doc_special_members
@@ -61,7 +67,7 @@ extensions = [
 ]
 
 autosummary_generate = True
-autodoc_default_flags = ['inherited-members']
+autodoc_default_options = {'inherited-members': None}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -300,18 +306,49 @@ gallery_dirs = ['auto_examples', 'auto_tutorials']
 
 try:
     mlab = mne.utils._import_mlab()
-    find_mayavi_figures = True
     # Do not pop up any mayavi windows while running the
     # examples. These are very annoying since they steal the focus.
     mlab.options.offscreen = True
+    scrapers = ('matplotlib', 'mayavi')
 except Exception:
-    find_mayavi_figures = False
+    scrapers = ('matplotlib',)
+else:
+    # Let's do the same thing we do in tests: reraise traits exceptions
+    from traits.api import push_exception_handler
+    push_exception_handler(reraise_exceptions=True)
 
+
+def reset_warnings(gallery_conf, fname):
+    """Ensure we are future compatible and ignore silly warnings."""
+    # In principle, our examples should produce no warnings.
+    # Here we cause warnings to become errors, with a few exceptions.
+    # This list should be considered alongside
+    # setup.cfg -> [tool:pytest] -> filterwarnings
+
+    # remove tweaks from other module imports or example runs
+    warnings.resetwarnings()
+    # restrict
+    warnings.filterwarnings('error')
+    # allow these, but show them
+    warnings.filterwarnings('always', '.*Axes that are not compatible.*')
+    warnings.filterwarnings('default', module='sphinx')  # internal warnings
+    # allow these DeprecationWarnings, but don't show them
+    warnings.filterwarnings('ignore', '.*is currently using agg.*')
+    for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
+                r"it will be an error for 'np\.bool_'",  # ndimage
+                "'U' mode is deprecated",  # sphinx io
+                ):
+        warnings.filterwarnings(  # deal with other modules having bad imports
+            'ignore', message=".*%s.*" % key, category=DeprecationWarning)
+    # allow this ImportWarning, but don't show it
+    warnings.filterwarnings(
+        'ignore', message="can't resolve package from", category=ImportWarning)
+
+
+reset_warnings(None, None)
 sphinx_gallery_conf = {
     'doc_module': ('mne',),
-    'reference_url': {
-        'mne': None,
-        },
+    'reference_url': dict(mne=None),
     'examples_dirs': examples_dirs,
     'gallery_dirs': gallery_dirs,
     'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),
@@ -321,12 +358,11 @@ sphinx_gallery_conf = {
     'thumbnail_size': (160, 112),
     'min_reported_time': 1.,
     'abort_on_example_error': False,
+    'reset_modules': ('matplotlib', reset_warnings),  # called w/each script
+    'image_scrapers': scrapers,
+    'show_memory': True,
+    'line_numbers': True,
+    'within_subsection_order': FileNameSortKey,
 }
-
-if LooseVersion(sphinx_gallery.__version__) < LooseVersion('0.2.0'):
-    sphinx_gallery_conf['find_mayavi_figures'] = find_mayavi_figures
-else:
-    scrapers = ('matplotlib',) + (('mayavi',) if find_mayavi_figures else ())
-    sphinx_gallery_conf['image_scrapers'] = scrapers
 
 numpydoc_class_members_toctree = False
