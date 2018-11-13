@@ -102,7 +102,8 @@ noise_cov_baseline.plot(epochs.info, proj=True)
 # described in [1]_. For this the 'auto' option can be used. With this
 # option cross-validation will be used to learn the optimal regularization:
 
-noise_cov_reg = mne.compute_covariance(epochs, tmax=0., method='auto')
+noise_cov_reg = mne.compute_covariance(epochs, tmax=0., method='auto',
+                                       rank=None)
 
 ###############################################################################
 # This procedure evaluates the noise covariance quantitatively by how well it
@@ -145,7 +146,8 @@ evoked.plot_white(noise_cov_reg, time_unit='s')
 # :ref:`sphx_glr_auto_examples_inverse_plot_covariance_whitening_dspm.py`):
 
 noise_covs = mne.compute_covariance(
-    epochs, tmax=0., method=('empirical', 'shrunk'), return_estimators=True)
+    epochs, tmax=0., method=('empirical', 'shrunk'), return_estimators=True,
+    rank=None)
 evoked.plot_white(noise_covs, time_unit='s')
 
 

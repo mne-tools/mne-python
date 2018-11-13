@@ -104,7 +104,7 @@ for n_train in samples_epochs:
     # with verbose='error'
     noise_covs = compute_covariance(
         epochs_train, method=method, tmin=None, tmax=0,  # baseline only
-        return_estimators=True, verbose='error')  # returns list
+        return_estimators=True, rank=None, verbose='error')  # returns list
     # prepare contrast
     evokeds = [epochs_train[k].average() for k in conditions]
     del epochs_train, events_

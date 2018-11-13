@@ -147,10 +147,15 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
 
     classes = np.unique(y)
 
+    # XXX Eventually this could be made to deal with rank deficiency properly
+    # by exposing this "rank" parameter, but this will require refactoring
+    # the linalg.eigh call to operate in the lower-dimension
+    # subspace, then project back out.
+
     # Retrieve or compute whitening covariance
     if signal_cov is None:
         signal_cov = _regularized_covariance(
-            np.hstack(epochs_data), reg, method_params, info)
+            np.hstack(epochs_data), reg, method_params, info, rank='full')
     elif isinstance(signal_cov, Covariance):
         signal_cov = signal_cov.data
     if not isinstance(signal_cov, np.ndarray) or (
@@ -175,7 +180,8 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
     for evo, toeplitz in zip(evokeds, toeplitzs):
         # Estimate covariance matrix of the prototype response
         evo = np.dot(evo, toeplitz)
-        evo_cov = _regularized_covariance(evo, reg, method_params, info)
+        evo_cov = _regularized_covariance(evo, reg, method_params, info,
+                                          rank='full')
 
         # Fit spatial filters
         try:

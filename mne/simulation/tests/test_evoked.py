@@ -40,7 +40,8 @@ def test_simulate_evoked():
     evoked_template = read_evokeds(ave_fname, condition=0, baseline=None)
     evoked_template.pick_types(meg=True, eeg=True, exclude=raw.info['bads'])
 
-    cov = regularize(cov, evoked_template.info)
+    with pytest.deprecated_call(match='full'):  # this won't depend on rank
+        cov = regularize(cov, evoked_template.info)
     nave = evoked_template.nave
 
     tmin = -0.1

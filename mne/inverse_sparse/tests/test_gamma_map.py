@@ -63,7 +63,7 @@ def test_gamma_map():
     evoked.crop(tmin=0.1, tmax=0.14)  # crop to window around peak
 
     cov = read_cov(fname_cov)
-    cov = regularize(cov, evoked.info)
+    cov = regularize(cov, evoked.info, rank=None)
 
     alpha = 0.5
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
@@ -98,7 +98,7 @@ def test_gamma_map_vol_sphere():
     evoked.crop(tmin=0.1, tmax=0.16)  # crop to window around peak
 
     cov = read_cov(fname_cov)
-    cov = regularize(cov, evoked.info)
+    cov = regularize(cov, evoked.info, rank=None)
 
     info = evoked.info
     sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.080)

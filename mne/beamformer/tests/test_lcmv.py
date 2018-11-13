@@ -89,7 +89,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     noise_cov = mne.read_cov(fname_cov)
     noise_cov['projs'] = []  # avoid warning
     noise_cov = mne.cov.regularize(noise_cov, info, mag=0.05, grad=0.05,
-                                   eeg=0.1, proj=True)
+                                   eeg=0.1, proj=True, rank=None)
     if data_cov:
         data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.145)
     else:
@@ -539,7 +539,7 @@ def test_tf_lcmv():
             epochs_band, tmin=tmin, tmax=tmin + win_length)
         noise_cov = mne.cov.regularize(
             noise_cov, epochs_band.info, mag=reg, grad=reg, eeg=reg,
-            proj=True)
+            proj=True, rank=None)
         noise_covs.append(noise_cov)
         del raw_band  # to save memory
 
