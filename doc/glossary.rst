@@ -21,13 +21,14 @@ MNE-Python core terminology and general concepts
 
 
     annotations
-        One annotation is defined by an onset, a duration and a string
+        An annotation is defined by an onset, a duration, and a string
         description. It can contain information about the experiments, but
         also details on signals marked by a human: bad data segments,
         sleep scores, sleep events (spindles, K-complex) etc.
         An :class:`Annotations` object is a container of multiple annotations.
         See :class:`Annotations` page for the API of the corresponding
-        object class.
+        object class and :ref:`sphx_glr_auto_tutorials_plot_object_annotations.py`
+        for a tutorial on how to manipulate such objects.
 
     channels
         Channels refer to MEG sensors, EEG electrodes or any extra electrode
