@@ -27,22 +27,6 @@ from .io.tag import read_tag
 class Annotations(object):
     """Annotation object for annotating segments of raw data.
 
-    Annotations are added to instance of :class:`mne.io.Raw` as an attribute
-    named ``annotations``. To reject bad epochs using annotations, use
-    annotation description starting with 'bad' keyword. The epochs with
-    overlapping bad segments are then rejected automatically by default.
-
-    To remove epochs with blinks you can do::
-
-        >>> eog_events = mne.preprocessing.find_eog_events(raw)  # doctest: +SKIP
-        >>> n_blinks = len(eog_events)  # doctest: +SKIP
-        >>> onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25  # doctest: +SKIP
-        >>> duration = np.repeat(0.5, n_blinks)  # doctest: +SKIP
-        >>> description = ['bad blink'] * n_blinks  # doctest: +SKIP
-        >>> annotations = mne.Annotations(onset, duration, description)  # doctest: +SKIP
-        >>> raw.set_annotations(annotations)  # doctest: +SKIP
-        >>> epochs = mne.Epochs(raw, events, event_id, tmin, tmax)  # doctest: +SKIP
-
     Parameters
     ----------
     onset : array of float, shape (n_annotations,)
@@ -66,6 +50,24 @@ class Annotations(object):
 
     Notes
     -----
+    Annotations are added to instance of :class:`mne.io.Raw` as an attribute
+    named ``annotations``. To reject bad epochs using annotations, use
+    annotation description starting with 'bad' keyword. The epochs with
+    overlapping bad segments are then rejected automatically by default.
+
+    To remove epochs with blinks you can do:
+
+    >>> eog_events = mne.preprocessing.find_eog_events(raw)  # doctest: +SKIP
+    >>> n_blinks = len(eog_events)  # doctest: +SKIP
+    >>> onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25  # doctest: +SKIP
+    >>> duration = np.repeat(0.5, n_blinks)  # doctest: +SKIP
+    >>> description = ['bad blink'] * n_blinks  # doctest: +SKIP
+    >>> annotations = mne.Annotations(onset, duration, description)  # doctest: +SKIP
+    >>> raw.set_annotations(annotations)  # doctest: +SKIP
+    >>> epochs = mne.Epochs(raw, events, event_id, tmin, tmax)  # doctest: +SKIP
+
+    orig_time
+    ^^^^^^^^^
     If ``orig_time`` is None, the annotations are synced to the start of the
     data (0 seconds). Otherwise the annotations are synced to sample 0 and
     ``raw.first_samp`` is taken into account the same way as with events.
@@ -480,7 +482,8 @@ def _write_annotations_txt(fname, annot):
         content += "# orig_time : %s   \n" % orig_dt
     content += "# onset, duration, description\n"
 
-    data = np.array([annot.onset, annot.duration, annot.description]).T
+    data = np.array([annot.onset, annot.duration, annot.description],
+                    dtype=str).T
     with open(fname, 'w') as fid:
         fid.write(content)
         np.savetxt(fid, data, delimiter=',', fmt="%s")
@@ -648,13 +651,10 @@ def _read_annotations_txt_parse_header(fname):
 
 
 def _read_annotations_txt(fname):
-    txt_annotation_format = {
-        'names': ('onset', 'duration', 'description'),
-        'formats': ('f4', 'f4', object)}
-
     onset, duration, desc = np.loadtxt(fname, delimiter=',',
-                                       dtype=txt_annotation_format,
-                                       unpack=True)
+                                       dtype=str, unpack=True)
+    onset = [float(o) for o in onset]
+    duration = [float(d) for d in duration]
     desc = [str(d).strip() for d in desc]
     return onset, duration, desc
 

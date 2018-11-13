@@ -697,8 +697,8 @@ def test_io_annotation_txt(dummy_annotation_txt_file, tmpdir_factory):
     """Test TXT input/output."""
     annot = read_annotations(str(dummy_annotation_txt_file))
     assert annot.orig_time is None
-    assert_array_equal(annot.onset, np.array([3.14, 6.28], dtype=np.float32))
-    assert_array_equal(annot.duration, np.array([42., 48], dtype=np.float32))
+    assert_array_equal(annot.onset, [3.14, 6.28])
+    assert_array_equal(annot.duration, [42., 48])
     assert_array_equal(annot.description, ['AA', 'BB'])
 
     # Now test writing
@@ -768,8 +768,9 @@ def test_read_annotation_txt_orig_time(
     """Test TXT input/output."""
     annot = read_annotations(str(dummy_annotation_txt_file_with_orig_time))
     assert annot.orig_time == 1038942071.7201
-    assert_array_equal(annot.onset, np.array([3.14, 6.28], dtype=np.float32))
-    assert_array_equal(annot.duration, np.array([42., 48], dtype=np.float32))
+    assert_array_equal(annot.onset, [3.14, 6.28])
+    assert_array_equal(annot.duration, [42., 48])
     assert_array_equal(annot.description, ['AA', 'BB'])
+
 
 run_tests_if_main()
