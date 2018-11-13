@@ -150,7 +150,7 @@ for ii, ix_delay in enumerate(delays):
     elif ix_delay < 0:
         take[-1] = slice(-ix_delay, None)
         put[-1] = slice(None, ix_delay)
-    X_del[ii][put] = X[take]
+    X_del[ii][tuple(put)] = X[tuple(take)]
 
 # Now set the delayed axis to the 2nd dimension
 X_del = np.rollaxis(X_del, 0, 3)

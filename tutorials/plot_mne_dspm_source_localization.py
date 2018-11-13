@@ -43,7 +43,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
 # For more details see :ref:`tut_compute_covariance`.
 
 noise_cov = mne.compute_covariance(
-    epochs, tmax=0., method=['shrunk', 'empirical'], verbose=True)
+    epochs, tmax=0., method=['shrunk', 'empirical'], rank=None, verbose=True)
 
 fig_cov, fig_spectra = mne.viz.plot_cov(noise_cov, raw.info)
 

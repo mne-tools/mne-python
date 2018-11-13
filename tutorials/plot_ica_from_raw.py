@@ -55,8 +55,8 @@ ica = ICA(n_components=0.95, method='fastica', random_state=0, max_iter=100)
 picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
                        stim=False, exclude='bads')
 
-ica.fit(raw, picks=picks, decim=3, reject=dict(mag=4e-12, grad=4000e-13),
-        verbose='warning')  # low iterations -> does not fully converge
+# low iterations -> does not fully converge
+ica.fit(raw, picks=picks, decim=3, reject=dict(mag=4e-12, grad=4000e-13))
 
 # maximum number of components to reject
 n_max_ecg, n_max_eog = 3, 1  # here we don't expect horizontal EOG components

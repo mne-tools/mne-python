@@ -332,9 +332,14 @@ def reset_warnings(gallery_conf, fname):
     # allow these, but show them
     warnings.filterwarnings('always', '.*cannot make axes width small.*')
     warnings.filterwarnings('always', '.*Axes that are not compatible.*')
+    warnings.filterwarnings('always', '.*FastICA did not converge.*')
     warnings.filterwarnings('default', module='sphinx')  # internal warnings
+    warnings.filterwarnings(
+        'always', '.*converting a masked element to nan.*')  # matplotlib?
     # allow these warnings, but don't show them
     warnings.filterwarnings('ignore', '.*is currently using agg.*')
+    warnings.filterwarnings(
+        'ignore', '.*the matrix subclass is not the recommended.*')
     warnings.filterwarnings(
         'ignore', '.*semaphore_tracker: process died unexpectedly.*')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
