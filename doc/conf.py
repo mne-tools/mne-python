@@ -330,10 +330,13 @@ def reset_warnings(gallery_conf, fname):
     # restrict
     warnings.filterwarnings('error')
     # allow these, but show them
+    warnings.filterwarnings('always', '.*cannot make axes width small.*')
     warnings.filterwarnings('always', '.*Axes that are not compatible.*')
     warnings.filterwarnings('default', module='sphinx')  # internal warnings
-    # allow these DeprecationWarnings, but don't show them
+    # allow these warnings, but don't show them
     warnings.filterwarnings('ignore', '.*is currently using agg.*')
+    warnings.filterwarnings(
+        'ignore', '.*semaphore_tracker: process died unexpectedly.*')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 r"it will be an error for 'np\.bool_'",  # ndimage
                 "'U' mode is deprecated",  # sphinx io

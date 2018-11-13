@@ -216,7 +216,7 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
             msg = ('At least one of the wavelets is longer than the signal. '
                    'Consider padding the signal or using shorter wavelets.')
             if use_fft:
-                warn(msg)
+                warn(msg, UserWarning)
                 warn_me = False  # Suppress further warnings
             else:
                 raise ValueError(msg)

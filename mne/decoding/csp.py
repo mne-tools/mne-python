@@ -706,6 +706,10 @@ class SPoC(CSP):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
+    rank : None | int | dict | 'full'
+        See :func:`mne.compute_covariance`.
+
+        .. versionadded:: 0.17
 
     Attributes
     ----------
@@ -731,11 +735,12 @@ class SPoC(CSP):
     """
 
     def __init__(self, n_components=4, reg=None, log=None,
-                 transform_into='average_power', cov_method_params=None):
+                 transform_into='average_power', cov_method_params=None,
+                 rank=''):
         """Init of SPoC."""
         super(SPoC, self).__init__(n_components=n_components, reg=reg, log=log,
                                    cov_est="epoch", norm_trace=False,
-                                   transform_into=transform_into,
+                                   transform_into=transform_into, rank=rank,
                                    cov_method_params=cov_method_params)
         # Covariance estimation have to be done on the single epoch level,
         # unlike CSP where covariance estimation can also be achieved through
@@ -779,7 +784,8 @@ class SPoC(CSP):
         covs = np.empty((n_epochs, n_channels, n_channels))
         for ii, epoch in enumerate(X):
             covs[ii] = _regularized_covariance(
-                epoch, reg=self.reg, method_params=self.cov_method_params)
+                epoch, reg=self.reg, method_params=self.cov_method_params,
+                rank=self.rank)
 
         C = covs.mean(0)
         Cz = np.mean(covs * target[:, np.newaxis, np.newaxis], axis=0)

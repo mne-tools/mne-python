@@ -631,7 +631,7 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
         else:
             msg = "Zero value in PSD for channel(s) %s. " \
                   "These channels might be dead." % dead_ch
-        warn(msg)
+        warn(msg, UserWarning)
 
     if estimate == 'auto':
         estimate = 'power' if dB else 'amplitude'

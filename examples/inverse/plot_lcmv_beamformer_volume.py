@@ -63,9 +63,10 @@ evoked.plot_joint(ts_args=dict(time_unit='s'),
 # Compute covariance matrices, fit and apply  spatial filter.
 
 # Read regularized noise covariance and compute regularized data covariance
-noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk')
+noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk',
+                                   rank=None)
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
-                                  method='shrunk')
+                                  method='shrunk', rank=None)
 
 # Compute weights of free orientation (vector) beamformer with weight
 # normalization (neural activity index, NAI). Providing a noise covariance
