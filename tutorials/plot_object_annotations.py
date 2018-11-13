@@ -144,6 +144,7 @@ print(raw_a.annotations)
 print(raw_b.annotations)
 
 # Show that the onsets are the same
+np.set_printoptions(precision=6)
 print(raw_a.annotations.onset)
 print(raw_b.annotations.onset)
 
