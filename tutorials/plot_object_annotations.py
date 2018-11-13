@@ -149,7 +149,6 @@ print(raw_a.annotations.onset)
 print(raw_b.annotations.onset)
 
 ###############################################################################
-#
 # Notice that for the case where ``orig_time`` is ``None``,
 # one assumes that the orig_time is the time of the first sample of data.
 
@@ -159,7 +158,6 @@ print('annot_none.onset[0] is {}'.format(annot_none.onset[0]))
 print('raw_a.annotations.onset[0] is {}'.format(raw_a.annotations.onset[0]))
 
 ###############################################################################
-#
 # It is possible to concatenate two annotations with the + operator like for
 # lists if both share the same ``orig_time``
 
@@ -168,3 +166,17 @@ annot = mne.Annotations(onset=[10], duration=[0.5],
                         orig_time=orig_time)
 annot = annot_orig + annot  # concatenation
 print(annot)
+
+###############################################################################
+# Note that you can also save annotations to disk in FIF format::
+#
+#     >>> annot.save('my-annot.fif')
+#
+# Or as CSV with onsets in (absolute) ISO timestamps::
+#
+#     >>> annot.save('my-annot.csv')
+#
+# Or in plain text with onsets relative to ``orig_time``::
+#
+#     >>> annot.save('my-annot.txt')
+#

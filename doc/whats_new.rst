@@ -21,6 +21,8 @@ Changelog
 
 - New tutorial in the documentation regarding :class:`mne.Annotations` by `Joan Massich`_ and  `Alex Gramfort`_
 
+- Add support for saving :class:`mne.Annotations` as CSV and TXT files by `Joan Massich`_ and `Alex Gramfort`_
+
 - Add :meth:`mne.Epochs.shift_time` that shifts the time axis of :class:`mne.Epochs` by `Thomas Hartmann`_
 
 - Add :func:`mne.viz.plot_arrowmap` computes arrowmaps using Hosaka-Cohen transformation from magnetometer or gradiometer data, these arrows represents an estimation of the current flow underneath the MEG sensors by `Sheraz Khan`_
