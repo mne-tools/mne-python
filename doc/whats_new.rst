@@ -147,6 +147,8 @@ Bug
 
 - Fix bug with channel names in ``mgh70`` montage in :func:`mne.channels.read_montage` by `Eric Larson`_
 
+- Fix duplication of ``info['hpi_meas']`` and ``info['hpi_results']`` by `sarasommariva`_
+
 - Fix bug in :func:`mne.io.read_raw_edf` when reading large files on Windows by `Marcin Koculak`_
 
 - Fix check in :func:`mne.viz.plot_sensors` for invalid channel locations by `Eric Larson`_
@@ -214,6 +216,8 @@ Bug
 - Fix error in mne coreg when saving with scaled MRI if fiducials haven't been saved by `Ezequiel Mikulan`_
 
 - Fix normalization error in :func:`mne.beamformer.make_lcmv` when ``pick_ori='normal', weight_norm='unit_noise_gain'`` by `Marijn van Vliet`_
+
+- Update MNE-C installation instructions by `buildqa`_
 
 - Fix computation of max-power orientation in :func:`mne.beamformer.make_dics` when ``pick_ori='max-power', weight_norm='unit_noise_gain'`` by `Marijn van Vliet`_
 
@@ -1723,6 +1727,8 @@ Changelog
 
 - Adapt ``corrmap`` function (Viola et al. 2009) to semi-automatically detect similar ICs across data sets by `Jona Sassenhagen`_ and `Denis Engemann`_ and `Eric Larson`_
 
+- Clarify docstring for :class:`mne.preprocessing.ICA` by `jeythekey`_
+
 - New ``mne flash_bem`` command to compute BEM surfaces from Flash MRI images by `Lorenzo Desantis`_, `Alex Gramfort`_ and `Eric Larson`_. See :func:`mne.bem.make_flash_bem`.
 
 - New gfp parameter in :func:`mne.Evoked.plot` method to display Global Field Power (GFP) by `Eric Larson`_.
@@ -2996,3 +3002,11 @@ of commits):
 .. _Marcin Koculak: https://github.com/mkoculak
 
 .. _David Sabbagh: https://github.com/DavidSabbagh
+
+.. _Hubert Banville: https://github.com/hubertjb
+
+.. _buildqa: https://github.com/buildqa
+
+.. _jeythekey: https://github.com/jeythekey
+
+.. _sarasommariva: https://github.com/sarasommariva
