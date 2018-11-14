@@ -1,8 +1,8 @@
 """
-The **events** and :class:`Annotations <mne.Annotations>` data structures
+The **events** and :class:`~mne.Annotations` data structures
 =========================================================================
 
-Events and :class:`Annotations <mne.Annotations>` are quite similar.
+Events and :class:`~mne.Annotations` are quite similar.
 This tutorial highlights their differences and similarities, and tries to shed
 some light on which one is preferred to use in different situations when using
 MNE.
@@ -22,28 +22,28 @@ Here are the definitions from the :ref:`glossary`.
         also details on signals marked by a human: bad data segments,
         sleep scores, sleep events (spindles, K-complex) etc.
 
-Both events and :class:`Annotations <mne.Annotations>` can be seen as triplets
+Both events and :class:`~mne.Annotations` can be seen as triplets
 where the first element answers to **when** something happens and the last
 element refers to **what** it is.
 The main difference is that events represent the onset in samples taking into
 account the first sample value
 (:attr:`raw.first_samp <mne.io.Raw.first_samp>`), and the description is
 an integer value.
-In contrast, :class:`Annotations <mne.Annotations>` represents the
+In contrast, :class:`~mne.Annotations` represents the
 ``onset`` in seconds (relative to the reference ``orig_time``),
 and the ``description`` is an arbitrary string.
 There is no correspondence between the second element of events and
-:class:`Annotations <mne.Annotations>`.
+:class:`~mne.Annotations`.
 For events, the second element corresponds to the previous value on the
 stimulus channel from which events are extracted. In practice, the second
 element is therefore in most cases zero.
-The second element of :class:`Annotations <mne.Annotations>` is a float
+The second element of :class:`~mne.Annotations` is a float
 indicating its duration in seconds.
 
 See :ref:`sphx_glr_auto_examples_io_plot_read_events.py`
 for a complete example of how to read, select, and visualize **events**;
 and :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_rejection.py` to
-learn how :class:`Annotations <mne.Annotations>` are used to mark bad segments
+learn how :class:`~mne.Annotations` are used to mark bad segments
 of data.
 
 An example of events and annotations
@@ -64,7 +64,7 @@ fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(fname)
 
 ###############################################################################
-# First we'll create and plot events:
+# First we'll create and plot events associated with the experimental paradigm:
 
 # extract the events array from the stim channel
 events = mne.find_events(raw)
@@ -79,8 +79,8 @@ mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp, color=color,
                     event_id=event_id)
 
 ###############################################################################
-# Next, we're going to find instances of eye blinks and turn them into
-# :class:`Annotations <mne.Annotations>`:
+# Next, we're going to detect eye blinks and turn them into
+# :class:`~mne.Annotations`:
 
 # find blinks
 annotated_blink_raw = raw.copy()
@@ -92,7 +92,8 @@ n_blinks = len(eog_events)
 onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25
 duration = np.repeat(0.5, n_blinks)
 description = ['bad blink'] * n_blinks
-annot = mne.Annotations(onset, duration, description)
+annot = mne.Annotations(onset, duration, description,
+                        orig_time=raw.info['meas_date'])
 annotated_blink_raw.set_annotations(annot)
 
 # plot the annotated raw
@@ -103,14 +104,14 @@ annotated_blink_raw.plot()
 # Working with Annotations
 # ------------------------
 #
-# An important element of :class:`Annotations <mne.Annotations>` is
+# An important element of :class:`~mne.Annotations` is
 # ``orig_time`` which is the time reference for the ``onset``.
 # It is key to understand that when calling
 # :func:`raw.set_annotations <mne.io.Raw.set_annotations>`, given
 # annotations are copied and transformed so that
 # :class:`raw.annotations.orig_time <mne.Annotations>`
 # matches the recording time of the raw object.
-# Refer to the documentation of :class:`Annotations <mne.Annotations>` to see
+# Refer to the documentation of :class:`~mne.Annotations` to see
 # the expected behavior depending on ``meas_date`` and ``orig_time``.
 # Where ``meas_date`` is the recording time stored in
 # :class:`Info <mne.Info>`.
