@@ -69,8 +69,13 @@ def test_orig_units():
 def test_bdf_data():
     """Test reading raw bdf files."""
     raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
+                              eog=eog, misc=misc,
+                              exclude=['M2', 'IEOG'], stim_channel=None)
+    assert len(raw_py.ch_names) == 71
+    raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
                               montage=montage_path, eog=eog, misc=misc,
                               exclude=['M2', 'IEOG'], stim_channel=-1)
+    assert len(raw_py.ch_names) == 71
     assert 'RawEDF' in repr(raw_py)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
