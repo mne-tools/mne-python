@@ -66,7 +66,7 @@ src = mne.read_source_spaces(op.join(bem_dir, 'sample-oct-6-src.fif'))
 # using the inner skull surface (here using 10mm spacing to save time):
 
 vol_src = setup_volume_source_space(
-    subject, mri=fname_aseg, pos=7.0, bem=fname_model,
+    subject, mri=fname_aseg, pos=10.0, bem=fname_model,
     volume_label=labels_vol, subjects_dir=subjects_dir, verbose=True)
 
 # Generate the mixed source space

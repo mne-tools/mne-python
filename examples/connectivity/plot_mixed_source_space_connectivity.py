@@ -53,25 +53,23 @@ labels_vol = ['Left-Amygdala',
               'Right-Thalamus-Proper',
               'Right-Cerebellum-Cortex']
 
-# Setup a surface-based source space
+# Setup a surface-based source space, oct5 is not very dense (just used
+# to speed up this example)
 src = setup_source_space(subject, subjects_dir=subjects_dir,
-                         spacing='oct6', add_dist=False)
+                         spacing='oct5', add_dist=False)
 
 # Setup a volume source space
-# set pos=7.0 for speed issue
-vol_src = setup_volume_source_space(subject, mri=fname_aseg,
-                                    pos=7.0,
-                                    bem=fname_model,
-                                    volume_label=labels_vol,
-                                    subjects_dir=subjects_dir)
+# set pos=10.0 for speed, not very accurate
+vol_src = setup_volume_source_space(
+    subject, mri=fname_aseg, pos=10.0, bem=fname_model,
+    volume_label=labels_vol, subjects_dir=subjects_dir)
 # Generate the mixed source space
 src += vol_src
 
 # compute the fwd matrix
 fwd = make_forward_solution(fname_raw, fname_trans, src, fname_bem,
                             mindist=5.0,  # ignore sources<=5mm from innerskull
-                            meg=True, eeg=False,
-                            n_jobs=1)
+                            meg=True, eeg=False, n_jobs=1)
 
 # Load data
 raw = read_raw_fif(fname_raw, preload=True)

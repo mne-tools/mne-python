@@ -338,10 +338,12 @@ def reset_warnings(gallery_conf, fname):
         'always', '.*converting a masked element to nan.*')  # matplotlib?
     # allow these warnings, but don't show them
     warnings.filterwarnings('ignore', '.*is currently using agg.*')
-    warnings.filterwarnings(
+    warnings.filterwarnings(  # SciPy-related warning (maybe 1.2.0 will fix it)
         'ignore', '.*the matrix subclass is not the recommended.*')
-    warnings.filterwarnings(
+    warnings.filterwarnings(  # some joblib warning
         'ignore', '.*semaphore_tracker: process died unexpectedly.*')
+    warnings.filterwarnings(  # needed until SciPy 1.2.0 is released
+        'ignore', '.*will be interpreted as an array index.*', module='scipy')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 r"it will be an error for 'np\.bool_'",  # ndimage
                 "'U' mode is deprecated",  # sphinx io
