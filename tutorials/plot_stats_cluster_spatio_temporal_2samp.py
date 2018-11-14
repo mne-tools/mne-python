@@ -85,7 +85,7 @@ f_threshold = stats.distributions.f.ppf(1. - p_threshold / 2.,
 print('Clustering.')
 T_obs, clusters, cluster_p_values, H0 = clu =\
     spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=1,
-                                 threshold=f_threshold)
+                                 threshold=f_threshold, buffer_size=None)
 #    Now select the clusters that are sig. at p < 0.05 (note that this value
 #    is multiple-comparisons corrected).
 good_cluster_inds = np.where(cluster_p_values < 0.05)[0]

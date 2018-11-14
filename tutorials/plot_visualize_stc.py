@@ -53,9 +53,10 @@ stc.plot(subjects_dir=subjects_dir, initial_time=initial_time)
 # time using ``time_viewer=True``.
 #
 # In case ``mayavi`` is not available, we also offer a ``matplotlib``
-# backend.
+# backend. Here we use verbose='error' to ignore a warning that not all
+# vertices were used in plotting.
 stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
-         backend='matplotlib')
+         backend='matplotlib', verbose='error')
 
 ###############################################################################
 #

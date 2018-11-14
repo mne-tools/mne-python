@@ -8,6 +8,7 @@
 from copy import deepcopy
 from itertools import count
 from math import sqrt
+import warnings
 
 import numpy as np
 from scipy import linalg
@@ -108,9 +109,10 @@ class Projection(dict):
         .. versionadded:: 0.15.0
         """  # noqa: E501
         from ..viz.topomap import plot_projs_topomap
-        return plot_projs_topomap([self], layout, cmap, sensors, colorbar,
-                                  res, size, show, outlines,
-                                  contours, image_interp, axes, info)
+        with warnings.catch_warnings(record=True):  # tight_layout fails
+            return plot_projs_topomap([self], layout, cmap, sensors, colorbar,
+                                      res, size, show, outlines,
+                                      contours, image_interp, axes, info)
 
 
 class ProjMixin(object):

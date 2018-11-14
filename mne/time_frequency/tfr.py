@@ -12,7 +12,6 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 from copy import deepcopy
 from functools import partial
 from math import sqrt
-from warnings import warn
 
 import numpy as np
 from scipy import linalg
@@ -28,7 +27,7 @@ from ..io.pick import (pick_info, _pick_data_channels,
 from ..io.meas_info import Info
 from ..utils import SizeMixin, _is_numeric
 from .multitaper import dpss_windows
-from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
+from ..viz.utils import (figure_nobar, plt_show, _setup_cmap, warn,
                          _connection_line, _prepare_joint_axes,
                          _setup_vmin_vmax, _set_title_multiple_electrodes)
 from ..externals.h5io import write_hdf5, read_hdf5
@@ -217,7 +216,7 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
             msg = ('At least one of the wavelets is longer than the signal. '
                    'Consider padding the signal or using shorter wavelets.')
             if use_fft:
-                warn(msg)
+                warn(msg, UserWarning)
                 warn_me = False  # Suppress further warnings
             else:
                 raise ValueError(msg)

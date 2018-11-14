@@ -66,8 +66,8 @@ class Annotations(object):
     >>> raw.set_annotations(annotations)  # doctest: +SKIP
     >>> epochs = mne.Epochs(raw, events, event_id, tmin, tmax)  # doctest: +SKIP
 
-    orig_time
-    ^^^^^^^^^
+    **orig_time**
+
     If ``orig_time`` is None, the annotations are synced to the start of the
     data (0 seconds). Otherwise the annotations are synced to sample 0 and
     ``raw.first_samp`` is taken into account the same way as with events.

@@ -5,7 +5,7 @@ Decoding real-time data
 
 Supervised machine learning applied to MEG data in sensor space.
 Here the classifier is updated every 5 trials and the decoding
-accuracy is plotted
+accuracy is plotted.
 """
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
 #
@@ -13,6 +13,12 @@ accuracy is plotted
 
 import numpy as np
 import matplotlib.pyplot as plt
+
+from sklearn import preprocessing
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import cross_val_score, ShuffleSplit
+from mne.decoding import Vectorizer, FilterEstimator
 
 import mne
 from mne.realtime import MockRtClient, RtEpochs
@@ -52,13 +58,6 @@ rt_client.send_data(rt_epochs, picks, tmin=0, tmax=90, buffer_size=1000)
 # Decoding in sensor space using a linear SVM
 n_times = len(rt_epochs.times)
 
-from sklearn import preprocessing  # noqa
-from sklearn.svm import SVC  # noqa
-from sklearn.pipeline import Pipeline  # noqa
-from sklearn.model_selection import cross_val_score, ShuffleSplit  # noqa
-from mne.decoding import Vectorizer, FilterEstimator  # noqa
-
-
 scores_x, scores, std_scores = [], [], []
 
 # don't highpass filter because it's epoched data and the signal length
@@ -66,7 +65,7 @@ scores_x, scores, std_scores = [], [], []
 filt = FilterEstimator(rt_epochs.info, None, 40, fir_design='firwin')
 scaler = preprocessing.StandardScaler()
 vectorizer = Vectorizer()
-clf = SVC(C=1, kernel='linear')
+clf = LogisticRegression(solver='lbfgs')
 
 concat_classifier = Pipeline([('filter', filt), ('vector', vectorizer),
                               ('scaler', scaler), ('svm', clf)])
@@ -83,19 +82,20 @@ plt.axhline(50, color='k', linestyle='--', label="Chance level")
 plt.show(block=False)
 
 for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
+    if ev_num >= 50:  # stop at 50
+        break
 
     print("Just got epoch %d" % (ev_num + 1))
 
     if ev_num == 0:
-        X = ev.data[None, data_picks, :]
+        X = ev.data[np.newaxis, data_picks, :]
         y = int(ev.comment)  # the comment attribute contains the event_id
     else:
-        X = np.concatenate((X, ev.data[None, data_picks, :]), axis=0)
+        X = np.concatenate((X, ev.data[np.newaxis, data_picks, :]), axis=0)
         y = np.append(y, int(ev.comment))
 
-    if ev_num >= min_trials:
-
-        cv = ShuffleSplit(5, test_size=0.2, random_state=42)
+    if ev_num >= min_trials and ev_num % 5 == 0:
+        cv = ShuffleSplit(5, test_size=0.2, random_state=42)  # 3 for speed
         scores_t = cross_val_score(concat_classifier, X, y, cv=cv,
                                    n_jobs=1) * 100
 

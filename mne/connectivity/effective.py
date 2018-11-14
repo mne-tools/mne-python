@@ -153,10 +153,10 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
         for fi, fj in zip(freq_idx, freq_idx[1:]):
             idx_fi[freq_dim] = fi
             idx_fj[freq_dim] = fj
-            acc += np.conj(cohy[idx_fi]) * cohy[idx_fj]
+            acc += np.conj(cohy[tuple(idx_fi)]) * cohy[tuple(idx_fj)]
 
         idx_fi[freq_dim] = band_idx
-        psi[idx_fi] = np.imag(acc)
+        psi[tuple(idx_fi)] = np.imag(acc)
     logger.info('[PSI Estimation Done]')
 
     return psi, freqs, times, n_epochs, n_tapers

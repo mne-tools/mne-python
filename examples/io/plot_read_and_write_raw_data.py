@@ -37,7 +37,7 @@ start, stop = raw.time_as_index([0, 15])  # read the first 15s of data
 data, times = raw[some_picks, start:(stop + 1)]
 
 # save 150s of MEG data in FIF file
-raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks=picks,
+raw.save('sample_audvis_meg_trunc_raw.fif', tmin=0, tmax=150, picks=picks,
          overwrite=True)
 
 ###############################################################################

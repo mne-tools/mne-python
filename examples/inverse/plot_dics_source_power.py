@@ -54,11 +54,16 @@ forward = mne.read_forward_solution(fname_fwd)
 # Computing the cross-spectral density matrix at 4 evenly spaced frequencies
 # from 6 to 10 Hz. We use a decim value of 20 to speed up the computation in
 # this example at the loss of accuracy.
+#
+# .. warning:: The use of several sensor types with the DICS beamformer is
+#              not heavily tested yet. Here we use verbose='error' to
+#              suppress a warning along these lines.
 csd = csd_morlet(epochs, tmin=0, tmax=0.5, decim=20,
-                 frequencies=np.linspace(6, 10, 4))
+                 frequencies=np.linspace(6, 10, 4),
+                 n_cycles=2.5)  # short signals, must live with few cycles
 
 # Compute DICS spatial filter and estimate source power.
-filters = make_dics(epochs.info, forward, csd, reg=0.5)
+filters = make_dics(epochs.info, forward, csd, reg=0.5, verbose='error')
 print(filters)
 stc, freqs = apply_dics_csd(csd, filters)
 

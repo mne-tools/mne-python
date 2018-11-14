@@ -16,3 +16,4 @@ delimeters
 delimeter
 nd
 cas
+thes

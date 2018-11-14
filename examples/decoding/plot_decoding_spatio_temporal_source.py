@@ -1,4 +1,6 @@
 """
+.. _tut_dec_st_source:
+
 ==========================
 Decoding source space data
 ==========================
@@ -8,47 +10,47 @@ univariate feature selection is employed for speed purposes to confine the
 classification to a small number of potentially relevant features. The
 classifier then is trained to selected features of epochs in source space.
 """
+# sphinx_gallery_thumbnail_number = 2
+
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #         Jean-Remi King <jeanremi.king@gmail.com>
+#         Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
-import os
+
 import numpy as np
 import matplotlib.pyplot as plt
+
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.linear_model import LogisticRegression
+
 import mne
-from mne import io
-from mne.datasets import sample
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.decoding import (cross_val_multiscore, LinearModel, SlidingEstimator,
                           get_coef)
 
 print(__doc__)
 
-data_path = sample.data_path()
+data_path = mne.datasets.sample.data_path()
 fname_fwd = data_path + 'MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 subjects_dir = data_path + '/subjects'
-subject = os.environ['SUBJECT'] = subjects_dir + '/sample'
-os.environ['SUBJECTS_DIR'] = subjects_dir
 
 ###############################################################################
 # Set parameters
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
-label_names = 'Aud-rh', 'Vis-rh'
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 
 tmin, tmax = -0.2, 0.8
 event_id = dict(aud_r=2, vis_r=4)  # load contra-lateral conditions
 
 # Setup for reading the raw data
-raw = io.read_raw_fif(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.filter(None, 10., fir_design='firwin')
 events = mne.read_events(event_fname)
 
@@ -83,7 +85,7 @@ y = epochs.events[:, 2]
 # prepare a series of classifier applied at each time sample
 clf = make_pipeline(StandardScaler(),  # z-score normalization
                     SelectKBest(f_classif, k=500),  # select features for speed
-                    LinearModel(LogisticRegression(C=1)))
+                    LinearModel(LogisticRegression(C=1, solver='liblinear')))
 time_decod = SlidingEstimator(clf, scoring='roc_auc')
 
 # Run cross-validated decoding analyses:
@@ -112,4 +114,5 @@ stc_feat = mne.SourceEstimate(np.abs(patterns), vertices=vertices,
                               tmin=stc.tmin, tstep=stc.tstep, subject='sample')
 
 brain = stc_feat.plot(views=['lat'], transparent=True,
-                      initial_time=0.1, time_unit='s')
+                      initial_time=0.1, time_unit='s',
+                      subjects_dir=subjects_dir)

@@ -7,7 +7,6 @@
 from collections import Counter
 import os
 import sys
-from warnings import warn
 
 import numpy as np
 from scipy.linalg import inv
@@ -15,7 +14,7 @@ from threading import Thread
 
 from ..externals.six.moves import queue
 from ..io.meas_info import _read_dig_points, _make_dig_points
-from ..utils import get_config, set_config, logger
+from ..utils import get_config, set_config, logger, warn
 
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel

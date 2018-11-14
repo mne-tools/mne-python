@@ -2,7 +2,7 @@
 #
 
 # You can set these variables from the command line.
-SPHINXOPTS    =
+SPHINXOPTS    = -n -W -T --keep-going
 SPHINXBUILD   = sphinx-build
 PAPER         =
 
@@ -33,13 +33,7 @@ help:
 	@echo "  doctest          to run all doctests embedded in the documentation (if enabled)"
 
 clean:
-	-rm -rf _build/*
-	-rm -rf auto_examples
-	-rm -rf auto_tutorials
-	-rm -rf generated
-	-rm -rf *.stc
-	-rm -rf *.fif
-	-rm -rf *.nii.gz
+	-rm -rf _build/* auto_examples auto_tutorials generated *.stc *.fif *.nii.gz
 
 html_stable:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html_stable

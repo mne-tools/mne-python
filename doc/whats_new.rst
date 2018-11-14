@@ -111,7 +111,7 @@ Changelog
 
 - Add parameter ``rank=None`` to :func:`mne.beamformer.make_dics` by `Marijn van Vliet`_
 
-- Add parameter ``rank='full'`` to :func:`mne.beamformer.make_lcmv``, which can be set to ``None`` to auto-compute the rank of the covariance matrix before regularization by `Marijn van Vliet`_
+- Add parameter ``rank='full'`` to :func:`mne.beamformer.make_lcmv`, which can be set to ``None`` to auto-compute the rank of the covariance matrix before regularization by `Marijn van Vliet`_
 
 
 Bug
@@ -146,6 +146,8 @@ Bug
 - Fix bug with :func:`mne.stats.permutation_cluster_test` and :func:`mne.stats.spatio_temporal_cluster_test` where ``threshold=None`` was not calculated properly for a f-oneway test by `Daniel McCloy`_ and `Eric Larson`_
 
 - Fix bug with channel names in ``mgh70`` montage in :func:`mne.channels.read_montage` by `Eric Larson`_
+
+- Fix duplication of ``info['hpi_meas']`` and ``info['hpi_results']`` by `Sara Sommariva`_
 
 - Fix bug in :func:`mne.io.read_raw_edf` when reading large files on Windows by `Marcin Koculak`_
 
@@ -214,6 +216,8 @@ Bug
 - Fix error in mne coreg when saving with scaled MRI if fiducials haven't been saved by `Ezequiel Mikulan`_
 
 - Fix normalization error in :func:`mne.beamformer.make_lcmv` when ``pick_ori='normal', weight_norm='unit_noise_gain'`` by `Marijn van Vliet`_
+
+- Update MNE-C installation instructions by `buildqa`_
 
 - Fix computation of max-power orientation in :func:`mne.beamformer.make_dics` when ``pick_ori='max-power', weight_norm='unit_noise_gain'`` by `Marijn van Vliet`_
 
@@ -748,7 +752,7 @@ API
 
 - Allow passing a list of channel names as ``show_names`` in function  :func:`mne.viz.plot_sensors` and methods :meth:`mne.Evoked.plot_sensors`, :meth:`mne.Epochs.plot_sensors` and :meth:`mne.io.Raw.plot_sensors` to show only a subset of channel names by `Jaakko Leppakangas`_
 
-- Make function `mne.io.eeglab.read_events_eeglab` public to allow loading overlapping events from EEGLAB files, by `Jona Sassenhagen`_.
+- Make function ``mne.io.eeglab.read_events_eeglab`` public to allow loading overlapping events from EEGLAB files, by `Jona Sassenhagen`_.
 
 - :func:`mne.find_events` ``mask_type`` parameter will change from ``'not_and'`` to ``'and'`` in 0.16.
 
@@ -1722,6 +1726,8 @@ Changelog
 - Add source space morphing in :func:`morph_source_spaces` and :func:`SourceEstimate.to_original_src` by `Eric Larson`_ and `Denis Engemann`_
 
 - Adapt ``corrmap`` function (Viola et al. 2009) to semi-automatically detect similar ICs across data sets by `Jona Sassenhagen`_ and `Denis Engemann`_ and `Eric Larson`_
+
+- Clarify docstring for :class:`mne.preprocessing.ICA` by `jeythekey`_
 
 - New ``mne flash_bem`` command to compute BEM surfaces from Flash MRI images by `Lorenzo Desantis`_, `Alex Gramfort`_ and `Eric Larson`_. See :func:`mne.bem.make_flash_bem`.
 
@@ -2996,3 +3002,11 @@ of commits):
 .. _Marcin Koculak: https://github.com/mkoculak
 
 .. _David Sabbagh: https://github.com/DavidSabbagh
+
+.. _Hubert Banville: https://github.com/hubertjb
+
+.. _buildqa: https://github.com/buildqa
+
+.. _jeythekey: https://github.com/jeythekey
+
+.. _Sara Sommariva: http://www.dima.unige.it/~sommariva/

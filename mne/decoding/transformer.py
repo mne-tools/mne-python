@@ -480,6 +480,13 @@ class FilterEstimator(TransformerMixin):
     See Also
     --------
     TemporalFilter
+
+    Notes
+    -----
+    This is primarily meant for use in conjunction with
+    :class:`mne.realtime.RtEpochs`. In general it is not recommended in a
+    normal processing pipeline as it may result in edge artifacts. Use with
+    caution.
     """
 
     def __init__(self, info, l_freq, h_freq, picks=None, filter_length='auto',
