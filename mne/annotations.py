@@ -50,8 +50,10 @@ class Annotations(object):
 
     Notes
     -----
-    Annotations are added to instance of :class:`mne.io.Raw` as an attribute
-    named ``annotations``. To reject bad epochs using annotations, use
+    Annotations are added to instance of :class:`mne.io.Raw` as the attribute
+    :attr:`raw.annotations <mne.io.Raw.annotations>`.
+
+    To reject bad epochs using annotations, use
     annotation description starting with 'bad' keyword. The epochs with
     overlapping bad segments are then rejected automatically by default.
 

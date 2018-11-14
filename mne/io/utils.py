@@ -13,10 +13,22 @@
 import numpy as np
 import os
 
+from ..utils import warn
 from ..externals.six import b
 from .constants import FIFF
 from .meas_info import _get_valid_units
-from mne.utils import deprecated
+
+
+def _deprecate_stim_channel(stim_channel):
+    if stim_channel is None:
+        warn('stim_channel (default True in 0.17) will change to False in '
+             '0.18 and be removed in 0.19, set it to False in 0.17 to '
+             'avoid this warning', DeprecationWarning)
+        stim_channel = True
+    if not isinstance(stim_channel, bool):
+        raise TypeError('stim_channel must be boolean, got type %s'
+                        % (type(stim_channel),))
+    return stim_channel
 
 
 def _check_orig_units(orig_units):
@@ -272,7 +284,6 @@ def _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg, misc):
     return chs
 
 
-@deprecated('deprecate stim_channel synthesis.')
 def _synthesize_stim_channel(events, n_samples):
     """Synthesize a stim channel from events read from an event file.
 

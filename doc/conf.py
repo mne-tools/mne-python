@@ -373,7 +373,7 @@ sphinx_gallery_conf = {
     'reset_modules': ('matplotlib', reset_warnings),  # called w/each script
     'image_scrapers': scrapers,
     'show_memory': True,
-    'line_numbers': True,
+    'line_numbers': False,  # XXX currently (0.3.dev0) messes with style
     'within_subsection_order': FileNameSortKey,
 }
 

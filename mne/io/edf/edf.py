@@ -109,21 +109,30 @@ class RawEDF(BaseRaw):
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
-    stim_channel : str | int | 'auto' | None
+    stim_channel : str | int | 'auto' | False
         The channel name or channel index (starting at 0). -1 corresponds to
-        the last channel. If None, there will be no stim channel added. If
+        the last channel. If False, there will be no stim channel added. If
         'auto' (default), the stim channel will be added as the last channel if
         the header contains ``'EDF Annotations'`` or GDF events (otherwise stim
-        channel will not be added).
+        channel will not be added). None is accepted as an alias for False.
+
+        .. warning:: This defaults to 'auto' in 0.17 but will default to False
+                     in 0.18 (when no stim channel synthesis will be allowed)
+                     and will be removed in 0.19; migrate code to use
+                     :func:`mne.events_from_annotations` instead.
+
     annot : str | None
         Path to annotation file.
         If None, no derived stim channel will be added (for files requiring
         annotation file to interpret stim channel).
+        This was deprecated in 0.17 and will be removed in 0.18.
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
+        This was deprecated in 0.17 and will be removed in 0.18.
     event_id : dict
         The event_id variable that can be passed to Epochs.
+        This was deprecated in 0.17 and will be removed in 0.18.
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
@@ -177,7 +186,7 @@ class RawEDF(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
-                 stim_channel='auto', annot=None, annotmap=None, exclude=(),
+                 stim_channel='', annot=None, annotmap=None, exclude=(),
                  preload=False, verbose=None):  # noqa: D102
         logger.info('Extracting EDF parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
@@ -415,6 +424,13 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
 def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
               preload):
     """Extract all the information from the EDF+, BDF or GDF file."""
+    # backward compat aliasing; code below wants to see None but in 0.18
+    # we allow/prefer False for consistency with BV/EEGLAB
+    stim_channel = None if stim_channel is False else stim_channel
+    if stim_channel == '':
+        warn('stim_channel will default to "auto" in 0.17 but change to False '
+             'in 0.18, and will be removed in 0.19', DeprecationWarning)
+        stim_channel = 'auto'
     if eog is None:
         eog = []
     if misc is None:
@@ -1199,7 +1215,7 @@ def _find_exclude_idx(ch_names, exclude):
 
 
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
-                 stim_channel='auto', annot=None, annotmap=None, exclude=(),
+                 stim_channel='', annot=None, annotmap=None, exclude=(),
                  preload=False, verbose=None):
     """Reader function for EDF+, BDF, GDF conversion to FIF.
 
@@ -1219,19 +1235,30 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
-    stim_channel : str | int | 'auto' | None
+    stim_channel : str | int | 'auto' | False
         The channel name or channel index (starting at 0). -1 corresponds to
-        the last channel. If None, there will be no stim channel added. If
+        the last channel. If False, there will be no stim channel added. If
         'auto' (default), the stim channel will be added as the last channel if
         the header contains ``'EDF Annotations'`` or GDF events (otherwise stim
-        channel will not be added).
+        channel will not be added). None is accepted as an alias for False.
+
+        .. warning:: This defaults to 'auto' in 0.17 but will default to False
+                     in 0.18 (when no stim channel synthesis will be allowed)
+                     and will be removed in 0.19; migrate code to use
+                     :func:`mne.events_from_annotations` instead.
+
     annot : str | None
         Path to annotation file.
         If None, no derived stim channel will be added (for files requiring
         annotation file to interpret stim channel).
+        This was deprecated in 0.17 and will be removed in 0.18.
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
+        This was deprecated in 0.17 and will be removed in 0.18.
+    event_id : dict
+        The event_id variable that can be passed to Epochs.
+        This was deprecated in 0.17 and will be removed in 0.18.
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
