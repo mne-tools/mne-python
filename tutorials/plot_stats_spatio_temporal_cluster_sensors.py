@@ -101,7 +101,7 @@ p_accept = 0.01
 
 cluster_stats = spatio_temporal_cluster_test(X, n_permutations=1000,
                                              threshold=threshold, tail=1,
-                                             n_jobs=1,
+                                             n_jobs=1, buffer_size=None,
                                              connectivity=connectivity)
 
 T_obs, clusters, p_values, _ = cluster_stats
