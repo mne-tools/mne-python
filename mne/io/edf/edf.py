@@ -130,9 +130,6 @@ class RawEDF(BaseRaw):
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
         This was deprecated in 0.17 and will be removed in 0.18.
-    event_id : dict
-        The event_id variable that can be passed to Epochs.
-        This was deprecated in 0.17 and will be removed in 0.18.
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
@@ -1255,9 +1252,6 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
-        This was deprecated in 0.17 and will be removed in 0.18.
-    event_id : dict
-        The event_id variable that can be passed to Epochs.
         This was deprecated in 0.17 and will be removed in 0.18.
     exclude : list of str
         Channel names to exclude. This can help when reading data with
