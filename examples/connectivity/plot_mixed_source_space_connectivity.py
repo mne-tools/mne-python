@@ -62,6 +62,7 @@ src = setup_source_space(subject, subjects_dir=subjects_dir,
 # set pos=10.0 for speed, not very accurate
 vol_src = setup_volume_source_space(
     subject, mri=fname_aseg, pos=10.0, bem=fname_model,
+    add_interpolator=False,  # just for speed, usually use True
     volume_label=labels_vol, subjects_dir=subjects_dir)
 # Generate the mixed source space
 src += vol_src
