@@ -18,7 +18,7 @@ Here are the definitions from the :ref:`glossary`.
 
     annotations
         An annotation is defined by an onset, a duration, and a string
-        description. It can contain information about the experiments, but
+        description. It can contain information about the experiment, but
         also details on signals marked by a human: bad data segments,
         sleep scores, sleep events (spindles, K-complex) etc.
 
@@ -63,10 +63,13 @@ data_path = mne.datasets.sample.data_path()
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(fname)
 
-# Plot the events
+###############################################################################
+# First we'll create and plot events:
+
+# extract the events array from the stim channel
 events = mne.find_events(raw)
 
-# Specify event_id dictionary based on the experiment
+# Specify event_id dictionary based on the meaning of experimental triggers
 event_id = {'Auditory/Left': 1, 'Auditory/Right': 2,
             'Visual/Left': 3, 'Visual/Right': 4,
             'smiley': 5, 'button': 32}
@@ -75,19 +78,25 @@ color = {1: 'green', 2: 'yellow', 3: 'red', 4: 'c', 5: 'black', 32: 'blue'}
 mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp, color=color,
                     event_id=event_id)
 
-# Create some annotations specifying onset, duration and description
+###############################################################################
+# Next, we're going to find instances of eye blinks and turn them into
+# :class:`Annotations <mne.Annotations>`:
+
+# find blinks
 annotated_blink_raw = raw.copy()
 eog_events = mne.preprocessing.find_eog_events(raw)
 n_blinks = len(eog_events)
-# Center to cover the whole blink with full duration of 0.5s:
+
+# Turn blink events into Annotations of 0.5 seconds duration,
+# each centered on the blink event:
 onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25
 duration = np.repeat(0.5, n_blinks)
 description = ['bad blink'] * n_blinks
-annot = mne.Annotations(onset, duration, description,
-                        orig_time=raw.info['meas_date'])
+annot = mne.Annotations(onset, duration, description)
 annotated_blink_raw.set_annotations(annot)
 
-annotated_blink_raw.plot()  # plot the annotated raw
+# plot the annotated raw
+annotated_blink_raw.plot()
 
 
 ###############################################################################
@@ -97,7 +106,7 @@ annotated_blink_raw.plot()  # plot the annotated raw
 # An important element of :class:`Annotations <mne.Annotations>` is
 # ``orig_time`` which is the time reference for the ``onset``.
 # It is key to understand that when calling
-# :func:`raw.set_annotations <mne.io.Raw.set_annotations>`, the given
+# :func:`raw.set_annotations <mne.io.Raw.set_annotations>`, given
 # annotations are copied and transformed so that
 # :class:`raw.annotations.orig_time <mne.Annotations>`
 # matches the recording time of the raw object.
@@ -111,10 +120,11 @@ annotated_blink_raw.plot()  # plot the annotated raw
 # We'll now manipulate some simulated annotations.
 # The first annotations has ``orig_time`` set to ``None`` while the
 # second is set to a chosen POSIX timestamp for illustration purposes.
+# Note that both annotations have different ``onset`` values.
 
 ###############################################################################
 
-# Create an annotation object without orig_time
+# Create an annotation object with orig_time undefined (default)
 annot_none = mne.Annotations(onset=[0, 2, 9], duration=[0.5, 4, 0],
                              description=['foo', 'bar', 'foo'],
                              orig_time=None)
@@ -128,8 +138,8 @@ annot_orig = mne.Annotations(onset=[22, 24, 31], duration=[0.5, 4, 0],
 print(annot_orig)
 
 ###############################################################################
-# Now we create two raw objects, set the annotations and plot them to compare
-# them.
+# Now we create two raw objects and set each with different annotations.
+# Then we plot both raw objects to compare the annotations.
 
 # Create two cropped copies of raw with the two previous annotations
 raw_a = raw.copy().crop(tmax=12).set_annotations(annot_none)
@@ -138,6 +148,16 @@ raw_b = raw.copy().crop(tmax=12).set_annotations(annot_orig)
 # Plot the raw objects
 raw_a.plot()
 raw_b.plot()
+
+###############################################################################
+# Note that although the ``onset`` values of both annotations were different,
+# due to complementary ``orig_time`` they are now identical. This is because
+# the first one (``annot_none``), once set in raw, adopted its ``orig_time``.
+# The second one (``annot_orig``) already had an ``orig_time``, so its
+# ``orig_time`` was changed to match the onset time of the raw. Changing an
+# already defined ``orig_time`` of annotations caused its ``onset`` to be
+# recalibrated with respect to the new ``orig_time``. As a result both
+# annotations have now identical ``onset`` and identical ``orig_time``:
 
 # Show the annotations in the raw objects
 print(raw_a.annotations)
@@ -149,8 +169,8 @@ print(raw_a.annotations.onset)
 print(raw_b.annotations.onset)
 
 ###############################################################################
-# Notice that for the case where ``orig_time`` is ``None``,
-# one assumes that the orig_time is the time of the first sample of data.
+# Notice again that for the case where ``orig_time`` is ``None``,
+# it is assumed that the ``orig_time`` is the time of the first sample of data.
 
 raw_delta = (1 / raw.info['sfreq'])
 print('raw.first_sample is {}'.format(raw.first_samp * raw_delta))
@@ -158,8 +178,8 @@ print('annot_none.onset[0] is {}'.format(annot_none.onset[0]))
 print('raw_a.annotations.onset[0] is {}'.format(raw_a.annotations.onset[0]))
 
 ###############################################################################
-# It is possible to concatenate two annotations with the + operator like for
-# lists if both share the same ``orig_time``
+# It is possible to concatenate two annotations with the + operator (just like
+# lists) if both share the same ``orig_time``
 
 annot = mne.Annotations(onset=[10], duration=[0.5],
                         description=['foobar'],
