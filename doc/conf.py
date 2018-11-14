@@ -333,6 +333,8 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings('always', '.*cannot make axes width small.*')
     warnings.filterwarnings('always', '.*Axes that are not compatible.*')
     warnings.filterwarnings('always', '.*FastICA did not converge.*')
+    warnings.filterwarnings(  # xhemi morph (should probably update sample)
+        'always', '.*does not exist, creating it and saving it.*')
     warnings.filterwarnings('default', module='sphinx')  # internal warnings
     warnings.filterwarnings(
         'always', '.*converting a masked element to nan.*')  # matplotlib?
