@@ -13,7 +13,7 @@
 import numpy as np
 import os
 
-from ..utils import warn
+from ..utils import warn, _validate_type
 from ..externals.six import b
 from .constants import FIFF
 from .meas_info import _get_valid_units
@@ -25,9 +25,7 @@ def _deprecate_stim_channel(stim_channel):
              '0.18 and be removed in 0.19, set it to False in 0.17 to '
              'avoid this warning', DeprecationWarning)
         stim_channel = True
-    if not isinstance(stim_channel, bool):
-        raise TypeError('stim_channel must be boolean, got type %s'
-                        % (type(stim_channel),))
+    _validate_type(stim_channel, bool, 'stim_channel')
     return stim_channel
 
 

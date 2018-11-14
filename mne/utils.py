@@ -3089,7 +3089,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
         type_name = ', '.join(cls.__name__ for cls in iter_types)
     if not isinstance(item, types):
         raise TypeError('%s must be an instance of %s, got %s instead'
-                        % (type_name, types, type(item),))
+                        % (item_name, type_name, type(item),))
 
 
 def linkcode_resolve(domain, info):

@@ -22,9 +22,10 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
 
 # Helper for deprecation
-read_raw_brainvision_old = read_raw_brainvision
-read_raw_brainvision = partial(read_raw_brainvision, stim_channel=False)
-read_raw_brainvision_old = partial(read_raw_brainvision_old, stim_channel=True)
+read_raw_brainvision_orig = read_raw_brainvision
+read_raw_brainvision = partial(read_raw_brainvision_orig, stim_channel=False)
+read_raw_brainvision_old = partial(read_raw_brainvision_orig,
+                                   stim_channel=True)
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -592,6 +593,10 @@ def test_events():
     assert_equal(raw.info['nchan'], nchan)
     assert_equal(len(raw._data), nchan)
     assert_equal(raw.info['chs'][-1]['ch_name'], 'STI 014')
+
+    # degenerate
+    with pytest.raises(TypeError, match='stim_channel must be an instance of'):
+        read_raw_brainvision(vhdr_path, stim_channel='foo')
 
 
 def test_brainvision_with_montage():

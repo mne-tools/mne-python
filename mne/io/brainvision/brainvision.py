@@ -147,7 +147,9 @@ class RawBrainVision(BaseRaw):
                 elif self._order == 'C':  # vectorized, channels, in rows
                     raise NotImplementedError()
             else:
-                n_data_ch = info['nchan'] - int(stim_channel)
+                n_data_ch = int(info['nchan'])
+                if stim_channel:
+                    n_data_ch -= 1
                 f.seek(0, os.SEEK_END)
                 n_samples = f.tell()
                 dtype_bytes = _fmt_byte_dict[fmt]
@@ -190,7 +192,9 @@ class RawBrainVision(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         # read data
-        n_data_ch = len(self.ch_names) - int(self._event_ch is not None)
+        n_data_ch = len(self.ch_names)
+        if self._event_ch is not None:
+            n_data_ch -= 1
         if self._order == 'C':
             _read_segments_c(self, data, idx, fi, start, stop, cals, mult)
         elif isinstance(self.orig_format, string_types):
@@ -206,7 +210,7 @@ class RawBrainVision(BaseRaw):
                 for ii in range(stop - start):
                     line = fid.readline().decode('ASCII')
                     line = line.strip().replace(',', '.').split()
-                    block[:n_data_ch, ii] = list(map(float, line))
+                    block[:n_data_ch, ii] = [float(l) for l in line]
             if self._event_ch is not None:
                 block[-1] = self._event_ch[start:stop]
             _mult_cal_one(data, block, idx, cals, mult)
@@ -259,8 +263,7 @@ def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
     with open(raw._filenames[fi], 'rb', buffering=0) as fid:
         for ch_id in np.arange(n_channels)[idx]:
             if trigger_ch is not None and ch_id == n_channels - 1:  # stim
-                stim_ch = trigger_ch[start:stop]
-                block[ch_id] = stim_ch
+                block[ch_id] = trigger_ch[start:stop]
                 continue
             fid.seek(start * n_bytes + ch_id * n_bytes * n_samples)
             block[ch_id] = np.fromfile(fid, dtype, stop - start)
@@ -759,7 +762,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage, stim_channel):
         for ch in cfg.items('Coordinates'):
             ch_name = ch_dict[ch[0]]
             montage_names.append(ch_name)
-            radius, theta, phi = map(float, ch[1].split(','))
+            radius, theta, phi = [float(c) for c in ch[1].split(',')]
             # 1: radius, 2: theta, 3: phi
             pol = np.deg2rad(theta)
             az = np.deg2rad(phi)
