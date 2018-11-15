@@ -69,8 +69,13 @@ def test_orig_units():
 def test_bdf_data():
     """Test reading raw bdf files."""
     raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
+                              eog=eog, misc=misc,
+                              exclude=['M2', 'IEOG'], stim_channel=None)
+    assert len(raw_py.ch_names) == 71
+    raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
                               montage=montage_path, eog=eog, misc=misc,
                               exclude=['M2', 'IEOG'], stim_channel=-1)
+    assert len(raw_py.ch_names) == 71
     assert 'RawEDF' in repr(raw_py)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
@@ -92,7 +97,8 @@ def test_bdf_data():
 def test_bdf_stim_channel():
     """Test BDF stim channel."""
     # test if last channel is detected as STIM by default
-    raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path)
+    raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
+                              stim_channel='auto')
     assert channel_type(raw_py.info, raw_py.info["nchan"] - 1) == 'stim'
 
     # test BDF file with wrong scaling info in header - this should be ignored
@@ -106,10 +112,12 @@ def test_bdf_stim_channel():
               [3537, 0, 1],
               [4162, 0, 1],
               [4790, 0, 1]]
-    raw = read_raw_edf(bdf_stim_channel_path, preload=True)
+    with pytest.deprecated_call(match='stim_channel'):
+        raw = read_raw_edf(bdf_stim_channel_path, preload=True)
     bdf_events = find_events(raw)
     assert_array_equal(events, bdf_events)
-    raw = read_raw_edf(bdf_stim_channel_path, preload=False)
+    raw = read_raw_edf(bdf_stim_channel_path, preload=False,
+                       stim_channel='auto')
     bdf_events = find_events(raw)
     assert_array_equal(events, bdf_events)
 
@@ -282,7 +290,7 @@ def test_edf_annotations():
 def test_edf_stim_channel():
     """Test stim channel for edf file."""
     # test if stim channel is automatically detected
-    raw = read_raw_edf(edf_path, preload=True)
+    raw = read_raw_edf(edf_path, preload=True, stim_channel='auto')
     assert channel_type(raw.info, raw.info["nchan"] - 1) == 'stim'
 
     raw = read_raw_edf(edf_stim_channel_path, preload=True,
@@ -393,7 +401,7 @@ def test_find_events_and_events_from_annot_are_the_same():
                        [199, 0, 2],
                        [1024, 0, 3],
                        [1280, 0, 2]]
-    raw = read_raw_edf(edf_path, preload=True)
+    raw = read_raw_edf(edf_path, preload=True, stim_channel='auto')
     raw_shell = _get_empty_raw_with_valid_annot(edf_path)
     assert raw_shell.info['meas_date'] == raw.info['meas_date']
     assert raw_shell.info['sfreq'] == raw.info['sfreq']

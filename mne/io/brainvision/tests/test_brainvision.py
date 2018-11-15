@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Data Equivalence Tests."""
-from __future__ import print_function
-
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
+from functools import partial
 import inspect
 import os.path as op
 import shutil
@@ -22,6 +20,12 @@ from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
+
+# Helper for deprecation
+read_raw_brainvision_orig = read_raw_brainvision
+read_raw_brainvision = partial(read_raw_brainvision_orig, stim_channel=False)
+read_raw_brainvision_old = partial(read_raw_brainvision_orig,
+                                   stim_channel=True)
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -79,8 +83,7 @@ def test_orig_units(recwarn):
 def test_vmrk_meas_date():
     """Test successful extraction of measurement date."""
     # Test file that does have a specific date
-    with pytest.warns(RuntimeWarning, match='will be dropped'):
-        raw = read_raw_brainvision(vhdr_path)
+    raw = read_raw_brainvision(vhdr_path)
     assert_allclose(raw.info['meas_date'], [1384359243, 794231])
     assert '2013-11-13 16:14:03 GMT' in repr(raw.info)
 
@@ -163,9 +166,9 @@ def test_ascii():
     data, times = raw[:]
     with open(ascii_vhdr_path.replace('.vhdr', '.dat'), 'wb') as fid:
         fid.write(b' '.join(ch_name.encode('ASCII')
-                  for ch_name in raw.ch_names) + b'\n')
+                            for ch_name in raw.ch_names) + b'\n')
         fid.write(b'\n'.join(b' '.join(b'%.3f' % dd for dd in d)
-                  for d in data[:-1].T / raw._cals[:-1]))
+                             for d in data.T / raw._cals))
     raw = read_raw_brainvision(ascii_vhdr_path, event_id=event_id)
     data_new, times_new = raw[:]
     assert_allclose(data_new, data, atol=1e-15)
@@ -175,18 +178,17 @@ def test_ascii():
 def test_brainvision_data_highpass_filters():
     """Test reading raw Brain Vision files with amplifier filter settings."""
     # Homogeneous highpass in seconds (default measurement unit)
-    with pytest.warns(RuntimeWarning, match='will be dropped'):
-        raw = _test_raw_reader(
-            read_raw_brainvision, vhdr_fname=vhdr_highpass_path,
-            montage=montage, eog=eog)
+    raw = _test_raw_reader(
+        read_raw_brainvision, vhdr_fname=vhdr_highpass_path,
+        montage=montage, eog=eog)
 
     assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
     assert_equal(raw.info['lowpass'], 250.)
 
     # Heterogeneous highpass in seconds (default measurement unit)
-    with pytest.warns(RuntimeWarning) as w:
+    with pytest.warns(RuntimeWarning, match='different .*pass filters') as w:
         raw = _test_raw_reader(
-            read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_path,
+            read_raw_brainvision_old, vhdr_fname=vhdr_mixed_highpass_path,
             montage=montage, eog=eog, event_id=event_id)
 
     lowpass_warning = ['different lowpass filters' in str(ww.message)
@@ -210,9 +212,9 @@ def test_brainvision_data_highpass_filters():
     assert_equal(raw.info['lowpass'], 250.)
 
     # Heterogeneous highpass in Hertz
-    with pytest.warns(RuntimeWarning) as w:  # filter settings
+    with pytest.warns(RuntimeWarning, match='different .*pass filters') as w:
         raw = _test_raw_reader(
-            read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_hz_path,
+            read_raw_brainvision_old, vhdr_fname=vhdr_mixed_highpass_hz_path,
             montage=montage, eog=eog, event_id=event_id)
 
     trigger_warning = ['will be dropped' in str(ww.message)
@@ -243,7 +245,7 @@ def test_brainvision_data_lowpass_filters():
     # Heterogeneous lowpass in Hertz (default measurement unit)
     with pytest.warns(RuntimeWarning) as w:  # event parsing
         raw = _test_raw_reader(
-            read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_path,
+            read_raw_brainvision_old, vhdr_fname=vhdr_mixed_lowpass_path,
             montage=montage, eog=eog, event_id=event_id)
 
     lowpass_warning = ['different lowpass filters' in str(ww.message)
@@ -269,7 +271,7 @@ def test_brainvision_data_lowpass_filters():
     # Heterogeneous lowpass in seconds
     with pytest.warns(RuntimeWarning) as w:  # filter settings
         raw = _test_raw_reader(
-            read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_s_path,
+            read_raw_brainvision_old, vhdr_fname=vhdr_mixed_lowpass_s_path,
             montage=montage, eog=eog, event_id=event_id)
 
     lowpass_warning = ['different lowpass filters' in str(ww.message)
@@ -384,7 +386,7 @@ def test_brainvision_vectorized_data():
     with pytest.warns(RuntimeWarning, match='software filter'):
         raw = read_raw_brainvision(vhdr_old_path, preload=True)
 
-    assert_array_equal(raw._data.shape, (30, 251))
+    assert_array_equal(raw._data.shape, (29, 251))
 
     first_two_samples_all_chs = np.array([[+5.22000008e-06, +5.10000000e-06],
                                           [+2.10000000e-06, +2.27000008e-06],
@@ -415,7 +417,7 @@ def test_brainvision_vectorized_data():
                                           [+4.15999985e-06, +3.79000015e-06],
                                           [+9.26999969e-06, +8.95999985e-06],
                                           [-7.35999985e-06, -7.18000031e-06],
-                                          [+0.00000000e+00, +0.00000000e+00]])
+                                          ])
 
     assert_array_almost_equal(raw._data[:, :2], first_two_samples_all_chs)
 
@@ -427,7 +429,7 @@ def test_events():
     # So in all tests below, the "onset" is 1 less than what's in the file
 
     # check that events are read and stim channel is synthesized correctly
-    raw = read_raw_brainvision(vhdr_path, eog=eog, event_id=event_id)
+    raw = read_raw_brainvision_old(vhdr_path, eog=eog, event_id=event_id)
     events = raw._get_brainvision_events()
     events = events[events[:, 2] != event_id['Sync On']]
     assert_array_equal(events, [[486, 0, 253],
@@ -445,9 +447,10 @@ def test_events():
 
     # check that events are read and stim channel is synthesized correctly and
     # response triggers are shifted using the deprecated response_trig_shift.
-    with pytest.warns(DeprecationWarning):
-        raw = read_raw_brainvision(vhdr_path, eog=eog,
-                                   response_trig_shift=1000, event_id=event_id)
+    with pytest.deprecated_call():
+        raw = read_raw_brainvision_old(vhdr_path, eog=eog,
+                                       response_trig_shift=1000,
+                                       event_id=event_id)
     events = raw._get_brainvision_events()
     assert_array_equal(events, [[486, 0, 253],
                                 [496, 0, 255],
@@ -464,10 +467,10 @@ def test_events():
                                 [7699, 0, 1]])
 
     # check that trig_shift_by_type works as well
-    raw = read_raw_brainvision(vhdr_path, eog=eog,
-                               trig_shift_by_type={'response': 1000,
-                                                   'Optic': 2000},
-                               event_id=event_id)
+    raw = read_raw_brainvision_old(vhdr_path, eog=eog,
+                                   trig_shift_by_type={'response': 1000,
+                                                       'Optic': 2000},
+                                   event_id=event_id)
     events = raw._get_brainvision_events()
     assert_array_equal(events, [[486, 0, 253],
                                 [496, 0, 255],
@@ -485,11 +488,11 @@ def test_events():
 
     # Check that we warn if a trigger is dropped
     with pytest.warns(RuntimeWarning, match='will be dropped'):
-        raw = read_raw_brainvision(vhdr_path)
+        raw = read_raw_brainvision_old(vhdr_path)
     # check that events are read and stim channel is synthesized correctly and
     # response triggers are ignored.
-    raw = read_raw_brainvision(vhdr_path, eog=eog, event_id=event_id,
-                               trig_shift_by_type={'response': None})
+    raw = read_raw_brainvision_old(vhdr_path, eog=eog, event_id=event_id,
+                                   trig_shift_by_type={'response': None})
     events = raw._get_brainvision_events()
     events = events[events[:, 2] != event_id['Sync On']]
     assert_array_equal(events, [[486, 0, 253],
@@ -505,17 +508,17 @@ def test_events():
                                 [7699, 0, 1]])
 
     # Error handling of trig_shift_by_type
-    pytest.raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
+    pytest.raises(TypeError, read_raw_brainvision_old, vhdr_path, eog=eog,
                   preload=True, trig_shift_by_type=1)
-    pytest.raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
+    pytest.raises(TypeError, read_raw_brainvision_old, vhdr_path, eog=eog,
                   preload=True, trig_shift_by_type={'response': 0.1})
-    pytest.raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
+    pytest.raises(TypeError, read_raw_brainvision_old, vhdr_path, eog=eog,
                   preload=True, trig_shift_by_type={'response': np.nan})
-    pytest.raises(ValueError, read_raw_brainvision, vhdr_path, eog=eog,
+    pytest.raises(ValueError, read_raw_brainvision_old, vhdr_path, eog=eog,
                   preload=True, trig_shift_by_type={'response': 1000,
                                                     'Response': 1001})
     with pytest.warns(DeprecationWarning):
-        pytest.raises(ValueError, read_raw_brainvision, vhdr_path, eog=eog,
+        pytest.raises(ValueError, read_raw_brainvision_old, vhdr_path, eog=eog,
                       preload=True, trig_shift_by_type={'response': 1000},
                       response_trig_shift=1001)
 
@@ -523,23 +526,23 @@ def test_events():
     # brackets (which usually signify a new section within a BrainVision file)
     # If no event_id specified, skip the marker and continue as planned
     with pytest.warns(RuntimeWarning, match='channel types to misc'):
-        raw = read_raw_brainvision(vhdr_v2_path)
+        raw = read_raw_brainvision_old(vhdr_v2_path)
     events = raw._get_brainvision_events()
     assert events.shape == (11, 3)  # shape of events without comment
 
     # with event_id specified, get that comment and assert it's there
     tmp_event_id = {'comment using [square] brackets': 999}
     with pytest.warns(RuntimeWarning, match='channel types to misc'):
-        raw = read_raw_brainvision(vhdr_v2_path, event_id=tmp_event_id)
+        raw = read_raw_brainvision_old(vhdr_v2_path, event_id=tmp_event_id)
     events = raw._get_brainvision_events()
     assert 999 in events[:, -1]
     assert events.shape == (12, 3)  # shape of events with comment
 
     # check that events are read properly when event_id is specified for
     # auxiliary events
-    raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
-                               trig_shift_by_type={'response': None},
-                               event_id=event_id)
+    raw = read_raw_brainvision_old(vhdr_path, eog=eog, preload=True,
+                                   trig_shift_by_type={'response': None},
+                                   event_id=event_id)
     events = raw._get_brainvision_events()
 
     expected_events = np.array([[486, 0, 253],
@@ -591,10 +594,14 @@ def test_events():
     assert_equal(len(raw._data), nchan)
     assert_equal(raw.info['chs'][-1]['ch_name'], 'STI 014')
 
+    # degenerate
+    with pytest.raises(TypeError, match='stim_channel must be an instance of'):
+        read_raw_brainvision(vhdr_path, stim_channel='foo')
+
 
 def test_brainvision_with_montage():
     """Test reading embedded montage information."""
-    with pytest.warns(RuntimeWarning, match='will be dropped'):
+    with pytest.warns(RuntimeWarning, match='Omitted 3 annot'):
         raw = read_raw_brainvision(vhdr_v2_path, eog=eog, misc=['ReRef'])
     for i, d in enumerate(raw.info['dig'], 1):
         assert_equal(d['coord_frame'], FIFF.FIFFV_COORD_HEAD)
@@ -613,7 +620,7 @@ def test_brainvision_neuroone_export():
     """Test Brainvision file exported with neuroone system."""
     raw = read_raw_brainvision(neuroone_vhdr, verbose='error')
     assert raw.info['meas_date'] is None
-    assert len(raw.info['chs']) == 66
+    assert len(raw.info['chs']) == 65
     assert raw.info['sfreq'] == 5000.
 
 
@@ -649,7 +656,8 @@ def test_read_raw_brainvision_warn_on_marker_drop():
                          r"information, see the docstring of "
                          r"read_raw_brainvision.")
     with pytest.warns(RuntimeWarning, match=EXPECTED_WARN_MSG) as recwarn:
-        read_raw_brainvision(vhdr_path, verbose=True)
+        read_raw_brainvision_old(vhdr_path, verbose=True)
     assert len(recwarn) == 1
+
 
 run_tests_if_main()

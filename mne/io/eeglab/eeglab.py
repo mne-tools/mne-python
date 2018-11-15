@@ -10,7 +10,7 @@ import numpy as np
 from functools import partial
 
 from ..utils import (_read_segments_file, _find_channels,
-                     _synthesize_stim_channel)
+                     _synthesize_stim_channel, _deprecate_stim_channel)
 from ...utils import deprecated
 from ..constants import FIFF, Bunch
 from ..meas_info import _empty_info, create_info
@@ -140,7 +140,7 @@ def _get_info(eeg, montage, eog=()):
 
 def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
                     event_id_func='strip_to_integer', preload=False,
-                    verbose=None, uint16_codec=None):
+                    uint16_codec=None, stim_channel=None, verbose=None):
     r"""Read an EEGLAB .set file.
 
     Parameters
@@ -166,6 +166,7 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
 
             {'SyncStatus': 1; 'Pulse Artifact': 3}
 
+        This was deprecated in 0.17 and will be removed in 0.18.
     event_id_func : None | str | callable
         What to do for events not found in ``event_id``. Must take one ``str``
         argument and return an ``int``. If string, must be 'strip-to-integer',
@@ -174,6 +175,7 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
         If the event is not in the ``event_id`` and calling ``event_id_func``
         on it results in a ``TypeError`` (e.g. if ``event_id_func`` is
         ``None``) or a ``ValueError``, the event is dropped.
+        This was deprecated in 0.17 and will be removed in 0.18.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -182,15 +184,24 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
         on the hard drive (slower, requires less memory). Note that
         preload=False will be effective only if the data is stored in a
         separate binary file.
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
         too small". ``uint16_codec`` allows to specify what codec (for example:
         'latin1' or 'utf-8') should be used when reading character arrays and
         can therefore help you solve this problem.
+    stim_channel : bool (default True)
+        Add a stim channel from the events.
+
+        .. warning:: This defaults to True in 0.17 but will change to False in
+                     0.18 (when no stim channel synthesis will be allowed)
+                     and be removed in 0.19; migrate code to use
+                     :func:`mne.events_from_annotations` instead.
+
+        .. versionadded:: 0.17
+    verbose : bool | str | int | None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -207,7 +218,8 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
     """
     return RawEEGLAB(input_fname=input_fname, montage=montage, preload=preload,
                      eog=eog, event_id=event_id, event_id_func=event_id_func,
-                     verbose=verbose, uint16_codec=uint16_codec)
+                     verbose=verbose, uint16_codec=uint16_codec,
+                     stim_channel=stim_channel)
 
 
 def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
@@ -300,6 +312,7 @@ class RawEEGLAB(BaseRaw):
 
             {'SyncStatus': 1; 'Pulse Artifact': 3}
 
+        This was deprecated in 0.17 and will be removed in 0.18.
     event_id_func : None | str | callable
         What to do for events not found in ``event_id``. Must take one ``str``
         argument and return an ``int``. If string, must be 'strip-to-integer',
@@ -308,21 +321,31 @@ class RawEEGLAB(BaseRaw):
         If the event is not in the ``event_id`` and calling ``event_id_func``
         on it results in a ``TypeError`` (e.g. if ``event_id_func`` is
         ``None``) or a ``ValueError``, the event is dropped.
+        This was deprecated in 0.17 and will be removed in 0.18.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires large
         amount of memory). If preload is a string, preload is the file name of
         a memory-mapped file which is used to store the data on the hard
         drive (slower, requires less memory).
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
         too small". ``uint16_codec`` allows to specify what codec (for example:
         'latin1' or 'utf-8') should be used when reading character arrays and
         can therefore help you solve this problem.
+    stim_channel : bool (default True)
+        Add a stim channel from the events.
+
+        .. warning:: This defaults to True in 0.17 but will change to False in
+                     0.18 (when no stim channel synthesis will be allowed)
+                     and be removed in 0.19; migrate code to use
+                     :func:`mne.events_from_annotations` instead.
+
+        .. versionadded:: 0.17
+    verbose : bool | str | int | None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -341,7 +364,9 @@ class RawEEGLAB(BaseRaw):
     @verbose
     def __init__(self, input_fname, montage, eog=(), event_id=None,
                  event_id_func='strip_to_integer', preload=False,
-                 verbose=None, uint16_codec=None):  # noqa: D102
+                 uint16_codec=None, stim_channel=None,
+                 verbose=None):  # noqa: D102
+        stim_channel = _deprecate_stim_channel(stim_channel)
         basedir = op.dirname(input_fname)
         eeg = _check_load_mat(input_fname, uint16_codec)
         if eeg.trials != 1:
@@ -352,16 +377,20 @@ class RawEEGLAB(BaseRaw):
         last_samps = [eeg.pnts - 1]
         info = _get_info(eeg, montage, eog=eog)
 
-        stim_chan = dict(ch_name='STI 014', coil_type=FIFF.FIFFV_COIL_NONE,
-                         kind=FIFF.FIFFV_STIM_CH, logno=len(info["chs"]) + 1,
-                         scanno=len(info["chs"]) + 1, cal=1., range=1.,
-                         loc=np.full(12, np.nan), unit=FIFF.FIFF_UNIT_NONE,
-                         unit_mul=0., coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
-        info['chs'].append(stim_chan)
-        info._update_redundant()
+        if stim_channel:
+            stim_chan = dict(ch_name='STI 014', coil_type=FIFF.FIFFV_COIL_NONE,
+                             kind=FIFF.FIFFV_STIM_CH,
+                             logno=len(info["chs"]) + 1,
+                             scanno=len(info["chs"]) + 1, cal=1., range=1.,
+                             loc=np.full(12, np.nan), unit=FIFF.FIFF_UNIT_NONE,
+                             unit_mul=0., coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
+            info['chs'].append(stim_chan)
+            info._update_redundant()
 
-        # dummy event channel to be populated from annotations later on
-        self._create_event_ch(np.empty((0, 3)), n_samples=eeg.pnts)
+            # dummy event channel to be populated from annotations later on
+            self._create_event_ch(np.empty((0, 3)), n_samples=eeg.pnts)
+        else:
+            self._event_ch = None
 
         # read the data
         if isinstance(eeg.data, string_types):
@@ -383,10 +412,11 @@ class RawEEGLAB(BaseRaw):
                 n_chan, n_times = [1, eeg.data.shape[0]]
             else:
                 n_chan, n_times = eeg.data.shape
-            data = np.empty((n_chan + 1, n_times), dtype=np.double)
-            data[:-1] = eeg.data
+            data = np.empty((n_chan + int(stim_channel), n_times), dtype=float)
+            data[:n_chan] = eeg.data
             data *= CAL
-            data[-1] = self._event_ch
+            if stim_channel:
+                data[-1] = self._event_ch
             super(RawEEGLAB, self).__init__(
                 info, data, filenames=[input_fname], last_samps=last_samps,
                 orig_format='double', verbose=verbose)
@@ -400,33 +430,36 @@ class RawEEGLAB(BaseRaw):
         latencies = np.round(annot.onset * self.info['sfreq'])
         _check_latencies(latencies)
 
-        dropped_desc = []  # use to collect dropped descriptions
-        event_id_ = partial(_event_id_func,
-                            event_id=event_id,
-                            event_id_func=event_id_func,
-                            dropped=dropped_desc)
-        events, _ = events_from_annotations(self, event_id=event_id_)
-        annot_length = self.annotations.onset.size
-        if events.shape[0] < annot_length:
-            msg = ("{0}/{1} event codes could not be mapped to integers. Use "
-                   "the 'event_id' parameter to map such events manually.")
-            warn(msg.format(annot_length - events.shape[0], annot_length))
-        if not events.size and len(annot):  # only if some events were in file
-            logger.info('Returning empty stim channel. Some annotations were'
-                        'found but dropped during build of the raw.'
-                        'Please use `event_id` and `event_id_func` to drive'
-                        'the selection/rejection of events')
-        self._create_event_ch(events, n_samples=eeg.pnts)
-        if getattr(self, 'preload', False):
-            self._data[-1] = self._event_ch
+        if stim_channel:
+            dropped_desc = []  # use to collect dropped descriptions
+            event_id_ = partial(_event_id_func,
+                                event_id=event_id,
+                                event_id_func=event_id_func,
+                                dropped=dropped_desc)
+            events, _ = events_from_annotations(self, event_id=event_id_)
+            annot_length = self.annotations.onset.size
+            if events.shape[0] < annot_length:
+                msg = (
+                    "{0}/{1} event codes could not be mapped to integers. Use "
+                    "the 'event_id' parameter to map such events manually.")
+                warn(msg.format(annot_length - events.shape[0], annot_length))
+            if not events.size and len(annot):  # only if some evs were in file
+                logger.info(
+                    'Returning empty stim channel. Some annotations were'
+                    'found but dropped during build of the raw.'
+                    'Please use `event_id` and `event_id_func` to drive'
+                    'the selection/rejection of events')
+            self._create_event_ch(events, n_samples=eeg.pnts)
+            if getattr(self, 'preload', False):
+                self._data[-1] = self._event_ch
 
-        if len(dropped_desc) > 0:
-            dropped = list(set(dropped_desc))
-            logger.info("{0} annotation(s) will be dropped, such as {1}. "
-                        .format(len(dropped), dropped[:5]))
-            warn('Events like the following will be dropped entirely: {1},'
-                 ' {0} in total'.format(len(dropped), dropped[:5]),
-                 RuntimeWarning)
+            if len(dropped_desc) > 0:
+                dropped = list(set(dropped_desc))
+                logger.info("{0} annotation(s) will be dropped, such as {1}. "
+                            .format(len(dropped), dropped[:5]))
+                warn('Events like the following will be dropped entirely: {1},'
+                     ' {0} in total'.format(len(dropped), dropped[:5]),
+                     RuntimeWarning)
 
     def _create_event_ch(self, events, n_samples=None):
         """Create the event channel."""
@@ -450,9 +483,10 @@ class RawEEGLAB(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
+        n_channels = self.info['nchan'] - (self._event_ch is not None)
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
                             dtype=np.float32, trigger_ch=self._event_ch,
-                            n_channels=self.info['nchan'] - 1)
+                            n_channels=n_channels)
 
 
 class EpochsEEGLAB(BaseEpochs):

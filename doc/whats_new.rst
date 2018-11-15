@@ -19,7 +19,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-- New tutorial in the documentation regarding :class:`mne.Annotations` by `Joan Massich`_ and  `Alex Gramfort`_
+- Add new tutorial for :class:`mne.Annotations` and ``events`` by `Joan Massich`_ and  `Alex Gramfort`_
 
 - Add support for saving :class:`mne.Annotations` as CSV and TXT files by `Joan Massich`_ and `Alex Gramfort`_
 
@@ -32,8 +32,6 @@ Changelog
 - Add ``rank`` parameter to :func:`mne.compute_covariance`, :func:`mne.cov.regularize` and related functions to preserve data rank and speed up computation using low-rank computations during regularization by `Eric Larson`_ and `Denis Engemann`_
 
 - Add new function :func:`mne.read_annotations` that can read annotations in EEGLAB, BrainVision, EDF and Brainstorm formats by `Joan Massich`_ and `Alex Gramfort`_.
-
-- :func:`mne.io.read_raw_eeglab` no longer warns when the stim channel is populated with an array of zeros by `Joan Massich`_
 
 - Add capability to read and save Epochs containing complex data (e.g. after Hilbert-transform) using :meth:`mne.Epochs.save` and :func:`mne.read_epochs`, by `Stefan Repplinger`_, `Eric Larson`_ and `Alex Gramfort`_
 
@@ -79,7 +77,7 @@ Changelog
 
 - Add improved CTF helmet for :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
-- :func:`mne.combine_evoked` and :func:`mne.grand_average` can now handle input with the same channels in different orders, if required, by `Jona Sassenhagen`_
+- Add handling in :func:`mne.combine_evoked` and :func:`mne.grand_average` for input with the same channels in different orders, if required, by `Jona Sassenhagen`_
 
 - Add `split_naming` parameter to the `Raw.save` method to allow for BIDS-compatible raw file name construction by `Teon Brooks`_
 
@@ -93,7 +91,7 @@ Changelog
 
 - Add multi-taper estimation to :func:`mne.minimum_norm.compute_source_psd` by `Eric Larson`_
 
-- :meth:`mne.Epochs.average` now supports custom, e.g. robust, averaging methods, by `Jona Sassenhagen`_
+- Add support for custom, e.g. robust, averaging methods in :meth:`mne.Epochs.average` by `Jona Sassenhagen`_
 
 - Add support for Neuromag 122 system by `Alex Gramfort`_
 
@@ -129,7 +127,9 @@ Bug
 
 - Fix bug with reading events from BrainVision files by `Stefan Appelhoff`_
 
-- Don't use 2nd column of events in BrainVision to store duration but rather raw.annotations by `Alex Gramfort`_
+- Fix bug where :func:`mne.io.read_raw_eeglab` would warn when the stim channel is populated with an array of zeros by `Joan Massich`_
+
+- Fix 2nd column of events in BrainVision to no longer store duration but rather be contained by ``raw.annotations`` by `Alex Gramfort`_
 
 - Fix checking of the correctness of the ``prepared=True`` argument in :func:`mne.minimum_norm.apply_inverse` and related functions by `Eric Larson`_
 
@@ -161,7 +161,7 @@ Bug
 
 - Fix bug in :class:`mne.io.Raw` where warnings were emitted when objects were deleted by `Eric Larson`_
 
-- Allow vector data for :class:`mne.VolSourceEstimate` by `Christian Brodbeck`_
+- Fix vector data support for :class:`mne.VolSourceEstimate` by `Christian Brodbeck`_
 
 - Fix bug with IIR filtering axis in :func:`mne.filter.filter_data` by `Eric Larson`_
 
@@ -195,7 +195,7 @@ Bug
 
 - Fix bug with :class:`mne.Epochs` where an error was thrown when resizing data (e.g., during :meth:`mne.Epochs.drop_bad`) by `Eric Larson`_
 
-- Rename ``raw.info['buffer_size_sec']`` to ``raw.buffer_size_sec`` as it is a writing parameter rather than a measurement parameter by `Eric Larson`_
+- Fix naming of ``raw.info['buffer_size_sec']`` to be ``raw.buffer_size_sec`` as it is a writing parameter rather than a measurement parameter by `Eric Larson`_
 
 - Fix EGI-MFF parser not to require ``dateutil`` package by `Eric Larson`_
 
@@ -217,18 +217,34 @@ Bug
 
 - Fix normalization error in :func:`mne.beamformer.make_lcmv` when ``pick_ori='normal', weight_norm='unit_noise_gain'`` by `Marijn van Vliet`_
 
-- Update MNE-C installation instructions by `buildqa`_
+- Fix MNE-C installation instructions by `buildqa`_
 
 - Fix computation of max-power orientation in :func:`mne.beamformer.make_dics` when ``pick_ori='max-power', weight_norm='unit_noise_gain'`` by `Marijn van Vliet`_
 
 API
 ~~~
 
-- Deprecate ``mne.io.read_annotations_eeglab`` by `Joan Massich`_
+- Deprecated separate reading of annotations and synthesis of STI014 channels in readers by `Joan Massich`_:
+
+  - Deprecated ``mne.io.read_annotations_eeglab``
+  - Deprecated ``annot`` and ``annotmap`` parameters in :meth:`~mne.io.read_raw_edf`
+  - Deprecated ``stim_channel`` parameters in :func:`~mne.io.read_raw_edf`, :func:`~mne.io.read_raw_brainvision`, and :func:`~mne.io.read_raw_eeglab`
+
+  Annotations are now added to ``raw`` instances directly upon reading as :attr:`raw.annotations <mne.io.Raw.annotations>`.
+  They can also be read separately with :func:`mne.read_annotations` for EEGLAB, BrainVision, EDF, and Brainstorm formats.
+  Use :func:`mne.events_from_annotations(raw.annotations) <mne.events_from_annotations>`
+  to convert these to events instead of the old way (using STI014 channel synthesis followed by :func:`mne.find_events(raw) <mne.find_events>`).
+
+  In 0.17 (this release)
+    Use ``read_raw_...(stim_channel=False)`` to disable warnings (and stim channel synthesis), but other arguments for ``stim_channel`` will still be supported.
+
+  In 0.18
+    The only supported option will be ``read_raw_...(stim_channel=False)``, and all stim-channel-synthesis arguments will be removed. At this point, ``stim_channel`` should be removed from scripts for future compatibility, but ``stim_channel=False`` will still be acceptable for backward compatibility.
+
+  In 0.19
+    The ``stim_channel`` keyword arguments will be removed from ``read_raw_...`` functions.
 
 - Calling :meth:``mne.io.pick.pick_info`` removing channels that are needed by compensation matrices (``info['comps']``) no longer raises ``RuntimeException`` but instead logs an info level message. By `Luke Bloy`_
-
-- Deprecation of ``annot`` and ``annotmap`` parameters in :meth:`mne.io.read_raw_edf` by `Joan Massich`_
 
 - :meth:`mne.Epochs.save` now has the parameter `fmt` to specify the desired format (precision) saving epoched data, by `Stefan Repplinger`_, `Eric Larson`_ and `Alex Gramfort`_
 
@@ -726,7 +742,7 @@ BUG
 
 - Fix :func:`mne.find_events` when passing a list as stim_channel parameter by `Alex Gramfort`_
 
-    - Fix parallel processing when computing covariance with shrinkage estimators by `Denis Engemann`_
+- Fix parallel processing when computing covariance with shrinkage estimators by `Denis Engemann`_
 
 API
 ~~~

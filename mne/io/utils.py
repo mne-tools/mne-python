@@ -13,9 +13,20 @@
 import numpy as np
 import os
 
+from ..utils import warn, _validate_type
 from ..externals.six import b
 from .constants import FIFF
 from .meas_info import _get_valid_units
+
+
+def _deprecate_stim_channel(stim_channel):
+    if stim_channel is None:
+        warn('stim_channel (default True in 0.17) will change to False in '
+             '0.18 and be removed in 0.19, set it to False in 0.17 to '
+             'avoid this warning', DeprecationWarning)
+        stim_channel = True
+    _validate_type(stim_channel, bool, 'stim_channel')
+    return stim_channel
 
 
 def _check_orig_units(orig_units):
