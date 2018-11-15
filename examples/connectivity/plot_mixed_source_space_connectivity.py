@@ -54,12 +54,13 @@ labels_vol = ['Left-Amygdala',
               'Right-Cerebellum-Cortex']
 
 # Setup a surface-based source space, oct5 is not very dense (just used
-# to speed up this example)
+# to speed up this example; we recommend oct6 in actual analyses)
 src = setup_source_space(subject, subjects_dir=subjects_dir,
                          spacing='oct5', add_dist=False)
 
 # Setup a volume source space
-# set pos=10.0 for speed, not very accurate
+# set pos=10.0 for speed, not very accurate; we recommend something smaller
+# like 5.0 in actual analyses:
 vol_src = setup_volume_source_space(
     subject, mri=fname_aseg, pos=10.0, bem=fname_model,
     add_interpolator=False,  # just for speed, usually use True
