@@ -442,6 +442,8 @@ def test_plot_volume_source_estimates():
         # [ax_time, ax_y, ax_x, ax_z]
         for ax_idx in [0, 2, 3, 4]:
             _fake_click(fig, fig.axes[ax_idx], (0.3, 0.5))
+        fig.canvas.key_press_event('left')
+        fig.canvas.key_press_event('shift+right')
 
     with pytest.raises(ValueError, match='must be one of'):
         vol_stc.plot(sample_src, 'sample', subjects_dir, mode='abcd')
