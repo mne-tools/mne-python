@@ -2122,7 +2122,8 @@ class ProgressBar(object):
         self._mmap = None
         if op.isfile(self._mmap_fname):
             os.remove(self._mmap_fname)
-        print('')
+        if self._do_print:
+            print('')
 
 
 class _PBSubsetUpdater(object):

@@ -16,6 +16,7 @@ References
        Computational Intelligence and Neuroscience, vol. 2011, Article ID
        879716, 13 pages, 2011. doi:10.1155/2011/879716
 """
+# sphinx_gallery_thumbnail_number = 9
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
@@ -87,26 +88,26 @@ epochs['1'].average().plot(time_unit='s')
 # Let's use a sphere head geometry model and let's see the coordinate
 # alignment and the sphere location. The phantom is properly modeled by
 # a single-shell sphere with origin (0., 0., 0.).
-sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=None)
+sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.08)
 
-mne.viz.plot_alignment(raw.info, subject='sample',
-                       meg='helmet', bem=sphere, dig=True,
-                       surfaces=['brain'])
+mne.viz.plot_alignment(raw.info, subject='sample', show_axes=True,
+                       bem=sphere, dig=True, surfaces='inner_skull')
 
 ###############################################################################
 # Let's do some dipole fits. We first compute the noise covariance,
 # then do the fits for each event_id taking the time instant that maximizes
 # the global field power.
 
-cov = mne.compute_covariance(epochs, tmax=0, method='shrunk', rank=None)
+# here we can get away with using method='oas' for speed (faster than "shrunk")
+# but in general "shrunk" is usually better
+cov = mne.compute_covariance(
+    epochs, tmax=0, method='oas', rank=None)
 mne.viz.plot_evoked_white(epochs['1'].average(), cov)
 
 data = []
+t_peak = 0.036  # true for Elekta phantom
 for ii in event_id:
-    evoked = epochs[str(ii)].average()
-    idx_peak = np.argmax(evoked.copy().pick_types(meg='grad').data.std(axis=0))
-    t_peak = evoked.times[idx_peak]
-    evoked.crop(t_peak, t_peak)
+    evoked = epochs[str(ii)].average().crop(t_peak, t_peak)
     data.append(evoked.data[:, 0])
 evoked = mne.EvokedArray(np.array(data).T, evoked.info, tmin=0.)
 del epochs, raw
@@ -158,18 +159,23 @@ plt.show()
 ###############################################################################
 # Let's plot the positions and the orientations of the actual and the estimated
 # dipoles
-def plot_pos_ori(pos, ori, color=(0., 0., 0.)):
-    mlab.points3d(pos[:, 0], pos[:, 1], pos[:, 2], scale_factor=0.005,
-                  color=color)
-    mlab.quiver3d(pos[:, 0], pos[:, 1], pos[:, 2],
-                  ori[:, 0], ori[:, 1], ori[:, 2],
-                  scale_factor=0.03,
-                  color=color)
+def plot_pos_ori(pos, ori, color=(0., 0., 0.), opacity=1.):
+    x, y, z = pos.T
+    u, v, w = ori.T
+    mlab.points3d(x, y, z, scale_factor=0.005, opacity=opacity, color=color)
+    q = mlab.quiver3d(x, y, z, u, v, w,
+                      scale_factor=0.03, opacity=opacity,
+                      color=color, mode='arrow')
+    q.glyph.glyph_source.glyph_source.shaft_radius = 0.02
+    q.glyph.glyph_source.glyph_source.tip_length = 0.1
+    q.glyph.glyph_source.glyph_source.tip_radius = 0.05
 
 
-mne.viz.plot_alignment(evoked.info, bem=sphere, surfaces=[])
+mne.viz.plot_alignment(evoked.info, bem=sphere, surfaces='inner_skull',
+                       coord_frame='head', meg='helmet', show_axes=True)
 
 # Plot the position and the orientation of the actual dipole
-plot_pos_ori(actual_pos, actual_ori, color=(1., 0., 0.))
+plot_pos_ori(actual_pos, actual_ori, color=(0., 0., 0.), opacity=0.5)
 # Plot the position and the orientation of the estimated dipole
-plot_pos_ori(dip.pos, dip.ori, color=(0., 0., 1.))
+plot_pos_ori(dip.pos, dip.ori, color=(0.2, 1., 0.5))
+mlab.view(70, 80, distance=0.5)

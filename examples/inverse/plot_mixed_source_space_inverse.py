@@ -49,13 +49,15 @@ labels_vol = ['Left-Amygdala',
               'Right-Thalamus-Proper',
               'Right-Cerebellum-Cortex']
 
-# Get a surface-based source space, here with few source points for speed:
+# Get a surface-based source space, here with few source points for speed
+# in this demonstration, in general you should use oct6 spacing!
 src = mne.setup_source_space(subject, spacing='oct5',
                              add_dist=False, subjects_dir=subjects_dir)
 
 # Now we create a mixed src space by adding the volume regions specified in the
 # list labels_vol. First, read the aseg file and the source space bounds
-# using the inner skull surface (here using 10mm spacing to save time):
+# using the inner skull surface (here using 10mm spacing to save time,
+# we recommend something smaller like 5.0 in actual analyses):
 
 vol_src = mne.setup_volume_source_space(
     subject, mri=fname_aseg, pos=10.0, bem=fname_model,
