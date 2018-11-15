@@ -22,7 +22,15 @@ jobs:
         # Load our data
         - restore_cache:
             keys:
-              - data-cache
+              - data-cache-0
+              - data-cache-1
+              - data-cache-2
+              - data-cache-3
+              - data-cache-4
+              - data-cache-5
+              - data-cache-6
+              - data-cache-7
+              - data-cache-8
               - pip-cache
 
         # Spin up Xvfb
@@ -190,26 +198,50 @@ jobs:
 
         # Keep these separate, maybe better in terms of size limitations (?)
         - save_cache:
-            key: data-cache
+            key: data-cache-0
             paths:
               - ~/.mne
+              - ~/mne-tools.github.io
+              - ~/mne_data/mTRF_1.5
+        - save_cache:
+            key: data-cache-1
+            paths:
               - ~/mne_data/HF_SEF
               - ~/mne_data/MEGSIM
+        - save_cache:
+            key: data-cache-2
+            paths:
               - ~/mne_data/MNE-brainstorm-data
               - ~/mne_data/MNE-eegbci-data
+        - save_cache:
+            key: data-cache-3
+            paths:
               - ~/mne_data/MNE-fieldtrip_cmc-data
               - ~/mne_data/MNE-kiloword-data
+        - save_cache:
+            key: data-cache-4
+            paths:
               - ~/mne_data/MNE-misc-data
               - ~/mne_data/MNE-multimodal-data
+        - save_cache:
+            key: data-cache-5
+            paths:
               - ~/mne_data/MNE-OPM-data
               - ~/mne_data/MNE-phantom-4DBTi
+        - save_cache:
+            key: data-cache-6
+            paths:
               - ~/mne_data/MNE-sample-data
               - ~/mne_data/MNE-somato-data
+        - save_cache:
+            key: data-cache-7
+            paths:
               - ~/mne_data/MNE-spm-face
-              - ~/mne_data/MNE-testing-data
+              - ~/mne_data/MNE-testing-ata
+        - save_cache:
+            key: data-cache-8
+            paths:
               - ~/mne_data/MNE-visual_92_categories-data
-              - ~/mne_data/mTRF_1.5
-              - ~/mne-tools.github.io
 
         - deploy:
             name: Triage deployment
