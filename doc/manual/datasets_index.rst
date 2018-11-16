@@ -246,6 +246,19 @@ Triggers include:
     * :ref:`sphx_glr_auto_examples_datasets_plot_opm_rest_data.py`
 
 
+The Sleep-EDF Database [Expanded]
+=================================
+The sleep-edf database contains 197 whole-night PolySomnoGraphic sleep
+recordings, containing EEG, EOG, chin EMG, and event markers. Some records also
+contain respiration and body temperature. Corresponding hypnograms (sleep
+patterns) were manually scored by well-trained technicians according to the
+Rechtschaffen and Kales manual, and are also available. The data comes from two
+studies, briefly described below, and in detail in [7]_ and [8]_.
+
+.. topic:: Examples
+
+    * :ref:`sphx_glr_auto_tutorials_plot_sleep.py`
+
 References
 ==========
 
@@ -260,3 +273,7 @@ References
 .. [5] Crosse, M. J., Di Liberto, G. M., Bednar, A., & Lalor, E. C. The Multivariate Temporal Response Function (mTRF) Toolbox: A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli. Frontiers in Human Neuroscience (2016): 10.
 
 .. [6] Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand words are worth a picture: Snapshots of printed-word processing in an event-related potential megastudy. Psychological science, 2015
+
+.. [7] B Kemp, AH Zwinderman, B Tuk, HAC Kamphuisen, JJL Oberyé. Analysis of a sleep-dependent neuronal feedback loop: the slow-wave microcontinuity of the EEG. IEEE-BME 47(9):1185-1194 (2000). https://physionet.org/physiobank/database/sleep-edfx/Papers/2000-Kemp---neurofeedback.pdf
+
+.. [8] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals. Circulation 101(23):e215-e220 [Circulation Electronic Pages; http://circ.ahajournals.org/cgi/content/full/101/23/e215]; 2000 (June 13).
