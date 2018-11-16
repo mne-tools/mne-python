@@ -172,7 +172,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    manual/datasets_index.rst
+    manual/datasets/index.rst
     auto_tutorials/plot_brainstorm_auditory.rst
     auto_tutorials/plot_brainstorm_phantom_ctf.rst
     auto_tutorials/plot_brainstorm_phantom_elekta.rst
