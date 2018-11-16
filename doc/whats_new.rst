@@ -36,6 +36,9 @@ Changelog
 - Add :func:`mne.labels_to_stc` to facilitate working with label data, by `Eric Larson`_
 
 - Add ``overlap`` argument to :func:`mne.make_fixed_length_events` by `Eric Larson`_
+
+- Add new tutorial (:ref:`sphx_glr_auto_tutorials_plot_sleep.py`) to demo automatic sleep stage analysis by `Alex Gramfort`_, `Stanislas Chambon`_ and `Joan Massich`_
+
 - Add 448-labels subdivided aparc cortical parcellation by `Denis Engemann`_ and `Sheraz Khan`_
 
 - Add keyboard shortcuts to nativate volume source estimates in time using (shift+)left/right arrow keys by `Mainak Jas`_
@@ -3129,8 +3132,15 @@ of commits):
 
 .. _Sara Sommariva: http://www.dima.unige.it/~sommariva/
 
+<<<<<<< HEAD
 .. _Cristóbal Moënne-Loccoz: https://github.com/cmmoenne
+<<<<<<< HEAD
 
 .. _David Haslacher: https://github.com/davidhaslacher
 
 .. _lneisenman:  https://github.com/lneisenman
+=======
+=======
+.. _Stanislas Chambon: https://github.com/Slasnista
+>>>>>>> Add whats new
+>>>>>>> Add whats new
