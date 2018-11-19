@@ -18,6 +18,8 @@ Runs a full pipeline using MNE-Python:
 #
 # License: BSD (3-clause)
 
+# sphinx_gallery_thumbnail_number = 10
+
 import matplotlib.pyplot as plt
 
 import mne
@@ -82,7 +84,8 @@ for e in evoked:
 plt.show()
 
 # estimate noise covarariance
-noise_cov = mne.compute_covariance(epochs, tmax=0, method='shrunk')
+noise_cov = mne.compute_covariance(epochs, tmax=0, method='shrunk',
+                                   rank=None)
 
 ###############################################################################
 # Visualize fields on MEG helmet
@@ -97,11 +100,14 @@ maps = mne.make_field_map(evoked[0], trans_fname, subject='spm',
 
 evoked[0].plot_field(maps, time=0.170)
 
+###############################################################################
+# Look at the whitened evoked daat
+
+evoked[0].plot_white(noise_cov)
 
 ###############################################################################
 # Compute forward model
 
-# Make source space
 src = data_path + '/subjects/spm/bem/spm-oct-6-src.fif'
 bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'
 forward = mne.make_forward_solution(contrast.info, trans_fname, src, bem)
@@ -122,5 +128,5 @@ stc = apply_inverse(contrast, inverse_operator, lambda2, method, pick_ori=None)
 
 # Plot contrast in 3D with PySurfer if available
 brain = stc.plot(hemi='both', subjects_dir=subjects_dir, initial_time=0.170,
-                 views=['ven'], clim={'kind': 'value', 'lims': [3., 5.5, 9.]})
+                 views=['ven'], clim={'kind': 'value', 'lims': [3., 6., 9.]})
 # brain.save_image('dSPM_map.png')

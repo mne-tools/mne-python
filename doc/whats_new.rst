@@ -22,6 +22,8 @@ Changelog
 Bug
 ~~~
 
+- Fix CTF helmet plotting in :func:`mne.viz.plot_evoked_field` by `Eric Larson`_
+
 API
 ~~~
 
