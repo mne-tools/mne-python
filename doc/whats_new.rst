@@ -11,6 +11,22 @@ What's new
 
 .. currentmodule:: mne
 
+.. _current:
+
+Current
+-------
+
+Changelog
+~~~~~~~~~
+
+Bug
+~~~
+
+- Fix CTF helmet plotting in :func:`mne.viz.plot_evoked_field` by `Eric Larson`_
+
+API
+~~~
+
 .. _changes_0_17:
 
 Version 0.17

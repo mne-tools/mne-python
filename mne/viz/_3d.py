@@ -389,7 +389,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         with warnings.catch_warnings(record=True):  # traits
             surface = mlab.pipeline.surface(mesh, color=colors[ii],
                                             opacity=alpha, figure=fig)
-        surface.actor.property.backface_culling = True
+        surface.actor.property.backface_culling = False
 
         # Now show our field pattern
         mesh = _create_mesh_surf(surf, fig, scalars=data)
@@ -397,7 +397,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
             fsurf = mlab.pipeline.surface(mesh, vmin=-vlim, vmax=vlim,
                                           figure=fig)
         fsurf.module_manager.scalar_lut_manager.lut.table = colormap
-        fsurf.actor.property.backface_culling = True
+        fsurf.actor.property.backface_culling = False
 
         # And the field lines on top
         mesh = _create_mesh_surf(surf, fig, scalars=data)
