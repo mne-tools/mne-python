@@ -19,6 +19,20 @@ Current
 Changelog
 ~~~~~~~~~
 
+Bug
+~~~
+
+API
+~~~
+
+.. _changes_0_17:
+
+Version 0.17
+------------
+
+Changelog
+~~~~~~~~~
+
 - Add new tutorial for :class:`mne.Annotations` and ``events`` by `Joan Massich`_ and  `Alex Gramfort`_
 
 - Add support for saving :class:`mne.Annotations` as CSV and TXT files by `Joan Massich`_ and `Alex Gramfort`_
@@ -277,6 +291,54 @@ API
 - :attr:`mne.io.Raw.annotations` when missing is set to an empty :class:`mne.Annotations` rather than ``None`` by `Joan Massich`_ and `Alex Gramfort`_
 
 - Mismatches in CTF compensation grade are now checked in inverse computation by `Eric Larson`_
+
+
+Authors
+~~~~~~~
+
+People who contributed to this release  (in alphabetical order):
+
+* 	Alexandre Gramfort
+* 	Antoine Gauthier
+* 	Britta Westner
+* 	Christian Brodbeck
+* 	Clemens Brunner
+* 	Daniel McCloy
+* 	David Sabbagh
+* 	Denis A. Engemann
+* 	Eric Larson
+* 	Ezequiel Mikulan
+* 	Henrich Kolkhorst
+* 	Hubert Banville
+* 	Jasper J.F. van den Bosch
+* 	Jen Evans
+* 	Joan Massich
+* 	Johan van der Meer
+* 	Jona Sassenhagen
+* 	Kambiz Tavabi
+* 	Lorenz Esch
+* 	Luke Bloy
+* 	Mainak Jas
+* 	Manu Sutela
+* 	Marcin Koculak
+* 	Marijn van Vliet
+* 	Mikolaj Magnuski
+* 	Peter J. Molfese
+* 	Sam Perry
+* 	Sara Sommariva
+* 	Sergey Antopolskiy
+* 	Sheraz Khan
+* 	Stefan Appelhoff
+* 	Stefan Repplinger
+* 	Steven Bethard
+* 	Teekuningas
+* 	Teon Brooks
+* 	Thomas Hartmann
+* 	Thomas Jochmann
+* 	Tom Dupré la Tour
+* 	Tristan Stenner
+* 	buildqa
+* 	jeythekey
 
 .. _changes_0_16:
 
