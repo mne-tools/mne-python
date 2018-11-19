@@ -11,6 +11,20 @@ What's new
 
 .. currentmodule:: mne
 
+.. _current:
+
+Current
+-------
+
+Changelog
+~~~~~~~~~
+
+Bug
+~~~
+
+API
+~~~
+
 .. _changes_0_17:
 
 Version 0.17
