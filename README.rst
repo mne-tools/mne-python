@@ -42,7 +42,7 @@ Documentation
 Installing MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^
 
-To install the latest stable version of MNE-Python, you can use `pip <https://pip.pypa.io/en/stable/>`_ in a terminal:
+To install the latest stable version of MNE-Python, you can use pip_ in a terminal:
 
 .. code-block:: bash
 
@@ -57,20 +57,20 @@ the latest development version), see the `getting started page`_.
 Get the latest code
 ^^^^^^^^^^^^^^^^^^^
 
-To install the latest version of the code using `pip <https://pip.pypa.io/en/stable/>`_ open a terminal and type:
+To install the latest version of the code using pip_ open a terminal and type:
 
 .. code-block:: bash
 
     pip install -U https://api.github.com/repos/mne-tools/mne-python/zipball/master
 
-To get the latest code using `git <https://git-scm.com/>`_, open a terminal and type:
+To get the latest code using `git <https://git-scm.com/>`__, open a terminal and type:
 
 .. code-block:: bash
 
     git clone git://github.com/mne-tools/mne-python.git
 
 Alternatively, you can also download a
-`zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/master.zip>`_.
+`zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/master.zip>`__.
 
 
 Dependencies
@@ -150,3 +150,5 @@ MNE-Python is **BSD-licenced** (3 clause):
 .. _MNE-Python software: https://martinos.org/mne
 .. _MNE documentation: http://martinos.org/mne/documentation.html
 .. _getting started page: https://martinos.org/mne/getting_started.html
+.. _pip: https://pip.pypa.io/en/stable/
+

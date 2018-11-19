@@ -115,12 +115,15 @@ docstring:
 check-manifest:
 	check-manifest --ignore .circleci*,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data,.DS_Store
 
+check-readme:
+	python setup.py check --restructuredtext --strict
+
 nesting:
 	@echo "Running import nesting tests"
 	@$(PYTESTS) mne/tests/test_import_nesting.py
 
 pep:
-	@$(MAKE) -k flake pydocstyle docstring codespell-error check-manifest nesting
+	@$(MAKE) -k flake pydocstyle docstring codespell-error check-manifest nesting check-readme
 
 manpages:
 	@echo "I: generating manpages"
