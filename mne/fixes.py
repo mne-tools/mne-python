@@ -12,8 +12,6 @@ at which the fix is no longer needed.
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
 # License: BSD
 
-from __future__ import division
-
 import inspect
 from distutils.version import LooseVersion
 import warnings

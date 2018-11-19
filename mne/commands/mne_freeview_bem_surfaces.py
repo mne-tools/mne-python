@@ -5,8 +5,6 @@ You can do for example:
 
 $ mne freeview_bem_surfaces -s sample
 """
-from __future__ import print_function
-
 # Authors:  Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 
 import sys

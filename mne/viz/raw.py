@@ -1,5 +1,4 @@
 """Functions to plot raw M/EEG data."""
-from __future__ import print_function
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>

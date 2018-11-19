@@ -4,8 +4,6 @@
 #
 # License: BSD (3-clause)
 
-from __future__ import print_function
-
 import socket
 import time
 from ..externals.six.moves import StringIO

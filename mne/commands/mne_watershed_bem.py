@@ -7,7 +7,6 @@ You can do for example:
 $ mne watershed_bem -s sample
 """
 
-from __future__ import print_function
 import sys
 
 from mne.bem import make_watershed_bem

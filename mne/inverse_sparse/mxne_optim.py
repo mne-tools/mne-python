@@ -1,4 +1,3 @@
-from __future__ import print_function
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #         Daniel Strohmeier <daniel.strohmeier@gmail.com>
 #

@@ -23,7 +23,7 @@ When you are done, you should see a similar output if you type the following com
 If you get an error message, consult the Anaconda documentation and search for Anaconda install
 tips (`Stack Overflow <https://stackoverflow.com/>`_ results are often helpful).
 
-.. note:: MNE-Python 0.17 will be the last release to support Python 2. From MNE-Python 0.18, only Python 3 will be supported.
+.. note:: MNE-Python 0.18 only supports Python 3.5+.
 
 2. Get MNE and its dependencies
 ###############################

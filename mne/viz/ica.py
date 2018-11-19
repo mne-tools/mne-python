@@ -1,5 +1,4 @@
 """Functions to plot ICA specific data (besides topographies)."""
-from __future__ import print_function
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>

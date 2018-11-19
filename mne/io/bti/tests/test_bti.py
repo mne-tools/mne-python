@@ -1,4 +1,3 @@
-from __future__ import print_function
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
@@ -116,12 +115,12 @@ def test_raw():
         assert len(ex.info['dig']) in (3563, 5154)
         assert_dig_allclose(ex.info, ra.info, limit=100)
         coil1, coil2 = [np.concatenate([d['loc'].flatten()
-                        for d in r_.info['chs'][:NCH]])
+                                        for d in r_.info['chs'][:NCH]])
                         for r_ in (ra, ex)]
         assert_array_almost_equal(coil1, coil2, 7)
 
         loc1, loc2 = [np.concatenate([d['loc'].flatten()
-                      for d in r_.info['chs'][:NCH]])
+                                      for d in r_.info['chs'][:NCH]])
                       for r_ in (ra, ex)]
         assert_allclose(loc1, loc2)
 

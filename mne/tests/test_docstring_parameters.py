@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import inspect
 from inspect import getsource
 import os.path as op

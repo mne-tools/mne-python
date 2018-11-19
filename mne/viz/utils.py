@@ -1,5 +1,4 @@
 """Utility functions for plotting M/EEG data."""
-from __future__ import print_function
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>

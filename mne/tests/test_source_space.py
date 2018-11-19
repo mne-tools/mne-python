@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import os
 import os.path as op
 from unittest import SkipTest

@@ -35,8 +35,6 @@ Example usage:
 
 $ mne flash_bem --subject=sample
 """
-from __future__ import print_function
-
 # Authors: Lorenzo De Santis
 
 from mne.bem import convert_flash_mris, make_flash_bem

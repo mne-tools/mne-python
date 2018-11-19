@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 """Some utility functions."""
-from __future__ import print_function
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)

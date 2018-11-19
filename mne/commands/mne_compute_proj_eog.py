@@ -16,8 +16,6 @@ $ mne compute_proj_eog -i sample_audvis_raw.fif \
 
 to exclude ECG artifacts from projection computation.
 """
-from __future__ import print_function
-
 # Authors : Alexandre Gramfort, Ph.D.
 #           Martin Luessi, Ph.D.
 

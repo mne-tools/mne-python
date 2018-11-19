@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Functions to plot evoked M/EEG data (besides topographies)."""
-from __future__ import print_function
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
