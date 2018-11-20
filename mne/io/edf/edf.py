@@ -313,11 +313,18 @@ class RawEDF(BaseRaw):
         # actually one of the requested channels
         idx = np.arange(self.info['nchan'])[idx]  # slice -> ints
         read_size = len(r_lims) * buf_len
-        stim_channel_idx = np.where(idx == stim_channel)[0]
+        if stim_channel is None:  # avoid NumPy comparison to None
+            stim_channel_idx = np.array([], int)
+        else:
+            stim_channel_idx = np.where(idx == stim_channel)[0]
 
         if subtype == 'bdf':
             # do not scale stim channel (see gh-5160)
-            stim_idx = np.where(np.arange(self.info['nchan']) == stim_channel)
+            if stim_channel is None:
+                stim_idx = [[]]
+            else:
+                stim_idx = np.where(np.arange(self.info['nchan']) ==
+                                    stim_channel)
             cal[0, stim_idx[0]] = 1
             offsets[stim_idx[0], 0] = 0
             gains[0, stim_idx[0]] = 1

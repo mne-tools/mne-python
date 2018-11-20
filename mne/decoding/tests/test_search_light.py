@@ -128,7 +128,7 @@ def test_search_light():
         # XXX needs transformer in pipeline to get first proba only
         def __init__(self):
             super(_LogRegTransformer, self).__init__()
-            self.multi_class = 'auto'
+            self.multi_class = 'ovr'
             self.random_state = 0
             self.solver = 'liblinear'
 
@@ -248,7 +248,7 @@ def test_generalization_light():
     assert_array_equal(y_preds[0], y_preds[1])
 
 
-@requires_version('sklearn', '0.17')
+@requires_version('sklearn', '0.19')  # 0.18 does not raise when it should
 def test_cross_val_predict():
     """Test cross_val_predict with predict_proba."""
     from sklearn.linear_model import LinearRegression

@@ -485,8 +485,8 @@ def _write_annotations_txt(fname, annot):
 
     data = np.array([annot.onset, annot.duration, annot.description],
                     dtype=str).T
-    with open(fname, 'w') as fid:
-        fid.write(content)
+    with open(fname, 'wb') as fid:
+        fid.write(content.encode())
         np.savetxt(fid, data, delimiter=',', fmt="%s")
 
 
@@ -653,10 +653,10 @@ def _read_annotations_txt_parse_header(fname):
 
 def _read_annotations_txt(fname):
     onset, duration, desc = np.loadtxt(fname, delimiter=',',
-                                       dtype=str, unpack=True)
-    onset = [float(o) for o in onset]
-    duration = [float(d) for d in duration]
-    desc = [str(d).strip() for d in desc]
+                                       dtype=np.bytes_, unpack=True)
+    onset = [float(o.decode()) for o in onset]
+    duration = [float(d.decode()) for d in duration]
+    desc = [str(d.decode()).strip() for d in desc]
     return onset, duration, desc
 
 
