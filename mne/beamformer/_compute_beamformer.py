@@ -23,12 +23,11 @@ from ..channels.channels import _contains_ch_type
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
-from ..externals.six import string_types
 
 
 def _check_rank(rank):
     """Check rank parameter and deal with deprecation."""
-    if isinstance(rank, string_types):
+    if isinstance(rank, str):
         # XXX we can use rank='' to deprecate to get to None eventually:
         # if rank == '':
         #     warn('The rank parameter default in 0.18 of "full" will change '

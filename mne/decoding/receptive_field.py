@@ -12,7 +12,6 @@ from scipy import linalg
 from .base import get_coef, BaseEstimator, _check_estimator
 from .time_delaying_ridge import TimeDelayingRidge
 from ..fixes import is_regressor
-from ..externals.six import string_types
 from ..utils import _validate_type
 
 
@@ -124,7 +123,7 @@ class ReceptiveField(BaseEstimator):
     def __repr__(self):  # noqa: D105
         s = "tmin, tmax : (%.3f, %.3f), " % (self.tmin, self.tmax)
         estimator = self.estimator
-        if not isinstance(estimator, string_types):
+        if not isinstance(estimator, str):
             estimator = type(self.estimator)
         s += "estimator : %s, " % (estimator,)
         if hasattr(self, 'coef_'):

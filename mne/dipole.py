@@ -26,7 +26,6 @@ from .forward._make_forward import (_get_trans, _setup_bem,
 from .forward._compute_forward import (_compute_forwards_meeg,
                                        _prep_field_computation)
 
-from .externals.six import string_types
 from .surface import transform_surface_to, _compute_nearest
 from .bem import _bem_find_surface, _bem_explain_surface
 from .source_space import (_make_volume_source_space, SourceSpaces,
@@ -1089,7 +1088,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     # Figure out our inputs
     neeg = len(pick_types(info, meg=False, eeg=True, ref_meg=False,
                           exclude=[]))
-    if isinstance(bem, string_types):
+    if isinstance(bem, str):
         bem_extra = bem
     else:
         bem_extra = repr(bem)
@@ -1173,7 +1172,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         logger.info('Using %s MEG coil definitions.'
                     % ("accurate" if accurate else "standard"))
         fit_n_jobs = n_jobs
-    if isinstance(cov, string_types):
+    if isinstance(cov, str):
         logger.info('Noise covariance  : %s' % (cov,))
         cov = read_cov(cov, verbose=False)
     logger.info('')
@@ -1334,7 +1333,7 @@ def get_phantom_dipoles(kind='vectorview'):
     in the XY-plane at the axis extrema (e.g., (79.5, 0), (0, -79.5), ...).
     """
     _valid_types = ('vectorview', 'otaniemi')
-    if not isinstance(kind, string_types) or kind not in _valid_types:
+    if not isinstance(kind, str) or kind not in _valid_types:
         raise ValueError('kind must be one of %s, got %s'
                          % (_valid_types, kind,))
     if kind == 'vectorview':

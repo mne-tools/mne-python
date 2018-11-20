@@ -37,8 +37,6 @@ from .utils import (check_fname, logger, verbose, estimate_rank,
                     copy_function_doc_to_method_doc, _pl)
 from . import viz
 
-from .externals.six.moves import zip
-from .externals.six import string_types
 from .fixes import BaseEstimator, EmpiricalCovariance, _logdet
 
 
@@ -460,7 +458,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
                     reject_by_annotation=reject_by_annotation)
     if method is None:
         method = 'empirical'
-    if isinstance(method, string_types) and method == 'empirical':
+    if isinstance(method, str) and method == 'empirical':
         # potentially *much* more memory efficient to do it the iterative way
         picks = picks[pick_mask]
         data = 0
@@ -559,7 +557,7 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
 
 def _check_rank(rank, methods, was_auto=False):
     """Check validity of rank input argument."""
-    if isinstance(rank, string_types):
+    if isinstance(rank, str):
         if rank == '':
             if not all(method == 'empirical' for method in methods):
                 warn('rank defaults to "full" in 0.17 but will change to None '
@@ -568,7 +566,7 @@ def _check_rank(rank, methods, was_auto=False):
             rank = 'full'
         elif rank != 'full':
             raise ValueError('rank, if str, must be "full", got %s' % (rank,))
-    if not (isinstance(rank, string_types) and rank == 'full'):
+    if not (isinstance(rank, str) and rank == 'full'):
         if was_auto:
             methods.pop(methods.index('factor_analysis'))
         for method in methods:
@@ -801,7 +799,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
              'matrix may be inaccurate')
 
     orig = epochs[0].info['dev_head_t']
-    if not isinstance(on_mismatch, string_types) or \
+    if not isinstance(on_mismatch, str) or \
             on_mismatch not in ['raise', 'warn', 'ignore']:
         raise ValueError('on_mismatch must be "raise", "warn", or "ignore", '
                          'got %s' % on_mismatch)
@@ -1687,7 +1685,7 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None,
         method_params = dict(shrinkage=dict(
             shrinkage=reg, assume_centered=True, store_precision=False))
         reg = 'shrinkage'
-    elif not isinstance(reg, string_types):
+    elif not isinstance(reg, str):
         raise ValueError('reg must be a float, str, or None, got %s (%s)'
                          % (reg, type(reg)))
     method, method_params, rank = _check_method_params(
@@ -2054,7 +2052,7 @@ def _check_scaling_inputs(data, picks_list, scalings):
     rescale_dict_ = dict(mag=1e15, grad=1e13, eeg=1e6)
 
     scalings_ = None
-    if isinstance(scalings, string_types) and scalings == 'norm':
+    if isinstance(scalings, str) and scalings == 'norm':
         scalings_ = 1. / _compute_row_norms(data)
     elif isinstance(scalings, dict):
         rescale_dict_.update(scalings)

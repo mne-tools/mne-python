@@ -14,7 +14,6 @@ from ..epochs import BaseEpochs
 from ..io import BaseRaw
 from ..io.pick import _pick_data_channels, pick_info
 from ..utils import logger
-from ..externals.six import iteritems, itervalues
 
 
 def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
@@ -472,7 +471,7 @@ class Xdawn(_XdawnTransformer):
         filters = filters.reshape(-1, n_components, filters.shape[-1])
         patterns = patterns.reshape(-1, n_components, patterns.shape[-1])
         self.filters_, self.patterns_, self.evokeds_ = dict(), dict(), dict()
-        idx = np.argsort([value for _, value in iteritems(epochs.event_id)])
+        idx = np.argsort([value for _, value in epochs.event_id.items()])
         for eid, this_filter, this_pattern, this_evo in zip(
                 epochs.event_id, filters[idx], patterns[idx], evokeds[idx]):
             self.filters_[eid] = this_filter.T
@@ -508,7 +507,7 @@ class Xdawn(_XdawnTransformer):
             raise ValueError('Data input must be of Epoch type or numpy array')
 
         filters = [filt[:self.n_components]
-                   for filt in itervalues(self.filters_)]
+                   for filt in self.filters_.values()]
         filters = np.concatenate(filters, axis=0)
         X = np.dot(filters, X)
         if X.ndim == 3:

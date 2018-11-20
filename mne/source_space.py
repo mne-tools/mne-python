@@ -35,7 +35,6 @@ from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
                          _coord_frame_name, Transform, _str_to_frame,
                          _ensure_trans, _read_fs_xfm)
-from .externals.six import string_types
 
 
 def _get_lut():
@@ -51,7 +50,7 @@ def _get_lut_id(lut, label, use_lut):
     """Convert a label to a LUT ID number."""
     if not use_lut:
         return 1
-    assert isinstance(label, string_types)
+    assert isinstance(label, str)
     mask = (lut['name'] == label)
     assert mask.sum() == 1
     return lut['id'][mask]
@@ -140,7 +139,7 @@ class SourceSpaces(list):
             brain = 'white' if any(ss['type'] == 'surf'
                                    for ss in self) else False
 
-        if isinstance(brain, string_types):
+        if isinstance(brain, str):
             surfaces.append(brain)
         elif brain:
             surfaces.append('brain')
@@ -148,7 +147,7 @@ class SourceSpaces(list):
         if skull is None:
             skull = False if self.kind == 'surface' else True
 
-        if isinstance(skull, string_types):
+        if isinstance(skull, str):
             surfaces.append(skull)
         elif skull is True:
             surfaces.append('outer_skull')
@@ -1359,7 +1358,7 @@ def _check_spacing(spacing, verbose=None):
     space_err = ('"spacing" must be a string with values '
                  '"ico#", "oct#", or "all", and "ico" and "oct"'
                  'numbers must be integers')
-    if not isinstance(spacing, string_types) or len(spacing) < 3:
+    if not isinstance(spacing, str) or len(spacing) < 3:
         raise ValueError(space_err)
     if spacing == 'all':
         stype = 'all'
@@ -1626,7 +1625,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
             # let's make sure we have geom info
             complete_surface_info(surface, copy=False, verbose=False)
             surf_extra = 'dict()'
-        elif isinstance(surface, string_types):
+        elif isinstance(surface, str):
             if not op.isfile(surface):
                 raise IOError('surface file "%s" not found' % surface)
             surf_extra = surface
@@ -1676,7 +1675,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
             logger.info('Loaded inner skull from %s (%d nodes)'
                         % (bem, surf['np']))
         elif surface is not None:
-            if isinstance(surface, string_types):
+            if isinstance(surface, str):
                 # read the surface in the MRI coordinate frame
                 surf = read_surface(surface, return_dict=True)[-1]
             else:
@@ -2289,7 +2288,7 @@ def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
 @verbose
 def _ensure_src(src, kind=None, verbose=None):
     """Ensure we have a source space."""
-    if isinstance(src, string_types):
+    if isinstance(src, str):
         if not op.isfile(src):
             raise IOError('Source space file "%s" not found' % src)
         logger.info('Reading %s...' % src)

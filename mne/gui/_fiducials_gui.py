@@ -6,7 +6,6 @@
 # License: BSD (3-clause)
 
 import os
-from ..externals.six.moves import map
 
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel

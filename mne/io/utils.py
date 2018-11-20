@@ -14,7 +14,6 @@ import numpy as np
 import os
 
 from ..utils import warn, _validate_type
-from ..externals.six import b
 from .constants import FIFF
 from .meas_info import _get_valid_units
 
@@ -247,8 +246,8 @@ def read_str(fid, count=1):
     dtype = np.dtype('>S%i' % count)
     string = fid.read(dtype.itemsize)
     data = np.frombuffer(string, dtype=dtype)[0]
-    bytestr = b('').join([data[0:data.index(b('\x00')) if
-                          b('\x00') in data else count]])
+    bytestr = b''.join([data[0:data.index(b'\x00') if
+                             b'\x00' in data else count]])
 
     return str(bytestr.decode('ascii'))  # Return native str type for Py2/3
 

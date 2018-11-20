@@ -44,7 +44,6 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_preload, _get_argvalues)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
-from ..externals.six import string_types
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
 from ..annotations import _ensure_annotation_object
@@ -341,7 +340,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if preload is False:
                 self.preload = False
                 load_from_disk = False
-            elif preload is not True and not isinstance(preload, string_types):
+            elif preload is not True and not isinstance(preload, str):
                 raise ValueError('bad preload: %s' % preload)
             else:
                 load_from_disk = True
@@ -515,7 +514,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 raise ValueError('data_buffer has incorrect shape: %s != %s'
                                  % (data_buffer.shape, data_shape))
             data = data_buffer
-        elif isinstance(data_buffer, string_types):
+        elif isinstance(data_buffer, str):
             # use a memmap
             data = np.memmap(data_buffer, mode='w+',
                              dtype=dtype, shape=data_shape)
@@ -658,7 +657,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @verbose
     def _preload_data(self, preload, verbose=None):
         """Actually preload the data."""
-        data_buffer = preload if isinstance(preload, (string_types,
+        data_buffer = preload if isinstance(preload, (str,
                                                       np.ndarray)) else None
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
                     (0, len(self.times) - 1, 0., self.times[-1]))
@@ -1182,7 +1181,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         if n_fft is None:
             n_fft = len(self.times)
-        elif isinstance(n_fft, string_types):
+        elif isinstance(n_fft, str):
             if n_fft != 'auto':
                 raise ValueError('n_fft must be an integer, string, or None, '
                                  'got %s' % (type(n_fft),))
@@ -2106,7 +2105,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 this_data = self._data
 
             # allocate the buffer
-            if isinstance(preload, string_types):
+            if isinstance(preload, str):
                 _data = np.memmap(preload, mode='w+', dtype=this_data.dtype,
                                   shape=(nchan, nsamp))
             else:
@@ -2225,7 +2224,7 @@ def _allocate_data(data, data_buffer, data_shape, dtype):
     """Allocate data in memory or in memmap for preloading."""
     if data is None:
         # if not already done, allocate array with right type
-        if isinstance(data_buffer, string_types):
+        if isinstance(data_buffer, str):
             # use a memmap
             data = np.memmap(data_buffer, mode='w+',
                              dtype=dtype, shape=data_shape)
@@ -2646,12 +2645,12 @@ def _check_update_montage(info, montage, path=None, update_ch_names=False,
                           raise_missing=True):
     """Help eeg readers to add montage."""
     if montage is not None:
-        if not isinstance(montage, (string_types, Montage)):
+        if not isinstance(montage, (str, Montage)):
             err = ("Montage must be str, None, or instance of Montage. "
                    "%s was provided" % type(montage))
             raise TypeError(err)
         if montage is not None:
-            if isinstance(montage, string_types):
+            if isinstance(montage, str):
                 montage = read_montage(montage, path=path)
             _set_montage(info, montage, update_ch_names=update_ch_names)
 
@@ -2680,7 +2679,7 @@ def _check_maxshield(allow_maxshield):
            'produce reliable results. Consider closing '
            'the file and running MaxFilter on the data.')
     if allow_maxshield:
-        if not (isinstance(allow_maxshield, string_types) and
+        if not (isinstance(allow_maxshield, str) and
                 allow_maxshield == 'yes'):
             warn(msg)
         allow_maxshield = 'yes'

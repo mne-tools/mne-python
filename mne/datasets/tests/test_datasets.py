@@ -2,7 +2,6 @@ import os
 from os import path as op
 
 from mne import datasets
-from mne.externals.six import string_types
 from mne.utils import _TempDir, run_tests_if_main, requires_good_network
 
 
@@ -21,7 +20,7 @@ def test_datasets():
             dataset = getattr(datasets, dname)
             check_name = dname
         if dataset.data_path(download=False) != '':
-            assert isinstance(dataset.get_version(), string_types)
+            assert isinstance(dataset.get_version(), str)
             assert datasets.utils.has_dataset(check_name)
         else:
             assert dataset.get_version() is None

@@ -16,7 +16,6 @@ import os
 from os import path as op
 import tempfile
 
-from ..externals.six import string_types
 from ..io import RawArray, Info
 from ..io.constants import FIFF
 from ..io.open import fiff_open
@@ -1538,7 +1537,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     _validate_type(subject, "str", "subject")
 
     # check for meas to exist as string, or try to make evoked
-    if isinstance(meas, string_types):
+    if isinstance(meas, str):
         if not op.isfile(meas):
             raise IOError('measurement file "%s" could not be found' % meas)
     elif isinstance(meas, (BaseRaw, BaseEpochs, Evoked)):
@@ -1562,7 +1561,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
             raise IOError('trans file "%s" not found' % trans)
     if mri is not None:
         # deal with trans
-        if not isinstance(mri, string_types):
+        if not isinstance(mri, str):
             if isinstance(mri, dict):
                 mri_data = deepcopy(mri)
                 mri = op.join(temp_dir, 'mri-trans.fif')
@@ -1587,7 +1586,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
 
     # deal with mindist
     if mindist is not None:
-        if isinstance(mindist, string_types):
+        if isinstance(mindist, str):
             if not mindist.lower() == 'all':
                 raise ValueError('mindist, if string, must be "all"')
             mindist = ['--all']

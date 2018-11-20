@@ -1,5 +1,4 @@
 """Utility functions for plotting M/EEG data."""
-from __future__ import print_function
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
@@ -33,7 +32,6 @@ from ..io.proc_history import _get_rank_sss
 from ..io.proj import setup_proj
 from ..utils import logger, verbose, set_config, warn, _check_ch_locs
 
-from ..externals.six import string_types
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
 from ..annotations import _sync_onset
@@ -1289,7 +1287,7 @@ def _find_peaks(evoked, npeaks):
 
 def _process_times(inst, use_times, n_peaks=None, few=False):
     """Return a list of times for topomaps."""
-    if isinstance(use_times, string_types):
+    if isinstance(use_times, str):
         if use_times == 'interactive':
             use_times, n_peaks = 'peaks', 1
         if use_times == 'peaks':
@@ -2349,7 +2347,7 @@ def _handle_decim(info, decim, lowpass):
     """Handle decim parameter for plotters."""
     from ..evoked import _check_decim
     from ..utils import _ensure_int
-    if isinstance(decim, string_types) and decim == 'auto':
+    if isinstance(decim, str) and decim == 'auto':
         lp = info['sfreq'] if info['lowpass'] is None else info['lowpass']
         lp = min(lp, info['sfreq'] if lowpass is None else lowpass)
         info['lowpass'] = lp
@@ -2550,7 +2548,7 @@ def _check_cov(noise_cov, info):
     from ..cov import read_cov, Covariance
     if noise_cov is None:
         return None
-    if isinstance(noise_cov, string_types):
+    if isinstance(noise_cov, str):
         noise_cov = read_cov(noise_cov)
     if not isinstance(noise_cov, Covariance):
         raise TypeError('noise_cov must be a str or Covariance, got %s'
@@ -2572,7 +2570,7 @@ def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
             ch_type = "sensor"
         if len(ch_names) > 1:
             ch_type += "s"
-        if all is True and isinstance(combine, string_types):
+        if all is True and isinstance(combine, str):
             combine = combine[0].upper() + combine[1:]
             title = "{} of {} {}".format(
                 combine, len(ch_names), ch_type)
@@ -2585,7 +2583,7 @@ def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
 
 
 def _check_time_unit(time_unit, times):
-    if not isinstance(time_unit, string_types):
+    if not isinstance(time_unit, str):
         raise TypeError('time_unit must be str, got %s' % (type(time_unit),))
     if time_unit == 's':
         times = times

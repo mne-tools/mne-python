@@ -15,7 +15,6 @@ from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate, _get_src_type
 from ..utils import logger, verbose, warn, _validate_type, _reg_pinv
 from .. import Epochs
-from ..externals import six
 from ._compute_beamformer import (
     _setup_picks, _pick_channels_spatial_filter,
     _check_proj_match, _prepare_beamformer_input, _check_one_ch_type,
@@ -301,7 +300,7 @@ def apply_lcmv(evoked, filters, max_ori_out='signed', verbose=None):
     stc = _apply_lcmv(data=data, filters=filters, info=info,
                       tmin=tmin, max_ori_out=max_ori_out)
 
-    return six.advance_iterator(stc)
+    return next(stc)
 
 
 @verbose
@@ -402,7 +401,7 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
     stc = _apply_lcmv(data=data, filters=filters, info=info,
                       tmin=tmin, max_ori_out=max_ori_out)
 
-    return six.advance_iterator(stc)
+    return next(stc)
 
 
 @verbose

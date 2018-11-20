@@ -32,7 +32,6 @@ from ..source_space import (_ensure_src, _points_outside_surface,
 from ..source_estimate import _BaseSourceEstimate
 from ..utils import logger, verbose, check_random_state, warn, _pl
 from ..parallel import check_n_jobs
-from ..externals.six import string_types
 
 
 def _check_cov(info, cov):
@@ -41,7 +40,7 @@ def _check_cov(info, cov):
         pass
     elif isinstance(cov, dict):
         cov = make_ad_hoc_cov(info, cov, verbose=False)
-    elif isinstance(cov, string_types):
+    elif isinstance(cov, str):
         if cov == 'simple':
             cov = make_ad_hoc_cov(info, None, verbose=False)
         else:
@@ -236,7 +235,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
     if head_pos is None:  # use pos from info['dev_head_t']
         head_pos = dict()
-    if isinstance(head_pos, string_types):  # can be a head pos file
+    if isinstance(head_pos, str):  # can be a head pos file
         head_pos = read_head_pos(head_pos)
     if isinstance(head_pos, np.ndarray):  # can be head_pos quats
         head_pos = head_pos_to_trans_rot_t(head_pos)
@@ -276,7 +275,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     del ts
 
     src = _ensure_src(src, verbose=False)
-    if isinstance(bem, string_types):
+    if isinstance(bem, str):
         bem = read_bem_solution(bem, verbose=False)
     cov = _check_cov(info, cov)
     approx_events = int((len(times) / info['sfreq']) /

@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # Author: Denis Engemann <denis.engemann@gmail.com>
 #         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
@@ -87,7 +85,7 @@ def test_ica_full_data_recovery(method):
     for method in methods:
         stuff = [(2, n_channels, True), (2, n_channels // 2, False)]
         for n_components, n_pca_components, ok in stuff:
-            ica = ICA(n_components=n_components,
+            ica = ICA(n_components=n_components, random_state=0,
                       max_pca_components=n_pca_components,
                       n_pca_components=n_pca_components,
                       method=method, max_iter=1)
@@ -103,7 +101,7 @@ def test_ica_full_data_recovery(method):
 
             ica = ICA(n_components=n_components, method=method,
                       max_pca_components=n_pca_components,
-                      n_pca_components=n_pca_components)
+                      n_pca_components=n_pca_components, random_state=0)
             with pytest.warns(None):  # sometimes warns
                 ica.fit(epochs, picks=list(range(n_channels)))
             epochs2 = ica.apply(epochs.copy(), exclude=[])
@@ -727,9 +725,10 @@ def test_bad_channels(method):
     data_chs = _DATA_CH_TYPES_SPLIT + ['eog']
     chs_bad = list(set(chs) - set(data_chs))
     info = create_info(len(chs), 500, chs)
-    data = np.random.rand(len(chs), 50)
+    rng = np.random.RandomState(0)
+    data = rng.rand(len(chs), 50)
     raw = RawArray(data, info)
-    data = np.random.rand(100, len(chs), 50)
+    data = rng.rand(100, len(chs), 50)
     epochs = EpochsArray(data, info)
 
     n_components = 0.9

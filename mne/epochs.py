@@ -49,8 +49,6 @@ from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, warn, _pl, _ensure_int,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed, _check_preload)
-from .externals.six import iteritems, string_types
-from .externals.six.moves import zip
 
 
 def _save_split(epochs, fname, part_idx, n_parts, fmt):
@@ -118,7 +116,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
             metadata = metadata.to_json(orient='records')
         else:  # Pandas DataFrame
             metadata = json.dumps(metadata)
-        assert isinstance(metadata, string_types)
+        assert isinstance(metadata, str)
         write_string(fid, FIFF.FIFF_DESCRIPTION, metadata)
         end_block(fid, FIFF.FIFFB_MNE_METADATA)
 
@@ -264,7 +262,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             event_id = list(np.unique(events[:, 2]))
         if isinstance(event_id, dict):
             for key in event_id.keys():
-                if not isinstance(key, string_types):
+                if not isinstance(key, str):
                     raise TypeError('Event names must be of type str, '
                                     'got %s (%s)' % (key, type(key)))
             event_id = dict((key, _ensure_int(val, 'event_id[%s]' % key))
@@ -687,7 +685,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @verbose
     def _is_good_epoch(self, data, verbose=None):
         """Determine if epoch is good."""
-        if isinstance(data, string_types):
+        if isinstance(data, str):
             return False, [data]
         if data is None:
             return False, ['NO_DATA']
@@ -711,7 +709,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Note: operates inplace
         """
-        if (epoch is None) or isinstance(epoch, string_types):
+        if (epoch is None) or isinstance(epoch, str):
             return epoch
 
         # Detrend
@@ -1103,7 +1101,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             reject = self.reject
         if flat == 'existing':
             flat = self.flat
-        if any(isinstance(rej, string_types) and rej != 'existing' for
+        if any(isinstance(rej, str) and rej != 'existing' for
                rej in (reject, flat)):
             raise ValueError('reject and flat, if strings, must be "existing"')
         self._reject_setup(reject, flat)
@@ -1213,7 +1211,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def _project_epoch(self, epoch):
         """Process a raw epoch based on the delayed param."""
         # whenever requested, the first epoch is being projected.
-        if (epoch is None) or isinstance(epoch, string_types):
+        if (epoch is None) or isinstance(epoch, str):
             # can happen if t < 0 or reject based on annotations
             return epoch
         proj = self._do_delayed_proj or self.proj
@@ -1593,12 +1591,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._data, epochs._data = data, data
         del self
 
-        if isinstance(item, string_types):
+        if isinstance(item, str):
             item = [item]
 
         # Convert string to indices
         if isinstance(item, (list, tuple)) and len(item) > 0 and \
-                isinstance(item[0], string_types):
+                isinstance(item[0], str):
             select = epochs._keys_to_idx(item)
         elif isinstance(item, slice):
             select = item
@@ -1822,7 +1820,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         tagging = False
         if "/" in "".join(ids):
             # make string inputs a list of length 1
-            event_ids = [[x] if isinstance(x, string_types) else x
+            event_ids = [[x] if isinstance(x, str) else x
                          for x in event_ids]
             for ids_ in event_ids:  # check if tagging is attempted
                 if any([id_ not in ids for id_ in ids_]):
@@ -1913,7 +1911,7 @@ def _hid_match(event_id, keys):
     # form the hierarchical event ID mapping
     use_keys = []
     for key in keys:
-        if not isinstance(key, string_types):
+        if not isinstance(key, str):
             raise KeyError('keys must be strings, got %s (%s)'
                            % (type(key), key))
         use_keys.extend(k for k in event_id.keys()
@@ -2493,7 +2491,7 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
                         for c in ch_names], dtype=bool)] = False
     for refl, f, t in zip([reject, flat], [np.greater, np.less], ['', 'flat']):
         if refl is not None:
-            for key, thresh in iteritems(refl):
+            for key, thresh in refl.items():
                 idx = channel_type_idx[key]
                 name = key.upper()
                 if len(idx) > 0:

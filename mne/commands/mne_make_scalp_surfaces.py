@@ -10,8 +10,6 @@
 
 example usage: mne make_scalp_surfaces --overwrite --subject sample
 """
-from __future__ import print_function
-
 import os
 import copy
 import os.path as op

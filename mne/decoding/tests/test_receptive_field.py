@@ -469,7 +469,7 @@ def test_receptive_field_nd():
         assert score > 0.6
 
 
-@requires_version('sklearn', '0.17')
+@requires_version('sklearn', '0.19')  # 0.18 does not warn
 def test_inverse_coef():
     """Test inverse coefficients computation."""
     from sklearn.linear_model import Ridge

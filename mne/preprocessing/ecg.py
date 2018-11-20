@@ -7,7 +7,6 @@
 import numpy as np
 
 from .. import pick_types, pick_channels
-from ..externals.six import string_types
 from ..utils import logger, verbose, sum_squared, warn
 from ..filter import filter_data
 from ..epochs import Epochs, BaseEpochs
@@ -73,7 +72,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
 
     if thresh_value == 'auto':
         thresh_runs = np.arange(0.3, 1.1, 0.05)
-    elif isinstance(thresh_value, string_types):
+    elif isinstance(thresh_value, str):
         raise ValueError('threshold value must be "auto" or a float')
     else:
         thresh_runs = [thresh_value]

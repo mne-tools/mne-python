@@ -11,12 +11,14 @@
 #
 # License: BSD (3-clause)
 
+import configparser
 import os
 import os.path as op
 import re
 from datetime import datetime
 from math import modf
 from functools import partial
+from io import StringIO
 
 import numpy as np
 
@@ -28,8 +30,6 @@ from ..utils import (_read_segments_file, _synthesize_stim_channel,
                      _mult_cal_one, _deprecate_stim_channel)
 from ...annotations import (Annotations, events_from_annotations,
                             read_annotations)
-from ...externals.six import StringIO, string_types
-from ...externals.six.moves import configparser
 
 
 class RawBrainVision(BaseRaw):
@@ -197,7 +197,7 @@ class RawBrainVision(BaseRaw):
             n_data_ch -= 1
         if self._order == 'C':
             _read_segments_c(self, data, idx, fi, start, stop, cals, mult)
-        elif isinstance(self.orig_format, string_types):
+        elif isinstance(self.orig_format, str):
             dtype = _fmt_dtype_dict[self.orig_format]
             _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
                                 dtype=dtype, n_channels=n_data_ch,

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Functions to plot evoked M/EEG data (besides topographies)."""
-from __future__ import print_function
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
@@ -21,7 +20,6 @@ from ..io.pick import (channel_type, _pick_data_channels,
                        _VALID_CHANNEL_TYPES, channel_indices_by_type,
                        _DATA_CH_TYPES_SPLIT, _pick_inst, _get_channel_types,
                        _PICK_TYPES_DATA_DICT)
-from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
@@ -260,7 +258,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
                            ' for interactive SSP selection.')
-    if isinstance(gfp, string_types) and gfp != 'only':
+    if isinstance(gfp, str) and gfp != 'only':
         raise ValueError('gfp must be boolean or "only". Got %s' % gfp)
 
     scalings = _handle_default('scalings', scalings)
@@ -275,10 +273,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     bad_ch_idx = [info['ch_names'].index(ch) for ch in info['bads']
                   if ch in info['ch_names']]
     if len(exclude) > 0:
-        if isinstance(exclude, string_types) and exclude == 'bads':
+        if isinstance(exclude, str) and exclude == 'bads':
             exclude = bad_ch_idx
         elif (isinstance(exclude, list) and
-              all(isinstance(ch, string_types) for ch in exclude)):
+              all(isinstance(ch, str) for ch in exclude)):
             exclude = [info['ch_names'].index(ch) for ch in exclude]
         else:
             raise ValueError(
@@ -411,7 +409,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             # Set amplitude scaling
             D = this_scaling * data[idx, :]
             _check_if_nan(D)
-            gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
+            gfp_only = (isinstance(gfp, str) and gfp == 'only')
             if not gfp_only:
                 chs = [info['chs'][i] for i in idx]
                 locs3d = np.array([ch['loc'][:3] for ch in chs])
@@ -425,7 +423,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                     _handle_spatial_colors(colors, info, idx, this_type, psd,
                                            ax)
                 else:
-                    if isinstance(spatial_colors, (tuple, string_types)):
+                    if isinstance(spatial_colors, (tuple, str)):
                         col = [spatial_colors]
                     else:
                         col = ['k']
@@ -1093,7 +1091,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True,
     import matplotlib.pyplot as plt
     time_unit, times = _check_time_unit(time_unit, evoked.times)
 
-    if isinstance(noise_cov, string_types):
+    if isinstance(noise_cov, str):
         noise_cov = read_cov(noise_cov)
     if not isinstance(noise_cov, (list, tuple)):
         noise_cov = [noise_cov]
@@ -2019,13 +2017,13 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     # third, color
     # check: is color a list?
-    if (colors is not None and not isinstance(colors, string_types) and
+    if (colors is not None and not isinstance(colors, str) and
             not isinstance(colors, dict) and len(colors) > 1):
         colors = dict((condition, color) for condition, color
                       in zip(conditions, colors))
 
     if cmap is not None:
-        if not isinstance(cmap, string_types) and len(cmap) == 2:
+        if not isinstance(cmap, str) and len(cmap) == 2:
             cmap_label, cmap = cmap
         else:
             cmap_label = ""

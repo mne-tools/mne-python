@@ -23,8 +23,6 @@ from .surface import read_surface, fast_cross_3d, mesh_edges, mesh_dist
 from .source_space import SourceSpaces
 from .parallel import parallel_func, check_n_jobs
 from .stats.cluster_level import _find_clusters, _get_components
-from .externals.six import b, string_types
-from .externals.six.moves import zip, xrange
 
 
 def _blend_colors(color_1, color_2):
@@ -202,7 +200,7 @@ class Label(object):
                  name=None, filename=None, subject=None, color=None,
                  verbose=None):  # noqa: D102
         # check parameters
-        if not isinstance(hemi, string_types):
+        if not isinstance(hemi, str):
             raise ValueError('hemi must be a string, not %s' % type(hemi))
         vertices = np.asarray(vertices, int)
         if np.any(np.diff(vertices.astype(int)) <= 0):
@@ -561,7 +559,7 @@ class Label(object):
         """
         from .morph import compute_source_morph, grade_to_vertices
         subject_from = _check_subject(self.subject, subject_from)
-        if not isinstance(subject_to, string_types):
+        if not isinstance(subject_to, str):
             raise TypeError('"subject_to" must be entered as a string')
         if not isinstance(smooth, int):
             raise TypeError('smooth must be an integer')
@@ -634,7 +632,7 @@ class Label(object):
         spherical surface, projects all label vertex coordinates onto this
         axis, and divides them at regular spatial intervals.
         """
-        if isinstance(parts, string_types) and parts == 'contiguous':
+        if isinstance(parts, str) and parts == 'contiguous':
             return _split_label_contig(self, subject, subjects_dir)
         elif isinstance(parts, (tuple, int)):
             return split_label(self, parts, subject, subjects_dir, freesurfer)
@@ -746,7 +744,7 @@ class Label(object):
         .. [1] Larson and Lee, "The cortical dynamics underlying effective
                switching of auditory spatial attention", NeuroImage 2012.
         """
-        if not isinstance(surf, string_types):
+        if not isinstance(surf, str):
             raise TypeError('surf must be a string, got %s' % (type(surf),))
         subject = _check_subject(self.subject, subject)
         if np.any(self.values < 0):
@@ -885,7 +883,7 @@ def read_label(filename, subject=None, color=None):
     --------
     read_labels_from_annot
     """
-    if subject is not None and not isinstance(subject, string_types):
+    if subject is not None and not isinstance(subject, str):
         raise TypeError('subject must be a string')
 
     # find hemi
@@ -969,10 +967,10 @@ def write_label(filename, label, verbose=None):
         data[:, 0] = label.vertices
         data[:, 1:4] = 1e3 * label.pos
         data[:, 4] = label.values
-        fid.write(b("#%s\n" % label.comment))
-        fid.write(b("%d\n" % n_vertices))
+        fid.write(b'#%s\n' % label.comment.encode())
+        fid.write(b'%d\n' % n_vertices)
         for d in data:
-            fid.write(b("%d %f %f %f %f\n" % tuple(d)))
+            fid.write(b'%d %f %f %f %f\n' % tuple(d))
     return label
 
 
@@ -981,7 +979,7 @@ def _prep_label_split(label, subject=None, subjects_dir=None):
     # If necessary, find the label
     if isinstance(label, BiHemiLabel):
         raise TypeError("Can only split labels restricted to one hemisphere.")
-    elif isinstance(label, string_types):
+    elif isinstance(label, str):
         label = read_label(label)
 
     # Find the subject
@@ -1304,7 +1302,7 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
     src = stc.subject if src is None else src
     if src is None:
         raise ValueError('src cannot be None if stc.subject is None')
-    if isinstance(src, string_types):
+    if isinstance(src, str):
         subject = src
     else:
         subject = stc.subject
@@ -1312,7 +1310,7 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
     if not isinstance(stc, SourceEstimate):
         raise ValueError('SourceEstimate should be surface source estimates')
 
-    if isinstance(src, string_types):
+    if isinstance(src, str):
         if connected:
             raise ValueError('The option to return only connected labels is '
                              'only available if source spaces are provided.')
@@ -1652,7 +1650,7 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vertices_,
                 edge.append(vert_to)
 
         # convert parc to labels
-        for i in xrange(n_labels):
+        for i in range(n_labels):
             vertices = np.nonzero(parc == i)[0]
             name = str(names[i])
             label_ = Label(vertices, hemi=hemi, name=name, subject=subject)
@@ -1812,7 +1810,7 @@ def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs,
             label_id = np.delete(label_id, i, 0)
 
         # convert parc to labels
-        for i in xrange(n_labels):
+        for i in range(n_labels):
             vertices = np.nonzero(parc == label_id[i])[0]
             name = 'label_' + str(i)
             label_ = Label(vertices, hemi=hemi, name=name, subject=subject)
@@ -2178,7 +2176,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
                                            cmap=colormap)
                 # keep track of colors known to be in hemi_colors :
                 safe_color_i = 0
-                for i in xrange(n_hemi_labels):
+                for i in range(n_hemi_labels):
                     if ctab[i, 0] == -1:
                         color = default_colors[i]
                         # make sure to add no duplicate color

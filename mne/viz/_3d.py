@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Functions to make 3D plots with M/EEG data."""
-from __future__ import print_function
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
@@ -13,6 +12,7 @@ from __future__ import print_function
 
 import base64
 from distutils.version import LooseVersion
+from io import BytesIO
 from itertools import cycle
 import os.path as op
 import warnings
@@ -22,7 +22,6 @@ import numpy as np
 from scipy import linalg, sparse
 
 from ..defaults import DEFAULTS
-from ..externals.six import BytesIO, string_types, advance_iterator
 from ..fixes import einsum, _crop_colorbar
 from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types
@@ -127,7 +126,7 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
     from ..chpi import head_pos_to_trans_rot_t
     from ..preprocessing.maxwell import _check_destination
     import matplotlib.pyplot as plt
-    if not isinstance(mode, string_types) or mode not in ('traces', 'field'):
+    if not isinstance(mode, str) or mode not in ('traces', 'field'):
         raise ValueError('mode must be "traces" or "field", got %s' % (mode,))
     dest_info = dict(dev_head_t=None) if info is None else info
     destination = _check_destination(destination, dest_info, head_frame=True)
@@ -687,19 +686,19 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         meg = ('helmet', 'sensors', 'ref')
     elif meg is False:
         meg = list()
-    elif isinstance(meg, string_types):
+    elif isinstance(meg, str):
         meg = [meg]
-    if isinstance(eeg, string_types):
+    if isinstance(eeg, str):
         eeg = [eeg]
 
-    if not isinstance(interaction, string_types) or \
+    if not isinstance(interaction, str) or \
             interaction not in ('trackball', 'terrain'):
         raise ValueError('interaction must be "trackball" or "terrain", '
                          'got "%s"' % (interaction,))
 
     for kind, var in zip(('eeg', 'meg'), (eeg, meg)):
         if not isinstance(var, (list, tuple)) or \
-                not all(isinstance(x, string_types) for x in var):
+                not all(isinstance(x, str) for x in var):
             raise TypeError('%s must be list or tuple of str, got %s'
                             % (kind, type(var)))
     if not all(x in ('helmet', 'sensors', 'ref') for x in meg):
@@ -711,7 +710,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
 
     _validate_type(info, "info")
 
-    if isinstance(surfaces, string_types):
+    if isinstance(surfaces, str):
         surfaces = [surfaces]
     surfaces = list(surfaces)
     for s in surfaces:
@@ -749,7 +748,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     ecog_picks = pick_types(info, meg=False, ecog=True, ref_meg=False)
     seeg_picks = pick_types(info, meg=False, seeg=True, ref_meg=False)
 
-    if isinstance(trans, string_types):
+    if isinstance(trans, str):
         if trans == 'auto':
             # let's try to do this in MRI coordinates so they're easy to plot
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -903,7 +902,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                                  "automatically find the fiducials file.")
             mri_fiducials = op.join(subjects_dir, subject, 'bem',
                                     subject + '-fiducials.fif')
-        if isinstance(mri_fiducials, string_types):
+        if isinstance(mri_fiducials, str):
             mri_fiducials, cf = read_fiducials(mri_fiducials)
             if cf != FIFF.FIFFV_COORD_MRI:
                 raise ValueError("Fiducials are not in MRI space")
@@ -2399,7 +2398,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     logger.info("Total number of active sources: %d" % len(unique_vertnos))
 
     if labels is not None:
-        colors = [advance_iterator(colors) for _ in
+        colors = [next(colors) for _ in
                   range(np.unique(np.concatenate(labels).ravel()).size)]
 
     for idx, v in enumerate(unique_vertnos):
@@ -2408,7 +2407,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         is_common = len(ind) > 1
 
         if labels is None:
-            c = advance_iterator(colors)
+            c = next(colors)
         else:
             # if vertex is in different stcs than take label from first one
             c = colors[labels[ind[0]][vertnos[ind[0]] == v]]

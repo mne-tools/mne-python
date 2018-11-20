@@ -4,11 +4,9 @@
 #
 # License: BSD (3-clause)
 
-from __future__ import print_function
-
+from io import StringIO
 import socket
 import time
-from ..externals.six.moves import StringIO
 import threading
 
 import numpy as np

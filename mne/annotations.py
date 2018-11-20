@@ -15,7 +15,6 @@ import numpy as np
 from .utils import _pl, check_fname, _validate_type, verbose, warn, logger
 from .utils import _check_pandas_installed
 from .utils import _Counter as Counter
-from .externals.six import string_types
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
 from .io.constants import FIFF
@@ -161,7 +160,7 @@ class Annotations(object):
                              '(shape %s).'
                              % (onset.ndim, onset.shape))
         duration = np.array(duration, dtype=float)
-        if isinstance(description, string_types):
+        if isinstance(description, str):
             description = np.repeat(description, len(onset))
         if duration.ndim != 1:
             raise ValueError('Duration must be a one dimensional array.')
@@ -384,7 +383,7 @@ def _handle_meas_date(meas_date):
     """
     if meas_date is None:
         meas_date = 0
-    elif isinstance(meas_date, string_types):
+    elif isinstance(meas_date, str):
         ACCEPTED_ISO8601 = '%Y-%m-%d %H:%M:%S.%f'
         try:
             meas_date = datetime.strptime(meas_date, ACCEPTED_ISO8601)
@@ -420,9 +419,9 @@ def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
 
     onsets and ends are inclusive.
     """
-    _validate_type(kinds, (string_types, list, tuple), str(type(kinds)),
+    _validate_type(kinds, (str, list, tuple), str(type(kinds)),
                    "str, list or tuple")
-    if isinstance(kinds, string_types):
+    if isinstance(kinds, str):
         kinds = [kinds]
     else:
         for kind in kinds:
@@ -486,8 +485,8 @@ def _write_annotations_txt(fname, annot):
 
     data = np.array([annot.onset, annot.duration, annot.description],
                     dtype=str).T
-    with open(fname, 'w') as fid:
-        fid.write(content)
+    with open(fname, 'wb') as fid:
+        fid.write(content.encode())
         np.savetxt(fid, data, delimiter=',', fmt="%s")
 
 
@@ -654,10 +653,10 @@ def _read_annotations_txt_parse_header(fname):
 
 def _read_annotations_txt(fname):
     onset, duration, desc = np.loadtxt(fname, delimiter=',',
-                                       dtype=str, unpack=True)
-    onset = [float(o) for o in onset]
-    duration = [float(d) for d in duration]
-    desc = [str(d).strip() for d in desc]
+                                       dtype=np.bytes_, unpack=True)
+    onset = [float(o.decode()) for o in onset]
+    duration = [float(d.decode()) for d in duration]
+    desc = [str(d.decode()).strip() for d in desc]
     return onset, duration, desc
 
 

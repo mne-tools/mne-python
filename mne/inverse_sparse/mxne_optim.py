@@ -1,4 +1,3 @@
-from __future__ import print_function
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #         Daniel Strohmeier <daniel.strohmeier@gmail.com>
 #
@@ -12,7 +11,6 @@ from scipy import linalg
 from .mxne_debiasing import compute_bias
 from ..utils import logger, verbose, sum_squared, warn
 from ..time_frequency.stft import stft_norm1, stft_norm2, stft, istft
-from ..externals.six.moves import xrange as range
 
 
 def groups_norm2(A, n_orient):

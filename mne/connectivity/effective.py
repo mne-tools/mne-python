@@ -1,7 +1,7 @@
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
-from ..externals.six.moves import zip
+
 import copy
 
 import numpy as np

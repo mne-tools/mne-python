@@ -15,13 +15,12 @@ from copy import deepcopy
 from numpy import sin, cos
 from scipy import linalg
 
-from .fixes import _get_sph_harm, einsum
+from .fixes import einsum
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
 from .utils import check_fname, logger, verbose, _ensure_int
-from .externals.six import string_types
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -62,7 +61,7 @@ _verbose_frames = {FIFF.FIFFV_COORD_UNKNOWN: 'unknown',
 
 def _to_const(cf):
     """Convert string or int coord frame into int."""
-    if isinstance(cf, string_types):
+    if isinstance(cf, str):
         if cf not in _str_to_frame:
             raise ValueError('Unknown cf %s' % cf)
         cf = _str_to_frame[cf]
@@ -395,14 +394,14 @@ def translation(x=0, y=0, z=0):
 
 def _ensure_trans(trans, fro='mri', to='head'):
     """Ensure we have the proper transform."""
-    if isinstance(fro, string_types):
+    if isinstance(fro, str):
         from_str = fro
         from_const = _str_to_frame[fro]
     else:
         from_str = _frame_to_str[fro]
         from_const = fro
     del fro
-    if isinstance(to, string_types):
+    if isinstance(to, str):
         to_str = to
         to_const = _str_to_frame[to]
     else:
@@ -434,7 +433,7 @@ def _ensure_trans(trans, fro='mri', to='head'):
 
 def _get_trans(trans, fro='mri', to='head'):
     """Get mri_head_t (from=mri, to=head) from mri filename."""
-    if isinstance(trans, string_types):
+    if isinstance(trans, str):
         if not op.isfile(trans):
             raise IOError('trans file "%s" not found' % trans)
         if op.splitext(trans)[1] in ['.fif', '.gz']:
@@ -597,7 +596,7 @@ def transform_surface_to(surf, dest, trans, copy=False):
         Transformed source space.
     """
     surf = deepcopy(surf) if copy else surf
-    if isinstance(dest, string_types):
+    if isinstance(dest, str):
         if dest not in _str_to_frame:
             raise KeyError('dest must be one of %s, not "%s"'
                            % (list(_str_to_frame.keys()), dest))
@@ -821,7 +820,7 @@ def _sh_real_to_complex(shs, order):
 
 def _compute_sph_harm(order, az, pol):
     """Compute complex spherical harmonics of spherical coordinates."""
-    sph_harm = _get_sph_harm()
+    from scipy.special import sph_harm
     out = np.empty((len(az), _get_n_moments(order) + 1))
     # _deg_ord_idx(0, 0) = -1 so we're actually okay to use it here
     for degree in range(order + 1):

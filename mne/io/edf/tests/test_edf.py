@@ -19,7 +19,6 @@ from scipy.io import loadmat
 
 from mne import pick_types
 from mne.datasets import testing
-from mne.externals.six import iterbytes
 from mne.utils import run_tests_if_main, requires_pandas, _TempDir
 from mne.io import read_raw_edf
 from mne.io.base import _RawShell
@@ -180,7 +179,7 @@ def test_edf_data():
         rbytes = fid_in.read(int(n_bytes * 0.4))
     with open(broken_fname, 'wb') as fid_out:
         fid_out.write(rbytes[:236])
-        fid_out.write(bytes('-1      '.encode()))
+        fid_out.write(b'-1      ')
         fid_out.write(rbytes[244:])
     with pytest.warns(RuntimeWarning,
                       match='records .* not match the file size'):
@@ -247,7 +246,7 @@ def test_parse_annotation():
              b'+3.14\x1504.20\x14nothing\x14\x00\x00\x00\x00'
              b'+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00'
              b'+123\x14\x14\x00\x00\x00\x00\x00\x00\x00')
-    annot = [a for a in iterbytes(annot)]
+    annot = [a for a in bytes(annot)]
     annot[1::2] = [a * 256 for a in annot[1::2]]
     tal_channel = map(sum, zip(annot[0::2], annot[1::2]))
 

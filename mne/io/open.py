@@ -15,12 +15,11 @@ from .tag import read_tag_info, read_tag, read_big, Tag, _call_dict_names
 from .tree import make_dir_tree, dir_tree_find
 from .constants import FIFF
 from ..utils import logger, verbose
-from ..externals.six import string_types, iteritems, text_type
 
 
 def _fiff_get_fid(fname):
     """Open a FIF file with no additional parsing."""
-    if isinstance(fname, string_types):
+    if isinstance(fname, str):
         if op.splitext(fname)[1].lower() == '.gz':
             logger.debug('Using gzip')
             fid = GzipFile(fname, "rb")  # Open in binary mode
@@ -184,7 +183,7 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
     """
     if output not in [list, str]:
         raise ValueError('output must be list or str')
-    if isinstance(tag, string_types):  # command mne show_fiff passes string
+    if isinstance(tag, str):  # command mne show_fiff passes string
         tag = int(tag)
     f, tree, directory = fiff_open(fname)
     # This gets set to 0 (unknown) by fiff_open, but FIFFB_ROOT probably
@@ -201,7 +200,7 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
 def _find_type(value, fmts=['FIFF_'], exclude=['FIFF_UNIT']):
     """Find matching values."""
     value = int(value)
-    vals = [k for k, v in iteritems(FIFF)
+    vals = [k for k, v in FIFF.items()
             if v == value and any(fmt in k for fmt in fmts) and
             not any(exc in k for exc in exclude)]
     if len(vals) == 0:
@@ -249,13 +248,13 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
                 postpend = ''
                 # print tag data nicely
                 if tag.data is not None:
-                    postpend = ' = ' + text_type(tag.data)[:max_str]
+                    postpend = ' = ' + str(tag.data)[:max_str]
                     if isinstance(tag.data, np.ndarray):
                         if tag.data.size > 1:
                             postpend += ' ... array size=' + str(tag.data.size)
                     elif isinstance(tag.data, dict):
                         postpend += ' ... dict len=' + str(len(tag.data))
-                    elif isinstance(tag.data, string_types):
+                    elif isinstance(tag.data, str):
                         postpend += ' ... str len=' + str(len(tag.data))
                     elif isinstance(tag.data, (list, tuple)):
                         postpend += ' ... list len=' + str(len(tag.data))

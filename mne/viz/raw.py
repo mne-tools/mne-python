@@ -1,5 +1,4 @@
 """Functions to plot raw M/EEG data."""
-from __future__ import print_function
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
@@ -12,7 +11,6 @@ from functools import partial
 import numpy as np
 
 from ..annotations import _annotations_starts_stops
-from ..externals.six import string_types
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels, channel_type)
 from ..io.meas_info import create_info
@@ -312,7 +310,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
             title = '%s ... (+ %d more) ' % (title[0], len(title) - 1)
             if len(title) > 60:
                 title = '...' + title[-60:]
-    elif not isinstance(title, string_types):
+    elif not isinstance(title, str):
         raise TypeError('title must be None or a string')
     if events is not None:
         event_times = events[:, 0].astype(float) - raw.first_samp

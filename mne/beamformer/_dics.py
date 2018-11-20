@@ -18,7 +18,6 @@ from ._compute_beamformer import (_setup_picks,
                                   _check_proj_match, _prepare_beamformer_input,
                                   _compute_beamformer, _check_one_ch_type,
                                   _check_src_type, Beamformer, _check_rank)
-from ..externals import six
 
 
 @verbose
@@ -361,7 +360,7 @@ def apply_dics(evoked, filters, verbose=None):
 
     stc = _apply_dics(data=data, filters=filters, info=info, tmin=tmin)
 
-    return six.advance_iterator(stc)
+    return next(stc)
 
 
 @verbose

@@ -1,8 +1,8 @@
-from __future__ import print_function
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
+from io import BytesIO
 import os
 import os.path as op
 from functools import reduce, partial
@@ -26,7 +26,6 @@ from mne.io.constants import FIFF
 from mne import pick_types
 from mne.utils import run_tests_if_main
 from mne.transforms import Transform, combine_transforms, invert_transform
-from mne.externals import six
 
 base_dir = op.join(op.abspath(op.dirname(__file__)), 'data')
 
@@ -116,12 +115,12 @@ def test_raw():
         assert len(ex.info['dig']) in (3563, 5154)
         assert_dig_allclose(ex.info, ra.info, limit=100)
         coil1, coil2 = [np.concatenate([d['loc'].flatten()
-                        for d in r_.info['chs'][:NCH]])
+                                        for d in r_.info['chs'][:NCH]])
                         for r_ in (ra, ex)]
         assert_array_almost_equal(coil1, coil2, 7)
 
         loc1, loc2 = [np.concatenate([d['loc'].flatten()
-                      for d in r_.info['chs'][:NCH]])
+                                      for d in r_.info['chs'][:NCH]])
                       for r_ in (ra, ex)]
         assert_allclose(loc1, loc2)
 
@@ -278,11 +277,11 @@ def test_bytes_io():
         raw = read_raw_bti(pdf, config, hs, convert=True, preload=False)
 
         with open(pdf, 'rb') as fid:
-            pdf = six.BytesIO(fid.read())
+            pdf = BytesIO(fid.read())
         with open(config, 'rb') as fid:
-            config = six.BytesIO(fid.read())
+            config = BytesIO(fid.read())
         with open(hs, 'rb') as fid:
-            hs = six.BytesIO(fid.read())
+            hs = BytesIO(fid.read())
 
         raw2 = read_raw_bti(pdf, config, hs, convert=True, preload=False)
         repr(raw2)
@@ -338,5 +337,6 @@ def test_nan_trans():
                 if convert:
                     t = _loc_to_coil_trans(bti_info['chs'][idx]['loc'])
                     t = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)
+
 
 run_tests_if_main()

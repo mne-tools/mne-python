@@ -1,5 +1,4 @@
 """Functions to plot ICA specific data (besides topographies)."""
-from __future__ import print_function
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -24,7 +23,6 @@ from ..utils import warn, _validate_type
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types
-from ..externals.six import string_types
 from ..time_frequency.psd import psd_multitaper
 
 
@@ -529,7 +527,7 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
     elif labels == 'eog':
         labels = [l for l in ica.labels_ if l.startswith('eog/')]
         labels.sort(key=lambda l: l.split('/')[1])  # sort by index
-    elif isinstance(labels, string_types):
+    elif isinstance(labels, str):
         if len(axes) > 1:
             raise ValueError('Need as many labels as axes (%i)' % len(axes))
         labels = [labels]

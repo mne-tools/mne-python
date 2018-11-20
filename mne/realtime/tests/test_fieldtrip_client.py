@@ -2,13 +2,14 @@
 #
 # License: BSD (3-clause)
 
-import time
-import os
-import threading
-import subprocess
-import os.path as op
 import contextlib
+import os
+import os.path as op
+import queue
+import threading
 import socket
+import subprocess
+import time
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
@@ -19,7 +20,6 @@ from mne.io import read_raw_fif
 from mne.utils import requires_neuromag2ft
 from mne.utils import run_tests_if_main
 from mne.realtime import FieldTripClient, RtEpochs
-from mne.externals.six.moves import queue
 
 from mne.realtime.tests.test_mockclient import _call_base_epochs_public_api
 

@@ -5,8 +5,6 @@ You can do for example:
 
 $ mne clean_eog_ecg -i in_raw.fif -o clean_raw.fif -e -c
 """
-from __future__ import print_function
-
 # Authors : Dr Engr. Sheraz Khan,  P.Eng, Ph.D.
 #           Engr. Nandita Shetty,  MS.
 #           Alexandre Gramfort, Ph.D.

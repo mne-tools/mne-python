@@ -8,7 +8,6 @@ import numpy as np
 from functools import reduce
 from string import ascii_uppercase
 
-from ..externals.six import string_types
 from ..utils import warn
 
 # The following function is a rewriting of scipy.stats.f_oneway
@@ -142,7 +141,7 @@ def _map_effects(n_factors, effects):
 
     factor_names = list(ascii_uppercase[:n_factors])
 
-    if isinstance(effects, string_types):
+    if isinstance(effects, str):
         if '*' in effects and ':' in effects:
             raise ValueError('Not "*" and ":" permitted in effects')
         elif '+' in effects and ':' in effects:
@@ -175,7 +174,7 @@ def _map_effects(n_factors, effects):
         this_name.sort()
         names.append(':'.join(this_name))
 
-    if effects is None or isinstance(effects, string_types):
+    if effects is None or isinstance(effects, str):
         effects_ = names
     else:
         effects_ = effects
@@ -183,7 +182,7 @@ def _map_effects(n_factors, effects):
     selection = [names.index(sel) for sel in effects_]
     names = [names[sel] for sel in selection]
 
-    if isinstance(effects, string_types):
+    if isinstance(effects, str):
         if '*' in effects:
             # hierarchical order of effects
             # the * based effect can be used as stop index

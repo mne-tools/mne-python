@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import os.path as op
 import re
 
@@ -33,7 +31,6 @@ from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       compute_rank_inverse,
                                       prepare_inverse_operator)
 from mne.utils import _TempDir, run_tests_if_main, catch_logging
-from mne.externals import six
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -103,7 +100,7 @@ def _compare(a, b):
     try:
         if isinstance(a, (dict, Info)):
             assert (isinstance(b, (dict, Info)))
-            for k, v in six.iteritems(a):
+            for k, v in a.items():
                 if k not in b and k not in skip_types:
                     raise ValueError('First one had one second one didn\'t:\n'
                                      '%s not in %s' % (k, b.keys()))
@@ -111,10 +108,10 @@ def _compare(a, b):
                     last_keys.pop()
                     last_keys = [k] + last_keys
                     _compare(v, b[k])
-            for k, v in six.iteritems(b):
+            for k in b.keys():
                 if k not in a and k not in skip_types:
                     raise ValueError('Second one had one first one didn\'t:\n'
-                                     '%s not in %s' % (k, a.keys()))
+                                     '%s not in %s' % (k, sorted(a.keys())))
         elif isinstance(a, list):
             assert (len(a) == len(b))
             for i, j in zip(a, b):

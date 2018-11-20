@@ -20,7 +20,6 @@ from .inverse import (combine_xyz, _check_or_prepare, _assemble_kernel,
                       _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
 from ..utils import logger, verbose, ProgressBar, warn
-from ..externals.six import string_types
 
 
 def _prepare_source_params(inst, inverse_operator, label=None,
@@ -593,7 +592,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         extra = 'on at most %d epochs' % (n_epochs,)
     else:
         extra = 'on %d epochs' % (n_epochs,)
-    if isinstance(bandwidth, string_types):
+    if isinstance(bandwidth, str):
         bandwidth = '%s windowing' % (bandwidth,)
     else:
         bandwidth = '%d tapers with bandwidth %0.1f Hz' % (n_tapers, bandwidth)

@@ -1,5 +1,4 @@
 """Functions to plot M/EEG data e.g. topographies."""
-from __future__ import print_function
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
@@ -29,7 +28,6 @@ from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
 from ..io.meas_info import Info
-from ..externals.six import string_types
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
@@ -415,7 +413,7 @@ def _check_outlines(pos, outlines, head_pos=None):
         else:
             outlines_dict = dict()
 
-        if isinstance(outlines, string_types) and outlines == 'skirt':
+        if isinstance(outlines, str) and outlines == 'skirt':
             if 'scale' not in head_pos:
                 # By default, fit electrodes inside the head circle
                 head_pos['scale'] = 1.0 / (pos.max(axis=0) - pos.min(axis=0))
@@ -1508,7 +1506,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     evoked.info['comps'] = []
     evoked = evoked._pick_drop_channels(picks)
 
-    interactive = isinstance(times, string_types) and times == 'interactive'
+    interactive = isinstance(times, str) and times == 'interactive'
     if axes is not None:
         if isinstance(axes, plt.Axes):
             axes = [axes]

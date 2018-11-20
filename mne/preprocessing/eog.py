@@ -11,7 +11,6 @@ from .. import pick_types, pick_channels
 from ..utils import logger, verbose, _pl
 from ..filter import filter_data
 from ..epochs import Epochs
-from ..externals.six import string_types
 
 
 @verbose
@@ -124,7 +123,7 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
 
 def _get_eog_channel_index(ch_name, inst):
     """Get EOG channel index."""
-    if isinstance(ch_name, string_types):
+    if isinstance(ch_name, str):
         # Check if multiple EOG Channels
         if ',' in ch_name:
             ch_name = ch_name.split(',')

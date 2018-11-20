@@ -6,8 +6,6 @@ from mne.utils import run_tests_if_main
 
 
 run_script = """
-from __future__ import print_function
-
 import sys
 import mne
 

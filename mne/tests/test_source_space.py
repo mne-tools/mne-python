@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import os
 import os.path as op
 from unittest import SkipTest
@@ -20,7 +18,6 @@ from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mri_header, _get_mgz_header, _read_talxfm
 from mne.source_estimate import _get_src_type
 from mne.transforms import apply_trans, invert_transform
-from mne.externals.six.moves import zip
 from mne.source_space import (get_volume_labels_from_aseg, SourceSpaces,
                               get_volume_labels_from_src,
                               _compare_source_spaces)

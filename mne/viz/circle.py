@@ -1,7 +1,5 @@
 """Functions to plot on circle as for connectivity."""
 
-from __future__ import print_function
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
@@ -15,7 +13,6 @@ from functools import partial
 import numpy as np
 
 from .utils import plt_show, _set_ax_facecolor
-from ..externals.six import string_types
 
 
 def circular_layout(node_names, node_order, start_pos=90, start_between=True,
@@ -274,7 +271,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         raise ValueError('con has to be 1D or a square matrix')
 
     # get the colormap
-    if isinstance(colormap, string_types):
+    if isinstance(colormap, str):
         colormap = plt.get_cmap(colormap)
 
     # Make figure background the same colors as axes

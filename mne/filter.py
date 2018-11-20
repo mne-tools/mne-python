@@ -8,7 +8,6 @@ from scipy.fftpack import ifftshift, fftfreq
 
 from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
                    _setup_cuda_fft_resample, _fft_resample, _smart_pad)
-from .externals.six import string_types, integer_types
 from .fixes import get_sosfiltfilt, minimum_phase
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
@@ -641,7 +640,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         output = 'ba'
     else:
         output = iir_params.get('output', 'sos')
-        if not isinstance(output, string_types) or output not in ('ba', 'sos'):
+        if not isinstance(output, str) or output not in ('ba', 'sos'):
             raise ValueError('Output must be "ba" or "sos", got %s'
                              % (output,))
         # ensure we have a valid ftype
@@ -1543,7 +1542,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
         warn('x has zero length along last axis, returning a copy of x')
         return x.copy()
     bad_msg = 'npad must be "auto" or an integer'
-    if isinstance(npad, string_types):
+    if isinstance(npad, str):
         if npad != 'auto':
             raise ValueError(bad_msg)
         # Figure out reasonable pad that gets us to a power of 2
@@ -1706,15 +1705,15 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                           filter_length, method, phase, fir_window,
                           fir_design, bands='scalar', reverse=False):
     """Validate and automate filter parameter selection."""
-    if not isinstance(phase, string_types) or phase not in \
+    if not isinstance(phase, str) or phase not in \
             ('linear', 'zero', 'zero-double', 'minimum', ''):
         raise ValueError('phase must be "linear", "zero", "zero-double", '
                          'or "minimum", got "%s"' % (phase,))
-    if not isinstance(fir_window, string_types) or fir_window not in \
+    if not isinstance(fir_window, str) or fir_window not in \
             ('hann', 'hamming', 'blackman', ''):
         raise ValueError('fir_window must be "hamming", "hann", or "blackman",'
                          'got "%s"' % (fir_window,))
-    if not isinstance(fir_design, string_types) or \
+    if not isinstance(fir_design, str) or \
             fir_design not in ('firwin', 'firwin2'):
         raise ValueError('fir_design must be "firwin" or "firwin2", got %s'
                          % (fir_design,))
@@ -1743,7 +1742,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
     else:  # method == 'fir'
         l_stop = h_stop = None
         if l_freq is not None:  # high-pass component
-            if isinstance(l_trans_bandwidth, string_types):
+            if isinstance(l_trans_bandwidth, str):
                 if l_trans_bandwidth != 'auto':
                     raise ValueError('l_trans_bandwidth must be "auto" if '
                                      'string, got "%s"' % l_trans_bandwidth)
@@ -1765,7 +1764,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                                  'frequency or reduce the transition '
                                  'bandwidth (l_trans_bandwidth)' % l_stop)
         if h_freq is not None:  # low-pass component
-            if isinstance(h_trans_bandwidth, string_types):
+            if isinstance(h_trans_bandwidth, str):
                 if h_trans_bandwidth != 'auto':
                     raise ValueError('h_trans_bandwidth must be "auto" if '
                                      'string, got "%s"' % h_trans_bandwidth)
@@ -1785,7 +1784,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                 raise ValueError('Effective band-stop frequency (%s) is too '
                                  'high (maximum based on Nyquist is %s)'
                                  % (h_stop, sfreq / 2.))
-        if isinstance(filter_length, string_types):
+        if isinstance(filter_length, str):
             filter_length = filter_length.lower()
             if filter_length == 'auto':
                 h_check = h_trans_bandwidth if h_freq is not None else np.inf
@@ -1821,7 +1820,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                 filter_length += (filter_length - 1) % 2
             logger.info('Filter length of %s samples (%0.3f sec) selected'
                         % (filter_length, filter_length / sfreq))
-        elif not isinstance(filter_length, integer_types):
+        elif not isinstance(filter_length, int):
             raise ValueError('filter_length must be a str, int, or None, got '
                              '%s' % (type(filter_length),))
 

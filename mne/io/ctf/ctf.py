@@ -10,7 +10,6 @@ from os import path as op
 import numpy as np
 
 from ...utils import verbose, logger, _clean_names
-from ...externals.six import string_types
 
 from ..base import BaseRaw
 from ..utils import _mult_cal_one, _blk_read_lims
@@ -100,13 +99,13 @@ class RawCTF(BaseRaw):
     def __init__(self, directory, system_clock='truncate', preload=False,
                  verbose=None, clean_names=False):  # noqa: D102
         # adapted from mne_ctf2fiff.c
-        if not isinstance(directory, string_types) or \
+        if not isinstance(directory, str) or \
                 not directory.endswith('.ds'):
             raise TypeError('directory must be a directory ending with ".ds"')
         if not op.isdir(directory):
             raise ValueError('directory does not exist: "%s"' % directory)
         known_types = ['ignore', 'truncate']
-        if not isinstance(system_clock, string_types) or \
+        if not isinstance(system_clock, str) or \
                 system_clock not in known_types:
             raise ValueError('system_clock must be one of %s, not %s'
                              % (known_types, system_clock))

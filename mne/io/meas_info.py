@@ -9,6 +9,7 @@
 from collections import Counter
 from copy import deepcopy
 import datetime
+from io import BytesIO
 import operator
 import os.path as op
 import re
@@ -32,9 +33,9 @@ from ..transforms import _to_const
 from ..transforms import invert_transform
 from ..utils import logger, verbose, warn, object_diff, _validate_type
 from .. import __version__
-from ..externals.six import b, BytesIO, string_types, text_type
 from .compensator import get_current_comp
 
+b = bytes  # alias
 
 _kind_dict = dict(
     eeg=(FIFF.FIFFV_EEG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
@@ -778,11 +779,9 @@ def _write_dig_points(fname, dig_points):
         with open(fname, 'wb') as fid:
             version = __version__
             now = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
-            fid.write(b("% Ascii 3D points file created by mne-python version "
-                        "{version} at {now}\n".format(version=version,
-                                                      now=now)))
-            fid.write(b("% {N} 3D points, "
-                        "x y z per line\n".format(N=len(dig_points))))
+            fid.write(b'%% Ascii 3D points file created by mne-python version'
+                      b' %s at %s\n' % (version.encode(), now.encode()))
+            fid.write(b'%% %d 3D points, x y z per line\n' % len(dig_points))
             np.savetxt(fid, dig_points, delimiter='\t', newline='\n')
     else:
         msg = "Unrecognized extension: %r. Need '.txt'." % ext
@@ -1170,7 +1169,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             kind = hpi_meas['directory'][k].kind
             pos = hpi_meas['directory'][k].pos
             if kind == FIFF.FIFF_CREATOR:
-                hm['creator'] = text_type(read_tag(fid, pos).data)
+                hm['creator'] = str(read_tag(fid, pos).data)
             elif kind == FIFF.FIFF_SFREQ:
                 hm['sfreq'] = float(read_tag(fid, pos).data)
             elif kind == FIFF.FIFF_NCHAN:
@@ -1218,16 +1217,16 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 si['id'] = int(tag.data)
             elif kind == FIFF.FIFF_SUBJ_HIS_ID:
                 tag = read_tag(fid, pos)
-                si['his_id'] = text_type(tag.data)
+                si['his_id'] = str(tag.data)
             elif kind == FIFF.FIFF_SUBJ_LAST_NAME:
                 tag = read_tag(fid, pos)
-                si['last_name'] = text_type(tag.data)
+                si['last_name'] = str(tag.data)
             elif kind == FIFF.FIFF_SUBJ_FIRST_NAME:
                 tag = read_tag(fid, pos)
-                si['first_name'] = text_type(tag.data)
+                si['first_name'] = str(tag.data)
             elif kind == FIFF.FIFF_SUBJ_MIDDLE_NAME:
                 tag = read_tag(fid, pos)
-                si['middle_name'] = text_type(tag.data)
+                si['middle_name'] = str(tag.data)
             elif kind == FIFF.FIFF_SUBJ_BIRTH_DAY:
                 tag = read_tag(fid, pos)
                 si['birthday'] = tag.data
@@ -1258,7 +1257,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 hs['ncoil'] = int(tag.data)
             elif kind == FIFF.FIFF_EVENT_CHANNEL:
                 tag = read_tag(fid, pos)
-                hs['event_channel'] = text_type(tag.data)
+                hs['event_channel'] = str(tag.data)
             hpi_coils = dir_tree_find(hpi_subsystem, FIFF.FIFFB_HPI_COIL)
             hc = []
             for coil in hpi_coils:
@@ -1666,7 +1665,7 @@ def _merge_info_values(infos, key, verbose=None):
             logger.info('Found multiple StringIO instances. '
                         'Setting value to `None`')
             return None
-        elif isinstance(list(unique_values)[0], string_types):
+        elif isinstance(list(unique_values)[0], str):
             logger.info('Found multiple filenames. '
                         'Setting value to `None`')
             return None
@@ -1841,7 +1840,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
     nchan = len(ch_names)
     if ch_types is None:
         ch_types = ['misc'] * nchan
-    if isinstance(ch_types, string_types):
+    if isinstance(ch_types, str):
         ch_types = [ch_types] * nchan
     if len(ch_types) != nchan:
         raise ValueError('ch_types and ch_names must be the same length '
@@ -1868,7 +1867,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         for montage_ in montage:
             if isinstance(montage_, (Montage, DigMontage)):
                 _set_montage(info, montage_)
-            elif isinstance(montage_, string_types):
+            elif isinstance(montage_, str):
                 montage_ = read_montage(montage_)
                 _set_montage(info, montage_)
             else:

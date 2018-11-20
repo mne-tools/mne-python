@@ -12,7 +12,6 @@ import numpy as np
 
 from .constants import FIFF
 from ..utils import logger, verbose, _validate_type
-from ..externals.six import string_types
 
 
 def get_channel_types():
@@ -192,7 +191,7 @@ def _triage_fnirs_pick(ch, fnirs):
 
 def _check_meg_type(meg, allow_auto=False):
     """Ensure a valid meg type."""
-    if isinstance(meg, string_types):
+    if isinstance(meg, str):
         allowed_types = ['grad', 'mag', 'planar1', 'planar2']
         allowed_types += ['auto'] if allow_auto else []
         if meg not in allowed_types:
@@ -289,7 +288,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
 
     _check_meg_type(ref_meg, allow_auto=True)
     _check_meg_type(meg)
-    if isinstance(ref_meg, string_types) and ref_meg == 'auto':
+    if isinstance(ref_meg, str) and ref_meg == 'auto':
         ref_meg = ('comps' in info and info['comps'] is not None and
                    len(info['comps']) > 0)
 

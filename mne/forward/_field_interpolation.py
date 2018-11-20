@@ -18,7 +18,6 @@ from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _do_cross_dots)
 from ..parallel import check_n_jobs
 from ..utils import logger, verbose
-from ..externals.six import string_types
 
 
 def _is_axial_coil(coil):
@@ -406,7 +405,7 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         raise RuntimeError('No data available for mapping.')
 
     if trans is not None:
-        if isinstance(trans, string_types):
+        if isinstance(trans, str):
             trans = read_trans(trans)
         trans = _ensure_trans(trans, 'head', 'mri')
 

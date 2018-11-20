@@ -18,7 +18,6 @@ from ..time_frequency.multitaper import (_mt_spectra, _compute_mt_params,
                                          _psd_from_mt_adaptive)
 from ..time_frequency.tfr import morlet, cwt
 from ..utils import logger, verbose, _time_mask, warn
-from ..externals.six import string_types
 
 ########################################################################
 # Various connectivity estimators
@@ -531,7 +530,7 @@ def _check_estimators(method, mode):
     for this_method in method:
         if this_method in _CON_METHOD_MAP:
             con_method_types.append(_CON_METHOD_MAP[this_method])
-        elif isinstance(this_method, string_types):
+        elif isinstance(this_method, str):
             raise ValueError('%s is not a valid connectivity method' %
                              this_method)
         else:

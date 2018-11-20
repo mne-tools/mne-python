@@ -24,8 +24,6 @@ from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
 from .viz.topomap import _topomap_animation
 
-from .externals.six import string_types
-
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
@@ -869,7 +867,7 @@ def combine_evoked(all_evoked, weights):
     -----
     .. versionadded:: 0.9.0
     """
-    if isinstance(weights, string_types):
+    if isinstance(weights, str):
         if weights not in ('nave', 'equal'):
             raise ValueError('weights must be a list of float, or "nave" or '
                              '"equal"')
@@ -997,7 +995,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
             raise ValueError('Could not find evoked data')
 
         # find string-based entry
-        if isinstance(condition, string_types):
+        if isinstance(condition, str):
             if kind not in _aspect_dict.keys():
                 raise ValueError('kind must be "average" or '
                                  '"standard_error"')

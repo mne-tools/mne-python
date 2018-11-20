@@ -20,7 +20,6 @@ from .pick import pick_types
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
 from ..utils import logger, verbose, warn
-from ..externals.six import string_types
 
 
 class Projection(dict):
@@ -272,7 +271,7 @@ class ProjMixin(object):
         -------
         self : instance of Raw | Epochs | Evoked
         """
-        if isinstance(idx, string_types) and idx == 'all':
+        if isinstance(idx, str) and idx == 'all':
             idx = list(range(len(self.info['projs'])))
         idx = np.atleast_1d(np.array(idx, int)).ravel()
         if any(self.info['projs'][ii]['active'] for ii in idx):
@@ -317,7 +316,7 @@ class ProjMixin(object):
                 layout = []
                 if ch_type is None:
                     ch_type = [ch for ch in ['meg', 'eeg'] if ch in self]
-                elif isinstance(ch_type, string_types):
+                elif isinstance(ch_type, str):
                     ch_type = [ch_type]
                 for ch in ch_type:
                     if ch in self:
