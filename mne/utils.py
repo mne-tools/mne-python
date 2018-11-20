@@ -32,7 +32,8 @@ import tempfile
 import time
 import traceback
 from unittest import SkipTest
-import urllib
+import urllib.parse
+import urllib.request
 import warnings
 import webbrowser
 import re
