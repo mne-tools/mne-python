@@ -246,8 +246,8 @@ def read_str(fid, count=1):
     dtype = np.dtype('>S%i' % count)
     string = fid.read(dtype.itemsize)
     data = np.frombuffer(string, dtype=dtype)[0]
-    bytestr = bytes('').join([data[0:data.index(b'\x00') if
-                              b'\x00' in data else count]])
+    bytestr = b''.join([data[0:data.index(b'\x00') if
+                             b'\x00' in data else count]])
 
     return str(bytestr.decode('ascii'))  # Return native str type for Py2/3
 

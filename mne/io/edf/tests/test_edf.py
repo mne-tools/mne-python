@@ -179,7 +179,7 @@ def test_edf_data():
         rbytes = fid_in.read(int(n_bytes * 0.4))
     with open(broken_fname, 'wb') as fid_out:
         fid_out.write(rbytes[:236])
-        fid_out.write(bytes('-1      '.encode()))
+        fid_out.write(b'-1      ')
         fid_out.write(rbytes[244:])
     with pytest.warns(RuntimeWarning,
                       match='records .* not match the file size'):

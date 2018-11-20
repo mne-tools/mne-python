@@ -2491,7 +2491,7 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
                         for c in ch_names], dtype=bool)] = False
     for refl, f, t in zip([reject, flat], [np.greater, np.less], ['', 'flat']):
         if refl is not None:
-            for key, thresh in iteritems(refl):
+            for key, thresh in refl.items():
                 idx = channel_type_idx[key]
                 name = key.upper()
                 if len(idx) > 0:

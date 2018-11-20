@@ -6,7 +6,6 @@
 
 import hashlib
 import os.path as op
-from six import string_types
 
 
 import pytest
@@ -50,7 +49,7 @@ def test_get_valid_units():
     """Test the valid units."""
     valid_units = _get_valid_units()
     assert isinstance(valid_units, tuple)
-    assert all(isinstance(unit, string_types) for unit in valid_units)
+    assert all(isinstance(unit, str) for unit in valid_units)
     assert "n/a" in valid_units
 
 

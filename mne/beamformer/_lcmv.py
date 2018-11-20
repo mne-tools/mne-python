@@ -401,7 +401,7 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
     stc = _apply_lcmv(data=data, filters=filters, info=info,
                       tmin=tmin, max_ori_out=max_ori_out)
 
-    return six.advance_iterator(stc)
+    return next(stc)
 
 
 @verbose
