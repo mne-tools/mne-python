@@ -779,11 +779,9 @@ def _write_dig_points(fname, dig_points):
         with open(fname, 'wb') as fid:
             version = __version__
             now = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
-            fid.write(b("% Ascii 3D points file created by mne-python version "
-                        "{version} at {now}\n".format(version=version,
-                                                      now=now)))
-            fid.write(b("% {N} 3D points, "
-                        "x y z per line\n".format(N=len(dig_points))))
+            fid.write(b'%% Ascii 3D points file created by mne-python version'
+                      b' %s at %s\n' % (version.encode(), now.encode()))
+            fid.write(b'%% %d 3D points, x y z per line\n' % len(dig_points))
             np.savetxt(fid, dig_points, delimiter='\t', newline='\n')
     else:
         msg = "Unrecognized extension: %r. Need '.txt'." % ext
