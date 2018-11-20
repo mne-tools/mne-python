@@ -2970,7 +2970,10 @@ def sys_info(fid=None, show_paths=False):
                 if 'NOT AVAILABLE' in lib:
                     lib = 'unknown'
                 else:
-                    lib = lib.split('[')[1].split("'")[1]
+                    try:
+                        lib = lib.split('[')[1].split("'")[1]
+                    except IndexError:
+                        pass  # keep whatever it was
                 libs += ['%s=%s' % (key, lib)]
     libs = ', '.join(libs)
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
