@@ -11,7 +11,6 @@ from scipy import linalg
 from .base import BaseEstimator
 from ..filter import next_fast_len
 from ..utils import warn
-from ..externals.six import string_types
 
 
 def _compute_corrs(X, y, smin, smax):
@@ -133,7 +132,7 @@ def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method='direct',
     """Compute regularization parameter from neighbors."""
     from scipy.sparse.csgraph import laplacian
     known_types = ('ridge', 'laplacian')
-    if isinstance(reg_type, string_types):
+    if isinstance(reg_type, str):
         reg_type = (reg_type,) * 2
     if len(reg_type) != 2:
         raise ValueError('reg_type must have two elements, got %s'

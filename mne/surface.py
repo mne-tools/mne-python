@@ -26,7 +26,6 @@ from .io.write import (write_int, start_file, end_block, start_block, end_file,
 from .channels.channels import _get_meg_system
 from .transforms import transform_surface_to, _pol_to_cart, _cart_to_sph
 from .utils import logger, verbose, get_subjects_dir, warn
-from .externals.six import string_types
 from .fixes import _serialize_volume_info, _get_read_geometry, einsum
 
 
@@ -70,10 +69,10 @@ def _get_head_surface(subject, source, subjects_dir, raise_error=True):
     from .bem import read_bem_surfaces
     # Load the head surface from the BEM
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    if not isinstance(subject, string_types):
+    if not isinstance(subject, str):
         raise TypeError('subject must be a string, not %s.' % (type(subject,)))
     # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
-    if isinstance(source, string_types):
+    if isinstance(source, str):
         source = [source]
     surf = None
     for this_source in source:

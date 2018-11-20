@@ -26,7 +26,6 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _setup_plot_projector, _set_ax_label_style)
 from .misc import _handle_event_colors
 from ..defaults import _handle_default
-from ..externals.six import string_types
 
 
 def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
@@ -351,7 +350,7 @@ def _pick_and_combine(epochs, combine, all_picks, all_ch_types, names):
     type2name = {"eeg": "EEG", "grad": "Gradiometers",
                  "mag": "Magnetometers"}
     combine_title = (" (" + combine + ")"
-                     if isinstance(combine, string_types) else "")
+                     if isinstance(combine, str) else "")
     if combine == "gfp":
         def combine(data):
             return np.sqrt((data * data).mean(axis=1))

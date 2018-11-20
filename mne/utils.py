@@ -12,6 +12,7 @@ from functools import wraps
 from functools import partial
 import hashlib
 import inspect
+from io import BytesIO, StringIO
 import json
 import logging
 import fnmatch
@@ -31,6 +32,7 @@ import tempfile
 import time
 import traceback
 from unittest import SkipTest
+import urllib
 import warnings
 import webbrowser
 import re
@@ -38,8 +40,6 @@ import re
 import numpy as np
 from scipy import linalg, sparse
 
-from .externals.six.moves import urllib
-from .externals.six import string_types, StringIO, BytesIO, integer_types
 from .externals.decorator import decorator
 
 from .fixes import _get_args
@@ -108,7 +108,7 @@ def _ensure_int(x, name='unknown', must_be='an int'):
 
 def _pl(x, non_pl=''):
     """Determine if plural should be used."""
-    len_x = x if isinstance(x, (integer_types, np.generic)) else len(x)
+    len_x = x if isinstance(x, (int, np.generic)) else len(x)
     return non_pl if len_x == 1 else 's'
 
 
@@ -171,7 +171,7 @@ def object_hash(x, h=None):
     elif isinstance(x, bytes):
         # must come before "str" below
         h.update(x)
-    elif isinstance(x, (string_types, float, int, type(None))):
+    elif isinstance(x, (str, float, int, type(None))):
         h.update(str(type(x)).encode('utf-8'))
         h.update(str(x).encode('utf-8'))
     elif isinstance(x, (np.ndarray, np.number, np.bool_)):
@@ -206,7 +206,7 @@ def object_size(x):
     """
     # Note: this will not process object arrays properly (since those only)
     # hold references
-    if isinstance(x, (bytes, string_types, int, float, type(None))):
+    if isinstance(x, (bytes, str, int, float, type(None))):
         size = sys.getsizeof(x)
     elif isinstance(x, np.ndarray):
         # On newer versions of NumPy, just doing sys.getsizeof(x) works,
@@ -267,7 +267,7 @@ def object_diff(a, b, pre=''):
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
                 out += object_diff(xx1, xx2, pre + '[%s]' % ii)
-    elif isinstance(a, (string_types, int, float, bytes)):
+    elif isinstance(a, (str, int, float, bytes)):
         if a != b:
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
     elif a is None:
@@ -606,7 +606,7 @@ def _estimate_rank_from_s(s, tol='auto'):
     rank : int
         The estimated rank.
     """
-    if isinstance(tol, string_types):
+    if isinstance(tol, str):
         if tol != 'auto':
             raise ValueError('tol must be "auto" or float')
         eps = np.finfo(float).eps
@@ -1448,7 +1448,7 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
              'starting with a tilde ("~") character. Such paths are not '
              'interpreted correctly from within Python. It is recommended '
              'that you use "$HOME" instead of "~".')
-    if isinstance(command, string_types):
+    if isinstance(command, str):
         command_str = command
     else:
         command_str = ' '.join(command)
@@ -1456,7 +1456,7 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     try:
         p = subprocess.Popen(command, *args, **kwargs)
     except Exception:
-        if isinstance(command, string_types):
+        if isinstance(command, str):
             command_name = command.split()[0]
         else:
             command_name = command[0]
@@ -1503,7 +1503,7 @@ def set_log_level(verbose=None, return_old_level=False):
             verbose = 'INFO'
         else:
             verbose = 'WARNING'
-    if isinstance(verbose, string_types):
+    if isinstance(verbose, str):
         verbose = verbose.upper()
         logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
                              WARNING=logging.WARNING, ERROR=logging.ERROR,
@@ -1704,7 +1704,7 @@ def set_memmap_min_size(memmap_min_size):
         Use None to disable memmaping of large arrays.
     """
     if memmap_min_size is not None:
-        if not isinstance(memmap_min_size, string_types):
+        if not isinstance(memmap_min_size, str):
             raise ValueError('\'memmap_min_size\' has to be a string.')
         if memmap_min_size[-1] not in ['K', 'M', 'G']:
             raise ValueError('The size has to be given in kilo-, mega-, or '
@@ -1817,7 +1817,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     --------
     set_config
     """
-    _validate_type(key, (string_types, type(None)), "key", 'string or None')
+    _validate_type(key, (str, type(None)), "key", 'string or None')
 
     # first, check to see if key is in env
     if key is not None and key in os.environ:
@@ -1878,7 +1878,7 @@ def set_config(key, value, home_dir=None, set_env=True):
     _validate_type(key, 'str', "key")
     # While JSON allow non-string types, we allow users to override config
     # settings using env, which are strings, so we enforce that here
-    _validate_type(value, (string_types, type(None)), "value",
+    _validate_type(value, (str, type(None)), "value",
                    "None or string")
 
     if key not in known_config_types and not \
@@ -2228,7 +2228,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
-    if hash_ is not None and (not isinstance(hash_, string_types) or
+    if hash_ is not None and (not isinstance(hash_, str) or
                               len(hash_) != 32):
         raise ValueError('Bad hash value given, should be a 32-character '
                          'string:\n%s' % (hash_,))
@@ -3075,7 +3075,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
         _ensure_int(item, name=item_name)
         return  # terminate prematurely
     elif types == "str":
-        types = string_types
+        types = str
         type_name = "str" if type_name is None else type_name
     elif types == "numeric":
         types = (np.integer, np.floating, int, float)

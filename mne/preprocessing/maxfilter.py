@@ -4,14 +4,11 @@
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types
 import os
-
 
 from ..bem import fit_sphere_to_headshape
 from ..io import read_raw_fif
 from ..utils import logger, verbose, warn
-from ..externals.six.moves import map
 
 
 def _mxwarn(msg):
@@ -123,7 +120,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
         else:
             RuntimeError('invalid frame for origin')
 
-    if not isinstance(origin, string_types):
+    if not isinstance(origin, str):
         origin = '%0.1f %0.1f %0.1f' % (origin[0], origin[1], origin[2])
 
     # format command

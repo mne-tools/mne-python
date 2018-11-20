@@ -4,7 +4,7 @@
 
 import inspect
 import os
-from mne.externals.six.moves import cPickle as pickle
+import pickle
 
 import pytest
 from numpy.testing import assert_array_equal

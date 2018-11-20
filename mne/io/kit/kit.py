@@ -28,7 +28,6 @@ from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
 from .constants import KIT, LEGACY_AMP_PARAMS
 from .coreg import read_mrk
-from ...externals.six import string_types
 from ...event import read_events
 
 
@@ -124,7 +123,7 @@ class RawKIT(BaseRaw):
             raw_extras=self._raw_extras, verbose=verbose)
 
         if isinstance(mrk, list):
-            mrk = [read_mrk(marker) if isinstance(marker, string_types)
+            mrk = [read_mrk(marker) if isinstance(marker, str)
                    else marker for marker in mrk]
             mrk = np.mean(mrk, axis=0)
         if mrk is not None and elp is not None and hsp is not None:
@@ -376,10 +375,10 @@ class EpochsKIT(BaseEpochs):
                  reject_tmax=None, mrk=None, elp=None, hsp=None,
                  allow_unknown_format=False, verbose=None):  # noqa: D102
 
-        if isinstance(events, string_types):
+        if isinstance(events, str):
             events = read_events(events)
         if isinstance(mrk, list):
-            mrk = [read_mrk(marker) if isinstance(marker, string_types)
+            mrk = [read_mrk(marker) if isinstance(marker, str)
                    else marker for marker in mrk]
             mrk = np.mean(mrk, axis=0)
 
@@ -487,7 +486,7 @@ def _set_dig_kit(mrk, elp, hsp):
     dev_head_t : dict
         A dictionary describe the device-head transformation.
     """
-    if isinstance(hsp, string_types):
+    if isinstance(hsp, str):
         hsp = _read_dig_points(hsp)
     n_pts = len(hsp)
     if n_pts > KIT.DIG_POINTS:
@@ -499,7 +498,7 @@ def _set_dig_kit(mrk, elp, hsp):
              "downsample is using FastScan.".format(
                  n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new))
 
-    if isinstance(elp, string_types):
+    if isinstance(elp, str):
         elp_points = _read_dig_points(elp)
         if len(elp_points) != 8:
             raise ValueError("File %r should contain 8 points; got shape "
@@ -508,7 +507,7 @@ def _set_dig_kit(mrk, elp, hsp):
     elif len(elp) != 8:
         raise ValueError("ELP should contain 8 points; got shape "
                          "%s." % (elp.shape,))
-    if isinstance(mrk, string_types):
+    if isinstance(mrk, str):
         mrk = read_mrk(mrk)
 
     hsp = apply_trans(als_ras_trans, hsp)

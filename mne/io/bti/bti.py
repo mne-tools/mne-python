@@ -8,6 +8,7 @@
 #          simplified BSD-3 license
 
 import os.path as op
+from io import BytesIO
 from itertools import count
 
 import numpy as np
@@ -23,7 +24,6 @@ from .read import (read_int32, read_int16, read_float, read_double,
                    read_transform, read_char, read_int64, read_uint16,
                    read_uint32, read_double_matrix, read_float_matrix,
                    read_int16_matrix, read_dev_header)
-from ...externals import six
 
 FIFF_INFO_CHS_FIELDS = ('loc',
                         'ch_name', 'unit_mul', 'coord_frame', 'coil_type',
@@ -60,9 +60,9 @@ class _bytes_io_mock_context():
 
 def _bti_open(fname, *args, **kwargs):
     """Handle BytesIO."""
-    if isinstance(fname, six.string_types):
+    if isinstance(fname, str):
         return open(fname, *args, **kwargs)
-    elif isinstance(fname, six.BytesIO):
+    elif isinstance(fname, BytesIO):
         return _bytes_io_mock_context(fname)
     else:
         raise RuntimeError('Cannot mock this.')
@@ -121,19 +121,19 @@ def _rename_channels(names, ecg_ch='E31', eog_ch=('E63', 'E64')):
         elif name == 'TRIGGER':
             name = 'STI 014'
         elif any(name == k for k in eog_ch):
-            name = 'EOG %3.3d' % six.advance_iterator(eog)
+            name = 'EOG %3.3d' % next(eog)
         elif name == ecg_ch:
             name = 'ECG 001'
         elif name.startswith('E'):
-            name = 'EEG %3.3d' % six.advance_iterator(eeg)
+            name = 'EEG %3.3d' % next(eeg)
         elif name == 'UACurrent':
             name = 'UTL 001'
         elif name.startswith('M'):
-            name = 'RFM %3.3d' % six.advance_iterator(ref_mag)
+            name = 'RFM %3.3d' % next(ref_mag)
         elif name.startswith('G'):
-            name = 'RFG %3.3d' % six.advance_iterator(ref_grad)
+            name = 'RFG %3.3d' % next(ref_grad)
         elif name.startswith('X'):
-            name = 'EXT %3.3d' % six.advance_iterator(ext)
+            name = 'EXT %3.3d' % next(ext)
 
         new += [name]
 
@@ -1040,7 +1040,7 @@ class RawBTi(BaseRaw):
             sort_by_ch_name=sort_by_ch_name, eog_ch=eog_ch)
         self.bti_ch_labels = [c['chan_label'] for c in bti_info['chs']]
         # make Raw repr work if we have a BytesIO as input
-        if isinstance(pdf_fname, six.BytesIO):
+        if isinstance(pdf_fname, BytesIO):
             pdf_fname = repr(pdf_fname)
         super(RawBTi, self).__init__(
             info, preload, filenames=[pdf_fname], raw_extras=[bti_info],
@@ -1066,7 +1066,7 @@ class RawBTi(BaseRaw):
             for sample_start in np.arange(0, data_left,
                                           block_size) // n_channels:
                 count = min(block_size, data_left - sample_start * n_channels)
-                if isinstance(fid, six.BytesIO):
+                if isinstance(fid, BytesIO):
                     block = np.frombuffer(fid.getvalue(), dtype, count)
                 else:
                     block = np.fromfile(fid, dtype, count)
@@ -1102,11 +1102,11 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     if pdf_fname is None:
         logger.info('No pdf_fname passed, trying to construct partial info '
                     'from config')
-    if pdf_fname is not None and not isinstance(pdf_fname, six.BytesIO):
+    if pdf_fname is not None and not isinstance(pdf_fname, BytesIO):
         if not op.isabs(pdf_fname):
             pdf_fname = op.abspath(pdf_fname)
 
-    if not isinstance(config_fname, six.BytesIO):
+    if not isinstance(config_fname, BytesIO):
         if not op.isabs(config_fname):
             config_tries = [op.abspath(config_fname),
                             op.abspath(op.join(op.dirname(pdf_fname),
@@ -1121,7 +1121,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                              'or pass the full name' % config_fname)
 
     if head_shape_fname is not None and not isinstance(
-            head_shape_fname, six.BytesIO):
+            head_shape_fname, BytesIO):
         orig_name = head_shape_fname
         if not op.isfile(head_shape_fname):
             head_shape_fname = op.join(op.dirname(pdf_fname),

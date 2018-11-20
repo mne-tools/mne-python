@@ -58,7 +58,7 @@ multiplications / divisions.
 # License: BSD (3-clause)
 
 import os
-from ..externals.six.moves import queue
+import queue
 import re
 from threading import Thread
 import traceback

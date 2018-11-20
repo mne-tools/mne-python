@@ -19,7 +19,6 @@ from .io.tag import read_tag
 from .io.open import fiff_open
 from .io.write import write_int, start_block, start_file, end_block, end_file
 from .io.pick import pick_channels
-from .externals.six import string_types
 
 
 def pick_events(events, include=None, exclude=None, step=False):
@@ -716,8 +715,7 @@ def find_events(raw, stim_channel=None, output='onset',
 
 def _mask_trigs(events, mask, mask_type):
     """Mask digital trigger values."""
-    if not isinstance(mask_type, string_types) or \
-            mask_type not in ('not_and', 'and'):
+    if not isinstance(mask_type, str) or mask_type not in ('not_and', 'and'):
         raise ValueError('mask_type must be "not_and" or "and", got %s'
                          % (mask_type,))
     if mask is not None:

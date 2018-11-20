@@ -20,8 +20,6 @@ from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
                      verbose, get_subjects_dir, md5sum)
-from ..externals.six import string_types
-from ..externals.six.moves import input
 
 
 _data_path_doc = """Get path to local copy of {name} dataset.
@@ -163,7 +161,7 @@ def _get_path(path, key, name):
     """Get a dataset path."""
     # 1. Input
     if path is not None:
-        if not isinstance(path, string_types):
+        if not isinstance(path, str):
             raise ValueError('path must be a string or None')
         return path
     # 2. get_config(key)

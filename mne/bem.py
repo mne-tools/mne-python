@@ -29,7 +29,6 @@ from .transforms import _ensure_trans, apply_trans
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type)
 from .fixes import einsum
-from .externals.six import string_types
 
 
 # ############################################################################
@@ -312,7 +311,7 @@ def make_bem_solution(surfs, verbose=None):
     write_bem_solution
     """
     logger.info('Approximation method : Linear collocation\n')
-    if isinstance(surfs, string_types):
+    if isinstance(surfs, str):
         # Load the surfaces
         logger.info('Loading surfaces...')
         surfs = read_bem_surfaces(surfs)
@@ -478,7 +477,7 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
                          'number of elements (1 or 3)')
     surf = list(surfs)
     for si, surf in enumerate(surfs):
-        if isinstance(surf, string_types):
+        if isinstance(surf, str):
             surfs[si] = read_surface(surf, return_dict=True)[-1]
     # Downsampling if the surface is isomorphic with a subdivided icosahedron
     if ico is not None:
@@ -736,7 +735,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
     """
     for name in ('r0', 'head_radius'):
         param = locals()[name]
-        if isinstance(param, string_types):
+        if isinstance(param, str):
             if param != 'auto':
                 raise ValueError('%s, if str, must be "auto" not "%s"'
                                  % (name, param))
@@ -749,14 +748,14 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
     if len(sigmas) <= 1 and head_radius is not None:
         raise ValueError('at least 2 sigmas must be supplied if '
                          'head_radius is not None, got %s' % (len(sigmas),))
-    if (isinstance(r0, string_types) and r0 == 'auto') or \
-       (isinstance(head_radius, string_types) and head_radius == 'auto'):
+    if (isinstance(r0, str) and r0 == 'auto') or \
+       (isinstance(head_radius, str) and head_radius == 'auto'):
         if info is None:
             raise ValueError('Info must not be None for auto mode')
         head_radius_fit, r0_fit = fit_sphere_to_headshape(info, units='m')[:2]
-        if isinstance(r0, string_types):
+        if isinstance(r0, str):
             r0 = r0_fit
-        if isinstance(head_radius, string_types):
+        if isinstance(head_radius, str):
             head_radius = head_radius_fit
     sphere = ConductorModel(is_sphere=True, r0=np.array(r0),
                             coord_frame=FIFF.FIFFV_COORD_HEAD)
@@ -851,7 +850,7 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
     This function excludes any points that are low and frontal
     (``z < 0 and y > 0``) to improve the fit.
     """
-    if not isinstance(units, string_types) or units not in ('m', 'mm'):
+    if not isinstance(units, str) or units not in ('m', 'mm'):
         raise ValueError('units must be a "m" or "mm"')
     radius, origin_head, origin_device = _fit_sphere_to_headshape(
         info, dig_kinds)
@@ -895,7 +894,7 @@ def get_fitting_dig(info, dig_kinds='auto', verbose=None):
     if info['dig'] is None:
         raise RuntimeError('Cannot fit headshape without digitization '
                            ', info["dig"] is None')
-    if isinstance(dig_kinds, string_types):
+    if isinstance(dig_kinds, str):
         if dig_kinds == 'auto':
             # try "extra" first
             try:
@@ -964,7 +963,7 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
 def _fit_sphere(points, disp='auto'):
     """Fit a sphere to an arbitrary set of points."""
     from scipy.optimize import fmin_cobyla
-    if isinstance(disp, string_types) and disp == 'auto':
+    if isinstance(disp, str) and disp == 'auto':
         disp = True if logger.level <= 20 else False
     # initial guess for center and radius
     radii = (np.max(points, axis=1) - np.min(points, axis=1)) / 2.
@@ -992,7 +991,7 @@ def _fit_sphere(points, disp='auto'):
 
 def _check_origin(origin, info, coord_frame='head', disp=False):
     """Check or auto-determine the origin."""
-    if isinstance(origin, string_types):
+    if isinstance(origin, str):
         if origin != 'auto':
             raise ValueError('origin must be a numerical array, or "auto", '
                              'not %s' % (origin,))
@@ -1438,7 +1437,7 @@ _surf_dict = {'inner_skull': FIFF.FIFFV_BEM_SURF_ID_BRAIN,
 
 def _bem_find_surface(bem, id_):
     """Find surface from already-loaded BEM."""
-    if isinstance(id_, string_types):
+    if isinstance(id_, str):
         name = id_
         id_ = _surf_dict[id_]
     else:

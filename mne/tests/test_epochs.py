@@ -4,10 +4,11 @@
 #
 # License: BSD (3-clause)
 
-import os.path as op
 from copy import deepcopy
 from distutils.version import LooseVersion
 from functools import partial
+import os.path as op
+import pickle
 
 import pytest
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
@@ -34,8 +35,6 @@ from mne.io import RawArray, read_raw_fif
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
 from mne.io.constants import FIFF
-from mne.externals.six import text_type
-from mne.externals.six.moves import zip, cPickle as pickle
 from mne.datasets import testing
 from mne.tests.common import assert_meg_snr
 
@@ -845,7 +844,7 @@ def test_read_write_epochs(tmpdir):
         assert_allclose(epochs.get_data(), epochs_read.get_data(), **tols)
         assert_array_equal(epochs.events, epochs_read.events)
         assert_equal(set(epochs.event_id.keys()),
-                     set(text_type(x) for x in epochs_read.event_id.keys()))
+                     set(str(x) for x in epochs_read.event_id.keys()))
 
         # test saving split epoch files
         epochs.save(temp_fname, split_size='7MB')

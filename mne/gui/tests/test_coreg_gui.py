@@ -19,7 +19,6 @@ from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.transforms import invert_transform
 from mne.utils import _TempDir, run_tests_if_main, requires_mayavi, traits_test
-from mne.externals.six import string_types
 
 # backend needs to be set early
 try:
@@ -137,8 +136,8 @@ def test_coreg_model():
     assert_array_almost_equal(model.rot_z, rot_z)
 
     # info
-    assert (isinstance(model.fid_eval_str, string_types))
-    assert (isinstance(model.points_eval_str, string_types))
+    assert (isinstance(model.fid_eval_str, str))
+    assert (isinstance(model.points_eval_str, str))
 
     # scaling job
     assert not model.can_prepare_bem_model

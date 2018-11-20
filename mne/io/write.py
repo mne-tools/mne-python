@@ -15,7 +15,6 @@ from scipy import linalg, sparse
 from .constants import FIFF
 from ..utils import logger
 from ..externals.jdcal import jcal2jd
-from ..externals.six import string_types, b
 
 
 # We choose a "magic" date to store (because meas_date is obligatory)
@@ -42,7 +41,7 @@ def _write(fid, data, kind, data_size, FIFFT_TYPE, dtype):
 
 def _get_split_size(split_size):
     """Convert human-readable bytes to machine-readable bytes."""
-    if isinstance(split_size, string_types):
+    if isinstance(split_size, str):
         exp = dict(MB=20, GB=30).get(split_size[-2:], None)
         if exp is None:
             raise ValueError('split_size has to end with either'
@@ -242,7 +241,7 @@ def get_machid():
     ids : array (length 2, int32)
         The machine identifier used in MNE.
     """
-    mac = b('%012x' % uuid.getnode())  # byte conversion for Py3
+    mac = b'%012x' % uuid.getnode()  # byte conversion for Py3
     mac = re.findall(b'..', mac)  # split string
     mac += [b'00', b'00']  # add two more fields
 
@@ -300,7 +299,7 @@ def start_file(fname, id_=None):
     id_ : dict | None
         ID to use for the FIFF_FILE_ID.
     """
-    if isinstance(fname, string_types):
+    if isinstance(fname, str):
         if op.splitext(fname)[1].lower() == '.gz':
             logger.debug('Writing using gzip')
             # defaults to compression level 9, which is barely smaller but much
@@ -385,7 +384,7 @@ def write_ch_info(fid, ch):
     #   Finally channel name
     ch_name = ch['ch_name'][:15]
     fid.write(np.array(ch_name, dtype='>c').tostring())
-    fid.write(b('\0') * (16 - len(ch_name)))
+    fid.write(b'\0' * (16 - len(ch_name)))
 
 
 def write_dig_points(fid, dig, block=False, coord_frame=None):

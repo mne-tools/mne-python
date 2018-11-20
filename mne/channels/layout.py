@@ -21,7 +21,6 @@ from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..io.meas_info import Info
 from ..utils import _clean_names, warn, _check_ch_locs
-from ..externals.six.moves import map
 from .channels import _get_ch_info
 
 

@@ -5,8 +5,7 @@
 #
 # License: BSD (3-clause)
 
-from .externals.six.moves import configparser
-from .externals.six import string_types
+import configparser
 import fnmatch
 from glob import glob, iglob
 import os
@@ -33,7 +32,6 @@ from .transforms import (rotation, rotation3d, scaling, translation, Transform,
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
                     warn, has_nibabel)
 from .viz._3d import _fiducial_coords
-from .externals.six.moves import zip
 
 # some path templates
 trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
@@ -94,9 +92,9 @@ def coregister_fiducials(info, fiducials, tol=0.01):
     trans : Transform
         The device-MRI transform.
     """
-    if isinstance(info, string_types):
+    if isinstance(info, str):
         info = read_info(info)
-    if isinstance(fiducials, string_types):
+    if isinstance(fiducials, str):
         fiducials, coord_frame_to = read_fiducials(fiducials)
     else:
         coord_frame_to = FIFF.FIFFV_COORD_MRI

@@ -14,7 +14,6 @@ import os
 import re
 
 import numpy as np
-from io import open as io_open  # python 2 backward compatible open
 
 from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims, _synthesize_stim_channel
@@ -22,7 +21,6 @@ from ..base import BaseRaw, _check_update_montage
 from ..meas_info import _empty_info, DATE_NONE
 from ..constants import FIFF
 from ...filter import resample
-from ...externals.six.moves import zip
 from ...utils import copy_function_doc_to_method_doc
 from ...annotations import Annotations, events_from_annotations
 
@@ -1160,7 +1158,7 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     times = [float(time) * sfreq for time in times]
 
     pat = r'([\w\s]+):(\d+)'
-    with io_open(annotmap) as annotmap_file:
+    with open(annotmap) as annotmap_file:
         mappings = re.findall(pat, annotmap_file.read())
     maps = {}
     for mapping in mappings:
@@ -1320,7 +1318,7 @@ def _read_annotations_edf(annotations):
     """
     pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
     if isinstance(annotations, str):
-        with io_open(annotations, encoding='latin-1') as annot_file:
+        with open(annotations, encoding='latin-1') as annot_file:
             triggers = re.findall(pat, annot_file.read())
     else:
         tals = bytearray()

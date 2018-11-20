@@ -10,7 +10,6 @@ $ mne compute_proj_ecg -i sample_audvis_raw.fif -c "MEG 1531" \
 # Authors : Alexandre Gramfort, Ph.D.
 #           Martin Luessi, Ph.D.
 
-from mne.externals.six import string_types
 import os
 import sys
 import mne
@@ -197,7 +196,7 @@ def run():
         # append the ecg projs, so they are last in the list
         projs = mne.read_proj(proj_fname) + projs
 
-    if isinstance(preload, string_types) and os.path.exists(preload):
+    if isinstance(preload, str) and os.path.exists(preload):
         os.remove(preload)
 
     print("Writing ECG projections in %s" % ecg_proj_fname)

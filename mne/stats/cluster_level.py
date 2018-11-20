@@ -18,7 +18,6 @@ from ..parallel import parallel_func, check_n_jobs
 from ..utils import (split_list, logger, verbose, ProgressBar, warn, _pl,
                      check_random_state)
 from ..source_estimate import SourceEstimate
-from ..externals.six import string_types
 
 
 def _get_clusters_spatial(s, neighbors):
@@ -696,7 +695,7 @@ def _get_1samp_orders(n_samples, n_permutations, tail, rng):
     """Get the 1samp orders."""
     max_perms = 2 ** (n_samples - (tail == 0)) - 1
     extra = ''
-    if isinstance(n_permutations, string_types):
+    if isinstance(n_permutations, str):
         if n_permutations != 'all':
             raise ValueError('n_permutations as a string must be "all"')
         n_permutations = max_perms

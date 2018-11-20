@@ -19,7 +19,6 @@ to exclude ECG artifacts from projection computation.
 # Authors : Alexandre Gramfort, Ph.D.
 #           Martin Luessi, Ph.D.
 
-from mne.externals.six import string_types
 import os
 import sys
 import mne
@@ -183,7 +182,7 @@ def run():
         # append the eog projs, so they are last in the list
         projs = mne.read_proj(proj_fname) + projs
 
-    if isinstance(preload, string_types) and os.path.exists(preload):
+    if isinstance(preload, str) and os.path.exists(preload):
         os.remove(preload)
 
     print("Writing EOG projections in %s" % eog_proj_fname)

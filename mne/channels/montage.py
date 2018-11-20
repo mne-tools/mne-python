@@ -28,9 +28,6 @@ from ..io.constants import FIFF
 from ..utils import (_check_fname, warn, copy_function_doc_to_method_doc,
                      _clean_names)
 
-from ..externals.six import string_types
-from ..externals.six.moves import map
-
 from .layout import _pol_to_cart, _cart_to_sph
 
 
@@ -445,7 +442,7 @@ class DigMontage(object):
         self.rpa = rpa
         self.dev_head_t = dev_head_t
         self.dig_ch_pos = dig_ch_pos
-        if not isinstance(coord_frame, string_types) or \
+        if not isinstance(coord_frame, str) or \
                 coord_frame not in _str_to_frame:
             raise ValueError('coord_frame must be one of %s, got %s'
                              % (sorted(_str_to_frame.keys()), coord_frame))
@@ -727,13 +724,13 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                              (sorted(scale.keys()), unit))
 
         # HSP
-        if isinstance(hsp, string_types):
+        if isinstance(hsp, str):
             hsp = _read_dig_points(hsp, unit=unit)
         elif hsp is not None:
             hsp *= scale[unit]
 
         # HPI
-        if isinstance(hpi, string_types):
+        if isinstance(hpi, str):
             ext = op.splitext(hpi)[-1]
             if ext in ('.txt', '.mat'):
                 hpi = _read_dig_points(hpi, unit='m')
@@ -746,7 +743,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                                  'supported.' % ext)
 
         # ELP
-        if isinstance(elp, string_types):
+        if isinstance(elp, str):
             elp = _read_dig_points(elp, unit=unit)
         elif elp is not None and scale[unit]:
             elp *= scale[unit]
@@ -789,7 +786,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
     -----
     This function will change the info variable in place.
     """
-    if isinstance(montage, string_types):  # load builtin montage
+    if isinstance(montage, str):  # load builtin montage
         montage = read_montage(montage)
 
     if isinstance(montage, Montage):

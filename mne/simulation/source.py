@@ -10,9 +10,6 @@ from ..source_estimate import SourceEstimate, VolSourceEstimate
 from ..source_space import _ensure_src
 from ..utils import check_random_state, warn
 
-from ..externals.six import string_types
-from ..externals.six.moves import zip
-
 
 def select_source_in_label(src, label, random_state=None, location='random',
                            subject=None, subjects_dir=None, surf='sphere'):
@@ -64,7 +61,7 @@ def select_source_in_label(src, label, random_state=None, location='random',
     """
     lh_vertno = list()
     rh_vertno = list()
-    if not isinstance(location, string_types) or \
+    if not isinstance(location, str) or \
             location not in ('random', 'center'):
         raise ValueError('location must be "random" or "center", got %s'
                          % (location,))

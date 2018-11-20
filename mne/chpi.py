@@ -48,7 +48,6 @@ from .cov import make_ad_hoc_cov, compute_whitener
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
 from .utils import verbose, logger, use_log_level, _check_fname, warn
-from .externals.six import string_types
 
 # Eventually we should add:
 #   hpicons
@@ -675,7 +674,7 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
 
 
 def _check_too_close(too_close):
-    if not isinstance(too_close, string_types) or \
+    if not isinstance(too_close, str) or \
             too_close not in ('raise', 'warning', 'info'):
         raise ValueError('too_close must be "raise", "warning", or "info", '
                          'got %s (type %s)' % (too_close, type(too_close)))

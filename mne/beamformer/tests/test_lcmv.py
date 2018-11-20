@@ -16,7 +16,6 @@ from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
                             read_beamformer)
 from mne.beamformer._lcmv import _lcmv_source_power
 from mne.minimum_norm import make_inverse_operator, apply_inverse
-from mne.externals.six import advance_iterator
 from mne.simulation import simulate_evoked
 from mne.utils import run_tests_if_main, object_diff, requires_h5py
 
@@ -392,7 +391,7 @@ def test_make_lcmv(tmpdir):
     stcs = apply_lcmv_epochs(epochs, filters, max_ori_out='signed')
     stcs_ = apply_lcmv_epochs(epochs, filters, return_generator=True,
                               max_ori_out='signed')
-    assert_array_equal(stcs[0].data, advance_iterator(stcs_).data)
+    assert_array_equal(stcs[0].data, next(stcs_).data)
 
     epochs.drop_bad()
     assert (len(epochs.events) == len(stcs))

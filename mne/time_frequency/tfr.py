@@ -31,7 +31,6 @@ from ..viz.utils import (figure_nobar, plt_show, _setup_cmap, warn,
                          _connection_line, _prepare_joint_axes,
                          _setup_vmin_vmax, _set_title_multiple_electrodes)
 from ..externals.h5io import write_hdf5, read_hdf5
-from ..externals.six import string_types
 
 
 # Make wavelet
@@ -2081,7 +2080,7 @@ def combine_tfr(all_tfr, weights='nave'):
     .. versionadded:: 0.11.0
     """
     tfr = all_tfr[0].copy()
-    if isinstance(weights, string_types):
+    if isinstance(weights, str):
         if weights not in ('nave', 'equal'):
             raise ValueError('Weights must be a list of float, or "nave" or '
                              '"equal"')

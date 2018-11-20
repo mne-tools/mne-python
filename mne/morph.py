@@ -17,7 +17,6 @@ from .source_space import SourceSpaces
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, deprecated)
-from .externals.six import string_types
 from .externals.h5io import read_hdf5, write_hdf5
 
 
@@ -122,7 +121,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
     else:
         src_data, kind = _get_src_data(src)
         subject_from = _check_subject_from(subject_from, src)
-    if not isinstance(subject_to, string_types):
+    if not isinstance(subject_to, str):
         raise TypeError('subject_to must be str, got type %s (%s)'
                         % (type(subject_to), subject_to))
     del src
@@ -358,7 +357,7 @@ class SourceMorph(object):
             raise ValueError('stc_from.subject and '
                              'morph.subject_from must match. (%s != %s)' %
                              (stc.subject, self.subject_from))
-        if not isinstance(output, string_types):
+        if not isinstance(output, str):
             raise TypeError('output must be str, got type %s (%s)'
                             % (type(output), output))
         out = _apply_morph_data(self, stc)
@@ -412,7 +411,7 @@ class SourceMorph(object):
 ###############################################################################
 # I/O
 def _check_subject_from(subject_from, src):
-    if isinstance(src, string_types):
+    if isinstance(src, str):
         subject_check = src
     elif src is None:  # assume it's correct although dangerous but unlikely
         subject_check = subject_from

@@ -31,7 +31,6 @@ from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw
 from ..io.pick import pick_types, pick_info
 from ..utils import verbose, logger, _clean_names, warn, _time_mask, _pl
 from ..fixes import _get_args, _safe_svd, einsum
-from ..externals.six import string_types
 from ..channels.channels import _get_T1T2_mag_inds
 
 
@@ -306,7 +305,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         st_duration = int(round(st_duration * raw.info['sfreq']))
         if not 0. < st_correlation <= 1:
             raise ValueError('st_correlation must be between 0. and 1.')
-    if not isinstance(bad_condition, string_types) or \
+    if not isinstance(bad_condition, str) or \
             bad_condition not in ['error', 'warning', 'ignore', 'info']:
         raise ValueError('bad_condition must be "error", "warning", "info", or'
                          ' "ignore", not %s' % bad_condition)
@@ -590,7 +589,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
 def _get_coil_scale(meg_picks, mag_picks, grad_picks, mag_scale, info):
     """Get the magnetometer scale factor."""
-    if isinstance(mag_scale, string_types):
+    if isinstance(mag_scale, str):
         if mag_scale != 'auto':
             raise ValueError('mag_scale must be a float or "auto", got "%s"'
                              % mag_scale)
@@ -637,7 +636,7 @@ def _check_destination(destination, info, head_frame):
     if not head_frame:
         raise RuntimeError('destination can only be set if using the '
                            'head coordinate frame')
-    if isinstance(destination, string_types):
+    if isinstance(destination, str):
         recon_trans = _get_trans(destination, 'meg', 'head')[0]
     elif isinstance(destination, Transform):
         recon_trans = destination
@@ -971,7 +970,7 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False):
 
 def _check_regularize(regularize):
     """Ensure regularize is valid."""
-    if not (regularize is None or (isinstance(regularize, string_types) and
+    if not (regularize is None or (isinstance(regularize, str) and
                                    regularize in ('in',))):
         raise ValueError('regularize must be None or "in"')
 

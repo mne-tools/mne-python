@@ -15,7 +15,6 @@ from .write import (start_block, end_block, write_int, write_float,
                     write_float_sparse, write_id)
 from .tag import find_tag
 from .constants import FIFF
-from ..externals.six import text_type, string_types
 from ..utils import warn, logger
 
 _proc_keys = ['parent_file_id', 'block_id', 'parent_block_id',
@@ -28,8 +27,7 @@ _proc_ids = [FIFF.FIFF_PARENT_FILE_ID,
              FIFF.FIFF_CREATOR]
 _proc_writers = [write_id, write_id, write_id,
                  write_int, write_string, write_string]
-_proc_casters = [dict, dict, dict,
-                 np.array, text_type, text_type]
+_proc_casters = [dict, dict, dict, np.array, str, str]
 
 
 def _read_proc_history(fid, tree):
@@ -158,7 +156,7 @@ _sss_ctc_ids = (FIFF.FIFF_BLOCK_ID,
                 FIFF.FIFF_CREATOR,
                 FIFF.FIFF_DECOUPLER_MATRIX)
 _sss_ctc_writers = (write_id, write_int, write_string, write_float_sparse)
-_sss_ctc_casters = (dict, np.array, text_type, csc_matrix)
+_sss_ctc_casters = (dict, np.array, str, csc_matrix)
 
 _sss_cal_keys = ('cal_chans', 'cal_corrs')
 _sss_cal_ids = (FIFF.FIFF_SSS_CAL_CHANS, FIFF.FIFF_SSS_CAL_CORRS)
@@ -168,7 +166,7 @@ _sss_cal_casters = (np.array, np.array)
 
 def _read_ctc(fname):
     """Read cross-talk correction matrix."""
-    if not isinstance(fname, string_types) or not op.isfile(fname):
+    if not isinstance(fname, str) or not op.isfile(fname):
         raise ValueError('fname must be a file that exists, not %s' % fname)
     f, tree, _ = fiff_open(fname)
     with f as fid:

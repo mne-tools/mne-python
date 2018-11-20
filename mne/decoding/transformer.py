@@ -13,7 +13,6 @@ from .base import BaseEstimator
 from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import psd_array_multitaper
-from ..externals.six import string_types
 from ..utils import _check_type_picks, check_version
 from ..io.pick import pick_info, _pick_data_channels, _picks_by_type
 from ..cov import _check_scalings_user
@@ -114,7 +113,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         if not (scalings is None or isinstance(scalings, (dict, str))):
             raise ValueError('scalings type should be dict, str, or None, '
                              'got %s' % type(scalings))
-        if isinstance(scalings, string_types) and \
+        if isinstance(scalings, str) and \
                 scalings not in ('mean', 'median'):
             raise ValueError('Invalid method for scaling, must be "mean" or '
                              '"median" but got %s' % scalings)

@@ -1,7 +1,8 @@
+import glob
 import os
 import os.path as op
+import pickle
 import shutil
-import glob
 
 import numpy as np
 from scipy import sparse
@@ -22,8 +23,6 @@ from mne.fixes import assert_is, assert_is_not
 from mne.label import _n_colors
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
-from mne.externals.six import string_types
-from mne.externals.six.moves import cPickle as pickle
 
 
 data_path = testing.data_path(download=False)
@@ -83,12 +82,12 @@ def _stc_to_label(stc, src, smooth, subjects_dir=None):
     """
     src = stc.subject if src is None else src
 
-    if isinstance(src, string_types):
+    if isinstance(src, str):
         subject = src
     else:
         subject = stc.subject
 
-    if isinstance(src, string_types):
+    if isinstance(src, str):
         subjects_dir = get_subjects_dir(subjects_dir)
         surf_path_from = op.join(subjects_dir, src, 'surf')
         rr_lh, tris_lh = read_surface(op.join(surf_path_from,

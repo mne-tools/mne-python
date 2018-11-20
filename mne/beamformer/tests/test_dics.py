@@ -18,7 +18,6 @@ from mne.beamformer import (make_dics, apply_dics, apply_dics_epochs,
                             Beamformer)
 from mne.time_frequency import csd_morlet
 from mne.utils import run_tests_if_main, object_diff, requires_h5py
-from mne.externals.six import advance_iterator
 from mne.proj import compute_proj_evoked, make_projector
 
 data_path = testing.data_path(download=False)
@@ -418,7 +417,7 @@ def test_apply_dics_timeseries():
     # Test returning a generator
     stcs = apply_dics_epochs(epochs, filters, return_generator=False)
     stcs_gen = apply_dics_epochs(epochs, filters, return_generator=True)
-    assert_array_equal(stcs[0].data, advance_iterator(stcs_gen).data)
+    assert_array_equal(stcs[0].data, next(stcs_gen).data)
 
     # Test computing timecourses on a volume source space
     filters_vol = make_dics(evoked.info, fwd_vol, csd20, reg=reg)

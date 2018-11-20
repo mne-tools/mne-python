@@ -19,7 +19,6 @@ from ...utils import logger, verbose, warn
 from ...channels.montage import Montage
 from ...epochs import BaseEpochs
 from ...event import read_events
-from ...externals.six import string_types
 from ...annotations import (Annotations, events_from_annotations,
                             read_annotations)
 
@@ -115,7 +114,7 @@ def _get_info(eeg, montage, eog=()):
         if n_channels_with_pos > 0:
             selection = np.arange(n_channels_with_pos)
             montage = Montage(np.array(pos), pos_ch_names, kind, selection)
-    elif isinstance(montage, string_types):
+    elif isinstance(montage, str):
         path = op.dirname(montage)
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
@@ -393,7 +392,7 @@ class RawEEGLAB(BaseRaw):
             self._event_ch = None
 
         # read the data
-        if isinstance(eeg.data, string_types):
+        if isinstance(eeg.data, str):
             data_fname = op.join(basedir, eeg.data)
             _check_fname(data_fname)
             logger.info('Reading %s' % data_fname)
@@ -402,7 +401,7 @@ class RawEEGLAB(BaseRaw):
                 info, preload, filenames=[data_fname], last_samps=last_samps,
                 orig_format='double', verbose=verbose)
         else:
-            if preload is False or isinstance(preload, string_types):
+            if preload is False or isinstance(preload, str):
                 warn('Data will be preloaded. preload=False or a string '
                      'preload is not supported when the data is stored in '
                      'the .set file')
@@ -592,7 +591,7 @@ class EpochsEEGLAB(BaseEpochs):
             for ep in epochs:
                 if isinstance(ep.eventtype, int):
                     ep.eventtype = str(ep.eventtype)
-                if not isinstance(ep.eventtype, string_types):
+                if not isinstance(ep.eventtype, str):
                     event_type = '/'.join([str(et) for et in ep.eventtype])
                     event_name.append(event_type)
                     # store latency of only first event
@@ -628,7 +627,7 @@ class EpochsEEGLAB(BaseEpochs):
                 events[idx, 0] = event_latencies[idx]
                 events[idx, 1] = prev_stim
                 events[idx, 2] = event_id[event_name[idx]]
-        elif isinstance(events, string_types):
+        elif isinstance(events, str):
             events = read_events(events)
 
         logger.info('Extracting parameters from %s...' % input_fname)
@@ -640,7 +639,7 @@ class EpochsEEGLAB(BaseEpochs):
                 raise ValueError('No matching events found for %s '
                                  '(event id %i)' % (key, val))
 
-        if isinstance(eeg.data, string_types):
+        if isinstance(eeg.data, str):
             basedir = op.dirname(input_fname)
             data_fname = op.join(basedir, eeg.data)
             _check_fname(data_fname)
@@ -757,7 +756,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
     if event_id is None:
         event_id = dict()
 
-    if isinstance(eeg, string_types):
+    if isinstance(eeg, str):
         from scipy import io
         eeg = io.loadmat(eeg, struct_as_record=False, squeeze_me=True,
                          uint16_codec=uint16_codec)['EEG']
@@ -844,7 +843,7 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    if isinstance(eeg, string_types):
+    if isinstance(eeg, str):
         eeg = _check_load_mat(eeg, uint16_codec=uint16_codec)
 
     if not hasattr(eeg, 'event'):

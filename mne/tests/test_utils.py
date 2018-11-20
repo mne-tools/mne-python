@@ -1,4 +1,5 @@
 from copy import deepcopy
+from io import StringIO
 import os.path as op
 import os
 import sys
@@ -12,7 +13,6 @@ from numpy.testing import assert_equal, assert_array_equal, assert_allclose
 
 from mne import read_evokeds, open_docs
 from mne.datasets import testing
-from mne.externals.six.moves import StringIO
 from mne.io import show_fiff, read_raw_fif
 from mne.epochs import _segment_raw
 from mne.parallel import parallel_func

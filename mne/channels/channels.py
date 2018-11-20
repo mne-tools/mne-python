@@ -13,7 +13,6 @@ import sys
 import numpy as np
 from scipy import sparse
 
-from ..externals.six import string_types
 from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
 from ..utils import _check_preload, _validate_type
 from ..io.compensator import get_current_comp
@@ -779,10 +778,10 @@ class UpdateChannelsMixin(object):
         """
         msg = ("'ch_names' should be a list of strings (the name[s] of the "
                "channel to be dropped), not a {0}.")
-        if isinstance(ch_names, string_types):
+        if isinstance(ch_names, str):
             raise ValueError(msg.format("string"))
         else:
-            if not all([isinstance(ch_name, string_types)
+            if not all([isinstance(ch_name, str)
                         for ch_name in ch_names]):
                 raise ValueError(msg.format(type(ch_names[0])))
 
@@ -1088,8 +1087,8 @@ def read_ch_connectivity(fname, picks=None):
         fname = op.join(templates_dir, fname)
 
     nb = loadmat(fname)['neighbours']
-    ch_names = _recursive_flatten(nb['label'], string_types)
-    neighbors = [_recursive_flatten(c, string_types) for c in
+    ch_names = _recursive_flatten(nb['label'], str)
+    neighbors = [_recursive_flatten(c, str) for c in
                  nb['neighblabel'].flatten()]
     assert len(ch_names) == len(neighbors)
     if picks is not None:
@@ -1134,7 +1133,7 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
 
     for neigh in neighbors:
         if (not isinstance(neigh, list) and
-                not all(isinstance(c, string_types) for c in neigh)):
+                not all(isinstance(c, str) for c in neigh)):
             raise ValueError('`neighbors` must be a list of lists of str')
 
     ch_connectivity = np.eye(len(ch_names), dtype=bool)

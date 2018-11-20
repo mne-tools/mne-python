@@ -23,7 +23,6 @@ from scipy import linalg
 
 from ..defaults import DEFAULTS
 from ..surface import read_surface
-from ..externals.six import string_types
 from ..io.proj import make_projector
 from ..io.pick import _DATA_CH_TYPES_SPLIT, pick_types
 from ..source_space import read_source_spaces, SourceSpaces
@@ -408,7 +407,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
             surfaces.append((surf_fname, color))
 
     if brain_surfaces is not None:
-        if isinstance(brain_surfaces, string_types):
+        if isinstance(brain_surfaces, str):
             brain_surfaces = (brain_surfaces,)
         for surf_name in brain_surfaces:
             for hemi in ('lh', 'rh'):
@@ -419,7 +418,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
                 else:
                     raise IOError("Surface %s does not exist." % surf_fname)
 
-    if isinstance(src, string_types):
+    if isinstance(src, str):
         if not op.exists(src):
             src_ = op.join(subjects_dir, subject, 'bem', src)
             if op.exists(src_):
@@ -667,7 +666,7 @@ def _get_flim(flim, fscale, freq, sfreq=None):
 
 def _check_fscale(fscale):
     """Check for valid fscale."""
-    if not isinstance(fscale, string_types) or fscale not in ('log', 'linear'):
+    if not isinstance(fscale, str) or fscale not in ('log', 'linear'):
         raise ValueError('fscale must be "log" or "linear", got %s'
                          % (fscale,))
 

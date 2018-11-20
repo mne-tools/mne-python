@@ -12,7 +12,6 @@ from collections import namedtuple
 import numpy as np
 from scipy import linalg, sparse
 
-from ..externals.six import string_types
 from ..source_estimate import SourceEstimate
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
@@ -244,7 +243,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
            waveforms: II. Non-linear effects, overlap correction, and practical
            considerations. Psychophysiology, 52(2), 169-189.
     """
-    if isinstance(solver, string_types):
+    if isinstance(solver, str):
         if solver not in {"cholesky"}:
             raise ValueError("No such solver: {0}".format(solver))
         if solver == 'cholesky':

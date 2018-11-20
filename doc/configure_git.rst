@@ -350,7 +350,8 @@ When you are ready to ask for someone to review your code and consider a merge:
    how the code should be written (features, style, etc.) that are easier to
    implement from the start.
 
-#. Finally, make `travis`_ happy. Ensure that builds in all four jobs pass. To make code python3 compatible, refer to ``externals/six.py``. Use virtual environments to test code on different python versions. Please remember that `travis`_ only runs a subset of the tests and is thus not a substitute for running the entire test suite locally.
+#. Finally, make `travis`_ happy. Ensure that builds in all four jobs pass.
+   Use virtual environments to test code on different python versions.
 
 #. For the code to be mergeable, please rebase w.r.t master branch.
 

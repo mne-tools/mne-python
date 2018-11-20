@@ -8,6 +8,7 @@ from copy import deepcopy
 from functools import partial
 import itertools as itt
 import os.path as op
+import pickle
 import sys
 
 import numpy as np
@@ -25,7 +26,6 @@ from mne import (concatenate_events, find_events, equalize_channels,
                  pick_info)
 from mne.utils import (_TempDir, requires_pandas, object_diff,
                        requires_mne, run_subprocess, run_tests_if_main)
-from mne.externals.six.moves import zip, cPickle as pickle
 from mne.io.proc_history import _get_rank_sss
 from mne.io.pick import _picks_by_type
 from mne.annotations import Annotations

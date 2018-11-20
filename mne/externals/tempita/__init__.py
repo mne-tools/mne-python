@@ -33,10 +33,10 @@ import warnings
 import re
 import sys
 import cgi
-from ..six.moves.urllib.parse import quote as url_quote
+from urllib.parse import quote as url_quote
 import os
 import tokenize
-from ..six.moves import cStringIO as StringIO
+from io import StringIO
 from ._looper import looper
 from .compat3 import PY3, bytes, basestring_, next, is_unicode, coerce_text
 

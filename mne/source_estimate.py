@@ -23,8 +23,6 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose,
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import ToDataFrameMixin, TimeMixin
-from .externals.six import string_types
-from .externals.six.moves import zip
 from .externals.h5io import read_hdf5, write_hdf5
 
 
@@ -1667,7 +1665,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         .. [1] Larson and Lee, "The cortical dynamics underlying effective
                switching of auditory spatial attention", NeuroImage 2012.
         """
-        if not isinstance(surf, string_types):
+        if not isinstance(surf, str):
             raise TypeError('surf must be a string, got %s' % (type(surf),))
         subject = _check_subject(self.subject, subject)
         if np.any(self.data < 0):

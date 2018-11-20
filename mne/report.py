@@ -7,6 +7,7 @@
 # License: BSD (3-clause)
 
 import base64
+from io import BytesIO
 import os
 import os.path as op
 import fnmatch
@@ -29,7 +30,6 @@ from .parallel import parallel_func, check_n_jobs
 from .viz.raw import _data_types
 
 from .externals.tempita import HTMLTemplate, Template
-from .externals.six import BytesIO, moves, string_types
 from .externals.h5io import read_hdf5, write_hdf5
 
 VALID_EXTENSIONS = ['raw.fif', 'raw.fif.gz', 'sss.fif', 'sss.fif.gz',
@@ -1020,7 +1020,7 @@ class Report(object):
             Existing figures are only replaced if this is set to ``True``.
             Defaults to ``False``.
         """
-        assert isinstance(html, string_types)  # otherwise later will break
+        assert isinstance(html, str)  # otherwise later will break
         if replace and fname in self.fnames:
             # Find last occurrence of the figure
             ind = max([i for i, existing in enumerate(self.fnames)
@@ -1569,7 +1569,7 @@ class Report(object):
             msg = ('Report already exists at location %s. '
                    'Overwrite it (y/[n])? '
                    % fname)
-            answer = moves.input(msg)
+            answer = input(msg)
             if answer.lower() == 'y':
                 overwrite = True
 

@@ -5,8 +5,9 @@
 #
 # License: BSD (3-clause)
 
-import os.path as op
 from copy import deepcopy
+import os.path as op
+import pickle
 
 import numpy as np
 from scipy import fftpack
@@ -21,7 +22,6 @@ from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.io import read_raw_fif
 from mne.utils import (_TempDir, requires_pandas, requires_version,
                        run_tests_if_main)
-from mne.externals.six.moves import cPickle as pickle
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname = op.join(base_dir, 'test-ave.fif')

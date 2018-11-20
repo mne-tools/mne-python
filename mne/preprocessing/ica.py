@@ -54,7 +54,6 @@ from ..fixes import _get_args
 from ..filter import filter_data
 from .bads import find_outliers
 from .ctps_ import ctps
-from ..externals.six import string_types, text_type
 from ..io.pick import channel_type
 
 
@@ -1011,12 +1010,12 @@ class ICA(ContainsMixin):
             if hasattr(target, 'ndim'):
                 if target.ndim < 2:
                     target = target.reshape(1, target.shape[-1])
-            if isinstance(target, string_types):
+            if isinstance(target, str):
                 pick = _get_target_ch(inst, target)
                 target = inst.get_data(pick, start, stop, reject_by_annotation)
 
         elif isinstance(inst, BaseEpochs):
-            if isinstance(target, string_types):
+            if isinstance(target, str):
                 pick = _get_target_ch(inst, target)
                 target = inst.get_data()[:, pick]
 
@@ -1025,7 +1024,7 @@ class ICA(ContainsMixin):
                     target = target.ravel()
 
         elif isinstance(inst, Evoked):
-            if isinstance(target, string_types):
+            if isinstance(target, str):
                 pick = _get_target_ch(inst, target)
                 target = inst.data[pick]
 
@@ -1781,7 +1780,7 @@ def _get_target_ch(container, target):
 
 def _find_sources(sources, target, score_func):
     """Aux function."""
-    if isinstance(score_func, string_types):
+    if isinstance(score_func, str):
         score_func = get_score_funcs().get(score_func, score_func)
 
     if not callable(score_func):
@@ -1884,9 +1883,7 @@ def _deserialize(str_, outer_sep=';', inner_sep=':'):
     out = {}
     for mapping in str_.split(outer_sep):
         k, v = mapping.split(inner_sep, 1)
-        vv = json.loads(v)
-        out[k] = vv if not isinstance(vv, text_type) else str(vv)
-
+        out[k] = json.loads(v)
     return out
 
 

@@ -1,4 +1,3 @@
-from ..externals import six
 
 
 class TransformerMixin(object):
@@ -45,7 +44,7 @@ class EstimatorMixin(object):
         if not params:
             return self
         valid_params = self.get_params(deep=True)
-        for key, value in six.iteritems(params):
+        for key, value in params.items():
             split = key.split('__', 1)
             if len(split) > 1:
                 # nested objects case
