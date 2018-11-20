@@ -27,6 +27,8 @@ Bug
 API
 ~~~
 
+- Python 2 is no longer supported; MNE-Python now requires Python 3.5+, by `Eric Larson`_
+
 .. _changes_0_17:
 
 Version 0.17
