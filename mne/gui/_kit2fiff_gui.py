@@ -416,7 +416,8 @@ class Kit2FiffModel(HasPrivateTraits):
                     stim_code, self.stim_threshold)
         raw = RawKIT(self.sqd_file, preload=preload, stim=self.stim_chs_array,
                      slope=self.stim_slope, stim_code=stim_code,
-                     stimthresh=self.stim_threshold)
+                     stimthresh=self.stim_threshold,
+                     allow_unknown_format=self.allow_unknown_format)
 
         if np.any(self.fid):
             raw.info['dig'] = _make_dig_points(self.fid[0], self.fid[1],
