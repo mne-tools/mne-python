@@ -18,6 +18,7 @@ import re
 from datetime import datetime
 from math import modf
 from functools import partial
+from io import StringIO
 
 import numpy as np
 
