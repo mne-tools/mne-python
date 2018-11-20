@@ -52,9 +52,14 @@ epochs.resample(150., npad='auto')  # resample to reduce computation time
 # Let's first check out all channel types by averaging across epochs.
 epochs.plot_psd(fmin=2., fmax=40.)
 
+# We also have a few options here.
+epochs.plot_psd(fmin=2., fmax=40., method='welch', average=False, xscale='log')
+
 ###############################################################################
 # Now let's take a look at the spatial distributions of the PSD.
-epochs.plot_psd_topomap(ch_type='grad', normalize=True)
+epochs.plot_psd_topomap(
+    ch_type='grad', method='welch', normalize=True, cmap='inferno',
+    contours=3, sensors=False)
 
 ###############################################################################
 # Alternatively, you can also create PSDs from Epochs objects with functions

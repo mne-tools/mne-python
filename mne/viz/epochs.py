@@ -17,7 +17,8 @@ import numpy as np
 
 from ..utils import verbose, get_config, set_config, logger, warn, _pl
 from ..io.pick import pick_types, channel_type, _get_channel_types
-from ..time_frequency import psd_multitaper
+from ..io.meas_info import create_info
+from ..time_frequency import psd_multitaper, psd_welch
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
                     _plot_raw_onscroll, _onclick_help, plt_show, _check_cov,
@@ -26,6 +27,7 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _setup_plot_projector, _set_ax_label_style)
 from .misc import _handle_event_colors
 from ..defaults import _handle_default
+from .evoked import _plot_lines
 
 
 def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
@@ -830,9 +832,15 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
 @verbose
 def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
-                    proj=False, bandwidth=None, adaptive=False, low_bias=True,
-                    normalization='length', picks=None, ax=None, color='black',
-                    area_mode='std', area_alpha=0.33, dB=True, n_jobs=1,
+                    proj=False, method='multitaper',
+                    bandwidth=None, adaptive=False, low_bias=True,
+                    normalization='length', n_fft=256, n_overlap=0,
+                    n_per_seg=None,  picks=None, ax=None, color='black',
+                    area_mode='std', area_alpha=0.33, dB=True,
+                    line_alpha=None,
+                    spatial_colors=None, xscale='linear',
+                    average=True,
+                    n_jobs=1,
                     show=True, verbose=None):
     """Plot the power spectral density across epochs.
 
@@ -850,6 +858,9 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         End time to consider.
     proj : bool
         Apply projection.
+    method : str
+        Choice of PSD estimator. Either 'multitaper' or 'welch'.
+        Defaults to 'multitaper'.
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz. The default
         value is a window half-bandwidth of 4.
@@ -863,6 +874,19 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
+    n_fft : int
+        The length of FFT used, must be ``>= n_per_seg`` (default: 256).
+        The segments will be zero-padded if ``n_fft > n_per_seg``.
+        If n_per_seg is None, n_fft must be >= number of time points
+        in the data. (only used when method == 'welch').
+    n_overlap : int
+        The number of points of overlap between segments. Will be adjusted
+        to be <= n_per_seg. The default value is 0.
+        (only used when method == 'welch').
+    n_per_seg : int | None
+        Length of each Welch segment (windowed with a Hamming window). Defaults
+        to None, which sets n_per_seg equal to n_fft.
+        (only used when method == 'welch').
     picks : array-like of int | None
         List of channels to use.
     ax : instance of matplotlib Axes | None
@@ -878,6 +902,18 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Alpha for the area.
     dB : bool
         If True, transform data to decibels.
+    line_alpha : float | None
+        Alpha for the PSD line. Can be None (default) to use 1.0 when
+        ``average=True`` and 0.1 when ``average=False``.
+    spatial_colors : bool
+        Whether to use spatial colors. Only used when ``average=False``.
+    xscale : str
+        Can be 'linear' (default) or 'log'.
+    average : bool
+        If False (default), the PSDs of all channels is displayed. No averaging
+        is done and parameters area_mode and area_alpha are ignored. When
+        False, it is possible to paint an area (hold left mouse button and
+        drag) to plot a topomap.
     n_jobs : int
         Number of jobs to run in parallel.
     show : bool
@@ -891,44 +927,100 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig : instance of matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
+    from matplotlib.ticker import ScalarFormatter
     from .raw import _set_psd_plot_params, _convert_psds
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
         make_label = _set_psd_plot_params(
             epochs.info, proj, picks, ax, area_mode)
+    if spatial_colors is None:
+        spatial_colors = False if average else True
 
+    psd_list = list()
+    ylabels = list()
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
-        psds, freqs = psd_multitaper(epochs, picks=picks, fmin=fmin,
-                                     fmax=fmax, tmin=tmin, tmax=tmax,
-                                     bandwidth=bandwidth, adaptive=adaptive,
-                                     low_bias=low_bias,
-                                     normalization=normalization, proj=proj,
-                                     n_jobs=n_jobs)
+        if method == 'multitaper':
+            psds, freqs = psd_multitaper(epochs, picks=picks, fmin=fmin,
+                                         fmax=fmax, tmin=tmin, tmax=tmax,
+                                         bandwidth=bandwidth,
+                                         adaptive=adaptive,
+                                         low_bias=low_bias,
+                                         normalization=normalization,
+                                         proj=proj,
+                                         n_jobs=n_jobs)
+        elif method == 'welch':
+            psds, freqs = psd_welch(epochs, picks=picks, fmin=fmin,
+                                    fmax=fmax, tmin=tmin, tmax=tmax,
+                                    n_fft=256, n_overlap=0, n_per_seg=None,
+                                    proj=proj,
+                                    n_jobs=n_jobs)
+        else:
+            raise ValueError('Only "multitaper" and "welch" are supported.')
 
         ylabel = _convert_psds(psds, dB, 'auto', scalings_list[ii],
                                units_list[ii],
                                [epochs.ch_names[pi] for pi in picks])
 
         # mean across epochs and channels
-        psd_mean = np.mean(psds, axis=0).mean(axis=0)
-        if area_mode == 'std':
-            # std across channels
-            psd_std = np.std(np.mean(psds, axis=0), axis=0)
-            hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
-        elif area_mode == 'range':
-            hyp_limits = (np.min(np.mean(psds, axis=0), axis=0),
-                          np.max(np.mean(psds, axis=0), axis=0))
-        else:  # area_mode is None
-            hyp_limits = None
+        psd_mean = np.mean(psds, axis=0)
+        if average:
+            if area_mode == 'std':
+                psd_std = np.std(psds, axis=0)
+                hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
+            elif area_mode == 'range':
+                hyp_limits = (np.min(psds, axis=0), np.max(psds, axis=0))
+            else:  # area_mode is None
+                hyp_limits = None
 
-        ax.plot(freqs, psd_mean, color=color)
-        if hyp_limits is not None:
-            ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
-                            color=color, alpha=area_alpha)
+            ax.plot(freqs, psd_mean, color=color, line_alpha=line_alpha,
+                    linewidth=0.5)
+            if hyp_limits is not None:
+                ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
+                                color=color, alpha=area_alpha)
+        else:
+            psd_list.append(psd_mean)
+
         if make_label:
             if ii == len(picks_list) - 1:
                 ax.set_xlabel('Frequency (Hz)')
             ax.set(ylabel=ylabel, title=title, xlim=(freqs[0], freqs[-1]))
+
+        ylabels.append(ylabel)
+        if xscale == 'log':
+            ax.grid(True, linestyle=':')
+            ax.set(xscale='log')
+            ax.set(xlim=[freqs[1] if freqs[0] == 0 else freqs[0], freqs[-1]])
+            ax.get_xaxis().set_major_formatter(ScalarFormatter())
+
+    if not average:
+        picks = np.concatenate(picks_list)
+
+        psd_list = np.concatenate(psd_list)
+        types = np.array([channel_type(epochs.info, idx) for idx in picks])
+        # Needed because the data does not match the info anymore.
+        info = create_info([epochs.ch_names[p] for p in picks],
+                           epochs.info['sfreq'], types)
+        info['chs'] = [epochs.info['chs'][p] for p in picks]
+        valid_channel_types = ['mag', 'grad', 'eeg', 'seeg', 'eog', 'ecg',
+                               'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
+                               'hbr', 'misc']
+        ch_types_used = list()
+        for this_type in valid_channel_types:
+            if this_type in types:
+                ch_types_used.append(this_type)
+        assert len(ch_types_used) == len(ax_list)
+        unit = ''
+        units = {t: yl for t, yl in zip(ch_types_used, ylabels)}
+        titles = {c: t for c, t in zip(ch_types_used, titles_list)}
+        picks = np.arange(len(psd_list))
+        if not spatial_colors:
+            spatial_colors = color
+        _plot_lines(psd_list, info, picks, fig, ax_list, spatial_colors,
+                    unit, units=units, scalings=None, hline=None, gfp=False,
+                    types=types, zorder='std', xlim=(freqs[0], freqs[-1]),
+                    ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
+                    ch_types_used=ch_types_used, selectable=True, psd=True,
+                    line_alpha=line_alpha, nave=None)
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
     plt_show(show)

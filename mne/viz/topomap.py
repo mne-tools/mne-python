@@ -24,7 +24,7 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
                     _validate_if_list_of_axes, _setup_cmap, _check_time_unit)
-from ..time_frequency import psd_multitaper
+from ..time_frequency import psd_multitaper, psd_welch
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
 from ..io.meas_info import Info
@@ -1703,7 +1703,8 @@ def _slider_changed(val, ax, data, times, pos, scaling, func, time_format,
 
 def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
                              vmax=None, cmap=None, outlines='head',
-                             colorbar=False, cbar_fmt='%3.3f'):
+                             colorbar=False, cbar_fmt='%3.3f',
+                             sensors=True, contours=6):
     """Plot topomap multi cbar."""
     _hide_frame(ax)
     vmin = np.min(data) if vmin is None else vmin
@@ -1713,8 +1714,9 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
     if title is not None:
         ax.set_title(title, fontsize=10)
     im, _ = plot_topomap(data, pos, vmin=vmin, vmax=vmax, axes=ax,
-                         cmap=cmap[0], image_interp='bilinear', contours=0,
-                         outlines=outlines, show=False)
+                         cmap=cmap[0], image_interp='bilinear',
+                         outlines=outlines, sensors=sensors,
+                         contours=contours, show=False)
 
     if colorbar is True:
         cbar, cax = _add_colorbar(ax, im, cmap, pad=.25, title=None,
@@ -1731,8 +1733,11 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
                             bandwidth=None, adaptive=False, low_bias=True,
                             normalization='length', ch_type=None, layout=None,
                             cmap='RdBu_r', agg_fun=None, dB=False, n_jobs=1,
-                            normalize=False, cbar_fmt='%0.3f',
-                            outlines='head', axes=None, show=True,
+                            normalize=False, n_fft=256, n_overlap=0,
+                            n_per_seg=None, cbar_fmt='%0.3f',
+                            outlines='head', sensors=True, contours=6,
+                            axes=None, show=True,
+                            method='multitaper',
                             verbose=None):
     """Plot the topomap of the power spectral density across epochs.
 
@@ -1761,6 +1766,9 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         End time to consider.
     proj : bool
         Apply projection.
+    method : str
+        Choice of PSD estimator. Either 'multitaper' or 'welch'.
+        Defaults to 'multitaper'.
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz. The default
         value is a window half-bandwidth of 4 Hz.
@@ -1774,6 +1782,19 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
+    n_fft : int
+        The length of FFT used, must be ``>= n_per_seg`` (default: 256).
+        The segments will be zero-padded if ``n_fft > n_per_seg``.
+        If n_per_seg is None, n_fft must be >= number of time points
+        in the data. (only used when method == 'welch').
+    n_overlap : int
+        The number of points of overlap between segments. Will be adjusted
+        to be <= n_per_seg. The default value is 0.
+        (only used when method == 'welch').
+    n_per_seg : int | None
+        Length of each Welch segment (windowed with a Hamming window). Defaults
+        to None, which sets n_per_seg equal to n_fft.
+        (only used when method == 'welch').
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are collected in
         pairs and the RMS for each pair is plotted. If None, then first
@@ -1820,6 +1841,18 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         masking options, either directly or as a function that returns patches
         (required for multi-axis plots). If None, nothing will be drawn.
         Defaults to 'head'.
+    contours : int | array of float
+        The number of contour lines to draw. If 0, no contours will be drawn.
+        When an integer, matplotlib ticker locator is used to find suitable
+        values for the contour thresholds (may sometimes be inaccurate, use
+        array for accuracy). If an array, the values represent the levels for
+        the contours. The values are in uV for EEG, fT for magnetometers and
+        fT/m for gradiometers. If colorbar=True, the ticks in colorbar
+        correspond to the contour levels. Defaults to 6.
+    sensors : bool | str
+        Add markers for sensor locations to the plot. Accepts matplotlib plot
+        format string (e.g., 'r+' for red plusses). If True (default), circles
+        will be used.
     axes : list of axes | None
         List of axes to plot consecutive topographies to. If None the axes
         will be created automatically. Defaults to None.
@@ -1840,13 +1873,22 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
         epochs, ch_type, layout)
 
-    psds, freqs = psd_multitaper(epochs, tmin=tmin, tmax=tmax,
-                                 bandwidth=bandwidth, adaptive=adaptive,
-                                 low_bias=low_bias,
-                                 normalization=normalization, picks=picks,
-                                 proj=proj, n_jobs=n_jobs)
-    psds = np.mean(psds, axis=0)
+    if method == 'multitaper':
+        psds, freqs = psd_multitaper(epochs, tmin=tmin, tmax=tmax,
+                                     bandwidth=bandwidth, adaptive=adaptive,
+                                     low_bias=low_bias,
+                                     normalization=normalization, picks=picks,
+                                     proj=proj, n_jobs=n_jobs)
+    elif method == 'welch':
+        psds, freqs = psd_welch(epochs, tmin=tmin, tmax=tmax,
+                                n_fft=n_fft, n_overlap=n_overlap,
+                                n_per_seg=n_per_seg,
+                                picks=picks,
+                                proj=proj, n_jobs=n_jobs)
+    else:
+        raise ValueError('Only "multitaper" and "welch" are supported.')
 
+    psds = np.mean(psds, axis=0)
     if merge_grads:
         from ..channels.layout import _merge_grad_data
         psds = _merge_grad_data(psds)
@@ -1854,13 +1896,14 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     return plot_psds_topomap(
         psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun, vmin=vmin,
         vmax=vmax, bands=bands, cmap=cmap, dB=dB, normalize=normalize,
-        cbar_fmt=cbar_fmt, outlines=outlines, axes=axes, show=show)
+        cbar_fmt=cbar_fmt, outlines=outlines,
+        sensors=sensors, contours=contours, axes=axes, show=show)
 
 
 def plot_psds_topomap(
         psds, freqs, pos, agg_fun=None, vmin=None, vmax=None, bands=None,
         cmap=None, dB=True, normalize=False, cbar_fmt='%0.3f', outlines='head',
-        axes=None, show=True):
+        sensors=True, contours=6, axes=None, show=True):
     """Plot spatial maps of PSDs.
 
     Parameters
@@ -1919,6 +1962,17 @@ def plot_psds_topomap(
         masking options, either directly or as a function that returns patches
         (required for multi-axis plots). If None, nothing will be drawn.
         Defaults to 'head'.
+    contours : int | array of float
+        The number of contour lines to draw. If 0, no contours will be drawn.
+        When an integer, matplotlib ticker locator is used to find suitable
+        values for the contour thresholds (may sometimes be inaccurate, use
+        array for accuracy). If an array, the values represent the levels for
+        the contours. The values are in uV for EEG, fT for magnetometers and
+        fT/m for gradiometers. If colorbar=True, the ticks in colorbar
+        correspond to the contour levels. Defaults to 6.
+    method : str
+        Choice of PSD estimator. Either 'multitaper' or 'welch'.
+        Defaults to 'multitaper'.
     axes : list of axes | None
         List of axes to plot consecutive topographies to. If None the axes
         will be created automatically. Defaults to None.
@@ -1966,6 +2020,7 @@ def plot_psds_topomap(
 
         _plot_topomap_multi_cbar(data, pos, ax, title=title, vmin=vmin,
                                  vmax=vmax, cmap=cmap, outlines=outlines,
+                                 sensors=sensors, contours=contours,
                                  colorbar=True, unit=unit, cbar_fmt=cbar_fmt)
     tight_layout(fig=fig)
     fig.canvas.draw()

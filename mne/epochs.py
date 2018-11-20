@@ -1015,31 +1015,48 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_epochs_psd)
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
-                 bandwidth=None, adaptive=False, low_bias=True,
-                 normalization='length', picks=None, ax=None, color='black',
-                 area_mode='std', area_alpha=0.33, dB=True, n_jobs=1,
+                 method='multitaper', bandwidth=None, adaptive=False,
+                 low_bias=True, normalization='length',  n_fft=256,
+                 n_overlap=0, n_per_seg=None, picks=None, ax=None,
+                 color='black', area_mode='std', area_alpha=0.33,
+                 line_alpha=None, spatial_colors=None, xscale='linear',
+                 average=True, dB=True, n_jobs=1,
                  show=True, verbose=None):
         return plot_epochs_psd(self, fmin=fmin, fmax=fmax, tmin=tmin,
-                               tmax=tmax, proj=proj, bandwidth=bandwidth,
+                               tmax=tmax, proj=proj, method=method,
+                               bandwidth=bandwidth,
                                adaptive=adaptive, low_bias=low_bias,
-                               normalization=normalization, picks=picks, ax=ax,
+                               normalization=normalization,
+                               n_fft=n_fft, n_overlap=n_overlap,
+                               n_per_seg=n_per_seg,
+                               picks=picks, ax=ax,
                                color=color, area_mode=area_mode,
-                               area_alpha=area_alpha, dB=dB, n_jobs=n_jobs,
+                               area_alpha=area_alpha,
+                               line_alpha=line_alpha,
+                               spatial_colors=spatial_colors,
+                               xscale=xscale,
+                               average=average,
+                               dB=dB, n_jobs=n_jobs,
                                show=show, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd_topomap)
     def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, tmin=None,
-                         tmax=None, proj=False, bandwidth=None, adaptive=False,
-                         low_bias=True, normalization='length', ch_type=None,
-                         layout=None, cmap='RdBu_r', agg_fun=None, dB=True,
-                         n_jobs=1, normalize=False, cbar_fmt='%0.3f',
-                         outlines='head', axes=None, show=True, verbose=None):
+                         tmax=None, proj=False, method='multitaper',
+                         bandwidth=None, adaptive=False,
+                         low_bias=True,  normalization='length', n_fft=256,
+                         n_overlap=0, n_per_seg=None,
+                         ch_type=None, layout=None, cmap='RdBu_r',
+                         agg_fun=None, dB=True, n_jobs=1, normalize=False,
+                         cbar_fmt='%0.3f', outlines='head', sensors=True,
+                         contours=6, axes=None, show=True, verbose=None):
         return plot_epochs_psd_topomap(
             self, bands=bands, vmin=vmin, vmax=vmax, tmin=tmin, tmax=tmax,
-            proj=proj, bandwidth=bandwidth, adaptive=adaptive,
-            low_bias=low_bias, normalization=normalization, ch_type=ch_type,
+            proj=proj, method=method, bandwidth=bandwidth, adaptive=adaptive,
+            low_bias=low_bias, normalization=normalization, n_fft=n_fft,
+            n_overlap=n_overlap, n_per_seg=n_per_seg, ch_type=ch_type,
             layout=layout, cmap=cmap, agg_fun=agg_fun, dB=dB, n_jobs=n_jobs,
             normalize=normalize, cbar_fmt=cbar_fmt, outlines=outlines,
+            sensors=sensors, contours=contours,
             axes=axes, show=show, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
