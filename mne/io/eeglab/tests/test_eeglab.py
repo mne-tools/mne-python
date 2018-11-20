@@ -16,12 +16,11 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
 import pytest
 from scipy import io
 
-from mne import write_events, read_epochs_eeglab, Epochs, find_events
+from mne import write_events, read_epochs_eeglab, find_events
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.eeglab import read_events_eeglab
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, requires_h5py, filter_out_warnings
+from mne.utils import run_tests_if_main, requires_h5py
 from mne.annotations import events_from_annotations, read_annotations
 
 
@@ -61,88 +60,21 @@ def test_io_set_raw(fnames, tmpdir):
     """Test importing EEGLAB .set files."""
     tmpdir = str(tmpdir)
     raw_fname, raw_fname_onefile = fnames
-    with pytest.warns(RuntimeWarning) as w:
-        _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
-                         montage=montage, stim_channel=False)
-        _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
-                         montage=montage, stim_channel=True)
-    for want in ('Events like', 'could not be mapped',
-                 'string preload is not supported'):
-        assert (any(want in str(ww.message) for ww in w))
-
-    with pytest.warns(RuntimeWarning) as w:
-        # test finding events in continuous data
-        event_id = {'rt': 1, 'square': 2}
-        raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
-                               event_id=event_id, preload=True,
-                               stim_channel=True)
-        raw1 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
-                               event_id=event_id, preload=False,
-                               stim_channel=True)
-        raw2 = read_raw_eeglab(input_fname=raw_fname_onefile, montage=montage,
-                               event_id=event_id, stim_channel=True)
-        raw3 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
-                               event_id=event_id, stim_channel=True)
-        raw4 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
-                               stim_channel=True)
-
-        assert raw0.filenames[0].endswith('.fdt')  # .set with additional .fdt
-        assert raw2.filenames[0].endswith('.set')  # standalone .set
-
-        raw0_events = find_events(raw0)
-        assert raw0_events.size
-        Epochs(raw0, raw0_events, event_id)
-        epochs = Epochs(raw1, find_events(raw1), event_id)
-
-        assert len(find_events(raw4)) == 0  # no events without event_id
-        assert epochs["square"].average().nave == 80   # 80 with
-        assert_array_equal(raw0[:][0], raw1[:][0], raw2[:][0], raw3[:][0])
-        assert_array_equal(raw0[:][-1], raw1[:][-1], raw2[:][-1], raw3[:][-1])
-
-        # 1 for preload=False / str with fname_onefile, 3 for dropped events
-        raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
-                    phase='zero')  # test that preloading works
-
-    filter_out_warnings(w, category=FutureWarning)
-    filter_out_warnings(w, category=ImportWarning)
-    assert len(w) == 3  # check `preload=False` raises RuntimeWarning
+    _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
+                     montage=montage)
+    # test that preloading works
+    raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+                           preload=True)
+    raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
+                phase='zero')
 
     # test that using uint16_codec does not break stuff
     raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
-                           event_id=event_id, preload=False,
-                           uint16_codec='ascii', stim_channel=False)
-
-    # test old EEGLAB version event import (read old version)
-    eeg = io.loadmat(raw_fname_mat, struct_as_record=False,
-                     squeeze_me=True)['EEG']
-    for event in eeg.event:  # old version allows integer events
-        event.type = 1
-    with pytest.warns(DeprecationWarning, match="read_events_eeglab"):
-        assert read_events_eeglab(eeg)[-1, -1] == 1
-    eeg.event = eeg.event[0]  # single event
-    eeg.event.latency = float(eeg.event.latency) - .1  # test rounding
-    with pytest.warns(DeprecationWarning, match="read_events_eeglab"):
-        assert read_events_eeglab(eeg)[-1, -1] == 1
+                           preload=False, uint16_codec='ascii')
 
     # test reading file with one event (read old version)
     eeg = io.loadmat(raw_fname_mat, struct_as_record=False,
                      squeeze_me=True)['EEG']
-    one_event_fname = op.join(tmpdir, 'test_one_event.set')
-    io.savemat(one_event_fname, {'EEG':
-               {'trials': eeg.trials, 'srate': eeg.srate,
-                'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
-                'epoch': eeg.epoch, 'event': eeg.event[0],
-                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
-               appendmat=False, oned_as='row')
-    shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
-                    one_event_fname.replace('.set', '.fdt'))
-    event_id = {eeg.event[0].type: 1}
-    test_raw = read_raw_eeglab(input_fname=one_event_fname,
-                               montage=montage, event_id=event_id,
-                               preload=True, stim_channel=True)
-
-    # test that sample indices are read python-wise (zero-based)
-    assert find_events(test_raw)[0, 0] == round(eeg.event[0].latency) - 1
 
     # test negative event latencies
     negative_latency_fname = op.join(tmpdir, 'test_negative_latency.set')
@@ -159,7 +91,7 @@ def test_io_set_raw(fnames, tmpdir):
     event_id = {eeg.event[0].type: 1}
     with pytest.warns(RuntimeWarning, match="has a sample index of -1."):
         read_raw_eeglab(input_fname=negative_latency_fname, preload=True,
-                        event_id=event_id, montage=montage, stim_channel=True)
+                        montage=montage)
     evnts.latency = -1
     io.savemat(negative_latency_fname, {'EEG':
                {'trials': eeg.trials, 'srate': eeg.srate,
@@ -170,8 +102,7 @@ def test_io_set_raw(fnames, tmpdir):
     with pytest.raises(ValueError, match='event sample index is negative'):
         with pytest.warns(RuntimeWarning, match="has a sample index of -1."):
             read_raw_eeglab(input_fname=negative_latency_fname, preload=True,
-                            event_id=event_id, montage=montage,
-                            stim_channel=True)
+                            montage=montage)
 
     # test overlapping events
     overlap_fname = op.join(tmpdir, 'test_overlap_event.set')
@@ -184,17 +115,6 @@ def test_io_set_raw(fnames, tmpdir):
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     overlap_fname.replace('.set', '.fdt'))
     event_id = {'rt': 1, 'square': 2}
-
-    with pytest.warns(RuntimeWarning, match='will be dropped'):
-        raw = read_raw_eeglab(input_fname=overlap_fname,
-                              montage=montage, event_id=event_id,
-                              preload=True, stim_channel=True)
-
-    events_stimchan = find_events(raw)
-    with pytest.warns(DeprecationWarning, match="read_events_eeglab"):
-        events_read_events_eeglab = read_events_eeglab(overlap_fname, event_id)
-    assert (len(events_stimchan) == 1)
-    assert (len(events_read_events_eeglab) == 2)
 
     # test reading file with one channel
     one_chan_fname = op.join(tmpdir, 'test_one_channel.set')
@@ -361,14 +281,6 @@ def test_eeglab_read_annotations():
 
 
 @testing.requires_testing_data
-def test_read_annotations_eeglab_is_deprecated():
-    """Test read_annotations_eeglab is deprecated."""
-    from mne.io import read_annotations_eeglab
-    with pytest.deprecated_call():
-        read_annotations_eeglab(raw_fname_mat)
-
-
-@testing.requires_testing_data
 def test_eeglab_event_from_annot():
     """Test all forms of obtaining annotations."""
     base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
@@ -376,20 +288,14 @@ def test_eeglab_event_from_annot():
     raw_fname = raw_fname_mat
     montage = op.join(base_dir, 'test_chans.locs')
     event_id = {'rt': 1, 'square': 2}
-    with pytest.deprecated_call(match='stim_channel'):
-        raw1 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
-                               event_id=event_id, preload=False)
+    raw1 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+                           preload=False)
 
-    events_a = find_events(raw1)
-    with pytest.deprecated_call(match='read_events_eeglab'):
-        events_b = read_events_eeglab(raw_fname, event_id=event_id)
     annotations = read_annotations(raw_fname)
     assert len(raw1.annotations) == 154
     raw1.set_annotations(annotations)
-    events_c, _ = events_from_annotations(raw1, event_id=event_id)
-
-    assert_array_equal(events_a, events_b)
-    assert_array_equal(events_a, events_c)
+    events_b, _ = events_from_annotations(raw1, event_id=event_id)
+    assert len(events_b) == 154
 
 
 run_tests_if_main()

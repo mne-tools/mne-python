@@ -188,7 +188,8 @@ def test_io_cov():
         read_cov(cov_badname)
 
 
-def test_cov_estimation_on_raw():
+@pytest.mark.parametrize('method', (None, ['empirical']))
+def test_cov_estimation_on_raw(method):
     """Test estimation from raw (typically empty room)."""
     tempdir = _TempDir()
     raw = read_raw_fif(raw_fname, preload=True)
@@ -197,42 +198,44 @@ def test_cov_estimation_on_raw():
     # The pure-string uses the more efficient numpy-based method, the
     # the list gets triaged to compute_covariance (should be equivalent
     # but use more memory)
-    for method in (None, ['empirical']):  # None is cast to 'empirical'
-        cov = compute_raw_covariance(raw, tstep=None, method=method)
-        assert_equal(cov.ch_names, cov_mne.ch_names)
-        assert_equal(cov.nfree, cov_mne.nfree)
-        assert_snr(cov.data, cov_mne.data, 1e4)
+    cov = compute_raw_covariance(raw, tstep=None, method=method, rank='full')
+    assert_equal(cov.ch_names, cov_mne.ch_names)
+    assert_equal(cov.nfree, cov_mne.nfree)
+    assert_snr(cov.data, cov_mne.data, 1e4)
 
-        cov = compute_raw_covariance(raw, method=method)  # tstep=0.2 (default)
-        assert_equal(cov.nfree, cov_mne.nfree - 119)  # cutoff some samples
-        assert_snr(cov.data, cov_mne.data, 1e2)
+    # tstep=0.2 (default)
+    cov = compute_raw_covariance(raw, method=method, rank='full')
+    assert_equal(cov.nfree, cov_mne.nfree - 119)  # cutoff some samples
+    assert_snr(cov.data, cov_mne.data, 1e2)
 
-        # test IO when computation done in Python
-        cov.save(op.join(tempdir, 'test-cov.fif'))  # test saving
-        cov_read = read_cov(op.join(tempdir, 'test-cov.fif'))
-        assert cov_read.ch_names == cov.ch_names
-        assert cov_read.nfree == cov.nfree
-        assert_array_almost_equal(cov.data, cov_read.data)
+    # test IO when computation done in Python
+    cov.save(op.join(tempdir, 'test-cov.fif'))  # test saving
+    cov_read = read_cov(op.join(tempdir, 'test-cov.fif'))
+    assert cov_read.ch_names == cov.ch_names
+    assert cov_read.nfree == cov.nfree
+    assert_array_almost_equal(cov.data, cov_read.data)
 
-        # test with a subset of channels
-        raw_pick = raw.copy().pick_channels(raw.ch_names[:5])
-        raw_pick.info.normalize_proj()
-        cov = compute_raw_covariance(raw_pick, tstep=None, method=method)
-        assert cov_mne.ch_names[:5] == cov.ch_names
-        assert_snr(cov.data, cov_mne.data[:5, :5], 1e4)
-        cov = compute_raw_covariance(raw_pick, method=method)
-        assert_snr(cov.data, cov_mne.data[:5, :5], 90)  # cutoff samps
-        # make sure we get a warning with too short a segment
-        raw_2 = read_raw_fif(raw_fname).crop(0, 1)
-        with pytest.warns(RuntimeWarning, match='Too few samples'):
-            cov = compute_raw_covariance(raw_2, method=method)
-        # no epochs found due to rejection
-        pytest.raises(ValueError, compute_raw_covariance, raw, tstep=None,
-                      method='empirical', reject=dict(eog=200e-6))
-        # but this should work
-        cov = compute_raw_covariance(raw.copy().crop(0, 10.),
-                                     tstep=None, method=method,
-                                     reject=dict(eog=1000e-6))
+    # test with a subset of channels
+    raw_pick = raw.copy().pick_channels(raw.ch_names[:5])
+    raw_pick.info.normalize_proj()
+    cov = compute_raw_covariance(raw_pick, tstep=None, method=method,
+                                 rank='full')
+    assert cov_mne.ch_names[:5] == cov.ch_names
+    assert_snr(cov.data, cov_mne.data[:5, :5], 1e4)
+    cov = compute_raw_covariance(raw_pick, method=method, rank='full')
+    assert_snr(cov.data, cov_mne.data[:5, :5], 90)  # cutoff samps
+    # make sure we get a warning with too short a segment
+    raw_2 = read_raw_fif(raw_fname).crop(0, 1)
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
+        cov = compute_raw_covariance(raw_2, method=method)
+    # no epochs found due to rejection
+    pytest.raises(ValueError, compute_raw_covariance, raw, tstep=None,
+                  method='empirical', reject=dict(eog=200e-6))
+    # but this should work
+    cov = compute_raw_covariance(raw.copy().crop(0, 10.),
+                                 tstep=None, method=method,
+                                 reject=dict(eog=1000e-6),
+                                 verbose='error')
 
 
 @pytest.mark.slowtest
@@ -510,7 +513,7 @@ def test_cov_scaling():
 
     # check that input data remain unchanged. gh-5698
     _regularized_covariance(data)
-    assert_array_almost_equal(data, evoked.data)
+    assert_allclose(data, evoked.data, atol=1e-20)
 
 
 @requires_version('sklearn', '0.15')
@@ -731,8 +734,6 @@ def test_low_rank():
     assert_allclose(dia_cov['data'], reg_cov['data'])
     # test our deprecation: can simply remove later
     epochs.pick_channels(epochs.ch_names[:103])
-    with pytest.deprecated_call(match='rank'):
-        compute_covariance(epochs, method='oas')
     # degenerate
     with pytest.raises(ValueError, match='can.*only be used with rank="full"'):
         compute_covariance(epochs, rank=None, method='pca')

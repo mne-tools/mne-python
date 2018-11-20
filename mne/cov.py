@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+from contextlib import contextmanager
 from copy import deepcopy
 import itertools as itt
 from math import log
@@ -321,7 +322,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
                            flat=None, picks=None, method='empirical',
                            method_params=None, cv=3, scalings=None, n_jobs=1,
                            return_estimators=False, reject_by_annotation=True,
-                           rank='', verbose=None):
+                           rank=None, verbose=None):
     """Estimate noise covariance matrix from a continuous segment of raw data.
 
     It is typically useful to estimate a noise covariance from empty room
@@ -397,13 +398,13 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
 
         .. versionadded:: 0.14
     rank : None | int | dict | 'full'
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
+        Specified rank of the noise covariance matrix. If None(default),
+        the rank is detected automatically.
+        If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg', 'meg' or any other
         data channel type such as 'seeg' or 'ecog' can be used
-        to specify the rank for each modality. If 'full' (default in 0.17),
+        to specify the rank for each modality. If 'full',
         the covariance is assumed to be full-rank when regularizing.
-        The default in 0.18 will be None.
 
         .. versionadded:: 0.17
     verbose : bool | str | int | None (default None)
@@ -557,15 +558,8 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
 
 def _check_rank(rank, methods, was_auto=False):
     """Check validity of rank input argument."""
-    if isinstance(rank, str):
-        if rank == '':
-            if not all(method == 'empirical' for method in methods):
-                warn('rank defaults to "full" in 0.17 but will change to None '
-                     'in 0.18, set it explicitly to avoid this warning',
-                     DeprecationWarning)
-            rank = 'full'
-        elif rank != 'full':
-            raise ValueError('rank, if str, must be "full", got %s' % (rank,))
+    if isinstance(rank, str) and rank != 'full':
+        raise ValueError('rank, if str, must be "full", got %s' % (rank,))
     if not (isinstance(rank, str) and rank == 'full'):
         if was_auto:
             methods.pop(methods.index('factor_analysis'))
@@ -591,7 +585,7 @@ def _check_rank(rank, methods, was_auto=False):
 def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                        projs=None, method='empirical', method_params=None,
                        cv=3, scalings=None, n_jobs=1, return_estimators=False,
-                       on_mismatch='raise', rank='', verbose=None):
+                       on_mismatch='raise', rank=None, verbose=None):
     """Estimate noise covariance matrix from epochs.
 
     The noise covariance is typically estimated on pre-stimulus periods
@@ -675,13 +669,13 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         have been processed with Maxwell filtering but not transformed
         to the same head position.
     rank : None | int | dict | 'full'
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
+        Specified rank of the noise covariance matrix. If None (default),
+        the rank is detected automatically.
+        If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg', 'meg' or any other
         data channel type such as 'seeg' or 'ecog' can be used
-        to specify the rank for each modality. If 'full' (default in 0.17),
+        to specify the rank for each modality. If 'full',
         the covariance is assumed to be full-rank when regularizing.
-        The default in 0.18 will be None.
 
         .. versionadded:: 0.17
     verbose : bool | str | int | or None (default None)
@@ -944,152 +938,160 @@ def _eigvec_subspace(eig, eigvec, mask):
     return eig, eigvec
 
 
+@contextmanager
+def _scaled_array(data, picks_list, scalings):
+    """Scale, use, unscale array."""
+    _apply_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
+    yield
+    _undo_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
+
+
 def _compute_covariance_auto(data, method, info, method_params, cv,
                              scalings, n_jobs, stop_early, picks_list, rank):
     """Compute covariance auto mode."""
     # rescale to improve numerical stability
-    _apply_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
-    if rank != 'full':
-        C = np.dot(data.T, data)
-        # already scaled
-        _, eigvec, mask = _smart_eigh(C, info, rank, scalings=1.,
-                                      proj_subspace=True)
-        eigvec = eigvec[mask]
-        data = np.dot(data, eigvec.T)
-        used = np.where(mask)[0]
-        sub_picks_list = [(key, np.searchsorted(used, picks))
-                          for key, picks in picks_list]
-        sub_info = pick_info(info, used)
-        logger.info('Reducing data rank from %s -> %s'
-                    % (len(mask), eigvec.shape[0]))
-    else:
-        eigvec = None
-        sub_picks_list = picks_list
-        sub_info = info
-    estimator_cov_info = list()
-    msg = 'Estimating covariance using %s'
-
-    ok_sklearn = check_version('sklearn', '0.15')
-    if not ok_sklearn and (len(method) != 1 or method[0] != 'empirical'):
-        raise ValueError('scikit-learn is not installed, `method` must be '
-                         '`empirical`, got %s' % (method,))
-
-    for this_method in method:
-        data_ = data.copy()
-        name = this_method.__name__ if callable(this_method) else this_method
-        logger.info(msg % name.upper())
-        mp = method_params[this_method]
-        _info = {}
-
-        if this_method == 'empirical':
-            est = EmpiricalCovariance(**mp)
-            est.fit(data_)
-            estimator_cov_info.append((est, est.covariance_, _info))
-            del est
-
-        elif this_method == 'diagonal_fixed':
-            est = _RegCovariance(info=sub_info, **mp)
-            est.fit(data_)
-            estimator_cov_info.append((est, est.covariance_, _info))
-            del est
-
-        elif this_method == 'ledoit_wolf':
-            from sklearn.covariance import LedoitWolf
-            shrinkages = []
-            lw = LedoitWolf(**mp)
-
-            for ch_type, picks in sub_picks_list:
-                lw.fit(data_[:, picks])
-                shrinkages.append((ch_type, lw.shrinkage_, picks))
-            sc = _ShrunkCovariance(shrinkage=shrinkages, **mp)
-            sc.fit(data_)
-            estimator_cov_info.append((sc, sc.covariance_, _info))
-            del lw, sc
-
-        elif this_method == 'oas':
-            from sklearn.covariance import OAS
-            shrinkages = []
-            oas = OAS(**mp)
-
-            for ch_type, picks in sub_picks_list:
-                oas.fit(data_[:, picks])
-                shrinkages.append((ch_type, oas.shrinkage_, picks))
-            sc = _ShrunkCovariance(shrinkage=shrinkages, **mp)
-            sc.fit(data_)
-            estimator_cov_info.append((sc, sc.covariance_, _info))
-            del oas, sc
-
-        elif this_method == 'shrinkage':
-            sc = _ShrunkCovariance(**mp)
-            sc.fit(data_)
-            estimator_cov_info.append((sc, sc.covariance_, _info))
-            del sc
-
-        elif this_method == 'shrunk':
-            try:
-                from sklearn.model_selection import GridSearchCV
-            except Exception:  # support sklearn < 0.18
-                from sklearn.grid_search import GridSearchCV
-            from sklearn.covariance import ShrunkCovariance
-            shrinkage = mp.pop('shrinkage')
-            tuned_parameters = [{'shrinkage': shrinkage}]
-            shrinkages = []
-            gs = GridSearchCV(ShrunkCovariance(**mp),
-                              tuned_parameters, cv=cv, iid=True)
-            for ch_type, picks in sub_picks_list:
-                gs.fit(data_[:, picks])
-                shrinkages.append((ch_type, gs.best_estimator_.shrinkage,
-                                   picks))
-            shrinkages = [c[0] for c in zip(shrinkages)]
-            sc = _ShrunkCovariance(shrinkage=shrinkages, **mp)
-            sc.fit(data_)
-            estimator_cov_info.append((sc, sc.covariance_, _info))
-            del shrinkage, sc
-
-        elif this_method == 'pca':
-            assert rank == 'full'  # guaranteed above
-            pca, _info = _auto_low_rank_model(
-                data_, this_method, n_jobs=n_jobs, method_params=mp, cv=cv,
-                stop_early=stop_early)
-            pca.fit(data_)
-            estimator_cov_info.append((pca, pca.get_covariance(), _info))
-            del pca
-
-        elif this_method == 'factor_analysis':
-            assert rank == 'full'
-            fa, _info = _auto_low_rank_model(
-                data_, this_method, n_jobs=n_jobs, method_params=mp, cv=cv,
-                stop_early=stop_early)
-            fa.fit(data_)
-            estimator_cov_info.append((fa, fa.get_covariance(), _info))
-            del fa
+    with _scaled_array(data, picks_list, scalings):
+        if rank != 'full':
+            C = np.dot(data.T, data)
+            # already scaled
+            _, eigvec, mask = _smart_eigh(C, info, rank, scalings=1.,
+                                          proj_subspace=True)
+            eigvec = eigvec[mask]
+            data = np.dot(data, eigvec.T)
+            used = np.where(mask)[0]
+            sub_picks_list = [(key, np.searchsorted(used, picks))
+                              for key, picks in picks_list]
+            sub_info = pick_info(info, used)
+            logger.info('Reducing data rank from %s -> %s'
+                        % (len(mask), eigvec.shape[0]))
         else:
-            raise ValueError('Oh no! Your estimator does not have'
-                             ' a .fit method')
-        logger.info('Done.')
+            eigvec = None
+            sub_picks_list = picks_list
+            sub_info = info
+        estimator_cov_info = list()
+        msg = 'Estimating covariance using %s'
 
-    if len(method) > 1:
-        logger.info('Using cross-validation to select the best estimator.')
+        ok_sklearn = check_version('sklearn', '0.15')
+        if not ok_sklearn and (len(method) != 1 or method[0] != 'empirical'):
+            raise ValueError('scikit-learn is not installed, `method` must be '
+                             '`empirical`, got %s' % (method,))
 
-    out = dict()
-    for ei, (estimator, cov, runtime_info) in enumerate(estimator_cov_info):
+        for method_ in method:
+            data_ = data.copy()
+            name = method_.__name__ if callable(method_) else method_
+            logger.info(msg % name.upper())
+            mp = method_params[method_]
+            _info = {}
+
+            if method_ == 'empirical':
+                est = EmpiricalCovariance(**mp)
+                est.fit(data_)
+                estimator_cov_info.append((est, est.covariance_, _info))
+                del est
+
+            elif method_ == 'diagonal_fixed':
+                est = _RegCovariance(info=sub_info, **mp)
+                est.fit(data_)
+                estimator_cov_info.append((est, est.covariance_, _info))
+                del est
+
+            elif method_ == 'ledoit_wolf':
+                from sklearn.covariance import LedoitWolf
+                shrinkages = []
+                lw = LedoitWolf(**mp)
+
+                for ch_type, picks in sub_picks_list:
+                    lw.fit(data_[:, picks])
+                    shrinkages.append((ch_type, lw.shrinkage_, picks))
+                sc = _ShrunkCovariance(shrinkage=shrinkages, **mp)
+                sc.fit(data_)
+                estimator_cov_info.append((sc, sc.covariance_, _info))
+                del lw, sc
+
+            elif method_ == 'oas':
+                from sklearn.covariance import OAS
+                shrinkages = []
+                oas = OAS(**mp)
+
+                for ch_type, picks in sub_picks_list:
+                    oas.fit(data_[:, picks])
+                    shrinkages.append((ch_type, oas.shrinkage_, picks))
+                sc = _ShrunkCovariance(shrinkage=shrinkages, **mp)
+                sc.fit(data_)
+                estimator_cov_info.append((sc, sc.covariance_, _info))
+                del oas, sc
+
+            elif method_ == 'shrinkage':
+                sc = _ShrunkCovariance(**mp)
+                sc.fit(data_)
+                estimator_cov_info.append((sc, sc.covariance_, _info))
+                del sc
+
+            elif method_ == 'shrunk':
+                try:
+                    from sklearn.model_selection import GridSearchCV
+                except Exception:  # support sklearn < 0.18
+                    from sklearn.grid_search import GridSearchCV
+                from sklearn.covariance import ShrunkCovariance
+                shrinkage = mp.pop('shrinkage')
+                tuned_parameters = [{'shrinkage': shrinkage}]
+                shrinkages = []
+                gs = GridSearchCV(ShrunkCovariance(**mp),
+                                  tuned_parameters, cv=cv, iid=True)
+                for ch_type, picks in sub_picks_list:
+                    gs.fit(data_[:, picks])
+                    shrinkages.append((ch_type, gs.best_estimator_.shrinkage,
+                                       picks))
+                shrinkages = [c[0] for c in zip(shrinkages)]
+                sc = _ShrunkCovariance(shrinkage=shrinkages, **mp)
+                sc.fit(data_)
+                estimator_cov_info.append((sc, sc.covariance_, _info))
+                del shrinkage, sc
+
+            elif method_ == 'pca':
+                assert rank == 'full'  # guaranteed above
+                pca, _info = _auto_low_rank_model(
+                    data_, method_, n_jobs=n_jobs, method_params=mp, cv=cv,
+                    stop_early=stop_early)
+                pca.fit(data_)
+                estimator_cov_info.append((pca, pca.get_covariance(), _info))
+                del pca
+
+            elif method_ == 'factor_analysis':
+                assert rank == 'full'
+                fa, _info = _auto_low_rank_model(
+                    data_, method_, n_jobs=n_jobs, method_params=mp, cv=cv,
+                    stop_early=stop_early)
+                fa.fit(data_)
+                estimator_cov_info.append((fa, fa.get_covariance(), _info))
+                del fa
+            else:
+                raise ValueError('Oh no! Your estimator does not have'
+                                 ' a .fit method')
+            logger.info('Done.')
+
         if len(method) > 1:
-            loglik = _cross_val(data, estimator, cv, n_jobs)
-        else:
-            loglik = None
-        if eigvec is not None:
-            # project back if necessary
-            cov = np.dot(eigvec.T, np.dot(cov, eigvec))
+            logger.info('Using cross-validation to select the best estimator.')
+
+        out = dict()
+        for ei, (estimator, cov, runtime_info) in \
+                enumerate(estimator_cov_info):
+            if len(method) > 1:
+                loglik = _cross_val(data, estimator, cv, n_jobs)
+            else:
+                loglik = None
+            if eigvec is not None:
+                # project back if necessary
+                cov = np.dot(eigvec.T, np.dot(cov, eigvec))
+            # undo scaling
+            _undo_scaling_cov(cov, picks_list, scalings)
+            method_ = method[ei]
+            name = method_.__name__ if callable(method_) else method_
+            out[name] = dict(loglik=loglik, data=cov, estimator=estimator)
+            out[name].update(runtime_info)
         # undo scaling
-        _undo_scaling_cov(cov, picks_list, scalings)
-        method_ = method[ei]
-        this_method = method_.__name__ if callable(method_) else method_
-        out[this_method] = dict(loglik=loglik, data=cov, estimator=estimator)
-        out[this_method].update(runtime_info)
-    # undo scaling
-    if eigvec is not None:
-        data = np.dot(data, eigvec)
-    _undo_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
+        if eigvec is not None:
+            data = np.dot(data, eigvec)
 
     return out
 
@@ -1494,7 +1496,7 @@ def _smart_eigh(C, info, rank, scalings, projs=None, ch_names=None,
 @verbose
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
                proj=True, seeg=0.1, ecog=0.1, hbo=0.1, hbr=0.1,
-               rank='', scalings=None, verbose=None):
+               rank=None, scalings=None, verbose=None):
     """Regularize noise covariance matrix.
 
     This method works by adding a constant to the diagonal for each
@@ -1535,14 +1537,14 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     hbr : float (default 0.1)
         Regularization factor for HBR signals.
     rank : None | int | dict | 'full'
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
+        Specified rank of the noise covariance matrix. If None (default),
+        the rank is detected automatically.
+        If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg', 'meg' or any other
         data channel type such as 'seeg' or 'ecog' can be used
-        to specify the rank for each modality. If 'full' (default in 0.17),
+        to specify the rank for each modality. If 'full',
         the covariance is assumed to be full-rank when regularizing
         (unless proj=True, in which case projections are accounted for).
-        The default in 0.18 will be None.
 
         .. versionadded:: 0.17
     scalings : dict | None
@@ -1661,7 +1663,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
 
 
 def _regularized_covariance(data, reg=None, method_params=None, info=None,
-                            rank=''):
+                            rank=None):
     """Compute a regularized covariance from data using sklearn.
 
     This is a convenience wrapper for mne.decoding functions, which

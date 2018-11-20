@@ -402,7 +402,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                        n_fft=2048, overlap=0.5, pick_ori=None, label=None,
                        nave=1, pca=True, prepared=False, method_params=None,
                        inv_split=None, bandwidth='hann', adaptive=False,
-                       low_bias=False, n_jobs=1, return_sensor=False, dB=None,
+                       low_bias=False, n_jobs=1, return_sensor=False, dB=False,
                        verbose=None):
     """Compute source power spectrum density (PSD).
 
@@ -479,8 +479,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 
         .. versionadded:: 0.17
     dB : bool
-        If True (default in 0.17, will change to False in 0.18),
-        return output it decibels.
+        If True (default False), return output it decibels.
 
         .. versionadded:: 0.17
     verbose : bool, str, int, or None
@@ -505,17 +504,12 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     This function is different from :func:`compute_source_psd_epochs` in that:
 
-    1. ``dB=True`` by default (deprecated; will change to False in 0.18)
-    2. ``bandwidth='hann'`` by default, skipping multitaper estimation
-    3. For convenience it wraps
+    1. ``bandwidth='hann'`` by default, skipping multitaper estimation
+    2. For convenience it wraps
        :func:`mne.make_fixed_length_events` and :class:`mne.Epochs`.
 
     Otherwise the two should produce identical results.
     """
-    if dB is None:
-        dB = True
-        warn('dB=True by default in 0.17 but will change to False in 0.18, '
-             'set it explicitly to avoid this warning', DeprecationWarning)
     tmin = 0. if tmin is None else float(tmin)
     overlap = float(overlap)
     if not 0 <= overlap < 1:

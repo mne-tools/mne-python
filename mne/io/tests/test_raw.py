@@ -219,21 +219,12 @@ def test_time_as_index_ref(offset, origin):
     assert_array_equal(inds, np.arange(raw.n_times))
 
 
-def test_annotation_property_deprecation_warning():
-    """Test that assigning annotations warns and nowhere else."""
-    with pytest.warns(None) as w:
-        raw = RawArray(np.random.rand(1, 1), create_info(1, 1))
-    assert len(w) is 0
-    with pytest.warns(DeprecationWarning, match='by assignment is deprecated'):
-        raw.annotations = None
-
-
-def _raw_annot(meas_date, orig_time, sync_orig=True):
+def _raw_annot(meas_date, orig_time):
     info = create_info(ch_names=10, sfreq=10.)
     raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
     raw.info['meas_date'] = meas_date
     annot = Annotations([.5], [.2], ['dummy'], orig_time)
-    raw.set_annotations(annotations=annot, sync_orig=sync_orig)
+    raw.set_annotations(annotations=annot)
     return raw
 
 
@@ -266,16 +257,3 @@ def test_meas_date_orig_time():
     assert raw.annotations.orig_time is None
     assert raw.annotations.onset[0] == 0.5
     assert raw.annotations.duration[0] == 0.2
-
-
-def test_deprecated_meas_date_orig_time():
-    """Test meas_date_orig_time old behavior for backward compatibility."""
-    with pytest.warns(DeprecationWarning):
-        raw = _raw_annot(1, 1.5, sync_orig=False)
-    assert raw.annotations.orig_time == 1.5
-    assert raw.annotations.onset[0] == 0.5
-
-    with pytest.warns(DeprecationWarning):
-        raw = _raw_annot(1, None, sync_orig=False)
-    assert raw.annotations.orig_time == 2
-    assert raw.annotations.onset[0] == 0.5
