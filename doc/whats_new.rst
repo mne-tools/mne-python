@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add 448-labels subdivided aparc cortical parcellation by `Denis Engemann`_ and `Sheraz Khan`_
+
 Bug
 ~~~
 
