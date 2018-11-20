@@ -594,6 +594,42 @@ def _download_all_example_data(verbose=True):
 
 
 @verbose
+def fetch_aparc_sub_parcellation(subjects_dir=None, combine=True, verbose=None):
+    """Fetch the modified subdivided aparc parcellation.
+
+    This will download and install the subdivided aparc parcellation [1]_ files for
+    FreeSurfer's fsaverage to the specified directory.
+
+    Parameters
+    ----------
+    subjects_dir : str | None
+        The subjects directory to use. The file will be placed in
+        ``subjects_dir + '/fsaverage/label'``.
+    combine : bool
+        If True, also produce the combined/reduced set of 23 labels per
+        hemisphere as ``aparc_sub.annot`` [3]_.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    References
+    ----------
+    .. [1] Khan S et al. (2018) Maturation trajectories of cortical
+           resting-state networks depend on the mediating frequency band.
+           Neuroimage 174 57-68.
+    """  # noqa: E501
+
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    destination = op.join(subjects_dir, 'fsaverage', 'label')
+    fnames = [op.join(destination, '%s.aparc_sub.annot' % hemi)
+              for hemi in ('lh', 'rh')]
+    if not all(op.isfile(fname) for fname in fnames):
+  
+        _fetch_file('https://osf.io/p92yb/download',
+                    fnames[0], hash_='9e4d8d6b90242b7e4b0145353436ef77')
+        _fetch_file('https://osf.io/4kxny/download',
+                    fnames[1], hash_='dd6464db8e7762d969fc1d8087cd211b')
+
+@verbose
 def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
     """Fetch the HCP-MMP parcellation.
 
