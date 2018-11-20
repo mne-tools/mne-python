@@ -8,6 +8,7 @@ import numpy as np
 from numpy.testing import assert_equal, assert_allclose, assert_array_equal
 import pytest
 from scipy import sparse
+from scipy.special import sph_harm
 
 import mne
 from mne import compute_raw_covariance, pick_types, concatenate_raws
@@ -23,7 +24,6 @@ from mne.preprocessing.maxwell import (
     maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
     _bases_real_to_complex, _prep_mf_coils)
-from mne.fixes import _get_sph_harm
 from mne.tests.common import assert_meg_snr
 from mne.utils import (_TempDir, run_tests_if_main, catch_logging,
                        requires_version, object_diff, buggy_mkl_svd)
@@ -306,10 +306,10 @@ def test_spherical_conversions():
                           np.linspace(0, np.pi, 20))
     for degree in range(1, int_order):
         for order in range(0, degree + 1):
-            sph = _get_sph_harm()(order, degree, az, pol)
+            sph = sph_harm(order, degree, az, pol)
             # ensure that we satisfy the conjugation property
             assert_allclose(_sh_negate(sph, order),
-                            _get_sph_harm()(-order, degree, az, pol))
+                            sph_harm(-order, degree, az, pol))
             # ensure our conversion functions work
             sph_real_pos = _sh_complex_to_real(sph, order)
             sph_real_neg = _sh_complex_to_real(sph, -order)

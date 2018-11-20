@@ -15,7 +15,7 @@ from copy import deepcopy
 from numpy import sin, cos
 from scipy import linalg
 
-from .fixes import _get_sph_harm, einsum
+from .fixes import einsum
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
@@ -821,7 +821,7 @@ def _sh_real_to_complex(shs, order):
 
 def _compute_sph_harm(order, az, pol):
     """Compute complex spherical harmonics of spherical coordinates."""
-    sph_harm = _get_sph_harm()
+    from scipy.special import sph_harm
     out = np.empty((len(az), _get_n_moments(order) + 1))
     # _deg_ord_idx(0, 0) = -1 so we're actually okay to use it here
     for degree in range(order + 1):

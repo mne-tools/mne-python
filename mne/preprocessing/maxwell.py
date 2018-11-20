@@ -30,7 +30,7 @@ from ..io.write import _generate_meas_id, DATE_NONE
 from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw
 from ..io.pick import pick_types, pick_info
 from ..utils import verbose, logger, _clean_names, warn, _time_mask, _pl
-from ..fixes import _get_args, _safe_svd, _get_sph_harm, einsum
+from ..fixes import _get_args, _safe_svd, einsum
 from ..externals.six import string_types
 from ..channels.channels import _get_T1T2_mag_inds
 
@@ -1044,6 +1044,7 @@ def _get_mag_mask(coils):
 
 def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
     """Compute SSS basis using non-optimized (but more readable) algorithms."""
+    from scipy.special import sph_harm
     int_order, ext_order = exp['int_order'], exp['ext_order']
     origin = exp['origin']
     # Compute vector between origin and coil, convert to spherical coords
@@ -1081,7 +1082,7 @@ def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
             S_in_out = list()
             grads_in_out = list()
             # Same spherical harmonic is used for both internal and external
-            sph = _get_sph_harm()(order, degree, az, pol)
+            sph = sph_harm(order, degree, az, pol)
             sph_norm = _sph_harm_norm(order, degree)
             # Compute complex gradient for all integration points
             # in spherical coordinates (Eq. 6). The gradient for rad, az, pol

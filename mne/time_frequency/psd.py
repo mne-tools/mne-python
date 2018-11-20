@@ -7,7 +7,6 @@ import numpy as np
 from ..parallel import parallel_func
 from ..io.pick import _pick_data_channels
 from ..utils import logger, verbose, _time_mask
-from ..fixes import get_spectrogram
 from .multitaper import psd_array_multitaper
 
 
@@ -104,7 +103,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     -----
     .. versionadded:: 0.14.0
     """
-    spectrogram = get_spectrogram()
+    from scipy.signal import spectrogram
     dshape = x.shape[:-1]
     n_times = x.shape[-1]
     x = x.reshape(-1, n_times)
