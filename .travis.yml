@@ -39,7 +39,7 @@ matrix:
         # Old dependencies
         - os: linux
           env: PYTHON_VERSION=3.5
-               CONDA_DEPENDENCIES="numpy=1.9 scipy=0.13 matplotlib=1.3 pandas=0.13 scikit-learn=0.15 pytest pytest-cov"
+               CONDA_DEPENDENCIES="numpy=1.11 scipy=0.17 matplotlib=1.5 pandas=0.18 scikit-learn=0.18 pytest pytest-cov"
 
         # Minimal
         - os: linux
