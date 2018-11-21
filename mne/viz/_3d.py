@@ -1874,6 +1874,12 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     Notes
     -----
+    Click on any of the anatomical slices to explore the time series.
+    Clicking on any time point will bring up the corresponding anatomical map.
+
+    The left and right arrow keys can be used to navigate in time.
+    To move in time by larger steps, use shift+left and shift+right.
+
     .. versionadded:: 0.17
     """
     from matplotlib import pyplot as plt, colors
@@ -1957,6 +1963,41 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                                             params['bg_img'])
             params.update({'img_idx_resampled': img_resampled})
 
+    def _press(event, params):
+        """Manage keypress on the plot."""
+        pos = params['lx'].get_xdata()
+        idx = params['stc'].time_as_index(pos)[0]
+        if event.key == 'left':
+            idx = max(0, idx - 2)
+        elif event.key == 'shift+left':
+            idx = max(0, idx - 10)
+        elif event.key == 'right':
+            idx = min(params['stc'].shape[1] - 1, idx + 2)
+        elif event.key == 'shift+right':
+            idx = min(params['stc'].shape[1] - 1, idx + 10)
+        params['lx'].set_xdata(idx / params['stc'].sfreq +
+                               params['stc'].tmin)
+        _update_timeslice(idx, params)
+        params['fig'].canvas.draw()
+
+    def _update_timeslice(idx, params):
+        cut_coords = (0, 0, 0)
+        ax_x, ax_y, ax_z = params['ax_x'], params['ax_y'], params['ax_z']
+        plot_map_callback = params['plot_func']
+        if mode == 'stat_map':
+            cut_coords = (ax_y.lines[0].get_xdata()[0],
+                          ax_x.lines[0].get_xdata()[0],
+                          ax_x.lines[1].get_ydata()[0])
+        ax_x.clear()
+        ax_y.clear()
+        ax_z.clear()
+        params.update({'img_idx': index_img(img, idx)})
+        params.update({'title': 'Activation (t=%.3f s.)'
+                       % params['stc'].times[idx]})
+        plot_map_callback(
+            params['img_idx'], title='',
+            cut_coords=cut_coords)
+
     def _onclick(event, params):
         """Manage clicks on the plot."""
         ax_x, ax_y, ax_z = params['ax_x'], params['ax_y'], params['ax_z']
@@ -1964,21 +2005,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         if event.inaxes is params['ax_time']:
             idx = params['stc'].time_as_index(event.xdata)[0]
             params['lx'].set_xdata(event.xdata)
-
-            cut_coords = (0, 0, 0)
-            if mode == 'stat_map':
-                cut_coords = (ax_y.lines[0].get_xdata()[0],
-                              ax_x.lines[0].get_xdata()[0],
-                              ax_x.lines[1].get_ydata()[0])
-            ax_x.clear()
-            ax_y.clear()
-            ax_z.clear()
-            params.update({'img_idx': index_img(img, idx)})
-            params.update({'title': 'Activation (t=%.3f s.)'
-                           % params['stc'].times[idx]})
-            plot_map_callback(
-                params['img_idx'], title='',
-                cut_coords=cut_coords)
+            _update_timeslice(idx, params)
 
         if event.inaxes in [ax_x, ax_y, ax_z]:
             if mode == 'stat_map':
@@ -2096,6 +2123,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         plt.show()
     fig.canvas.mpl_connect('button_press_event',
                            partial(_onclick, params=params))
+    fig.canvas.mpl_connect('key_press_event',
+                           partial(_press, params=params))
     fig.canvas.mpl_connect('axes_leave_event',
                            partial(_resample, params=params))
 
