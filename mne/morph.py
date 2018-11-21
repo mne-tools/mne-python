@@ -16,7 +16,7 @@ from .source_estimate import (VolSourceEstimate, SourceEstimate,
 from .source_space import SourceSpaces
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
-                    warn as warn_)
+                    warn as warn_, deprecated)
 from .externals.h5io import read_hdf5, write_hdf5
 
 
@@ -770,6 +770,76 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine=(100, 100, 10),
 
 ###############################################################################
 # Morph for SourceEstimate |  VectorSourceEstimate
+@deprecated("This function is deprecated and will be removed in version 0.19. "
+            "Use morph_mat = mne.compute_source_morph(...).morph_mat")
+def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
+                         smooth=None, subjects_dir=None, warn=True,
+                         xhemi=False, verbose=None):
+    """Get a matrix that morphs data from one subject to another.
+
+    Parameters
+    ----------
+    subject_from : str
+        Name of the original subject as named in the SUBJECTS_DIR.
+    subject_to : str
+        Name of the subject on which to morph as named in the SUBJECTS_DIR.
+    vertices_from : list of arrays of int
+        Vertices for each hemisphere (LH, RH) for subject_from.
+    vertices_to : list of arrays of int
+        Vertices for each hemisphere (LH, RH) for subject_to.
+    smooth : int or None
+        Number of iterations for the smoothing of the surface data.
+        If None, smooth is automatically defined to fill the surface
+        with non-zero values. The default is smooth=None.
+    subjects_dir : str
+        Path to SUBJECTS_DIR is not set in the environment. The default is
+        subjects_dir=None.
+    warn : bool
+        If True, warn if not all vertices were used. warn
+    xhemi : bool
+        Morph across hemisphere. Currently only implemented for
+        ``subject_to == subject_from``. See notes below. The default is
+        xhemi=False.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). The default
+        is verbose=None.
+
+    Returns
+    -------
+    morph_matrix : sparse matrix
+        matrix that morphs data from ``subject_from`` to ``subject_to``.
+
+    Notes
+    -----
+    This function can be used to morph data between hemispheres by setting
+    ``xhemi=True``. The full cross-hemisphere morph matrix maps left to right
+    and right to left. A matrix for cross-mapping only one hemisphere can be
+    constructed by specifying the appropriate vertices, for example, to map the
+    right hemisphere to the left:
+    ``vertices_from=[[], vert_rh], vertices_to=[vert_lh, []]``.
+
+    Cross-hemisphere mapping requires appropriate ``sphere.left_right``
+    morph-maps in the subject's directory. These morph maps are included
+    with the ``fsaverage_sym`` FreeSurfer subject, and can be created for other
+    subjects with the ``mris_left_right_register`` FreeSurfer command. The
+    ``fsaverage_sym`` subject is included with FreeSurfer > 5.1 and can be
+    obtained as described `here
+    <http://surfer.nmr.mgh.harvard.edu/fswiki/Xhemi>`_. For statistical
+    comparisons between hemispheres, use of the symmetric ``fsaverage_sym``
+    model is recommended to minimize bias [1]_.
+
+    References
+    ----------
+    .. [1] Greve D. N., Van der Haegen L., Cai Q., Stufflebeam S., Sabuncu M.
+           R., Fischl B., Brysbaert M.
+           A Surface-based Analysis of Language Lateralization and Cortical
+           Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
+    """
+    return _compute_morph_matrix(subject_from, subject_to, vertices_from,
+                                 vertices_to, smooth, subjects_dir, warn,
+                                 xhemi)
+
 
 def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
                           smooth=None, subjects_dir=None, warn=True,
