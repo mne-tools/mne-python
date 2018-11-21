@@ -616,13 +616,14 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     """  # noqa: E501
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     destination = op.join(subjects_dir, 'fsaverage', 'label')
-    fnames = [op.join(destination, '%s.aparc_sub.annot' % hemi)
-              for hemi in ('lh', 'rh')]
-    if not all(op.isfile(fname) for fname in fnames):
-        _fetch_file('https://osf.io/p92yb/download',
-                    fnames[0], hash_='9e4d8d6b90242b7e4b0145353436ef77')
-        _fetch_file('https://osf.io/4kxny/download',
-                    fnames[1], hash_='dd6464db8e7762d969fc1d8087cd211b')
+    urls = dict(lh='https://osf.io/p92yb/download',
+                rh='https://osf.io/4kxny/download')
+    hashes = dict(lh='9e4d8d6b90242b7e4b0145353436ef77',
+                  rh='dd6464db8e7762d969fc1d8087cd211b')
+    for hemi in ('lh', 'rh'):
+        fname = op.join(destination, '%s.aparc_sub.annot' % hemi)
+        if not op.isfile(fname):
+            _fetch_file(urls[hemi], fname, hash_=hashes[hemi])
 
 
 @verbose
@@ -661,6 +662,10 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
     destination = op.join(subjects_dir, 'fsaverage', 'label')
     fnames = [op.join(destination, '%s.HCPMMP1.annot' % hemi)
               for hemi in ('lh', 'rh')]
+    urls = dict(lh='https://ndownloader.figshare.com/files/5528816',
+                rh='https://ndownloader.figshare.com/files/5528819')
+    hashes = dict(lh='46a102b59b2fb1bb4bd62d51bf02e975',
+                  rh='75e96b331940227bbcb07c1c791c2463')
     if not all(op.isfile(fname) for fname in fnames):
         if '--accept-hcpmmp-license' in sys.argv:
             answer = 'y'
@@ -669,10 +674,9 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
         if answer.lower() != 'y':
             raise RuntimeError('You must agree to the license to use this '
                                'dataset')
-        _fetch_file('https://ndownloader.figshare.com/files/5528816',
-                    fnames[0], hash_='46a102b59b2fb1bb4bd62d51bf02e975')
-        _fetch_file('https://ndownloader.figshare.com/files/5528819',
-                    fnames[1], hash_='75e96b331940227bbcb07c1c791c2463')
+    for hemi, fname in zip(('lh', 'rh'), fnames):
+        if not op.isfile(fname):
+            _fetch_file(urls[hemi], fname, hash_=hashes[hemi])
     if combine:
         fnames = [op.join(destination, '%s.HCPMMP1_combined.annot' % hemi)
                   for hemi in ('lh', 'rh')]
