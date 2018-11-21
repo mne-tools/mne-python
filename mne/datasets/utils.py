@@ -594,6 +594,39 @@ def _download_all_example_data(verbose=True):
 
 
 @verbose
+def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
+    """Fetch the modified subdivided aparc parcellation.
+
+    This will download and install the subdivided aparc parcellation [1]_ files for
+    FreeSurfer's fsaverage to the specified directory.
+
+    Parameters
+    ----------
+    subjects_dir : str | None
+        The subjects directory to use. The file will be placed in
+        ``subjects_dir + '/fsaverage/label'``.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    References
+    ----------
+    .. [1] Khan S et al. (2018) Maturation trajectories of cortical
+           resting-state networks depend on the mediating frequency band.
+           Neuroimage 174 57-68.
+    """  # noqa: E501
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    destination = op.join(subjects_dir, 'fsaverage', 'label')
+    urls = dict(lh='https://osf.io/p92yb/download',
+                rh='https://osf.io/4kxny/download')
+    hashes = dict(lh='9e4d8d6b90242b7e4b0145353436ef77',
+                  rh='dd6464db8e7762d969fc1d8087cd211b')
+    for hemi in ('lh', 'rh'):
+        fname = op.join(destination, '%s.aparc_sub.annot' % hemi)
+        if not op.isfile(fname):
+            _fetch_file(urls[hemi], fname, hash_=hashes[hemi])
+
+
+@verbose
 def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
     """Fetch the HCP-MMP parcellation.
 
@@ -629,6 +662,10 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
     destination = op.join(subjects_dir, 'fsaverage', 'label')
     fnames = [op.join(destination, '%s.HCPMMP1.annot' % hemi)
               for hemi in ('lh', 'rh')]
+    urls = dict(lh='https://ndownloader.figshare.com/files/5528816',
+                rh='https://ndownloader.figshare.com/files/5528819')
+    hashes = dict(lh='46a102b59b2fb1bb4bd62d51bf02e975',
+                  rh='75e96b331940227bbcb07c1c791c2463')
     if not all(op.isfile(fname) for fname in fnames):
         if '--accept-hcpmmp-license' in sys.argv:
             answer = 'y'
@@ -637,10 +674,9 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
         if answer.lower() != 'y':
             raise RuntimeError('You must agree to the license to use this '
                                'dataset')
-        _fetch_file('https://ndownloader.figshare.com/files/5528816',
-                    fnames[0], hash_='46a102b59b2fb1bb4bd62d51bf02e975')
-        _fetch_file('https://ndownloader.figshare.com/files/5528819',
-                    fnames[1], hash_='75e96b331940227bbcb07c1c791c2463')
+    for hemi, fname in zip(('lh', 'rh'), fnames):
+        if not op.isfile(fname):
+            _fetch_file(urls[hemi], fname, hash_=hashes[hemi])
     if combine:
         fnames = [op.join(destination, '%s.HCPMMP1_combined.annot' % hemi)
                   for hemi in ('lh', 'rh')]

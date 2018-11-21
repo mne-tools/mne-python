@@ -194,6 +194,7 @@ Datasets
    brainstorm.bst_resting.data_path
    brainstorm.bst_raw.data_path
    eegbci.load_data
+   fetch_aparc_sub_parcellation
    fetch_hcp_mmp_parcellation
    hf_sef.data_path
    kiloword.data_path

@@ -20,4 +20,6 @@ from . import spm_face
 from . import testing
 from . import _fake
 from . import phantom_4dbti
-from .utils import _download_all_example_data, fetch_hcp_mmp_parcellation
+from .utils import (_download_all_example_data, fetch_hcp_mmp_parcellation,
+                    fetch_aparc_sub_parcellation)
+
