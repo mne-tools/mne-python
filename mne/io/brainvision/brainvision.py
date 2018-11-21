@@ -376,10 +376,7 @@ def _aux_vhdr_info(vhdr_fname):
     else:
         params, settings = settings, ''
     cfg = configparser.ConfigParser()
-    if hasattr(cfg, 'read_file'):  # newer API
-        cfg.read_file(StringIO(params))
-    else:
-        cfg.readfp(StringIO(params))
+    cfg.read_file(StringIO(params))
 
     # get sampling info
     # Sampling interval is given in microsec
