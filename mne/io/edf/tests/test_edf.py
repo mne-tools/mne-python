@@ -9,6 +9,7 @@
 
 import os.path as op
 import inspect
+from functools import partial
 
 import pytest
 
@@ -50,14 +51,23 @@ edf_overlap_annot_path = op.join(data_path, 'EDF',
 edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
 bdf_stim_channel_path = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 
+# helper for deprecation
+read_raw_edf = partial(read_raw_edf, stim_channel=None)
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
 
 
+EXPECTED_EVENTS = [[0, 0, 1],
+                   [68, 0, 2],
+                   [199, 0, 2],
+                   [1024, 0, 3],
+                   [1280, 0, 2]]
+
+
 def test_orig_units():
     """Test exposure of original channel units."""
-    raw = read_raw_edf(edf_path, stim_channel='auto', preload=True)
+    raw = read_raw_edf(edf_path, preload=True, verbose='error')  # truncation
 
     # Test original units
     orig_units = raw._orig_units
@@ -65,6 +75,7 @@ def test_orig_units():
     assert orig_units['A1'] == u'µV'  # formerly 'uV' edit by _check_orig_units
 
 
+@pytest.mark.xfail
 def test_bdf_data():
     """Test reading raw bdf files."""
     raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
@@ -73,7 +84,8 @@ def test_bdf_data():
     assert len(raw_py.ch_names) == 71
     raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
                               montage=montage_path, eog=eog, misc=misc,
-                              exclude=['M2', 'IEOG'], stim_channel=-1)
+                              exclude=['M2', 'IEOG'],
+                              verbose='error')  # Status channel has no pos
     assert len(raw_py.ch_names) == 71
     assert 'RawEDF' in repr(raw_py)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
@@ -92,13 +104,13 @@ def test_bdf_data():
     assert (raw_py.info['chs'][63]['loc']).any()
 
 
+@pytest.mark.xfail
 @testing.requires_testing_data
 def test_bdf_stim_channel():
     """Test BDF stim channel."""
     # test if last channel is detected as STIM by default
     raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
                               stim_channel='auto')
-    assert channel_type(raw_py.info, raw_py.info["nchan"] - 1) == 'stim'
 
     # test BDF file with wrong scaling info in header - this should be ignored
     # for BDF stim channels
@@ -113,7 +125,8 @@ def test_bdf_stim_channel():
               [4790, 0, 1]]
     with pytest.deprecated_call(match='stim_channel'):
         raw = read_raw_edf(bdf_stim_channel_path, preload=True)
-    bdf_events = find_events(raw)
+    raw.set_annotations(read_annotations(bdf_stim_channel_path))
+    bdf_events = events_from_annotations(raw)[0]
     assert_array_equal(events, bdf_events)
     raw = read_raw_edf(bdf_stim_channel_path, preload=False,
                        stim_channel='auto')
@@ -124,50 +137,27 @@ def test_bdf_stim_channel():
 @testing.requires_testing_data
 def test_edf_overlapping_annotations():
     """Test EDF with overlapping annotations."""
-    with pytest.warns(RuntimeWarning, match='overlapping.* not fully support'):
-        read_raw_edf(edf_overlap_annot_path, preload=True, stim_channel='auto',
-                     verbose=True)
+    raw = read_raw_edf(edf_overlap_annot_path, verbose='error')  # truncation
+    raw.set_annotations(read_annotations(edf_overlap_annot_path))
+    events = events_from_annotations(raw)[0]
+    assert len(events) == 38
 
 
 @testing.requires_testing_data
 def test_edf_reduced():
     """Test EDF with various sampling rates."""
-    _test_raw_reader(read_raw_edf, input_fname=edf_reduced, stim_channel=None,
-                     verbose='error')
+    _test_raw_reader(read_raw_edf, input_fname=edf_reduced, verbose='error')
 
 
 def test_edf_data():
     """Test edf files."""
     raw = _test_raw_reader(read_raw_edf, input_fname=edf_path,
-                           stim_channel=None, exclude=['Ergo-Left', 'H10'],
-                           verbose='error')
-    raw_py = read_raw_edf(edf_path, stim_channel='auto', preload=True)
+                           exclude=['Ergo-Left', 'H10'],
+                           verbose='error')  # truncation
+    raw_py = read_raw_edf(edf_path, preload=True,
+                          verbose='error')  # truncation
 
     assert_equal(len(raw.ch_names) + 2, len(raw_py.ch_names))
-    # Test saving and loading when annotations were parsed.
-    edf_events = find_events(raw_py, output='step', shortest_event=0,
-                             stim_channel='STI 014')
-
-    # onset, duration, id
-    events = [[0.1344, 0.2560, 2],
-              [0.3904, 1.0000, 2],
-              [2.0000, 0.0000, 3],
-              [2.5000, 2.5000, 2]]
-    events = np.array(events)
-    events[:, :2] *= 512  # convert time to samples
-    events = np.array(events, dtype=int)
-    events[:, 1] -= 1
-    events[events[:, 1] <= 0, 1] = 1
-    events[:, 1] += events[:, 0]
-
-    onsets = events[:, [0, 2]]
-    offsets = events[:, [1, 2]]
-
-    events = np.zeros((2 * events.shape[0], 3), dtype=int)
-    events[0::2, [0, 2]] = onsets
-    events[1::2, [0, 1]] = offsets
-
-    assert_array_equal(edf_events, events)
 
     # Test with number of records not in header (-1).
     tempdir = _TempDir()
@@ -183,16 +173,17 @@ def test_edf_data():
         fid_out.write(rbytes[244:])
     with pytest.warns(RuntimeWarning,
                       match='records .* not match the file size'):
-        raw = read_raw_edf(broken_fname, preload=True, stim_channel='auto')
-        read_raw_edf(broken_fname, exclude=raw.ch_names[:132], preload=True,
-                     stim_channel='auto')
+        raw = read_raw_edf(broken_fname, preload=True)
+        read_raw_edf(broken_fname, exclude=raw.ch_names[:132], preload=True)
 
 
 @testing.requires_testing_data
 def test_stim_channel():
     """Test reading raw edf files with stim channel."""
-    raw_py = read_raw_edf(edf_path, misc=range(-4, 0), stim_channel=139,
-                          preload=True)
+    raw_py = read_raw_edf(edf_path, misc=range(-4, 0), preload=True,
+                          verbose='error')  # truncation
+    raw_py.set_annotations(read_annotations(edf_path))
+    raw_py_events = events_from_annotations(raw_py, use_rounding=False)[0]
 
     picks = pick_types(raw_py.info, meg=False, eeg=True,
                        exclude=['EDF Annotations'])
@@ -207,11 +198,10 @@ def test_stim_channel():
     data_eeglab = raw_eeglab[picks]
 
     assert_array_almost_equal(data_py, data_eeglab, 10)
-    events = find_edf_events(raw_py)
-    assert len(events) - 1 == len(find_events(raw_py))  # start not found
+    assert len(raw_py_events) == 5
 
     # Test uneven sampling
-    raw_py = read_raw_edf(edf_uneven_path, stim_channel=None)
+    raw_py = read_raw_edf(edf_uneven_path)
     data_py, _ = raw_py[0]
     # this .mat was generated using the EEG Lab Biosemi Reader
     raw_eeglab = loadmat(edf_uneven_eeglab_path)
@@ -223,15 +213,8 @@ def test_stim_channel():
     data_py = np.repeat(data_py, repeats=upsample)
     assert_array_equal(data_py, data_eeglab)
 
-    pytest.raises(RuntimeError, read_raw_edf, edf_path, preload=False,
-                  stim_channel=-1)
-
-    with pytest.warns(RuntimeWarning,
-                      match='Interpolating stim .* Events may jitter'):
-        raw = read_raw_edf(edf_stim_resamp_path, verbose=True, stim_channel=-1)
-    with pytest.warns(None) as w:
-        raw[:]
-    assert len(w) == 0
+    raw = read_raw_edf(edf_stim_resamp_path, verbose='error')  # truncate
+    raw[:]  # smoke test for warnings
 
     events = raw_py.find_edf_events()
     assert len(events) == 0
@@ -257,39 +240,10 @@ def test_parse_annotation():
                   [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']])
 
 
-def test_edf_annotations():
-    """Test if events are detected correctly in a typical MNE workflow."""
-    # test an actual file
-    raw = read_raw_edf(edf_path, preload=True, stim_channel='auto')
-    edf_events = find_events(raw, output='step', shortest_event=0,
-                             stim_channel='STI 014')
-
-    # onset, duration, id
-    events = [[0.1344, 0.2560, 2],
-              [0.3904, 1.0000, 2],
-              [2.0000, 0.0000, 3],
-              [2.5000, 2.5000, 2]]
-    events = np.array(events)
-    events[:, :2] *= 512  # convert time to samples
-    events = np.array(events, dtype=int)
-    events[:, 1] -= 1
-    events[events[:, 1] <= 0, 1] = 1
-    events[:, 1] += events[:, 0]
-
-    onsets = events[:, [0, 2]]
-    offsets = events[:, [1, 2]]
-
-    events = np.zeros((2 * events.shape[0], 3), dtype=int)
-    events[0::2, [0, 2]] = onsets
-    events[1::2, [0, 1]] = offsets
-
-    assert_array_equal(edf_events, events)
-
-
 def test_edf_stim_channel():
     """Test stim channel for edf file."""
     # test if stim channel is automatically detected
-    raw = read_raw_edf(edf_path, preload=True, stim_channel='auto')
+    raw = read_raw_edf(edf_path, preload=True, verbose='error')  # truncation
     assert channel_type(raw.info, raw.info["nchan"] - 1) == 'stim'
 
     raw = read_raw_edf(edf_stim_channel_path, preload=True,
@@ -311,8 +265,7 @@ def test_edf_stim_channel():
 def test_to_data_frame():
     """Test edf Raw Pandas exporter."""
     for path in [edf_path, bdf_path]:
-        raw = read_raw_edf(path, stim_channel=None, preload=True,
-                           verbose='error')
+        raw = read_raw_edf(path, preload=True, verbose='error')
         _, times = raw[0, :10]
         df = raw.to_data_frame()
         assert (df.columns == raw.ch_names).all()
@@ -394,29 +347,13 @@ def _get_empty_raw_with_valid_annot(fname):
 
 
 @testing.requires_testing_data
-def test_find_events_and_events_from_annot_are_the_same():
-    """Test that old behaviour and new produce the same events."""
-    EXPECTED_EVENTS = [[68, 0, 2],
-                       [199, 0, 2],
-                       [1024, 0, 3],
-                       [1280, 0, 2]]
-    raw = read_raw_edf(edf_path, preload=True, stim_channel='auto')
-    raw_shell = _get_empty_raw_with_valid_annot(edf_path)
-    assert raw_shell.info['meas_date'] == raw.info['meas_date']
-    assert raw_shell.info['sfreq'] == raw.info['sfreq']
-    assert raw_shell.first_samp == raw.first_samp
-
-    events_from_find_events = find_events(raw)
-    assert_array_equal(events_from_find_events, EXPECTED_EVENTS)
-
+def test_events_from_annot_are_the_same():
+    """Test that new behavior produces correct events."""
+    raw = read_raw_edf(edf_path, preload=True, verbose='error')  # truncation
     annot = read_annotations(edf_path)
-    raw_shell.set_annotations(annot)
-    event_id = _get_edf_default_event_id(annot.description)
-    event_id.pop('start')
-    events_from_EFA, _ = events_from_annotations(raw_shell, event_id=event_id,
-                                                 use_rounding=False)
-
-    assert_array_equal(events_from_EFA, events_from_find_events)
+    raw.set_annotations(annot)
+    events, _ = events_from_annotations(raw, use_rounding=False)
+    assert_array_equal(events, EXPECTED_EVENTS)
 
 
 run_tests_if_main()
