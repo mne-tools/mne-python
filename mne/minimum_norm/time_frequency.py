@@ -19,7 +19,7 @@ from .inverse import (combine_xyz, _check_or_prepare, _assemble_kernel,
                       _pick_channels_inverse_operator, _check_method,
                       _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
-from ..utils import logger, verbose, ProgressBar, warn
+from ..utils import logger, verbose, ProgressBar
 
 
 def _prepare_source_params(inst, inverse_operator, label=None,

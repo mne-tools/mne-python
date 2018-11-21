@@ -16,7 +16,7 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
 import pytest
 from scipy import io
 
-from mne import write_events, read_epochs_eeglab, find_events
+from mne import write_events, read_epochs_eeglab
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
@@ -88,7 +88,6 @@ def test_io_set_raw(fnames, tmpdir):
                appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     negative_latency_fname.replace('.set', '.fdt'))
-    event_id = {eeg.event[0].type: 1}
     with pytest.warns(RuntimeWarning, match="has a sample index of -1."):
         read_raw_eeglab(input_fname=negative_latency_fname, preload=True,
                         montage=montage)
@@ -114,7 +113,6 @@ def test_io_set_raw(fnames, tmpdir):
                appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     overlap_fname.replace('.set', '.fdt'))
-    event_id = {'rt': 1, 'square': 2}
 
     # test reading file with one channel
     one_chan_fname = op.join(tmpdir, 'test_one_channel.set')

@@ -8,8 +8,6 @@ import numpy as np
 from functools import reduce
 from string import ascii_uppercase
 
-from ..utils import warn
-
 # The following function is a rewriting of scipy.stats.f_oneway
 # Contrary to the scipy.stats.f_oneway implementation it does not
 # copy the data while keeping the inputs unchanged.

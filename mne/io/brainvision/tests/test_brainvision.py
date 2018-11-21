@@ -14,7 +14,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 import pytest
 
 from mne.utils import _TempDir, run_tests_if_main
-from mne import pick_types, find_events, read_annotations
+from mne import pick_types, read_annotations
 from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
 from mne.io.tests.test_raw import _test_raw_reader

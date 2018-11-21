@@ -14,7 +14,7 @@ import mne
 from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
                  read_evokeds, SourceMorph, compute_source_morph,
                  read_source_morph, read_source_estimate,
-                 read_forward_solution, grade_to_vertices, morph_data,
+                 read_forward_solution, grade_to_vertices,
                  setup_volume_source_space, make_forward_solution,
                  make_sphere_model, make_ad_hoc_cov)
 from mne.datasets import testing
