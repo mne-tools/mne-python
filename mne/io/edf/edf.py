@@ -119,15 +119,6 @@ class RawEDF(BaseRaw):
                      and will be removed in 0.19; migrate code to use
                      :func:`mne.events_from_annotations` instead.
 
-    annot : str | None
-        Path to annotation file.
-        If None, no derived stim channel will be added (for files requiring
-        annotation file to interpret stim channel).
-        This was deprecated in 0.17 and will be removed in 0.18.
-    annotmap : str | None
-        Path to annotation map file containing mapping from label to trigger.
-        Must be specified if annot is not None.
-        This was deprecated in 0.17 and will be removed in 0.18.
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
@@ -181,23 +172,14 @@ class RawEDF(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
-                 stim_channel=False, annot=None, annotmap=None, exclude=(),
-                 preload=False, verbose=None):  # noqa: D102
+                 stim_channel=False, exclude=(), preload=False,
+                 verbose=None):  # noqa: D102
         logger.info('Extracting EDF parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         info, edf_info, orig_units = _get_info(input_fname, stim_channel,
-                                               annot, annotmap, eog, misc,
-                                               exclude, preload)
+                                               eog, misc, exclude, preload)
         logger.info('Creating raw.info structure...')
         _check_update_montage(info, montage)
-
-        if bool(annot) != bool(annotmap):
-            warn("Stimulus channel will not be annotated. Both 'annot' and "
-                 "'annotmap' must be specified.")
-
-        if annot or annotmap:
-            warn("'annot' and 'annotmap' parameters are deprecated and will be"
-                 " removed in 0.18", DeprecationWarning)
 
         # Raw attributes
         last_samps = [edf_info['nsamples'] - 1]
@@ -224,8 +206,8 @@ class RawEDF(BaseRaw):
         stim_channel = self._raw_extras[fi]['stim_channel']
         tal_sel = self._raw_extras[fi]['tal_sel']
         orig_sel = self._raw_extras[fi]['sel']
-        annot = self._raw_extras[fi]['annot']
-        annotmap = self._raw_extras[fi]['annotmap']
+        # XXX: annot = self._raw_extras[fi]['annot']
+        # XXX: annotmap = self._raw_extras[fi]['annotmap']
         subtype = self._raw_extras[fi]['subtype']
         stim_data = self._raw_extras[fi].get('stim_data', None)  # for GDF
 
@@ -287,8 +269,8 @@ class RawEDF(BaseRaw):
                             else:
                                 ch_data = ch_data[:, :buf_len]
                         elif ci == stim_channel:
-                            if (annot and annotmap or stim_data is not None or
-                                    len(tal_sel) > 0):
+                            if (stim_data is not None or len(tal_sel) > 0):
+                                # XXX: I'm not sure i get here anymore
                                 # don't resample, it gets overwritten later
                                 ch_data = np.zeros((len(ch_data), buf_len))
                             else:
@@ -333,11 +315,7 @@ class RawEDF(BaseRaw):
         data *= gains.T[idx]
 
         if stim_channel is not None and len(stim_channel_idx) > 0:
-            if annot and annotmap:
-                evts = _read_annot(annot, annotmap, sfreq,
-                                   self._last_samps[fi] + 1)
-                data[stim_channel_idx, :] = evts[start:stop]
-            elif len(tal_sel) > 0:
+            if len(tal_sel) > 0:
                 tal_channel_idx = np.in1d(orig_sel[idx], tal_sel)
                 annotations_data = np.atleast_2d(data[tal_channel_idx])
                 onset, duration, desc = _read_annotations_edf(annotations_data)
@@ -423,8 +401,7 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     return ch_data
 
 
-def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
-              preload):
+def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     """Extract all the information from the EDF+, BDF or GDF file."""
     # backward compat aliasing; code below wants to see None but in 0.18
     # we allow/prefer False for consistency with BV/EEGLAB
@@ -442,11 +419,8 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     ext = os.path.splitext(fname)[1][1:].lower()
     logger.info('%s file detected' % ext.upper())
     if ext in ('bdf', 'edf'):
-        edf_info, orig_units = _read_edf_header(fname, annot, annotmap,
-                                                exclude)
-    elif ext in ('gdf'):
-        if annot is not None:
-            warn('Annotations not yet supported for GDF files.')
+        edf_info, orig_units = _read_edf_header(fname, exclude)
+    elif ext in ('gdf'):  # XXX: I'm sure we can unify this (+ its not cover)
         edf_info = _read_gdf_header(fname, stim_channel, exclude)
 
         # orig_units not yet implemented for gdf
@@ -614,7 +588,8 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     edf_info['nsamples'] = int(edf_info['n_records'] * max_samp)
 
     # These are the conditions under which a stim channel will be interpolated
-    if stim_channel is not None and not (annot and annotmap) and \
+    # XXX: format
+    if stim_channel is not None and \
             len(tal_sel) == 0 and n_samps[stim_channel] != int(max_samp):
         warn('Interpolating stim channel. Events may jitter.')
     info._update_redundant()
@@ -622,10 +597,11 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     return info, edf_info, orig_units
 
 
-def _read_edf_header(fname, annot, annotmap, exclude):
+def _read_edf_header(fname, exclude):
     """Read header information from EDF+ or BDF file."""
     edf_info = dict()
-    edf_info.update(annot=annot, annotmap=annotmap, events=[])
+    edf_info.update(events=[])
+    # XXX: edf_info = {'events':[]}
 
     with open(fname, 'rb') as fid:
 
@@ -746,8 +722,8 @@ def _read_gdf_header(fname, stim_channel, exclude):
     """Read GDF 1.x and GDF 2.x header info."""
     edf_info = dict()
     events = []
-    edf_info['annot'] = None
-    edf_info['annotmap'] = None
+    # XXX: edf_info['annot'] = None
+    # XXX: edf_info['annotmap'] = None
     with open(fname, 'rb') as fid:
 
         version = fid.read(8).decode()
@@ -1142,43 +1118,6 @@ def _read_gdf_header(fname, stim_channel, exclude):
     return edf_info
 
 
-def _read_annot(annot, annotmap, sfreq, data_length):
-    """Annotation File Reader.
-
-    Parameters
-    ----------
-    annot : str
-        Path to annotation file.
-    annotmap : str
-        Path to annotation map file containing mapping from label to trigger.
-    sfreq : float
-        Sampling frequency.
-    data_length : int
-        Length of the data file.
-
-    Returns
-    -------
-    stim_channel : ndarray
-        An array containing stimulus trigger events.
-    """
-    times, durations, descriptions = _read_annotations_edf(annot)
-    times = [float(time) * sfreq for time in times]
-
-    pat = r'([\w\s]+):(\d+)'
-    with open(annotmap) as annotmap_file:
-        mappings = re.findall(pat, annotmap_file.read())
-    maps = {}
-    for mapping in mappings:
-        maps[mapping[0]] = mapping[1]
-    triggers = [int(maps[value]) for value in descriptions]
-
-    stim_channel = np.zeros(data_length, dtype=int)
-    for time, trigger in zip(times, triggers):
-        stim_channel[int(time)] = int(trigger)
-
-    return stim_channel
-
-
 def _check_stim_channel(stim_channel, ch_names, sel):
     """Check that the stimulus channel exists in the current datafile."""
     if isinstance(stim_channel, str):
@@ -1217,8 +1156,7 @@ def _find_exclude_idx(ch_names, exclude):
 
 
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
-                 stim_channel='', annot=None, annotmap=None, exclude=(),
-                 preload=False, verbose=None):
+                 stim_channel='', exclude=(), preload=False, verbose=None):
     """Reader function for EDF+, BDF, GDF conversion to FIF.
 
     Parameters
@@ -1249,15 +1187,6 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
                      and will be removed in 0.19; migrate code to use
                      :func:`mne.events_from_annotations` instead.
 
-    annot : str | None
-        Path to annotation file.
-        If None, no derived stim channel will be added (for files requiring
-        annotation file to interpret stim channel).
-        This was deprecated in 0.17 and will be removed in 0.18.
-    annotmap : str | None
-        Path to annotation map file containing mapping from label to trigger.
-        Must be specified if annot is not None.
-        This was deprecated in 0.17 and will be removed in 0.18.
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
@@ -1300,8 +1229,8 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     mne.io.Raw : Documentation of attribute and methods.
     """
     return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
-                  stim_channel=stim_channel, annot=annot, annotmap=annotmap,
-                  exclude=exclude, preload=preload, verbose=verbose)
+                  stim_channel=stim_channel, exclude=exclude, preload=preload,
+                  verbose=verbose)
 
 
 def _read_annotations_edf(annotations):

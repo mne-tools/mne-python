@@ -25,7 +25,7 @@ from mne.io.base import _RawShell
 from mne.io.meas_info import _empty_info
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.pick import channel_type
-from mne.io.edf.edf import find_edf_events, _read_annot, _read_annotations_edf
+from mne.io.edf.edf import find_edf_events, _read_annotations_edf
 from mne.io.edf.edf import _get_edf_default_event_id
 from mne.io.edf.edf import _read_edf_header
 from mne.event import find_events
@@ -363,22 +363,6 @@ def test_read_annot(tmpdir):
     assert_array_equal(np.bincount(stim_ch), [180018, 0, 1, 1, 1])
 
 
-def test_read_raw_edf_deprecation_of_annot_annotmap(tmpdir):
-    """Test deprecation of annot and annotmap."""
-    annot = (b'+0.1344\x150.2560\x14two\x14\x00\x00\x00\x00'
-             b'+0.3904\x151.0\x14two\x14\x00\x00\x00\x00'
-             b'+2.0\x14three\x14\x00\x00\x00\x00\x00\x00\x00\x00'
-             b'+2.5\x152.5\x14two\x14\x00\x00\x00\x00')
-    annot_file = tmpdir.join('annotations.txt')
-    annot_file.write(annot)
-    annotmap_file = tmpdir.join('annotations_map.txt')
-    annotmap_file.write('two:2,three:3')
-
-    with pytest.warns(DeprecationWarning, match="annot.*annotmap.*"):
-        read_raw_edf(input_fname=edf_path, annot=str(annot_file),
-                     annotmap=str(annotmap_file), preload=True)
-
-
 def _compute_sfreq_from_edf_info(edf_info):
     # Compute sfreq from edf_info
     sel = edf_info['sel']
@@ -392,9 +376,7 @@ def _compute_sfreq_from_edf_info(edf_info):
 def _get_empty_raw_with_valid_annot(fname):
     raw = _RawShell()
     raw.first_samp = 0
-    edf_info, orig_units = _read_edf_header(fname=fname, annot=None,
-                                            annotmap=None, exclude=())
-
+    edf_info, orig_units = _read_edf_header(fname=fname, exclude=())
     sfreq = _compute_sfreq_from_edf_info(edf_info)
     raw.info = _empty_info(sfreq)
     raw.info['meas_date'] = edf_info['meas_date']
