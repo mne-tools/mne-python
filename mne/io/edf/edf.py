@@ -181,7 +181,7 @@ class RawEDF(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
-                 stim_channel='', annot=None, annotmap=None, exclude=(),
+                 stim_channel=False, annot=None, annotmap=None, exclude=(),
                  preload=False, verbose=None):  # noqa: D102
         logger.info('Extracting EDF parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
