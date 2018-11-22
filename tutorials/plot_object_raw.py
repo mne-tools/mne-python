@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-.. _tut_raw_objects:
+The :class:`~mne.io.Raw` data structure: continuous data
+========================================================
 
-The :class:`Raw <mne.io.Raw>` data structure: continuous data
-=============================================================
-
-Continuous data is stored in objects of type :class:`Raw <mne.io.Raw>`.
+Continuous data is stored in objects of type :class:`~mne.io.Raw`.
 The core data structure is simply a 2D numpy array (channels × samples)
 (in memory or loaded on demand) combined with an
-:class:`Info <mne.Info>` object (`.info` attribute)
-(see :ref:`tut_info_objects`).
+:class:`~mne.Info` object (`.info` attribute)
+(see :ref:`sphx_glr_auto_tutorials_plot_info.py`).
 
 The most common way to load continuous data is from a .fif file. For more
 information on :ref:`loading data from other formats <ch_convert>`, or
@@ -43,20 +41,20 @@ print('%s channels x %s samples' % (len(raw), len(raw.times)))
 #           variable directly but rely on indexing syntax detailed just below.
 
 ###############################################################################
-# Information about the channels contained in the :class:`Raw <mne.io.Raw>`
-# object is contained in the :class:`Info <mne.Info>` attribute.
+# Information about the channels contained in the :class:`~mne.io.Raw`
+# object is contained in the :class:`~mne.Info` attribute.
 # This is essentially a dictionary with a number of relevant fields (see
-# :ref:`tut_info_objects`).
+# :ref:`sphx_glr_auto_tutorials_plot_info.py`).
 
 
 ###############################################################################
 # Indexing data
 # -------------
 #
-# To access the data stored within :class:`Raw <mne.io.Raw>` objects,
-# it is possible to index the :class:`Raw <mne.io.Raw>` object.
+# To access the data stored within :class:`~mne.io.Raw` objects,
+# it is possible to index the :class:`~mne.io.Raw` object.
 #
-# Indexing a :class:`Raw <mne.io.Raw>` object will return two arrays: an array
+# Indexing a :class:`~mne.io.Raw` object will return two arrays: an array
 # of times, as well as the data representing those timepoints. This works
 # even if the data is not preloaded, in which case the data will be read from
 # disk when indexing. The syntax is as follows:
@@ -113,16 +111,16 @@ raw = raw.drop_channels(['MEG 0241', 'EEG 001'])
 print('Number of channels reduced from', nchan, 'to', raw.info['nchan'])
 
 ###############################################################################
-# --------------------------------------------------
-# Concatenating :class:`Raw <mne.io.Raw>` objects
-# --------------------------------------------------
+# ------------------------------------------
+# Concatenating :class:`~mne.io.Raw` objects
+# ------------------------------------------
 #
-# :class:`Raw <mne.io.Raw>` objects can be concatenated in time by using the
-# :func:`append <mne.io.Raw.append>` function. For this to work, they must
-# have the same number of channels and their :class:`Info
-# <mne.Info>` structures should be compatible.
+# :class:`~mne.io.Raw` objects can be concatenated in time by using the
+# :func:`~mne.io.Raw.append` function. For this to work, they must
+# have the same number of channels and their :class:`~mne.Info`
+# structures should be compatible.
 
-# Create multiple :class:`Raw <mne.io.RawFIF>` objects
+# Create multiple :class:`~mne.io.Raw` objects
 raw1 = raw.copy().crop(0, 10)
 raw2 = raw.copy().crop(10, 20)
 raw3 = raw.copy().crop(20, 40)

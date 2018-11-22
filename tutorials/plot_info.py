@@ -1,10 +1,8 @@
 """
-.. _tut_info_objects:
+The :class:`~mne.Info` data structure
+=====================================
 
-The :class:`Info <mne.Info>` data structure
-===========================================
-
-The :class:`Info <mne.Info>` data object is typically created
+The :class:`~mne.Info` data object is typically created
 when data is imported into MNE-Python and contains details such as:
 
 - date, subject information, and other recording details
