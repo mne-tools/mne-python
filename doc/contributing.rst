@@ -166,6 +166,16 @@ use something like this::
         # Do what you have to do with new_param
         return 'foo'
 
+Add the necessary tests to ensure that the warnings are raised properly.
+use something like this::
+
+    def test_my_function_depracation():
+        with pytest.deprecated_call(match="my_new_function"):
+            my_deprecated_function()
+
+    def test_old_param_in_my_function_deprecation():
+        with pytest.deprecated_call(match="old_param .* new_param"):
+            my_deprecated_param(old_param='bar')
 
 
 Profiling
