@@ -14,11 +14,11 @@ import numpy as np
 
 ###############################################################################
 # ------------------------------------------------------
-# Creating :class:`Info <mne.Info>` objects
+# Creating :class:`~mne.Info` objects
 # ------------------------------------------------------
 #
-# .. note:: for full documentation on the `Info` object, see
-#           :ref:`tut_info_objects`. See also
+# .. note:: for full documentation on the :class:`~mne.Info` object, see
+#           :ref:`sphx_glr_auto_tutorials_plot_info.py`. See also
 #           :ref:`sphx_glr_auto_examples_io_plot_objects_from_arrays.py`.
 #
 # Normally, :class:`mne.Info` objects are created by the various
@@ -73,9 +73,9 @@ print(info)
 #           - The `ch_names` field should be consistent with the `name` field
 #             of the channel information contained in `chs`.
 #
-# ---------------------------------------------
-# Creating :class:`Raw <mne.io.Raw>` objects
-# ---------------------------------------------
+# -------------------------------------
+# Creating :class:`~mne.io.Raw` objects
+# -------------------------------------
 #
 # To create a :class:`mne.io.Raw` object from scratch, you can use the
 # :class:`mne.io.RawArray` class, which implements raw data that is backed by a
@@ -105,9 +105,9 @@ custom_raw = mne.io.RawArray(data, info)
 print(custom_raw)
 
 ###############################################################################
-# ---------------------------------------------
-# Creating :class:`Epochs <mne.Epochs>` objects
-# ---------------------------------------------
+# -------------------------------------
+# Creating :class:`~mne.Epochs` objects
+# -------------------------------------
 #
 # To create an :class:`mne.Epochs` object from scratch, you can use the
 # :class:`mne.EpochsArray` class, which uses a numpy array directly without
@@ -168,9 +168,9 @@ print(custom_epochs)
 _ = custom_epochs['smiling'].average().plot(time_unit='s')
 
 ###############################################################################
-# ---------------------------------------------
-# Creating :class:`Evoked <mne.Evoked>` Objects
-# ---------------------------------------------
+# -------------------------------------
+# Creating :class:`~mne.Evoked` Objects
+# -------------------------------------
 # If you already have data that is collapsed across trials, you may also
 # directly create an evoked array.  Its constructor accepts an array of
 # `shape(n_chans, n_times)` in addition to some bookkeeping parameters.

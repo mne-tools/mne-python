@@ -339,6 +339,8 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings(
         'always', '.*converting a masked element to nan.*')  # matplotlib?
     # allow these warnings, but don't show them
+    warnings.filterwarnings(
+        'ignore', '.*OpenSSL\\.rand is deprecated.*')
     warnings.filterwarnings('ignore', '.*is currently using agg.*')
     warnings.filterwarnings(  # SciPy-related warning (maybe 1.2.0 will fix it)
         'ignore', '.*the matrix subclass is not the recommended.*')
