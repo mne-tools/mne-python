@@ -336,6 +336,24 @@ def test_to_data_frame():
         df = raw.to_data_frame(index=None, scalings={'eeg': 1e13})
         assert 'time' in df.index.names
         assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
+
+
+def test_read_raw_edf_deprecation():
+    """Test edf raw reader deprecation."""
+
+    _MSG = "`read_raw_edf` is not supposed to trigger a deprecation warning"
+    with pytest.warns(None) as recwarn:
+        read_raw_edf(edf_path)
+    assert all([w.category != DeprecationWarning for w in recwarn.list]), _MSG
+
+    with pytest.deprecated_call(match="stim_channel .* removed in 0.19"):
+        read_raw_edf(edf_path, stim_channel=False)
+
+    with pytest.raises(RuntimeError, match="stim channel is not supported"):
+        read_raw_edf(edf_path, stim_channel='what ever')
+
+
+
 # XXX: refator
 def _assert_annotations_equal(a, b):
     assert_array_equal(a.onset, b.onset)

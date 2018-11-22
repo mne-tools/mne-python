@@ -107,16 +107,13 @@ class RawEDF(BaseRaw):
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
-    stim_channel : str | int | 'auto' | False
-        The channel name or channel index (starting at 0). -1 corresponds to
-        the last channel. If False, there will be no stim channel added. If
-        'auto' (default), the stim channel will be added as the last channel if
-        the header contains ``'EDF Annotations'`` or GDF events (otherwise stim
-        channel will not be added). None is accepted as an alias for False.
+    stim_channel : False
+        If False, there will be no stim channel added. None is accepted as an
+        alias for False.
 
-        .. warning:: This defaults to 'auto' in 0.17 but will default to False
-                     in 0.18 (when no stim channel synthesis will be allowed)
-                     and will be removed in 0.19; migrate code to use
+        .. warning:: 0.18 does not allow for stim channel synthesis. The
+                     stim_channel parameter can only be set to False and will
+                     be removed in 0.19; migrate code to use
                      :func:`mne.events_from_annotations` instead.
 
     exclude : list of str
@@ -172,7 +169,7 @@ class RawEDF(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
-                 stim_channel=False, exclude=(), preload=False,
+                 stim_channel=None, exclude=(), preload=False,
                  verbose=None):  # noqa: D102
         logger.info('Extracting EDF parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
@@ -403,13 +400,17 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
 
 def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     """Extract all the information from the EDF+, BDF or GDF file."""
-    # backward compat aliasing; code below wants to see None but in 0.18
-    # we allow/prefer False for consistency with BV/EEGLAB
-    stim_channel = None if stim_channel is False else stim_channel
-    if stim_channel == '':
-        warn('stim_channel will default to "auto" in 0.17 but change to False '
-             'in 0.18, and will be removed in 0.19', DeprecationWarning)
-        stim_channel = 'auto'
+    if stim_channel is not None:
+        if stim_channel:
+            _msg = ('The synthesis of the stim channel is not supported since'
+                    ' 0.18. Please set `stim_channel` to False and use'
+                    ' `mne.events_from_annotations` instead')
+            raise RuntimeError(_msg)
+        else:
+            warn('stim_channel parameter is deprecated and will be removed in'
+                 ' 0.19.', DeprecationWarning)
+            stim_channel = None
+
     if eog is None:
         eog = []
     if misc is None:
@@ -1156,7 +1157,7 @@ def _find_exclude_idx(ch_names, exclude):
 
 
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
-                 stim_channel='', exclude=(), preload=False, verbose=None):
+                 stim_channel=None, exclude=(), preload=False, verbose=None):
     """Reader function for EDF+, BDF, GDF conversion to FIF.
 
     Parameters
@@ -1175,16 +1176,13 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
-    stim_channel : str | int | 'auto' | False
-        The channel name or channel index (starting at 0). -1 corresponds to
-        the last channel. If False, there will be no stim channel added. If
-        'auto' (default), the stim channel will be added as the last channel if
-        the header contains ``'EDF Annotations'`` or GDF events (otherwise stim
-        channel will not be added). None is accepted as an alias for False.
+    stim_channel : False
+        If False, there will be no stim channel added. None is accepted as an
+        alias for False.
 
-        .. warning:: This defaults to 'auto' in 0.17 but will default to False
-                     in 0.18 (when no stim channel synthesis will be allowed)
-                     and will be removed in 0.19; migrate code to use
+        .. warning:: 0.18 does not allow for stim channel synthesis. The
+                     stim_channel parameter can only be set to False and will
+                     be removed in 0.19; migrate code to use
                      :func:`mne.events_from_annotations` instead.
 
     exclude : list of str
