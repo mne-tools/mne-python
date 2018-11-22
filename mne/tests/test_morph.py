@@ -14,7 +14,7 @@ import mne
 from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
                  read_evokeds, SourceMorph, compute_source_morph,
                  read_source_morph, read_source_estimate,
-                 read_forward_solution, grade_to_vertices, morph_data,
+                 read_forward_solution, grade_to_vertices,
                  setup_volume_source_space, make_forward_solution,
                  make_sphere_model, make_ad_hoc_cov)
 from mne.datasets import testing
@@ -374,13 +374,9 @@ def test_morph_stc_dense():
                        [0, len(stc_to.times) - 1])
 
     # After dep change this to:
-    # stc_to1 = compute_source_morph(
-    #     subject_to=subject_to, spacing=3, smooth=12, src=stc_from,
-    #     subjects_dir=subjects_dir).apply(stc_from)
-    with pytest.deprecated_call():
-        stc_to1 = stc_from.morph(
-            subject_to=subject_to, grade=3, smooth=12,
-            subjects_dir=subjects_dir)
+    stc_to1 = compute_source_morph(
+        subject_to=subject_to, spacing=3, smooth=12, src=stc_from,
+        subjects_dir=subjects_dir).apply(stc_from)
     assert_allclose(stc_to.data, stc_to1.data, atol=1e-5)
 
     mean_from = stc_from.data.mean(axis=0)
@@ -395,19 +391,8 @@ def test_morph_stc_dense():
         morph = compute_source_morph(
             stc_from, subject_from, subject_to, spacing=None, smooth=1,
             subjects_dir=subjects_dir)
-    # after deprecation change this to:
-    # stc_to5 = morph.apply(stc_from)
-    with pytest.deprecated_call():
-        stc_to5 = stc_from.morph_precomputed(
-            morph_mat=morph.morph_mat, subject_to=subject_to,
-            vertices_to=morph.vertices_to)
+    stc_to5 = morph.apply(stc_from)
     assert stc_to5.data.shape[0] == 163842 + 163842
-    # after deprecation delete this
-    with pytest.deprecated_call():
-        stc_to6 = morph_data(
-            subject_from, subject_to, stc_from, grade=None, smooth=1,
-            subjects_dir=subjects_dir)
-    assert_allclose(stc_to6.data, stc_to5.data)
 
     # Morph vector data
     stc_vec = _real_vec_stc()

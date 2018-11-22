@@ -9,7 +9,7 @@ env:
     # OPENBLAS_NUM_THREADS=1 avoid slowdowns:
     # https://github.com/xianyi/OpenBLAS/issues/731
     global: PYTHON_VERSION=3.6 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning TEST_LOCATION=src
-            PIP_DEPENDENCIES="codecov pytest-faulthandler" OPTION=""
+            PIP_DEPENDENCIES="codecov pytest-faulthandler pytest-sugar" OPTION=""
             TRAVIS_PYTHON_VERSION=3.6 CONDA_VERSION=">=4.3.27"
             OPENBLAS_NUM_THREADS=1
 

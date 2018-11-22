@@ -96,7 +96,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
     def __init__(self, n_components=4, reg=None, log=None, cov_est="concat",
                  transform_into='average_power', norm_trace=False,
-                 cov_method_params=None, rank=''):
+                 cov_method_params=None, rank=None):
         """Init of CSP."""
         # Init default CSP
         if not isinstance(n_components, int):
@@ -736,7 +736,7 @@ class SPoC(CSP):
 
     def __init__(self, n_components=4, reg=None, log=None,
                  transform_into='average_power', cov_method_params=None,
-                 rank=''):
+                 rank=None):
         """Init of SPoC."""
         super(SPoC, self).__init__(n_components=n_components, reg=reg, log=log,
                                    cov_est="epoch", norm_trace=False,

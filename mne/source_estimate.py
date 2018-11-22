@@ -11,7 +11,6 @@ import numpy as np
 from scipy import linalg, sparse
 from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
-from .utils import deprecated
 from .filter import resample
 from .fixes import einsum
 from .evoked import _get_peak
@@ -1068,10 +1067,6 @@ def _center_of_mass(vertices, values, hemi, surf, subject, subjects_dir,
     return vertex
 
 
-_dep_str = ("This function is deprecated and will be removed in version "
-            "0.18. Use morph = mne.compute_source_morph(...) and morph(stc)")
-
-
 class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
     """Abstract base class for surface source estimates.
 
@@ -1300,87 +1295,6 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             self.vertices, src_orig, subject_orig, self.subject, subjects_dir)
         return self.__class__(self._data[data_idx], vertices,
                               self.tmin, self.tstep, subject_orig)
-
-    @deprecated(_dep_str)
-    @verbose
-    def morph(self, subject_to, grade=5, smooth=None, subjects_dir=None,
-              buffer_size=64, n_jobs=1, subject_from=None, sparse=False,
-              verbose=None):
-        """Morph a source estimate from one subject to another.
-
-        Parameters
-        ----------
-        subject_to : string
-            Name of the subject on which to morph as named in the SUBJECTS_DIR
-        grade : int, list (of two arrays), or None
-            Resolution of the icosahedral mesh (typically 5). If None, all
-            vertices will be used (potentially filling the surface). If a list,
-            then values will be morphed to the set of vertices specified in
-            in grade[0] and grade[1]. Note that specifying the vertices (e.g.,
-            grade=[np.arange(10242), np.arange(10242)] for fsaverage on a
-            standard grade 5 source space) can be substantially faster than
-            computing vertex locations. Note that if subject='fsaverage'
-            and 'grade=5', this set of vertices will automatically be used
-            (instead of computed) for speed, since this is a common morph.
-            .. note :: If sparse=True, grade has to be set to None.
-        smooth : int or None
-            Number of iterations for the smoothing of the surface data.
-            If None, smooth is automatically defined to fill the surface
-            with non-zero values.
-        subjects_dir : string, or None
-            Path to SUBJECTS_DIR if it is not set in the environment.
-        buffer_size : int
-            Deprecated. Will be ignored.
-        n_jobs : int
-            Deprecated. Will be ignored.
-        subject_from : string
-            Name of the original subject as named in the SUBJECTS_DIR.
-            If None, self.subject will be used.
-        sparse : bool
-            Morph as a sparse source estimate. If True the only
-            parameters used are subject_to and subject_from,
-            and grade has to be None.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
-
-        Returns
-        -------
-        stc_to : SourceEstimate | VectorSourceEstimate
-            Source estimate for the destination subject.
-        """
-        from .morph import compute_source_morph
-        return compute_source_morph(self, subject_from, subject_to,
-                                    spacing=grade, smooth=smooth,
-                                    subjects_dir=subjects_dir,
-                                    sparse=sparse).apply(self)
-
-    @deprecated(_dep_str)
-    def morph_precomputed(self, subject_to, vertices_to, morph_mat,
-                          subject_from=None):
-        """Morph source estimate between subjects using a precomputed matrix.
-
-        Parameters
-        ----------
-        subject_to : string
-            Name of the subject on which to morph as named in the SUBJECTS_DIR.
-        vertices_to : list of array of int
-            The vertices on the destination subject's brain.
-        morph_mat : sparse matrix
-            Deprecated.
-        subject_from : string | None
-            Name of the original subject as named in the SUBJECTS_DIR.
-            If None, self.subject will be used.
-
-        Returns
-        -------
-        stc_to : SourceEstimate | VectorSourceEstimate
-            Source estimate for the destination subject.
-        """
-        subject_from = _check_subject(self.subject, subject_from)
-        return morph_data_precomputed(subject_from, subject_to, self,
-                                      vertices_to, morph_mat)
 
 
 class SourceEstimate(_BaseSurfaceSourceEstimate):
@@ -2246,112 +2160,6 @@ class MixedSourceEstimate(_BaseSourceEstimate):
 # Morphing
 
 
-@deprecated(_dep_str)
-@verbose
-def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
-               subjects_dir=None, buffer_size=64, n_jobs=1, warn=True,
-               verbose=None):
-    """Morph a source estimate from one subject to another.
-
-    Parameters
-    ----------
-    subject_from : string
-        Name of the original subject as named in the SUBJECTS_DIR
-    subject_to : string
-        Name of the subject on which to morph as named in the SUBJECTS_DIR
-    stc_from : SourceEstimate | VectorSourceEstimate
-        Source estimates for subject "from" to morph
-    grade : int, list (of two arrays), or None
-        Resolution of the icosahedral mesh (typically 5). If None, all
-        vertices will be used (potentially filling the surface). If a list,
-        then values will be morphed to the set of vertices specified in
-        in grade[0] and grade[1]. Note that specifying the vertices (e.g.,
-        grade=[np.arange(10242), np.arange(10242)] for fsaverage on a
-        standard grade 5 source space) can be substantially faster than
-        computing vertex locations. Note that if subject='fsaverage'
-        and 'grade=5', this set of vertices will automatically be used
-        (instead of computed) for speed, since this is a common morph.
-    smooth : int or None
-        Number of iterations for the smoothing of the surface data.
-        If None, smooth is automatically defined to fill the surface
-        with non-zero values.
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
-    buffer_size : int
-        Deprecated. Will be ignored.
-    n_jobs : int
-        Deprecated. Will be ignored.
-    warn : bool
-        If True, warn if not all vertices were used.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-
-    Returns
-    -------
-    stc_to : SourceEstimate | VectorSourceEstimate
-        Source estimate for the destination subject.
-    """
-    from .morph import compute_source_morph
-    if not isinstance(stc_from, _BaseSurfaceSourceEstimate):
-        raise ValueError('Morphing is only possible with surface or vector '
-                         'source estimates')
-
-    return compute_source_morph(stc_from, subject_from, subject_to,
-                                spacing=grade, smooth=smooth,
-                                subjects_dir=subjects_dir,
-                                warn=warn).apply(stc_from)
-
-
-@deprecated(_dep_str)
-def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
-                           morph_mat):
-    """Morph source estimate between subjects using a precomputed matrix.
-
-    Parameters
-    ----------
-    subject_from : string
-        Name of the original subject as named in the SUBJECTS_DIR.
-    subject_to : string
-        Name of the subject on which to morph as named in the SUBJECTS_DIR.
-    stc_from : SourceEstimate | VectorSourceEstimate
-        Source estimates for subject "from" to morph.
-    vertices_to : list of array of int
-        The vertices on the destination subject's brain.
-    morph_mat : sparse matrix
-        Deprecated.
-
-
-    Returns
-    -------
-    stc_to : SourceEstimate | VectorSourceEstimate
-        Source estimate for the destination subject.
-    """
-    from .morph import SourceMorph
-    if not sparse.issparse(morph_mat):
-        raise ValueError('morph_mat must be a sparse matrix')
-
-    if not isinstance(vertices_to, list) or not len(vertices_to) == 2:
-        raise ValueError('vertices_to must be a list of length 2')
-
-    if not sum(len(v) for v in vertices_to) == morph_mat.shape[0]:
-        raise ValueError('number of vertices in vertices_to must match '
-                         'morph_mat.shape[0]')
-
-    if not stc_from.data.shape[0] == morph_mat.shape[1]:
-        raise ValueError('stc_from.data.shape[0] must be the same as '
-                         'morph_mat.shape[0]')
-
-    if stc_from.subject is not None and stc_from.subject != subject_from:
-        raise ValueError('stc_from.subject and subject_from must match')
-
-    # private function only needed here to wrap the API
-    return SourceMorph(subject_from, subject_to, 'surface',
-                       None, None, None, None, None, False, morph_mat,
-                       vertices_to, None, None, None, None,
-                       dict(vertices_from=stc_from.vertices)).apply(stc_from)
-
-
 def _get_vol_mask(src):
     """Get the volume source space mask."""
     assert len(src) == 1  # not a mixed source space
@@ -2683,38 +2491,6 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
         return ico['tris']
     else:
         return ico
-
-
-@deprecated("This function is deprecated and will be removed in version 0.18. "
-            "Use instead stc.save_as_volume.")
-def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
-    """Save a volume source estimate in a NIfTI file.
-
-    Parameters
-    ----------
-    fname : string | None
-        The name of the generated nifti file. If None, the image is only
-        returned and not saved.
-    stc : instance of VolSourceEstimate
-        The source estimate
-    src : list
-        The list of source spaces (should actually be of length 1)
-    dest : 'mri' | 'surf'
-        If 'mri' the volume is defined in the coordinate system of
-        the original T1 image. If 'surf' the coordinate system
-        of the FreeSurfer surface is used (Surface RAS).
-    mri_resolution: bool
-        It True the image is saved in MRI resolution.
-        WARNING: if you have many time points the file produced can be
-        huge.
-
-    Returns
-    -------
-    img : instance Nifti1Image
-        The image object.
-    """
-    return stc.save_as_volume(fname, src, dest=dest,
-                              mri_resolution=mri_resolution)
 
 
 def _get_label_flip(labels, label_vertidx, src):

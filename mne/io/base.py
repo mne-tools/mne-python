@@ -737,15 +737,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """The filenames used."""
         return tuple(self._filenames)
 
-    @annotations.setter
-    def annotations(self, annotations, emit_warning=True):
-        warn('setting the annotations attribute by assignment is'
-             ' deprecated since 0.17, and will be removed in 0.18.'
-             ' Please use raw.set_annotations() instead.',
-             category=DeprecationWarning)
-        self.set_annotations(annotations, emit_warning=emit_warning)
-
-    def set_annotations(self, annotations, emit_warning=True, sync_orig=True):
+    def set_annotations(self, annotations, emit_warning=True):
         """Setter for annotations.
 
         This setter checks if they are inside the data range.
@@ -757,24 +749,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             but empty.
         emit_warning : bool
             Whether to emit warnings when limiting or omitting annotations.
-        sync_orig : bool
-            Whether to sync ``self.annotations.orig_time`` with
-            ``self.info['meas_date']``, or not. This parameter is meant to be
-            True, and toggled to False only to achieve backward compatibility,
-            and will be removed in version 0.18.
-            Defaults to True.
-
-             .. versionadded:: 0.17
 
         Returns
         -------
         self : instance of Raw
             The raw object with annotations.
         """
-        if sync_orig is False:
-            warn(('Unsynchronized orig_time and meas_date is deprecated and'
-                  ' will be removed 0.18.'), DeprecationWarning)
-
         if annotations is None:
             self._annotations = Annotations([], [], [])
         else:
@@ -808,7 +788,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             if self.info['meas_date'] is None:
                 new_annotations.orig_time = None
-            elif sync_orig and annotations.orig_time != meas_date:
+            elif annotations.orig_time != meas_date:
                 # XXX, TODO: this should be a function, method or something.
                 # maybe orig_time should have a setter
                 # new_annotations.orig_time = xxxxx # resets onset based on x
