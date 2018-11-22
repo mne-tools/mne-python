@@ -17,7 +17,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
 from scipy.io import loadmat
 
-from mne import pick_types
+from mne import pick_types, Annotations
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, requires_pandas, _TempDir
 from mne.io import read_raw_edf
@@ -336,6 +336,12 @@ def test_to_data_frame():
         df = raw.to_data_frame(index=None, scalings={'eeg': 1e13})
         assert 'time' in df.index.names
         assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
+# XXX: refator
+def _assert_annotations_equal(a, b):
+    assert_array_equal(a.onset, b.onset)
+    assert_array_equal(a.duration, b.duration)
+    assert_array_equal(a.description, b.description)
+    assert a.orig_time == b.orig_time
 
 
 def test_read_annot(tmpdir):
@@ -343,8 +349,16 @@ def test_read_annot(tmpdir):
     EXPECTED_ANNOTATIONS = [[180.0, 0, 'Lights off'], [180.0, 0, 'Close door'],
                             [180.0, 0, 'Lights off'], [180.0, 0, 'Close door'],
                             [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']]
-    SFREQ = 100
-    DATA_LENGTH = int(EXPECTED_ANNOTATIONS[-1][0] * SFREQ) + 1
+
+    EXPECTED_ONSET = [180.0, 180.0, 180.0, 180.0, 3.14, 1800.2]
+    EXPECTED_DURATION = [0, 0, 0, 0, 4.2, 25.5]
+    EXPECTED_DESC = ['Lights off', 'Close door', 'Lights off', 'Close door',
+                     'nothing', 'Apnea']
+    EXPECTED_ANNOTATIONS = Annotations(onset=EXPECTED_ONSET,
+                                       duration=EXPECTED_DURATION,
+                                       description=EXPECTED_DESC,
+                                       orig_time=None)
+
     annot = (b'+180\x14Lights off\x14Close door\x14\x00\x00\x00\x00\x00'
              b'+180\x14Lights off\x14\x00\x00\x00\x00\x00\x00\x00\x00'
              b'+180\x14Close door\x14\x00\x00\x00\x00\x00\x00\x00\x00'
@@ -353,14 +367,11 @@ def test_read_annot(tmpdir):
              b'+123\x14\x14\x00\x00\x00\x00\x00\x00\x00')
     annot_file = tmpdir.join('annotations.txt')
     annot_file.write(annot)
-    annotmap_file = tmpdir.join('annotations_map.txt')
-    annotmap_file.write('Lights off:1,nothing:2,Apnea:3,Close door:4')
 
-    stim_ch = _read_annot(annot=str(annot_file), annotmap=str(annotmap_file),
-                          sfreq=SFREQ, data_length=DATA_LENGTH)
-
-    assert stim_ch.shape == (DATA_LENGTH,)
-    assert_array_equal(np.bincount(stim_ch), [180018, 0, 1, 1, 1])
+    onset, duration, desc = _read_annotations_edf(annotations=str(annot_file))
+    annotation = Annotations(onset=onset, duration=duration, description=desc,
+                             orig_time=None)
+    _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
 
 
 def _compute_sfreq_from_edf_info(edf_info):
