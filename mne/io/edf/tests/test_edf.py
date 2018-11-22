@@ -257,6 +257,22 @@ def test_parse_annotation():
                   [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']])
 
 
+def test_find_events_backward_compatibility():
+    """Test if events are detected correctly in a typical MNE workflow."""
+    EXPECTED_EVENTS = [[68, 0, 2],
+                       [199, 0, 2],
+                       [1024, 0, 3],
+                       [1280, 0, 2]]
+    # test an actual file
+    raw = read_raw_edf(edf_path, preload=True, stim_channel='auto')
+    event_id = _get_edf_default_event_id(raw.annotations.description)
+    event_id.pop('start')
+    events_from_EFA, _ = events_from_annotations(raw, event_id=event_id,
+                                                 use_rounding=False)
+
+    assert_array_equal(events_from_EFA, EXPECTED_EVENTS)
+
+
 def test_edf_annotations():
     """Test if events are detected correctly in a typical MNE workflow."""
     # test an actual file
