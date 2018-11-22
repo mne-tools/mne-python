@@ -167,7 +167,7 @@ use something like this::
         return 'foo'
 
 Add the necessary tests to ensure that the warnings are raised properly.
-use something like this::
+You can use something like this::
 
     def test_my_function_depracation():
         with pytest.deprecated_call(match="my_new_function"):
