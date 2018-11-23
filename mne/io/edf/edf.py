@@ -1028,9 +1028,21 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
-                  stim_channel=stim_channel, exclude=exclude, preload=preload,
-                  verbose=verbose)
+    raw = RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
+                 stim_channel=stim_channel, exclude=exclude, preload=preload,
+                 verbose=verbose)
+    # XXX: This should not be done like this. It requires to read the file twice.
+    #      But it has been this way since 2013 (see 37090e5).
+    #      We should fix it at some point.
+    onset, duration, desc = _read_annotations_edf(input_fname)
+    if onset:
+        # in EDF, annotations are relative to first_samp
+        annot = Annotations(onset=onset, duration=duration, description=desc, orig_time=None)
+        raw.set_annotations(annot)
+
+    return raw
+
+
 
 
 def _read_annotations_edf(annotations):
