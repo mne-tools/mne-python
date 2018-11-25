@@ -54,7 +54,6 @@ picks_mag = mne.pick_types(fwd['info'], meg='mag')
 picks_grad = mne.pick_types(fwd['info'], meg='grad')
 picks_eeg = mne.pick_types(fwd['info'], meg=False, eeg=True)
 
-n_chans = 50
 threshold = .99
 
 plt.figure(figsize=(8, 6))
@@ -66,11 +65,17 @@ for picks, ch_type, color in zip(
     exp_var_ratio = _get_var_exp(leadfield[picks])
 
     approx_rank = np.sum(exp_var_ratio < threshold)
-    plt.plot(exp_var_ratio, color=color, linewidth=1,
-             label=r'%s (rank$_{vexp%d}$ = %d/%d)' % (
-                 ch_type, threshold * 100, approx_rank, len(picks)))
+    plt.plot(np.arange(len(picks)),
+             exp_var_ratio, color=color, linewidth=1)
+    plt.axvline(
+        approx_rank, ymax=exp_var_ratio[approx_rank - 4],
+        linestyle='--', color=color, alpha=0.5,
+        label=r'%s (rank$_{vexp%d}$ = %d/%d)' % (
+            ch_type, threshold * 100, approx_rank, len(picks)))
 
 plt.legend(loc='lower right')
+plt.ylim(0.5, 1)
+plt.xlim(0, 100)
 
 # One can see that despite similar proportional dimensioality,
 # the gradiometers saturates more slowly while eeg
