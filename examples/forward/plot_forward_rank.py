@@ -68,7 +68,7 @@ for picks, ch_type, color in zip(
     plt.plot(np.arange(len(picks)),
              exp_var_ratio, color=color, linewidth=1)
     plt.axvline(
-        approx_rank, ymax=exp_var_ratio[approx_rank - 4],
+        approx_rank, ymax=exp_var_ratio[approx_rank - 1],
         linestyle='--', color=color, alpha=0.5,
         label=r'%s (rank$_{vexp%d}$ = %d/%d)' % (
             ch_type, threshold * 100, approx_rank, len(picks)))
