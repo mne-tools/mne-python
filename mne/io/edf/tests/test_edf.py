@@ -64,6 +64,14 @@ def test_orig_units():
     assert len(orig_units) == 140
     assert orig_units['A1'] == u'µV'  # formerly 'uV' edit by _check_orig_units
 
+
+def test_broken_montage():
+    """Test reading raw bdf files."""
+    raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
+                              montage=montage_path, eog=eog, misc=misc,
+                              exclude=['M2', 'IEOG'])
+    assert len(raw_py.ch_names) == 71
+
 # @pytest.mark.skip(reason="XXX I broke the montage")
 def test_bdf_data():
     """Test reading raw bdf files."""
