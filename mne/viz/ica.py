@@ -130,6 +130,8 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
                          set_title_and_labels, plot_std, psd_ylabel,
                          spectrum_std, topomap_args, image_args, fig, axes):
     """Plot ICA properties (helper)."""
+    from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+
     topo_ax, image_ax, erp_ax, spec_ax, var_ax = axes
 
     # plotting
@@ -152,8 +154,14 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
                         color='k', alpha=0.2)
 
     # epoch variance
+    var_ax_divider= make_axes_locatable(var_ax)
+    hist_ax = var_ax_divider.append_axes("right", size="33%", pad="2.5%")
     var_ax.scatter(range(len(epoch_var)), epoch_var, alpha=0.5,
                    facecolor=[0, 0, 0], lw=0)
+    hist_ax.hist(epoch_var, orientation="horizontal", color="grey")
+    hist_ax.set_ylabel("")
+    hist_ax.set_yticklabels([])
+
 
     # aesthetics
     # ----------
