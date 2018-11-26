@@ -320,6 +320,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         physical_ranges[bad_idx] = 1
     if 'stim_data' in edf_info:  # For GDF events.  # XXX: com back to this
         cals = np.append(cals, 1)
+    stim_channel = _check_stim_channel(stim_channel, ch_names, sel)
 
     # Annotations
     # XXX: All this should go, and be substituted by:
@@ -362,7 +363,29 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
             pick_mask[idx] = False
+        check1 = stim_channel == ch_name
+        check2 = stim_channel == idx
+        check3 = nchan > 1
+        stim_check = np.logical_and(np.logical_or(check1, check2), check3)
+        if stim_check:
+            chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+            chan_info['unit'] = FIFF.FIFF_UNIT_NONE
+            chan_info['kind'] = FIFF.FIFFV_STIM_CH
+            pick_mask[idx] = False
+            chan_info['ch_name'] = 'STI 014'
+            ch_names[idx] = chan_info['ch_name']
+            edf_info['units'][idx] = 1
+            if isinstance(stim_channel, str):
+                stim_channel = idx
+        if edf_info['sel'][idx] in tal_sel:
+            chan_info['range'] = 1
+            chan_info['cal'] = 1
+            chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+            chan_info['unit'] = FIFF.FIFF_UNIT_NONE
+            chan_info['kind'] = FIFF.FIFFV_STIM_CH
+            pick_mask[idx] = False
         chs.append(chan_info)
+    edf_info['stim_channel'] = stim_channel
 
     if any(pick_mask):
         picks = [item for item, mask in zip(range(nchan), pick_mask) if mask]
@@ -947,6 +970,34 @@ def _read_gdf_header(fname, stim_channel, exclude):
             edf_info['stim_data'] = data
     edf_info.update(events=events, sel=np.arange(len(edf_info['ch_names'])))
     return edf_info
+
+
+def _check_stim_channel(stim_channel, ch_names, sel):
+    """Check that the stimulus channel exists in the current datafile."""
+    if isinstance(stim_channel, str):
+        if stim_channel == 'auto':
+            if 'auto' in ch_names:
+                raise ValueError("'auto' exists as a channel name. Change "
+                                 "stim_channel parameter!")
+            stim_channel = len(sel) - 1
+        elif stim_channel not in ch_names:
+            err = 'Could not find a channel named "{}" in datafile.' \
+                  .format(stim_channel)
+            casematch = [ch for ch in ch_names
+                         if stim_channel.lower().replace(' ', '') ==
+                         ch.lower().replace(' ', '')]
+            if casematch:
+                err += ' Closest match is "{}".'.format(casematch[0])
+            raise ValueError(err)
+    else:
+        if stim_channel is None or stim_channel == -1:
+            stim_channel = len(sel) - 1
+        elif stim_channel > len(ch_names):
+            raise ValueError('Requested stim_channel index ({}) exceeds total '
+                             'number of channels in datafile ({})'
+                             .format(stim_channel, len(ch_names)))
+
+    return stim_channel
 
 
 def _find_exclude_idx(ch_names, exclude):
