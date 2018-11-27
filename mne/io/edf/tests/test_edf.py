@@ -15,6 +15,8 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
 from scipy.io import loadmat
 
+import pytest
+
 from mne import pick_types, Annotations
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, requires_pandas, _TempDir
