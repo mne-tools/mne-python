@@ -207,9 +207,9 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     image_ax.axhline(0, color='k', linewidth=.5)
 
     # epoch variance
-    set_title_and_labels(var_ax, kind + ' variance', kind + ' (index)', 'AU')
+    set_title_and_labels(var_ax, kind + ' variance', kind + ' (index)',
+                         'Arbitrary Units')
 
-    hist_ax.set_title("Variance KDE\nand histogram")
     hist_ax.set_ylabel("")
     hist_ax.set_yticks([])
 
