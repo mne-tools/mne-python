@@ -32,8 +32,7 @@ def test_gdf_data():
 
     # this .npy was generated using the official biosig python package
     raw_biosig = np.load(gdf1_path + '_biosig.npy')
-    # raw_biosig = raw_biosig * 1e-6  # data are stored in microvolts
-    raw_biosig = raw_biosig * 1e+3  # XXX: I've lost some scaling somewhere
+    raw_biosig = raw_biosig * 1e-6  # data are stored in microvolts
     data_biosig = raw_biosig[picks]
 
     # Assert data are almost equal
@@ -65,8 +64,7 @@ def test_gdf2_data():
 
     # This .mat was generated using the official biosig matlab package
     mat = sio.loadmat(gdf2_path + '_biosig.mat')
-    # data_biosig = mat['dat'] * 1e-6  # data are stored in microvolts
-    data_biosig = mat['dat'] * 1e+3  # XXX: I've lost some scaling somewhere
+    data_biosig = mat['dat'] * 1e-6  # data are stored in microvolts
     data_biosig = data_biosig[picks]
 
     # Assert data are almost equal
