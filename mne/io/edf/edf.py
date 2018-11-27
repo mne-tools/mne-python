@@ -1004,7 +1004,12 @@ def _check_stim_channel(stim_channel, ch_names, sel):
                 err += ' Closest match is "{}".'.format(casematch[0])
             raise ValueError(err)
     else:
-        if stim_channel is None or stim_channel == -1:
+        if stim_channel is None:
+            if 'STATUS' in ch_names:
+                stim_channel = ch_names.index('STATUS')
+            elif 'Status' in ch_names:
+                stim_channel = ch_names.index('Status')
+        elif stim_channel == -1:
             stim_channel = len(sel) - 1
         elif stim_channel > len(ch_names):
             raise ValueError('Requested stim_channel index ({}) exceeds total '
