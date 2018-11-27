@@ -70,22 +70,16 @@ def test_gdf2_data():
     # Assert data are almost equal
     assert_array_almost_equal(data, data_biosig, 8)
 
-    # # Find events
-    # events = find_events(raw, verbose=1)
-    # events[:, 2] >>= 8  # last 8 bits are system events in biosemi files
-    # assert_equal(events.shape[0], 2)  # 2 events in file
-    # assert_array_equal(events[:, 2], [20, 28])
-
-    # with pytest.warns(RuntimeWarning, match='No events found'):
-    #     # header contains no events
-    #     raw = read_raw_edf(gdf2_path + '.gdf')  # XXX: , stim_channel='auto')
-    # assert_equal(nchan, raw.info['nchan'])  # stim channel not constructed
-    # assert_array_equal(ch_names[1:], raw.ch_names[1:])
+    # Find events
+    events = find_events(raw, verbose=1)
+    events[:, 2] >>= 8  # last 8 bits are system events in biosemi files
+    assert_equal(events.shape[0], 2)  # 2 events in file
+    assert_array_equal(events[:, 2], [20, 28])
 
     # gh-5604
     assert raw.info['meas_date'] == DATE_NONE
     _test_raw_reader(read_raw_edf, input_fname=gdf2_path + '.gdf',
-                     eog=None, misc=None)  # XXXX:, stim_channel='STATUS')
+                     eog=None, misc=None)
 
 
 run_tests_if_main()
