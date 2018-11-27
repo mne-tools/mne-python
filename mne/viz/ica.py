@@ -132,6 +132,7 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
                          kind):
     """Plot ICA properties (helper)."""
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+    from scipy.stats import gaussian_kde
 
     topo_ax, image_ax, erp_ax, spec_ax, var_ax = axes
 
@@ -160,9 +161,20 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     var_ax.scatter(range(len(epoch_var)), epoch_var, alpha=0.5,
                    facecolor=[0, 0, 0], lw=0)
     var_ax.set_yticks([])
-    hist_ax.hist(epoch_var, orientation="horizontal", color="grey")
-    hist_ax.set_ylabel("")
-    hist_ax.set_yticks([])
+
+    # histogram & histogram
+    _, counts, _ = hist_ax.hist(epoch_var, orientation="horizontal",
+                                color="k", alpha=.5)
+
+    # kde
+    kde = gaussian_kde(epoch_var)
+    ymin, ymax = hist_ax.get_ylim()
+    x = np.linspace(ymin, ymax, 50)
+    kde_ = kde(x)
+    kde_ /= kde_.max()
+    kde_ *= hist_ax.get_xlim()[-1] * .9
+    hist_ax.plot(kde_, x, color="k")
+    hist_ax.set_ylim(ymin, ymax)
 
     # aesthetics
     # ----------
@@ -197,6 +209,10 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
 
     # epoch variance
     set_title_and_labels(var_ax, kind + ' variance', kind + ' (index)', 'AU')
+
+    hist_ax.set_title("Variance KDE\nand histogram")
+    hist_ax.set_ylabel("")
+    hist_ax.set_yticks([])
 
     return fig
 
