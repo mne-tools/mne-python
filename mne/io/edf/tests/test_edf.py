@@ -10,8 +10,6 @@
 import os.path as op
 import inspect
 
-import pytest
-
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
@@ -21,15 +19,10 @@ from mne import pick_types, Annotations
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, requires_pandas, _TempDir
 from mne.io import read_raw_edf
-from mne.io.base import _RawShell
-from mne.io.meas_info import _empty_info
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.pick import channel_type
 from mne.io.edf.edf import _read_annotations_edf
 from mne.io.edf.edf import _get_edf_default_event_id
-from mne.io.edf.edf import _read_edf_header
-from mne.event import find_events
-from mne.annotations import events_from_annotations, read_annotations
+from mne.annotations import events_from_annotations
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -65,14 +58,6 @@ def test_orig_units():
     assert orig_units['A1'] == u'µV'  # formerly 'uV' edit by _check_orig_units
 
 
-def test_broken_montage():
-    """Test reading raw bdf files."""
-    raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
-                              montage=montage_path, eog=eog, misc=misc,
-                              exclude=['M2', 'IEOG'])
-    assert len(raw_py.ch_names) == 71
-
-# @pytest.mark.skip(reason="XXX I broke the montage")
 def test_bdf_data():
     """Test reading raw bdf files."""
     raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
@@ -168,12 +153,6 @@ def test_find_events_backward_compatibility():
     assert_array_equal(events_from_EFA, EXPECTED_EVENTS)
 
 
-def test_edf_stim_channel():
-    """Test stim channel for edf file."""
-    # test if stim channel is automatically detected
-    raw = read_raw_edf(edf_path, preload=True)
-
-
 @requires_pandas
 def test_to_data_frame():
     """Test edf Raw Pandas exporter."""
@@ -203,8 +182,6 @@ def test_read_raw_edf_deprecation():
         read_raw_edf(edf_path, stim_channel='what ever')
 
 
-
-# XXX: refator
 def _assert_annotations_equal(a, b):
     assert_array_equal(a.onset, b.onset)
     assert_array_equal(a.duration, b.duration)

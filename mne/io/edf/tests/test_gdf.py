@@ -9,7 +9,6 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
 import numpy as np
 import scipy.io as sio
-import pytest
 
 from mne.datasets import testing
 from mne.io import read_raw_edf
@@ -57,8 +56,6 @@ def test_gdf2_data():
     """Test reading raw GDF 2.x files."""
     raw = read_raw_edf(gdf2_path + '.gdf', eog=None, misc=None, preload=True)
 
-    nchan = raw.info['nchan']
-    ch_names = raw.ch_names  # Renamed STATUS -> STI 014.
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
 

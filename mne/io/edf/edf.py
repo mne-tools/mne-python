@@ -5,6 +5,7 @@
 #          Martin Billinger <martin.billinger@tugraz.at>
 #          Nicolas Barascud <nicolas.barascud@ens.fr>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -16,13 +17,13 @@ import re
 import numpy as np
 
 from ...utils import verbose, logger, warn
-from ..utils import _blk_read_lims, _synthesize_stim_channel
+from ..utils import _blk_read_lims
 from ..base import BaseRaw, _check_update_montage
 from ..meas_info import _empty_info, DATE_NONE
 from ..constants import FIFF
 from ...filter import resample
 from ...utils import copy_function_doc_to_method_doc
-from ...annotations import Annotations, events_from_annotations
+from ...annotations import Annotations
 
 
 def find_edf_events(raw):
@@ -167,7 +168,6 @@ class RawEDF(BaseRaw):
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        from scipy.interpolate import interp1d
         if mult is not None:
             # XXX "cals" here does not function the same way as in RawFIF,
             # and for efficiency we want to be able to combine mult and cals
@@ -175,7 +175,6 @@ class RawEDF(BaseRaw):
             raise NotImplementedError('mult is not supported yet')
         n_samps = self._raw_extras[fi]['n_samps']
         buf_len = int(self._raw_extras[fi]['max_samp'])
-        sfreq = self.info['sfreq']
         dtype = self._raw_extras[fi]['dtype_np']
         dtype_byte = self._raw_extras[fi]['dtype_byte']
         data_offset = self._raw_extras[fi]['data_offset']
@@ -329,9 +328,6 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         # orig_units not yet implemented for gdf
         orig_units = None
 
-        # XXX: this should go. if 'stim_data' is there, then read_annot
-        if 'stim_data' not in edf_info and stim_channel == 'auto':
-            stim_channel = None  # Cannot construct stim channel.
     else:
         raise NotImplementedError(
             'Only GDF, EDF, and BDF files are supported, got %s.' % ext)
@@ -352,7 +348,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         warn('Physical range is not defined in following channels:\n' +
              ', '.join(ch_names[i] for i in bad_idx))
         physical_ranges[bad_idx] = 1
-    if 'stim_data' in edf_info:  # For GDF events.  # XXX: com back to this
+    if 'stim_data' in edf_info:  # For GDF events.
         cals = np.append(cals, 1)
     stim_channel = _check_stim_channel(stim_channel, ch_names, sel)
 
@@ -491,7 +487,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
 
 def _read_edf_header(fname, exclude):
     """Read header information from EDF+ or BDF file."""
-    edf_info = {'events':[]}
+    edf_info = {'events': []}
 
     with open(fname, 'rb') as fid:
 
@@ -1121,18 +1117,17 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     raw = RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
                  stim_channel=stim_channel, exclude=exclude, preload=preload,
                  verbose=verbose)
-    # XXX: This should not be done like this. It requires to read the file twice.
-    #      But it has been this way since 2013 (see 37090e5).
+    # XXX: This should not be done like this. It requires to read the file
+    #      twice. But it has been this way since 2013 (see 37090e5).
     #      We should fix it at some point.
     onset, duration, desc = _read_annotations_edf(input_fname)
     if onset:
         # in EDF, annotations are relative to first_samp
-        annot = Annotations(onset=onset, duration=duration, description=desc, orig_time=None)
+        annot = Annotations(onset=onset, duration=duration, description=desc,
+                            orig_time=None)
         raw.set_annotations(annot)
 
     return raw
-
-
 
 
 def _read_annotations_edf(annotations):
