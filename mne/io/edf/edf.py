@@ -179,6 +179,7 @@ class RawEDF(BaseRaw):
         dtype = self._raw_extras[fi]['dtype_np']
         dtype_byte = self._raw_extras[fi]['dtype_byte']
         data_offset = self._raw_extras[fi]['data_offset']
+        stim_channel = self._raw_extras[fi]['stim_channel']
         tal_sel = self._raw_extras[fi]['tal_sel']
         orig_sel = self._raw_extras[fi]['sel']
         subtype = self._raw_extras[fi]['subtype']
@@ -242,6 +243,19 @@ class RawEDF(BaseRaw):
                     assert ch_data.shape == (len(ch_data), buf_len)
                     data[ii, d_sidx:d_eidx] = ch_data.ravel()[r_sidx:r_eidx]
 
+        if subtype == 'bdf':
+            # do not scale stim channel (see gh-5160)
+            if stim_channel is None:
+                stim_idx = [[]]
+            else:
+                stim_idx = np.where(np.arange(self.info['nchan']) ==
+                                    stim_channel)
+            cal[0, stim_idx[0]] = 1
+            offsets[stim_idx[0], 0] = 0
+            gains[0, stim_idx[0]] = 1
+        data *= cal.T[idx]
+        data += offsets[idx]
+        data *= gains.T[idx]
 
     @copy_function_doc_to_method_doc(find_edf_events)
     def find_edf_events(self):
