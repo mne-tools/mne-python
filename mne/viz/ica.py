@@ -189,8 +189,7 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     # remove half of yticks if more than 5
     yt = erp_ax.get_yticks()
     if len(yt) > 5:
-        yt = yt[::2]
-        erp_ax.yaxis.set_ticks(yt)
+        erp_ax.yaxis.set_ticks(yt[::2])
 
     # remove xticks - erp plot shows xticks for both image and erp plot
     image_ax.xaxis.set_ticks([])
