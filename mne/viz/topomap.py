@@ -470,6 +470,45 @@ def _draw_outlines(ax, outlines):
     return outlines_
 
 
+def _get_extended_hull_points(pos):
+    from scipy.spatial import ConvexHull
+
+    # checking channel distances (mean of shortest 10% distances)
+    ch_dim_diff = pos[..., np.newaxis] - pos.T[np.newaxis]
+    ch_dist = np.linalg.norm(ch_dim_diff, axis=1)
+    upper_tri_idx = np.triu_indices(ch_dist.shape[0], k=1)
+    ch_dist = ch_dist[upper_tri_idx[0], upper_tri_idx[1]]
+    tenperc = int(round(len(ch_dist) * 0.1))
+    tenperc = 1 if tenperc == 0 else tenperc
+    mean_shrt_dist = np.sort(ch_dist)[:tenperc].mean()
+
+    # calculate the convex hull of data points
+    convex_hull = ConvexHull(pos)
+    hull = pos[convex_hull.vertices]
+
+    # extend the convex hull limits a bit
+    channels_center = pos.mean(axis=0, keepdims=True)
+    radial_dir = hull - channels_center
+    unit_radial_dir = radial_dir / np.linalg.norm(radial_dir, axis=1, keepdims=True)
+    hull_extended = hull + unit_radial_dir * mean_shrt_dist
+
+    diff = np.diff(np.append(hull_extended, hull_extended[[0]], axis=0), axis=0)
+    dist = np.linalg.norm(diff, axis=1)
+
+    # add points along hull edges so that the distance between points
+    # is around that of average distance between channels
+    add_points = list()
+    n_times_mindist = np.round(dist / mean_shrt_dist).astype('int')
+    for n in range(2, n_times_mindist.max() + 1):
+        mask = n_times_mindist == n
+        mult = np.arange(1/n, 1 - np.finfo('float').eps, 1/n)
+        steps = diff[mask][np.newaxis, ...] * mult[:, np.newaxis, np.newaxis]
+        add_points.append((hull_extended[mask][np.newaxis, ...] + steps).reshape((-1, 2)))
+
+    hull_extended = np.concatenate([hull_extended] + add_points)
+    return hull_extended
+
+
 class _GridData(object):
     """Unstructured (x,y) data interpolator.
 
@@ -483,15 +522,8 @@ class _GridData(object):
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2
         # Adding points outside the extremes helps the interpolators
-        extremes = np.array([pos.min(axis=0), pos.max(axis=0)])
-        diffs = extremes[1] - extremes[0]
-        extremes[0] -= diffs
-        extremes[1] += diffs
-        eidx = np.array(list(itertools.product(
-            *([[0] * (pos.shape[1] - 1) + [1]] * pos.shape[1]))))
-        pidx = np.tile(np.arange(pos.shape[1])[np.newaxis], (len(eidx), 1))
-        self.n_extra = pidx.shape[0]
-        outer_pts = extremes[eidx, pidx]
+        outer_pts = _get_extended_hull_points(pos)
+        self.n_extra = outer_pts.shape[0]
         pos = np.concatenate((pos, outer_pts))
         self.tri = Delaunay(pos)
 
