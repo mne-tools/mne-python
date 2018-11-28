@@ -640,7 +640,7 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
         ylabel = r'$\mathrm{%s / \sqrt{Hz}}$' % unit
     else:
         psds *= scaling * scaling
-        ylabel = r'$\mathrm{%s^2}/Hz}$' % unit
+        ylabel = r'$\mathrm{%s^2/Hz}$' % unit
 
     if dB:
         np.log10(np.maximum(psds, np.finfo(float).tiny), out=psds)
