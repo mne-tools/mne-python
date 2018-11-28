@@ -443,7 +443,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     info['chs'] = chs
     info['ch_names'] = ch_names
 
-    # Compute Annotaions for GDF. This cannot be done without sfreq.
+    # Compute Annotations for GDF. This cannot be done without sfreq.
     if ext in ('gdf'):
         # Annotations in GDF, events are stored in edf_info as the following
         # list: `events = [n_events, pos, typ, chn, dur]` where pos is the
