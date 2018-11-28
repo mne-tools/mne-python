@@ -171,7 +171,6 @@ def test_to_data_frame():
 
 def test_read_raw_edf_deprecation():
     """Test edf raw reader deprecation."""
-
     _MSG = "`read_raw_edf` is not supposed to trigger a deprecation warning"
     with pytest.warns(None) as recwarn:
         read_raw_edf(edf_path)

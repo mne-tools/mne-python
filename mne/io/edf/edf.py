@@ -153,8 +153,9 @@ class RawEDF(BaseRaw):
                  verbose=None):  # noqa: D102
         logger.info('Extracting EDF parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
-        info, edf_info, orig_units = _get_info(input_fname, stim_channel,
-                                               eog, misc, exclude, preload)
+        info, edf_info, orig_units, annot = _get_info(input_fname,
+                                                      stim_channel, eog, misc,
+                                                      exclude, preload)
         logger.info('Creating raw.info structure...')
         _check_update_montage(info, montage)
 
@@ -164,6 +165,9 @@ class RawEDF(BaseRaw):
             info, preload, filenames=[input_fname], raw_extras=[edf_info],
             last_samps=last_samps, orig_format='int', orig_units=orig_units,
             verbose=verbose)
+
+        if annot is not None:
+            self.set_annotations(annot)
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -363,6 +367,17 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     #                                      seems to indicate the old code.)
     tal_ch_name = 'EDF Annotations'
     tal_chs = np.where(np.array(ch_names) == tal_ch_name)[0]
+    annot = None
+    if len(tal_chs) > 0:
+        # XXX: This should not be done like this. It requires to read the file
+        #      twice. But it has been this way since 2013 (see 37090e5).
+        #      We should fix it at some point.
+        onset, duration, desc = _read_annotations_edf(fname)
+        if onset:
+            # in EDF, annotations are relative to first_samp
+            annot = Annotations(onset=onset, duration=duration,
+                                description=desc, orig_time=None)
+
     tal_sel = edf_info['sel'][tal_chs]
     edf_info['tal_sel'] = tal_sel
 
@@ -482,7 +497,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
 
     info._update_redundant()
 
-    return info, edf_info, orig_units
+    return info, edf_info, orig_units, annot
 
 
 def _read_edf_header(fname, exclude):
@@ -1114,20 +1129,9 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    raw = RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
-                 stim_channel=stim_channel, exclude=exclude, preload=preload,
-                 verbose=verbose)
-    # XXX: This should not be done like this. It requires to read the file
-    #      twice. But it has been this way since 2013 (see 37090e5).
-    #      We should fix it at some point.
-    onset, duration, desc = _read_annotations_edf(input_fname)
-    if onset:
-        # in EDF, annotations are relative to first_samp
-        annot = Annotations(onset=onset, duration=duration, description=desc,
-                            orig_time=None)
-        raw.set_annotations(annot)
-
-    return raw
+    return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
+                  stim_channel=stim_channel, exclude=exclude, preload=preload,
+                  verbose=verbose)
 
 
 def _read_annotations_edf(annotations):
