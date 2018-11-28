@@ -326,7 +326,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     logger.info('%s file detected' % ext.upper())
     if ext in ('bdf', 'edf'):
         edf_info, orig_units = _read_edf_header(fname, exclude)
-    elif ext in ('gdf'):  # XXX: I'm sure we can unify this (+ its not cover)
+    elif ext in ('gdf'):
         edf_info = _read_gdf_header(fname, stim_channel, exclude)
 
         # orig_units not yet implemented for gdf
@@ -357,21 +357,10 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     stim_channel = _check_stim_channel(stim_channel, ch_names, sel)
 
     # Annotations
-    # XXX: All this should go, and be substituted by:
-    #       - is there TAL channel (aka 'EDF Annotations' in ch_name)?
-    #       - find where is in the data-file
-    #       - parse it
-    #       - add it as self.annotations
-    #       - Repeat for all TAL channels (if Any file format allows for
-    #                                      multiple TAL annotations, as it
-    #                                      seems to indicate the old code.)
     tal_ch_name = 'EDF Annotations'
     tal_chs = np.where(np.array(ch_names) == tal_ch_name)[0]
     annot = None
     if len(tal_chs) > 0:
-        # XXX: This should not be done like this. It requires to read the file
-        #      twice. But it has been this way since 2013 (see 37090e5).
-        #      We should fix it at some point.
         onset, duration, desc = _read_annotations_edf(fname)
         if onset:
             # in EDF, annotations are relative to first_samp
