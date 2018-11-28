@@ -443,6 +443,23 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     info['chs'] = chs
     info['ch_names'] = ch_names
 
+    # Compute Annotaions for GDF. This cannot be done without sfreq.
+    if ext in ('gdf'):
+        # Annotations in GDF, events are stored in edf_info as the following
+        # list: `events = [n_events, pos, typ, chn, dur]` where pos is the
+        # latency, dur is the duration in samples. They both are numpy.ndarray
+        if edf_info['events']:
+            _is_pos_empty = edf_info['events'][1].shape[0] == 0
+            if not _is_pos_empty:
+                # For whatever reason, typ has the same content as pos
+                # therefore we set an arbitrary description
+                desc = 'GDF event'
+                delta = 1 / sfreq
+                annot = Annotations(onset=edf_info['events'][1] * delta,
+                                    duration=edf_info['events'][4] * delta,
+                                    description=desc,
+                                    orig_time=None)
+
     # Filter settings
     highpass = edf_info['highpass']
     lowpass = edf_info['lowpass']

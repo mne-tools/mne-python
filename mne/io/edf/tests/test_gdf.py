@@ -37,15 +37,8 @@ def test_gdf_data():
     # Assert data are almost equal
     assert_array_almost_equal(data, data_biosig, 8)
 
-    # # Test for stim channel
-    # events = find_events(raw, shortest_event=1)
-    # # The events are overlapping.
-    # assert_array_equal(events[:, 0], raw._raw_extras[0]['events'][1][::2])
-
-    # # Test events are encoded to stim channel.
-    # events = find_events(raw)
-    # evs = raw.find_edf_events()
-    # assert (all([event in evs[1] for event in events[:, 0]]))
+    # Test for events
+    assert len(raw.annotations.duration == 963)
 
     # gh-5604
     assert raw.info['meas_date'] == DATE_NONE
