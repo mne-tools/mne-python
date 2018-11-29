@@ -212,6 +212,7 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
 
     hist_ax.set_ylabel("")
     hist_ax.set_yticks([])
+    set_title_and_labels(hist_ax, None, None, None)
 
     return fig
 
