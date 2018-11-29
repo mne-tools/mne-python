@@ -208,7 +208,7 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
 
     # epoch variance
     set_title_and_labels(var_ax, kind + ' variance', kind + ' (index)',
-                         'Arbitrary Units')
+                         'Arbitrary Units (AU)')
 
     hist_ax.set_ylabel("")
     hist_ax.set_yticks([])
