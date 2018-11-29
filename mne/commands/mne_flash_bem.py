@@ -67,6 +67,11 @@ def run():
     parser.add_option("-v", "--view", dest="show", action="store_true",
                       help="Show BEM model in 3D for visual inspection",
                       default=False)
+    parser.add_option("-p", "--flash-path", dest="flash_path",
+                      default=None,
+                      help="The directory containing flash05.mgz and "
+                      "flash30.mgz files (defaults to "
+                      "$SUBJECTS_DIR/$SUBJECT/mri/flash/parameter_maps")
 
     options, args = parser.parse_args()
 
@@ -77,6 +82,7 @@ def run():
     unwarp = options.unwarp
     overwrite = options.overwrite
     show = options.show
+    flash_path = options.flash_path
 
     if options.subject is None:
         parser.print_help()
@@ -85,7 +91,7 @@ def run():
     convert_flash_mris(subject=subject, subjects_dir=subjects_dir,
                        flash30=flash30, convert=convert, unwarp=unwarp)
     make_flash_bem(subject=subject, subjects_dir=subjects_dir,
-                   overwrite=overwrite, show=show, flash_path='.')
+                   overwrite=overwrite, show=show, flash_path=flash_path)
 
 
 is_main = (__name__ == '__main__')

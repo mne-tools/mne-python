@@ -198,6 +198,7 @@ def test_io_set_raw(fnames, tmpdir):
                            np.array([np.nan, np.nan, np.nan]))
 
 
+@pytest.mark.timeout(60)  # ~60 sec on Travis OSX
 @requires_h5py
 @testing.requires_testing_data
 @pytest.mark.parametrize('fnames', [epochs_mat_fnames, epochs_h5_fnames])

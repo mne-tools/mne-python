@@ -42,6 +42,7 @@ def _assert_trans(actual, desired, dist_tol=0.003, angle_tol=5.):
     assert angle <= angle_tol, '%0.3f > %0.3f deg' % (angle, angle_tol)
 
 
+@pytest.mark.timeout(60)  # ~25 sec on Travis Linux OpenBLAS
 @testing.requires_testing_data
 def test_data():
     """Test reading raw Artemis123 files."""
