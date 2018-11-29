@@ -128,8 +128,12 @@ def _create_properties_layout(figsize=None):
 def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
                          epoch_var, plot_lowpass_edge, epochs_src,
                          set_title_and_labels, plot_std, psd_ylabel,
-                         spectrum_std, topomap_args, image_args, fig, axes):
+                         spectrum_std, topomap_args, image_args, fig, axes,
+                         kind):
     """Plot ICA properties (helper)."""
+    from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+    from scipy.stats import gaussian_kde
+
     topo_ax, image_ax, erp_ax, spec_ax, var_ax = axes
 
     # plotting
@@ -152,14 +156,31 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
                         color='k', alpha=0.2)
 
     # epoch variance
+    var_ax_divider = make_axes_locatable(var_ax)
+    hist_ax = var_ax_divider.append_axes("right", size="33%", pad="2.5%")
     var_ax.scatter(range(len(epoch_var)), epoch_var, alpha=0.5,
                    facecolor=[0, 0, 0], lw=0)
+    var_ax.set_yticks([])
+
+    # histogram & histogram
+    _, counts, _ = hist_ax.hist(epoch_var, orientation="horizontal",
+                                color="k", alpha=.5)
+
+    # kde
+    kde = gaussian_kde(epoch_var)
+    ymin, ymax = hist_ax.get_ylim()
+    x = np.linspace(ymin, ymax, 50)
+    kde_ = kde(x)
+    kde_ /= kde_.max()
+    kde_ *= hist_ax.get_xlim()[-1] * .9
+    hist_ax.plot(kde_, x, color="k")
+    hist_ax.set_ylim(ymin, ymax)
 
     # aesthetics
     # ----------
     topo_ax.set_title(ica._ica_names[pick])
 
-    set_title_and_labels(image_ax, 'Epochs image and ERP/ERF', [], 'Epochs')
+    set_title_and_labels(image_ax, kind + ' image and ERP/ERF', [], kind)
 
     # erp
     set_title_and_labels(erp_ax, [], 'Time (s)', 'AU\n')
@@ -168,8 +189,7 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     # remove half of yticks if more than 5
     yt = erp_ax.get_yticks()
     if len(yt) > 5:
-        yt = yt[::2]
-        erp_ax.yaxis.set_ticks(yt)
+        erp_ax.yaxis.set_ticks(yt[::2])
 
     # remove xticks - erp plot shows xticks for both image and erp plot
     image_ax.xaxis.set_ticks([])
@@ -187,7 +207,12 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     image_ax.axhline(0, color='k', linewidth=.5)
 
     # epoch variance
-    set_title_and_labels(var_ax, 'Epochs variance', 'Epoch (index)', 'AU')
+    set_title_and_labels(var_ax, kind + ' variance', kind + ' (index)',
+                         'Arbitrary Units (AU)')
+
+    hist_ax.set_ylabel("")
+    hist_ax.set_yticks([])
+    set_title_and_labels(hist_ax, None, None, None)
 
     return fig
 
@@ -309,6 +334,9 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         from ..epochs import _segment_raw
         inst = _segment_raw(inst, segment_length=2., verbose=False,
                             preload=True)
+        kind = "Segment"
+    else:
+        kind = "Epochs"
 
     epochs_src = ica.get_sources(inst)
     ica_data = np.swapaxes(epochs_src.get_data()[:, picks, :], 0, 1)
@@ -350,7 +378,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
             pick, ica, inst, psds_mean, freqs, ica_data.shape[1],
             np.var(ica_data[idx], axis=1), plot_lowpass_edge,
             epochs_src, set_title_and_labels, plot_std, psd_ylabel,
-            spectrum_std, topomap_args, image_args, fig, axes)
+            spectrum_std, topomap_args, image_args, fig, axes, kind)
         all_fig.append(fig)
 
     plt_show(show)
