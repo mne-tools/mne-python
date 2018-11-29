@@ -34,7 +34,7 @@ command_rst = """
 .. _gen_%s:
 
 %s
-----------------------------------------------------------
+%s
 
 .. raw:: html
 
@@ -72,7 +72,9 @@ def generate_commands_rst(app):
             output, _ = run_subprocess([sys.executable, run_name, '--help'],
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE, verbose=False)
-            f.write(command_rst % (cmd_name, cmd_name.replace('mne_', 'mne '),
+            f.write(command_rst % (cmd_name,
+                                   cmd_name.replace('mne_', 'mne '),
+                                   '-' * len(cmd_name),
                                    output))
     print('[Done]')
 
