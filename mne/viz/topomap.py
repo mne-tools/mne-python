@@ -471,42 +471,44 @@ def _draw_outlines(ax, outlines):
 
 
 def _get_extended_hull_points(pos):
-    from scipy.spatial import ConvexHull
+    # from scipy.spatial import ConvexHull
+    from scipy.spatial.qhull import Delaunay
 
-    # checking channel distances (mean of shortest 10% distances)
-    ch_dim_diff = pos[..., np.newaxis] - pos.T[np.newaxis]
-    ch_dist = np.linalg.norm(ch_dim_diff, axis=1)
-    upper_tri_idx = np.triu_indices(ch_dist.shape[0], k=1)
-    ch_dist = ch_dist[upper_tri_idx[0], upper_tri_idx[1]]
-    tenperc = int(round(len(ch_dist) * 0.1))
-    tenperc = 1 if tenperc == 0 else tenperc
-    mean_shrt_dist = np.sort(ch_dist)[:tenperc].mean()
+    # compute median inter-electrode distance
+    tri = Delaunay(pos, incremental=True)
+    idx1, idx2, idx3 = tri.simplices.T
+    distances = np.concatenate([np.linalg.norm(pos[i1, :] - pos[i2, :], axis=1)
+                                for i1, i2 in zip([idx1, idx2], [idx2, idx3])])
+    distance = np.median(distances)
 
-    # calculate the convex hull of data points
-    convex_hull = ConvexHull(pos)
-    hull = pos[convex_hull.vertices]
+    # get the convex hull of data points from triangulation
+    hull_pos = pos[tri.convex_hull]
 
-    # extend the convex hull limits a bit
+    # extend the convex hull limits outwards a bit
     channels_center = pos.mean(axis=0, keepdims=True)
-    radial_dir = hull - channels_center
-    unit_radial_dir = radial_dir / np.linalg.norm(radial_dir, axis=1, keepdims=True)
-    hull_extended = hull + unit_radial_dir * mean_shrt_dist
-
-    diff = np.diff(np.append(hull_extended, hull_extended[[0]], axis=0), axis=0)
-    dist = np.linalg.norm(diff, axis=1)
+    radial_dir = hull_pos - channels_center[np.newaxis, :]
+    unit_radial_dir = radial_dir / np.linalg.norm(radial_dir, axis=-1,
+                                                  keepdims=True)
+    hull_extended = hull_pos + unit_radial_dir * distance
+    hull_diff = np.diff(hull_pos, axis=1)[:, 0]
+    hull_distances = np.linalg.norm(hull_diff, axis=-1)
 
     # add points along hull edges so that the distance between points
     # is around that of average distance between channels
     add_points = list()
-    n_times_mindist = np.round(dist / mean_shrt_dist).astype('int')
-    for n in range(2, n_times_mindist.max() + 1):
-        mask = n_times_mindist == n
-        mult = np.arange(1/n, 1 - np.finfo('float').eps, 1/n)
-        steps = diff[mask][np.newaxis, ...] * mult[:, np.newaxis, np.newaxis]
-        add_points.append((hull_extended[mask][np.newaxis, ...] + steps).reshape((-1, 2)))
+    eps = np.finfo('float').eps
+    n_times_dist = np.round(hull_distances / distance).astype('int')
+    for n in range(2, n_times_dist.max() + 1):
+        mask = n_times_dist == n
+        mult = np.arange(1/n, 1 - eps, 1/n)[:, np.newaxis, np.newaxis]
+        steps = hull_diff[mask][np.newaxis, ...] * mult
+        add_points.append((hull_extended[mask, 0][np.newaxis, ...]
+                           + steps).reshape((-1, 2)))
 
+    # remove duplicates from hull_extended
+    hull_extended = np.unique(hull_extended.reshape((-1, 2)), axis=0)
     hull_extended = np.concatenate([hull_extended] + add_points)
-    return hull_extended
+    return hull_extended, tri
 
 
 class _GridData(object):
@@ -518,14 +520,13 @@ class _GridData(object):
     """
 
     def __init__(self, pos):
-        from scipy.spatial.qhull import Delaunay
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2
         # Adding points outside the extremes helps the interpolators
-        outer_pts = _get_extended_hull_points(pos)
+        outer_pts, tri = _get_extended_hull_points(pos)
         self.n_extra = outer_pts.shape[0]
-        pos = np.concatenate((pos, outer_pts))
-        self.tri = Delaunay(pos)
+        tri.add_points(outer_pts)
+        self.tri = tri
 
     def set_values(self, v):
         """Set the values at interpolation points."""
