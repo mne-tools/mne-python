@@ -25,7 +25,7 @@ from mne.io import read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import _read_annotations_edf
 from mne.io.edf.edf import _get_edf_default_event_id
-from mne.annotations import events_from_annotations
+from mne.annotations import events_from_annotations, read_annotations
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -46,6 +46,7 @@ edf_overlap_annot_path = op.join(data_path, 'EDF',
 edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
 bdf_stim_channel_path = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 
+test_generator_bdf = op.join(data_dir, 'test_generator_2.bdf')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
