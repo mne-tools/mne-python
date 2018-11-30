@@ -251,5 +251,47 @@ def test_load_toy_examples_in_edf_branch(fname, recwarn):
     #          title=op.basename(fname))
 
 
+@pytest.mark.parametrize('fname, header_length, start, n_samp, dtype_length, dtype_byte', [
+    (test_generator_bdf, 3328, 200 * 11, 34, np.dtype(np.uint8).itemsize,  3),
+    (test_generator_edf, 3328, 200 * 11, 51, np.dtype(np.uint16).itemsize, 2)])
+def test_xxx_parse_tal_channel(fname, header_length, start, n_samp, dtype_length, dtype_byte, recwarn):
+    import re
+
+    print(f'\n------------ fname: {fname} ---------')
+    with open(fname, 'r', encoding='latin-1') as fid:
+        fid.seek(header_length + (start * dtype_length * dtype_byte))
+        buff = fid.read(n_samp * dtype_length * dtype_byte)
+
+    # XXX: passing a bytearray does not work.
+    # onset, druation, desc = _read_annotations_edf(str.encode(buff))
+    #
+    # so, we'll do it manually
+    pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
+    triggers = re.findall(pat, buff)
+
+    print(triggers)
+
+
+@pytest.mark.parametrize('fname, header_length, start, n_samp, dtype_length, dtype_byte', [
+    (test_generator_bdf, 3328, 200 * 11, 34, np.dtype(np.uint8).itemsize,  3),
+    (test_generator_edf, 3328, 200 * 11, 51, np.dtype(np.uint16).itemsize, 2)])
+def test_xxx_parse_tal_channel_entire_file(fname, header_length, start, n_samp, dtype_length, dtype_byte, recwarn):
+    import re
+
+    print(f'\n------------ fname: {fname} ---------')
+    with open(fname, 'r', encoding='latin-1') as fid:
+        fid.seek(header_length)
+        buff = fid.read()
+
+    # XXX: passing a bytearray does not work.
+    # onset, druation, desc = _read_annotations_edf(str.encode(buff))
+    #
+    # so, we'll do it manually
+    pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
+    triggers = re.findall(pat, buff)
+
+    print(triggers)
+
+
 
 run_tests_if_main()
