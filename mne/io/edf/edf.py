@@ -237,12 +237,34 @@ class RawEDF(BaseRaw):
                     d_sidx = d_lims[ai][0]
                     d_eidx = d_lims[ai + n_read - 1][1]
                     if n_samps[ci] != buf_len:
-                        # XXX resampling each chunk isn't great,
-                        # it forces edge artifacts to appear at
-                        # each buffer boundary :(
-                        # it can also be very slow...
-                        ch_data = resample(ch_data, buf_len, n_samps[ci],
-                                           npad=0, axis=-1)
+                        if ci in tal_sel:
+                            # don't resample tal_channels, zero-pad instead.
+                            if n_samps[ci] < buf_len:
+                                z = np.zeros((len(ch_data),
+                                              buf_len - n_samps[ci]))
+                                ch_data = np.append(ch_data, z, -1)
+                            else:
+                                ch_data = ch_data[:, :buf_len]
+                        elif ci == stim_channel:
+                            if (annot and annotmap or stim_data is not None or
+                                    len(tal_sel) > 0):
+                                # don't resample, it gets overwritten later
+                                ch_data = np.zeros((len(ch_data), buf_len))
+                            else:
+                                # Stim channel will be interpolated
+                                old = np.linspace(0, 1, n_samps[ci] + 1, True)
+                                new = np.linspace(0, 1, buf_len, False)
+                                ch_data = np.append(
+                                    ch_data, np.zeros((len(ch_data), 1)), -1)
+                                ch_data = interp1d(old, ch_data,
+                                                   kind='zero', axis=-1)(new)
+                        else:
+                            # XXX resampling each chunk isn't great,
+                            # it forces edge artifacts to appear at
+                            # each buffer boundary :(
+                            # it can also be very slow...
+                            ch_data = resample(ch_data, buf_len, n_samps[ci],
+                                               npad=0, axis=-1)
                     assert ch_data.shape == (len(ch_data), buf_len)
                     data[ii, d_sidx:d_eidx] = ch_data.ravel()[r_sidx:r_eidx]
 
