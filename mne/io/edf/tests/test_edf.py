@@ -47,6 +47,7 @@ edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
 bdf_stim_channel_path = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 
 test_generator_bdf = op.join(data_dir, 'test_generator_2.bdf')
+test_generator_edf = op.join(data_dir, 'test_generator_2.edf')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
@@ -227,6 +228,28 @@ def test_toy_bdf(recwarn):
                        [x for x in range(400, 119801, 200)])
     annot = read_annotations(test_generator_bdf)
     assert len(annot.onset) == len(EXPECTED_EVENTS)+2
+
+
+@pytest.mark.parametrize('fname', [test_generator_bdf, test_generator_edf])
+def test_load_toy_examples_in_edf_branch(fname, recwarn):
+    from mne.io.pick import channel_indices_by_type
+
+    print(f'\n------------ fname: {fname} ---------')
+    raw = read_raw_edf(test_generator_bdf)
+    found_types = [k for k, v in
+                   channel_indices_by_type(raw.info, picks=None).items()
+                   if v]
+    events, event_id = events_from_annotations(raw)
+    print(f'The read types are {found_types}')
+    print(f'The shape of the data is {raw.get_data().shape}')
+    print(f"Channel names in _raw_extras: {raw._raw_extras[0]['ch_names']}")
+    print(f'Annotations load in read_raw_edf: {raw.annotations}')
+    print(f'Event ids found in Annotations: {event_id}')
+    print(f'Events loaded:\n {events}')
+
+    # raw.plot(scalings={k:'auto' for k in found_types},
+    #          title=op.basename(fname))
+
 
 
 run_tests_if_main()

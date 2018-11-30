@@ -1164,7 +1164,6 @@ def _read_annotations_edf(annotations):
         epochs, use description starting with keyword 'bad'. See example above.
     """
     pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
-    import pdb; pdb.set_trace()
     if isinstance(annotations, str):
         with open(annotations, encoding='latin-1') as annot_file:
             triggers = re.findall(pat, annot_file.read())
