@@ -1050,6 +1050,8 @@ def _check_stim_channel(stim_channel, ch_names, sel):
                 stim_channel = ch_names.index('STATUS')
             elif 'Status' in ch_names:
                 stim_channel = ch_names.index('Status')
+            else:
+                stim_channel = len(sel) - 1
         elif stim_channel == -1:
             stim_channel = len(sel) - 1
         elif stim_channel > len(ch_names):
