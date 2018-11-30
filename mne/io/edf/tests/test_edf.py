@@ -235,7 +235,7 @@ def test_load_toy_examples_in_edf_branch(fname, recwarn):
     from mne.io.pick import channel_indices_by_type
 
     print(f'\n------------ fname: {fname} ---------')
-    raw = read_raw_edf(test_generator_bdf)
+    raw = read_raw_edf(fname)
     found_types = [k for k, v in
                    channel_indices_by_type(raw.info, picks=None).items()
                    if v]
