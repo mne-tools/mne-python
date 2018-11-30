@@ -4,6 +4,7 @@
 #          Alan Leggitt <alan.leggitt@ucsf.edu>
 #          Alexandre Barachant <alexandre.barachant@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -218,6 +219,13 @@ def test_read_annot(tmpdir):
     annotation = Annotations(onset=onset, duration=duration, description=desc,
                              orig_time=None)
     _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
+
+
+def test_toy_bdf(recwarn):
+    EXPECTED_EVENTS = ([6, 18, 24, 36, 200, 206, 224, 230] +
+                       [x for x in range(400, 119801, 200)])
+    annot = read_annotations(test_generator_bdf)
+    assert len(annot.onset) == len(EXPECTED_EVENTS)+2
 
 
 run_tests_if_main()

@@ -357,7 +357,10 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     stim_channel = _check_stim_channel(stim_channel, ch_names, sel)
 
     # Annotations
-    tal_ch_name = 'EDF Annotations'
+    accepted_tal_ch_names = ['EDF Annotations', 'BDF Annotations']
+    tal_ch_name = [ch_name for ch_name in ch_names if
+                   any(candidate in ch_name for candidate in
+                       accepted_tal_ch_names)]
     tal_chs = np.where(np.array(ch_names) == tal_ch_name)[0]
     annot = None
     if len(tal_chs) > 0:
@@ -621,6 +624,7 @@ def _read_edf_header(fname, exclude):
         else:
             edf_info['dtype_byte'] = 2  # 16-bit (2 byte) integers
             edf_info['dtype_np'] = np.int16
+
 
     return edf_info, orig_units
 
@@ -1160,6 +1164,7 @@ def _read_annotations_edf(annotations):
         epochs, use description starting with keyword 'bad'. See example above.
     """
     pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
+    import pdb; pdb.set_trace()
     if isinstance(annotations, str):
         with open(annotations, encoding='latin-1') as annot_file:
             triggers = re.findall(pat, annot_file.read())
