@@ -300,6 +300,7 @@ def test_inverse_operator_channel_ordering():
     assert_allclose(stc_1.data, stc_3.data, rtol=1e-5, atol=1e-5)
 
 
+@pytest.mark.timeout(60)  # can sometimes take > 30 sec on Travis
 @testing.requires_testing_data
 def test_localization_bias():
     """Test inverse localization bias for minimum-norm solvers."""

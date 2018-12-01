@@ -373,6 +373,7 @@ def test_stc_mpl():
     plt.close('all')
 
 
+@pytest.mark.timeout(60)  # can sometimes take > 60 sec
 @testing.requires_testing_data
 @requires_nibabel()
 def test_plot_dipole_mri_orthoview():
