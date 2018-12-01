@@ -8,7 +8,7 @@ import pytest
 from numpy.testing import assert_equal, assert_allclose
 import matplotlib
 
-from mne import concatenate_raws, read_bem_surfaces
+from mne import concatenate_raws, read_bem_surfaces, read_surface
 from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compute_proj_ecg, mne_compute_proj_eog,
                           mne_coreg, mne_kit2fiff,
@@ -119,6 +119,7 @@ def test_kit2fiff():
     check_usage(mne_kit2fiff, force_help=True)
 
 
+@pytest.mark.timeout(60)  # can take > 60 sec on Travis OSX
 @requires_tvtk
 @testing.requires_testing_data
 def test_make_scalp_surfaces():
@@ -202,6 +203,7 @@ def test_surf2bem():
     check_usage(mne_surf2bem)
 
 
+@pytest.mark.timeout(600)  # took ~400 sec on a local test
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
 @requires_freesurfer
@@ -212,21 +214,29 @@ def test_watershed_bem():
     # Copy necessary files to tempdir
     tempdir = _TempDir()
     mridata_path = op.join(subjects_dir, 'sample', 'mri')
-    mridata_path_new = op.join(tempdir, 'sample', 'mri')
+    subject_path_new = op.join(tempdir, 'sample')
+    mridata_path_new = op.join(subject_path_new, 'mri')
     os.mkdir(op.join(tempdir, 'sample'))
     os.mkdir(mridata_path_new)
     if op.exists(op.join(mridata_path, 'T1')):
         shutil.copytree(op.join(mridata_path, 'T1'), op.join(mridata_path_new,
-                        'T1'))
+                                                             'T1'))
     if op.exists(op.join(mridata_path, 'T1.mgz')):
         shutil.copyfile(op.join(mridata_path, 'T1.mgz'),
                         op.join(mridata_path_new, 'T1.mgz'))
-
+    out_fnames = list()
+    for kind in ('outer_skin', 'outer_skull', 'inner_skull'):
+        out_fnames.append(op.join(subject_path_new, 'bem', 'inner_skull.surf'))
+    assert not any(op.isfile(out_fname) for out_fname in out_fnames)
     with ArgvSetter(('-d', tempdir, '-s', 'sample', '-o'),
                     disable_stdout=False, disable_stderr=False):
         mne_watershed_bem.run()
+    for out_fname in out_fnames:
+        _, tris = read_surface(out_fname)
+        assert len(tris) == 20480
 
 
+@pytest.mark.timeout(300)  # took 200 sec locally
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
 @requires_freesurfer
@@ -239,25 +249,32 @@ def test_flash_bem():
     # Copy necessary files to tempdir
     tempdir = _TempDir()
     mridata_path = op.join(subjects_dir, 'sample', 'mri')
-    mridata_path_new = op.join(tempdir, 'sample', 'mri')
+    subject_path_new = op.join(tempdir, 'sample')
+    mridata_path_new = op.join(subject_path_new, 'mri')
     os.makedirs(op.join(mridata_path_new, 'flash'))
-    os.makedirs(op.join(tempdir, 'sample', 'bem'))
+    os.makedirs(op.join(subject_path_new, 'bem'))
     shutil.copyfile(op.join(mridata_path, 'T1.mgz'),
                     op.join(mridata_path_new, 'T1.mgz'))
     shutil.copyfile(op.join(mridata_path, 'brain.mgz'),
                     op.join(mridata_path_new, 'brain.mgz'))
     # Copy the available mri/flash/mef*.mgz files from the dataset
-    files = glob.glob(op.join(mridata_path, 'flash', 'mef*.mgz'))
-    for infile in files:
-        shutil.copyfile(infile, op.join(mridata_path_new, 'flash',
-                                        op.basename(infile)))
+    flash_path = op.join(mridata_path_new, 'flash')
+    for kind in (5, 30):
+        in_fname = op.join(mridata_path, 'flash', 'mef%02d.mgz' % kind)
+        shutil.copyfile(in_fname, op.join(flash_path, op.basename(in_fname)))
     # Test mne flash_bem with --noconvert option
     # (since there are no DICOM Flash images in dataset)
-    currdir = os.getcwd()
+    out_fnames = list()
+    for kind in ('outer_skin', 'outer_skull', 'inner_skull'):
+        out_fnames.append(op.join(subject_path_new, 'bem', 'outer_skin.surf'))
+    assert not any(op.isfile(out_fname) for out_fname in out_fnames)
     with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n'),
                     disable_stdout=False, disable_stderr=False):
         mne_flash_bem.run()
-    os.chdir(currdir)
+    # do they exist and are expected size
+    for out_fname in out_fnames:
+        _, tris = read_surface(out_fname)
+        assert len(tris) == 5120
 
 
 def test_show_info():

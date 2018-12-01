@@ -46,6 +46,7 @@ def test_coregister_fiducials():
     assert_array_almost_equal(trans_est['trans'], trans['trans'])
 
 
+@pytest.mark.timeout(60)  # can take longer than 30 sec on Travis
 @testing.requires_testing_data
 def test_scale_mri():
     """Test creating fsaverage and scaling it."""
@@ -128,6 +129,7 @@ def test_scale_mri():
         assert ssrc[0]['dist'] is not None
 
 
+@pytest.mark.timeout(60)  # ~29 sec on OSX Travis
 @testing.requires_testing_data
 @requires_nibabel()
 def test_scale_mri_xfm():

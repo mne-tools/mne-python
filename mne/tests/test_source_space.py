@@ -531,6 +531,8 @@ def test_source_space_from_label():
     _compare_source_spaces(src, src_from_file, mode='approx')
 
 
+@pytest.mark.timeout(60)  # ~24 sec on Travis
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_freesurfer
 @requires_nibabel()

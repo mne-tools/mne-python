@@ -27,7 +27,7 @@ from .surface import (read_surface, write_surface, complete_surface_info,
                       _fast_cross_nd_sum, _get_solids)
 from .transforms import _ensure_trans, apply_trans
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
-                    _pl, _validate_type)
+                    _pl, _validate_type, _TempDir)
 from .fixes import einsum
 
 
@@ -1059,6 +1059,9 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     from .viz.misc import plot_bem
     env, mri_dir = _prepare_env(subject, subjects_dir,
                                 requires_freesurfer=True)[:2]
+    tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
+    run_subprocess_env = partial(run_subprocess, env=env,
+                                 cwd=tempdir)
 
     subjects_dir = env['SUBJECTS_DIR']
     subject_dir = op.join(subjects_dir, subject)
@@ -1101,7 +1104,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                 'SUBJECT = %s\n'
                 'Results dir = %s\n' % (subjects_dir, subject, ws_dir))
     os.makedirs(op.join(ws_dir, 'ws'))
-    run_subprocess(cmd, env=env)
+    run_subprocess_env(cmd)
 
     if op.isfile(T1_mgz):
         new_info = _extract_volume_info(T1_mgz)
@@ -1608,7 +1611,9 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     """
     env, mri_dir = _prepare_env(subject, subjects_dir,
                                 requires_freesurfer=True)[:2]
-    curdir = os.getcwd()
+    tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
+    run_subprocess_env = partial(run_subprocess, env=env,
+                                 cwd=tempdir)
     # Step 1a : Data conversion to mgz format
     if not op.exists(op.join(mri_dir, 'flash', 'parameter_maps')):
         os.makedirs(op.join(mri_dir, 'flash', 'parameter_maps'))
@@ -1647,63 +1652,67 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
                     logger.info("The file %s is already there")
                 else:
                     cmd = ['mri_convert', sample_file, dest_file]
-                    run_subprocess(cmd, env=env)
+                    run_subprocess_env(cmd)
                     echos_done += 1
     # Step 1b : Run grad_unwarp on converted files
-    os.chdir(op.join(mri_dir, "flash"))
-    template = "mef*.mgz"
+    flash_dir = op.join(mri_dir, "flash")
+    template = op.join(flash_dir, "mef*.mgz")
     files = glob.glob(template)
     if len(files) == 0:
-        raise ValueError('No suitable source files found (%s)'
-                         % op.join(os.getcwd(), template))
+        raise ValueError('No suitable source files found (%s)' % template)
     if unwarp:
         logger.info("\n---- Unwarp mgz data sets ----")
         for infile in files:
             outfile = infile.replace(".mgz", "u.mgz")
             cmd = ['grad_unwarp', '-i', infile, '-o', outfile, '-unwarp',
                    'true']
-            run_subprocess(cmd, env=env)
+            run_subprocess_env(cmd)
     # Clear parameter maps if some of the data were reconverted
-    if echos_done > 0 and op.exists("parameter_maps"):
-        shutil.rmtree("parameter_maps")
+    pm_dir = op.join(flash_dir, 'parameter_maps')
+    if echos_done > 0 and op.exists(pm_dir):
+        shutil.rmtree(pm_dir)
         logger.info("\nParameter maps directory cleared")
-    if not op.exists("parameter_maps"):
-        os.makedirs("parameter_maps")
+    if not op.exists(pm_dir):
+        os.makedirs(pm_dir)
     # Step 2 : Create the parameter maps
     if flash30:
         logger.info("\n---- Creating the parameter maps ----")
         if unwarp:
-            files = glob.glob("mef05*u.mgz")
-        if len(os.listdir('parameter_maps')) == 0:
-            cmd = ['mri_ms_fitparms'] + files + ['parameter_maps']
-            run_subprocess(cmd, env=env)
+            files = glob.glob(op.join(flash_dir, "mef05*u.mgz"))
+        if len(os.listdir(pm_dir)) == 0:
+            cmd = (['mri_ms_fitparms'] +
+                   files +
+                   [op.join(flash_dir, 'parameter_maps')])
+            run_subprocess_env(cmd)
         else:
             logger.info("Parameter maps were already computed")
         # Step 3 : Synthesize the flash 5 images
         logger.info("\n---- Synthesizing flash 5 images ----")
-        os.chdir('parameter_maps')
-        if not op.exists('flash5.mgz'):
-            cmd = ['mri_synthesize', '20 5 5', 'T1.mgz', 'PD.mgz',
-                   'flash5.mgz']
-            run_subprocess(cmd, env=env)
-            os.remove('flash5_reg.mgz')
+        if not op.exists(op.join(pm_dir, 'flash5.mgz')):
+            cmd = ['mri_synthesize', '20', '5', '5',
+                   op.join(pm_dir, 'T1.mgz'),
+                   op.join(pm_dir, 'PD.mgz'),
+                   op.join(pm_dir, 'flash5.mgz')
+                   ]
+            run_subprocess_env(cmd)
+            os.remove(op.join(pm_dir, 'flash5_reg.mgz'))
         else:
             logger.info("Synthesized flash 5 volume is already there")
     else:
         logger.info("\n---- Averaging flash5 echoes ----")
-        os.chdir('parameter_maps')
-        template = "mef05*u.mgz" if unwarp else "mef05*.mgz"
+        template = op.join(flash_dir,
+                           "mef05*u.mgz" if unwarp else "mef05*.mgz")
         files = glob.glob(template)
         if len(files) == 0:
-            raise ValueError('No suitable source files found (%s)'
-                             % op.join(os.getcwd(), template))
-        cmd = ['mri_average', '-noconform'] + files + ['flash5.mgz']
-        run_subprocess(cmd, env=env)
-        if op.exists('flash5_reg.mgz'):
-            os.remove('flash5_reg.mgz')
-
-    # Go back to initial directory
-    os.chdir(curdir)
+            raise ValueError('No suitable source files found (%s)' % template)
+        cmd = (['mri_average', '-noconform'] +
+               files +
+               [op.join(pm_dir, 'flash5.mgz')])
+        run_subprocess_env(cmd)
+        if op.exists(op.join(pm_dir, 'flash5_reg.mgz')):
+            os.remove(op.join(pm_dir, 'flash5_reg.mgz'))
+    del tempdir  # finally done running subprocesses
+    assert op.isfile(op.join(pm_dir, 'flash5.mgz'))
 
 
 @verbose
@@ -1726,7 +1735,6 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         within the subject reconstruction is used.
 
         .. versionadded:: 0.13.0
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1749,12 +1757,14 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir,
                                          requires_freesurfer=True)
+    tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
+    run_subprocess_env = partial(run_subprocess, env=env,
+                                 cwd=tempdir)
 
     if flash_path is None:
         flash_path = op.join(mri_dir, 'flash', 'parameter_maps')
     else:
         flash_path = op.abspath(flash_path)
-    curdir = os.getcwd()
     subjects_dir = env['SUBJECTS_DIR']
 
     logger.info('\nProcessing the flash MRI data to produce BEM meshes with '
@@ -1774,90 +1784,95 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
             ref_volume = op.join(mri_dir, 'T1')
         cmd = ['fsl_rigid_register', '-r', ref_volume, '-i', flash5,
                '-o', flash5_reg]
-        run_subprocess(cmd, env=env)
+        run_subprocess_env(cmd)
     else:
         logger.info("Registered flash 5 image is already there")
     # Step 5a : Convert flash5 into COR
     logger.info("\n---- Converting flash5 volume into COR format ----")
-    shutil.rmtree(op.join(mri_dir, 'flash5'), ignore_errors=True)
-    os.makedirs(op.join(mri_dir, 'flash5'))
+    flash5_dir = op.join(mri_dir, 'flash5')
+    shutil.rmtree(flash5_dir, ignore_errors=True)
+    os.makedirs(flash5_dir)
     if not is_test:  # CIs don't have freesurfer, skipped when testing.
         cmd = ['mri_convert', flash5_reg, op.join(mri_dir, 'flash5')]
-        run_subprocess(cmd, env=env)
+        run_subprocess_env(cmd)
     # Step 5b and c : Convert the mgz volumes into COR
-    os.chdir(mri_dir)
     convert_T1 = False
-    if not op.isdir('T1') or len(glob.glob(op.join('T1', 'COR*'))) == 0:
+    T1_dir = op.join(mri_dir, 'T1')
+    if not op.isdir(T1_dir) or len(glob.glob(op.join(T1_dir, 'COR*'))) == 0:
         convert_T1 = True
     convert_brain = False
-    if not op.isdir('brain') or len(glob.glob(op.join('brain', 'COR*'))) == 0:
+    brain_dir = op.join(mri_dir, 'brain')
+    if not op.isdir(brain_dir) or \
+            len(glob.glob(op.join(brain_dir, 'COR*'))) == 0:
         convert_brain = True
     logger.info("\n---- Converting T1 volume into COR format ----")
     if convert_T1:
-        if not op.isfile('T1.mgz'):
+        T1_fname = op.join(mri_dir, 'T1.mgz')
+        if not op.isfile(T1_fname):
             raise RuntimeError("Both T1 mgz and T1 COR volumes missing.")
-        os.makedirs('T1')
-        cmd = ['mri_convert', 'T1.mgz', 'T1']
-        run_subprocess(cmd, env=env)
+        os.makedirs(T1_dir)
+        cmd = ['mri_convert', T1_fname, T1_dir]
+        run_subprocess_env(cmd)
     else:
         logger.info("T1 volume is already in COR format")
     logger.info("\n---- Converting brain volume into COR format ----")
     if convert_brain:
-        if not op.isfile('brain.mgz'):
+        brain_fname = op.join(mri_dir, 'brain.mgz')
+        if not op.isfile(brain_fname):
             raise RuntimeError("Both brain mgz and brain COR volumes missing.")
-        os.makedirs('brain')
-        cmd = ['mri_convert', 'brain.mgz', 'brain']
-        run_subprocess(cmd, env=env)
+        os.makedirs(brain_dir)
+        cmd = ['mri_convert', brain_fname, brain_dir]
+        run_subprocess_env(cmd)
     else:
         logger.info("Brain volume is already in COR format")
     # Finally ready to go
     if not is_test:  # CIs don't have freesurfer, skipped when testing.
         logger.info("\n---- Creating the BEM surfaces ----")
         cmd = ['mri_make_bem_surfaces', subject]
-        run_subprocess(cmd, env=env)
+        run_subprocess_env(cmd)
+    del tempdir  # ran our last subprocess; clean up directory
 
     logger.info("\n---- Converting the tri files into surf files ----")
-    os.chdir(bem_dir)
-    if not op.exists('flash'):
-        os.makedirs('flash')
-    os.chdir('flash')
+    flash_bem_dir = op.join(bem_dir, 'flash')
+    if not op.exists(flash_bem_dir):
+        os.makedirs(flash_bem_dir)
     surfs = ['inner_skull', 'outer_skull', 'outer_skin']
     for surf in surfs:
-        shutil.move(op.join(bem_dir, surf + '.tri'), surf + '.tri')
-
-        nodes, tris = read_tri(surf + '.tri', swap=True)
+        out_fname = op.join(flash_bem_dir, surf + '.tri')
+        shutil.move(op.join(bem_dir, surf + '.tri'), out_fname)
+        nodes, tris = read_tri(out_fname, swap=True)
         vol_info = _extract_volume_info(flash5_reg)
         if vol_info is None:
             warn('nibabel is required to update the volume info. Volume info '
                  'omitted from the written surface.')
         else:
             vol_info['head'] = np.array([20])
-        write_surface(surf + '.surf', nodes, tris, volume_info=vol_info)
+        write_surface(op.splitext(out_fname)[0] + '.surf', nodes, tris,
+                      volume_info=vol_info)
 
     # Cleanup section
     logger.info("\n---- Cleaning up ----")
-    os.chdir(bem_dir)
-    os.remove('inner_skull_tmp.tri')
-    os.chdir(mri_dir)
+    os.remove(op.join(bem_dir, 'inner_skull_tmp.tri'))
+    # os.chdir(mri_dir)
     if convert_T1:
-        shutil.rmtree('T1')
+        shutil.rmtree(T1_dir)
         logger.info("Deleted the T1 COR volume")
     if convert_brain:
-        shutil.rmtree('brain')
+        shutil.rmtree(brain_dir)
         logger.info("Deleted the brain COR volume")
-    shutil.rmtree('flash5')
+    shutil.rmtree(flash5_dir)
     logger.info("Deleted the flash5 COR volume")
     # Create symbolic links to the .surf files in the bem folder
     logger.info("\n---- Creating symbolic links ----")
-    os.chdir(bem_dir)
+    # os.chdir(bem_dir)
     for surf in surfs:
-        surf = surf + '.surf'
+        surf = op.join(bem_dir, surf + '.surf')
         if not overwrite and op.exists(surf):
             skip_symlink = True
         else:
             if op.exists(surf):
                 os.remove(surf)
-            _symlink(op.join('flash', surf), op.join(surf))
+            _symlink(op.join(flash_bem_dir, op.basename(surf)), surf)
             skip_symlink = False
     if skip_symlink:
         logger.info("Unable to create all symbolic links to .surf files "
@@ -1874,9 +1889,6 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     if show:
         plot_bem(subject=subject, subjects_dir=subjects_dir,
                  orientation='coronal', slices=None, show=True)
-
-    # Go back to initial directory
-    os.chdir(curdir)
 
 
 def _check_bem_size(surfs):

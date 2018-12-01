@@ -17,37 +17,30 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = 2
 
 
-def _load_data():
+def _load_data(kind):
     """Load data."""
     # It is more memory efficient to load data in a separate
     # function so it's loaded on-demand
     raw = io.read_raw_fif(raw_fname)
     events = read_events(event_name)
-    picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude=[])[:15]
     # subselect channels for speed
-    picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude=[])[1:200:2]
-    picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
-
-    epochs_eeg = Epochs(raw, events, event_id, tmin, tmax, picks=picks_eeg,
+    if kind == 'eeg':
+        picks = pick_types(raw.info, meg=False, eeg=True, exclude=[])[:15]
+        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         preload=True, reject=dict(eeg=80e-6))
-    with pytest.warns(RuntimeWarning, match='projection'):
-        epochs_meg = Epochs(raw, events, event_id, tmin, tmax, picks=picks_meg,
+    else:
+        picks = pick_types(raw.info, meg=True, eeg=False, exclude=[])[1:200:2]
+        assert kind == 'meg'
+        with pytest.warns(RuntimeWarning, match='projection'):
+            epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                             preload=True,
                             reject=dict(grad=1000e-12, mag=4e-12))
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    preload=True, reject=dict(eeg=80e-6, grad=1000e-12,
-                                              mag=4e-12))
-    return raw, epochs, epochs_eeg, epochs_meg
+    return raw, epochs
 
 
-@pytest.mark.slowtest
-def test_interpolation():
-    """Test interpolation."""
-    raw, epochs, epochs_eeg, epochs_meg = _load_data()
-
-    # speed accuracy tradeoff: channel subselection is faster but the
-    # correlation drops
-    thresh = 0.7
+def test_interpolation_eeg():
+    """Test interpolation of EEG channels."""
+    raw, epochs_eeg = _load_data('eeg')
 
     # check that interpolation does nothing if no bads are marked
     epochs_eeg.info['bads'] = []
@@ -90,7 +83,7 @@ def test_interpolation():
     assert not np.all(raw_before == raw_after)
 
     # check that interpolation fails when preload is False
-    for inst in [raw, epochs]:
+    for inst in [raw, epochs_eeg]:
         assert hasattr(inst, 'preload')
         inst.preload = False
         inst.info['bads'] = [inst.ch_names[1]]
@@ -110,14 +103,25 @@ def test_interpolation():
     assert (new_data == 0).mean() < 0.5
     assert np.corrcoef(new_data, orig_data)[0, 1] > 0.1
 
+
+def test_interpolation_meg():
+    """Test interpolation of MEG channels."""
+    # speed accuracy tradeoff: channel subselection is faster but the
+    # correlation drops
+    thresh = 0.7
+
+    raw, epochs_meg = _load_data('meg')
+
     # check that interpolation works when non M/EEG channels are present
     # before MEG channels
-    raw.rename_channels({'MEG 0113': 'TRIGGER'})
+    raw.crop(0, 0.1).load_data().pick_channels(epochs_meg.ch_names)
+    raw.info.normalize_proj()
     with pytest.warns(RuntimeWarning, match='unit .* changed from .* to .*'):
-        raw.set_channel_types({'TRIGGER': 'stim'})
-    raw.info['bads'] = [raw.info['ch_names'][1]]
+        raw.set_channel_types({raw.ch_names[0]: 'stim'})
+    raw.info['bads'] = [raw.ch_names[1]]
     raw.load_data()
     raw.interpolate_bads(mode='fast')
+    del raw
 
     # check that interpolation works for MEG
     epochs_meg.info['bads'] = ['MEG 0141']

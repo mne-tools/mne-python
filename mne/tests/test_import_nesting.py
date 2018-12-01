@@ -2,6 +2,8 @@ import os.path as op
 import sys
 from subprocess import Popen, PIPE
 
+import pytest
+
 from mne.utils import run_tests_if_main
 
 
@@ -77,6 +79,8 @@ for dirpath, _, filenames in os.walk('{0}'):
 """
 
 
+@pytest.mark.timeout(60)  # ~25 sec on AppVeyor
+@pytest.mark.slowtest
 def test_mpl_nesting():
     """Test that matplotlib imports are properly nested in tests."""
     mne_path = op.abspath(op.join(op.dirname(__file__), '..'))

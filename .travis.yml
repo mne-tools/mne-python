@@ -9,7 +9,7 @@ env:
     # OPENBLAS_NUM_THREADS=1 avoid slowdowns:
     # https://github.com/xianyi/OpenBLAS/issues/731
     global: PYTHON_VERSION=3.6 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning TEST_LOCATION=src
-            PIP_DEPENDENCIES="codecov pytest-faulthandler pytest-sugar" OPTION=""
+            PIP_DEPENDENCIES="codecov pytest-faulthandler pytest-sugar pytest-timeout" OPTION=""
             TRAVIS_PYTHON_VERSION=3.6 CONDA_VERSION=">=4.3.27"
             OPENBLAS_NUM_THREADS=1
 
@@ -19,7 +19,7 @@ matrix:
         - os: linux
           env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
                CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest pytest-cov"
-               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest"
+               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest pytest-faulthandler pytest-sugar pytest-timeout"
                OPTION="--doctest-ignore-import-errors"
 
         # Linux
@@ -44,7 +44,7 @@ matrix:
         # Minimal
         - os: linux
           env: DEPS=minimial
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pytest pytest-cov"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib pytest pytest-cov pytest-faulthandler pytest-timeout"
 
 # Setup anaconda
 before_install:
@@ -54,7 +54,7 @@ before_install:
     - if [ -z "$CONDA_ENVIRONMENT" ] && [ -z "$CONDA_DEPENDENCIES" ]; then
         pip uninstall -y numpy;
         pip install numpy scipy vtk;
-        pip install -r requirements.txt;
+        pip install --upgrade -r requirements.txt;
       else
         git clone https://github.com/astropy/ci-helpers.git;
         source ci-helpers/travis/setup_conda.sh;

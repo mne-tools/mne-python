@@ -667,6 +667,7 @@ def test_read_epochs_bad_events():
     assert evoked
 
 
+@pytest.mark.timeout(60)  # can take > 30 s on Travis
 @pytest.mark.slowtest
 def test_read_write_epochs(tmpdir):
     """Test epochs from raw files with IO as fif file."""
