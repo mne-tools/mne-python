@@ -470,8 +470,13 @@ def _draw_outlines(ax, outlines):
     return outlines_
 
 
-def _get_extended_hull_points(pos):
-    # from scipy.spatial import ConvexHull
+def _get_extra_points(pos, head_radius):
+    '''
+    If head_radius is None, returns coordinates of convex hull of channel
+    positions, expanded by the median inter-channel distance.
+    Otherwise gives positions of points on the head circle placed with a step
+    of median inter-channel distance.
+    '''
     from scipy.spatial.qhull import Delaunay
 
     # compute median inter-electrode distance
@@ -481,34 +486,42 @@ def _get_extended_hull_points(pos):
                                 for i1, i2 in zip([idx1, idx2], [idx2, idx3])])
     distance = np.median(distances)
 
-    # get the convex hull of data points from triangulation
-    hull_pos = pos[tri.convex_hull]
+    if head_radius is None:
+        # get the convex hull of data points from triangulation
+        hull_pos = pos[tri.convex_hull]
 
-    # extend the convex hull limits outwards a bit
-    channels_center = pos.mean(axis=0, keepdims=True)
-    radial_dir = hull_pos - channels_center[np.newaxis, :]
-    unit_radial_dir = radial_dir / np.linalg.norm(radial_dir, axis=-1,
-                                                  keepdims=True)
-    hull_extended = hull_pos + unit_radial_dir * distance
-    hull_diff = np.diff(hull_pos, axis=1)[:, 0]
-    hull_distances = np.linalg.norm(hull_diff, axis=-1)
+        # extend the convex hull limits outwards a bit
+        channels_center = pos.mean(axis=0, keepdims=True)
+        radial_dir = hull_pos - channels_center[np.newaxis, :]
+        unit_radial_dir = radial_dir / np.linalg.norm(radial_dir, axis=-1,
+                                                      keepdims=True)
+        hull_extended = hull_pos + unit_radial_dir * distance
+        hull_diff = np.diff(hull_pos, axis=1)[:, 0]
+        hull_distances = np.linalg.norm(hull_diff, axis=-1)
 
-    # add points along hull edges so that the distance between points
-    # is around that of average distance between channels
-    add_points = list()
-    eps = np.finfo('float').eps
-    n_times_dist = np.round(hull_distances / distance).astype('int')
-    for n in range(2, n_times_dist.max() + 1):
-        mask = n_times_dist == n
-        mult = np.arange(1/n, 1 - eps, 1/n)[:, np.newaxis, np.newaxis]
-        steps = hull_diff[mask][np.newaxis, ...] * mult
-        add_points.append((hull_extended[mask, 0][np.newaxis, ...]
-                           + steps).reshape((-1, 2)))
+        # add points along hull edges so that the distance between points
+        # is around that of average distance between channels
+        add_points = list()
+        eps = np.finfo('float').eps
+        n_times_dist = np.round(hull_distances / distance).astype('int')
+        for n in range(2, n_times_dist.max() + 1):
+            mask = n_times_dist == n
+            mult = np.arange(1/n, 1 - eps, 1/n)[:, np.newaxis, np.newaxis]
+            steps = hull_diff[mask][np.newaxis, ...] * mult
+            add_points.append((hull_extended[mask, 0][np.newaxis, ...]
+                               + steps).reshape((-1, 2)))
 
-    # remove duplicates from hull_extended
-    hull_extended = np.unique(hull_extended.reshape((-1, 2)), axis=0)
-    hull_extended = np.concatenate([hull_extended] + add_points)
-    return hull_extended, tri
+        # remove duplicates from hull_extended
+        hull_extended = np.unique(hull_extended.reshape((-1, 2)), axis=0)
+        hull_extended = np.concatenate([hull_extended] + add_points)
+        return hull_extended, tri
+    else:
+        # return points on the head circle
+        angle = np.arcsin(distance / 2 / head_radius) * 2
+        points_l = np.arange(0, 2 * np.pi, angle)
+        points_x = np.cos(points_l) * head_radius
+        points_y = np.sin(points_l) * head_radius
+        return np.stack([points_x, points_y], axis=1), tri
 
 
 class _GridData(object):
@@ -519,11 +532,11 @@ class _GridData(object):
     to be set independently.
     """
 
-    def __init__(self, pos):
+    def __init__(self, pos, head_radius=None):
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2
         # Adding points outside the extremes helps the interpolators
-        outer_pts, tri = _get_extended_hull_points(pos)
+        outer_pts, tri = _get_extra_points(pos, head_radius)
         self.n_extra = outer_pts.shape[0]
         tri.add_points(outer_pts)
         self.tri = tri
@@ -568,7 +581,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  res=64, axes=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head',
                  contours=6, image_interp='bilinear', show=True,
-                 head_pos=None, onselect=None):
+                 head_pos=None, onselect=None, extrapolate='local'):
     """Plot a topographic map as image.
 
     Parameters
@@ -660,14 +673,14 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     return _plot_topomap(data, pos, vmin, vmax, cmap, sensors, res, axes,
                          names, show_names, mask, mask_params, outlines,
                          contours, image_interp, show,
-                         head_pos, onselect)[:2]
+                         head_pos, onselect, extrapolate)[:2]
 
 
 def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   res=64, axes=None, names=None, show_names=False, mask=None,
                   mask_params=None, outlines='head',
                   contours=6, image_interp='bilinear', show=True,
-                  head_pos=None, onselect=None):
+                  head_pos=None, onselect=None, extrapolate='local'):
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
@@ -738,7 +751,17 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     assert isinstance(outlines, dict)
 
     ax = axes if axes else plt.gca()
-    pos_x, pos_y = _prepare_topomap(pos, ax)
+    _prepare_topomap(pos, ax)
+
+    _use_default_outlines = any(k.startswith('head') for k in outlines)
+
+    if _use_default_outlines:
+        # prepare masking
+        pos = _autoshrink(outlines, pos, res)
+
+    mask_params = _handle_default('mask_params', mask_params)
+
+    # find mask limits
     xlim = np.inf, -np.inf,
     ylim = np.inf, -np.inf,
     mask_ = np.c_[outlines['mask_pos']]
@@ -748,19 +771,12 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   np.max(np.r_[ylim[1], mask_[:, 1]]))
 
     # interpolate data
+    head_radius = None if extrapolate == 'local' else 0.53
     xi = np.linspace(xmin, xmax, res)
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
-    interp = _GridData(np.array((pos_x, pos_y)).T).set_values(data)
+    interp = _GridData(pos, head_radius).set_values(data)
     Zi = interp.set_locations(Xi, Yi)()
-
-    _use_default_outlines = any(k.startswith('head') for k in outlines)
-
-    if _use_default_outlines:
-        # prepare masking
-        pos = _autoshrink(outlines, pos, res)
-
-    mask_params = _handle_default('mask_params', mask_params)
 
     # plot outline
     patch_ = None
@@ -779,7 +795,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                                  clip_on=True,
                                  transform=ax.transData)
 
-    # plot map and contour
+    # plot interpolated map
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=(xmin, xmax, ymin, ymax),
                    interpolation=image_interp)
@@ -810,6 +826,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
             for col in cont.collections:
                 col.set_clip_path(patch_)
 
+    pos_x, pos_y = pos.T
     if sensors is not False and mask is None:
         _plot_sensors(pos_x, pos_y, sensors=sensors, ax=ax)
     elif sensors and mask is not None:
@@ -2123,14 +2140,14 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
 
 
 def _prepare_topomap(pos, ax, check_nonzero=True):
-    """Prepare the topomap."""
-    pos_x = pos[:, 0]
-    pos_y = pos[:, 1]
+    """
+    Prepare the topomap: hide axis frame and check that position information is
+    present.
+    """
     _hide_frame(ax)
-    if check_nonzero and any([not pos_y.any(), not pos_x.any()]):
+    if check_nonzero and not pos.any():
         raise RuntimeError('No position information found, cannot compute '
                            'geometries for topomap.')
-    return pos_x, pos_y
 
 
 def _hide_frame(ax):
