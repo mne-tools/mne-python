@@ -19,7 +19,8 @@ from scipy.fftpack import fft, ifft
 
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _time_mask, check_fname, sizeof_fmt
+from ..utils import (logger, verbose, _time_mask, check_fname, sizeof_fmt,
+                     GetEpochsMixin)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, _pick_data_channels,
@@ -628,8 +629,10 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
                                    method='%s-itc' % method))
     else:
         power = out
-        out = EpochsTFR(info, power, times, freqs, events=inst.events.copy(),
-                        event_id=inst.event_id.copy(), method='%s-power' % method)
+        out = EpochsTFR(info, power, times, freqs, method='%s-power' % method,
+                        events=inst.events.copy(),
+                        event_id=inst.event_id.copy(),
+                        metadata=inst._metadata.copy())
 
     return out
 
@@ -1937,7 +1940,7 @@ class AverageTFR(_BaseTFR):
         return "<AverageTFR  |  %s>" % s
 
 
-class EpochsTFR(_BaseTFR):
+class EpochsTFR(_BaseTFR, GetEpochsMixin):
     """Container for Time-Frequency data on epochs.
 
     Can for example store induced power at sensor level.
@@ -1987,7 +1990,7 @@ class EpochsTFR(_BaseTFR):
 
     event_id : dict
         Names of conditions correspond to event_ids
-        
+
     comment : string
         Comment on dataset. Can be the condition.
 
@@ -2000,8 +2003,9 @@ class EpochsTFR(_BaseTFR):
     """
 
     @verbose
-    def __init__(self, info, data, times, freqs, events=None,
-                 event_id=None, comment=None, method=None, verbose=None):  # noqa: D102
+    def __init__(self, info, data, times, freqs, comment=None, method=None,
+                 verbose=None,  events=None, event_id=None, metadata=None):
+                 # noqa: D102
         self.info = info
         if data.ndim != 4:
             raise ValueError('data should be 4d. Got %d.' % data.ndim)
@@ -2023,6 +2027,8 @@ class EpochsTFR(_BaseTFR):
         self.comment = comment
         self.method = method
         self.preload = True
+        self._metadata = None
+        self.metadata = metadata
 
     def __repr__(self):  # noqa: D105
         s = "time : [%f, %f]" % (self.times[0], self.times[-1])
@@ -2036,106 +2042,9 @@ class EpochsTFR(_BaseTFR):
         """Take the absolute value."""
         return EpochsTFR(info=self.info.copy(), data=np.abs(self.data),
                          times=self.times.copy(), freqs=self.freqs.copy(),
-                         events=self.events.copy(), event_id=self.event_id.copy(),
-                         method=self.method, comment=self.comment)
-
-    def __len__(self):
-        """Get the number of epochs."""
-        return len(self.events)
-
-    def _keys_to_idx(self, keys):
-        """Find entries in event dict."""
-        keys = [keys] if not isinstance(keys, (list, tuple)) else keys
-        try:
-            # Assume it's a condition
-            return np.where(np.any(
-                np.array([self.events[:, 2] == self.event_id[k]
-                          for k in _hid_match(self.event_id, keys)]),
-                axis=0))[0]
-        except KeyError as err:
-            raise KeyError(msg)
-
-    def __getitem__(self, item):
-        """Return an EpochsTFR object with a copied subset of epochs.
-
-        Parameters
-        ----------
-        item : slice, array-like, str, or list
-
-        Returns
-        -------
-        epochs : instance of Epochs
-
-        Notes
-        -----
-        See BaseEpochs.__getitem__ for use cases.
-        The use of metadata in EpochsTFR is not yet functional.
-        """
-        return self._getitem(item)
-
-    def _getitem(self, item, copy=True, drop_event_id=True,
-                 return_indices=False):
-        """
-        Select epochs from current object.
-
-        Parameters
-        ----------
-        item: slice, array-like, str, or list
-            see `__getitem__` for details.
-        copy: bool
-            return a copy of the current object
-        drop_event_id: bool
-            remove non-existing event-ids after selection
-        return_indices: bool
-            return the indices of selected epochs from the original object)
-            in addition to the new `Epochs` objects
-        Returns
-        -------
-        `Epochs` or tuple(Epochs, np.ndarray) if `return_indices` is True
-
-        object with subset of epochs (and optionally array with kept
-        epoch indices)
-        """
-        epochsTF = self.copy() if copy else self
-
-        if isinstance(item, str):
-            item = [item]
-
-        # Start with slices. Get to string index later.
-        if isinstance(item, (list, tuple)) and len(item) > 0 and \
-                isinstance(item[0], str):
-            select = epochsTF._keys_to_idx(item)
-        elif isinstance(item, slice):
-            select = item
-        else:
-            select = np.atleast_1d(item)
-            if len(select) == 0:
-                select = np.array([], int)
-
-        epochsTF.data = np.require(epochsTF.data[select], requirements=['O'])
-
-        epochsTF.events = np.atleast_2d(epochsTF.events[select])
-        if drop_event_id:
-            # update event id to reflect new content of epochs
-            epochsTF.event_id = dict((k, v) for k, v in epochsTF.event_id.items()
-                                   if v in epochsTF.events[:, 2])
-        if return_indices:
-            return epochsTF, select
-        else:
-            return epochsTF
-
-    def copy(self):
-        """Give a copy of the EpochsTFR.
-
-        Returns
-        -------
-        tfr : instance of EpochsTFR
-            The copy.
-        """
-        return EpochsTFR(info=self.info.copy(), data=self.data.copy(),
-                         times=self.times.copy(), freqs=self.freqs.copy(),
-                         events=self.events.copy(), event_id=self.event_id.copy(),
-                         method=self.method, comment=self.comment)
+                         events=self.events.copy(),
+                         event_id=self.event_id.copy(), method=self.method,
+                         comment=self.comment)
 
     def average(self):
         """Average the data across epochs.

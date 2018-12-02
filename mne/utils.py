@@ -3289,8 +3289,8 @@ class GetEpochsMixin(object):
         """
         data = self._data
         del self._data
-        epochs = self.copy() if copy else self
-        self._data, epochs._data = data, data
+        inst = self.copy() if copy else self
+        self._data, inst._data = data, data
         del self
 
         if isinstance(item, str):
@@ -3299,43 +3299,45 @@ class GetEpochsMixin(object):
         # Convert string to indices
         if isinstance(item, (list, tuple)) and len(item) > 0 and \
                 isinstance(item[0], str):
-            select = epochs._keys_to_idx(item)
+            select = inst._keys_to_idx(item)
         elif isinstance(item, slice):
             select = item
         else:
             select = np.atleast_1d(item)
             if len(select) == 0:
                 select = np.array([], int)
+        has_selection = hasattr(inst, 'selection')
+        if has_selection:
+            key_selection = inst.selection[select]
+            if reason is not None:
+                for k in np.setdiff1d(inst.selection, key_selection):
+                    inst.drop_log[k] = [reason]
+            inst.selection = key_selection
 
-        key_selection = epochs.selection[select]
-        if reason is not None:
-            for k in np.setdiff1d(epochs.selection, key_selection):
-                epochs.drop_log[k] = [reason]
-        epochs.selection = key_selection
-        epochs.events = np.atleast_2d(epochs.events[select])
-        if epochs.metadata is not None:
+        inst.events = np.atleast_2d(inst.events[select])
+        if inst.metadata is not None:
             pd = _check_pandas_installed(strict=False)
             if pd is not False:
-                metadata = epochs.metadata.iloc[select]
-                metadata.index = epochs.selection
+                metadata = inst.metadata.iloc[select]
             else:
-                metadata = np.array(epochs.metadata, 'object')[select].tolist()
+                metadata = np.array(inst.metadata, 'object')[select].tolist()
 
             # will reset the index for us
-            epochs.metadata = metadata.reset_index(drop=True)  # makes a copy
-            epochs.metadata.index = epochs.selection
-        if epochs.preload and select_data:
+            GetEpochsMixin.metadata.fset(inst, metadata, verbose=False)
+            if has_selection:
+                inst.metadata.index = inst.selection
+        if inst.preload and select_data:
             # ensure that each Epochs instance owns its own data so we can
             # resize later if necessary
-            epochs._data = np.require(epochs._data[select], requirements=['O'])
+            inst._data = np.require(inst._data[select], requirements=['O'])
         if drop_event_id:
-            # update event id to reflect new content of epochs
-            epochs.event_id = dict((k, v) for k, v in epochs.event_id.items()
-                                   if v in epochs.events[:, 2])
+            # update event id to reflect new content of inst
+            inst.event_id = dict((k, v) for k, v in inst.event_id.items()
+                                   if v in inst.events[:, 2])
         if return_indices:
-            return epochs, select
+            return inst, select
         else:
-            return epochs
+            return inst
 
     def _keys_to_idx(self, keys):
         """Find entries in event dict."""
@@ -3393,7 +3395,8 @@ class GetEpochsMixin(object):
             43
 
         """
-        if not self._bad_dropped:
+        from .epochs import BaseEpochs
+        if isinstance(self, BaseEpochs) and not self._bad_dropped:
             raise RuntimeError('Since bad epochs have not been dropped, the '
                                'length of the Epochs is not known. Load the '
                                'Epochs with preload=True, or call '
@@ -3485,7 +3488,8 @@ class GetEpochsMixin(object):
                                      % (len(metadata), len(self.events)))
                 if reset_index:
                     metadata = metadata.reset_index(drop=True)  # makes a copy
-                    metadata.index = self.selection
+                    if hasattr(self, 'selection'):
+                        metadata.index = self.selection
             else:
                 if not isinstance(metadata, list):
                     raise TypeError('metdata must be a list, got %s'
