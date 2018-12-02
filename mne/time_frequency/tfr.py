@@ -2028,6 +2028,10 @@ class EpochsTFR(_BaseTFR):
                          events=self.events.copy(), event_id=self.event_id.copy(),
                          method=self.method, comment=self.comment)
 
+    def __len__(self):
+        """Get the number of epochs."""
+        return len(self.events)
+
     def _keys_to_idx(self, keys):
         """Find entries in event dict."""
         keys = [keys] if not isinstance(keys, (list, tuple)) else keys
