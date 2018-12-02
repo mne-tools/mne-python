@@ -157,9 +157,9 @@ class RawEDF(BaseRaw):
                  verbose=None):  # noqa: D102
         logger.info('Extracting EDF parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
-        info, edf_info, orig_units, annot = _get_info(input_fname,
-                                                      stim_channel, eog, misc,
-                                                      exclude, preload)
+        info, edf_info, orig_units = _get_info(input_fname,
+                                               stim_channel, eog, misc,
+                                               exclude, preload)
         logger.info('Creating raw.info structure...')
         _check_update_montage(info, montage)
 
@@ -169,6 +169,32 @@ class RawEDF(BaseRaw):
             info, preload, filenames=[input_fname], raw_extras=[edf_info],
             last_samps=last_samps, orig_format='int', orig_units=orig_units,
             verbose=verbose)
+
+        # Read annotations from file and set it
+        annot = None
+        ext = os.path.splitext(input_fname)[1][1:].lower()
+        if ext in ('gdf'):
+            events = edf_info.get('events', None)
+            # Annotations in GDF: events are stored as the following
+            # list: `events = [n_events, pos, typ, chn, dur]` where pos is the
+            # latency, dur is the duration in samples. They both are
+            # numpy.ndarray
+            if events is not None and events[1].shape[0] > 0:
+                # For whatever reason, typ has the same content as pos
+                # therefore we set an arbitrary description
+                desc = 'GDF event'
+                annot = Annotations(onset=events[1] / self.info['sfreq'],
+                                    duration=events[4] / self.info['sfreq'],
+                                    description=desc,
+                                    orig_time=None)
+        elif len(edf_info['tal_idx']) > 0:
+            # XXX : should pass to _read_annotations_edf what channel to read
+            # ie tal_channel_idx
+            onset, duration, desc = _read_annotations_edf(input_fname)
+            if onset:
+                # in EDF, annotations are relative to first_samp
+                annot = Annotations(onset=onset, duration=duration,
+                                    description=desc, orig_time=None)
 
         if annot is not None:
             self.set_annotations(annot)
@@ -331,9 +357,9 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     ext = os.path.splitext(fname)[1][1:].lower()
     logger.info('%s file detected' % ext.upper())
     if ext in ('bdf', 'edf'):
-        edf_info, orig_units, annot = _read_edf_header(fname, exclude)
+        edf_info, orig_units = _read_edf_header(fname, exclude)
     elif ext in ('gdf'):
-        edf_info, annot = _read_gdf_header(fname, stim_channel, exclude)
+        edf_info = _read_gdf_header(fname, stim_channel, exclude)
 
         # orig_units not yet implemented for gdf
         orig_units = None
@@ -385,11 +411,11 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_EOG_CH
             pick_mask[idx] = False
-        if ch_name in misc or idx in misc or idx - nchan in misc:
+        elif ch_name in misc or idx in misc or idx - nchan in misc:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
             pick_mask[idx] = False
-        if stim_channel == idx:
+        elif stim_channel == idx:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
@@ -464,7 +490,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
 
     info._update_redundant()
 
-    return info, edf_info, orig_units, annot
+    return info, edf_info, orig_units
 
 
 def _read_edf_header(fname, exclude):
@@ -561,7 +587,7 @@ def _read_edf_header(fname, exclude):
             n_records=n_records, n_samps=n_samps, nchan=nchan,
             subject_info=patient, physical_max=physical_max,
             physical_min=physical_min, record_length=record_length,
-            subtype=subtype)
+            subtype=subtype, tal_idx=tal_idx)
 
         fid.read(32 * nchan).decode()  # reserved
         assert fid.tell() == header_nbytes
@@ -585,17 +611,7 @@ def _read_edf_header(fname, exclude):
             edf_info['dtype_byte'] = 2  # 16-bit (2 byte) integers
             edf_info['dtype_np'] = np.int16
 
-    annot = None
-    if len(tal_idx) > 0:
-        # XXX : should pass to _read_annotations_edf what channel to read
-        # ie tal_channel_idx
-        onset, duration, desc = _read_annotations_edf(fname)
-        if onset:
-            # in EDF, annotations are relative to first_samp
-            annot = Annotations(onset=onset, duration=duration,
-                                description=desc, orig_time=None)
-
-    return edf_info, orig_units, annot
+    return edf_info, orig_units
 
 
 def _read_gdf_header(fname, stim_channel, exclude):
@@ -969,26 +985,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
 
     edf_info.update(events=events, sel=np.arange(len(edf_info['ch_names'])))
 
-    # Compute Annotations for GDF. This cannot be done without sfreq.
-    annot = None
-    # Annotations in GDF: events are stored as the following
-    # list: `events = [n_events, pos, typ, chn, dur]` where pos is the
-    # latency, dur is the duration in samples. They both are numpy.ndarray
-    if events is not None:
-        _is_pos_empty = events[1].shape[0] == 0
-        if not _is_pos_empty:
-            # For whatever reason, typ has the same content as pos
-            # therefore we set an arbitrary description
-            desc = 'GDF event'
-            sfreq = n_samps.max() * \
-                edf_info['record_length'][1] / edf_info['record_length'][0]
-            delta = 1. / sfreq
-            annot = Annotations(onset=events[1] * delta,
-                                duration=events[4] * delta,
-                                description=desc,
-                                orig_time=None)
-
-    return edf_info, annot
+    return edf_info
 
 
 def _check_stim_channel(stim_channel, ch_names, sel):
