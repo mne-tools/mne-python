@@ -2026,6 +2026,38 @@ class EpochsTFR(_BaseTFR):
                          times=self.times.copy(), freqs=self.freqs.copy(),
                          method=self.method, comment=self.comment)
 
+    def __getitem__(self, item):
+        """
+        Text for later
+        """
+        return self._getitem(item)
+
+    def _getitem(self, item, reason='IGNORED', copy=True,
+                 select_data=True, return_indices=False):
+
+        epochsTF = self.copy() if copy else self
+
+        if isinstance(item, str):
+            item = [item]
+
+        # Start with slices. Get to string index later.
+        if isinstance(item, (list, tuple)) and len(item) > 0 and \
+                isinstance(item[0], str):
+            raise TypeError('String indexing not yet supported.')
+        elif isinstance(item, slice):
+            select = item
+        else:
+            select = np.atleast_1d(item)
+            if len(select) == 0:
+                select = np.array([], int)
+
+        epochsTF.data = np.require(epochsTF.data[select], requirements=['O'])
+
+        if return_indices:
+            return epochsTF, select
+        else:
+            return epochsTF
+
     def copy(self):
         """Give a copy of the EpochsTFR.
 
