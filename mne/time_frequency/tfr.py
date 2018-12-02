@@ -1955,11 +1955,6 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         The time values in seconds.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
-    events : ndarray, shape (n_events, 3)
-        The events as stored in the Epochs class
-    event_id : dict
-        Example: dict(auditory=1, visual=3). They keys can be used to access
-        associated events.
     comment : str | None, defaults to None
         Comment on the data, e.g., the experimental condition.
     method : str | None, defaults to None
@@ -1967,36 +1962,36 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+    events : ndarray, shape (n_events, 3)
+        The events as stored in the Epochs class
+    event_id : dict
+        Example: dict(auditory=1, visual=3). They keys can be used to access
+        associated events.
+    metadata : DataFrame, shape (n_events, n_cols) | None
+        DataFrame containing pertinent information for each trial.
 
     Attributes
     ----------
     info : instance of Info
         Measurement info.
-
     ch_names : list
         The names of the channels.
-
     data : ndarray, shape (n_epochs, n_channels, n_freqs, n_times)
         The data array.
-
     times : ndarray, shape (n_times,)
         The time values in seconds.
-
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
-
-    events : ndarray, shape (n_events, 3)
-        Array containing sample information as event_id
-
-    event_id : dict
-        Names of conditions correspond to event_ids
-
     comment : string
         Comment on dataset. Can be the condition.
-
     method : str | None, defaults to None
         Comment on the method used to compute the data, e.g., morlet wavelet.
-
+    events : ndarray, shape (n_events, 3) | None
+        Array containing sample information as event_id
+    event_id : dict | None
+        Names of conditions correspond to event_ids
+    metadata : DataFrame, shape (n_events, n_cols) | None
+        DataFrame containing pertinent information for each trial
     Notes
     -----
     .. versionadded:: 0.13.0
@@ -2039,11 +2034,9 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
     def __abs__(self):
         """Take the absolute value."""
-        return EpochsTFR(info=self.info.copy(), data=np.abs(self.data),
-                         times=self.times.copy(), freqs=self.freqs.copy(),
-                         events=self.events.copy(),
-                         event_id=self.event_id.copy(), method=self.method,
-                         comment=self.comment)
+        epochs = self.copy()
+        epochs.data = np.abs(self.data)
+        return epochs
 
     def average(self):
         """Average the data across epochs.
