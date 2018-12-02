@@ -3172,3 +3172,32 @@ def _check_if_nan(data, msg=" to be plotted"):
     """Raise if any of the values are NaN."""
     if not np.isfinite(data).all():
         raise ValueError("Some of the values {} are NaN.".format(msg))
+
+
+def _hid_match(event_id, keys):
+    """Match event IDs using HID selection.
+
+    Parameters
+    ----------
+    event_id : dict
+        The event ID dictionary.
+    keys : list | str
+        The event ID or subset (for HID), or list of such items.
+
+    Returns
+    -------
+    use_keys : list
+        The full keys that fit the selection criteria.
+    """
+    # form the hierarchical event ID mapping
+    use_keys = []
+    for key in keys:
+        if not isinstance(key, str):
+            raise KeyError('keys must be strings, got %s (%s)'
+                           % (type(key), key))
+        use_keys.extend(k for k in event_id.keys()
+                        if set(key.split('/')).issubset(k.split('/')))
+    if len(use_keys) == 0:
+        raise KeyError('Event "%s" is not in Epochs.' % key)
+    use_keys = list(set(use_keys))  # deduplicate if necessary
+    return use_keys

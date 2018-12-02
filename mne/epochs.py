@@ -48,7 +48,7 @@ from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
 from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, warn, _pl, _ensure_int,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
-                    _check_pandas_installed, _check_preload)
+                    _check_pandas_installed, _check_preload, _hid_match)
 
 
 def _save_split(epochs, fname, part_idx, n_parts, fmt):
@@ -1891,35 +1891,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         first = int(tshift * sfreq) + offset
         last = first + len(times) - 1
         self._set_times(np.arange(first, last + 1, dtype=np.float) / sfreq)
-
-
-def _hid_match(event_id, keys):
-    """Match event IDs using HID selection.
-
-    Parameters
-    ----------
-    event_id : dict
-        The event ID dictionary.
-    keys : list | str
-        The event ID or subset (for HID), or list of such items.
-
-    Returns
-    -------
-    use_keys : list
-        The full keys that fit the selection criteria.
-    """
-    # form the hierarchical event ID mapping
-    use_keys = []
-    for key in keys:
-        if not isinstance(key, str):
-            raise KeyError('keys must be strings, got %s (%s)'
-                           % (type(key), key))
-        use_keys.extend(k for k in event_id.keys()
-                        if set(key.split('/')).issubset(k.split('/')))
-    if len(use_keys) == 0:
-        raise KeyError('Event "%s" is not in Epochs.' % key)
-    use_keys = list(set(use_keys))  # deduplicate if necessary
-    return use_keys
 
 
 def _check_baseline(baseline, tmin, tmax, sfreq):

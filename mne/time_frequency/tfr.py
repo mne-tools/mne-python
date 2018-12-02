@@ -25,14 +25,12 @@ from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, _pick_data_channels,
                        channel_type, _pick_inst, _get_channel_types)
 from ..io.meas_info import Info
-from ..utils import SizeMixin, _is_numeric
+from ..utils import SizeMixin, _is_numeric, _hid_match
 from .multitaper import dpss_windows
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap, warn,
                          _connection_line, _prepare_joint_axes,
                          _setup_vmin_vmax, _set_title_multiple_electrodes)
 from ..externals.h5io import write_hdf5, read_hdf5
-
-
 # Make wavelet
 
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
@@ -630,7 +628,8 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
                                    method='%s-itc' % method))
     else:
         power = out
-        out = EpochsTFR(info, power, times, freqs, method='%s-power' % method)
+        out = EpochsTFR(info, power, times, freqs, events=inst.events.copy(),
+                        event_id=inst.event_id.copy(), method='%s-power' % method)
 
     return out
 
@@ -1990,8 +1989,8 @@ class EpochsTFR(_BaseTFR):
     """
 
     @verbose
-    def __init__(self, info, data, times, freqs, comment=None,
-                 method=None, verbose=None):  # noqa: D102
+    def __init__(self, info, data, times, freqs, events=None,
+                 event_id=None, comment=None, method=None, verbose=None):  # noqa: D102
         self.info = info
         if data.ndim != 4:
             raise ValueError('data should be 4d. Got %d.' % data.ndim)
@@ -2008,6 +2007,8 @@ class EpochsTFR(_BaseTFR):
         self.data = data
         self.times = np.array(times, dtype=float)
         self.freqs = np.array(freqs, dtype=float)
+        self.events = events
+        self.event_id = event_id
         self.comment = comment
         self.method = method
         self.preload = True
@@ -2024,7 +2025,20 @@ class EpochsTFR(_BaseTFR):
         """Take the absolute value."""
         return EpochsTFR(info=self.info.copy(), data=np.abs(self.data),
                          times=self.times.copy(), freqs=self.freqs.copy(),
+                         events=self.events.copy(), event_id=self.event_id.copy(),
                          method=self.method, comment=self.comment)
+
+    def _keys_to_idx(self, keys):
+        """Find entries in event dict."""
+        keys = [keys] if not isinstance(keys, (list, tuple)) else keys
+        try:
+            # Assume it's a condition
+            return np.where(np.any(
+                np.array([self.events[:, 2] == self.event_id[k]
+                          for k in _hid_match(self.event_id, keys)]),
+                axis=0))[0]
+        except KeyError as err:
+            raise KeyError(msg)
 
     def __getitem__(self, item):
         """
@@ -2032,7 +2046,7 @@ class EpochsTFR(_BaseTFR):
         """
         return self._getitem(item)
 
-    def _getitem(self, item, reason='IGNORED', copy=True,
+    def _getitem(self, item, reason='IGNORED', copy=True, drop_event_id=True,
                  select_data=True, return_indices=False):
 
         epochsTF = self.copy() if copy else self
@@ -2043,7 +2057,7 @@ class EpochsTFR(_BaseTFR):
         # Start with slices. Get to string index later.
         if isinstance(item, (list, tuple)) and len(item) > 0 and \
                 isinstance(item[0], str):
-            raise TypeError('String indexing not yet supported.')
+            select = epochsTF._keys_to_idx(item)
         elif isinstance(item, slice):
             select = item
         else:
@@ -2053,6 +2067,11 @@ class EpochsTFR(_BaseTFR):
 
         epochsTF.data = np.require(epochsTF.data[select], requirements=['O'])
 
+        epochsTF.events = np.atleast_2d(epochsTF.events[select])
+        if drop_event_id:
+            # update event id to reflect new content of epochs
+            epochsTF.event_id = dict((k, v) for k, v in epochsTF.event_id.items()
+                                   if v in epochsTF.events[:, 2])
         if return_indices:
             return epochsTF, select
         else:
@@ -2068,6 +2087,7 @@ class EpochsTFR(_BaseTFR):
         """
         return EpochsTFR(info=self.info.copy(), data=self.data.copy(),
                          times=self.times.copy(), freqs=self.freqs.copy(),
+                         events=self.events.copy(), event_id=self.event_id.copy(),
                          method=self.method, comment=self.comment)
 
     def average(self):
