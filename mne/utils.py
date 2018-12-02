@@ -16,6 +16,7 @@ from io import BytesIO, StringIO
 import json
 import logging
 import fnmatch
+from copy import deepcopy
 
 from math import log, ceil
 import multiprocessing
@@ -3319,13 +3320,13 @@ class GetEpochsMixin(object):
             pd = _check_pandas_installed(strict=False)
             if pd is not False:
                 metadata = inst.metadata.iloc[select]
+                if has_selection:
+                    metadata.index = inst.selection
             else:
                 metadata = np.array(inst.metadata, 'object')[select].tolist()
 
             # will reset the index for us
             GetEpochsMixin.metadata.fset(inst, metadata, verbose=False)
-            if has_selection:
-                inst.metadata.index = inst.selection
         if inst.preload and select_data:
             # ensure that each Epochs instance owns its own data so we can
             # resize later if necessary
