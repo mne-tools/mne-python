@@ -188,10 +188,6 @@ class RawEDF(BaseRaw):
                                     description=desc,
                                     orig_time=None)
         elif len(edf_info['tal_idx']) > 0:
-            # # XXX : should pass to _read_annotations_edf what channel to read
-            # # ie tal_sel
-            # onset, duration, desc = _read_annotations_edf(input_fname)
-
             # Read TAL data exploiting the header info (no regexp)
             tal_data = self._read_segment_file([], [], 0, 0, int(self.n_times),
                                                None, None)
@@ -203,7 +199,6 @@ class RawEDF(BaseRaw):
 
         if annot is not None:
             self.set_annotations(annot)
-
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):

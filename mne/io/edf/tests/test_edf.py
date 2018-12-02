@@ -232,14 +232,16 @@ def test_read_annot(tmpdir):
     _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
 
 
-def test_read_annotations_bdf(recwarn):
-    annot = read_annotations(test_generator_bdf)
+@pytest.mark.parametrize('fname', [test_generator_edf, test_generator_bdf])
+def test_read_annotations(fname, recwarn):
+    """Test IO of annotations from edf and bdf files via regexp."""
+    annot = read_annotations(fname)
     assert len(annot.onset) == 2
 
 
-# @pytest.mark.parametrize('fname', [test_generator_edf, test_generator_bdf])
-@pytest.mark.parametrize('fname', [test_generator_bdf])
+@pytest.mark.parametrize('fname', [test_generator_edf, test_generator_bdf])
 def test_load_generator(fname, recwarn):
+    """Test IO of annotations from edf and bdf files with raw info."""
     raw = read_raw_edf(fname)
     assert len(raw.annotations.onset) == 2
     found_types = [k for k, v in
@@ -254,48 +256,6 @@ def test_load_generator(fname, recwarn):
     assert raw.ch_names == ch_names
     assert event_id == {'RECORD START': 1, 'REC STOP': 2}
     assert_array_equal(events, [[0, 0, 1], [120000, 0, 2]])
-
-
-@pytest.mark.parametrize('fname, header_length, start, n_samp, dtype_length, dtype_byte', [
-    (test_generator_bdf, 3328, 200 * 11, 34, np.dtype(np.uint8).itemsize, 3),
-    (test_generator_edf, 3328, 200 * 11, 51, np.dtype(np.uint16).itemsize, 2)])
-def test_xxx_parse_tal_channel(fname, header_length, start, n_samp, dtype_length, dtype_byte, recwarn):
-    import re
-
-    print(f'\n------------ fname: {fname} ---------')
-    with open(fname, 'r', encoding='latin-1') as fid:
-        fid.seek(header_length + (start * dtype_length * dtype_byte))
-        buff = fid.read(n_samp * dtype_length * dtype_byte)
-
-    # XXX: passing a bytearray does not work.
-    # onset, duration, desc = _read_annotations_edf(str.encode(buff))
-    #
-    # so, we'll do it manually
-    pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
-    triggers = re.findall(pat, buff)
-
-    print(triggers)
-
-
-@pytest.mark.parametrize('fname, header_length, start, n_samp, dtype_length, dtype_byte', [
-    (test_generator_bdf, 3328, 200 * 11, 34, np.dtype(np.uint8).itemsize,  3),
-    (test_generator_edf, 3328, 200 * 11, 51, np.dtype(np.uint16).itemsize, 2)])
-def test_xxx_parse_tal_channel_entire_file(fname, header_length, start, n_samp, dtype_length, dtype_byte, recwarn):
-    import re
-
-    print(f'\n------------ fname: {fname} ---------')
-    with open(fname, 'r', encoding='latin-1') as fid:
-        fid.seek(header_length)
-        buff = fid.read()
-
-    # XXX: passing a bytearray does not work.
-    # onset, druation, desc = _read_annotations_edf(str.encode(buff))
-    #
-    # so, we'll do it manually
-    pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
-    triggers = re.findall(pat, buff)
-
-    print(triggers)
 
 
 run_tests_if_main()
