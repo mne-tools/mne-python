@@ -134,7 +134,7 @@ def test_parse_annotation():
              b'+123\x14\x14\x00\x00\x00\x00\x00\x00\x00')
     annot = [a for a in bytes(annot)]
     annot[1::2] = [a * 256 for a in annot[1::2]]
-    tal_channel = map(sum, zip(annot[0::2], annot[1::2]))
+    tal_channel = np.array(list(map(sum, zip(annot[0::2], annot[1::2]))))
 
     onset, duration, description = _read_annotations_edf([tal_channel])
     assert_equal(np.column_stack((onset, duration, description)),
@@ -223,13 +223,22 @@ def test_read_annot(tmpdir):
                              orig_time=None)
     _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
 
+    # Now test when reading from buffer of data
+    with open(annot_file, 'rb') as fid:
+        ch_data = np.fromfile(fid, dtype=np.int16, count=len(annot))
+    onset, duration, desc = _read_annotations_edf([ch_data])
+    annotation = Annotations(onset=onset, duration=duration, description=desc,
+                             orig_time=None)
+    _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
+
 
 def test_read_annotations_bdf(recwarn):
     annot = read_annotations(test_generator_bdf)
     assert len(annot.onset) == 2
 
 
-@pytest.mark.parametrize('fname', [test_generator_bdf, test_generator_edf])
+# @pytest.mark.parametrize('fname', [test_generator_edf, test_generator_bdf])
+@pytest.mark.parametrize('fname', [test_generator_bdf])
 def test_load_generator(fname, recwarn):
     raw = read_raw_edf(fname)
     assert len(raw.annotations.onset) == 2
@@ -248,7 +257,7 @@ def test_load_generator(fname, recwarn):
 
 
 @pytest.mark.parametrize('fname, header_length, start, n_samp, dtype_length, dtype_byte', [
-    (test_generator_bdf, 3328, 200 * 11, 34, np.dtype(np.uint8).itemsize,  3),
+    (test_generator_bdf, 3328, 200 * 11, 34, np.dtype(np.uint8).itemsize, 3),
     (test_generator_edf, 3328, 200 * 11, 51, np.dtype(np.uint16).itemsize, 2)])
 def test_xxx_parse_tal_channel(fname, header_length, start, n_samp, dtype_length, dtype_byte, recwarn):
     import re
@@ -259,7 +268,7 @@ def test_xxx_parse_tal_channel(fname, header_length, start, n_samp, dtype_length
         buff = fid.read(n_samp * dtype_length * dtype_byte)
 
     # XXX: passing a bytearray does not work.
-    # onset, druation, desc = _read_annotations_edf(str.encode(buff))
+    # onset, duration, desc = _read_annotations_edf(str.encode(buff))
     #
     # so, we'll do it manually
     pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'

@@ -188,16 +188,22 @@ class RawEDF(BaseRaw):
                                     description=desc,
                                     orig_time=None)
         elif len(edf_info['tal_idx']) > 0:
-            # XXX : should pass to _read_annotations_edf what channel to read
-            # ie tal_channel_idx
-            onset, duration, desc = _read_annotations_edf(input_fname)
-            if onset:
-                # in EDF, annotations are relative to first_samp
-                annot = Annotations(onset=onset, duration=duration,
-                                    description=desc, orig_time=None)
+            # # XXX : should pass to _read_annotations_edf what channel to read
+            # # ie tal_sel
+            # onset, duration, desc = _read_annotations_edf(input_fname)
+
+            # Read TAL data exploiting the header info (no regexp)
+            tal_data = self._read_segment_file([], [], 0, 0, int(self.n_times),
+                                               None, None)
+            onset, duration, desc = _read_annotations_edf(tal_data[0])
+
+            # in EDF, annotations are relative to first_samp
+            annot = Annotations(onset=onset, duration=duration,
+                                description=desc, orig_time=None)
 
         if annot is not None:
             self.set_annotations(annot)
+
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -216,6 +222,7 @@ class RawEDF(BaseRaw):
         data_offset = self._raw_extras[fi]['data_offset']
         stim_channel = self._raw_extras[fi]['stim_channel']
         orig_sel = self._raw_extras[fi]['sel']
+        tal_idx = self._raw_extras[fi].get('tal_idx', [])
         subtype = self._raw_extras[fi]['subtype']
 
         if np.size(dtype_byte) > 1:
@@ -237,6 +244,9 @@ class RawEDF(BaseRaw):
 
         offsets = np.atleast_2d(physical_min - (digital_min * cal)).T
         this_sel = orig_sel[idx]
+        if len(tal_idx):
+            this_sel = np.concatenate([this_sel, tal_idx])
+        tal_data = []
 
         # We could read this one EDF block at a time, which would be this:
         ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
@@ -260,6 +270,11 @@ class RawEDF(BaseRaw):
                 for ii, ci in enumerate(this_sel):
                     # This now has size (n_chunks_read, n_samp[ci])
                     ch_data = many_chunk[:, ch_offsets[ci]:ch_offsets[ci + 1]]
+
+                    if len(tal_idx) and ci == tal_idx[0]:
+                        tal_data.append(ch_data)
+                        continue
+
                     r_sidx = r_lims[ai][0]
                     r_eidx = (buf_len * (n_read - 1) +
                               r_lims[ai + n_read - 1][1])
@@ -310,6 +325,8 @@ class RawEDF(BaseRaw):
             stim = np.bitwise_and(data[stim_channel_idx].astype(int),
                                   2**17 - 1)
             data[stim_channel_idx, :] = stim
+
+        return tal_data
 
     @copy_function_doc_to_method_doc(find_edf_events)
     def find_edf_events(self):
@@ -1152,9 +1169,20 @@ def _read_annotations_edf(annotations):
     else:
         tals = bytearray()
         for chan in annotations:
-            for s in chan:
-                i = int(s)
-                tals.extend(np.uint8([i % 256, i // 256]))
+            this_chan = chan.ravel()
+            if this_chan.dtype == np.int32:  # BDF
+                this_chan.dtype = np.uint8
+                this_chan = this_chan.reshape(-1, 4)
+                # Why only keep the first 3 bytes as BDF values
+                # are stored with 24 bits (not 32)
+                this_chan = this_chan[:, :3].ravel()
+                for s in this_chan:
+                    tals.extend(s)
+            else:
+                for s in this_chan:
+                    i = int(s)
+                    tals.extend(np.uint8([i % 256, i // 256]))
+
         # use of latin-1 because characters are only encoded for the first 256
         # code points and utf-8 can triggers an "invalid continuation byte"
         # error
