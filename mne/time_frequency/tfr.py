@@ -2027,7 +2027,6 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         self.comment = comment
         self.method = method
         self.preload = True
-        self._metadata = None
         self.metadata = metadata
 
     def __repr__(self):  # noqa: D105

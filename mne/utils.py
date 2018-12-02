@@ -3475,7 +3475,8 @@ class GetEpochsMixin(object):
     def _check_metadata(self, metadata=None, reset_index=False):
         """Check metadata consistency."""
         # reset_index=False will not copy!
-        metadata = self.metadata if metadata is None else metadata
+        metadata = self.metadata if hasattr(self, '_metadata') and \
+            metadata is None else metadata
         if metadata is not None:
             pd = _check_pandas_installed(strict=False)
             if pd is not False:
@@ -3515,7 +3516,7 @@ class GetEpochsMixin(object):
             n_col = ' with %d columns' % n_col
         else:
             n_col = ''
-        if self._metadata is not None:
+        if hasattr(self, '_metadata') and self._metadata is not None:
             action = 'Removing' if metadata is None else 'Replacing'
             action += ' existing'
         else:

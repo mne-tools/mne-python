@@ -356,7 +356,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         info._check_consistency()
         self.info = info
         del info
-        self._metadata = None
         self.metadata = metadata
         self._current = 0
 
