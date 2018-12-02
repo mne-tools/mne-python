@@ -25,6 +25,7 @@ from mne.io import read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import _read_annotations_edf
 from mne.io.edf.edf import _get_edf_default_event_id
+from mne.io.pick import channel_indices_by_type
 from mne.annotations import events_from_annotations, read_annotations
 
 FILE = inspect.getfile(inspect.currentframe())
@@ -223,32 +224,27 @@ def test_read_annot(tmpdir):
     _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
 
 
-def test_toy_bdf(recwarn):
-    EXPECTED_EVENTS = ([6, 18, 24, 36, 200, 206, 224, 230] +
-                       [x for x in range(400, 119801, 200)])
+def test_read_annotations_bdf(recwarn):
     annot = read_annotations(test_generator_bdf)
-    assert len(annot.onset) == len(EXPECTED_EVENTS)+2
+    assert len(annot.onset) == 2
 
 
 @pytest.mark.parametrize('fname', [test_generator_bdf, test_generator_edf])
-def test_load_toy_examples_in_edf_branch(fname, recwarn):
-    from mne.io.pick import channel_indices_by_type
-
-    print(f'\n------------ fname: {fname} ---------')
+def test_load_generator(fname, recwarn):
     raw = read_raw_edf(fname)
+    assert len(raw.annotations.onset) == 2
     found_types = [k for k, v in
                    channel_indices_by_type(raw.info, picks=None).items()
                    if v]
+    assert len(found_types) == 1
     events, event_id = events_from_annotations(raw)
-    print(f'The read types are {found_types}')
-    print(f'The shape of the data is {raw.get_data().shape}')
-    print(f"Channel names in _raw_extras: {raw._raw_extras[0]['ch_names']}")
-    print(f'Annotations load in read_raw_edf: {raw.annotations}')
-    print(f'Event ids found in Annotations: {event_id}')
-    print(f'Events loaded:\n {events}')
-
-    # raw.plot(scalings={k:'auto' for k in found_types},
-    #          title=op.basename(fname))
+    ch_names = ['squarewave', 'ramp', 'pulse', 'ECG', 'noise', 'sine 1 Hz',
+                'sine 8 Hz', 'sine 8.5 Hz', 'sine 15 Hz', 'sine 17 Hz',
+                'sine 50 Hz']
+    assert raw.get_data().shape == (11, 120000)
+    assert raw.ch_names == ch_names
+    assert event_id == {'RECORD START': 1, 'REC STOP': 2}
+    assert_array_equal(events, [[0, 0, 1], [120000, 0, 2]])
 
 
 @pytest.mark.parametrize('fname, header_length, start, n_samp, dtype_length, dtype_byte', [
@@ -291,7 +287,6 @@ def test_xxx_parse_tal_channel_entire_file(fname, header_length, start, n_samp, 
     triggers = re.findall(pat, buff)
 
     print(triggers)
-
 
 
 run_tests_if_main()
