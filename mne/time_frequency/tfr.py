@@ -1952,6 +1952,11 @@ class EpochsTFR(_BaseTFR):
         The time values in seconds.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
+    events : ndarray, shape (n_events, 3)
+        The events as stored in the Epochs class
+    event_id : dict
+        Example: dict(auditory=1, visual=3). They keys can be used to access
+        associated events.
     comment : str | None, defaults to None
         Comment on the data, e.g., the experimental condition.
     method : str | None, defaults to None
@@ -1977,6 +1982,12 @@ class EpochsTFR(_BaseTFR):
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
 
+    events : ndarray, shape (n_events, 3)
+        Array containing sample information as event_id
+
+    event_id : dict
+        Names of conditions correspond to event_ids
+        
     comment : string
         Comment on dataset. Can be the condition.
 
@@ -2045,14 +2056,46 @@ class EpochsTFR(_BaseTFR):
             raise KeyError(msg)
 
     def __getitem__(self, item):
-        """
-        Text for later
+        """Return an EpochsTFR object with a copied subset of epochs.
+
+        Parameters
+        ----------
+        item : slice, array-like, str, or list
+
+        Returns
+        -------
+        epochs : instance of Epochs
+
+        Notes
+        -----
+        See BaseEpochs.__getitem__ for use cases.
+        The use of metadata in EpochsTFR is not yet functional.
         """
         return self._getitem(item)
 
-    def _getitem(self, item, reason='IGNORED', copy=True, drop_event_id=True,
-                 select_data=True, return_indices=False):
+    def _getitem(self, item, copy=True, drop_event_id=True,
+                 return_indices=False):
+        """
+        Select epochs from current object.
 
+        Parameters
+        ----------
+        item: slice, array-like, str, or list
+            see `__getitem__` for details.
+        copy: bool
+            return a copy of the current object
+        drop_event_id: bool
+            remove non-existing event-ids after selection
+        return_indices: bool
+            return the indices of selected epochs from the original object)
+            in addition to the new `Epochs` objects
+        Returns
+        -------
+        `Epochs` or tuple(Epochs, np.ndarray) if `return_indices` is True
+
+        object with subset of epochs (and optionally array with kept
+        epoch indices)
+        """
         epochsTF = self.copy() if copy else self
 
         if isinstance(item, str):
