@@ -3489,8 +3489,8 @@ class GetEpochsMixin(object):
                                      'rows (%d) as events (%d)'
                                      % (len(metadata), len(self.events)))
                 if reset_index:
-                    metadata = metadata.reset_index(drop=True)  # makes a copy
                     if hasattr(self, 'selection'):
+                        metadata = metadata.reset_index(drop=True)  # makes a copy
                         metadata.index = self.selection
             else:
                 if not isinstance(metadata, list):
