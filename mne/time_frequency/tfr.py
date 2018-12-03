@@ -1512,14 +1512,14 @@ class AverageTFR(_BaseTFR):
             fmax = freq + freq_half_range
 
             data = tfr.data
-			
+            
             if layout is None:
                 loaded_layout = find_layout(tfr.info)
             
             # only use position information for channels from layout 
-            # whose names appear as a substring in info['ch_names']
+            # whose names appear as a substring in tfr.ch_names
             idx = [ix for ix, ch_name in enumerate(loaded_layout.names) 
-			    if any(ch_name in ch_name_tfr for ch_name_tfr in tfr.ch_names)]
+                if any(ch_name in ch_name_tfr for ch_name_tfr in tfr.ch_names)]
             pos = loaded_layout.pos[idx]
 
             # merging grads here before rescaling makes ERDs visible
