@@ -1514,7 +1514,7 @@ class AverageTFR(_BaseTFR):
             data = tfr.data
 			
             if layout is None:
-			    layout = find_layout(tfr.info)
+                layout = find_layout(tfr.info)
             
             # only use position information for channels from layout 
             # whose names appear as a substring in info['ch_names']
