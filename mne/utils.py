@@ -3404,27 +3404,27 @@ class GetEpochsMixin(object):
                                'len(Epochs.events).')
         return len(self.events)
 
-        def __iter__(self):
-            """Facilitate iteration over epochs.
+    def __iter__(self):
+        """Facilitate iteration over epochs.
 
-            This method resets the object iteration state to the first epoch.
+        This method resets the object iteration state to the first epoch.
 
-            Notes
-            -----
-            This enables the use of this Python pattern::
+        Notes
+        -----
+        This enables the use of this Python pattern::
 
-                >>> for epoch in epochs:  # doctest: +SKIP
-                >>>     print(epoch)  # doctest: +SKIP
+            >>> for epoch in epochs:  # doctest: +SKIP
+            >>>     print(epoch)  # doctest: +SKIP
 
-            Where ``epoch`` is given by successive outputs of
-            :func:`mne.Epochs.next`.
-            """
-            self._current = 0
-            while True:
-                x = self.next()
-                if x is None:
-                    return
-                yield x
+        Where ``epoch`` is given by successive outputs of
+        :func:`mne.Epochs.next`.
+        """
+        self._current = 0
+        while True:
+            x = self.next()
+            if x is None:
+                return
+            yield x
 
     def next(self, return_event_id=False):
         """Iterate over epoch data.

@@ -1967,8 +1967,9 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
     event_id : dict
         Example: dict(auditory=1, visual=3). They keys can be used to access
         associated events.
-    metadata : DataFrame, shape (n_events, n_cols) | None
-        DataFrame containing pertinent information for each trial.
+    metadata : instance of pandas.DataFrame | None
+        A :class:`pandas.DataFrame` containing pertinent information for each
+        trial. See :class:`mne.Epochs` for further details
 
     Attributes
     ----------
