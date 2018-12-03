@@ -224,7 +224,7 @@ def test_read_annot(tmpdir):
     _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
 
     # Now test when reading from buffer of data
-    with open(annot_file, 'rb') as fid:
+    with open(str(annot_file), 'rb') as fid:
         ch_data = np.fromfile(fid, dtype=np.int16, count=len(annot))
     onset, duration, desc = _read_annotations_edf([ch_data])
     annotation = Annotations(onset=onset, duration=duration, description=desc,
