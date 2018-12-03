@@ -662,8 +662,8 @@ def test_getitem_epochsTFR():
     # Choose time x (full) bandwidth product
     time_bandwidth = 4.0  # With 0.5 s time windows, this gives 8 Hz smoothing
     power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
-                          use_fft=True, time_bandwidth=time_bandwidth,
-                          return_itc=False, average=False, n_jobs=1)
+                           use_fft=True, time_bandwidth=time_bandwidth,
+                           return_itc=False, average=False, n_jobs=1)
 
     # Check that power and epochs metadata is the same
     assert_metadata_equal(epochs.metadata, power.metadata)
@@ -680,6 +680,23 @@ def test_getitem_epochsTFR():
     assert_array_equal(power['Trial == "face"'].data,
                        power.data[power.metadata['Trial'] == 'face'])
 
+    # Check that the wrong Key generates a Key Error for Metadata search
     with pytest.raises(KeyError):
         power['Trialz == "place"']
+
+    # Test length function
+    assert len(power) == n_events
+    assert len(power[3:6]) == 3
+
+    ind = 0
+    # Test iteration function
+    for power_ep in power:
+        assert_array_equal(power_ep, power.data[ind])
+        ind += 1
+        if ind == 5:
+            break
+
+    # Test that current state is maintained
+    assert_array_equal(power.next(), power.data[ind])
+
 run_tests_if_main()
