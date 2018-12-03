@@ -23,8 +23,9 @@ from mne.datasets import testing
 from mne.utils import run_tests_if_main, requires_pandas, _TempDir
 from mne.io import read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.edf.edf import _read_annotations_edf
 from mne.io.edf.edf import _get_edf_default_event_id
+from mne.io.edf.edf import _read_annotations_edf
+from mne.io.edf.edf import _read_ch
 from mne.io.pick import channel_indices_by_type
 from mne.annotations import events_from_annotations, read_annotations
 
@@ -123,7 +124,7 @@ def test_edf_data():
         read_raw_edf(broken_fname, exclude=raw.ch_names[:132], preload=True)
 
 
-def test_parse_annotation():
+def test_parse_annotation(tmpdir):
     """Test parsing the tal channel."""
     # test the parser
     annot = (b'+180\x14Lights off\x14Close door\x14\x00\x00\x00\x00\x00'
@@ -132,15 +133,26 @@ def test_parse_annotation():
              b'+3.14\x1504.20\x14nothing\x14\x00\x00\x00\x00'
              b'+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00'
              b'+123\x14\x14\x00\x00\x00\x00\x00\x00\x00')
+    annot_file = tmpdir.join('annotations.txt')
+    annot_file.write(annot)
+
     annot = [a for a in bytes(annot)]
     annot[1::2] = [a * 256 for a in annot[1::2]]
-    tal_channel = np.array(list(map(sum, zip(annot[0::2], annot[1::2]))))
+    tal_channel_A = np.array(list(map(sum, zip(annot[0::2], annot[1::2]))),
+                             dtype=np.int64)
 
-    onset, duration, description = _read_annotations_edf([tal_channel])
-    assert_equal(np.column_stack((onset, duration, description)),
-                 [[180., 0., 'Lights off'], [180., 0., 'Close door'],
-                  [180., 0., 'Lights off'], [180., 0., 'Close door'],
-                  [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']])
+    with open(str(annot_file), 'rb') as fid:
+        # ch_data = np.fromfile(fid, dtype=np.int16, count=len(annot))
+        tal_channel_B = _read_ch(fid, subtype='EDF', dtype=np.int16,
+                                 samp=(len(annot) - 1) // 2,
+                                 dtype_byte='This_parameter_is_not_used')
+
+    for tal_channel in [tal_channel_A, tal_channel_B]:
+        onset, duration, description = _read_annotations_edf([tal_channel])
+        assert_equal(np.column_stack((onset, duration, description)),
+                     [[180., 0., 'Lights off'], [180., 0., 'Close door'],
+                      [180., 0., 'Lights off'], [180., 0., 'Close door'],
+                      [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']])
 
 
 def test_find_events_backward_compatibility():
