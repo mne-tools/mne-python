@@ -1962,9 +1962,9 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-    events : ndarray, shape (n_events, 3)
+    events : ndarray, shape (n_events, 3) | None
         The events as stored in the Epochs class
-    event_id : dict
+    event_id : dict | None
         Example: dict(auditory=1, visual=3). They keys can be used to access
         associated events.
     metadata : instance of pandas.DataFrame | None

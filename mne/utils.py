@@ -3193,9 +3193,7 @@ def _hid_match(event_id, keys):
     # form the hierarchical event ID mapping
     use_keys = []
     for key in keys:
-        if not isinstance(key, str):
-            raise KeyError('keys must be strings, got %s (%s)'
-                           % (type(key), key))
+        _validate_type(key, types=str, item_name='keys')
         use_keys.extend(k for k in event_id.keys()
                         if set(key.split('/')).issubset(k.split('/')))
     if len(use_keys) == 0:
@@ -3332,7 +3330,8 @@ class GetEpochsMixin(object):
         if drop_event_id:
             # update event id to reflect new content of inst
             inst.event_id = dict((k, v) for k, v in inst.event_id.items()
-                                   if v in inst.events[:, 2])
+                                 if v in inst.events[:, 2])
+
         if return_indices:
             return inst, select
         else:
@@ -3340,7 +3339,7 @@ class GetEpochsMixin(object):
 
     def _keys_to_idx(self, keys):
         """Find entries in event dict."""
-        keys = [keys] if not isinstance(keys, (list, tuple)) else keys
+        keys = keys if isinstance(keys, (list, tuple)) else [keys]
         try:
             # Assume it's a condition name
             return np.where(np.any(
