@@ -3284,14 +3284,12 @@ class GetEpochsMixin(object):
         Returns
         -------
         `Epochs` or tuple(Epochs, np.ndarray) if `return_indices` is True
-
-        object with subset of epochs (and optionally array with kept
-        epoch indices)
+            subset of epochs (and optionally array with kept epoch indices)
         """
         data = self._data
         del self._data
         inst = self.copy() if copy else self
-        self._data, inst._data = data, data
+        self._data = inst._data = data
         del self
 
         if isinstance(item, str):
@@ -3481,9 +3479,8 @@ class GetEpochsMixin(object):
         if metadata is not None:
             pd = _check_pandas_installed(strict=False)
             if pd is not False:
-                if not isinstance(metadata, pd.DataFrame):
-                    raise TypeError('metadata must be a pandas DataFrame, '
-                                    'got %s' % (type(metadata),))
+                _validate_type(metadata, types=pd.DataFrame,
+                               item_name='metadata')
                 if len(metadata) != len(self.events):
                     raise ValueError('metadata must have the same number of '
                                      'rows (%d) as events (%d)'
@@ -3493,9 +3490,8 @@ class GetEpochsMixin(object):
                         metadata = metadata.reset_index(drop=True)  # makes a copy
                         metadata.index = self.selection
             else:
-                if not isinstance(metadata, list):
-                    raise TypeError('metdata must be a list, got %s'
-                                    % (type(metadata),))
+                _validate_type(metadata, types=list,
+                               item_name='metadata')
                 if reset_index:
                     metadata = deepcopy(metadata)
         return metadata
