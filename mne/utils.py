@@ -3488,8 +3488,11 @@ class GetEpochsMixin(object):
                                      % (len(metadata), len(self.events)))
                 if reset_index:
                     if hasattr(self, 'selection'):
-                        metadata = metadata.reset_index(drop=True)  # makes a copy
+                        # makes a copy
+                        metadata = metadata.reset_index(drop=True)
                         metadata.index = self.selection
+                    else:
+                        metadata = deepcopy(metadata)
             else:
                 _validate_type(metadata, types=list,
                                item_name='metadata')
