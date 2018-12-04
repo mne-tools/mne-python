@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- :func:`mne.io.edf.read_raw_edf` now detects analog stim channels labeled ``'STATUS'`` and sets them as stim channel. :func:`mne.io.edf.read_raw_edf` no longer synthesize TAL annotations into stim channel but stores them in ``raw.annotations`` on when reading by `Joan Massich`_
+
 - Add 448-labels subdivided aparc cortical parcellation by `Denis Engemann`_ and `Sheraz Khan`_
 
 - Add keyboard shortcuts to nativate volume source estimates in time using (shift+)left/right arrow keys by `Mainak Jas`_
