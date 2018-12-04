@@ -21,6 +21,30 @@ of the users who use the package.
 page as the maintainers about changes or enhancements before too much
 coding is done saves everyone time and effort!
 
+Installing developer version
+----------------------------
+
+The standard installation procedure can be found on the
+[MNE website](https://martinos.org/mne/stable/install_mne_python.html)
+but if you want to install a developer version directly from the source
+code in order to contribute, you can follow those steps:
+
+  .. code-block:: console
+
+     $ git clone git@github.com:mne-tools/mne-python.git
+     $ cd mne-python
+     $ conda env create -f dev_environment.yml
+     $ conda activate mne-dev-py36
+     $ pip install -e .
+
+To check the installation, you can enter the followong commnads:
+
+  .. code-block:: console
+
+     $ python -c "import mne; mne.sys_info()"
+     $ python -c "import mne; mne.datasets.testing.data_path(force_update=True)"
+
+
 Code guidelines
 ---------------
 
