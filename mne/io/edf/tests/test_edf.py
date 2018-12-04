@@ -48,8 +48,8 @@ edf_overlap_annot_path = op.join(data_path, 'EDF',
 edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
 bdf_stim_channel_path = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 
-test_generator_bdf = op.join(data_dir, 'test_generator_2.bdf')
-test_generator_edf = op.join(data_dir, 'test_generator_2.edf')
+test_generator_bdf = op.join(data_path, 'BDF', 'test_generator_2.bdf')
+test_generator_edf = op.join(data_path, 'EDF', 'test_generator_2.edf')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
@@ -244,6 +244,7 @@ def test_read_annot(tmpdir):
     _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
 
 
+@testing.requires_testing_data
 @pytest.mark.parametrize('fname', [test_generator_edf, test_generator_bdf])
 def test_read_annotations(fname, recwarn):
     """Test IO of annotations from edf and bdf files via regexp."""
@@ -251,6 +252,7 @@ def test_read_annotations(fname, recwarn):
     assert len(annot.onset) == 2
 
 
+@testing.requires_testing_data
 @pytest.mark.parametrize('fname', [test_generator_edf, test_generator_bdf])
 def test_load_generator(fname, recwarn):
     """Test IO of annotations from edf and bdf files with raw info."""
