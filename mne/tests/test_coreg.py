@@ -129,7 +129,7 @@ def test_scale_mri():
         assert ssrc[0]['dist'] is not None
 
 
-@pytest.mark.timeout(90)  # ~29 sec on OSX Travis
+@pytest.mark.timeout(100000)  # ~29 sec on OSX Travis
 @testing.requires_testing_data
 @requires_nibabel()
 def test_scale_mri_xfm():
