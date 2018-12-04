@@ -37,7 +37,7 @@ code in order to contribute, you can follow those steps:
      $ conda activate mne-dev-py36
      $ pip install -e .
 
-To check the installation, you can enter the followong commnads:
+To check the installation, you can enter the following commands:
 
   .. code-block:: console
 
