@@ -1721,6 +1721,7 @@ def set_memmap_min_size(memmap_min_size):
 known_config_types = (
     'MNE_BROWSE_RAW_SIZE',
     'MNE_CACHE_DIR',
+    'MNE_COREG_ADVANCED_RENDERING',
     'MNE_COREG_COPY_ANNOT',
     'MNE_COREG_GUESS_MRI_SUBJECT',
     'MNE_COREG_HEAD_HIGH_RES',

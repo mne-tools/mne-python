@@ -26,7 +26,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
                    trans=None, scrollable=True, project_eeg=None,
                    orient_to_surface=None, scale_by_distance=None,
                    mark_inside=None, interaction=None, scale=None,
-                   verbose=None):
+                   advanced_rendering=None, verbose=None):
     """Coregister an MRI with a subject's head shape.
 
     The recommended way to use the GUI is through bash with:
@@ -104,7 +104,13 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     scale : float | None
         The scaling for the scene.
 
-        ..versionadded:: 0.16
+        .. versionadded:: 0.16
+    advanced_rendering : bool
+        Use advanced OpenGL rendering techniques (default True).
+        For some renderers (such as MESA software) this can cause rendering
+        bugs.
+
+        .. versionadded:: 0.18
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -127,6 +133,9 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
             'MNE_COREG_GUESS_MRI_SUBJECT', 'true') == 'true'
     if head_high_res is None:
         head_high_res = config.get('MNE_COREG_HEAD_HIGH_RES', 'true') == 'true'
+    if advanced_rendering is None:
+        advanced_rendering = \
+            config.get('MNE_COREG_ADVANCED_RENDERING', 'true') == 'true'
     if head_opacity is None:
         head_opacity = config.get('MNE_COREG_HEAD_OPACITY', 1.)
     if width is None:
@@ -167,7 +176,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
                        orient_to_surface=orient_to_surface,
                        scale_by_distance=scale_by_distance,
                        mark_inside=mark_inside, interaction=interaction,
-                       scale=scale)
+                       scale=scale, advanced_rendering=advanced_rendering)
     return _initialize_gui(frame, view)
 
 

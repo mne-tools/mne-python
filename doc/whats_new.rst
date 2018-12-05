@@ -43,6 +43,8 @@ Changelog
 
 - Add 448-labels subdivided aparc cortical parcellation by `Denis Engemann`_ and `Sheraz Khan`_
 
+- Add option to improve rendering in :ref:`gen_mne_coreg` for modern graphics cards by `Eric Larson`_
+
 - Add keyboard shortcuts to nativate volume source estimates in time using (shift+)left/right arrow keys by `Mainak Jas`_
 
 - Add Epoch selection and metadata functionality to :class:`mne.time_frequency.EpochsTFR` using new mixin class by `Keith Doelling`_
