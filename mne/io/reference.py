@@ -508,11 +508,10 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     if copy:
         inst = inst.copy()
 
-    rem_ca = list(cathode)
     for i, (an, ca, name, chs) in enumerate(
             zip(anode, cathode, ch_name, new_chs)):
-        if an in anode[i + 1:]:
-            # Make a copy of anode if it's still needed later
+        if an in anode[i + 1:] or an in cathode[i + 1:]:
+            # Make a copy of the channel if it's still needed later
             # otherwise it's modified inplace
             _copy_channel(inst, an, 'TMP')
             an = 'TMP'
@@ -522,11 +521,11 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         inst.info['chs'][an_idx]['ch_name'] = name
         logger.info('Bipolar channel added as "%s".' % name)
         inst.info._update_redundant()
-        if an in rem_ca:
-            idx = rem_ca.index(an)
-            del rem_ca[idx]
 
-    # Drop remaining cathode channels
-    inst.drop_channels(rem_ca)
+    # Drop remaining channels.
+    inst.drop_channels([
+        ch_name for ch_name in set(list(anode) + list(cathode))
+        if ch_name in inst.ch_names
+    ])
 
     return inst

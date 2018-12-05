@@ -942,8 +942,10 @@ def _eigvec_subspace(eig, eigvec, mask):
 def _scaled_array(data, picks_list, scalings):
     """Scale, use, unscale array."""
     _apply_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
-    yield
-    _undo_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
+    try:
+        yield
+    finally:
+        _undo_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
 
 
 def _compute_covariance_auto(data, method, info, method_params, cv,
