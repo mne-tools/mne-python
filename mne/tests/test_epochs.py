@@ -2487,6 +2487,26 @@ def test_readonly_times():
     with pytest.raises(ValueError, match='read-only'):
         epochs.times[:] = 0.
 
+def test_average_methods():
+    """Test average methods."""
+    n_epochs, n_channels, n_times = 5, 10, 20
+    sfreq = 1000.
+    data = rng.randn(n_epochs, n_channels, n_times)
+    events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
+    info = create_info(n_channels, sfreq, 'eeg')
+    epochs = EpochsArray(data, info, events)
+
+    for method in ('mean', 'median'):
+        if method == "mean":
+            def fun(data):
+                return np.mean(data, axis=0)
+        elif method == "median":
+            def fun(data):
+                return np.median(data, axis=0)
+
+        evoked_data = epochs.copy().average(method=method).data
+        assert_array_equal(evoked_data, fun(data.copy()))
+
 
 @pytest.mark.parametrize('relative', (True, False))
 def test_shift_time(relative):
