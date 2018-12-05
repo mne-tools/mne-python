@@ -2487,6 +2487,7 @@ def test_readonly_times():
     with pytest.raises(ValueError, match='read-only'):
         epochs.times[:] = 0.
 
+
 def test_average_methods():
     """Test average methods."""
     n_epochs, n_channels, n_times = 5, 10, 20
@@ -2504,8 +2505,8 @@ def test_average_methods():
             def fun(data):
                 return np.median(data, axis=0)
 
-        evoked_data = epochs.copy().average(method=method).data
-        assert_array_equal(evoked_data, fun(data.copy()))
+        evoked_data = epochs.average(method=method).data
+        assert_array_equal(evoked_data, fun(data))
 
 
 @pytest.mark.parametrize('relative', (True, False))
