@@ -179,13 +179,7 @@ the average variances across the channel groups, and :math:`I^{(k)}` are
 diagonal matrices containing ones at the positions corresponding
 to the channels contained in each channel group.
 
-Using the UNIX tools :ref:`mne_inverse_operator`, the values
-:math:`\varepsilon_k` can be adjusted with the regularization options
-``--magreg`` , ``--gradreg`` , and ``--eegreg`` specified at the time of the
-inverse operator decomposition, see :ref:`inverse_operator`. The convenience script
-:ref:`mne_do_inverse_operator` has the ``--magreg`` and ``--gradreg`` combined to
-a single option, ``--megreg`` , see :ref:`CIHCFJEI`.
-Suggested range of values for :math:`\varepsilon_k` is :math:`0.05 \dotso 0.2`.
+See :ref:`plot_compute_covariance_howto` for details.
 
 .. _mne_solution:
 .. _inverse_operator:
