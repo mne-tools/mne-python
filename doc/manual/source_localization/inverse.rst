@@ -4,25 +4,16 @@
 The minimum-norm current estimates
 ==================================
 
+This page describes the mathematical concepts and the
+computation of the minimum-norm estimates needed
+in order to obtain the linear inverse operator using
+:func:`mne.minimum_norm.make_inverse_operator`.
+Its usage is presented in the in the tutorial
+:ref:`sphx_glr_auto_tutorials_plot_mne_dspm_source_localization.py`.
+
 .. contents:: Contents
    :local:
    :depth: 2
-
-Overview
-########
-
-This page describes the mathematical concepts and the
-computation of the minimum-norm estimates.
-Using the UNIX commands this is accomplished with two programs:
-:ref:`mne_inverse_operator` and :ref:`mne_make_movie` or in Python
-using :func:`mne.minimum_norm.make_inverse_operator`
-and the ``apply`` functions. The use of these functions is
-presented in the tutorial
-:ref:`sphx_glr_auto_tutorials_plot_mne_dspm_source_localization.py`.
-
-The page starts with a mathematical description of the method.
-The interactive program for inspecting data and inverse solutions,
-:ref:`mne_analyze`, is covered in :ref:`ch_interactive_analysis`.
 
 .. _CBBDJFBJ:
 
