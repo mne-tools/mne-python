@@ -345,8 +345,6 @@ of the surface normal data:
   space location is employed.
   See :ref:`plot_dipole_orientations_fixed_orientations`
 
-.. XXX: refer to MEG head coordinate frame (in fLOC)
-
 - A *location independent or fixed loose orientation
   constraint* (fLOC) can be employed
   by specifying ``fixed=False`` and ``loose=1.0`` when calling
@@ -356,7 +354,8 @@ of the surface normal data:
   the three columns of the gain matrix G, associated with a given
   source location, are the fields of unit dipoles pointing to the
   directions of the x, y, and z axis of the coordinate system employed
-  in the forward calculation (usually the MEG head coordinate frame).
+  in the forward calculation 
+  (usually the :ref:`MEG head coordinate frame <BJEBIBAI>`).
   For LOC the orientation is changed so that the first two source
   components lie in the plane normal to the surface normal at the source
   location and the third component is aligned with it. Thereafter, the
