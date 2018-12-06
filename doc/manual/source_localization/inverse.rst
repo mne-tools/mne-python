@@ -69,6 +69,8 @@ The expected value of the current amplitudes at time *t* is
 then given by :math:`\hat{j}(t) = Mx(t)`, where :math:`x(t)` is
 a vector containing the measured MEG and EEG data values at time *t*.
 
+.. note:: For computational convenience, in MNE-Python the linear inverse operator is not computed explicitly. See :ref:`mne_solution` for mathematical details, and :ref:`CIHCFJEI` for a detailed example.
+
 .. _mne_regularization:
 
 Regularization
@@ -225,7 +227,7 @@ independent of  :math:`L` and, for fixed :math:`\lambda`,
 we see directly that :math:`j(t)` is independent
 of :math:`L`.
 
-.. note:: This is computed using :func:`mne.minimum_norm.make_inverse_operator`
+.. note:: This is computed using :func:`mne.minimum_norm.make_inverse_operator` and its usage is illustrated in :ref:`CIHCFJEI`.
 
 .. _noise_normalization:
 
