@@ -302,16 +302,18 @@ thus expressed as the weighted sum of the 'recolored eigenfields' in :math:`C^{^
 Cortical patch statistics
 =========================
 
-If the ``--cps`` option was used in source space
-creation (see :ref:`setting_up_source_space`) or if mne_add_patch_info described
-in :ref:`mne_add_patch_info` was run manually the source space file
-will contain for each vertex of the cortical surface the information
+``use_cps`` parameter in
+:func:`mne.convert_forward_solution`, and
+:func:`mne.minimum_norm.make_inverse_operator`
+controls whether to use cortical patch statistics (CPS) to define normal orientations
+or not. (see :ref:`CHDBBCEJ`)
+The CPS contain for each vertex of the cortical surface the information
 about the source space point closest to it as well as the distance
 from the vertex to this source space point. The vertices for which
 a given source space point is the nearest one define the cortical
 patch associated with with the source space point. Once these data
-are available, it is straightforward to compute the following cortical
-patch statistics (CPS) for each source location :math:`d`:
+are available, it is straightforward to compute the following
+for each source location :math:`d`:
 
 - The average over the normals of at the
   vertices in a patch, :math:`\bar{n_d}`,
