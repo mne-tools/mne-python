@@ -1389,8 +1389,10 @@ def traits_test_context():
     from traits.api import push_exception_handler
 
     push_exception_handler(reraise_exceptions=True)
-    yield
-    push_exception_handler(reraise_exceptions=False)
+    try:
+        yield
+    finally:
+        push_exception_handler(reraise_exceptions=False)
 
 
 def traits_test(test_func):
