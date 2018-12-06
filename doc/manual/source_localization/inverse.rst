@@ -393,9 +393,11 @@ scaled by a factor
 
 where :math:`g_{1p}`, :math:`g_{2p}`, and :math:`g_{3p}` are the three columns
 of :math:`G` corresponding to source location :math:`p` and :math:`\gamma` is
-the order of the depth weighting, specified with the ``--weightexp`` option
-to mne_inverse_operator . The
-maximal amount of depth weighting can be adjusted ``--weightlimit`` option.
+the order of the depth weighting. 
+The maximal amount of depth weighting can be adjusted with ``depth`` parameter in
+:func:`mne.minimum_norm.make_inverse_operator`. 
+
+.. XXX: is there any example/tutorial showing the influence of this parameter?
 
 .. _mne_fmri_estimates:
 
