@@ -3100,3 +3100,5 @@ of commits):
 .. _jeythekey: https://github.com/jeythekey
 
 .. _Sara Sommariva: http://www.dima.unige.it/~sommariva/
+
+.. _Cristóbal Moënne-Loccoz: https://github.com/cmmoenne
