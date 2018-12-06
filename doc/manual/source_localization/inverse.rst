@@ -188,6 +188,7 @@ a single option, ``--megreg`` , see :ref:`CIHCFJEI`.
 Suggested range of values for :math:`\varepsilon_k` is :math:`0.05 \dotso 0.2`.
 
 .. _mne_solution:
+.. _inverse_operator:
 
 Computation of the solution
 ===========================
@@ -229,6 +230,8 @@ we must have :math:`R \propto 1/L`. With this approach, :math:`\lambda_k` is
 independent of  :math:`L` and, for fixed :math:`\lambda`,
 we see directly that :math:`j(t)` is independent
 of :math:`L`.
+
+.. note:: This is computed using :func:`mne.minimum_norm.make_inverse_operator`
 
 .. _noise_normalization:
 
@@ -447,89 +450,3 @@ Generalizing, for any combination of sums and differences, where :math:`w_i = 1`
 we have
 
 .. math::    1 / L_{eff} = \sum_{i = 1}^n {1/{L_i}}
-
-.. _inverse_operator:
-
-Inverse-operator decomposition
-##############################
-
-The program :ref:`mne_inverse_operator` calculates
-the decomposition :math:`A = \tilde{G} R^C = U \Lambda \bar{V^T}`,
-described in :ref:`mne_solution`. It is normally invoked from the convenience
-script :ref:`mne_do_inverse_operator`.
-
-
-.. _movies_and_snapshots:
-
-Producing movies and snapshots
-##############################
-
-:ref:`mne_make_movie` is a program
-for producing movies and snapshot graphics frames without any graphics
-output to the screen. In addition, :ref:`mne_make_movie` can
-produce stc or w files which contain the numerical current estimate
-data in a simple binary format for postprocessing. These files can
-be displayed in :ref:`mne_analyze`,
-see :ref:`ch_interactive_analysis`, utilized in the cross-subject averaging
-process, see :ref:`sphx_glr_auto_tutorials_plot_morph_stc.py`,
-and read into Matlab using the MNE Matlab toolbox, see :ref:`ch_matlab`.
-
-
-.. _computing_inverse:
-
-Computing inverse from raw and evoked data
-##########################################
-
-The purpose of the utility :ref:`mne_compute_raw_inverse` is
-to compute inverse solutions from either evoked-response or raw
-data at specified ROIs (labels) and to save the results in a fif
-file which can be viewed with :ref:`mne_browse_raw`,
-read to Matlab directly using the MNE Matlab Toolbox, see :ref:`ch_matlab`,
-or converted to Matlab format using either :ref:`mne_convert_mne_data`,
-:ref:`mne_raw2mat`, or :ref:`mne_epochs2mat`. See
-:ref:`mne_compute_raw_inverse` for command-line options.
-
-.. _implementation_details:
-
-Implementation details
-======================
-
-The fif files output from mne_compute_raw_inverse have
-various fields of the channel information set to facilitate interpretation
-by postprocessing software as follows:
-
-**channel name**
-
-    Will be set to J[xyz] <*number*> ,
-    where the source component is indicated by the coordinat axis name
-    and number is the vertex number, starting from zero, in the complete
-    triangulation of the hemisphere in question.
-
-**logical channel number**
-
-    Will be set to is the vertex number, starting from zero, in the
-    complete triangulation of the hemisphere in question.
-
-**sensor location**
-
-    The location of the vertex in head coordinates or in MRI coordinates,
-    determined by the ``--mricoord`` flag.
-
-**sensor orientation**
-
-    The *x*-direction unit vector will point to the
-    direction of the current. Other unit vectors are set to zero. Again,
-    the coordinate system in which the orientation is expressed depends
-    on the ``--mricoord`` flag.
-
-The ``--align_z`` flag tries to align the signs
-of the signals at different vertices of the label. For this purpose,
-the surface normals within the label are collected into a :math:`n_{vert} \times 3` matrix.
-The preferred orientation will be taken as the first right singular
-vector of this matrix, corresponding to its largest singular value.
-If the dot product of the surface normal of a vertex is negative,
-the sign of the estimates at this vertex are inverted. The inversion
-is reflected in the current direction vector listed in the channel
-information, see above.
-
-.. note:: The raw data files output by :ref:`mne_compute_raw_inverse` can be converted to mat files with :ref:`mne_raw2mat`. Alternatively, the files can be read directly from Matlab using the routines in the MNE Matlab toolbox, see :ref:`ch_matlab`. The evoked data output can be easily read directly from Matlab using the fiff_load_evoked routine in the MNE Matlab toolbox. Both raw data and evoked output files can be loaded into :ref:`mne_browse_raw`, see :ref:`ch_browse`.
