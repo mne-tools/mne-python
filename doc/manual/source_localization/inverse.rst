@@ -322,6 +322,8 @@ patch statistics (CPS) for each source location :math:`d`:
 - The average deviation of the vertex normals in a patch from
   their average, :math:`\sigma_d`, given in degrees.
 
+.. _inverse_orientation_constrains:
+
 The orientation constraints
 ===========================
 
@@ -335,14 +337,22 @@ the MNE software implements three orientation constraints based
 of the surface normal data:
 
 - Source orientation can be rigidly fixed
-  to the surface normal direction (the ``--fixed`` option).
+  by specifying ``fixed=True`` when calling
+  :func:`mne.minimum_norm.make_inverse_operator`.
+  In such case, the dipole orientations are
+  fixed to be orthogonal to the surface of the cortex, pointing outwards.
   If cortical patch statistics are available the average normal over
   each patch, :math:`\bar{n_d}`, are used to define
   the source orientation. Otherwise, the vertex normal at the source
   space location is employed.
+  See :ref:`plot_dipole_orientations_fixed_orientations`
+
+.. XXX: refer to MEG head coordinate frame (in fLOC)
 
 - A *location independent or fixed loose orientation
-  constraint* (fLOC) can be employed (the ``--loose`` option).
+  constraint* (fLOC) can be employed
+  by specifying ``fixed=False`` and ``loose=1.0`` when calling
+  :func:`mne.minimum_norm.make_inverse_operator`.
   In this approach, a source coordinate system based on the local
   surface orientation at the source location is employed. By default,
   the three columns of the gain matrix G, associated with a given
@@ -353,12 +363,17 @@ of the surface normal data:
   components lie in the plane normal to the surface normal at the source
   location and the third component is aligned with it. Thereafter, the
   variance of the source components tangential to the cortical surface are
-  reduced by a factor defined by the ``--loose`` option.
+  reduced by a factor defined by the ``loose`` parameter.
+  See :ref:`plot_dipole_orientations_fLOC_orientations`
 
 - A *variable loose orientation constraint* (vLOC)
-  can be employed (the ``--loosevar`` option). This is similar
-  to fLOC except that the value given with the ``--loosevar`` option
+  can be employed
+  by specifying ``fixed=False`` and ``loose`` parameters when calling
+  :func:`mne.minimum_norm.make_inverse_operator`.
+  This is similar
+  to fLOC except that the value given with the ``loose`` parameter
   will be multiplied by :math:`\sigma_d`, defined above.
+  See :ref:`plot_dipole_orientations_vLOC_orientations`
 
 .. _depth_weighting:
 
