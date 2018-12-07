@@ -340,7 +340,7 @@ annotation map file which associates an annotation label with a number on
 the trigger channel.
 
 Saving EDF files is not supported natively (mne 0.18) yet. 
-This (gist)[https://gist.github.com/skjerns/bc660ef59dca0dbd53f00ed38c42f6be] can be used to save any mne.io.Raw into EDF/EDF+/BDF/BDF+.
+This `gist <[https://gist.github.com/skjerns/bc660ef59dca0dbd53f00ed38c42f6be>`_ can be used to save any mne.io.Raw into EDF/EDF+/BDF/BDF+.
 
 Biosemi data format (.bdf)
 ==========================
