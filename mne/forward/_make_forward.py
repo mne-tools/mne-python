@@ -800,5 +800,7 @@ def use_coil_def(fname):
     """
     global _extra_coil_def_fname
     _extra_coil_def_fname = fname
-    yield
-    _extra_coil_def_fname = None
+    try:
+        yield
+    finally:
+        _extra_coil_def_fname = None
