@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+import itertools
 import os.path as op
 import numpy as np
 
@@ -12,9 +13,9 @@ import pytest
 
 from mne import (pick_channels, pick_types, Epochs, read_events,
                  set_eeg_reference, set_bipolar_reference,
-                 add_reference_channels)
+                 add_reference_channels, create_info)
 from mne.epochs import BaseEpochs
-from mne.io import read_raw_fif
+from mne.io import RawArray, read_raw_fif
 from mne.io.constants import FIFF
 from mne.io.proj import _has_eeg_average_ref_proj, Projection
 from mne.io.reference import _apply_reference
@@ -471,6 +472,43 @@ def test_add_reference():
     raw_np = read_raw_fif(fif_fname, preload=False)
     pytest.raises(RuntimeError, add_reference_channels, raw_np, ['Ref'])
     pytest.raises(ValueError, add_reference_channels, raw, 1)
+
+
+def test_bipolar_combinations():
+    """Test bipolar channel generation."""
+    channels = ['CH' + str(ni + 1) for ni in range(10)]
+    info = create_info(
+        ch_names=channels, sfreq=1000., ch_types=['eeg'] * len(channels))
+    raw_data = np.random.randn(len(channels), 1000)
+    raw = RawArray(raw_data, info)
+
+    def _check_bipolar(raw_test, ch_a, ch_b):
+        assert_array_equal(
+            raw_test.get_data(
+                picks=[raw_test.ch_names.index(ch_a + '-' + ch_b)])[0, :],
+            raw_data[channels.index(ch_a), :] -
+            raw_data[channels.index(ch_b), :])
+
+    # test classic EOG/ECG bipolar reference (only two channels per pair).
+    raw_test = set_bipolar_reference(raw, ['CH2'], ['CH1'], copy=True)
+    _check_bipolar(raw_test, 'CH2', 'CH1')
+
+    # test all combinations.
+    bipolars = list(itertools.combinations(channels, 2))
+    a_channels, b_channels = [], []
+    for ch_a, ch_b in bipolars:
+        a_channels.append(ch_a)
+        b_channels.append(ch_b)
+    raw_test = set_bipolar_reference(
+        raw, a_channels, b_channels, copy=True)
+    for ch_a, ch_b in bipolars:
+        _check_bipolar(raw_test, ch_a, ch_b)
+
+    # test bipolars with a channel in both list (anode & cathode).
+    raw_test = set_bipolar_reference(
+        raw, ['CH2', 'CH1'], ['CH1', 'CH2'], copy=True)
+    _check_bipolar(raw_test, 'CH2', 'CH1')
+    _check_bipolar(raw_test, 'CH1', 'CH2')
 
 
 run_tests_if_main()
