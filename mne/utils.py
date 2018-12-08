@@ -2207,7 +2207,7 @@ def _chunk_write(chunk, local_file, progress):
 
 @verbose
 def _fetch_file(url, file_name, print_destination=True, resume=True,
-                hash_=None, timeout=30., verbose=None):
+                hash_=None, timeout=30., hashtype='md5', verbose=None):
     """Load requested file, downloading it if needed or requested.
 
     Parameters
@@ -2226,6 +2226,8 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         performed.
     timeout : float
         The URL open timeout.
+    hashtype : str
+        The type of hashing to use such as "md5" or "sha1"
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -2233,7 +2235,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
     if hash_ is not None and (not isinstance(hash_, str) or
-                              len(hash_) != 32):
+                              len(hash_) != 32) and hashtype == 'md5':
         raise ValueError('Bad hash value given, should be a 32-character '
                          'string:\n%s' % (hash_,))
     temp_file_name = file_name + ".part"
@@ -2285,14 +2287,14 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
             _get_http(url, temp_file_name, initial_size, file_size, timeout,
                       verbose_bool)
 
-        # check md5sum
+        # check hash sum eg md5sum
         if hash_ is not None:
             logger.info('Verifying hash %s.' % (hash_,))
-            md5 = md5sum(temp_file_name)
-            if hash_ != md5:
+            hashsum = hashfunc(temp_file_name, hashtype=hashtype)
+            if hash_ != hashsum:
                 raise RuntimeError('Hash mismatch for downloaded file %s, '
                                    'expected %s but got %s'
-                                   % (temp_file_name, hash_, md5))
+                                   % (temp_file_name, hash_, hashsum))
         shutil.move(temp_file_name, file_name)
         if print_destination is True:
             logger.info('File saved as %s.\n' % file_name)
@@ -2687,6 +2689,7 @@ class SilenceStdout(object):
         sys.stdout = self.stdout
 
 
+# XXX deprecate
 def md5sum(fname, block_size=1048576):  # 2 ** 20
     """Calculate the md5sum for a file.
 
@@ -2710,6 +2713,34 @@ def md5sum(fname, block_size=1048576):  # 2 ** 20
                 break
             md5.update(data)
     return md5.hexdigest()
+
+
+def hashfunc(fname, block_size=1048576, hashtype="md5"):  # 2 ** 20
+    """Calculate the hash for a file.
+
+    Parameters
+    ----------
+    fname : str
+        Filename.
+    block_size : int
+        Block size to use when reading.
+
+    Returns
+    -------
+    hash_ : str
+        The hexadecimal digest of the hash.
+    """
+    if hashtype == "mdf5":
+        hasher = hashlib.md5()
+    elif hashtype == "sha1":
+        hasher = hashlib.sha1()
+    with open(fname, 'rb') as fid:
+        while True:
+            data = fid.read(block_size)
+            if not data:
+                break
+            hasher.update(data)
+    return hasher.hexdigest()
 
 
 def create_slices(start, stop, step=None, length=1):

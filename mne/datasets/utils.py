@@ -19,7 +19,7 @@ import numpy as np
 from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
-                     verbose, get_subjects_dir, md5sum)
+                     verbose, get_subjects_dir, hashfunc)
 
 
 _data_path_doc = """Get path to local copy of {name} dataset.
@@ -416,7 +416,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     return (path, data_version) if return_version else path
 
 
-def _download(path, url, archive_name, hash_):
+def _download(path, url, archive_name, hash_, hashtype):
     """Download and extract an archive, completing the filename."""
     martinos_path = '/cluster/fusion/sample_data/' + archive_name
     neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
@@ -432,9 +432,8 @@ def _download(path, url, archive_name, hash_):
         if op.exists(full_name):
             logger.info('Archive exists (%s), checking hash %s.'
                         % (archive_name, hash_,))
-            md5 = md5sum(full_name)
             fetch_archive = False
-            if md5 != hash_:
+            if hashfunc(full_name, hashtype=hashtype) != hash_:
                 if input('Archive already exists but the hash does not match: '
                          '%s\nOverwrite (y/[n])?'
                          % (archive_name,)).lower() == 'y':
