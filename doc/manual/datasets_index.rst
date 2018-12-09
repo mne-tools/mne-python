@@ -246,14 +246,15 @@ Triggers include:
     * :ref:`sphx_glr_auto_examples_datasets_plot_opm_rest_data.py`
 
 
-The Sleep-EDF Database [Expanded]
-=================================
-The sleep-edf database contains 197 whole-night PolySomnoGraphic sleep
+The Sleep PolySomnoGraphic Database
+===================================
+
+The sleep PhysioNet database contains 197 whole-night PolySomnoGraphic sleep
 recordings, containing EEG, EOG, chin EMG, and event markers. Some records also
 contain respiration and body temperature. Corresponding hypnograms (sleep
 patterns) were manually scored by well-trained technicians according to the
-Rechtschaffen and Kales manual, and are also available. The data comes from two
-studies, briefly described below, and in detail in [7]_ and [8]_.
+Rechtschaffen and Kales manual, and are also available. If you use these
+data please cite [7]_ and [8]_.
 
 .. topic:: Examples
 
