@@ -3132,15 +3132,10 @@ of commits):
 
 .. _Sara Sommariva: http://www.dima.unige.it/~sommariva/
 
-<<<<<<< HEAD
 .. _Cristóbal Moënne-Loccoz: https://github.com/cmmoenne
-<<<<<<< HEAD
 
 .. _David Haslacher: https://github.com/davidhaslacher
 
 .. _lneisenman:  https://github.com/lneisenman
-=======
-=======
+
 .. _Stanislas Chambon: https://github.com/Slasnista
->>>>>>> Add whats new
->>>>>>> Add whats new
