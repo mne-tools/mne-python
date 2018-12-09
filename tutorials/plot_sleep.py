@@ -2,37 +2,21 @@
 Example on sleep data
 =====================
 
+XXX add formal description of what we do here
+
 """
+
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#
+# License: BSD Style.
 
 import pandas as pd
 import matplotlib.pyplot as plt
 
 import mne
-from mne.utils import _fetch_file as fetch_file
+from mne.datasets.sleep_physionet import fetch_data
 
-base_url = "https://physionet.org/pn4/sleep-edfx/"
-sha1sums_url = base_url + "SHA1SUMS"
-sha1sums_fname = "SHA1SUMS"
-fetch_file(sha1sums_url, sha1sums_fname)
-
-df = pd.read_csv(sha1sums_fname, sep='  ', header=None,
-                 names=['sha', 'fname'], engine='python')
-df[['subject', 'type']] = df.fname.str.split('-', expand=True)
-df = df[df['type'].str.endswith('.edf') == True].copy()
-df['type'] = df['type'].apply(lambda x: x.split(".")[0])
-df['subject'] = df['subject'].str[:-1]
-
-subjects = df['subject'].unique()
-
-subject = subjects[0]
-query = "(subject == '%s') and (type == '%s')"
-psg_sha, psg_fname = df.query(query % (subject, 'PSG')).iloc[0, [0, 1]]
-hyp_sha, hyp_fname = df.query(query % (subject, 'Hypnogram')).iloc[0, [0, 1]]
-
-params = dict(hashtype='sha1', verbose=True)
-fetch_file(base_url + psg_fname, psg_fname, hash_=psg_sha, **params)
-fetch_file(base_url + hyp_fname, hyp_fname, hash_=hyp_sha, **params)
-
+psg_fname, hyp_fname = fetch_data(subjects=[0])[0]
 
 raw = mne.io.read_raw_edf(psg_fname, stim_channel=False)
 annotations = mne.read_annotations(hyp_fname)
@@ -59,14 +43,15 @@ desc2int = {'Sleep stage W': 6,
 int2desc = {v: k for k, v in desc2int.items()}
 
 hypnogram = pd.Series(annotations.description, index=annotations.onset)
-hypnogram = hypnogram.iloc[1:-1]  # remove first and last annotations
+hypnogram = hypnogram[hypnogram.isin(desc2int.keys())]  # keep only stages
+hypnogram = hypnogram.iloc[1:]  # remove first annotation
 
 plt.figure()
 hypnogram.value_counts().plot(kind='barh')
 plt.tight_layout()
 
 plt.figure()
-ax = hypnogram.replace(desc2int).plot()
+ax = hypnogram.replace(desc2int).dropna().plot()
 ax.set_yticks(range(1, 7))
 ax.set_yticklabels([int2desc[k] for k in range(1, 7)])
 plt.tight_layout()
