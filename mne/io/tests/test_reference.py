@@ -483,25 +483,23 @@ def test_bipolar_combinations():
     raw = RawArray(raw_data, info)
 
     def _check_bipolar(raw_test, ch_a, ch_b):
-        assert_array_equal(
-            raw_test.get_data(
-                picks=[raw_test.ch_names.index(ch_a + '-' + ch_b)])[0, :],
-            raw_data[channels.index(ch_a), :] -
-            raw_data[channels.index(ch_b), :])
+        picks = [raw_test.ch_names.index(ch_a + '-' + ch_b)]
+        get_data_res = raw_test.get_data(picks=picks)[0, :]
+        manual_a = raw_data[channels.index(ch_a), :]
+        manual_b = raw_data[channels.index(ch_b), :]
+        assert_array_equal(get_data_res, manual_a - manual_b)
 
     # test classic EOG/ECG bipolar reference (only two channels per pair).
     raw_test = set_bipolar_reference(raw, ['CH2'], ['CH1'], copy=True)
     _check_bipolar(raw_test, 'CH2', 'CH1')
 
     # test all combinations.
-    bipolars = list(itertools.combinations(channels, 2))
-    a_channels, b_channels = [], []
-    for ch_a, ch_b in bipolars:
-        a_channels.append(ch_a)
-        b_channels.append(ch_b)
-    raw_test = set_bipolar_reference(
+    a_channels, b_channels = zip(*itertools.combinations(channels, 2))
+    a_channels = list(a_channels)
+    b_channels = list(b_channels)
+    raw_test = mne.io.set_bipolar_reference(
         raw, a_channels, b_channels, copy=True)
-    for ch_a, ch_b in bipolars:
+    for ch_a, ch_b in zip(a_channels, b_channels):
         _check_bipolar(raw_test, ch_a, ch_b)
 
     # test bipolars with a channel in both list (anode & cathode).

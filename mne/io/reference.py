@@ -523,9 +523,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         inst.info._update_redundant()
 
     # Drop remaining channels.
-    inst.drop_channels([
-        ch_name for ch_name in set(list(anode) + list(cathode))
-        if ch_name in inst.ch_names
-    ])
+    drop_channels = (set(anode) | set(cathode)) & set(inst.ch_names)
+    inst.drop_channels(drop_channels)
 
     return inst
