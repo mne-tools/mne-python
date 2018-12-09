@@ -495,10 +495,8 @@ def test_bipolar_combinations():
 
     # test all combinations.
     a_channels, b_channels = zip(*itertools.combinations(channels, 2))
-    a_channels = list(a_channels)
-    b_channels = list(b_channels)
-    raw_test = mne.io.set_bipolar_reference(
-        raw, a_channels, b_channels, copy=True)
+    a_channels, b_channels = list(a_channels), list(b_channels)
+    raw_test = set_bipolar_reference(raw, a_channels, b_channels, copy=True)
     for ch_a, ch_b in zip(a_channels, b_channels):
         _check_bipolar(raw_test, ch_a, ch_b)
 
