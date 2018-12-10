@@ -689,15 +689,13 @@ def test_getitem_epochsTFR():
     assert len(power) == n_events
     assert len(power[3:6]) == 3
 
-    ind = 0
     # Test iteration function
-    for power_ep in power:
+    for ind, power_ep in enumerate(power):
         assert_array_equal(power_ep, power.data[ind])
-        ind += 1
         if ind == 5:
             break
 
     # Test that current state is maintained
-    assert_array_equal(power.next(), power.data[ind])
+    assert_array_equal(power.next(), power.data[ind + 1])
 
 run_tests_if_main()
