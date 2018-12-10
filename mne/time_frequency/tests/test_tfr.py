@@ -640,6 +640,7 @@ def test_compute_tfr():
                                output='avg_power', n_cycles=2.)
             assert_array_equal(shape[1:], out.shape)
 
+
 def test_getitem_epochsTFR():
     from pandas import DataFrame
     # Setup for reading the raw data and select a few trials
@@ -654,7 +655,7 @@ def test_getitem_epochsTFR():
     meta = DataFrame(dict(RT=rt, Trial=trial))
     event_id = dict(a=1, b=2, c=3, d=4)
     epochs = Epochs(raw, events[:n_events], event_id=event_id, metadata=meta,
-                    decim=2)
+                    decim=1)
 
     freqs = np.arange(12., 17., 2.)  # define frequencies of interest
     n_cycles = freqs / 2.  # 0.5 second time windows for all frequencies

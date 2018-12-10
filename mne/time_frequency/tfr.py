@@ -34,6 +34,7 @@ from ..viz.utils import (figure_nobar, plt_show, _setup_cmap, warn,
 from ..externals.h5io import write_hdf5, read_hdf5
 # Make wavelet
 
+
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     """Compute Morlet wavelets for the given frequency range.
 
@@ -591,6 +592,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
 def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
              output=None, **tfr_params):
+    from ..epochs import BaseEpochs
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
     data = _get_data(inst, return_itc)
@@ -629,10 +631,17 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
                                    method='%s-itc' % method))
     else:
         power = out
+        if isinstance(inst, BaseEpochs):
+            meta = inst._metadata.copy() if inst._metadata is not None \
+                else None
+            evs = inst.events.copy()
+            ev_id = inst.event_id.copy()
+        else:
+            # if the input is of class Evoked
+            meta = evs = ev_id = None
+
         out = EpochsTFR(info, power, times, freqs, method='%s-power' % method,
-                        events=inst.events.copy(),
-                        event_id=inst.event_id.copy(),
-                        metadata=inst._metadata.copy())
+                        events=evs, event_id=ev_id, metadata=meta)
 
     return out
 

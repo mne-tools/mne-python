@@ -3193,7 +3193,9 @@ def _hid_match(event_id, keys):
     # form the hierarchical event ID mapping
     use_keys = []
     for key in keys:
-        _validate_type(key, types=str, item_name='keys')
+        if not isinstance(key, str):
+            raise KeyError('keys must be strings, got %s (%s)'
+                           % (type(key), key))
         use_keys.extend(k for k in event_id.keys()
                         if set(key.split('/')).issubset(k.split('/')))
     if len(use_keys) == 0:
