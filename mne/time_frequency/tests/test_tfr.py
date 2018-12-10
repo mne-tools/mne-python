@@ -8,7 +8,8 @@ import pytest
 import mne
 from mne import Epochs, read_events, pick_types, create_info, EpochsArray
 from mne.io import read_raw_fif
-from mne.utils import _TempDir, run_tests_if_main, requires_h5py, grand_average
+from mne.utils import (_TempDir, run_tests_if_main, requires_h5py,
+                       requires_pandas, grand_average)
 from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
                                     write_tfrs, combine_tfr, cwt, _compute_tfr,
@@ -641,6 +642,7 @@ def test_compute_tfr():
             assert_array_equal(shape[1:], out.shape)
 
 
+@requires_pandas
 def test_getitem_epochsTFR():
     from pandas import DataFrame
     # Setup for reading the raw data and select a few trials
@@ -676,10 +678,11 @@ def test_getitem_epochsTFR():
     assert_array_equal(power[3:6].data, power.data[3:6])
     assert_array_equal(power[3:6].events, power.events[3:6])
 
+    indx_check = (power.metadata['Trial'] == 'face').nonzero()
     assert_array_equal(power['Trial == "face"'].events,
-                       power.events[power.metadata['Trial'] == 'face'])
+                       power.events[indx_check])
     assert_array_equal(power['Trial == "face"'].data,
-                       power.data[power.metadata['Trial'] == 'face'])
+                       power.data[indx_check])
 
     # Check that the wrong Key generates a Key Error for Metadata search
     with pytest.raises(KeyError):
