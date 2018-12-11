@@ -499,6 +499,17 @@ def test_bipolar_combinations():
     raw_test = set_bipolar_reference(raw, a_channels, b_channels, copy=True)
     for ch_a, ch_b in zip(a_channels, b_channels):
         _check_bipolar(raw_test, ch_a, ch_b)
+    # check if reference channels have been dropped.
+    assert (len(raw_test.ch_names) == len(a_channels))
+
+    raw_test = set_bipolar_reference(
+        raw, a_channels, b_channels, drop_refs=False, copy=True)
+    # check if reference channels have been kept correctly.
+    assert (len(raw_test.ch_names) == len(a_channels) + len(channels))
+    for ch_label in channels:
+        picks = [raw_test.ch_names.index(ch_label)]
+        manual_ch = raw_data[channels.index(ch_label), :]
+        assert_array_equal(raw_test.get_data(picks=picks)[0, :], manual_ch)
 
     # test bipolars with a channel in both list (anode & cathode).
     raw_test = set_bipolar_reference(
