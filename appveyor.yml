@@ -1,3 +1,5 @@
+# Use an old image with a hopefully incompatible compiler
+image: Visual Studio 2013
 environment:
   global:
       PYTHON: "C:\\conda"
