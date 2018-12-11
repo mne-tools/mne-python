@@ -33,7 +33,7 @@ dependencies:
   - mne
   - https://api.github.com/repos/enthought/mayavi/zipball/b3fc35218dda9776d8f1a407663bfb49783dca12
   - PySurfer[save_movie]
-  - dipy --only-binary dipy
+  - "dipy --only-binary dipy"
   - nibabel
   - nilearn
   - neo
