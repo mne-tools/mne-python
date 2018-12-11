@@ -3205,6 +3205,8 @@ def _hid_match(event_id, keys):
 
 
 class GetEpochsMixin(object):
+    """Class to add epoch selection and metadata to certain classes."""
+
     def __getitem__(self, item):
         """Return an Epochs object with a copied subset of epochs.
 

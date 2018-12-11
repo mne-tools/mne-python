@@ -26,7 +26,7 @@ from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, _pick_data_channels,
                        channel_type, _pick_inst, _get_channel_types)
 from ..io.meas_info import Info
-from ..utils import SizeMixin, _is_numeric, _hid_match
+from ..utils import SizeMixin, _is_numeric
 from .multitaper import dpss_windows
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap, warn,
                          _connection_line, _prepare_joint_axes,
@@ -2010,7 +2010,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
     @verbose
     def __init__(self, info, data, times, freqs, comment=None, method=None,
                  verbose=None,  events=None, event_id=None, metadata=None):
-                 # noqa: D102
+        # noqa: D102
         self.info = info
         if data.ndim != 4:
             raise ValueError('data should be 4d. Got %d.' % data.ndim)
