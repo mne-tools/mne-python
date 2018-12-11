@@ -644,6 +644,7 @@ def test_compute_tfr():
 
 @requires_pandas
 def test_getitem_epochsTFR():
+    """Test GetEpochsMixin in the context of EpochsTFR."""
     from pandas import DataFrame
     # Setup for reading the raw data and select a few trials
     raw = read_raw_fif(raw_fname)
