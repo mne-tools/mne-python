@@ -83,7 +83,9 @@ plt.legend()
 mne.viz.tight_layout()
 plt.show()
 
+##############################################################################
 # Plot the contributions to the detected components (i.e., the forward model)
-layout = read_layout('CTF151.lay')
+
 spoc.fit_transform(X, y)
-spoc.plot_patterns(meg_epochs.info, ch_type='mag', layout=layout)
+layout = read_layout('CTF151.lay')
+spoc.plot_patterns(meg_epochs.info, layout=layout)
