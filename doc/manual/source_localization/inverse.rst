@@ -385,23 +385,6 @@ The maximal amount of depth weighting can be adjusted with ``depth`` parameter i
 
 .. XXX: is there any example/tutorial showing the influence of this parameter?
 
-.. _mne_fmri_estimates:
-
-fMRI-guided estimates
-=====================
-
-The fMRI weighting in MNE software means that the source-covariance matrix
-is modified to favor areas of significant fMRI activation. For this purpose,
-the fMRI activation map is thresholded first at the value defined by
-the ``--fmrithresh`` option to mne_do_inverse_operator or mne_inverse_operator .
-Thereafter, the source-covariance matrix values corresponding to
-the the sites under the threshold are multiplied by :math:`f_{off}`, set
-by the ``--fmrioff`` option.
-
-It turns out that the fMRI weighting has a strong influence
-on the MNE but the noise-normalized estimates are much less affected
-by it.
-
 .. _CBBDGIAE:
 
 Effective number of averages
