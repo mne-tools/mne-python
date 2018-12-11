@@ -1,4 +1,4 @@
-# Use an old image with a hopefully incompatible compiler
+# Use an old image with an incompatible compiler (pip wants MSVC 2015 / 14.0)
 image: Visual Studio 2013
 environment:
   global:
