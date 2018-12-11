@@ -479,14 +479,43 @@ def _get_extra_points(pos, head_radius):
     '''
     from scipy.spatial.qhull import Delaunay
 
+    # check if positions are colinear:
+    diffs = np.diff(pos, axis=0)
+    with np.errstate(divide='ignore'):
+        slopes = diffs[:, 1] / diffs[:, 0]
+    colinear = (slopes == slopes[0]).all() or np.isinf(slopes).all()
+
     # compute median inter-electrode distance
-    tri = Delaunay(pos, incremental=True)
-    idx1, idx2, idx3 = tri.simplices.T
-    distances = np.concatenate([np.linalg.norm(pos[i1, :] - pos[i2, :], axis=1)
-                                for i1, i2 in zip([idx1, idx2], [idx2, idx3])])
-    distance = np.median(distances)
+    if colinear:
+        dim = 1 if (diffs[:, 0] == 0).all() else 0
+        sorting = np.argsort(pos[:, dim])
+        pos_sorted = pos[sorting, :]
+        diffs = np.diff(pos_sorted, axis=0)
+        distances = np.linalg.norm(diffs, axis=1)
+        distance = np.median(distances)
+    else:
+        tri = Delaunay(pos, incremental=True)
+        idx1, idx2, idx3 = tri.simplices.T
+        distances = np.concatenate(
+            [np.linalg.norm(pos[i1, :] - pos[i2, :], axis=1)
+             for i1, i2 in zip([idx1, idx2], [idx2, idx3])])
+        distance = np.median(distances)
 
     if head_radius is None:
+        if colinear:
+            # special case for colinear points
+            edge_points = sorting[[0, -1]]
+            line_len = np.diff(pos[edge_points, :], axis=0)
+            unit_vec = line_len / np.linalg.norm(line_len) * distance
+            unit_vec_par = unit_vec[:, ::-1] * [[-1, 1]]
+
+            edge_pos = (pos[edge_points, :] +
+                        np.concatenate([-unit_vec, unit_vec], axis=0))
+            new_pos = np.concatenate([pos + unit_vec_par,
+                                      pos - unit_vec_par, edge_pos], axis=0)
+            tri = Delaunay(np.concatenate([pos, new_pos], axis=0))
+            return new_pos, tri
+
         # get the convex hull of data points from triangulation
         hull_pos = pos[tri.convex_hull]
 
@@ -513,15 +542,19 @@ def _get_extra_points(pos, head_radius):
 
         # remove duplicates from hull_extended
         hull_extended = np.unique(hull_extended.reshape((-1, 2)), axis=0)
-        hull_extended = np.concatenate([hull_extended] + add_points)
-        return hull_extended, tri
+        new_pos = np.concatenate([hull_extended] + add_points)
     else:
         # return points on the head circle
         angle = np.arcsin(distance / 2 / head_radius) * 2
         points_l = np.arange(0, 2 * np.pi, angle)
         points_x = np.cos(points_l) * head_radius
         points_y = np.sin(points_l) * head_radius
-        return np.stack([points_x, points_y], axis=1), tri
+        new_pos = np.stack([points_x, points_y], axis=1)
+        if colinear:
+            tri = Delaunay(np.concatenate([pos, new_pos], axis=0))
+            return new_pos, tri
+    tri.add_points(new_pos)
+    return new_pos, tri
 
 
 class _GridData(object):
@@ -538,7 +571,6 @@ class _GridData(object):
         # Adding points outside the extremes helps the interpolators
         outer_pts, tri = _get_extra_points(pos, head_radius)
         self.n_extra = outer_pts.shape[0]
-        tri.add_points(outer_pts)
         self.tri = tri
 
     def set_values(self, v):
