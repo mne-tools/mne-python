@@ -26,6 +26,8 @@ Changelog
 Bug
 ~~~
 
+- Fix missing code for computing the median when ``method='median'`` in :meth:`mne.Epochs.average` by `Cristóbal Moënne-Loccoz`_
+
 - Fix CTF helmet plotting in :func:`mne.viz.plot_evoked_field` by `Eric Larson`_
 
 - Fix path bugs in :func:`mne.bem.make_flash_bem` and :ref:`gen_mne_flash_bem` by `Eric Larson`_
@@ -3098,3 +3100,5 @@ of commits):
 .. _jeythekey: https://github.com/jeythekey
 
 .. _Sara Sommariva: http://www.dima.unige.it/~sommariva/
+
+.. _Cristóbal Moënne-Loccoz: https://github.com/cmmoenne

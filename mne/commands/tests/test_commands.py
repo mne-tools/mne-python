@@ -119,7 +119,7 @@ def test_kit2fiff():
     check_usage(mne_kit2fiff, force_help=True)
 
 
-@pytest.mark.timeout(60)  # can take > 60 sec on Travis OSX
+@pytest.mark.slowtest  # slow on Travis OSX
 @requires_tvtk
 @testing.requires_testing_data
 def test_make_scalp_surfaces():

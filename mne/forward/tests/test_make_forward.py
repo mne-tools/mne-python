@@ -243,6 +243,7 @@ def test_make_forward_solution_discrete():
 
 @testing.requires_testing_data
 @requires_mne
+@pytest.mark.timeout(90)  # can take longer than 60 sec on Travis
 def test_make_forward_solution_sphere():
     """Test making a forward solution with a sphere model."""
     temp_dir = _TempDir()

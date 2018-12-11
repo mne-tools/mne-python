@@ -331,7 +331,8 @@ def test_limits_to_control_points():
     with pytest.raises(ValueError, match='hemi'):
         stc.plot(hemi='foo', clim='auto', **kwargs)
     with pytest.raises(ValueError, match='Exactly one'):
-        stc.plot(clim=dict(lims=[0, 1, 2], pos_lims=[0, 1, 2], kind='value'))
+        stc.plot(clim=dict(lims=[0, 1, 2], pos_lims=[0, 1, 2], kind='value'),
+                 **kwargs)
 
     # Test handling of degenerate data: thresholded maps
     stc._data.fill(0.)
