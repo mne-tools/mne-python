@@ -86,15 +86,26 @@ mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
                        surfaces='head-dense')
 
 ###############################################################################
+# .. _plot_forward_source_space:
+#
 # Compute Source Space
 # --------------------
 #
-# The source space defines the position of the candidate source locations.
-# The following code compute such a cortical source space with
-# an OCT-6 resolution.
+# The source space defines the position and orientation of the candidate source
+# locations. There are two types of source spaces:
+# - **source-based** source space when the candidates are confined to a surface.
+# - **volumetric or discrete** source space when the candidates are discrete,
+#   arbitrarily located source points bounded by the surface.
 #
+# **Source-based** source space is computed using
+# :func:`mne.setup_source_space`, while **volumetric** source space is computed
+# using :func:`mne.setup_volume_source_space`.
+#
+# The rest of this tutorial uses a source-based source space with
+# an OCT-6 resolution.
 # See :ref:`setting_up_source_space` for details on source space definition
 # and spacing parameter.
+#
 
 src = mne.setup_source_space(subject, spacing='oct6',
                              subjects_dir=subjects_dir, add_dist=False)

@@ -216,6 +216,9 @@ with a ~5-mm spacing between the grid points, say::
 
 This creates the source spaces and writes them to disk.
 
+:ref:`plot_forward_source_space` illustrates how the source space is used to
+compute the forward model.
+
 .. _CHDBJCIA:
 
 Creating the BEM model meshes

@@ -251,29 +251,6 @@ with positive direction up.
 
 .. note:: The above definition is identical to that    of the Neuromag MEG/EEG (head) coordinate system. However, in 4-D    Neuroimaging and CTF MEG systems the head coordinate frame definition    is different. The origin of the coordinate system is at the midpoint    of the left and right auricular points. The :math:`x` axis    passes through the nasion and the origin with positive direction    to the front. The :math:`y` axis is perpendicular    to the :math:`x` axis on the and lies in    the plane defined by the three fiducial landmarks, positive direction    from right to left. The :math:`z` axis is    normal to the plane of the landmarks, pointing up. Note that in    this convention the auricular points are not necessarily located    on :math:`y` coordinate axis. The file conversion utilities take care of these idiosyncrasies and convert all coordinate information    to the MNE software head coordinate frame.
 
-.. _BEHCGJDD:
-
-Creating a surface-based source space
-#####################################
-
-The fif format source space files containing the dipole locations
-and orientations are created with the utility :ref:`mne_make_source_space`.
-This utility is usually invoked by the convenience script :ref:`mne_setup_source_space`,
-see :ref:`setting_up_source_space`.
-
-
-.. _BJEFEHJI:
-
-Creating a volumetric or discrete source space
-##############################################
-
-In addition to source spaces confined to a surface, the MNE
-software provides some support for three-dimensional source spaces
-bounded by a surface as well as source spaces comprised of discrete,
-arbitrarily located source points. The :ref:`mne_volume_source_space` utility
-assists in generating such source spaces.
-
-
 .. _BEHCACCJ:
 
 Creating the BEM meshes
