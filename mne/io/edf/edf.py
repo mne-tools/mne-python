@@ -87,11 +87,9 @@ class RawEDF(BaseRaw):
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
-    stim_channel : 'auto' | None | int
-        If 'auto' or None, the stim channels present will be read. Channels
-        names 'Status' or 'STATUS' will be considered stim channels
-        in 'auto' mode. If an int provided then it's the index of the
-        stim channel, e.g. -1 for the last channel in the file.
+    stim_channel : False
+        If False, there will be no stim channel added from a TAL channel.
+        None is accepted as an alias for False.
 
         .. warning:: 0.18 does not allow for stim channel synthesis from
                      the TAL channel called 'EDF Annotations' or
@@ -141,10 +139,14 @@ class RawEDF(BaseRaw):
 
         >>> events[:, 2] >>= 8  # doctest:+SKIP
 
-    In addition, for GDF files, the stimulus channel is constructed from the
-    events in the header. The id numbers of overlapping events are simply
-    combined through addition. To get the original events from the header,
-    use function :func:`mne.io.find_edf_events`.
+    The TAL channel called 'EDF Annotations' or 'BDF Annotations' is parsed and
+    put in the raw.annotations attribute.
+    Use :func:`mne.events_from_annotations` to obtain events from the
+    annotations.
+
+    If channels named 'Status' or 'STATUS' will be considered analog stim
+    channels, use method ``raw.find_edf_events`` to recover the events encoded
+    in this channel.
 
     See Also
     --------
@@ -1080,10 +1082,8 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
     stim_channel : False
-        If 'auto' or None, the stim channels present will be read. Channels
-        names 'Status' or 'STATUS' will be considered stim channels
-        in 'auto' mode. If an int provided then it's the index of the
-        stim channel, e.g. -1 for the last channel in the file.
+        If False, there will be no stim channel added from a TAL channel.
+        None is accepted as an alias for False.
 
         .. warning:: 0.18 does not allow for stim channel synthesis from
                      the TAL channel called 'EDF Annotations' or
@@ -1123,11 +1123,14 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     It is also possible to retrieve system codes, but no particular effort has
     been made to decode these in MNE.
 
-    For GDF files, the stimulus channel is constructed from the events in the
-    header. You should use keyword ``stim_channel=-1`` to add it at the end of
-    the channel list. The id numbers of overlapping events are simply combined
-    through addition. To get the original events from the header, use method
-    ``raw.find_edf_events``.
+    The TAL channel called 'EDF Annotations' or 'BDF Annotations' is parsed and
+    put in the raw.annotations attribute.
+    Use :func:`mne.events_from_annotations` to obtain events from the
+    annotations.
+
+    If channels named 'Status' or 'STATUS' will be considered analog stim
+    channels, use method ``raw.find_edf_events`` to recover the events encoded
+    in this channel.
 
     See Also
     --------
