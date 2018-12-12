@@ -2240,8 +2240,8 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads):
     for frame in params['frames']:
         params['Zis'].append(interp.set_values(data[:, frame])(Xi, Yi))
     Zi = params['Zis'][0]
-    zi_min = np.min(params['Zis'])
-    zi_max = np.max(params['Zis'])
+    zi_min = np.nanmin(params['Zis'])
+    zi_max = np.nanmax(params['Zis'])
     cont_lims = np.linspace(zi_min, zi_max, 7, endpoint=False)[1:]
     pos = _autoshrink(outlines, pos, res)
     params.update({'vmin': vmin, 'vmax': vmax, 'Xi': Xi, 'Yi': Yi, 'Zi': Zi,
