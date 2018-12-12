@@ -86,6 +86,6 @@ plt.show()
 ##############################################################################
 # Plot the contributions to the detected components (i.e., the forward model)
 
-spoc.fit_transform(X, y)
+spoc.fit(X, y)
 layout = read_layout('CTF151.lay')
 spoc.plot_patterns(meg_epochs.info, layout=layout)
