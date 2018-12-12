@@ -350,15 +350,15 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
 def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     """Extract all the information from the EDF+, BDF or GDF file."""
     if stim_channel is not None:
-        if stim_channel:
+        if isinstance(stim_channel, bool) and not stim_channel:
+            warn('stim_channel parameter is deprecated and will be removed in'
+                 ' 0.19.', DeprecationWarning)
+            stim_channel = None
+        else:
             _msg = ('The synthesis of the stim channel is not supported since'
                     ' 0.18. Please set `stim_channel` to False and use'
                     ' `mne.events_from_annotations` instead')
             raise RuntimeError(_msg)
-        else:
-            warn('stim_channel parameter is deprecated and will be removed in'
-                 ' 0.19.', DeprecationWarning)
-            stim_channel = None
 
     if eog is None:
         eog = []
@@ -1079,7 +1079,7 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
-    stim_channel : 'auto' | None | int
+    stim_channel : False
         If 'auto' or None, the stim channels present will be read. Channels
         names 'Status' or 'STATUS' will be considered stim channels
         in 'auto' mode. If an int provided then it's the index of the

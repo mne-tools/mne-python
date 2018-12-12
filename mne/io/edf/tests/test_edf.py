@@ -196,7 +196,7 @@ def test_read_raw_edf_deprecation():
         read_raw_edf(edf_path, stim_channel=False)
 
     for invalid_stim_parameter in ['what ever', 'STATUS', 'EDF Annotations',
-                                   'BDF Annotations']:
+                                   'BDF Annotations', 0, -1]:
         with pytest.raises(RuntimeError,
                            match="stim channel is not supported"):
             read_raw_edf(edf_path, stim_channel=invalid_stim_parameter)
