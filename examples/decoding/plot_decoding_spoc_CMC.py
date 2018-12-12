@@ -31,6 +31,7 @@ import mne
 from mne import Epochs
 from mne.decoding import SPoC
 from mne.datasets.fieldtrip_cmc import data_path
+from mne.channels import read_layout
 
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import Ridge
@@ -62,9 +63,8 @@ X = meg_epochs.get_data()
 y = emg_epochs.get_data().var(axis=2)[:, 0]  # target is EMG power
 
 # Classification pipeline with SPoC spatial filtering and Ridge Regression
-clf = make_pipeline(SPoC(n_components=2, log=True, reg='oas',
-                         rank='full'), Ridge())
-
+spoc = SPoC(n_components=2, log=True, reg='oas', rank='full')
+clf = make_pipeline(spoc, Ridge())
 # Define a two fold cross-validation
 cv = KFold(n_splits=2, shuffle=False)
 
@@ -82,3 +82,10 @@ ax.set_title('SPoC MEG Predictions')
 plt.legend()
 mne.viz.tight_layout()
 plt.show()
+
+##############################################################################
+# Plot the contributions to the detected components (i.e., the forward model)
+
+spoc.fit(X, y)
+layout = read_layout('CTF151.lay')
+spoc.plot_patterns(meg_epochs.info, layout=layout)
