@@ -20,6 +20,46 @@ psg_fname, hyp_fname = fetch_data(subjects=[0])[0]
 
 raw = mne.io.read_raw_edf(psg_fname, stim_channel=False)
 annotations = mne.read_annotations(hyp_fname)
+
+##############################################################################
+# preprocessing annotations
+
+# 1step: resample annotation in 30s annotations
+annot = pd.DataFrame()
+annot["onset"] = annotations.onset
+annot["description"] = annotations.description
+annot["duration"] = annotations.duration
+
+# add temporarily a last event to have a correct resampling
+last_onset = annot.onset.values[-1]
+last_duration = annot.duration.values[-1]
+annot.loc[annot.shape[0]] = [last_onset + last_duration, "end", 0]
+
+annot = annot.set_index('onset')
+annot.index = pd.to_timedelta(annot.index, unit='s')
+annot = annot.resample('30s').ffill()
+annot.reset_index(inplace=True)
+annot.onset = annot.onset.dt.total_seconds()
+annot["duration"] = 30.
+
+# remove last event
+annot = annot.iloc[:-1]
+
+# remove unlabeled samples
+annot = annot[annot.description != "Sleep stage ?"]
+
+# merge sleep stage 3 and 4 into a single sleep stage 3
+# this way one can work with annotations closer to the AASM nomenclature
+description = annot.description.values
+description[description == "Sleep stage 4"] = "Sleep stage 3"
+
+# create a new annotation object
+new_annotations = mne.Annotations(
+    annot.onset, annot.duration, annot.description)
+
+##############################################################################
+
+
 raw.set_annotations(annotations)
 raw.plot(duration=60)
 
