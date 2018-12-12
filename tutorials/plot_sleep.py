@@ -74,15 +74,14 @@ raw.set_channel_types(mapping)
 ##############################################################################
 # Plot hypnogram
 
-desc2int = {'Sleep stage W': 6,
-            'Sleep stage 1': 4,
-            'Sleep stage 2': 3,
-            'Sleep stage 3': 2,
-            'Sleep stage 4': 1,
-            'Sleep stage R': 5}
+desc2int = {'Sleep stage W': 5,
+            'Sleep stage 1': 3,
+            'Sleep stage 2': 2,
+            'Sleep stage 3': 1,
+            'Sleep stage R': 4}
 int2desc = {v: k for k, v in desc2int.items()}
 
-hypnogram = pd.Series(annotations.description, index=annotations.onset)
+hypnogram = pd.Series(new_annotations.description, index=new_annotations.onset)
 hypnogram = hypnogram[hypnogram.isin(desc2int.keys())]  # keep only stages
 hypnogram = hypnogram.iloc[1:]  # remove first annotation
 
@@ -93,7 +92,7 @@ plt.tight_layout()
 plt.figure()
 ax = hypnogram.replace(desc2int).dropna().plot()
 ax.set_yticks(range(1, 7))
-ax.set_yticklabels([int2desc[k] for k in range(1, 7)])
+ax.set_yticklabels([int2desc[k] for k in range(1, 6)])
 plt.tight_layout()
 
 ##############################################################################
