@@ -695,6 +695,11 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         Handle for a function that is called when the user selects a set of
         channels by rectangle selection (matplotlib ``RectangleSelector``). If
         None interactive selection is disabled. Defaults to None.
+    extrapolate : str
+        If 'head' extrapolate to the edges of the head circle (does not work
+        when `outlines='skirt'`. If 'local' (default) extrapolate only to
+        nearby points (approximately to points closer than median
+        inter-electrode distance).
 
     Returns
     -------
@@ -2527,7 +2532,8 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
                   vmax=None, cmap=None, sensors=True, res=64, axes=None,
                   names=None, show_names=False, mask=None, mask_params=None,
                   outlines='head', contours=6, image_interp='bilinear',
-                  show=True, head_pos=None, onselect=None):
+                  show=True, head_pos=None, onselect=None,
+                  extrapolate='local'):
     """Plot arrow map.
 
     Compute arrowmaps, based upon the Hosaka-Cohen transformation [1]_,
@@ -2620,6 +2626,11 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
         Handle for a function that is called when the user selects a set of
         channels by rectangle selection (matplotlib ``RectangleSelector``). If
         None interactive selection is disabled. Defaults to None.
+    extrapolate : str
+        If 'head' extrapolate to the edges of the head circle (does not work
+        when `outlines='skirt'`. If 'local' (default) extrapolate only to
+        nearby points (approximately to points closer than median
+        inter-electrode distance).
 
     Returns
     -------
@@ -2680,7 +2691,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
                  sensors=sensors, res=res, names=names, show_names=show_names,
                  mask=mask, mask_params=mask_params, outlines=outlines,
                  contours=contours, image_interp=image_interp, show=show,
-                 head_pos=head_pos, onselect=onselect)
+                 head_pos=head_pos, onselect=onselect, extrapolate=extrapolate)
     x, y = tuple(pos.T)
     dx, dy = _trigradient(x, y, data)
     dxx = dy.data
