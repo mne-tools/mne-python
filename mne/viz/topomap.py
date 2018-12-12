@@ -483,11 +483,12 @@ def _get_extra_points(pos, head_radius):
     diffs = np.diff(pos, axis=0)
     with np.errstate(divide='ignore'):
         slopes = diffs[:, 1] / diffs[:, 0]
-    colinear = (slopes == slopes[0]).all() or np.isinf(slopes).all()
+    colinear = ((slopes == slopes[0]).all() or np.isinf(slopes).all()
+                or pos.shape[0] < 4)
 
     # compute median inter-electrode distance
     if colinear:
-        dim = 1 if (diffs[:, 0] == 0).all() else 0
+        dim = 1 if diffs[:, 1].sum() > diffs[:, 0].sum() else 0
         sorting = np.argsort(pos[:, dim])
         pos_sorted = pos[sorting, :]
         diffs = np.diff(pos_sorted, axis=0)
