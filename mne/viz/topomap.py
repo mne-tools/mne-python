@@ -899,7 +899,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
 
 def _autoshrink(outlines, pos, res):
-    """Make an image mask."""
+    """Shrink channel positions until all are within the mask contour."""
     if outlines.get('autoshrink', False):
         mask_ = np.c_[outlines['mask_pos']]
         inside = _inside_contour(pos, mask_)

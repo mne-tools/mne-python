@@ -172,7 +172,8 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
     ax = inset_axes(axis, width=str(size / ratio) + '%',
                     height=str(size) + '%', loc=loc)
     ax.set_adjustable("box")
-    pos_x, pos_y = _prepare_topomap(pos, ax, check_nonzero=False)
+    pos_x, pos_y = pos.T
+    _prepare_topomap(pos, ax, check_nonzero=False)
     ax.scatter(pos_x, pos_y, color=colors, s=size * .8, marker='.', zorder=1)
     if bads:
         bads = np.array(bads)
