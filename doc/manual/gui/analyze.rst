@@ -1,5 +1,5 @@
 
-.. _ch_interactive_analysis:
+.. _c_legacy_ch_interactive_analysis:
 
 =====================================
 Interactive analysis with mne_analyze
@@ -1057,7 +1057,7 @@ Morphing
 
 The displayed surface distributions can be morphed to another
 subject's brain using the spherical morphing procedure,
-see :ref:`ch_morph`. In addition to the morphing surfaces loaded
+see :ref:`c_legacy_ch_morph`. In addition to the morphing surfaces loaded
 through File/Load morphing surface... surface
 patches for the same subject can be loaded through File/Load morphing surface patch... . Switching between main and morphing
 surfaces is discussed in :ref:`CACCABEA`.

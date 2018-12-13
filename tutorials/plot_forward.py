@@ -93,7 +93,8 @@ mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
 #
 # The source space defines the position and orientation of the candidate source
 # locations. There are two types of source spaces:
-# - **source-based** source space when the candidates are confined to a surface.
+# - **source-based** source space when the candidates are confined to a
+#   surface.
 # - **volumetric or discrete** source space when the candidates are discrete,
 #   arbitrarily located source points bounded by the surface.
 #

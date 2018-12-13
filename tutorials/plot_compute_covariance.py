@@ -39,8 +39,8 @@ raw.info['bads'] += ['EEG 053']  # bads + 1 more
 # First we compute the noise using empty room recording. Note that you can also
 # use only a part of the recording with tmin and tmax arguments. That can be
 # useful if you use resting state as a noise baseline. Here we use the whole
-# empty room recording to compute the noise covariance (``tmax=None`` is the same
-# as the end of the recording, see :func:`mne.compute_raw_covariance`).
+# empty room recording to compute the noise covariance (``tmax=None`` is the
+# same as the end of the recording, see :func:`mne.compute_raw_covariance`).
 #
 # Keep in mind that you want to match your empty room dataset to your
 # actual MEG data, processing-wise. Ensure that filters

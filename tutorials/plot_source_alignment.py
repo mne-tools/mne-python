@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _plot_source_alignment:
+
 Source alignment and coordinate frames
 ======================================
 

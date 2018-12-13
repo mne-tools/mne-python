@@ -43,7 +43,7 @@ All of these surfaces are in the FreeSurfer format. In addition,
 there will be a directory called ``bem/watershed/ws`` which
 contains the brain MRI volume. Furthermore, mne_watershed_bem script
 converts the scalp surface to fif format and saves the result to ``bem/``  <*subject*> ``-head.fif`` . The mne_analyze tool
-described :ref:`ch_interactive_analysis` looks for this file the visualizations
+described :ref:`c_legacy_ch_interactive_analysis` looks for this file the visualizations
 involving the scalp surface.
 
 .. _BABFCDJH:
