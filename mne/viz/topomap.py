@@ -10,7 +10,6 @@
 import math
 import copy
 from functools import partial
-import itertools
 from numbers import Integral
 import warnings
 
@@ -486,8 +485,8 @@ def _get_extra_points(pos, head_radius):
     diffs = np.diff(pos, axis=0)
     with np.errstate(divide='ignore'):
         slopes = diffs[:, 1] / diffs[:, 0]
-    colinear = ((slopes == slopes[0]).all() or np.isinf(slopes).all()
-                or pos.shape[0] < 4)
+    colinear = ((slopes == slopes[0]).all() or np.isinf(slopes).all() or
+                pos.shape[0] < 4)
 
     # compute median inter-electrode distance
     if colinear:
@@ -539,10 +538,10 @@ def _get_extra_points(pos, head_radius):
         n_times_dist = np.round(hull_distances / distance).astype('int')
         for n in range(2, n_times_dist.max() + 1):
             mask = n_times_dist == n
-            mult = np.arange(1/n, 1 - eps, 1/n)[:, np.newaxis, np.newaxis]
+            mult = np.arange(1 / n, 1 - eps, 1 / n)[:, np.newaxis, np.newaxis]
             steps = hull_diff[mask][np.newaxis, ...] * mult
-            add_points.append((hull_extended[mask, 0][np.newaxis, ...]
-                               + steps).reshape((-1, 2)))
+            add_points.append((hull_extended[mask, 0][np.newaxis, ...] +
+                               steps).reshape((-1, 2)))
 
         # remove duplicates from hull_extended
         hull_extended = remove_duplicates(hull_extended.reshape((-1, 2)))
