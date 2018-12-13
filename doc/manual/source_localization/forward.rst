@@ -597,33 +597,8 @@ point lines, consisting of seven numbers:
 Computing the forward solution
 ##############################
 
-Purpose
-=======
-
-Instead of using the convenience script :ref:`mne_do_forward_solution` it
-is also possible to invoke the forward solution computation program :ref:`mne_forward_solution` directly.
-In this approach, the convenience of the automatic file naming conventions
-present in :ref:`mne_do_forward_solution` are
-lost. However, there are some special-purpose options available
-in :ref:`mne_forward_solution` only.
-Please refer to :ref:`BABCHEJD` for information on :ref:`mne_do_forward_solution`.
-See :ref:`mne_forward_solution` for command-line options.
-
-Implementation of software gradient compensation
-================================================
-
-As described in :ref:`BEHDDFBI` the CTF and 4D Neuroimaging
-data may have been subjected to noise cancellation employing the
-data from the reference sensor array. Even though these sensor are
-rather far away from the brain sources, mne_forward_solution takes
-them into account in the computations. If the data file specified
-with the ``--meas`` option has software gradient compensation
-activated, mne_forward_solution computes
-the field of at the reference sensors in addition to the main MEG
-sensor array and computes a compensated forward solution using the
-methods described in :ref:`BEHDDFBI`.
-
-.. warning:: If a data file specified with the ``--meas`` option    and that used in the actual inverse computations with mne_analyze and mne_make_movie have    different software gradient compensation states., the forward solution    will be in mismatch with the data to be analyzed and the current    estimates will be slightly erroneous.
+Examples on how to compute the forward solution using :func:`mne.make_forward_solution` can be found
+:ref:`plot_forward_compute_forward_solution` and :ref:`BABCHEJD`
 
 .. _CHDIAFIG:
 
@@ -689,7 +664,7 @@ inner skull surface.
 Field derivatives
 =================
 
-If the ``--grad`` option is specified, mne_forward_solution includes
+If the ``meg=True`` option is specified, :func:`mne.make_forward_solution` includes
 the derivatives of the forward solution with respect to the dipole
 location coordinates to the output file. Let
 
@@ -701,7 +676,7 @@ up :math:`N_{chan} \times 3N_{source}` the gain matrix
 
 .. math::    G = [G_1 \dotso G_{N_{source}}]\ .
 
-With the ``--grad`` option, the output from mne_forward_solution also
+With the ``meg=True`` option, the output from :func:`mne.make_forward_solution` also
 contains the :math:`N_{chan} \times 9N_{source}` derivative matrix
 
 .. math::    D = [D_1 \dotso D_{N_{source}}]\ ,
@@ -711,12 +686,7 @@ where
 .. math::    D_k = [\frac{\delta g_{xk}}{\delta x_k} \frac{\delta g_{xk}}{\delta y_k} \frac{\delta g_{xk}}{\delta z_k} \frac{\delta g_{yk}}{\delta x_k} \frac{\delta g_{yk}}{\delta y_k} \frac{\delta g_{yk}}{\delta z_k} \frac{\delta g_{zk}}{\delta x_k} \frac{\delta g_{zk}}{\delta y_k} \frac{\delta g_{zk}}{\delta z_k}]\ ,
 
 where :math:`x_k`, :math:`y_k`, and :math:`z_k` are the location
-coordinates of the :math:`k^{th}` dipole. If
-the dipole orientations are to the cortical normal with the ``--fixed``
-option, the dimensions of :math:`G` and :math:`D` are :math:`N_{chan} \times N_{source}` and :math:`N_{chan} \times 3N_{source}`,
-respectively. Both :math:`G` and :math:`D` can
-be read with the mne_read_forward_solution Matlab
-function, see Table 10.1.
+coordinates of the :math:`k^{th}` dipole. 
 
 .. _CHDBBFCA:
 

@@ -139,6 +139,8 @@ mlab.points3d(surf.x[vertidx], surf.y[vertidx],
               surf.z[vertidx], color=(1, 1, 0), scale_factor=1.5)
 
 ###############################################################################
+# .. _plot_forward_compute_forward_solution:
+#
 # Compute forward solution
 # ------------------------
 #
