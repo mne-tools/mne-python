@@ -361,9 +361,8 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
 
     def _format_coord(x, y, labels, ax):
         """Create status string based on cursor coordinates."""
-        """ see if we are close enough to a time range """
+        # find indices for datasets near cursor (if any)
         tdiffs = [np.abs(tvec - x).min() for tvec in times]
-        # find indices for datasets near cursor
         nearby = [k for k, tdiff in enumerate(tdiffs) if
                   tdiff < (tmax - tmin) / 100]
         timestr = '%6.3f s: ' % x
@@ -377,6 +376,7 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
         # try to estimate whether to truncate condition labels
         slen = 10 + sum([12 + len(unit) + len(label) for label in labels])
         bar_width = (ax.figure.get_size_inches() * ax.figure.dpi)[0] / 5.5
+        # show labels and y values for datasets near cursor
         trunc_labels = bar_width < slen
         s = timestr
         for data_, label, tvec in nearby_data:
