@@ -92,7 +92,7 @@ class RawEDF(BaseRaw):
         None is accepted as an alias for False.
 
         .. warning:: 0.18 does not allow for stim channel synthesis from
-                     the TAL channel called 'EDF Annotations' or
+                     the TAL channels called 'EDF Annotations' or
                      'BDF Annotations'. The TAL channel is parsed
                      and put in the raw.annotations attribute.
                      Use :func:`mne.events_from_annotations` to obtain
@@ -1086,7 +1086,7 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         None is accepted as an alias for False.
 
         .. warning:: 0.18 does not allow for stim channel synthesis from
-                     the TAL channelsnel called 'EDF Annotations' or
+                     the TAL channels called 'EDF Annotations' or
                      'BDF Annotations'. The TAL channel is parsed
                      and put in the raw.annotations attribute.
                      Use :func:`mne.events_from_annotations` to obtain
