@@ -157,6 +157,11 @@ def test_plot_topomap():
 
     evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
                         contours=[-100, 0, 100], time_unit='ms')
+
+    # extrapolation to edges of the head circle
+    evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
+                        contours=[-100, 0, 100], time_unit='ms',
+                        extrapolate='head')
     plt_topomap = partial(evoked.plot_topomap, **fast_test)
     plt_topomap(0.1, layout=layout, scalings=dict(mag=0.1))
     plt.close('all')
