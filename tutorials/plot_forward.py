@@ -66,9 +66,10 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 # The coregistration is operation that allows to position the head and the
 # sensors in a common coordinate system. In the MNE software the transformation
 # to align the head and the sensors in stored in a so-called **trans file**.
-# It is a FIF file that ends with -trans.fif. It can be obtained with
-# mne_analyze (Unix tools), mne.gui.coregistration (in Python) or mrilab
-# if you're using a Neuromag system.
+# It is a FIF file that ends with ``-trans.fif``. It can be obtained with
+# :func:`mne.gui.coregistration` (or its convenient command line
+# equivalent :ref:`gen_mne_coreg`), or mrilab if you're using a Neuromag
+# system.
 #
 # For the Python version see :func:`mne.gui.coregistration`
 #
