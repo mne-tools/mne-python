@@ -1,4 +1,6 @@
-.. _c_legacy_ch_forward:
+
+
+.. _ch_forward:
 
 ====================
 The forward solution
@@ -17,20 +19,20 @@ systems employed in MNE software and FreeSurfer, the details of
 the computation of the forward solutions, and the associated low-level
 utilities.
 
-.. _c_legacy_CHDEDFIB:
+.. _CHDEDFIB:
 
 MEG/EEG and MRI coordinate systems
 ##################################
 
 The coordinate systems used in MNE software (and FreeSurfer)
-and their relationships are depicted in :ref:`c_legacy_CHDFFJIJ`.
+and their relationships are depicted in :ref:`CHDFFJIJ`.
 Except for the *Sensor coordinates*, all of the
 coordinate systems are Cartesian and have the "RAS" (Right-Anterior-Superior)
 orientation, *i.e.*, the :math:`x` axis
 points to the right, the :math:`y` axis
 to the front, and the :math:`z` axis up.
 
-.. _c_legacy_CHDFFJIJ:
+.. _CHDFFJIJ:
 
 .. figure:: ../pics/CoordinateSystems.png
     :alt: MEG/EEG and MRI coordinate systems
@@ -49,7 +51,7 @@ to MEG/EEG data are:
     locations are given in this coordinate system. In addition, the head
     digitization data acquired in the beginning of an MEG, MEG/EEG,
     or EEG acquisition are expressed in head coordinates. For details,
-    see :ref:`c_legacy_CHDEDFIB`.
+    see :ref:`CHDEDFIB`.
 
 **Device coordinates**
 
@@ -64,7 +66,7 @@ to MEG/EEG data are:
     Each MEG sensor has a local coordinate system defining the orientation
     and location of the sensor. With help of this coordinate system,
     the numerical integration data needed for the computation of the
-    magnetic field can be expressed conveniently as discussed in :ref:`c_legacy_BJEIAEIE`. The channel information data in the fif files
+    magnetic field can be expressed conveniently as discussed in :ref:`BJEIAEIE`. The channel information data in the fif files
     contain the information to specify the coordinate transformation
     between the coordinates of each sensor and the MEG device coordinates.
 
@@ -116,11 +118,11 @@ to MRI data are:
     Talairach coordinates mitigate this problem by additing a an additional
     transformation, defined separately for negatice and positive MNI
     Talairach :math:`z` coordinates. These two
-    transformations, denoted by :math:`T_-` and :math:`T_+` in :ref:`c_legacy_CHDFFJIJ`, are fixed as discussed in http://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach
+    transformations, denoted by :math:`T_-` and :math:`T_+` in :ref:`CHDFFJIJ`, are fixed as discussed in http://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach
     (*Approach 2*).
 
 The different coordinate systems are related by coordinate
-transformations depicted in :ref:`c_legacy_CHDFFJIJ`. The arrows and
+transformations depicted in :ref:`CHDFFJIJ`. The arrows and
 coordinate transformation symbols (:math:`T_x`)
 indicate the transformations actually present in the FreeSurfer
 files. Generally,
@@ -155,7 +157,7 @@ of coordinate system "1" in coordinate system "2",
 and :math:`R_{jk}` are the elements of the rotation
 matrix relating the two coordinate systems. The coordinate transformations
 are present in different files produced by FreeSurfer and MNE as
-summarized in :ref:`c_legacy_CHDJDEDJ`. The fixed transformations :math:`T_-` and :math:`T_+` are:
+summarized in :ref:`CHDJDEDJ`. The fixed transformations :math:`T_-` and :math:`T_+` are:
 
 .. math::    T_{-} = \begin{bmatrix}
 		0.99 & 0 & 0 & 0 \\
@@ -177,7 +179,7 @@ and
 
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.3\linewidth}|p{0.5\linewidth}|
-.. _c_legacy_CHDJDEDJ:
+.. _CHDJDEDJ:
 .. table:: Coordinate transformations in FreeSurfer and MNE software packages.
 
     +------------------------------+-------------------------------+--------------------------------------+
@@ -213,9 +215,9 @@ and
     |                              |                               | mgz or mgh format.                   |
     +------------------------------+-------------------------------+--------------------------------------+
 
-.. note:: The symbols :math:`T_x` are defined in :ref:`c_legacy_CHDFFJIJ`. mne_make_cor_set /mne_setup_mri prior to release 2.6 did not include transformations :math:`T_3`, :math:`T_4`, :math:`T_-`, and :math:`T_+` in the fif files produced.
+.. note:: The symbols :math:`T_x` are defined in :ref:`CHDFFJIJ`. mne_make_cor_set /mne_setup_mri prior to release 2.6 did not include transformations :math:`T_3`, :math:`T_4`, :math:`T_-`, and :math:`T_+` in the fif files produced.
 
-.. _c_legacy_BJEBIBAI:
+.. _BJEBIBAI:
 
 The head and device coordinate systems
 ######################################
@@ -249,30 +251,7 @@ with positive direction up.
 
 .. note:: The above definition is identical to that    of the Neuromag MEG/EEG (head) coordinate system. However, in 4-D    Neuroimaging and CTF MEG systems the head coordinate frame definition    is different. The origin of the coordinate system is at the midpoint    of the left and right auricular points. The :math:`x` axis    passes through the nasion and the origin with positive direction    to the front. The :math:`y` axis is perpendicular    to the :math:`x` axis on the and lies in    the plane defined by the three fiducial landmarks, positive direction    from right to left. The :math:`z` axis is    normal to the plane of the landmarks, pointing up. Note that in    this convention the auricular points are not necessarily located    on :math:`y` coordinate axis. The file conversion utilities take care of these idiosyncrasies and convert all coordinate information    to the MNE software head coordinate frame.
 
-.. _c_legacy_BEHCGJDD:
-
-Creating a surface-based source space
-#####################################
-
-The fif format source space files containing the dipole locations
-and orientations are created with the utility :ref:`mne_make_source_space`.
-This utility is usually invoked by the convenience script :ref:`mne_setup_source_space`,
-see :ref:`setting_up_source_space`.
-
-
-.. _c_legacy_BJEFEHJI:
-
-Creating a volumetric or discrete source space
-##############################################
-
-In addition to source spaces confined to a surface, the MNE
-software provides some support for three-dimensional source spaces
-bounded by a surface as well as source spaces comprised of discrete,
-arbitrarily located source points. The :ref:`mne_volume_source_space` utility
-assists in generating such source spaces.
-
-
-.. _c_legacy_BEHCACCJ:
+.. _BEHCACCJ:
 
 Creating the BEM meshes
 #######################
@@ -290,7 +269,7 @@ See command-line options in :ref:`mne_surf2bem`.
 .. note:: The vertices of all surfaces should be given in the MRI coordinate system.
 
 
-.. _c_legacy_BEHDEFCD:
+.. _BEHDEFCD:
 
 Tessellation file format
 ========================
@@ -341,7 +320,7 @@ belonging to a triangle. The vertex numbering starts from one. The
 triangle list may also contain running numbers on each line describing
 a triangle.
 
-.. _c_legacy_BEHCBDDE:
+.. _BEHCBDDE:
 
 Topology checks
 ===============
@@ -374,7 +353,7 @@ topology checks are performed:
   meters instead of millimeters.
 
 
-.. _c_legacy_CHDJFHEB:
+.. _CHDJFHEB:
 
 Computing the BEM geometry data
 ###############################
@@ -386,7 +365,7 @@ see :ref:`CIHDBFEG`. The command-line options are listed under
 :ref:`mne_prepare_bem_model`.
 
 
-.. _c_legacy_BJEIAEIE:
+.. _BJEIAEIE:
 
 Coil geometry information
 #########################
@@ -497,9 +476,9 @@ normal to the coil plane and the x axis passes through the centerpoints
 of the two coil loops so that the detector gives a positive signal
 when the normal field component increases along the *x* axis.
 
-:ref:`c_legacy_BGBBHGEC` lists the parameters of the *normal* coil
-geometry descriptions :ref:`c_legacy_CHDBDFJE` lists the *accurate* descriptions. For simple accuracy,
-please consult the coil definition file, see :ref:`c_legacy_BJECIGEB`.
+:ref:`BGBBHGEC` lists the parameters of the *normal* coil
+geometry descriptions :ref:`CHDBDFJE` lists the *accurate* descriptions. For simple accuracy,
+please consult the coil definition file, see :ref:`BJECIGEB`.
 The columns of the tables contain the following data:
 
 - The number identifying the coil id.
@@ -518,12 +497,12 @@ The columns of the tables contain the following data:
   of the baseline of the gradiometer to show that the output is in
   T/m.
 
-.. note:: The coil geometry information is stored in the file $MNE_ROOT/share/mne/coil_def.dat, which is automatically created by the utility mne_list_coil_def , see :ref:`c_legacy_BJEHHJIJ`.
+.. note:: The coil geometry information is stored in the file $MNE_ROOT/share/mne/coil_def.dat, which is automatically created by the utility mne_list_coil_def , see :ref:`BJEHHJIJ`.
 
 .. XXX : table of normal coil description is missing
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
-.. _c_legacy_BGBBHGEC:
+.. _BGBBHGEC:
 .. table:: Normal coil descriptions.
 
     +------+-------------------------+----+----------------------------------+----------------------+
@@ -584,7 +563,7 @@ The columns of the tables contain the following data:
 .. note:: If a plus-minus sign occurs in several coordinates, all possible combinations have to be included.
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.05\linewidth}|p{0.25\linewidth}|p{0.15\linewidth}|
-.. _c_legacy_CHDBDFJE:
+.. _CHDBDFJE:
 .. table:: Accurate coil descriptions
 
     +------+-------------------------+----+----------------------------------+----------------------+
@@ -644,7 +623,7 @@ The columns of the tables contain the following data:
     +------+-------------------------+----+----------------------------------+----------------------+
 
 
-.. _c_legacy_BJECIGEB:
+.. _BJECIGEB:
 
 The coil definition file
 ========================
@@ -657,16 +636,16 @@ a description line containing the following fields:
 ** <*class*>**
 
     This is a number indicating class of this coil. Possible values
-    are listed in :ref:`c_legacy_BJEFABHA`.
+    are listed in :ref:`BJEFABHA`.
 
 ** <*id*>**
 
-    Coil id value. This value is listed in the first column of Tables :ref:`c_legacy_BGBBHGEC` and :ref:`c_legacy_CHDBDFJE`.
+    Coil id value. This value is listed in the first column of Tables :ref:`BGBBHGEC` and :ref:`CHDBDFJE`.
 
 ** <*accuracy*>**
 
     The coil representation accuracy. Possible values and their meanings
-    are listed in :ref:`c_legacy_BJEHIBJC`.
+    are listed in :ref:`BJEHIBJC`.
 
 ** <*np*>**
 
@@ -692,7 +671,7 @@ a description line containing the following fields:
     Short description of this kind of a coil. If the description contains several
     words, it is enclosed in quotes.
 
-.. _c_legacy_BJEFABHA:
+.. _BJEFABHA:
 
 .. table:: Coil class values
 
@@ -708,15 +687,15 @@ a description line containing the following fields:
 
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.5\linewidth}|
-.. _c_legacy_BJEHIBJC:
+.. _BJEHIBJC:
 .. table:: Coil representation accuracies.
 
     =======  =====================================================================
     Value    Meaning
     =======  =====================================================================
     1        The simplest representation available
-    2        The standard or *normal* representation (see :ref:`c_legacy_BGBBHGEC`)
-    3        The most *accurate* representation available (see :ref:`c_legacy_CHDBDFJE`)
+    2        The standard or *normal* representation (see :ref:`BGBBHGEC`)
+    3        The most *accurate* representation available (see :ref:`CHDBDFJE`)
     =======  =====================================================================
 
 Each coil description line is followed by one or more integration
@@ -724,11 +703,11 @@ point lines, consisting of seven numbers:
 
 ** <*weight*>**
 
-    Gives the weight for this integration point (last column in Tables :ref:`c_legacy_BGBBHGEC` and :ref:`c_legacy_CHDBDFJE`).
+    Gives the weight for this integration point (last column in Tables :ref:`BGBBHGEC` and :ref:`CHDBDFJE`).
 
 ** <*x/m*> <*y/m*> <*z/m*>**
 
-    Indicates the location of the integration point (fourth column in Tables :ref:`c_legacy_BGBBHGEC` and :ref:`c_legacy_CHDBDFJE`).
+    Indicates the location of the integration point (fourth column in Tables :ref:`BGBBHGEC` and :ref:`CHDBDFJE`).
 
 ** <*nx*> <*ny*> <*nz*>**
 
@@ -737,7 +716,7 @@ point lines, consisting of seven numbers:
     allows the implementation of curved coils and coils with the gradiometer
     loops tilted with respect to each other.
 
-.. _c_legacy_BJEHHJIJ:
+.. _BJEHHJIJ:
 
 Creating the coil definition file
 =================================
@@ -749,7 +728,7 @@ as follows:
 
 mne_list_coil_def --out $MNE_ROOT/share/mne/coil_def.dat
 
-.. _c_legacy_CHDDIBAH:
+.. _CHDDIBAH:
 
 Computing the forward solution
 ##############################
@@ -782,7 +761,7 @@ methods described in :ref:`BEHDDFBI`.
 
 .. warning:: If a data file specified with the ``--meas`` option    and that used in the actual inverse computations with mne_analyze and mne_make_movie have    different software gradient compensation states., the forward solution    will be in mismatch with the data to be analyzed and the current    estimates will be slightly erroneous.
 
-.. _c_legacy_CHDIAFIG:
+.. _CHDIAFIG:
 
 The EEG sphere model definition file
 ====================================
@@ -804,11 +783,11 @@ radiuses will be in ascending order and the radius of the outermost
 layer is scaled to 1.0. The scalp radius specified with the ``--eegrad`` option
 is then consulted to scale the model to the correct dimensions.
 Even if the model setup file is not present, a model called Default is
-always provided. This model has the structure given in :ref:`c_legacy_BABEBGDA`
+always provided. This model has the structure given in :ref:`BABEBGDA`
 
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
-.. _c_legacy_BABEBGDA:
+.. _BABEBGDA:
 .. table:: Structure of the default EEG model
 
     ========  =======================  =======================
@@ -841,7 +820,7 @@ spherical harmonics. The formula is evaluated for the most superficial
 dipoles, *i.e.*, those lying just inside the
 inner skull surface.
 
-.. _c_legacy_BJEFEJJG:
+.. _BJEFEJJG:
 
 Field derivatives
 =================
@@ -875,7 +854,7 @@ respectively. Both :math:`G` and :math:`D` can
 be read with the mne_read_forward_solution Matlab
 function, see Table 10.1.
 
-.. _c_legacy_CHDBBFCA:
+.. _CHDBBFCA:
 
 Averaging forward solutions
 ###########################
