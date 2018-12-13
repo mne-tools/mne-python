@@ -361,17 +361,26 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
 
     def _format_coord(x, y, labels, ax):
         """Create status string based on cursor coordinates."""
-        idx = np.abs(times - x).argmin()
+        """ see if we are close enough to a time range """
+        tdiffs = [np.abs(tvec - x).min() for tvec in times]
+        # find indices for datasets near cursor
+        nearby = [k for k, tdiff in enumerate(tdiffs) if
+                  tdiff < (tmax - tmin) / 100]
+        timestr = '%6.3f s: ' % x
+        if not nearby:
+            return '%s Nothing here' % timestr
+        nearby_data = [(data[n], labels[n], times[n]) for n in nearby]
         ylabel = ax.get_ylabel()
         unit = (ylabel[ylabel.find('(') + 1:ylabel.find(')')]
                 if '(' in ylabel and ')' in ylabel else '')
-        labels = [''] * len(data) if labels is None else labels
+        labels = [''] * len(nearby_data) if labels is None else labels
         # try to estimate whether to truncate condition labels
         slen = 10 + sum([12 + len(unit) + len(label) for label in labels])
         bar_width = (ax.figure.get_size_inches() * ax.figure.dpi)[0] / 5.5
         trunc_labels = bar_width < slen
-        s = '%6.3f s: ' % times[idx]
-        for data_, label in zip(data, labels):
+        s = timestr
+        for data_, label, tvec in nearby_data:
+            idx = np.abs(tvec - x).argmin()
             s += '%7.2f %s' % (data_[ch_idx, idx], unit)
             if trunc_labels:
                 label = (label if len(label) <= 10 else

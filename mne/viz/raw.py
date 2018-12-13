@@ -1173,9 +1173,9 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     else:
         y_label = 'Power'
     show_func = partial(_plot_timeseries_unified, data=[psds], color=color,
-                        times=freqs)
+                        times=[freqs])
     click_func = partial(_plot_timeseries, data=[psds], color=color,
-                         times=freqs)
+                         times=[freqs])
     picks = _pick_data_channels(raw.info)
     info = pick_info(raw.info, picks)
 
