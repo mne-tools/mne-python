@@ -652,9 +652,10 @@ def test_getitem_epochsTFR():
     n_events = 10
 
     # create fake metadata
-    rt = np.random.uniform(size=(n_events,))
+    rng = np.random.RandomState(42)
+    rt = rng.uniform(size=(n_events,))
     trialtypes = np.array(['face', 'place'])
-    trial = trialtypes[(np.random.uniform(size=(n_events,)) > .5).astype(int)]
+    trial = trialtypes[(rng.uniform(size=(n_events,)) > .5).astype(int)]
     meta = DataFrame(dict(RT=rt, Trial=trial))
     event_id = dict(a=1, b=2, c=3, d=4)
     epochs = Epochs(raw, events[:n_events], event_id=event_id, metadata=meta,
