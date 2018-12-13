@@ -17,6 +17,7 @@ import warnings
 import numpy as np
 
 from ..baseline import rescale
+from ..fixes import remove_duplicates
 from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
                        _pick_data_channels, pick_channels)
 from ..utils import _clean_names, _time_mask, verbose, logger, warn
@@ -542,7 +543,7 @@ def _get_extra_points(pos, head_radius):
                                + steps).reshape((-1, 2)))
 
         # remove duplicates from hull_extended
-        hull_extended = np.unique(hull_extended.reshape((-1, 2)), axis=0)
+        hull_extended = remove_duplicates(hull_extended.reshape((-1, 2)))
         new_pos = np.concatenate([hull_extended] + add_points)
     else:
         # return points on the head circle

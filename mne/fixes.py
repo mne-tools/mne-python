@@ -892,6 +892,24 @@ def einsum(*args, **kwargs):
     return np.einsum(*args, **kwargs)
 
 
+# NumPy unique has axis kwarg only since 1.13.0. This is used only once in
+# topomap interpolation code to remove duplicates from 2d array along axis 0
+# can be removed once we require NumPy 1.13.0
+
+_has_unique_axis = (LooseVersion(np.__version__) >= '1.13.0')
+
+
+def remove_duplicates(arr):
+    if _has_unique_axis:
+        return np.unique(arr, axis=0)
+    else:
+        remove = np.zeros(arr.shape[0], dtype='bool')
+        for idx in range(arr.shape[0] - 1):
+            remove[idx + 1:] = ((arr[idx + 1:, :] == arr[[idx], :]).all(axis=1)
+                                | remove[idx + 1:])
+        return arr[~remove, :]
+
+
 ###############################################################################
 # From nilearn
 
