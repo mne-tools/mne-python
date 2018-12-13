@@ -698,7 +698,7 @@ Purpose
 
 One possibility to make a grand average over several runs
 of a experiment is to average the data across runs and average the
-forward solutions accordingly. For this purpose, :ref:`mne_average_forward_solutions` computes a
-weighted average of several forward solutions. The program averages both
+forward solutions accordingly. For this purpose, :func:`mne.average_forward_solutions` computes a
+weighted average of several forward solutions. The function averages both
 MEG and EEG forward solutions. Usually the EEG forward solution is
 identical across runs because the electrode locations do not change.
