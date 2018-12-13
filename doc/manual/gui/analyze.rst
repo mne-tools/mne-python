@@ -1101,13 +1101,13 @@ the subject's FreeSurfer directory. This surface is automatically
 prepared if you use the watershed algorithm as described in :ref:`BABBDHAG`.
 If you have another source for the head triangulation you can use
 the utility mne_surf2bem to create
-the fif format scalp surface file, see :ref:`BEHCACCJ`.
+the fif format scalp surface file, see :ref:`c_legacy_BEHCACCJ`.
 
 If a file called ``bem/`` <*subject*>``-bem.fif`` under
 the subject's FreeSurfer directory is present, mne_analyze tries
 to load the BEM surface triangulations from there. This file can
 be a symbolic link to one of the ``-bem.files`` created
-by mne_prepare_bem_model , see :ref:`CHDJFHEB`.
+by mne_prepare_bem_model , see :ref:`c_legacy_CHDJFHEB`.
 If the BEM file contains a head surface triangulation, it will be
 used instead of the one present in the ``bem/`` <*subject*>``-head.fif`` file.
 
