@@ -9,7 +9,7 @@
    nipy, NIPY, Nipy, etc...
 
 .. git stuff
-.. _git: http://git-scm.com/
+.. _git: https://git-scm.com/
 .. _github: https://github.com
 .. _GitHub Help: https://help.github.com
 .. _msysgit: http://code.google.com/p/msysgit/downloads/list
@@ -59,23 +59,23 @@
 .. _linterflake8: https://atom.io/packages/linter-flake8
 
 .. python packages
-.. _pep8: https://pypi.python.org/pypi/pep8
-.. _pyflakes: https://pypi.python.org/pypi/pyflakes
+.. _pep8: https://pypi.org/project/pep8/
+.. _pyflakes: https://pypi.org/project/pyflakes
 .. _coverage: https://pypi.python.org/pypi/coverage
-.. _mayavi: http://mayavi.sourceforge.net/
+.. _mayavi: http://https//docs.enthought.com/mayavi/mayavi/
 .. _nitime: http://nipy.org/nitime/
 .. _joblib: https://pypi.python.org/pypi/joblib
-.. _scikit-learn: http://scikit-learn.org/stable/
-.. _pysurfer: http://pysurfer.github.io/
+.. _scikit-learn: https://scikit-learn.org/stable/
+.. _pysurfer: https://pysurfer.github.io/
 .. _pyDICOM: https://pypi.python.org/pypi/pydicom/
-.. _matplotlib: http://matplotlib.org/
+.. _matplotlib: https://matplotlib.org/
 .. _sphinx: http://sphinx-doc.org/
 .. _pandas: http://pandas.pydata.org/
 .. _PIL: https://pypi.python.org/pypi/PIL
 
 .. python editors
 .. _atom: https://atom.io/
-.. _Spyder: http://pythonhosted.org/spyder/
+.. _Spyder: https://www.spyder-ide.org/
 .. _anaconda: http://www.continuum.io/downloads
 .. _EPD: https://www.enthought.com/products/epd/
 .. _sublime text: http://www.sublimetext.com/
@@ -83,7 +83,7 @@
 .. _FreeSurfer: http://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall/
 
 .. _Sphinx documentation: http://sphinx-doc.org/rest.html
-.. _sphinx gallery documentation: http://sphinx-gallery.readthedocs.org/en/latest/advanced_configuration.html
+.. _sphinx gallery documentation: https://sphinx-gallery.readthedocs.io/en/latest/configuration.html
 .. _NumPy docstring standard: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 
 .. vim: ft=rst

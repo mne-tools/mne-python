@@ -149,7 +149,7 @@ print('Spatio-temporal: %0.1f%%' % (100 * score,))
 #
 # :class:`mne.decoding.CSP` is a technique to analyze multichannel data based
 # on recordings from two classes [2]_ (see also
-# http://en.wikipedia.org/wiki/Common_spatial_pattern).
+# https://en.wikipedia.org/wiki/Common_spatial_pattern).
 #
 # Let :math:`X \in R^{C\times T}` be a segment of data with
 # :math:`C` channels and :math:`T` time points. The data at a single time point
@@ -192,9 +192,9 @@ print('Spatio-temporal: %0.1f%%' % (100 * score,))
 #
 #     The winning entry of the Grasp-and-lift EEG competition in Kaggle used
 #     the :class:`~mne.decoding.CSP` implementation in MNE and was featured as
-#     a `script of the week`_.
+#     a `script of the week <sotw_>`_.
 #
-# .. _script of the week: http://blog.kaggle.com/2015/08/12/july-2015-scripts-of-the-week/  # noqa
+# .. _sotw: http://blog.kaggle.com/2015/08/12/july-2015-scripts-of-the-week/
 #
 # We can use CSP with these data with:
 
@@ -424,8 +424,8 @@ plt.colorbar(im, ax=ax)
 # .. [6] Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
 #        and Stanislas Dehaene, "Two distinct dynamic modes subtend the
 #        detection of unexpected sounds", PLOS ONE, 2013,
-#        http://www.ncbi.nlm.nih.gov/pubmed/24475052
+#        https://www.ncbi.nlm.nih.gov/pubmed/24475052
 # .. [7] King & Dehaene (2014) 'Characterizing the dynamics of mental
 #        representations: the temporal generalization method', Trends In
 #        Cognitive Sciences, 18(4), 203-210.
-#        http://www.ncbi.nlm.nih.gov/pubmed/24593982
+#        https://www.ncbi.nlm.nih.gov/pubmed/24593982

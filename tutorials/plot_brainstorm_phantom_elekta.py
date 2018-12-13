@@ -7,7 +7,7 @@ Brainstorm Elekta phantom dataset tutorial
 Here we compute the evoked from raw for the Brainstorm Elekta phantom
 tutorial dataset. For comparison, see [1]_ and:
 
-    http://neuroimage.usc.edu/brainstorm/Tutorials/PhantomElekta
+    https://neuroimage.usc.edu/brainstorm/Tutorials/PhantomElekta
 
 References
 ----------

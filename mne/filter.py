@@ -1880,7 +1880,7 @@ class FilterMixin(object):
         -----
         For Savitzky-Golay low-pass approximation, see:
 
-            https://gist.github.com/Eric89GXL/bbac101d50176611136b
+            https://gist.github.com/larsoner/bbac101d50176611136b
 
 
         .. versionadded:: 0.9.0

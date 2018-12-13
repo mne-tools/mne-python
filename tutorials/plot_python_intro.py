@@ -10,9 +10,9 @@ environment and dependencies (see :ref:`install_python_and_mne_python`). If you
 are completely new to Python, don't worry, it's just like any other programming
 language, only easier. Here are a few great resources to get you started:
 
-* `SciPy lectures <http://scipy-lectures.github.io>`_
+* `SciPy lectures <https://www.scipy-lectures.org>`_
 * `Learn X in Y minutes: Python <https://learnxinyminutes.com/docs/python/>`_
-* `NumPy for MATLAB users <https://docs.scipy.org/doc/numpy-dev/user/numpy-for-matlab-users.html>`_
+* `NumPy for MATLAB users <https://docs.scipy.org/doc/numpy-1.15.0/user/numpy-for-matlab-users.html>`_
 
 We highly recommend watching the SciPy videos and reading through these sites
 to get a sense of how scientific computing is done in Python.

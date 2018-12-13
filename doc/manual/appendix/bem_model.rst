@@ -296,7 +296,7 @@ is distributed as a collaborative project between the Laboratory
 of Neuro Imaging at the University of California Los Angeles (Director:
 Dr. Arthur W. Toga) and the Biomedical Imaging Research Group at
 the University of Southern California (Director: Dr. Richard M. Leahy).
-For further information, see http://brainsuite.usc.edu/.
+For further information, see https://neuroimage.usc.edu/neuro/BrainSuite.
 
 The conversion of BrainSuite tessellation
 files to MNE software compatible formats is accomplished with the mne_convert_surface utility,

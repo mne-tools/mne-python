@@ -117,9 +117,9 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
     Step by step instructions for the coregistrations can be accessed as
     slides, `for subjects with structural MRI
-    <http://www.slideshare.net/mne-python/mnepython-coregistration>`_ and `for
+    <https://www.slideshare.net/mne-python/mnepython-coregistration>`_ and `for
     subjects for which no MRI is available
-    <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
+    <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     if guess_mri_subject is None:

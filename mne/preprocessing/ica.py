@@ -269,7 +269,7 @@ class ICA(ContainsMixin):
     compare tolerance levels between Infomax and Picard, but for Picard and
     FastICA a good rule of thumb is ``tol_fastica == tol_picard ** 2``.
 
-    .. _eeglab_wiki: https://sccn.ucsd.edu/wiki/Chapter_09:_Decomposing_Data_Using_ICA#Issue:_ICA_returns_near-identical_components_with_opposite_polarities  # noqa
+    .. _eeglab_wiki: https://sccn.ucsd.edu/wiki/Chapter_09:_Decomposing_Data_Using_ICA#Issue:_ICA_returns_near-identical_components_with_opposite_polarities
 
     References
     ----------
@@ -294,7 +294,6 @@ class ICA(ContainsMixin):
            Reduction to EEG Data by Principal Component Analysis Reduces the
            Quality of Its Subsequent Independent Component Decomposition.
            NeuroImage 175, pp.176–187.
-           https://sccn.ucsd.edu/%7Earno/mypapers/Artoni2018.pdf
     """  # noqa: E501
 
     @verbose
