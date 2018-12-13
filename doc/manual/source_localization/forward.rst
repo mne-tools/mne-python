@@ -267,6 +267,8 @@ the detectors:
 - A unique identifier, which has an one-to-one correspondence
   to the geometrical description of the coil.
 
+.. note:: See :ref:`sphx_glr_auto_examples_visualization_plot_meg_sensors.py` for a comparison of the coil geometries shipped with MNE.
+
 The sensor coordinate system
 ============================
 
@@ -327,18 +329,6 @@ the weights associated to the integration points. This formula essentially
 presents numerical integration of the magnetic field over the pickup
 loops of sensor :math:`k`.
 
-There are three accuracy levels for the numerical integration
-expressed above. The *simple* accuracy means
-the simplest description of the coil. This accuracy is not used
-in the MNE forward calculations. The *normal* or *recommended* accuracy typically uses
-two integration points for planar gradiometers, one in each half
-of the pickup coil and four evenly distributed integration points
-for magnetometers. This is the default accuracy used by MNE. If
-the ``--accurate`` option is specified, the forward calculation typically employs
-a total of eight integration points for planar gradiometers and
-sixteen for magnetometers. Detailed information about the integration
-points is given in the next section.
-
 Implemented coil geometries
 ===========================
 
@@ -383,7 +373,7 @@ The columns of the tables contain the following data:
   of the baseline of the gradiometer to show that the output is in
   T/m.
 
-.. note:: The coil geometry information is stored in the file $MNE_ROOT/share/mne/coil_def.dat, which is automatically created by the utility mne_list_coil_def , see :ref:`BJEHHJIJ`.
+.. note:: The coil geometry information is stored in the file $MNE_ROOT/share/mne/coil_def.dat
 
 .. XXX : table of normal coil description is missing
 
@@ -601,18 +591,6 @@ point lines, consisting of seven numbers:
     Note that listing a separate unit vector for each integration points
     allows the implementation of curved coils and coils with the gradiometer
     loops tilted with respect to each other.
-
-.. _BJEHHJIJ:
-
-Creating the coil definition file
-=================================
-
-The standard coil definition file $MNE_ROOT/share/mne/coil_def.dat
-is included with the MNE software package. The coil definition file
-can be recreated with the utility mne_list_coil_def
-as follows:
-
-mne_list_coil_def --out $MNE_ROOT/share/mne/coil_def.dat
 
 .. _CHDDIBAH:
 
