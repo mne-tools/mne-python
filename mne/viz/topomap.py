@@ -703,6 +703,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         nearby points (approximately to points closer than median
         inter-electrode distance).
 
+        .. versionadded:: 0.18
+
     Returns
     -------
     im : matplotlib.image.AxesImage
@@ -1415,7 +1417,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         show=True, show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
                         image_interp='bilinear', average=None, head_pos=None,
-                        axes=None):
+                        axes=None, extrapolate='local'):
     """Plot topographic maps of specific time points of evoked data.
 
     Parameters
@@ -1553,6 +1555,13 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         same length as ``times`` (unless ``times`` is None). If instance of
         Axes, ``times`` must be a float or a list of one float.
         Defaults to None.
+    extrapolate : str
+        If 'head' extrapolate to the edges of the head circle (does not work
+        when `outlines='skirt'`. If 'local' (default) extrapolate only to
+        nearby points (approximately to points closer than median
+        inter-electrode distance).
+
+        .. versionadded:: 0.18
 
     Returns
     -------
@@ -1707,7 +1716,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     kwargs = dict(vmin=vmin, vmax=vmax, sensors=sensors, res=res, names=names,
                   show_names=show_names, cmap=cmap[0], mask_params=mask_params,
                   outlines=outlines, contours=contours,
-                  image_interp=image_interp, show=False)
+                  image_interp=image_interp, show=False,
+                  extrapolate=extrapolate)
     for idx, time in enumerate(times):
         tp, cn, interp = _plot_topomap(
             data[:, idx], pos, axes=axes[idx],
@@ -2634,6 +2644,8 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
         when `outlines='skirt'`. If 'local' (default) extrapolate only to
         nearby points (approximately to points closer than median
         inter-electrode distance).
+
+        .. versionadded:: 0.18
 
     Returns
     -------
