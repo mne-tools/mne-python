@@ -746,13 +746,14 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     time_min = min([t[0] for t in times])
     time_max = max([t[-1] for t in times])
-    fig = _plot_topo(info=info, times=[time_min, time_max], show_func=show_func,
-                     click_func=click_func, layout=layout, colorbar=False,
-                     ylim=ylim_, cmap=None, layout_scale=layout_scale,
-                     border=border, fig_facecolor=fig_facecolor,
-                     font_color=font_color, axis_facecolor=axis_facecolor,
-                     title=title, x_label='Time (s)', y_label=y_label,
-                     unified=True, axes=axes)
+    fig = _plot_topo(info=info, times=[time_min, time_max],
+                     show_func=show_func, click_func=click_func, layout=layout,
+                     colorbar=False, ylim=ylim_, cmap=None,
+                     layout_scale=layout_scale, border=border,
+                     fig_facecolor=fig_facecolor, font_color=font_color,
+                     axis_facecolor=axis_facecolor, title=title,
+                     x_label='Time (s)', y_label=y_label, unified=True,
+                     axes=axes)
 
     add_background_image(fig, fig_background)
 
