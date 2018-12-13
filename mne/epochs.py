@@ -857,6 +857,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if mode == "mean":
                 def fun(data):
                     return np.mean(data, axis=0)
+            elif mode == "median":
+                def fun(data):
+                    return np.median(data, axis=0)
             elif mode == "std":
                 def fun(data):
                     return np.std(data, axis=0)

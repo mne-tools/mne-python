@@ -632,10 +632,9 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     else:
         power = out
         if isinstance(inst, BaseEpochs):
-            meta = inst._metadata.copy() if inst._metadata is not None \
-                else None
-            evs = inst.events.copy()
-            ev_id = inst.event_id.copy()
+            meta = deepcopy(inst._metadata)
+            evs = deepcopy(inst.events)
+            ev_id = deepcopy(inst.event_id)
         else:
             # if the input is of class Evoked
             meta = evs = ev_id = None
@@ -1968,9 +1967,6 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         Comment on the data, e.g., the experimental condition.
     method : str | None, defaults to None
         Comment on the method used to compute the data, e.g., morlet wavelet.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
     events : ndarray, shape (n_events, 3) | None
         The events as stored in the Epochs class
     event_id : dict | None
@@ -1979,6 +1975,9 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
     metadata : instance of pandas.DataFrame | None
         A :class:`pandas.DataFrame` containing pertinent information for each
         trial. See :class:`mne.Epochs` for further details
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -2009,7 +2008,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
     @verbose
     def __init__(self, info, data, times, freqs, comment=None, method=None,
-                 verbose=None,  events=None, event_id=None, metadata=None):
+                 events=None, event_id=None, metadata=None, verbose=None):
         # noqa: D102
         self.info = info
         if data.ndim != 4:
