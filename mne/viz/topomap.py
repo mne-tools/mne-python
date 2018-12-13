@@ -472,12 +472,14 @@ def _draw_outlines(ax, outlines):
 
 
 def _get_extra_points(pos, head_radius):
-    '''
+    """
+    Get coordinates of additinal interpolation points.
+
     If head_radius is None, returns coordinates of convex hull of channel
     positions, expanded by the median inter-channel distance.
     Otherwise gives positions of points on the head circle placed with a step
     of median inter-channel distance.
-    '''
+    """
     from scipy.spatial.qhull import Delaunay
 
     # check if positions are colinear:
@@ -2180,8 +2182,9 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
 
 def _prepare_topomap(pos, ax, check_nonzero=True):
     """
-    Prepare the topomap: hide axis frame and check that position information is
-    present.
+    Prepare the topomap axis and check positions.
+
+    Hides axis frame and check that position information is present.
     """
     _hide_frame(ax)
     if check_nonzero and not pos.any():
