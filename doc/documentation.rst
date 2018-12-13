@@ -393,7 +393,6 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_point_spread.rst
     auto_tutorials/plot_dipole_orientations.rst
     auto_tutorials/plot_dics.rst
-    auto_tutorials/plot_background_freesurfer.rst
 
 
 .. raw:: html
