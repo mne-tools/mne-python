@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
-r"""
+.. _ch_morph:
+
 ================================================================
 Morphing source estimates: Moving data from one brain to another
 ================================================================
@@ -250,4 +250,3 @@ References
        neuroscience, 7, 267.
 
 .. _dipy: http://nipy.org/dipy/
-"""  # noqa: E501

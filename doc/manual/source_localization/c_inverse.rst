@@ -471,7 +471,7 @@ produce stc or w files which contain the numerical current estimate
 data in a simple binary format for postprocessing. These files can
 be displayed in :ref:`mne_analyze`,
 see :ref:`c_legacy_ch_interactive_analysis`, utilized in the cross-subject averaging
-process, see :ref:`sphx_glr_auto_tutorials_plot_morph_stc.py`,
+process, see :ref:`c_legacy_ch_morph`,
 and read into Matlab using the MNE Matlab toolbox, see :ref:`ch_matlab`.
 
 
