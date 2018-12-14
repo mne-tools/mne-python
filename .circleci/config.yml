@@ -355,7 +355,6 @@ workflows:
   default:
     jobs:
       - build_docs
-      - linkcheck  # XXX should be removed before the PR is merged
       - deploy:
           requires:
             - build_docs
@@ -365,7 +364,7 @@ workflows:
                 - master
                 - maint/0.17
 
-  nightly:
+  weekly:
     jobs:
       - linkcheck
     triggers:
