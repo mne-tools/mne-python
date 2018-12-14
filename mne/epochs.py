@@ -48,8 +48,7 @@ from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
 from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, warn, _pl, _ensure_int,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
-                    _check_pandas_installed, _check_preload, _hid_match,
-                    GetEpochsMixin)
+                    _check_pandas_installed, _check_preload, GetEpochsMixin)
 
 
 def _save_split(epochs, fname, part_idx, n_parts, fmt):

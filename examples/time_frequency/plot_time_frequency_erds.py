@@ -81,20 +81,23 @@ cmap = center_cmap(plt.cm.RdBu, vmin, vmax)  # zero maps to white
 kwargs = dict(n_permutations=100, step_down_p=0.05, seed=1,
               buffer_size=None)  # for cluster test
 
+# Run TF decomposition overall epochs
+tfr = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
+                     use_fft=True, return_itc=False, average=False,
+                     decim=2)
+tfr.crop(tmin, tmax)
+tfr.apply_baseline(baseline, mode="percent")
 for event in event_ids:
-    tfr = tfr_multitaper(epochs[event], freqs=freqs, n_cycles=n_cycles,
-                         use_fft=True, return_itc=False, average=False,
-                         decim=2)
-    tfr.crop(tmin, tmax)
-    tfr.apply_baseline(baseline, mode="percent")
-
+    # select desired epochs for visualization
+    tfr_ev = tfr[event]
     fig, axes = plt.subplots(1, 4, figsize=(12, 4),
                              gridspec_kw={"width_ratios": [10, 10, 10, 1]})
     for ch, ax in enumerate(axes[:-1]):  # for each channel
         # positive clusters
-        _, c1, p1, _ = pcluster_test(tfr.data[:, ch, ...], tail=1, **kwargs)
+        _, c1, p1, _ = pcluster_test(tfr_ev.data[:, ch, ...], tail=1, **kwargs)
         # negative clusters
-        _, c2, p2, _ = pcluster_test(tfr.data[:, ch, ...], tail=-1, **kwargs)
+        _, c2, p2, _ = pcluster_test(tfr_ev.data[:, ch, ...], tail=-1,
+                                     **kwargs)
 
         # note that we keep clusters with p <= 0.05 from the combined clusters
         # of two independent tests; in this example, we do not correct for
@@ -104,9 +107,9 @@ for event in event_ids:
         mask = c[..., p <= 0.05].any(axis=-1)
 
         # plot TFR (ERDS map with masking)
-        tfr.average().plot([ch], vmin=vmin, vmax=vmax, cmap=(cmap, False),
-                           axes=ax, colorbar=False, show=False, mask=mask,
-                           mask_style="mask")
+        tfr_ev.average().plot([ch], vmin=vmin, vmax=vmax, cmap=(cmap, False),
+                              axes=ax, colorbar=False, show=False, mask=mask,
+                              mask_style="mask")
 
         ax.set_title(epochs.ch_names[ch], fontsize=10)
         ax.axvline(0, linewidth=1, color="black", linestyle=":")  # event
