@@ -1011,38 +1011,18 @@ def _check_stim_channel(stim_channel, ch_names, sel):
 
     if isinstance(stim_channel, str):
         if stim_channel == 'auto':
-            if 'auto' in ch_names:
-                raise ValueError("'auto' exists as a channel name. Change "
-                                 "stim_channel parameter!")
             if 'STATUS' in ch_names:
                 stim_channel_idx = ch_names.index('STATUS')
             elif 'Status' in ch_names:
                 stim_channel_idx = ch_names.index('Status')
             else:
                 stim_channel_idx = None
-        elif stim_channel not in ch_names:
-            err = 'Could not find a channel named "{}" in datafile.' \
-                  .format(stim_channel)
-            casematch = [ch for ch in ch_names
-                         if stim_channel.lower().replace(' ', '') ==
-                         ch.lower().replace(' ', '')]
-            if casematch:
-                err += ' Closest match is "{}".'.format(casematch[0])
-            raise ValueError(err)
     else:
-        if stim_channel == -1:
-            stim_channel_idx = len(sel) - 1
-        elif stim_channel > len(ch_names):
-            raise ValueError('Requested stim_channel index ({}) exceeds total '
-                             'number of channels in datafile ({})'
-                             .format(stim_channel, len(ch_names)))
+        raise ValueError('Invalid stim_channel')
 
-    if stim_channel_idx is None:
-        stim_ch_name = None
-    else:
-        stim_ch_name = ch_names[stim_channel_idx]
+    name = None if stim_channel_idx is None else ch_names[stim_channel_idx]
 
-    return stim_channel_idx, stim_ch_name
+    return stim_channel_idx, name
 
 
 def _find_exclude_idx(ch_names, exclude):
