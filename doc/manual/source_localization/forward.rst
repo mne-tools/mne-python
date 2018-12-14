@@ -659,35 +659,6 @@ spherical harmonics. The formula is evaluated for the most superficial
 dipoles, *i.e.*, those lying just inside the
 inner skull surface.
 
-.. _BJEFEJJG:
-
-Field derivatives
-=================
-
-If the ``meg=True`` option is specified, :func:`mne.make_forward_solution` includes
-the derivatives of the forward solution with respect to the dipole
-location coordinates to the output file. Let
-
-.. math::    G_k = [g_{xk} g_{yk} g_{zk}]
-
-be the :math:`N_{chan} \times 3` matrix containing
-the signals produced by three orthogonal dipoles at location :math:`r_k` making
-up :math:`N_{chan} \times 3N_{source}` the gain matrix
-
-.. math::    G = [G_1 \dotso G_{N_{source}}]\ .
-
-With the ``meg=True`` option, the output from :func:`mne.make_forward_solution` also
-contains the :math:`N_{chan} \times 9N_{source}` derivative matrix
-
-.. math::    D = [D_1 \dotso D_{N_{source}}]\ ,
-
-where
-
-.. math::    D_k = [\frac{\delta g_{xk}}{\delta x_k} \frac{\delta g_{xk}}{\delta y_k} \frac{\delta g_{xk}}{\delta z_k} \frac{\delta g_{yk}}{\delta x_k} \frac{\delta g_{yk}}{\delta y_k} \frac{\delta g_{yk}}{\delta z_k} \frac{\delta g_{zk}}{\delta x_k} \frac{\delta g_{zk}}{\delta y_k} \frac{\delta g_{zk}}{\delta z_k}]\ ,
-
-where :math:`x_k`, :math:`y_k`, and :math:`z_k` are the location
-coordinates of the :math:`k^{th}` dipole. 
-
 .. _CHDBBFCA:
 
 Averaging forward solutions
