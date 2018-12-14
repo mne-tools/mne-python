@@ -431,7 +431,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         each bipolar channel) containing channel information to merge in,
         overwriting the default values. Defaults to None.
     drop_refs : bool
-        Whether to drop or not the anode/cathode channels from the instance.
+        Whether to drop the anode/cathode channels from the instance.
     copy : bool
         Whether to operate on a copy of the data (True) or modify it in-place
         (False). Defaults to True.

@@ -476,17 +476,17 @@ def test_add_reference():
 
 def test_bipolar_combinations():
     """Test bipolar channel generation."""
-    channels = ['CH' + str(ni + 1) for ni in range(10)]
+    ch_names = ['CH' + str(ni + 1) for ni in range(10)]
     info = create_info(
-        ch_names=channels, sfreq=1000., ch_types=['eeg'] * len(channels))
-    raw_data = np.random.randn(len(channels), 1000)
+        ch_names=ch_names, sfreq=1000., ch_types=['eeg'] * len(ch_names))
+    raw_data = np.random.randn(len(ch_names), 1000)
     raw = RawArray(raw_data, info)
 
     def _check_bipolar(raw_test, ch_a, ch_b):
         picks = [raw_test.ch_names.index(ch_a + '-' + ch_b)]
         get_data_res = raw_test.get_data(picks=picks)[0, :]
-        manual_a = raw_data[channels.index(ch_a), :]
-        manual_b = raw_data[channels.index(ch_b), :]
+        manual_a = raw_data[ch_names.index(ch_a), :]
+        manual_b = raw_data[ch_names.index(ch_b), :]
         assert_array_equal(get_data_res, manual_a - manual_b)
 
     # test classic EOG/ECG bipolar reference (only two channels per pair).
@@ -494,7 +494,7 @@ def test_bipolar_combinations():
     _check_bipolar(raw_test, 'CH2', 'CH1')
 
     # test all combinations.
-    a_channels, b_channels = zip(*itertools.combinations(channels, 2))
+    a_channels, b_channels = zip(*itertools.combinations(ch_names, 2))
     a_channels, b_channels = list(a_channels), list(b_channels)
     raw_test = set_bipolar_reference(raw, a_channels, b_channels, copy=True)
     for ch_a, ch_b in zip(a_channels, b_channels):
@@ -505,11 +505,11 @@ def test_bipolar_combinations():
     raw_test = set_bipolar_reference(
         raw, a_channels, b_channels, drop_refs=False, copy=True)
     # check if reference channels have been kept correctly.
-    assert (len(raw_test.ch_names) == len(a_channels) + len(channels))
-    for ch_label in channels:
-        picks = [raw_test.ch_names.index(ch_label)]
-        manual_ch = raw_data[channels.index(ch_label), :]
-        assert_array_equal(raw_test.get_data(picks=picks)[0, :], manual_ch)
+    assert (len(raw_test.ch_names) == len(a_channels) + len(ch_names))
+    for idx, ch_label in enumerate(ch_names):
+        manual_ch = raw_data[idx, :]
+        assert_array_equal(
+            raw_test._data[raw_test.ch_names.index(ch_label), :], manual_ch)
 
     # test bipolars with a channel in both list (anode & cathode).
     raw_test = set_bipolar_reference(
