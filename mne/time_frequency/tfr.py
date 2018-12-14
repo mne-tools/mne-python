@@ -19,7 +19,8 @@ from scipy.fftpack import fft, ifft
 
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _time_mask, check_fname, sizeof_fmt
+from ..utils import (logger, verbose, _time_mask, check_fname, sizeof_fmt,
+                     GetEpochsMixin)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, _pick_data_channels,
@@ -31,9 +32,8 @@ from ..viz.utils import (figure_nobar, plt_show, _setup_cmap, warn,
                          _connection_line, _prepare_joint_axes,
                          _setup_vmin_vmax, _set_title_multiple_electrodes)
 from ..externals.h5io import write_hdf5, read_hdf5
-
-
 # Make wavelet
+
 
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     """Compute Morlet wavelets for the given frequency range.
@@ -592,6 +592,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
 def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
              output=None, **tfr_params):
+    from ..epochs import BaseEpochs
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
     data = _get_data(inst, return_itc)
@@ -630,7 +631,16 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
                                    method='%s-itc' % method))
     else:
         power = out
-        out = EpochsTFR(info, power, times, freqs, method='%s-power' % method)
+        if isinstance(inst, BaseEpochs):
+            meta = deepcopy(inst._metadata)
+            evs = deepcopy(inst.events)
+            ev_id = deepcopy(inst.event_id)
+        else:
+            # if the input is of class Evoked
+            meta = evs = ev_id = None
+
+        out = EpochsTFR(info, power, times, freqs, method='%s-power' % method,
+                        events=evs, event_id=ev_id, metadata=meta)
 
     return out
 
@@ -1938,7 +1948,7 @@ class AverageTFR(_BaseTFR):
         return "<AverageTFR  |  %s>" % s
 
 
-class EpochsTFR(_BaseTFR):
+class EpochsTFR(_BaseTFR, GetEpochsMixin):
     """Container for Time-Frequency data on epochs.
 
     Can for example store induced power at sensor level.
@@ -1957,6 +1967,14 @@ class EpochsTFR(_BaseTFR):
         Comment on the data, e.g., the experimental condition.
     method : str | None, defaults to None
         Comment on the method used to compute the data, e.g., morlet wavelet.
+    events : ndarray, shape (n_events, 3) | None
+        The events as stored in the Epochs class
+    event_id : dict | None
+        Example: dict(auditory=1, visual=3). They keys can be used to access
+        associated events.
+    metadata : instance of pandas.DataFrame | None
+        A :class:`pandas.DataFrame` containing pertinent information for each
+        trial. See :class:`mne.Epochs` for further details
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1965,33 +1983,33 @@ class EpochsTFR(_BaseTFR):
     ----------
     info : instance of Info
         Measurement info.
-
     ch_names : list
         The names of the channels.
-
     data : ndarray, shape (n_epochs, n_channels, n_freqs, n_times)
         The data array.
-
     times : ndarray, shape (n_times,)
         The time values in seconds.
-
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
-
     comment : string
         Comment on dataset. Can be the condition.
-
     method : str | None, defaults to None
         Comment on the method used to compute the data, e.g., morlet wavelet.
-
+    events : ndarray, shape (n_events, 3) | None
+        Array containing sample information as event_id
+    event_id : dict | None
+        Names of conditions correspond to event_ids
+    metadata : DataFrame, shape (n_events, n_cols) | None
+        DataFrame containing pertinent information for each trial
     Notes
     -----
     .. versionadded:: 0.13.0
     """
 
     @verbose
-    def __init__(self, info, data, times, freqs, comment=None,
-                 method=None, verbose=None):  # noqa: D102
+    def __init__(self, info, data, times, freqs, comment=None, method=None,
+                 events=None, event_id=None, metadata=None, verbose=None):
+        # noqa: D102
         self.info = info
         if data.ndim != 4:
             raise ValueError('data should be 4d. Got %d.' % data.ndim)
@@ -2008,9 +2026,12 @@ class EpochsTFR(_BaseTFR):
         self.data = data
         self.times = np.array(times, dtype=float)
         self.freqs = np.array(freqs, dtype=float)
+        self.events = events
+        self.event_id = event_id
         self.comment = comment
         self.method = method
         self.preload = True
+        self.metadata = metadata
 
     def __repr__(self):  # noqa: D105
         s = "time : [%f, %f]" % (self.times[0], self.times[-1])
@@ -2022,21 +2043,9 @@ class EpochsTFR(_BaseTFR):
 
     def __abs__(self):
         """Take the absolute value."""
-        return EpochsTFR(info=self.info.copy(), data=np.abs(self.data),
-                         times=self.times.copy(), freqs=self.freqs.copy(),
-                         method=self.method, comment=self.comment)
-
-    def copy(self):
-        """Give a copy of the EpochsTFR.
-
-        Returns
-        -------
-        tfr : instance of EpochsTFR
-            The copy.
-        """
-        return EpochsTFR(info=self.info.copy(), data=self.data.copy(),
-                         times=self.times.copy(), freqs=self.freqs.copy(),
-                         method=self.method, comment=self.comment)
+        epochs = self.copy()
+        epochs.data = np.abs(self.data)
+        return epochs
 
     def average(self):
         """Average the data across epochs.
