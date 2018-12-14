@@ -60,7 +60,7 @@ See :ref:`install_python_and_mne_python`.
 From raw data to evoked data
 ----------------------------
 
-.. _ipython: https://ipythonZZZ.org/
+.. _ipython: https://ipython.org/
 
 Now, launch `ipython`_ (Advanced Python shell) using the QT backend, which
 is best supported across systems:
