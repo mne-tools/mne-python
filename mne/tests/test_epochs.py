@@ -2256,9 +2256,11 @@ class FakeNoPandas(object):  # noqa: D101
             else:
                 return False
         mne.epochs._check_pandas_installed = _check
+        mne.utils._check_pandas_installed = _check
 
     def __exit__(self, *args):  # noqa: D105
         mne.epochs._check_pandas_installed = _check_pandas_installed
+        mne.utils._check_pandas_installed = _check_pandas_installed
 
 
 @requires_pandas

@@ -8,13 +8,15 @@ import pytest
 import mne
 from mne import Epochs, read_events, pick_types, create_info, EpochsArray
 from mne.io import read_raw_fif
-from mne.utils import _TempDir, run_tests_if_main, requires_h5py, grand_average
+from mne.utils import (_TempDir, run_tests_if_main, requires_h5py,
+                       requires_pandas, grand_average)
 from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
                                     write_tfrs, combine_tfr, cwt, _compute_tfr,
                                     EpochsTFR)
 from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet
 from mne.viz.utils import _fake_click
+from mne.tests.test_epochs import assert_metadata_equal
 from itertools import product
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
@@ -639,5 +641,66 @@ def test_compute_tfr():
                                output='avg_power', n_cycles=2.)
             assert_array_equal(shape[1:], out.shape)
 
+
+@requires_pandas
+def test_getitem_epochsTFR():
+    """Test GetEpochsMixin in the context of EpochsTFR."""
+    from pandas import DataFrame
+    # Setup for reading the raw data and select a few trials
+    raw = read_raw_fif(raw_fname)
+    events = read_events(event_fname)
+    n_events = 10
+
+    # create fake metadata
+    rng = np.random.RandomState(42)
+    rt = rng.uniform(size=(n_events,))
+    trialtypes = np.array(['face', 'place'])
+    trial = trialtypes[(rng.uniform(size=(n_events,)) > .5).astype(int)]
+    meta = DataFrame(dict(RT=rt, Trial=trial))
+    event_id = dict(a=1, b=2, c=3, d=4)
+    epochs = Epochs(raw, events[:n_events], event_id=event_id, metadata=meta,
+                    decim=1)
+
+    freqs = np.arange(12., 17., 2.)  # define frequencies of interest
+    n_cycles = freqs / 2.  # 0.5 second time windows for all frequencies
+
+    # Choose time x (full) bandwidth product
+    time_bandwidth = 4.0  # With 0.5 s time windows, this gives 8 Hz smoothing
+    power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
+                           use_fft=True, time_bandwidth=time_bandwidth,
+                           return_itc=False, average=False, n_jobs=1)
+
+    # Check that power and epochs metadata is the same
+    assert_metadata_equal(epochs.metadata, power.metadata)
+    assert_metadata_equal(epochs[::2].metadata, power[::2].metadata)
+    assert_metadata_equal(epochs['RT < .5'].metadata,
+                          power['RT < .5'].metadata)
+
+    # Check that get power is functioning
+    assert_array_equal(power[3:6].data, power.data[3:6])
+    assert_array_equal(power[3:6].events, power.events[3:6])
+
+    indx_check = (power.metadata['Trial'] == 'face').nonzero()
+    assert_array_equal(power['Trial == "face"'].events,
+                       power.events[indx_check])
+    assert_array_equal(power['Trial == "face"'].data,
+                       power.data[indx_check])
+
+    # Check that the wrong Key generates a Key Error for Metadata search
+    with pytest.raises(KeyError):
+        power['Trialz == "place"']
+
+    # Test length function
+    assert len(power) == n_events
+    assert len(power[3:6]) == 3
+
+    # Test iteration function
+    for ind, power_ep in enumerate(power):
+        assert_array_equal(power_ep, power.data[ind])
+        if ind == 5:
+            break
+
+    # Test that current state is maintained
+    assert_array_equal(power.next(), power.data[ind + 1])
 
 run_tests_if_main()
