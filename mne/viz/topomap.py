@@ -9,6 +9,7 @@
 
 import math
 import copy
+import itertools
 from functools import partial
 from numbers import Integral
 import warnings
@@ -2266,7 +2267,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads):
     Xi, Yi = np.meshgrid(xi, yi)
     params['Zis'] = list()
 
-    interp = _GridData(pos)
+    interp = _GridData(pos, params['extrapolate'], 0.53)
     for frame in params['frames']:
         params['Zis'].append(interp.set_values(data[:, frame])(Xi, Yi))
     Zi = params['Zis'][0]
