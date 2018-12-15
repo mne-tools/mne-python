@@ -470,7 +470,7 @@ def _draw_outlines(ax, outlines):
     return outlines_
 
 
-def _get_extra_points(pos, head_radius):
+def _get_extra_points(pos, method, head_radius):
     """
     Get coordinates of additinal interpolation points.
 
@@ -480,6 +480,18 @@ def _get_extra_points(pos, head_radius):
     of median inter-channel distance.
     """
     from scipy.spatial.qhull import Delaunay
+
+    # the old method of placement - large box
+    if method == 'box':
+        extremes = np.array([pos.min(axis=0), pos.max(axis=0)])
+        diffs = extremes[1] - extremes[0]
+        extremes[0] -= diffs
+        extremes[1] += diffs
+        eidx = np.array(list(itertools.product(
+            *([[0] * (pos.shape[1] - 1) + [1]] * pos.shape[1]))))
+        pidx = np.tile(np.arange(pos.shape[1])[np.newaxis], (len(eidx), 1))
+        outer_pts = extremes[eidx, pidx]
+        return outer_pts, Delaunay(np.concatenate((pos, outer_pts)))
 
     # check if positions are colinear:
     diffs = np.diff(pos, axis=0)
@@ -504,7 +516,7 @@ def _get_extra_points(pos, head_radius):
              for i1, i2 in zip([idx1, idx2], [idx2, idx3])])
         distance = np.median(distances)
 
-    if head_radius is None:
+    if method == 'local':
         if colinear:
             # special case for colinear points
             edge_points = sorting[[0, -1]]
@@ -548,6 +560,7 @@ def _get_extra_points(pos, head_radius):
         new_pos = np.concatenate([hull_extended] + add_points)
     else:
         # return points on the head circle
+        head_radius = 0.53 if head_radius is None else head_radius
         angle = np.arcsin(distance / 2 / head_radius) * 2
         points_l = np.arange(0, 2 * np.pi, angle)
         points_x = np.cos(points_l) * head_radius
@@ -568,11 +581,11 @@ class _GridData(object):
     to be set independently.
     """
 
-    def __init__(self, pos, head_radius=None):
+    def __init__(self, pos, method='box', head_radius=None):
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2
         # Adding points outside the extremes helps the interpolators
-        outer_pts, tri = _get_extra_points(pos, head_radius)
+        outer_pts, tri = _get_extra_points(pos, method, head_radius)
         self.n_extra = outer_pts.shape[0]
         self.tri = tri
 
@@ -616,7 +629,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  res=64, axes=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head',
                  contours=6, image_interp='bilinear', show=True,
-                 head_pos=None, onselect=None, extrapolate='local'):
+                 head_pos=None, onselect=None, extrapolate='box'):
     """Plot a topographic map as image.
 
     Parameters
@@ -698,10 +711,12 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         channels by rectangle selection (matplotlib ``RectangleSelector``). If
         None interactive selection is disabled. Defaults to None.
     extrapolate : str
-        If 'head' extrapolate to the edges of the head circle (does not work
-        when `outlines='skirt'`. If 'local' (default) extrapolate only to
-        nearby points (approximately to points closer than median
-        inter-electrode distance).
+        If 'box' (default) extrapolate to four points placed to form a square
+        encompassing all data points, where each side of the square is three
+        times the range of the data in respective dimension. If 'head'
+        extrapolate to the edges of the head circle (does not work when
+        `outlines='skirt'`). If 'local' extrapolate only to nearby points
+        (approximately to points closer than median inter-electrode distance).
 
         .. versionadded:: 0.18
 
@@ -722,7 +737,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   res=64, axes=None, names=None, show_names=False, mask=None,
                   mask_params=None, outlines='head',
                   contours=6, image_interp='bilinear', show=True,
-                  head_pos=None, onselect=None, extrapolate='local'):
+                  head_pos=None, onselect=None, extrapolate='box'):
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
@@ -817,7 +832,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     xi = np.linspace(xmin, xmax, res)
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
-    interp = _GridData(pos, head_radius).set_values(data)
+    interp = _GridData(pos, extrapolate, head_radius).set_values(data)
     Zi = interp.set_locations(Xi, Yi)()
 
     # plot outline
@@ -1417,7 +1432,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         show=True, show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
                         image_interp='bilinear', average=None, head_pos=None,
-                        axes=None, extrapolate='local'):
+                        axes=None, extrapolate='box'):
     """Plot topographic maps of specific time points of evoked data.
 
     Parameters
@@ -1556,10 +1571,12 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         Axes, ``times`` must be a float or a list of one float.
         Defaults to None.
     extrapolate : str
-        If 'head' extrapolate to the edges of the head circle (does not work
-        when `outlines='skirt'`. If 'local' (default) extrapolate only to
-        nearby points (approximately to points closer than median
-        inter-electrode distance).
+        If 'box' (default) extrapolate to four points placed to form a square
+        encompassing all data points, where each side of the square is three
+        times the range of the data in respective dimension. If 'head'
+        extrapolate to the edges of the head circle (does not work when
+        `outlines='skirt'`). If 'local' extrapolate only to nearby points
+        (approximately to points closer than median inter-electrode distance).
 
         .. versionadded:: 0.18
 
@@ -2546,7 +2563,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
                   names=None, show_names=False, mask=None, mask_params=None,
                   outlines='head', contours=6, image_interp='bilinear',
                   show=True, head_pos=None, onselect=None,
-                  extrapolate='local'):
+                  extrapolate='box'):
     """Plot arrow map.
 
     Compute arrowmaps, based upon the Hosaka-Cohen transformation [1]_,
@@ -2640,10 +2657,12 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
         channels by rectangle selection (matplotlib ``RectangleSelector``). If
         None interactive selection is disabled. Defaults to None.
     extrapolate : str
-        If 'head' extrapolate to the edges of the head circle (does not work
-        when `outlines='skirt'`. If 'local' (default) extrapolate only to
-        nearby points (approximately to points closer than median
-        inter-electrode distance).
+        If 'box' (default) extrapolate to four points placed to form a square
+        encompassing all data points, where each side of the square is three
+        times the range of the data in respective dimension. If 'head'
+        extrapolate to the edges of the head circle (does not work when
+        `outlines='skirt'`). If 'local' extrapolate only to nearby points
+        (approximately to points closer than median inter-electrode distance).
 
         .. versionadded:: 0.18
 

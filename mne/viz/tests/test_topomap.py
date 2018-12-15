@@ -158,7 +158,10 @@ def test_plot_topomap():
     evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
                         contours=[-100, 0, 100], time_unit='ms')
 
-    # extrapolation to edges of the head circle
+    # extrapolation to the edges of the convex hull or the head circle
+    evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
+                        contours=[-100, 0, 100], time_unit='ms',
+                        extrapolate='local')
     evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
                         contours=[-100, 0, 100], time_unit='ms',
                         extrapolate='head')

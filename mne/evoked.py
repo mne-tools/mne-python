@@ -346,7 +346,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                      proj=False, show=True, show_names=False, title=None,
                      mask=None, mask_params=None, outlines='head',
                      contours=6, image_interp='bilinear', average=None,
-                     head_pos=None, axes=None, extrapolate='local'):
+                     head_pos=None, axes=None, extrapolate='box'):
         return plot_evoked_topomap(
             self, times=times, ch_type=ch_type, layout=layout, vmin=vmin,
             vmax=vmax, cmap=cmap, sensors=sensors, colorbar=colorbar,
