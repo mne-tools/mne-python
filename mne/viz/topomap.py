@@ -2267,7 +2267,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads):
     Xi, Yi = np.meshgrid(xi, yi)
     params['Zis'] = list()
 
-    interp = _GridData(pos, params['extrapolate'], 0.53)
+    interp = _GridData(pos, 'box', None)
     for frame in params['frames']:
         params['Zis'].append(interp.set_values(data[:, frame])(Xi, Yi))
     Zi = params['Zis'][0]
