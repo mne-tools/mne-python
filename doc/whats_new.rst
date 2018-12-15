@@ -19,12 +19,18 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add ``drop_refs=True`` parameter to :func:`set_bipolar_reference` to drop/keep anode and cathode channels after applying the reference by `Cristóbal Moënne-Loccoz`_. 
+
 - Add 448-labels subdivided aparc cortical parcellation by `Denis Engemann`_ and `Sheraz Khan`_
 
 - Add keyboard shortcuts to nativate volume source estimates in time using (shift+)left/right arrow keys by `Mainak Jas`_
 
+- Add Epoch selection and metadata functionality to :class:`mne.time_frequency.EpochsTFR` using new mixin class by `Keith Doelling`_
+
 Bug
 ~~~
+
+- Fix :func:`set_bipolar_reference` in the case of generating all bipolar combinations and also in the case of repeated channels in both lists (anode and cathode) by `Cristóbal Moënne-Loccoz`_
 
 - Fix missing code for computing the median when ``method='median'`` in :meth:`mne.Epochs.average` by `Cristóbal Moënne-Loccoz`_
 

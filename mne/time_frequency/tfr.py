@@ -26,13 +26,14 @@ from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, _pick_data_channels,
                        channel_type, _pick_inst, _get_channel_types)
 from ..io.meas_info import Info
-from ..utils import SizeMixin, _is_numeric, _hid_match
+from ..utils import SizeMixin, _is_numeric
 from .multitaper import dpss_windows
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap, warn,
                          _connection_line, _prepare_joint_axes,
                          _setup_vmin_vmax, _set_title_multiple_electrodes)
 from ..externals.h5io import write_hdf5, read_hdf5
 # Make wavelet
+
 
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     """Compute Morlet wavelets for the given frequency range.
@@ -591,6 +592,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
 def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
              output=None, **tfr_params):
+    from ..epochs import BaseEpochs
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
     data = _get_data(inst, return_itc)
@@ -629,10 +631,16 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
                                    method='%s-itc' % method))
     else:
         power = out
+        if isinstance(inst, BaseEpochs):
+            meta = deepcopy(inst._metadata)
+            evs = deepcopy(inst.events)
+            ev_id = deepcopy(inst.event_id)
+        else:
+            # if the input is of class Evoked
+            meta = evs = ev_id = None
+
         out = EpochsTFR(info, power, times, freqs, method='%s-power' % method,
-                        events=inst.events.copy(),
-                        event_id=inst.event_id.copy(),
-                        metadata=inst._metadata.copy())
+                        events=evs, event_id=ev_id, metadata=meta)
 
     return out
 
@@ -1959,17 +1967,17 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         Comment on the data, e.g., the experimental condition.
     method : str | None, defaults to None
         Comment on the method used to compute the data, e.g., morlet wavelet.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-    events : ndarray, shape (n_events, 3)
+    events : ndarray, shape (n_events, 3) | None
         The events as stored in the Epochs class
-    event_id : dict
+    event_id : dict | None
         Example: dict(auditory=1, visual=3). They keys can be used to access
         associated events.
     metadata : instance of pandas.DataFrame | None
         A :class:`pandas.DataFrame` containing pertinent information for each
         trial. See :class:`mne.Epochs` for further details
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -2000,8 +2008,8 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
     @verbose
     def __init__(self, info, data, times, freqs, comment=None, method=None,
-                 verbose=None,  events=None, event_id=None, metadata=None):
-                 # noqa: D102
+                 events=None, event_id=None, metadata=None, verbose=None):
+        # noqa: D102
         self.info = info
         if data.ndim != 4:
             raise ValueError('data should be 4d. Got %d.' % data.ndim)
