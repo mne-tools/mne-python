@@ -1787,7 +1787,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
             images=images, contours_=contours_, pos=pos, time_idx=time_idx,
             res=res, plot_update_proj_callback=_plot_update_evoked_topomap,
             merge_grads=merge_grads, scale=scaling, axes=axes,
-            contours=contours, interp=interp)
+            contours=contours, interp=interp, extrapolate=extrapolate)
         _draw_proj_checkbox(None, params)
 
     plt_show(show)
