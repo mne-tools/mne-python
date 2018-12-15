@@ -899,7 +899,7 @@ def einsum(*args, **kwargs):
 _has_unique_axis = (LooseVersion(np.__version__) >= '1.13.0')
 
 
-def remove_duplicates(arr):
+def _remove_duplicate_rows(arr):
     if _has_unique_axis:
         return np.unique(arr, axis=0)
     else:
