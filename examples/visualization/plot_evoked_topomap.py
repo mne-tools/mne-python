@@ -29,6 +29,9 @@ condition = 'Left Auditory'
 evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
 
 ###############################################################################
+# Basic `plot_topomap` options
+# ----------------------------
+#
 # We plot evoked topographies using :func:`mne.Evoked.plot_topomap`. The first
 # argument, ``times`` allows to specify time instants (in seconds!) for which
 # topographies will be shown. We select timepoints from 50 to 150 ms with a
@@ -51,6 +54,9 @@ evoked.plot_topomap(times, ch_type='mag', average=0.05, time_unit='s')
 evoked.plot_topomap(times, ch_type='grad', time_unit='s')
 
 ###############################################################################
+# Additional `plot_topomap` options
+# ---------------------------------
+#
 # We can also use a range of various :func:`mne.viz.plot_topomap` arguments
 # that control how the topography is drawn. For example:
 #
@@ -76,14 +82,20 @@ evoked.plot_topomap(0.1, ch_type='mag', size=2)
 evoked.plot_topomap(0.1, ch_type='mag', size=2, extrapolate='head')
 
 ###############################################################################
+# More advanced usage
+# -------------------
+#
 # Now we plot magnetometer data as topomap at a single time point: 100 ms
-# post-stimulus and add channel labels and title
+# post-stimulus, add channel labels, title and adjust plot margins:
 evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
-                    size=3, res=128, title='Auditory response',
+                    size=6, res=128, title='Auditory response',
                     time_unit='s')
 plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
 
 ###############################################################################
+# Animating the topomap
+# ---------------------
+#
 # Instead of using a still image we can plot magnetometer data as an animation
 # (animates only in matplotlib interactive mode)
 evoked.animate_topomap(ch_type='mag', times=times, frame_rate=10,

@@ -715,9 +715,10 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         If 'box' (default) extrapolate to four points placed to form a square
         encompassing all data points, where each side of the square is three
         times the range of the data in respective dimension. If 'head'
-        extrapolate to the edges of the head circle (does not work when
-        `outlines='skirt'`). If 'local' extrapolate only to nearby points
-        (approximately to points closer than median inter-electrode distance).
+        extrapolate to the edges of the head circle (or to the edges of the
+        skirt if ``outlines='skirt'``). If 'local' extrapolate only to nearby
+        points (approximately to points closer than median inter-electrode
+        distance).
 
         .. versionadded:: 0.18
 
@@ -829,7 +830,8 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   np.max(np.r_[ylim[1], mask_[:, 1]]))
 
     # interpolate data
-    head_radius = None if extrapolate == 'local' else 0.53
+    head_radius = (None if extrapolate == 'local' else
+                   outlines['clip_radius'][0] * 1.06)
     xi = np.linspace(xmin, xmax, res)
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
@@ -1575,9 +1577,10 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         If 'box' (default) extrapolate to four points placed to form a square
         encompassing all data points, where each side of the square is three
         times the range of the data in respective dimension. If 'head'
-        extrapolate to the edges of the head circle (does not work when
-        `outlines='skirt'`). If 'local' extrapolate only to nearby points
-        (approximately to points closer than median inter-electrode distance).
+        extrapolate to the edges of the head circle (or to the edges of the
+        skirt if ``outlines='skirt'``). If 'local' extrapolate only to nearby
+        points (approximately to points closer than median inter-electrode
+        distance).
 
         .. versionadded:: 0.18
 
@@ -2661,9 +2664,10 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
         If 'box' (default) extrapolate to four points placed to form a square
         encompassing all data points, where each side of the square is three
         times the range of the data in respective dimension. If 'head'
-        extrapolate to the edges of the head circle (does not work when
-        `outlines='skirt'`). If 'local' extrapolate only to nearby points
-        (approximately to points closer than median inter-electrode distance).
+        extrapolate to the edges of the head circle (or to the edges of the
+        skirt if ``outlines='skirt'``). If 'local' extrapolate only to nearby
+        points (approximately to points closer than median inter-electrode
+        distance).
 
         .. versionadded:: 0.18
 
