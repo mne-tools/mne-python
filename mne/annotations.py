@@ -700,16 +700,60 @@ def _ensure_annotation_object(obj):
         raise ValueError('Annotations must be an instance of '
                          'mne.Annotations. Got %s.' % obj)
 
+def _select_annotations_based_on_description(descriptions, event_id=None,
+                                             regexp=None):
+    """Gets a collection of descriptions and returns index of selected.
+    """
+    # Filter out the annotations that do not match regexp
+    regexp_comp = re.compile('.*' if regexp is None else regexp)
+
+    if event_id is None:
+        event_id = Counter()
+
+    event_id_ = dict()
+    dropped = []
+    for desc in descriptions:
+        if desc in event_id_:
+            continue
+
+        if regexp_comp.match(desc) is None:
+            continue
+
+        if isinstance(event_id, dict):
+            if desc in event_id:
+                event_id_[desc] = event_id[desc]
+            else:
+                continue
+        else:
+            trigger = event_id(desc)
+            if trigger is not None:
+                event_id_[desc] = trigger
+            else:
+                dropped.append(desc)
+
+    event_sel = [ii for ii, kk in enumerate(descriptions)
+                 if kk in event_id_]
+
+    if len(event_sel) == 0 and regexp is not None:
+        raise ValueError('Could not find any of the events you specified.')
+
+    return event_sel, event_id_
+
 
 @verbose
-def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
-                            verbose=None):
+def events_from_annotations(raw, chunk_duration=None, event_id=None,
+                            regexp=None, use_rounding=True, verbose=None):
     """Get events and event_id from an Annotations object.
 
     Parameters
     ----------
     raw : instance of Raw
         The raw data for which Annotations are defined.
+    chunk_duration: int | None
+        If chunk_duration parameter in events_from_annotations is None, events
+        correspond to the annotation onsets. If not, events_from_annotations
+        returns as many events as they fit within the annotation duration spaced
+        according to `chunk_duraiton`.
     event_id : dict | Callable | None
         Dictionary of string keys and integer values as used in mne.Epochs
         to map annotation descriptions to integer event codes. Only the
@@ -740,48 +784,20 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
         return np.empty((0, 3), dtype=int), event_id
 
     annotations = raw.annotations
+    
+    event_sel, event_id_ = _select_annotations_based_on_description(
+                    annotations.description, event_id=event_id, regexp=regexp)
 
-    inds = raw.time_as_index(annotations.onset, use_rounding=use_rounding,
-                             origin=annotations.orig_time) + raw.first_samp
+    if chunk_duration is None:
+        inds = raw.time_as_index(annotations.onset, use_rounding=use_rounding,
+                                origin=annotations.orig_time) + raw.first_samp
 
-    # Filter out the annotations that do not match regexp
-    regexp_comp = re.compile('.*' if regexp is None else regexp)
+        values = [event_id_[kk] for kk in annotations.description[event_sel]]
+        inds = inds[event_sel]
+    else:
+        pass
 
-    if event_id is None:
-        event_id = Counter()
-
-    event_id_ = dict()
-    dropped = []
-    for desc in annotations.description:
-        if desc in event_id_:
-            continue
-
-        if regexp_comp.match(desc) is None:
-            continue
-
-        if isinstance(event_id, dict):
-            if desc in event_id:
-                event_id_[desc] = event_id[desc]
-            else:
-                continue
-        else:
-            trigger = event_id(desc)
-            if trigger is not None:
-                event_id_[desc] = trigger
-            else:
-                dropped.append(desc)
-
-    event_sel = [ii for ii, kk in enumerate(annotations.description)
-                 if kk in event_id_]
-
-    if len(event_sel) == 0 and regexp is not None:
-        raise ValueError('Could not find any of the events you specified.')
-
-    values = [event_id_[kk] for kk in
-              annotations.description[event_sel]]
-    previous_value = np.zeros(len(event_sel))
-    inds = inds[event_sel]
-    events = np.c_[inds, previous_value, values].astype(int)
+    events = np.c_[inds, np.zeros(len(inds)), values].astype(int)
 
     logger.info('Used Annotations descriptions: %s' %
                 (list(event_id_.keys()),))
