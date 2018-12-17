@@ -12,6 +12,7 @@ additional options.
 #          Mikołaj Magnuski <mmagnuski@swps.edu.pl>
 #
 # License: BSD (3-clause)
+# sphinx_gallery_thumbnail_number = 5
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -40,7 +41,8 @@ times = np.arange(0.05, 0.151, 0.02)
 evoked.plot_topomap(times, ch_type='mag', time_unit='s')
 
 ###############################################################################
-# If times is set to None only 10 regularly spaced topographies will be shown:
+# If times is set to None at most 10 regularly spaced topographies will be
+# shown:
 evoked.plot_topomap(ch_type='mag', time_unit='s')
 
 ###############################################################################
