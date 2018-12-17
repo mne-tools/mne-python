@@ -191,7 +191,7 @@ def test_chunk_duration():
     If chunk_duration parameter in events_from_annotations is None, events
     correspond to the annotation onsets. If not, events_from_annotations
     returns as many events as they fit within the annotation duration spaced
-    according to `chunk_duraiton`.
+    according to `chunk_duration` parameter in `events_from_annotations`.
     """
     # create dummy raw
     raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
