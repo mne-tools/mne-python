@@ -749,12 +749,6 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
     ----------
     raw : instance of Raw
         The raw data for which Annotations are defined.
-    chunk_duration: int | None
-        If chunk_duration parameter in events_from_annotations is None, events
-        correspond to the annotation onsets.
-        If not, :func:`mne.events_from_annotations` returns as many events as
-        they fit within the annotation duration spaced according to
-        `chunk_duration`, which is given in seconds.
     event_id : dict | Callable | None
         Dictionary of string keys and integer values as used in mne.Epochs
         to map annotation descriptions to integer event codes. Only the
@@ -769,6 +763,12 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
     use_rounding : boolean
         If True, use rounding (instead of truncation) when converting
         times to indices. This can help avoid non-unique indices.
+    chunk_duration: int | None
+        If chunk_duration parameter in events_from_annotations is None, events
+        correspond to the annotation onsets.
+        If not, :func:`mne.events_from_annotations` returns as many events as
+        they fit within the annotation duration spaced according to
+        `chunk_duration`, which is given in seconds.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see
         :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
