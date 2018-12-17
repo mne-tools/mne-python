@@ -201,12 +201,15 @@ def test_chunk_duration():
     raw.set_annotations(Annotations(description='foo', onset=[0],
                                     duration=[10], orig_time=None))
 
-    EXPECTED_EVENT_ONSETS = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7,
-                             8, 8, 9, 9]
+    # expected_events = [[0, 0, 1], [0, 0, 1], [1, 0, 1], [1, 0, 1], ..
+    #                    [9, 0, 1], [9, 0, 1]]
+    expected_events = np.atleast_2d(np.repeat(range(10), repeats=2)).T
+    expected_events = np.insert(expected_events, 1, 0, axis=1)
+    expected_events = np.insert(expected_events, 2, 1, axis=1)
 
     events, events_id = events_from_annotations(raw, chunk_duration=.5,
                                                 use_rounding=False)
-    assert_array_equal(events[:,0], EXPECTED_EVENT_ONSETS)
+    assert_array_equal(events, expected_events)
 
 
 def test_crop_more():
