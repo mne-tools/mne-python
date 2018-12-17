@@ -56,12 +56,12 @@ subject = 1  # use data from subject 1
 runs = [6, 10, 14]  # use only hand and feet motor imagery runs
 
 fnames = eegbci.load_data(subject, runs)
-raws = [read_raw_edf(f, preload=True, stim_channel='auto') for f in fnames]
+raws = [read_raw_edf(f, preload=True) for f in fnames]
 raw = concatenate_raws(raws)
 
 raw.rename_channels(lambda x: x.strip('.'))  # remove dots from channel names
 
-events = mne.find_events(raw, shortest_event=0, stim_channel='STI 014')
+events, _ = mne.events_from_annotations(raw)
 
 picks = mne.pick_channels(raw.info["ch_names"], ["C3", "Cz", "C4"])
 

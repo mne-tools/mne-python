@@ -34,7 +34,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import ShuffleSplit, cross_val_score
 
-from mne import Epochs, pick_types, find_events
+from mne import Epochs, pick_types, events_from_annotations
 from mne.channels import read_layout
 from mne.io import concatenate_raws, read_raw_edf
 from mne.datasets import eegbci
@@ -53,9 +53,7 @@ subject = 1
 runs = [6, 10, 14]  # motor imagery: hands vs feet
 
 raw_fnames = eegbci.load_data(subject, runs)
-raw_files = [read_raw_edf(f, preload=True, stim_channel='auto') for f in
-             raw_fnames]
-raw = concatenate_raws(raw_files)
+raw = concatenate_raws([read_raw_edf(f, preload=True) for f in raw_fnames])
 
 # strip channel names of "." characters
 raw.rename_channels(lambda x: x.strip('.'))
@@ -63,7 +61,7 @@ raw.rename_channels(lambda x: x.strip('.'))
 # Apply band-pass filter
 raw.filter(7., 30., fir_design='firwin', skip_by_annotation='edge')
 
-events = find_events(raw, shortest_event=0, stim_channel='STI 014')
+events, _ = events_from_annotations(raw)
 
 picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
                    exclude='bads')
