@@ -53,6 +53,7 @@ evoked.plot_topomap(times, ch_type='grad', time_unit='s')
 ###############################################################################
 # We can also use a range of various :func:`mne.viz.plot_topomap` arguments
 # that control how the topography is drawn. For example:
+#
 # * ``cmap`` - to specify the color map
 # * ``res`` - to control the resolution of the topographies (lower resolution
 #   means faster plotting)
@@ -65,20 +66,20 @@ evoked.plot_topomap(times, ch_type='mag', cmap='Spectral_r', res=32,
 # If you look at the edges of the head circle of a single topomap you'll see
 # the effect of extrapolation. By default ``extrapolate='box'`` is used which
 # extrapolates to large box stretching beyond the head circle:
-evoked.plot_topomap(0.1, ch_type='mag')
+evoked.plot_topomap(0.1, ch_type='mag', size=2)
 
 ###############################################################################
 # Compare the image above with the one below, where we use
 # ``extrapolate='head'`` so that extrapolation would go to 0 at the head
 # circle (another option is to use ``extrapolate='local'`` in which case the
 # extrapolation is performed only within some distance from channels):
-evoked.plot_topomap(0.1, ch_type='mag', extrapolate='head')
+evoked.plot_topomap(0.1, ch_type='mag', size=2, extrapolate='head')
 
 ###############################################################################
 # Now we plot magnetometer data as topomap at a single time point: 100 ms
 # post-stimulus and add channel labels and title
 evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
-                    size=6, res=128, title='Auditory response',
+                    size=3, res=128, title='Auditory response',
                     time_unit='s')
 plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
 
