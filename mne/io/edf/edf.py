@@ -145,8 +145,8 @@ class RawEDF(BaseRaw):
     annotations.
 
     If channels named 'Status' or 'STATUS' will be considered analog stim
-    channels, use method ``raw.find_edf_events`` to recover the events encoded
-    in this channel.
+    channels, use method ``find_events`` to recover the events encoded in this
+    channel.
 
     See Also
     --------
