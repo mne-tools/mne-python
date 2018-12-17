@@ -76,7 +76,7 @@ evoked_r_aud.plot_topomap(times=times, ch_type='mag', time_unit='s')
 evoked_r_aud.plot_topomap(times='peaks', ch_type='mag', time_unit='s')
 
 ###############################################################################
-# See :ref:`sphx_glr_auto_examples_visualization_plot_evoked_topomap.py.py` for
+# See :ref:`sphx_glr_auto_examples_visualization_plot_evoked_topomap.py` for
 # more advanced topomap plotting options. You can also take a look at the
 # documentation of :func:`mne.Evoked.plot_topomap` or simply write
 # ``evoked_r_aud.plot_topomap?`` in your python console to see the different
