@@ -214,6 +214,20 @@ class Annotations(object):
                                                  other.orig_time))
         return self.append(other.onset, other.duration, other.description)
 
+    def __getitem__(self, key):
+        """Propagate indexing and slicing to the underlying numpy structure."""
+        try:
+            out = (self.onset[key], self.duration[key], self.description[key])
+        except IndexError as idx_error:
+            if idx_error.args[0].startswith('only integers'):
+                raise TypeError(idx_error.args[0])
+            else:
+                raise
+        except:
+            raise
+        else: 
+            return out
+
     def append(self, onset, duration, description):
         """Add an annotated segment. Operates inplace.
 

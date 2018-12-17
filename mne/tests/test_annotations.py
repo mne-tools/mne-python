@@ -794,4 +794,40 @@ def test_read_annotation_txt_orig_time(
     assert_array_equal(annot.description, ['AA', 'BB'])
 
 
+def test_annotations_slices():
+    """Test indexing Annotations."""
+    NUM_ANNOT = 5
+    EXPECTED_ONSETS = EXPECTED_DURATIONS = [_ for _ in range(NUM_ANNOT)]
+    EXPECTED_DESCS = [_.__repr__() for _ in range(NUM_ANNOT)]
+
+    annot = Annotations(onset=EXPECTED_ONSETS,
+                        duration=EXPECTED_DURATIONS,
+                        description=EXPECTED_DESCS,
+                        orig_time=None)
+
+    for ii in EXPECTED_ONSETS:
+        assert annot[ii] == (ii, ii, str(ii))
+
+    _onsets, _durations, _desc = annot[:]
+    for actual, expected in [(_onsets, EXPECTED_ONSETS),
+                             (_durations, EXPECTED_DURATIONS),
+                             (_desc, EXPECTED_DESCS)]:
+        assert all(actual == expected)
+
+    valid_bool = [True, False, True, True, False]
+    _onsets, _durations, _desc = annot[valid_bool]
+    for actual, expected in zip([_onsets, _durations, _desc],
+                                [np.array(EXPECTED_ONSETS)[valid_bool],
+                                 np.array(EXPECTED_DURATIONS)[valid_bool],
+                                 np.array(EXPECTED_DESCS)[valid_bool]]):
+        assert all(actual == expected)
+
+    for bad_ii in [len(EXPECTED_ONSETS), 42]:
+        with pytest.raises(IndexError):
+            annot[bad_ii]
+
+    with pytest.raises(TypeError):
+        annot['foo']
+
+
 run_tests_if_main()
