@@ -398,7 +398,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
 
 @verbose
 def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
-                          copy=True, verbose=None):
+                          drop_refs=True, copy=True, verbose=None):
     """Re-reference selected channels using a bipolar referencing scheme.
 
     A bipolar reference takes the difference between two channels (the anode
@@ -430,6 +430,8 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         This parameter can be used to supply a dictionary (or a dictionary for
         each bipolar channel) containing channel information to merge in,
         overwriting the default values. Defaults to None.
+    drop_refs : bool
+        Whether to drop the anode/cathode channels from the instance.
     copy : bool
         Whether to operate on a copy of the data (True) or modify it in-place
         (False). Defaults to True.
@@ -508,11 +510,10 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     if copy:
         inst = inst.copy()
 
-    rem_ca = list(cathode)
     for i, (an, ca, name, chs) in enumerate(
             zip(anode, cathode, ch_name, new_chs)):
-        if an in anode[i + 1:]:
-            # Make a copy of anode if it's still needed later
+        if an in anode[i + 1:] or an in cathode[i + 1:] or not drop_refs:
+            # Make a copy of the channel if it's still needed later
             # otherwise it's modified inplace
             _copy_channel(inst, an, 'TMP')
             an = 'TMP'
@@ -522,11 +523,10 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         inst.info['chs'][an_idx]['ch_name'] = name
         logger.info('Bipolar channel added as "%s".' % name)
         inst.info._update_redundant()
-        if an in rem_ca:
-            idx = rem_ca.index(an)
-            del rem_ca[idx]
 
-    # Drop remaining cathode channels
-    inst.drop_channels(rem_ca)
+    # Drop remaining channels.
+    if drop_refs:
+        drop_channels = (set(anode) | set(cathode)) & set(inst.ch_names)
+        inst.drop_channels(drop_channels)
 
     return inst
