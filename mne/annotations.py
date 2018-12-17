@@ -810,7 +810,8 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
             _inds += raw.first_samp
             inds = np.append(inds, _inds)
             _values = np.full(shape=len(_inds),
-                              fill_value=event_id_[description])
+                              fill_value=event_id_[description],
+                              dtype=int)
             values = np.append(values, _values)
 
     events = np.c_[inds, np.zeros(len(inds)), values].astype(int)
