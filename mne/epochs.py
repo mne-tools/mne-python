@@ -10,7 +10,7 @@
 #
 # License: BSD (3-clause)
 
-from collections import OrderedDict, Counter
+from collections import Counter
 from copy import deepcopy
 import json
 import operator
@@ -48,7 +48,8 @@ from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
 from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, warn, _pl, _ensure_int,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
-                    _check_pandas_installed, _check_preload, GetEpochsMixin)
+                    _check_pandas_installed, _check_preload, GetEpochsMixin,
+                    _prepare_read_metadata)
 
 
 def _save_split(epochs, fname, part_idx, n_parts, fmt):
@@ -111,12 +112,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
     # Metadata
     if epochs.metadata is not None:
         start_block(fid, FIFF.FIFFB_MNE_METADATA)
-        metadata = epochs.metadata
-        if not isinstance(metadata, list):
-            metadata = metadata.to_json(orient='records')
-        else:  # Pandas DataFrame
-            metadata = json.dumps(metadata)
-        assert isinstance(metadata, str)
+        metadata = epochs._prepare_write_metadata()
         write_string(fid, FIFF.FIFF_DESCRIPTION, metadata)
         end_block(fid, FIFF.FIFFB_MNE_METADATA)
 
@@ -2197,15 +2193,7 @@ def _read_one_epoch_file(f, tree, preload):
                 pos = dd.pos
                 if kind == FIFF.FIFF_DESCRIPTION:
                     metadata = read_tag(fid, pos).data
-                    pd = _check_pandas_installed(strict=False)
-                    # use json.loads because this preserves ordering
-                    # (which is necessary for round-trip equivalence)
-                    metadata = json.loads(metadata,
-                                          object_pairs_hook=OrderedDict)
-                    assert isinstance(metadata, list)
-                    if pd is not False:
-                        metadata = pd.DataFrame.from_records(metadata)
-                        assert isinstance(metadata, pd.DataFrame)
+                    metadata = _prepare_read_metadata(metadata)
                     break
 
         #   Locate the data of interest

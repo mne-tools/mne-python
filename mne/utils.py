@@ -5,7 +5,7 @@
 # License: BSD (3-clause)
 
 import atexit
-from collections import Iterable
+from collections import Iterable, OrderedDict
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 from functools import wraps
@@ -3504,6 +3504,19 @@ class GetEpochsMixin(object):
                     metadata = deepcopy(metadata)
         return metadata
 
+    def _prepare_write_metadata(self):
+        """Convert metadata to JSON for saving."""
+        if self.metadata is not None:
+            metadata = deepcopy(self.metadata)
+            if not isinstance(metadata, list):
+                metadata = metadata.to_json(orient='records')
+            else:  # Pandas DataFrame
+                metadata = json.dumps(metadata)
+            assert isinstance(metadata, str)
+        else:
+            metadata = None
+        return metadata
+
     @property
     def metadata(self):
         """Get the metadata."""
@@ -3528,3 +3541,18 @@ class GetEpochsMixin(object):
             action = 'Not setting' if metadata is None else 'Adding'
         logger.info('%s metadata%s' % (action, n_col))
         self._metadata = metadata
+
+
+def _prepare_read_metadata(metadata):
+    """Convert saved metadata back from JSON"""
+    if metadata is not None:
+        pd = _check_pandas_installed(strict=False)
+        # use json.loads because this preserves ordering
+        # (which is necessary for round-trip equivalence)
+        metadata = json.loads(metadata,
+                              object_pairs_hook=OrderedDict)
+        assert isinstance(metadata, list)
+        if pd is not False:
+            metadata = pd.DataFrame.from_records(metadata)
+            assert isinstance(metadata, pd.DataFrame)
+    return metadata

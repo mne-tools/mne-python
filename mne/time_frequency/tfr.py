@@ -20,7 +20,7 @@ from scipy.fftpack import fft, ifft
 from ..baseline import rescale
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, check_fname, sizeof_fmt,
-                     GetEpochsMixin)
+                     GetEpochsMixin, _prepare_read_metadata)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, _pick_data_channels,
@@ -2249,8 +2249,12 @@ def _prepare_write_tfr(tfr, condition):
     """Aux function."""
     attributes = dict(times=tfr.times, freqs=tfr.freqs, data=tfr.data,
                       info=tfr.info, comment=tfr.comment, method=tfr.method)
-    if hasattr(tfr, 'nave'):
+    if hasattr(tfr, 'nave'):  # if AverageTFR
         attributes['nave'] = tfr.nave
+    elif hasattr(tfr, 'events'):  # if EpochsTFR
+        attributes['events'] = tfr.events
+        attributes['event_id'] = tfr.event_id
+        attributes['metadata'] = tfr._prepare_write_metadata()
     return (condition, attributes)
 
 
@@ -2285,6 +2289,8 @@ def read_tfrs(fname, condition=None):
     tfr_data = read_hdf5(fname, title='mnepython')
     for k, tfr in tfr_data:
         tfr['info'] = Info(tfr['info'])
+        if 'metadata' in tfr:
+            tfr['metadata'] = _prepare_read_metadata(tfr['metadata'])
     is_average = 'nave' in tfr
     if condition is not None:
         if not is_average:
