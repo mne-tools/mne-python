@@ -3,11 +3,13 @@
 Plotting topographic maps of evoked data
 ========================================
 
-Load evoked data and plot topomaps for selected time points.
+Load evoked data and plot topomaps for selected time points using multiple
+additional options.
 """
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #          Tal Linzen <linzen@nyu.edu>
 #          Denis A. Engeman <denis.engemann@gmail.com>
+#          Mikołaj Magnuski <mmagnuski@swps.edu.pl>
 #
 # License: BSD (3-clause)
 
@@ -21,30 +23,67 @@ print(__doc__)
 path = sample.data_path()
 fname = path + '/MEG/sample/sample_audvis-ave.fif'
 
-# load evoked and subtract baseline
+# load evoked corresponding to a specific condition
+# from the fif file and subtract baseline
 condition = 'Left Auditory'
 evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
 
-# set time instants in seconds (from 50 to 150ms in a step of 10ms)
-times = np.arange(0.05, 0.15, 0.01)
-# If times is set to None only 10 regularly spaced topographies will be shown
-
-# plot magnetometer data as topomaps
+###############################################################################
+# We plot evoked topographies using :func:`mne.Evoked.plot_topomap`. The first
+# argument, ``times`` allows to specify time instants (in seconds!) for which
+# topographies will be shown. We select timepoints from 50 to 150 ms with a
+# step of 20ms and plot magnetometer data:
+times = np.arange(0.05, 0.151, 0.02)
 evoked.plot_topomap(times, ch_type='mag', time_unit='s')
 
-# compute a 50 ms bin to stabilize topographies
+###############################################################################
+# If times is set to None only 10 regularly spaced topographies will be shown:
+evoked.plot_topomap(ch_type='mag', time_unit='s')
+
+###############################################################################
+# Instead of showing topographies at specific time points we can compute
+# averages of 50 ms bins centered on these time points to reduce the noise in
+# the topographies:
 evoked.plot_topomap(times, ch_type='mag', average=0.05, time_unit='s')
 
-# plot gradiometer data (plots the RMS for each pair of gradiometers)
+###############################################################################
+# We can plot gradiometer data (plots the RMS for each pair of gradiometers)
 evoked.plot_topomap(times, ch_type='grad', time_unit='s')
 
-# plot magnetometer data as an animation
-evoked.animate_topomap(ch_type='mag', times=times, frame_rate=10,
-                       time_unit='s')
+###############################################################################
+# We can also use a range of various :func:`mne.viz.plot_topomap` arguments
+# that control how the topography is drawn. For example:
+# * ``cmap`` - to specify the color map
+# * ``res`` - to control the resolution of the topographies (lower resolution
+#   means faster plotting)
+# * ``outlines='skirt'`` to see the topography stretched beyond the head circle
+# * ``contours`` to define how many contour lines should be plotted
+evoked.plot_topomap(times, ch_type='mag', cmap='Spectral_r', res=32,
+                    outlines='skirt', contours=4, time_unit='s')
 
-# plot magnetometer data as topomap at 1 time point : 100 ms
-# and add channel labels and title
+###############################################################################
+# If you look at the edges of the head circle of a single topomap you'll see
+# the effect of extrapolation. By default ``extrapolate='box'`` is used which
+# extrapolates to large box stretching beyond the head circle:
+evoked.plot_topomap(0.1, ch_type='mag')
+
+###############################################################################
+# Compare the image above with the one below, where we use
+# ``extrapolate='head'`` so that extrapolation would go to 0 at the head
+# circle (another option is to use ``extrapolate='local'`` in which case the
+# extrapolation is performed only within some distance from channels):
+evoked.plot_topomap(0.1, ch_type='mag', extrapolate='head')
+
+###############################################################################
+# Now we plot magnetometer data as topomap at a single time point: 100 ms
+# post-stimulus and add channel labels and title
 evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
                     size=6, res=128, title='Auditory response',
                     time_unit='s')
 plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
+
+###############################################################################
+# Instead of using a still image we can plot magnetometer data as an animation
+# (animates only in matplotlib interactive mode)
+evoked.animate_topomap(ch_type='mag', times=times, frame_rate=10,
+                       time_unit='s')
