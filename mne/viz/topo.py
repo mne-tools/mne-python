@@ -446,7 +446,7 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
     """Show multiple time series on topo using a single axes."""
     import matplotlib.pyplot as plt
     if not (ylim and not any(v is None for v in ylim)):
-        ylim = [min([np.min(d) for d in data]), max([np.max(d) for d in data])]
+        ylim = [min(np.min(d) for d in data), max(np.max(d) for d in data)]
     # Translation and scale parameters to take data->under_ax normalized coords
     _compute_scalings(bn, (tmin, tmax), ylim)
     pos = bn.pos
