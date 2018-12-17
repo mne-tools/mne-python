@@ -795,11 +795,11 @@ def events_from_annotations(raw, chunk_duration=None, event_id=None,
         values = [event_id_[kk] for kk in annotations.description[event_sel]]
         inds = inds[event_sel]
     else:
-        inds = []
-        values = []
-        iterator = zip(annotations.onset[event_sel],
+        inds = values = np.array([]).astype(int)
+        iterator = list(zip(annotations.onset[event_sel],
                        annotations.duration[event_sel],
-                       annotations.description[event_sel])
+                       annotations.description[event_sel]))
+
         for onset, duration, description in iterator:
             _onsets = np.arange(start=onset, stop=onset+duration,
                                 step=chunk_duration)
@@ -807,9 +807,10 @@ def events_from_annotations(raw, chunk_duration=None, event_id=None,
                                       use_rounding=use_rounding,
                                       origin=annotations.orig_time)
             _inds += raw.first_samp
-            inds.append(_inds)
-            values.append(np.full(shape=len(_inds),
-                                  fill_value=event_id_[description]))
+            inds = np.append(inds, _inds)
+            _values = np.full(shape=len(_inds),
+                              fill_value=event_id_[description])
+            values = np.append(values, _values)
 
     events = np.c_[inds, np.zeros(len(inds)), values].astype(int)
 

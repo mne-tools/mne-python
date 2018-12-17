@@ -195,14 +195,18 @@ def test_chunk_duration():
     """
     # create dummy raw
     raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
-                   info=create_info(ch_names=10, sfreq=1000.),
+                   info=create_info(ch_names=10, sfreq=1.),
                    first_samp=0)
     raw.info['meas_date'] = 0
     raw.set_annotations(Annotations(description='foo', onset=[0],
                                     duration=[10], orig_time=None))
 
-    events = events_from_annotations(raw, chunk_duration=1)
-    assert_array_equal(events, np.arrange(10))
+    EXPECTED_EVENT_ONSETS = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7,
+                             8, 8, 9, 9]
+
+    events, events_id = events_from_annotations(raw, chunk_duration=.5,
+                                                use_rounding=False)
+    assert_array_equal(events[:,0], EXPECTED_EVENT_ONSETS)
 
 
 def test_crop_more():
