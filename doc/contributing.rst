@@ -33,8 +33,8 @@ code in order to contribute, you can follow those steps:
 
      $ git clone git@github.com:mne-tools/mne-python.git
      $ cd mne-python
-     $ conda env create -f dev_environment.yml
-     $ conda activate mne-dev-py36
+     $ conda env create -f environment.yml
+     $ conda activate mne
      $ pip install -e .
 
 To check the installation, you can enter the following commands:
