@@ -824,7 +824,7 @@ def shift_time_events(events, ids, tshift, sfreq):
 
 
 def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
-                             first_samp=True):
+                             first_samp=True, overlap=0.):
     """Make a set of events separated by a fixed duration.
 
     Parameters
@@ -846,6 +846,10 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
         returned events will be combined with event times that already
         have ``raw.first_samp`` added to them, e.g. event times that come
         from :func:`mne.find_events`.
+    overlap : float
+        The overlap between events. Must be ``0 <= overlap < duration``.
+
+        .. versionadded:: 0.18
 
     Returns
     -------
@@ -856,6 +860,11 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
     _validate_type(raw, BaseRaw, "raw")
     _validate_type(id, int, "id")
     _validate_type(duration, "numeric", "duration")
+    _validate_type(overlap, "numeric", "overlap")
+    duration, overlap = float(duration), float(overlap)
+    if not 0 <= overlap < duration:
+        raise ValueError('overlap must be >=0 but < duration (%s), got %s'
+                         % (duration, overlap))
 
     start = raw.time_as_index(start, use_rounding=True)[0]
     if stop is not None:
@@ -870,7 +879,8 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
     # Make sure we don't go out the end of the file:
     stop -= int(np.round(raw.info['sfreq'] * duration))
     # This should be inclusive due to how we generally use start and stop...
-    ts = np.arange(start, stop + 1, raw.info['sfreq'] * duration).astype(int)
+    ts = np.arange(start, stop + 1,
+                   raw.info['sfreq'] * (duration - overlap)).astype(int)
     n_events = len(ts)
     if n_events == 0:
         raise ValueError('No events produced, check the values of start, '

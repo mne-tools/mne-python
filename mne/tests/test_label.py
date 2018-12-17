@@ -15,7 +15,8 @@ from mne.datasets import testing
 from mne import (read_label, stc_to_label, read_source_estimate,
                  read_source_spaces, grow_labels, read_labels_from_annot,
                  write_labels_to_annot, split_label, spatial_tris_connectivity,
-                 read_surface, random_parcellation)
+                 read_surface, random_parcellation, morph_labels,
+                 labels_to_stc)
 from mne.label import Label, _blend_colors, label_sign_flip
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
                        run_tests_if_main, requires_version)
@@ -376,6 +377,47 @@ def test_annot_io():
     parc_lh = [l for l in parc if l.name.endswith('lh')]
     for l1, l in zip(parc1, parc_lh):
         assert_labels_equal(l1, l)
+
+
+@testing.requires_testing_data
+def test_morph_labels():
+    """Test morph_labels."""
+    # Just process the first 5 labels for speed
+    parc_fsaverage = read_labels_from_annot(
+        'fsaverage', 'aparc', subjects_dir=subjects_dir)[:5]
+    parc_sample = read_labels_from_annot(
+        'sample', 'aparc', subjects_dir=subjects_dir)[:5]
+    parc_fssamp = morph_labels(
+        parc_fsaverage, 'sample', subjects_dir=subjects_dir)
+    for lf, ls, lfs in zip(parc_fsaverage, parc_sample, parc_fssamp):
+        assert lf.hemi == ls.hemi == lfs.hemi
+        assert lf.name == ls.name == lfs.name
+        perc_1 = np.in1d(lfs.vertices, ls.vertices).mean() * 100
+        perc_2 = np.in1d(ls.vertices, lfs.vertices).mean() * 100
+        # Ideally this would be 100%, but we do not use the same algorithm
+        # as FreeSurfer ...
+        assert perc_1 > 92
+        assert perc_2 > 88
+    with pytest.raises(ValueError, match='wrong and fsaverage'):
+        morph_labels(parc_fsaverage, 'sample', subjects_dir=subjects_dir,
+                     subject_from='wrong')
+
+
+@testing.requires_testing_data
+def test_labels_to_stc():
+    """Test labels_to_stc."""
+    labels = read_labels_from_annot(
+        'sample', 'aparc', subjects_dir=subjects_dir)
+    values = np.random.RandomState(0).randn(len(labels))
+    with pytest.raises(ValueError, match='1 or 2 dim'):
+        labels_to_stc(labels, values[:, np.newaxis, np.newaxis])
+    with pytest.raises(ValueError, match=r'values\.shape'):
+        labels_to_stc(labels, values[np.newaxis])
+    stc = labels_to_stc(labels, values)
+    for value, label in zip(values, labels):
+        stc_label = stc.in_label(label)
+        assert (stc_label.data == value).all()
+    stc = read_source_estimate(stc_fname, 'sample')
 
 
 @testing.requires_testing_data

@@ -29,6 +29,11 @@ Changelog
 
 - Add use of :func:`scipy.signal.windows.dpss` for faster multitaper window computations in PSD functions by `Eric Larson`_
 
+- Add :func:`mne.morph_labels` to facilitate morphing label sets obtained from parcellations, by `Eric Larson`_
+
+- Add :func:`mne.labels_to_stc` to facilitate working with label data, by `Eric Larson`_
+
+- Add ``overlap`` argument to :func:`mne.make_fixed_length_events` by `Eric Larson`_
 - Add 448-labels subdivided aparc cortical parcellation by `Denis Engemann`_ and `Sheraz Khan`_
 
 - Add keyboard shortcuts to nativate volume source estimates in time using (shift+)left/right arrow keys by `Mainak Jas`_
