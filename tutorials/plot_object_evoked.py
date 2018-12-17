@@ -65,9 +65,13 @@ print(data[10])
 
 ###############################################################################
 # In the same vein, we can quickly extract (and, e.g., plot) the GFP as the
-# standard deviation across channels.
-gfp = evoked.copy().pick_types(eeg=True, meg=False).data.std(0)
-plt.plot(evoked.times, gfp)
+# standard deviation across channels, here shown just for EEG.
+
+gfp = evoked.copy().pick_types(eeg=True, meg=False).data.std(axis=0)
+fig, ax = plt.subplots(1)
+ax.plot(evoked.times, gfp)
+ax.set(xlabel='Time (sec)', ylabel='GFP (uV)')
+fig.tight_layout()
 
 ###############################################################################
 # If you want to import evoked data from some other system and you have it in a
