@@ -171,7 +171,7 @@ def test_plot_topomap():
 
     # extrapolation options when < 4 channels:
     temp_data = np.random.random(3)
-    info_sel = mne.pick_info(evoked.info, [0, 5, 6])
+    info_sel = pick_info(evoked.info, [0, 5, 6])
     plot_topomap(temp_data, info_sel, extrapolate='local', res=res)
     plot_topomap(temp_data, info_sel, extrapolate='head', res=res)
 
