@@ -741,8 +741,8 @@ def _select_annotations_based_on_description(descriptions, event_id=None,
 
 
 @verbose
-def events_from_annotations(raw, chunk_duration=None, event_id=None,
-                            regexp=None, use_rounding=True, verbose=None):
+def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
+                            chunk_duration=None, verbose=None):
     """Get events and event_id from an Annotations object.
 
     Parameters
