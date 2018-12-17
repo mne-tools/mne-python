@@ -12,6 +12,7 @@ averaging epochs data with :func:`mne.Epochs.average`.
 import os.path as op
 
 import mne
+import matplotlib.pyplot as plt
 
 ###############################################################################
 # Here for convenience we read the evoked dataset from a file.
