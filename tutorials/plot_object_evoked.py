@@ -8,6 +8,7 @@ The :class:`Evoked <mne.Evoked>` data structure is mainly used for storing
 averaged data over trials. In MNE the evoked objects are usually created by
 averaging epochs data with :func:`mne.Epochs.average`.
 """
+# sphinx_gallery_thumbnail_number = 2
 
 import os.path as op
 
