@@ -46,10 +46,10 @@ from .fixes import _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
-                    _time_mask, check_random_state, warn, _pl, _ensure_int,
+                    _time_mask, check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed, _check_preload, GetEpochsMixin,
-                    _prepare_read_metadata)
+                    _prepare_read_metadata, _check_event_id, _gen_events)
 
 
 def _save_split(epochs, fname, part_idx, n_parts, fmt):
@@ -253,23 +253,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if events is not None:  # RtEpochs can have events=None
             events = np.asarray(events)
 
-        # check out event_id dict
-        if event_id is None:  # convert to int to make typing-checks happy
-            event_id = list(np.unique(events[:, 2]))
-        if isinstance(event_id, dict):
-            for key in event_id.keys():
-                if not isinstance(key, str):
-                    raise TypeError('Event names must be of type str, '
-                                    'got %s (%s)' % (key, type(key)))
-            event_id = dict((key, _ensure_int(val, 'event_id[%s]' % key))
-                            for key, val in event_id.items())
-        elif isinstance(event_id, list):
-            event_id = [_ensure_int(v, 'event_id[%s]' % vi)
-                        for vi, v in enumerate(event_id)]
-            event_id = dict(zip((str(i) for i in event_id), event_id))
-        else:
-            event_id = _ensure_int(event_id, 'event_id')
-            event_id = {str(event_id): event_id}
+        event_id = _check_event_id(event_id, events)
         self.event_id = event_id
         del event_id
 
@@ -1951,8 +1935,7 @@ class EpochsArray(BaseEpochs):
                              'channels.')
         if events is None:
             n_epochs = len(data)
-            events = np.c_[np.arange(n_epochs), np.zeros(n_epochs, int),
-                           np.ones(n_epochs, int)]
+            events = _gen_events(n_epochs)
         if data.shape[0] != len(events):
             raise ValueError('The number of epochs and the number of events'
                              'must match')
