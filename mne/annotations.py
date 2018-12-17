@@ -700,10 +700,10 @@ def _ensure_annotation_object(obj):
         raise ValueError('Annotations must be an instance of '
                          'mne.Annotations. Got %s.' % obj)
 
+
 def _select_annotations_based_on_description(descriptions, event_id=None,
                                              regexp=None):
-    """Gets a collection of descriptions and returns index of selected.
-    """
+    """Get a collection of descriptions and returns index of selected."""
     # Filter out the annotations that do not match regexp
     regexp_comp = re.compile('.*' if regexp is None else regexp)
 
@@ -751,9 +751,10 @@ def events_from_annotations(raw, chunk_duration=None, event_id=None,
         The raw data for which Annotations are defined.
     chunk_duration: int | None
         If chunk_duration parameter in events_from_annotations is None, events
-        correspond to the annotation onsets. If not, events_from_annotations
-        returns as many events as they fit within the annotation duration spaced
-        according to `chunk_duraiton`.
+        correspond to the annotation onsets.
+        If not, :func:`mne.events_from_annotations` returns as many events as
+        they fit within the annotation duration spaced according to
+        `chunk_duration`, which is given in seconds.
     event_id : dict | Callable | None
         Dictionary of string keys and integer values as used in mne.Epochs
         to map annotation descriptions to integer event codes. Only the
@@ -786,22 +787,22 @@ def events_from_annotations(raw, chunk_duration=None, event_id=None,
     annotations = raw.annotations
 
     event_sel, event_id_ = _select_annotations_based_on_description(
-                    annotations.description, event_id=event_id, regexp=regexp)
+        annotations.description, event_id=event_id, regexp=regexp)
 
     if chunk_duration is None:
         inds = raw.time_as_index(annotations.onset, use_rounding=use_rounding,
-                                origin=annotations.orig_time) + raw.first_samp
+                                 origin=annotations.orig_time) + raw.first_samp
 
         values = [event_id_[kk] for kk in annotations.description[event_sel]]
         inds = inds[event_sel]
     else:
         inds = values = np.array([]).astype(int)
         iterator = list(zip(annotations.onset[event_sel],
-                       annotations.duration[event_sel],
-                       annotations.description[event_sel]))
+                            annotations.duration[event_sel],
+                            annotations.description[event_sel]))
 
         for onset, duration, description in iterator:
-            _onsets = np.arange(start=onset, stop=onset+duration,
+            _onsets = np.arange(start=onset, stop=(onset + duration),
                                 step=chunk_duration)
             _inds = raw.time_as_index(_onsets,
                                       use_rounding=use_rounding,
