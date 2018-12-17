@@ -106,7 +106,6 @@ def f_oneway(*args):
     ----------
     .. [1] Lowry, Richard.  "Concepts and Applications of Inferential
            Statistics". Chapter 14.
-           http://faculty.vassar.edu/lowry/ch14pt1.html
     .. [2] Heiman, G.W.  Research Methods in Statistics. 2002.
 
     """

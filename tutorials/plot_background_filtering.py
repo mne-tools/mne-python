@@ -892,7 +892,8 @@ baseline_plot(x)
 #     high-pass filters). Similar filters can be achieved in MNE-Python when
 #     filtering with :meth:`raw.filter(..., method='iir') <mne.io.Raw.filter>`
 #     (see also :func:`mne.filter.construct_iir_filter` for options).
-#     For more information, see e.g. `FieldTrip band-pass documentation`_.
+#     For more information, see e.g.
+#     `FieldTrip band-pass documentation <ftbp_>`_.
 #
 # Reporting Filters
 # =================
@@ -939,14 +940,15 @@ baseline_plot(x)
 # :func:`mne.filter.create_filter` to print out the settings once more:
 
 # Use the same settings as when calling e.g., `raw.filter()`
-fir_coefs = mne.filter.create_filter(data=None,  # Data is only used for sanity checking, not strictly needed  # noqa
-                                     sfreq=1000.,  # sfreq of your data in Hz
-                                     l_freq=None,
-                                     h_freq=40.,  # assuming a lowpass of 40 Hz
-                                     method='fir',
-                                     fir_window='hamming',
-                                     fir_design='firwin',
-                                     verbose=True)
+fir_coefs = mne.filter.create_filter(
+    data=None,  # Data is only used for sanity checking, not strictly needed
+    sfreq=1000.,  # sfreq of your data in Hz
+    l_freq=None,
+    h_freq=40.,  # assuming a lowpass of 40 Hz
+    method='fir',
+    fir_window='hamming',
+    fir_design='firwin',
+    verbose=True)
 
 # See the printed log for the transition bandwidth and filter length
 # Alternatively, get the filter length through:
@@ -1052,9 +1054,9 @@ filter_length = fir_coefs.shape[0]
 # .. _moving average: https://en.wikipedia.org/wiki/Moving_average
 # .. _autoregression: https://en.wikipedia.org/wiki/Autoregressive_model
 # .. _Remez: https://en.wikipedia.org/wiki/Remez_algorithm
-# .. _matlab firpm: http://www.mathworks.com/help/signal/ref/firpm.html
-# .. _matlab fir2: http://www.mathworks.com/help/signal/ref/fir2.html
-# .. _matlab firls: http://www.mathworks.com/help/signal/ref/firls.html
+# .. _matlab firpm: https://www.mathworks.com/help/signal/ref/firpm.html
+# .. _matlab fir2: https://www.mathworks.com/help/signal/ref/fir2.html
+# .. _matlab firls: https://www.mathworks.com/help/signal/ref/firls.html
 # .. _Butterworth filter: https://en.wikipedia.org/wiki/Butterworth_filter
 # .. _eeglab filtering faq: https://sccn.ucsd.edu/wiki/Firfilt_FAQ
-# .. _fieldtrip band-pass documentation: http://www.fieldtriptoolbox.org/reference/ft_preproc_bandpassfilter  # noqa
+# .. _ftbp: http://www.fieldtriptoolbox.org/reference/ft_preproc_bandpassfilter

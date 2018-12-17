@@ -562,9 +562,9 @@ MRI Processing
 Step by step instructions for using :func:`gui.coregistration`:
 
  - `Coregistration for subjects with structural MRI
-   <http://www.slideshare.net/mne-python/mnepython-coregistration>`_
+   <https://www.slideshare.net/mne-python/mnepython-coregistration>`_
  - `Scaling a template MRI for subjects for which no MRI is available
-   <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_
+   <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_
 
 .. autosummary::
    :toctree: generated/

@@ -37,7 +37,8 @@ src = mne.read_source_spaces(op.join(subjects_dir, 'sample', 'bem',
 # Understanding coordinate frames
 # -------------------------------
 # For M/EEG source imaging, there are three **coordinate frames** that we must
-# bring into alignment using two 3D `transformation matrices <trans_matrices>`_
+# bring into alignment using two 3D
+# `transformation matrices <trans_matrices_>`_
 # that define how to rotate and translate points in one coordinate frame
 # to their equivalent locations in another.
 #
@@ -179,7 +180,7 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
 #
 # For more information, see step by step instructions
 # `in these slides
-# <http://www.slideshare.net/mne-python/mnepython-coregistration>`_.
+# <https://www.slideshare.net/mne-python/mnepython-coregistration>`_.
 # Uncomment the following line to align the data yourself.
 
 # mne.gui.coregistration(subject='sample', subjects_dir=subjects_dir)
@@ -202,6 +203,6 @@ mne.viz.plot_alignment(
 # It is also possible to use :func:`mne.gui.coregistration`
 # to warp a subject (usually ``fsaverage``) to subject digitization data, see
 # `these slides
-# <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
+# <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
 #
 # .. _trans_matrices: https://en.wikipedia.org/wiki/Transformation_matrix

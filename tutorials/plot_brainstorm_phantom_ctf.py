@@ -7,7 +7,7 @@ Brainstorm CTF phantom dataset tutorial
 Here we compute the evoked from raw for the Brainstorm CTF phantom
 tutorial dataset. For comparison, see [1]_ and:
 
-    http://neuroimage.usc.edu/brainstorm/Tutorials/PhantomCtf
+    https://neuroimage.usc.edu/brainstorm/Tutorials/PhantomCtf
 
 References
 ----------

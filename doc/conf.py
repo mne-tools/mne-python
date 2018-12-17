@@ -43,7 +43,7 @@ if not os.path.isdir('_images'):
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = '1.8'
+needs_sphinx = '1.5'
 
 # XXX This hack defines what extra methods numpydoc will document
 docscrape.ClassDoc.extra_public_methods = mne.utils._doc_special_members
@@ -65,6 +65,14 @@ extensions = [
     'numpydoc',
     'gen_commands',
 ]
+
+linkcheck_ignore = [
+    'https://doi.org/10.1088/0031-9155/57/7/1937',  # 403 Client Error: Forbidden for url: http://iopscience.iop.org/article/10.1088/0031-9155/57/7/1937/meta
+    'https://sccn.ucsd.edu/wiki/.*',  # HTTPSConnectionPool(host='sccn.ucsd.edu', port=443): Max retries exceeded with url: /wiki/Firfilt_FAQ (Caused by SSLError(SSLError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:847)'),))
+    'https://docs.python.org/dev/howto/logging.html',  # ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+    'https://docs.python.org/3/library/.*',  # ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+]
+linkcheck_anchors = False  # saves a bit of time
 
 autosummary_generate = True
 autodoc_default_options = {'inherited-members': None}
@@ -88,7 +96,6 @@ copyright = u'2012-%s, MNE Developers. Last updated on %s' % (td.year,
                                                               td.isoformat())
 
 nitpicky = True
-needs_sphinx = '1.5'
 suppress_warnings = ['image.nonlocal_uri']  # we intentionally link outside
 
 # The version info for the project you're documenting, acts as replacement for
@@ -116,7 +123,6 @@ unused_docs = []
 # List of directories, relative to source directory, that shouldn't be searched
 # for source files.
 exclude_trees = ['_build']
-exclude_patterns = ['source/generated']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.

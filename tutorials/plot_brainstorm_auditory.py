@@ -6,7 +6,7 @@ Brainstorm auditory tutorial dataset
 
 Here we compute the evoked from raw for the auditory Brainstorm
 tutorial dataset. For comparison, see [1]_ and the associated
-`brainstorm site <http://neuroimage.usc.edu/brainstorm/Tutorials/Auditory>`_.
+`brainstorm site <https://neuroimage.usc.edu/brainstorm/Tutorials/Auditory>`_.
 
 Experiment:
 
@@ -16,7 +16,8 @@ Experiment:
     - Button pressed when detecting a deviant with the right index finger.
 
 The specifications of this dataset were discussed initially on the
-`FieldTrip bug tracker <http://bugzilla.fcdonders.nl/show_bug.cgi?id=2300>`_.
+`FieldTrip bug tracker
+<http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2300>`__.
 
 References
 ----------

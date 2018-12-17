@@ -60,7 +60,7 @@ See :ref:`install_python_and_mne_python`.
 From raw data to evoked data
 ----------------------------
 
-.. _ipython: http://ipython.scipy.org/
+.. _ipython: https://ipython.org/
 
 Now, launch `ipython`_ (Advanced Python shell) using the QT backend, which
 is best supported across systems:
@@ -400,6 +400,6 @@ stc.save('mne_dSPM_raw_inverse_Aud')
 # Want to know more ?
 # ^^^^^^^^^^^^^^^^^^^
 #
-# Browse `the examples gallery <auto_examples/index.html>`_.
+# Browse :ref:`the examples gallery <sphx_glr_auto_examples>`.
 
 print("Done!")

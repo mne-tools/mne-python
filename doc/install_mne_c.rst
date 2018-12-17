@@ -84,7 +84,7 @@ Setting up MNE-C environment
 ############################
 
 Your system-dependent path to the MNE Software will be referred to by
-the environment variable MNE_ROOT. 
+the environment variable MNE_ROOT.
 
 Your system-dependent path to MATLAB Software will be referred to by
 the environment variable MATLAB_ROOT.
@@ -106,8 +106,8 @@ the top of a script tells exec what shell to use by default to interpret the
 script. But the hash bang line is ignored when you source a script via either
 the builtin "source" or "." directive.  So there needs to be a setup script
 compatible with your current shell, i.e., if you use csh you cannot source a
-bash script.  (BTW, the "." (dot) directive will search for the script in 
-$PATH if there is no slash in the script argument while "source" does not 
+bash script.  (BTW, the "." (dot) directive will search for the script in
+$PATH if there is no slash in the script argument while "source" does not
 search $PATH).
 
 For Bourne or bash compatible shells, e.g., sh/bash/zsh, the script to source
@@ -233,17 +233,17 @@ to create image files in formats other than tif and rgb from
 ``mne_analyze`` and ``mne_browse_raw``.
 This package is usually present on LINUX systems. On Mac OSX, you
 need to install the netpbm package. The recommended way to do this
-is to use the MacPorts Project tools, see http://www.macports.org/:
+is to use the MacPorts Project tools, see https://www.macports.org/:
 
 - If you have not installed the MacPorts
-  software, goto http://www.macports.org/install.php and follow the
+  software, goto https://www.macports.org/install.php and follow the
   instructions to install MacPorts.
 
 - Install the netpbm package by saying: ``sudo port install netpbm``
 
 MacPorts requires that you have the XCode developer tools
 and X11 windowing environment installed. X11 is also needed by MNE.
-For Mac OSX Leopard, we recommend using XQuartz (http://xquartz.macosforge.org/).
+For Mac OSX Leopard, we recommend using `XQuartz <https://www.xquartz.org>`__.
 As of this writing, XQuartz does not yet exist for SnowLeopard;
 the X11 included with the operating system is sufficient.
 

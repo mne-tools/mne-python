@@ -125,7 +125,7 @@ you want to also test documentation locally, you will need to install (using
 
 .. code-block:: console
 
-   $ pip install sphinx sphinx-gallery sphinx_bootstrap_theme sphinx_fontawesome memory_profiler
+   $ pip install sphinx sphinx-gallery sphinx_bootstrap_theme sphinx_fontawesome memory_profiler pillow
 
 and then within the ``mne/doc`` directory do:
 
@@ -180,7 +180,7 @@ You can use something like this::
 
 Profiling
 ---------
-To learn more about profiling python codes please see `the scikit learn profiling site <http://scikit-learn.org/stable/developers/performance.html#performance-howto>`_.
+To learn more about profiling python codes please see `the scikit learn profiling site <https://scikit-learn.org/stable/developers/performance.html#performance-howto>`_.
 
 .. _troubleshooting:
 
