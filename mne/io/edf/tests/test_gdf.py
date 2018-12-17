@@ -29,6 +29,11 @@ def test_gdf_data():
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
 
+    # Test Status is added as event
+    EXPECTED_EVS_ONSETS = raw._raw_extras[0]['events'][1][::2]
+    evs = raw.find_edf_events()
+    assert_array_equal(evs[1][::2], EXPECTED_EVS_ONSETS)
+
     # this .npy was generated using the official biosig python package
     raw_biosig = np.load(gdf1_path + '_biosig.npy')
     raw_biosig = raw_biosig * 1e-6  # data are stored in microvolts
