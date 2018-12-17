@@ -185,6 +185,26 @@ def test_crop():
     assert len(raw_read.annotations.onset) == 0  # XXX to be fixed in #5416
 
 
+def test_chunk_duration():
+    """Test chunk_duration.
+
+    If chunk_duration parameter in events_from_annotations is None, events
+    correspond to the annotation onsets. If not, events_from_annotations
+    returns as many events as they fit within the annotation duration spaced
+    according to `chunk_duraiton`.
+    """
+    # create dummy raw
+    raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
+                   info=create_info(ch_names=10, sfreq=1000.),
+                   first_samp=0)
+    raw.info['meas_date'] = 0
+    raw.set_annotations(Annotations(description='foo', onset=[0],
+                                    duration=[10], orig_time=None))
+
+    events = events_from_annotations(raw, chunk_duration=1)
+    assert_array_equal(events, np.arrange(10))
+
+
 def test_crop_more():
     """Test more cropping."""
     raw = mne.io.read_raw_fif(fif_fname).crop(0, 11).load_data()
