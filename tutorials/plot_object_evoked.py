@@ -64,6 +64,12 @@ print('Data from channel {0}:'.format(evoked.ch_names[10]))
 print(data[10])
 
 ###############################################################################
+# In the same vein, we can quickly extract (and, e.g., plot) the GFP as the
+# standard deviation across channels.
+gfp = evoked.copy().pick_types(eeg=True, meg=False).data.std(0)
+plt.plot(evoked.times, gfp)
+
+###############################################################################
 # If you want to import evoked data from some other system and you have it in a
 # numpy array you can use :class:`mne.EvokedArray` for that. All you need is
 # the data and some info about the evoked data. For more information, see
