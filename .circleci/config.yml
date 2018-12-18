@@ -361,10 +361,10 @@ workflows:
 
   default:
     jobs:
-      # build_docs
+      - build_docs
       - deploy:
-          #requires:
-          #  - build_docs
+          requires:
+            - build_docs
           filters:
             branches:
               only:
