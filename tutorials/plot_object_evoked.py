@@ -71,7 +71,7 @@ print(data[10])
 
 gfp = evoked.copy().pick_types(eeg=True, meg=False).data.std(axis=0)
 fig, ax = plt.subplots(1)
-ax.plot(evoked.times, gfp)
+ax.plot(evoked.times, gfp / 1e6)  # scale to uV
 ax.set(xlabel='Time (sec)', ylabel='GFP (uV)')
 fig.tight_layout()
 
