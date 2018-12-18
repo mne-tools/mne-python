@@ -347,7 +347,7 @@ jobs:
                   git add -A;
                   git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM}).";
                 fi;
-                push origin master;
+                git push origin master;
               else
                 echo "No deployment (build: ${CIRCLE_BRANCH}).";
               fi
