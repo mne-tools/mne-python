@@ -200,10 +200,6 @@ jobs:
               echo "BUILD=$(cat build.txt)"
               ls -al ~/mne_data;
 
-        - run:
-            name : Fetch doc repository
-            command: |
-              if [ ! -d ~/mne-tools.github.io ]; then git clone https://github.com/mne-tools/mne-tools.github.io.git ~/mne-tools.github.io --depth=1; fi;
         # Run doctest (if it's full or front) before building the docs
         - run:
             name: make test-doc
@@ -240,7 +236,6 @@ jobs:
             key: data-cache-0
             paths:
               - ~/.mne
-              - ~/mne-tools.github.io
               - ~/mne_data/mTRF_1.5
         - save_cache:
             key: data-cache-1
@@ -316,11 +311,19 @@ jobs:
     deploy:
       docker:
         - image: circleci/python:3.6-jessie
-
       steps:
         - attach_workspace:
             at: /tmp/build
-
+        - restore_cache:
+            keys:
+              - website-cache
+        - run:
+            name: Fetch docs
+            command: |
+              set -e
+              if [ ! -d ~/mne-tools.github.io ]; then
+                git clone https://github.com/mne-tools/mne-tools.github.io.git ~/mne-tools.github.io --depth=1
+              fi
         - run:
             name: Deploy docs
             command: |
@@ -348,16 +351,20 @@ jobs:
               else
                 echo "No deployment (build: ${CIRCLE_BRANCH}).";
               fi
+        - save_cache:
+            key: website-cache
+            paths:
+              - ~/mne_data/MNE-visual_92_categories-data
 
 workflows:
   version: 2
 
   default:
     jobs:
-      - build_docs
+      # build_docs
       - deploy:
-          requires:
-            - build_docs
+          #requires:
+          #  - build_docs
           filters:
             branches:
               only:
