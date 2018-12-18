@@ -472,8 +472,7 @@ def _draw_outlines(ax, outlines):
 
 
 def _get_extra_points(pos, method, head_radius):
-    """
-    Get coordinates of additinal interpolation points.
+    """Get coordinates of additinal interpolation points.
 
     If head_radius is None, returns coordinates of convex hull of channel
     positions, expanded by the median inter-channel distance.

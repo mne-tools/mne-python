@@ -892,7 +892,7 @@ def einsum(*args, **kwargs):
     return np.einsum(*args, **kwargs)
 
 
-# NumPy unique has axis kwarg only since 1.13.0. This is used only once in
+# np.unique has axis kwarg only since 1.13.0. This is used only once in
 # topomap interpolation code to remove duplicates from 2d array along axis 0
 # can be removed once we require NumPy 1.13.0
 

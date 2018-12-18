@@ -73,15 +73,17 @@ evoked.plot_topomap(times, ch_type='mag', cmap='Spectral_r', res=32,
 ###############################################################################
 # If you look at the edges of the head circle of a single topomap you'll see
 # the effect of extrapolation. By default ``extrapolate='box'`` is used which
-# extrapolates to large box stretching beyond the head circle:
-evoked.plot_topomap(0.1, ch_type='mag', size=2)
+# extrapolates to a large box stretching beyond the head circle.
+# Compare this with ``extrapolate='head'`` (second topography below) where
+# extrapolation goes to 0 at the head circle and ``extrapolate='local'`` where
+# extrapolation is performed only within some distance from channels:
+extrapolations = ['box', 'head', 'local']
+fig, axes = plt.subplots(figsize=(7.5, 2.5), ncols=3)
 
-###############################################################################
-# Compare the image above with the one below, where we use
-# ``extrapolate='head'`` so that extrapolation would go to 0 at the head
-# circle (another option is to use ``extrapolate='local'`` in which case the
-# extrapolation is performed only within some distance from channels):
-evoked.plot_topomap(0.1, ch_type='mag', size=2, extrapolate='head')
+for ax, extr in zip(axes, extrapolations):
+    evoked.plot_topomap(0.1, ch_type='mag', size=2, extrapolate=extr, axes=ax,
+                        show=False)
+    ax.set_title(extr, fontsize=14)
 
 ###############################################################################
 # More advanced usage
