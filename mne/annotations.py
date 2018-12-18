@@ -702,9 +702,8 @@ def _ensure_annotation_object(obj):
 
 
 def _select_annotations_based_on_description(descriptions, event_id=None,
-                                             regexp=None):
+                                             regexp='.*'):
     """Get a collection of descriptions and returns index of selected."""
-
     regexp_comp = re.compile(regexp)
 
     if event_id is None:
