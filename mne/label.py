@@ -6,13 +6,14 @@
 
 from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
+from distutils.version import LooseVersion
 from os import path as op
 import os
 import copy as cp
 import re
 
 import numpy as np
-from scipy import linalg, sparse
+from scipy import linalg, sparse, __version__ as sp_version
 
 from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, _center_of_mass,
@@ -2095,6 +2096,9 @@ def morph_labels(labels, subject_to, subject_from=None, subjects_dir=None,
 
     .. versionadded:: 0.18
     """
+    if not LooseVersion(sp_version) >= LooseVersion('0.19'):
+        raise ImportError('SciPy 0.19+ required to use this function, got %s'
+                          % (sp_version,))
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     subject_from = _check_labels_subject(labels, subject_from, 'subject_from')
     mmaps = read_morph_map(subject_from, subject_to, subjects_dir)

@@ -379,6 +379,7 @@ def test_annot_io():
         assert_labels_equal(l1, l)
 
 
+@requires_version('scipy', '0.19')
 @testing.requires_testing_data
 def test_morph_labels():
     """Test morph_labels."""
@@ -725,7 +726,6 @@ def test_stc_to_label():
 
 
 @pytest.mark.slowtest
-@requires_version('scipy', '0.13')  # 0.12 has a sparse matrix bug
 @testing.requires_testing_data
 def test_morph():
     """Test inter-subject label morphing."""
