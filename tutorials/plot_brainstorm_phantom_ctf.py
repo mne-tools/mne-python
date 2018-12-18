@@ -88,8 +88,10 @@ evoked.plot(time_unit='s')
 evoked.crop(0., 0.)
 
 ###############################################################################
-# Let's use a sphere head geometry model and let's see the coordinate
-# alignment and the sphere location.
+# .. _plt_brainstorm_phantom_ctf_eeg_shpere_geometry:
+#
+# Let's use a :ref:`sphere head geometry model <ch_forward_spherical_model>`
+# and let's see the coordinate alignment and the sphere location.
 sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=None)
 
 mne.viz.plot_alignment(raw.info, subject='sample',

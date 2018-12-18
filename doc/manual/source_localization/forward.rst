@@ -346,29 +346,18 @@ Examples on how to compute the forward solution using
 :ref:`plot_forward_compute_forward_solution` and :ref:`BABCHEJD`
 
 .. _CHDIAFIG:
+.. _ch_forward_spherical_model:
 
-The EEG sphere model definition file
-====================================
+EEG forward solution in the sphere model
+========================================
 
 For the computation of the electric potential distribution
 on the surface of the head (EEG) it is necessary to define the conductivities
 (:math:`\sigma`) and radiuses of the spherically
 symmetric layers. Different sphere models can be specified with
-the ``--eegmodels`` option.
-
-The EEG sphere model definition files may contain comment
-lines starting with a # and model
-definition lines in the following format:
-
- <*name*>: <*radius1*>: <*conductivity1*>: <*radius2*>: <*conductivity2*>:...
-
-When the file is loaded the layers are sorted so that the
-radiuses will be in ascending order and the radius of the outermost
-layer is scaled to 1.0. The scalp radius specified with the ``--eegrad`` option
-is then consulted to scale the model to the correct dimensions.
-Even if the model setup file is not present, a model called Default is
-always provided. This model has the structure given in :ref:`BABEBGDA`
-
+through :func:`mne.make_sphere_model`.
+Here follows the default structure given when calling 
+``sphere = mne.make_sphere_model()``
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
 .. _BABEBGDA:
@@ -383,26 +372,35 @@ always provided. This model has the structure given in :ref:`BABEBGDA`
     Brain     0.90                     0.33
     ========  =======================  =======================
 
-EEG forward solution in the sphere model
-========================================
+Once the ``sphere`` structure is created it can be used as a ``bem`` in
+functions such as :func:`mne.fit_dipole`, :func:`mne.viz.plot_alignment`
+or :func:`mne.make_forward_solution`.
 
-When the sphere model is employed, the computation of the
+When the sphere model is employed to compute the forward model using 
+:func:`mne.make_forward_solution`, the computation of the
 EEG solution can be substantially accelerated by using approximation
 methods described by Mosher, Zhang, and Berg, see :ref:`CEGEGDEI` (Mosher *et
-al.* and references therein). mne_forward_solution approximates
+al.* and references therein). In such scenario, MNE approximates
 the solution with three dipoles in a homogeneous sphere whose locations
 and amplitudes are determined by minimizing the cost function:
 
 .. math::    S(r_1,\dotsc,r_m\ ,\ \mu_1,\dotsc,\mu_m) = \int_{scalp} {(V_{true} - V_{approx})}\,dS
 
 where :math:`r_1,\dotsc,r_m` and :math:`\mu_1,\dotsc,\mu_m` are
-the locations and amplitudes of the approximating dipoles and :math:`V_{true}` and :math:`V_{approx}` are
+the locations and amplitudes of the approximating dipoles and
+ :math:`V_{true}` and :math:`V_{approx}` are
 the potential distributions given by the true and approximative
 formulas, respectively. It can be shown that this integral can be
 expressed in closed form using an expansion of the potentials in
 spherical harmonics. The formula is evaluated for the most superficial
 dipoles, *i.e.*, those lying just inside the
 inner skull surface.
+
+
+.. note:: See :ref:`plt_brainstorm_phantom_ctf_eeg_shpere_geometry`,
+          :ref:`plt_brainstorm_phantom_elekta_eeg_shpere_geometry`,
+          and :ref:`plot_source_alignment_without_mri`.
+
 
 .. _CHDBBFCA:
 
