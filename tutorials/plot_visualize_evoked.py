@@ -101,8 +101,8 @@ plt.show()
 # ``colorbar=False``. That's what the warnings are trying to tell you. Also, we
 # used ``show=False`` for the three first function calls. This prevents the
 # showing of the figure prematurely. The behavior depends on the mode you are
-# using for your Python session. See https://matplotlib.org/users/shell.html for
-# more information.
+# using for your Python session. See https://matplotlib.org/users/shell.html
+# for more information.
 #
 # We can combine the two kinds of plots in one figure using the
 # :func:`mne.Evoked.plot_joint` method of Evoked objects. Called as-is

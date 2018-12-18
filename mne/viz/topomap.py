@@ -713,7 +713,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     extrapolate : str
         If 'box' (default) extrapolate to four points placed to form a square
         encompassing all data points, where each side of the square is three
-        times the range of the data in respective dimension. If 'head'
+        times the range of the data in the respective dimension. If 'head'
         extrapolate to the edges of the head circle (or to the edges of the
         skirt if ``outlines='skirt'``). If 'local' extrapolate only to nearby
         points (approximately to points closer than median inter-electrode
@@ -828,7 +828,8 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
                   np.max(np.r_[ylim[1], mask_[:, 1]]))
 
-    # interpolate data
+    # interpolate the data, we multiply clip radius by 1.06 so that pixelated edges
+    # of the interpolated image would appear under the mask
     head_radius = (None if extrapolate == 'local' else
                    outlines['clip_radius'][0] * 1.06)
     xi = np.linspace(xmin, xmax, res)
@@ -1575,7 +1576,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     extrapolate : str
         If 'box' (default) extrapolate to four points placed to form a square
         encompassing all data points, where each side of the square is three
-        times the range of the data in respective dimension. If 'head'
+        times the range of the data in the respective dimension. If 'head'
         extrapolate to the edges of the head circle (or to the edges of the
         skirt if ``outlines='skirt'``). If 'local' extrapolate only to nearby
         points (approximately to points closer than median inter-electrode
@@ -2210,8 +2211,7 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
 
 
 def _prepare_topomap(pos, ax, check_nonzero=True):
-    """
-    Prepare the topomap axis and check positions.
+    """Prepare the topomap axis and check positions.
 
     Hides axis frame and check that position information is present.
     """
@@ -2662,7 +2662,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
     extrapolate : str
         If 'box' (default) extrapolate to four points placed to form a square
         encompassing all data points, where each side of the square is three
-        times the range of the data in respective dimension. If 'head'
+        times the range of the data in the respective dimension. If 'head'
         extrapolate to the edges of the head circle (or to the edges of the
         skirt if ``outlines='skirt'``). If 'local' extrapolate only to nearby
         points (approximately to points closer than median inter-electrode

@@ -82,7 +82,7 @@ fig, axes = plt.subplots(figsize=(7.5, 2.5), ncols=3)
 
 for ax, extr in zip(axes, extrapolations):
     evoked.plot_topomap(0.1, ch_type='mag', size=2, extrapolate=extr, axes=ax,
-                        show=False)
+                        show=False, colorbar=False)
     ax.set_title(extr, fontsize=14)
 
 ###############################################################################
