@@ -399,7 +399,7 @@ and amplitudes are determined by minimizing the cost function:
 
 where :math:`r_1,\dotsc,r_m` and :math:`\mu_1,\dotsc,\mu_m` are
 the locations and amplitudes of the approximating dipoles and
- :math:`V_{true}` and :math:`V_{approx}` are
+:math:`V_{true}` and :math:`V_{approx}` are
 the potential distributions given by the true and approximative
 formulas, respectively. It can be shown that this integral can be
 expressed in closed form using an expansion of the potentials in
@@ -407,11 +407,9 @@ spherical harmonics. The formula is evaluated for the most superficial
 dipoles, *i.e.*, those lying just inside the
 inner skull surface.
 
-
 .. note:: See :ref:`this <plt_brainstorm_phantom_ctf_eeg_shpere_geometry>`,
           :ref:`this <plt_brainstorm_phantom_elekta_eeg_shpere_geometry>`,
           and :ref:`plot_source_alignment_without_mri`.
-
 
 .. _CHDBBFCA:
 
