@@ -329,11 +329,11 @@ MEG channel, :math:`b_k` can be approximated by:
 
 where :math:`r_{kp}` are a set of :math:`N_k` integration
 points covering the pickup coil loops of the sensor, :math:`B(r_{kp})` is
-the magnetic field due to the current sources calculated at :math:`r_{kp}`, :math:`n_{kp}` are
-the coil normal directions at these points, and :math:`w_{kp}` are
-the weights associated to the integration points. This formula essentially
-presents numerical integration of the magnetic field over the pickup
-loops of sensor :math:`k`.
+the magnetic field due to the current sources calculated at :math:`r_{kp}`,
+:math:`n_{kp}` are the coil normal directions at these points, and
+:math:`w_{kp}` are the weights associated to the integration points. This
+formula essentially presents numerical integration of the magnetic field over
+the pickup loops of sensor :math:`k`.
 
 
 .. _CHDDIBAH:
@@ -341,7 +341,8 @@ loops of sensor :math:`k`.
 Computing the forward solution
 ##############################
 
-Examples on how to compute the forward solution using :func:`mne.make_forward_solution` can be found
+Examples on how to compute the forward solution using
+:func:`mne.make_forward_solution` can be found
 :ref:`plot_forward_compute_forward_solution` and :ref:`BABCHEJD`
 
 .. _CHDIAFIG:
