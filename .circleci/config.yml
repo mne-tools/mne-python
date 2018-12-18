@@ -313,7 +313,7 @@ jobs:
             destination: linkcheck
 
 
-deploy:
+    deploy:
       docker:
         - image: circleci/python:3.6-jessie
 
