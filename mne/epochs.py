@@ -49,7 +49,8 @@ from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed, _check_preload, GetEpochsMixin,
-                    _prepare_read_metadata, _check_event_id, _gen_events)
+                    _prepare_read_metadata, _prepare_write_metadata,
+                    _check_event_id, _gen_events)
 
 
 def _save_split(epochs, fname, part_idx, n_parts, fmt):
@@ -112,7 +113,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
     # Metadata
     if epochs.metadata is not None:
         start_block(fid, FIFF.FIFFB_MNE_METADATA)
-        metadata = epochs._prepare_write_metadata()
+        metadata = _prepare_write_metadata(epochs.metadata)
         write_string(fid, FIFF.FIFF_DESCRIPTION, metadata)
         end_block(fid, FIFF.FIFFB_MNE_METADATA)
 

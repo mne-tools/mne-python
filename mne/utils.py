@@ -3504,19 +3504,6 @@ class GetEpochsMixin(object):
                     metadata = deepcopy(metadata)
         return metadata
 
-    def _prepare_write_metadata(self):
-        """Convert metadata to JSON for saving."""
-        if self.metadata is not None:
-            metadata = deepcopy(self.metadata)
-            if not isinstance(metadata, list):
-                metadata = metadata.to_json(orient='records')
-            else:  # Pandas DataFrame
-                metadata = json.dumps(metadata)
-            assert isinstance(metadata, str)
-        else:
-            metadata = None
-        return metadata
-
     @property
     def metadata(self):
         """Get the metadata."""
@@ -3543,14 +3530,24 @@ class GetEpochsMixin(object):
         self._metadata = metadata
 
 
+def _prepare_write_metadata(metadata):
+    """Convert metadata to JSON for saving."""
+    if metadata is not None:
+        if not isinstance(metadata, list):
+            metadata = metadata.to_json(orient='records')
+        else:  # Pandas DataFrame
+            metadata = json.dumps(metadata)
+        assert isinstance(metadata, str)
+    return metadata
+
+
 def _prepare_read_metadata(metadata):
     """Convert saved metadata back from JSON."""
     if metadata is not None:
         pd = _check_pandas_installed(strict=False)
         # use json.loads because this preserves ordering
         # (which is necessary for round-trip equivalence)
-        metadata = json.loads(metadata,
-                              object_pairs_hook=OrderedDict)
+        metadata = json.loads(metadata, object_pairs_hook=OrderedDict)
         assert isinstance(metadata, list)
         if pd is not False:
             metadata = pd.DataFrame.from_records(metadata)
@@ -3565,9 +3562,7 @@ def _check_event_id(event_id, events):
         event_id = list(np.unique(events[:, 2]))
     if isinstance(event_id, dict):
         for key in event_id.keys():
-            if not isinstance(key, str):
-                raise TypeError('Event names must be of type str, '
-                                'got %s (%s)' % (key, type(key)))
+            _validate_type(key, str, 'Event names')
         event_id = dict((key, _ensure_int(val, 'event_id[%s]' % key))
                         for key, val in event_id.items())
     elif isinstance(event_id, list):

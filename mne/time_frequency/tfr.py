@@ -20,8 +20,8 @@ from scipy.fftpack import fft, ifft
 from ..baseline import rescale
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, check_fname, sizeof_fmt,
-                     GetEpochsMixin, _prepare_read_metadata, _check_event_id,
-                     _gen_events)
+                     GetEpochsMixin, _prepare_read_metadata,
+                     _prepare_write_metadata, _check_event_id, _gen_events)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, _pick_data_channels,
@@ -2262,8 +2262,8 @@ def _prepare_write_tfr(tfr, condition):
     elif hasattr(tfr, 'events'):  # if EpochsTFR
         attributes['events'] = tfr.events
         attributes['event_id'] = tfr.event_id
-        attributes['metadata'] = tfr._prepare_write_metadata()
-    return (condition, attributes)
+        attributes['metadata'] = _prepare_write_metadata(tfr.metadata)
+    return condition, attributes
 
 
 def read_tfrs(fname, condition=None):
