@@ -368,8 +368,7 @@ on the surface of the head (EEG) it is necessary to define the conductivities
 (:math:`\sigma`) and radiuses of the spherically
 symmetric layers. Different sphere models can be specified with
 through :func:`mne.make_sphere_model`.
-Here follows the default structure given when calling 
-``sphere = mne.make_sphere_model()``
+Here follows the default structure given when calling ``sphere = mne.make_sphere_model()``
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
 .. _BABEBGDA:
@@ -409,8 +408,8 @@ dipoles, *i.e.*, those lying just inside the
 inner skull surface.
 
 
-.. note:: See :ref:`plt_brainstorm_phantom_ctf_eeg_shpere_geometry`,
-          :ref:`plt_brainstorm_phantom_elekta_eeg_shpere_geometry`,
+.. note:: See :ref:`this <plt_brainstorm_phantom_ctf_eeg_shpere_geometry>`,
+          :ref:`this <plt_brainstorm_phantom_elekta_eeg_shpere_geometry>`,
           and :ref:`plot_source_alignment_without_mri`.
 
 
