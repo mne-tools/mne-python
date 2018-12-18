@@ -1,10 +1,12 @@
 :orphan: 
 
+.. _implemented_coil_geometries:
+
 Implemented coil geometries
 ===========================
 
 This section describes the coil geometries currently implemented
-in Neuromag software. The coil types fall in two general categories:
+in MNE. The coil types fall in two general categories:
 
 - Axial gradiometers and planar gradiometers
   and
@@ -44,7 +46,7 @@ The columns of the tables contain the following data:
   of the baseline of the gradiometer to show that the output is in
   T/m.
 
-.. note:: The coil geometry information is stored in the file $MNE_ROOT/share/mne/coil_def.dat
+.. note:: The coil geometry information is stored in the file $MNE_ROOT/mne/coil_def.dat
 
 .. XXX : table of normal coil description is missing
 

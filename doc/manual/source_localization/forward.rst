@@ -267,7 +267,12 @@ the detectors:
 - A unique identifier, which has an one-to-one correspondence
   to the geometrical description of the coil.
 
-.. note:: See :ref:`sphx_glr_auto_examples_visualization_plot_meg_sensors.py` for a comparison of the coil geometries shipped with MNE.
+.. note:: MNE ships with several coil geometry configurations.
+          They can be found in ``$MNE_ROOT/mne/data``.
+          See :ref:`sphx_glr_auto_examples_visualization_plot_meg_sensors.py`
+          for a comparison between different coil geometries, and
+          :ref:`implemented_coil_geometries` for detailed information regarding
+          the files describing Neuromag coil geometries.
 
 The sensor coordinate system
 ============================
@@ -286,7 +291,8 @@ another coordinate transformation to the head-coordinate data to
 bring the coil locations and orientations to the MRI coordinate system.
 
 If :math:`r_0` is a row vector for
-the origin of the local sensor coordinate system and :math:`e_x`, :math:`e_y`, and :math:`e_z` are the row vectors for the
+the origin of the local sensor coordinate system and :math:`e_x`, :math:`e_y`,
+and :math:`e_z` are the row vectors for the
 three orthogonal unit vectors, all given in device coordinates,
 a location of a point :math:`r_C` in sensor coordinates
 is transformed to device coordinates (:math:`r_D`)
