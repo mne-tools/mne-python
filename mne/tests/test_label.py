@@ -17,7 +17,7 @@ from mne import (read_label, stc_to_label, read_source_estimate,
                  write_labels_to_annot, split_label, spatial_tris_connectivity,
                  read_surface, random_parcellation, morph_labels,
                  labels_to_stc)
-from mne.label import Label, _blend_colors, label_sign_flip
+from mne.label import Label, _blend_colors, label_sign_flip, _load_vert_pos
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
                        run_tests_if_main, requires_version)
 from mne.fixes import assert_is, assert_is_not
@@ -91,10 +91,8 @@ def _stc_to_label(stc, src, smooth, subjects_dir=None):
     if isinstance(src, str):
         subjects_dir = get_subjects_dir(subjects_dir)
         surf_path_from = op.join(subjects_dir, src, 'surf')
-        rr_lh, tris_lh = read_surface(op.join(surf_path_from,
-                                      'lh.white'))
-        rr_rh, tris_rh = read_surface(op.join(surf_path_from,
-                                      'rh.white'))
+        rr_lh, tris_lh = read_surface(op.join(surf_path_from, 'lh.white'))
+        rr_rh, tris_rh = read_surface(op.join(surf_path_from, 'rh.white'))
         rr = [rr_lh, rr_rh]
         tris = [tris_lh, tris_rh]
     else:
@@ -402,6 +400,12 @@ def test_morph_labels():
     with pytest.raises(ValueError, match='wrong and fsaverage'):
         morph_labels(parc_fsaverage, 'sample', subjects_dir=subjects_dir,
                      subject_from='wrong')
+    with pytest.raises(RuntimeError, match='Number of surface vertices'):
+        _load_vert_pos('sample', subjects_dir, 'white', 'lh', 1)
+    for label in parc_fsaverage:
+        label.subject = None
+    with pytest.raises(ValueError, match='subject_from must be provided'):
+        morph_labels(parc_fsaverage, 'sample', subjects_dir=subjects_dir)
 
 
 @testing.requires_testing_data
