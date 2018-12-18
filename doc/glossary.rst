@@ -191,3 +191,6 @@ MNE-Python core terminology and general concepts
     trans
         A coordinate frame affine transformation, usually between the Neuromag head
         coordinate frame and the MRI Surface RAS coordinate frame used by Freesurfer.
+
+    :abbr:`GFP (Global Field Power)`
+        foo bar.

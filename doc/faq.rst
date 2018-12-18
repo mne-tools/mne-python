@@ -238,19 +238,19 @@ Under the assumption that the baseline does not contain a systematic signal
 (time-locked to the event of interest), the whitened baseline signal should be
 follow a multivariate Gaussian distribution, i.e.,
 whitened baseline signals should be between -1.96 and 1.96 at a given time sample.
-Based on the same reasoning, the expected value for the global field power (GFP)
-is 1 (calculation of the GFP should take into account the true degrees of
-freedom, e.g. ``ddof=3`` with 2 active SSP vectors)::
+Based on the same reasoning, the expected value for the :term:`Global Field
+Power(GFP) <GFP>` is 1 (calculation of the :term:`GFP` should take into account the true
+degrees of freedom, e.g. ``ddof=3`` with 2 active SSP vectors)::
 
     >>> evoked = epochs.average() # doctest: +SKIP
     >>> evoked.plot_white(cov) # doctest: +SKIP
 
-This plot displays both, the whitened evoked signals for each channels and
-the whitened GFP. The numbers in the GFP panel represent the estimated rank of
-the data, which amounts to the effective degrees of freedom by which the
-squared sum across sensors is divided when computing the whitened GFP.
-The whitened GFP also helps detecting spurious late evoked components which
-can be the consequence of over- or under-regularization.
+This plot displays both, the whitened evoked signals for each channels and the
+whitened :term:`GFP`. The numbers in the :term:`GFP` panel represent the
+estimated rank of the data, which amounts to the effective degrees of freedom by
+which the squared sum across sensors is divided when computing the whitened
+:term:`GFP`. The whitened :term:`GFP` also helps detecting spurious late evoked
+components which can be the consequence of over- or under-regularization.
 
 Note that if data have been processed using signal space separation (SSS) [2]_,
 gradiometers and magnetometers will be displayed jointly because both are
@@ -266,8 +266,8 @@ For expert use cases or debugging the alternative estimators can also be compare
     >>> evoked = epochs.average() # doctest: +SKIP
     >>> evoked.plot_white(covs) # doctest: +SKIP
 
-This will plot the whitened evoked for the optimal estimator and display the GFPs
-for all estimators as separate lines in the related panel.
+This will plot the whitened evoked for the optimal estimator and display the
+:term:`GFPs <GFP>` for all estimators as separate lines in the related panel.
 
 References
 ----------
