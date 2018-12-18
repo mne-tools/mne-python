@@ -46,7 +46,7 @@ The columns of the tables contain the following data:
   of the baseline of the gradiometer to show that the output is in
   T/m.
 
-.. note:: The coil geometry information is stored in the file $MNE_ROOT/mne/coil_def.dat
+.. note:: The coil geometry information is stored in the file ``mne/data/coil_def.dat``
 
 .. XXX : table of normal coil description is missing
 
@@ -178,7 +178,7 @@ The coil definition file
 ========================
 
 The coil geometry information is stored in the text file
-$MNE_ROOT/share/mne/coil_def.dat. In this file, any lines starting
+``mne/data/coil_def.dat``. In this file, any lines starting
 with the pound sign (#) are comments. A coil definition starts with
 a description line containing the following fields:
 

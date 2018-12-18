@@ -249,7 +249,19 @@ and :math:`y` axis pointing front. The :math:`z` axis
 is, again, normal to the :math:`xy` plane
 with positive direction up.
 
-.. note:: The above definition is identical to that    of the Neuromag MEG/EEG (head) coordinate system. However, in 4-D    Neuroimaging and CTF MEG systems the head coordinate frame definition    is different. The origin of the coordinate system is at the midpoint    of the left and right auricular points. The :math:`x` axis    passes through the nasion and the origin with positive direction    to the front. The :math:`y` axis is perpendicular    to the :math:`x` axis on the and lies in    the plane defined by the three fiducial landmarks, positive direction    from right to left. The :math:`z` axis is    normal to the plane of the landmarks, pointing up. Note that in    this convention the auricular points are not necessarily located    on :math:`y` coordinate axis. The file conversion utilities take care of these idiosyncrasies and convert all coordinate information    to the MNE software head coordinate frame.
+.. note:: The above definition is identical to that of the Neuromag MEG/EEG
+          (head) coordinate system. However, in 4-D Neuroimaging and CTF MEG
+          systems the head coordinate frame definition is different. The origin
+          of the coordinate system is at the midpoint of the left and right
+          auricular points. The :math:`x` axis passes through the nasion and the
+          origin with positive direction to the front. The :math:`y` axis is
+          perpendicular to the :math:`x` axis on the and lies in the plane
+          defined by the three fiducial landmarks, positive direction from right
+          to left. The :math:`z` axis is normal to the plane of the landmarks,
+          pointing up. Note that in this convention the auricular points are not
+          necessarily located on :math:`y` coordinate axis. The file conversion
+          utilities take care of these idiosyncrasies and convert all coordinate
+          information to the MNE software head coordinate frame.
 
 .. _BJEIAEIE:
 
@@ -268,7 +280,7 @@ the detectors:
   to the geometrical description of the coil.
 
 .. note:: MNE ships with several coil geometry configurations.
-          They can be found in ``$MNE_ROOT/mne/data``.
+          They can be found in ``mne/data``.
           See :ref:`sphx_glr_auto_examples_visualization_plot_meg_sensors.py`
           for a comparison between different coil geometries, and
           :ref:`implemented_coil_geometries` for detailed information regarding
@@ -412,7 +424,8 @@ Purpose
 
 One possibility to make a grand average over several runs
 of a experiment is to average the data across runs and average the
-forward solutions accordingly. For this purpose, :func:`mne.average_forward_solutions` computes a
-weighted average of several forward solutions. The function averages both
-MEG and EEG forward solutions. Usually the EEG forward solution is
-identical across runs because the electrode locations do not change.
+forward solutions accordingly. For this purpose,
+:func:`mne.average_forward_solutions` computes a weighted average of several
+forward solutions. The function averages both MEG and EEG forward solutions.
+Usually the EEG forward solution is identical across runs because the electrode
+locations do not change.
