@@ -217,7 +217,10 @@ class Annotations(object):
     def __getitem__(self, key):
         """Propagate indexing and slicing to the underlying numpy structure."""
         try:
-            out = (self.onset[key], self.duration[key], self.description[key])
+            out = (self.onset[key].copy(),
+                   self.duration[key].copy(),
+                   self.description[key].copy())
+
         except IndexError as idx_error:
             if idx_error.args[0].startswith('only integers'):
                 raise TypeError(idx_error.args[0])
@@ -225,7 +228,7 @@ class Annotations(object):
                 raise
         except:
             raise
-        else: 
+        else:
             return out
 
     def append(self, onset, duration, description):

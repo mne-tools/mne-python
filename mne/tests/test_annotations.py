@@ -797,8 +797,8 @@ def test_read_annotation_txt_orig_time(
 def test_annotations_slices():
     """Test indexing Annotations."""
     NUM_ANNOT = 5
-    EXPECTED_ONSETS = EXPECTED_DURATIONS = [_ for _ in range(NUM_ANNOT)]
-    EXPECTED_DESCS = [_.__repr__() for _ in range(NUM_ANNOT)]
+    EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
+    EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
 
     annot = Annotations(onset=EXPECTED_ONSETS,
                         duration=EXPECTED_DURATIONS,
@@ -807,6 +807,9 @@ def test_annotations_slices():
 
     for ii in EXPECTED_ONSETS:
         assert annot[ii] == (ii, ii, str(ii))
+
+    _onsets, _durations, _desc = annot[:]
+    _onsets[0], _durations[0], _desc[0] = (42, 42, 'foo')
 
     _onsets, _durations, _desc = annot[:]
     for actual, expected in [(_onsets, EXPECTED_ONSETS),
