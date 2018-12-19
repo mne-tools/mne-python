@@ -701,8 +701,7 @@ def _ensure_annotation_object(obj):
                          'mne.Annotations. Got %s.' % obj)
 
 
-def _select_annotations_based_on_description(descriptions, event_id=None,
-                                             regexp=None, on_missing='ignore'):
+def _select_annotations_based_on_description(descriptions, event_id, regexp):
     """Get a collection of descriptions and returns index of selected."""
     regexp_comp = re.compile('.*' if regexp is None else regexp)
 
@@ -786,8 +785,7 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
     annotations = raw.annotations
 
     event_sel, event_id_ = _select_annotations_based_on_description(
-        annotations.description, event_id=event_id, regexp=regexp,
-        on_missing=on_missing)
+        annotations.description, event_id=event_id, regexp=regexp)
 
     if chunk_duration is None:
         inds = raw.time_as_index(annotations.onset, use_rounding=use_rounding,

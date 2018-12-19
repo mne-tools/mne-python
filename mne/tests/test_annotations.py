@@ -551,7 +551,7 @@ def test_events_from_annot_in_raw_objects():
     assert_array_equal(expected_events5, events5)
 
     with pytest.raises(ValueError, match='not find any of the events'):
-        events_from_annotations(raw, regexp='not_there', on_missing='error')
+        events_from_annotations(raw, regexp='not_there')
 
     raw.set_annotations(None)
     events7, _ = events_from_annotations(raw)
