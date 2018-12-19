@@ -322,7 +322,7 @@ jobs:
             command: |
               set -e
               if [ ! -d ~/mne-tools.github.io ]; then
-                git clone https://github.com/mne-tools/mne-tools.github.io.git ~/mne-tools.github.io --depth=1
+                git clone git@github.com:/mne-tools/mne-tools.github.io.git ~/mne-tools.github.io --depth=1
               fi
         - run:
             name: Deploy docs
@@ -330,10 +330,13 @@ jobs:
               set -e;
               if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "maint/0.17" ]; then
                 git config --global user.email "circle@mne.com";
-                git config --global user.name "Circle Ci";
+                git config --global user.name "Circle CI";
                 cd ~/mne-tools.github.io;
                 git checkout master
-                git pull origin master
+                git remote -v
+                git fetch origin
+                git reset --hard origin/master
+                git clean -xdf
                 if [ "${CIRCLE_BRANCH}" == "master" ]; then
                   echo "Deploying dev docs for ${CIRCLE_BRANCH}.";
                   rm -Rf dev;
