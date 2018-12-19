@@ -369,8 +369,10 @@ def test_crop():
 
 
 @requires_h5py
+@requires_pandas
 def test_io():
     """Test TFR IO capacities."""
+    from pandas import DataFrame
     tempdir = _TempDir()
     fname = op.join(tempdir, 'test-tfr.h5')
     data = np.zeros((3, 2, 3))
@@ -411,14 +413,31 @@ def test_io():
     assert_equal(tfr2.comment, tfr4.comment)
 
     pytest.raises(ValueError, read_tfrs, fname, condition='nonono')
-
     # Test save of EpochsTFR.
-    data = np.zeros((5, 3, 2, 3))
+    n_events = 5
+    data = np.zeros((n_events, 3, 2, 3))
+
+    # create fake metadata
+    rng = np.random.RandomState(42)
+    rt = np.round(rng.uniform(size=(n_events,)), 3)
+    trialtypes = np.array(['face', 'place'])
+    trial = trialtypes[(rng.uniform(size=(n_events,)) > .5).astype(int)]
+    meta = DataFrame(dict(RT=rt, Trial=trial))
+    # fake events and event_id
+    events = np.zeros([n_events, 3])
+    events[:, 0] = np.arange(n_events)
+    events[:, 2] = np.ones(n_events)
+    event_id = dict(a=1)
+
     tfr = EpochsTFR(info, data=data, times=times, freqs=freqs,
-                    comment='test', method='crazy-tfr')
+                    comment='test', method='crazy-tfr', events=events,
+                    event_id=event_id, metadata=meta)
     tfr.save(fname, True)
     read_tfr = read_tfrs(fname)[0]
     assert_array_equal(tfr.data, read_tfr.data)
+    assert_metadata_equal(tfr.metadata, read_tfr.metadata)
+    assert_array_equal(tfr.events, read_tfr.events)
+    assert_equal(tfr.event_id, read_tfr.event_id)
 
 
 def test_plot():

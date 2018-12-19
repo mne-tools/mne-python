@@ -20,7 +20,8 @@ from scipy.fftpack import fft, ifft
 from ..baseline import rescale
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, check_fname, sizeof_fmt,
-                     GetEpochsMixin)
+                     GetEpochsMixin, _prepare_read_metadata,
+                     _prepare_write_metadata, _check_event_id, _gen_events)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, _pick_data_channels,
@@ -1968,10 +1969,13 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
     method : str | None, defaults to None
         Comment on the method used to compute the data, e.g., morlet wavelet.
     events : ndarray, shape (n_events, 3) | None
-        The events as stored in the Epochs class
+        The events as stored in the Epochs class. If None (default), all event
+        values are set to 1 and event time-samples are set to range(n_epochs).
     event_id : dict | None
         Example: dict(auditory=1, visual=3). They keys can be used to access
-        associated events.
+        associated events. If None, all events will be used and a dict is
+        created with string integer names corresponding to the event id
+        integers.
     metadata : instance of pandas.DataFrame | None
         A :class:`pandas.DataFrame` containing pertinent information for each
         trial. See :class:`mne.Epochs` for further details
@@ -2023,6 +2027,10 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         if n_times != len(times):
             raise ValueError("Number of times and data size don't match"
                              " (%d != %d)." % (n_times, len(times)))
+        if events is None:
+            n_epochs = len(data)
+            events = _gen_events(n_epochs)
+        event_id = _check_event_id(event_id, events)
         self.data = data
         self.times = np.array(times, dtype=float)
         self.freqs = np.array(freqs, dtype=float)
@@ -2249,9 +2257,13 @@ def _prepare_write_tfr(tfr, condition):
     """Aux function."""
     attributes = dict(times=tfr.times, freqs=tfr.freqs, data=tfr.data,
                       info=tfr.info, comment=tfr.comment, method=tfr.method)
-    if hasattr(tfr, 'nave'):
+    if hasattr(tfr, 'nave'):  # if AverageTFR
         attributes['nave'] = tfr.nave
-    return (condition, attributes)
+    elif hasattr(tfr, 'events'):  # if EpochsTFR
+        attributes['events'] = tfr.events
+        attributes['event_id'] = tfr.event_id
+        attributes['metadata'] = _prepare_write_metadata(tfr.metadata)
+    return condition, attributes
 
 
 def read_tfrs(fname, condition=None):
@@ -2285,6 +2297,8 @@ def read_tfrs(fname, condition=None):
     tfr_data = read_hdf5(fname, title='mnepython')
     for k, tfr in tfr_data:
         tfr['info'] = Info(tfr['info'])
+        if 'metadata' in tfr:
+            tfr['metadata'] = _prepare_read_metadata(tfr['metadata'])
     is_average = 'nave' in tfr
     if condition is not None:
         if not is_average:
