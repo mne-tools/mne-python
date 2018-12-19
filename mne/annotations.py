@@ -701,9 +701,46 @@ def _ensure_annotation_object(obj):
                          'mne.Annotations. Got %s.' % obj)
 
 
+def _select_annotations_based_on_description(descriptions, event_id, regexp):
+    """Get a collection of descriptions and returns index of selected."""
+    regexp_comp = re.compile('.*' if regexp is None else regexp)
+
+    if event_id is None:
+        event_id = Counter()
+
+    event_id_ = dict()
+    dropped = []
+    for desc in descriptions:
+        if desc in event_id_:
+            continue
+
+        if regexp_comp.match(desc) is None:
+            continue
+
+        if isinstance(event_id, dict):
+            if desc in event_id:
+                event_id_[desc] = event_id[desc]
+            else:
+                continue
+        else:
+            trigger = event_id(desc)
+            if trigger is not None:
+                event_id_[desc] = trigger
+            else:
+                dropped.append(desc)
+
+    event_sel = [ii for ii, kk in enumerate(descriptions)
+                 if kk in event_id_]
+
+    if len(event_sel) == 0 and regexp is not None:
+        raise ValueError('Could not find any of the events you specified.')
+
+    return event_sel, event_id_
+
+
 @verbose
 def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
-                            verbose=None):
+                            chunk_duration=None, verbose=None):
     """Get events and event_id from an Annotations object.
 
     Parameters
@@ -724,6 +761,12 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
     use_rounding : boolean
         If True, use rounding (instead of truncation) when converting
         times to indices. This can help avoid non-unique indices.
+    chunk_duration: float | None
+        If chunk_duration parameter in events_from_annotations is None, events
+        correspond to the annotation onsets.
+        If not, :func:`mne.events_from_annotations` returns as many events as
+        they fit within the annotation duration spaced according to
+        `chunk_duration`, which is given in seconds.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see
         :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -741,47 +784,35 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
 
     annotations = raw.annotations
 
-    inds = raw.time_as_index(annotations.onset, use_rounding=use_rounding,
-                             origin=annotations.orig_time) + raw.first_samp
+    event_sel, event_id_ = _select_annotations_based_on_description(
+        annotations.description, event_id=event_id, regexp=regexp)
 
-    # Filter out the annotations that do not match regexp
-    regexp_comp = re.compile('.*' if regexp is None else regexp)
+    if chunk_duration is None:
+        inds = raw.time_as_index(annotations.onset, use_rounding=use_rounding,
+                                 origin=annotations.orig_time) + raw.first_samp
 
-    if event_id is None:
-        event_id = Counter()
+        values = [event_id_[kk] for kk in annotations.description[event_sel]]
+        inds = inds[event_sel]
+    else:
+        inds = values = np.array([]).astype(int)
+        iterator = list(zip(annotations.onset[event_sel],
+                            annotations.duration[event_sel],
+                            annotations.description[event_sel]))
 
-    event_id_ = dict()
-    dropped = []
-    for desc in annotations.description:
-        if desc in event_id_:
-            continue
+        for onset, duration, description in iterator:
+            _onsets = np.arange(start=onset, stop=(onset + duration),
+                                step=chunk_duration)
+            _inds = raw.time_as_index(_onsets,
+                                      use_rounding=use_rounding,
+                                      origin=annotations.orig_time)
+            _inds += raw.first_samp
+            inds = np.append(inds, _inds)
+            _values = np.full(shape=len(_inds),
+                              fill_value=event_id_[description],
+                              dtype=int)
+            values = np.append(values, _values)
 
-        if regexp_comp.match(desc) is None:
-            continue
-
-        if isinstance(event_id, dict):
-            if desc in event_id:
-                event_id_[desc] = event_id[desc]
-            else:
-                continue
-        else:
-            trigger = event_id(desc)
-            if trigger is not None:
-                event_id_[desc] = trigger
-            else:
-                dropped.append(desc)
-
-    event_sel = [ii for ii, kk in enumerate(annotations.description)
-                 if kk in event_id_]
-
-    if len(event_sel) == 0 and regexp is not None:
-        raise ValueError('Could not find any of the events you specified.')
-
-    values = [event_id_[kk] for kk in
-              annotations.description[event_sel]]
-    previous_value = np.zeros(len(event_sel))
-    inds = inds[event_sel]
-    events = np.c_[inds, previous_value, values].astype(int)
+    events = np.c_[inds, np.zeros(len(inds)), values].astype(int)
 
     logger.info('Used Annotations descriptions: %s' %
                 (list(event_id_.keys()),))
