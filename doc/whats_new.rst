@@ -21,13 +21,15 @@ Changelog
 
 - :func:`mne.io.read_raw_edf` now detects analog stim channels labeled ``'STATUS'`` and sets them as stim channel. :func:`mne.io.read_raw_edf` no longer synthesize TAL annotations into stim channel but stores them in ``raw.annotations`` when reading by `Joan Massich`_
 
-- Add ``drop_refs=True`` parameter to :func:`set_bipolar_reference` to drop/keep anode and cathode channels after applying the reference by `Cristóbal Moënne-Loccoz`_. 
+- Add ``drop_refs=True`` parameter to :func:`set_bipolar_reference` to drop/keep anode and cathode channels after applying the reference by `Cristóbal Moënne-Loccoz`_.
 
 - Add 448-labels subdivided aparc cortical parcellation by `Denis Engemann`_ and `Sheraz Khan`_
 
 - Add keyboard shortcuts to nativate volume source estimates in time using (shift+)left/right arrow keys by `Mainak Jas`_
 
 - Add Epoch selection and metadata functionality to :class:`mne.time_frequency.EpochsTFR` using new mixin class by `Keith Doelling`_
+
+- Add ``extrapolate`` argument to :func:`mne.viz.plot_topomap` for better control of extrapolation points placement by `Mikołaj Magnuski`_
 
 Bug
 ~~~

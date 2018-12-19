@@ -76,13 +76,14 @@ evoked_r_aud.plot_topomap(times=times, ch_type='mag', time_unit='s')
 evoked_r_aud.plot_topomap(times='peaks', ch_type='mag', time_unit='s')
 
 ###############################################################################
-# You can take a look at the documentation of :func:`mne.Evoked.plot_topomap`
-# or simply write ``evoked_r_aud.plot_topomap?`` in your python console to
-# see the different parameters you can pass to this function. Most of the
-# plotting functions also accept ``axes`` parameter. With that, you can
-# customise your plots even further. First we create a set of matplotlib
-# axes in a single figure and plot all of our evoked categories next to each
-# other.
+# See :ref:`sphx_glr_auto_examples_visualization_plot_evoked_topomap.py` for
+# more advanced topomap plotting options. You can also take a look at the
+# documentation of :func:`mne.Evoked.plot_topomap` or simply write
+# ``evoked_r_aud.plot_topomap?`` in your Python console to see the different
+# parameters you can pass to this function. Most of the plotting functions also
+# accept ``axes`` parameter. With that, you can customise your plots even
+# further. First we create a set of matplotlib axes in a single figure and plot
+# all of our evoked categories next to each other.
 fig, ax = plt.subplots(1, 5, figsize=(8, 2))
 kwargs = dict(times=0.1, show=False, vmin=-300, vmax=300, time_unit='s')
 evoked_l_aud.plot_topomap(axes=ax[0], colorbar=True, **kwargs)
@@ -100,7 +101,7 @@ plt.show()
 # ``colorbar=False``. That's what the warnings are trying to tell you. Also, we
 # used ``show=False`` for the three first function calls. This prevents the
 # showing of the figure prematurely. The behavior depends on the mode you are
-# using for your python session. See https://matplotlib.org/users/shell.html
+# using for your Python session. See https://matplotlib.org/users/shell.html
 # for more information.
 #
 # We can combine the two kinds of plots in one figure using the
@@ -109,7 +110,7 @@ plt.show()
 # of spatio-temporal dynamics.
 # You can directly style the time series part and the topomap part of the plot
 # using the ``topomap_args`` and ``ts_args`` parameters. You can pass key-value
-# pairs as a python dictionary. These are then passed as parameters to the
+# pairs as a Python dictionary. These are then passed as parameters to the
 # topomaps (:func:`mne.Evoked.plot_topomap`) and time series
 # (:func:`mne.Evoked.plot`) of the joint plot.
 # For an example of specific styling using these ``topomap_args`` and

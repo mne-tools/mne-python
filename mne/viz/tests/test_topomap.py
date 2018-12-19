@@ -157,6 +157,25 @@ def test_plot_topomap():
 
     evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
                         contours=[-100, 0, 100], time_unit='ms')
+
+    # extrapolation to the edges of the convex hull or the head circle
+    evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
+                        contours=[-100, 0, 100], time_unit='ms',
+                        extrapolate='local')
+    evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
+                        contours=[-100, 0, 100], time_unit='ms',
+                        extrapolate='head')
+    evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
+                        contours=[-100, 0, 100], time_unit='ms',
+                        extrapolate='head', outlines='skirt')
+
+    # extrapolation options when < 4 channels:
+    temp_data = np.random.random(3)
+    picks = channel_indices_by_type(evoked.info)['mag'][:3]
+    info_sel = pick_info(evoked.info, picks)
+    plot_topomap(temp_data, info_sel, extrapolate='local', res=res)
+    plot_topomap(temp_data, info_sel, extrapolate='head', res=res)
+
     plt_topomap = partial(evoked.plot_topomap, **fast_test)
     plt_topomap(0.1, layout=layout, scalings=dict(mag=0.1))
     plt.close('all')
