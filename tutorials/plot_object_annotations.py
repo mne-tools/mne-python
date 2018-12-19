@@ -1,26 +1,11 @@
 """
-The **events** and :class:`~mne.Annotations` data structures
+The **:term:`<events>`** and :class:`~mne.Annotations` data structures
 =========================================================================
 
-Events and :class:`~mne.Annotations` are quite similar.
+:term:`Events <events>` and :term:`annotations` are quite similar.
 This tutorial highlights their differences and similarities, and tries to shed
 some light on which one is preferred to use in different situations when using
 MNE.
-
-Here are the definitions from the :ref:`glossary`.
-
-    events
-        Events correspond to specific time points in raw data; e.g., triggers,
-        experimental condition events, etc. MNE represents events with integers
-        that are stored in numpy arrays of shape (n_events, 3). Such arrays are
-        classically obtained from a trigger channel, also referred to as stim
-        channel.
-
-    annotations
-        An annotation is defined by an onset, a duration, and a string
-        description. It can contain information about the experiment, but
-        also details on signals marked by a human: bad data segments,
-        sleep scores, sleep events (spindles, K-complex) etc.
 
 Both events and :class:`~mne.Annotations` can be seen as triplets
 where the first element answers to **when** something happens and the last
@@ -101,8 +86,8 @@ annotated_blink_raw.plot()
 
 
 ###############################################################################
-# Working with Annotations
-# ------------------------
+# Add :term:`annotations` to :term:`raw` objects
+# ----------------------------------------------
 #
 # An important element of :class:`~mne.Annotations` is
 # ``orig_time`` which is the time reference for the ``onset``.
@@ -179,6 +164,12 @@ print('annot_none.onset[0] is {}'.format(annot_none.onset[0]))
 print('raw_a.annotations.onset[0] is {}'.format(raw_a.annotations.onset[0]))
 
 ###############################################################################
+# Valid operations in :class:`mne.Annotations`
+# --------------------------------------------
+#
+# Concatenate
+# ~~~~~~~~~~~
+#
 # It is possible to concatenate two annotations with the + operator (just like
 # lists) if both share the same ``orig_time``
 
@@ -189,6 +180,47 @@ annot = annot_orig + annot  # concatenation
 print(annot)
 
 ###############################################################################
+# Iterating, Indexing and Slicing :class:`mne.Annotations`
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+# :class:`~mne.Annotations` supports the same indexing and slicing as
+# ``numpy.array``, and it returns a ``(onset, duration, description)`` tuple
+# with the sliced elements.
+#
+# See the following examples and usages:
+plt.close('all')
+print('type: {0} content: {1}'.format(type(annot[0]), annot[0]))
+
+print('type: {0} content: {1}'.format(type(annot[:]), annot[:]))
+
+_MSG = 'annotation #{0}: onset={1} duration={2} desc={3}'
+for idx, (onset, duration, desc) in enumerate(annot):
+    print(_MSG.format(idx, onset, duration, desc))
+
+start, stop, step = (0, None, 2)
+every_other_annotation = slice(start, stop, step)
+for onset, duration, desc in zip(*annot[every_other_annotation]):
+    print('onset={0} duration={1} desc={2}'.format(onset, duration, desc))
+
+for onset, duration, desc in zip(*annot[1::2]):
+    print('onset={0} duration={1} desc={2}'.format(onset, duration, desc))
+
+# XXX: it works 'cos its 3
+desc_starts_with_foo = [desc.startswith('foo') for desc in annot.description]
+print(desc_starts_with_foo)
+for onset, duration, desc in annot[desc_starts_with_foo]:
+    print('onset={0} duration={1} desc={2}'.format(onset, duration, desc))
+
+
+# desc_is_foo = [desc == 'foo' for desc in annot.description]
+# print(desc_is_foo)
+# for onset, duration, desc in annot[desc_is_foo]:
+#     print('onset={0} duration={1} desc={2}'.format(onset, duration, desc))
+
+###############################################################################
+# Save
+# ~~~~
+#
 # Note that you can also save annotations to disk in FIF format::
 #
 #     >>> annot.save('my-annot.fif')

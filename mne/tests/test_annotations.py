@@ -817,6 +817,28 @@ def test_annotations_slices():
                              (_desc, EXPECTED_DESCS)]:
         assert all(actual == expected)
 
+    _onsets, _durations, _desc = annot[2:]
+    for actual, expected in zip([_onsets, _durations, _desc],
+                                [np.array(EXPECTED_ONSETS)[2:],
+                                 np.array(EXPECTED_DURATIONS)[2:],
+                                 np.array(EXPECTED_DESCS)[2:]]):
+        assert all(actual == expected)
+
+    _onsets, _durations, _desc = annot[1::2]
+    for actual, expected in zip([_onsets, _durations, _desc],
+                                [np.array(EXPECTED_ONSETS)[1::2],
+                                 np.array(EXPECTED_DURATIONS)[1::2],
+                                 np.array(EXPECTED_DESCS)[1::2]]):
+        assert all(actual == expected)
+
+    every_other = slice(0, None, 2)
+    _onsets, _durations, _desc = annot[every_other]
+    for actual, expected in zip([_onsets, _durations, _desc],
+                                [np.array(EXPECTED_ONSETS)[every_other],
+                                 np.array(EXPECTED_DURATIONS)[every_other],
+                                 np.array(EXPECTED_DESCS)[every_other]]):
+        assert all(actual == expected)
+
     valid_bool = [True, False, True, True, False]
     _onsets, _durations, _desc = annot[valid_bool]
     for actual, expected in zip([_onsets, _durations, _desc],
