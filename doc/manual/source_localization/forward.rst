@@ -414,8 +414,8 @@ spherical harmonics. The formula is evaluated for the most superficial
 dipoles, *i.e.*, those lying just inside the
 inner skull surface.
 
-.. note:: See :ref:`Brainstorm CTF phantom dataset tutorial <plt_brainstorm_phantom_ctf_eeg_shpere_geometry>`,
-          :ref:`Brainstorm Elekta phantom dataset tutorial <plt_brainstorm_phantom_elekta_eeg_shpere_geometry>`,
+.. note:: See :ref:`Brainstorm CTF phantom dataset tutorial <plt_brainstorm_phantom_ctf_eeg_sphere_geometry>`,
+          :ref:`Brainstorm Elekta phantom dataset tutorial <plt_brainstorm_phantom_elekta_eeg_sphere_geometry>`,
           and :ref:`plot_source_alignment_without_mri`.
 
 .. _CHDBBFCA:

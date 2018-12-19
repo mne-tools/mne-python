@@ -209,6 +209,8 @@ by another and apply the product to the data:
 
 .. math::    x_{(k)} = M_{(k)} M_{(p)}^{-1} x_{(p)}\ .
 
+This operation is performed by :meth:`mne.io.Raw.apply_gradient_compensation`.
+
 
 Importing KIT MEG system data
 =============================
@@ -337,7 +339,7 @@ annotation  data can be converted to a trigger channel (STI 014) using an
 annotation map file which associates an annotation label with a number on
 the trigger channel.
 
-Saving EDF files is not supported natively (mne 0.18) yet. 
+Saving EDF files is not supported natively (mne 0.18) yet.
 This `gist <https://gist.github.com/skjerns/bc660ef59dca0dbd53f00ed38c42f6be>`__
 can be used to save any mne.io.Raw into EDF/EDF+/BDF/BDF+.
 

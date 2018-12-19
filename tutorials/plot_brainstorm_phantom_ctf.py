@@ -90,7 +90,7 @@ evoked.plot(time_unit='s')
 evoked.crop(0., 0.)
 
 ###############################################################################
-# .. _plt_brainstorm_phantom_ctf_eeg_shpere_geometry:
+# .. _plt_brainstorm_phantom_ctf_eeg_sphere_geometry:
 #
 # Let's use a :ref:`sphere head geometry model <ch_forward_spherical_model>`
 # and let's see the coordinate alignment and the sphere location.

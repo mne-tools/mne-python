@@ -85,7 +85,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=(None, -0.01),
 epochs['1'].average().plot(time_unit='s')
 
 ###############################################################################
-# .. _plt_brainstorm_phantom_elekta_eeg_shpere_geometry:
+# .. _plt_brainstorm_phantom_elekta_eeg_sphere_geometry:
 #
 # Let's use a :ref:`sphere head geometry model <ch_forward_spherical_model>`
 # and let's see the coordinate alignment and the sphere location. The phantom
