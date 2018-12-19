@@ -6,15 +6,15 @@
 
 from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
-from distutils.version import LooseVersion
 from os import path as op
 import os
 import copy as cp
 import re
 
 import numpy as np
-from scipy import linalg, sparse, __version__ as sp_version
+from scipy import linalg, sparse
 
+from .fixes import _sparse_argmax
 from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, _center_of_mass,
                               spatial_src_connectivity)
@@ -2096,22 +2096,19 @@ def morph_labels(labels, subject_to, subject_from=None, subjects_dir=None,
 
     .. versionadded:: 0.18
     """
-    if not LooseVersion(sp_version) >= LooseVersion('0.19'):
-        raise ImportError('SciPy 0.19+ required to use this function, got %s'
-                          % (sp_version,))
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     subject_from = _check_labels_subject(labels, subject_from, 'subject_from')
     mmaps = read_morph_map(subject_from, subject_to, subjects_dir)
-    mmaps = dict((hemi, mmap) for hemi, mmap in zip(('lh', 'rh'), mmaps))
-    vert_poss = dict((hemi, _load_vert_pos(
-        subject_to, subjects_dir, surf_name, hemi, mmap.shape[0]))
-        for hemi, mmap in mmaps.items())
-    mmaps = dict((hemi, mmap.argmax(-1)) for hemi, mmap in mmaps.items())
+    vert_poss = [_load_vert_pos(subject_to, subjects_dir, surf_name, hemi,
+                                mmap.shape[0])
+                 for hemi, mmap in zip(('lh', 'rh'), mmaps)]
+    idxs = [_sparse_argmax(mmap, axis=1) for mmap in mmaps]
     out_labels = list()
     values = filename = None
     for label in labels:
-        vertices = np.where(np.in1d(mmaps[label.hemi], label.vertices))[0]
-        pos = vert_poss[label.hemi][vertices]
+        li = dict(lh=0, rh=1)[label.hemi]
+        vertices = np.where(np.in1d(idxs[li], label.vertices))[0]
+        pos = vert_poss[li][vertices]
         out_labels.append(
             Label(vertices, pos, values, label.hemi, label.comment, label.name,
                   filename, subject_to, label.color, label.verbose))

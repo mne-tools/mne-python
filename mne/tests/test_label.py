@@ -19,7 +19,7 @@ from mne import (read_label, stc_to_label, read_source_estimate,
                  labels_to_stc)
 from mne.label import Label, _blend_colors, label_sign_flip, _load_vert_pos
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
-                       run_tests_if_main, requires_version)
+                       run_tests_if_main)
 from mne.fixes import assert_is, assert_is_not
 from mne.label import _n_colors
 from mne.source_space import SourceSpaces
@@ -377,7 +377,6 @@ def test_annot_io():
         assert_labels_equal(l1, l)
 
 
-@requires_version('scipy', '0.19')
 @testing.requires_testing_data
 def test_morph_labels():
     """Test morph_labels."""

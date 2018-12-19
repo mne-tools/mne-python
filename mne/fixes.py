@@ -1066,6 +1066,55 @@ def _remove_duplicate_rows(arr):
 
 
 ###############################################################################
+# csr_matrix.argmax from SciPy 0.19+
+
+def _sparse_argmax(mat, axis):
+    import scipy
+    if LooseVersion(scipy.__version__) >= '0.19':
+        return mat.argmax(axis)
+    else:
+        from scipy.sparse.data import _find_missing_index
+        op = np.argmax
+        compare = np.greater
+        self = mat
+        if self.shape[axis] == 0:
+            raise ValueError("Can't apply the operation along a zero-sized "
+                             "dimension.")
+
+        if axis < 0:
+            axis += 2
+
+        zero = self.dtype.type(0)
+
+        mat = self.tocsc() if axis == 0 else self.tocsr()
+        mat.sum_duplicates()
+
+        ret_size, line_size = mat._swap(mat.shape)
+        ret = np.zeros(ret_size, dtype=int)
+
+        nz_lines, = np.nonzero(np.diff(mat.indptr))
+        for i in nz_lines:
+            p, q = mat.indptr[i:i + 2]
+            data = mat.data[p:q]
+            indices = mat.indices[p:q]
+            am = op(data)
+            m = data[am]
+            if compare(m, zero) or q - p == line_size:
+                ret[i] = indices[am]
+            else:
+                zero_ind = _find_missing_index(indices, line_size)
+                if m == zero:
+                    ret[i] = min(am, zero_ind)
+                else:
+                    ret[i] = zero_ind
+
+        if axis == 1:
+            ret = ret.reshape(-1, 1)
+
+        return np.asmatrix(ret)
+
+
+###############################################################################
 # From nilearn
 
 def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
