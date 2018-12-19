@@ -321,6 +321,9 @@ jobs:
             name: Fetch docs
             command: |
               set -e
+              mkdir -p ~/.ssh
+              echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config
+              chmod og= ~/.ssh/config
               if [ ! -d ~/mne-tools.github.io ]; then
                 git clone git@github.com:/mne-tools/mne-tools.github.io.git ~/mne-tools.github.io --depth=1
               fi
