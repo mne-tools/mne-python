@@ -2042,7 +2042,7 @@ def _check_labels_subject(labels, subject, name):
         _validate_type(label, Label, 'each entry in labels')
         if subject is None:
             subject = label.subject
-        if subject is not None:
+        if subject is not None:  # label.subject can be None, depending on init
             if subject != label.subject:
                 raise ValueError('Got multiple values of %s: %s and %s'
                                  % (name, subject, label.subject))
