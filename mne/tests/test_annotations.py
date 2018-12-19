@@ -854,5 +854,18 @@ def test_annotations_slices():
     with pytest.raises(TypeError):
         annot['foo']
 
+def test_annotations_slices_with_foo():
+    """Test indexing Annotations."""
+    NUM_ANNOT = 5
+    EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
+    EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
+
+    annot = Annotations(onset=EXPECTED_ONSETS,
+                        duration=EXPECTED_DURATIONS,
+                        description=EXPECTED_DESCS,
+                        orig_time=None)
+
+    for ii in EXPECTED_ONSETS:
+        assert annot.foo(ii) == (ii, ii, str(ii))
 
 run_tests_if_main()

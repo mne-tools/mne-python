@@ -231,6 +231,11 @@ class Annotations(object):
         else:
             return out
 
+    def foo(self, key):
+        """Propagate indexing and slicing to the underlying numpy structure."""
+        foo = np.vstack((self.onset, self.duration, self.description))
+        return foo[:, key]
+
     def append(self, onset, duration, description):
         """Add an annotated segment. Operates inplace.
 
