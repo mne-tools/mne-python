@@ -6,7 +6,7 @@
 import operator
 import numpy as np
 
-from ..fixes import compute_dpss
+from ..fixes import _get_dpss
 from ..parallel import parallel_func
 from ..utils import sum_squared, warn, verbose, logger
 
@@ -93,7 +93,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
         dpss = np.array(dpss)
 
     else:
-        dpss = compute_dpss(N, half_nbw, Kmax)
+        dpss = _get_dpss()(N, half_nbw, Kmax)
 
     # Now find the eigenvalues of the original spectral concentration problem
     # Use the autocorr sequence technique from Percival and Walden, 1993 pg 390

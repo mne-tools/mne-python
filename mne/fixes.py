@@ -239,7 +239,7 @@ def tridi_inverse_iteration(d, e, w, x0=None, rtol=1e-8):
     return x0
 
 
-def _compute_dpss(N, half_nbw, Kmax):
+def _dpss(N, half_nbw, Kmax):
     """Compute DPSS windows."""
     # here we want to set up an optimization problem to find a sequence
     # whose energy is maximally concentrated within band [-W,W].
@@ -297,10 +297,12 @@ def _compute_dpss(N, half_nbw, Kmax):
     return dpss
 
 
-try:
-    from scipy.signal.windows import dpss as compute_dpss
-except ImportError:
-    compute_dpss = _compute_dpss
+def _get_dpss():
+    try:
+        from scipy.signal.windows import dpss
+    except ImportError:
+        dpss = _dpss
+    return dpss
 
 
 ###############################################################################
