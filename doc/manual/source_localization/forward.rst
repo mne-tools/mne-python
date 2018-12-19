@@ -355,7 +355,14 @@ Computing the forward solution
 
 Examples on how to compute the forward solution using
 :func:`mne.make_forward_solution` can be found
-:ref:`plot_forward_compute_forward_solution` and :ref:`BABCHEJD`
+:ref:`plot_forward_compute_forward_solution` and :ref:`BABCHEJD`.
+
+.. note:: Notice that systems such as CTF and 4D Neuroimaging
+          data may have been subjected to noise cancellation employing the
+          data from the reference sensor array. Even though these sensor are
+          rather far away from the brain sources, this can be taken into account
+          using :meth:`mne.io.Raw.apply_gradient_compensation`.
+          See :ref:`plot_brainstorm_phantom_ctf`.
 
 .. _CHDIAFIG:
 .. _ch_forward_spherical_model:
@@ -387,7 +394,7 @@ Once the ``sphere`` structure is created it can be used as a ``bem`` in
 functions such as :func:`mne.fit_dipole`, :func:`mne.viz.plot_alignment`
 or :func:`mne.make_forward_solution`.
 
-When the sphere model is employed to compute the forward model using 
+When the sphere model is employed to compute the forward model using
 :func:`mne.make_forward_solution`, the computation of the
 EEG solution can be substantially accelerated by using approximation
 methods described by Mosher, Zhang, and Berg, see :ref:`CEGEGDEI` (Mosher *et
@@ -407,8 +414,8 @@ spherical harmonics. The formula is evaluated for the most superficial
 dipoles, *i.e.*, those lying just inside the
 inner skull surface.
 
-.. note:: See :ref:`this <plt_brainstorm_phantom_ctf_eeg_shpere_geometry>`,
-          :ref:`this <plt_brainstorm_phantom_elekta_eeg_shpere_geometry>`,
+.. note:: See :ref:`Brainstorm CTF phantom dataset tutorial <plt_brainstorm_phantom_ctf_eeg_shpere_geometry>`,
+          :ref:`Brainstorm Elekta phantom dataset tutorial <plt_brainstorm_phantom_elekta_eeg_shpere_geometry>`,
           and :ref:`plot_source_alignment_without_mri`.
 
 .. _CHDBBFCA:
