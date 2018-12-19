@@ -63,6 +63,9 @@ def _prepare_topo_plot(inst, ch_type, layout):
         if ch_type == 'eeg':
             picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
                                exclude='bads')
+        elif ch_type == 'ref_meg':
+            picks = pick_types(info, meg=False, ref_meg=True,
+                               exclude='bads')
         else:
             picks = pick_types(info, meg=ch_type, ref_meg=False,
                                exclude='bads')

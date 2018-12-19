@@ -97,7 +97,7 @@ def _check_for_unsupported_ica_channels(picks, info):
     """Check for channels in picks that are not considered valid channels.
 
     Accepted channels are the data channels
-    ('seeg','ecog','eeg', 'hbo', 'hbr', 'mag', and 'grad') and 'eog'.
+    ('seeg','ecog','eeg', 'hbo', 'hbr', 'mag', and 'grad'), 'eog' and 'ref_meg.'
     This prevents the program from crashing without
     feedback when a bad channel is provided to ICA whitening.
     """
@@ -105,7 +105,7 @@ def _check_for_unsupported_ica_channels(picks, info):
         return
     elif len(picks) == 0:
         raise ValueError('No channels provided to ICA')
-    types = _DATA_CH_TYPES_SPLIT + ['eog']
+    types = _DATA_CH_TYPES_SPLIT + ['eog', 'ref_meg']
     chs = list(set([channel_type(info, j) for j in picks]))
     check = all([ch in types for ch in chs])
     if not check:
@@ -573,7 +573,7 @@ class ICA(ContainsMixin):
             # Scale (z-score) the data by channel type
             info = pick_info(info, picks)
             pre_whitener = np.empty([len(data), 1])
-            for ch_type in _DATA_CH_TYPES_SPLIT + ['eog']:
+            for ch_type in _DATA_CH_TYPES_SPLIT + ['eog', "ref_meg"]:
                 if _contains_ch_type(info, ch_type):
                     if ch_type == 'seeg':
                         this_picks = pick_types(info, meg=False, seeg=True)
@@ -587,6 +587,8 @@ class ICA(ContainsMixin):
                         this_picks = pick_types(info, meg=False, eog=True)
                     elif ch_type in ('hbo', 'hbr'):
                         this_picks = pick_types(info, meg=False, fnirs=ch_type)
+                    elif ch_type == 'ref_meg':
+                        this_picks = pick_types(info, meg=False, ref_meg=True)
                     else:
                         raise RuntimeError('Should not be reached.'
                                            'Unsupported channel {0}'

@@ -98,7 +98,7 @@ def _get_ch_type(inst, ch_type):
     then grads, then ... to plot.
     """
     if ch_type is None:
-        for type_ in ['mag', 'grad', 'planar1', 'planar2', 'eeg']:
+        for type_ in ['mag', 'grad', 'planar1', 'planar2', 'eeg', 'ref_meg']:
             if isinstance(inst, Info):
                 if _contains_ch_type(inst, type_):
                     ch_type = type_

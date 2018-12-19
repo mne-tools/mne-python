@@ -192,7 +192,7 @@ def _triage_fnirs_pick(ch, fnirs):
 def _check_meg_type(meg, allow_auto=False):
     """Ensure a valid meg type."""
     if isinstance(meg, str):
-        allowed_types = ['grad', 'mag', 'planar1', 'planar2']
+        allowed_types = ['grad', 'mag', 'planar1', 'planar2', 'ref_meg']
         allowed_types += ['auto'] if allow_auto else []
         if meg not in allowed_types:
             raise ValueError('meg value must be one of %s or bool, not %s'
