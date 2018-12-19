@@ -762,7 +762,7 @@ def events_from_annotations(raw, event_id=None, regexp='.*', use_rounding=True,
     use_rounding : boolean
         If True, use rounding (instead of truncation) when converting
         times to indices. This can help avoid non-unique indices.
-    chunk_duration: int | None
+    chunk_duration: float | None
         If chunk_duration parameter in events_from_annotations is None, events
         correspond to the annotation onsets.
         If not, :func:`mne.events_from_annotations` returns as many events as

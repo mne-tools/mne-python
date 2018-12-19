@@ -186,13 +186,7 @@ def test_crop():
 
 
 def test_chunk_duration():
-    """Test chunk_duration.
-
-    If chunk_duration parameter in events_from_annotations is None, events
-    correspond to the annotation onsets. If not, events_from_annotations
-    returns as many events as they fit within the annotation duration spaced
-    according to `chunk_duration` parameter in `events_from_annotations`.
-    """
+    """Test chunk_duration."""
     # create dummy raw
     raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
                    info=create_info(ch_names=10, sfreq=1.),
