@@ -828,8 +828,8 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
                   np.max(np.r_[ylim[1], mask_[:, 1]]))
 
-    # interpolate the data, we multiply clip radius by 1.06 so that pixelated edges
-    # of the interpolated image would appear under the mask
+    # interpolate the data, we multiply clip radius by 1.06 so that pixelated
+    # edges of the interpolated image would appear under the mask
     head_radius = (None if extrapolate == 'local' else
                    outlines['clip_radius'][0] * 1.06)
     xi = np.linspace(xmin, xmax, res)
