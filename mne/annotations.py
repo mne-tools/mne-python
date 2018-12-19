@@ -734,23 +734,14 @@ def _select_annotations_based_on_description(descriptions, event_id=None,
                  if kk in event_id_]
 
     if len(event_sel) == 0 and regexp is not None:
-        msg = 'Could not find any of the events you specified.'
-        if on_missing == 'error':
-            raise ValueError(msg)
-        elif on_missing == 'warning':
-            warn(msg)
-        elif on_missing == 'log':
-            logger.info(msg)
-        else:  # on_missing == 'ignore':
-            pass
+        raise ValueError('Could not find any of the events you specified.')
 
     return event_sel, event_id_
 
 
 @verbose
 def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
-                            chunk_duration=None, on_missing='error',
-                            verbose=None):
+                            chunk_duration=None, verbose=None):
     """Get events and event_id from an Annotations object.
 
     Parameters
@@ -777,12 +768,6 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
         If not, :func:`mne.events_from_annotations` returns as many events as
         they fit within the annotation duration spaced according to
         `chunk_duration`, which is given in seconds.
-    on_missing : str
-        What to do if no events are found based on `event_id` and `regexp`
-        parameters.
-        Valid keys are 'error' | 'warning' | 'log' | 'ignore'
-        Default is 'error'. If on_missing is 'warning' it will proceed but
-        warn, if 'ignore' it will proceed silently.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see
         :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
