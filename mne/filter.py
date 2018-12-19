@@ -1350,8 +1350,8 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
     # 0.00099972447657578449
     # so we use 1000 because it's the first "nice" number bigger than 953.
     # but if we have a new enough scipy,
-    # it's only ~2.5 sec for 8 tapers even with 1e7 samples (167 min @ 1000 Hz)
-    dpss_n_times_max = int(1e7) if check_version('scipy', '1.1') else 1000
+    # it's only ~0.175 sec for 8 tapers even with 100000 samples
+    dpss_n_times_max = 100000 if check_version('scipy', '1.1') else 1000
 
     # figure out what tapers to use
     window_fun, eigvals, _ = _compute_mt_params(
