@@ -702,9 +702,9 @@ def _ensure_annotation_object(obj):
 
 
 def _select_annotations_based_on_description(descriptions, event_id=None,
-                                             regexp='.*', on_missing='ignore'):
+                                             regexp=None, on_missing='ignore'):
     """Get a collection of descriptions and returns index of selected."""
-    regexp_comp = re.compile(regexp)
+    regexp_comp = re.compile('.*' if regexp is None else regexp)
 
     if event_id is None:
         event_id = Counter()
@@ -733,7 +733,7 @@ def _select_annotations_based_on_description(descriptions, event_id=None,
     event_sel = [ii for ii, kk in enumerate(descriptions)
                  if kk in event_id_]
 
-    if len(event_sel) == 0 and regexp is not '.*':
+    if len(event_sel) == 0 and regexp is not None:
         msg = 'Could not find any of the events you specified.'
         if on_missing == 'error':
             raise ValueError(msg)
@@ -748,7 +748,7 @@ def _select_annotations_based_on_description(descriptions, event_id=None,
 
 
 @verbose
-def events_from_annotations(raw, event_id=None, regexp='.*', use_rounding=True,
+def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
                             chunk_duration=None, on_missing='error',
                             verbose=None):
     """Get events and event_id from an Annotations object.
@@ -765,7 +765,7 @@ def events_from_annotations(raw, event_id=None, regexp='.*', use_rounding=True,
         a string or that returns None for an event to ignore.
         If None, all descriptions of annotations are mapped
         and assigned arbitrary unique integer values.
-    regexp : str
+    regexp : str | None
         Regular expression used to filter the annotations whose
         descriptions is a match.
     use_rounding : boolean
@@ -799,9 +799,6 @@ def events_from_annotations(raw, event_id=None, regexp='.*', use_rounding=True,
         return np.empty((0, 3), dtype=int), event_id
 
     annotations = raw.annotations
-
-    # regexp None support for 0.17 backward compat, not exposed to users
-    regexp = '.*' if regexp is None else regexp
 
     event_sel, event_id_ = _select_annotations_based_on_description(
         annotations.description, event_id=event_id, regexp=regexp,
