@@ -188,7 +188,6 @@ print(annot)
 # with the sliced elements.
 #
 # See the following examples and usages:
-plt.close('all')
 print('type: {0} content: {1}'.format(type(annot[0]), annot[0]))
 
 print('type: {0} content: {1}'.format(type(annot[:]), annot[:]))
