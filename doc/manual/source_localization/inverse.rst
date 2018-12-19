@@ -8,7 +8,7 @@ This page describes the mathematical concepts and the
 computation of the minimum-norm estimates needed
 in order to obtain the linear inverse operator using
 :func:`mne.minimum_norm.make_inverse_operator`.
-Its usage is presented in the in the tutorial
+Its usage is presented in the tutorial
 :ref:`sphx_glr_auto_tutorials_plot_mne_dspm_source_localization.py`.
 
 .. contents:: Contents
@@ -293,7 +293,7 @@ Cortical patch statistics
 :func:`mne.convert_forward_solution`, and
 :func:`mne.minimum_norm.make_inverse_operator`
 controls whether to use cortical patch statistics (CPS) to define normal orientations
-or not. (see :ref:`CHDBBCEJ`)
+or not (see :ref:`CHDBBCEJ`).
 The CPS contain for each vertex of the cortical surface the information
 about the source space point closest to it as well as the distance
 from the vertex to this source space point. The vertices for which

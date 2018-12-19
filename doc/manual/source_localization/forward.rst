@@ -14,7 +14,7 @@ The forward solution
 Overview
 ########
 
-This Chapter covers the definitions of different coordinate
+This page covers the definitions of different coordinate
 systems employed in MNE software and FreeSurfer, the details of
 the computation of the forward solutions, and the associated low-level
 utilities.
@@ -390,7 +390,8 @@ Here follows the default structure given when calling ``sphere = mne.make_sphere
     Brain     0.90                     0.33
     ========  =======================  =======================
 
-Once the ``sphere`` structure is created it can be used as a ``bem`` in
+Although it is not BEM model per se the ``sphere`` structure
+describes the head geometry so it can be passed as ``bem`` parameter in
 functions such as :func:`mne.fit_dipole`, :func:`mne.viz.plot_alignment`
 or :func:`mne.make_forward_solution`.
 
