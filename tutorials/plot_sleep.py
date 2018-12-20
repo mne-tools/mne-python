@@ -35,14 +35,16 @@ raw.set_channel_types(mapping)
 ##############################################################################
 # Extract 30s events from annotations
 
-events, event_id = mne.events_from_annotations(raw, chunk_duration=30.)
-del event_id['Sleep stage ?']
+annotation_desc_2_event_id = {'Sleep stage W': 1,
+                              'Sleep stage 1': 2,
+                              'Sleep stage 2': 3,
+                              'Sleep stage 3': 4,
+                              'Sleep stage 4': 4,
+                              'Sleep stage R': 5}
+events, event_id = mne.events_from_annotations(raw,
+                    event_id=annotation_desc_2_event_id, chunk_duration=30.)
 
-# Merge stage 4 to stage 3 to follow AASM nomenclature
-events = mne.merge_events(
-    events, [event_id['Sleep stage 3'], event_id['Sleep stage 4']],
-    event_id['Sleep stage 3'])
-del event_id['Sleep stage 4']
+del event_id['Sleep stage 4']  # remove duplicated event_id
 
 mne.viz.plot_events(events, event_id=event_id, sfreq=raw.info['sfreq'])
 
