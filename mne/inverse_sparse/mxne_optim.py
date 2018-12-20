@@ -283,8 +283,8 @@ def _mixed_norm_solver_prox(M, G, alpha, lipschitz_constant, maxit=200,
             E.append(p_obj)
             logger.debug("p_obj : %s -- gap : %s" % (p_obj, gap))
             if gap < tol:
-                logger.debug('Convergence reached ! (gap: %s < %s)' % (gap,
-                             tol))
+                logger.debug('Convergence reached ! (gap: %s < %s)'
+                             % (gap, tol))
                 break
     return X, active_set, E
 
@@ -299,13 +299,11 @@ def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
 
-    if init is not None:
-        init = init.T
-
     clf = MultiTaskLasso(alpha=alpha / len(M), tol=tol / sum_squared(M),
                          normalize=False, fit_intercept=False, max_iter=maxit,
                          warm_start=True)
-    clf.coef_ = init
+    if init is not None:
+        clf.coef_ = init.T
     clf.fit(G, M)
 
     X = clf.coef_.T
@@ -375,8 +373,8 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                          (i + 1, p_obj, gap, np.sum(active_set) / n_orient))
 
             if gap < tol:
-                logger.debug('Convergence reached ! (gap: %s < %s)' % (gap,
-                             tol))
+                logger.debug('Convergence reached ! (gap: %s < %s)'
+                             % (gap, tol))
                 break
 
     X = X[active_set]
@@ -535,7 +533,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
             # add sources if not last iteration
             if k < (maxit - 1):
                 idx_large_corr = np.argsort(groups_norm2(np.dot(G.T, R),
-                                            n_orient))
+                                                         n_orient))
                 new_active_idx = idx_large_corr[-active_set_size:]
                 if n_orient > 1:
                     new_active_idx = (n_orient * new_active_idx[:, None] +
@@ -786,16 +784,16 @@ class _PhiT(object):
             z_ = np.array_split(z, np.cumsum(self.n_coefs)[:-1], axis=1)
             for i in range(self.n_dicts):
                 x_out += istft(z_[i].reshape(-1, self.n_freqs[i],
-                               self.n_steps[i]), self.tstep[i],
-                               self.n_times)
+                                             self.n_steps[i]),
+                               self.tstep[i], self.n_times)
             return x_out / np.sqrt(self.n_dicts)
 
 
 def norm_l21_tf(Z, phi, n_orient):
     """L21 norm for TF."""
     if Z.shape[0]:
-        l21_norm = np.sqrt(phi.norm(Z, ord=2).reshape(-1,
-                           n_orient).sum(axis=1))
+        l21_norm = np.sqrt(
+            phi.norm(Z, ord=2).reshape(-1, n_orient).sum(axis=1))
         l21_norm = l21_norm.sum()
     else:
         l21_norm = 0.
@@ -806,8 +804,8 @@ def norm_l1_tf(Z, phi, n_orient):
     """L1 norm for TF."""
     if Z.shape[0]:
         n_positions = Z.shape[0] // n_orient
-        Z_ = np.sqrt(np.sum((np.abs(Z) ** 2.).reshape((n_orient, -1),
-                     order='F'), axis=0))
+        Z_ = np.sqrt(np.sum(
+            (np.abs(Z) ** 2.).reshape((n_orient, -1), order='F'), axis=0))
         Z_ = Z_.reshape((n_positions, -1), order='F')
         l1_norm = phi.norm(Z_, ord=1).sum()
     else:
@@ -868,7 +866,7 @@ def norm_epsilon(Y, l1_ratio, phi):
     weights = np.empty(len(Y), dtype=int)
     weights.fill(2)
     for i, w in enumerate(np.array_split(weights,
-                          np.cumsum(phi.n_coefs)[:-1])):
+                                         np.cumsum(phi.n_coefs)[:-1])):
         w[:phi.n_steps[i]] = 1
         w[-phi.n_steps[i]:] = 1
 
@@ -924,10 +922,11 @@ def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient):
         (consecutive rows of phi(np.dot(G.T, R))).
     """
     n_positions = G.shape[1] // n_orient
-    GTRPhi = np.abs(phi(np.dot(G.T, R))) ** 2
+    GTRPhi = np.abs(phi(np.dot(G.T, R)))
     # norm over orientations:
-    GTRPhi = np.sqrt(np.sum(GTRPhi.reshape((n_orient, -1), order='F'),
-                     axis=0)).reshape((n_positions, -1), order='F')
+    GTRPhi = GTRPhi.reshape((n_orient, -1), order='F')
+    GTRPhi = np.linalg.norm(GTRPhi, axis=0)
+    GTRPhi = GTRPhi.reshape((n_positions, -1), order='F')
     nu = 0.
     for idx in range(n_positions):
         GTRPhi_ = GTRPhi[idx]
@@ -1085,9 +1084,9 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                         Z[jj] = 0.0
                         active_set_j[:] = False
                     else:
-                        shrink = np.maximum(1.0 - alpha_space_lc[jj] /
-                                            np.maximum(row_norm,
-                                            alpha_space_lc[jj]), 0.0)
+                        shrink = np.maximum(
+                            1.0 - alpha_space_lc[jj] /
+                            np.maximum(row_norm, alpha_space_lc[jj]), 0.0)
                         Z_j_new *= shrink
                         Z[jj] = Z_j_new.reshape(-1, *shape_init[1:]).copy()
                         active_set_j[:] = True
@@ -1095,7 +1094,7 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
 
         if (ii + 1) % dgap_freq == 0:
             Zd = np.vstack([Z[pos] for pos in range(n_positions)
-                           if np.any(Z[pos])])
+                            if np.any(Z[pos])])
             gap, p_obj, d_obj, _ = dgap_l21l1(
                 M, Gd, Zd, active_set, alpha_space, alpha_time, phi, phiT,
                 n_orient, d_obj)
@@ -1143,8 +1142,8 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
                 active_set[ii * n_orient:(ii + 1) * n_orient] = True
                 active.append(ii)
         if len(active):
-            Z.update(dict(zip(active, np.vsplit(Z_init[active_set],
-                     len(active)))))
+            Z.update(dict(zip(active,
+                              np.vsplit(Z_init[active_set], len(active)))))
 
     E = []
     candidates = range(n_positions)
