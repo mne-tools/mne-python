@@ -2730,7 +2730,7 @@ def hashfunc(fname, block_size=1048576, hashtype="md5"):  # 2 ** 20
     hash_ : str
         The hexadecimal digest of the hash.
     """
-    if hashtype == "mdf5":
+    if hashtype == "md5":
         hasher = hashlib.md5()
     elif hashtype == "sha1":
         hasher = hashlib.sha1()

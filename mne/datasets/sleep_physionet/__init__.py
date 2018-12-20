@@ -79,7 +79,7 @@ def data_path(path=None, force_update=False, update_path=None, verbose=None):
     return op.join(path, 'physionet-sleep-data')
 
 
-def _fecth_one(fname, hashsum, path, force_update):
+def _fetch_one(fname, hashsum, path, force_update):
     # Fetch the file
     url = BASE_URL + '/' + fname
     destination = op.join(path, fname)
@@ -157,8 +157,8 @@ def fetch_data(subjects, path=None, force_update=False, update_path=None,
         psg_fname, sha_psg = records['fname'][idx_psg], records['sha'][idx_psg]
         hyp_fname, sha_hyp = records['fname'][idx_hyp], records['sha'][idx_hyp]
 
-        psg_fname = _fecth_one(psg_fname, sha_psg, *params)
-        hyp_fname = _fecth_one(hyp_fname, sha_hyp, *params)
+        psg_fname = _fetch_one(psg_fname, sha_psg, *params)
+        hyp_fname = _fetch_one(hyp_fname, sha_hyp, *params)
         fnames.append([psg_fname, hyp_fname])
 
     return fnames
