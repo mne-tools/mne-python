@@ -1068,12 +1068,23 @@ def _remove_duplicate_rows(arr):
 ###############################################################################
 # csr_matrix.argmax from SciPy 0.19+
 
+def _find_missing_index(ind, n):
+    for k, a in enumerate(ind):
+        if k != a:
+            return k
+
+    k += 1
+    if k < n:
+        return k
+    else:
+        return -1
+
+
 def _sparse_argmax(mat, axis):
     import scipy
     if LooseVersion(scipy.__version__) >= '0.19':
         return mat.argmax(axis)
     else:
-        from scipy.sparse.data import _find_missing_index
         op = np.argmax
         compare = np.greater
         self = mat
