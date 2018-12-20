@@ -120,8 +120,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         show_first_samp is True, then it is taken relative to
         ``raw.first_samp``.
     n_channels : int
-        Number of channels to plot at once. Defaults to 20. Has no effect if
-        ``order`` is 'position', 'selection' or 'butterfly'.
+        Number of channels to plot at once. Defaults to 20 unless the ``raw``
+        has less than 20 channels. Then it defaults to the number of channels
+        in ``raw``.
+        Has no effect if ``order`` is 'position', 'selection' or 'butterfly'.
     bgcolor : color object
         Color of the background.
     color : dict | color object | None
@@ -262,6 +264,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     color = _handle_default('color', color)
     scalings = _compute_scalings(scalings, raw)
     scalings = _handle_default('scalings_plot_raw', scalings)
+    n_channels = min(len(self.info['chs']), n_channels)
 
     if clipping is not None and clipping not in ('clamp', 'transparent'):
         raise ValueError('clipping must be None, "clamp", or "transparent", '
