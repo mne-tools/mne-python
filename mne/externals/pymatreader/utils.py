@@ -102,7 +102,8 @@ def _handle_hdf5_dataset(hdf5_object):
     if 'MATLAB_empty' in hdf5_object.attrs.keys():
         data = numpy.empty((0,))
     else:
-        data = hdf5_object.value
+        # this used to be just hdf5_object.value, but this is deprecated
+        data = hdf5_object[()]
 
     if isinstance(data, numpy.ndarray) and \
             data.dtype == numpy.dtype('object'):

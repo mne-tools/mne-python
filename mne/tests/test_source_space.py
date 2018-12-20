@@ -291,6 +291,8 @@ def test_other_volume_source_spaces():
     pytest.raises(ValueError, read_source_spaces, temp_name)
 
 
+@pytest.mark.timeout(60)  # can be slow on OSX Travis
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_triangle_neighbors():
     """Test efficient vertex neighboring triangles for surfaces."""
@@ -647,6 +649,7 @@ def test_morph_source_spaces():
     _compare_source_spaces(src_morph, src_morph_py, mode='approx')
 
 
+@pytest.mark.timeout(60)  # can be slow on OSX Travis
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_morphed_source_space_return():
