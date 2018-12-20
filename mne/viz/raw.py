@@ -120,9 +120,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         show_first_samp is True, then it is taken relative to
         ``raw.first_samp``.
     n_channels : int
-        Number of channels to plot at once. Defaults to 20 unless the ``raw``
-        has less than 20 channels. Then it defaults to the number of channels
-        in ``raw``.
+        Number of channels to plot at once. Defaults to 20. The lesser of
+        ``n_channels`` and ``len(raw.ch_names)`` will be shown.
         Has no effect if ``order`` is 'position', 'selection' or 'butterfly'.
     bgcolor : color object
         Color of the background.

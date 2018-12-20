@@ -19,7 +19,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-- :meth:`mne.io.Raw.plot` now adapts default parameter ``n_channels=20`` in the ``raw`` object has less than 20 channels `Joan Massich`_
+- :meth:`mne.io.Raw.plot` now uses the lesser of ``n_channels`` and ``raw.ch_names``, by `Joan Massich`_
 
 - Add ``chunk_duration`` parameter to :func:`mne.events_from_annotations` to allow multiple events from a single annotation by `Joan Massich`_
 
