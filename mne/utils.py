@@ -2689,8 +2689,7 @@ class SilenceStdout(object):
         sys.stdout = self.stdout
 
 
-# XXX deprecate
-@deprecated('mne.utils.md5sum will be deprecated in 0.19, please use'
+@deprecated('mne.utils.md5sum will be deprecated in 0.19, please use '
             'mne.utils.hashfunc(... , hashtype="md5") instead.')
 def md5sum(fname, block_size=1048576):  # 2 ** 20
     """Calculate the md5sum for a file.

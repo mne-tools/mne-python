@@ -31,7 +31,8 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        check_fname, get_config_path, warn,
                        object_size, buggy_mkl_svd, _get_inst_data,
                        copy_doc, copy_function_doc_to_method_doc, ProgressBar,
-                       linkcode_resolve, array_split_idx, filter_out_warnings)
+                       linkcode_resolve, array_split_idx, filter_out_warnings,
+                       hashfunc)
 
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -287,9 +288,33 @@ def test_md5sum():
         fid.write(b'abcd')
     with open(fname2, 'wb') as fid:
         fid.write(b'efgh')
-    assert_equal(md5sum(fname1), md5sum(fname1, 1))
-    assert_equal(md5sum(fname2), md5sum(fname2, 1024))
-    assert (md5sum(fname1) != md5sum(fname2))
+
+    with pytest.deprecated_call(match="please use .*hashfunc"):
+        assert_equal(md5sum(fname1), md5sum(fname1, 1))
+        assert_equal(md5sum(fname2), md5sum(fname2, 1024))
+        assert (md5sum(fname1) != md5sum(fname2))
+
+
+def test_hashfunc():
+    """Test md5/sha1 hash calculations."""
+    tempdir = _TempDir()
+    fname1 = op.join(tempdir, 'foo')
+    fname2 = op.join(tempdir, 'bar')
+    with open(fname1, 'wb') as fid:
+        fid.write(b'abcd')
+    with open(fname2, 'wb') as fid:
+        fid.write(b'efgh')
+
+    for hashtype in ('md5', 'sha1'):
+        hash1 = hashfunc(fname1, hashtype=hashtype)
+        hash1_ = hashfunc(fname1, 1, hashtype=hashtype)
+
+        hash2 = hashfunc(fname2, hashtype=hashtype)
+        hash2_ = hashfunc(fname2, 1024, hashtype=hashtype)
+
+        assert hash1 == hash1_
+        assert hash2 == hash2_
+        assert hash1 != hash2
 
 
 def test_tempdir():
