@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- :meth:`mne.io.Raw.plot` now adapts default parameter ``n_channels=20`` in the ``raw`` object has less than 20 channels `Joan Massich`_
+
 - Add ``chunk_duration`` parameter to :func:`mne.events_from_annotations` to allow multiple events from a single annotation by `Joan Massich`_
 
 - :func:`mne.io.read_raw_edf` now detects analog stim channels labeled ``'STATUS'`` and sets them as stim channel. :func:`mne.io.read_raw_edf` no longer synthesize TAL annotations into stim channel but stores them in ``raw.annotations`` when reading by `Joan Massich`_
