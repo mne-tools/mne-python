@@ -1846,6 +1846,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None):
+        n_channels = min(len(self.info['chs']), n_channels)
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
