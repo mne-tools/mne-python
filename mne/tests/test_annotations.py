@@ -824,19 +824,45 @@ def test_dummy():
     class Ob(object):
         def __init__(self):
             self.NUM = 5
-            self.a = [x for x in range(self.NUM)]
-            self.b = [x.__repr__() for x in range(self.NUM)]
+            self.a = np.array([x for x in range(self.NUM)])
+            self.b = np.array([x.__repr__() for x in range(self.NUM)])
 
         def __iter__(self):
             for ii in range(self.NUM):
                 yield (self.a[ii], self.b[ii])
-            return
 
     xx = Ob()
     for ii, elem in enumerate([(x, y) for x, y in xx]):
         assert elem[0] == ii
         assert elem[1] == str(ii)
 
+def test_annotations_simple_iterator():
+    """Test indexing Annotations."""
+    NUM_ANNOT = 10
+    EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
+    EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
+
+    annot = Annotations(onset=EXPECTED_ONSETS,
+                        duration=EXPECTED_DURATIONS.copy(),
+                        description=EXPECTED_DESCS,
+                        orig_time=None)
+
+    EXPECTED_ELEMENTS_TYPE = (np.float64, np.float64, np.str_)
+    for onset, duration, description in annot:
+        elements = (onset, duration, description)
+        for elem, expected_type in zip(elements, EXPECTED_ELEMENTS_TYPE):
+            assert np.isscalar(elem)
+            assert isinstance(elem, expected_type)
+
+    my_new_annot = annot[slice(0, None, 2)]
+    assert isinstance(my_new_annot, Annotations)
+
+    bool_sequence = [bool(ii%2) for ii in range(len(annot))]
+    for onset, duration, description in annot[bool_sequence]:
+        elements = (onset, duration, description)
+        for elem, expected_type in zip(elements, EXPECTED_ELEMENTS_TYPE):
+            assert np.isscalar(elem)
+            assert isinstance(elem, expected_type)
 
 def test_annotations_xx():
     """Test indexing Annotations."""

@@ -217,12 +217,11 @@ class Annotations(object):
     def __iter__(self):
         for idx in range(len(self.onset)):
             yield (self.onset[idx], self.duration[idx], self.description[idx])
-        return
 
     def __getitem__(self, key):
         """Propagate indexing and slicing to the underlying numpy structure."""
         try:
-            if isinstance(key, slice):
+            if isinstance(key, slice) or isinstance(key, list):
                 print('__getitem__ with slice: {}'.format(key))
                 out = Annotations(onset=self.onset[key],
                                   duration=self.duration[key],
@@ -235,7 +234,7 @@ class Annotations(object):
                                   description=[self.description[key]],
                                   orig_time=self.orig_time)
             else:
-                pass
+                raise TypeError
                 # out = (self.onset[key].copy(),
                 #        self.duration[key].copy(),
                 #        self.description[key].copy())
