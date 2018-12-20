@@ -9,6 +9,8 @@ the source space is defined as a grid of dipoles that spans a large portion of
 the cortex. These dipoles have both a position and an orientation. In this
 tutorial, we will look at the various options available to restrict the
 orientation of the dipoles and the impact on the resulting source estimate.
+
+See :ref:`inverse_orientation_constrains`
 """
 
 ###############################################################################
@@ -58,6 +60,8 @@ mlab.points3d(dip_pos[:, 0], dip_pos[:, 1], dip_pos[:, 2], color=red,
 mlab.view(azimuth=180, distance=0.25)
 
 ###############################################################################
+# .. _plot_dipole_orientations_fixed_orientations:
+#
 # Fixed dipole orientations
 # -------------------------
 # While the source space defines the position of the dipoles, the inverse
@@ -107,6 +111,8 @@ brain = stc.plot(surface='white', subjects_dir=subjects_dir,
 # of the electromagnetic field picked up by the sensors.
 
 ###############################################################################
+# .. _plot_dipole_orientations_fLOC_orientations:
+#
 # Loose dipole orientations
 # -------------------------
 # Forcing the source dipoles to be strictly orthogonal to the cortex makes the
@@ -155,6 +161,8 @@ brain = stc.plot(subjects_dir=subjects_dir, initial_time=time_max,
                  time_unit='s', size=(600, 400), overlay_alpha=0)
 
 ###############################################################################
+# .. _plot_dipole_orientations_vLOC_orientations:
+#
 # Limiting orientations, but not fixing them
 # ------------------------------------------
 # Often, the best results will be obtained by allowing the dipoles to have

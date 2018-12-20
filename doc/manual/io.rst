@@ -209,7 +209,7 @@ by another and apply the product to the data:
 
 .. math::    x_{(k)} = M_{(k)} M_{(p)}^{-1} x_{(p)}\ .
 
-This operation is performed by :ref:`mne_compensate_data`.
+This operation is performed by :meth:`mne.io.Raw.apply_gradient_compensation`.
 
 
 Importing KIT MEG system data

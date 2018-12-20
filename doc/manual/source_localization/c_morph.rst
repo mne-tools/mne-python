@@ -1,6 +1,6 @@
 :orphan:
 
-.. _ch_morph:
+.. _c_legacy_ch_morph:
 
 ======================
 Morphing and averaging

@@ -216,6 +216,9 @@ with a ~5-mm spacing between the grid points, say::
 
 This creates the source spaces and writes them to disk.
 
+:ref:`plot_forward_source_space` illustrates how the source space is used to
+compute the forward model.
+
 .. _CHDBJCIA:
 
 Creating the BEM model meshes
@@ -321,10 +324,13 @@ the definition of the coordinate transformation computation
 for each experimental session, *i.e.*, each time when new head
 digitization data are employed.
 
-The interactive source analysis software :ref:`mne_analyze` provides
-tools for coordinate frame alignment, see :ref:`ch_interactive_analysis`.
-:ref:`CHDIJBIG` also contains tips for using :ref:`mne_analyze` for
-this purpose.
+The corregistration is stored in ``-trans.fif`` file. If is present,
+you can follow :ref:`plot_source_alignment` to validate its correctness.
+If the ``-trans.fif`` is not present or the alignment is not correct
+you need to use :func:`mne.gui.coregistration` (or its convenient command line
+equivalent :ref:`gen_mne_coreg`) to generate it.
+
+.. XXX: It would be good to link to the ``-trans.fif`` file description
 
 .. warning:: This step is important. If the alignment of the
              coordinate frames is inaccurate all subsequent processing
@@ -421,7 +427,7 @@ And the results can be viewed as::
 The interactive analysis tool :ref:`mne_analyze` can also
 be used to explore the data and to produce quantitative analysis
 results, screen snapshots, and QuickTime (TM) movie files,
-see :ref:`ch_interactive_analysis`.
+see :ref:`c_legacy_ch_interactive_analysis`.
 
 Group analyses
 --------------
@@ -432,4 +438,4 @@ done *e.g.*, to ``subject='fsaverage'`` as::
     >>> morph = mne.compute_source_morph(stc, subject_from='sample', subject_to='fsaverage')  # doctest: +SKIP
     >>> stc_fsaverage = morph.apply(stc)  # doctest: +SKIP
 
-See :ref:`sphx_glr_auto_tutorials_plot_morph_stc.py` for more information.
+See :ref:`ch_morph` for more information.

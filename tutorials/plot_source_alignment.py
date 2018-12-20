@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _plot_source_alignment:
+
 Source alignment and coordinate frames
 ======================================
 
@@ -186,12 +188,15 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
 # mne.gui.coregistration(subject='sample', subjects_dir=subjects_dir)
 
 ###############################################################################
+# .. _plot_source_alignment_without_mri:
+#
 # Alignment without MRI
 # ---------------------
 # The surface alignments above are possible if you have the surfaces available
 # from Freesurfer. :func:`mne.viz.plot_alignment` automatically searches for
 # the correct surfaces from the provided ``subjects_dir``. Another option is
-# to use a spherical conductor model. It is passed through ``bem`` parameter.
+# to use a :ref:`spherical conductor model <ch_forward_spherical_model>`. It is
+# passed through ``bem`` parameter.
 
 sphere = mne.make_sphere_model(info=raw.info, r0='auto', head_radius='auto')
 src = mne.setup_volume_source_space(sphere=sphere, pos=10.)

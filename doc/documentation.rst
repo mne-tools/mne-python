@@ -377,7 +377,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_background_freesurfer.rst
     manual/source_localization/forward.rst
     manual/source_localization/inverse.rst
-    auto_tutorials/plot_morph_stc.rst
+    manual/source_localization/morph_stc.rst
 
 **Getting data to source space**
 
@@ -393,7 +393,6 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_point_spread.rst
     auto_tutorials/plot_dipole_orientations.rst
     auto_tutorials/plot_dics.rst
-    auto_tutorials/plot_background_freesurfer.rst
 
 
 .. raw:: html
@@ -681,6 +680,9 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     manual/c_reference.rst
     manual/gui/analyze.rst
     manual/gui/browse.rst
+    manual/source_localization/c_forward.rst
+    manual/source_localization/c_inverse.rst
+    manual/source_localization/c_morph.rst
     manual/appendix/bem_model.rst
     manual/appendix/c_misc.rst
     manual/appendix/c_release_notes.rst

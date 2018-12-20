@@ -1504,6 +1504,13 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                               add_interpolator=True, verbose=None):
     """Set up a volume source space with grid spacing or discrete source space.
 
+    When you work with a volume source space you need to specify the domain in
+    which the grid will be defined. There are three ways of specifying this:
+    (i) sphere, (ii) bem model, and (iii) surface.
+    The default behavior is to use sphere model
+    (``sphere=(0.0, 0.0, 0.0, 90.0)``) if ``bem`` or ``sourface`` is not
+    ``None`` then ``sphere`` is ignored.
+
     Parameters
     ----------
     subject : str | None
