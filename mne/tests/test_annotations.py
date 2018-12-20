@@ -794,6 +794,120 @@ def test_read_annotation_txt_orig_time(
     assert_array_equal(annot.description, ['AA', 'BB'])
 
 
+def test_annotations_foo():
+    """Test indexing Annotations."""
+    NUM_ANNOT = 5
+    EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
+    EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
+
+    annot = Annotations(onset=EXPECTED_ONSETS,
+                        duration=EXPECTED_DURATIONS,
+                        description=EXPECTED_DESCS,
+                        orig_time=None)
+
+    EXPECTED_ELEMENTS_TYPE = (np.float64, np.float64, np.str_)
+    for onset, duration, description in annot:
+        elements = (onset, duration, description)
+        for elem, expected_type in zip(elements, EXPECTED_ELEMENTS_TYPE):
+            assert np.isscalar(elem)
+            assert type(elem) == expected_type
+
+    EXPECTED_ELEMENTS_TYPE = (np.float64, np.float64, np.str_)
+    for ii, (onset, duration, description) in enumerate(annot):
+        elements = (onset, duration, description)
+        for elem, expected_type in zip(elements, EXPECTED_ELEMENTS_TYPE):
+            assert np.isscalar(elem)
+            assert type(elem) == expected_type
+        assert (onset, druation, description) == (ii, ii, str(ii))
+
+def test_dummy():
+    class Ob(object):
+        def __init__(self):
+            self.NUM = 5
+            self.a = [x for x in range(self.NUM)]
+            self.b = [x.__repr__() for x in range(self.NUM)]
+
+        def __iter__(self):
+            for ii in range(self.NUM):
+                yield (self.a[ii], self.b[ii])
+            return
+
+    xx = Ob()
+    for ii, elem in enumerate([(x, y) for x, y in xx]):
+        assert elem[0] == ii
+        assert elem[1] == str(ii)
+
+
+def test_annotations_xx():
+    """Test indexing Annotations."""
+    NUM_ANNOT = 10
+    EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
+    EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
+
+    annot = Annotations(onset=EXPECTED_ONSETS,
+                        duration=EXPECTED_DURATIONS,
+                        description=EXPECTED_DESCS,
+                        orig_time=None)
+
+    every_other = slice(0, None, 2)
+    for kk in [every_other, 1]:
+        xx = annot[kk]
+        print(type(xx))
+        print(len(xx))
+
+    bool_sequence = [bool(ii%2) for ii in range(len(annot))]
+    for onset, duration, description in annot[bool_sequence]:
+        elements = (onset, duration, description)
+        for elem, expected_type in zip(elements, EXPECTED_ELEMENTS_TYPE):
+            assert np.isscalar(elem)
+            assert type(elem) == expected_type
+
+def test_annotations_bar():
+    """Test indexing Annotations."""
+    NUM_ANNOT = 5
+    EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
+    EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
+
+    annot = Annotations(onset=EXPECTED_ONSETS,
+                        duration=EXPECTED_DURATIONS,
+                        description=EXPECTED_DESCS,
+                        orig_time=None)
+
+    EXPECTED_ELEMENTS_TYPE = (np.float64, np.float64, np.str_)
+    for ii, (onset, duration, description) in enumerate(annot[:2]):
+        elements = (onset, duration, description)
+        for elem, expected_type in zip(elements, EXPECTED_ELEMENTS_TYPE):
+            assert np.isscalar(elem)
+            assert type(elem) == expected_type
+        assert (onset, druation, description) == (ii, ii, str(ii))
+
+    EXPECTED_ELEMENTS_TYPE = (np.float64, np.float64, np.str_)
+    for onset, duration, description in annot[:2]:
+        elements = (onset, duration, description)
+        for elem, expected_type in zip(elements, EXPECTED_ELEMENTS_TYPE):
+            assert np.isscalar(elem)
+            assert type(elem) == expected_type
+
+
+def test_annotations_foo():
+    """Test indexing Annotations."""
+    NUM_ANNOT = 5
+    EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
+    EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
+
+    annot = Annotations(onset=EXPECTED_ONSETS,
+                        duration=EXPECTED_DURATIONS,
+                        description=EXPECTED_DESCS,
+                        orig_time=None)
+
+    EXPECTED_ELEMENTS_TYPE = (np.float64, np.float64, np.str_)
+    for onset, duration, description in annot:
+        elements = (onset, duration, description)
+        for elem, expected_type in zip(elements, EXPECTED_ELEMENTS_TYPE):
+            assert np.isscalar(elem)
+            assert type(elem) == expected_type
+
+
 def test_annotations_slices():
     """Test indexing Annotations."""
     NUM_ANNOT = 5

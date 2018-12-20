@@ -214,12 +214,31 @@ class Annotations(object):
                                                  other.orig_time))
         return self.append(other.onset, other.duration, other.description)
 
+    def __iter__(self):
+        for idx in range(len(self.onset)):
+            yield (self.onset[idx], self.duration[idx], self.description[idx])
+        return
+
     def __getitem__(self, key):
         """Propagate indexing and slicing to the underlying numpy structure."""
         try:
-            out = (self.onset[key].copy(),
-                   self.duration[key].copy(),
-                   self.description[key].copy())
+            if isinstance(key, slice):
+                print('__getitem__ with slice: {}'.format(key))
+                out = Annotations(onset=self.onset[key],
+                                  duration=self.duration[key],
+                                  description=self.description[key],
+                                  orig_time=self.orig_time)
+            elif isinstance(key, int):
+                print('__getitem__ with integer: {}'.format(key))
+                out = Annotations(onset=[self.onset[key]],
+                                  duration=[self.duration[key]],
+                                  description=[self.description[key]],
+                                  orig_time=self.orig_time)
+            else:
+                pass
+                # out = (self.onset[key].copy(),
+                #        self.duration[key].copy(),
+                #        self.description[key].copy())
 
         except IndexError as idx_error:
             if idx_error.args[0].startswith('only integers'):
