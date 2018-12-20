@@ -9,6 +9,7 @@ import re
 from copy import deepcopy
 from itertools import takewhile
 from collections import OrderedDict
+import collections
 
 import numpy as np
 
@@ -176,11 +177,8 @@ class Annotations(object):
 
     def __repr__(self):
         """Show the representation."""
-        kinds = sorted(set('%s' % d.split(' ')[0].lower()
-                           for d in self.description))
-        kinds = ['%s (%s)' % (kind, sum(d.lower().startswith(kind)
-                                        for d in self.description))
-                 for kind in kinds]
+        counter = collections.Counter(self.description)
+        kinds = ['%s (%s)' % k for k in counter.items()]
         kinds = ', '.join(kinds[:3]) + ('' if len(kinds) <= 3 else '...')
         kinds = (': ' if len(kinds) > 0 else '') + kinds
         if self.orig_time is None:
