@@ -14,7 +14,7 @@ from ..annotations import _annotations_starts_stops
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels, channel_type)
 from ..io.meas_info import create_info
-from ..utils import verbose, get_config, _ensure_int
+from ..utils import verbose, get_config, _ensure_int, _validate_type
 from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
@@ -120,8 +120,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         show_first_samp is True, then it is taken relative to
         ``raw.first_samp``.
     n_channels : int
-        Number of channels to plot at once. Defaults to 20. Has no effect if
-        ``order`` is 'position', 'selection' or 'butterfly'.
+        Number of channels to plot at once. Defaults to 20. The lesser of
+        ``n_channels`` and ``len(raw.ch_names)`` will be shown.
+        Has no effect if ``order`` is 'position', 'selection' or 'butterfly'.
     bgcolor : color object
         Color of the background.
     color : dict | color object | None
@@ -259,9 +260,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     from scipy.signal import butter
+    from ..io.base import BaseRaw
     color = _handle_default('color', color)
     scalings = _compute_scalings(scalings, raw)
     scalings = _handle_default('scalings_plot_raw', scalings)
+    _validate_type(raw, BaseRaw, 'raw', 'Raw')
+    n_channels = min(len(raw.info['chs']), n_channels)
 
     if clipping is not None and clipping not in ('clamp', 'transparent'):
         raise ValueError('clipping must be None, "clamp", or "transparent", '

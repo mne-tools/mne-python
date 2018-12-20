@@ -784,7 +784,7 @@ def _plot_raw_onkey(event, params):
         params['scale_factor'] /= 1.1
         params['plot_fun']()
     elif event.key == 'pageup' and 'fig_selection' not in params:
-        n_channels = params['n_channels'] + 1
+        n_channels = min(params['n_channels'] + 1, len(params['info']['chs']))
         _setup_browser_offsets(params, n_channels)
         _channels_changed(params, len(params['inds']))
     elif event.key == 'pagedown' and 'fig_selection' not in params:
