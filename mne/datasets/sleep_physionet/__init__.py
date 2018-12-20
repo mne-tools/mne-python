@@ -131,7 +131,7 @@ def fetch_data(subjects, path=None, force_update=False, update_path=None,
     For example, one could do:
 
         >>> from mne.datasets import sleep_physionet
-        >>> sleep_physionet.fetch_data(subjects=[0])
+        >>> sleep_physionet.fetch_data(subjects=[0])  # doctest: +SKIP
 
     This would download data for subject 0 if it isn't there already.
 
