@@ -11,6 +11,7 @@ import os.path as op
 
 import numpy as np
 import pytest
+import matplotlib.pyplot as plt
 
 from mne import (read_events, read_cov, read_source_spaces, read_evokeds,
                  read_dipole, SourceEstimate)
@@ -22,10 +23,6 @@ from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
                      plot_snr_estimate, plot_filter, plot_csd)
 from mne.utils import requires_nibabel, run_tests_if_main, requires_version
 from mne.time_frequency import CrossSpectralDensity
-
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -54,7 +51,6 @@ def _get_events():
 @requires_version('scipy', '0.16')
 def test_plot_filter():
     """Test filter plotting."""
-    import matplotlib.pyplot as plt
     l_freq, h_freq, sfreq = 2., 40., 1000.
     data = np.zeros(5000)
     freq = [0, 2, 40, 50, 500]
@@ -79,7 +75,6 @@ def test_plot_filter():
 
 def test_plot_cov():
     """Test plotting of covariances."""
-    import matplotlib.pyplot as plt
     raw = _get_raw()
     cov = read_cov(cov_fname)
     with pytest.warns(RuntimeWarning, match='projection'):
@@ -106,7 +101,6 @@ def test_plot_bem():
 
 def test_plot_events():
     """Test plotting events."""
-    import matplotlib.pyplot as plt
     event_labels = {'aud_l': 1, 'aud_r': 2, 'vis_l': 3, 'vis_r': 4}
     color = {1: 'green', 2: 'yellow', 3: 'red', 4: 'c'}
     raw = _get_raw()
@@ -135,7 +129,6 @@ def test_plot_events():
 @testing.requires_testing_data
 def test_plot_source_spectrogram():
     """Test plotting of source spectrogram."""
-    import matplotlib.pyplot as plt
     sample_src = read_source_spaces(op.join(subjects_dir, 'sample',
                                             'bem', 'sample-oct-6-src.fif'))
 
@@ -158,7 +151,6 @@ def test_plot_source_spectrogram():
 @testing.requires_testing_data
 def test_plot_snr():
     """Test plotting SNR estimate."""
-    import matplotlib.pyplot as plt
     inv = read_inverse_operator(inv_fname)
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
     plot_snr_estimate(evoked, inv)
@@ -168,7 +160,6 @@ def test_plot_snr():
 @testing.requires_testing_data
 def test_plot_dipole_amplitudes():
     """Test plotting dipole amplitudes."""
-    import matplotlib.pyplot as plt
     dipoles = read_dipole(dip_fname)
     dipoles.plot_amplitudes(show=False)
     plt.close('all')
@@ -176,7 +167,6 @@ def test_plot_dipole_amplitudes():
 
 def test_plot_csd():
     """Test plotting of CSD matrices."""
-    import matplotlib.pyplot as plt
     csd = CrossSpectralDensity([1, 2, 3], ['CH1', 'CH2'],
                                frequencies=[(10, 20)], n_fft=1,
                                tmin=0, tmax=1,)

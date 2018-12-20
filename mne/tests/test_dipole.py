@@ -2,6 +2,7 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
+import matplotlib.pyplot as plt
 import pytest
 
 from mne import (read_dipole, read_forward_solution,
@@ -23,9 +24,6 @@ from mne.io.constants import FIFF
 from mne.surface import _compute_nearest
 from mne.bem import _bem_find_surface, read_bem_solution
 from mne.transforms import apply_trans, _get_trans
-
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 data_path = testing.data_path(download=False)
 meg_path = op.join(data_path, 'MEG', 'sample')
@@ -185,7 +183,6 @@ def test_dipole_fitting():
 @testing.requires_testing_data
 def test_dipole_fitting_fixed():
     """Test dipole fitting with a fixed position."""
-    import matplotlib.pyplot as plt
     tpeak = 0.073
     sphere = make_sphere_model(head_radius=0.1)
     evoked = read_evokeds(fname_evo, baseline=(None, 0))[0]

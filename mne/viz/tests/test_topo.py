@@ -10,6 +10,8 @@ from collections import namedtuple
 
 import numpy as np
 import pytest
+import matplotlib
+import matplotlib.pyplot as plt
 
 from mne import read_events, Epochs, pick_channels_evoked, read_cov
 from mne.channels import read_layout
@@ -24,11 +26,6 @@ from mne.viz.utils import _fake_click
 
 from mne.viz.topo import (_plot_update_evoked_topo_proj, iter_topography,
                           _imshow_tfr)
-
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
-
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -75,7 +72,6 @@ def _get_epochs_delayed_ssp():
 
 def test_plot_topo():
     """Test plotting of ERP topography."""
-    import matplotlib.pyplot as plt
     # Show topography
     evoked = _get_epochs().average()
     # should auto-find layout
@@ -156,7 +152,6 @@ def test_plot_topo():
 
 def test_plot_topo_single_ch():
     """Test single channel topoplot with time cursor."""
-    import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     fig = plot_evoked_topo(evoked, background_color='w')
     # test status bar message
@@ -176,7 +171,6 @@ def test_plot_topo_single_ch():
 
 def test_plot_topo_image_epochs():
     """Test plotting of epochs image topography."""
-    import matplotlib.pyplot as plt
     title = 'ERF images - MNE sample data'
     epochs = _get_epochs()
     epochs.load_data()
@@ -194,8 +188,6 @@ def test_plot_topo_image_epochs():
 
 def test_plot_tfr_topo():
     """Test plotting of TFR data."""
-    import matplotlib.pyplot as plt
-
     epochs = _get_epochs()
     n_freqs = 3
     nave = 1

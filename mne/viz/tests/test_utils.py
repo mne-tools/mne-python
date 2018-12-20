@@ -7,6 +7,8 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 from mne.viz.utils import (compare_fiff, _fake_click, _compute_scalings,
                            _validate_if_list_of_axes, _get_color_list,
@@ -16,10 +18,6 @@ from mne.utils import run_tests_if_main
 from mne.io import read_raw_fif
 from mne.event import read_events
 from mne.epochs import Epochs
-
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -51,7 +49,6 @@ def test_mne_analyze_colormap():
 
 def test_compare_fiff():
     """Test compare_fiff."""
-    import matplotlib.pyplot as plt
     compare_fiff(raw_fname, cov_fname, read_limit=0, show=False)
     plt.close('all')
 
@@ -59,7 +56,6 @@ def test_compare_fiff():
 def test_clickable_image():
     """Test the ClickableImage class."""
     # Gen data and create clickable image
-    import matplotlib.pyplot as plt
     im = np.random.RandomState(0).randn(100, 100)
     clk = ClickableImage(im)
     clicks = [(12, 8), (46, 48), (10, 24)]
@@ -81,7 +77,6 @@ def test_clickable_image():
 
 def test_add_background_image():
     """Test adding background image to a figure."""
-    import matplotlib.pyplot as plt
     rng = np.random.RandomState(0)
     for ii in range(2):
         f, axs = plt.subplots(1, 2)
@@ -142,7 +137,6 @@ def test_auto_scale():
 
 def test_validate_if_list_of_axes():
     """Test validation of axes."""
-    import matplotlib.pyplot as plt
     fig, ax = plt.subplots(2, 2)
     pytest.raises(ValueError, _validate_if_list_of_axes, ax)
     ax_flat = ax.ravel()
@@ -163,7 +157,6 @@ def test_validate_if_list_of_axes():
 
 def test_center_cmap():
     """Test centering of colormap."""
-    import matplotlib.cm as cm
     from matplotlib.colors import LinearSegmentedColormap
     from matplotlib.pyplot import Normalize
     cmap = center_cmap(cm.get_cmap("RdBu"), -5, 10)

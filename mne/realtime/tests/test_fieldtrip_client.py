@@ -23,10 +23,6 @@ from mne.realtime import FieldTripClient, RtEpochs
 
 from mne.realtime.tests.test_mockclient import _call_base_epochs_public_api
 
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
-
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.realpath(op.join(base_dir, 'test_raw.fif'))
 
@@ -42,7 +38,7 @@ def free_tcp_port():
 def _run_buffer(kill_signal, server_port):
     """Start a FieldTrip Buffer from FIF file as a subprocess."""
     neuromag2ft_fname = op.realpath(op.join(os.environ['NEUROMAG2FT_ROOT'],
-                                    'neuromag2ft'))
+                                            'neuromag2ft'))
     # Works with neuromag2ft-3.0.2
     cmd = (neuromag2ft_fname, '--file', raw_fname, '--speed', '8.0',
            '--bufport', str(server_port))
