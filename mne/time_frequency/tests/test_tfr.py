@@ -504,13 +504,12 @@ def test_plot_joint():
                    topomap_args=topomap_args)
     plt.close('all')
     assert_array_equal(tfr.data, tfr_orig.data)
-    assert (set(tfr.ch_names) == set(tfr_orig.ch_names))
-    assert (set(tfr.times) == set(tfr_orig.times))
+    assert set(tfr.ch_names) == set(tfr_orig.ch_names)
+    assert set(tfr.times) == set(tfr_orig.times)
 
     # test tfr with picked channels
     tfr.pick_channels(tfr.ch_names[:-1])
-    tfr.plot_joint(title='auto', colorbar=True, 
-        topomap_args=topomap_args)
+    tfr.plot_joint(title='auto', colorbar=True, topomap_args=topomap_args)
 
 def test_add_channels():
     """Test tfr splitting / re-appending channel types."""
@@ -620,8 +619,8 @@ def test_compute_tfr():
 
     # Inter-trial coherence tests
     out = _compute_tfr(data, freqs, sfreq, output='itc', n_cycles=2.)
-    assert (np.sum(out >= 1) == 0)
-    assert (np.sum(out <= 0) == 0)
+    assert np.sum(out >= 1) == 0
+    assert np.sum(out <= 0) == 0
 
     # Check decim shapes
     # 2: multiple of len(times) even
