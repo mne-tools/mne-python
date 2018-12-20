@@ -1519,7 +1519,7 @@ class AverageTFR(_BaseTFR):
             # only use position information for channels from layout 
             # whose names appear as a substring in tfr.ch_names
             idx = [any(ch_name in ch_name_tfr for ch_name_tfr in tfr.ch_names)
-                   for ch_name in enumerate(loaded_layout.names)]
+                   for ch_name in loaded_layout.names]
             pos = loaded_layout.pos[idx]
 
             # merging grads here before rescaling makes ERDs visible
