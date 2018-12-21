@@ -13,6 +13,7 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
+import matplotlib.pyplot as plt
 
 import mne
 from mne import (read_events, Epochs, read_cov, compute_covariance,
@@ -23,10 +24,6 @@ from mne.viz.evoked import plot_compare_evokeds
 from mne.viz.utils import _fake_click
 from mne.stats import _parametric_ci
 from mne.datasets import testing
-
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -68,8 +65,6 @@ def _get_epochs_delayed_ssp():
 
 def test_plot_evoked_cov():
     """Test plot_evoked with noise_cov."""
-    return
-    import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     cov = read_cov(cov_fname)
     cov['projs'] = []  # avoid warnings
@@ -91,7 +86,6 @@ def test_plot_evoked_cov():
 @pytest.mark.slowtest
 def test_plot_evoked():
     """Test evoked.plot."""
-    import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     fig = evoked.plot(proj=True, hline=[1], exclude=[], window_title='foo',
                       time_unit='s')
@@ -143,7 +137,6 @@ def test_plot_evoked():
 
 def test_plot_evoked_image():
     """Test plot_evoked_image."""
-    import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     evoked.plot_image(proj=True, time_unit='ms')
 
@@ -191,7 +184,6 @@ def test_plot_evoked_image():
 
 def test_plot_white():
     """Test plot_white."""
-    import matplotlib.pyplot as plt
     cov = read_cov(cov_fname)
     cov['method'] = 'empirical'
     cov['projs'] = []  # avoid warnings
@@ -222,7 +214,6 @@ def test_plot_white():
 
 def test_plot_compare_evokeds():
     """Test plot_compare_evokeds."""
-    import matplotlib.pyplot as plt
     rng = np.random.RandomState(0)
     evoked = _get_epochs().average()
     # plot_compare_evokeds: test condition contrast, CI, color assignment

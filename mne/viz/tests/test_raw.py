@@ -9,6 +9,8 @@ from distutils.version import LooseVersion
 
 from numpy.testing import assert_allclose
 import pytest
+import matplotlib
+import matplotlib.pyplot as plt
 
 from mne import read_events, pick_types, Annotations
 from mne.datasets import testing
@@ -16,10 +18,6 @@ from mne.io import read_raw_fif, read_raw_ctf
 from mne.utils import run_tests_if_main
 from mne.viz.utils import _fake_click, _annotation_radio_clicked, _sync_onset
 from mne.viz import plot_raw, plot_sensors
-
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 ctf_dir = op.join(testing.data_path(download=False), 'CTF')
 ctf_fname_continuous = op.join(ctf_dir, 'testdata_ctf.ds')
@@ -48,7 +46,6 @@ def _get_events():
 
 def _annotation_helper(raw, events=False):
     """Test interactive annotations."""
-    import matplotlib.pyplot as plt
     # Some of our checks here require modern mpl to work properly
     mpl_good_enough = LooseVersion(matplotlib.__version__) >= '2.0'
     n_anns = len(raw.annotations)
@@ -153,7 +150,6 @@ def _annotation_helper(raw, events=False):
 
 def test_plot_raw():
     """Test plotting of raw data."""
-    import matplotlib.pyplot as plt
     raw = _get_raw()
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     events = _get_events()
@@ -250,7 +246,6 @@ def test_plot_raw():
 @testing.requires_testing_data
 def test_plot_raw_white():
     """Test plotting whitened raw data."""
-    import matplotlib.pyplot as plt
     raw = read_raw_fif(raw_fname).crop(0, 1).load_data()
     raw.plot(noise_cov=cov_fname)
     plt.close('all')
@@ -259,7 +254,6 @@ def test_plot_raw_white():
 @testing.requires_testing_data
 def test_plot_ref_meg():
     """Test plotting ref_meg."""
-    import matplotlib.pyplot as plt
     raw_ctf = read_raw_ctf(ctf_fname_continuous).crop(0, 1).load_data()
     raw_ctf.plot()
     plt.close('all')
@@ -294,7 +288,6 @@ def test_plot_raw_filtered():
 
 def test_plot_raw_psd():
     """Test plotting of raw psds."""
-    import matplotlib.pyplot as plt
     raw = _get_raw()
     # normal mode
     raw.plot_psd(average=False)
@@ -348,7 +341,6 @@ def test_plot_raw_psd():
 
 def test_plot_sensors():
     """Test plotting of sensor array."""
-    import matplotlib.pyplot as plt
     raw = _get_raw()
     fig = raw.plot_sensors('3d')
     _fake_click(fig, fig.gca(), (-0.08, 0.67))

@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from itertools import product
 import os
 import os.path as op
 from unittest import SkipTest
@@ -12,7 +13,7 @@ import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 from scipy import stats
-from itertools import product
+import matplotlib.pyplot as plt
 
 from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
                  EvokedArray, Annotations)
@@ -28,10 +29,6 @@ from mne.utils import (catch_logging, _TempDir, requires_sklearn,
                        run_tests_if_main)
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
-
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
@@ -317,7 +314,6 @@ def test_ica_additional(method):
     """Test additional ICA functionality."""
     _skip_check_picard(method)
 
-    import matplotlib.pyplot as plt
     tempdir = _TempDir()
     stop2 = 500
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()

@@ -10,6 +10,7 @@ import os.path as op
 
 import numpy as np
 import pytest
+import matplotlib.pyplot as plt
 
 from mne import read_events, Epochs, pick_types, read_cov
 from mne.channels import read_layout
@@ -17,11 +18,6 @@ from mne.io import read_raw_fif
 from mne.utils import run_tests_if_main, requires_version
 from mne.viz import plot_drop_log
 from mne.viz.utils import _fake_click
-
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
-
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -50,7 +46,6 @@ def _get_epochs():
 
 def test_plot_epochs():
     """Test epoch plotting."""
-    import matplotlib.pyplot as plt
     epochs = _get_epochs()
     epochs.info['lowpass'] = 10.  # allow heavy decim during plotting
     epochs.plot(scalings=None, title='Epochs')
@@ -129,7 +124,6 @@ def test_plot_epochs():
 
 def test_plot_epochs_image():
     """Test plotting of epochs image."""
-    import matplotlib.pyplot as plt
     epochs = _get_epochs()
     epochs.plot_image(picks=[1, 2])
     overlay_times = [0.1]
@@ -169,7 +163,6 @@ def test_plot_epochs_image():
 
 def test_plot_drop_log():
     """Test plotting a drop log."""
-    import matplotlib.pyplot as plt
     epochs = _get_epochs()
     pytest.raises(ValueError, epochs.plot_drop_log)
     epochs.drop_bad()
@@ -183,7 +176,6 @@ def test_plot_drop_log():
 @requires_version('scipy', '0.12')
 def test_plot_psd_epochs():
     """Test plotting epochs psd (+topomap)."""
-    import matplotlib.pyplot as plt
     epochs = _get_epochs()
     epochs.plot_psd()
     pytest.raises(RuntimeError, epochs.plot_psd_topomap,
