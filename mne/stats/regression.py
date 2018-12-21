@@ -30,7 +30,7 @@ def linear_regression(inst, design_matrix, names=None):
         or a generator object.
     design_matrix : ndarray, shape (n_observations, n_regressors)
         The regressors to be used. Must be a 2d array with as many rows as
-        the first dimension of `data`. The first column of this matrix will
+        the first dimension of the data. The first column of this matrix will
         typically consist of ones (intercept column).
     names : list-like | None
         Optional parameter to name the regressors. If provided, the length must

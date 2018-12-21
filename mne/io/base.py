@@ -277,8 +277,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Tuple of length one (for unsplit raw files) or length > 1 (for split
         raw files).
     raw_extras : list
-        Whatever data is necessary for on-demand reads. For `RawFIF` this means
-        a list of variables formerly known as ``_rawdirs``.
+        Whatever data is necessary for on-demand reads for the given
+        reader format.
     orig_format : str
         The data format of the original raw file (e.g., ``'double'``).
     dtype : dtype | None

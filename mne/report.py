@@ -329,7 +329,7 @@ def open_report(fname, **params):
         specified file.
     **params : list of parameters
         When creating a new report, any named parameters other than ``fname``
-        are passed to the `__init__` function of the `Report` object. When
+        are passed to the ``__init__`` function of the `Report` object. When
         reading an existing report, the parameters are checked with the
         loaded report and an exception is raised when they don't match.
 

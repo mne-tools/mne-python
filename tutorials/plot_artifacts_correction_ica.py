@@ -59,7 +59,7 @@ picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
 # -------
 #
 # First, choose the ICA method. There are currently four possible choices:
-# `fastica`, `picard`, `infomax` and `extended-infomax`.
+# ``fastica``, ``picard``, ``infomax`` and ``extended-infomax``.
 #
 # .. note:: The default method in MNE is FastICA, which along with Infomax is
 #           one of the most widely used ICA algorithms. Picard is a
