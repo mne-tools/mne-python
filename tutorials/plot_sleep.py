@@ -2,33 +2,23 @@
 Example on sleep data
 =====================
 
-This tutorial explains how to load and read polysomnography recordings and
-perform sleep stage classification on Sleep Physionet dataset [1]_, [2]_.
+This tutorial explains how to perform a toy polysomnography analysis that
+answers the following question:
 
-We perform the following steps:
-  1. we load 2 PSG recordings from 2 different subjects.
-  2. we read annotations and EEG time series from the recordings
-  3. we extract some features from the EEG data: relative power
-    in specific frequency bands: [0.5 - 4.5Hz], ...
-  4. we train a RandomForestClassifier on features and annotations from one
-    recording
-  5. we predict the sleep stages on the second recording.
+Given two subjects from the Sleep Physionet dataset [1]_ [2]_, namely *Alice*
+and *Bob*. How well can we predict the sleep stages of *Bob* from *Alice* data.
 
-References
-----------
-.. [1] B Kemp, AH Zwinderman, B Tuk, HAC Kamphuisen, JJL Oberyé. Analysis of
-       a sleep-dependent neuronal feedback loop: the slow-wave microcontinuity
-       of the EEG. IEEE-BME 47(9):1185-1194 (2000).
-.. [2] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh,
-       Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000)
-       PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
-       Research Resource for Complex Physiologic Signals.
-       Circulation 101(23):e215-e220
+This is a supervised multiclass classification task, and this tutorial covers:
+
+.. contents:: Contents
+   :local:
+   :depth: 2
 
 """
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Stanislas Chambon <stan.chambon@gmail.com>
+#          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD Style.
 
@@ -42,14 +32,29 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
 ##############################################################################
-# Load 2 PSG recordings from 2 different subjects
-
-psg_train, hyp_train = fetch_data(subjects=[0])[0]
-psg_test, hyp_test = fetch_data(subjects=[1])[0]
-
+# .. _plot_sleep_load_data:
+#
+# Load the data
+# -------------
+#
+# Here we download the data from two subjects and the end goal is to obtain
+# :term:`epochs` and its associated ground truth.
+#
+# To achieve this, the ``sleep_physionet`` fetcher downloads the data and
+# provides us for each subject, a pair of files: ``-PSG.edf`` containing
+# the :term:`raw` data from the EEG helmet, and ``-Hypnogram.edf`` containing
+# the :term:`annotations` recorded by an expert. Combining this two in a
+# :class:`mne.io.Raw` object then we can extract :term:`events` based on the
+# descriptions of the annotations to obtain the :term:`ephocs`
+#
 
 ##############################################################################
-# read the PSG data and annotations
+# Read the PSG data and Hypnograms to create a :class:`mne.io.Raw` object
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ALICE, BOB = 0, 1
+
+[alice_files, bob_files] = fetch_data(subjects=[ALICE, BOB])
 
 mapping = {'EOG horizontal': 'eog',
            'Resp oro-nasal': 'misc',
@@ -57,14 +62,14 @@ mapping = {'EOG horizontal': 'eog',
            'Temp rectal': 'misc',
            'Event marker': 'misc'}
 
-raw_train = mne.io.read_raw_edf(psg_train, stim_channel=False)
-annot_train = mne.read_annotations(hyp_train)
+raw_train = mne.io.read_raw_edf(alice_files[0])
+annot_train = mne.read_annotations(alice_files[1])
 
 raw_train.set_annotations(annot_train)
 raw_train.set_channel_types(mapping)
 
-raw_test = mne.io.read_raw_edf(psg_test, stim_channel=False)
-annot_test = mne.read_annotations(hyp_test)
+raw_test = mne.io.read_raw_edf(bob_files[0])
+annot_test = mne.read_annotations(bob_files[1])
 
 raw_test.set_annotations(annot_test)
 raw_test.set_channel_types(mapping)
@@ -72,9 +77,13 @@ raw_test.set_channel_types(mapping)
 # plot some data
 raw_train.plot(duration=60)
 
-
 ##############################################################################
 # Extract 30s events from annotations
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+# In this case we use the ``event_id`` parameter to select which events are we
+# interested on and we associate an event identifier to each of them.
+
 
 annotation_desc_2_event_id = {'Sleep stage W': 1,
                               'Sleep stage 1': 2,
@@ -83,36 +92,61 @@ annotation_desc_2_event_id = {'Sleep stage W': 1,
                               'Sleep stage 4': 4,
                               'Sleep stage R': 5}
 
-events_train, event_id_train = mne.events_from_annotations(
+events_train, _ = mne.events_from_annotations(
     raw_train, event_id=annotation_desc_2_event_id, chunk_duration=30.)
 
-events_test, event_id_test = mne.events_from_annotations(
+events_test, _ = mne.events_from_annotations(
     raw_test, event_id=annotation_desc_2_event_id, chunk_duration=30.)
 
-del event_id_train['Sleep stage 4']  # remove duplicated event_id
-del event_id_test['Sleep stage 4']
+# create a new event_id that unifies stages 3 and 4
+event_id = {'Sleep stage W': 1,
+            'Sleep stage 1': 2,
+            'Sleep stage 2': 3,
+            'Sleep stage 3/4': 4,
+            'Sleep stage R': 5}
 
 # plot events
-mne.viz.plot_events(
-    events_train, event_id=event_id_train, sfreq=raw_train.info['sfreq'])
+mne.viz.plot_events(events_train, event_id=event_id,
+                    sfreq=raw_train.info['sfreq'])
 
 ##############################################################################
 # Epoching
+# ~~~~~~~~
 
 tmax = 30. - 1. / raw_train.info['sfreq']  # tmax in included
-epochs_train = mne.Epochs(
-    raw_train, events_train, event_id_train,
-    tmin=0., tmax=tmax, baseline=None)
+epochs_train = mne.Epochs(raw=raw_train, events=events_train,
+                          event_id=event_id, tmin=0., tmax=tmax, baseline=None)
 
 tmax = 30. - 1. / raw_test.info['sfreq']  # tmax in included
-epochs_test = mne.Epochs(
-    raw_test, events_test, event_id_test,
-    tmin=0., tmax=tmax, baseline=None)
+epochs_test = mne.Epochs(raw=raw_test, events=events_test, event_id=event_id,
+                         tmin=0., tmax=tmax, baseline=None)
 
 print(epochs_train)
 print(epochs_test)
 
+
 ##############################################################################
+# .. _plot_sleep_extract_features:
+#
+# Extract features
+# ----------------
+#
+# Observing the power spectrum density (PSD) plot of the :term:`epochs` group
+# by sleeping stage we can see that different sleep stages have different
+# signatures. The rest of this section we will create EEG features based on
+# relative power in specific frequency bands to discrete to capture difference
+# between the sleep stages in our data.
+
+_, ax = plt.subplots()
+
+for stage in zip(epochs_train.event_id):
+    epochs_train[stage].plot_psd(area_mode=None, ax=ax, fmin=0.1, fmax=20.)
+
+prop_cycle = plt.rcParams['axes.prop_cycle']
+colors = prop_cycle.by_key()['color']
+[line.set_color(color) for line, color in zip(ax.get_lines(), colors)]
+plt.legend(list(epochs_train.event_id.keys()))
+
 # Extract features from EEG: relative power in specific frequency bands
 
 eeg_channels = ["EEG Fpz-Cz", "EEG Pz-Oz"]
@@ -170,14 +204,15 @@ print("Accuracy score: {}".format(acc))
 
 
 ##############################################################################
-# Plot the power spectrum density (PSD) in each stage
-
-_, ax = plt.subplots()
-
-for stage in zip(epochs_train.event_id):
-    epochs_train[stage].plot_psd(area_mode=None, ax=ax, fmin=0.1, fmax=20.)
-
-prop_cycle = plt.rcParams['axes.prop_cycle']
-colors = prop_cycle.by_key()['color']
-[line.set_color(color) for line, color in zip(ax.get_lines(), colors)]
-plt.legend(list(epochs_train.event_id.keys()))
+# References
+# ----------------------
+#
+# .. [1] B Kemp, AH Zwinderman, B Tuk, HAC Kamphuisen, JJL Oberyé. Analysis of
+#        a sleep-dependent neuronal feedback loop: the slow-wave
+#        microcontinuity of the EEG. IEEE-BME 47(9):1185-1194 (2000).
+#
+# .. [2] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh,
+#        Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000)
+#        PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
+#        Research Resource for Complex Physiologic Signals.
+#        Circulation 101(23):e215-e220
