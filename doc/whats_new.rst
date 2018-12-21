@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add new tutorial (:ref:`sphx_glr_auto_tutorials_plot_sleep.py`) to demo automatic sleep stage analysis by `Alex Gramfort`_, `Stanislas Chambon`_ and `Joan Massich`_
+
 - Add support for indexing, slicing, and iterating :class:`mne.Annotations` by `Joan Massich`_
 
 - :meth:`mne.io.Raw.plot` now uses the lesser of ``n_channels`` and ``raw.ch_names``, by `Joan Massich`_
@@ -36,8 +38,6 @@ Changelog
 - Add :func:`mne.labels_to_stc` to facilitate working with label data, by `Eric Larson`_
 
 - Add ``overlap`` argument to :func:`mne.make_fixed_length_events` by `Eric Larson`_
-
-- Add new tutorial (:ref:`sphx_glr_auto_tutorials_plot_sleep.py`) to demo automatic sleep stage analysis by `Alex Gramfort`_, `Stanislas Chambon`_ and `Joan Massich`_
 
 - Add 448-labels subdivided aparc cortical parcellation by `Denis Engemann`_ and `Sheraz Khan`_
 
