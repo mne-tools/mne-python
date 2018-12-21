@@ -30,6 +30,8 @@ from mne.datasets.sleep_physionet import fetch_data
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import FunctionTransformer
 
 ##############################################################################
 # .. _plot_sleep_load_data:
@@ -149,15 +151,24 @@ plt.legend(list(epochs_train.event_id.keys()))
 
 # Extract features from EEG: relative power in specific frequency bands
 
-eeg_channels = ["EEG Fpz-Cz", "EEG Pz-Oz"]
+def eeg_power_band(X):
 
-# specific frequency bands
+    # specific frequency bands
+    freq_bands = {"delta": [0.5, 4.5],
+                  "theta": [4.5, 8.5],
+                  "alpha": [8.5, 11.5],
+                  "sigma": [11.5, 15.5],
+                  "beta": [15.5, 30]}
+
+    return X
+
 freq_bands = {"delta": [0.5, 4.5],
               "theta": [4.5, 8.5],
               "alpha": [8.5, 11.5],
               "sigma": [11.5, 15.5],
               "beta": [15.5, 30]}
 
+eeg_channels = ["EEG Fpz-Cz", "EEG Pz-Oz"]
 # extract features from training data
 epochs_train.load_data().pick_channels(eeg_channels)
 z_norm = np.linalg.norm(epochs_train.get_data(), axis=-1)
@@ -197,11 +208,12 @@ y_test = events_test[:, 2]
 ##############################################################################
 # Train a classifier and predict on test recording
 
-clf = RandomForestClassifier().fit(X_train, y_train)
+pipe = make_pipeline(FunctionTransformer(eeg_power_band),
+                     RandomForestClassifier())
+pipe.fit(X_train, y_train)
 
-acc = accuracy_score(y_test, clf.predict(X_test))
+acc = accuracy_score(y_test, pipe.predict(X_test))
 print("Accuracy score: {}".format(acc))
-
 
 ##############################################################################
 # References
