@@ -6,7 +6,6 @@ import glob
 
 import pytest
 from numpy.testing import assert_equal, assert_allclose
-import matplotlib
 
 from mne import concatenate_raws, read_bem_surfaces, read_surface
 from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
@@ -21,8 +20,6 @@ from mne.io import read_raw_fif
 from mne.utils import (run_tests_if_main, _TempDir, requires_mne,
                        requires_mayavi, requires_tvtk, requires_freesurfer,
                        traits_test, ArgvSetter)
-
-matplotlib.use('Agg')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')

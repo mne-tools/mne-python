@@ -8,12 +8,9 @@
 import os.path as op
 
 import pytest
-import matplotlib
+import matplotlib.pyplot as plt
 
 from mne.channels import read_montage, read_dig_montage
-
-matplotlib.use('Agg')  # for testing don't use X server
-
 
 p_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'kit', 'tests', 'data')
 elp = op.join(p_dir, 'test_elp.txt')
@@ -26,7 +23,6 @@ fif_fname = op.join(io_dir, 'test_raw.fif')
 
 def test_plot_montage():
     """Test plotting montages."""
-    import matplotlib.pyplot as plt
     m = read_montage('easycap-M1')
     m.plot()
     plt.close('all')

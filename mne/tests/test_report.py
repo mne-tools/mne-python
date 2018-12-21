@@ -13,6 +13,7 @@ import shutil
 import numpy as np
 from numpy.testing import assert_equal
 import pytest
+from matplotlib import pyplot as plt
 
 from mne import Epochs, read_events, read_evokeds
 from mne.io import read_raw_fif
@@ -21,9 +22,6 @@ from mne.report import Report, open_report
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
                        run_tests_if_main, traits_test, requires_h5py)
 from mne.viz import plot_alignment
-
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
@@ -45,7 +43,6 @@ evoked_fname = op.join(base_dir, 'test-ave.fif')
 
 def _get_example_figures():
     """Create two example figures."""
-    from matplotlib import pyplot as plt
     fig1 = plt.plot([1, 2], [1, 2])[0].figure
     fig2 = plt.plot([3, 4], [3, 4])[0].figure
     return [fig1, fig2]
@@ -179,7 +176,6 @@ def test_report_raw_psd_and_date():
 def test_render_add_sections():
     """Test adding figures/images to section."""
     tempdir = _TempDir()
-    import matplotlib.pyplot as plt
     report = Report(subjects_dir=subjects_dir)
     # Check add_figs_to_section functionality
     fig = plt.plot([1, 2], [1, 2])[0].figure
@@ -274,7 +270,6 @@ def test_add_htmls_to_section():
 def test_add_slider_to_section():
     """Test adding a slider with a series of images to mne report."""
     tempdir = _TempDir()
-    from matplotlib import pyplot as plt
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     section = 'slider_section'

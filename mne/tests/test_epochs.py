@@ -14,7 +14,7 @@ import pytest
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose, assert_equal)
 import numpy as np
-import matplotlib
+import matplotlib.pyplot as plt
 
 import mne
 from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
@@ -37,8 +37,6 @@ from mne.event import merge_events
 from mne.io.constants import FIFF
 from mne.datasets import testing
 from mne.tests.common import assert_meg_snr
-
-matplotlib.use('Agg')  # for testing don't use X server
 
 data_path = testing.data_path(download=False)
 fname_raw_move = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
@@ -2034,7 +2032,6 @@ def test_add_channels_epochs():
 
 def test_array_epochs(tmpdir):
     """Test creating epochs from array."""
-    import matplotlib.pyplot as plt
     tempdir = str(tmpdir)
 
     # creating

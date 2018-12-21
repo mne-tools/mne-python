@@ -13,10 +13,6 @@ from mne.utils import run_tests_if_main
 from mne.realtime import MockRtClient, RtEpochs
 from mne.datasets import testing
 
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
-
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')

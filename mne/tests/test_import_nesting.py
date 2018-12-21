@@ -1,10 +1,5 @@
-import os.path as op
 import sys
 from subprocess import Popen, PIPE
-
-import pytest
-
-from mne.utils import run_tests_if_main
 
 
 run_script = """
@@ -53,43 +48,3 @@ def test_module_nesting():
     stdout = stdout.decode('utf-8')
     stderr = stderr.decode('utf-8')
     assert not proc.returncode, stdout + stderr
-
-
-mpl_script = """
-import os
-import os.path as op
-import re
-import sys
-import mne
-
-reg = re.compile('test_.*.py')
-for dirpath, _, filenames in os.walk('{0}'):
-    if dirpath.endswith('tests'):
-        test_dir = op.join('{0}', dirpath)
-        sys.path.insert(0, test_dir)
-        for filename in filenames:
-            if reg.match(filename) is not None:
-                __import__(op.splitext(filename)[0])
-                for x in sys.modules.keys():
-                    if x.startswith('matplotlib.pyplot'):
-                        print('\\nFound un-nested pyplot import: ' +
-                              op.join(test_dir, filename))
-                        exit(1)
-        sys.path.pop(0)
-"""
-
-
-@pytest.mark.timeout(60)  # ~25 sec on AppVeyor
-@pytest.mark.slowtest
-def test_mpl_nesting():
-    """Test that matplotlib imports are properly nested in tests."""
-    mne_path = op.abspath(op.join(op.dirname(__file__), '..'))
-    proc = Popen([sys.executable, '-c', mpl_script.format(mne_path)],
-                 stdout=PIPE, stderr=PIPE)
-    stdout, stderr = proc.communicate()
-    stdout = stdout.decode('utf-8')
-    stderr = stderr.decode('utf-8')
-    assert not proc.returncode, stdout + stderr
-
-
-run_tests_if_main()
