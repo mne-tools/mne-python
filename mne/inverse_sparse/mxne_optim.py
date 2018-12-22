@@ -304,6 +304,8 @@ def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
                          warm_start=True)
     if init is not None:
         clf.coef_ = init.T
+    else:
+        clf.coef_ = np.zeros((G.shape[1], M.shape[1])).T
     clf.fit(G, M)
 
     X = clf.coef_.T
