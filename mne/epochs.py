@@ -1022,7 +1022,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Dropping bad epochs can be done multiple times with different
         ``reject`` and ``flat`` parameters. However, once an epoch is
         dropped, it is dropped forever, so if more lenient thresholds may
-        subsequently be applied, `epochs.copy` should be used.
+        subsequently be applied, `epochs.copy <mne.Epochs.copy>` should be
+        used.
         """
         if reject == 'existing':
             if flat == 'existing' and self._bad_dropped:
