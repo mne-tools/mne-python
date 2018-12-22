@@ -27,6 +27,7 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets.sleep_physionet import fetch_data
+from mne.time_frequency import psd_array_welch
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
@@ -116,10 +117,10 @@ mne.viz.plot_events(events_train, event_id=event_id,
 # ~~~~~~~~
 
 tmax = 30. - 1. / raw_train.info['sfreq']  # tmax in included
+
 epochs_train = mne.Epochs(raw=raw_train, events=events_train,
                           event_id=event_id, tmin=0., tmax=tmax, baseline=None)
 
-tmax = 30. - 1. / raw_test.info['sfreq']  # tmax in included
 epochs_test = mne.Epochs(raw=raw_test, events=events_test, event_id=event_id,
                          tmin=0., tmax=tmax, baseline=None)
 
@@ -128,10 +129,8 @@ print(epochs_test)
 
 
 ##############################################################################
-# .. _plot_sleep_extract_features:
-#
-# Extract features
-# ----------------
+# Power spectrum visualization
+# ----------------------------
 #
 # Observing the power spectrum density (PSD) plot of the :term:`epochs` group
 # by sleeping stage we can see that different sleep stages have different
@@ -149,10 +148,25 @@ colors = prop_cycle.by_key()['color']
 [line.set_color(color) for line, color in zip(ax.get_lines(), colors)]
 plt.legend(list(epochs_train.event_id.keys()))
 
-# Extract features from EEG: relative power in specific frequency bands
+##############################################################################
+# .. _plot_sleep_extract_features:
+#
+# Extract features and classify
+# -----------------------------
+#
+# We will now create EEG features based on relative power in specific
+# frequency bands to be able to predict sleep stages from EEG signals.
 
-def eeg_power_band(X):
+eeg_channels = ["EEG Fpz-Cz", "EEG Pz-Oz"]
+X_train = epochs_train.load_data().pick_channels(eeg_channels).get_data()
+X_test = epochs_test.load_data().pick_channels(eeg_channels).get_data()
 
+# format annotations
+y_train = events_train[:, 2]
+y_test = events_test[:, 2]
+
+
+def eeg_power_band(data):
     # specific frequency bands
     freq_bands = {"delta": [0.5, 4.5],
                   "theta": [4.5, 8.5],
@@ -160,56 +174,19 @@ def eeg_power_band(X):
                   "sigma": [11.5, 15.5],
                   "beta": [15.5, 30]}
 
-    return X
+    sfreq = epochs_train.info['sfreq']
+    psds, freqs = psd_array_welch(data, sfreq, fmin=0.5, fmax=30.,
+                                  n_fft=512, n_overlap=256)
 
-freq_bands = {"delta": [0.5, 4.5],
-              "theta": [4.5, 8.5],
-              "alpha": [8.5, 11.5],
-              "sigma": [11.5, 15.5],
-              "beta": [15.5, 30]}
+    X = []
+    for _, (fmin, fmax) in freq_bands.items():
+        psds_band = psds[:, :, (freqs >= fmin) & (freqs < fmax)].mean(axis=-1)
+        X.append(psds_band.reshape(len(psds), -1))
 
-eeg_channels = ["EEG Fpz-Cz", "EEG Pz-Oz"]
-# extract features from training data
-epochs_train.load_data().pick_channels(eeg_channels)
-z_norm = np.linalg.norm(epochs_train.get_data(), axis=-1)
+    return np.concatenate(X, axis=1)
 
-X_train = np.zeros(
-    (epochs_train.events.shape[0], len(eeg_channels) * len(freq_bands)))
-for idx_band, (band, lims) in enumerate(freq_bands.items()):
-    print(idx_band, band, lims)
-
-    z = np.linalg.norm(
-        epochs_train.copy().filter(lims[0], lims[1]).get_data(),
-        axis=-1) / z_norm
-
-    X_train[
-        :, len(eeg_channels) * idx_band:len(eeg_channels) * (idx_band + 1)] = z
-
-# extract features from testing data
-epochs_test.load_data().pick_channels(eeg_channels)
-z_norm = np.linalg.norm(epochs_test.get_data(), axis=-1)
-
-X_test = np.zeros(
-    (epochs_test.events.shape[0], len(eeg_channels) * len(freq_bands)))
-for idx_band, (band, lims) in enumerate(freq_bands.items()):
-    print(idx_band, band, lims)
-
-    z = np.linalg.norm(
-        epochs_test.copy().filter(lims[0], lims[1]).get_data(),
-        axis=-1) / z_norm
-
-    X_test[
-        :, len(eeg_channels) * idx_band:len(eeg_channels) * (idx_band + 1)] = z
-
-# format annotations
-y_train = events_train[:, 2]
-y_test = events_test[:, 2]
-
-##############################################################################
-# Train a classifier and predict on test recording
-
-pipe = make_pipeline(FunctionTransformer(eeg_power_band),
-                     RandomForestClassifier())
+pipe = make_pipeline(FunctionTransformer(eeg_power_band, validate=False),
+                     RandomForestClassifier(n_estimators=100))
 pipe.fit(X_train, y_train)
 
 acc = accuracy_score(y_test, pipe.predict(X_test))
