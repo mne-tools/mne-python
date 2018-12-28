@@ -8,11 +8,17 @@ answers the following question:
 Given two subjects from the Sleep Physionet dataset [1]_ [2]_, namely *Alice*
 and *Bob*. How well can we predict the sleep stages of *Bob* from *Alice* data.
 
-This is a supervised multiclass classification task, and this tutorial covers:
+This is a supervised multiclass classification task where the aim is to
+predict the sleep stage associated to each chunk of 30s of data.
+There are 5 sleep stages, that's why it's a multiclass problem.
+This tutorial covers:
 
 .. contents:: Contents
    :local:
    :depth: 2
+
+This code is taken from the analysis code used in [3]. If you reuse this
+code please consider citing this work.
 
 """
 
@@ -48,7 +54,7 @@ from sklearn.preprocessing import FunctionTransformer
 # the :term:`raw` data from the EEG helmet, and ``-Hypnogram.edf`` containing
 # the :term:`annotations` recorded by an expert. Combining this two in a
 # :class:`mne.io.Raw` object then we can extract :term:`events` based on the
-# descriptions of the annotations to obtain the :term:`ephocs`
+# descriptions of the annotations to obtain the :term:`epochs`.
 #
 
 ##############################################################################
@@ -71,12 +77,6 @@ annot_train = mne.read_annotations(alice_files[1])
 raw_train.set_annotations(annot_train)
 raw_train.set_channel_types(mapping)
 
-raw_test = mne.io.read_raw_edf(bob_files[0])
-annot_test = mne.read_annotations(bob_files[1])
-
-raw_test.set_annotations(annot_test)
-raw_test.set_channel_types(mapping)
-
 # plot some data
 raw_train.plot(duration=60)
 
@@ -86,7 +86,10 @@ raw_train.plot(duration=60)
 #
 # In this case we use the ``event_id`` parameter to select which events are we
 # interested on and we associate an event identifier to each of them.
-
+#
+# We will work with 5 stages: Wake (W), Stage 1, Stage 2, Stage 3 which
+# correspond to light sleep to deep sleep, and REM sleep (R). REM is the
+# abbreviation for Rapid Eye Movement sleep.
 
 annotation_desc_2_event_id = {'Sleep stage W': 1,
                               'Sleep stage 1': 2,
@@ -97,9 +100,6 @@ annotation_desc_2_event_id = {'Sleep stage W': 1,
 
 events_train, _ = mne.events_from_annotations(
     raw_train, event_id=annotation_desc_2_event_id, chunk_duration=30.)
-
-events_test, _ = mne.events_from_annotations(
-    raw_test, event_id=annotation_desc_2_event_id, chunk_duration=30.)
 
 # create a new event_id that unifies stages 3 and 4
 event_id = {'Sleep stage W': 1,
@@ -121,12 +121,7 @@ tmax = 30. - 1. / raw_train.info['sfreq']  # tmax in included
 epochs_train = mne.Epochs(raw=raw_train, events=events_train,
                           event_id=event_id, tmin=0., tmax=tmax, baseline=None)
 
-epochs_test = mne.Epochs(raw=raw_test, events=events_test, event_id=event_id,
-                         tmin=0., tmax=tmax, baseline=None)
-
 print(epochs_train)
-print(epochs_test)
-
 
 ##############################################################################
 # Power spectrum visualization
@@ -149,6 +144,21 @@ colors = prop_cycle.by_key()['color']
 plt.legend(list(epochs_train.event_id.keys()))
 
 ##############################################################################
+# Applying the same steps to the test data from Bob
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+raw_test = mne.io.read_raw_edf(bob_files[0])
+annot_test = mne.read_annotations(bob_files[1])
+raw_test.set_annotations(annot_test)
+raw_test.set_channel_types(mapping)
+events_test, _ = mne.events_from_annotations(
+    raw_test, event_id=annotation_desc_2_event_id, chunk_duration=30.)
+epochs_test = mne.Epochs(raw=raw_test, events=events_test, event_id=event_id,
+                         tmin=0., tmax=tmax, baseline=None)
+
+print(epochs_test)
+
+##############################################################################
 # .. _plot_sleep_extract_features:
 #
 # Extract features and classify
@@ -164,6 +174,7 @@ X_test = epochs_test.load_data().pick_channels(eeg_channels).get_data()
 # format annotations
 y_train = events_train[:, 2]
 y_test = events_test[:, 2]
+
 
 def eeg_power_band(data):
     # specific frequency bands
@@ -186,15 +197,21 @@ def eeg_power_band(data):
     return np.concatenate(X, axis=1)
 
 pipe = make_pipeline(FunctionTransformer(eeg_power_band, validate=False),
-                     RandomForestClassifier(n_estimators=100))
+                     RandomForestClassifier(n_estimators=100, random_state=42))
 pipe.fit(X_train, y_train)
 
 acc = accuracy_score(y_test, pipe.predict(X_test))
 print("Accuracy score: {}".format(acc))
 
 ##############################################################################
+# Exercise
+# --------
+#
+# Fetch 50 subjects from the Physionet database and run a 5-fold
+# cross-validation leaving each time 10 subjects out in the test set.
+#
 # References
-# ----------------------
+# ----------
 #
 # .. [1] B Kemp, AH Zwinderman, B Tuk, HAC Kamphuisen, JJL Oberyé. Analysis of
 #        a sleep-dependent neuronal feedback loop: the slow-wave
@@ -205,3 +222,9 @@ print("Accuracy score: {}".format(acc))
 #        PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
 #        Research Resource for Complex Physiologic Signals.
 #        Circulation 101(23):e215-e220
+#
+# .. [3] Chambon, S., Galtier, M., Arnal, P., Wainrib, G. and Gramfort, A.
+#       (2018)A Deep Learning Architecture for Temporal Sleep Stage
+#       Classification Using Multivariate and Multimodal Time Series.
+#       IEEE Trans. on Neural Systems and Rehabilitation Engineering 26:
+#       (758-769).
