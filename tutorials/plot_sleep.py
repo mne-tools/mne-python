@@ -165,7 +165,6 @@ X_test = epochs_test.load_data().pick_channels(eeg_channels).get_data()
 y_train = events_train[:, 2]
 y_test = events_test[:, 2]
 
-
 def eeg_power_band(data):
     # specific frequency bands
     freq_bands = {"delta": [0.5, 4.5],
@@ -177,12 +176,13 @@ def eeg_power_band(data):
     sfreq = epochs_train.info['sfreq']
     psds, freqs = psd_array_welch(data, sfreq, fmin=0.5, fmax=30.,
                                   n_fft=512, n_overlap=256)
+    # Normalize the PSDs
+    psds /= np.sum(psds, axis=-1)[:, :, np.newaxis]
 
     X = []
     for _, (fmin, fmax) in freq_bands.items():
         psds_band = psds[:, :, (freqs >= fmin) & (freqs < fmax)].mean(axis=-1)
         X.append(psds_band.reshape(len(psds), -1))
-
     return np.concatenate(X, axis=1)
 
 pipe = make_pipeline(FunctionTransformer(eeg_power_band, validate=False),
