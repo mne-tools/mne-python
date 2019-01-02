@@ -171,16 +171,12 @@ print(epochs_test)
 # We will now create EEG features based on relative power in specific
 # frequency bands to be able to predict sleep stages from EEG signals.
 
-eeg_channels = ["EEG Fpz-Cz", "EEG Pz-Oz"]
-X_train = epochs_train.load_data().pick_channels(eeg_channels).get_data()
-X_test = epochs_test.load_data().pick_channels(eeg_channels).get_data()
-
 # format annotations
 y_train = events_train[:, 2]
 y_test = events_test[:, 2]
 
 
-def eeg_power_band(data):
+def eeg_power_band(epochs):
     # specific frequency bands
     freq_bands = {"delta": [0.5, 4.5],
                   "theta": [4.5, 8.5],
@@ -188,7 +184,10 @@ def eeg_power_band(data):
                   "sigma": [11.5, 15.5],
                   "beta": [15.5, 30]}
 
-    sfreq = epochs_train.info['sfreq']
+    eeg_channels = ["EEG Fpz-Cz", "EEG Pz-Oz"]
+
+    sfreq = epochs.info['sfreq']
+    data = epochs.load_data().pick_channels(eeg_channels).get_data()
     psds, freqs = psd_array_welch(data, sfreq, fmin=0.5, fmax=30.,
                                   n_fft=512, n_overlap=256)
     # Normalize the PSDs
@@ -202,9 +201,9 @@ def eeg_power_band(data):
 
 pipe = make_pipeline(FunctionTransformer(eeg_power_band, validate=False),
                      RandomForestClassifier(n_estimators=100, random_state=42))
-pipe.fit(X_train, y_train)
+pipe.fit(epochs_train, y_train)
 
-acc = accuracy_score(y_test, pipe.predict(X_test))
+acc = accuracy_score(y_test, pipe.predict(epochs_test))
 print("Accuracy score: {}".format(acc))
 
 ##############################################################################
