@@ -2,6 +2,9 @@
 Example on sleep data
 =====================
 
+.. note:: This code is taken from the analysis code used in [3]_. If you reuse
+          this code please consider citing this work.
+
 This tutorial explains how to perform a toy polysomnography analysis that
 answers the following question:
 
@@ -16,9 +19,6 @@ This tutorial covers:
 .. contents:: Contents
    :local:
    :depth: 2
-
-This code is taken from the analysis code used in [3]. If you reuse this
-code please consider citing this work.
 
 """
 
@@ -50,11 +50,15 @@ from sklearn.preprocessing import FunctionTransformer
 # :term:`epochs` and its associated ground truth.
 #
 # To achieve this, the ``sleep_physionet`` fetcher downloads the data and
-# provides us for each subject, a pair of files: ``-PSG.edf`` containing
-# the :term:`raw` data from the EEG helmet, and ``-Hypnogram.edf`` containing
-# the :term:`annotations` recorded by an expert. Combining this two in a
-# :class:`mne.io.Raw` object then we can extract :term:`events` based on the
-# descriptions of the annotations to obtain the :term:`epochs`.
+# provides us for each subject, a pair of files:
+#
+# * ``-PSG.edf`` containing the :term:`raw` data from the EEG helmet,
+# * ``-Hypnogram.edf`` containing the :term:`annotations` recorded by an
+#   expert.
+#
+# Combining this two in a :class:`mne.io.Raw` object then we can extract
+# :term:`events` based on the descriptions of the annotations to obtain the
+# :term:`epochs`.
 #
 
 ##############################################################################
@@ -74,7 +78,7 @@ mapping = {'EOG horizontal': 'eog',
 raw_train = mne.io.read_raw_edf(alice_files[0])
 annot_train = mne.read_annotations(alice_files[1])
 
-raw_train.set_annotations(annot_train)
+raw_train.set_annotations(annot_train, emit_warning=False)
 raw_train.set_channel_types(mapping)
 
 # plot some data
@@ -149,7 +153,7 @@ plt.legend(list(epochs_train.event_id.keys()))
 
 raw_test = mne.io.read_raw_edf(bob_files[0])
 annot_test = mne.read_annotations(bob_files[1])
-raw_test.set_annotations(annot_test)
+raw_test.set_annotations(annot_test, emit_warning=False)
 raw_test.set_channel_types(mapping)
 events_test, _ = mne.events_from_annotations(
     raw_test, event_id=annotation_desc_2_event_id, chunk_duration=30.)
