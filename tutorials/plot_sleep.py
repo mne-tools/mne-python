@@ -120,6 +120,9 @@ event_id = {'Sleep stage W': 1,
 mne.viz.plot_events(events_train, event_id=event_id,
                     sfreq=raw_train.info['sfreq'])
 
+# keep the color-code for further plotting
+stage_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
 ##############################################################################
 # Create Epochs from the data based on the events
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -161,29 +164,20 @@ print(epochs_test)
 # in specific frequency bands to discrete to capture this difference between
 # the sleep stages in our data.
 
-# XXX: simply plotting
-
 # visualize Alice vs. Bob PSD by sleep stage.
-_, (ax1, ax2) = plt.subplots(ncols=2)
+fig, (ax1, ax2) = plt.subplots(ncols=2)
 
-for stage in zip(epochs_train.event_id):
-    epochs_train[stage].plot_psd(area_mode=None, ax=ax1, fmin=0.1, fmax=20.)
+# iterate over the subjects
+for ax, title, epochs in zip([ax1, ax2],
+                             ['Alice', 'Bob'],
+                             [epochs_train, epochs_test]):
 
-prop_cycle = plt.rcParams['axes.prop_cycle']
-colors = prop_cycle.by_key()['color']
-[line.set_color(color) for line, color in zip(ax1.get_lines(), colors)]
-plt.legend(list(epochs_train.event_id.keys()))
+    for stage, color in zip(event_id.keys(), stage_colors):
+        epochs[stage].plot_psd(area_mode=None, color=color, ax=ax,
+                               fmin=0.1, fmax=20.)
+    ax.set_title(title)
 
-for stage in zip(epochs_test.event_id):
-    epochs_test[stage].plot_psd(area_mode=None, ax=ax2, fmin=0.1, fmax=20.)
-
-prop_cycle = plt.rcParams['axes.prop_cycle']
-colors = prop_cycle.by_key()['color']
-[line.set_color(color) for line, color in zip(ax2.get_lines(), colors)]
-plt.legend(list(epochs_test.event_id.keys()))
-
-ax1.set_title('Alice')
-ax2.set_title('Bob')
+plt.legend(list(event_id.keys()))
 
 ##############################################################################
 #
