@@ -125,6 +125,7 @@ def test_edf_data():
         read_raw_edf(broken_fname, exclude=raw.ch_names[:132], preload=True)
 
 
+@pytest.mark.filterwarnings('ignore::RuntimeWarning')
 def test_duplicate_channel_labels_edf():
     raw = read_raw_edf(duplicate_path, preload=True)
 
