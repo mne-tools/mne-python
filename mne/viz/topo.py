@@ -717,11 +717,10 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
             y_label.append('Amplitude (%s)' % unit)
 
     if ylim is None:
-        def set_ylim(x):
-            return np.abs(x).max()
-        ylim_ = [set_ylim([e.data[t] for e in evoked]) for t in picks]
-        ymax = np.array(ylim_)
-        ylim_ = (-ymax, ymax)
+        # find maxima over all evoked data for each channel pick
+        ymaxes = np.array([max(np.abs(e.data[t]).max() for e in evoked)
+                          for t in picks])
+        ylim_ = (-ymaxes, ymaxes)
     elif isinstance(ylim, dict):
         ylim_ = _handle_default('ylim', ylim)
         ylim_ = [ylim_[kk] for kk in types_used]
