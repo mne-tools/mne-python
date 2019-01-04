@@ -1,6 +1,6 @@
 """
-Example on sleep data
-=====================
+Sleep stage prediction using Sleep Physionet dataset
+====================================================
 
 .. note:: This code is taken from the analysis code used in [3]_. If you reuse
           this code please consider citing this work.
@@ -8,16 +8,15 @@ Example on sleep data
 This tutorial explains how to perform a toy polysomnography analysis that
 answers the following question:
 
-    Given two subjects from the Sleep Physionet dataset [1]_ [2]_, namely
-    *Alice* and *Bob*. How well can we predict the sleep stages of *Bob* from
-    *Alice* data.
+.. important:: Given two subjects from the Sleep Physionet dataset [1]_ [2]_,
+               namely *Alice* and *Bob*, how well can we predict the sleep
+               stages of *Bob* from *Alice* data?
 
-This is a supervised multiclass classification task where the aim is to
-predict the sleep stage associated to each chunk of 30s of data.
-There are 5 sleep stages, that's why it's a multiclass problem.
-This tutorial covers:
+This problem is tackled as supervised multiclass classification task. The aim
+is to predict the sleep stage from 5 possible stages for each chunk of 30
+seconds of data.
 
-.. contents:: Contents
+.. contents:: This tutorial covers:
    :local:
    :depth: 2
 
@@ -38,20 +37,19 @@ from mne.time_frequency import psd_array_welch
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
+from sklearn.metrics import confusion_matrix
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import FunctionTransformer
 
 ##############################################################################
-# .. _plot_sleep_load_data:
-#
 # Load the data
 # -------------
 #
 # Here we download the data from two subjects and the end goal is to obtain
 # :term:`epochs` and its associated ground truth.
 #
-# MNE-Python provides us `mne.datasets.sleep_physionet.fetch_data`
-# for conveniently download data from the Sleep Physionet dataset [1]_ [2]_.
+# MNE-Python provides us with :func:`mne.datasets.sleep_physionet.fetch_data`
+# to conveniently download data from the Sleep Physionet dataset [1]_ [2]_.
 # Given a list of subjects and records, the fetcher downloads the data and
 # provides us for each subject, a pair of files:
 #
@@ -66,7 +64,6 @@ from sklearn.preprocessing import FunctionTransformer
 # Read the PSG data and Hypnograms to create a raw object
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# XXX: fetch_data doc is not reachable
 # XXX: fetch_data should accept subject/record
 
 ALICE, BOB = 0, 1
@@ -92,12 +89,15 @@ raw_train.plot(duration=60, scalings='auto')
 # Extract 30s events from annotations
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# In this case we use the ``event_id`` parameter to select which events are we
-# interested on and we associate an event identifier to each of them.
+# The Sleep PhysioNet dataset is annotated using 7 labels:
+# Wake (W), Stage 1, Stage 2, Stage 3, Stage 4 corresponding to the range from
+# light sleep to deep sleep, REM sleep (R) where REM is the abbreviation for
+# Rapid Eye Movement sleep, and Stage (?) for any other stage.
 #
-# We will work with 5 stages: Wake (W), Stage 1, Stage 2, Stage 3 which
-# correspond to light sleep to deep sleep, and REM sleep (R). REM is the
-# abbreviation for Rapid Eye Movement sleep.
+# We will work with 5 stages: Wake (W), Stage 1, Stage 2, Stage 3/4, and REM
+# sleep (R). To do so, we use the ``event_id`` parameter in
+# :func:`mne.events_from_annotations` to select which events are we
+# interested in and we associate an event identifier to each of them.
 
 annotation_desc_2_event_id = {'Sleep stage W': 1,
                               'Sleep stage 1': 2,
@@ -124,8 +124,8 @@ mne.viz.plot_events(events_train, event_id=event_id,
 stage_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 ##############################################################################
-# Create Epochs from the data based on the events
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Create Epochs from the data based on the events found in the annotations
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 tmax = 30. - 1. / raw_train.info['sfreq']  # tmax in included
 
@@ -151,18 +151,16 @@ print(epochs_test)
 
 
 ##############################################################################
-# .. _plot_sleep_extract_features:
-#
 # Feature Engineering
 # -------------------
 #
 # Observing the power spectrum density (PSD) plot of the :term:`epochs` grouped
 # by sleeping stage we can see that different sleep stages have different
-# signatures, and those signatures remain similar between Alice and Bob's data.
+# signatures. These signatures remain similar between Alice and Bob's data.
 #
 # The rest of this section we will create EEG features based on relative power
-# in specific frequency bands to discrete to capture this difference between
-# the sleep stages in our data.
+# in specific frequency bands to capture this difference between the sleep
+# stages in our data.
 
 # visualize Alice vs. Bob PSD by sleep stage.
 fig, (ax1, ax2) = plt.subplots(ncols=2)
@@ -180,13 +178,13 @@ for ax, title, epochs in zip([ax1, ax2],
 plt.legend(list(event_id.keys()))
 
 ##############################################################################
-#
-# Design a sklearn compatible FunctionTransformer callable
+# Design a scikit-learn transformer from a Python function
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # We will now create a function to extract EEG features based on relative power
 # in specific frequency bands to be able to predict sleep stages from EEG
 # signals.
+
 
 def eeg_power_band(epochs):
     """EEG relative power band feature extraction.
@@ -229,24 +227,53 @@ def eeg_power_band(epochs):
     return np.concatenate(X, axis=1)
 
 ##############################################################################
+# Multiclass classification workflow using scikit-learn
+# -----------------------------------------------------
 #
-# Extract features and classify
-# -----------------------------
+# To answer the question of how well can we predict the sleep stages of Bob
+# from Alice's data and avoid as much boilerplate code as possible, we will
+# take advantage of two key features of sckit-learn:
+# Pipeline
+# , and FunctionTransformer.
 #
+# Scikit-learn pipeline composes an estimator as a sequence of transforms
+# and a final estimator, while the FunctionTransformer converts a python
+# function in an estimator compatible object. In this manner we can create
+# scikit-learn estimator that takes :class:`mne.Epochs` thanks to
+# `eeg_power_band` function we just created.
+
+# XXX: point to sklearn
+# https://scikit-learn.org/stable/modules/generated/
+#         sklearn.pipeline.Pipeline.html
+#
+# https://scikit-learn.org/stable/modules/generated/
+#         sklearn.preprocessing.FunctionTransformer.html
 
 pipe = make_pipeline(FunctionTransformer(eeg_power_band, validate=False),
                      RandomForestClassifier(n_estimators=100, random_state=42))
 
-# format annotations
-y_train = events_train[:, 2]
-y_test = events_test[:, 2]
-
 # Train
+y_train = epochs_train.events[:, 2]
 pipe.fit(epochs_train, y_train)
 
-# Test & assess the results
-acc = accuracy_score(y_test, pipe.predict(epochs_test))
+# Test
+y_pred = pipe.predict(epochs_test)
+
+# Assess the results
+y_test = epochs_test.events[:, 2]
+acc = accuracy_score(y_test, y_pred)
+
 print("Accuracy score: {}".format(acc))
+
+##############################################################################
+# In short, yes. We can predict Bob's sleeping stages based on Alice's data.
+#
+# Further analysis of the data
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+# We can check the confusion matrix
+
+confusion_matrix(y_test, y_pred)
 
 ##############################################################################
 # Exercise
