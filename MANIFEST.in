@@ -26,6 +26,8 @@ recursive-include mne/html *.css
 
 recursive-include mne/io/artemis123/resources *
 
+recursive-include mne mne/datasets *.npy
+
 
 ### Exclude
 
