@@ -34,6 +34,7 @@ data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 montage_path = op.join(data_dir, 'biosemi.hpts')
 bdf_path = op.join(data_dir, 'test.bdf')
 edf_path = op.join(data_dir, 'test.edf')
+duplicate_path = op.join(data_dir, 'duplicate_channel_labels.edf')
 edf_uneven_path = op.join(data_dir, 'test_uneven_samp.edf')
 bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
@@ -122,6 +123,10 @@ def test_edf_data():
                       match='records .* not match the file size'):
         raw = read_raw_edf(broken_fname, preload=True)
         read_raw_edf(broken_fname, exclude=raw.ch_names[:132], preload=True)
+
+
+def test_duplicate_channel_labels_edf():
+    raw = read_raw_edf(duplicate_path, preload=True)
 
 
 def test_parse_annotation(tmpdir):
