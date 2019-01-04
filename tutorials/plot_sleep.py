@@ -8,8 +8,9 @@ Example on sleep data
 This tutorial explains how to perform a toy polysomnography analysis that
 answers the following question:
 
-Given two subjects from the Sleep Physionet dataset [1]_ [2]_, namely *Alice*
-and *Bob*. How well can we predict the sleep stages of *Bob* from *Alice* data.
+    Given two subjects from the Sleep Physionet dataset [1]_ [2]_, namely
+    *Alice* and *Bob*. How well can we predict the sleep stages of *Bob* from
+    *Alice* data.
 
 This is a supervised multiclass classification task where the aim is to
 predict the sleep stage associated to each chunk of 30s of data.
@@ -49,7 +50,9 @@ from sklearn.preprocessing import FunctionTransformer
 # Here we download the data from two subjects and the end goal is to obtain
 # :term:`epochs` and its associated ground truth.
 #
-# To achieve this, the ``sleep_physionet`` fetcher downloads the data and
+# MNE-Python provides us `mne.datasets.sleep_physionet.fetch_data`
+# for conveniently download data from the Sleep Physionet dataset [1]_ [2]_.
+# Given a list of subjects and records, the fetcher downloads the data and
 # provides us for each subject, a pair of files:
 #
 # * ``-PSG.edf`` containing the :term:`raw` data from the EEG helmet,
@@ -60,10 +63,11 @@ from sklearn.preprocessing import FunctionTransformer
 # :term:`events` based on the descriptions of the annotations to obtain the
 # :term:`epochs`.
 #
+# Read the PSG data and Hypnograms to create a raw object
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-##############################################################################
-# Read the PSG data and Hypnograms to create a :class:`mne.io.Raw` object
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# XXX: fetch_data doc is not reachable
+# XXX: fetch_data should accept subject/record
 
 ALICE, BOB = 0, 1
 
@@ -82,7 +86,7 @@ raw_train.set_annotations(annot_train, emit_warning=False)
 raw_train.set_channel_types(mapping)
 
 # plot some data
-raw_train.plot(duration=60)
+raw_train.plot(duration=60, scalings='auto')
 
 ##############################################################################
 # Extract 30s events from annotations
@@ -117,8 +121,8 @@ mne.viz.plot_events(events_train, event_id=event_id,
                     sfreq=raw_train.info['sfreq'])
 
 ##############################################################################
-# Epoching
-# ~~~~~~~~
+# Create Epochs from the data based on the events
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 tmax = 30. - 1. / raw_train.info['sfreq']  # tmax in included
 
@@ -126,26 +130,6 @@ epochs_train = mne.Epochs(raw=raw_train, events=events_train,
                           event_id=event_id, tmin=0., tmax=tmax, baseline=None)
 
 print(epochs_train)
-
-##############################################################################
-# Power spectrum visualization
-# ----------------------------
-#
-# Observing the power spectrum density (PSD) plot of the :term:`epochs` group
-# by sleeping stage we can see that different sleep stages have different
-# signatures. The rest of this section we will create EEG features based on
-# relative power in specific frequency bands to discrete to capture difference
-# between the sleep stages in our data.
-
-_, ax = plt.subplots()
-
-for stage in zip(epochs_train.event_id):
-    epochs_train[stage].plot_psd(area_mode=None, ax=ax, fmin=0.1, fmax=20.)
-
-prop_cycle = plt.rcParams['axes.prop_cycle']
-colors = prop_cycle.by_key()['color']
-[line.set_color(color) for line, color in zip(ax.get_lines(), colors)]
-plt.legend(list(epochs_train.event_id.keys()))
 
 ##############################################################################
 # Applying the same steps to the test data from Bob
@@ -162,47 +146,111 @@ epochs_test = mne.Epochs(raw=raw_test, events=events_test, event_id=event_id,
 
 print(epochs_test)
 
+
 ##############################################################################
 # .. _plot_sleep_extract_features:
 #
-# Extract features and classify
-# -----------------------------
+# Feature Engineering
+# -------------------
 #
-# We will now create EEG features based on relative power in specific
-# frequency bands to be able to predict sleep stages from EEG signals.
+# Observing the power spectrum density (PSD) plot of the :term:`epochs` grouped
+# by sleeping stage we can see that different sleep stages have different
+# signatures, and those signatures remain similar between Alice and Bob's data.
+#
+# The rest of this section we will create EEG features based on relative power
+# in specific frequency bands to discrete to capture this difference between
+# the sleep stages in our data.
 
-# format annotations
-y_train = events_train[:, 2]
-y_test = events_test[:, 2]
+# XXX: simply plotting
 
+# visualize Alice vs. Bob PSD by sleep stage.
+_, (ax1, ax2) = plt.subplots(ncols=2)
+
+for stage in zip(epochs_train.event_id):
+    epochs_train[stage].plot_psd(area_mode=None, ax=ax1, fmin=0.1, fmax=20.)
+
+prop_cycle = plt.rcParams['axes.prop_cycle']
+colors = prop_cycle.by_key()['color']
+[line.set_color(color) for line, color in zip(ax1.get_lines(), colors)]
+plt.legend(list(epochs_train.event_id.keys()))
+
+for stage in zip(epochs_test.event_id):
+    epochs_test[stage].plot_psd(area_mode=None, ax=ax2, fmin=0.1, fmax=20.)
+
+prop_cycle = plt.rcParams['axes.prop_cycle']
+colors = prop_cycle.by_key()['color']
+[line.set_color(color) for line, color in zip(ax2.get_lines(), colors)]
+plt.legend(list(epochs_test.event_id.keys()))
+
+ax1.set_title('Alice')
+ax2.set_title('Bob')
+
+##############################################################################
+#
+# Design a sklearn compatible FunctionTransformer callable
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+# We will now create a function to extract EEG features based on relative power
+# in specific frequency bands to be able to predict sleep stages from EEG
+# signals.
 
 def eeg_power_band(epochs):
+    """EEG relative power band feature extraction.
+
+    This function takes an ``mne.Epochs`` object and creates EEG features based
+    on relative power in specific frequency bands that are compatible with
+    scikit-learn.
+
+    Parameters
+    ----------
+    epochs : Epochs
+        The data.
+
+    Returns
+    -------
+    X : numpy array of shape [n_samples, 5]
+        Transformed data.
+    """
     # specific frequency bands
-    freq_bands = {"delta": [0.5, 4.5],
+    FREQ_BANDS = {"delta": [0.5, 4.5],
                   "theta": [4.5, 8.5],
                   "alpha": [8.5, 11.5],
                   "sigma": [11.5, 15.5],
                   "beta": [15.5, 30]}
 
-    eeg_channels = ["EEG Fpz-Cz", "EEG Pz-Oz"]
+    EEG_CHANNELS = ["EEG Fpz-Cz", "EEG Pz-Oz"]
 
     sfreq = epochs.info['sfreq']
-    data = epochs.load_data().pick_channels(eeg_channels).get_data()
+    data = epochs.load_data().pick_channels(EEG_CHANNELS).get_data()
     psds, freqs = psd_array_welch(data, sfreq, fmin=0.5, fmax=30.,
                                   n_fft=512, n_overlap=256)
     # Normalize the PSDs
     psds /= np.sum(psds, axis=-1)[:, :, np.newaxis]
 
     X = []
-    for _, (fmin, fmax) in freq_bands.items():
+    for _, (fmin, fmax) in FREQ_BANDS.items():
         psds_band = psds[:, :, (freqs >= fmin) & (freqs < fmax)].mean(axis=-1)
         X.append(psds_band.reshape(len(psds), -1))
+
     return np.concatenate(X, axis=1)
+
+##############################################################################
+#
+# Extract features and classify
+# -----------------------------
+#
 
 pipe = make_pipeline(FunctionTransformer(eeg_power_band, validate=False),
                      RandomForestClassifier(n_estimators=100, random_state=42))
+
+# format annotations
+y_train = events_train[:, 2]
+y_test = events_test[:, 2]
+
+# Train
 pipe.fit(epochs_train, y_train)
 
+# Test & assess the results
 acc = accuracy_score(y_test, pipe.predict(epochs_test))
 print("Accuracy score: {}".format(acc))
 
