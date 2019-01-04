@@ -62,7 +62,7 @@ def test_orig_units():
 
     # Test original units
     orig_units = raw._orig_units
-    assert len(orig_units) == 140
+    assert len(orig_units) == len(raw.ch_names)  # previously 140
     assert orig_units['A1'] == u'µV'  # formerly 'uV' edit by _check_orig_units
 
 
