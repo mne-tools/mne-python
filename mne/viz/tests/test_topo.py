@@ -153,7 +153,11 @@ def test_plot_topo():
 def test_plot_topo_single_ch():
     """Test single channel topoplot with time cursor."""
     evoked = _get_epochs().average()
-    fig = plot_evoked_topo(evoked, background_color='w')
+    evoked2 = evoked.copy()
+    # test plotting several evokeds on different time grids
+    evoked.crop(-.19, 0)
+    evoked2.crop(.05, .19)
+    fig = plot_evoked_topo([evoked, evoked2], background_color='w')
     # test status bar message
     ax = plt.gca()
     assert ('MEG 0113' in ax.format_coord(.065, .63))
