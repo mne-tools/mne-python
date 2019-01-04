@@ -175,6 +175,8 @@ for ax, title, epochs in zip([ax1, ax2],
                                fmin=0.1, fmax=20.)
     ax.set_title(title)
 
+plt.xlabel('Frequency (Hz)')
+plt.ylabel('uV^2/hz (dB)')
 plt.legend(list(event_id.keys()))
 
 ##############################################################################
@@ -273,7 +275,7 @@ print("Accuracy score: {}".format(acc))
 #
 # We can check the confusion matrix
 
-confusion_matrix(y_test, y_pred)
+print(confusion_matrix(y_test, y_pred))
 
 ##############################################################################
 # Exercise
