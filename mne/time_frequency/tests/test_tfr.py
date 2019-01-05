@@ -465,6 +465,7 @@ def test_plot():
 
     plt.close('all')
 
+
 def test_plot_joint():
     """Test TFR joint plotting."""
     import matplotlib.pyplot as plt
@@ -510,6 +511,7 @@ def test_plot_joint():
     # test tfr with picked channels
     tfr.pick_channels(tfr.ch_names[:-1])
     tfr.plot_joint(title='auto', colorbar=True, topomap_args=topomap_args)
+
 
 def test_add_channels():
     """Test tfr splitting / re-appending channel types."""
