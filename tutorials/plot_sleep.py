@@ -67,7 +67,7 @@ from sklearn.preprocessing import FunctionTransformer
 
 # XXX: fetch_data should accept subject/record
 
-ALICE, BOB = 0, 1
+ALICE, BOB = 0, 2
 
 [alice_files, bob_files] = fetch_data(subjects=[ALICE, BOB])
 
