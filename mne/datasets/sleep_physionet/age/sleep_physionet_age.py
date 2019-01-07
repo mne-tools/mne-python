@@ -18,13 +18,22 @@ SLEEP_RECORDS = 'physionet_sleep_records.npy'
 def update_sleep_records():
     # XXX: use requrie pandas
     import pandas as pd
+
+    SLEEP_RECORDS = 'physionet_sleep_records.npy'
+    npy_records = np.load(op.join(op.dirname(__file__), SLEEP_RECORDS))
+
     SLEEP_RECORDS = 'records.json'
     tmp = _TempDir()
     sha1sums_url = BASE_URL + "SHA1SUMS"
     sha1sums_fname = op.join(tmp, 'sha1sums')
     _fetch_file(sha1sums_url, sha1sums_fname)
+    yy = pd.read_csv(sha1sums_fname, sep='  ', header=None,
+                          names=['sha', 'fname'], engine='python')
     sha1_df = pd.read_csv(sha1sums_fname, sep='  ', header=None,
                           names=['sha', 'fname'], engine='python')
+    select_age_records = sha1_df.fname.str.startswith('SC') & sha1_df.fname.str.endswith('edf')
+    sha1_df = sha1_df[select_age_records]
+    sha1_df['id']= [name[:6] for name in sha1_df.fname]
 
     subjects_url = BASE_URL + 'SC-subjects.xls'
     subjects_fname = op.join(tmp, 'SC-subjects.xls')
@@ -36,10 +45,15 @@ def update_sleep_records():
     xx.rename(index=str, inplace=True,
               columns={'sex (F=1)': 'sex', 'LightsOff': 'lights off'})
     xx['sex'] = xx.sex.astype('category').cat.rename_categories({1:'female', 2:'male'})
+    xx['id'] = ['SC4{0:02d}{1:1d}'.format(s, n) for s, n in zip(xx.subject, xx.night)]
 
+    data = xx.set_index('id').join(sha1_df.set_index('id')).dropna()
+    data['record type'] = data.fname.str.split('-', expand=True)[1].str.split('.', expand=True)[0].astype('category')
+
+    data = data.set_index(['subject', 'night', 'record type'])
+    print(kk.to_json(orient='records', lines=True))
+    # data.to_json()
     sha1sums_fname = "SHA1SUMS"
-    import pdb; pdb.set_trace()
-    print('hi')
     # sha1sums_fname = op.
     # "SHA1SUMS"
     # name =
