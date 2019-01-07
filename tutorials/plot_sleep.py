@@ -90,13 +90,16 @@ raw_train.plot(duration=60, scalings='auto')
 # Extract 30s events from annotations
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# The Sleep PhysioNet dataset is annotated using 7 labels:
+# The Sleep Physionet dataset is annotated using `8 labels <physionet_labels>`:
 # Wake (W), Stage 1, Stage 2, Stage 3, Stage 4 corresponding to the range from
 # light sleep to deep sleep, REM sleep (R) where REM is the abbreviation for
-# Rapid Eye Movement sleep, and Stage (?) for any other stage.
+# Rapid Eye Movement sleep, movement (M), and Stage (?) for any none scored
+# segment.
 #
-# We will work with 5 stages: Wake (W), Stage 1, Stage 2, Stage 3/4, and REM
-# sleep (R). To do so, we use the ``event_id`` parameter in
+# .. _physionet_labels: https://physionet.org/pn4/sleep-edfx/#sleep-recordings-and-hypnograms-in-european-data-f
+#
+# We will work only with 5 stages: Wake (W), Stage 1, Stage 2, Stage 3/4, and
+# REM sleep (R). To do so, we use the ``event_id`` parameter in
 # :func:`mne.events_from_annotations` to select which events are we
 # interested in and we associate an event identifier to each of them.
 
