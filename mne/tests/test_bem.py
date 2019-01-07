@@ -10,6 +10,7 @@ from shutil import copy
 import numpy as np
 import pytest
 from numpy.testing import assert_equal, assert_allclose
+import matplotlib.pyplot as plt
 
 from mne import (make_bem_model, read_bem_surfaces, write_bem_surfaces,
                  make_bem_solution, read_bem_solution, write_bem_solution,
@@ -25,9 +26,6 @@ from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _check_surface_size, _bem_find_surface, make_flash_bem)
 from mne.surface import read_surface
 from mne.io import read_info
-
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 fname_raw = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                     'test_raw.fif')
@@ -343,7 +341,6 @@ def test_fit_sphere_to_headshape():
 @testing.requires_testing_data
 def test_make_flash_bem():
     """Test computing bem from flash images."""
-    import matplotlib.pyplot as plt
     tmp = _TempDir()
     bemdir = op.join(subjects_dir, 'sample', 'bem')
     flash_path = op.join(subjects_dir, 'sample', 'mri', 'flash')

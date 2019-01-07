@@ -21,7 +21,6 @@ psutil
 dipy
 numpydoc
 https://api.github.com/repos/nipy/PySurfer/zipball/master
-nitime
 nilearn
 neo
 pydocstyle

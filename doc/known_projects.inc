@@ -22,9 +22,9 @@
 .. _`nipy mailing list`: http://mail.scipy.org/mailman/listinfo/nipy-devel
 
 .. ipython
-.. _ipython: http://ipython.scipy.org
-.. _`ipython github`: http://github.com/ipython/ipython
-.. _`ipython mailing list`: http://mail.scipy.org/mailman/listinfo/IPython-dev
+.. _ipython: https://ipython.org
+.. _`ipython github`: https://github.com/ipython/ipython
+.. _`ipython mailing list`: https://mail.python.org/mailman/listinfo/ipython-dev
 
 .. dipy
 .. _dipy: http://nipy.org/dipy

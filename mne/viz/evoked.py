@@ -172,7 +172,8 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
     ax = inset_axes(axis, width=str(size / ratio) + '%',
                     height=str(size) + '%', loc=loc)
     ax.set_adjustable("box")
-    pos_x, pos_y = _prepare_topomap(pos, ax, check_nonzero=False)
+    _prepare_topomap(pos, ax, check_nonzero=False)
+    pos_x, pos_y = pos.T
     ax.scatter(pos_x, pos_y, color=colors, s=size * .8, marker='.', zorder=1)
     if bads:
         bads = np.array(bads)
@@ -1309,7 +1310,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     Returns
     -------
     fig : instance of matplotlib.figure.Figure | list
-        The figure object containing the plot. If `evoked` has multiple
+        The figure object containing the plot. If ``evoked`` has multiple
         channel types, a list of figures, one for each channel type, is
         returned.
 
@@ -1730,7 +1731,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     linestyles : list | dict
         If a list, will be sequentially and repeatedly used for evoked plot
         linestyles.
-        If a dict, can map the `evoked` keys or '/'-separated (HED) tags to
+        If a dict, can map the ``evokeds`` keys or '/'-separated (HED) tags to
         conditions.
         For example, if evokeds is a dict with the keys "Aud/L", "Aud/R",
         "Vis/L", "Vis/R", `linestyles` can be `dict(L='--', R='-')` to map both

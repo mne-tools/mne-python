@@ -19,12 +19,30 @@ Current
 Changelog
 ~~~~~~~~~
 
+- :meth:`mne.io.Raw.plot` now uses the lesser of ``n_channels`` and ``raw.ch_names``, by `Joan Massich`_
+
+- Add ``chunk_duration`` parameter to :func:`mne.events_from_annotations` to allow multiple events from a single annotation by `Joan Massich`_
+
+- :func:`mne.io.read_raw_edf` now detects analog stim channels labeled ``'STATUS'`` and sets them as stim channel. :func:`mne.io.read_raw_edf` no longer synthesize TAL annotations into stim channel but stores them in ``raw.annotations`` when reading by `Joan Massich`_
+
+- Add ``drop_refs=True`` parameter to :func:`set_bipolar_reference` to drop/keep anode and cathode channels after applying the reference by `Cristóbal Moënne-Loccoz`_.
+
+- Add use of :func:`scipy.signal.windows.dpss` for faster multitaper window computations in PSD functions by `Eric Larson`_
+
 - Add 448-labels subdivided aparc cortical parcellation by `Denis Engemann`_ and `Sheraz Khan`_
 
 - Add keyboard shortcuts to nativate volume source estimates in time using (shift+)left/right arrow keys by `Mainak Jas`_
 
+- Add Epoch selection and metadata functionality to :class:`mne.time_frequency.EpochsTFR` using new mixin class by `Keith Doelling`_
+
+- Add ``extrapolate`` argument to :func:`mne.viz.plot_topomap` for better control of extrapolation points placement by `Mikołaj Magnuski`_
+
 Bug
 ~~~
+
+- Fix :func:`set_bipolar_reference` in the case of generating all bipolar combinations and also in the case of repeated channels in both lists (anode and cathode) by `Cristóbal Moënne-Loccoz`_
+
+- Fix missing code for computing the median when ``method='median'`` in :meth:`mne.Epochs.average` by `Cristóbal Moënne-Loccoz`_
 
 - Fix CTF helmet plotting in :func:`mne.viz.plot_evoked_field` by `Eric Larson`_
 
@@ -1375,7 +1393,7 @@ API
 
 - Adds :func:`mne.Evoked.apply_baseline` to be consistent with :func:`mne.Epochs.apply_baseline`, by `Felix Raimundo`_
 
-- Deprecated the `baseline` parameter in :class:`mne.Evoked`, by `Felix Raimundo`_
+- Deprecated the ``baseline`` parameter in :class:`mne.Evoked`, by `Felix Raimundo`_
 
 - The API of :meth:`mne.SourceEstimate.plot` and :func:`mne.viz.plot_source_estimates` has been updated to reflect current PySurfer 0.6 API. The ``config_opts`` parameter is now deprecated and will be removed in mne 0.14, and the default representation for time will change from ``ms`` to ``s`` in mne 0.14. By `Christian Brodbeck`_
 
@@ -3100,5 +3118,7 @@ of commits):
 .. _jeythekey: https://github.com/jeythekey
 
 .. _Sara Sommariva: http://www.dima.unige.it/~sommariva/
+
+.. _Cristóbal Moënne-Loccoz: https://github.com/cmmoenne
 
 .. _David Haslacher: https://github.com/davidhaslacher

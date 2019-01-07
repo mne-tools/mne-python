@@ -162,8 +162,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         inversion='matrix', weight_norm='unit-gain', normalize_fwd=False
 
     For more information about ``real_filter``, see the
-    `supplemental information <http://www.cell.com/cms/attachment/616681/4982593/mmc1.pdf>`_
-    from [3]_.
+    supplemental information from [3]_.
 
     References
     ----------

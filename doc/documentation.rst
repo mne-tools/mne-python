@@ -40,7 +40,7 @@ Documentation
 
 This is where you can learn about all the things you can do with MNE. It contains **background information** and **tutorials** for taking a deep-dive into the techniques that MNE-python covers. You'll find practical information on how to use these methods with your data, and in many cases some high-level concepts underlying these methods.
 
-There are also **examples**, which contain a short use-case to highlight MNE-functionality and provide inspiration for the many things you can do with this package. You can also find a gallery of these examples in the `examples gallery <auto_examples/index.html>`_.
+There are also **examples**, which contain a short use-case to highlight MNE-functionality and provide inspiration for the many things you can do with this package. You can also find a gallery of these examples in the :ref:`examples gallery <sphx_glr_auto_examples>`.
 
 **See the links below for an introduction to MNE-python, or click one of the sections on this page to see more.**
 
@@ -377,7 +377,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_background_freesurfer.rst
     manual/source_localization/forward.rst
     manual/source_localization/inverse.rst
-    auto_tutorials/plot_morph_stc.rst
+    manual/source_localization/morph_stc.rst
 
 **Getting data to source space**
 
@@ -393,7 +393,6 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_point_spread.rst
     auto_tutorials/plot_dipole_orientations.rst
     auto_tutorials/plot_dics.rst
-    auto_tutorials/plot_background_freesurfer.rst
 
 
 .. raw:: html
@@ -681,6 +680,9 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     manual/c_reference.rst
     manual/gui/analyze.rst
     manual/gui/browse.rst
+    manual/source_localization/c_forward.rst
+    manual/source_localization/c_inverse.rst
+    manual/source_localization/c_morph.rst
     manual/appendix/bem_model.rst
     manual/appendix/c_misc.rst
     manual/appendix/c_release_notes.rst

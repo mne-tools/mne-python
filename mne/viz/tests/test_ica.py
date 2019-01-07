@@ -7,6 +7,7 @@ import os.path as op
 
 from numpy.testing import assert_equal, assert_array_equal
 import pytest
+import matplotlib.pyplot as plt
 
 from mne import read_events, Epochs, read_cov, pick_types
 from mne.io import read_raw_fif
@@ -14,10 +15,6 @@ from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne.utils import run_tests_if_main, requires_sklearn
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click
-
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -56,7 +53,6 @@ def _get_epochs():
 @requires_sklearn
 def test_plot_ica_components():
     """Test plotting of ICA solutions."""
-    import matplotlib.pyplot as plt
     res = 8
     fast_test = {"res": res, "contours": 0, "sensors": False}
     raw = _get_raw()
@@ -112,8 +108,6 @@ def test_plot_ica_components():
 @requires_sklearn
 def test_plot_ica_properties():
     """Test plotting of ICA properties."""
-    import matplotlib.pyplot as plt
-
     res = 8
     raw = _get_raw(preload=True)
     raw.add_proj([], remove_existing=True)
@@ -173,7 +167,6 @@ def test_plot_ica_properties():
 @requires_sklearn
 def test_plot_ica_sources():
     """Test plotting of ICA panel."""
-    import matplotlib.pyplot as plt
     raw = read_raw_fif(raw_fname).crop(0, 1).load_data()
     picks = _get_picks(raw)
     epochs = _get_epochs()
@@ -223,7 +216,6 @@ def test_plot_ica_sources():
 @requires_sklearn
 def test_plot_ica_overlay():
     """Test plotting of ICA cleaning."""
-    import matplotlib.pyplot as plt
     raw = _get_raw(preload=True)
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
@@ -259,7 +251,6 @@ def test_plot_ica_overlay():
 @requires_sklearn
 def test_plot_ica_scores():
     """Test plotting of ICA scores."""
-    import matplotlib.pyplot as plt
     raw = _get_raw()
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
@@ -285,7 +276,6 @@ def test_plot_ica_scores():
 @requires_sklearn
 def test_plot_instance_components():
     """Test plotting of components as instances of raw and epochs."""
-    import matplotlib.pyplot as plt
     raw = _get_raw()
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,

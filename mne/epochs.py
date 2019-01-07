@@ -10,7 +10,7 @@
 #
 # License: BSD (3-clause)
 
-from collections import OrderedDict, Counter
+from collections import Counter
 from copy import deepcopy
 import json
 import operator
@@ -46,9 +46,11 @@ from .fixes import _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
-                    _time_mask, check_random_state, warn, _pl, _ensure_int,
+                    _time_mask, check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
-                    _check_pandas_installed, _check_preload)
+                    _check_pandas_installed, _check_preload, GetEpochsMixin,
+                    _prepare_read_metadata, _prepare_write_metadata,
+                    _check_event_id, _gen_events)
 
 
 def _save_split(epochs, fname, part_idx, n_parts, fmt):
@@ -111,12 +113,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
     # Metadata
     if epochs.metadata is not None:
         start_block(fid, FIFF.FIFFB_MNE_METADATA)
-        metadata = epochs.metadata
-        if not isinstance(metadata, list):
-            metadata = metadata.to_json(orient='records')
-        else:  # Pandas DataFrame
-            metadata = json.dumps(metadata)
-        assert isinstance(metadata, str)
+        metadata = _prepare_write_metadata(epochs.metadata)
         write_string(fid, FIFF.FIFF_DESCRIPTION, metadata)
         end_block(fid, FIFF.FIFFB_MNE_METADATA)
 
@@ -171,7 +168,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
 
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
-                 ToDataFrameMixin, TimeMixin, SizeMixin):
+                 ToDataFrameMixin, TimeMixin, SizeMixin, GetEpochsMixin):
     """Abstract base class for Epochs-type classes.
 
     This class provides basic functionality and should never be instantiated
@@ -257,23 +254,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if events is not None:  # RtEpochs can have events=None
             events = np.asarray(events)
 
-        # check out event_id dict
-        if event_id is None:  # convert to int to make typing-checks happy
-            event_id = list(np.unique(events[:, 2]))
-        if isinstance(event_id, dict):
-            for key in event_id.keys():
-                if not isinstance(key, str):
-                    raise TypeError('Event names must be of type str, '
-                                    'got %s (%s)' % (key, type(key)))
-            event_id = dict((key, _ensure_int(val, 'event_id[%s]' % key))
-                            for key, val in event_id.items())
-        elif isinstance(event_id, list):
-            event_id = [_ensure_int(v, 'event_id[%s]' % vi)
-                        for vi, v in enumerate(event_id)]
-            event_id = dict(zip((str(i) for i in event_id), event_id))
-        else:
-            event_id = _ensure_int(event_id, 'event_id')
-            event_id = {str(event_id): event_id}
+        event_id = _check_event_id(event_id, events)
         self.event_id = event_id
         del event_id
 
@@ -355,7 +336,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         info._check_consistency()
         self.info = info
         del info
-        self._metadata = None
         self.metadata = metadata
         self._current = 0
 
@@ -428,56 +408,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         assert len(self.drop_log) >= len(self.events)
         assert hasattr(self, '_times_readonly')
         assert not self.times.flags['WRITEABLE']
-
-    def _check_metadata(self, metadata=None, reset_index=False):
-        """Check metadata consistency."""
-        # reset_index=False will not copy!
-        metadata = self.metadata if metadata is None else metadata
-        if metadata is not None:
-            pd = _check_pandas_installed(strict=False)
-            if pd is not False:
-                if not isinstance(metadata, pd.DataFrame):
-                    raise TypeError('metadata must be a pandas DataFrame, '
-                                    'got %s' % (type(metadata),))
-                if len(metadata) != len(self.events):
-                    raise ValueError('metadata must have the same number of '
-                                     'rows (%d) as events (%d)'
-                                     % (len(metadata), len(self.events)))
-                if reset_index:
-                    metadata = metadata.reset_index(drop=True)  # makes a copy
-                    metadata.index = self.selection
-            else:
-                if not isinstance(metadata, list):
-                    raise TypeError('metdata must be a list, got %s'
-                                    % (type(metadata),))
-                if reset_index:
-                    metadata = deepcopy(metadata)
-        return metadata
-
-    @property
-    def metadata(self):
-        """Get the metadata."""
-        return self._metadata
-
-    @metadata.setter
-    @verbose
-    def metadata(self, metadata, verbose=None):
-        metadata = self._check_metadata(metadata, reset_index=True)
-        if metadata is not None:
-            if _check_pandas_installed(strict=False):
-                n_col = metadata.shape[1]
-            else:
-                n_col = len(metadata[0])
-            n_col = ' with %d columns' % n_col
-        else:
-            n_col = ''
-        if self._metadata is not None:
-            action = 'Removing' if metadata is None else 'Replacing'
-            action += ' existing'
-        else:
-            action = 'Not setting' if metadata is None else 'Adding'
-        logger.info('%s metadata%s' % (action, n_col))
-        self._metadata = metadata
 
     def load_data(self):
         """Load the data if not already preloaded.
@@ -825,10 +755,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         return self
 
-    def __next__(self, *args, **kwargs):
-        """Provide a wrapper for Py3k."""
-        return self.next(*args, **kwargs)
-
     def average(self, picks=None, method="mean"):
         """Compute an average over epochs.
 
@@ -912,6 +838,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if mode == "mean":
                 def fun(data):
                     return np.mean(data, axis=0)
+            elif mode == "median":
+                def fun(data):
+                    return np.median(data, axis=0)
             elif mode == "std":
                 def fun(data):
                     return np.std(data, axis=0)
@@ -1093,7 +1022,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Dropping bad epochs can be done multiple times with different
         ``reject`` and ``flat`` parameters. However, once an epoch is
         dropped, it is dropped forever, so if more lenient thresholds may
-        subsequently be applied, `epochs.copy` should be used.
+        subsequently be applied, `epochs.copy <mne.Epochs.copy>` should be
+        used.
         """
         if reject == 'existing':
             if flat == 'existing' and self._bad_dropped:
@@ -1325,101 +1255,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         return self._get_data()
 
-    def __len__(self):
-        """Return the number of epochs.
-
-        Returns
-        -------
-        n_epochs : int
-            The number of remaining epochs.
-
-        Notes
-        -----
-        This function only works if bad epochs have been dropped.
-
-        Examples
-        --------
-        This can be used as::
-
-            >>> epochs.drop_bad()  # doctest: +SKIP
-            >>> len(epochs)  # doctest: +SKIP
-            43
-            >>> len(epochs.events)  # doctest: +SKIP
-            43
-
-        """
-        if not self._bad_dropped:
-            raise RuntimeError('Since bad epochs have not been dropped, the '
-                               'length of the Epochs is not known. Load the '
-                               'Epochs with preload=True, or call '
-                               'Epochs.drop_bad(). To find the number '
-                               'of events in the Epochs, use '
-                               'len(Epochs.events).')
-        return len(self.events)
-
-    def __iter__(self):
-        """Facilitate iteration over epochs.
-
-        This method resets the object iteration state to the first epoch.
-
-        Notes
-        -----
-        This enables the use of this Python pattern::
-
-            >>> for epoch in epochs:  # doctest: +SKIP
-            >>>     print(epoch)  # doctest: +SKIP
-
-        Where ``epoch`` is given by successive outputs of
-        :func:`mne.Epochs.next`.
-        """
-        self._current = 0
-        while True:
-            x = self.next()
-            if x is None:
-                return
-            yield x
-
-    def next(self, return_event_id=False):
-        """Iterate over epoch data.
-
-        Parameters
-        ----------
-        return_event_id : bool
-            If True, return both the epoch data and an event_id.
-
-        Returns
-        -------
-        epoch : array of shape (n_channels, n_times)
-            The epoch data.
-        event_id : int
-            The event id. Only returned if ``return_event_id`` is ``True``.
-        """
-        if self.preload:
-            if self._current >= len(self._data):
-                return  # signal the end
-            epoch = self._data[self._current]
-            self._current += 1
-        else:
-            is_good = False
-            while not is_good:
-                if self._current >= len(self.events):
-                    return  # signal the end properly
-                epoch_noproj = self._get_epoch_from_raw(self._current)
-                epoch_noproj = self._detrend_offset_decim(epoch_noproj)
-                epoch = self._project_epoch(epoch_noproj)
-                self._current += 1
-                is_good, _ = self._is_good_epoch(epoch)
-            # If delayed-ssp mode, pass 'virgin' data after rejection decision.
-            if self._do_delayed_proj:
-                epoch = epoch_noproj
-
-        if not return_event_id:
-            return epoch
-        else:
-            return epoch, self.events[self._current - 1][-1]
-
-        return epoch if not return_event_id else epoch, self.event_id
-
     @property
     def times(self):
         """Time vector in seconds."""
@@ -1468,171 +1303,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         class_name = self.__class__.__name__
         class_name = 'Epochs' if class_name == 'BaseEpochs' else class_name
         return '<%s  |  %s>' % (class_name, s)
-
-    def _keys_to_idx(self, keys):
-        """Find entries in event dict."""
-        keys = [keys] if not isinstance(keys, (list, tuple)) else keys
-        try:
-            # Assume it's a condition name
-            return np.where(np.any(
-                np.array([self.events[:, 2] == self.event_id[k]
-                          for k in _hid_match(self.event_id, keys)]),
-                axis=0))[0]
-        except KeyError as err:
-            # Could we in principle use metadata with these Epochs and keys?
-            if (len(keys) != 1 or self.metadata is None):
-                # If not, raise original error
-                raise
-            msg = str(err.args[0])  # message for KeyError
-            pd = _check_pandas_installed(strict=False)
-            # See if the query can be done
-            if pd is not False:
-                self._check_metadata()
-                try:
-                    # Try metadata
-                    mask = self.metadata.eval(keys[0], engine='python').values
-                except Exception as exp:
-                    msg += (' The epochs.metadata Pandas query did not '
-                            'yield any results: %s' % (exp.args[0],))
-                else:
-                    return np.where(mask)[0]
-            else:
-                # If not, warn this might be a problem
-                msg += (' The epochs.metadata Pandas query could not '
-                        'be performed, consider installing Pandas.')
-            raise KeyError(msg)
-
-    def __getitem__(self, item):
-        """Return an Epochs object with a copied subset of epochs.
-
-        Parameters
-        ----------
-        item : slice, array-like, str, or list
-            See below for use cases.
-
-        Returns
-        -------
-        epochs : instance of Epochs
-            See below for use cases.
-
-        Notes
-        -----
-        Epochs can be accessed as ``epochs[...]`` in several ways:
-
-            1. ``epochs[idx]``: Return ``Epochs`` object with a subset of
-               epochs (supports single index and python-style slicing).
-
-            2. ``epochs['name']``: Return ``Epochs`` object with a copy of the
-               subset of epochs corresponding to an experimental condition as
-               specified by 'name'.
-
-               If conditions are tagged by names separated by '/' (e.g.
-               'audio/left', 'audio/right'), and 'name' is not in itself an
-               event key, this selects every event whose condition contains
-               the 'name' tag (e.g., 'left' matches 'audio/left' and
-               'visual/left'; but not 'audio_left'). Note that tags selection
-               is insensitive to order: tags like 'auditory/left' and
-               'left/auditory' will be treated the same way when accessed.
-
-            3. ``epochs[['name_1', 'name_2', ... ]]``: Return ``Epochs`` object
-               with a copy of the subset of epochs corresponding to multiple
-               experimental conditions as specified by
-               ``'name_1', 'name_2', ...`` .
-
-               If conditions are separated by '/', selects every item
-               containing every list tag (e.g. ['audio', 'left'] selects
-               'audio/left' and 'audio/center/left', but not 'audio/right').
-
-            4. ``epochs['pandas query']``: Return ``Epochs`` object with a
-               copy of the subset of epochs (and matching metadata) that match
-               ``pandas query`` called with ``self.metadata.eval``, e.g.::
-
-                   epochs["col_a > 2 and col_b == 'foo'"]
-
-               This is only called if Pandas is installed and ``self.metadata``
-               is a :class:`pandas.DataFrame`.
-
-               .. versionadded:: 0.16
-        """
-        return self._getitem(item)
-
-    def _getitem(self, item, reason='IGNORED', copy=True, drop_event_id=True,
-                 select_data=True, return_indices=False):
-        """
-        Select epochs from current object.
-
-        Parameters
-        ----------
-        item: slice, array-like, str, or list
-            see `__getitem__` for details.
-        reason: str
-            entry in `drop_log` for unselected epochs
-        copy: bool
-            return a copy of the current object
-        drop_event_id: bool
-            remove non-existing event-ids after selection
-        select_data: bool
-            apply selection to data
-            (use `select_data=False` if subclasses do not have a
-             valid `_data` field)
-        return_indices: bool
-            return the indices of selected epochs from the original object)
-            in addition to the new `Epochs` objects
-        Returns
-        -------
-        `Epochs` or tuple(Epochs, np.ndarray) if `return_indices` is True
-
-        object with subset of epochs (and optionally array with kept
-        epoch indices)
-        """
-        data = self._data
-        del self._data
-        epochs = self.copy() if copy else self
-        self._data, epochs._data = data, data
-        del self
-
-        if isinstance(item, str):
-            item = [item]
-
-        # Convert string to indices
-        if isinstance(item, (list, tuple)) and len(item) > 0 and \
-                isinstance(item[0], str):
-            select = epochs._keys_to_idx(item)
-        elif isinstance(item, slice):
-            select = item
-        else:
-            select = np.atleast_1d(item)
-            if len(select) == 0:
-                select = np.array([], int)
-
-        key_selection = epochs.selection[select]
-        if reason is not None:
-            for k in np.setdiff1d(epochs.selection, key_selection):
-                epochs.drop_log[k] = [reason]
-        epochs.selection = key_selection
-        epochs.events = np.atleast_2d(epochs.events[select])
-        if epochs.metadata is not None:
-            pd = _check_pandas_installed(strict=False)
-            if pd is not False:
-                metadata = epochs.metadata.iloc[select]
-                metadata.index = epochs.selection
-            else:
-                metadata = np.array(epochs.metadata, 'object')[select].tolist()
-
-            # will reset the index for us
-            BaseEpochs.metadata.fset(epochs, metadata, verbose=False)
-        if epochs.preload and select_data:
-            # ensure that each Epochs instance owns its own data so we can
-            # resize later if necessary
-            epochs._data = np.require(epochs._data[select], requirements=['O'])
-        if drop_event_id:
-            # update event id to reflect new content of epochs
-            epochs.event_id = dict((k, v) for k, v in epochs.event_id.items()
-                                   if v in epochs.events[:, 2])
-        if return_indices:
-            return epochs, select
-        else:
-            return epochs
 
     def crop(self, tmin=None, tmax=None):
         """Crop a time interval from the epochs.
@@ -1891,35 +1561,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         first = int(tshift * sfreq) + offset
         last = first + len(times) - 1
         self._set_times(np.arange(first, last + 1, dtype=np.float) / sfreq)
-
-
-def _hid_match(event_id, keys):
-    """Match event IDs using HID selection.
-
-    Parameters
-    ----------
-    event_id : dict
-        The event ID dictionary.
-    keys : list | str
-        The event ID or subset (for HID), or list of such items.
-
-    Returns
-    -------
-    use_keys : list
-        The full keys that fit the selection criteria.
-    """
-    # form the hierarchical event ID mapping
-    use_keys = []
-    for key in keys:
-        if not isinstance(key, str):
-            raise KeyError('keys must be strings, got %s (%s)'
-                           % (type(key), key))
-        use_keys.extend(k for k in event_id.keys()
-                        if set(key.split('/')).issubset(k.split('/')))
-    if len(use_keys) == 0:
-        raise KeyError('Event "%s" is not in Epochs.' % key)
-    use_keys = list(set(use_keys))  # deduplicate if necessary
-    return use_keys
 
 
 def _check_baseline(baseline, tmin, tmax, sfreq):
@@ -2296,8 +1937,7 @@ class EpochsArray(BaseEpochs):
                              'channels.')
         if events is None:
             n_epochs = len(data)
-            events = np.c_[np.arange(n_epochs), np.zeros(n_epochs, int),
-                           np.ones(n_epochs, int)]
+            events = _gen_events(n_epochs)
         if data.shape[0] != len(events):
             raise ValueError('The number of epochs and the number of events'
                              'must match')
@@ -2538,15 +2178,7 @@ def _read_one_epoch_file(f, tree, preload):
                 pos = dd.pos
                 if kind == FIFF.FIFF_DESCRIPTION:
                     metadata = read_tag(fid, pos).data
-                    pd = _check_pandas_installed(strict=False)
-                    # use json.loads because this preserves ordering
-                    # (which is necessary for round-trip equivalence)
-                    metadata = json.loads(metadata,
-                                          object_pairs_hook=OrderedDict)
-                    assert isinstance(metadata, list)
-                    if pd is not False:
-                        metadata = pd.DataFrame.from_records(metadata)
-                        assert isinstance(metadata, pd.DataFrame)
+                    metadata = _prepare_read_metadata(metadata)
                     break
 
         #   Locate the data of interest

@@ -66,9 +66,10 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 # The coregistration is operation that allows to position the head and the
 # sensors in a common coordinate system. In the MNE software the transformation
 # to align the head and the sensors in stored in a so-called **trans file**.
-# It is a FIF file that ends with -trans.fif. It can be obtained with
-# mne_analyze (Unix tools), mne.gui.coregistration (in Python) or mrilab
-# if you're using a Neuromag system.
+# It is a FIF file that ends with ``-trans.fif``. It can be obtained with
+# :func:`mne.gui.coregistration` (or its convenient command line
+# equivalent :ref:`gen_mne_coreg`), or mrilab if you're using a Neuromag
+# system.
 #
 # For the Python version see :func:`mne.gui.coregistration`
 #
@@ -86,15 +87,29 @@ mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
                        surfaces='head-dense')
 
 ###############################################################################
+# .. _plot_forward_source_space:
+#
 # Compute Source Space
 # --------------------
 #
-# The source space defines the position of the candidate source locations.
-# The following code compute such a cortical source space with
-# an OCT-6 resolution.
+# The source space defines the position and orientation of the candidate source
+# locations. There are two types of source spaces:
 #
+# - **source-based** source space when the candidates are confined to a
+#   surface.
+#
+# - **volumetric or discrete** source space when the candidates are discrete,
+#   arbitrarily located source points bounded by the surface.
+#
+# **Source-based** source space is computed using
+# :func:`mne.setup_source_space`, while **volumetric** source space is computed
+# using :func:`mne.setup_volume_source_space`.
+#
+# The rest of this tutorial uses a source-based source space with
+# an OCT-6 resolution.
 # See :ref:`setting_up_source_space` for details on source space definition
 # and spacing parameter.
+#
 
 src = mne.setup_source_space(subject, spacing='oct6',
                              subjects_dir=subjects_dir, add_dist=False)
@@ -125,6 +140,8 @@ mlab.points3d(surf.x[vertidx], surf.y[vertidx],
               surf.z[vertidx], color=(1, 1, 0), scale_factor=1.5)
 
 ###############################################################################
+# .. _plot_forward_compute_forward_solution:
+#
 # Compute forward solution
 # ------------------------
 #

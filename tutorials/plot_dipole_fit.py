@@ -8,7 +8,7 @@ This shows how to fit a dipole using mne-python.
 
 For a comparison of fits between MNE-C and mne-python, see:
 
-    https://gist.github.com/Eric89GXL/ca55f791200fe1dc3dd2
+    https://gist.github.com/larsoner/ca55f791200fe1dc3dd2
 
 """
 

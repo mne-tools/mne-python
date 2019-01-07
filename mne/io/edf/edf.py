@@ -5,6 +5,7 @@
 #          Martin Billinger <martin.billinger@tugraz.at>
 #          Nicolas Barascud <nicolas.barascud@ens.fr>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -16,13 +17,13 @@ import re
 import numpy as np
 
 from ...utils import verbose, logger, warn
-from ..utils import _blk_read_lims, _synthesize_stim_channel
+from ..utils import _blk_read_lims
 from ..base import BaseRaw, _check_update_montage
 from ..meas_info import _empty_info, DATE_NONE
 from ..constants import FIFF
 from ...filter import resample
 from ...utils import copy_function_doc_to_method_doc
-from ...annotations import Annotations, events_from_annotations
+from ...annotations import Annotations
 
 
 def find_edf_events(raw):
@@ -67,27 +68,6 @@ def find_edf_events(raw):
     return raw.find_edf_events()
 
 
-def _edf_events_from_annotations(raw, event_id):
-    """Modify events_from_annotaitons for EDF specifics.
-
-    Modify events_from_annotaitons so that events[:,1] corresponds to
-    the duration of the events instead of the id of the previous event.
-    """
-    events, event_id_ = events_from_annotations(raw, event_id=event_id,
-                                                use_rounding=False)
-    durations = raw.annotations.duration
-    durations = np.array(durations * raw.info['sfreq'], int)
-
-    # XXX see discussion gh-5574, this is necessary due to the fact
-    # that stim channel cannot two consecutive events unless they are
-    # at least one sample apart (so that stim_ch can go from evnt_id to 0
-    # and back to evnt_id).
-    durations[durations != 0] -= 1
-
-    events[:, 1] = durations
-    return events, event_id_
-
-
 class RawEDF(BaseRaw):
     """Raw object from EDF, EDF+, BDF file.
 
@@ -107,27 +87,17 @@ class RawEDF(BaseRaw):
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
-    stim_channel : str | int | 'auto' | False
-        The channel name or channel index (starting at 0). -1 corresponds to
-        the last channel. If False, there will be no stim channel added. If
-        'auto' (default), the stim channel will be added as the last channel if
-        the header contains ``'EDF Annotations'`` or GDF events (otherwise stim
-        channel will not be added). None is accepted as an alias for False.
+    stim_channel : False
+        If False, there will be no stim channel added from a TAL channel.
+        None is accepted as an alias for False.
 
-        .. warning:: This defaults to 'auto' in 0.17 but will default to False
-                     in 0.18 (when no stim channel synthesis will be allowed)
-                     and will be removed in 0.19; migrate code to use
-                     :func:`mne.events_from_annotations` instead.
+        .. warning:: 0.18 does not allow for stim channel synthesis from
+                     the TAL channels called 'EDF Annotations' or
+                     'BDF Annotations'. The TAL channel is parsed
+                     and put in the raw.annotations attribute.
+                     Use :func:`mne.events_from_annotations` to obtain
+                     events for the annotations instead.
 
-    annot : str | None
-        Path to annotation file.
-        If None, no derived stim channel will be added (for files requiring
-        annotation file to interpret stim channel).
-        This was deprecated in 0.17 and will be removed in 0.18.
-    annotmap : str | None
-        Path to annotation map file containing mapping from label to trigger.
-        Must be specified if annot is not None.
-        This was deprecated in 0.17 and will be removed in 0.18.
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
@@ -169,10 +139,14 @@ class RawEDF(BaseRaw):
 
         >>> events[:, 2] >>= 8  # doctest:+SKIP
 
-    In addition, for GDF files, the stimulus channel is constructed from the
-    events in the header. The id numbers of overlapping events are simply
-    combined through addition. To get the original events from the header,
-    use function :func:`mne.io.find_edf_events`.
+    The TAL channel called 'EDF Annotations' or 'BDF Annotations' is parsed and
+    put in the raw.annotations attribute.
+    Use :func:`mne.events_from_annotations` to obtain events from the
+    annotations.
+
+    If channels named 'Status' or 'STATUS' will be considered analog stim
+    channels, use method ``find_events`` to recover the events encoded in this
+    channel.
 
     See Also
     --------
@@ -181,23 +155,15 @@ class RawEDF(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
-                 stim_channel='', annot=None, annotmap=None, exclude=(),
-                 preload=False, verbose=None):  # noqa: D102
+                 stim_channel=None, exclude=(), preload=False,
+                 verbose=None):  # noqa: D102
         logger.info('Extracting EDF parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
-        info, edf_info, orig_units = _get_info(input_fname, stim_channel,
-                                               annot, annotmap, eog, misc,
+        info, edf_info, orig_units = _get_info(input_fname,
+                                               stim_channel, eog, misc,
                                                exclude, preload)
         logger.info('Creating raw.info structure...')
         _check_update_montage(info, montage)
-
-        if bool(annot) != bool(annotmap):
-            warn("Stimulus channel will not be annotated. Both 'annot' and "
-                 "'annotmap' must be specified.")
-
-        if annot or annotmap:
-            warn("'annot' and 'annotmap' parameters are deprecated and will be"
-                 " removed in 0.18", DeprecationWarning)
 
         # Raw attributes
         last_samps = [edf_info['nsamples'] - 1]
@@ -206,10 +172,41 @@ class RawEDF(BaseRaw):
             last_samps=last_samps, orig_format='int', orig_units=orig_units,
             verbose=verbose)
 
+        # Read annotations from file and set it
+        annot = None
+        ext = os.path.splitext(input_fname)[1][1:].lower()
+        if ext in ('gdf'):
+            events = edf_info.get('events', None)
+            # Annotations in GDF: events are stored as the following
+            # list: `events = [n_events, pos, typ, chn, dur]` where pos is the
+            # latency, dur is the duration in samples. They both are
+            # numpy.ndarray
+            if events is not None and events[1].shape[0] > 0:
+                # For whatever reason, typ has the same content as pos
+                # therefore we set an arbitrary description
+                desc = 'GDF event'
+                annot = Annotations(onset=events[1] / self.info['sfreq'],
+                                    duration=events[4] / self.info['sfreq'],
+                                    description=desc,
+                                    orig_time=None)
+        elif len(edf_info['tal_idx']) > 0:
+            # Read TAL data exploiting the header info (no regexp)
+            tal_data = self._read_segment_file([], [], 0, 0, int(self.n_times),
+                                               None, None)
+            onset, duration, desc = _read_annotations_edf(tal_data[0])
+
+            # in EDF, annotations are relative to first_samp
+            annot = Annotations(onset=onset, duration=duration,
+                                description=desc, orig_time=None)
+
+        if annot is not None:
+            self.set_annotations(annot)
+
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         from scipy.interpolate import interp1d
+
         if mult is not None:
             # XXX "cals" here does not function the same way as in RawFIF,
             # and for efficiency we want to be able to combine mult and cals
@@ -217,17 +214,13 @@ class RawEDF(BaseRaw):
             raise NotImplementedError('mult is not supported yet')
         n_samps = self._raw_extras[fi]['n_samps']
         buf_len = int(self._raw_extras[fi]['max_samp'])
-        sfreq = self.info['sfreq']
         dtype = self._raw_extras[fi]['dtype_np']
         dtype_byte = self._raw_extras[fi]['dtype_byte']
         data_offset = self._raw_extras[fi]['data_offset']
         stim_channel = self._raw_extras[fi]['stim_channel']
-        tal_sel = self._raw_extras[fi]['tal_sel']
         orig_sel = self._raw_extras[fi]['sel']
-        annot = self._raw_extras[fi]['annot']
-        annotmap = self._raw_extras[fi]['annotmap']
+        tal_idx = self._raw_extras[fi].get('tal_idx', [])
         subtype = self._raw_extras[fi]['subtype']
-        stim_data = self._raw_extras[fi].get('stim_data', None)  # for GDF
 
         if np.size(dtype_byte) > 1:
             if len(np.unique(dtype_byte)) > 1:
@@ -247,8 +240,10 @@ class RawEDF(BaseRaw):
         digital_min = self._raw_extras[fi]['digital_min']
 
         offsets = np.atleast_2d(physical_min - (digital_min * cal)).T
-        offsets[np.in1d(orig_sel, tal_sel)] = 0
         this_sel = orig_sel[idx]
+        if len(tal_idx):
+            this_sel = np.concatenate([this_sel, tal_idx])
+        tal_data = []
 
         # We could read this one EDF block at a time, which would be this:
         ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
@@ -272,33 +267,25 @@ class RawEDF(BaseRaw):
                 for ii, ci in enumerate(this_sel):
                     # This now has size (n_chunks_read, n_samp[ci])
                     ch_data = many_chunk[:, ch_offsets[ci]:ch_offsets[ci + 1]]
+
+                    if len(tal_idx) and ci == tal_idx[0]:
+                        tal_data.append(ch_data)
+                        continue
+
                     r_sidx = r_lims[ai][0]
                     r_eidx = (buf_len * (n_read - 1) +
                               r_lims[ai + n_read - 1][1])
                     d_sidx = d_lims[ai][0]
                     d_eidx = d_lims[ai + n_read - 1][1]
                     if n_samps[ci] != buf_len:
-                        if ci in tal_sel:
-                            # don't resample tal_channels, zero-pad instead.
-                            if n_samps[ci] < buf_len:
-                                z = np.zeros((len(ch_data),
-                                              buf_len - n_samps[ci]))
-                                ch_data = np.append(ch_data, z, -1)
-                            else:
-                                ch_data = ch_data[:, :buf_len]
-                        elif ci == stim_channel:
-                            if (annot and annotmap or stim_data is not None or
-                                    len(tal_sel) > 0):
-                                # don't resample, it gets overwritten later
-                                ch_data = np.zeros((len(ch_data), buf_len))
-                            else:
-                                # Stim channel will be interpolated
-                                old = np.linspace(0, 1, n_samps[ci] + 1, True)
-                                new = np.linspace(0, 1, buf_len, False)
-                                ch_data = np.append(
-                                    ch_data, np.zeros((len(ch_data), 1)), -1)
-                                ch_data = interp1d(old, ch_data,
-                                                   kind='zero', axis=-1)(new)
+                        if ci == stim_channel:
+                            # Stim channel will be interpolated
+                            old = np.linspace(0, 1, n_samps[ci] + 1, True)
+                            new = np.linspace(0, 1, buf_len, False)
+                            ch_data = np.append(
+                                ch_data, np.zeros((len(ch_data), 1)), -1)
+                            ch_data = interp1d(old, ch_data,
+                                               kind='zero', axis=-1)(new)
                         else:
                             # XXX resampling each chunk isn't great,
                             # it forces edge artifacts to appear at
@@ -311,12 +298,11 @@ class RawEDF(BaseRaw):
 
         # only try to read the stim channel if it's not None and it's
         # actually one of the requested channels
-        idx = np.arange(self.info['nchan'])[idx]  # slice -> ints
-        read_size = len(r_lims) * buf_len
+        _idx = np.arange(self.info['nchan'])[idx]  # slice -> ints
         if stim_channel is None:  # avoid NumPy comparison to None
             stim_channel_idx = np.array([], int)
         else:
-            stim_channel_idx = np.where(idx == stim_channel)[0]
+            stim_channel_idx = np.where(_idx == stim_channel)[0]
 
         if subtype == 'bdf':
             # do not scale stim channel (see gh-5160)
@@ -333,75 +319,15 @@ class RawEDF(BaseRaw):
         data *= gains.T[idx]
 
         if stim_channel is not None and len(stim_channel_idx) > 0:
-            if annot and annotmap:
-                evts = _read_annot(annot, annotmap, sfreq,
-                                   self._last_samps[fi] + 1)
-                data[stim_channel_idx, :] = evts[start:stop]
-            elif len(tal_sel) > 0:
-                tal_channel_idx = np.in1d(orig_sel[idx], tal_sel)
-                annotations_data = np.atleast_2d(data[tal_channel_idx])
-                onset, duration, desc = _read_annotations_edf(annotations_data)
+            stim = np.bitwise_and(data[stim_channel_idx].astype(int),
+                                  2**17 - 1)
+            data[stim_channel_idx, :] = stim
 
-                evts = (onset, duration, desc)
-                self._raw_extras[fi]['events'] = np.column_stack(evts)
-
-                self.set_annotations(Annotations(onset=onset,
-                                                 duration=duration,
-                                                 description=desc,
-                                                 orig_time=None))
-                event_id = _get_edf_default_event_id(desc)
-                events, _ = _edf_events_from_annotations(self,
-                                                         event_id=event_id)
-
-                self._check_events(events, read_size)
-                stim = self._create_event_ch(events, read_size)
-                data[stim_channel_idx, :] = stim[start:stop]
-
-            elif stim_data is not None:  # GDF events
-                data[stim_channel_idx, :] = stim_data[start:stop]
-            else:
-                stim = np.bitwise_and(data[stim_channel_idx].astype(int),
-                                      2**17 - 1)
-                data[stim_channel_idx, :] = stim
+        return tal_data
 
     @copy_function_doc_to_method_doc(find_edf_events)
     def find_edf_events(self):
         return self._raw_extras[0]['events']
-
-    def _create_event_ch(self, events, n_samples=None):
-        """Create the event channel."""
-        if n_samples is None:
-            n_samples = self.last_samp - self.first_samp + 1
-        events = np.array(events, int)
-        if events.ndim != 2 or events.shape[1] != 3:
-            raise ValueError("[n_events x 3] shaped array required")
-        # update events
-        self._event_ch = _synthesize_stim_channel(events, n_samples)
-        return self._event_ch
-
-    def _check_events(self, events, read_size):
-        """Emit warnings based on events.
-
-        Check for:
-        - Overlapping events
-        - Events that expand over the read buffer
-
-        XXX: This can be vectorized
-        """
-        stim = np.zeros(read_size)
-        for n_start, n_duration, description in events:
-            n_stop = n_duration + n_start
-            # make sure events without duration get one sample
-            n_stop = n_stop if n_stop > n_start else n_start + 1
-            if any(stim[n_start:n_stop]):
-                warn('EDF+ with overlapping events are not fully supported')
-            if n_start >= read_size:  # event out of bounds
-                warn('Event "{}" (with onset {}) is out of'
-                     ' bounds, it cannot be added to the stim channel.'
-                     ' Use find_edf_events to get a list of all EDF '
-                     'events as stored in the '
-                     'file.'.format(description, n_start))
-            stim[n_start:n_stop] += 1
 
 
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
@@ -423,16 +349,19 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     return ch_data
 
 
-def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
-              preload):
+def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     """Extract all the information from the EDF+, BDF or GDF file."""
-    # backward compat aliasing; code below wants to see None but in 0.18
-    # we allow/prefer False for consistency with BV/EEGLAB
-    stim_channel = None if stim_channel is False else stim_channel
-    if stim_channel == '':
-        warn('stim_channel will default to "auto" in 0.17 but change to False '
-             'in 0.18, and will be removed in 0.19', DeprecationWarning)
-        stim_channel = 'auto'
+    if stim_channel is not None:
+        if isinstance(stim_channel, bool) and not stim_channel:
+            warn('stim_channel parameter is deprecated and will be removed in'
+                 ' 0.19.', DeprecationWarning)
+            stim_channel = None
+        else:
+            _msg = ('The synthesis of the stim channel is not supported since'
+                    ' 0.18. Please set `stim_channel` to False and use'
+                    ' `mne.events_from_annotations` instead')
+            raise RuntimeError(_msg)
+
     if eog is None:
         eog = []
     if misc is None:
@@ -442,24 +371,19 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     ext = os.path.splitext(fname)[1][1:].lower()
     logger.info('%s file detected' % ext.upper())
     if ext in ('bdf', 'edf'):
-        edf_info, orig_units = _read_edf_header(fname, annot, annotmap,
-                                                exclude)
+        edf_info, orig_units = _read_edf_header(fname, exclude)
     elif ext in ('gdf'):
-        if annot is not None:
-            warn('Annotations not yet supported for GDF files.')
         edf_info = _read_gdf_header(fname, stim_channel, exclude)
 
         # orig_units not yet implemented for gdf
         orig_units = None
 
-        if 'stim_data' not in edf_info and stim_channel == 'auto':
-            stim_channel = None  # Cannot construct stim channel.
     else:
         raise NotImplementedError(
             'Only GDF, EDF, and BDF files are supported, got %s.' % ext)
 
-    sel = edf_info['sel']
-    ch_names = edf_info['ch_names']
+    sel = edf_info['sel']  # selection of channels not excluded
+    ch_names = edf_info['ch_names']  # of length len(sel)
     n_samps = edf_info['n_samps'][sel]
     nchan = edf_info['nchan']
     physical_ranges = edf_info['physical_max'] - edf_info['physical_min']
@@ -474,35 +398,14 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         warn('Physical range is not defined in following channels:\n' +
              ', '.join(ch_names[i] for i in bad_idx))
         physical_ranges[bad_idx] = 1
-    if 'stim_data' in edf_info and stim_channel == 'auto':  # For GDF events.
-        cals = np.append(cals, 1)
-    if stim_channel is not None:
-        stim_channel = _check_stim_channel(stim_channel, ch_names, sel)
-
-    # Annotations
-    tal_ch_name = 'EDF Annotations'
-    tal_chs = np.where(np.array(ch_names) == tal_ch_name)[0]
-    if len(tal_chs) > 0:
-        logger.info('EDF annotations detected (consider using '
-                    'raw.find_edf_events() to extract them)')
-        if len(tal_chs) > 1:
-            warn('Channel names are not unique, found duplicates for: %s. '
-                 'Adding running numbers to duplicate channel names.'
-                 % tal_ch_name)
-        for idx, tal_ch in enumerate(tal_chs, 1):
-            ch_names[tal_ch] = ch_names[tal_ch] + '-%s' % idx
-    tal_sel = edf_info['sel'][tal_chs]
-    edf_info['tal_sel'] = tal_sel
-
-    if len(tal_sel) > 0 and stim_channel is not None and not preload:
-        raise RuntimeError('%s' % ('EDF+ Annotations (TAL) channel needs to be'
-                                   ' parsed completely on loading.'
-                                   ' You must set preload parameter to True.'))
+    stim_channel, stim_ch_name = \
+        _check_stim_channel(stim_channel, ch_names, sel)
 
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
     chs = list()
     pick_mask = np.ones(len(ch_names))
+
     for idx, ch_info in enumerate(zip(ch_names, physical_ranges, cals)):
         ch_name, physical_range, cal = ch_info
         chan_info = {}
@@ -522,31 +425,18 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_EOG_CH
             pick_mask[idx] = False
-        if ch_name in misc or idx in misc or idx - nchan in misc:
+        elif ch_name in misc or idx in misc or idx - nchan in misc:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
             pick_mask[idx] = False
-        check1 = stim_channel == ch_name
-        check2 = stim_channel == idx
-        check3 = nchan > 1
-        stim_check = np.logical_and(np.logical_or(check1, check2), check3)
-        if stim_check:
+        elif stim_channel == idx:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
             pick_mask[idx] = False
-            chan_info['ch_name'] = 'STI 014'
+            chan_info['ch_name'] = ch_name
             ch_names[idx] = chan_info['ch_name']
             edf_info['units'][idx] = 1
-            if isinstance(stim_channel, str):
-                stim_channel = idx
-        if edf_info['sel'][idx] in tal_sel:
-            chan_info['range'] = 1
-            chan_info['cal'] = 1
-            chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-            chan_info['unit'] = FIFF.FIFF_UNIT_NONE
-            chan_info['kind'] = FIFF.FIFFV_STIM_CH
-            pick_mask[idx] = False
         chs.append(chan_info)
     edf_info['stim_channel'] = stim_channel
 
@@ -566,7 +456,6 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         data_samps = np.delete(n_samps, slice(stim_channel, stim_channel + 1))
     sfreq = data_samps.max() * \
         edf_info['record_length'][1] / edf_info['record_length'][0]
-
     info = _empty_info(sfreq)
     info['meas_date'] = edf_info['meas_date']
     info['chs'] = chs
@@ -613,19 +502,14 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     info['description'] = None
     edf_info['nsamples'] = int(edf_info['n_records'] * max_samp)
 
-    # These are the conditions under which a stim channel will be interpolated
-    if stim_channel is not None and not (annot and annotmap) and \
-            len(tal_sel) == 0 and n_samps[stim_channel] != int(max_samp):
-        warn('Interpolating stim channel. Events may jitter.')
     info._update_redundant()
 
     return info, edf_info, orig_units
 
 
-def _read_edf_header(fname, annot, annotmap, exclude):
+def _read_edf_header(fname, exclude):
     """Read header information from EDF+ or BDF file."""
-    edf_info = dict()
-    edf_info.update(annot=annot, annotmap=annotmap, events=[])
+    edf_info = {'events': []}
 
     with open(fname, 'rb') as fid:
 
@@ -673,6 +557,8 @@ def _read_edf_header(fname, annot, annotmap, exclude):
         channels = list(range(nchan))
         ch_names = [fid.read(16).strip().decode() for ch in channels]
         exclude = _find_exclude_idx(ch_names, exclude)
+        tal_idx = _find_tal_idx(ch_names)
+        exclude = np.concatenate([exclude, tal_idx])
         sel = np.setdiff1d(np.arange(len(ch_names)), exclude)
         for ch in channels:
             fid.read(80)  # transducer
@@ -715,7 +601,7 @@ def _read_edf_header(fname, annot, annotmap, exclude):
             n_records=n_records, n_samps=n_samps, nchan=nchan,
             subject_info=patient, physical_max=physical_max,
             physical_min=physical_min, record_length=record_length,
-            subtype=subtype)
+            subtype=subtype, tal_idx=tal_idx)
 
         fid.read(32 * nchan).decode()  # reserved
         assert fid.tell() == header_nbytes
@@ -745,9 +631,7 @@ def _read_edf_header(fname, annot, annotmap, exclude):
 def _read_gdf_header(fname, stim_channel, exclude):
     """Read GDF 1.x and GDF 2.x header info."""
     edf_info = dict()
-    events = []
-    edf_info['annot'] = None
-    edf_info['annotmap'] = None
+    events = None
     with open(fname, 'rb') as fid:
 
         version = fid.read(8).decode()
@@ -1113,98 +997,32 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 events = [n_events, pos, typ, chn, dur]
                 edf_info['event_sfreq'] = event_sr
 
-    if stim_channel == 'auto' and edf_info['nchan'] not in exclude:
-        if len(events) == 0:
-            warn('No events found. Cannot construct a stimulus channel.')
-        else:
-            edf_info['sel'].append(edf_info['nchan'])
-            edf_info['n_samps'] = np.append(edf_info['n_samps'], 0)
-            edf_info['units'] = np.append(edf_info['units'], 1)
-            edf_info['ch_names'] += [u'STI 014']
-            edf_info['physical_min'] = np.append(edf_info['physical_min'], 0)
-            edf_info['digital_min'] = np.append(edf_info['digital_min'], 0)
-            vmax = np.max(events[2])
-            edf_info['physical_max'] = np.append(edf_info['physical_max'],
-                                                 vmax)
-            edf_info['digital_max'] = np.append(edf_info['digital_max'], vmax)
-
-            data = np.zeros(np.max(n_samps * n_records))
-            warn_overlap = False
-            for samp, id, dur in zip(events[1], events[2], events[4]):
-                if np.sum(data[samp:samp + dur]) > 0:
-                    warn_overlap = True  # Warn only once.
-                data[samp:samp + dur] += id
-            if warn_overlap:
-                warn('Overlapping events detected. Use find_edf_events for '
-                     'the original events.')
-            edf_info['stim_data'] = data
     edf_info.update(events=events, sel=np.arange(len(edf_info['ch_names'])))
+
     return edf_info
-
-
-def _read_annot(annot, annotmap, sfreq, data_length):
-    """Annotation File Reader.
-
-    Parameters
-    ----------
-    annot : str
-        Path to annotation file.
-    annotmap : str
-        Path to annotation map file containing mapping from label to trigger.
-    sfreq : float
-        Sampling frequency.
-    data_length : int
-        Length of the data file.
-
-    Returns
-    -------
-    stim_channel : ndarray
-        An array containing stimulus trigger events.
-    """
-    times, durations, descriptions = _read_annotations_edf(annot)
-    times = [float(time) * sfreq for time in times]
-
-    pat = r'([\w\s]+):(\d+)'
-    with open(annotmap) as annotmap_file:
-        mappings = re.findall(pat, annotmap_file.read())
-    maps = {}
-    for mapping in mappings:
-        maps[mapping[0]] = mapping[1]
-    triggers = [int(maps[value]) for value in descriptions]
-
-    stim_channel = np.zeros(data_length, dtype=int)
-    for time, trigger in zip(times, triggers):
-        stim_channel[int(time)] = int(trigger)
-
-    return stim_channel
 
 
 def _check_stim_channel(stim_channel, ch_names, sel):
     """Check that the stimulus channel exists in the current datafile."""
+    if stim_channel is False:
+        return None, None
+    if stim_channel is None:
+        stim_channel = 'auto'
+
     if isinstance(stim_channel, str):
         if stim_channel == 'auto':
-            if 'auto' in ch_names:
-                raise ValueError("'auto' exists as a channel name. Change "
-                                 "stim_channel parameter!")
-            stim_channel = len(sel) - 1
-        elif stim_channel not in ch_names:
-            err = 'Could not find a channel named "{}" in datafile.' \
-                  .format(stim_channel)
-            casematch = [ch for ch in ch_names
-                         if stim_channel.lower().replace(' ', '') ==
-                         ch.lower().replace(' ', '')]
-            if casematch:
-                err += ' Closest match is "{}".'.format(casematch[0])
-            raise ValueError(err)
+            if 'STATUS' in ch_names:
+                stim_channel_idx = ch_names.index('STATUS')
+            elif 'Status' in ch_names:
+                stim_channel_idx = ch_names.index('Status')
+            else:
+                stim_channel_idx = None
     else:
-        if stim_channel == -1:
-            stim_channel = len(sel) - 1
-        elif stim_channel > len(ch_names):
-            raise ValueError('Requested stim_channel index ({}) exceeds total '
-                             'number of channels in datafile ({})'
-                             .format(stim_channel, len(ch_names)))
+        raise ValueError('Invalid stim_channel')
 
-    return stim_channel
+    name = None if stim_channel_idx is None else ch_names[stim_channel_idx]
+
+    return stim_channel_idx, name
 
 
 def _find_exclude_idx(ch_names, exclude):
@@ -1216,9 +1034,15 @@ def _find_exclude_idx(ch_names, exclude):
     return [idx for idx, ch in enumerate(ch_names) if ch in exclude]
 
 
+def _find_tal_idx(ch_names):
+    # Annotations / TAL Channels
+    accepted_tal_ch_names = ['EDF Annotations', 'BDF Annotations']
+    tal_channel_idx = np.where(np.in1d(ch_names, accepted_tal_ch_names))[0]
+    return tal_channel_idx
+
+
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
-                 stim_channel='', annot=None, annotmap=None, exclude=(),
-                 preload=False, verbose=None):
+                 stim_channel=None, exclude=(), preload=False, verbose=None):
     """Reader function for EDF+, BDF, GDF conversion to FIF.
 
     Parameters
@@ -1237,27 +1061,17 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
-    stim_channel : str | int | 'auto' | False
-        The channel name or channel index (starting at 0). -1 corresponds to
-        the last channel. If False, there will be no stim channel added. If
-        'auto' (default), the stim channel will be added as the last channel if
-        the header contains ``'EDF Annotations'`` or GDF events (otherwise stim
-        channel will not be added). None is accepted as an alias for False.
+    stim_channel : False
+        If False, there will be no stim channel added from a TAL channel.
+        None is accepted as an alias for False.
 
-        .. warning:: This defaults to 'auto' in 0.17 but will default to False
-                     in 0.18 (when no stim channel synthesis will be allowed)
-                     and will be removed in 0.19; migrate code to use
-                     :func:`mne.events_from_annotations` instead.
+        .. warning:: 0.18 does not allow for stim channel synthesis from
+                     the TAL channels called 'EDF Annotations' or
+                     'BDF Annotations'. The TAL channel is parsed
+                     and put in the raw.annotations attribute.
+                     Use :func:`mne.events_from_annotations` to obtain
+                     events for the annotations instead.
 
-    annot : str | None
-        Path to annotation file.
-        If None, no derived stim channel will be added (for files requiring
-        annotation file to interpret stim channel).
-        This was deprecated in 0.17 and will be removed in 0.18.
-    annotmap : str | None
-        Path to annotation map file containing mapping from label to trigger.
-        Must be specified if annot is not None.
-        This was deprecated in 0.17 and will be removed in 0.18.
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
@@ -1289,19 +1103,22 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     It is also possible to retrieve system codes, but no particular effort has
     been made to decode these in MNE.
 
-    For GDF files, the stimulus channel is constructed from the events in the
-    header. You should use keyword ``stim_channel=-1`` to add it at the end of
-    the channel list. The id numbers of overlapping events are simply combined
-    through addition. To get the original events from the header, use method
-    ``raw.find_edf_events``.
+    The TAL channel called 'EDF Annotations' or 'BDF Annotations' is parsed and
+    put in the raw.annotations attribute.
+    Use :func:`mne.events_from_annotations` to obtain events from the
+    annotations.
+
+    Channels that are named 'Status' or 'STATUS' will be considered analog stim
+    channels. Use method ``raw.find_edf_events`` to recover the events encoded
+    in this channel.
 
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
     return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
-                  stim_channel=stim_channel, annot=annot, annotmap=annotmap,
-                  exclude=exclude, preload=preload, verbose=verbose)
+                  stim_channel=stim_channel, exclude=exclude, preload=preload,
+                  verbose=verbose)
 
 
 def _read_annotations_edf(annotations):
@@ -1330,9 +1147,20 @@ def _read_annotations_edf(annotations):
     else:
         tals = bytearray()
         for chan in annotations:
-            for s in chan:
-                i = int(s)
-                tals.extend(np.uint8([i % 256, i // 256]))
+            this_chan = chan.ravel()
+            if this_chan.dtype == np.int32:  # BDF
+                this_chan.dtype = np.uint8
+                this_chan = this_chan.reshape(-1, 4)
+                # Why only keep the first 3 bytes as BDF values
+                # are stored with 24 bits (not 32)
+                this_chan = this_chan[:, :3].ravel()
+                for s in this_chan:
+                    tals.extend(s)
+            else:
+                for s in this_chan:
+                    i = int(s)
+                    tals.extend(np.uint8([i % 256, i // 256]))
+
         # use of latin-1 because characters are only encoded for the first 256
         # code points and utf-8 can triggers an "invalid continuation byte"
         # error

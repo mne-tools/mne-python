@@ -218,7 +218,7 @@ brain.add_text(0.1, 0.9, 'Peak coordinate', 'title', font_size=14)
 # transformed time series obtained from source estimation. For both hemispheres
 # the data is stored separately in ``stc.lh_data`` and ``stc.rh_data`` in form
 # of a :math:`m \times n` matrix, where :math:`m` is the number of spatial
-# locations belonging to that hemishpere and :math:`n` the number of time
+# locations belonging to that hemisphere and :math:`n` the number of time
 # points.
 #
 # ``stc.lh_vertno`` and ``stc.rh_vertno`` correspond to ``src[0]['vertno']``

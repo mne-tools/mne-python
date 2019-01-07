@@ -27,7 +27,7 @@ References
        Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
 
 .. note:: For a tutorial about morphing see:
-          :ref:`sphx_glr_auto_tutorials_plot_morph_stc.py`.
+          :ref:`ch_morph`.
 """
 # Author: Tommy Clausner <tommy.clausner@gmail.com>
 #

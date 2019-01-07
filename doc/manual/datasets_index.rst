@@ -102,10 +102,10 @@ Do not hesitate to contact MNE-Python developers on the
 `MNE mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
 to discuss the possibility to add more publicly available datasets.
 
-.. _auditory dataset tutorial: http://neuroimage.usc.edu/brainstorm/DatasetAuditory
-.. _resting state dataset tutorial: http://neuroimage.usc.edu/brainstorm/DatasetResting
-.. _median nerve dataset tutorial: http://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
-.. _SPM faces dataset: http://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
+.. _auditory dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetAuditory
+.. _resting state dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetResting
+.. _median nerve dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
+.. _SPM faces dataset: https://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
 
 Somatosensory
 =============

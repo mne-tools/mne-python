@@ -23,9 +23,9 @@ References
        vectors of linear models in multivariate neuroimaging. NeuroImage, 87,
        96-110. doi:10.1016/j.neuroimage.2013.10.067
 
-.. _figure 1: http://journal.frontiersin.org/article/10.3389/fnhum.2016.00604/full#F1
-.. _figure 2: http://journal.frontiersin.org/article/10.3389/fnhum.2016.00604/full#F2
-.. _figure 5: http://journal.frontiersin.org/article/10.3389/fnhum.2016.00604/full#F5
+.. _figure 1: https://www.frontiersin.org/articles/10.3389/fnhum.2016.00604/full#F1
+.. _figure 2: https://www.frontiersin.org/articles/10.3389/fnhum.2016.00604/full#F2
+.. _figure 5: https://www.frontiersin.org/articles/10.3389/fnhum.2016.00604/full#F5
 """  # noqa: E501
 
 # Authors: Chris Holdgraf <choldgraf@gmail.com>

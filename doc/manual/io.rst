@@ -209,7 +209,7 @@ by another and apply the product to the data:
 
 .. math::    x_{(k)} = M_{(k)} M_{(p)}^{-1} x_{(p)}\ .
 
-This operation is performed by :ref:`mne_compensate_data`.
+This operation is performed by :meth:`mne.io.Raw.apply_gradient_compensation`.
 
 
 Importing KIT MEG system data
@@ -339,6 +339,10 @@ annotation  data can be converted to a trigger channel (STI 014) using an
 annotation map file which associates an annotation label with a number on
 the trigger channel.
 
+Saving EDF files is not supported natively (mne 0.18) yet.
+This `gist <https://gist.github.com/skjerns/bc660ef59dca0dbd53f00ed38c42f6be>`__
+can be used to save any mne.io.Raw into EDF/EDF+/BDF/BDF+.
+
 Biosemi data format (.bdf)
 ==========================
 
@@ -459,7 +463,7 @@ from memory by making use of :class:`mne.io.RawArray`, :class:`mne.EpochsArray`
 or :class:`mne.EvokedArray` in combination with :func:`mne.create_info`.
 
 This functionality is illustrated in :ref:`sphx_glr_auto_examples_io_plot_objects_from_arrays.py`.
-Using 3rd party libraries such as NEO (https://pythonhosted.org/neo/) in combination
+Using 3rd party libraries such as NEO (https://github.com/NeuralEnsemble/python-neo) in combination
 with these functions abundant electrophysiological file formats can be easily loaded
 into MNE.
 

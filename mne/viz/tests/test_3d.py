@@ -11,6 +11,7 @@ import os.path as op
 
 import numpy as np
 import pytest
+import matplotlib.pyplot as plt
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
@@ -31,10 +32,6 @@ from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.bem import read_bem_solution, read_bem_surfaces
 
-
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
@@ -73,7 +70,6 @@ coil_3d = """# custom cube coil def
 
 def test_plot_head_positions():
     """Test plotting of head positions."""
-    import matplotlib.pyplot as plt
     info = read_info(evoked_fname)
     pos = np.random.RandomState(0).randn(4, 10)
     pos[:, 0] = np.arange(len(pos))
@@ -331,7 +327,8 @@ def test_limits_to_control_points():
     with pytest.raises(ValueError, match='hemi'):
         stc.plot(hemi='foo', clim='auto', **kwargs)
     with pytest.raises(ValueError, match='Exactly one'):
-        stc.plot(clim=dict(lims=[0, 1, 2], pos_lims=[0, 1, 2], kind='value'))
+        stc.plot(clim=dict(lims=[0, 1, 2], pos_lims=[0, 1, 2], kind='value'),
+                 **kwargs)
 
     # Test handling of degenerate data: thresholded maps
     stc._data.fill(0.)
@@ -344,7 +341,6 @@ def test_limits_to_control_points():
 @requires_nibabel()
 def test_stc_mpl():
     """Test plotting source estimates with matplotlib."""
-    import matplotlib.pyplot as plt
     sample_src = read_source_spaces(src_fname)
 
     vertices = [s['vertno'] for s in sample_src]
@@ -378,7 +374,6 @@ def test_stc_mpl():
 @requires_nibabel()
 def test_plot_dipole_mri_orthoview():
     """Test mpl dipole plotting."""
-    import matplotlib.pyplot as plt
     dipoles = read_dipole(dip_fname)
     trans = read_trans(trans_fname)
     for coord_frame, idx, show_all in zip(['head', 'mri'],

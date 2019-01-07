@@ -1348,8 +1348,10 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
     # max taper size chosen because it has an max error < 1e-3:
     # >>> np.max(np.diff(dpss_windows(953, 4, 100)[0]))
     # 0.00099972447657578449
-    # so we use 1000 because it's the first "nice" number bigger than 953:
-    dpss_n_times_max = 1000
+    # so we use 1000 because it's the first "nice" number bigger than 953.
+    # but if we have a new enough scipy,
+    # it's only ~0.175 sec for 8 tapers even with 100000 samples
+    dpss_n_times_max = 100000 if check_version('scipy', '1.1') else 1000
 
     # figure out what tapers to use
     window_fun, eigvals, _ = _compute_mt_params(
@@ -1880,7 +1882,7 @@ class FilterMixin(object):
         -----
         For Savitzky-Golay low-pass approximation, see:
 
-            https://gist.github.com/Eric89GXL/bbac101d50176611136b
+            https://gist.github.com/larsoner/bbac101d50176611136b
 
 
         .. versionadded:: 0.9.0

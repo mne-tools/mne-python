@@ -3,6 +3,7 @@ include LICENSE.txt
 include requirements.txt
 include mne/__init__.py
 
+include conftest.py
 recursive-include examples *.py
 recursive-include examples *.txt
 recursive-include tutorials *.py

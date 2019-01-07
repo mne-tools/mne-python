@@ -19,7 +19,7 @@ addition, the program is capable of off-line averaging and estimation
 of covariance matrices. :ref:`mne_browse_raw` can
 be also used to view averaged data in the topographical layout.
 Finally, :ref:`mne_browse_raw` can communicate
-with :ref:`mne_analyze` described in :ref:`ch_interactive_analysis` to
+with :ref:`mne_analyze` described in :ref:`c_legacy_ch_interactive_analysis` to
 calculate current estimates from raw data interactively.
 
 :ref:`mne_browse_raw` has also
@@ -2056,7 +2056,7 @@ Since the signal-space projection modifies the signal vectors
 originating in the brain, it is necessary to apply the projection
 to the forward solution in the course of inverse computations. This
 is accomplished by mne_inverse_operator as
-described in :ref:`inverse_operator`. For more information on SSP,
+described in :ref:`c_legacy_inverse_operator`. For more information on SSP,
 please consult the references listed in :ref:`CEGIEEBB`.
 
 EEG average electrode reference
@@ -2192,7 +2192,7 @@ are read by mne_inverse_operator and
 applied to the forward solution as well as appropriate. Inclusion
 of the projections into the covariance matrix limits the possibilities
 to use the ``--bad`` and ``--proj`` options in mne_inverse_operator ,
-see :ref:`inverse_operator`.
+see :ref:`c_legacy_inverse_operator`.
 
 .. _CACGHEGC:
 

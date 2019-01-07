@@ -14,7 +14,7 @@ import pytest
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose, assert_equal)
 import numpy as np
-import matplotlib
+import matplotlib.pyplot as plt
 
 import mne
 from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
@@ -37,8 +37,6 @@ from mne.event import merge_events
 from mne.io.constants import FIFF
 from mne.datasets import testing
 from mne.tests.common import assert_meg_snr
-
-matplotlib.use('Agg')  # for testing don't use X server
 
 data_path = testing.data_path(download=False)
 fname_raw_move = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
@@ -2034,7 +2032,6 @@ def test_add_channels_epochs():
 
 def test_array_epochs(tmpdir):
     """Test creating epochs from array."""
-    import matplotlib.pyplot as plt
     tempdir = str(tmpdir)
 
     # creating
@@ -2256,9 +2253,11 @@ class FakeNoPandas(object):  # noqa: D101
             else:
                 return False
         mne.epochs._check_pandas_installed = _check
+        mne.utils._check_pandas_installed = _check
 
     def __exit__(self, *args):  # noqa: D105
         mne.epochs._check_pandas_installed = _check_pandas_installed
+        mne.utils._check_pandas_installed = _check_pandas_installed
 
 
 @requires_pandas
@@ -2486,6 +2485,27 @@ def test_readonly_times():
         epochs.times += 1
     with pytest.raises(ValueError, match='read-only'):
         epochs.times[:] = 0.
+
+
+def test_average_methods():
+    """Test average methods."""
+    n_epochs, n_channels, n_times = 5, 10, 20
+    sfreq = 1000.
+    data = rng.randn(n_epochs, n_channels, n_times)
+    events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
+    info = create_info(n_channels, sfreq, 'eeg')
+    epochs = EpochsArray(data, info, events)
+
+    for method in ('mean', 'median'):
+        if method == "mean":
+            def fun(data):
+                return np.mean(data, axis=0)
+        elif method == "median":
+            def fun(data):
+                return np.median(data, axis=0)
+
+        evoked_data = epochs.average(method=method).data
+        assert_array_equal(evoked_data, fun(data))
 
 
 @pytest.mark.parametrize('relative', (True, False))

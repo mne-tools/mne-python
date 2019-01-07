@@ -9,14 +9,15 @@
 
 import math
 import copy
-from functools import partial
 import itertools
+from functools import partial
 from numbers import Integral
 import warnings
 
 import numpy as np
 
 from ..baseline import rescale
+from ..fixes import _remove_duplicate_rows
 from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
                        _pick_data_channels, pick_channels)
 from ..utils import _clean_names, _time_mask, verbose, logger, warn
@@ -470,6 +471,108 @@ def _draw_outlines(ax, outlines):
     return outlines_
 
 
+def _get_extra_points(pos, method, head_radius):
+    """Get coordinates of additinal interpolation points.
+
+    If head_radius is None, returns coordinates of convex hull of channel
+    positions, expanded by the median inter-channel distance.
+    Otherwise gives positions of points on the head circle placed with a step
+    of median inter-channel distance.
+    """
+    from scipy.spatial.qhull import Delaunay
+
+    # the old method of placement - large box
+    if method == 'box':
+        extremes = np.array([pos.min(axis=0), pos.max(axis=0)])
+        diffs = extremes[1] - extremes[0]
+        extremes[0] -= diffs
+        extremes[1] += diffs
+        eidx = np.array(list(itertools.product(
+            *([[0] * (pos.shape[1] - 1) + [1]] * pos.shape[1]))))
+        pidx = np.tile(np.arange(pos.shape[1])[np.newaxis], (len(eidx), 1))
+        outer_pts = extremes[eidx, pidx]
+        return outer_pts, Delaunay(np.concatenate((pos, outer_pts)))
+
+    # check if positions are colinear:
+    diffs = np.diff(pos, axis=0)
+    with np.errstate(divide='ignore'):
+        slopes = diffs[:, 1] / diffs[:, 0]
+    colinear = ((slopes == slopes[0]).all() or np.isinf(slopes).all() or
+                pos.shape[0] < 4)
+
+    # compute median inter-electrode distance
+    if colinear:
+        dim = 1 if diffs[:, 1].sum() > diffs[:, 0].sum() else 0
+        sorting = np.argsort(pos[:, dim])
+        pos_sorted = pos[sorting, :]
+        diffs = np.diff(pos_sorted, axis=0)
+        distances = np.linalg.norm(diffs, axis=1)
+        distance = np.median(distances)
+    else:
+        tri = Delaunay(pos, incremental=True)
+        idx1, idx2, idx3 = tri.simplices.T
+        distances = np.concatenate(
+            [np.linalg.norm(pos[i1, :] - pos[i2, :], axis=1)
+             for i1, i2 in zip([idx1, idx2], [idx2, idx3])])
+        distance = np.median(distances)
+
+    if method == 'local':
+        if colinear:
+            # special case for colinear points
+            edge_points = sorting[[0, -1]]
+            line_len = np.diff(pos[edge_points, :], axis=0)
+            unit_vec = line_len / np.linalg.norm(line_len) * distance
+            unit_vec_par = unit_vec[:, ::-1] * [[-1, 1]]
+
+            edge_pos = (pos[edge_points, :] +
+                        np.concatenate([-unit_vec, unit_vec], axis=0))
+            new_pos = np.concatenate([pos + unit_vec_par,
+                                      pos - unit_vec_par, edge_pos], axis=0)
+            tri = Delaunay(np.concatenate([pos, new_pos], axis=0))
+            return new_pos, tri
+
+        # get the convex hull of data points from triangulation
+        hull_pos = pos[tri.convex_hull]
+
+        # extend the convex hull limits outwards a bit
+        channels_center = pos.mean(axis=0, keepdims=True)
+        radial_dir = hull_pos - channels_center[np.newaxis, :]
+        unit_radial_dir = radial_dir / np.linalg.norm(radial_dir, axis=-1,
+                                                      keepdims=True)
+        hull_extended = hull_pos + unit_radial_dir * distance
+        hull_diff = np.diff(hull_pos, axis=1)[:, 0]
+        hull_distances = np.linalg.norm(hull_diff, axis=-1)
+
+        # add points along hull edges so that the distance between points
+        # is around that of average distance between channels
+        add_points = list()
+        eps = np.finfo('float').eps
+        n_times_dist = np.round(hull_distances / distance).astype('int')
+        for n in range(2, n_times_dist.max() + 1):
+            mask = n_times_dist == n
+            mult = np.arange(1 / n, 1 - eps, 1 / n)[:, np.newaxis, np.newaxis]
+            steps = hull_diff[mask][np.newaxis, ...] * mult
+            add_points.append((hull_extended[mask, 0][np.newaxis, ...] +
+                               steps).reshape((-1, 2)))
+
+        # remove duplicates from hull_extended
+        hull_extended = _remove_duplicate_rows(hull_extended.reshape((-1, 2)))
+        new_pos = np.concatenate([hull_extended] + add_points)
+    else:
+        # return points on the head circle
+        head_radius = 0.53 if head_radius is None else head_radius
+        angle = np.arcsin(distance / 2 / head_radius) * 2
+        points_l = np.arange(0, 2 * np.pi, angle)
+        points_x = np.cos(points_l) * head_radius
+        points_y = np.sin(points_l) * head_radius
+        new_pos = np.stack([points_x, points_y], axis=1)
+        if colinear:
+            tri = Delaunay(np.concatenate([pos, new_pos], axis=0))
+            return new_pos, tri
+    tri.add_points(new_pos)
+    return new_pos, tri
+
+
 class _GridData(object):
     """Unstructured (x,y) data interpolator.
 
@@ -478,22 +581,13 @@ class _GridData(object):
     to be set independently.
     """
 
-    def __init__(self, pos):
-        from scipy.spatial.qhull import Delaunay
+    def __init__(self, pos, method='box', head_radius=None):
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2
         # Adding points outside the extremes helps the interpolators
-        extremes = np.array([pos.min(axis=0), pos.max(axis=0)])
-        diffs = extremes[1] - extremes[0]
-        extremes[0] -= diffs
-        extremes[1] += diffs
-        eidx = np.array(list(itertools.product(
-            *([[0] * (pos.shape[1] - 1) + [1]] * pos.shape[1]))))
-        pidx = np.tile(np.arange(pos.shape[1])[np.newaxis], (len(eidx), 1))
-        self.n_extra = pidx.shape[0]
-        outer_pts = extremes[eidx, pidx]
-        pos = np.concatenate((pos, outer_pts))
-        self.tri = Delaunay(pos)
+        outer_pts, tri = _get_extra_points(pos, method, head_radius)
+        self.n_extra = outer_pts.shape[0]
+        self.tri = tri
 
     def set_values(self, v):
         """Set the values at interpolation points."""
@@ -535,7 +629,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  res=64, axes=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head',
                  contours=6, image_interp='bilinear', show=True,
-                 head_pos=None, onselect=None):
+                 head_pos=None, onselect=None, extrapolate='box'):
     """Plot a topographic map as image.
 
     Parameters
@@ -616,6 +710,16 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         Handle for a function that is called when the user selects a set of
         channels by rectangle selection (matplotlib ``RectangleSelector``). If
         None interactive selection is disabled. Defaults to None.
+    extrapolate : str
+        If 'box' (default) extrapolate to four points placed to form a square
+        encompassing all data points, where each side of the square is three
+        times the range of the data in the respective dimension. If 'head'
+        extrapolate to the edges of the head circle (or to the edges of the
+        skirt if ``outlines='skirt'``). If 'local' extrapolate only to nearby
+        points (approximately to points closer than median inter-electrode
+        distance).
+
+        .. versionadded:: 0.18
 
     Returns
     -------
@@ -627,14 +731,14 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     return _plot_topomap(data, pos, vmin, vmax, cmap, sensors, res, axes,
                          names, show_names, mask, mask_params, outlines,
                          contours, image_interp, show,
-                         head_pos, onselect)[:2]
+                         head_pos, onselect, extrapolate)[:2]
 
 
 def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   res=64, axes=None, names=None, show_names=False, mask=None,
                   mask_params=None, outlines='head',
                   contours=6, image_interp='bilinear', show=True,
-                  head_pos=None, onselect=None):
+                  head_pos=None, onselect=None, extrapolate='box'):
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
@@ -705,21 +809,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     assert isinstance(outlines, dict)
 
     ax = axes if axes else plt.gca()
-    pos_x, pos_y = _prepare_topomap(pos, ax)
-    xlim = np.inf, -np.inf,
-    ylim = np.inf, -np.inf,
-    mask_ = np.c_[outlines['mask_pos']]
-    xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0]]),
-                  np.max(np.r_[xlim[1], mask_[:, 0]]))
-    ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
-                  np.max(np.r_[ylim[1], mask_[:, 1]]))
-
-    # interpolate data
-    xi = np.linspace(xmin, xmax, res)
-    yi = np.linspace(ymin, ymax, res)
-    Xi, Yi = np.meshgrid(xi, yi)
-    interp = _GridData(np.array((pos_x, pos_y)).T).set_values(data)
-    Zi = interp.set_locations(Xi, Yi)()
+    _prepare_topomap(pos, ax)
 
     _use_default_outlines = any(k.startswith('head') for k in outlines)
 
@@ -728,6 +818,25 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         pos = _autoshrink(outlines, pos, res)
 
     mask_params = _handle_default('mask_params', mask_params)
+
+    # find mask limits
+    xlim = np.inf, -np.inf,
+    ylim = np.inf, -np.inf,
+    mask_ = np.c_[outlines['mask_pos']]
+    xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0]]),
+                  np.max(np.r_[xlim[1], mask_[:, 0]]))
+    ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
+                  np.max(np.r_[ylim[1], mask_[:, 1]]))
+
+    # interpolate the data, we multiply clip radius by 1.06 so that pixelated
+    # edges of the interpolated image would appear under the mask
+    head_radius = (None if extrapolate == 'local' else
+                   outlines['clip_radius'][0] * 1.06)
+    xi = np.linspace(xmin, xmax, res)
+    yi = np.linspace(ymin, ymax, res)
+    Xi, Yi = np.meshgrid(xi, yi)
+    interp = _GridData(pos, extrapolate, head_radius).set_values(data)
+    Zi = interp.set_locations(Xi, Yi)()
 
     # plot outline
     patch_ = None
@@ -746,7 +855,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                                  clip_on=True,
                                  transform=ax.transData)
 
-    # plot map and contour
+    # plot interpolated map
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=(xmin, xmax, ymin, ymax),
                    interpolation=image_interp)
@@ -777,6 +886,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
             for col in cont.collections:
                 col.set_clip_path(patch_)
 
+    pos_x, pos_y = pos.T
     if sensors is not False and mask is None:
         _plot_sensors(pos_x, pos_y, sensors=sensors, ax=ax)
     elif sensors and mask is not None:
@@ -817,7 +927,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
 
 def _autoshrink(outlines, pos, res):
-    """Make an image mask."""
+    """Shrink channel positions until all are within the mask contour."""
     if outlines.get('autoshrink', False):
         mask_ = np.c_[outlines['mask_pos']]
         inside = _inside_contour(pos, mask_)
@@ -1325,7 +1435,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         show=True, show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
                         image_interp='bilinear', average=None, head_pos=None,
-                        axes=None):
+                        axes=None, extrapolate='box'):
     """Plot topographic maps of specific time points of evoked data.
 
     Parameters
@@ -1463,6 +1573,16 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         same length as ``times`` (unless ``times`` is None). If instance of
         Axes, ``times`` must be a float or a list of one float.
         Defaults to None.
+    extrapolate : str
+        If 'box' (default) extrapolate to four points placed to form a square
+        encompassing all data points, where each side of the square is three
+        times the range of the data in the respective dimension. If 'head'
+        extrapolate to the edges of the head circle (or to the edges of the
+        skirt if ``outlines='skirt'``). If 'local' extrapolate only to nearby
+        points (approximately to points closer than median inter-electrode
+        distance).
+
+        .. versionadded:: 0.18
 
     Returns
     -------
@@ -1617,7 +1737,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     kwargs = dict(vmin=vmin, vmax=vmax, sensors=sensors, res=res, names=names,
                   show_names=show_names, cmap=cmap[0], mask_params=mask_params,
                   outlines=outlines, contours=contours,
-                  image_interp=image_interp, show=False)
+                  image_interp=image_interp, show=False,
+                  extrapolate=extrapolate)
     for idx, time in enumerate(times):
         tp, cn, interp = _plot_topomap(
             data[:, idx], pos, axes=axes[idx],
@@ -1669,7 +1790,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
             images=images, contours_=contours_, pos=pos, time_idx=time_idx,
             res=res, plot_update_proj_callback=_plot_update_evoked_topomap,
             merge_grads=merge_grads, scale=scaling, axes=axes,
-            contours=contours, interp=interp)
+            contours=contours, interp=interp, extrapolate=extrapolate)
         _draw_proj_checkbox(None, params)
 
     plt_show(show)
@@ -2090,14 +2211,14 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
 
 
 def _prepare_topomap(pos, ax, check_nonzero=True):
-    """Prepare the topomap."""
-    pos_x = pos[:, 0]
-    pos_y = pos[:, 1]
+    """Prepare the topomap axis and check positions.
+
+    Hides axis frame and check that position information is present.
+    """
     _hide_frame(ax)
-    if check_nonzero and any([not pos_y.any(), not pos_x.any()]):
+    if check_nonzero and not pos.any():
         raise RuntimeError('No position information found, cannot compute '
                            'geometries for topomap.')
-    return pos_x, pos_y
 
 
 def _hide_frame(ax):
@@ -2148,12 +2269,12 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads):
     Xi, Yi = np.meshgrid(xi, yi)
     params['Zis'] = list()
 
-    interp = _GridData(pos)
+    interp = _GridData(pos, 'box', None)
     for frame in params['frames']:
         params['Zis'].append(interp.set_values(data[:, frame])(Xi, Yi))
     Zi = params['Zis'][0]
-    zi_min = np.min(params['Zis'])
-    zi_max = np.max(params['Zis'])
+    zi_min = np.nanmin(params['Zis'])
+    zi_max = np.nanmax(params['Zis'])
     cont_lims = np.linspace(zi_min, zi_max, 7, endpoint=False)[1:]
     pos = _autoshrink(outlines, pos, res)
     params.update({'vmin': vmin, 'vmax': vmax, 'Xi': Xi, 'Yi': Yi, 'Zi': Zi,
@@ -2444,7 +2565,8 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
                   vmax=None, cmap=None, sensors=True, res=64, axes=None,
                   names=None, show_names=False, mask=None, mask_params=None,
                   outlines='head', contours=6, image_interp='bilinear',
-                  show=True, head_pos=None, onselect=None):
+                  show=True, head_pos=None, onselect=None,
+                  extrapolate='box'):
     """Plot arrow map.
 
     Compute arrowmaps, based upon the Hosaka-Cohen transformation [1]_,
@@ -2537,6 +2659,16 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
         Handle for a function that is called when the user selects a set of
         channels by rectangle selection (matplotlib ``RectangleSelector``). If
         None interactive selection is disabled. Defaults to None.
+    extrapolate : str
+        If 'box' (default) extrapolate to four points placed to form a square
+        encompassing all data points, where each side of the square is three
+        times the range of the data in the respective dimension. If 'head'
+        extrapolate to the edges of the head circle (or to the edges of the
+        skirt if ``outlines='skirt'``). If 'local' extrapolate only to nearby
+        points (approximately to points closer than median inter-electrode
+        distance).
+
+        .. versionadded:: 0.18
 
     Returns
     -------
@@ -2597,7 +2729,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
                  sensors=sensors, res=res, names=names, show_names=show_names,
                  mask=mask, mask_params=mask_params, outlines=outlines,
                  contours=contours, image_interp=image_interp, show=show,
-                 head_pos=head_pos, onselect=onselect)
+                 head_pos=head_pos, onselect=onselect, extrapolate=extrapolate)
     x, y = tuple(pos.T)
     dx, dy = _trigradient(x, y, data)
     dxx = dy.data
