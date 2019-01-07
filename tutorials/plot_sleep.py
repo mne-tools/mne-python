@@ -1,5 +1,5 @@
 """
-Sleep stage classification from polysonography (PSG) data
+Sleep stage classification from polysomnography (PSG) data
 =========================================================
 
 .. note:: This code is taken from the analysis code used in [3]_. If you reuse
