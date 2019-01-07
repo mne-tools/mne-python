@@ -9,19 +9,48 @@ from os import path as op
 import numpy as np
 
 from ...utils import _get_path
-from ....utils import _fetch_file, verbose
+from ....utils import _fetch_file, verbose, _TempDir
 
 BASE_URL = 'https://physionet.org/pn4/sleep-edfx/'
 SLEEP_RECORDS = 'physionet_sleep_records.npy'
 
 
 def update_sleep_records():
+    # XXX: use requrie pandas
+    import pandas as pd
     SLEEP_RECORDS = 'records.json'
+    tmp = _TempDir()
+    sha1sums_url = BASE_URL + "SHA1SUMS"
+    sha1sums_fname = op.join(tmp, 'sha1sums')
+    _fetch_file(sha1sums_url, sha1sums_fname)
+    sha1_df = pd.read_csv(sha1sums_fname, sep='  ', header=None,
+                          names=['sha', 'fname'], engine='python')
+
+    subjects_url = BASE_URL + 'SC-subjects.xls'
+    subjects_fname = op.join(tmp, 'SC-subjects.xls')
+    _fetch_file(url=subjects_url, file_name=subjects_fname,
+                hash_='0ba6650892c5d33a8e2b3f62ce1cc9f30438c54f',
+                hash_type='sha1')
+
+    xx = pd.read_excel(subjects_fname)
+    xx.rename(index=str, inplace=True,
+              columns={'sex (F=1)': 'sex', 'LightsOff': 'lights off'})
+    xx['sex'] = xx.sex.astype('category').cat.rename_categories({1:'female', 2:'male'})
+
+    sha1sums_fname = "SHA1SUMS"
+    import pdb; pdb.set_trace()
+    print('hi')
+    # sha1sums_fname = op.
+    # "SHA1SUMS"
+    # name =
+
+    # _fetch_file
+
     # # now the numpy records files that contains info on dataset:
     # # It was obtained with:
     # base_url = "https://physionet.org/pn4/sleep-edfx/"
-    # sha1sums_url = base_url + "SHA1SUMS"
-    # sha1sums_fname = "SHA1SUMS"
+    sha1sums_url = base_url + "SHA1SUMS"
+    sha1sums_fname = "SHA1SUMS"
     # _fetch_file(sha1sums_url, sha1sums_fname)
     # df = pd.read_csv(sha1sums_fname, sep='  ', header=None,
     #                  names=['sha', 'fname'], engine='python')
