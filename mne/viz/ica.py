@@ -351,10 +351,12 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     # if reject is set, reject
     data = epochs_src.get_data()
 
-    if (reject == 'auto'):
+    if reject == 'auto':
         reject = None if not hasattr(ica, 'reject_') else ica.reject_ 
-    if (reject is not None):
-        (data, drop_inds) = _reject_data_segments(data, reject,flat=None, decim=None, info=ica.info, tstep=2.0)
+    if reject is not None:
+        (data, drop_inds) = _reject_data_segments(data, reject, flat=None, 
+                                                  decim=None, info=ica.info,
+                                                  tstep=2.0)
 
     ica_data = np.swapaxes(data[:, picks, :], 0, 1)  
 

@@ -559,6 +559,9 @@ class ICA(ContainsMixin):
 
         self.n_samples_ = np.prod(data[:, 0, :].shape)
 
+        # adding reject parameter
+        self.reject_ = epochs.reject
+
         # This will make at least one copy (one from hstack, maybe one
         # more from _pre_whiten)
         data, self.pre_whitener_ = \
