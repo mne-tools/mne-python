@@ -416,7 +416,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     return (path, data_version) if return_version else path
 
 
-def _download(path, url, archive_name, hash_, hashtype='md5'):
+def _download(path, url, archive_name, hash_, hash_type='md5'):
     """Download and extract an archive, completing the filename."""
     martinos_path = '/cluster/fusion/sample_data/' + archive_name
     neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
@@ -433,7 +433,7 @@ def _download(path, url, archive_name, hash_, hashtype='md5'):
             logger.info('Archive exists (%s), checking hash %s.'
                         % (archive_name, hash_,))
             fetch_archive = False
-            if hashfunc(full_name, hashtype=hashtype) != hash_:
+            if hashfunc(full_name, hash_type=hash_type) != hash_:
                 if input('Archive already exists but the hash does not match: '
                          '%s\nOverwrite (y/[n])?'
                          % (archive_name,)).lower() == 'y':
@@ -442,7 +442,7 @@ def _download(path, url, archive_name, hash_, hashtype='md5'):
         if fetch_archive:
             logger.info('Downloading archive %s to %s' % (archive_name, path))
             _fetch_file(url, full_name, print_destination=False,
-                        hash_=hash_, hashtype=hashtype)
+                        hash_=hash_, hash_type=hash_type)
     return remove_archive, full_name
 
 

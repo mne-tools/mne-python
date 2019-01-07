@@ -76,7 +76,7 @@ def _fetch_one(fname, hashsum, path, force_update):
         if not op.isdir(op.dirname(destination)):
             os.makedirs(op.dirname(destination))
         _fetch_file(url, destination, print_destination=False,
-                    hash_=hashsum, hashtype='sha1')
+                    hash_=hashsum, hash_type='sha1')
     return destination
 
 

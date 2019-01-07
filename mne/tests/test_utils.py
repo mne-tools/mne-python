@@ -305,12 +305,12 @@ def test_hashfunc():
     with open(fname2, 'wb') as fid:
         fid.write(b'efgh')
 
-    for hashtype in ('md5', 'sha1'):
-        hash1 = hashfunc(fname1, hashtype=hashtype)
-        hash1_ = hashfunc(fname1, 1, hashtype=hashtype)
+    for hash_type in ('md5', 'sha1'):
+        hash1 = hashfunc(fname1, hash_type=hash_type)
+        hash1_ = hashfunc(fname1, 1, hash_type=hash_type)
 
-        hash2 = hashfunc(fname2, hashtype=hashtype)
-        hash2_ = hashfunc(fname2, 1024, hashtype=hashtype)
+        hash2 = hashfunc(fname2, hash_type=hash_type)
+        hash2_ = hashfunc(fname2, 1024, hash_type=hash_type)
 
         assert hash1 == hash1_
         assert hash2 == hash2_

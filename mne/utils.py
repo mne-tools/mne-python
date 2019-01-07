@@ -2207,7 +2207,7 @@ def _chunk_write(chunk, local_file, progress):
 
 @verbose
 def _fetch_file(url, file_name, print_destination=True, resume=True,
-                hash_=None, timeout=30., hashtype='md5', verbose=None):
+                hash_=None, timeout=30., hash_type='md5', verbose=None):
     """Load requested file, downloading it if needed or requested.
 
     Parameters
@@ -2226,7 +2226,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         performed.
     timeout : float
         The URL open timeout.
-    hashtype : str
+    hash_type : str
         The type of hashing to use such as "md5" or "sha1"
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
@@ -2235,7 +2235,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
     if hash_ is not None and (not isinstance(hash_, str) or
-                              len(hash_) != 32) and hashtype == 'md5':
+                              len(hash_) != 32) and hash_type == 'md5':
         raise ValueError('Bad hash value given, should be a 32-character '
                          'string:\n%s' % (hash_,))
     temp_file_name = file_name + ".part"
@@ -2290,7 +2290,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         # check hash sum eg md5sum
         if hash_ is not None:
             logger.info('Verifying hash %s.' % (hash_,))
-            hashsum = hashfunc(temp_file_name, hashtype=hashtype)
+            hashsum = hashfunc(temp_file_name, hash_type=hash_type)
             if hash_ != hashsum:
                 raise RuntimeError('Hash mismatch for downloaded file %s, '
                                    'expected %s but got %s'
@@ -2690,7 +2690,7 @@ class SilenceStdout(object):
 
 
 @deprecated('mne.utils.md5sum will be deprecated in 0.19, please use '
-            'mne.utils.hashfunc(... , hashtype="md5") instead.')
+            'mne.utils.hashfunc(... , hash_type="md5") instead.')
 def md5sum(fname, block_size=1048576):  # 2 ** 20
     """Calculate the md5sum for a file.
 
@@ -2716,7 +2716,7 @@ def md5sum(fname, block_size=1048576):  # 2 ** 20
     return md5.hexdigest()
 
 
-def hashfunc(fname, block_size=1048576, hashtype="md5"):  # 2 ** 20
+def hashfunc(fname, block_size=1048576, hash_type="md5"):  # 2 ** 20
     """Calculate the hash for a file.
 
     Parameters
@@ -2731,9 +2731,9 @@ def hashfunc(fname, block_size=1048576, hashtype="md5"):  # 2 ** 20
     hash_ : str
         The hexadecimal digest of the hash.
     """
-    if hashtype == "md5":
+    if hash_type == "md5":
         hasher = hashlib.md5()
-    elif hashtype == "sha1":
+    elif hash_type == "sha1":
         hasher = hashlib.sha1()
     with open(fname, 'rb') as fid:
         while True:
