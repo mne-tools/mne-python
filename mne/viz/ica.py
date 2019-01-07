@@ -24,6 +24,7 @@ from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types
 from ..time_frequency.psd import psd_multitaper
+from ..utils import _reject_data_segments
 
 
 def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
@@ -236,7 +237,7 @@ def _get_psd_label_and_std(this_psd, dB, ica, num_std):
 
 def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
                         plot_std=True, topomap_args=None, image_args=None,
-                        psd_args=None, figsize=None, show=True):
+                        psd_args=None, figsize=None, show=True, reject='auto'):
     """Display component properties.
 
     Properties include the topography, epochs image, ERP/ERF, power
@@ -277,6 +278,11 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         defaults to [7., 6.].
     show : bool
         Show figure if True.
+    reject : 'auto' | dict | None
+        Allows to use a different rejection parameter to drop epochs. If None, 
+        it does not apply a rejection. If 'auto', it applies the rejection fitted
+        with the ICA object if it exists, else, it does not apply any
+        defaults to 'auto'
 
     Returns
     -------
@@ -330,6 +336,11 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     # calculations
     # ------------
     if isinstance(inst, BaseRaw):
+        # if reject is set, reject
+        if (reject == 'auto'):
+            reject = None if ica.reject_ is None else ica.reject_ 
+        (inst, drop_inds) = _reject_data_segments(inst,reject,flat=None, decim=None, info=ica.info, tstep=2.0)
+
         # break up continuous signal into segments
         from ..epochs import _segment_raw
         inst = _segment_raw(inst, segment_length=2., verbose=False,
