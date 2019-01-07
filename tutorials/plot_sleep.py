@@ -32,7 +32,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
-from mne.datasets.sleep_physionet import fetch_data
+from mne.datasets.sleep_physionet.age import fetch_data
 from mne.time_frequency import psd_array_welch
 
 from sklearn.ensemble import RandomForestClassifier

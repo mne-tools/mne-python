@@ -56,10 +56,10 @@ def test_megsim():
 
 
 @requires_good_network
-def test_sleep_physionet():
+def test_sleep_physionet_age():
     """Test Sleep Physionet URL handling."""
     data_dir = _TempDir()
-    paths = datasets.sleep_physionet.fetch_data(
+    paths = datasets.sleep_physionet.age.fetch_data(
         subjects=[0], path=data_dir, update_path=False)
     assert len(paths) == 1
     assert len(paths[0]) == 2

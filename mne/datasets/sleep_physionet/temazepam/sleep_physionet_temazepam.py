@@ -8,8 +8,8 @@ from os import path as op
 
 import numpy as np
 
-from ..utils import _get_path
-from ...utils import _fetch_file, verbose
+from ...utils import _get_path
+from ....utils import _fetch_file, verbose
 
 BASE_URL = 'https://physionet.org/pn4/sleep-edfx/'
 SLEEP_RECORDS = 'physionet_sleep_records.npy'
