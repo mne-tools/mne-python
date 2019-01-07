@@ -480,6 +480,8 @@ class ICA(ContainsMixin):
         del self.pca_mean_
         if hasattr(self, 'drop_inds_'):
             del self.drop_inds_
+        if hasattr(self, 'reject_'):
+            del self.reject_
 
     def _fit_raw(self, raw, picks, start, stop, decim, reject, flat, tstep,
                  reject_by_annotation, verbose):

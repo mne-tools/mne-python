@@ -335,12 +335,8 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
     # calculations
     # ------------
+    
     if isinstance(inst, BaseRaw):
-        # if reject is set, reject
-        if (reject == 'auto'):
-            reject = None if ica.reject_ is None else ica.reject_ 
-        (inst, drop_inds) = _reject_data_segments(inst,reject,flat=None, decim=None, info=ica.info, tstep=2.0)
-
         # break up continuous signal into segments
         from ..epochs import _segment_raw
         inst = _segment_raw(inst, segment_length=2., verbose=False,
@@ -349,8 +345,18 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     else:
         kind = "Epochs"
 
+    
     epochs_src = ica.get_sources(inst)
-    ica_data = np.swapaxes(epochs_src.get_data()[:, picks, :], 0, 1)
+
+    # if reject is set, reject
+    data = epochs_src.get_data()
+
+    if (reject == 'auto'):
+        reject = None if not hasattr(ica, 'reject_') else ica.reject_ 
+    if (reject is not None):
+        (data, drop_inds) = _reject_data_segments(data, reject,flat=None, decim=None, info=ica.info, tstep=2.0)
+
+    ica_data = np.swapaxes(data[:, picks, :], 0, 1)  
 
     # spectrum
     Nyquist = inst.info['sfreq'] / 2.
