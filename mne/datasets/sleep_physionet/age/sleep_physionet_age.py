@@ -42,18 +42,21 @@ def update_sleep_records():
                 hash_type='sha1')
 
     xx = pd.read_excel(subjects_fname)
-    xx.rename(index=str, inplace=True,
-              columns={'sex (F=1)': 'sex', 'LightsOff': 'lights off'})
-    xx['sex'] = xx.sex.astype('category').cat.rename_categories({1:'female', 2:'male'})
-    xx['id'] = ['SC4{0:02d}{1:1d}'.format(s, n) for s, n in zip(xx.subject, xx.night)]
+    xx = xx.rename(index=str, columns={'sex (F=1)': 'sex',
+                                       'LightsOff': 'lights off'})
+    xx['sex'] = (xx.sex.astype('category')
+                       .cat.rename_categories({1:'female', 2:'male'}))
+    xx['id'] = ['SC4{0:02d}{1:1d}'.format(s, n)
+                for s, n in zip(xx.subject, xx.night)]
 
     data = xx.set_index('id').join(sha1_df.set_index('id')).dropna()
     data['record type'] = data.fname.str.split('-', expand=True)[1].str.split('.', expand=True)[0].astype('category')
 
-    data = data.set_index(['subject', 'night', 'record type'])
-    print(kk.to_json(orient='records', lines=True))
+    data.set_index(['subject', 'night', 'record type'])
+    data.to_json(op.join(op.dirname(__file__), SLEEP_RECORDS),
+                 orient='records', lines=True)
     # data.to_json()
-    sha1sums_fname = "SHA1SUMS"
+    # sha1sums_fname = "SHA1SUMS"
     # sha1sums_fname = op.
     # "SHA1SUMS"
     # name =
@@ -63,8 +66,8 @@ def update_sleep_records():
     # # now the numpy records files that contains info on dataset:
     # # It was obtained with:
     # base_url = "https://physionet.org/pn4/sleep-edfx/"
-    sha1sums_url = base_url + "SHA1SUMS"
-    sha1sums_fname = "SHA1SUMS"
+    # sha1sums_url = base_url + "SHA1SUMS"
+    # sha1sums_fname = "SHA1SUMS"
     # _fetch_file(sha1sums_url, sha1sums_fname)
     # df = pd.read_csv(sha1sums_fname, sep='  ', header=None,
     #                  names=['sha', 'fname'], engine='python')
