@@ -1,6 +1,6 @@
 """
 Sleep stage classification from polysomnography (PSG) data
-=========================================================
+==========================================================
 
 .. note:: This code is taken from the analysis code used in [3]_. If you reuse
           this code please consider citing this work.
@@ -48,8 +48,9 @@ from sklearn.preprocessing import FunctionTransformer
 # Here we download the data from two subjects and the end goal is to obtain
 # :term:`epochs` and its associated ground truth.
 #
-# MNE-Python provides us with :func:`mne.datasets.sleep_physionet.fetch_data`
-# to conveniently download data from the Sleep Physionet dataset [1]_ [2]_.
+# MNE-Python provides us with
+# :func:`mne.datasets.sleep_physionet.age.fetch_data` to conveniently download
+# data from the Sleep Physionet dataset [1]_ [2]_.
 # Given a list of subjects and records, the fetcher downloads the data and
 # provides us for each subject, a pair of files:
 #
@@ -67,9 +68,9 @@ from sklearn.preprocessing import FunctionTransformer
 
 # XXX: fetch_data should accept subject/record
 
-ALICE, BOB = 0, 2
+ALICE, BOB = 0, 1
 
-[alice_files, bob_files] = fetch_data(subjects=[ALICE, BOB])
+[alice_files, bob_files] = fetch_data(subjects=[ALICE, BOB], record=[0])
 
 mapping = {'EOG horizontal': 'eog',
            'Resp oro-nasal': 'misc',
