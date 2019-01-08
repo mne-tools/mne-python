@@ -9,14 +9,47 @@ from os import path as op
 import numpy as np
 
 from ...utils import _get_path
-from ....utils import _fetch_file, verbose
+from ....utils import _fetch_file, verbose, _TempDir
 
 BASE_URL = 'https://physionet.org/pn4/sleep-edfx/'
 SLEEP_RECORDS = 'physionet_sleep_records.npy'
 
 
-def update_sleep_records():
-    SLEEP_RECORDS = 'records.json'
+def _update_sleep_records():
+    import pandas as pd
+
+    SLEEP_RECORDS = 'records.csv'
+    tmp = _TempDir()
+
+    # Download files checksum.
+    sha1sums_url = BASE_URL + "SHA1SUMS"
+    sha1sums_fname = op.join(tmp, 'sha1sums')
+    _fetch_file(sha1sums_url, sha1sums_fname)
+
+    # Download subjects info.
+    subjects_url = BASE_URL + 'ST-subjects.xls'
+    subjects_fname = op.join(tmp, 'ST-subjects.xls')
+    _fetch_file(url=subjects_url, file_name=subjects_fname,
+                hash_='f52fffe5c18826a2bd4c5d5cb375bb4a9008c885',
+                hash_type='sha1')
+
+    # Load and Massage the checksums.
+    sha1_df = pd.read_csv(sha1sums_fname, sep='  ', header=None,
+                          names=['sha', 'fname'], engine='python')
+    select_age_records = (sha1_df.fname.str.startswith('ST') &
+                          sha1_df.fname.str.endswith('edf'))
+    sha1_df = sha1_df[select_age_records]
+    sha1_df['id'] = [name[:6] for name in sha1_df.fname]
+
+    # Load and massage the data.
+    data = pd.read_excel(subjects_fname)
+    import pdb; pdb.set_trace()
+
+    print('done')
+
+    # Save the data.
+    # data.to_csv(op.join(op.dirname(__file__), SLEEP_RECORDS),
+    #             index=False)
 
 
 @verbose
@@ -118,15 +151,15 @@ def fetch_data(subjects, path=None, force_update=False, update_path=None,
     For example, one could do:
 
         >>> from mne.datasets import sleep_physionet
-        >>> sleep_physionet.age.fetch_data(subjects=[0])  # doctest: +SKIP
+        >>> sleep_physionet.temazepam.fetch_data(subjects=[0]) # doctest: +SKIP
 
     This would download data for subject 0 if it isn't there already.
 
     References
     ----------
-    .. [1] B Kemp, AH Zwinderman, B Tuk, HAC Kamphuisen, JJL Oberyé. Analysis of
-           a sleep-dependent neuronal feedback loop: the slow-wave microcontinuity
-           of the EEG. IEEE-BME 47(9):1185-1194 (2000).
+    .. [1] B Kemp, AH Zwinderman, B Tuk, HAC Kamphuisen, JJL Oberyé. Analysis
+           of a sleep-dependent neuronal feedback loop: the slow-wave
+           microcontinuity of the EEG. IEEE-BME 47(9):1185-1194 (2000).
     .. [2] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh,
            Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000)
            PhysioBank, PhysioToolkit, and PhysioNet: Components of a New

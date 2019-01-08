@@ -6,6 +6,10 @@ from numpy.testing import assert_array_equal
 from ...utils import _TempDir, run_tests_if_main, requires_good_network
 from .age.sleep_physionet_age import _update_sleep_records as age_records
 from .age.sleep_physionet_age import fetch_data as fetch_age_data
+from .temazepam.sleep_physionet_temazepam import _update_sleep_records \
+    as temazepam_records
+from .temazepam.sleep_physionet_temazepam import fetch_data \
+    as fetch_temazepam_data
 
 
 def _keep_basename_only(path_structure):
@@ -38,5 +42,9 @@ def test_sleep_physionet_age():
                         ['SC4002E0-PSG.edf', 'SC4002EC-Hypnogram.edf']])
 
 
+@requires_good_network
+def test_run_update_temazepam_records():
+    """Test Sleep Physionet URL handling."""
+    temazepam_records()
 
 run_tests_if_main()
