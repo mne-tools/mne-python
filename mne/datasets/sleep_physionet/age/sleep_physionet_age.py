@@ -206,7 +206,7 @@ def fetch_data(subjects, record=[1, 2], path=None, force_update=False,
         assert 0 <= subject <= 19  # there are only 20 of 82 records available
 
         for idx in np.where(psg_records['subject'] == subject)[0]:
-            if psg_records['record'][idx] == 1:
+            if psg_records['record'][idx] in record:
                 psg_fname = _fetch_one(psg_records['fname'][idx].decode(),
                                        psg_records['sha'][idx].decode(),
                                        *params)
