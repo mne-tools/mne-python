@@ -18,6 +18,42 @@
 
 __version__ = '0.18.dev0'
 
+# Set the default backend
+import os
+import importlib
+default_backend = 'mlab'
+try:
+    if _BACKEND is None:
+        _BACKEND = os.environ.get('MNE_BACKEND', default_backend)
+except NameError:
+    _BACKEND = os.environ.get('MNE_BACKEND', default_backend)
+
+
+def set_backend(backend_name):
+    """Sets the backend for MNE
+        The backend will be set as specified and operations will used
+        that backend
+    Parameters
+    ----------
+    backend_name : {'mlab', 'vispy'}, default is 'mlab'
+    """
+    global _BACKEND
+    _BACKEND = backend_name
+
+    importlib.reload(backend)
+
+def get_backend():
+    """Returns the backend currently used
+    Returns
+    -------
+    backend_used : str
+        the backend currently in use
+    """
+    global _BACKEND
+    backend_used = _BACKEND
+    return backend_used
+
+
 # have to import verbose first since it's needed by many things
 from .utils import (set_log_level, set_log_file, verbose, set_config,
                     get_config, get_config_path, set_cache_dir,

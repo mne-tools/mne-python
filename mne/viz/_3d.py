@@ -21,6 +21,7 @@ from functools import partial
 import numpy as np
 from scipy import linalg, sparse
 
+from .. import backend as T
 from ..defaults import DEFAULTS
 from ..fixes import einsum, _crop_colorbar
 from ..io import _loc_to_coil_trans
@@ -564,7 +565,6 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                    bem=None, seeg=True, show_axes=False, fig=None,
                    interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
-
     Parameters
     ----------
     info : dict
@@ -581,16 +581,13 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
     surfaces : str | list
         Surfaces to plot. Supported values:
-
         * scalp: one of 'head', 'outer_skin' (alias for 'head'),
           'head-dense', or 'seghead' (alias for 'head-dense')
         * skull: 'outer_skull', 'inner_skull', 'brain' (alias for
           'inner_skull')
         * brain: one of 'pial', 'white', 'inflated', or 'brain'
           (alias for 'pial').
-
         Defaults to 'head'.
-
         .. note:: For single layer BEMs it is recommended to use 'brain'.
     coord_frame : str
         Coordinate frame to use, 'head', 'meg', or 'mri'.
@@ -626,50 +623,39 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     show_axes : bool
         If True (default False), coordinate frame axis indicators will be
         shown:
-
         * head in pink
         * MRI in gray (if ``trans is not None``)
         * MEG in blue (if MEG sensors are present)
-
         .. versionadded:: 0.16
     fig : mayavi figure object | None
         Mayavi Scene (instance of mlab.Figure) in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
-
         .. versionadded:: 0.16
     interaction : str
         Can be "trackball" (default) or "terrain", i.e. a turntable-style
         camera.
-
         .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-
     Returns
     -------
     fig : instance of mlab.Figure
         The mayavi figure.
-
     See Also
     --------
     mne.viz.plot_bem
-
     Notes
     -----
     This function serves the purpose of checking the validity of the many
     different steps of source reconstruction:
-
     - Transform matrix (keywords ``trans``, ``meg`` and ``mri_fiducials``),
     - BEM surfaces (keywords ``bem`` and ``surfaces``),
     - sphere conductor model (keywords ``bem`` and ``surfaces``) and
     - source space (keywords ``surfaces`` and ``src``).
-
     .. versionadded:: 0.15
     """
     from ..forward import _create_meg_coils
-    mlab = _import_mlab()
-    from tvtk.api import tvtk
 
     if eeg is False:
         eeg = list()
@@ -1061,12 +1047,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                              for pick in seeg_picks])
 
     # initialize figure
-    if fig is None:
-        fig = _mlab_figure(bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
-    if interaction == 'terrain' and fig.scene is not None:
-        fig.scene.interactor.interactor_style = \
-            tvtk.InteractorStyleTerrain()
-    _toggle_mlab_render(fig, False)
+    T.init((800, 800), (0.5, 0.5, 0.5))
+    T.set_interactive()
 
     # plot surfaces
     alphas = dict(head=head_alpha, helmet=0.25, lh=hemi_val, rh=hemi_val)
@@ -1075,18 +1057,16 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                   rh=(0.5,) * 3)
     colors.update(skull_colors)
     for key, surf in surfs.items():
-        # Make a solid surface
-        mesh = _create_mesh_surf(surf, fig)
         with warnings.catch_warnings(record=True):  # traits
-            surface = mlab.pipeline.surface(
-                mesh, color=colors[key], opacity=alphas[key], figure=fig)
-        if key != 'helmet':
-            surface.actor.property.backface_culling = True
+            if key != 'helmet':
+                T.add_surface(surf, colors[key], alphas[key], True)
+            else:
+                T.add_surface(surf, colors[key], alphas[key], False)
     if brain and 'lh' not in surfs:  # one layer sphere
         assert bem['coord_frame'] == FIFF.FIFFV_COORD_HEAD
         center = bem['r0'].copy()
         center = apply_trans(head_trans, center)
-        mlab.points3d(*center, scale_factor=0.01, color=colors['lh'],
+        T.add_spheres(center, scale_factor=0.01, color=colors['lh'],
                       opacity=alphas['lh'])
     if show_axes:
         axes = [(head_trans, (0.9, 0.3, 0.3))]  # always show head
@@ -1097,10 +1077,10 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         for ax in axes:
             x, y, z = np.tile(ax[0]['trans'][:3, 3], 3).reshape((3, 3)).T
             u, v, w = ax[0]['trans'][:3, :3]
-            mlab.points3d(x[0], y[0], z[0], color=ax[1], scale_factor=3e-3)
-            mlab.quiver3d(x, y, z, u, v, w, mode='arrow', scale_factor=2e-2,
-                          color=ax[1], scale_mode='scalar', resolution=20,
-                          scalars=[0.33, 0.66, 1.0])
+            #mlab.points3d(x[0], y[0], z[0], color=ax[1], scale_factor=3e-3)
+            #mlab.quiver3d(x, y, z, u, v, w, mode='arrow', scale_factor=2e-2,
+            #              color=ax[1], scale_mode='scalar', resolution=20,
+            #              scalars=[0.33, 0.66, 1.0])
 
     # plot points
     defaults = DEFAULTS['coreg']
@@ -1132,43 +1112,38 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     for data, color, alpha, scale in zip(datas, colors, alphas, scales):
         if len(data) > 0:
             with warnings.catch_warnings(record=True):  # traits
-                points = mlab.points3d(data[:, 0], data[:, 1], data[:, 2],
-                                       color=color, scale_factor=scale,
-                                       opacity=alpha, figure=fig)
-                points.actor.property.backface_culling = True
-    if len(eegp_loc) > 0:
-        with warnings.catch_warnings(record=True):  # traits
-            quiv = mlab.quiver3d(
-                eegp_loc[:, 0], eegp_loc[:, 1], eegp_loc[:, 2],
-                eegp_nn[:, 0], eegp_nn[:, 1], eegp_nn[:, 2],
-                color=defaults['eegp_color'], mode='cylinder',
-                scale_factor=defaults['eegp_scale'], opacity=0.6, figure=fig)
-        quiv.glyph.glyph_source.glyph_source.height = defaults['eegp_height']
-        quiv.glyph.glyph_source.glyph_source.center = \
-            (0., -defaults['eegp_height'], 0)
-        quiv.glyph.glyph_source.glyph_source.resolution = 20
-        quiv.actor.property.backface_culling = True
+                T.add_spheres(data, color, scale, alpha, True)
+    #WIP
+    #if len(eegp_loc) > 0:
+        #with warnings.catch_warnings(record=True):  # traits
+            #quiv = mlab.quiver3d(
+            #    eegp_loc[:, 0], eegp_loc[:, 1], eegp_loc[:, 2],
+            #    eegp_nn[:, 0], eegp_nn[:, 1], eegp_nn[:, 2],
+            #    color=defaults['eegp_color'], mode='cylinder',
+            #    scale_factor=defaults['eegp_scale'], opacity=0.6, figure=fig)
+        #quiv.glyph.glyph_source.glyph_source.height = defaults['eegp_height']
+        #quiv.glyph.glyph_source.glyph_source.center = \
+        #    (0., -defaults['eegp_height'], 0)
+        #quiv.glyph.glyph_source.glyph_source.resolution = 20
+        #quiv.actor.property.backface_culling = True
     if len(meg_rrs) > 0:
         color, alpha = (0., 0.25, 0.5), 0.25
         surf = dict(rr=meg_rrs, tris=meg_tris)
-        mesh = _create_mesh_surf(surf, fig)
         with warnings.catch_warnings(record=True):  # traits
-            surface = mlab.pipeline.surface(mesh, color=color,
-                                            opacity=alpha, figure=fig)
-        surface.actor.property.backface_culling = True
-    if len(src_rr) > 0:
-        with warnings.catch_warnings(record=True):  # traits
-            quiv = mlab.quiver3d(
-                src_rr[:, 0], src_rr[:, 1], src_rr[:, 2],
-                src_nn[:, 0], src_nn[:, 1], src_nn[:, 2], color=(1., 1., 0.),
-                mode='cylinder', scale_factor=3e-3, opacity=0.75, figure=fig)
-        quiv.glyph.glyph_source.glyph_source.height = 0.25
-        quiv.glyph.glyph_source.glyph_source.center = (0., 0., 0.)
-        quiv.glyph.glyph_source.glyph_source.resolution = 20
-        quiv.actor.property.backface_culling = True
-    with SilenceStdout():
-        mlab.view(90, 90, focalpoint=(0., 0., 0.), distance=0.6, figure=fig)
-    _toggle_mlab_render(fig, True)
+            T.add_surface(surf, color, alpha, True)
+    #if len(src_rr) > 0:
+        #with warnings.catch_warnings(record=True):  # traits
+            #quiv = mlab.quiver3d(
+                #src_rr[:, 0], src_rr[:, 1], src_rr[:, 2],
+                #src_nn[:, 0], src_nn[:, 1], src_nn[:, 2], color=(1., 1., 0.),
+                #mode='cylinder', scale_factor=3e-3, opacity=0.75, figure=fig)
+        #quiv.glyph.glyph_source.glyph_source.height = 0.25
+        #quiv.glyph.glyph_source.glyph_source.center = (0., 0., 0.)
+        #quiv.glyph.glyph_source.glyph_source.resolution = 20
+        #quiv.actor.property.backface_culling = True
+    #with SilenceStdout():
+        #mlab.view(90, 90, focalpoint=(0., 0., 0.), distance=0.6, figure=fig)
+    T.show()
     return fig
 
 
