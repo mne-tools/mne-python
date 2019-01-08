@@ -281,8 +281,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     reject : 'auto' | dict | None
         Allows to use a different rejection parameter to drop epochs. If None, 
         it does not apply a rejection. If 'auto', it applies the rejection fitted
-        with the ICA object if it exists, else, it does not apply any
-        defaults to 'auto'
+        with the ICA object if it exists.
 
     Returns
     -------
@@ -352,7 +351,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     data = epochs_src.get_data()
 
     if reject == 'auto':
-        reject = None if not hasattr(ica, 'reject_') else ica.reject_ 
+        reject = getattr(ica, 'reject_', None)
     if reject is not None:
         (data, drop_inds) = _reject_data_segments(data, reject, flat=None, 
                                                   decim=None, info=ica.info,
