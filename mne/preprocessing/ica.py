@@ -482,6 +482,8 @@ class ICA(ContainsMixin):
             del self.drop_inds_
         if hasattr(self, 'reject_'):
             del self.reject_
+        if hasattr(self, 'picks_'):
+            del self.picks_
 
     def _fit_raw(self, raw, picks, start, stop, decim, reject, flat, tstep,
                  reject_by_annotation, verbose):
@@ -513,6 +515,8 @@ class ICA(ContainsMixin):
         # this will be a view
         if decim is not None:
             data = data[:, ::decim]
+
+        self.picks_ = picks
 
         # this will make a copy
         if (reject is not None) or (flat is not None):

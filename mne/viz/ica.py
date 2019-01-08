@@ -295,6 +295,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
     from ..preprocessing import ICA
+    from ..io import RawArray
 
     # input checks and defaults
     # -------------------------
@@ -336,6 +337,22 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     # ------------
     
     if isinstance(inst, BaseRaw):
+        # if reject is set, reject
+        if reject == 'auto':
+            reject = getattr(ica, 'reject_', None)
+        if reject is not None:
+            data = inst.get_data(ica.picks_)
+            data, drop_inds = _reject_data_segments(data, reject, flat=None, 
+                                                    decim=None, info=ica.info,
+                                                    tstep=2.0)
+            ch_names = np.array(inst.info['ch_names'])
+            ch_names = ch_names[ica.picks_].tolist()
+            ch_type = ica.info['chs']
+            # TODO : check if we need to create the info
+            info = create_info(ch_names=ch_names, sfreq=ica.info['sfreq'])
+            inst = RawArray(data, ica.info)
+        else:
+            drop_inds = None
         # break up continuous signal into segments
         from ..epochs import _segment_raw
         inst = _segment_raw(inst, segment_length=2., verbose=False,
@@ -343,21 +360,15 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         kind = "Segment"
     else:
         kind = "Epochs"
-
     
     epochs_src = ica.get_sources(inst)
 
-    # if reject is set, reject
     data = epochs_src.get_data()
 
-    if reject == 'auto':
-        reject = getattr(ica, 'reject_', None)
-    if reject is not None:
-        (data, drop_inds) = _reject_data_segments(data, reject, flat=None, 
-                                                  decim=None, info=ica.info,
-                                                  tstep=2.0)
-
     ica_data = np.swapaxes(data[:, picks, :], 0, 1)  
+
+    # getting dropped epochs indexes
+
 
     # spectrum
     Nyquist = inst.info['sfreq'] / 2.
