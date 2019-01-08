@@ -127,6 +127,7 @@ def test_edf_data():
 
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
 def test_duplicate_channel_labels_edf():
+    """Test reading edf file with duplicate channel names."""
     raw = read_raw_edf(duplicate_path, preload=True)
 
 

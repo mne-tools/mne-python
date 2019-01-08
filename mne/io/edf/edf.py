@@ -19,7 +19,7 @@ import numpy as np
 from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims
 from ..base import BaseRaw, _check_update_montage
-from ..meas_info import _empty_info, DATE_NONE
+from ..meas_info import _empty_info, _unique_channel_names, DATE_NONE
 from ..constants import FIFF
 from ...filter import resample
 from ...utils import copy_function_doc_to_method_doc
@@ -574,24 +574,9 @@ def _read_edf_header(fname, exclude):
 
         ch_names = [ch_names[idx] for idx in sel]
         units = [units[idx] for idx in sel]
-        # make sure channel names are unique
-        # code modified from _check_consistency function in meas_info.py
-        unique_ids = np.unique(ch_names, return_index=True)[1]
-        if len(unique_ids) != len(ch_names):
-            dups = set(ch_names[x]
-                       for x in np.setdiff1d(range(len(ch_names)), unique_ids))
-            warn('Channel names are not unique, found duplicates for: '
-                 '%s. Applying running numbers for duplicates.' % dups)
-            for ch_stem in dups:
-                overlaps = np.where(np.array(ch_names) == ch_stem)[0]
-                n_keep = min(len(ch_stem),
-                             14 - int(np.ceil(np.log10(len(overlaps)))))
-                ch_stem = ch_stem[:n_keep]
-                for idx, ch_idx in enumerate(overlaps):
-                    ch_name = ch_stem + '-%s' % idx
-                    assert ch_name not in ch_names
-                    ch_names[ch_idx] = ch_name
 
+        # make sure channel names are unique
+        ch_names = _unique_channel_names(ch_names)
         orig_units = dict(zip(ch_names, units))
 
         physical_min = np.array([float(fid.read(8).decode())

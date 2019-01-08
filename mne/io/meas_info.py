@@ -125,6 +125,28 @@ def _stamp_to_dt(stamp):
             datetime.timedelta(0, 0, stamp[1]))  # day, sec, μs
 
 
+def _unique_channel_names(ch_names):
+    """Ensure unique channel names."""
+    # refactored and modified from Info._check_consistency()
+    unique_ids = np.unique(ch_names, return_index=True)[1]
+    if len(unique_ids) != len(ch_names):
+        dups = set(ch_names[x]
+                   for x in np.setdiff1d(range(len(ch_names)), unique_ids))
+        warn('Channel names are not unique, found duplicates for: '
+             '%s. Applying running numbers for duplicates.' % dups)
+        for ch_stem in dups:
+            overlaps = np.where(np.array(ch_names) == ch_stem)[0]
+            n_keep = min(len(ch_stem),
+                         14 - int(np.ceil(np.log10(len(overlaps)))))
+            ch_stem = ch_stem[:n_keep]
+            for idx, ch_idx in enumerate(overlaps):
+                ch_name = ch_stem + '-%s' % idx
+                assert ch_name not in ch_names
+                ch_names[ch_idx] = ch_name
+
+    return ch_names
+
+
 # XXX Eventually this should be de-duplicated with the MNE-MATLAB stuff...
 class Info(dict):
     """Measurement information.
@@ -530,6 +552,8 @@ class Info(dict):
         self._check_ch_name_length()
 
         # make sure channel names are unique
+        self['ch_names'] = _unique_channel_names(self['ch_names'])
+        '''
         unique_ids = np.unique(self['ch_names'], return_index=True)[1]
         if len(unique_ids) != self['nchan']:
             dups = set(self['ch_names'][x]
@@ -546,7 +570,7 @@ class Info(dict):
                     assert ch_name not in self['ch_names']
                     self['ch_names'][ch_idx] = ch_name
                     self['chs'][ch_idx]['ch_name'] = ch_name
-
+        '''
         if 'filename' in self:
             warn('the "filename" key is misleading '
                  'and info should not have it')
