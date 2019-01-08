@@ -368,7 +368,9 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     ica_data = np.swapaxes(data[:, picks, :], 0, 1)  
 
     # getting dropped epochs indexes
-
+    dropped_indexes = []
+    for dropped in drop_inds:
+        dropped_indexes.append(int(dropped[0]/len(inst)))
 
     # spectrum
     Nyquist = inst.info['sfreq'] / 2.
