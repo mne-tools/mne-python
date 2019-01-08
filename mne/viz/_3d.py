@@ -565,6 +565,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                    bem=None, seeg=True, show_axes=False, fig=None,
                    interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
+
     Parameters
     ----------
     info : dict

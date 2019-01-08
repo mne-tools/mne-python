@@ -24,18 +24,20 @@ import importlib
 default_backend = 'mlab'
 try:
     if _BACKEND is None:
-        _BACKEND = os.environ.get('MNE_BACKEND', default_backend)
+        _BACKEND = os.environ.get('MNE_3D_BACKEND', default_backend)
 except NameError:
-    _BACKEND = os.environ.get('MNE_BACKEND', default_backend)
+    _BACKEND = os.environ.get('MNE_3D_BACKEND', default_backend)
 
 
 def set_backend(backend_name):
-    """Sets the backend for MNE
-        The backend will be set as specified and operations will used
-        that backend
+    """Set the backend for MNE.
+
+    The backend will be set as specified and operations will use
+    that backend
+
     Parameters
     ----------
-    backend_name : {'mlab', 'vispy'}, default is 'mlab'
+    backend_name : {'mlab'}, default is 'mlab'
     """
     global _BACKEND
     _BACKEND = backend_name
@@ -43,7 +45,8 @@ def set_backend(backend_name):
     importlib.reload(backend)
 
 def get_backend():
-    """Returns the backend currently used
+    """Return the backend currently used.
+
     Returns
     -------
     backend_used : str
