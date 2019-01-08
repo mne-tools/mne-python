@@ -229,10 +229,10 @@ class Annotations(object):
                                   orig_time=self.orig_time)
             elif isinstance(key, int):
                 print('__getitem__ with integer: {}'.format(key))
-                out = Annotations(onset=[self.onset[key]],
-                                  duration=[self.duration[key]],
-                                  description=[self.description[key]],
-                                  orig_time=self.orig_time)
+                out = {'onset': self.onset[key],
+                       'duration': self.duration[key],
+                       'description': self.description[key],
+                       'orig_time': self.orig_time}
             else:
                 raise TypeError
                 # out = (self.onset[key].copy(),
