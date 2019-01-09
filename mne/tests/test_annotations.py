@@ -829,9 +829,9 @@ def test_annotations_slices():
     EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
     EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
 
-    annot = Annotations(onset=EXPECTED_ONSETS.copy(),
-                        duration=EXPECTED_DURATIONS.copy(),
-                        description=EXPECTED_DESCS.copy(),
+    annot = Annotations(onset=EXPECTED_ONSETS,
+                        duration=EXPECTED_DURATIONS,
+                        description=EXPECTED_DESCS,
                         orig_time=None)
 
     # Indexing returns a copy. So this has no effect in annot
