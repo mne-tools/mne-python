@@ -850,34 +850,16 @@ def test_annotations_slices():
                     annot[[bool(ii % 2) for ii in range(len(annot))]],
                     annot[:1],
                     annot[[0, 2, 2]],
+                    annot[(0, 2, 2)],
+                    annot[np.array([0, 2, 2])],
                     annot[1::2],
                     ):
         assert isinstance(current, Annotations)
         assert len(current) != len(annot)
 
-    for bad_ii in [len(EXPECTED_ONSETS), 42]:
+    for bad_ii in [len(EXPECTED_ONSETS), 42, 'foo']:
         with pytest.raises(IndexError):
             annot[bad_ii]
 
-    with pytest.raises(TypeError):
-        annot['foo']
-
-
-def test_annotations_slices_breaking_():
-    """Test indexing Annotations."""
-    NUM_ANNOT = 5
-    EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
-    EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
-
-    annot = Annotations(onset=EXPECTED_ONSETS,
-                        duration=EXPECTED_DURATIONS,
-                        description=EXPECTED_DESCS,
-                        orig_time=None)
-
-    for current in (annot[(0, 2, 2)],
-                    annot[np.array([0, 2, 2])],
-                    ):
-        assert isinstance(current, Annotations)
-        assert len(current) != len(annot)
 
 run_tests_if_main()
