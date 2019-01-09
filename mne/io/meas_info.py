@@ -128,6 +128,7 @@ def _stamp_to_dt(stamp):
 def _unique_channel_names(ch_names):
     """Ensure unique channel names."""
     # refactored and modified from Info._check_consistency()
+    FIFF_CH_NAME_MAX_LENGTH = 15
     unique_ids = np.unique(ch_names, return_index=True)[1]
     if len(unique_ids) != len(ch_names):
         dups = set(ch_names[x]
@@ -136,13 +137,11 @@ def _unique_channel_names(ch_names):
              '%s. Applying running numbers for duplicates.' % dups)
         for ch_stem in dups:
             overlaps = np.where(np.array(ch_names) == ch_stem)[0]
-            # Max length of channel name in FIFF file is 15 characters.
-            # n_keep is set so that the length of ch_name is <= 15
-            # including the appended '-' and the appended digits.
-            # The 14 is the max characteris (15) less the appended '-'.
-            # np.ceil(...) is the maximal number of appended digits.
-            n_keep = min(len(ch_stem),
-                         14 - int(np.ceil(np.log10(len(overlaps)))))
+            # We need an extra character since we append '-'.
+            # np.ceil(...) is the maximum number of appended digits.
+            n_keep = (FIFF_CH_NAME_MAX_LENGTH - 1 -
+                      int(np.ceil(np.log10(len(overlaps)))))
+            n_keep = min(len(ch_stem), n_keep)
             ch_stem = ch_stem[:n_keep]
             for idx, ch_idx in enumerate(overlaps):
                 ch_name = ch_stem + '-%s' % idx
