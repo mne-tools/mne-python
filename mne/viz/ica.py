@@ -130,7 +130,7 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
                          epoch_var, plot_lowpass_edge, epochs_src,
                          set_title_and_labels, plot_std, psd_ylabel,
                          spectrum_std, topomap_args, image_args, fig, axes,
-                         kind):
+                         kind, dropped_indexes):
     """Plot ICA properties (helper)."""
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
     from scipy.stats import gaussian_kde
@@ -161,6 +161,9 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     hist_ax = var_ax_divider.append_axes("right", size="33%", pad="2.5%")
     var_ax.scatter(range(len(epoch_var)), epoch_var, alpha=0.5,
                    facecolor=[0, 0, 0], lw=0)
+    # rejected epochs in red
+    var_ax.scatter(dropped_indexes, epoch_var[dropped_indexes],
+                   alpha=1., facecolor=[1, 0, 0], lw=0)
     var_ax.set_yticks([])
 
     # histogram & histogram
@@ -279,9 +282,9 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     show : bool
         Show figure if True.
     reject : 'auto' | dict | None
-        Allows to use a different rejection parameter to drop epochs. If None, 
-        it does not apply a rejection. If 'auto', it applies the rejection fitted
-        with the ICA object if it exists.
+        Allows to use a different rejection parameter to drop epochs. If None,
+        it does not apply a rejection. If 'auto', it applies the rejection
+        fitted with the ICA object if it exists.
 
     Returns
     -------
@@ -335,42 +338,40 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
     # calculations
     # ------------
-    
+
     if isinstance(inst, BaseRaw):
         # if reject is set, reject
         if reject == 'auto':
             reject = getattr(ica, 'reject_', None)
         if reject is not None:
-            data = inst.get_data(ica.picks_)
-            data, drop_inds = _reject_data_segments(data, reject, flat=None, 
-                                                    decim=None, info=ica.info,
+            sources = ica.get_sources(inst)
+            data = sources.get_data()
+            data, drop_inds = _reject_data_segments(data, ica.reject_,
+                                                    flat=None, decim=None,
+                                                    info=sources.info,
                                                     tstep=2.0)
-            ch_names = np.array(inst.info['ch_names'])
-            ch_names = ch_names[ica.picks_].tolist()
-            ch_type = ica.info['chs']
-            # TODO : check if we need to create the info
-            info = create_info(ch_names=ch_names, sfreq=ica.info['sfreq'])
-            inst = RawArray(data, ica.info)
+            inst = RawArray(data, sources.info)
         else:
             drop_inds = None
         # break up continuous signal into segments
         from ..epochs import _segment_raw
-        inst = _segment_raw(inst, segment_length=2., verbose=False,
-                            preload=True)
+        epochs_src = _segment_raw(inst, segment_length=2., verbose=False,
+                                  preload=True)
         kind = "Segment"
     else:
+        epochs_src = ica.get_sources(inst)
         kind = "Epochs"
-    
-    epochs_src = ica.get_sources(inst)
 
     data = epochs_src.get_data()
 
-    ica_data = np.swapaxes(data[:, picks, :], 0, 1)  
+    ica_data = np.swapaxes(data[:, picks, :], 0, 1)
 
     # getting dropped epochs indexes
+    # TODO : not sure about this one
     dropped_indexes = []
-    for dropped in drop_inds:
-        dropped_indexes.append(int(dropped[0]/len(inst)))
+    if drop_inds is not None:
+        for dropped in drop_inds:
+            dropped_indexes.append(int(dropped[0] / len(inst)))
 
     # spectrum
     Nyquist = inst.info['sfreq'] / 2.
@@ -409,7 +410,8 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
             pick, ica, inst, psds_mean, freqs, ica_data.shape[1],
             np.var(ica_data[idx], axis=1), plot_lowpass_edge,
             epochs_src, set_title_and_labels, plot_std, psd_ylabel,
-            spectrum_std, topomap_args, image_args, fig, axes, kind)
+            spectrum_std, topomap_args, image_args, fig, axes, kind,
+            dropped_indexes)
         all_fig.append(fig)
 
     plt_show(show)
