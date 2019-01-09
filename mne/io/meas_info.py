@@ -562,6 +562,8 @@ class Info(dict):
 
         # make sure channel names are unique
         self['ch_names'] = _unique_channel_names(self['ch_names'])
+        for idx, ch_name in enumerate(self['ch_names']):
+            self['chs'][idx]['ch_name'] = ch_name
 
         if 'filename' in self:
             warn('the "filename" key is misleading '
