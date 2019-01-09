@@ -224,30 +224,17 @@ class Annotations(object):
 
     def __getitem__(self, key):
         """Propagate indexing and slicing to the underlying numpy structure."""
-        try:
-            if isinstance(key, slice) or isinstance(key, list):
-                out = Annotations(onset=self.onset[key],
-                                  duration=self.duration[key],
-                                  description=self.description[key],
-                                  orig_time=self.orig_time)
-            elif isinstance(key, int):
-                out = OrderedDict(zip(
-                    ('onset', 'duration', 'description', 'orig_time'),
-                    (self.onset[key], self.duration[key],
-                     self.description[key], self.orig_time)))
-            else:
-                raise TypeError
-
-        except IndexError as idx_error:
-            if idx_error.args[0].startswith('only integers'):
-                # raise the error recommended by the standard
-                raise TypeError(idx_error.args[0])
-            else:
-                raise
-        except Exception:
-            raise
+        if isinstance(key, int):
+            return OrderedDict(zip(
+                ('onset', 'duration', 'description', 'orig_time'),
+                (self.onset[key], self.duration[key],
+                    self.description[key], self.orig_time)))
         else:
-            return out
+            key = list(key) if isinstance(key, tuple) else key
+            return Annotations(onset=self.onset[key],
+                                duration=self.duration[key],
+                                description=self.description[key],
+                                orig_time=self.orig_time)
 
     def append(self, onset, duration, description):
         """Add an annotated segment. Operates inplace.
