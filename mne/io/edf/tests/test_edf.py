@@ -125,10 +125,14 @@ def test_edf_data():
         read_raw_edf(broken_fname, exclude=raw.ch_names[:132], preload=True)
 
 
-@pytest.mark.filterwarnings('ignore::RuntimeWarning')
 def test_duplicate_channel_labels_edf():
     """Test reading edf file with duplicate channel names."""
-    raw = read_raw_edf(duplicate_path, preload=True)
+    # reading files with dupiicate names should generate a runtime warning
+    with pytest.warns(RuntimeWarning, match="Channel names are not unique"):
+        raw = read_raw_edf(duplicate_path, preload=True)
+        # This file contains the channel name 'EEG F1-Ref' twice
+        assert 'EEG F1-Ref-0' in raw.ch_names
+        assert 'EEG F1-Ref-1' in raw.ch_names
 
 
 def test_parse_annotation(tmpdir):
