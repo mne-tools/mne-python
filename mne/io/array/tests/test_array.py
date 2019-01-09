@@ -39,7 +39,7 @@ def test_bad_duplicate_name_correction():
     with pytest.raises(ValueError, match='Adding a running number'):
         info = create_info(['A', 'A', 'A-0'], 1000., verbose='error')
         data = np.empty((3, 1000))
-        raw = RawArray(data, info)
+        RawArray(data, info)
 
 
 @pytest.mark.slowtest
