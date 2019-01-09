@@ -217,18 +217,15 @@ class Annotations(object):
     def __iter__(self):
         """Iterate over the annotations."""
         for idx in range(len(self.onset)):
-            yield OrderedDict(zip(
-                ('onset', 'duration', 'description', 'orig_time'),
-                (self.onset[idx], self.duration[idx], self.description[idx],
-                 self.orig_time)))
+            yield self.__getitem__(idx)
 
     def __getitem__(self, key):
         """Propagate indexing and slicing to the underlying numpy structure."""
         if isinstance(key, int):
-            return OrderedDict(zip(
-                ('onset', 'duration', 'description', 'orig_time'),
-                (self.onset[key], self.duration[key],
-                    self.description[key], self.orig_time)))
+            out_keys = ('onset', 'duration', 'description', 'orig_time')
+            out_vals = (self.onset[key], self.duration[key],
+                        self.description[key], self.orig_time)
+            return OrderedDict(zip(out_keys, out_vals))
         else:
             key = list(key) if isinstance(key, tuple) else key
             return Annotations(onset=self.onset[key],
