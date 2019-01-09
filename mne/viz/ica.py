@@ -344,24 +344,24 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         if reject == 'auto':
             reject = getattr(ica, 'reject_', None)
         if reject is not None:
-            sources = ica.get_sources(inst)
-            data = sources.get_data()
+            data = inst.get_data()
             data, drop_inds = _reject_data_segments(data, ica.reject_,
                                                     flat=None, decim=None,
-                                                    info=sources.info,
+                                                    info=inst.info,
                                                     tstep=2.0)
-            inst = RawArray(data, sources.info)
+            inst = RawArray(data, inst.info)
         else:
             drop_inds = None
         # break up continuous signal into segments
         from ..epochs import _segment_raw
-        epochs_src = _segment_raw(inst, segment_length=2., verbose=False,
+        inst = _segment_raw(inst, segment_length=2., verbose=False,
                                   preload=True)
         kind = "Segment"
     else:
-        epochs_src = ica.get_sources(inst)
+        drop_inds = None
         kind = "Epochs"
 
+    epochs_src = ica.get_sources(inst)
     data = epochs_src.get_data()
 
     ica_data = np.swapaxes(data[:, picks, :], 0, 1)
@@ -371,7 +371,9 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     dropped_indexes = []
     if drop_inds is not None:
         for dropped in drop_inds:
-            dropped_indexes.append(int(dropped[0] / len(inst)))
+            dropped_indexes.append((dropped[0] // len(inst.times)))
+    
+    print(dropped_indexes)
 
     # spectrum
     Nyquist = inst.info['sfreq'] / 2.
