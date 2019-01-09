@@ -848,10 +848,11 @@ def test_annotations_slices():
     # Slices should give back Annotations
     for current in (annot[slice(0, None, 2)],
                     annot[[bool(ii % 2) for ii in range(len(annot))]],
-                    annot[:],
+                    annot[:1],
                     annot[1::2],
                     ):
         assert isinstance(current, Annotations)
+        assert len(current) != len(annot)
 
     for bad_ii in [len(EXPECTED_ONSETS), 42]:
         with pytest.raises(IndexError):

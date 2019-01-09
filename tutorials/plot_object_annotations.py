@@ -191,7 +191,7 @@ print(annot)
 
 # difference between indexing and slicing a single element
 print(annot[0])
-print(annot[slice(0, None, None)])
+print(annot[:1])
 
 ###############################################################################
 #
