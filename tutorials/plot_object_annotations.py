@@ -183,38 +183,43 @@ print(annot)
 # Iterating, Indexing and Slicing :class:`mne.Annotations`
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# :class:`~mne.Annotations` supports the same indexing and slicing as
-# ``numpy.array``, and it returns a ``(onset, duration, description)`` tuple
-# with the sliced elements.
+# :class:`~mne.Annotations` supports iterating, indexing and slicing.
+# Iterating over :class:`~mne.Annotations` and indexing with an integer returns
+# a dictionary. While slicing returns a new :class:`~mne.Annotations` instance.
 #
 # See the following examples and usages:
-print('type: {0} content: {1}'.format(type(annot[0]), annot[0]))
 
-print('type: {0} content: {1}'.format(type(annot[:]), annot[:]))
+# difference between indexing and slicing a single element
+print(annot[0])
+print(annot[slice(0, None, None)])
 
-_MSG = 'annotation #{0}: onset={1} duration={2} desc={3}'
-for idx, (onset, duration, desc) in enumerate(annot):
-    print(_MSG.format(idx, onset, duration, desc))
+###############################################################################
+#
 
-start, stop, step = (0, None, 2)
-every_other_annotation = slice(start, stop, step)
-for onset, duration, desc in zip(*annot[every_other_annotation]):
-    print('onset={0} duration={1} desc={2}'.format(onset, duration, desc))
+for key, val in annot[0].items():
+    print(key, val)
 
-for onset, duration, desc in zip(*annot[1::2]):
-    print('onset={0} duration={1} desc={2}'.format(onset, duration, desc))
+for idx, my_annot in enumerate(annot):
+    print('annot #{0}: onset={1}'.format(idx, my_annot['onset']))
+    print('annot #{0}: duration={1}'.format(idx, my_annot['duration']))
+    print('annot #{0}: description={1}'.format(idx, my_annot['description']))
 
-# XXX: it works 'cos its 3
-desc_starts_with_foo = [desc.startswith('foo') for desc in annot.description]
-print(desc_starts_with_foo)
-for onset, duration, desc in annot[desc_starts_with_foo]:
-    print('onset={0} duration={1} desc={2}'.format(onset, duration, desc))
+for idx, my_annot in enumerate(annot[:1]):
+    for key, val in my_annot.items():
+        print('annot #{0}: {1} = {2}'.format(idx, key, val))
 
+###############################################################################
+# Iterating, indexing and slicing return a copy. This has implications like the
+# fact that changes are not kept.
 
-# desc_is_foo = [desc == 'foo' for desc in annot.description]
-# print(desc_is_foo)
-# for onset, duration, desc in annot[desc_is_foo]:
-#     print('onset={0} duration={1} desc={2}'.format(onset, duration, desc))
+# this change is not kept
+annot[0]['onset'] = 42
+print(annot[0])
+
+# this change is kept
+annot.onset[0] = 42
+print(annot[0])
+
 
 ###############################################################################
 # Save
