@@ -4,6 +4,7 @@
 
 from datetime import datetime
 from itertools import repeat
+from collections import OrderedDict
 
 import os.path as op
 
@@ -794,7 +795,6 @@ def test_read_annotation_txt_orig_time(
     assert_array_equal(annot.description, ['AA', 'BB'])
 
 
-@pytest.mark.skip(reason='untuple no longer works')
 def test_annotations_simple_iteration():
     """Test indexing Annotations."""
     NUM_ANNOT = 5
@@ -807,31 +807,20 @@ def test_annotations_simple_iteration():
                         description=EXPECTED_DESCS,
                         orig_time=None)
 
-    for ii, (onset, duration, description) in enumerate(annot[:2]):
-        elements = (onset, duration, description)
-        for elem, expected_type in zip(elements, EXPECTED_ELEMENTS_TYPE):
+    for ii, elements in enumerate(annot[:2]):
+        assert isinstance(elements, OrderedDict)
+        expected_values = (ii, ii, str(ii))
+        for elem, expected_type, expected_value in zip(elements.values(),
+                                                       EXPECTED_ELEMENTS_TYPE,
+                                                       expected_values):
             assert np.isscalar(elem)
             assert type(elem) == expected_type
-        assert (onset, duration, description) == (ii, ii, str(ii))
+            assert elem == expected_value
 
-    bool_sequence = [bool(ii % 2) for ii in range(len(annot))]
-    for onset, duration, description in annot[bool_sequence]:
-        elements = (onset, duration, description)
-        for elem, expected_type in zip(elements, EXPECTED_ELEMENTS_TYPE):
-            assert np.isscalar(elem)
-            assert type(elem) == expected_type
-
-    # Slicing with int is no longer the same iterator
+    # unpacking is not allowed
     with pytest.raises(ValueError, match='too many values'):
         for onset, duration, description in annot[0]:
             pass
-
-    annotations_with_single_element = annot[slice(0, None, None)]
-    for onset, duration, description in annotations_with_single_element:
-        elements = (onset, duration, description)
-        for elem, expected_type in zip(elements, EXPECTED_ELEMENTS_TYPE):
-            assert np.isscalar(elem)
-            assert type(elem) == expected_type
 
 
 def test_annotations_slices():
