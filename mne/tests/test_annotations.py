@@ -839,6 +839,10 @@ def test_annotations_slices():
     annot[0]['duration'] = 3.14
     annot[0]['description'] = 'foobar'
 
+    annot[:1].onset[0] = 42
+    annot[:1].duration[0] = 3.14
+    annot[:1].description[0] = 'foobar'
+
     # Slicing with single element returns a dictionary
     for ii in EXPECTED_ONSETS:
         assert annot[ii] == dict(zip(['onset', 'duration',
