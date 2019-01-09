@@ -834,6 +834,11 @@ def test_annotations_slices():
                         description=EXPECTED_DESCS.copy(),
                         orig_time=None)
 
+    # Indexing returns a copy. So this has no effect in annot
+    annot[0]['onset'] = 42
+    annot[0]['duration'] = 3.14
+    annot[0]['description'] = 'foobar'
+
     # Slicing with single element returns a dictionary
     for ii in EXPECTED_ONSETS:
         assert annot[ii] == dict(zip(['onset', 'duration',
