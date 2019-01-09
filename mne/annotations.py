@@ -222,25 +222,21 @@ class Annotations(object):
         """Propagate indexing and slicing to the underlying numpy structure."""
         try:
             if isinstance(key, slice) or isinstance(key, list):
-                print('__getitem__ with slice: {}'.format(key))
                 out = Annotations(onset=self.onset[key],
                                   duration=self.duration[key],
                                   description=self.description[key],
                                   orig_time=self.orig_time)
             elif isinstance(key, int):
-                print('__getitem__ with integer: {}'.format(key))
                 out = {'onset': self.onset[key],
                        'duration': self.duration[key],
                        'description': self.description[key],
                        'orig_time': self.orig_time}
             else:
                 raise TypeError
-                # out = (self.onset[key].copy(),
-                #        self.duration[key].copy(),
-                #        self.description[key].copy())
 
         except IndexError as idx_error:
             if idx_error.args[0].startswith('only integers'):
+                # raise the error recommended by the standard
                 raise TypeError(idx_error.args[0])
             else:
                 raise
@@ -248,11 +244,6 @@ class Annotations(object):
             raise
         else:
             return out
-
-    def foo(self, key):
-        """Propagate indexing and slicing to the underlying numpy structure."""
-        foo = np.vstack((self.onset, self.duration, self.description))
-        return foo[:, key]
 
     def append(self, onset, duration, description):
         """Add an annotated segment. Operates inplace.
