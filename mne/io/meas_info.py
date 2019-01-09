@@ -553,24 +553,7 @@ class Info(dict):
 
         # make sure channel names are unique
         self['ch_names'] = _unique_channel_names(self['ch_names'])
-        '''
-        unique_ids = np.unique(self['ch_names'], return_index=True)[1]
-        if len(unique_ids) != self['nchan']:
-            dups = set(self['ch_names'][x]
-                       for x in np.setdiff1d(range(self['nchan']), unique_ids))
-            warn('Channel names are not unique, found duplicates for: '
-                 '%s. Applying running numbers for duplicates.' % dups)
-            for ch_stem in dups:
-                overlaps = np.where(np.array(self['ch_names']) == ch_stem)[0]
-                n_keep = min(len(ch_stem),
-                             14 - int(np.ceil(np.log10(len(overlaps)))))
-                ch_stem = ch_stem[:n_keep]
-                for idx, ch_idx in enumerate(overlaps):
-                    ch_name = ch_stem + '-%s' % idx
-                    assert ch_name not in self['ch_names']
-                    self['ch_names'][ch_idx] = ch_name
-                    self['chs'][ch_idx]['ch_name'] = ch_name
-        '''
+
         if 'filename' in self:
             warn('the "filename" key is misleading '
                  'and info should not have it')
