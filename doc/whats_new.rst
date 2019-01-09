@@ -19,7 +19,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-- Add support for indexing and slicing :mne:`mne.Annotations` by `Joan Massich`_
+- Add support for indexing and slicing :class:`mne.Annotations` by `Joan Massich`_
 
 - :meth:`mne.io.Raw.plot` now uses the lesser of ``n_channels`` and ``raw.ch_names``, by `Joan Massich`_
 
