@@ -43,7 +43,25 @@ def _update_sleep_records():
 
     # Load and massage the data.
     data = pd.read_excel(subjects_fname)
-    import pdb; pdb.set_trace()
+    data.index.name = 'subject'
+    data.columns.names = [None, None]
+    data = (data.set_index([('Subject - age - sex', 'Age'),
+                            ('Subject - age - sex', 'M1/F2')], append=True)
+                .stack(level=0).reset_index())
+
+    data = data.rename(columns={('Subject - age - sex', 'Age'): 'Age',
+                                ('Subject - age - sex', 'M1/F2'): 'sex',
+                                'level_3': 'record'})
+    data['id'] = ['ST7{0:02d}{1:1d}'.format(s, n)
+                  for s, n in zip(data.subject, data['night nr'])]
+
+    xx = data.set_index(['id', 'subject', 'Age', 'sex', 'record',
+                         'lights off', 'night nr', 'record type']).unstack()
+    xx = xx.drop(columns=[('sha', np.nan), ('fname', np.nan)])
+    xx.columns = [l1 + '_' + l2 for l1, l2 in xx.columns]
+    xx.reset_index()
+
+    # import pdb; pdb.set_trace()
 
     print('done')
 
