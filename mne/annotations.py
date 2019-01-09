@@ -8,7 +8,7 @@ import os.path as op
 import re
 from copy import deepcopy
 from itertools import takewhile
-
+from collections import OrderedDict
 
 import numpy as np
 
@@ -215,8 +215,12 @@ class Annotations(object):
         return self.append(other.onset, other.duration, other.description)
 
     def __iter__(self):
+        """Iterate over the annotations."""
         for idx in range(len(self.onset)):
-            yield (self.onset[idx], self.duration[idx], self.description[idx])
+            yield OrderedDict(zip(
+                ('onset', 'duration', 'description', 'orig_time'),
+                (self.onset[idx], self.duration[idx], self.description[idx],
+                 self.orig_time)))
 
     def __getitem__(self, key):
         """Propagate indexing and slicing to the underlying numpy structure."""
@@ -227,10 +231,10 @@ class Annotations(object):
                                   description=self.description[key],
                                   orig_time=self.orig_time)
             elif isinstance(key, int):
-                out = {'onset': self.onset[key],
-                       'duration': self.duration[key],
-                       'description': self.description[key],
-                       'orig_time': self.orig_time}
+                out = OrderedDict(zip(
+                    ('onset', 'duration', 'description', 'orig_time'),
+                    (self.onset[key], self.duration[key],
+                     self.description[key], self.orig_time)))
             else:
                 raise TypeError
 
@@ -240,7 +244,7 @@ class Annotations(object):
                 raise TypeError(idx_error.args[0])
             else:
                 raise
-        except:
+        except Exception:
             raise
         else:
             return out
@@ -826,12 +830,9 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
         inds = inds[event_sel]
     else:
         inds = values = np.array([]).astype(int)
-        iterator = list(zip(annotations.onset[event_sel],
-                            annotations.duration[event_sel],
-                            annotations.description[event_sel]))
-
-        for onset, duration, description in iterator:
-            _onsets = np.arange(start=onset, stop=(onset + duration),
+        for annot in annotations[event_sel]:
+            _onsets = np.arange(start=annot['onset'],
+                                stop=(annot['onset'] + annot['duration']),
                                 step=chunk_duration)
             _inds = raw.time_as_index(_onsets,
                                       use_rounding=use_rounding,
@@ -839,7 +840,7 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
             _inds += raw.first_samp
             inds = np.append(inds, _inds)
             _values = np.full(shape=len(_inds),
-                              fill_value=event_id_[description],
+                              fill_value=event_id_[annot['description']],
                               dtype=int)
             values = np.append(values, _values)
 
