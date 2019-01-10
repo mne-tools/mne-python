@@ -228,9 +228,9 @@ class Annotations(object):
             return OrderedDict(zip(out_keys, out_vals))
         else:
             key = list(key) if isinstance(key, tuple) else key
-            return Annotations(onset=self.onset[key].copy(),
-                               duration=self.duration[key].copy(),
-                               description=self.description[key].copy(),
+            return Annotations(onset=self.onset[key],
+                               duration=self.duration[key],
+                               description=self.description[key],
                                orig_time=self.orig_time)
 
     def append(self, onset, duration, description):
