@@ -144,7 +144,7 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
 
     # image and erp
     plot_epochs_image(epochs_src, picks=pick, axes=[image_ax, erp_ax],
-                      combine=None, colorbar=False, show=False, **image_args)
+                      combine=None, colorbar=False, show=False, **image_args, dropped_indexes=dropped_indexes)
 
     # spectrum
     spec_ax.plot(freqs, psds_mean, color='k')
@@ -214,10 +214,10 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     image_ax.axhline(0, color='k', linewidth=.5)
 
     # epoch variance
-    var_ax_title = kind + ' variance / %.1f %% dropped' % var_percent
+    var_ax_title = 'Dropped segments : %.2f %%' % var_percent
     set_title_and_labels(var_ax, var_ax_title,
                          kind + ' (index)',
-                         'Arbitrary Units (AU)')
+                         'Variance (AU)')
 
     hist_ax.set_ylabel("")
     hist_ax.set_yticks([])
@@ -354,19 +354,22 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
                                                     flat=None, decim=None,
                                                     info=inst.info,
                                                     tstep=2.0)
-            inst = RawArray(data, inst.info)
+            inst_rejected = RawArray(data, inst.info)
         else:
             drop_inds = None
         # break up continuous signal into segments
         from ..epochs import _segment_raw
+        inst_rejected = _segment_raw(inst_rejected, segment_length=2., verbose=False,
+                            preload=True)
         inst = _segment_raw(inst, segment_length=2., verbose=False,
                             preload=True)
         kind = "Segment"
     else:
         drop_inds = None
+        inst_rejected = inst
         kind = "Epochs"
 
-    epochs_src = ica.get_sources(inst)
+    epochs_src = ica.get_sources(inst_rejected)
     data = epochs_src.get_data()
 
     ica_data = np.swapaxes(data[:, picks, :], 0, 1)
@@ -376,11 +379,16 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     dropped_indexes = []
     if drop_inds is not None:
         for dropped in drop_inds:
-            dropped_indexes.append((dropped[0] // len(inst.times)))
+            dropped_indexes.append((dropped[0] // len(inst.times)) + 1)
+
+    # getting 
+
+    dropped_src = ica.get_sources(inst).get_data()
+    dropped_src = np.swapaxes(dropped_src[:,picks,:], 0, 1)
 
     # spectrum
-    Nyquist = inst.info['sfreq'] / 2.
-    lp = inst.info['lowpass']
+    Nyquist = inst_rejected.info['sfreq'] / 2.
+    lp = inst_rejected.info['lowpass']
     if 'fmax' not in psd_args:
         psd_args['fmax'] = min(lp * 1.25, Nyquist)
     plot_lowpass_edge = lp < Nyquist and (psd_args['fmax'] > lp)
@@ -412,8 +420,9 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
         # we reconstruct an epoch_variance with 0 where indexes where dropped
         epoch_var = np.var(ica_data[idx], axis=1)
+        drop_var = np.var(dropped_src[idx], axis=1)
         for index in dropped_indexes:
-            epoch_var = np.insert(epoch_var, index, 0)
+            epoch_var = np.insert(epoch_var, index, drop_var[index])
         # the actual plot
         fig = _plot_ica_properties(
             pick, ica, inst, psds_mean, freqs, ica_data.shape[1],
