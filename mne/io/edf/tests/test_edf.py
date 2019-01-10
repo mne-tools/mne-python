@@ -34,8 +34,8 @@ data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 montage_path = op.join(data_dir, 'biosemi.hpts')
 bdf_path = op.join(data_dir, 'test.bdf')
 edf_path = op.join(data_dir, 'test.edf')
-edf_with_duplicate_channel_names_path = op.join(data_dir,
-                                                'duplicate_channel_labels.edf')
+duplicate_channel_labels_path = op.join(data_dir,
+                                        'duplicate_channel_labels.edf')
 edf_uneven_path = op.join(data_dir, 'test_uneven_samp.edf')
 bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
@@ -63,7 +63,7 @@ def test_orig_units():
 
     # Test original units
     orig_units = raw._orig_units
-    assert len(orig_units) == len(raw.ch_names)  # previously 140
+    assert len(orig_units) == len(raw.ch_names)
     assert orig_units['A1'] == u'µV'  # formerly 'uV' edit by _check_orig_units
 
 
@@ -130,8 +130,7 @@ def test_duplicate_channel_labels_edf():
     """Test reading edf file with duplicate channel names."""
     EXPECTED_CHANNEL_NAMES = ['EEG F1-Ref-0', 'EEG F2-Ref', 'EEG F1-Ref-1']
     with pytest.warns(RuntimeWarning, match='Channel names are not unique'):
-        raw = read_raw_edf(edf_with_duplicate_channel_names_path,
-                           preload=False)
+        raw = read_raw_edf(duplicate_channel_labels_path, preload=False)
 
     assert raw.ch_names == EXPECTED_CHANNEL_NAMES
 

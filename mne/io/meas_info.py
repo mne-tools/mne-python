@@ -127,7 +127,6 @@ def _stamp_to_dt(stamp):
 
 def _unique_channel_names(ch_names):
     """Ensure unique channel names."""
-    # refactored and modified from Info._check_consistency()
     FIFF_CH_NAME_MAX_LENGTH = 15
     unique_ids = np.unique(ch_names, return_index=True)[1]
     if len(unique_ids) != len(ch_names):
