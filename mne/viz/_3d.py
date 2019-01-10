@@ -1067,7 +1067,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         assert bem['coord_frame'] == FIFF.FIFFV_COORD_HEAD
         center = bem['r0'].copy()
         center = apply_trans(head_trans, center)
-        T.add_spheres(center, scale_factor=0.01, color=colors['lh'],
+        T.add_spheres(center, scale=0.01, color=colors['lh'],
                       opacity=alphas['lh'])
     if show_axes:
         axes = [(head_trans, (0.9, 0.3, 0.3))]  # always show head
@@ -1078,10 +1078,10 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         for ax in axes:
             x, y, z = np.tile(ax[0]['trans'][:3, 3], 3).reshape((3, 3)).T
             u, v, w = ax[0]['trans'][:3, :3]
-            #mlab.points3d(x[0], y[0], z[0], color=ax[1], scale_factor=3e-3)
-            #mlab.quiver3d(x, y, z, u, v, w, mode='arrow', scale_factor=2e-2,
-            #              color=ax[1], scale_mode='scalar', resolution=20,
-            #              scalars=[0.33, 0.66, 1.0])
+            T.add_spheres([x[0], y[0], z[0]], color=ax[1], scale=3e-3)
+            T.add_arrows(x, y, z, u, v, w, color=ax[1], scale=2e-2,
+                         resolution=20, scale_mode='scalars',
+                         scalars=[0.33, 0.66, 1.0])
 
     # plot points
     defaults = DEFAULTS['coreg']
@@ -1114,34 +1114,30 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         if len(data) > 0:
             with warnings.catch_warnings(record=True):  # traits
                 T.add_spheres(data, color, scale, alpha, True)
-    #WIP
-    #if len(eegp_loc) > 0:
-        #with warnings.catch_warnings(record=True):  # traits
-            #quiv = mlab.quiver3d(
-            #    eegp_loc[:, 0], eegp_loc[:, 1], eegp_loc[:, 2],
-            #    eegp_nn[:, 0], eegp_nn[:, 1], eegp_nn[:, 2],
-            #    color=defaults['eegp_color'], mode='cylinder',
-            #    scale_factor=defaults['eegp_scale'], opacity=0.6, figure=fig)
-        #quiv.glyph.glyph_source.glyph_source.height = defaults['eegp_height']
-        #quiv.glyph.glyph_source.glyph_source.center = \
-        #    (0., -defaults['eegp_height'], 0)
-        #quiv.glyph.glyph_source.glyph_source.resolution = 20
-        #quiv.actor.property.backface_culling = True
+    if len(eegp_loc) > 0:
+        with warnings.catch_warnings(record=True):  # traits
+            T.add_3d_arrows(
+                eegp_loc[:, 0], eegp_loc[:, 1], eegp_loc[:, 2],
+                eegp_nn[:, 0], eegp_nn[:, 1], eegp_nn[:, 2],
+                resolution=20, center=(0., -defaults['eegp_height'], 0.),
+                color=defaults['eegp_color'], scale=defaults['eegp_scale'],
+                height=defaults['eegp_height'],
+                opacity=0.6, backface_culling=True)
     if len(meg_rrs) > 0:
         color, alpha = (0., 0.25, 0.5), 0.25
         surf = dict(rr=meg_rrs, tris=meg_tris)
         with warnings.catch_warnings(record=True):  # traits
             T.add_surface(surf, color, alpha, True)
-    #if len(src_rr) > 0:
-        #with warnings.catch_warnings(record=True):  # traits
-            #quiv = mlab.quiver3d(
-                #src_rr[:, 0], src_rr[:, 1], src_rr[:, 2],
-                #src_nn[:, 0], src_nn[:, 1], src_nn[:, 2], color=(1., 1., 0.),
-                #mode='cylinder', scale_factor=3e-3, opacity=0.75, figure=fig)
-        #quiv.glyph.glyph_source.glyph_source.height = 0.25
-        #quiv.glyph.glyph_source.glyph_source.center = (0., 0., 0.)
-        #quiv.glyph.glyph_source.glyph_source.resolution = 20
-        #quiv.actor.property.backface_culling = True
+    if len(src_rr) > 0:
+        with warnings.catch_warnings(record=True):  # traits
+            T.add_3d_arrows(
+                src_rr[:, 0], src_rr[:, 1], src_rr[:, 2],
+                src_nn[:, 0], src_nn[:, 1], src_nn[:, 2],
+                resolution=20, center=(0., 0., 0.),
+                color=(1., 1., 0.), scale=3e-3,
+                height=0.25, opacity=0.75,
+                backface_culling=True)
+    # WIP
     #with SilenceStdout():
         #mlab.view(90, 90, focalpoint=(0., 0., 0.), distance=0.6, figure=fig)
     T.show()

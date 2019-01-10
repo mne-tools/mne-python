@@ -65,7 +65,7 @@ def set_interactive():
         tvtk.InteractorStyleTerrain()
 
 
-def add_surface(surf, color, opacity, backface_culling):
+def add_surface(surf, color, opacity=1.0, backface_culling=False):
     # Make a solid surface
     mesh = _create_mesh_surf(surf, renderer.fig)
     surface = renderer.mlab.pipeline.surface(
@@ -74,13 +74,32 @@ def add_surface(surf, color, opacity, backface_culling):
         surface.actor.property.backface_culling = True
 
 
-def add_spheres(centers, color, scale, opacity, backface_culling):
+def add_spheres(centers, color, scale, opacity=1.0, backface_culling=False):
     surface = renderer.mlab.points3d(centers[:, 0], centers[:, 1],
                                      centers[:, 2], color=color,
                                      scale_factor=scale, opacity=opacity,
                                      figure=renderer.fig)
     if backface_culling:
         surface.actor.property.backface_culling = True
+
+
+def add_arrows(x, y, z, u, v, w, color, scale, resolution, opacity=1.0,
+               scale_mode='default', scalars=None):
+    renderer.mlab.quiver3d(x, y, z, u, v, w, mode='arrow', scale_factor=scale,
+                           color=color, scale_mode=scale_mode,
+                           resolution=resolution, scalars=scalars,
+                           opacity=opacity, figure=renderer.fig)
+
+
+def add_3d_arrows(x, y, z, u, v, w, color, scale, height, resolution,
+                  center=None, opacity=1.0, backface_culling=False):
+    quiv = renderer.mlab.quiver3d(x, y, z, u, v, w, mode='cylinder',
+                                  color=color, scale_factor=scale,
+                                  opacity=opacity, figure=renderer.fig)
+    quiv.glyph.glyph_source.glyph_source.height = height
+    quiv.glyph.glyph_source.glyph_source.center = center
+    quiv.glyph.glyph_source.glyph_source.resolution = resolution
+    quiv.actor.property.backface_culling = backface_culling
 
 
 def show():
