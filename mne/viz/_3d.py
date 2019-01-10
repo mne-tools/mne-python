@@ -1078,9 +1078,10 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         for ax in axes:
             x, y, z = np.tile(ax[0]['trans'][:3, 3], 3).reshape((3, 3)).T
             u, v, w = ax[0]['trans'][:3, :3]
-            T.add_spheres([x[0], y[0], z[0]], color=ax[1], scale=3e-3)
+            T.add_spheres(np.array([[x[0]], [y[0]], [z[0]]]).T,
+                          color=ax[1], scale=3e-3)
             T.add_arrows(x, y, z, u, v, w, color=ax[1], scale=2e-2,
-                         resolution=20, scale_mode='scalars',
+                         resolution=20, scale_mode='scalar',
                          scalars=[0.33, 0.66, 1.0])
 
     # plot points

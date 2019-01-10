@@ -66,12 +66,10 @@ def set_interactive():
 
 
 def add_surface(surf, color, opacity=1.0, backface_culling=False):
-    # Make a solid surface
     mesh = _create_mesh_surf(surf, renderer.fig)
     surface = renderer.mlab.pipeline.surface(
         mesh, color=color, opacity=opacity, figure=renderer.fig)
-    if backface_culling:
-        surface.actor.property.backface_culling = True
+    surface.actor.property.backface_culling = backface_culling
 
 
 def add_spheres(centers, color, scale, opacity=1.0, backface_culling=False):
@@ -79,12 +77,11 @@ def add_spheres(centers, color, scale, opacity=1.0, backface_culling=False):
                                      centers[:, 2], color=color,
                                      scale_factor=scale, opacity=opacity,
                                      figure=renderer.fig)
-    if backface_culling:
-        surface.actor.property.backface_culling = True
+    surface.actor.property.backface_culling = backface_culling
 
 
 def add_arrows(x, y, z, u, v, w, color, scale, resolution, opacity=1.0,
-               scale_mode='default', scalars=None):
+               scale_mode='none', scalars=None):
     renderer.mlab.quiver3d(x, y, z, u, v, w, mode='arrow', scale_factor=scale,
                            color=color, scale_mode=scale_mode,
                            resolution=resolution, scalars=scalars,
