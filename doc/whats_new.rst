@@ -3139,3 +3139,5 @@ of commits):
 .. _lneisenman:  https://github.com/lneisenman
 
 .. _Stanislas Chambon: https://github.com/Slasnista
+
+.. _David Haslacher: https://github.com/davidhaslacher
