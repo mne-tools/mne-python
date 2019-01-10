@@ -2847,3 +2847,30 @@ def _dipole_changed(event, params):
                  params['idx'], params['dipole'], params['gridx'],
                  params['gridy'], params['ori'], params['coord_frame'],
                  params['zooms'], params['show_all'], params['scatter_points'])
+
+def set_backend(backend_name):
+    """Set the backend for MNE.
+
+    The backend will be set as specified and operations will use
+    that backend
+
+    Parameters
+    ----------
+    backend_name : {'mlab'}, default is 'mlab'
+    """
+    global _BACKEND
+    _BACKEND = backend_name
+    importlib.reload(backend)
+
+
+def get_backend():
+    """Return the backend currently used.
+
+    Returns
+    -------
+    backend_used : str
+        the backend currently in use
+    """
+    global _BACKEND
+    backend_used = _BACKEND
+    return backend_used
