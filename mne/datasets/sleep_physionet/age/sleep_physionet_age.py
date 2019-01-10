@@ -3,15 +3,14 @@
 #
 # License: BSD Style.
 
-import os
 from os import path as op
 
 import numpy as np
 
+from .._utils import _fetch_one, BASE_URL
 from ...utils import _get_path
 from ....utils import _fetch_file, verbose, _TempDir
 
-BASE_URL = 'https://physionet.org/pn4/sleep-edfx/'
 SLEEP_RECORDS = 'physionet_sleep_records.npy'
 
 
@@ -113,20 +112,6 @@ def data_path(path=None, force_update=False, update_path=None, verbose=None):
     name = 'PHYSIONET_SLEEP'
     path = _get_path(path, key, name)
     return op.join(path, 'physionet-sleep-data')
-
-
-def _fetch_one(fname, hashsum, path, force_update):
-    # Fetch the file
-    url = BASE_URL + '/' + fname
-    destination = op.join(path, fname)
-    if not op.isfile(destination) or force_update:
-        if op.isfile(destination):
-            os.remove(destination)
-        if not op.isdir(op.dirname(destination)):
-            os.makedirs(op.dirname(destination))
-        _fetch_file(url, destination, print_destination=False,
-                    hash_=hashsum, hash_type='sha1')
-    return destination
 
 
 @verbose

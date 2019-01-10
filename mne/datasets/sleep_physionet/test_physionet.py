@@ -12,6 +12,10 @@ from .temazepam.sleep_physionet_temazepam import fetch_data \
     as fetch_temazepam_data
 
 
+def _TempDir():
+    return '/tmp/tmp_mne_tempdir_ypa0zbno'
+
+
 def _keep_basename_only(path_structure):
     return np.vectorize(op.basename)(np.array(path_structure))
 
