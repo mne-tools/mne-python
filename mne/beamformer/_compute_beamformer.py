@@ -123,10 +123,8 @@ def _check_proj_match(info, filters):
     """Check whether SSP projections in data and spatial filter match."""
     proj_data, _, _ = make_projector(info['projs'],
                                      filters['ch_names'])
-    if not np.allclose(proj_data, filters['proj'], atol=np.finfo(float).eps, rtol=1e-13):
-    #if np.linalg.norm(proj_data-filters['proj'],ord='fro') > np.finfo(float).eps*proj_data.shape[0]: # norm  grows with growing dims
-    #   if not np.array_equal(proj_data, filters['proj']):
-    if not np.array_equal(proj_data, filters['proj']):
+    if not np.allclose(proj_data, filters['proj'],
+                       atol=np.finfo(float).eps, rtol=1e-13):
             raise ValueError('The SSP projections present in the data '
                              'do not match the projections used when '
                              'calculating the spatial filter.')
