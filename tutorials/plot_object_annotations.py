@@ -1,5 +1,5 @@
 """
-The **:term:`<events>`** and :class:`~mne.Annotations` data structures
+The :term:`Events <events>` and :class:`~mne.Annotations` data structures
 =========================================================================
 
 :term:`Events <events>` and :term:`annotations` are quite similar.
@@ -190,19 +190,23 @@ print(annot)
 # See the following examples and usages:
 
 # difference between indexing and slicing a single element
-print(annot[0])
-print(annot[:1])
+print(annot[0])  # indexing
+print(annot[:1])  # slicing
 
 ###############################################################################
-#
+# How about iterations?
 
-for key, val in annot[0].items():
+for key, val in annot[0].items():  # iterate on one element which is dictionary
     print(key, val)
 
-for idx, my_annot in enumerate(annot):
+###############################################################################
+
+for idx, my_annot in enumerate(annot):  # iterate on the Annotations object
     print('annot #{0}: onset={1}'.format(idx, my_annot['onset']))
     print('annot #{0}: duration={1}'.format(idx, my_annot['duration']))
     print('annot #{0}: description={1}'.format(idx, my_annot['description']))
+
+###############################################################################
 
 for idx, my_annot in enumerate(annot[:1]):
     for key, val in my_annot.items():
