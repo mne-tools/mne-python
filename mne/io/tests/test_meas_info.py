@@ -113,6 +113,12 @@ def test_make_info():
     assert info['meas_date'] is None
 
 
+def test_bad_duplicate_name_correction():
+    """Test for ValueError if correction creates another duplicate name."""
+    with pytest.raises(ValueError, match='Adding a running number'):
+        create_info(['A', 'A', 'A-0'], 1000., verbose='error')
+
+
 def test_fiducials_io():
     """Test fiducials i/o."""
     tempdir = _TempDir()

@@ -33,15 +33,6 @@ def test_long_names():
     assert raw.ch_names == ['a' * 12 + '-%s' % ii for ii in range(11)]
 
 
-def test_bad_duplicate_name_correction():
-    """Test that a ValueError is raised if disambiguation of
-    duplicate channel names creates another duplicate name."""
-    with pytest.raises(ValueError, match='Adding a running number'):
-        info = create_info(['A', 'A', 'A-0'], 1000., verbose='error')
-        data = np.empty((3, 1000))
-        RawArray(data, info)
-
-
 @pytest.mark.slowtest
 @requires_version('scipy', '0.12')
 def test_array_raw():
