@@ -985,8 +985,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if return_times:
                 return data, times
             return data
-        samples = stop - start  # total number of samples
-        used = np.ones(samples, bool)
+        n_samples = stop - start  # total number of samples
+        used = np.ones(n_samples, bool)
         for onset, end in zip(onsets, ends):
             if onset >= end:
                 continue
@@ -994,16 +994,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         used = np.concatenate([[False], used, [False]])
         starts = np.where(~used[:-1] & used[1:])[0] + start
         stops = np.where(used[:-1] & ~used[1:])[0] + start
-        kept = (stops - starts).sum()  # kept samples
-        rejected = samples - kept  # rejected samples
-        if rejected > 0:
+        n_kept = (stops - starts).sum()  # kept samples
+        n_rejected = n_samples - n_kept  # rejected samples
+        if n_rejected > 0:
             if reject_by_annotation == 'omit':
-                logger.info("Omitting {} of {} ({:.2%}) "
-                            "samples, retaining {} ({:.2%}) "
-                            "samples.".format(rejected, samples,
-                                              rejected / samples, kept,
-                                              kept / samples))
-                data = np.zeros((len(picks), kept))
+                logger.info(f"Omitting {n_rejected} of {n_samples} "
+                            f"({n_rejected / n_samples:.2%}) samples, "
+                            f"retaining {n_kept} ({n_kept / n_samples:.2%}) "
+                            "samples.")
+                data = np.zeros((len(picks), n_kept))
                 times = np.zeros(data.shape[1])
                 idx = 0
                 for start, stop in zip(starts, stops):  # get the data
@@ -1013,11 +1012,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     data[:, idx:end], times[idx:end] = self[picks, start:stop]
                     idx = end
             else:
-                logger.info("Setting {} of {} ({:.2%}) "
-                            "samples to NaN, retaining {} "
-                            "({:.2%}) samples.".format(rejected, samples,
-                                                       rejected / samples,
-                                                       kept, kept / samples))
+                logger.info(f"Setting {n_rejected} of {n_samples} "
+                            f"({n_rejected / n_samples:.2%}) samples to NaN, "
+                            f"retaining {n_kept} ({n_kept / n_samples:.2%}) "
+                            "samples.")
                 data, times = self[picks, start:stop]
                 data[:, ~used[1:-1]] = np.nan
         else:
