@@ -136,10 +136,11 @@ def fetch_data(subjects, record=[1, 2], path=None, force_update=False,
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
 
     This will fetch data from the publicly available subjects from PhysioNet's
-    study of age effects on sleep in healthy subjects [1]_. This corresponds to
-    a subset of 20 subjects, 10 males and 10 females that were 25-34 years
-    old at the time of the recordings. There are two night recordings per
-    subject except for subject 13 since the second record was lost.
+    study of age effects on sleep in healthy subjects [1]_[2]_. This
+    corresponds to a subset of 20 subjects, 10 males and 10 females that were
+    25-34 years old at the time of the recordings. There are two night
+    recordings per subject except for subject 13 since the second record was
+    lost.
 
     See more details in `physionet website <https://physionet.org/pn4/sleep-edfx/#data-from-a-study-of-age-effects-on-sleep-in-healt>`_.
 
@@ -150,7 +151,7 @@ def fetch_data(subjects, record=[1, 2], path=None, force_update=False,
     records : list of int
         The night record. Valid values are : [1], [2], or [1, 2].
     path : None | str
-        Location of where to look for the EEGBCI data storing location.
+        Location of where to look for the PhysioNet data storing location.
         If None, the environment variable or config parameter
         ``MNE_DATASETS_PHYSIONET_SLEEP_PATH`` is used. If it doesn't exist, the
         "~/mne_data" directory is used. If the Polysomnography dataset
@@ -184,6 +185,11 @@ def fetch_data(subjects, record=[1, 2], path=None, force_update=False,
     .. [1] MS Mourtazaev, B Kemp, AH Zwinderman, HAC Kamphuisen. Age and gender
            affect different characteristics of slow waves in the sleep EEG.
            Sleep 18(7):557–564 (1995).
+    .. [2] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh,
+           Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000)
+           PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
+           Research Resource for Complex Physiologic Signals.
+           Circulation 101(23):e215-e220
     """
 
     records = np.loadtxt(op.join(op.dirname(__file__), 'records.csv'),
