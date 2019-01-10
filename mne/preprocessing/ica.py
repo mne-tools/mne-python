@@ -54,7 +54,7 @@ from ..fixes import _get_args
 from ..filter import filter_data
 from .bads import find_outliers
 from .ctps_ import ctps
-from ..io.pick import channel_type
+from ..io.pick import channel_type, pick_channels
 
 
 __all__ = ('ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
@@ -1152,6 +1152,101 @@ class ICA(ContainsMixin):
             ch_name = 'ECG-MAG'
         self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         return self.labels_['ecg'], scores
+
+    @verbose
+    def find_bads_ref(self, inst, picks=None, threshold=3.0, start=None,
+                      stop=None, l_freq=None, h_freq=None,
+                      reject_by_annotation=True, verbose=None):
+        """Detect MEG reference related components using correlation.
+
+        Detection is based on Pearson correlation between the MEG data components
+        and MEG reference components.
+        Thresholding is based on adaptive z-scoring. The above threshold
+        components will be masked and the z-score will be recomputed
+        until no supra-threshold component remains.
+
+        Parameters
+        ----------
+        inst : instance of Raw, Epochs or Evoked
+            instance of components from MEG reference channels, i.e.
+            from ICA.get_sources
+        picks: list of int
+            Which MEG reference components to use. If None, then all.
+        threshold : int | float
+            The value above which a feature is classified as outlier.
+        start : int | float | None
+            First sample to include. If float, data will be interpreted as
+            time in seconds. If None, data will be used from the first sample.
+        stop : int | float | None
+            Last sample to not include. If float, data will be interpreted as
+            time in seconds. If None, data will be used to the last sample.
+        l_freq : float
+            Low pass frequency.
+        h_freq : float
+            High pass frequency.
+        reject_by_annotation : bool
+            If True, data annotated as bad will be omitted. Defaults to True.
+
+            .. versionadded:: 0.14.0
+
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
+
+        Returns
+        -------
+        ref_idx : list of int
+            The indices of MEG reference related components, sorted by score.
+        scores : np.ndarray of float, shape (``n_components_``) | list of array
+            The correlation scores.
+
+        See Also
+        --------
+        find_bads_ecg, find_bads_eog
+        """
+        if verbose is None:
+            verbose = self.verbose
+
+        if not picks:
+            inds = pick_channels(inst.ch_names,[])
+        else:
+            inds = picks
+        scores, ref_idx = [], []
+        ref_chs = [inst.ch_names[k] for k in inds]
+
+        # some magic we need inevitably ...
+        # get targets before equalizing
+        targets = [self._check_target(k, inst, start, stop,
+                                      reject_by_annotation) for k in ref_chs]
+
+        for ii, (ref_ch, target) in enumerate(zip(ref_chs, targets)):
+            scores += [self.score_sources(
+                inst, target=target, score_func='pearsonr', start=start,
+                stop=stop, l_freq=l_freq, h_freq=h_freq, verbose=verbose,
+                reject_by_annotation=reject_by_annotation)]
+            # pick last scores
+            this_idx = find_outliers(scores[-1], threshold=threshold)
+            ref_idx += [this_idx]
+            self.labels_[('ref/%i/' % ii) + ref_ch] = list(this_idx)
+
+        # remove duplicates but keep order by score, even across multiple
+        # EOG channels
+        scores_ = np.concatenate([scores[ii][inds]
+                                  for ii, inds in enumerate(ref_idx)])
+        ref_idx_ = np.concatenate(ref_idx)[np.abs(scores_).argsort()[::-1]]
+
+        ref_idx_unique = list(np.unique(ref_idx_))
+        ref_idx = []
+        for i in ref_idx_:
+            if i in ref_idx_unique:
+                ref_idx.append(i)
+                ref_idx_unique.remove(i)
+        if len(scores) == 1:
+            scores = scores[0]
+        self.labels_['ref'] = list(ref_idx)
+
+        return self.labels_['ref'], scores
 
     @verbose
     def find_bads_eog(self, inst, ch_name=None, threshold=3.0, start=None,

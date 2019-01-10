@@ -978,6 +978,9 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
         raise ValueError('axis has to be an instance of matplotlib Axes, '
                          'got %s instead.' % type(axes))
     ch_type = _get_ch_type(ica, ch_type)
+    if ch_type == "ref_meg":
+        print("Cannot produce topographies for MEG reference channels.")
+        return
 
     data = ica.get_components()[:, idx]
     data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
