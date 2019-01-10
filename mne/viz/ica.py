@@ -164,6 +164,9 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     # rejected epochs in red
     var_ax.scatter(dropped_indexes, epoch_var[dropped_indexes],
                    alpha=1., facecolor=[1, 0, 0], lw=0)
+    # compute percentage of dropped epochs
+    var_percent = float(len(dropped_indexes)) / float(len(epoch_var)) * 100.
+
     var_ax.set_yticks([])
 
     # histogram & histogram
@@ -211,7 +214,9 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     image_ax.axhline(0, color='k', linewidth=.5)
 
     # epoch variance
-    set_title_and_labels(var_ax, kind + ' variance', kind + ' (index)',
+    var_ax_title = kind + ' variance / %.1f %% dropped' % var_percent
+    set_title_and_labels(var_ax, var_ax_title,
+                         kind + ' (index)',
                          'Arbitrary Units (AU)')
 
     hist_ax.set_ylabel("")
@@ -355,7 +360,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         # break up continuous signal into segments
         from ..epochs import _segment_raw
         inst = _segment_raw(inst, segment_length=2., verbose=False,
-                                  preload=True)
+                            preload=True)
         kind = "Segment"
     else:
         drop_inds = None
@@ -367,13 +372,11 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     ica_data = np.swapaxes(data[:, picks, :], 0, 1)
 
     # getting dropped epochs indexes
-    # TODO : not sure about this one
+
     dropped_indexes = []
     if drop_inds is not None:
         for dropped in drop_inds:
             dropped_indexes.append((dropped[0] // len(inst.times)))
-    
-    print(dropped_indexes)
 
     # spectrum
     Nyquist = inst.info['sfreq'] / 2.
@@ -407,10 +410,14 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         if idx > 0:
             fig, axes = _create_properties_layout(figsize=figsize)
 
+        # we reconstruct an epoch_variance with 0 where indexes where dropped
+        epoch_var = np.var(ica_data[idx], axis=1)
+        for index in dropped_indexes:
+            epoch_var = np.insert(epoch_var, index, 0)
         # the actual plot
         fig = _plot_ica_properties(
             pick, ica, inst, psds_mean, freqs, ica_data.shape[1],
-            np.var(ica_data[idx], axis=1), plot_lowpass_edge,
+            epoch_var, plot_lowpass_edge,
             epochs_src, set_title_and_labels, plot_std, psd_ylabel,
             spectrum_std, topomap_args, image_args, fig, axes, kind,
             dropped_indexes)
