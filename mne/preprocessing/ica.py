@@ -1217,8 +1217,7 @@ class ICA(ContainsMixin):
 
         # some magic we need inevitably ...
         # get targets before equalizing
-        targets = [self._check_target(k, inst, start, stop,
-                                      reject_by_annotation) for k in ref_chs]
+        targets = [self._check_target(k, inst, start, stop,reject_by_annotation) for k in ref_chs]
 
         for ii, (ref_ch, target) in enumerate(zip(ref_chs, targets)):
             scores += [self.score_sources(
