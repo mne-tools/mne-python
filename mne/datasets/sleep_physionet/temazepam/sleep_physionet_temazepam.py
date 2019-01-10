@@ -7,12 +7,12 @@ from os import path as op
 
 import numpy as np
 
-from .._utils import _fetch_one, BASE_URL
-from ...utils import _get_path
+from .._utils import _fetch_one, _data_path, BASE_URL
 from ....utils import _fetch_file, verbose, _TempDir
 
-BASE_URL = 'https://physionet.org/pn4/sleep-edfx/'
 SLEEP_RECORDS = 'physionet_sleep_records.npy'
+
+data_path = _data_path  # expose _data_path(..) as data_path(..)
 
 
 def _update_sleep_records():
@@ -72,54 +72,6 @@ def _update_sleep_records():
     # Save the data.
     data.to_csv(op.join(op.dirname(__file__), SLEEP_RECORDS),
                 index=False)
-
-
-@verbose
-def data_path(path=None, force_update=False, update_path=None, verbose=None):
-    """Get path to local copy of EEG Physionet Polysomnography dataset URL.
-
-    This is a low-level function useful for getting a local copy of a
-    remote Polysomnography dataset [1]_ which is available at PhysioNet [2]_.
-
-    Parameters
-    ----------
-    path : None | str
-        Location of where to look for the data storing location.
-        If None, the environment variable or config parameter
-        ``MNE_DATASETS_PHYSIONET_SLEEP_PATH`` is used. If it doesn't exist, the
-        "~/mne_data" directory is used. If the dataset
-        is not found under the given path, the data
-        will be automatically downloaded to the specified folder.
-    force_update : bool
-        Force update of the dataset even if a local copy exists.
-    update_path : bool | None
-        If True, set the MNE_DATASETS_PHYSIONET_SLEEP_PATH in mne-python
-        config to the given path. If None, the user is prompted.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`).
-
-    Returns
-    -------
-    path : list of str
-        Local path to the given data file. This path is contained inside a list
-        of length one, for compatibility.
-
-    References
-    ----------
-    .. [1] B Kemp, AH Zwinderman, B Tuk, HAC Kamphuisen, JJL Oberyé. Analysis of
-           a sleep-dependent neuronal feedback loop: the slow-wave microcontinuity
-           of the EEG. IEEE-BME 47(9):1185-1194 (2000).
-    .. [2] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh,
-           Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000)
-           PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
-           Research Resource for Complex Physiologic Signals.
-           Circulation 101(23):e215-e220
-    """  # noqa: E501
-    key = 'PHYSIONET_SLEEP_PATH'
-    name = 'PHYSIONET_SLEEP'
-    path = _get_path(path, key, name)
-    return op.join(path, 'physionet-sleep-data')
-
 
 @verbose
 def fetch_data(subjects, path=None, force_update=False, update_path=None,

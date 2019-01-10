@@ -21,6 +21,7 @@ def _keep_basename_only(path_structure):
 
 
 @requires_good_network
+@pytest.mark.skip(reason='this downloads')
 def test_run_update_age_records():
     """Test Sleep Physionet URL handling."""
     age_records()
@@ -47,6 +48,7 @@ def test_sleep_physionet_age():
 
 
 @requires_good_network
+@pytest.mark.skip(reason='this downloads')
 def test_run_update_temazepam_records():
     """Test Sleep Physionet URL handling."""
     temazepam_records()
