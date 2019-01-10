@@ -42,32 +42,36 @@ def _update_sleep_records():
     sha1_df['id'] = [name[:6] for name in sha1_df.fname]
 
     # Load and massage the data.
-    data = pd.read_excel(subjects_fname)
+    data = pd.read_excel(subjects_fname, header=[0, 1])
     data.index.name = 'subject'
     data.columns.names = [None, None]
     data = (data.set_index([('Subject - age - sex', 'Age'),
                             ('Subject - age - sex', 'M1/F2')], append=True)
                 .stack(level=0).reset_index())
 
-    data = data.rename(columns={('Subject - age - sex', 'Age'): 'Age',
+    data = data.rename(columns={('Subject - age - sex', 'Age'): 'age',
                                 ('Subject - age - sex', 'M1/F2'): 'sex',
                                 'level_3': 'record'})
     data['id'] = ['ST7{0:02d}{1:1d}'.format(s, n)
                   for s, n in zip(data.subject, data['night nr'])]
 
-    xx = data.set_index(['id', 'subject', 'Age', 'sex', 'record',
-                         'lights off', 'night nr', 'record type']).unstack()
-    xx = xx.drop(columns=[('sha', np.nan), ('fname', np.nan)])
-    xx.columns = [l1 + '_' + l2 for l1, l2 in xx.columns]
-    xx.reset_index()
+    data = pd.merge(sha1_df, data, how='outer', on='id')
+    data['record type'] = (data.fname.str.split('-', expand=True)[1]
+                                     .str.split('.', expand=True)[0]
+                                     .astype('category'))
 
-    # import pdb; pdb.set_trace()
+    data = data.set_index(['id', 'subject', 'age', 'sex', 'record',
+                           'lights off', 'night nr', 'record type']).unstack()
+    data = data.drop(columns=[('sha', np.nan), ('fname', np.nan)])
+    data.columns = [l1 + '_' + l2 for l1, l2 in data.columns]
+    data = data.reset_index().drop(columns=['id'])
 
-    print('done')
+    data['sex'] = (data.sex.astype('category')
+                       .cat.rename_categories({1: 'male', 2: 'female'}))
 
     # Save the data.
-    # data.to_csv(op.join(op.dirname(__file__), SLEEP_RECORDS),
-    #             index=False)
+    data.to_csv(op.join(op.dirname(__file__), SLEEP_RECORDS),
+                index=False)
 
 
 @verbose
@@ -136,15 +140,21 @@ def fetch_data(subjects, path=None, force_update=False, update_path=None,
                base_url=BASE_URL, verbose=None):  # noqa: D301
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
 
-    This will fetch data for the EEGBCI dataset [1]_, which is also
-    available at PhysioNet [2]_.
+    This will fetch data from the publicly available subjects from PhysioNet's
+    study of Temazepam effects on sleep [1]_. This corresponds to
+    a set of 22 subjects (1 to 24; subjects 3 and 23 dropped out of the
+    study). Subjects had mild difficulty falling asleep but were otherwise
+    healthy.
+
+    See more details in `physionet website <https://physionet.org/pn4/sleep-edfx/#data-from-a-study-of-temazepam-effects-on-sleep>`_.
 
     Parameters
     ----------
     subject : list of int
-        The subjects to use. Can be in the range of 0-60 (inclusive).
+        The subjects to use. Can be in the range of 1-24 inclusive (except 3
+        and 23, which are not available)
     path : None | str
-        Location of where to look for the EEGBCI data storing location.
+        Location of where to look for the PhysioNet data storing location.
         If None, the environment variable or config parameter
         ``MNE_DATASETS_PHYSIONET_SLEEP_PATH`` is used. If it doesn't exist, the
         "~/mne_data" directory is used. If the Polysomnography dataset
@@ -169,7 +179,7 @@ def fetch_data(subjects, path=None, force_update=False, update_path=None,
     For example, one could do:
 
         >>> from mne.datasets import sleep_physionet
-        >>> sleep_physionet.temazepam.fetch_data(subjects=[0]) # doctest: +SKIP
+        >>> sleep_physionet.temazepam.fetch_data(subjects=[1]) # doctest: +SKIP
 
     This would download data for subject 0 if it isn't there already.
 
@@ -184,19 +194,36 @@ def fetch_data(subjects, path=None, force_update=False, update_path=None,
            Research Resource for Complex Physiologic Signals.
            Circulation 101(23):e215-e220
     """
-    records = np.load(op.join(op.dirname(__file__), SLEEP_RECORDS))
+    records = np.loadtxt(op.join(op.dirname(__file__), 'records.csv'),
+                         skiprows=1,
+                         delimiter=',',
+                         usecols=(0, 3, 6, 7, 8, 9),
+                         dtype={'names': ('subject', 'record', 'hyp sha',
+                                          'psg sha', 'hyp fname', 'psg fname'),
+                                'formats': ('<i2', '<S15', 'S40', 'S40',
+                                            '<S22', '<S16')}
+                         )
+
+    unknown_subjects = np.setdiff1d(subjects, np.unique(records['subject']))
+    if unknown_subjects.size > 0:
+        subjects_list = ', '.join([str(s) for s in unknown_subjects])
+        raise RuntimeError('Only subjects 1 to 24 (except 3 and 23) are'
+                           ' available from public PhysioNet temazepam.'
+                           ' Unknown subjects: {}'.format(subjects_list))
+
     path = data_path(path=path, update_path=update_path)
     params = [path, force_update]
 
     fnames = []
-    for subject in subjects:
-        assert 0 <= subject <= 60
-        idx_psg, idx_hyp = np.where(records['index'] == subject)[0]
-        psg_fname, sha_psg = records['fname'][idx_psg], records['sha'][idx_psg]
-        hyp_fname, sha_hyp = records['fname'][idx_hyp], records['sha'][idx_hyp]
-
-        psg_fname = _fetch_one(psg_fname, sha_psg, *params)
-        hyp_fname = _fetch_one(hyp_fname, sha_hyp, *params)
-        fnames.append([psg_fname, hyp_fname])
+    for subject in subjects:  # all the subjects are present at this point
+        for idx in np.where(records['subject'] == subject)[0]:
+            if records['record'][idx] == b'Placebo night':
+                psg_fname = _fetch_one(records['psg fname'][idx].decode(),
+                                       records['psg sha'][idx].decode(),
+                                       *params)
+                hyp_fname = _fetch_one(records['hyp fname'][idx].decode(),
+                                       records['hyp sha'][idx].decode(),
+                                       *params)
+                fnames.append([psg_fname, hyp_fname])
 
     return fnames

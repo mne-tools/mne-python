@@ -47,4 +47,17 @@ def test_run_update_temazepam_records():
     """Test Sleep Physionet URL handling."""
     temazepam_records()
 
+
+@requires_good_network
+def test_sleep_physionet_temazepam():
+    """Test Sleep Physionet URL handling."""
+    params = {'path': _TempDir(), 'update_path': False}
+
+    paths = fetch_temazepam_data(subjects=[1], **params)
+    assert_array_equal(_keep_basename_only(paths),
+                       [['ST7011J0-PSG.edf', 'ST7011JP-Hypnogram.edf']])
+
+    with pytest.raises(RuntimeError, match='Unknown subjects: 0, 3'):
+        paths = fetch_temazepam_data(subjects=list(range(4)), **params)
+
 run_tests_if_main()
