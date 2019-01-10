@@ -38,6 +38,7 @@ from mne.time_frequency import psd_array_welch
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
+from sklearn.metrics import classification_report
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import FunctionTransformer
 
@@ -66,11 +67,9 @@ from sklearn.preprocessing import FunctionTransformer
 # Read the PSG data and Hypnograms to create a raw object
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# XXX: fetch_data should accept subject/record
-
 ALICE, BOB = 0, 1
 
-[alice_files, bob_files] = fetch_data(subjects=[ALICE, BOB], record=[0])
+[alice_files, bob_files] = fetch_data(subjects=[ALICE, BOB], record=[1])
 
 mapping = {'EOG horizontal': 'eog',
            'Resp oro-nasal': 'misc',
@@ -278,9 +277,14 @@ print("Accuracy score: {}".format(acc))
 # Further analysis of the data
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# We can check the confusion matrix
+# We can check the confusion matrix or the classification report.
 
 print(confusion_matrix(y_test, y_pred))
+
+##############################################################################
+#
+
+print(classification_report(y_test, y_pred, target_names=event_id.keys()))
 
 ##############################################################################
 # Exercise
