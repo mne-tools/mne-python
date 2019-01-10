@@ -823,6 +823,7 @@ def test_annotations_simple_iteration():
             pass
 
 
+@requires_version('numpy', '1.12')
 def test_annotations_slices():
     """Test indexing Annotations."""
     NUM_ANNOT = 5
