@@ -20,7 +20,10 @@ seconds of data.
    :local:
    :depth: 2
 
-"""
+.. _Pipeline: https://scikit-learn.org/stable/modules/generated/sklearn.pipeline.Pipeline.html
+.. _FunctionTransformer: https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.FunctionTransformer.html
+.. _physionet_labels: https://physionet.org/pn4/sleep-edfx/#sleep-recordings-and-hypnograms-in-european-data-f
+"""  # noqa: E501
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Stanislas Chambon <stan.chambon@gmail.com>
@@ -95,8 +98,6 @@ raw_train.plot(duration=60, scalings='auto')
 # light sleep to deep sleep, REM sleep (R) where REM is the abbreviation for
 # Rapid Eye Movement sleep, movement (M), and Stage (?) for any none scored
 # segment.
-#
-# .. _physionet_labels: https://physionet.org/pn4/sleep-edfx/#sleep-recordings-and-hypnograms-in-european-data-f
 #
 # We will work only with 5 stages: Wake (W), Stage 1, Stage 2, Stage 3/4, and
 # REM sleep (R). To do so, we use the ``event_id`` parameter in
@@ -246,9 +247,6 @@ def eeg_power_band(epochs):
 # function in an estimator compatible object. In this manner we can create
 # scikit-learn estimator that takes :class:`mne.Epochs` thanks to
 # `eeg_power_band` function we just created.
-#
-# .. _Pipeline: https://scikit-learn.org/stable/modules/generated/sklearn.pipeline.Pipeline.html
-# .. _FunctionTransformer: https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.FunctionTransformer.html
 
 pipe = make_pipeline(FunctionTransformer(eeg_power_band, validate=False),
                      RandomForestClassifier(n_estimators=100, random_state=42))

@@ -3,8 +3,6 @@
 #
 # License: BSD Style.
 
-from os import path as op
-
 import numpy as np
 
 from .._utils import _fetch_one, _data_path, BASE_URL, TEMAZEPAM_SLEEP_RECORDS
@@ -26,7 +24,8 @@ def fetch_data(subjects, path=None, force_update=False, update_path=None,
     study). Subjects had mild difficulty falling asleep but were otherwise
     healthy.
 
-    See more details in `physionet website <https://physionet.org/pn4/sleep-edfx/#data-from-a-study-of-temazepam-effects-on-sleep>`_.
+    See more details in
+    `physionet website <https://physionet.org/pn4/sleep-edfx/>`_.
 
     Parameters
     ----------

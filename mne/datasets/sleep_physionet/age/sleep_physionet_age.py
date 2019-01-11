@@ -3,8 +3,6 @@
 #
 # License: BSD Style.
 
-from os import path as op
-
 import numpy as np
 
 from .._utils import _fetch_one, _data_path, BASE_URL, AGE_SLEEP_RECORDS
@@ -26,7 +24,8 @@ def fetch_data(subjects, record=[1, 2], path=None, force_update=False,
     recordings per subject except for subject 13 since the second record was
     lost.
 
-    See more details in `physionet website <https://physionet.org/pn4/sleep-edfx/#data-from-a-study-of-age-effects-on-sleep-in-healt>`_.
+    See more details in
+    `physionet website <https://physionet.org/pn4/sleep-edfx/>`_.
 
     Parameters
     ----------
@@ -80,7 +79,6 @@ def fetch_data(subjects, record=[1, 2], path=None, force_update=False,
                          skiprows=1,
                          delimiter=',',
                          usecols=(0, 1, 2, 6, 7),
-                         encoding='latin1',
                          dtype={'names': ('subject', 'record', 'type', 'sha',
                                           'fname'),
                                 'formats': ('<i2', 'i1', '<S9', 'S40', '<S22')}
