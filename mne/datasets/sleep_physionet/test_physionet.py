@@ -11,16 +11,12 @@ from ._utils import _update_sleep_temazepam_records
 from ._utils import _update_sleep_age_records
 
 
-def _TempDir():
-    return '/tmp/tmp_mne_tempdir_ypa0zbno'
-
-
 def _keep_basename_only(path_structure):
     return np.vectorize(op.basename)(np.array(path_structure))
 
 
 @requires_good_network
-# @pytest.mark.skip(reason='this downloads')
+@pytest.mark.skip(reason='this downloads physionet metadata')
 def test_run_update_age_records():
     """Test Sleep Physionet URL handling."""
     _update_sleep_age_records()
@@ -47,7 +43,7 @@ def test_sleep_physionet_age():
 
 
 @requires_good_network
-# @pytest.mark.skip(reason='this downloads')
+@pytest.mark.skip(reason='this downloads physionet metadata')
 def test_run_update_temazepam_records():
     """Test Sleep Physionet URL handling."""
     _update_sleep_temazepam_records()

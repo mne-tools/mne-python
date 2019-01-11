@@ -79,7 +79,6 @@ def _data_path(path=None, force_update=False, update_path=None, verbose=None):
 
 def _update_sleep_temazepam_records():
     pd = _check_pandas_installed()
-
     tmp = _TempDir()
 
     # Download files checksum.
@@ -136,8 +135,6 @@ def _update_sleep_temazepam_records():
 
 def _update_sleep_age_records():
     pd = _check_pandas_installed()
-
-    SLEEP_RECORDS = 'records.csv'
     tmp = _TempDir()
 
     # Download files checksum.
@@ -182,5 +179,4 @@ def _update_sleep_age_records():
                  'sha', 'fname']]
 
     # Save the data.
-    data.to_csv(op.join(op.dirname(__file__), SLEEP_RECORDS),
-                index=False)
+    data.to_csv(AGE_SLEEP_RECORDS, index=False)

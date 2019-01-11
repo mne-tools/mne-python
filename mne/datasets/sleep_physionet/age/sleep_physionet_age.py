@@ -8,9 +8,7 @@ from os import path as op
 import numpy as np
 
 from .._utils import _fetch_one, _data_path, BASE_URL, AGE_SLEEP_RECORDS
-from ....utils import _fetch_file, verbose, _TempDir
-
-SLEEP_RECORDS = 'physionet_sleep_records.npy'
+from ....utils import verbose
 
 data_path = _data_path  # expose _data_path(..) as data_path(..)
 
@@ -78,7 +76,7 @@ def fetch_data(subjects, record=[1, 2], path=None, force_update=False,
            Circulation 101(23):e215-e220
     """
 
-    records = np.loadtxt(op.join(op.dirname(__file__), 'records.csv'),
+    records = np.loadtxt(AGE_SLEEP_RECORDS,
                          skiprows=1,
                          delimiter=',',
                          usecols=(0, 1, 2, 6, 7),

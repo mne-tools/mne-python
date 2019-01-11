@@ -8,7 +8,7 @@ from os import path as op
 import numpy as np
 
 from .._utils import _fetch_one, _data_path, BASE_URL, TEMAZEPAM_SLEEP_RECORDS
-from ....utils import _fetch_file, verbose, _TempDir
+from ....utils import verbose
 
 SLEEP_RECORDS = 'physionet_sleep_records.npy'
 
@@ -74,7 +74,7 @@ def fetch_data(subjects, path=None, force_update=False, update_path=None,
            Research Resource for Complex Physiologic Signals.
            Circulation 101(23):e215-e220
     """
-    records = np.loadtxt(op.join(op.dirname(__file__), 'records.csv'),
+    records = np.loadtxt(TEMAZEPAM_SLEEP_RECORDS,
                          skiprows=1,
                          delimiter=',',
                          usecols=(0, 3, 6, 7, 8, 9),
