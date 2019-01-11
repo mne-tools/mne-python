@@ -4,6 +4,7 @@
 
 from datetime import datetime
 from itertools import repeat
+from collections import OrderedDict
 
 import os.path as op
 
@@ -792,6 +793,73 @@ def test_read_annotation_txt_orig_time(
     assert_array_equal(annot.onset, [3.14, 6.28])
     assert_array_equal(annot.duration, [42., 48])
     assert_array_equal(annot.description, ['AA', 'BB'])
+
+
+def test_annotations_simple_iteration():
+    """Test indexing Annotations."""
+    NUM_ANNOT = 5
+    EXPECTED_ELEMENTS_TYPE = (np.float64, np.float64, np.str_)
+    EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
+    EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
+
+    annot = Annotations(onset=EXPECTED_ONSETS,
+                        duration=EXPECTED_DURATIONS,
+                        description=EXPECTED_DESCS,
+                        orig_time=None)
+
+    for ii, elements in enumerate(annot[:2]):
+        assert isinstance(elements, OrderedDict)
+        expected_values = (ii, ii, str(ii))
+        for elem, expected_type, expected_value in zip(elements.values(),
+                                                       EXPECTED_ELEMENTS_TYPE,
+                                                       expected_values):
+            assert np.isscalar(elem)
+            assert type(elem) == expected_type
+            assert elem == expected_value
+
+
+@requires_version('numpy', '1.12')
+def test_annotations_slices():
+    """Test indexing Annotations."""
+    NUM_ANNOT = 5
+    EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
+    EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
+
+    annot = Annotations(onset=EXPECTED_ONSETS,
+                        duration=EXPECTED_DURATIONS,
+                        description=EXPECTED_DESCS,
+                        orig_time=None)
+
+    # Indexing returns a copy. So this has no effect in annot
+    annot[0]['onset'] = 42
+    annot[0]['duration'] = 3.14
+    annot[0]['description'] = 'foobar'
+
+    annot[:1].onset[0] = 42
+    annot[:1].duration[0] = 3.14
+    annot[:1].description[0] = 'foobar'
+
+    # Slicing with single element returns a dictionary
+    for ii in EXPECTED_ONSETS:
+        assert annot[ii] == dict(zip(['onset', 'duration',
+                                      'description', 'orig_time'],
+                                     [ii, ii, str(ii), None]))
+
+    # Slices should give back Annotations
+    for current in (annot[slice(0, None, 2)],
+                    annot[[bool(ii % 2) for ii in range(len(annot))]],
+                    annot[:1],
+                    annot[[0, 2, 2]],
+                    annot[(0, 2, 2)],
+                    annot[np.array([0, 2, 2])],
+                    annot[1::2],
+                    ):
+        assert isinstance(current, Annotations)
+        assert len(current) != len(annot)
+
+    for bad_ii in [len(EXPECTED_ONSETS), 42, 'foo']:
+        with pytest.raises(IndexError):
+            annot[bad_ii]
 
 
 run_tests_if_main()

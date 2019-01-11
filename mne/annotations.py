@@ -8,7 +8,7 @@ import os.path as op
 import re
 from copy import deepcopy
 from itertools import takewhile
-
+from collections import OrderedDict
 
 import numpy as np
 
@@ -213,6 +213,25 @@ class Annotations(object):
                              "(got %s != %s)" % (self.orig_time,
                                                  other.orig_time))
         return self.append(other.onset, other.duration, other.description)
+
+    def __iter__(self):
+        """Iterate over the annotations."""
+        for idx in range(len(self.onset)):
+            yield self.__getitem__(idx)
+
+    def __getitem__(self, key):
+        """Propagate indexing and slicing to the underlying numpy structure."""
+        if isinstance(key, int):
+            out_keys = ('onset', 'duration', 'description', 'orig_time')
+            out_vals = (self.onset[key], self.duration[key],
+                        self.description[key], self.orig_time)
+            return OrderedDict(zip(out_keys, out_vals))
+        else:
+            key = list(key) if isinstance(key, tuple) else key
+            return Annotations(onset=self.onset[key],
+                               duration=self.duration[key],
+                               description=self.description[key],
+                               orig_time=self.orig_time)
 
     def append(self, onset, duration, description):
         """Add an annotated segment. Operates inplace.
@@ -795,12 +814,9 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
         inds = inds[event_sel]
     else:
         inds = values = np.array([]).astype(int)
-        iterator = list(zip(annotations.onset[event_sel],
-                            annotations.duration[event_sel],
-                            annotations.description[event_sel]))
-
-        for onset, duration, description in iterator:
-            _onsets = np.arange(start=onset, stop=(onset + duration),
+        for annot in annotations[event_sel]:
+            _onsets = np.arange(start=annot['onset'],
+                                stop=(annot['onset'] + annot['duration']),
                                 step=chunk_duration)
             _inds = raw.time_as_index(_onsets,
                                       use_rounding=use_rounding,
@@ -808,7 +824,7 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
             _inds += raw.first_samp
             inds = np.append(inds, _inds)
             _values = np.full(shape=len(_inds),
-                              fill_value=event_id_[description],
+                              fill_value=event_id_[annot['description']],
                               dtype=int)
             values = np.append(values, _values)
 

@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add support for indexing, slicing, and iterating :class:`mne.Annotations` by `Joan Massich`_
+
 - :meth:`mne.io.Raw.plot` now uses the lesser of ``n_channels`` and ``raw.ch_names``, by `Joan Massich`_
 
 - Add ``chunk_duration`` parameter to :func:`mne.events_from_annotations` to allow multiple events from a single annotation by `Joan Massich`_
