@@ -50,6 +50,8 @@ Bug
 
 - Fix path bugs in :func:`mne.bem.make_flash_bem` and :ref:`gen_mne_flash_bem` by `Eric Larson`_
 
+- Fixed a bug where :meth:`mne.time_frequency.AverageTFR.plot_joint` would mishandle bad channels, by `David Haslacher`_ and `Jona Sassenhagen`_
+
 API
 ~~~
 
@@ -3120,5 +3122,7 @@ of commits):
 .. _Sara Sommariva: http://www.dima.unige.it/~sommariva/
 
 .. _Cristóbal Moënne-Loccoz: https://github.com/cmmoenne
+
+.. _David Haslacher: https://github.com/davidhaslacher
 
 .. _lneisenman:  https://github.com/lneisenman
