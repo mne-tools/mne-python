@@ -9,7 +9,7 @@
 #
 # License: Simplified BSD
 
-from collections import Iterable
+from collections.abc import Iterable
 import os
 import os.path as op
 
