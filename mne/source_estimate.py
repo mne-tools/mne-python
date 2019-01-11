@@ -2519,33 +2519,13 @@ def _pca_flip(flip, data):
     return sign * scale * V[0]
 
 
-def _pca_flip_mean(flip, data):
-    v = _pca_flip(flip, data)
-    # XXX corrcoef probably incorrect choice because of mean subtraction
-    flip = np.sign(np.corrcoef(v, data))[1:, 0]
-    return np.mean(flip[:, np.newaxis] * data, axis=0)
-
-
-def _pca_flip_truncated(flip, data, n_comps=0.9):
-    # XXX the "scale" here is probably wrong
-    U, s, V = linalg.svd(data, full_matrices=False)
-    if isinstance(n_comps, float):
-        s *= s
-        s = s.cumsum()
-        n_comps = np.sum(s / s[-1] <= n_comps) + 1
-    n_comps = int(operator.index(n_comps))
-    return np.mean(
-        flip * np.dot(U[:, :n_comps] * s[:n_comps], V[:n_comps]), axis=0)
-
-
 _label_funcs = {
     'mean': lambda flip, data: np.mean(data, axis=0),
     'mean_flip': lambda flip, data: np.mean(flip * data, axis=0),
     'max': lambda flip, data: np.max(np.abs(data, axis=0)),
     'pca_flip': _pca_flip,
-    'pca_flip_mean': _pca_flip_mean,
-    'pca_flip_truncated': _pca_flip_truncated,
 }
+
 
 @verbose
 def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
