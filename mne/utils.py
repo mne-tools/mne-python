@@ -5,7 +5,8 @@
 # License: BSD (3-clause)
 
 import atexit
-from collections import Iterable, OrderedDict
+from collections.abc import Iterable
+from collections import OrderedDict
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 from functools import wraps
