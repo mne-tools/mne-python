@@ -56,18 +56,6 @@ def test_megsim():
 
 
 @requires_good_network
-def test_sleep_physionet_age():
-    """Test Sleep Physionet URL handling."""
-    data_dir = _TempDir()
-    paths = datasets.sleep_physionet.age.fetch_data(
-        subjects=[0], path=data_dir, update_path=False)
-    assert len(paths) == 1
-    assert len(paths[0]) == 2
-    assert paths[0][0].endswith('.edf')
-    assert paths[0][1].endswith('.edf')
-
-
-@requires_good_network
 def test_downloads():
     """Test dataset URL handling."""
     # Try actually downloading a dataset

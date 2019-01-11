@@ -78,6 +78,7 @@ def _data_path(path=None, force_update=False, update_path=None, verbose=None):
 
 
 def _update_sleep_temazepam_records():
+    """Helper function to download Physionet's temazepam dataset records."""
     pd = _check_pandas_installed()
     tmp = _TempDir()
 
@@ -134,6 +135,7 @@ def _update_sleep_temazepam_records():
 
 
 def _update_sleep_age_records():
+    """Helper function to download Physionet's age dataset records."""
     pd = _check_pandas_installed()
     tmp = _TempDir()
 
