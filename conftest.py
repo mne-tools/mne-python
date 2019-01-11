@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import pytest
+import warnings
 
 
 @pytest.fixture(scope='package')
@@ -18,3 +19,10 @@ def matplotlib_config():
     # functionality)
     plt.ioff()
     plt.rcParams['figure.dpi'] = 100
+    try:
+        with warnings.catch_warnings(record=True):  # traits
+            from mayavi import mlab
+    except Exception:
+        pass
+    else:
+        mlab.options.backend = 'test'
