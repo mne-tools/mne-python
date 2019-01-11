@@ -7,65 +7,12 @@ from os import path as op
 
 import numpy as np
 
-from .._utils import _fetch_one, _data_path, BASE_URL
+from .._utils import _fetch_one, _data_path, BASE_URL, AGE_SLEEP_RECORDS
 from ....utils import _fetch_file, verbose, _TempDir
 
 SLEEP_RECORDS = 'physionet_sleep_records.npy'
 
 data_path = _data_path  # expose _data_path(..) as data_path(..)
-
-
-def _update_sleep_records():
-    # XXX: use requrie pandas
-    import pandas as pd
-
-    SLEEP_RECORDS = 'records.csv'
-    tmp = _TempDir()
-
-    # Download files checksum.
-    sha1sums_url = BASE_URL + "SHA1SUMS"
-    sha1sums_fname = op.join(tmp, 'sha1sums')
-    _fetch_file(sha1sums_url, sha1sums_fname)
-
-    # Download subjects info.
-    subjects_url = BASE_URL + 'SC-subjects.xls'
-    subjects_fname = op.join(tmp, 'SC-subjects.xls')
-    _fetch_file(url=subjects_url, file_name=subjects_fname,
-                hash_='0ba6650892c5d33a8e2b3f62ce1cc9f30438c54f',
-                hash_type='sha1')
-
-    # Load and Massage the checksums.
-    sha1_df = pd.read_csv(sha1sums_fname, sep='  ', header=None,
-                          names=['sha', 'fname'], engine='python')
-    select_age_records = (sha1_df.fname.str.startswith('SC') &
-                          sha1_df.fname.str.endswith('edf'))
-    sha1_df = sha1_df[select_age_records]
-    sha1_df['id'] = [name[:6] for name in sha1_df.fname]
-
-    # Load and massage the data.
-    data = pd.read_excel(subjects_fname)
-    data = data.rename(index=str, columns={'sex (F=1)': 'sex',
-                                           'LightsOff': 'lights off'})
-    data['sex'] = (data.sex.astype('category')
-                       .cat.rename_categories({1: 'female', 2: 'male'}))
-
-    data['id'] = ['SC4{0:02d}{1:1d}'.format(s, n)
-                  for s, n in zip(data.subject, data.night)]
-
-    data = data.set_index('id').join(sha1_df.set_index('id')).dropna()
-
-    data['record type'] = (data.fname.str.split('-', expand=True)[1]
-                                     .str.split('.', expand=True)[0]
-                                     .astype('category'))
-
-    # data = data.set_index(['subject', 'night', 'record type'])
-    data = data.reset_index().drop(columns=['id'])
-    data = data[['subject', 'night', 'record type', 'age', 'sex', 'lights off',
-                 'sha', 'fname']]
-
-    # Save the data.
-    data.to_csv(op.join(op.dirname(__file__), SLEEP_RECORDS),
-                index=False)
 
 
 @verbose

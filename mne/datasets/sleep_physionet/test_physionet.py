@@ -4,12 +4,11 @@ import os.path as op
 
 from numpy.testing import assert_array_equal
 from ...utils import _TempDir, run_tests_if_main, requires_good_network
-from .age.sleep_physionet_age import _update_sleep_records as age_records
 from .age.sleep_physionet_age import fetch_data as fetch_age_data
-from .temazepam.sleep_physionet_temazepam import _update_sleep_records \
-    as temazepam_records
-from .temazepam.sleep_physionet_temazepam import fetch_data \
-    as fetch_temazepam_data
+from .temazepam.sleep_physionet_temazepam import fetch_data as \
+    fetch_temazepam_data
+from ._utils import _update_sleep_temazepam_records
+from ._utils import _update_sleep_age_records
 
 
 def _TempDir():
@@ -21,10 +20,10 @@ def _keep_basename_only(path_structure):
 
 
 @requires_good_network
-@pytest.mark.skip(reason='this downloads')
+# @pytest.mark.skip(reason='this downloads')
 def test_run_update_age_records():
     """Test Sleep Physionet URL handling."""
-    age_records()
+    _update_sleep_age_records()
 
 
 @requires_good_network
@@ -48,10 +47,10 @@ def test_sleep_physionet_age():
 
 
 @requires_good_network
-@pytest.mark.skip(reason='this downloads')
+# @pytest.mark.skip(reason='this downloads')
 def test_run_update_temazepam_records():
     """Test Sleep Physionet URL handling."""
-    temazepam_records()
+    _update_sleep_temazepam_records()
 
 
 @requires_good_network
@@ -65,5 +64,6 @@ def test_sleep_physionet_temazepam():
 
     with pytest.raises(RuntimeError, match='Unknown subjects: 0, 3'):
         paths = fetch_temazepam_data(subjects=list(range(4)), **params)
+
 
 run_tests_if_main()
