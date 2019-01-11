@@ -2521,7 +2521,7 @@ def _pca_flip(flip, data):
 _label_funcs = {
     'mean': lambda flip, data: np.mean(data, axis=0),
     'mean_flip': lambda flip, data: np.mean(flip * data, axis=0),
-    'max': lambda flip, data: np.max(np.abs(data, axis=0)),
+    'max': lambda flip, data: np.max(np.abs(data), axis=0),
     'pca_flip': _pca_flip,
 }
 
