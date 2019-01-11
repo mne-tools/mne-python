@@ -22,6 +22,8 @@ Changelog
 Bug
 ~~~
 
+- Fix :func:`mne.io.read_raw_edf` reading duplicate channel names by `lneisenman`_
+
 - Fix CTF helmet plotting in :func:`mne.viz.plot_evoked_field` by `Eric Larson`_
 
 API
@@ -3090,3 +3092,5 @@ of commits):
 .. _jeythekey: https://github.com/jeythekey
 
 .. _Sara Sommariva: http://www.dima.unige.it/~sommariva/
+
+.. _lneisenman:  https://github.com/lneisenman

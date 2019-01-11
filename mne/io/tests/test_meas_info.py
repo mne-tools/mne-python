@@ -114,6 +114,17 @@ def test_make_info():
     assert info['meas_date'] is None
 
 
+def test_duplicate_name_correction():
+    """Test duplicate channel names with running number."""
+    # When running number is possible
+    info = create_info(['A', 'A', 'A'], 1000., verbose='error')
+    assert info['ch_names'] == ['A-0', 'A-1', 'A-2']
+
+    # When running number is not possible
+    with pytest.raises(ValueError, match='Adding a running number'):
+        create_info(['A', 'A', 'A-0'], 1000., verbose='error')
+
+
 def test_fiducials_io():
     """Test fiducials i/o."""
     tempdir = _TempDir()
