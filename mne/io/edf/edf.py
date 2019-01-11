@@ -19,7 +19,7 @@ import numpy as np
 from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims
 from ..base import BaseRaw, _check_update_montage
-from ..meas_info import _empty_info, DATE_NONE
+from ..meas_info import _empty_info, _unique_channel_names, DATE_NONE
 from ..constants import FIFF
 from ...filter import resample
 from ...utils import copy_function_doc_to_method_doc
@@ -563,7 +563,6 @@ def _read_edf_header(fname, exclude):
         for ch in channels:
             fid.read(80)  # transducer
         units = [fid.read(8).strip().decode() for ch in channels]
-        orig_units = dict(zip(ch_names, units))
         edf_info['units'] = list()
         for i, unit in enumerate(units):
             if i in exclude:
@@ -572,7 +571,13 @@ def _read_edf_header(fname, exclude):
                 edf_info['units'].append(1e-6)
             else:
                 edf_info['units'].append(1)
+
         ch_names = [ch_names[idx] for idx in sel]
+        units = [units[idx] for idx in sel]
+
+        # make sure channel names are unique
+        ch_names = _unique_channel_names(ch_names)
+        orig_units = dict(zip(ch_names, units))
 
         physical_min = np.array([float(fid.read(8).decode())
                                  for ch in channels])[sel]

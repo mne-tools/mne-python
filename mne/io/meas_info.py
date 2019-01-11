@@ -125,6 +125,35 @@ def _stamp_to_dt(stamp):
             datetime.timedelta(0, 0, stamp[1]))  # day, sec, μs
 
 
+def _unique_channel_names(ch_names):
+    """Ensure unique channel names."""
+    FIFF_CH_NAME_MAX_LENGTH = 15
+    unique_ids = np.unique(ch_names, return_index=True)[1]
+    if len(unique_ids) != len(ch_names):
+        dups = set(ch_names[x]
+                   for x in np.setdiff1d(range(len(ch_names)), unique_ids))
+        warn('Channel names are not unique, found duplicates for: '
+             '%s. Applying running numbers for duplicates.' % dups)
+        for ch_stem in dups:
+            overlaps = np.where(np.array(ch_names) == ch_stem)[0]
+            # We need an extra character since we append '-'.
+            # np.ceil(...) is the maximum number of appended digits.
+            n_keep = (FIFF_CH_NAME_MAX_LENGTH - 1 -
+                      int(np.ceil(np.log10(len(overlaps)))))
+            n_keep = min(len(ch_stem), n_keep)
+            ch_stem = ch_stem[:n_keep]
+            for idx, ch_idx in enumerate(overlaps):
+                ch_name = ch_stem + '-%s' % idx
+                if ch_name not in ch_names:
+                    ch_names[ch_idx] = ch_name
+                else:
+                    raise ValueError('Adding a running number for a '
+                                     'duplicate resulted in another '
+                                     'duplicate name %s' % ch_name)
+
+    return ch_names
+
+
 # XXX Eventually this should be de-duplicated with the MNE-MATLAB stuff...
 class Info(dict):
     """Measurement information.
@@ -530,22 +559,9 @@ class Info(dict):
         self._check_ch_name_length()
 
         # make sure channel names are unique
-        unique_ids = np.unique(self['ch_names'], return_index=True)[1]
-        if len(unique_ids) != self['nchan']:
-            dups = set(self['ch_names'][x]
-                       for x in np.setdiff1d(range(self['nchan']), unique_ids))
-            warn('Channel names are not unique, found duplicates for: '
-                 '%s. Applying running numbers for duplicates.' % dups)
-            for ch_stem in dups:
-                overlaps = np.where(np.array(self['ch_names']) == ch_stem)[0]
-                n_keep = min(len(ch_stem),
-                             14 - int(np.ceil(np.log10(len(overlaps)))))
-                ch_stem = ch_stem[:n_keep]
-                for idx, ch_idx in enumerate(overlaps):
-                    ch_name = ch_stem + '-%s' % idx
-                    assert ch_name not in self['ch_names']
-                    self['ch_names'][ch_idx] = ch_name
-                    self['chs'][ch_idx]['ch_name'] = ch_name
+        self['ch_names'] = _unique_channel_names(self['ch_names'])
+        for idx, ch_name in enumerate(self['ch_names']):
+            self['chs'][idx]['ch_name'] = ch_name
 
         if 'filename' in self:
             warn('the "filename" key is misleading '
