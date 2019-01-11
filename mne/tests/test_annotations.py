@@ -817,9 +817,9 @@ def test_annotations_simple_iteration():
             assert type(elem) == expected_type
             assert elem == expected_value
 
-    # unpacking is not allowed
+    # unpacking as a tuple is not allowed since it returns a dict
     with pytest.raises(ValueError, match='too many values'):
-        for onset, duration, description in annot[0]:
+        for onset, duration, description, orig_time in annot[0]:
             pass
 
 
