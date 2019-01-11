@@ -8,7 +8,6 @@
 import copy
 import os.path as op
 import numpy as np
-import operator
 from scipy import linalg, sparse
 from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
