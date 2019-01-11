@@ -1,11 +1,11 @@
 import sys
-from .utils import _BACKEND
+from .utils import MNE_3D_BACKEND
 
-sys.stderr.write('Using {} backend.\n'.format(_BACKEND))
+sys.stderr.write('Using {} backend.\n'.format(MNE_3D_BACKEND))
 
-if _BACKEND == 'mlab':
+if MNE_3D_BACKEND == 'mlab':
     from .mlab_backend import *
 else:
     import warnings
-    warnings.warn('_BACKEND should be "mlab" : '
-                  '{} was given.'.format(_BACKEND))
+    warnings.warn('MNE_3D_BACKEND should be "mlab" : '
+                  '{} was given.'.format(MNE_3D_BACKEND))

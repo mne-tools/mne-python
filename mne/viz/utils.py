@@ -45,19 +45,19 @@ _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
                              'emg': "EMG sensor", 'ecog': "ECoG channel",
                              'misc': "miscellaneous sensor"}
 
-# Set the default backend
-default_backend = 'mlab'
+default_3D_backend = 'mlab'
 
 
-global _BACKEND
+global MNE_3D_BACKEND
 try:
-    if _BACKEND is None:
-        _BACKEND = os.environ.get('MNE_3D_BACKEND', default_backend)
+    if MNE_3D_BACKEND is None:
+        MNE_3D_BACKEND = os.environ.get('MNE_3DMNE_3D_BACKEND',
+                                        default_3D_backend)
 except NameError:
-    _BACKEND = os.environ.get('MNE_3D_BACKEND', default_backend)
+    MNE_3D_BACKEND = os.environ.get('MNE_3DMNE_3D_BACKEND', default_3D_backend)
 
 
-def set_backend(backend_name):
+def set_3D_backend(backend_name):
     """Set the backend for MNE.
 
     The backend will be set as specified and operations will use
@@ -67,13 +67,13 @@ def set_backend(backend_name):
     ----------
     backend_name : {'mlab'}, default is 'mlab'
     """
-    global _BACKEND
-    _BACKEND = backend_name
+    global MNE_3D_BACKEND
+    MNE_3D_BACKEND = backend_name
     from . import backend
     importlib.reload(backend)
 
 
-def get_backend():
+def get_3D_backend():
     """Return the backend currently used.
 
     Returns
@@ -81,8 +81,8 @@ def get_backend():
     backend_used : str
         the backend currently in use
     """
-    global _BACKEND
-    backend_used = _BACKEND
+    global MNE_3D_BACKEND
+    backend_used = MNE_3D_BACKEND
     return backend_used
 
 
