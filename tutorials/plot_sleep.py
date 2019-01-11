@@ -239,21 +239,16 @@ def eeg_power_band(epochs):
 # To answer the question of how well can we predict the sleep stages of Bob
 # from Alice's data and avoid as much boilerplate code as possible, we will
 # take advantage of two key features of sckit-learn:
-# Pipeline
-# , and FunctionTransformer.
+# `Pipeline`_ , and `FunctionTransformer`_.
 #
 # Scikit-learn pipeline composes an estimator as a sequence of transforms
 # and a final estimator, while the FunctionTransformer converts a python
 # function in an estimator compatible object. In this manner we can create
 # scikit-learn estimator that takes :class:`mne.Epochs` thanks to
 # `eeg_power_band` function we just created.
-
-# XXX: point to sklearn
-# https://scikit-learn.org/stable/modules/generated/
-#         sklearn.pipeline.Pipeline.html
 #
-# https://scikit-learn.org/stable/modules/generated/
-#         sklearn.preprocessing.FunctionTransformer.html
+# .. _Pipeline: https://scikit-learn.org/stable/modules/generated/sklearn.pipeline.Pipeline.html
+# .. _FunctionTransformer: https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.FunctionTransformer.html
 
 pipe = make_pipeline(FunctionTransformer(eeg_power_band, validate=False),
                      RandomForestClassifier(n_estimators=100, random_state=42))
