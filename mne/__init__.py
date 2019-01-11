@@ -18,15 +18,6 @@
 
 __version__ = '0.18.dev0'
 
-# Set the default backend
-import os
-default_backend = 'mlab'
-try:
-    if _BACKEND is None:
-        _BACKEND = os.environ.get('MNE_3D_BACKEND', default_backend)
-except NameError:
-    _BACKEND = os.environ.get('MNE_3D_BACKEND', default_backend)
-
 # have to import verbose first since it's needed by many things
 from .utils import (set_log_level, set_log_file, verbose, set_config,
                     get_config, get_config_path, set_cache_dir,

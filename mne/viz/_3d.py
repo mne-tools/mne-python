@@ -21,7 +21,6 @@ from functools import partial
 import numpy as np
 from scipy import linalg, sparse
 
-from .. import backend as T
 from ..defaults import DEFAULTS
 from ..fixes import einsum, _crop_colorbar
 from ..io import _loc_to_coil_trans
@@ -45,6 +44,7 @@ from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_list,
 from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
                    read_bem_surfaces)
 
+from . import backend as T
 
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
                   FIFF.FIFFV_POINT_RPA)
@@ -2847,30 +2847,3 @@ def _dipole_changed(event, params):
                  params['idx'], params['dipole'], params['gridx'],
                  params['gridy'], params['ori'], params['coord_frame'],
                  params['zooms'], params['show_all'], params['scatter_points'])
-
-def set_backend(backend_name):
-    """Set the backend for MNE.
-
-    The backend will be set as specified and operations will use
-    that backend
-
-    Parameters
-    ----------
-    backend_name : {'mlab'}, default is 'mlab'
-    """
-    global _BACKEND
-    _BACKEND = backend_name
-    importlib.reload(backend)
-
-
-def get_backend():
-    """Return the backend currently used.
-
-    Returns
-    -------
-    backend_used : str
-        the backend currently in use
-    """
-    global _BACKEND
-    backend_used = _BACKEND
-    return backend_used
