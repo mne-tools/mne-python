@@ -2119,6 +2119,9 @@ def morph_labels(labels, subject_to, subject_from=None, subjects_dir=None,
 def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, verbose=None):
     """Convert a set of labels and values to a STC.
 
+    This function is meant to work like the opposite of
+    `extract_label_time_course`.
+
     Parameters
     ----------
     labels : list of Label
@@ -2139,6 +2142,10 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, verbose=None):
     -------
     stc : instance of SourceEstimate
         The values-in-labels converted to a STC.
+
+    See Also
+    --------
+    extract_label_time_course
 
     Notes
     -----
