@@ -33,8 +33,9 @@ matrix:
         # PIP + non-default stim channel
         - os: linux
           env: MNE_STIM_CHANNEL=STI101
+               PYTHON_VERSION=3.7
           language: python
-          python: "3.6"
+          python: "3.7"
 
         # Old dependencies
         - os: linux
