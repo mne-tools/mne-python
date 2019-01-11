@@ -144,7 +144,9 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
 
     # image and erp
     plot_epochs_image(epochs_src, picks=pick, axes=[image_ax, erp_ax],
-                      combine=None, colorbar=False, show=False, **image_args, dropped_indices=dropped_indices)
+                      combine=None, colorbar=False, show=False,
+                      **image_args,
+                      dropped_indices=dropped_indices)
 
     # spectrum
     spec_ax.plot(freqs, psds_mean, color='k')
@@ -287,10 +289,10 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     show : bool
         Show figure if True.
     reject : 'auto' | dict | None
-        Allows to specify rejection parameters used to drop epochs 
+        Allows to specify rejection parameters used to drop epochs
         (or segments if continuous signal is passed as inst).
-        If None, no rejection is applied. The default is 'auto', 
-        which applies the rejection parameters used when fitting 
+        If None, no rejection is applied. The default is 'auto',
+        which applies the rejection parameters used when fitting
         the ICA object.
     Returns
     -------
@@ -361,8 +363,9 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
             drop_inds = None
         # break up continuous signal into segments
         from ..epochs import _segment_raw
-        inst_rejected = _segment_raw(inst_rejected, segment_length=2., verbose=False,
-                            preload=True)
+        inst_rejected = _segment_raw(inst_rejected, segment_length=2.,
+                                     verbose=False,
+                                     preload=True)
         inst = _segment_raw(inst, segment_length=2., verbose=False,
                             preload=True)
         kind = "Segment"
@@ -383,10 +386,10 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         for dropped in drop_inds:
             dropped_indices.append((dropped[0] // len(inst.times)) + 1)
 
-    # getting 
+    # getting
 
     dropped_src = ica.get_sources(inst).get_data()
-    dropped_src = np.swapaxes(dropped_src[:,picks,:], 0, 1)
+    dropped_src = np.swapaxes(dropped_src[:, picks, :], 0, 1)
 
     # spectrum
     Nyquist = inst.info['sfreq'] / 2.
@@ -426,7 +429,10 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         # for index in dropped_indices:
         #    epoch_var = np.insert(epoch_var, index, drop_var[index])
 
-        epoch_var = np.insert(epoch_var, dropped_indices - np.arange(len(dropped_indices)), drop_var[dropped_indices], axis=0)
+        epoch_var = np.insert(epoch_var,
+                              dropped_indices -
+                              np.arange(len(dropped_indices)),
+                              drop_var[dropped_indices], axis=0)
 
         # the actual plot
         fig = _plot_ica_properties(

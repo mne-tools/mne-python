@@ -237,7 +237,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         epochs, ch_type = group[:2]
         group.extend(_prepare_epochs_image_im_data(
             epochs, ch_type, overlay_times, order, sigma, vmin, vmax,
-            scalings[ch_type], ts_args,dropped_indices))
+            scalings[ch_type], ts_args, dropped_indices))
         if vmin is None or vmax is None:  # equalize across groups
             this_vmin, this_vmax, this_ylim = group[-3:]
             if vmin is None and (this_vmin < vmins.get(ch_type, 1)):
@@ -451,7 +451,9 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
 
     # adding rows for dropped epochs
     if dropped_indices is not None:
-        data = np.insert(data, dropped_indices - np.arange(len(dropped_indices)), np.nan, axis=0)
+        data = np.insert(data,
+                         dropped_indices - np.arange(len(dropped_indices)),
+                         np.nan, axis=0)
 
     return [data * scaling, overlay_times, vmin * scaling, vmax * scaling,
             ts_args_]
