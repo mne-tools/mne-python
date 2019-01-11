@@ -269,15 +269,15 @@ def test_get_data_reject():
                                     description="bad"))
 
     with catch_logging() as log:
-        data = raw.get_data(reject_by_annotation="omit")
+        data = raw.get_data(reject_by_annotation="omit", verbose=True)
         msg = ('Omitting 1024 of 2560 (40.00%) samples, retaining 1536' +
                ' (60.00%) samples.')
         assert log.getvalue().strip() == msg
-        assert data.shape == (len(ch_names), 1536)
+    assert data.shape == (len(ch_names), 1536)
     with catch_logging() as log:
-        data = raw.get_data(reject_by_annotation="nan")
+        data = raw.get_data(reject_by_annotation="nan", verbose=True)
         msg = ('Setting 1024 of 2560 (40.00%) samples to NaN, retaining 1536' +
                ' (60.00%) samples.')
         assert log.getvalue().strip() == msg
-        assert data.shape == (len(ch_names), 2560)  # shape doesn't change
-        assert np.isnan(data).sum() == 3072  # but NaNs are introduced instead
+    assert data.shape == (len(ch_names), 2560)  # shape doesn't change
+    assert np.isnan(data).sum() == 3072  # but NaNs are introduced instead
