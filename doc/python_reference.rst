@@ -689,6 +689,8 @@ Source Space Data
    grade_to_vertices
    grow_labels
    label_sign_flip
+   labels_to_stc
+   morph_labels
    random_parcellation
    read_labels_from_annot
    read_dipole

@@ -425,6 +425,17 @@ def test_make_fixed_length_events():
     expected = np.cov(data[:, :21216])
     np.testing.assert_allclose(cov['data'], expected, atol=1e-12)
 
+    # overlaps
+    events = make_fixed_length_events(raw, 1, duration=1)
+    assert len(events) == 136
+    events_ol = make_fixed_length_events(raw, 1, duration=1, overlap=0.5)
+    assert len(events_ol) == 271
+    events_ol_2 = make_fixed_length_events(raw, 1, duration=1, overlap=0.9)
+    assert len(events_ol_2) == 1355
+    assert_array_equal(events_ol_2[:, 0], np.unique(events_ol_2[:, 0]))
+    with pytest.raises(ValueError, match='overlap must be'):
+        make_fixed_length_events(raw, 1, duration=1, overlap=1.1)
+
 
 def test_define_events():
     """Test defining response events."""

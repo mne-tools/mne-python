@@ -2509,6 +2509,23 @@ def _get_label_flip(labels, label_vertidx, src):
     return label_flip
 
 
+def _pca_flip(flip, data):
+    U, s, V = linalg.svd(data, full_matrices=False)
+    # determine sign-flip
+    sign = np.sign(np.dot(U[:, 0], flip))
+    # use average power in label for scaling
+    scale = linalg.norm(s) / np.sqrt(len(data))
+    return sign * scale * V[0]
+
+
+_label_funcs = {
+    'mean': lambda flip, data: np.mean(data, axis=0),
+    'mean_flip': lambda flip, data: np.mean(flip * data, axis=0),
+    'max': lambda flip, data: np.max(np.abs(data), axis=0),
+    'pca_flip': _pca_flip,
+}
+
+
 @verbose
 def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                                    allow_empty=False, verbose=None):
@@ -2517,6 +2534,10 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     # the other ones are vol type. For mixed source space n_labels will be the
     # given by the number of ROIs of the cortical parcellation plus the number
     # of vol src space
+
+    if mode not in _label_funcs:
+        raise ValueError('%s is an invalid mode' % mode)
+    func = _label_funcs[mode]
 
     if len(src) > 2:
         if src[0]['type'] != 'surf' or src[1]['type'] != 'surf':
@@ -2568,18 +2589,11 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
         label_vertidx.append(this_vertidx)
 
     # mode-dependent initialization
-    if mode == 'mean':
-        pass  # we have this here to catch invalid values for mode
-    elif mode == 'mean_flip':
+    if mode not in ('mean', 'max'):
         # get the sign-flip vector for every label
-        label_flip = _get_label_flip(labels, label_vertidx, src[:2])
-    elif mode == 'pca_flip':
-        # get the sign-flip vector for every label
-        label_flip = _get_label_flip(labels, label_vertidx, src[:2])
-    elif mode == 'max':
-        pass  # we calculate the maximum value later
+        src_flip = _get_label_flip(labels, label_vertidx, src[:2])
     else:
-        raise ValueError('%s is an invalid mode' % mode)
+        src_flip = [None] * len(labels)
 
     # loop through source estimates and extract time series
     for stc in stcs:
@@ -2605,34 +2619,9 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
         # do the extraction
         label_tc = np.zeros((n_labels, stc.data.shape[1]),
                             dtype=stc.data.dtype)
-        if mode == 'mean':
-            for i, vertidx in enumerate(label_vertidx):
-                if vertidx is not None:
-                    label_tc[i] = np.mean(stc.data[vertidx, :], axis=0)
-        elif mode == 'mean_flip':
-            for i, (vertidx, flip) in enumerate(zip(label_vertidx,
-                                                    label_flip)):
-                if vertidx is not None:
-                    label_tc[i] = np.mean(flip * stc.data[vertidx, :], axis=0)
-        elif mode == 'pca_flip':
-            for i, (vertidx, flip) in enumerate(zip(label_vertidx,
-                                                    label_flip)):
-                if vertidx is not None:
-                    U, s, V = linalg.svd(stc.data[vertidx, :],
-                                         full_matrices=False)
-                    # determine sign-flip
-                    sign = np.sign(np.dot(U[:, 0], flip))
-
-                    # use average power in label for scaling
-                    scale = linalg.norm(s) / np.sqrt(len(vertidx))
-
-                    label_tc[i] = sign * scale * V[0]
-        elif mode == 'max':
-            for i, vertidx in enumerate(label_vertidx):
-                if vertidx is not None:
-                    label_tc[i] = np.max(np.abs(stc.data[vertidx, :]), axis=0)
-        else:
-            raise ValueError('%s is an invalid mode' % mode)
+        for i, (vertidx, flip) in enumerate(zip(label_vertidx, src_flip)):
+            if vertidx is not None:
+                label_tc[i] = func(flip, stc.data[vertidx, :])
 
         # extract label time series for the vol src space
         if len(src) > 2:
