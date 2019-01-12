@@ -23,6 +23,7 @@ def matplotlib_config():
         with warnings.catch_warnings(record=True):  # traits
             from mayavi import mlab
     except Exception:
-        pass
+        print('Matplotlib configured for testing; Mayavi unavailable')
     else:
         mlab.options.backend = 'test'
+        print('Matplotlib and Mayavi configured for testing')

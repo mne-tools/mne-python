@@ -777,7 +777,7 @@ def merge_events(events, ids, new_id, replace_events=True):
     Rather than merging events you can use hierarchical event_id
     in Epochs. For example, here::
 
-        >>> event_id = {'auditory/left': 1, 'auditory/right': 2}
+        >>> event_id = {'auditory/left': 1, 'auditory/right': 2} # doctest: +SKIP
 
     And the condition 'auditory' would correspond to either 1 or 2.
     """
