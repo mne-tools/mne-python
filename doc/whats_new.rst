@@ -153,7 +153,7 @@ Changelog
 
 - Add parameter ``rank='full'`` to :func:`mne.beamformer.make_lcmv`, which can be set to ``None`` to auto-compute the rank of the covariance matrix before regularization by `Marijn van Vliet`_
 
-- Handle different time vectors in topography plots by `Jussi Nurminen`_
+- Handle different time vectors in topography plots using :func:`mne.viz.plot_evoked_topo` by `Jussi Nurminen`_
 
 Bug
 ~~~
