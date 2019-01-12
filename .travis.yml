@@ -9,7 +9,7 @@ env:
     # OPENBLAS_NUM_THREADS=1 avoid slowdowns:
     # https://github.com/xianyi/OpenBLAS/issues/731
     global: PYTHON_VERSION=3.6 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning TEST_LOCATION=src
-            PIP_DEPENDENCIES="codecov pytest-faulthandler pytest-sugar nitime" OPTION=""
+            PIP_DEPENDENCIES="codecov pytest-faulthandler pytest-sugar pytest-timeout nitime"
             TRAVIS_PYTHON_VERSION=3.6 CONDA_VERSION=">=4.3.27"
             OPENBLAS_NUM_THREADS=1
 
@@ -20,7 +20,6 @@ matrix:
           env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
                CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest pytest-cov"
                PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest pytest-faulthandler pytest-sugar pytest-timeout"
-               OPTION="--doctest-ignore-import-errors"
 
         # Linux
         - os: linux
@@ -91,7 +90,6 @@ install:
     - python setup.py build
     - python setup.py install
     - python -c "import mne; mne.sys_info()"
-    - python -c "import readline; print(readline)"
     - SRC_DIR=$(pwd)
     - cd ~
     # Trigger download of testing data. Note that
@@ -167,8 +165,8 @@ script:
           fi;
         done;
       fi;
-    - echo pytest -v -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne;
-    - PYTHONUNBUFFERED=1 pytest -v -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne;
+    - echo pytest -m "${CONDITION}" ${USE_DIRS} --cov=mne;
+    - pytest -m "${CONDITION}" ${USE_DIRS} --cov=mne;
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
       fi;

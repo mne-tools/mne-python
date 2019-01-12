@@ -760,12 +760,12 @@ def merge_events(events, ids, new_id, replace_events=True):
     --------
     Here is quick example of the behavior::
 
-        >>> events = [[134, 0, 1], [341, 0, 2], [502, 0, 3]] # doctest: +SKIP
-        >>> merge_events(events, [1, 2], 12, replace_events=True) # doctest: +SKIP
+        >>> events = [[134, 0, 1], [341, 0, 2], [502, 0, 3]]
+        >>> merge_events(events, [1, 2], 12, replace_events=True)
         array([[134,   0,  12],
                [341,   0,  12],
                [502,   0,   3]])
-        >>> merge_events(events, [1, 2], 12, replace_events=False) # doctest: +SKIP
+        >>> merge_events(events, [1, 2], 12, replace_events=False)
         array([[134,   0,   1],
                [134,   0,  12],
                [341,   0,   2],
@@ -777,7 +777,7 @@ def merge_events(events, ids, new_id, replace_events=True):
     Rather than merging events you can use hierarchical event_id
     in Epochs. For example, here::
 
-        >>> event_id = {'auditory/left': 1, 'auditory/right': 2} # doctest: +SKIP
+        >>> event_id = {'auditory/left': 1, 'auditory/right': 2}
 
     And the condition 'auditory' would correspond to either 1 or 2.
     """

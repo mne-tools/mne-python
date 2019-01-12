@@ -5,6 +5,14 @@
 
 import pytest
 import warnings
+# For some unknown reason, on Travis-xenial there are segfaults caused on
+# the line pytest -> pdb.Pdb.__init__ -> "import readline". Forcing an
+# import here seems to prevent them (!?). This suggests a potential problem
+# with some other library stepping on memory where it shouldn't. It only
+# seems to happen on the Linux runs that install Mayavi. Anectodally,
+# @larsoner has had problems a couple of years ago where a mayavi import
+# seemed to corrupt SciPy linalg function results (!), likely due to the
+# associated VTK import, so this could be another manifestation of that.
 import readline  # noqa
 
 
