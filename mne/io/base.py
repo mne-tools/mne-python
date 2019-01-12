@@ -1003,10 +1003,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         n_rejected = n_samples - n_kept  # rejected samples
         if n_rejected > 0:
             if reject_by_annotation == 'omit':
-                logger.info(f"Omitting {n_rejected} of {n_samples} "
-                            f"({n_rejected / n_samples:.2%}) samples, "
-                            f"retaining {n_kept} ({n_kept / n_samples:.2%}) "
-                            "samples.")
+                msg = ("Omitting {} of {} ({:.2%}) samples, retaining {}"
+                       " ({:.2%}) samples.")
+                logger.info(msg.format(n_rejected, n_samples,
+                                       n_rejected / n_samples,
+                                       n_kept, n_kept / n_samples))
                 data = np.zeros((len(picks), n_kept))
                 times = np.zeros(data.shape[1])
                 idx = 0
@@ -1017,10 +1018,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     data[:, idx:end], times[idx:end] = self[picks, start:stop]
                     idx = end
             else:
-                logger.info(f"Setting {n_rejected} of {n_samples} "
-                            f"({n_rejected / n_samples:.2%}) samples to NaN, "
-                            f"retaining {n_kept} ({n_kept / n_samples:.2%}) "
-                            "samples.")
+                msg = ("Setting {} of {} ({:.2%}) samples to NaN, retaining {}"
+                       " ({:.2%}) samples.")
+                logger.info(msg.format(n_rejected, n_samples,
+                                       n_rejected / n_samples,
+                                       n_kept, n_kept / n_samples))
                 data, times = self[picks, start:stop]
                 data[:, ~used[1:-1]] = np.nan
         else:
