@@ -1262,7 +1262,8 @@ if version < required_version:
 """
 
 _mayavi_call = """
-from mayavi import mlab
+with warnings.catch_warnings(record=True):  # traits
+    from mayavi import mlab
 """
 
 _mne_call = """
