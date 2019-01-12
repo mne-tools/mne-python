@@ -135,9 +135,10 @@ def test_docstring_parameters():
                 continue
             with pytest.warns(None) as w:
                 cdoc = docscrape.ClassDoc(cls)
-            if len(w):
-                raise RuntimeError('Error for __init__ of %s in %s:\n%s'
-                                   % (cls, name, w[0]))
+            for ww in w:
+                if 'Using or importing the ABCs' not in str(ww.message):
+                    raise RuntimeError('Error for __init__ of %s in %s:\n%s'
+                                       % (cls, name, ww))
             if hasattr(cls, '__init__'):
                 incorrect += check_parameters_match(cls.__init__, cdoc)
             for method_name in cdoc.methods:
