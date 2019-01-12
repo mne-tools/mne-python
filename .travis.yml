@@ -91,6 +91,7 @@ install:
     - python setup.py build
     - python setup.py install
     - python -c "import mne; mne.sys_info()"
+    - python -c "import readline; print(readline)"
     - SRC_DIR=$(pwd)
     - cd ~
     # Trigger download of testing data. Note that

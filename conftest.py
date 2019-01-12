@@ -5,6 +5,7 @@
 
 import pytest
 import warnings
+import readline  # noqa
 
 
 @pytest.fixture(scope='session')
@@ -23,7 +24,6 @@ def matplotlib_config():
         with warnings.catch_warnings(record=True):  # traits
             from mayavi import mlab
     except Exception:
-        print('Matplotlib configured for testing; Mayavi unavailable')
+        pass
     else:
         mlab.options.backend = 'test'
-        print('Matplotlib and Mayavi configured for testing')
