@@ -760,12 +760,12 @@ def merge_events(events, ids, new_id, replace_events=True):
     --------
     Here is quick example of the behavior::
 
-        >>> events = [[134, 0, 1], [341, 0, 2], [502, 0, 3]]
-        >>> merge_events(events, [1, 2], 12, replace_events=True)
+        >>> events = [[134, 0, 1], [341, 0, 2], [502, 0, 3]] # doctest: +SKIP
+        >>> merge_events(events, [1, 2], 12, replace_events=True) # doctest: +SKIP
         array([[134,   0,  12],
                [341,   0,  12],
                [502,   0,   3]])
-        >>> merge_events(events, [1, 2], 12, replace_events=False)
+        >>> merge_events(events, [1, 2], 12, replace_events=False) # doctest: +SKIP
         array([[134,   0,   1],
                [134,   0,  12],
                [341,   0,   2],

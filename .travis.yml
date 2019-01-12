@@ -167,7 +167,7 @@ script:
         done;
       fi;
     - echo pytest -v -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne;
-    - LD_DEBUG=all pytest -v -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne;
+    - pytest -v -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne;
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
       fi;

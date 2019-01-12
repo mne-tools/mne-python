@@ -5,11 +5,10 @@
 
 import pytest
 import warnings
-import mne
 
 
 @pytest.fixture(scope='session')
-def matplotlib_config(doctest_namespace):
+def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
     matplotlib.use('agg')  # don't pop up windows
@@ -27,4 +26,3 @@ def matplotlib_config(doctest_namespace):
         pass
     else:
         mlab.options.backend = 'test'
-    doctest_namespace['mne'] = mne
