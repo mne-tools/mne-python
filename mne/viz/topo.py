@@ -184,7 +184,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
         layout.pos[:, :2] /= layout.pos[:, :2].max(0)
 
     # prepare callbacks
-    tmin, tmax = times[[0, -1]]
+    tmin, tmax = times[0], times[-1]
     click_func = show_func if click_func is None else click_func
     on_pick = partial(click_func, tmin=tmin, tmax=tmax, vmin=vmin,
                       vmax=vmax, ylim=ylim, x_label=x_label,
@@ -342,13 +342,13 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
     import matplotlib.pyplot as plt
     from matplotlib.colors import colorConverter
     picker_flag = False
-    for data_, color_ in zip(data, color):
+    for data_, color_, times_ in zip(data, color, times):
         if not picker_flag:
             # use large tol for picker so we can click anywhere in the axes
-            ax.plot(times, data_[ch_idx], color=color_, picker=1e9)
+            ax.plot(times_, data_[ch_idx], color=color_, picker=1e9)
             picker_flag = True
         else:
-            ax.plot(times, data_[ch_idx], color=color_)
+            ax.plot(times_, data_[ch_idx], color=color_)
 
     if x_label is not None:
         ax.set(xlabel=x_label)
@@ -361,17 +361,26 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
 
     def _format_coord(x, y, labels, ax):
         """Create status string based on cursor coordinates."""
-        idx = np.abs(times - x).argmin()
+        # find indices for datasets near cursor (if any)
+        tdiffs = [np.abs(tvec - x).min() for tvec in times]
+        nearby = [k for k, tdiff in enumerate(tdiffs) if
+                  tdiff < (tmax - tmin) / 100]
+        timestr = '%6.3f s: ' % x
+        if not nearby:
+            return '%s Nothing here' % timestr
+        nearby_data = [(data[n], labels[n], times[n]) for n in nearby]
         ylabel = ax.get_ylabel()
         unit = (ylabel[ylabel.find('(') + 1:ylabel.find(')')]
                 if '(' in ylabel and ')' in ylabel else '')
-        labels = [''] * len(data) if labels is None else labels
+        labels = [''] * len(nearby_data) if labels is None else labels
         # try to estimate whether to truncate condition labels
         slen = 10 + sum([12 + len(unit) + len(label) for label in labels])
         bar_width = (ax.figure.get_size_inches() * ax.figure.dpi)[0] / 5.5
+        # show labels and y values for datasets near cursor
         trunc_labels = bar_width < slen
-        s = '%6.3f s: ' % times[idx]
-        for data_, label in zip(data, labels):
+        s = timestr
+        for data_, label, tvec in nearby_data:
+            idx = np.abs(tvec - x).argmin()
             s += '%7.2f %s' % (data_[ch_idx, idx], unit)
             if trunc_labels:
                 label = (label if len(label) <= 10 else
@@ -437,16 +446,16 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
     """Show multiple time series on topo using a single axes."""
     import matplotlib.pyplot as plt
     if not (ylim and not any(v is None for v in ylim)):
-        ylim = np.array([np.min(data), np.max(data)])
+        ylim = [min(np.min(d) for d in data), max(np.max(d) for d in data)]
     # Translation and scale parameters to take data->under_ax normalized coords
     _compute_scalings(bn, (tmin, tmax), ylim)
     pos = bn.pos
     data_lines = bn.data_lines
     ax = bn.ax
     # XXX These calls could probably be made faster by using collections
-    for data_, color_ in zip(data, color):
+    for data_, color_, times_ in zip(data, color, times):
         data_lines.append(ax.plot(
-            bn.x_t + bn.x_s * times, bn.y_t + bn.y_s * data_[ch_idx],
+            bn.x_t + bn.x_s * times_, bn.y_t + bn.y_s * data_[ch_idx],
             linewidth=0.5, color=color_, clip_on=True, clip_box=pos)[0])
     if vline:
         vline = np.array(vline) * bn.x_s + bn.x_t
@@ -631,10 +640,6 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     else:
         color = cycle([color])
 
-    times = evoked[0].times
-    if not all((e.times == times).all() for e in evoked):
-        raise ValueError('All evoked.times must be the same')
-
     noise_cov = _check_cov(noise_cov, evoked[0].info)
     if noise_cov is not None:
         evoked = [whiten_evoked(e, noise_cov) for e in evoked]
@@ -712,11 +717,10 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
             y_label.append('Amplitude (%s)' % unit)
 
     if ylim is None:
-        def set_ylim(x):
-            return np.abs(x).max()
-        ylim_ = [set_ylim([e.data[t] for e in evoked]) for t in picks]
-        ymax = np.array(ylim_)
-        ylim_ = (-ymax, ymax)
+        # find maxima over all evoked data for each channel pick
+        ymaxes = np.array([max(np.abs(e.data[t]).max() for e in evoked)
+                          for t in picks])
+        ylim_ = (-ymaxes, ymaxes)
     elif isinstance(ylim, dict):
         ylim_ = _handle_default('ylim', ylim)
         ylim_ = [ylim_[kk] for kk in types_used]
@@ -730,6 +734,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     data = [e.data for e in evoked]
     comments = [e.comment for e in evoked]
+    times = [e.times for e in evoked]
+
     show_func = partial(_plot_timeseries_unified, data=data, color=color,
                         times=times, vline=vline, hline=hline,
                         hvline_color=font_color)
@@ -737,13 +743,16 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                          vline=vline, hline=hline, hvline_color=font_color,
                          labels=comments)
 
-    fig = _plot_topo(info=info, times=times, show_func=show_func,
-                     click_func=click_func, layout=layout, colorbar=False,
-                     ylim=ylim_, cmap=None, layout_scale=layout_scale,
-                     border=border, fig_facecolor=fig_facecolor,
-                     font_color=font_color, axis_facecolor=axis_facecolor,
-                     title=title, x_label='Time (s)', y_label=y_label,
-                     unified=True, axes=axes)
+    time_min = min([t[0] for t in times])
+    time_max = max([t[-1] for t in times])
+    fig = _plot_topo(info=info, times=[time_min, time_max],
+                     show_func=show_func, click_func=click_func, layout=layout,
+                     colorbar=False, ylim=ylim_, cmap=None,
+                     layout_scale=layout_scale, border=border,
+                     fig_facecolor=fig_facecolor, font_color=font_color,
+                     axis_facecolor=axis_facecolor, title=title,
+                     x_label='Time (s)', y_label=y_label, unified=True,
+                     axes=axes)
 
     add_background_image(fig, fig_background)
 
