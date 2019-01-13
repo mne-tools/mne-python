@@ -19,7 +19,9 @@ Current
 Changelog
 ~~~~~~~~~
 
-- Add new tutorial (:ref:`sphx_glr_auto_tutorials_plot_sleep.py`) to demo automatic sleep stage analysis by `Alex Gramfort`_, `Stanislas Chambon`_ and `Joan Massich`_
+- Add new tutorial on :ref:`sphx_glr_auto_tutorials_plot_sleep.py` by `Alex Gramfort`_, `Stanislas Chambon`_ and `Joan Massich`_
+
+- Add data fetchers for polysomnography (PSG) recordings from Physionet (:func:`mne.datasets.sleep_physionet.age.fetch_data` and :func:`mne.datasets.sleep_physionet.temazepam.fetch_data`) by `Alex Gramfort`_ and `Joan Massich`_
 
 - Add support for indexing, slicing, and iterating :class:`mne.Annotations` by `Joan Massich`_
 

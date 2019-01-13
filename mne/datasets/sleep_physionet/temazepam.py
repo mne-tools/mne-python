@@ -77,6 +77,10 @@ def fetch_data(subjects, path=None, force_update=False,
            PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
            Research Resource for Complex Physiologic Signals.
            Circulation 101(23):e215-e220
+
+    See also
+    --------
+    :func:`mne.datasets.sleep_physionet.age.fetch_data`
     """
     records = np.loadtxt(TEMAZEPAM_SLEEP_RECORDS,
                          skiprows=1,

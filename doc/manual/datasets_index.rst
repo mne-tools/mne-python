@@ -245,9 +245,10 @@ Triggers include:
     * :ref:`sphx_glr_auto_examples_datasets_plot_opm_data.py`
     * :ref:`sphx_glr_auto_examples_datasets_plot_opm_rest_data.py`
 
-
 The Sleep PolySomnoGraphic Database
 ===================================
+:func:`mne.datasets.sleep_physionet.age.fetch_data`
+:func:`mne.datasets.sleep_physionet.temazepam.fetch_data`
 
 The sleep PhysioNet database contains 197 whole-night PolySomnoGraphic sleep
 recordings, containing EEG, EOG, chin EMG, and event markers. Some records also
