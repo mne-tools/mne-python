@@ -16,7 +16,7 @@ data_path = _data_path  # expose _data_path(..) as data_path(..)
 
 @verbose
 def fetch_data(subjects, path=None, force_update=False,
-               update_path=None, base_url=BASE_URL, verbose=None):  # noqa: D301
+               update_path=None, base_url=BASE_URL, verbose=None):
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
 
     This will fetch data from the publicly available subjects from PhysioNet's
@@ -24,7 +24,7 @@ def fetch_data(subjects, path=None, force_update=False,
     a set of 22 subjects. Subjects had mild difficulty falling asleep
     but were otherwise healthy.
 
-    Only the data with Placebo injection are availble. The data with
+    Only the data with Placebo injection are available. The data with
     Temazepam have so far not been made public.
 
     See more details in
@@ -78,7 +78,7 @@ def fetch_data(subjects, path=None, force_update=False,
            Research Resource for Complex Physiologic Signals.
            Circulation 101(23):e215-e220
 
-    See also
+    See Also
     --------
     :func:`mne.datasets.sleep_physionet.age.fetch_data`
     """

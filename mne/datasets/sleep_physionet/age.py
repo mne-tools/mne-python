@@ -75,7 +75,7 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
            Research Resource for Complex Physiologic Signals.
            Circulation 101(23):e215-e220
 
-    See also
+    See Also
     --------
     :func:`mne.datasets.sleep_physionet.temazepam.fetch_data`
     """

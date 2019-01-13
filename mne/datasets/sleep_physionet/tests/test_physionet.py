@@ -11,7 +11,7 @@ from numpy.testing import assert_array_equal
 import pytest
 
 from mne.utils import _TempDir, run_tests_if_main, requires_good_network
-from mne.utils import requires_pandas
+from mne.utils import requires_pandas, requires_version
 from mne.datasets.sleep_physionet import age, temazepam
 from mne.datasets.sleep_physionet._utils import _update_sleep_temazepam_records
 from mne.datasets.sleep_physionet._utils import _update_sleep_age_records
@@ -28,6 +28,7 @@ def _keep_basename_only(path_structure):
 
 @requires_good_network
 @requires_pandas
+@requires_version('xlrd', '0.9')
 def test_run_update_age_records():
     """Test Sleep Physionet URL handling."""
     import pandas as pd
@@ -63,6 +64,7 @@ def test_sleep_physionet_age():
 
 @requires_good_network
 @requires_pandas
+@requires_version('xlrd', '0.9')
 def test_run_update_temazepam_records():
     """Test Sleep Physionet URL handling."""
     import pandas as pd
