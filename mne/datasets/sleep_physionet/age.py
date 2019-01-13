@@ -5,8 +5,9 @@
 
 import numpy as np
 
-from .._utils import _fetch_one, _data_path, BASE_URL, AGE_SLEEP_RECORDS
-from ....utils import verbose
+from ...utils import verbose
+from ._utils import _fetch_one, _data_path, BASE_URL, AGE_SLEEP_RECORDS
+from ._utils import _check_subjects
 
 data_path = _data_path  # expose _data_path(..) as data_path(..)
 
@@ -29,7 +30,7 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
 
     Parameters
     ----------
-    subject : list of int
+    subjects : list of int
         The subjects to use. Can be in the range of 0-19 (inclusive).
     recording : list of int
         The night recording indices. Valid values are : [1], [2], or [1, 2].
@@ -88,13 +89,10 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
     path = data_path(path=path, update_path=update_path)
     params = [path, force_update]
 
+    _check_subjects(subjects, 20)
+
     fnames = []
     for subject in subjects:
-        if not (0 <= subject <= 19):
-            # there are only 20 of 82 records available
-            raise ValueError("subject index must be between 1 and 19. Got %d."
-                             % subject)
-
         for idx in np.where(psg_records['subject'] == subject)[0]:
             if psg_records['record'][idx] in recording:
                 psg_fname = _fetch_one(psg_records['fname'][idx].decode(),

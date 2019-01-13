@@ -190,6 +190,7 @@ Datasets
    multimodal.data_path
    opm.data_path
    sleep_physionet.age.fetch_data
+   sleep_physionet.temazepam.fetch_data
    sample.data_path
    somato.data_path
    spm_face.data_path

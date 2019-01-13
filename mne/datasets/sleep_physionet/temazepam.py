@@ -5,8 +5,9 @@
 
 import numpy as np
 
-from .._utils import _fetch_one, _data_path, BASE_URL, TEMAZEPAM_SLEEP_RECORDS
-from ....utils import verbose
+from ...utils import verbose
+from ._utils import _fetch_one, _data_path, BASE_URL, TEMAZEPAM_SLEEP_RECORDS
+from ._utils import _check_subjects
 
 SLEEP_RECORDS = 'physionet_sleep_records.npy'
 
@@ -14,24 +15,28 @@ data_path = _data_path  # expose _data_path(..) as data_path(..)
 
 
 @verbose
-def fetch_data(subjects, path=None, force_update=False, update_path=None,
-               base_url=BASE_URL, verbose=None):  # noqa: D301
+def fetch_data(subjects, path=None, force_update=False,
+               update_path=None, base_url=BASE_URL, verbose=None):  # noqa: D301
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
 
     This will fetch data from the publicly available subjects from PhysioNet's
     study of Temazepam effects on sleep [1]_. This corresponds to
-    a set of 22 subjects (1 to 24; subjects 3 and 23 dropped out of the
-    study). Subjects had mild difficulty falling asleep but were otherwise
-    healthy.
+    a set of 22 subjects. Subjects had mild difficulty falling asleep
+    but were otherwise healthy.
+
+    Only the data with Placebo injection are availble. The data with
+    Temazepam have so far not been made public.
 
     See more details in
     `physionet website <https://physionet.org/pn4/sleep-edfx/>`_.
 
     Parameters
     ----------
-    subject : list of int
-        The subjects to use. Can be in the range of 1-24 inclusive (except 3
-        and 23, which are not available)
+    subjects : list of int
+        The subjects to use. Can be in the range of 0-21 (inclusive).
+    drug : bool
+        If True it's the data with the Temazepam and if False it's
+        the placebo.
     path : None | str
         Location of where to look for the PhysioNet data storing location.
         If None, the environment variable or config parameter
@@ -83,12 +88,7 @@ def fetch_data(subjects, path=None, force_update=False, update_path=None,
                                             '<S22', '<S16')}
                          )
 
-    unknown_subjects = np.setdiff1d(subjects, np.unique(records['subject']))
-    if unknown_subjects.size > 0:
-        subjects_list = ', '.join([str(s) for s in unknown_subjects])
-        raise RuntimeError('Only subjects 1 to 24 (except 3 and 23) are'
-                           ' available from public PhysioNet temazepam.'
-                           ' Unknown subjects: {}'.format(subjects_list))
+    _check_subjects(subjects, 22)
 
     path = data_path(path=path, update_path=update_path)
     params = [path, force_update]
@@ -96,7 +96,7 @@ def fetch_data(subjects, path=None, force_update=False, update_path=None,
     fnames = []
     for subject in subjects:  # all the subjects are present at this point
         for idx in np.where(records['subject'] == subject)[0]:
-            if records['record'][idx] == b'Placebo night':
+            if records['record'][idx] == b'Placebo':
                 psg_fname = _fetch_one(records['psg fname'][idx].decode(),
                                        records['psg sha'][idx].decode(),
                                        *params)

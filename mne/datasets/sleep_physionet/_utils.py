@@ -11,9 +11,9 @@ from ...utils import _fetch_file, verbose, _TempDir, _check_pandas_installed
 from ..utils import _get_path
 
 BASE_URL = 'https://physionet.org/pn4/sleep-edfx/'
-AGE_SLEEP_RECORDS = op.join(op.dirname(__file__), 'age/records.csv')
+AGE_SLEEP_RECORDS = op.join(op.dirname(__file__), 'age_records.csv')
 TEMAZEPAM_SLEEP_RECORDS = op.join(op.dirname(__file__),
-                                  'temazepam/records.csv')
+                                  'temazepam_records.csv')
 
 
 def _fetch_one(fname, hashsum, path, force_update):
@@ -77,7 +77,7 @@ def _data_path(path=None, force_update=False, update_path=None, verbose=None):
     return op.join(path, 'physionet-sleep-data')
 
 
-def _update_sleep_temazepam_records():
+def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     """Helper function to download Physionet's temazepam dataset records."""
     pd = _check_pandas_installed()
     tmp = _TempDir()
@@ -112,7 +112,7 @@ def _update_sleep_temazepam_records():
 
     data = data.rename(columns={('Subject - age - sex', 'Age'): 'age',
                                 ('Subject - age - sex', 'M1/F2'): 'sex',
-                                'level_3': 'record'})
+                                'level_3': 'drug'})
     data['id'] = ['ST7{0:02d}{1:1d}'.format(s, n)
                   for s, n in zip(data.subject, data['night nr'])]
 
@@ -121,7 +121,7 @@ def _update_sleep_temazepam_records():
                                      .str.split('.', expand=True)[0]
                                      .astype('category'))
 
-    data = data.set_index(['id', 'subject', 'age', 'sex', 'record',
+    data = data.set_index(['id', 'subject', 'age', 'sex', 'drug',
                            'lights off', 'night nr', 'record type']).unstack()
     data = data.drop(columns=[('sha', np.nan), ('fname', np.nan)])
     data.columns = [l1 + '_' + l2 for l1, l2 in data.columns]
@@ -130,11 +130,17 @@ def _update_sleep_temazepam_records():
     data['sex'] = (data.sex.astype('category')
                        .cat.rename_categories({1: 'male', 2: 'female'}))
 
+    data['drug'] = data['drug'].str.split(expand=True)[0]
+    data['subject_orig'] = data['subject']
+    data['subject'] = data.index // 2  # to make sure index is from 0 to 21
+
+    data.dropna(inplace=True)
+
     # Save the data.
-    data.to_csv(TEMAZEPAM_SLEEP_RECORDS, index=False)
+    data.to_csv(fname, index=False)
 
 
-def _update_sleep_age_records():
+def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
     """Helper function to download Physionet's age dataset records."""
     pd = _check_pandas_installed()
     tmp = _TempDir()
@@ -181,4 +187,15 @@ def _update_sleep_age_records():
                  'sha', 'fname']]
 
     # Save the data.
-    data.to_csv(AGE_SLEEP_RECORDS, index=False)
+    data.to_csv(fname, index=False)
+
+
+def _check_subjects(subjects, n_subjects):
+    valid_subjects = np.arange(n_subjects)
+    unknown_subjects = np.setdiff1d(subjects, valid_subjects)
+    if unknown_subjects.size > 0:
+        subjects_list = ', '.join([str(s) for s in unknown_subjects])
+        raise ValueError('Only subjects 0 to {} are'
+                         ' available from this dataset.'
+                         ' Unknown subjects: {}'.format(n_subjects - 1,
+                                                        subjects_list))
