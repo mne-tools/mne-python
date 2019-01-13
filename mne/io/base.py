@@ -933,8 +933,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # set the data
         self._data[sel, start:stop] = value
 
+    @verbose
     def get_data(self, picks=None, start=0, stop=None,
-                 reject_by_annotation=None, return_times=False):
+                 reject_by_annotation=None, return_times=False, verbose=None):
         """Get data in the given range.
 
         Parameters
@@ -953,6 +954,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             'bad' are omitted. If 'NaN', the bad samples are filled with NaNs.
         return_times : bool
             Whether to return times as well. Defaults to False.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -985,8 +990,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if return_times:
                 return data, times
             return data
-
-        used = np.ones(stop - start, bool)
+        n_samples = stop - start  # total number of samples
+        used = np.ones(n_samples, bool)
         for onset, end in zip(onsets, ends):
             if onset >= end:
                 continue
@@ -994,20 +999,34 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         used = np.concatenate([[False], used, [False]])
         starts = np.where(~used[:-1] & used[1:])[0] + start
         stops = np.where(used[:-1] & ~used[1:])[0] + start
-        if reject_by_annotation == 'omit':
-
-            data = np.zeros((len(picks), (stops - starts).sum()))
-            times = np.zeros(data.shape[1])
-            idx = 0
-            for start, stop in zip(starts, stops):  # get the data
-                if start == stop:
-                    continue
-                end = idx + stop - start
-                data[:, idx:end], times[idx:end] = self[picks, start:stop]
-                idx = end
+        n_kept = (stops - starts).sum()  # kept samples
+        n_rejected = n_samples - n_kept  # rejected samples
+        if n_rejected > 0:
+            if reject_by_annotation == 'omit':
+                msg = ("Omitting {} of {} ({:.2%}) samples, retaining {}"
+                       " ({:.2%}) samples.")
+                logger.info(msg.format(n_rejected, n_samples,
+                                       n_rejected / n_samples,
+                                       n_kept, n_kept / n_samples))
+                data = np.zeros((len(picks), n_kept))
+                times = np.zeros(data.shape[1])
+                idx = 0
+                for start, stop in zip(starts, stops):  # get the data
+                    if start == stop:
+                        continue
+                    end = idx + stop - start
+                    data[:, idx:end], times[idx:end] = self[picks, start:stop]
+                    idx = end
+            else:
+                msg = ("Setting {} of {} ({:.2%}) samples to NaN, retaining {}"
+                       " ({:.2%}) samples.")
+                logger.info(msg.format(n_rejected, n_samples,
+                                       n_rejected / n_samples,
+                                       n_kept, n_kept / n_samples))
+                data, times = self[picks, start:stop]
+                data[:, ~used[1:-1]] = np.nan
         else:
             data, times = self[picks, start:stop]
-            data[:, ~used[1:-1]] = np.nan
 
         if return_times:
             return data, times

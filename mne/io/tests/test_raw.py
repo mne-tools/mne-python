@@ -17,7 +17,7 @@ from mne import concatenate_raws, create_info, Annotations
 from mne.annotations import _handle_meas_date
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray, BaseRaw
-from mne.utils import _TempDir
+from mne.utils import _TempDir, catch_logging
 from mne.io.meas_info import _get_valid_units
 
 
@@ -257,3 +257,27 @@ def test_meas_date_orig_time():
     assert raw.annotations.orig_time is None
     assert raw.annotations.onset[0] == 0.5
     assert raw.annotations.duration[0] == 0.2
+
+
+def test_get_data_reject():
+    """Test if reject_by_annotation is working correctly."""
+    fs = 256
+    ch_names = ["C3", "Cz", "C4"]
+    info = create_info(ch_names, sfreq=fs)
+    raw = RawArray(np.zeros((len(ch_names), 10 * fs)), info)
+    raw.set_annotations(Annotations(onset=[2, 4], duration=[3, 2],
+                                    description="bad"))
+
+    with catch_logging() as log:
+        data = raw.get_data(reject_by_annotation="omit", verbose=True)
+        msg = ('Omitting 1024 of 2560 (40.00%) samples, retaining 1536' +
+               ' (60.00%) samples.')
+        assert log.getvalue().strip() == msg
+    assert data.shape == (len(ch_names), 1536)
+    with catch_logging() as log:
+        data = raw.get_data(reject_by_annotation="nan", verbose=True)
+        msg = ('Setting 1024 of 2560 (40.00%) samples to NaN, retaining 1536' +
+               ' (60.00%) samples.')
+        assert log.getvalue().strip() == msg
+    assert data.shape == (len(ch_names), 2560)  # shape doesn't change
+    assert np.isnan(data).sum() == 3072  # but NaNs are introduced instead
