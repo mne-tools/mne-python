@@ -1,12 +1,18 @@
-import pytest
-import numpy as np
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Joan Massich <mailsik@gmail.com>
+#
+# License: BSD Style.
+
 import os.path as op
 
+import numpy as np
 from numpy.testing import assert_array_equal
+
+import pytest
+
 from ...utils import _TempDir, run_tests_if_main, requires_good_network
-from .age.sleep_physionet_age import fetch_data as fetch_age_data
-from .temazepam.sleep_physionet_temazepam import fetch_data as \
-    fetch_temazepam_data
+from .age import fetch_data as fetch_age_data
+from .temazepam import fetch_data as fetch_temazepam_data
 from ._utils import _update_sleep_temazepam_records
 from ._utils import _update_sleep_age_records
 
@@ -27,16 +33,19 @@ def test_sleep_physionet_age():
     """Test Sleep Physionet URL handling."""
     params = {'path': _TempDir(), 'update_path': False}
 
-    paths = fetch_age_data(subjects=[0], record=[1], **params)
+    with pytest.raises(ValueError, match='subject index must be between 1'):
+        paths = fetch_age_data(subjects=[20], recording=[1], **params)
+
+    paths = fetch_age_data(subjects=[0], recording=[1], **params)
     assert_array_equal(_keep_basename_only(paths),
                        [['SC4001E0-PSG.edf', 'SC4001EC-Hypnogram.edf']])
 
-    paths = fetch_age_data(subjects=[0, 1], record=[1], **params)
+    paths = fetch_age_data(subjects=[0, 1], recording=[1], **params)
     assert_array_equal(_keep_basename_only(paths),
                        [['SC4001E0-PSG.edf', 'SC4001EC-Hypnogram.edf'],
                         ['SC4011E0-PSG.edf', 'SC4011EH-Hypnogram.edf']])
 
-    paths = fetch_age_data(subjects=[0], record=[1, 2], **params)
+    paths = fetch_age_data(subjects=[0], recording=[1, 2], **params)
     assert_array_equal(_keep_basename_only(paths),
                        [['SC4001E0-PSG.edf', 'SC4001EC-Hypnogram.edf'],
                         ['SC4002E0-PSG.edf', 'SC4002EC-Hypnogram.edf']])

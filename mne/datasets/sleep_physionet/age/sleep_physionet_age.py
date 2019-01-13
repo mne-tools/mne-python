@@ -12,7 +12,7 @@ data_path = _data_path  # expose _data_path(..) as data_path(..)
 
 
 @verbose
-def fetch_data(subjects, record=[1, 2], path=None, force_update=False,
+def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
                update_path=None, base_url=BASE_URL,
                verbose=None):  # noqa: D301
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
@@ -31,8 +31,8 @@ def fetch_data(subjects, record=[1, 2], path=None, force_update=False,
     ----------
     subject : list of int
         The subjects to use. Can be in the range of 0-19 (inclusive).
-    records : list of int
-        The night record. Valid values are : [1], [2], or [1, 2].
+    recording : list of int
+        The night recording indices. Valid values are : [1], [2], or [1, 2].
     path : None | str
         Location of where to look for the PhysioNet data storing location.
         If None, the environment variable or config parameter
@@ -74,7 +74,6 @@ def fetch_data(subjects, record=[1, 2], path=None, force_update=False,
            Research Resource for Complex Physiologic Signals.
            Circulation 101(23):e215-e220
     """
-
     records = np.loadtxt(AGE_SLEEP_RECORDS,
                          skiprows=1,
                          delimiter=',',
@@ -91,10 +90,13 @@ def fetch_data(subjects, record=[1, 2], path=None, force_update=False,
 
     fnames = []
     for subject in subjects:
-        assert 0 <= subject <= 19  # there are only 20 of 82 records available
+        if not (0 <= subject <= 19):
+            # there are only 20 of 82 records available
+            raise ValueError("subject index must be between 1 and 19. Got %d."
+                             % subject)
 
         for idx in np.where(psg_records['subject'] == subject)[0]:
-            if psg_records['record'][idx] in record:
+            if psg_records['record'][idx] in recording:
                 psg_fname = _fetch_one(psg_records['fname'][idx].decode(),
                                        psg_records['sha'][idx].decode(),
                                        *params)
