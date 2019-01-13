@@ -72,7 +72,7 @@ from sklearn.preprocessing import FunctionTransformer
 
 ALICE, BOB = 0, 1
 
-[alice_files, bob_files] = fetch_data(subjects=[ALICE, BOB], record=[1])
+[alice_files, bob_files] = fetch_data(subjects=[ALICE, BOB], recording=[1])
 
 mapping = {'EOG horizontal': 'eog',
            'Resp oro-nasal': 'misc',
