@@ -144,7 +144,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     title : None | str
         If str, will be plotted as figure title. Else, the channels will be
         indicated.
-    drop_indexes : None | list
+    drop_indices : None | list
         If list, will insert NaN rows at indexes. Else, will do nothing.
 
     Returns

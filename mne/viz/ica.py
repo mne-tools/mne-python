@@ -426,9 +426,6 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         # we reconstruct an epoch_variance with 0 where indexes where dropped
         epoch_var = np.var(ica_data[idx], axis=1)
         drop_var = np.var(dropped_src[idx], axis=1)
-        # for index in dropped_indices:
-        #    epoch_var = np.insert(epoch_var, index, drop_var[index])
-
         epoch_var = np.insert(epoch_var,
                               dropped_indices -
                               np.arange(len(dropped_indices)),
@@ -441,7 +438,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
             epochs_src, set_title_and_labels, plot_std, psd_ylabel,
             spectrum_std, topomap_args, image_args, fig, axes, kind,
             dropped_indices)
-        all_fig.append(fig)
+        all_fig.append(fig) 
 
     plt_show(show)
     return all_fig
