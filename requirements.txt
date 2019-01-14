@@ -12,11 +12,13 @@ pandas
 numexpr
 python-picard
 statsmodels
+mock
 pytest
 pytest-cov
 pytest-sugar
 pytest-timeout
 pytest-faulthandler
+pytest-mock
 joblib
 psutil
 dipy
