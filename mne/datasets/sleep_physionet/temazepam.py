@@ -9,8 +9,6 @@ from ...utils import verbose
 from ._utils import _fetch_one, _data_path, BASE_URL, TEMAZEPAM_SLEEP_RECORDS
 from ._utils import _check_subjects
 
-SLEEP_RECORDS = 'physionet_sleep_records.npy'
-
 data_path = _data_path  # expose _data_path(..) as data_path(..)
 
 
@@ -34,9 +32,6 @@ def fetch_data(subjects, path=None, force_update=False,
     ----------
     subjects : list of int
         The subjects to use. Can be in the range of 0-21 (inclusive).
-    drug : bool
-        If True it's the data with the Temazepam and if False it's
-        the placebo.
     path : None | str
         Location of where to look for the PhysioNet data storing location.
         If None, the environment variable or config parameter
