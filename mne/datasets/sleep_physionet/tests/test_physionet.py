@@ -70,7 +70,6 @@ def test_run_update_age_records(tmpdir):
     pd.testing.assert_frame_equal(data, pd.read_csv(AGE_SLEEP_RECORDS))
 
 
-@requires_good_network
 def test_sleep_physionet_age(physionet_tmpdir, mocker):
     """Test Sleep Physionet URL handling."""
     my_func = mocker.patch('mne.datasets.sleep_physionet._utils._fetch_file',
@@ -135,7 +134,6 @@ def test_run_update_temazepam_records(tmpdir):
     pd.testing.assert_frame_equal(data, pd.read_csv(TEMAZEPAM_SLEEP_RECORDS))
 
 
-@requires_good_network
 def test_sleep_physionet_temazepam(physionet_tmpdir, mocker):
     """Test Sleep Physionet URL handling."""
     my_func = mocker.patch('mne.datasets.sleep_physionet._utils._fetch_file',
