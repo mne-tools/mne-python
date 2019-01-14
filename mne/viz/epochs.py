@@ -32,8 +32,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap=None, fig=None,
                       axes=None, overlay_times=None, combine=None,
-                      group_by=None, evoked=True, ts_args=dict(), title=None,
-                      dropped_indices=None):
+                      group_by=None, evoked=True, ts_args=dict(), title=None):
     """Plot Event Related Potential / Fields image.
 
     Parameters
@@ -144,8 +143,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     title : None | str
         If str, will be plotted as figure title. Else, the channels will be
         indicated.
-    drop_indices : None | list
-        If list, will insert NaN rows at indexes. Else, will do nothing.
 
     Returns
     -------
@@ -237,7 +234,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         epochs, ch_type = group[:2]
         group.extend(_prepare_epochs_image_im_data(
             epochs, ch_type, overlay_times, order, sigma, vmin, vmax,
-            scalings[ch_type], ts_args, dropped_indices))
+            scalings[ch_type], ts_args))
         if vmin is None or vmax is None:  # equalize across groups
             this_vmin, this_vmax, this_ylim = group[-3:]
             if vmin is None and (this_vmin < vmins.get(ch_type, 1)):
@@ -395,8 +392,7 @@ def _pick_and_combine(epochs, combine, all_picks, all_ch_types, names):
 
 
 def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
-                                  sigma, vmin, vmax, scaling, ts_args,
-                                  dropped_indices):
+                                  sigma, vmin, vmax, scaling, ts_args):
     """Preprocess epochs image (sort, filter). Helper for plot_epochs_image."""
     from scipy import ndimage
 
@@ -448,12 +444,6 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
                     truncate_yaxis=False, truncate_xaxis=False, show=False)
     ts_args_.update(**ts_args)
     ts_args_["vlines"] = []
-
-    # adding rows for dropped epochs
-    if dropped_indices is not None:
-        data = np.insert(data,
-                         dropped_indices - np.arange(len(dropped_indices)),
-                         np.nan, axis=0)
 
     return [data * scaling, overlay_times, vmin * scaling, vmax * scaling,
             ts_args_]

@@ -143,10 +143,15 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     _plot_ica_topomap(ica, pick, show=False, axes=topo_ax, **topomap_args)
 
     # image and erp
+    # we create a new epoch with dropped rows
+    epoch_data = epochs_src.get_data()
+    epoch_data = np.insert(epoch_data, dropped_indices - np.arange(len(dropped_indices)), 0.0, axis=0)
+    from ..epochs import EpochsArray
+    epochs_src = EpochsArray(epoch_data, epochs_src.info, verbose=0)
+
     plot_epochs_image(epochs_src, picks=pick, axes=[image_ax, erp_ax],
                       combine=None, colorbar=False, show=False,
-                      **image_args,
-                      dropped_indices=dropped_indices)
+                      **image_args)
 
     # spectrum
     spec_ax.plot(freqs, psds_mean, color='k')
