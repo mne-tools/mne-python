@@ -22,6 +22,7 @@ from mne.datasets.sleep_physionet._utils import BASE_URL
 
 @pytest.fixture(scope='session')
 def physionet_tmpdir(tmpdir_factory):
+    """Fixture exposing a temporary directory for testing."""
     return str(tmpdir_factory.mktemp('physionet_files'))
 
 
