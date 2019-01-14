@@ -61,7 +61,6 @@ def _check_mocked_function_calls(mocked_func, call_fname_hash_pairs,
 @requires_good_network
 @requires_pandas
 @requires_version('xlrd', '0.9')
-@pytest.mark.slowtest
 def test_run_update_age_records(tmpdir):
     """Test Sleep Physionet URL handling."""
     import pandas as pd
@@ -125,7 +124,6 @@ def test_sleep_physionet_age(physionet_tmpdir, mocker):
 @requires_good_network
 @requires_pandas
 @requires_version('xlrd', '0.9')
-@pytest.mark.slowtest
 def test_run_update_temazepam_records(tmpdir):
     """Test Sleep Physionet URL handling."""
     import pandas as pd
