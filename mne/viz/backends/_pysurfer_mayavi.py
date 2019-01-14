@@ -101,3 +101,8 @@ def add_3d_arrows(x, y, z, u, v, w, color, scale, height, resolution,
 
 def show():
     _toggle_mlab_render(renderer.fig, True)
+
+
+def set_camera(azimuth, elevation, distance, focalpoint):
+    renderer.mlab.view(azimuth, elevation, distance,
+                       focalpoint=focalpoint, figure=renderer.fig)

@@ -1138,9 +1138,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                 color=(1., 1., 0.), scale=3e-3,
                 height=0.25, opacity=0.75,
                 backface_culling=True)
-    # WIP
-    #with SilenceStdout():
-        #mlab.view(90, 90, focalpoint=(0., 0., 0.), distance=0.6, figure=fig)
+    with SilenceStdout():
+        renderer.set_camera(90, 90, 0.6, focalpoint=(0., 0., 0.))
     renderer.show()
     return fig
 
