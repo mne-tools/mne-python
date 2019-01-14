@@ -29,6 +29,7 @@ def _keep_basename_only(path_structure):
 @requires_good_network
 @requires_pandas
 @requires_version('xlrd', '0.9')
+@pytest.mark.slowtest
 def test_run_update_age_records():
     """Test Sleep Physionet URL handling."""
     import pandas as pd
@@ -65,6 +66,7 @@ def test_sleep_physionet_age():
 @requires_good_network
 @requires_pandas
 @requires_version('xlrd', '0.9')
+@pytest.mark.slowtest
 def test_run_update_temazepam_records():
     """Test Sleep Physionet URL handling."""
     import pandas as pd

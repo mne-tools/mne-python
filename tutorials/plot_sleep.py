@@ -224,7 +224,7 @@ def eeg_power_band(epochs):
     psds, freqs = psd_array_welch(data, sfreq, fmin=0.5, fmax=30.,
                                   n_fft=512, n_overlap=256)
     # Normalize the PSDs
-    psds /= np.sum(psds, axis=-1)[:, :, np.newaxis]
+    psds /= np.sum(psds, axis=-1, keepdims=True)
 
     X = []
     for _, (fmin, fmax) in FREQ_BANDS.items():
