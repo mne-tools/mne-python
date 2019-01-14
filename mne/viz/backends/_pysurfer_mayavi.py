@@ -3,8 +3,8 @@ Core visualization operations.
 """
 
 import warnings
-from ..surface import _normalize_vectors
-from ..utils import _import_mlab
+from ...surface import _normalize_vectors
+from ...utils import _import_mlab
 from tvtk.api import tvtk
 
 

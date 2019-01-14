@@ -44,7 +44,7 @@ from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_list,
 from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
                    read_bem_surfaces)
 
-from . import backend as T
+from .backends import renderer
 
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
                   FIFF.FIFFV_POINT_RPA)
@@ -1048,8 +1048,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                              for pick in seeg_picks])
 
     # initialize figure
-    T.init((800, 800), (0.5, 0.5, 0.5))
-    T.set_interactive()
+    renderer.init((800, 800), (0.5, 0.5, 0.5))
+    renderer.set_interactive()
 
     # plot surfaces
     alphas = dict(head=head_alpha, helmet=0.25, lh=hemi_val, rh=hemi_val)
@@ -1060,15 +1060,15 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     for key, surf in surfs.items():
         with warnings.catch_warnings(record=True):  # traits
             if key != 'helmet':
-                T.add_surface(surf, colors[key], alphas[key], True)
+                renderer.add_surface(surf, colors[key], alphas[key], True)
             else:
-                T.add_surface(surf, colors[key], alphas[key], False)
+                renderer.add_surface(surf, colors[key], alphas[key], False)
     if brain and 'lh' not in surfs:  # one layer sphere
         assert bem['coord_frame'] == FIFF.FIFFV_COORD_HEAD
         center = bem['r0'].copy()
         center = apply_trans(head_trans, center)
-        T.add_spheres(center, scale=0.01, color=colors['lh'],
-                      opacity=alphas['lh'])
+        renderer.add_spheres(center, scale=0.01, color=colors['lh'],
+                             opacity=alphas['lh'])
     if show_axes:
         axes = [(head_trans, (0.9, 0.3, 0.3))]  # always show head
         if not np.allclose(mri_trans['trans'], np.eye(4)):  # Show MRI
@@ -1078,11 +1078,11 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         for ax in axes:
             x, y, z = np.tile(ax[0]['trans'][:3, 3], 3).reshape((3, 3)).T
             u, v, w = ax[0]['trans'][:3, :3]
-            T.add_spheres(np.array([[x[0]], [y[0]], [z[0]]]).T,
-                          color=ax[1], scale=3e-3)
-            T.add_arrows(x, y, z, u, v, w, color=ax[1], scale=2e-2,
-                         resolution=20, scale_mode='scalar',
-                         scalars=[0.33, 0.66, 1.0])
+            renderer.add_spheres(np.array([[x[0]], [y[0]], [z[0]]]).T,
+                                 color=ax[1], scale=3e-3)
+            renderer.add_arrows(x, y, z, u, v, w, color=ax[1], scale=2e-2,
+                                resolution=20, scale_mode='scalar',
+                                scalars=[0.33, 0.66, 1.0])
 
     # plot points
     defaults = DEFAULTS['coreg']
@@ -1114,10 +1114,10 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     for data, color, alpha, scale in zip(datas, colors, alphas, scales):
         if len(data) > 0:
             with warnings.catch_warnings(record=True):  # traits
-                T.add_spheres(data, color, scale, alpha, True)
+                renderer.add_spheres(data, color, scale, alpha, True)
     if len(eegp_loc) > 0:
         with warnings.catch_warnings(record=True):  # traits
-            T.add_3d_arrows(
+            renderer.add_3d_arrows(
                 eegp_loc[:, 0], eegp_loc[:, 1], eegp_loc[:, 2],
                 eegp_nn[:, 0], eegp_nn[:, 1], eegp_nn[:, 2],
                 resolution=20, center=(0., -defaults['eegp_height'], 0.),
@@ -1128,10 +1128,10 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         color, alpha = (0., 0.25, 0.5), 0.25
         surf = dict(rr=meg_rrs, tris=meg_tris)
         with warnings.catch_warnings(record=True):  # traits
-            T.add_surface(surf, color, alpha, True)
+            renderer.add_surface(surf, color, alpha, True)
     if len(src_rr) > 0:
         with warnings.catch_warnings(record=True):  # traits
-            T.add_3d_arrows(
+            renderer.add_3d_arrows(
                 src_rr[:, 0], src_rr[:, 1], src_rr[:, 2],
                 src_nn[:, 0], src_nn[:, 1], src_nn[:, 2],
                 resolution=20, center=(0., 0., 0.),
@@ -1141,7 +1141,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     # WIP
     #with SilenceStdout():
         #mlab.view(90, 90, focalpoint=(0., 0., 0.), distance=0.6, figure=fig)
-    T.show()
+    renderer.show()
     return fig
 
 
