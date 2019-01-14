@@ -311,7 +311,7 @@ class RtClient(object):
 
         Parameters
         ----------
-        callback : function
+        callback : callable
             The callback to unregister.
         """
         if callback in self._recv_callbacks:

@@ -99,7 +99,7 @@ class ToDataFrameMixin(object):
 
         Returns
         -------
-        df : instance of pandas.core.DataFrame
+        df : instance of pandas.DataFrame
             A dataframe suitable for usage with other
             statistical/plotting/analysis packages. Column/Index values will
             depend on the object type being converted, but should be
@@ -744,7 +744,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        annotations : Instance of mne.Annotations | None
+        annotations : instance of mne.Annotations | None
             Annotations to set. If None, the annotations is defined
             but empty.
         emit_warning : bool
@@ -1056,7 +1056,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        fun : function
+        fun : callable
             A function to be applied to the channels. The first argument of
             fun has to be a timeseries (numpy.ndarray). The function must
             operate on an array of shape ``(n_times,)`` if
@@ -1568,7 +1568,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -------
         raw : instance of Raw
             The resampled version of the raw object.
-        events : 2D array, shape (n_events, 3) | None
+        events : array, shape (n_events, 3) | None
             If events are jointly resampled, these are returned with the raw.
 
         See Also
@@ -2640,7 +2640,7 @@ def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
     -------
     raw : instance of Raw
         The result of the concatenation (first Raw instance passed in).
-    events : ndarray of int, shape (n events, 3)
+    events : ndarray of int, shape (n_events, 3)
         The events. Only returned if `event_list` is not None.
     """
     if events_list is not None:

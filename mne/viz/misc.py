@@ -61,9 +61,9 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
 
     Returns
     -------
-    fig_cov : instance of matplotlib.pyplot.Figure
+    fig_cov : instance of matplotlib.figure.Figure
         The covariance plot.
-    fig_svd : instance of matplotlib.pyplot.Figure | None
+    fig_svd : instance of matplotlib.figure.Figure | None
         The SVD spectra plot of the covariance.
     """
     if exclude == 'bads':
@@ -376,7 +376,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
 
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figure
+    fig : instance of matplotlib.figure.Figure
         The figure.
 
     See Also
@@ -463,7 +463,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         Dictionary of event label (e.g. 'aud_l') and its associated
         event_id value. Label used to plot a legend. If None, no legend is
         drawn.
-    axes : instance of matplotlib.axes.AxesSubplot
+    axes : instance of Axes
        The subplot handle.
     equal_spacing : bool
         Use equal spacing between events in y-axis.
@@ -579,9 +579,9 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
 
     Parameters
     ----------
-    dipoles : list of instance of Dipoles
+    dipoles : list of instance of Dipole
         The dipoles whose amplitudes should be shown.
-    colors: list of colors | None
+    colors: list of color | None
         Color to plot with each dipole. If None default colors are used.
     show : bool
         Show figure if True.
@@ -803,7 +803,7 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
         The ideal response frequencies to plot (must be in ascending order).
     gain : array-like or None
         The ideal response gains to plot.
-    axes : instance of matplotlib.axes.AxesSubplot | None
+    axes : instance of Axes | None
         The subplot handle. With None (default), axes are created.
     title : str
         The title to use, (default: '').
@@ -825,7 +825,7 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
 
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figure
+    fig : instance of matplotlib.figure.Figure
         The figure.
 
     See Also
@@ -947,7 +947,7 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
 
     Returns
     -------
-    fig : list of matplotlib figures
+    fig : list of Figure
         The figures created by this function.
     """
     import matplotlib.pyplot as plt

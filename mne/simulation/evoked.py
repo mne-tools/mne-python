@@ -40,7 +40,7 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
         .. versionadded:: 0.15.0
     iir_filter : None | array
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
-    random_state : None | int | np.random.RandomState
+    random_state : None | int | ~numpy.random.RandomState
         To specify the random generator state.
     use_cps : bool (default True)
         Whether to use cortical patch statistics to define normal

@@ -21,7 +21,7 @@ def select_source_in_label(src, label, random_state=None, location='random',
         The source space
     label : Label
         the label (read with mne.read_label)
-    random_state : None | int | np.random.RandomState
+    random_state : None | int | ~numpy.random.RandomState
         To specify the random generator state.
     location : str
         The label location to choose. Can be 'random' (default) or 'center'
@@ -108,9 +108,9 @@ def simulate_sparse_stc(src, n_dipoles, times,
         sinusoid as ``1e-7 * np.sin(20 * pi * t)``. The function should take
         as input the array of time samples in seconds and return an array of
         the same length containing the time courses.
-    labels : None | list of Labels
+    labels : None | list of Label
         The labels. The default is None, otherwise its size must be n_dipoles.
-    random_state : None | int | np.random.RandomState
+    random_state : None | int | ~numpy.random.RandomState
         To specify the random generator state.
     location : str
         The label location to choose. Can be 'random' (default) or 'center'
@@ -223,15 +223,15 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
     ----------
     src : instance of SourceSpaces
         The source space
-    labels : list of Labels
+    labels : list of Label
         The labels
-    stc_data : array (shape: len(labels) x n_times)
+    stc_data : array, shape (n_labels, n_times)
         The waveforms
     tmin : float
         The beginning of the timeseries
     tstep : float
         The time step (1 / sampling frequency)
-    value_fun : function | None
+    value_fun : callable | None
         Function to apply to the label values to obtain the waveform
         scaling for each vertex in the label. If None (default), uniform
         scaling is used.

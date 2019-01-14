@@ -393,7 +393,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
             If None, first available channel type from ('mag', 'grad', 'eeg')
             is used. Defaults to None.
-        times : array of floats | None
+        times : array of float | None
             The time points to plot. If None, 10 evenly spaced samples are
             calculated over the evoked time series. Defaults to None.
         frame_rate : int | None
@@ -417,9 +417,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Returns
         -------
-        fig : instance of matplotlib figure
+        fig : instance of matplotlib.figure.Figure
             The figure.
-        anim : instance of matplotlib FuncAnimation
+        anim : instance of matplotlib.animation.FuncAnimation
             Animation of the topomap.
 
         Notes
@@ -513,7 +513,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        ch_type : 'mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', hbr', 'misc', None  # noqa
+        ch_type : 'mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', hbr', 'misc', None
             The channel type to use. Defaults to None. If more than one sensor
             Type is present in the data the channel type has to be explicitly
             set.
@@ -549,7 +549,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             return_amplitude is True.
 
             .. versionadded:: 0.16
-        """
+        """  # noqa: E501
         supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'hbo',
                      'hbr', 'None')
         data_picks = _pick_data_channels(self.info, with_ref_meg=False)
@@ -948,9 +948,9 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
 
     Returns
     -------
-    evoked : Evoked (if condition is int or str) or list of Evoked (if
-        condition is None or list)
-        The evoked dataset(s).
+    evoked : Evoked or list of Evoked
+        The evoked dataset(s); one Evoked if condition is int or str,
+        or list of Evoked if condition is None or list.
 
     See Also
     --------

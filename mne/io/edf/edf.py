@@ -66,7 +66,7 @@ def find_edf_events(raw):
 
     Parameters
     ----------
-    raw : Instance of RawEDF
+    raw : instance of RawEDF
         The raw object for finding the events.
 
     Returns
@@ -1125,7 +1125,7 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
 
     Returns
     -------
-    raw : Instance of RawEDF
+    raw : instance of RawEDF
         A Raw object containing EDF data.
 
     Notes

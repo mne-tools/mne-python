@@ -651,7 +651,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
         be shown.
-    hline : list of floats | None
+    hline : list of float | None
         The values at which to show an horizontal line.
     units : dict | None
         The units of the channel types used for axes labels. If None,
@@ -662,7 +662,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     titles : dict | None
         The titles associated with the channels. If None, defaults to
         `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
-    axes : instance of Axis | list | None
+    axes : instance of Axes | list | None
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
@@ -756,7 +756,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     layout_scale: float
         Scaling factor for adjusting the relative size of the layout
         on the canvas
-    color : list of color objects | color object | None
+    color : list of color | color | None
         Everything matplotlib accepts to specify colors. If not list-like,
         the color specified will be repeated. If None, colors are
         automatically drawn.
@@ -777,9 +777,9 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
         be shown.
-    vline : list of floats | None
+    vline : list of float | None
         The values at which to show a vertical line.
-    fig_background : None | numpy ndarray
+    fig_background : None | ndarray
         A background image for the figure. This must work with a call to
         plt.imshow. Defaults to None.
     merge_grads : bool
@@ -795,7 +795,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         See matplotlib documentation for more details.
     axes : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
-    background_color : str | obj
+    background_color : color
         Background color. Typically 'k' (black) or 'w' (white; default).
 
         .. versionadded:: 0.15.0
@@ -890,7 +890,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
     titles : dict | None
         The titles associated with the channels. If None, defaults to
         ``dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')``.
-    axes : instance of Axis | list | dict | None
+    axes : instance of Axes | list | dict | None
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
@@ -1277,7 +1277,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     ----------
     evoked : instance of Evoked
         The evoked instance.
-    times : float | array of floats | "auto" | "peaks"
+    times : float | array of float | "auto" | "peaks"
         The time point(s) to plot. If "auto", 5 evenly spaced topographies
         between the first and last time instant will be shown. If "peaks",
         finds time points automatically by checking for 3 local maxima in
@@ -1825,7 +1825,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     Returns
     -------
-    fig : Figure | list of Figures
+    fig : Figure | list of Figure
         The figure(s) in which the plot is drawn. When plotting multiple
         channel types, a list of figures, one for each channel type is
         returned.

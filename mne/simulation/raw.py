@@ -131,7 +131,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
     n_jobs : int
         Number of jobs to use.
-    random_state : None | int | np.random.RandomState
+    random_state : None | int | ~numpy.random.RandomState
         The random generator state used for blink, ECG, and sensor
         noise randomization.
     use_cps : None | bool (default True)

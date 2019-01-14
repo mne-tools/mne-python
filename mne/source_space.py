@@ -127,7 +127,7 @@ class SourceSpaces(list):
 
         Returns
         -------
-        fig : instance of mlab Figure
+        fig : instance of mayavi.mlab.Figure
             The figure.
         """
         from .viz import plot_alignment
@@ -1204,7 +1204,7 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
 
     Returns
     -------
-    coordinates : n_vertices x 3 array of float
+    coordinates : array, shape (n_vertices, 3)
         The MNI coordinates (in mm) of the vertices
 
     Notes

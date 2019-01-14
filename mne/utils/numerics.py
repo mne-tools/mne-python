@@ -494,7 +494,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
 
     Parameters
     ----------
-    all_inst : list of Evoked or AverageTFR data
+    all_inst : list of Evoked or AverageTFR
         The evoked datasets.
     interpolate_bads : bool
         If True, bad MEG and EEG channels are interpolated. Ignored for

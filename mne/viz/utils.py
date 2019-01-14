@@ -194,7 +194,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
 
     Returns
     -------
-    cmap : instance of matplotlib.pyplot.colormap | array
+    cmap : instance of colormap | array
         A teal->blue->gray->red->yellow colormap.
 
     Notes
@@ -1150,7 +1150,7 @@ class ClickableImage(object):
 
         Parameters
         ----------
-        event : matplotlib event object
+        event : matplotlib.backend_bases.Event
             The matplotlib object that we use to get x/y position.
         """
         mouseevent = event.mouseevent
@@ -1227,12 +1227,11 @@ def add_background_image(fig, im, set_ratios=None):
     be done with topo plots, though it could work
     for any plot.
 
-    Note: This modifies the figure and/or axes
-    in place.
+    .. note:: This modifies the figure and/or axes in place.
 
     Parameters
     ----------
-    fig : plt.figure
+    fig : Figure
         The figure you wish to add a bg image to.
     im : array, shape (M, N, {3, 4})
         A background image for the figure. This must be a valid input to
@@ -1244,8 +1243,8 @@ def add_background_image(fig, im, set_ratios=None):
 
     Returns
     -------
-    ax_im : instance of the created matplotlib axis object
-        corresponding to the image you added.
+    ax_im : instance of Axes
+        Axes created corresponding to the image you added.
 
     Notes
     -----
@@ -1324,7 +1323,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
 
     Parameters
     ----------
-    info : Instance of Info
+    info : instance of Info
         Info structure containing the channel locations.
     kind : str
         Whether to plot the sensors as 3d, topomap or as an interactive
@@ -1344,7 +1343,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     show_names : bool | array of str
         Whether to display all channel names. If an array, only the channel
         names in the array are shown. Defaults to False.
-    ch_groups : 'position' | array of shape (ch_groups, picks) | None
+    ch_groups : 'position' | array of shape (n_ch_groups, n_picks) | None
         Channel groups for coloring the sensors. If None (default), default
         coloring scheme is used. If 'position', the sensors are divided
         into 8 regions. See ``order`` kwarg of :func:`mne.viz.plot_raw`. If
@@ -1376,7 +1375,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
 
     Returns
     -------
-    fig : instance of matplotlib figure
+    fig : instance of Figure
         Figure containing the sensor topography.
     selection : list
         A list of selected channels. Only returned if ``kind=='select'``.
@@ -1803,9 +1802,9 @@ class SelectFromCollection(object):
 
     Parameters
     ----------
-    ax : Instance of Axes
+    ax : instance of Axes
         Axes to interact with.
-    collection : Instance of matplotlib collection
+    collection : instance of matplotlib collection
         Collection you want to select from.
     alpha_other : 0 <= float <= 1
         To highlight a selection, this tool sets all selected points to an

@@ -351,7 +351,7 @@ class Xdawn(_XdawnTransformer):
 
     Parameters
     ----------
-    n_components : int (default 2)
+    n_components : int, (default 2)
         The number of components to decompose the signals.
     signal_cov : None | Covariance | ndarray, shape (n_channels, n_channels)
         (default None). The signal covariance used for whitening of the data.
@@ -375,9 +375,9 @@ class Xdawn(_XdawnTransformer):
     patterns_ : dict of ndarray
         If fit, the Xdawn patterns used to restore the signals for each event
         type, else empty.
-    evokeds_ : dict of evoked instance
+    evokeds_ : dict of Evoked
         If fit, the evoked response for each event type.
-    event_id_ : dict of event id
+    event_id_ : dict
         The event id.
     correct_overlap_ : bool
         Whether overlap correction was applied.
@@ -418,14 +418,14 @@ class Xdawn(_XdawnTransformer):
 
         Parameters
         ----------
-        epochs : Epochs object
+        epochs : instance of Epochs
             An instance of Epoch on which Xdawn filters will be fitted.
         y : ndarray | None (default None)
             If None, used epochs.events[:, 2].
 
         Returns
         -------
-        self : Xdawn instance
+        self : instance of Xdawn
             The Xdawn instance.
         """
         # Check data
@@ -540,7 +540,7 @@ class Xdawn(_XdawnTransformer):
 
         Returns
         -------
-        out : dict of instance
+        out : dict
             A dict of instance (from the same type as inst input) for each
             event type in event_id.
         """

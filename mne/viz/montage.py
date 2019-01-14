@@ -24,7 +24,7 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
 
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figure
+    fig : instance of matplotlib.figure.Figure
         The figure object.
     """
     from scipy.spatial.distance import cdist

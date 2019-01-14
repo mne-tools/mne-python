@@ -258,7 +258,7 @@ def _read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
 
     Returns
     -------
-    raw : Instance of RawMff
+    raw : instance of RawMff
         A Raw object containing EGI mff data.
 
     Notes

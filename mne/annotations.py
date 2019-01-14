@@ -37,7 +37,7 @@ class Annotations(object):
         Array of strings containing description for each annotation. If a
         string, all the annotations are given the same description. To reject
         epochs, use description starting with keyword 'bad'. See example above.
-    orig_time : float | int | instance of datetime | array of int | None | str
+    orig_time : float | int | instance of datetime.datetime | array of int | None | str
         A POSIX Timestamp, datetime or an array containing the timestamp as the
         first element and microseconds as the second element. Determines the
         starting time of annotation acquisition. If None (default),
@@ -764,7 +764,7 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
     ----------
     raw : instance of Raw
         The raw data for which Annotations are defined.
-    event_id : dict | Callable | None
+    event_id : dict | callable | None
         Dictionary of string keys and integer values as used in mne.Epochs
         to map annotation descriptions to integer event codes. Only the
         keys present will be mapped and the annotations with other descriptions

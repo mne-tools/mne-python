@@ -524,7 +524,7 @@ class SetChannelsMixin(object):
         show_names : bool | array of str
             Whether to display all channel names. If an array, only the channel
             names in the array are shown. Defaults to False.
-        ch_groups : 'position' | array of shape (ch_groups, picks) | None
+        ch_groups : 'position' | array of shape (n_ch_groups, n_picks) | None
             Channel groups for coloring the sensors. If None (default), default
             coloring scheme is used. If 'position', the sensors are divided
             into 8 regions. See ``order`` kwarg of :func:`mne.viz.plot_raw`. If
@@ -556,7 +556,7 @@ class SetChannelsMixin(object):
 
         Returns
         -------
-        fig : instance of matplotlib figure
+        fig : instance of Figure
             Figure containing the sensor topography.
         selection : list
             A list of selected channels. Only returned if ``kind=='select'``.
@@ -1053,7 +1053,7 @@ def read_ch_connectivity(fname, picks=None):
 
     Returns
     -------
-    ch_connectivity : scipy.sparse matrix, shape (n_channels, n_channels)
+    ch_connectivity : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
         The connectivity matrix.
     ch_names : list
         The list of channel names present in connectivity matrix.
@@ -1161,7 +1161,7 @@ def find_ch_connectivity(info, ch_type):
 
     Returns
     -------
-    ch_connectivity : scipy.sparse matrix, shape (n_channels, n_channels)
+    ch_connectivity : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
         The connectivity matrix.
     ch_names : list
         The list of channel names present in connectivity matrix.
@@ -1388,7 +1388,7 @@ def make_1020_channel_selections(info, midline="z"):
 
     Parameters
     ----------
-    info : instance of info
+    info : instance of Info
         Where to obtain the channel names from. The picks will
         be in relation to the position in `info["ch_names"]`. If possible, this
         lists will be sorted by y value position of the channel locations,

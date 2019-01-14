@@ -531,7 +531,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     win_lengths : list of float
         Time window lengths in seconds. One time window length should be
         provided for each frequency bin.
-    freq_bins : list of tuples of float
+    freq_bins : list of tuple of float
         Start and end point of frequency bins of interest.
     subtract_evoked : bool
         If True, subtract the averaged evoked response prior to computing the

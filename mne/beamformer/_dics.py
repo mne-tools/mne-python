@@ -641,11 +641,11 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         tf source grid. Defaults to False.
     mode : 'fourier' | 'multitaper' | 'cwt_morlet'
         Spectrum estimation mode. Defaults to 'fourier'.
-    freq_bins : list of tuples of float
+    freq_bins : list of tuple of float
         Start and end point of frequency bins of interest.
         Only used in 'multitaper' or 'fourier' mode. For 'cwt_morlet' mode, use
         the ``frequencies`` parameter instead.
-    frequencies : list of float | list of lists of float
+    frequencies : list of float | list of list of float
         The frequencies to compute the source power for. If you want to compute
         the average power for multiple frequency bins, specify a list of
         lists: each list containing the frequencies for the corresponding bin.

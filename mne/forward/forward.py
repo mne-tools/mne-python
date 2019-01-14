@@ -1284,14 +1284,14 @@ def restrict_forward_to_stc(fwd, stc):
 
     Parameters
     ----------
-    fwd : Forward
+    fwd : instance of Forward
         Forward operator.
-    stc : SourceEstimate
+    stc : instance of SourceEstimate
         Source estimate.
 
     Returns
     -------
-    fwd_out : dict
+    fwd_out : instance of Forward
         Restricted forward operator.
 
     See Also
@@ -1351,7 +1351,7 @@ def restrict_forward_to_label(fwd, labels):
     ----------
     fwd : Forward
         Forward operator.
-    labels : label object | list
+    labels : instance of Label | list
         Label object or list of label objects.
 
     Returns
