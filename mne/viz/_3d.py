@@ -639,10 +639,6 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-    Returns
-    -------
-    fig : instance of mlab.Figure
-        The mayavi figure.
     See Also
     --------
     mne.viz.plot_bem
@@ -1141,7 +1137,6 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     with SilenceStdout():
         renderer.set_camera(90, 90, 0.6, focalpoint=(0., 0., 0.))
     renderer.show()
-    return fig
 
 
 def _make_tris_fan(n_vert):
