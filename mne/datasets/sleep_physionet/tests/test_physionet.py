@@ -19,7 +19,9 @@ from mne.datasets.sleep_physionet._utils import AGE_SLEEP_RECORDS
 from mne.datasets.sleep_physionet._utils import TEMAZEPAM_SLEEP_RECORDS
 
 
-tempdir = _TempDir()
+@pytest.fixture(scope='session')
+def physionet_tmpdir(tmpdir_factory):
+    return str(tmpdir_factory.mktemp('physionet_files'))
 
 
 def _keep_basename_only(path_structure):
@@ -30,20 +32,19 @@ def _keep_basename_only(path_structure):
 @requires_pandas
 @requires_version('xlrd', '0.9')
 @pytest.mark.slowtest
-def test_run_update_age_records():
+def test_run_update_age_records(tmpdir):
     """Test Sleep Physionet URL handling."""
     import pandas as pd
-    tmp = _TempDir()
-    fname = op.join(tmp, "records.csv")
+    fname = op.join(str(tmpdir), "records.csv")
     _update_sleep_age_records(fname)
     data = pd.read_csv(fname)
     pd.testing.assert_frame_equal(data, pd.read_csv(AGE_SLEEP_RECORDS))
 
 
 @requires_good_network
-def test_sleep_physionet_age():
+def test_sleep_physionet_age(physionet_tmpdir):
     """Test Sleep Physionet URL handling."""
-    params = {'path': tempdir, 'update_path': False}
+    params = {'path': physionet_tmpdir, 'update_path': False}
 
     with pytest.raises(ValueError, match='Only subjects 0 to 19 are'):
         paths = age.fetch_data(subjects=[20], recording=[1], **params)
@@ -67,20 +68,19 @@ def test_sleep_physionet_age():
 @requires_pandas
 @requires_version('xlrd', '0.9')
 @pytest.mark.slowtest
-def test_run_update_temazepam_records():
+def test_run_update_temazepam_records(tmpdir):
     """Test Sleep Physionet URL handling."""
     import pandas as pd
-    tmp = _TempDir()
-    fname = op.join(tmp, "records.csv")
+    fname = op.join(str(tmpdir), "records.csv")
     _update_sleep_temazepam_records(fname)
     data = pd.read_csv(fname)
     pd.testing.assert_frame_equal(data, pd.read_csv(TEMAZEPAM_SLEEP_RECORDS))
 
 
 @requires_good_network
-def test_sleep_physionet_temazepam():
+def test_sleep_physionet_temazepam(physionet_tmpdir):
     """Test Sleep Physionet URL handling."""
-    params = {'path': tempdir, 'update_path': False}
+    params = {'path': physionet_tmpdir, 'update_path': False}
 
     paths = temazepam.fetch_data(subjects=[0], **params)
     assert_array_equal(_keep_basename_only(paths),
