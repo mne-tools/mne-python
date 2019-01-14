@@ -34,8 +34,8 @@ def set_3D_backend(backend_name):
     """
     global MNE_3D_BACKEND
     MNE_3D_BACKEND = backend_name
-    from . import backend
-    importlib.reload(backend)
+    from . import renderer
+    importlib.reload(renderer)
 
 
 def get_3D_backend():
