@@ -219,6 +219,17 @@ def test_time_as_index_ref(offset, origin):
     assert_array_equal(inds, np.arange(raw.n_times))
 
 
+def test_time_as_index_update():
+    MEAS_DATE = 1
+    info = create_info(ch_names=1, sfreq=10.)
+    raw = RawArray(data=np.empty((1, 10)), info=info, first_samp=10)
+    raw.info['meas_date'] = MEAS_DATE
+
+    original_times = raw.times
+    raw.info['sfreq'] = 1
+    assert raw.times != original_times
+
+
 def _raw_annot(meas_date, orig_time):
     info = create_info(ch_names=10, sfreq=10.)
     raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
