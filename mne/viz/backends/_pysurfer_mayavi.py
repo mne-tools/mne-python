@@ -5,7 +5,6 @@ Core visualization operations.
 import warnings
 from ...surface import _normalize_vectors
 from ...utils import _import_mlab
-from tvtk.api import tvtk
 
 
 class Renderer:
@@ -61,6 +60,7 @@ def init(wsize, bg):
 
 
 def set_interactive():
+    from tvtk.api import tvtk
     renderer.fig.scene.interactor.interactor_style = \
         tvtk.InteractorStyleTerrain()
 
