@@ -307,7 +307,10 @@ def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
     clf = MultiTaskLasso(alpha=alpha / len(M), tol=tol / sum_squared(M),
                          normalize=False, fit_intercept=False, max_iter=maxit,
                          warm_start=True)
-    clf.coef_ = init
+    if init is not None:
+        clf.coef_ = init
+    else:
+        clf.coef_ = np.zeros((G.shape[1], M.shape[1])).T
     clf.fit(G, M)
 
     X = clf.coef_.T

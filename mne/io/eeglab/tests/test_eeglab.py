@@ -217,10 +217,17 @@ def test_io_set_raw(fnames, tmpdir):
     ch_names = ['F3', 'unknown', 'FPz']
     x, y, z = [1., 2., np.nan], [4., 5., np.nan], [7., 8., np.nan]
     dt = [('labels', 'S10'), ('X', 'f8'), ('Y', 'f8'), ('Z', 'f8')]
+    nopos_dt = [('labels', 'S10'), ('Z', 'f8')]
     chanlocs = np.zeros((3,), dtype=dt)
+    nopos_chanlocs = np.zeros((3,), dtype=nopos_dt)
     for ind, vals in enumerate(zip(ch_names, x, y, z)):
         for fld in range(4):
             chanlocs[ind][dt[fld][0]] = vals[fld]
+            if fld in (0, 3):
+                nopos_chanlocs[ind][dt[fld][0]] = vals[fld]
+    # In theory this should work and be simpler, but there is an obscure
+    # SciPy writing bug that pops up sometimes:
+    # nopos_chanlocs = np.array(chanlocs[['labels', 'Z']])
 
     if LooseVersion(np.__version__) == '1.14.0':
         # There is a bug in 1.14.0 (or maybe with SciPy 1.0.0?) that causes
@@ -261,7 +268,6 @@ def test_io_set_raw(fnames, tmpdir):
 
     # test reading channel names but not positions when there is no X (only Z)
     # field in the EEG.chanlocs structure
-    nopos_chanlocs = chanlocs[['labels', 'Z']]
     nopos_fname = op.join(tmpdir, 'test_no_chanpos.set')
     io.savemat(nopos_fname, {'EEG':
                {'trials': eeg.trials, 'srate': eeg.srate, 'nbchan': 3,
