@@ -102,7 +102,8 @@ def _handle_hdf5_dataset(hdf5_object):
     if 'MATLAB_empty' in hdf5_object.attrs.keys():
         data = numpy.empty((0,))
     else:
-        data = hdf5_object.value
+        # this used to be just hdf5_object.value, but this is deprecated
+        data = hdf5_object[()]
 
     if isinstance(data, numpy.ndarray) and \
             data.dtype == numpy.dtype('object'):
@@ -110,7 +111,7 @@ def _handle_hdf5_dataset(hdf5_object):
         data = [hdf5_object.file[cur_data] for cur_data in data.flatten()]
         if len(data) == 1 and hdf5_object.attrs['MATLAB_class'] == b'cell':
             data = data[0]
-            data = data.value
+            data = data[()]
             return _assign_types(data)
 
         data = _hdf5todict(data)

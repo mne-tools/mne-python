@@ -165,8 +165,8 @@ script:
           fi;
         done;
       fi;
-    - echo py.test -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne;
-    - py.test -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne;
+    - echo pytest -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne;
+    - pytest -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne;
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
       fi;
