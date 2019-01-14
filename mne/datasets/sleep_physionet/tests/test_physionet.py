@@ -10,13 +10,14 @@ from numpy.testing import assert_array_equal
 
 import pytest
 
-from mne.utils import _TempDir, run_tests_if_main, requires_good_network
+from mne.utils import run_tests_if_main, requires_good_network
 from mne.utils import requires_pandas, requires_version
 from mne.datasets.sleep_physionet import age, temazepam
 from mne.datasets.sleep_physionet._utils import _update_sleep_temazepam_records
 from mne.datasets.sleep_physionet._utils import _update_sleep_age_records
 from mne.datasets.sleep_physionet._utils import AGE_SLEEP_RECORDS
 from mne.datasets.sleep_physionet._utils import TEMAZEPAM_SLEEP_RECORDS
+from mne.datasets.sleep_physionet._utils import BASE_URL
 
 
 @pytest.fixture(scope='session')
@@ -25,6 +26,7 @@ def physionet_tmpdir(tmpdir_factory):
 
 
 def _fake_fetch_file(url, path, print_destination, hash_, hash_type):
+    print(path, hash_)
     pass
 
 
@@ -48,8 +50,8 @@ def test_run_update_age_records(tmpdir):
 @requires_good_network
 def test_sleep_physionet_age(physionet_tmpdir, mocker):
     """Test Sleep Physionet URL handling."""
-    mocker.patch('mne.datasets.sleep_physionet._utils._fetch_file',
-                 side_effect=_fake_fetch_file)
+    my_func = mocker.patch('mne.datasets.sleep_physionet._utils._fetch_file',
+                           side_effect=_fake_fetch_file)
 
     params = {'path': physionet_tmpdir, 'update_path': False}
 
@@ -70,6 +72,27 @@ def test_sleep_physionet_age(physionet_tmpdir, mocker):
                        [['SC4001E0-PSG.edf', 'SC4001EC-Hypnogram.edf'],
                         ['SC4002E0-PSG.edf', 'SC4002EC-Hypnogram.edf']])
 
+    assert my_func.call_count == 10
+    EXPECTED_FILE_HASHES = {
+        # 'SC4001E0-PSG.edf': 'adabd3b01fc7bb75c523a974f38ee3ae4e57b40f',
+        # 'SC4001EC-Hypnogram.edf': '21c998eadc8b1e3ea6727d3585186b8f76e7e70b',
+        # 'SC4001E0-PSG.edf': 'adabd3b01fc7bb75c523a974f38ee3ae4e57b40f',
+        # 'SC4001EC-Hypnogram.edf': '21c998eadc8b1e3ea6727d3585186b8f76e7e70b',
+        # 'SC4011E0-PSG.edf': '4d17451f7847355bcab17584de05e7e1df58c660',
+        # 'SC4011EH-Hypnogram.edf': 'd582a3cbe2db481a362af890bc5a2f5ca7c878dc',
+        # 'SC4001E0-PSG.edf': 'adabd3b01fc7bb75c523a974f38ee3ae4e57b40f',
+        # 'SC4001EC-Hypnogram.edf': '21c998eadc8b1e3ea6727d3585186b8f76e7e70b',
+        # 'SC4002E0-PSG.edf': 'c6b6d7a8605cc7e7602b6028ee77f6fbf5f7581d',
+        'SC4002EC-Hypnogram.edf': '386230188a3552b1fc90bba0fb7476ceaca174b6'
+    }
+    for name, file_hash in EXPECTED_FILE_HASHES.items():
+        base = age.data_path(path=physionet_tmpdir)
+        my_func.assert_called_with(_get_expected_url(name),
+                                   _get_expected_path(base, name),
+                                   hash_=file_hash,
+                                   hash_type='sha1',
+                                   print_destination=False)
+
 
 @requires_good_network
 @requires_pandas
@@ -84,11 +107,19 @@ def test_run_update_temazepam_records(tmpdir):
     pd.testing.assert_frame_equal(data, pd.read_csv(TEMAZEPAM_SLEEP_RECORDS))
 
 
+def _get_expected_url(name):
+    return BASE_URL + '/' + name
+
+
+def _get_expected_path(base, name):
+    return op.join(base, name)
+
+
 @requires_good_network
 def test_sleep_physionet_temazepam(physionet_tmpdir, mocker):
     """Test Sleep Physionet URL handling."""
-    mm = mocker.patch('mne.datasets.sleep_physionet._utils._fetch_file',
-                      side_effect=_fake_fetch_file)
+    my_func = mocker.patch('mne.datasets.sleep_physionet._utils._fetch_file',
+                           side_effect=_fake_fetch_file)
 
     params = {'path': physionet_tmpdir, 'update_path': False}
 
@@ -96,13 +127,17 @@ def test_sleep_physionet_temazepam(physionet_tmpdir, mocker):
     assert_array_equal(_keep_basename_only(paths),
                        [['ST7011J0-PSG.edf', 'ST7011JP-Hypnogram.edf']])
 
-    EXPECTED_URL = 'https://physionet.org/pn4/sleep-edfx//ST7011JP-Hypnogram.edf'
-    EXPECTED_PATH = physionet_tmpdir + '/physionet-sleep-data/ST7011JP-Hypnogram.edf'
-    mm.assert_called_with(EXPECTED_URL,
-                          EXPECTED_PATH,
-                          hash_='ff28e5e01296cefed49ae0c27cfb3ebc42e710bf',
-                          hash_type='sha1',
-                          print_destination=False)
+    assert my_func.call_count == 2
+    EXPECTED_FILE_HASHES = {
+        # 'ST7011J0-PSG.edf': 'b9d11484126ebff1884034396d6a20c62c0ef48d',
+        'ST7011JP-Hypnogram.edf': 'ff28e5e01296cefed49ae0c27cfb3ebc42e710bf'}
+    for name, file_hash in EXPECTED_FILE_HASHES.items():
+        base = temazepam.data_path(path=physionet_tmpdir)
+        my_func.assert_called_with(_get_expected_url(name),
+                                   _get_expected_path(base, name),
+                                   hash_=file_hash,
+                                   hash_type='sha1',
+                                   print_destination=False)
 
     with pytest.raises(ValueError, match='Only subjects 0 to 21 are'):
         paths = temazepam.fetch_data(subjects=[22], **params)
