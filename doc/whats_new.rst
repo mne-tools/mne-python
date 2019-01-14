@@ -47,7 +47,7 @@ Changelog
 Bug
 ~~~
 
-- Fix :func:`mne.io.read_raw_edf` reading duplicate channel names by `lneisenman`_
+- Fix :func:`mne.io.read_raw_edf` reading duplicate channel names by `Larry Eisenman`_
 
 - Fix :func:`set_bipolar_reference` in the case of generating all bipolar combinations and also in the case of repeated channels in both lists (anode and cathode) by `Cristóbal Moënne-Loccoz`_
 
@@ -3133,4 +3133,4 @@ of commits):
 
 .. _David Haslacher: https://github.com/davidhaslacher
 
-.. _lneisenman:  https://github.com/lneisenman
+.. _Larry Eisenman:  https://github.com/lneisenman
