@@ -458,6 +458,7 @@ When using the locations of the fiducial points the digitization data
 are converted to the MEG head coordinate system employed in the
 MNE software, see :ref:`BJEBIBAI`.
 
+.. XXX: This should link to the tuto
 
 Creating MNE data structures from arbitrary data (from memory)
 ##############################################################

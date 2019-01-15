@@ -1,4 +1,6 @@
 """
+.. _example_eeg_sensors_on_the_scalp:
+
 =================================
 Plotting EEG sensors on the scalp
 =================================
