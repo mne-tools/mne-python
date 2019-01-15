@@ -17,7 +17,7 @@ renderer = Renderer()
 
 def _mlab_figure(**kwargs):
     """Create a Mayavi figure using our defaults."""
-    from mayavi import mlab
+    mlab = renderer.mlab
     fig = mlab.figure(**kwargs)
     # If using modern VTK/Mayavi, improve rendering with FXAA
     if hasattr(getattr(fig.scene, 'renderer', None), 'use_fxaa'):
@@ -32,7 +32,7 @@ def _toggle_mlab_render(fig, render):
 
 def _create_mesh_surf(surf, fig=None, scalars=None, vtk_normals=True):
     """Create Mayavi mesh from MNE surf."""
-    mlab = _import_mlab()
+    mlab = renderer.mlab
     x, y, z = surf['rr'].T
     with warnings.catch_warnings(record=True):  # traits
         mesh = mlab.pipeline.triangular_mesh_source(
@@ -65,16 +65,16 @@ def set_interactive():
         tvtk.InteractorStyleTerrain()
 
 
-def add_surface(surf, color, opacity=1.0, backface_culling=False):
-    mesh = _create_mesh_surf(surf, renderer.fig)
+def add_surface(surface, color, opacity=1.0, backface_culling=False):
+    mesh = _create_mesh_surf(surface, renderer.fig)
     surface = renderer.mlab.pipeline.surface(
         mesh, color=color, opacity=opacity, figure=renderer.fig)
     surface.actor.property.backface_culling = backface_culling
 
 
-def add_spheres(centers, color, scale, opacity=1.0, backface_culling=False):
-    surface = renderer.mlab.points3d(centers[:, 0], centers[:, 1],
-                                     centers[:, 2], color=color,
+def add_spheres(center, color, scale, opacity=1.0, backface_culling=False):
+    surface = renderer.mlab.points3d(center[:, 0], center[:, 1],
+                                     center[:, 2], color=color,
                                      scale_factor=scale, opacity=opacity,
                                      figure=renderer.fig)
     surface.actor.property.backface_culling = backface_culling
