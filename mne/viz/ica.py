@@ -25,6 +25,7 @@ from ..io.meas_info import create_info
 from ..io.pick import pick_types
 from ..time_frequency.psd import psd_multitaper
 from ..utils import _reject_data_segments
+from ..epochs import EpochsArray
 
 
 def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
@@ -145,8 +146,11 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     # image and erp
     # we create a new epoch with dropped rows
     epoch_data = epochs_src.get_data()
-    epoch_data = np.insert(epoch_data, dropped_indices - np.arange(len(dropped_indices)), 0.0, axis=0)
-    from ..epochs import EpochsArray
+    epoch_data = np.insert(epoch_data,
+                           dropped_indices -
+                           np.arange(len(dropped_indices)),
+                           0.0,
+                           axis=0)
     epochs_src = EpochsArray(epoch_data, epochs_src.info, verbose=0)
 
     plot_epochs_image(epochs_src, picks=pick, axes=[image_ax, erp_ax],
@@ -443,7 +447,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
             epochs_src, set_title_and_labels, plot_std, psd_ylabel,
             spectrum_std, topomap_args, image_args, fig, axes, kind,
             dropped_indices)
-        all_fig.append(fig) 
+        all_fig.append(fig)
 
     plt_show(show)
     return all_fig
