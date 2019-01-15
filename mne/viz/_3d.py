@@ -1082,9 +1082,10 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
             u, v, w = ax[0]['trans'][:3, :3]
             renderer.add_spheres(center=np.array([[x[0]], [y[0]], [z[0]]]).T,
                                  color=ax[1], scale=3e-3)
-            renderer.add_arrows(x=x, y=y, z=z, u=u, v=v, w=w, color=ax[1],
-                                scale=2e-2, resolution=20, scale_mode='scalar',
-                                scalars=[0.33, 0.66, 1.0])
+            renderer.add_quiver3d(x=x, y=y, z=z, u=u, v=v, w=w, color=ax[1],
+                                  scale=2e-2, resolution=20, mode='arrow',
+                                  scale_mode='scalar',
+                                  scalars=[0.33, 0.66, 1.0])
 
     # plot points
     defaults = DEFAULTS['coreg']
@@ -1120,12 +1121,13 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                                      opacity=alpha, backface_culling=True)
     if len(eegp_loc) > 0:
         with warnings.catch_warnings(record=True):  # traits
-            renderer.add_3d_arrows(
+            renderer.add_quiver3d(
                 x=eegp_loc[:, 0], y=eegp_loc[:, 1], z=eegp_loc[:, 2],
                 u=eegp_nn[:, 0], v=eegp_nn[:, 1], w=eegp_nn[:, 2],
-                resolution=20, center=(0., -defaults['eegp_height'], 0.),
+                mode='cylinder',
+                glyph_resolution=20, glyph_height=defaults['eegp_height'],
+                glyph_center=(0., -defaults['eegp_height'], 0.),
                 color=defaults['eegp_color'], scale=defaults['eegp_scale'],
-                height=defaults['eegp_height'],
                 opacity=0.6, backface_culling=True)
     if len(meg_rrs) > 0:
         color, alpha = (0., 0.25, 0.5), 0.25
@@ -1135,13 +1137,13 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                                  backface_culling=True)
     if len(src_rr) > 0:
         with warnings.catch_warnings(record=True):  # traits
-            renderer.add_3d_arrows(
+            renderer.add_quiver3d(
                 x=src_rr[:, 0], y=src_rr[:, 1], z=src_rr[:, 2],
                 u=src_nn[:, 0], v=src_nn[:, 1], w=src_nn[:, 2],
-                resolution=20, center=(0., 0., 0.),
+                mode='cylinder', glyph_height=0.25,
+                glyph_resolution=20, glyph_center=(0., 0., 0.),
                 color=(1., 1., 0.), scale=3e-3,
-                height=0.25, opacity=0.75,
-                backface_culling=True)
+                opacity=0.75, backface_culling=True)
     with SilenceStdout():
         renderer.set_camera(azimuth=90, elevation=90, distance=0.6,
                             focalpoint=(0., 0., 0.))

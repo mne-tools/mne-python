@@ -80,23 +80,23 @@ def add_spheres(center, color, scale, opacity=1.0, backface_culling=False):
     surface.actor.property.backface_culling = backface_culling
 
 
-def add_arrows(x, y, z, u, v, w, color, scale, resolution, opacity=1.0,
-               scale_mode='none', scalars=None):
-    renderer.mlab.quiver3d(x, y, z, u, v, w, mode='arrow', scale_factor=scale,
-                           color=color, scale_mode=scale_mode,
-                           resolution=resolution, scalars=scalars,
-                           opacity=opacity, figure=renderer.fig)
-
-
-def add_3d_arrows(x, y, z, u, v, w, color, scale, height, resolution,
-                  center=None, opacity=1.0, backface_culling=False):
-    quiv = renderer.mlab.quiver3d(x, y, z, u, v, w, mode='cylinder',
-                                  color=color, scale_factor=scale,
-                                  opacity=opacity, figure=renderer.fig)
-    quiv.glyph.glyph_source.glyph_source.height = height
-    quiv.glyph.glyph_source.glyph_source.center = center
-    quiv.glyph.glyph_source.glyph_source.resolution = resolution
-    quiv.actor.property.backface_culling = backface_culling
+def add_quiver3d(x, y, z, u, v, w, color, scale, resolution, mode,
+                 glyph_height=None, glyph_center=None, glyph_resolution=None,
+                 opacity=1.0, scale_mode='none', scalars=None,
+                 backface_culling=False):
+    if mode == 'arrow':
+        renderer.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
+                               color=color, scale_factor=scale,
+                               scale_mode=scale_mode,
+                               resolution=resolution, scalars=scalars,
+                               opacity=opacity, figure=renderer.fig)
+    elif mode == 'cylinder':
+        quiv = renderer.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
+                                      opacity=opacity, figure=renderer.fig)
+        quiv.glyph.glyph_source.glyph_source.height = glyph_height
+        quiv.glyph.glyph_source.glyph_source.center = glyph_center
+        quiv.glyph.glyph_source.glyph_source.resolution = glyph_resolution
+        quiv.actor.property.backface_culling = backface_culling
 
 
 def show():
