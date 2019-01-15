@@ -65,14 +65,14 @@ def set_interactive():
         tvtk.InteractorStyleTerrain()
 
 
-def add_surface(surface, color, opacity=1.0, backface_culling=False):
+def surface(surface, color, opacity=1.0, backface_culling=False):
     mesh = _create_mesh_surf(surface, renderer.fig)
     surface = renderer.mlab.pipeline.surface(
         mesh, color=color, opacity=opacity, figure=renderer.fig)
     surface.actor.property.backface_culling = backface_culling
 
 
-def add_spheres(center, color, scale, opacity=1.0, backface_culling=False):
+def sphere(center, color, scale, opacity=1.0, backface_culling=False):
     surface = renderer.mlab.points3d(center[:, 0], center[:, 1],
                                      center[:, 2], color=color,
                                      scale_factor=scale, opacity=opacity,
@@ -80,10 +80,10 @@ def add_spheres(center, color, scale, opacity=1.0, backface_culling=False):
     surface.actor.property.backface_culling = backface_culling
 
 
-def add_quiver3d(x, y, z, u, v, w, color, scale, resolution, mode,
-                 glyph_height=None, glyph_center=None, glyph_resolution=None,
-                 opacity=1.0, scale_mode='none', scalars=None,
-                 backface_culling=False):
+def quiver3d(x, y, z, u, v, w, color, scale, resolution, mode,
+             glyph_height=None, glyph_center=None, glyph_resolution=None,
+             opacity=1.0, scale_mode='none', scalars=None,
+             backface_culling=False):
     if mode == 'arrow':
         renderer.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
                                color=color, scale_factor=scale,

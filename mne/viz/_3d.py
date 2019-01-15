@@ -1058,19 +1058,19 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     for key, surf in surfs.items():
         with warnings.catch_warnings(record=True):  # traits
             if key != 'helmet':
-                renderer.add_surface(surface=surf, color=colors[key],
-                                     opacity=alphas[key],
-                                     backface_culling=True)
+                renderer.surface(surface=surf, color=colors[key],
+                                 opacity=alphas[key],
+                                 backface_culling=True)
             else:
-                renderer.add_surface(surface=surf, color=colors[key],
-                                     opacity=alphas[key],
-                                     backface_culling=False)
+                renderer.surface(surface=surf, color=colors[key],
+                                 opacity=alphas[key],
+                                 backface_culling=False)
     if brain and 'lh' not in surfs:  # one layer sphere
         assert bem['coord_frame'] == FIFF.FIFFV_COORD_HEAD
         center = bem['r0'].copy()
         center = apply_trans(head_trans, center)
-        renderer.add_spheres(center=center, scale=0.01, color=colors['lh'],
-                             opacity=alphas['lh'])
+        renderer.sphere(center=center, scale=0.01, color=colors['lh'],
+                        opacity=alphas['lh'])
     if show_axes:
         axes = [(head_trans, (0.9, 0.3, 0.3))]  # always show head
         if not np.allclose(mri_trans['trans'], np.eye(4)):  # Show MRI
@@ -1080,12 +1080,12 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         for ax in axes:
             x, y, z = np.tile(ax[0]['trans'][:3, 3], 3).reshape((3, 3)).T
             u, v, w = ax[0]['trans'][:3, :3]
-            renderer.add_spheres(center=np.array([[x[0]], [y[0]], [z[0]]]).T,
-                                 color=ax[1], scale=3e-3)
-            renderer.add_quiver3d(x=x, y=y, z=z, u=u, v=v, w=w, color=ax[1],
-                                  scale=2e-2, resolution=20, mode='arrow',
-                                  scale_mode='scalar',
-                                  scalars=[0.33, 0.66, 1.0])
+            renderer.sphere(center=np.array([[x[0]], [y[0]], [z[0]]]).T,
+                            color=ax[1], scale=3e-3)
+            renderer.quiver3d(x=x, y=y, z=z, u=u, v=v, w=w, color=ax[1],
+                              scale=2e-2, resolution=20, mode='arrow',
+                              scale_mode='scalar',
+                              scalars=[0.33, 0.66, 1.0])
 
     # plot points
     defaults = DEFAULTS['coreg']
@@ -1117,11 +1117,11 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     for data, color, alpha, scale in zip(datas, colors, alphas, scales):
         if len(data) > 0:
             with warnings.catch_warnings(record=True):  # traits
-                renderer.add_spheres(center=data, color=color, scale=scale,
-                                     opacity=alpha, backface_culling=True)
+                renderer.sphere(center=data, color=color, scale=scale,
+                                opacity=alpha, backface_culling=True)
     if len(eegp_loc) > 0:
         with warnings.catch_warnings(record=True):  # traits
-            renderer.add_quiver3d(
+            renderer.quiver3d(
                 x=eegp_loc[:, 0], y=eegp_loc[:, 1], z=eegp_loc[:, 2],
                 u=eegp_nn[:, 0], v=eegp_nn[:, 1], w=eegp_nn[:, 2],
                 mode='cylinder',
@@ -1133,11 +1133,11 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         color, alpha = (0., 0.25, 0.5), 0.25
         surf = dict(rr=meg_rrs, tris=meg_tris)
         with warnings.catch_warnings(record=True):  # traits
-            renderer.add_surface(surface=surf, color=color, opacity=alpha,
-                                 backface_culling=True)
+            renderer.surface(surface=surf, color=color, opacity=alpha,
+                             backface_culling=True)
     if len(src_rr) > 0:
         with warnings.catch_warnings(record=True):  # traits
-            renderer.add_quiver3d(
+            renderer.quiver3d(
                 x=src_rr[:, 0], y=src_rr[:, 1], z=src_rr[:, 2],
                 u=src_nn[:, 0], v=src_nn[:, 1], w=src_nn[:, 2],
                 mode='cylinder', glyph_height=0.25,
