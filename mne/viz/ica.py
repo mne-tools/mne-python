@@ -146,8 +146,8 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     # we create a new epoch with dropped rows
     epoch_data = epochs_src.get_data()
     epoch_data = np.insert(epoch_data,
-                           dropped_indices -
-                           np.arange(len(dropped_indices)),
+                           (dropped_indices -
+                            np.arange(len(dropped_indices))).astype(int),
                            0.0,
                            axis=0)
     from ..epochs import EpochsArray
@@ -437,8 +437,8 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         epoch_var = np.var(ica_data[idx], axis=1)
         drop_var = np.var(dropped_src[idx], axis=1)
         epoch_var = np.insert(epoch_var,
-                              dropped_indices -
-                              np.arange(len(dropped_indices)),
+                              (dropped_indices -
+                               np.arange(len(dropped_indices))).astype(int),
                               drop_var[dropped_indices], axis=0)
 
         # the actual plot
