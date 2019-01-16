@@ -54,7 +54,7 @@ from ..fixes import _get_args
 from ..filter import filter_data
 from .bads import find_outliers
 from .ctps_ import ctps
-from ..io.pick import channel_type, pick_channels
+from ..io.pick import channel_type, pick_channels_regexp
 
 
 __all__ = ('ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
@@ -1168,10 +1168,11 @@ class ICA(ContainsMixin):
         Parameters
         ----------
         inst : instance of Raw, Epochs or Evoked
-            instance of components from MEG reference channels, i.e.
-            from ICA.get_sources
+            Object to compute sources from. Should contain at least one channel
+            i.e. component derived from MEG reference channels.
         picks: list of int
-            Which MEG reference components to use. If None, then all.
+            Which MEG reference components to use. If None, then all channels
+            that begin with REF_ICA
         threshold : int | float
             The value above which a feature is classified as outlier.
         start : int | float | None
@@ -1209,7 +1210,7 @@ class ICA(ContainsMixin):
             verbose = self.verbose
 
         if not picks:
-            inds = pick_channels(inst.ch_names,[])
+            inds = pick_channels_regexp(inst.ch_names,"REF_ICA*")
         else:
             inds = picks
         scores, ref_idx = [], []
