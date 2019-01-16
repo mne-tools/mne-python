@@ -134,3 +134,7 @@ def show():
 def set_camera(azimuth=None, elevation=None, distance=None, focalpoint=None):
     renderer.mlab.view(azimuth, elevation, distance,
                        focalpoint=focalpoint, figure=renderer.fig)
+
+
+def screenshot():
+    return renderer.mlab.screenshot(renderer.fig)
