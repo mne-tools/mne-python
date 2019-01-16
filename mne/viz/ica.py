@@ -145,10 +145,10 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     # image and erp
     # we create a new epoch with dropped rows
     epoch_data = epochs_src.get_data()
-    epoch_data = np.insert(epoch_data,
-                           (dropped_indices -
-                            np.arange(len(dropped_indices))).astype(int),
-                           0.0,
+    epoch_data = np.insert(arr=epoch_data,
+                           obj=(dropped_indices -
+                                np.arange(len(dropped_indices))).astype(int),
+                           values=0.0,
                            axis=0)
     from ..epochs import EpochsArray
     epochs_src = EpochsArray(epoch_data, epochs_src.info, verbose=0)
@@ -358,22 +358,27 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     # ------------
 
     if isinstance(inst, BaseRaw):
-        # if reject is set, reject
+        # when auto, delegate reject to the ica
         if reject == 'auto':
             reject = getattr(ica, 'reject_', None)
-        if reject is not None:
+        else:
+            pass
+
+        if reject is None:
+            inst_rejected = inst
+            drop_inds = None
+        else:
             data = inst.get_data()
             data, drop_inds = _reject_data_segments(data, ica.reject_,
                                                     flat=None, decim=None,
                                                     info=inst.info,
                                                     tstep=2.0)
             inst_rejected = RawArray(data, inst.info)
-        else:
-            inst_rejected = inst
-            drop_inds = None
+
         # break up continuous signal into segments
         from ..epochs import _segment_raw
-        inst_rejected = _segment_raw(inst_rejected, segment_length=2.,
+        inst_rejected = _segment_raw(inst_rejected,
+                                     segment_length=2.,
                                      verbose=False,
                                      preload=True)
         inst = _segment_raw(inst, segment_length=2., verbose=False,
@@ -390,14 +395,13 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     ica_data = np.swapaxes(data[:, picks, :], 0, 1)
 
     # getting dropped epochs indexes
-
-    dropped_indices = []
     if drop_inds is not None:
-        for dropped in drop_inds:
-            dropped_indices.append((dropped[0] // len(inst.times)) + 1)
+        dropped_indices = [(d[0] // len(inst.times)) + 1
+                           for d in drop_inds]
+    else:
+        dropped_indices = []
 
-    # getting
-
+    # getting ica sources from inst
     dropped_src = ica.get_sources(inst).get_data()
     dropped_src = np.swapaxes(dropped_src[:, picks, :], 0, 1)
 
@@ -436,10 +440,13 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         # we reconstruct an epoch_variance with 0 where indexes where dropped
         epoch_var = np.var(ica_data[idx], axis=1)
         drop_var = np.var(dropped_src[idx], axis=1)
-        epoch_var = np.insert(epoch_var,
-                              (dropped_indices -
-                               np.arange(len(dropped_indices))).astype(int),
-                              drop_var[dropped_indices], axis=0)
+        drop_indices_corrected = \
+            (dropped_indices -
+             np.arange(len(dropped_indices))).astype(int)
+        epoch_var = np.insert(arr=epoch_var,
+                              obj=drop_indices_corrected,
+                              values=drop_var[dropped_indices],
+                              axis=0)
 
         # the actual plot
         fig = _plot_ica_properties(
