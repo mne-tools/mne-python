@@ -15,6 +15,7 @@ XXX: things to refer properly:
 
 import mne
 from mne.datasets import sample
+from mne.channels.montage import _set_montage
 from mne.viz import plot_alignment
 from mayavi import mlab
 
@@ -27,6 +28,7 @@ data_path = mne.datasets.sample.data_path()
 subjects_dir = data_path + '/subjects'
 trans = mne.read_trans(data_path + '/MEG/sample/sample_audvis_raw-trans.fif')
 raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
+raw.load_data()
 raw.pick_types(meg=False, eeg=True, eog=True)
 print(raw.info['chs'][0]['loc'])
 
@@ -38,16 +40,19 @@ mlab.view(135, 80)
 
 # With montage
 montage = mne.channels.read_montage('standard_1020')
-raw.set_montage(montage)
+# raw.set_montage(montage, set_dig=True)
+
+_set_montage(raw.info, montage, update_ch_names=True, set_dig=True)
 fig = plot_alignment(raw.info, trans, subject='sample', dig=False,
                      eeg=['original', 'projected'], meg=[],
                      coord_frame='head', subjects_dir=subjects_dir)
 mlab.view(135, 80)
 
 # with a name
-raw.set_montage('mgh60')  # test loading with string argument
+# raw.set_montage('mgh60')  # test loading with string argument
+montage = mne.channels.read_montage('standard_1020')
+_set_montage(raw.info, montage, update_ch_names=True, set_dig=True)
 fig = plot_alignment(raw.info, trans, subject='sample', dig=False,
                      eeg=['original', 'projected'], meg=[],
                      coord_frame='head', subjects_dir=subjects_dir)
 mlab.view(135, 80)
-
