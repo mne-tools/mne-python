@@ -52,9 +52,9 @@ def _create_mesh_surf(surf, fig=None, scalars=None, vtk_normals=True):
     return mesh
 
 
-def init(wsize, bg):
+def init(size, bgcolor):
     renderer.mlab = _import_mlab()
-    renderer.fig = _mlab_figure(bgcolor=bg, size=wsize)
+    renderer.fig = _mlab_figure(bgcolor=bgcolor, size=size)
     _toggle_mlab_render(renderer.fig, False)
     return 0
 
@@ -63,6 +63,16 @@ def set_interactive():
     from tvtk.api import tvtk
     renderer.fig.scene.interactor.interactor_style = \
         tvtk.InteractorStyleTerrain()
+
+
+def mesh(x, y, z, triangles, color, opacity=1.0, shading=False,
+         backface_culling=False, **kwargs):
+    surface = renderer.mlab.triangular_mesh(x, y, z, color=color,
+                                            opacity=opacity,
+                                            figure=renderer.fig,
+                                            **kwargs)
+    surface.actor.property.shading = shading
+    surface.actor.property.backface_culling = backface_culling
 
 
 def contour(surface, scalars, contours, line_width=1.0, opacity=1.0,
@@ -94,7 +104,7 @@ def sphere(center, color, scale, opacity=1.0, backface_culling=False):
     surface.actor.property.backface_culling = backface_culling
 
 
-def quiver3d(x, y, z, u, v, w, color, scale, resolution, mode,
+def quiver3d(x, y, z, u, v, w, color, scale, mode, resolution=8,
              glyph_height=None, glyph_center=None, glyph_resolution=None,
              opacity=1.0, scale_mode='none', scalars=None,
              backface_culling=False):

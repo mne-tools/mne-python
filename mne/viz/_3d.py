@@ -346,7 +346,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                                      np.tile([0., 0., 0., 255.], (2, 1)),
                                      np.tile([255., 0., 0., 255.], (127, 1))])
 
-    renderer.init(size=(600, 600), bg=(0.0, 0.0, 0.0))
+    renderer.init(size=(600, 600), bgcolor=(0.0, 0.0, 0.0))
 
     for ii, this_map in enumerate(surf_maps):
         surf = this_map['surf']
@@ -547,7 +547,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                    surfaces='head', coord_frame='head',
                    meg=None, eeg='original',
                    dig=False, ecog=True, src=None, mri_fiducials=False,
-                   bem=None, seeg=True, show_axes=False, fig=None,
+                   bem=None, seeg=True, show_axes=False,
                    interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
@@ -612,10 +612,6 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         * head in pink
         * MRI in gray (if ``trans is not None``)
         * MEG in blue (if MEG sensors are present)
-        .. versionadded:: 0.16
-    fig : mayavi figure object | None
-        Mayavi Scene (instance of mlab.Figure) in which to plot the alignment.
-        If ``None``, creates a new 600x600 pixel figure with black background.
         .. versionadded:: 0.16
     interaction : str
         Can be "trackball" (default) or "terrain", i.e. a turntable-style
@@ -1031,7 +1027,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                              for pick in seeg_picks])
 
     # initialize figure
-    renderer.init(wsize=(800, 800), bg=(0.5, 0.5, 0.5))
+    renderer.init(size=(800, 800), bgcolor=(0.5, 0.5, 0.5))
     renderer.set_interactive()
 
     # plot surfaces
@@ -2320,13 +2316,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         and :ref:`Logging documentation <tut_logging>` for more).
     **kwargs : kwargs
         Keyword arguments to pass to mlab.triangular_mesh.
-
-    Returns
-    -------
-    surface : instance of mlab Surface
-        The triangular mesh surface.
     """
-    mlab = _import_mlab()
     import matplotlib.pyplot as plt
     from matplotlib.colors import ColorConverter
 
@@ -2371,14 +2361,12 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     color_converter = ColorConverter()
 
-    f = _mlab_figure(figure=fig_name, bgcolor=bgcolor, size=(600, 600))
-    _toggle_mlab_render(f, False)
+    renderer.init(size=(600, 600), bgcolor=bgcolor)
+
     with warnings.catch_warnings(record=True):  # traits warnings
-        surface = mlab.triangular_mesh(points[:, 0], points[:, 1],
-                                       points[:, 2], use_faces,
-                                       color=brain_color,
-                                       opacity=opacity, **kwargs)
-    surface.actor.property.backface_culling = True
+        renderer.mesh(x=points[:, 0], y=points[:, 1], z=points[:, 2],
+                      triangles=use_faces, color=brain_color,
+                      opacity=opacity, backface_culling=True, **kwargs)
 
     # Show time courses
     fig = plt.figure(fig_number)
@@ -2414,8 +2402,9 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         x, y, z = points[v]
         nx, ny, nz = normals[v]
         with warnings.catch_warnings(record=True):  # traits
-            mlab.quiver3d(x, y, z, nx, ny, nz, color=color_converter.to_rgb(c),
-                          mode=mode, scale_factor=scale_factor)
+            renderer.quiver3d(x=x, y=y, z=z, u=nx, v=ny, w=nz,
+                              color=color_converter.to_rgb(c),
+                              scale=scale_factor, mode=mode)
 
         for k in ind:
             vertno = vertnos[k]
@@ -2431,11 +2420,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     if fig_name is not None:
         ax.set_title(fig_name)
     plt_show(show)
-
-    surface.actor.property.backface_culling = True
-    surface.actor.property.shading = True
-    _toggle_mlab_render(f, True)
-    return surface
+    renderer.show()
 
 
 def _mlab_figure(**kwargs):
