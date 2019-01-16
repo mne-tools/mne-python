@@ -67,7 +67,7 @@ def set_interactive():
 
 def contour(surface, scalars, contours, line_width=1.0, opacity=1.0,
             vmin=None, vmax=None, colormap=None):
-    mesh = _create_mesh_surf(surface, figure=renderer.fig, scalars=scalars)
+    mesh = _create_mesh_surf(surface, renderer.fig, scalars=scalars)
     cont = renderer.mlab.pipeline.contour_surface(
         mesh, contours=contours, line_width=1.0, vmin=vmin, vmax=vmax,
         opacity=opacity, figure=renderer.fig)
@@ -77,7 +77,7 @@ def contour(surface, scalars, contours, line_width=1.0, opacity=1.0,
 def surface(surface, color=(0.7, 0.7, 0.7), opacity=1.0,
             vmin=None, vmax=None, colormap=None,
             backface_culling=False):
-    mesh = _create_mesh_surf(surface, figure=renderer.fig)
+    mesh = _create_mesh_surf(surface, renderer.fig)
     surface = renderer.mlab.pipeline.surface(
         mesh, color=color, opacity=opacity, vmin=vmin, vmax=vmax,
         figure=renderer.fig)
