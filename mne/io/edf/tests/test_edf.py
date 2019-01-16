@@ -37,6 +37,8 @@ data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 montage_path = op.join(data_dir, 'biosemi.hpts')
 bdf_path = op.join(data_dir, 'test.bdf')
 edf_path = op.join(data_dir, 'test.edf')
+duplicate_channel_labels_path = op.join(data_dir,
+                                        'duplicate_channel_labels.edf')
 edf_uneven_path = op.join(data_dir, 'test_uneven_samp.edf')
 bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
@@ -62,7 +64,7 @@ def test_orig_units():
 
     # Test original units
     orig_units = raw._orig_units
-    assert len(orig_units) == 140
+    assert len(orig_units) == len(raw.ch_names)
     assert orig_units['A1'] == u'µV'  # formerly 'uV' edit by _check_orig_units
 
 
@@ -238,7 +240,16 @@ def test_stim_channel():
     assert len(events) == 0
 
 
-def test_parse_annotation():
+def test_duplicate_channel_labels_edf():
+    """Test reading edf file with duplicate channel names."""
+    EXPECTED_CHANNEL_NAMES = ['EEG F1-Ref-0', 'EEG F2-Ref', 'EEG F1-Ref-1']
+    with pytest.warns(RuntimeWarning, match='Channel names are not unique'):
+        raw = read_raw_edf(duplicate_channel_labels_path, preload=True)
+
+    assert raw.ch_names[:-1] == EXPECTED_CHANNEL_NAMES
+
+
+def test_parse_annotation(tmpdir):
     """Test parsing the tal channel."""
     # test the parser
     annot = (b'+180\x14Lights off\x14Close door\x14\x00\x00\x00\x00\x00'
