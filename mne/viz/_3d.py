@@ -325,11 +325,6 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         How to print info about the time instant visualized.
     n_jobs : int
         Number of jobs to run in parallel.
-
-    Returns
-    -------
-    fig : instance of mlab.Figure
-        The mayavi figure.
     """
     types = [t for t in ['eeg', 'grad', 'mag'] if t in evoked]
 
@@ -344,7 +339,6 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     types = [sm['kind'] for sm in surf_maps]
 
     # Plot them
-    mlab = _import_mlab()
     alphas = [1.0, 0.5]
     colors = [(0.6, 0.6, 0.6), (1.0, 1.0, 1.0)]
     colormap = mne_analyze_colormap(format='mayavi')
@@ -352,8 +346,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                                      np.tile([0., 0., 0., 255.], (2, 1)),
                                      np.tile([255., 0., 0., 255.], (127, 1))])
 
-    fig = _mlab_figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
-    _toggle_mlab_render(fig, False)
+    renderer.init(size=(600, 600), bg=(0.0, 0.0, 0.0))
 
     for ii, this_map in enumerate(surf_maps):
         surf = this_map['surf']
@@ -385,36 +378,28 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         # Make a solid surface
         vlim = np.max(np.abs(data))
         alpha = alphas[ii]
-        mesh = _create_mesh_surf(surf, fig)
         with warnings.catch_warnings(record=True):  # traits
-            surface = mlab.pipeline.surface(mesh, color=colors[ii],
-                                            opacity=alpha, figure=fig)
-        surface.actor.property.backface_culling = False
+            renderer.surface(surface=surf, color=colors[ii],
+                             opacity=alpha, backface_culling=False)
 
         # Now show our field pattern
-        mesh = _create_mesh_surf(surf, fig, scalars=data)
         with warnings.catch_warnings(record=True):  # traits
-            fsurf = mlab.pipeline.surface(mesh, vmin=-vlim, vmax=vlim,
-                                          figure=fig)
-        fsurf.module_manager.scalar_lut_manager.lut.table = colormap
-        fsurf.actor.property.backface_culling = False
+            renderer.surface(surface=surf, vmin=-vlim, vmax=vlim,
+                             colormap=colormap, backface_culling=False)
 
         # And the field lines on top
-        mesh = _create_mesh_surf(surf, fig, scalars=data)
         with warnings.catch_warnings(record=True):  # traits
-            cont = mlab.pipeline.contour_surface(
-                mesh, contours=21, line_width=1.0, vmin=-vlim, vmax=vlim,
-                opacity=alpha, figure=fig)
-        cont.module_manager.scalar_lut_manager.lut.table = colormap_lines
+            renderer.contour(surface=surf, scalars=data, contours=21,
+                             opacity=alpha, vmin=-vlim, vmax=vlim,
+                             colormap=colormap_lines, line_width=1.0)
 
     if '%' in time_label:
         time_label %= (1e3 * evoked.times[time_idx])
     with warnings.catch_warnings(record=True):  # traits
-        mlab.text(0.01, 0.01, time_label, width=0.4, figure=fig)
+        renderer.text(x=0.01, y=0.01, text=time_label, width=0.4)
         with SilenceStdout():  # setting roll
-            mlab.view(10, 60, figure=fig)
-    _toggle_mlab_render(fig, True)
-    return fig
+            renderer.set_camera(azimuth=10, elevation=60)
+    renderer.show()
 
 
 def _create_mesh_surf(surf, fig=None, scalars=None, vtk_normals=True):

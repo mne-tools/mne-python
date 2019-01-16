@@ -65,10 +65,24 @@ def set_interactive():
         tvtk.InteractorStyleTerrain()
 
 
-def surface(surface, color, opacity=1.0, backface_culling=False):
-    mesh = _create_mesh_surf(surface, renderer.fig)
+def contour(surface, scalars, contours, line_width=1.0, opacity=1.0,
+            vmin=None, vmax=None, colormap=None):
+    mesh = _create_mesh_surf(surface, figure=renderer.fig, scalars=scalars)
+    cont = renderer.mlab.pipeline.contour_surface(
+        mesh, contours=contours, line_width=1.0, vmin=vmin, vmax=vmax,
+        opacity=opacity, figure=renderer.fig)
+    cont.module_manager.scalar_lut_manager.lut.table = colormap
+
+
+def surface(surface, color=(0.7, 0.7, 0.7), opacity=1.0,
+            vmin=None, vmax=None, colormap=None,
+            backface_culling=False):
+    mesh = _create_mesh_surf(surface, figure=renderer.fig)
     surface = renderer.mlab.pipeline.surface(
-        mesh, color=color, opacity=opacity, figure=renderer.fig)
+        mesh, color=color, opacity=opacity, vmin=vmin, vmax=vmax,
+        figure=renderer.fig)
+    if colormap is not None:
+        surface.module_manager.scalar_lut_manager.lut.table = colormap
     surface.actor.property.backface_culling = backface_culling
 
 
@@ -99,10 +113,14 @@ def quiver3d(x, y, z, u, v, w, color, scale, resolution, mode,
         quiv.actor.property.backface_culling = backface_culling
 
 
+def text(x, y, text, width):
+    renderer.mlab.text(x, y, text, width=width, figure=renderer.fig)
+
+
 def show():
     _toggle_mlab_render(renderer.fig, True)
 
 
-def set_camera(azimuth, elevation, distance, focalpoint):
+def set_camera(azimuth=None, elevation=None, distance=None, focalpoint=None):
     renderer.mlab.view(azimuth, elevation, distance,
                        focalpoint=focalpoint, figure=renderer.fig)
