@@ -325,6 +325,11 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         How to print info about the time instant visualized.
     n_jobs : int
         Number of jobs to run in parallel.
+
+    Returns
+    -------
+    ren : Renderer
+        The renderer used.
     """
     types = [t for t in ['eeg', 'grad', 'mag'] if t in evoked]
 
@@ -346,7 +351,8 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                                      np.tile([0., 0., 0., 255.], (2, 1)),
                                      np.tile([255., 0., 0., 255.], (127, 1))])
 
-    renderer.init(size=(600, 600), bgcolor=(0.0, 0.0, 0.0))
+    ren = renderer
+    ren.init(size=(600, 600), bgcolor=(0.0, 0.0, 0.0))
 
     for ii, this_map in enumerate(surf_maps):
         surf = this_map['surf']
@@ -379,27 +385,28 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         vlim = np.max(np.abs(data))
         alpha = alphas[ii]
         with warnings.catch_warnings(record=True):  # traits
-            renderer.surface(surface=surf, color=colors[ii],
-                             opacity=alpha, backface_culling=False)
+            ren.surface(surface=surf, color=colors[ii],
+                        opacity=alpha, backface_culling=False)
 
         # Now show our field pattern
         with warnings.catch_warnings(record=True):  # traits
-            renderer.surface(surface=surf, vmin=-vlim, vmax=vlim,
-                             colormap=colormap, backface_culling=False)
+            ren.surface(surface=surf, vmin=-vlim, vmax=vlim,
+                        colormap=colormap, backface_culling=False)
 
         # And the field lines on top
         with warnings.catch_warnings(record=True):  # traits
-            renderer.contour(surface=surf, scalars=data, contours=21,
-                             opacity=alpha, vmin=-vlim, vmax=vlim,
-                             colormap=colormap_lines, line_width=1.0)
+            ren.contour(surface=surf, scalars=data, contours=21,
+                        opacity=alpha, vmin=-vlim, vmax=vlim,
+                        colormap=colormap_lines, line_width=1.0)
 
     if '%' in time_label:
         time_label %= (1e3 * evoked.times[time_idx])
     with warnings.catch_warnings(record=True):  # traits
-        renderer.text(x=0.01, y=0.01, text=time_label, width=0.4)
+        ren.text(x=0.01, y=0.01, text=time_label, width=0.4)
         with SilenceStdout():  # setting roll
-            renderer.set_camera(azimuth=10, elevation=60)
-    renderer.show()
+            ren.set_camera(azimuth=10, elevation=60)
+    ren.show()
+    return ren
 
 
 def _create_mesh_surf(surf, fig=None, scalars=None, vtk_normals=True):
@@ -545,7 +552,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 @verbose
 def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                    surfaces='head', coord_frame='head',
-                   meg=None, eeg='original',
+                   meg=None, eeg='original', ren=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, show_axes=False,
                    interaction='trackball', verbose=None):
@@ -567,13 +574,16 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
     surfaces : str | list
         Surfaces to plot. Supported values:
+
         * scalp: one of 'head', 'outer_skin' (alias for 'head'),
           'head-dense', or 'seghead' (alias for 'head-dense')
         * skull: 'outer_skull', 'inner_skull', 'brain' (alias for
           'inner_skull')
         * brain: one of 'pial', 'white', 'inflated', or 'brain'
           (alias for 'pial').
+
         Defaults to 'head'.
+
         .. note:: For single layer BEMs it is recommended to use 'brain'.
     coord_frame : str
         Coordinate frame to use, 'head', 'meg', or 'mri'.
@@ -609,17 +619,28 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     show_axes : bool
         If True (default False), coordinate frame axis indicators will be
         shown:
+
         * head in pink
         * MRI in gray (if ``trans is not None``)
         * MEG in blue (if MEG sensors are present)
+
+    ren : Instance of Renderer
+        If not None, the input renderer to use.
+
         .. versionadded:: 0.16
     interaction : str
         Can be "trackball" (default) or "terrain", i.e. a turntable-style
         camera.
+
         .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    ren : instance of Renderer
+        The renderer used.
 
     See Also
     --------
@@ -629,10 +650,12 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     -----
     This function serves the purpose of checking the validity of the many
     different steps of source reconstruction:
+
     - Transform matrix (keywords ``trans``, ``meg`` and ``mri_fiducials``),
     - BEM surfaces (keywords ``bem`` and ``surfaces``),
     - sphere conductor model (keywords ``bem`` and ``surfaces``) and
     - source space (keywords ``surfaces`` and ``src``).
+
     .. versionadded:: 0.15
     """
     from ..forward import _create_meg_coils
@@ -1026,9 +1049,12 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         seeg_loc = np.array([info['chs'][pick]['loc'][:3]
                              for pick in seeg_picks])
 
+    if ren is None:
+        ren = renderer
+
     # initialize figure
-    renderer.init(size=(800, 800), bgcolor=(0.5, 0.5, 0.5))
-    renderer.set_interactive()
+    ren.init(size=(800, 800), bgcolor=(0.5, 0.5, 0.5))
+    ren.set_interactive()
 
     # plot surfaces
     alphas = dict(head=head_alpha, helmet=0.25, lh=hemi_val, rh=hemi_val)
@@ -1039,19 +1065,19 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     for key, surf in surfs.items():
         with warnings.catch_warnings(record=True):  # traits
             if key != 'helmet':
-                renderer.surface(surface=surf, color=colors[key],
-                                 opacity=alphas[key],
-                                 backface_culling=True)
+                ren.surface(surface=surf, color=colors[key],
+                            opacity=alphas[key],
+                            backface_culling=True)
             else:
-                renderer.surface(surface=surf, color=colors[key],
-                                 opacity=alphas[key],
-                                 backface_culling=False)
+                ren.surface(surface=surf, color=colors[key],
+                            opacity=alphas[key],
+                            backface_culling=False)
     if brain and 'lh' not in surfs:  # one layer sphere
         assert bem['coord_frame'] == FIFF.FIFFV_COORD_HEAD
         center = bem['r0'].copy()
         center = apply_trans(head_trans, center)
-        renderer.sphere(center=center, scale=0.01, color=colors['lh'],
-                        opacity=alphas['lh'])
+        ren.sphere(center=center, scale=0.01, color=colors['lh'],
+                   opacity=alphas['lh'])
     if show_axes:
         axes = [(head_trans, (0.9, 0.3, 0.3))]  # always show head
         if not np.allclose(mri_trans['trans'], np.eye(4)):  # Show MRI
@@ -1061,12 +1087,12 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         for ax in axes:
             x, y, z = np.tile(ax[0]['trans'][:3, 3], 3).reshape((3, 3)).T
             u, v, w = ax[0]['trans'][:3, :3]
-            renderer.sphere(center=np.array([[x[0]], [y[0]], [z[0]]]).T,
-                            color=ax[1], scale=3e-3)
-            renderer.quiver3d(x=x, y=y, z=z, u=u, v=v, w=w, color=ax[1],
-                              scale=2e-2, resolution=20, mode='arrow',
-                              scale_mode='scalar',
-                              scalars=[0.33, 0.66, 1.0])
+            ren.sphere(center=np.array([[x[0]], [y[0]], [z[0]]]).T,
+                       color=ax[1], scale=3e-3)
+            ren.quiver3d(x=x, y=y, z=z, u=u, v=v, w=w, color=ax[1],
+                         scale=2e-2, resolution=20, mode='arrow',
+                         scale_mode='scalar',
+                         scalars=[0.33, 0.66, 1.0])
 
     # plot points
     defaults = DEFAULTS['coreg']
@@ -1098,11 +1124,11 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     for data, color, alpha, scale in zip(datas, colors, alphas, scales):
         if len(data) > 0:
             with warnings.catch_warnings(record=True):  # traits
-                renderer.sphere(center=data, color=color, scale=scale,
-                                opacity=alpha, backface_culling=True)
+                ren.sphere(center=data, color=color, scale=scale,
+                           opacity=alpha, backface_culling=True)
     if len(eegp_loc) > 0:
         with warnings.catch_warnings(record=True):  # traits
-            renderer.quiver3d(
+            ren.quiver3d(
                 x=eegp_loc[:, 0], y=eegp_loc[:, 1], z=eegp_loc[:, 2],
                 u=eegp_nn[:, 0], v=eegp_nn[:, 1], w=eegp_nn[:, 2],
                 mode='cylinder',
@@ -1114,11 +1140,11 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         color, alpha = (0., 0.25, 0.5), 0.25
         surf = dict(rr=meg_rrs, tris=meg_tris)
         with warnings.catch_warnings(record=True):  # traits
-            renderer.surface(surface=surf, color=color, opacity=alpha,
-                             backface_culling=True)
+            ren.surface(surface=surf, color=color, opacity=alpha,
+                        backface_culling=True)
     if len(src_rr) > 0:
         with warnings.catch_warnings(record=True):  # traits
-            renderer.quiver3d(
+            ren.quiver3d(
                 x=src_rr[:, 0], y=src_rr[:, 1], z=src_rr[:, 2],
                 u=src_nn[:, 0], v=src_nn[:, 1], w=src_nn[:, 2],
                 mode='cylinder', glyph_height=0.25,
@@ -1126,9 +1152,10 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                 color=(1., 1., 0.), scale=3e-3,
                 opacity=0.75, backface_culling=True)
     with SilenceStdout():
-        renderer.set_camera(azimuth=90, elevation=90, distance=0.6,
-                            focalpoint=(0., 0., 0.))
-    renderer.show()
+        ren.set_camera(azimuth=90, elevation=90, distance=0.6,
+                       focalpoint=(0., 0., 0.))
+    ren.show()
+    return ren
 
 
 def _make_tris_fan(n_vert):
@@ -2316,6 +2343,11 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         and :ref:`Logging documentation <tut_logging>` for more).
     **kwargs : kwargs
         Keyword arguments to pass to mlab.triangular_mesh.
+
+    Returns
+    -------
+    ren : instance of Renderer
+        The renderer used.
     """
     import matplotlib.pyplot as plt
     from matplotlib.colors import ColorConverter
@@ -2361,12 +2393,13 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     color_converter = ColorConverter()
 
-    renderer.init(size=(600, 600), bgcolor=bgcolor)
+    ren = renderer
+    ren.init(size=(600, 600), bgcolor=bgcolor)
 
     with warnings.catch_warnings(record=True):  # traits warnings
-        renderer.mesh(x=points[:, 0], y=points[:, 1], z=points[:, 2],
-                      triangles=use_faces, color=brain_color,
-                      opacity=opacity, backface_culling=True, **kwargs)
+        ren.mesh(x=points[:, 0], y=points[:, 1], z=points[:, 2],
+                 triangles=use_faces, color=brain_color,
+                 opacity=opacity, backface_culling=True, **kwargs)
 
     # Show time courses
     fig = plt.figure(fig_number)
@@ -2402,9 +2435,9 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         x, y, z = points[v]
         nx, ny, nz = normals[v]
         with warnings.catch_warnings(record=True):  # traits
-            renderer.quiver3d(x=x, y=y, z=z, u=nx, v=ny, w=nz,
-                              color=color_converter.to_rgb(c),
-                              scale=scale_factor, mode=mode)
+            ren.quiver3d(x=x, y=y, z=z, u=nx, v=ny, w=nz,
+                         color=color_converter.to_rgb(c),
+                         scale=scale_factor, mode=mode)
 
         for k in ind:
             vertno = vertnos[k]
@@ -2420,7 +2453,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     if fig_name is not None:
         ax.set_title(fig_name)
     plt_show(show)
-    renderer.show()
+    ren.show()
+    return ren
 
 
 def _mlab_figure(**kwargs):
