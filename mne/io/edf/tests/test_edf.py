@@ -28,6 +28,7 @@ from mne.io.edf.edf import _read_annotations_edf
 from mne.io.edf.edf import _read_ch
 from mne.io.pick import channel_indices_by_type
 from mne.annotations import events_from_annotations, read_annotations
+from mne.io.meas_info import _kind_dict as _KIND_DICT
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -284,6 +285,30 @@ def test_load_generator(fname, recwarn):
     assert raw.ch_names == ch_names
     assert event_id == {'RECORD START': 1, 'REC STOP': 2}
     assert_array_equal(events, [[0, 0, 1], [120000, 0, 2]])
+
+
+def test_edf_stim_ch_pick_up():
+    TYPE_LUT = {v[0]: k for k, v in _KIND_DICT.items()}
+
+    fname = op.join(data_dir, 'test_stim_channel.edf')
+
+    # default parameters
+    expected = {'stAtUs': 'stim', 'tRigGer': 'stim', 'sine 1 Hz': 'eeg'}
+    raw = read_raw_edf(fname, stim_channel='auto')
+    ch_types = {ch['ch_name']: TYPE_LUT[ch['kind']] for ch in raw.info['chs']}
+    assert ch_types == expected
+
+    # None parameter
+    expected = {'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'eeg'}
+    raw = read_raw_edf(fname, stim_channel=None)
+    ch_types = {ch['ch_name']: TYPE_LUT[ch['kind']] for ch in raw.info['chs']}
+    assert ch_types == expected
+
+    # specific name parameter
+    expected = {'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'}
+    raw = read_raw_edf(fname, stim_channel='sine 1 Hz')  # XXX: list?
+    ch_types = {ch['ch_name']: TYPE_LUT[ch['kind']] for ch in raw.info['chs']}
+    assert ch_types == expected
 
 
 run_tests_if_main()
