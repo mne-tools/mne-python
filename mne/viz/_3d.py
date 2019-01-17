@@ -32,7 +32,7 @@ from ..source_space import SourceSpaces, _create_surf_spacing, _check_spacing
 from ..surface import (get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
                        mesh_edges, _reorder_ccw,
-                       _complete_sphere_surf, _normalize_vectors)
+                       _complete_sphere_surf)
 from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
@@ -407,28 +407,6 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
             ren.set_camera(azimuth=10, elevation=60)
     ren.show()
     return ren
-
-
-def _create_mesh_surf(surf, fig=None, scalars=None, vtk_normals=True):
-    """Create Mayavi mesh from MNE surf."""
-    mlab = _import_mlab()
-    x, y, z = surf['rr'].T
-    with warnings.catch_warnings(record=True):  # traits
-        mesh = mlab.pipeline.triangular_mesh_source(
-            x, y, z, surf['tris'], scalars=scalars, figure=fig)
-    if vtk_normals:
-        mesh = mlab.pipeline.poly_data_normals(mesh)
-        mesh.filter.compute_cell_normals = False
-        mesh.filter.consistency = False
-        mesh.filter.non_manifold_traversal = False
-        mesh.filter.splitting = False
-    else:
-        # make absolutely sure these are normalized for Mayavi
-        nn = surf['nn'].copy()
-        _normalize_vectors(nn)
-        mesh.data.point_data.normals = nn
-        mesh.data.cell_data.normals = None
-    return mesh
 
 
 def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
@@ -2455,22 +2433,6 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     plt_show(show)
     ren.show()
     return ren
-
-
-def _mlab_figure(**kwargs):
-    """Create a Mayavi figure using our defaults."""
-    from mayavi import mlab
-    fig = mlab.figure(**kwargs)
-    # If using modern VTK/Mayavi, improve rendering with FXAA
-    if hasattr(getattr(fig.scene, 'renderer', None), 'use_fxaa'):
-        fig.scene.renderer.use_fxaa = True
-    return fig
-
-
-def _toggle_mlab_render(fig, render):
-    mlab = _import_mlab()
-    if mlab.options.backend != 'test':
-        fig.scene.disable_render = not render
 
 
 def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
