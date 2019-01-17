@@ -29,6 +29,12 @@ def matplotlib_config():
     plt.ioff()
     plt.rcParams['figure.dpi'] = 100
     try:
+        from traits.etsconfig.api import ETSConfig
+    except Exception:
+        pass
+    else:
+        ETSConfig.toolkit = 'qt4'
+    try:
         with warnings.catch_warnings(record=True):  # traits
             from mayavi import mlab
     except Exception:
