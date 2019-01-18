@@ -56,7 +56,6 @@ def init(size, bgcolor):
     renderer.mlab = _import_mlab()
     renderer.fig = _mlab_figure(bgcolor=bgcolor, size=size)
     _toggle_mlab_render(renderer.fig, False)
-    return 0
 
 
 def set_interactive():
@@ -68,6 +67,7 @@ def set_interactive():
 def mesh(x, y, z, triangles, color, opacity=1.0, shading=False,
          backface_culling=False, **kwargs):
     surface = renderer.mlab.triangular_mesh(x, y, z, color=color,
+                                            triangles=triangles,
                                             opacity=opacity,
                                             figure=renderer.fig,
                                             **kwargs)
