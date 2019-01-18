@@ -47,7 +47,7 @@ from .externals.decorator import decorator
 
 from .fixes import _get_args
 
-from mne import __version__
+from . import __version__
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
@@ -906,7 +906,30 @@ def deprecate_parameter_rename(deprecated_in, removed_in,
                                current_version=__version__,
                                details=None,
                                transform=None):
+    """Mark a function parameter as deprecated.
 
+    Issue a warning when the function is called with the `old_parameter`.
+
+
+    Parameters
+    ----------
+    extra: string
+    deprecated_in: string
+        When was deprecated.
+    removed_in: string
+        When `old_param` would no longer be accepted.
+    old_param: string
+        Old parameter name.
+    new_param: string
+        New parameter name.
+    current_version: string
+        MNE-python current version. This parameter is meant for test purposes.
+    details: string
+        Extra information to append to the warning message.
+    transform: callable
+        optional. This is meant to transform a valid old parameter into a valid
+        new parameter.
+    """
     _MSG_KEYS = {'old_param': old_param,
                  'new_param': new_param,
                  'deprecated_in': deprecated_in,
