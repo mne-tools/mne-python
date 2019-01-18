@@ -1366,15 +1366,15 @@ class Report(object):
         include = list()
         for inc_fname in inc_fnames:
             logger.info('Embedding : %s' % inc_fname)
-            f = open(op.join(op.dirname(__file__), 'html', inc_fname),
-                     'r')
+            fname = op.join(op.dirname(__file__), 'html', inc_fname)
+            with open(fname, 'rb') as fid:
+                file_content = fid.read().decode('utf-8')
             if inc_fname.endswith('.js'):
                 include.append(u'<script type="text/javascript">' +
-                               f.read() + u'</script>')
+                               file_content + u'</script>')
             elif inc_fname.endswith('.css'):
                 include.append(u'<style type="text/css">' +
-                               f.read() + u'</style>')
-            f.close()
+                               file_content + u'</style>')
 
         self.include = ''.join(include)
 
