@@ -32,7 +32,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        object_size, buggy_mkl_svd, _get_inst_data,
                        copy_doc, copy_function_doc_to_method_doc, ProgressBar,
                        linkcode_resolve, array_split_idx, filter_out_warnings,
-                       hashfunc)
+                       hashfunc, deprecate_parameter_rename)
 
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -964,6 +964,36 @@ def test_reg_pinv():
     assert_array_equal(a_inv, 0)
     assert loading_factor == 0
     assert estimated_rank == 0
+
+
+def test_deprecate_parameter_rename():
+    """Test decorator function to rename function paramters."""
+
+    @deprecate_parameter_rename(deprecated_in='1.0', removed_in='2.0',
+                                current_version='1.5',
+                                old_param='foo', new_param='bar',
+                                details='some extra details')
+    def my_function_A(bar=None):
+        return bar
+
+    with pytest.deprecated_call(match='`foo` is deprecated .* `bar`'):
+        bar = my_function_A(foo='ups')  # call with old parameter
+    assert bar == 'ups'
+
+    def my_transform_from_foo_to_bar(given):
+        # takes foo and outputs valid bar
+        return 'foo({0})-->bar({0})'.format(given)
+
+    @deprecate_parameter_rename(deprecated_in='1.0', removed_in='2.0',
+                                current_version='1.5',
+                                old_param='foo', new_param='bar',
+                                transform=my_transform_from_foo_to_bar)
+    def my_function_B(bar=None):
+        return bar
+
+    with pytest.deprecated_call(match="`foo` is deprecated .* `bar`"):
+        bar = my_function_B(foo='ups')  # call with old parameter
+    assert bar == 'foo(ups)-->bar(ups)'
 
 
 run_tests_if_main()

@@ -152,31 +152,44 @@ If you need to deprecate a function or a class, use the ``@deprecated`` decorato
     def my_function():
        return 'foo'
 
-If you need to deprecate a parameter, use the mne warning function.
-For example to rename a parameter from `old_param` to `new_param` you can
-use something like this::
+If you need to deprecate a parameter and replace it by a new one, use the
+:func:`mne.utils.deprecate_parameter_rename` helper function.
+For example to rename a parameter from `foo` to `bar` in version `1.0` and you
+have this original code::
 
-    from mne.utils import warn
-
-    def my_function(new_param, old_param=None):
-        if old_param is not None:
-             warn('old_param is deprecated and will be replaced by new_param in 0.XX.',
-                  DeprecationWarning)
-             new_param = old_param
-        # Do what you have to do with new_param
+    def my_function(foo='default_foo'):
+        # Do what you have to do with foo
         return 'foo'
 
-Add the necessary tests to ensure that the warnings are raised properly.
-You can use something like this::
+you can use something like this::
 
-    def test_my_function_depracation():
-        with pytest.deprecated_call(match="my_new_function"):
-            my_deprecated_function()
+  @deprecate_parameter_rename(deprecated_in="1.0", removed_in="2.0",
+                              old_param='foo', new_param='bar')
+  def my_function(bar='default_bar'):
+      # Do what you have to do with bar, foo is no longer here
+      return 'foo'
 
-    def test_old_param_in_my_function_deprecation():
-        with pytest.deprecated_call(match="old_param .* new_param"):
-            my_deprecated_param(old_param='bar')
+The decorator adds a meaningful deprecation error and all the necessary steps to
+keep the old parameter around until the current version hits `removed_in`.
+Make sure to add the necessary tests to ensure that the warnings are raised
+properly. You can use something like this::
 
+    def test_my_function_deprecation():
+        with pytest.deprecated_call(match="`foo` is deprecated .* `bar`"):
+            my_function(foo='something')
+
+If some transformation is needed in order to have a valid `bar` from a `foo`, 
+:func:`mne.utils.deprecate_parameter_rename` allows for a transformation parameter. Like this::
+
+  def _transform_foo_into_bar(given):
+        return 'bar_from_this({})'.format(given)
+
+  @deprecate_parameter_rename(deprecated_in="1.0", removed_in="2.0",
+                              old_param='foo', new_param='bar',
+                              transform=_transform_foo_into_bar)
+  def my_function(bar='default_bar'):
+      # Do what you have to do with bar, foo is no longer here
+      return 'foo'
 
 Profiling
 ---------

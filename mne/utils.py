@@ -47,6 +47,8 @@ from .externals.decorator import decorator
 
 from .fixes import _get_args
 
+from mne import __version__
+
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
 
@@ -897,6 +899,40 @@ class deprecated(object):
                     break
             newdoc = "%s\n\n%s%s" % (newdoc, ' ' * n_space, olddoc)
         return newdoc
+
+
+def deprecate_parameter_rename(deprecated_in, removed_in,
+                               old_param, new_param,
+                               current_version=__version__,
+                               details=None,
+                               transform=None):
+
+    _MSG_KEYS = {'old_param': old_param,
+                 'new_param': new_param,
+                 'deprecated_in': deprecated_in,
+                 'removed_in': removed_in,
+                 'old_param': old_param,
+                 'new_param': new_param,
+                 'details': details}
+    _MSG = ('`{old_param}` is deprecated and will be replaced by `{new_param}`'
+            ' in {deprecated_in}. `{old_param}` will be no longer present'
+            ' starting in {removed_in}. {details}').format(**_MSG_KEYS)
+
+    # XXX: __version__ should be tested
+
+    def true_decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            warn(_MSG, DeprecationWarning)
+            if transform is None:
+                kwargs[new_param] = kwargs.pop(old_param)
+            else:
+                kwargs[new_param] = transform(kwargs.pop(old_param))
+
+            r = f(*args, **kwargs)
+            return r
+        return wrapped
+    return true_decorator
 
 
 @decorator
