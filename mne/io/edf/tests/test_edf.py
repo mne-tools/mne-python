@@ -290,7 +290,8 @@ def test_edf_stim_ch_pick_up():
     fname = op.join(data_dir, 'test_stim_channel.edf')
 
     # default parameters
-    expected = {'stAtUs': 'stim', 'tRigGer': 'stim', 'sine 1 Hz': 'eeg'}
+    # expected = {'stAtUs': 'stim', 'tRigGer': 'stim', 'sine 1 Hz': 'eeg'}
+    expected = {'stAtUs': 'stim', 'tRigGer': 'eeg', 'sine 1 Hz': 'eeg'}
     raw = read_raw_edf(fname, stim_channel='auto')
     ch_types = {ch['ch_name']: TYPE_LUT[ch['kind']] for ch in raw.info['chs']}
     assert ch_types == expected
