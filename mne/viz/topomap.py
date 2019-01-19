@@ -63,9 +63,6 @@ def _prepare_topo_plot(inst, ch_type, layout):
         if ch_type == 'eeg':
             picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
                                exclude='bads')
-        elif ch_type == 'ref_meg':
-            picks = pick_types(info, meg=False, ref_meg=True,
-                               exclude='bads')
         else:
             picks = pick_types(info, meg=ch_type, ref_meg=False,
                                exclude='bads')
@@ -966,7 +963,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                       vmin=None, vmax=None, cmap='RdBu_r', colorbar=False,
                       title=None, show=True, outlines='head', contours=6,
                       image_interp='bilinear', head_pos=None, axes=None,
-                      sensors=True):
+                      sensors=True, allow_ref_meg=False):
     """Plot single ica map to axes."""
     import matplotlib as mpl
     from ..channels import _get_ch_type
@@ -977,9 +974,9 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
     if not isinstance(axes, mpl.axes.Axes):
         raise ValueError('axis has to be an instance of matplotlib Axes, '
                          'got %s instead.' % type(axes))
-    ch_type = _get_ch_type(ica, ch_type)
+    ch_type = _get_ch_type(ica, ch_type, allow_ref_meg=ica.allow_ref_meg)
     if ch_type == "ref_meg":
-        print("Cannot produce topographies for MEG reference channels.")
+        logger.info("Cannot produce topographies for MEG reference channels.")
         return
 
     data = ica.get_components()[:, idx]

@@ -91,14 +91,16 @@ def _contains_ch_type(info, ch_type):
     return ch_type in [channel_type(info, ii) for ii in range(info['nchan'])]
 
 
-def _get_ch_type(inst, ch_type):
+def _get_ch_type(inst, ch_type, allow_ref_meg=False):
     """Choose a single channel type (usually for plotting).
 
     Usually used in plotting to plot a single datatype, e.g. look for mags,
     then grads, then ... to plot.
     """
     if ch_type is None:
-        for type_ in ['mag', 'grad', 'planar1', 'planar2', 'eeg', 'ref_meg']:
+        allowed_types = ['mag', 'grad', 'planar1', 'planar2', 'eeg']
+        allowed_types += ['ref_meg'] if allow_ref_meg else []
+        for type_ in allowed_types:
             if isinstance(inst, Info):
                 if _contains_ch_type(inst, type_):
                     ch_type = type_

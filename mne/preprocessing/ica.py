@@ -93,7 +93,7 @@ def get_score_funcs():
     return score_funcs
 
 
-def _check_for_unsupported_ica_channels(picks, info):
+def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     """Check for channels in picks that are not considered valid channels.
 
     Accepted channels are the data channels
@@ -105,7 +105,8 @@ def _check_for_unsupported_ica_channels(picks, info):
         return
     elif len(picks) == 0:
         raise ValueError('No channels provided to ICA')
-    types = _DATA_CH_TYPES_SPLIT + ['eog', 'ref_meg']
+    types = _DATA_CH_TYPES_SPLIT + ['eog']
+    types += ['ref_meg'] if allow_ref_meg else []
     chs = list(set([channel_type(info, j) for j in picks]))
     check = all([ch in types for ch in chs])
     if not check:
@@ -176,6 +177,8 @@ class ICA(ContainsMixin):
         `method`.
     max_iter : int
         Maximum number of iterations during fit. Defaults to 200.
+    allow_ref_meg : bool | False
+        Allow ICA on MEG reference channels.
     verbose : bool | str | int | None
         If not None, override default verbosity level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>`).
@@ -300,7 +303,7 @@ class ICA(ContainsMixin):
     def __init__(self, n_components=None, max_pca_components=None,
                  n_pca_components=None, noise_cov=None, random_state=None,
                  method='fastica', fit_params=None, max_iter=200,
-                 verbose=None):  # noqa: D102
+                 allow_ref_meg=False, verbose=None):  # noqa: D102
         methods = ('fastica', 'infomax', 'extended-infomax', 'picard')
         if method not in methods:
             raise ValueError('`method` must be "%s". You passed: "%s"' %
@@ -358,6 +361,7 @@ class ICA(ContainsMixin):
         self.info = None
         self.method = method
         self.labels_ = dict()
+        self.allow_ref_meg = allow_ref_meg
 
     def __repr__(self):
         """ICA fit information."""
@@ -450,7 +454,8 @@ class ICA(ContainsMixin):
             Returns the modified instance.
         """
         if isinstance(inst, (BaseRaw, BaseEpochs)):
-            _check_for_unsupported_ica_channels(picks, inst.info)
+            _check_for_unsupported_ica_channels(picks, inst.info,
+            allow_ref_meg=self.allow_ref_meg)
             t_start = time()
             if isinstance(inst, BaseRaw):
                 self._fit_raw(inst, picks, start, stop, decim, reject, flat,
@@ -1231,7 +1236,7 @@ class ICA(ContainsMixin):
             self.labels_[('ref/%i/' % ii) + ref_ch] = list(this_idx)
 
         # remove duplicates but keep order by score, even across multiple
-        # EOG channels
+        # ref channels
         scores_ = np.concatenate([scores[ii][inds]
                                   for ii, inds in enumerate(ref_idx)])
         ref_idx_ = np.concatenate(ref_idx)[np.abs(scores_).argsort()[::-1]]
@@ -1998,7 +2003,8 @@ def _write_ica(fid, ica):
                     n_components=ica.n_components,
                     n_pca_components=ica.n_pca_components,
                     max_pca_components=ica.max_pca_components,
-                    current_fit=ica.current_fit)
+                    current_fit=ica.current_fit,
+                    allow_ref_meg=ica.allow_ref_meg)
 
     if ica.info is not None:
         start_block(fid, FIFF.FIFFB_MEAS)
