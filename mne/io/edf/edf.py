@@ -1056,7 +1056,7 @@ def _check_stim_channel(stim_channel, ch_names, sel):
                 ' since 0.18. Please remove {} from `stim_channel`'
                 ' and use `mne.events_from_annotations` instead'
                 ).format(stim_name_ends_with_annotations)
-        raise RuntimeError(_msg)
+        raise ValueError(_msg)
 
     ch_names_low = [ch.lower() for ch in ch_names]
     found = list(set(valid_stim_ch_names) & set(ch_names_low))
