@@ -197,17 +197,21 @@ def test_to_data_frame():
         assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
 
 
-def test_read_raw_edf_deprecation():
+def test_read_raw_edf_stim_channel_input_parameters():
     """Test edf raw reader deprecation."""
     _MSG = "`read_raw_edf` is not supposed to trigger a deprecation warning"
     with pytest.warns(None) as recwarn:
         read_raw_edf(edf_path)
     assert all([w.category != DeprecationWarning for w in recwarn.list]), _MSG
 
-    for invalid_stim_parameter in ['EDF Annotations', 'BDF Annotations',
-                                   0, -1]:  # I'm not sure about the ints
+    for invalid_stim_parameter in ['EDF Annotations', 'BDF Annotations']:
         with pytest.raises(RuntimeError,
                            match="stim channel is not supported"):
+            read_raw_edf(edf_path, stim_channel=invalid_stim_parameter)
+
+    for invalid_stim_parameter in [0, -1, [0, -1]]:
+        with pytest.raises(ValueError,
+                           match="Invalid stim_channel"):
             read_raw_edf(edf_path, stim_channel=invalid_stim_parameter)
 
 

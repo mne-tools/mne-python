@@ -1046,6 +1046,18 @@ def _check_stim_channel(stim_channel, ch_names, sel):
     else:
         raise ValueError('Invalid stim_channel')
 
+    # Forbid the synthesis of stim channels from Annotations
+    # XXX: This is not how this should be done, but to check
+    #      the type of channel it is.
+    stim_name_ends_with_annotations = [ch for ch in valid_stim_ch_names
+                                       if ch.endswith('annotations')]
+    if len(stim_name_ends_with_annotations):
+        _msg = ('The synthesis of the stim channel is not supported'
+                ' since 0.18. Please remove {} from `stim_channel`'
+                ' and use `mne.events_from_annotations` instead'
+                ).format(stim_name_ends_with_annotations)
+        raise RuntimeError(_msg)
+
     ch_names_low = [ch.lower() for ch in ch_names]
     found = list(set(valid_stim_ch_names) & set(ch_names_low))
 
