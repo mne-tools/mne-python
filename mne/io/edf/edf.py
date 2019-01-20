@@ -1019,17 +1019,6 @@ def _check_stim_channel(stim_channel, ch_names, sel):
     """Check that the stimulus channel exists in the current datafile."""
     DEFAULT_STIM_CH_NAMES = ['status', 'trigger']
 
-    # if stim_channel is not None:
-    #     if isinstance(stim_channel, bool) and not stim_channel:
-    #         warn('stim_channel parameter is deprecated and will be removed in'
-    #              ' 0.19.', DeprecationWarning)
-    #         stim_channel = None
-    #     else:
-    #         _msg = ('The synthesis of the stim channel is not supported since'
-    #                 ' 0.18. Please set `stim_channel` to False and use'
-    #                 ' `mne.events_from_annotations` instead')
-    #         raise RuntimeError(_msg)
-
     if stim_channel is None:
         return None, None
 
