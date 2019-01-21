@@ -385,9 +385,9 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
 
     edf_info, orig_units = _read_header(fname, exclude)
 
-    stim_ch_indexes, stim_ch_names = _check_stim_channel(stim_channel,
-                                                         edf_info['ch_names'],
-                                                         edf_info['sel'])
+    stim_ch_idxs, stim_ch_names = _check_stim_channel(stim_channel,
+                                                      edf_info['ch_names'],
+                                                      edf_info['sel'])
 
     # import pdb; pdb.set_trace()
     # # XXX: to remove and allow for multiple stim channels
@@ -440,7 +440,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
             pick_mask[idx] = False
-        elif stim_ch_indexes is not None and idx in stim_ch_indexes:
+        elif idx in stim_ch_idxs:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
@@ -449,7 +449,8 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             ch_names[idx] = chan_info['ch_name']
             edf_info['units'][idx] = 1
         chs.append(chan_info)
-    edf_info['stim_channel'] = stim_ch_indexes
+
+    edf_info['stim_channel'] = stim_ch_idxs if len(stim_ch_idxs) else None
 
     if any(pick_mask):
         picks = [item for item, mask in zip(range(nchan), pick_mask) if mask]
@@ -460,15 +461,8 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     # Info structure
     # -------------------------------------------------------------------------
 
-    # sfreq defined as the max sampling rate of eeg (stim_ch not included)
-    # if stim_channel is None:
-    #     data_samps = n_samps
-    # else:
-    #     data_samps = np.delete(n_samps, slice(stim_channel, stim_channel + 1))
-    stim_ch_indexes = [] if stim_ch_indexes is None else stim_ch_indexes
     not_stim_ch = [x for x in range(n_samps.shape[0])
-                   if x not in stim_ch_indexes]
-
+                   if x not in stim_ch_idxs]
     sfreq = np.take(n_samps, not_stim_ch).max() * \
         edf_info['record_length'][1] / edf_info['record_length'][0]
     info = _empty_info(sfreq)
@@ -1027,7 +1021,7 @@ def _check_stim_channel(stim_channel, ch_names, sel):
     DEFAULT_STIM_CH_NAMES = ['status', 'trigger']
 
     if stim_channel is None:
-        return None, None
+        return [], []
 
     elif isinstance(stim_channel, str):
         if stim_channel == 'auto':
@@ -1058,7 +1052,7 @@ def _check_stim_channel(stim_channel, ch_names, sel):
     found = list(set(valid_stim_ch_names) & set(ch_names_low))
 
     if not found:
-        return None, None
+        return [], []
     else:
         stim_channel_idxs = [ch_names_low.index(f) for f in found]
         names = [ch_names[idx] for idx in stim_channel_idxs]
