@@ -350,7 +350,7 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
 
 
 def _read_header(fname, exclude):
-    """ unify edf, bdf and gdf _read_header call.
+    """Unify edf, bdf and gdf _read_header call.
 
     Parameters
     ----------
@@ -385,12 +385,6 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     stim_ch_idxs, stim_ch_names = _check_stim_channel(stim_channel,
                                                       edf_info['ch_names'],
                                                       edf_info['sel'])
-
-    # import pdb; pdb.set_trace()
-    # # XXX: to remove and allow for multiple stim channels
-    # if stim_channel is not None:
-    #     stim_channel = stim_channel[0]
-    #     stim_ch_name = stim_ch_name[0]
 
     sel = edf_info['sel']  # selection of channels not excluded
     ch_names = edf_info['ch_names']  # of length len(sel)
@@ -1022,7 +1016,12 @@ def _check_stim_channel(stim_channel, ch_names, sel):
 
     elif isinstance(stim_channel, str):
         if stim_channel == 'auto':
-            valid_stim_ch_names = DEFAULT_STIM_CH_NAMES
+            if 'auto' in ch_names:
+                warn(RuntimeWarning, 'Using `stim_channel=\'auto\'` when auto'
+                     ' also corresponds to a channel name, is ambiguous.'
+                     ' Please use `stim_channel=[\'auto\']`')
+            else:
+                valid_stim_ch_names = DEFAULT_STIM_CH_NAMES
         else:
             valid_stim_ch_names = [stim_channel.lower()]
 
