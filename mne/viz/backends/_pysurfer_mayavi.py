@@ -12,12 +12,89 @@ class Renderer:
         self.mlab = None
         self.fig = None
 
-renderer = Renderer()
+    def init(self, size, bgcolor):
+        self.mlab = _import_mlab()
+        self.fig = _mlab_figure(bgcolor=bgcolor, size=size)
+        _toggle_mlab_render(self.fig, False)
+
+    def set_interactive(self):
+        from tvtk.api import tvtk
+        self.fig.scene.interactor.interactor_style = \
+            tvtk.InteractorStyleTerrain()
+
+    def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
+             backface_culling=False, **kwargs):
+        surface = self.mlab.triangular_mesh(x, y, z, color=color,
+                                            triangles=triangles,
+                                            opacity=opacity,
+                                            figure=self.fig,
+                                            **kwargs)
+        surface.actor.property.shading = shading
+        surface.actor.property.backface_culling = backface_culling
+
+    def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
+                vmin=None, vmax=None, colormap=None):
+        mesh = _create_mesh_surf(surface, self.fig, scalars=scalars)
+        cont = self.mlab.pipeline.contour_surface(
+            mesh, contours=contours, line_width=1.0, vmin=vmin, vmax=vmax,
+            opacity=opacity, figure=self.fig)
+        cont.module_manager.scalar_lut_manager.lut.table = colormap
+
+    def surface(self, surface, color=(0.7, 0.7, 0.7), opacity=1.0,
+                vmin=None, vmax=None, colormap=None,
+                backface_culling=False):
+        mesh = _create_mesh_surf(surface, self.fig)
+        surface = self.mlab.pipeline.surface(
+            mesh, color=color, opacity=opacity, vmin=vmin, vmax=vmax,
+            figure=self.fig)
+        if colormap is not None:
+            surface.module_manager.scalar_lut_manager.lut.table = colormap
+        surface.actor.property.backface_culling = backface_culling
+
+    def sphere(self, center, color, scale, opacity=1.0,
+               backface_culling=False):
+        surface = self.mlab.points3d(center[:, 0], center[:, 1],
+                                     center[:, 2], color=color,
+                                     scale_factor=scale, opacity=opacity,
+                                     figure=self.fig)
+        surface.actor.property.backface_culling = backface_culling
+
+    def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
+                 glyph_height=None, glyph_center=None, glyph_resolution=None,
+                 opacity=1.0, scale_mode='none', scalars=None,
+                 backface_culling=False):
+        if mode == 'arrow':
+            self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
+                               color=color, scale_factor=scale,
+                               scale_mode=scale_mode,
+                               resolution=resolution, scalars=scalars,
+                               opacity=opacity, figure=self.fig)
+        elif mode == 'cylinder':
+            quiv = self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
+                                      opacity=opacity, figure=self.fig)
+            quiv.glyph.glyph_source.glyph_source.height = glyph_height
+            quiv.glyph.glyph_source.glyph_source.center = glyph_center
+            quiv.glyph.glyph_source.glyph_source.resolution = glyph_resolution
+            quiv.actor.property.backface_culling = backface_culling
+
+    def text(self, x, y, text, width):
+        self.mlab.text(x, y, text, width=width, figure=self.fig)
+
+    def show(self):
+        _toggle_mlab_render(self.fig, True)
+
+    def set_camera(self, azimuth=None, elevation=None, distance=None,
+                   focalpoint=None):
+        self.mlab.view(azimuth, elevation, distance,
+                       focalpoint=focalpoint, figure=self.fig)
+
+    def screenshot(self):
+        return self.mlab.screenshot(self.fig)
 
 
 def _mlab_figure(**kwargs):
     """Create a Mayavi figure using our defaults."""
-    mlab = renderer.mlab
+    from mayavi import mlab
     fig = mlab.figure(**kwargs)
     # If using modern VTK/Mayavi, improve rendering with FXAA
     if hasattr(getattr(fig.scene, 'renderer', None), 'use_fxaa'):
@@ -26,13 +103,14 @@ def _mlab_figure(**kwargs):
 
 
 def _toggle_mlab_render(fig, render):
-    if renderer.mlab.options.backend != 'test':
+    mlab = _import_mlab()
+    if mlab.options.backend != 'test':
         fig.scene.disable_render = not render
 
 
 def _create_mesh_surf(surf, fig=None, scalars=None, vtk_normals=True):
     """Create Mayavi mesh from MNE surf."""
-    mlab = renderer.mlab
+    mlab = _import_mlab()
     x, y, z = surf['rr'].T
     with warnings.catch_warnings(record=True):  # traits
         mesh = mlab.pipeline.triangular_mesh_source(
@@ -50,91 +128,3 @@ def _create_mesh_surf(surf, fig=None, scalars=None, vtk_normals=True):
         mesh.data.point_data.normals = nn
         mesh.data.cell_data.normals = None
     return mesh
-
-
-def init(size, bgcolor):
-    renderer.mlab = _import_mlab()
-    renderer.fig = _mlab_figure(bgcolor=bgcolor, size=size)
-    _toggle_mlab_render(renderer.fig, False)
-
-
-def set_interactive():
-    from tvtk.api import tvtk
-    renderer.fig.scene.interactor.interactor_style = \
-        tvtk.InteractorStyleTerrain()
-
-
-def mesh(x, y, z, triangles, color, opacity=1.0, shading=False,
-         backface_culling=False, **kwargs):
-    surface = renderer.mlab.triangular_mesh(x, y, z, color=color,
-                                            triangles=triangles,
-                                            opacity=opacity,
-                                            figure=renderer.fig,
-                                            **kwargs)
-    surface.actor.property.shading = shading
-    surface.actor.property.backface_culling = backface_culling
-
-
-def contour(surface, scalars, contours, line_width=1.0, opacity=1.0,
-            vmin=None, vmax=None, colormap=None):
-    mesh = _create_mesh_surf(surface, renderer.fig, scalars=scalars)
-    cont = renderer.mlab.pipeline.contour_surface(
-        mesh, contours=contours, line_width=1.0, vmin=vmin, vmax=vmax,
-        opacity=opacity, figure=renderer.fig)
-    cont.module_manager.scalar_lut_manager.lut.table = colormap
-
-
-def surface(surface, color=(0.7, 0.7, 0.7), opacity=1.0,
-            vmin=None, vmax=None, colormap=None,
-            backface_culling=False):
-    mesh = _create_mesh_surf(surface, renderer.fig)
-    surface = renderer.mlab.pipeline.surface(
-        mesh, color=color, opacity=opacity, vmin=vmin, vmax=vmax,
-        figure=renderer.fig)
-    if colormap is not None:
-        surface.module_manager.scalar_lut_manager.lut.table = colormap
-    surface.actor.property.backface_culling = backface_culling
-
-
-def sphere(center, color, scale, opacity=1.0, backface_culling=False):
-    surface = renderer.mlab.points3d(center[:, 0], center[:, 1],
-                                     center[:, 2], color=color,
-                                     scale_factor=scale, opacity=opacity,
-                                     figure=renderer.fig)
-    surface.actor.property.backface_culling = backface_culling
-
-
-def quiver3d(x, y, z, u, v, w, color, scale, mode, resolution=8,
-             glyph_height=None, glyph_center=None, glyph_resolution=None,
-             opacity=1.0, scale_mode='none', scalars=None,
-             backface_culling=False):
-    if mode == 'arrow':
-        renderer.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
-                               color=color, scale_factor=scale,
-                               scale_mode=scale_mode,
-                               resolution=resolution, scalars=scalars,
-                               opacity=opacity, figure=renderer.fig)
-    elif mode == 'cylinder':
-        quiv = renderer.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
-                                      opacity=opacity, figure=renderer.fig)
-        quiv.glyph.glyph_source.glyph_source.height = glyph_height
-        quiv.glyph.glyph_source.glyph_source.center = glyph_center
-        quiv.glyph.glyph_source.glyph_source.resolution = glyph_resolution
-        quiv.actor.property.backface_culling = backface_culling
-
-
-def text(x, y, text, width):
-    renderer.mlab.text(x, y, text, width=width, figure=renderer.fig)
-
-
-def show():
-    _toggle_mlab_render(renderer.fig, True)
-
-
-def set_camera(azimuth=None, elevation=None, distance=None, focalpoint=None):
-    renderer.mlab.view(azimuth, elevation, distance,
-                       focalpoint=focalpoint, figure=renderer.fig)
-
-
-def screenshot():
-    return renderer.mlab.screenshot(renderer.fig)
