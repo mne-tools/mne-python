@@ -312,4 +312,19 @@ def test_edf_stim_ch_pick_up():
     assert ch_types == expected
 
 
+def test_select_stim_channel():
+
+    def foo(nchan=10, idx=slice(1, None, 2), stim_channel=[3, 6]):
+        _idx = np.arange(nchan)[idx]
+        selected_stim_ch_idx = list()
+        for y_i in stim_channel:
+            idx = np.where(_idx == y_i)[0].tolist()
+            if len(idx):
+                selected_stim_ch_idx.append(idx)
+        return np.array(selected_stim_ch_idx).ravel()
+
+    assert_array_equal(foo(), [1])
+    assert_array_equal(foo(stim_channel=[3, 5]), [1, 2])
+
+
 run_tests_if_main()

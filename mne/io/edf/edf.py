@@ -279,7 +279,7 @@ class RawEDF(BaseRaw):
                     d_sidx = d_lims[ai][0]
                     d_eidx = d_lims[ai + n_read - 1][1]
                     if n_samps[ci] != buf_len:
-                        if ci == stim_channel:
+                        if ci in stim_channel:
                             # Stim channel will be interpolated
                             old = np.linspace(0, 1, n_samps[ci] + 1, True)
                             new = np.linspace(0, 1, buf_len, False)
@@ -304,7 +304,8 @@ class RawEDF(BaseRaw):
             stim_channel_idx = np.array([], int)
         else:
             # stim_channel_idx = np.where(_idx == stim_channel)[0]
-            # XXXX: This is just to keep going
+            # XXXX: I've the feeling that this is wrong 'cos it only takes
+            #       stim_channel[0] into account
             stim_channel_idx = np.where(_idx == stim_channel[0])[0]
 
         if subtype == 'bdf':
