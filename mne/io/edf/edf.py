@@ -303,7 +303,9 @@ class RawEDF(BaseRaw):
         if stim_channel is None:  # avoid NumPy comparison to None
             stim_channel_idx = np.array([], int)
         else:
-            stim_channel_idx = np.where(_idx == stim_channel)[0]
+            # stim_channel_idx = np.where(_idx == stim_channel)[0]
+            # XXXX: This is just to keep going
+            stim_channel_idx = np.where(_idx == stim_channel[0])[0]
 
         if subtype == 'bdf':
             # do not scale stim channel (see gh-5160)
@@ -383,14 +385,15 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
 
     edf_info, orig_units = _read_header(fname, exclude)
 
-    stim_channel, stim_ch_name = _check_stim_channel(stim_channel,
-                                                     edf_info['ch_names'],
-                                                     edf_info['sel'])
+    stim_ch_indexes, stim_ch_names = _check_stim_channel(stim_channel,
+                                                         edf_info['ch_names'],
+                                                         edf_info['sel'])
 
-    # XXX: to remove and allow for multiple stim channels
-    if stim_channel is not None:
-        stim_channel = stim_channel[0]
-        stim_ch_name = stim_ch_name[0]
+    # import pdb; pdb.set_trace()
+    # # XXX: to remove and allow for multiple stim channels
+    # if stim_channel is not None:
+    #     stim_channel = stim_channel[0]
+    #     stim_ch_name = stim_ch_name[0]
 
     sel = edf_info['sel']  # selection of channels not excluded
     ch_names = edf_info['ch_names']  # of length len(sel)
@@ -437,7 +440,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
             pick_mask[idx] = False
-        elif stim_channel == idx:
+        elif stim_ch_indexes is not None and idx in stim_ch_indexes:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
@@ -446,7 +449,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             ch_names[idx] = chan_info['ch_name']
             edf_info['units'][idx] = 1
         chs.append(chan_info)
-    edf_info['stim_channel'] = stim_channel
+    edf_info['stim_channel'] = stim_ch_indexes
 
     if any(pick_mask):
         picks = [item for item, mask in zip(range(nchan), pick_mask) if mask]
@@ -458,11 +461,15 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     # -------------------------------------------------------------------------
 
     # sfreq defined as the max sampling rate of eeg (stim_ch not included)
-    if stim_channel is None:
-        data_samps = n_samps
-    else:
-        data_samps = np.delete(n_samps, slice(stim_channel, stim_channel + 1))
-    sfreq = data_samps.max() * \
+    # if stim_channel is None:
+    #     data_samps = n_samps
+    # else:
+    #     data_samps = np.delete(n_samps, slice(stim_channel, stim_channel + 1))
+    stim_ch_indexes = [] if stim_ch_indexes is None else stim_ch_indexes
+    not_stim_ch = [x for x in range(n_samps.shape[0])
+                   if x not in stim_ch_indexes]
+
+    sfreq = np.take(n_samps, not_stim_ch).max() * \
         edf_info['record_length'][1] / edf_info['record_length'][0]
     info = _empty_info(sfreq)
     info['meas_date'] = edf_info['meas_date']
