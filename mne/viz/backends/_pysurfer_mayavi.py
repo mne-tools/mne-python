@@ -8,9 +8,9 @@ from ...utils import _import_mlab
 
 
 class Renderer:
-    def __init__(self, size=(600, 600), bgcolor=(0., 0., 0.)):
+    def __init__(self, size=(600, 600), bgcolor=(0., 0., 0.), name=None):
         self.mlab = _import_mlab()
-        self.fig = _mlab_figure(bgcolor=bgcolor, size=size)
+        self.fig = _mlab_figure(figure=name, bgcolor=bgcolor, size=size)
         _toggle_mlab_render(self.fig, False)
 
     def scene(self):
@@ -31,6 +31,7 @@ class Renderer:
                                             **kwargs)
         surface.actor.property.shading = shading
         surface.actor.property.backface_culling = backface_culling
+        return surface
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None):

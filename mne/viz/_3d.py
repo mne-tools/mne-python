@@ -1070,7 +1070,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     if renderer is None:
         renderer = Renderer(bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
     if fig is not None:
-        warn('fig is deprecated and will be replaced by renderer in 0.18',
+        warn('fig is deprecated and will be replaced by renderer in 0.20',
              DeprecationWarning)
         renderer.fig = fig
     if interaction == 'terrain':
@@ -2312,7 +2312,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
                                  fig_name=None, fig_number=None, labels=None,
                                  modes=('cone', 'sphere'),
                                  scale_factors=(1, 0.6),
-                                 verbose=None, **kwargs):
+                                 verbose=None, return_mayavi_surface=True,
+                                 **kwargs):
     """Plot source estimates obtained with sparse solver.
 
     Active dipoles are represented in a "Glass" brain.
@@ -2358,6 +2359,11 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+
+        .. versionadded:: 0.18
+    return_mayavi_surface : bool
+        If True (default), return mayavi triangular surface.
+
     **kwargs : kwargs
         Keyword arguments to pass to mlab.triangular_mesh.
 
@@ -2366,7 +2372,6 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     surface : instance of mlab Surface
         The triangular mesh surface.
     """
-    mlab = _import_mlab()
     import matplotlib.pyplot as plt
     from matplotlib.colors import ColorConverter
 
@@ -2411,14 +2416,16 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     color_converter = ColorConverter()
 
-    f = _mlab_figure(figure=fig_name, bgcolor=bgcolor, size=(600, 600))
-    _toggle_mlab_render(f, False)
+    if fig_name is not None:
+        warn('fig_name is deprecated and will be removed in 0.20.',
+             DeprecationWarning)
+    renderer = Renderer(bgcolor=bgcolor, size=(600, 600), name=fig_name)
     with warnings.catch_warnings(record=True):  # traits warnings
-        surface = mlab.triangular_mesh(points[:, 0], points[:, 1],
-                                       points[:, 2], use_faces,
-                                       color=brain_color,
-                                       opacity=opacity, **kwargs)
-    surface.actor.property.backface_culling = True
+        surface = renderer.mesh(x=points[:, 0], y=points[:, 1],
+                                z=points[:, 2], triangles=use_faces,
+                                color=brain_color, opacity=opacity,
+                                backface_culling=True, shading=True,
+                                **kwargs)
 
     # Show time courses
     fig = plt.figure(fig_number)
@@ -2454,8 +2461,9 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         x, y, z = points[v]
         nx, ny, nz = normals[v]
         with warnings.catch_warnings(record=True):  # traits
-            mlab.quiver3d(x, y, z, nx, ny, nz, color=color_converter.to_rgb(c),
-                          mode=mode, scale_factor=scale_factor)
+            renderer.quiver3d(x=x, y=y, z=z, u=nx, v=ny, w=nz,
+                              color=color_converter.to_rgb(c),
+                              mode=mode, scale=scale_factor)
 
         for k in ind:
             vertno = vertnos[k]
@@ -2472,10 +2480,9 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         ax.set_title(fig_name)
     plt_show(show)
 
-    surface.actor.property.backface_culling = True
-    surface.actor.property.shading = True
-    _toggle_mlab_render(f, True)
-    return surface
+    renderer.show()
+    if return_mayavi_surface:
+        return surface
 
 
 def _mlab_figure(**kwargs):
