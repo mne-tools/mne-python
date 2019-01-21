@@ -289,6 +289,7 @@ def test_load_generator(fname, recwarn):
 
 
 def test_edf_stim_ch_pick_up():
+    """Test stim_channel."""
     TYPE_LUT = {v[0]: k for k, v in _KIND_DICT.items()}
 
     fname = op.join(data_dir, 'test_stim_channel.edf')
