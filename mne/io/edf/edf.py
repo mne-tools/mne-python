@@ -299,25 +299,21 @@ class RawEDF(BaseRaw):
 
         # only try to read the stim channel if it's not None and it's
         # actually one of the requested channels
-        _idx = np.arange(self.info['nchan'])[idx]  # slice -> ints
         if stim_channel is None:  # avoid NumPy comparison to None
             stim_channel_idx = np.array([], int)
         else:
-            # stim_channel_idx = np.where(_idx == stim_channel)[0]
-            # XXXX: I've the feeling that this is wrong 'cos it only takes
-            #       stim_channel[0] into account
-            stim_channel_idx = np.where(_idx == stim_channel[0])[0]
+            _idx = np.arange(self.info['nchan'])[idx]  # slice -> ints
+            stim_channel_idx = list()
+            for stim_ch in stim_channel:
+                stim_ch_idx = np.where(_idx == stim_ch)[0].tolist()
+                if len(stim_ch_idx):
+                    stim_channel_idx.append(stim_ch_idx)
+            stim_channel_idx = np.array(stim_channel_idx).ravel()
 
         if subtype == 'bdf':
-            # do not scale stim channel (see gh-5160)
-            if stim_channel is None:
-                stim_idx = [[]]
-            else:
-                stim_idx = np.where(np.arange(self.info['nchan']) ==
-                                    stim_channel)
-            cal[0, stim_idx[0]] = 1
-            offsets[stim_idx[0], 0] = 0
-            gains[0, stim_idx[0]] = 1
+            cal[0, stim_channel_idx] = 1
+            offsets[stim_channel_idx, 0] = 0
+            gains[0, stim_channel_idx] = 1
         data *= cal.T[idx]
         data += offsets[idx]
         data *= gains.T[idx]

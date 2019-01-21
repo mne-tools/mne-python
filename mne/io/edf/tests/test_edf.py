@@ -307,24 +307,9 @@ def test_edf_stim_ch_pick_up():
 
     # specific name parameter
     expected = {'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'}
-    raw = read_raw_edf(fname, stim_channel='sine 1 Hz')  # XXX: list?
+    raw = read_raw_edf(fname, stim_channel='sine 1 Hz')
     ch_types = {ch['ch_name']: TYPE_LUT[ch['kind']] for ch in raw.info['chs']}
     assert ch_types == expected
-
-
-def test_select_stim_channel():
-
-    def foo(nchan=10, idx=slice(1, None, 2), stim_channel=[3, 6]):
-        _idx = np.arange(nchan)[idx]
-        selected_stim_ch_idx = list()
-        for y_i in stim_channel:
-            idx = np.where(_idx == y_i)[0].tolist()
-            if len(idx):
-                selected_stim_ch_idx.append(idx)
-        return np.array(selected_stim_ch_idx).ravel()
-
-    assert_array_equal(foo(), [1])
-    assert_array_equal(foo(stim_channel=[3, 5]), [1, 2])
 
 
 run_tests_if_main()
