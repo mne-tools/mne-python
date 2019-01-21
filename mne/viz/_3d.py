@@ -44,6 +44,8 @@ from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_list,
 from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
                    read_bem_surfaces)
 
+from .backends.renderer import Renderer
+
 
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
                   FIFF.FIFFV_POINT_RPA)
@@ -308,7 +310,7 @@ def _pivot_kwargs():
 
 
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
-                      n_jobs=1):
+                      n_jobs=1, return_mayavi_figure=True):
     """Plot MEG/EEG fields on head surface and helmet in 3D.
 
     Parameters
@@ -324,6 +326,10 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         How to print info about the time instant visualized.
     n_jobs : int
         Number of jobs to run in parallel.
+
+        .. versionadded:: 0.18
+    return_mayavi_figure : bool
+        If True (default), return mayavi figure.
 
     Returns
     -------
@@ -343,7 +349,6 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     types = [sm['kind'] for sm in surf_maps]
 
     # Plot them
-    mlab = _import_mlab()
     alphas = [1.0, 0.5]
     colors = [(0.6, 0.6, 0.6), (1.0, 1.0, 1.0)]
     colormap = mne_analyze_colormap(format='mayavi')
@@ -351,8 +356,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                                      np.tile([0., 0., 0., 255.], (2, 1)),
                                      np.tile([255., 0., 0., 255.], (127, 1))])
 
-    fig = _mlab_figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
-    _toggle_mlab_render(fig, False)
+    renderer = Renderer(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
     for ii, this_map in enumerate(surf_maps):
         surf = this_map['surf']
@@ -384,36 +388,30 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         # Make a solid surface
         vlim = np.max(np.abs(data))
         alpha = alphas[ii]
-        mesh = _create_mesh_surf(surf, fig)
         with warnings.catch_warnings(record=True):  # traits
-            surface = mlab.pipeline.surface(mesh, color=colors[ii],
-                                            opacity=alpha, figure=fig)
-        surface.actor.property.backface_culling = False
+            renderer.surface(surface=surf, color=colors[ii],
+                             opacity=alpha)
 
         # Now show our field pattern
-        mesh = _create_mesh_surf(surf, fig, scalars=data)
         with warnings.catch_warnings(record=True):  # traits
-            fsurf = mlab.pipeline.surface(mesh, vmin=-vlim, vmax=vlim,
-                                          figure=fig)
-        fsurf.module_manager.scalar_lut_manager.lut.table = colormap
-        fsurf.actor.property.backface_culling = False
+            renderer.surface(surface=surf, vmin=-vlim, vmax=vlim,
+                             colormap=colormap)
 
         # And the field lines on top
-        mesh = _create_mesh_surf(surf, fig, scalars=data)
         with warnings.catch_warnings(record=True):  # traits
-            cont = mlab.pipeline.contour_surface(
-                mesh, contours=21, line_width=1.0, vmin=-vlim, vmax=vlim,
-                opacity=alpha, figure=fig)
-        cont.module_manager.scalar_lut_manager.lut.table = colormap_lines
+            renderer.contour(surface=surf, scalars=data, contours=21,
+                             vmin=-vlim, vmax=vlim, opacity=alpha,
+                             colormap=colormap_lines)
 
     if '%' in time_label:
         time_label %= (1e3 * evoked.times[time_idx])
     with warnings.catch_warnings(record=True):  # traits
-        mlab.text(0.01, 0.01, time_label, width=0.4, figure=fig)
+        renderer.text(x=0.01, y=0.01, text=time_label, width=0.4)
         with SilenceStdout():  # setting roll
-            mlab.view(10, 60, figure=fig)
-    _toggle_mlab_render(fig, True)
-    return fig
+            renderer.set_camera(azimuth=10, elevation=60)
+    renderer.show()
+    if return_mayavi_figure:
+        return renderer.scene()
 
 
 def _create_mesh_surf(surf, fig=None, scalars=None, vtk_normals=True):
@@ -562,6 +560,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                    meg=None, eeg='original',
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, show_axes=False, fig=None,
+                   renderer=None, return_mayavi_figure=True,
                    interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
@@ -636,6 +635,15 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         Mayavi Scene (instance of mlab.Figure) in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
 
+        .. versionadded:: 0.18
+    renderer : backends.Renderer object | None
+        Rendering Scene in which to plot the alignment.
+        If ``None``, creates a new 600x600 pixel figure with black background.
+
+        .. versionadded:: 0.18
+    return_mayavi_figure : bool
+        If True (default), return mayavi figure.
+
         .. versionadded:: 0.16
     interaction : str
         Can be "trackball" (default) or "terrain", i.e. a turntable-style
@@ -668,8 +676,6 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     .. versionadded:: 0.15
     """
     from ..forward import _create_meg_coils
-    mlab = _import_mlab()
-    from tvtk.api import tvtk
 
     if eeg is False:
         eeg = list()
@@ -1061,12 +1067,14 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                              for pick in seeg_picks])
 
     # initialize figure
-    if fig is None:
-        fig = _mlab_figure(bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
-    if interaction == 'terrain' and fig.scene is not None:
-        fig.scene.interactor.interactor_style = \
-            tvtk.InteractorStyleTerrain()
-    _toggle_mlab_render(fig, False)
+    if renderer is None:
+        renderer = Renderer(bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
+    if fig is not None:
+        warn('fig is deprecated and will be replaced by renderer in 0.18',
+             DeprecationWarning)
+        renderer.fig = fig
+    if interaction == 'terrain':
+        renderer.set_interactive()
 
     # plot surfaces
     alphas = dict(head=head_alpha, helmet=0.25, lh=hemi_val, rh=hemi_val)
@@ -1075,19 +1083,16 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                   rh=(0.5,) * 3)
     colors.update(skull_colors)
     for key, surf in surfs.items():
-        # Make a solid surface
-        mesh = _create_mesh_surf(surf, fig)
         with warnings.catch_warnings(record=True):  # traits
-            surface = mlab.pipeline.surface(
-                mesh, color=colors[key], opacity=alphas[key], figure=fig)
-        if key != 'helmet':
-            surface.actor.property.backface_culling = True
+            renderer.surface(surface=surf, color=colors[key],
+                             opacity=alphas[key],
+                             backface_culling=(key != 'helmet'))
     if brain and 'lh' not in surfs:  # one layer sphere
         assert bem['coord_frame'] == FIFF.FIFFV_COORD_HEAD
         center = bem['r0'].copy()
         center = apply_trans(head_trans, center)
-        mlab.points3d(*center, scale_factor=0.01, color=colors['lh'],
-                      opacity=alphas['lh'])
+        renderer.sphere(center, scale=0.01, color=colors['lh'],
+                        opacity=alphas['lh'])
     if show_axes:
         axes = [(head_trans, (0.9, 0.3, 0.3))]  # always show head
         if not np.allclose(mri_trans['trans'], np.eye(4)):  # Show MRI
@@ -1097,10 +1102,12 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         for ax in axes:
             x, y, z = np.tile(ax[0]['trans'][:3, 3], 3).reshape((3, 3)).T
             u, v, w = ax[0]['trans'][:3, :3]
-            mlab.points3d(x[0], y[0], z[0], color=ax[1], scale_factor=3e-3)
-            mlab.quiver3d(x, y, z, u, v, w, mode='arrow', scale_factor=2e-2,
-                          color=ax[1], scale_mode='scalar', resolution=20,
-                          scalars=[0.33, 0.66, 1.0])
+            renderer.sphere(center=np.column_stack((x[0], y[0], z[0])),
+                            color=ax[1], scale=3e-3)
+            renderer.quiver3d(x=x, y=y, z=z, u=u, v=v, w=w, mode='arrow',
+                              scale=2e-2, color=ax[1],
+                              scale_mode='scalar', resolution=20,
+                              scalars=[0.33, 0.66, 1.0])
 
     # plot points
     defaults = DEFAULTS['coreg']
@@ -1132,44 +1139,40 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     for data, color, alpha, scale in zip(datas, colors, alphas, scales):
         if len(data) > 0:
             with warnings.catch_warnings(record=True):  # traits
-                points = mlab.points3d(data[:, 0], data[:, 1], data[:, 2],
-                                       color=color, scale_factor=scale,
-                                       opacity=alpha, figure=fig)
-                points.actor.property.backface_culling = True
+                renderer.sphere(center=data, color=color, scale=scale,
+                                opacity=alpha, backface_culling=True)
     if len(eegp_loc) > 0:
         with warnings.catch_warnings(record=True):  # traits
-            quiv = mlab.quiver3d(
-                eegp_loc[:, 0], eegp_loc[:, 1], eegp_loc[:, 2],
-                eegp_nn[:, 0], eegp_nn[:, 1], eegp_nn[:, 2],
+            renderer.quiver3d(
+                x=eegp_loc[:, 0], y=eegp_loc[:, 1], z=eegp_loc[:, 2],
+                u=eegp_nn[:, 0], v=eegp_nn[:, 1], w=eegp_nn[:, 2],
                 color=defaults['eegp_color'], mode='cylinder',
-                scale_factor=defaults['eegp_scale'], opacity=0.6, figure=fig)
-        quiv.glyph.glyph_source.glyph_source.height = defaults['eegp_height']
-        quiv.glyph.glyph_source.glyph_source.center = \
-            (0., -defaults['eegp_height'], 0)
-        quiv.glyph.glyph_source.glyph_source.resolution = 20
-        quiv.actor.property.backface_culling = True
+                scale=defaults['eegp_scale'], opacity=0.6,
+                glyph_height=defaults['eegp_height'],
+                glyph_center=(0., -defaults['eegp_height'], 0),
+                glyph_resolution=20,
+                backface_culling=True)
     if len(meg_rrs) > 0:
         color, alpha = (0., 0.25, 0.5), 0.25
         surf = dict(rr=meg_rrs, tris=meg_tris)
-        mesh = _create_mesh_surf(surf, fig)
         with warnings.catch_warnings(record=True):  # traits
-            surface = mlab.pipeline.surface(mesh, color=color,
-                                            opacity=alpha, figure=fig)
-        surface.actor.property.backface_culling = True
+            renderer.surface(surface=surf, color=color,
+                             opacity=alpha, backface_culling=True)
     if len(src_rr) > 0:
         with warnings.catch_warnings(record=True):  # traits
-            quiv = mlab.quiver3d(
-                src_rr[:, 0], src_rr[:, 1], src_rr[:, 2],
-                src_nn[:, 0], src_nn[:, 1], src_nn[:, 2], color=(1., 1., 0.),
-                mode='cylinder', scale_factor=3e-3, opacity=0.75, figure=fig)
-        quiv.glyph.glyph_source.glyph_source.height = 0.25
-        quiv.glyph.glyph_source.glyph_source.center = (0., 0., 0.)
-        quiv.glyph.glyph_source.glyph_source.resolution = 20
-        quiv.actor.property.backface_culling = True
+            renderer.quiver3d(
+                x=src_rr[:, 0], y=src_rr[:, 1], z=src_rr[:, 2],
+                u=src_nn[:, 0], v=src_nn[:, 1], w=src_nn[:, 2],
+                color=(1., 1., 0.), mode='cylinder', scale=3e-3,
+                opacity=0.75, glyph_height=0.25,
+                glyph_center=(0., 0., 0.), glyph_resolution=20,
+                backface_culling=True)
     with SilenceStdout():
-        mlab.view(90, 90, focalpoint=(0., 0., 0.), distance=0.6, figure=fig)
-    _toggle_mlab_render(fig, True)
-    return fig
+        renderer.set_camera(azimuth=90, elevation=90,
+                            focalpoint=(0., 0., 0.), distance=0.6)
+    renderer.show()
+    if return_mayavi_figure:
+        return renderer.scene()
 
 
 def _make_tris_fan(n_vert):

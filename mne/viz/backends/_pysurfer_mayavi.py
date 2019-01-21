@@ -8,19 +8,19 @@ from ...utils import _import_mlab
 
 
 class Renderer:
-    def __init__(self):
-        self.mlab = None
-        self.fig = None
-
-    def init(self, size, bgcolor):
+    def __init__(self, size=(600, 600), bgcolor=(0., 0., 0.)):
         self.mlab = _import_mlab()
         self.fig = _mlab_figure(bgcolor=bgcolor, size=size)
         _toggle_mlab_render(self.fig, False)
 
+    def scene(self):
+        return self.fig
+
     def set_interactive(self):
         from tvtk.api import tvtk
-        self.fig.scene.interactor.interactor_style = \
-            tvtk.InteractorStyleTerrain()
+        if self.fig.scene is not None:
+            self.fig.scene.interactor.interactor_style = \
+                tvtk.InteractorStyleTerrain()
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
@@ -43,6 +43,7 @@ class Renderer:
     def surface(self, surface, color=(0.7, 0.7, 0.7), opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
                 backface_culling=False):
+        # Make a solid surface
         mesh = _create_mesh_surf(surface, self.fig)
         surface = self.mlab.pipeline.surface(
             mesh, color=color, opacity=opacity, vmin=vmin, vmax=vmax,
