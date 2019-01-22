@@ -1010,6 +1010,7 @@ def _read_gdf_header(fname, exclude):
 def _check_stim_channel(stim_channel, ch_names, sel):
     """Check that the stimulus channel exists in the current datafile."""
     DEFAULT_STIM_CH_NAMES = ['status', 'trigger']
+    DEFAULT_TAL_CH_NAMES = ['EDF Annotations', 'BDF Annotations']
 
     if stim_channel is None:
         return [], []
@@ -1017,9 +1018,9 @@ def _check_stim_channel(stim_channel, ch_names, sel):
     elif isinstance(stim_channel, str):
         if stim_channel == 'auto':
             if 'auto' in ch_names:
-                warn(RuntimeWarning, 'Using `stim_channel=\'auto\'` when auto'
-                     ' also corresponds to a channel name, is ambiguous.'
-                     ' Please use `stim_channel=[\'auto\']`')
+                warn(RuntimeWarning, "Using `stim_channel='auto'` when auto"
+                     " also corresponds to a channel name is ambiguous."
+                     " Please use `stim_channel=['auto']`.")
             else:
                 valid_stim_ch_names = DEFAULT_STIM_CH_NAMES
         else:
@@ -1035,13 +1036,13 @@ def _check_stim_channel(stim_channel, ch_names, sel):
     # Forbid the synthesis of stim channels from Annotations
     # XXX: This is not how this should be done, but to check
     #      the type of channel it is.
-    stim_name_ends_with_annotations = [ch for ch in valid_stim_ch_names
-                                       if ch.endswith('annotations')]
-    if len(stim_name_ends_with_annotations):
+    tal_ch_names_found = [ch for ch in valid_stim_ch_names
+                          if ch in DEFAULT_TAL_CH_NAMES]
+    if len(tal_ch_names_found):
         _msg = ('The synthesis of the stim channel is not supported'
                 ' since 0.18. Please remove {} from `stim_channel`'
                 ' and use `mne.events_from_annotations` instead'
-                ).format(stim_name_ends_with_annotations)
+                ).format(tal_ch_names_found)
         raise ValueError(_msg)
 
     ch_names_low = [ch.lower() for ch in ch_names]
