@@ -382,9 +382,11 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
 
     edf_info, orig_units = _read_header(fname, exclude)
 
+    # XXX: `tal_ch_names` to pass to `_check_stim_channel` should be computed
+    #      from `edf_info['ch_names']` and `edf_info['tal_idx']` but 'tal_idx'
+    #      contains stim channels that are not TAL.
     stim_ch_idxs, stim_ch_names = _check_stim_channel(stim_channel,
-                                                      edf_info['ch_names'],
-                                                      edf_info['sel'])
+                                                      edf_info['ch_names'])
 
     sel = edf_info['sel']  # selection of channels not excluded
     ch_names = edf_info['ch_names']  # of length len(sel)
@@ -1007,10 +1009,10 @@ def _read_gdf_header(fname, exclude):
     return edf_info
 
 
-def _check_stim_channel(stim_channel, ch_names, sel):
+def _check_stim_channel(stim_channel, ch_names,
+                        tal_ch_names=['EDF Annotations', 'BDF Annotations']):
     """Check that the stimulus channel exists in the current datafile."""
     DEFAULT_STIM_CH_NAMES = ['status', 'trigger']
-    DEFAULT_TAL_CH_NAMES = ['EDF Annotations', 'BDF Annotations']
 
     if stim_channel is None:
         return [], []
@@ -1033,11 +1035,9 @@ def _check_stim_channel(stim_channel, ch_names, sel):
     else:
         raise ValueError('Invalid stim_channel')
 
-    # Forbid the synthesis of stim channels from Annotations
-    # XXX: This is not how this should be done, but to check
-    #      the type of channel it is.
+    # Forbid the synthesis of stim channels from TAL Annotations
     tal_ch_names_found = [ch for ch in valid_stim_ch_names
-                          if ch in DEFAULT_TAL_CH_NAMES]
+                          if ch in tal_ch_names]
     if len(tal_ch_names_found):
         _msg = ('The synthesis of the stim channel is not supported'
                 ' since 0.18. Please remove {} from `stim_channel`'
