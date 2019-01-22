@@ -1093,7 +1093,18 @@ class ICA(ContainsMixin):
         # get targets before equalizing
         targets = [self._check_target(
             ch, inst, start, stop, reject_by_annotation) for ch in chs]
-        for ii, (ch, target) in enumerate(zip(chs, targets)):
+        # assign names, if targets are arrays instead of strings
+        target_names = []
+        for ch in chs:
+            if not isinstance(ch, str):
+                if prefix == "ecg":
+                    target_names.append('ECG-MAG')
+                else:
+                    target_names.append(prefix)
+            else:
+                target_names.append(ch)
+
+        for ii, (ch, target) in enumerate(zip(target_names, targets)):
             scores += [self.score_sources(
                 inst, target=target, score_func='pearsonr', start=start,
                 stop=stop, l_freq=l_freq, h_freq=h_freq, verbose=verbose,
@@ -1101,7 +1112,7 @@ class ICA(ContainsMixin):
             # pick last scores
             this_idx = find_outliers(scores[-1], threshold=threshold)
             idx += [this_idx]
-            labels[(prefix + '/%i/' % ii) + ch] = list(this_idx)
+            labels['%s/%i/' % (prefix, ii) + ch] = list(this_idx)
 
         # remove duplicates but keep order by score, even across multiple
         # ref channels
