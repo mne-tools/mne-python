@@ -39,6 +39,8 @@ Changelog
 
 - Add :func:`mne.labels_to_stc` to facilitate working with label data, by `Eric Larson`_
 
+- Add example for how to extract a functional label from source space activation by `Eric Larson`_
+
 - Add ``overlap`` argument to :func:`mne.make_fixed_length_events` by `Eric Larson`_
 
 - Add 448-labels subdivided aparc cortical parcellation by `Denis Engemann`_ and `Sheraz Khan`_

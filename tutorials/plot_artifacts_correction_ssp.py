@@ -54,7 +54,7 @@ raw.info['projs'] += eog_projs + ecg_projs
 
 #############################################################################
 # Yes this was it. Now MNE will apply the projs on demand at any later stage,
-# so watch out for proj parmeters in functions or to it explicitly
+# so watch out for proj parameters in functions or to it explicitly
 # with the ``.apply_proj`` method
 
 #############################################################################

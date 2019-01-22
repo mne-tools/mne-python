@@ -428,6 +428,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/inverse/plot_covariance_whitening_dspm.rst
     auto_examples/inverse/plot_custom_inverse_solver.rst
     auto_examples/inverse/plot_dics_source_power.rst
+    auto_examples/inverse/plot_extract_functional_label.rst
     auto_examples/inverse/plot_gamma_map_inverse.rst
     auto_examples/inverse/plot_label_activation_from_stc.rst
     auto_examples/inverse/plot_label_from_stc.rst

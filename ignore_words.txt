@@ -17,3 +17,5 @@ delimeter
 nd
 cas
 thes
+ba
+theses

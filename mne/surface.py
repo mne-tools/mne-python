@@ -742,7 +742,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
 
         logger.info('Setting up the triangulation for the decimated '
                     'surface...')
-        surf['use_tris'] = np.array([mmap[ist] for ist in ico_surf['tris']],
+        surf['use_tris'] = np.array([mmap[ist_] for ist_ in ico_surf['tris']],
                                     np.int32)
     if surf['use_tris'] is not None:
         surf['nuse_tri'] = len(surf['use_tris'])
