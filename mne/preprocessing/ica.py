@@ -97,7 +97,7 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     """Check for channels in picks that are not considered valid channels.
 
     Accepted channels are the data channels
-    ('seeg','ecog','eeg', 'hbo', 'hbr', 'mag', and 'grad'), 'eog' and 'ref_meg.'
+    ('seeg','ecog','eeg', 'hbo', 'hbr', 'mag', and 'grad'), 'eog' and 'ref_meg'
     This prevents the program from crashing without
     feedback when a bad channel is provided to ICA whitening.
     """
@@ -455,7 +455,7 @@ class ICA(ContainsMixin):
         """
         if isinstance(inst, (BaseRaw, BaseEpochs)):
             _check_for_unsupported_ica_channels(picks, inst.info,
-            allow_ref_meg=self.allow_ref_meg)
+                                                allow_ref_meg=self.allow_ref_meg)  # NOQA
             t_start = time()
             if isinstance(inst, BaseRaw):
                 self._fit_raw(inst, picks, start, stop, decim, reject, flat,
@@ -1036,6 +1036,91 @@ class ICA(ContainsMixin):
 
         return target
 
+    def _find_bads_ch(self, inst, chs, threshold=3.0, start=None,
+                      stop=None, l_freq=None, h_freq=None,
+                      reject_by_annotation=True, verbose=None, prefix="chs"):
+        """Help function for eog_find_bads_eog/ecg/ref.
+
+        Detection is based on Pearson correlation between the MEG data
+        components and MEG reference components.
+        Thresholding is based on adaptive z-scoring. The above threshold
+        components will be masked and the z-score will be recomputed
+        until no supra-threshold component remains.
+
+        Parameters
+        ----------
+        inst : instance of Raw, Epochs or Evoked
+            Object to compute sources from. Should contain at least one channel
+            i.e. component derived from MEG reference channels.
+        chs: list of array-like | list of ch_names
+            Which data/channels to use as targets
+        threshold : int | float
+            The value above which a feature is classified as outlier.
+        start : int | float | None
+            First sample to include. If float, data will be interpreted as
+            time in seconds. If None, data will be used from the first sample.
+        stop : int | float | None
+            Last sample to not include. If float, data will be interpreted as
+            time in seconds. If None, data will be used to the last sample.
+        l_freq : float
+            Low pass frequency.
+        h_freq : float
+            High pass frequency.
+        reject_by_annotation : bool
+            If True, data annotated as bad will be omitted. Defaults to True.
+
+            .. versionadded:: 0.14.0
+
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
+
+        Returns
+        -------
+        ref_idx : list of int
+            The indices of channel related ICA components, sorted by score.
+        scores : np.ndarray of float, shape (``n_components_``) | list of array
+            The correlation scores.
+
+        See Also
+        --------
+        find_bads_ecg, find_bads_eog, _find_bads_ch
+        """
+        scores, idx = [], []
+        labels = {}
+        # some magic we need inevitably ...
+        # get targets before equalizing
+        targets = [self._check_target(
+            ch, inst, start, stop, reject_by_annotation) for ch in chs]
+        for ii, (ch, target) in enumerate(zip(chs, targets)):
+            scores += [self.score_sources(
+                inst, target=target, score_func='pearsonr', start=start,
+                stop=stop, l_freq=l_freq, h_freq=h_freq, verbose=verbose,
+                reject_by_annotation=reject_by_annotation)]
+            # pick last scores
+            this_idx = find_outliers(scores[-1], threshold=threshold)
+            idx += [this_idx]
+            labels[(prefix + '/%i/' % ii) + ch] = list(this_idx)
+
+        # remove duplicates but keep order by score, even across multiple
+        # ref channels
+        scores_ = np.concatenate([scores[ii][inds]
+                                  for ii, inds in enumerate(idx)])
+        idx_ = np.concatenate(idx)[np.abs(scores_).argsort()[::-1]]
+
+        idx_unique = list(np.unique(idx_))
+        idx = []
+        for i in idx_:
+            if i in idx_unique:
+                idx.append(i)
+                idx_unique.remove(i)
+        if len(scores) == 1:
+            scores = scores[0]
+        labels[prefix] = list(idx)
+
+        return labels, scores
+
     @verbose
     def find_bads_ecg(self, inst, ch_name=None, threshold=None, start=None,
                       stop=None, l_freq=8, h_freq=16, method='ctps',
@@ -1139,33 +1224,35 @@ class ICA(ContainsMixin):
             _, p_vals, _ = ctps(sources)
             scores = p_vals.max(-1)
             ecg_idx = np.where(scores >= threshold)[0]
+            # sort indices by scores
+            ecg_idx = ecg_idx[np.abs(scores[ecg_idx]).argsort()[::-1]]
+
+            self.labels_['ecg'] = list(ecg_idx)
+            if ch_name is None:
+                ch_name = 'ECG-MAG'
+            self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         elif method == 'correlation':
             if threshold is None:
                 threshold = 3.0
-            scores = self.score_sources(
-                inst, target=ecg, score_func='pearsonr', start=start,
-                stop=stop, l_freq=l_freq, h_freq=h_freq,
-                reject_by_annotation=reject_by_annotation, verbose=verbose)
-            ecg_idx = find_outliers(scores, threshold=threshold)
+            self.labels_, scores = self._find_bads_ch(inst, [ecg],
+                                                threshold=threshold,
+                                                start=start, stop=stop,
+                                                l_freq=l_freq, h_freq=h_freq,
+                                                reject_by_annotation=reject_by_annotation, # NOQA
+                                                verbose=verbose,
+                                                prefix="ecg")
         else:
             raise ValueError('Method "%s" not supported.' % method)
-        # sort indices by scores
-        ecg_idx = ecg_idx[np.abs(scores[ecg_idx]).argsort()[::-1]]
-
-        self.labels_['ecg'] = list(ecg_idx)
-        if ch_name is None:
-            ch_name = 'ECG-MAG'
-        self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         return self.labels_['ecg'], scores
 
     @verbose
-    def find_bads_ref(self, inst, picks=None, threshold=3.0, start=None,
+    def find_bads_ref(self, inst, ch_name=None, threshold=3.0, start=None,
                       stop=None, l_freq=None, h_freq=None,
                       reject_by_annotation=True, verbose=None):
         """Detect MEG reference related components using correlation.
 
-        Detection is based on Pearson correlation between the MEG data components
-        and MEG reference components.
+        Detection is based on Pearson correlation between the MEG data
+        components and MEG reference components.
         Thresholding is based on adaptive z-scoring. The above threshold
         components will be masked and the z-score will be recomputed
         until no supra-threshold component remains.
@@ -1175,7 +1262,7 @@ class ICA(ContainsMixin):
         inst : instance of Raw, Epochs or Evoked
             Object to compute sources from. Should contain at least one channel
             i.e. component derived from MEG reference channels.
-        picks: list of int
+        ch_name: list of int
             Which MEG reference components to use. If None, then all channels
             that begin with REF_ICA
         threshold : int | float
@@ -1209,49 +1296,24 @@ class ICA(ContainsMixin):
 
         See Also
         --------
-        find_bads_ecg, find_bads_eog
+        find_bads_ecg, find_bads_eog, _find_bads_ch
         """
         if verbose is None:
             verbose = self.verbose
 
-        if not picks:
-            inds = pick_channels_regexp(inst.ch_names,"REF_ICA*")
+        if not ch_name:
+            inds = pick_channels_regexp(inst.ch_names, "REF_ICA*")
         else:
-            inds = picks
-        scores, ref_idx = [], []
+            inds = pick_channels(ch_name)
         ref_chs = [inst.ch_names[k] for k in inds]
 
-        # some magic we need inevitably ...
-        # get targets before equalizing
-        targets = [self._check_target(k, inst, start, stop,reject_by_annotation) for k in ref_chs]
-
-        for ii, (ref_ch, target) in enumerate(zip(ref_chs, targets)):
-            scores += [self.score_sources(
-                inst, target=target, score_func='pearsonr', start=start,
-                stop=stop, l_freq=l_freq, h_freq=h_freq, verbose=verbose,
-                reject_by_annotation=reject_by_annotation)]
-            # pick last scores
-            this_idx = find_outliers(scores[-1], threshold=threshold)
-            ref_idx += [this_idx]
-            self.labels_[('ref/%i/' % ii) + ref_ch] = list(this_idx)
-
-        # remove duplicates but keep order by score, even across multiple
-        # ref channels
-        scores_ = np.concatenate([scores[ii][inds]
-                                  for ii, inds in enumerate(ref_idx)])
-        ref_idx_ = np.concatenate(ref_idx)[np.abs(scores_).argsort()[::-1]]
-
-        ref_idx_unique = list(np.unique(ref_idx_))
-        ref_idx = []
-        for i in ref_idx_:
-            if i in ref_idx_unique:
-                ref_idx.append(i)
-                ref_idx_unique.remove(i)
-        if len(scores) == 1:
-            scores = scores[0]
-        self.labels_['ref'] = list(ref_idx)
-
-        return self.labels_['ref'], scores
+        self.labels_, scores = self._find_bads_ch(inst, ref_chs,
+                                            threshold=threshold, start=start,
+                                            stop=stop, l_freq=l_freq,
+                                            h_freq=h_freq,
+                                            reject_by_annotation=reject_by_annotation, # NOQA
+                                            verbose=verbose, prefix="ref_meg")
+        return self.labels_['ref_meg'], scores
 
     @verbose
     def find_bads_eog(self, inst, ch_name=None, threshold=3.0, start=None,
@@ -1278,7 +1340,7 @@ class ICA(ContainsMixin):
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
-        stop : int | float | None
+        stop : int |eog_chs = [inst.ch_names[k] for k in eog_inds] float | None
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
         l_freq : float
@@ -1304,7 +1366,7 @@ class ICA(ContainsMixin):
 
         See Also
         --------
-        find_bads_ecg
+        find_bads_ecg, find_bads_ref, _find_bads_ch
         """
         if verbose is None:
             verbose = self.verbose
@@ -1313,40 +1375,14 @@ class ICA(ContainsMixin):
         if len(eog_inds) > 2:
             eog_inds = eog_inds[:1]
             logger.info('Using EOG channel %s' % inst.ch_names[eog_inds[0]])
-        scores, eog_idx = [], []
         eog_chs = [inst.ch_names[k] for k in eog_inds]
 
-        # some magic we need inevitably ...
-        # get targets before equalizing
-        targets = [self._check_target(k, inst, start, stop,
-                                      reject_by_annotation) for k in eog_chs]
-
-        for ii, (eog_ch, target) in enumerate(zip(eog_chs, targets)):
-            scores += [self.score_sources(
-                inst, target=target, score_func='pearsonr', start=start,
-                stop=stop, l_freq=l_freq, h_freq=h_freq, verbose=verbose,
-                reject_by_annotation=reject_by_annotation)]
-            # pick last scores
-            this_idx = find_outliers(scores[-1], threshold=threshold)
-            eog_idx += [this_idx]
-            self.labels_[('eog/%i/' % ii) + eog_ch] = list(this_idx)
-
-        # remove duplicates but keep order by score, even across multiple
-        # EOG channels
-        scores_ = np.concatenate([scores[ii][inds]
-                                  for ii, inds in enumerate(eog_idx)])
-        eog_idx_ = np.concatenate(eog_idx)[np.abs(scores_).argsort()[::-1]]
-
-        eog_idx_unique = list(np.unique(eog_idx_))
-        eog_idx = []
-        for i in eog_idx_:
-            if i in eog_idx_unique:
-                eog_idx.append(i)
-                eog_idx_unique.remove(i)
-        if len(scores) == 1:
-            scores = scores[0]
-        self.labels_['eog'] = list(eog_idx)
-
+        self.labels_, scores = self._find_bads_ch(inst, eog_chs,
+                                            threshold=threshold,
+                                            start=start, stop=stop,
+                                            l_freq=l_freq, h_freq=h_freq,
+                                            reject_by_annotation=reject_by_annotation, # NOQA
+                                            verbose=verbose, prefix="eog")
         return self.labels_['eog'], scores
 
     def apply(self, inst, include=None, exclude=None, n_pca_components=None,
