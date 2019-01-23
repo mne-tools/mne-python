@@ -1059,7 +1059,6 @@ def _check_stim_channel(stim_channel, ch_names,
     else:
         stim_channel_idxs = [ch_names_low.index(f) for f in found]
         names = [ch_names[idx] for idx in stim_channel_idxs]
-        print((stim_channel_idxs, names))
         return stim_channel_idxs, names
 
 
