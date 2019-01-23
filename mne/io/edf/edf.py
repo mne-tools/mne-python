@@ -1028,10 +1028,16 @@ def _check_stim_channel(stim_channel, ch_names,
         else:
             valid_stim_ch_names = [stim_channel.lower()]
 
-    elif (isinstance(stim_channel, list) and
-          all([isinstance(s, str) for s in stim_channel])):
-        valid_stim_ch_names = [s.lower() for s in stim_channel]
+    elif isinstance(stim_channel, int):
+        valid_stim_ch_names = [ch_names[stim_channel].lower()]
 
+    elif isinstance(stim_channel, list):
+        if all([isinstance(s, str) for s in stim_channel]):
+            valid_stim_ch_names = [s.lower() for s in stim_channel]
+        elif all([isinstance(s, int) for s in stim_channel]):
+            valid_stim_ch_names = [ch_names[s].lower() for s in stim_channel]
+        else:
+            raise ValueError('Invalid stim_channel')
     else:
         raise ValueError('Invalid stim_channel')
 
@@ -1053,6 +1059,7 @@ def _check_stim_channel(stim_channel, ch_names,
     else:
         stim_channel_idxs = [ch_names_low.index(f) for f in found]
         names = [ch_names[idx] for idx in stim_channel_idxs]
+        print((stim_channel_idxs, names))
         return stim_channel_idxs, names
 
 

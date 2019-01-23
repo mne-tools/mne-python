@@ -295,12 +295,12 @@ def test_load_generator(fname, recwarn):
                  None, id='None'),
     pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'},
                  'sine 1 Hz', id='single string'),
-    # pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'},
-    #              2, id='single int'),
-    # pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'},
-    #              -1, id='single int (revers indexing)'),
-    # pytest.param({'stAtUs': 'stim', 'tRigGer': 'stim', 'sine 1 Hz': 'eeg'},
-    #              [0, 1], id='int list'),
+    pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'},
+                 2, id='single int'),
+    pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'},
+                 -1, id='single int (revers indexing)'),
+    pytest.param({'stAtUs': 'stim', 'tRigGer': 'stim', 'sine 1 Hz': 'eeg'},
+                 [0, 1], id='int list'),
     ])
 def test_edf_stim_ch_pick_up(test_input, EXPECTED):
     """Test stim_channel."""
