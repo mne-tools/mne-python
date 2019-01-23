@@ -112,7 +112,7 @@ class Raw(BaseRaw):
                     self.annotations, r.annotations,
                     n_samples, self.first_samp, r.first_samp,
                     r.info['sfreq'], self.info['meas_date'])
-                self.set_annotations(annotations, False)
+                self.set_annotations(annotations, emit_warning=True)
                 n_samples += r.last_samp - r.first_samp + 1
 
         # Add annotations for in-data skips
