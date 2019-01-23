@@ -281,3 +281,46 @@ def test_get_data_reject():
         assert log.getvalue().strip() == msg
     assert data.shape == (len(ch_names), 2560)  # shape doesn't change
     assert np.isnan(data).sum() == 3072  # but NaNs are introduced instead
+
+
+def test_5839():
+    """Test concatenating raw objects with annotations."""
+    # Global Time 0         1         2         3         4
+    #             .
+    #      raw_A  |---------XXXXXXXXXX
+    #      annot  |--------------AA
+    #    latency  .         0    0    1    1    2    2    3
+    #             .              5    0    5    0    5    0
+    #
+    #      raw_B  .                   |---------YYYYYYYYYY
+    #      annot  .                   |--------------AA
+    #    latency  .                             0         1
+    #             .                                  5    0
+    #             .
+    #     output  |---------XXXXXXXXXXYYYYYYYYYY
+    #      annot  |--------------AA---|----AA
+    #    latency  .         0    0    1    1    2    2    3
+    #             .              5    0    5    0    5    0
+    #
+    EXPECTED_ONSET = [1.5, 2.5, 2., 2.]
+    EXPECTED_DURATION = [0.2, 0.2, 0., 0.]
+    EXPECTED_DESCRIPTION = ['dummy', 'dummy', 'BAD boundary', 'EDGE boundary']
+
+    def raw_factory(meas_date):
+        raw = RawArray(data=np.empty((10, 10)),
+                       info=create_info(ch_names=10, sfreq=10., ),
+                       first_samp=10)
+        raw.info['meas_date'] = meas_date
+        raw.set_annotations(annotations=Annotations(onset=[.5],
+                                                    duration=[.2],
+                                                    description='dummy',
+                                                    orig_time=None))
+        return raw
+
+    raw_A, raw_B = [raw_factory((x, 0)) for x in [0, 2]]
+    raw_A.append(raw_B)
+
+    assert_array_equal(raw_A.annotations.onset, EXPECTED_ONSET)
+    assert_array_equal(raw_A.annotations.duration, EXPECTED_DURATION)
+    assert_array_equal(raw_A.annotations.description, EXPECTED_DESCRIPTION)
+    assert raw_A.annotations.orig_time == 0.0

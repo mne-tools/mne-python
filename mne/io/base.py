@@ -2127,8 +2127,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         edge_samps = list()
         for ri, r in enumerate(raws):
             n_samples = self.last_samp - self.first_samp + 1
+            r_annot = Annotations(onset=r.annotations.onset - r._first_time,
+                                  duration=r.annotations.duration,
+                                  description=r.annotations.description,
+                                  orig_time=None)
             annotations = _combine_annotations(
-                annotations, r.annotations, n_samples,
+                annotations, r_annot, n_samples,
                 self.first_samp, r.first_samp,
                 self.info['sfreq'], self.info['meas_date'])
             edge_samps.append(sum(self._last_samps) -
