@@ -1043,7 +1043,7 @@ def _check_stim_channel(stim_channel, ch_names,
 
     # Forbid the synthesis of stim channels from TAL Annotations
     tal_ch_names_found = [ch for ch in valid_stim_ch_names
-                          if ch in tal_ch_names]
+                          if ch in [t.lower() for t in tal_ch_names]]
     if len(tal_ch_names_found):
         _msg = ('The synthesis of the stim channel is not supported'
                 ' since 0.18. Please remove {} from `stim_channel`'

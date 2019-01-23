@@ -209,11 +209,6 @@ def test_read_raw_edf_stim_channel_input_parameters():
                            match="stim channel is not supported"):
             read_raw_edf(edf_path, stim_channel=invalid_stim_parameter)
 
-    for invalid_stim_parameter in [0, -1, [0, -1]]:
-        with pytest.raises(ValueError,
-                           match="Invalid stim_channel"):
-            read_raw_edf(edf_path, stim_channel=invalid_stim_parameter)
-
 
 def _assert_annotations_equal(a, b):
     assert_array_equal(a.onset, b.onset)
