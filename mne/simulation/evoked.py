@@ -8,9 +8,9 @@ import math
 
 import numpy as np
 
-from ..io.pick import pick_channels_cov
+from ..io.pick import pick_channels_cov, pick_info
 from ..forward import apply_forward
-from ..utils import check_random_state, verbose
+from ..utils import logger, verbose, check_random_state, _check_preload
 
 
 @verbose
@@ -107,9 +107,65 @@ def simulate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
     .. versionadded:: 0.10.0
     """
     noise = evoked.copy()
-    noise.data = _generate_noise(evoked.info, cov, iir_filter, random_state,
-                                 evoked.data.shape[1])[0]
-    return noise
+    noise.data[:] = 0
+    return _add_noise(noise, cov, iir_filter, random_state)
+
+
+@verbose
+def add_noise(inst, cov, iir_filter=None, random_state=None,
+              verbose=None):
+    """Create noise as a multivariate Gaussian.
+
+    The spatial covariance of the noise is given from the cov matrix.
+
+    Parameters
+    ----------
+    inst : instance of Evoked, Epochs, or Raw
+        Instance to which to add noise.
+    cov : instance of Covariance
+        The noise covariance.
+    iir_filter : None | array-like
+        IIR filter coefficients (denominator).
+    random_state : None | int | np.random.RandomState
+        To specify the random generator state.
+
+    Returns
+    -------
+    noise : evoked object
+        an instance of evoked
+
+    Notes
+    -----
+    Only channels in both ``inst.info['ch_names']`` and
+    ``cov['names']`` will have noise added to them.
+
+    .. versionadded:: 0.18.0
+    """
+    # We always allow subselection here
+    return _add_noise(
+        inst, cov, iir_filter, random_state, allow_subselection=True)
+
+
+def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=False):
+    """Add noise, possibly with channel subselection."""
+    _check_preload(inst, 'Adding noise')
+    data = inst._data
+    assert data.ndim in (2, 3)
+    if data.ndim == 2:
+        data = data[np.newaxis]
+    # Subselect if necessary
+    info = inst.info
+    picks = slice(None)
+    if allow_subselection:
+        use_chs = list(set(info['ch_names']) & set(cov['names']))
+        picks = np.where(np.in1d(info['ch_names'], use_chs))[0]
+        logger.info('Adding noise to %d/%d channels (%d channels in cov)'
+                    % (len(picks), len(info['chs']), len(cov['names'])))
+        info = pick_info(inst.info, picks)
+    for epoch in data:
+        epoch[picks] = _generate_noise(info, cov, iir_filter, random_state,
+                                       epoch.shape[1])[0]
+    return inst
 
 
 def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):

@@ -31,6 +31,8 @@ Changelog
 
 - :func:`mne.io.read_raw_edf` now detects analog stim channels labeled ``'STATUS'`` and sets them as stim channel. :func:`mne.io.read_raw_edf` no longer synthesize TAL annotations into stim channel but stores them in ``raw.annotations`` when reading by `Joan Massich`_
 
+- Add `mne.simulation.add_noise` for ad-hoc noise addition to `io.Raw`, `Epochs`, and `Evoked` instances, by `Eric Larson`_
+
 - Add ``drop_refs=True`` parameter to :func:`set_bipolar_reference` to drop/keep anode and cathode channels after applying the reference by `Cristóbal Moënne-Loccoz`_.
 
 - Add use of :func:`scipy.signal.windows.dpss` for faster multitaper window computations in PSD functions by `Eric Larson`_
