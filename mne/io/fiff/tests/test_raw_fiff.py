@@ -388,7 +388,8 @@ def test_split_files(tmpdir):
     raw_2 = read_raw_fif(split_fname)
     assert_allclose(raw_2.buffer_size_sec, 1., atol=1e-2)  # samp rate
     assert_array_almost_equal(raw_1.annotations.onset, raw_2.annotations.onset)
-    assert_array_equal(raw_1.annotations.duration, raw_2.annotations.duration)
+    assert_array_almost_equal(raw_1.annotations.duration,
+                              raw_2.annotations.duration)
     assert_array_equal(raw_1.annotations.description,
                        raw_2.annotations.description)
     data_1, times_1 = raw_1[:, :]
@@ -401,6 +402,9 @@ def test_split_files(tmpdir):
     data_bids, times_bids = raw_bids[:, :]
     assert_array_equal(data_1, data_bids)
     assert_array_equal(times_1, times_bids)
+
+    # XXX: If I don't do this, the error message on saving changes :S
+    raw_1.set_annotations(Annotations([2.], [5.5], 'test'))
 
     # test the case where we only end up with one buffer to write
     # (GH#3210). These tests rely on writing meas info and annotations

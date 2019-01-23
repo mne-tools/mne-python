@@ -104,7 +104,7 @@ class Raw(BaseRaw):
             verbose=verbose)
 
         # combine annotations
-        self.set_annotations(raws[0].annotations, emit_warning=True)
+        self.set_annotations(raws[0].annotations, emit_warning=False)
 
         # Add annotations for in-data skips
         for extra in self._raw_extras:
