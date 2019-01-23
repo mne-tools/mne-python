@@ -4,9 +4,8 @@ environment:
   global:
       PYTHON: "C:\\conda"
       # CONDA_ENVIRONMENT: "environment.yml"
-      # PIP_DEPENDENCIES: "pip install codecov pytest-faulthandler pytest-sugar pytest-timeout"
-      CONDA_DEPENDENCIES: ""
-      PIP_DEPENDENCIES: ""
+      CONDA_DEPENDENCIES: "python>=3.6 pip mkl numpy scipy matplotlib cython pyqt>=5.9 pandas xlrd scikit-learn h5py pillow statsmodels jupyter pytest pytest-cov joblib psutil numpydoc flake8 spyder numexpr traits>=4.6.0 pyface>=6 traitsui>=6 testpath<0.4"
+      PIP_DEPENDENCIES: "pip install codecov pytest-sugar pytest-timeout vtk https://api.github.com/repos/enthought/mayavi/zipball/b3fc35218dda9776d8f1a407663bfb49783dca12 PySurfer[save_movie] dipy --only-binary dipy nibabel nilearn neo pytest-faulthandler pytest-mock pydocstyle codespell python-picard"
   matrix:
       - PYTHON_VERSION: "3.6"
         PYTHON_ARCH: "64"
@@ -15,15 +14,8 @@ install:
   - "git clone git://github.com/astropy/ci-helpers.git"
   - "powershell ci-helpers/appveyor/install-miniconda.ps1"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-  # From https://github.com/conda-forge/gdal-feedstock/issues/241
-  - "cd %PYTHON%\\envs\\test\\Library\\bin"
-  - "copy tiff.dll libtiff.dll"
-  - "cd C:\\projects\\mne-python"
-  - "conda env remove -yn test"
-  - "conda env create -yn test -f environment.yml"
   - "activate test"
-  - "pip uninstall -yq mne"
-  - "pip install -yq codecov pytest-faulthandler pytest-sugar pytest-timeout"
+  # "pip uninstall -yq mne"
   - "python setup.py develop"
   - "python -c \"import mne; print(mne.sys_info())\""
   - "SET MNE_FORCE_SERIAL=true"  # otherwise joblib will bomb
