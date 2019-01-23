@@ -87,10 +87,12 @@ class RawEDF(BaseRaw):
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
-    stim_channel : 'auto' | list of str
-        Channels appearing in this list are set as channels of type 'stim'.
-        It defaults to 'auto' where channels matching 'status' or 'trigger'
-        are set as 'stim'. The matching is not case sensitive.
+    stim_channel : 'auto' | str | list of str | int | list of int
+        It defaults to 'auto' where channels named 'status' or 'trigger'
+        are set as 'stim'. When str (or list of str) channels matching this
+        string are set as 'sitm'. The matching is not case sensitive, same for
+        the default behavior. When int (or list of ints) the channel
+        corresponding to this position is set as channels of type 'stim'.
 
         .. warning:: 0.18 does not allow for stim channel synthesis from
                      the TAL channels called 'EDF Annotations' or
