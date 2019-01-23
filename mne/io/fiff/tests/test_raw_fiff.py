@@ -1536,9 +1536,14 @@ def test_file_like(kind, preload, split, tmpdir):
     assert file_fid.closed
 
 
-def test_foo(tmpdir):
+@pytest.mark.parametrize('delta_shift', [0, 1, 2])
+def test_foo(tmpdir, delta_shift):
     raw_1 = read_raw_fif(test_fif_fname, preload=False)
-    raw_1.set_annotations(Annotations(np.arange(25), np.zeros((25,)), 'test'),
+    delta = 1 / raw_1.info['sfreq']
+    shift = delta_shift * delta
+    raw_1.set_annotations(Annotations(np.arange(25) + shift,
+                                      np.zeros((25,)),
+                                      'test'),
                           emit_warning=False)
     split_fname = op.join(str(tmpdir), 'split_raw.fif')
     print(str(tmpdir))
@@ -1548,7 +1553,10 @@ def test_foo(tmpdir):
     print(raw_1.annotations)
     print(raw_2.annotations)
 
-    assert_array_almost_equal(raw_1.annotations.onset, raw_2.annotations.onset)
+    print(max(abs(raw_1.annotations.onset - raw_2.annotations.onset)))
+    assert_array_almost_equal(raw_1.annotations.onset,
+                              raw_2.annotations.onset,
+                              decimal=5)
 
 
 run_tests_if_main()
