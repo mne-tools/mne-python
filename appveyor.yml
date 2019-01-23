@@ -4,7 +4,7 @@ environment:
   global:
       PYTHON: "C:\\conda"
       CONDA_ENVIRONMENT: "environment.yml"
-      CONDA_VERSION: ">=4.5.12"
+      CONDA_VERSION: "=4.5.12"
       PIP_DEPENDENCIES: "codecov pytest-faulthandler pytest-sugar pytest-timeout"
   matrix:
       - PYTHON_VERSION: "3.6"
