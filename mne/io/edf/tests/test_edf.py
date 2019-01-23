@@ -295,8 +295,7 @@ def test_load_generator(fname, recwarn):
     pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'},
                  -1, id='single int (revers indexing)'),
     pytest.param({'stAtUs': 'stim', 'tRigGer': 'stim', 'sine 1 Hz': 'eeg'},
-                 [0, 1], id='int list'),
-    ])
+                 [0, 1], id='int list')])
 def test_edf_stim_ch_pick_up(test_input, EXPECTED):
     """Test stim_channel."""
     TYPE_LUT = {v[0]: k for k, v in _KIND_DICT.items()}
