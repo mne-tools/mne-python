@@ -288,29 +288,28 @@ def test_load_generator(fname, recwarn):
     assert_array_equal(events, [[0, 0, 1], [120000, 0, 2]])
 
 
-def test_edf_stim_ch_pick_up():
+@pytest.mark.parametrize('EXPECTED, test_input', [
+    pytest.param({'stAtUs': 'stim', 'tRigGer': 'stim', 'sine 1 Hz': 'eeg'},
+                 'auto', id='auto'),
+    pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'eeg'},
+                 None, id='None'),
+    pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'},
+                 'sine 1 Hz', id='single string'),
+    # pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'},
+    #              2, id='single int'),
+    # pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'},
+    #              -1, id='single int (revers indexing)'),
+    # pytest.param({'stAtUs': 'stim', 'tRigGer': 'stim', 'sine 1 Hz': 'eeg'},
+    #              [0, 1], id='int list'),
+    ])
+def test_edf_stim_ch_pick_up(test_input, EXPECTED):
     """Test stim_channel."""
     TYPE_LUT = {v[0]: k for k, v in _KIND_DICT.items()}
-
     fname = op.join(data_dir, 'test_stim_channel.edf')
 
-    # default parameters
-    expected = {'stAtUs': 'stim', 'tRigGer': 'stim', 'sine 1 Hz': 'eeg'}
-    raw = read_raw_edf(fname, stim_channel='auto')
+    raw = read_raw_edf(fname, stim_channel=test_input)
     ch_types = {ch['ch_name']: TYPE_LUT[ch['kind']] for ch in raw.info['chs']}
-    assert ch_types == expected
-
-    # None parameter
-    expected = {'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'eeg'}
-    raw = read_raw_edf(fname, stim_channel=None)
-    ch_types = {ch['ch_name']: TYPE_LUT[ch['kind']] for ch in raw.info['chs']}
-    assert ch_types == expected
-
-    # specific name parameter
-    expected = {'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'}
-    raw = read_raw_edf(fname, stim_channel='sine 1 Hz')
-    ch_types = {ch['ch_name']: TYPE_LUT[ch['kind']] for ch in raw.info['chs']}
-    assert ch_types == expected
+    assert ch_types == EXPECTED
 
 
 run_tests_if_main()
