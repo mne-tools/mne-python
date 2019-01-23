@@ -20,6 +20,8 @@ dependencies:
 - jupyter
 - pytest
 - pytest-cov
+- pytest-mock
+- pytest-timeout
 - joblib
 - psutil
 - numpydoc
@@ -39,7 +41,6 @@ dependencies:
   - nilearn
   - neo
   - pytest-faulthandler
-  - pytest-mock
   - pydocstyle
   - codespell
   - python-picard
