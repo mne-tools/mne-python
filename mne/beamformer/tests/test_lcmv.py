@@ -67,6 +67,8 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     picks = mne.pick_types(raw.info, selection=left_temporal_channels)
     picks = picks[::2]  # decimate for speed
     raw.pick_channels([raw.ch_names[ii] for ii in picks])
+    raw.info['bads'] = raw.ch_names[:10]  # add more bads
+
     del picks
     raw.info.normalize_proj()  # avoid projection warnings
 
