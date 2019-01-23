@@ -1,10 +1,10 @@
 # Use an old image with an incompatible compiler (pip wants MSVC 2015 / 14.0)
-image: Visual Studio 2013
+image: Visual Studio 2017
 environment:
   global:
       PYTHON: "C:\\conda"
       CONDA_ENVIRONMENT: "environment.yml"
-      PIP_DEPENDENCIES: "codecov pytest-faulthandler pytest-sugar pytest-timeout vtk"
+      PIP_DEPENDENCIES: "codecov pytest-faulthandler pytest-sugar pytest-timeout"
   matrix:
       - PYTHON_VERSION: "3.6"
         PYTHON_ARCH: "64"
