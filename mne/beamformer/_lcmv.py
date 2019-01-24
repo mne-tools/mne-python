@@ -424,16 +424,17 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
             info, forward, label, picks, pick_ori)
 
     # Handle whitening
-    info = pick_info(
-        info, [info['ch_names'].index(k) for k in ch_names
-               if k in info['ch_names']])
+    picks = [info['ch_names'].index(k) for k in ch_names
+             if k in info['ch_names']]
+    info = pick_info(info, picks)
+    del picks  # everything should be picked now
 
     # XXX this could maybe use pca=True to avoid needing to use
     # _reg_pinv(..., rank=rank) later
     if noise_cov is not None:
         whitener_rank = None if rank == 'full' else rank
         whitener, _ = compute_whitener(
-            noise_cov, info, picks, rank=whitener_rank)
+            noise_cov, info, rank=whitener_rank)
 
         # whiten the leadfield
         G = np.dot(whitener, G)

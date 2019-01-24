@@ -67,8 +67,15 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     left_temporal_channels = mne.read_selection('Left-temporal')
     picks = mne.pick_types(raw.info, selection=left_temporal_channels)
     picks = picks[::2]  # decimate for speed
+    # add a couple channels we will consider bad
+    bad_picks = [100, 101]
+    bads = [raw.ch_names[pick] for pick in bad_picks]
+    assert not any(pick in picks for pick in bad_picks)
+    picks = np.concatenate([picks, bad_picks])
     raw.pick_channels([raw.ch_names[ii] for ii in picks])
     del picks
+
+    raw.info['bads'] = bads  # add more bads
     raw.info.normalize_proj()  # avoid projection warnings
 
     if epochs:
