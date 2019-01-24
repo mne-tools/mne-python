@@ -28,6 +28,7 @@ from mne.io.edf.edf import _read_annotations_edf
 from mne.io.edf.edf import _read_ch
 from mne.io.pick import channel_indices_by_type
 from mne.annotations import events_from_annotations, read_annotations
+from mne.io.meas_info import _kind_dict as _KIND_DICT
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -196,19 +197,15 @@ def test_to_data_frame():
         assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
 
 
-def test_read_raw_edf_deprecation():
+def test_read_raw_edf_stim_channel_input_parameters():
     """Test edf raw reader deprecation."""
     _MSG = "`read_raw_edf` is not supposed to trigger a deprecation warning"
     with pytest.warns(None) as recwarn:
         read_raw_edf(edf_path)
     assert all([w.category != DeprecationWarning for w in recwarn.list]), _MSG
 
-    with pytest.deprecated_call(match="stim_channel .* removed in 0.19"):
-        read_raw_edf(edf_path, stim_channel=False)
-
-    for invalid_stim_parameter in ['what ever', 'STATUS', 'EDF Annotations',
-                                   'BDF Annotations', 0, -1]:
-        with pytest.raises(RuntimeError,
+    for invalid_stim_parameter in ['EDF Annotations', 'BDF Annotations']:
+        with pytest.raises(ValueError,
                            match="stim channel is not supported"):
             read_raw_edf(edf_path, stim_channel=invalid_stim_parameter)
 
@@ -284,6 +281,29 @@ def test_load_generator(fname, recwarn):
     assert raw.ch_names == ch_names
     assert event_id == {'RECORD START': 1, 'REC STOP': 2}
     assert_array_equal(events, [[0, 0, 1], [120000, 0, 2]])
+
+
+@pytest.mark.parametrize('EXPECTED, test_input', [
+    pytest.param({'stAtUs': 'stim', 'tRigGer': 'stim', 'sine 1 Hz': 'eeg'},
+                 'auto', id='auto'),
+    pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'eeg'},
+                 None, id='None'),
+    pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'},
+                 'sine 1 Hz', id='single string'),
+    pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'},
+                 2, id='single int'),
+    pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'},
+                 -1, id='single int (revers indexing)'),
+    pytest.param({'stAtUs': 'stim', 'tRigGer': 'stim', 'sine 1 Hz': 'eeg'},
+                 [0, 1], id='int list')])
+def test_edf_stim_ch_pick_up(test_input, EXPECTED):
+    """Test stim_channel."""
+    TYPE_LUT = {v[0]: k for k, v in _KIND_DICT.items()}
+    fname = op.join(data_dir, 'test_stim_channel.edf')
+
+    raw = read_raw_edf(fname, stim_channel=test_input)
+    ch_types = {ch['ch_name']: TYPE_LUT[ch['kind']] for ch in raw.info['chs']}
+    assert ch_types == EXPECTED
 
 
 run_tests_if_main()

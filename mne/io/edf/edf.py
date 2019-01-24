@@ -87,9 +87,12 @@ class RawEDF(BaseRaw):
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
-    stim_channel : False
-        If False, there will be no stim channel added from a TAL channel.
-        None is accepted as an alias for False.
+    stim_channel : 'auto' | str | list of str | int | list of int
+        It defaults to 'auto' where channels named 'status' or 'trigger'
+        are set as 'stim'. When str (or list of str) channels matching this
+        string are set as 'sitm'. The matching is not case sensitive, same for
+        the default behavior. When int (or list of ints) the channel
+        corresponding to this position is set as channels of type 'stim'.
 
         .. warning:: 0.18 does not allow for stim channel synthesis from
                      the TAL channels called 'EDF Annotations' or
@@ -155,7 +158,7 @@ class RawEDF(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
-                 stim_channel=None, exclude=(), preload=False,
+                 stim_channel='auto', exclude=(), preload=False,
                  verbose=None):  # noqa: D102
         logger.info('Extracting EDF parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
@@ -278,7 +281,7 @@ class RawEDF(BaseRaw):
                     d_sidx = d_lims[ai][0]
                     d_eidx = d_lims[ai + n_read - 1][1]
                     if n_samps[ci] != buf_len:
-                        if ci == stim_channel:
+                        if ci in stim_channel:
                             # Stim channel will be interpolated
                             old = np.linspace(0, 1, n_samps[ci] + 1, True)
                             new = np.linspace(0, 1, buf_len, False)
@@ -298,22 +301,21 @@ class RawEDF(BaseRaw):
 
         # only try to read the stim channel if it's not None and it's
         # actually one of the requested channels
-        _idx = np.arange(self.info['nchan'])[idx]  # slice -> ints
         if stim_channel is None:  # avoid NumPy comparison to None
             stim_channel_idx = np.array([], int)
         else:
-            stim_channel_idx = np.where(_idx == stim_channel)[0]
+            _idx = np.arange(self.info['nchan'])[idx]  # slice -> ints
+            stim_channel_idx = list()
+            for stim_ch in stim_channel:
+                stim_ch_idx = np.where(_idx == stim_ch)[0].tolist()
+                if len(stim_ch_idx):
+                    stim_channel_idx.append(stim_ch_idx)
+            stim_channel_idx = np.array(stim_channel_idx).ravel()
 
         if subtype == 'bdf':
-            # do not scale stim channel (see gh-5160)
-            if stim_channel is None:
-                stim_idx = [[]]
-            else:
-                stim_idx = np.where(np.arange(self.info['nchan']) ==
-                                    stim_channel)
-            cal[0, stim_idx[0]] = 1
-            offsets[stim_idx[0], 0] = 0
-            gains[0, stim_idx[0]] = 1
+            cal[0, stim_channel_idx] = 1
+            offsets[stim_channel_idx, 0] = 0
+            gains[0, stim_channel_idx] = 1
         data *= cal.T[idx]
         data += offsets[idx]
         data *= gains.T[idx]
@@ -349,38 +351,44 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     return ch_data
 
 
-def _get_info(fname, stim_channel, eog, misc, exclude, preload):
-    """Extract all the information from the EDF+, BDF or GDF file."""
-    if stim_channel is not None:
-        if isinstance(stim_channel, bool) and not stim_channel:
-            warn('stim_channel parameter is deprecated and will be removed in'
-                 ' 0.19.', DeprecationWarning)
-            stim_channel = None
-        else:
-            _msg = ('The synthesis of the stim channel is not supported since'
-                    ' 0.18. Please set `stim_channel` to False and use'
-                    ' `mne.events_from_annotations` instead')
-            raise RuntimeError(_msg)
+def _read_header(fname, exclude):
+    """Unify edf, bdf and gdf _read_header call.
 
-    if eog is None:
-        eog = []
-    if misc is None:
-        misc = []
+    Parameters
+    ----------
+    fname : str
+        Path to the EDF+, BDF, or GDF file.
+    exclude : list of str
+        Channel names to exclude. This can help when reading data with
+        different sampling rates to avoid unnecessary resampling.
 
-    # Read header from file
+    Returns
+    -------
+    (edf_info, orig_units) : tuple
+    """
     ext = os.path.splitext(fname)[1][1:].lower()
     logger.info('%s file detected' % ext.upper())
     if ext in ('bdf', 'edf'):
-        edf_info, orig_units = _read_edf_header(fname, exclude)
+        return _read_edf_header(fname, exclude)
     elif ext in ('gdf'):
-        edf_info = _read_gdf_header(fname, stim_channel, exclude)
-
-        # orig_units not yet implemented for gdf
-        orig_units = None
-
+        return _read_gdf_header(fname, exclude), None
     else:
         raise NotImplementedError(
             'Only GDF, EDF, and BDF files are supported, got %s.' % ext)
+
+
+def _get_info(fname, stim_channel, eog, misc, exclude, preload):
+    """Extract all the information from the EDF+, BDF or GDF file."""
+    eog = eog if eog is not None else []
+    misc = misc if misc is not None else []
+
+    edf_info, orig_units = _read_header(fname, exclude)
+
+    # XXX: `tal_ch_names` to pass to `_check_stim_channel` should be computed
+    #      from `edf_info['ch_names']` and `edf_info['tal_idx']` but 'tal_idx'
+    #      contains stim channels that are not TAL.
+    stim_ch_idxs, stim_ch_names = _check_stim_channel(stim_channel,
+                                                      edf_info['ch_names'])
 
     sel = edf_info['sel']  # selection of channels not excluded
     ch_names = edf_info['ch_names']  # of length len(sel)
@@ -398,8 +406,6 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         warn('Physical range is not defined in following channels:\n' +
              ', '.join(ch_names[i] for i in bad_idx))
         physical_ranges[bad_idx] = 1
-    stim_channel, stim_ch_name = \
-        _check_stim_channel(stim_channel, ch_names, sel)
 
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
@@ -429,7 +435,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
             pick_mask[idx] = False
-        elif stim_channel == idx:
+        elif idx in stim_ch_idxs:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
@@ -438,7 +444,8 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             ch_names[idx] = chan_info['ch_name']
             edf_info['units'][idx] = 1
         chs.append(chan_info)
-    edf_info['stim_channel'] = stim_channel
+
+    edf_info['stim_channel'] = stim_ch_idxs if len(stim_ch_idxs) else None
 
     if any(pick_mask):
         picks = [item for item, mask in zip(range(nchan), pick_mask) if mask]
@@ -449,12 +456,9 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     # Info structure
     # -------------------------------------------------------------------------
 
-    # sfreq defined as the max sampling rate of eeg (stim_ch not included)
-    if stim_channel is None:
-        data_samps = n_samps
-    else:
-        data_samps = np.delete(n_samps, slice(stim_channel, stim_channel + 1))
-    sfreq = data_samps.max() * \
+    not_stim_ch = [x for x in range(n_samps.shape[0])
+                   if x not in stim_ch_idxs]
+    sfreq = np.take(n_samps, not_stim_ch).max() * \
         edf_info['record_length'][1] / edf_info['record_length'][0]
     info = _empty_info(sfreq)
     info['meas_date'] = edf_info['meas_date']
@@ -633,7 +637,7 @@ def _read_edf_header(fname, exclude):
     return edf_info, orig_units
 
 
-def _read_gdf_header(fname, stim_channel, exclude):
+def _read_gdf_header(fname, exclude):
     """Read GDF 1.x and GDF 2.x header info."""
     edf_info = dict()
     events = None
@@ -1007,27 +1011,57 @@ def _read_gdf_header(fname, stim_channel, exclude):
     return edf_info
 
 
-def _check_stim_channel(stim_channel, ch_names, sel):
+def _check_stim_channel(stim_channel, ch_names,
+                        tal_ch_names=['EDF Annotations', 'BDF Annotations']):
     """Check that the stimulus channel exists in the current datafile."""
-    if stim_channel is False:
-        return None, None
-    if stim_channel is None:
-        stim_channel = 'auto'
+    DEFAULT_STIM_CH_NAMES = ['status', 'trigger']
 
-    if isinstance(stim_channel, str):
+    if stim_channel is None:
+        return [], []
+
+    elif isinstance(stim_channel, str):
         if stim_channel == 'auto':
-            if 'STATUS' in ch_names:
-                stim_channel_idx = ch_names.index('STATUS')
-            elif 'Status' in ch_names:
-                stim_channel_idx = ch_names.index('Status')
+            if 'auto' in ch_names:
+                warn(RuntimeWarning, "Using `stim_channel='auto'` when auto"
+                     " also corresponds to a channel name is ambiguous."
+                     " Please use `stim_channel=['auto']`.")
             else:
-                stim_channel_idx = None
+                valid_stim_ch_names = DEFAULT_STIM_CH_NAMES
+        else:
+            valid_stim_ch_names = [stim_channel.lower()]
+
+    elif isinstance(stim_channel, int):
+        valid_stim_ch_names = [ch_names[stim_channel].lower()]
+
+    elif isinstance(stim_channel, list):
+        if all([isinstance(s, str) for s in stim_channel]):
+            valid_stim_ch_names = [s.lower() for s in stim_channel]
+        elif all([isinstance(s, int) for s in stim_channel]):
+            valid_stim_ch_names = [ch_names[s].lower() for s in stim_channel]
+        else:
+            raise ValueError('Invalid stim_channel')
     else:
         raise ValueError('Invalid stim_channel')
 
-    name = None if stim_channel_idx is None else ch_names[stim_channel_idx]
+    # Forbid the synthesis of stim channels from TAL Annotations
+    tal_ch_names_found = [ch for ch in valid_stim_ch_names
+                          if ch in [t.lower() for t in tal_ch_names]]
+    if len(tal_ch_names_found):
+        _msg = ('The synthesis of the stim channel is not supported'
+                ' since 0.18. Please remove {} from `stim_channel`'
+                ' and use `mne.events_from_annotations` instead'
+                ).format(tal_ch_names_found)
+        raise ValueError(_msg)
 
-    return stim_channel_idx, name
+    ch_names_low = [ch.lower() for ch in ch_names]
+    found = list(set(valid_stim_ch_names) & set(ch_names_low))
+
+    if not found:
+        return [], []
+    else:
+        stim_channel_idxs = [ch_names_low.index(f) for f in found]
+        names = [ch_names[idx] for idx in stim_channel_idxs]
+        return stim_channel_idxs, names
 
 
 def _find_exclude_idx(ch_names, exclude):
@@ -1047,7 +1081,7 @@ def _find_tal_idx(ch_names):
 
 
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
-                 stim_channel=None, exclude=(), preload=False, verbose=None):
+                 stim_channel='auto', exclude=(), preload=False, verbose=None):
     """Reader function for EDF+, BDF, GDF conversion to FIF.
 
     Parameters
@@ -1066,9 +1100,10 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
-    stim_channel : False
-        If False, there will be no stim channel added from a TAL channel.
-        None is accepted as an alias for False.
+    stim_channel : 'auto' | list of str
+        Channels appearing in this list are set as channels of type 'stim'.
+        It defaults to 'auto' where channels matching 'status' or 'trigger'
+        are set as 'stim'. The matching is not case sensitive.
 
         .. warning:: 0.18 does not allow for stim channel synthesis from
                      the TAL channels called 'EDF Annotations' or
