@@ -12,9 +12,9 @@ from collections import OrderedDict
 
 import numpy as np
 
-from .testing import _hid_match, object_size, object_hash
 from .check import _check_pandas_installed, _check_preload, _validate_type
 from .logging import warn, verbose
+from .numerics import object_size, object_hash
 
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
@@ -405,3 +405,32 @@ def _prepare_read_metadata(metadata):
             metadata = pd.DataFrame.from_records(metadata)
             assert isinstance(metadata, pd.DataFrame)
     return metadata
+
+
+def _hid_match(event_id, keys):
+    """Match event IDs using HID selection.
+
+    Parameters
+    ----------
+    event_id : dict
+        The event ID dictionary.
+    keys : list | str
+        The event ID or subset (for HID), or list of such items.
+
+    Returns
+    -------
+    use_keys : list
+        The full keys that fit the selection criteria.
+    """
+    # form the hierarchical event ID mapping
+    use_keys = []
+    for key in keys:
+        if not isinstance(key, str):
+            raise KeyError('keys must be strings, got %s (%s)'
+                           % (type(key), key))
+        use_keys.extend(k for k in event_id.keys()
+                        if set(key.split('/')).issubset(k.split('/')))
+    if len(use_keys) == 0:
+        raise KeyError('Event "%s" is not in Epochs.' % key)
+    use_keys = list(set(use_keys))  # deduplicate if necessary
+    return use_keys

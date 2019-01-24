@@ -6,6 +6,7 @@
 
 import atexit
 from functools import partial
+import inspect
 from io import StringIO
 import json
 import multiprocessing
@@ -509,3 +510,16 @@ def sys_info(fid=None, show_paths=False):
                 extra = ' {qt_api=%s}%s' % (qt_api, extra)
             out += '%s%s\n' % (mod.__version__, extra)
     print(out, end='', file=fid)
+
+
+def _get_call_line(in_verbose=False):
+    """Get the call line from within a function."""
+    # XXX Eventually we could auto-triage whether in a `verbose` decorated
+    # function or not.
+    # NB This probably only works for functions that are undecorated,
+    # or decorated by `verbose`.
+    back = 2 if not in_verbose else 4
+    call_frame = inspect.getouterframes(inspect.currentframe())[back][0]
+    context = inspect.getframeinfo(call_frame).code_context
+    context = 'unknown' if context is None else context[0].strip()
+    return context

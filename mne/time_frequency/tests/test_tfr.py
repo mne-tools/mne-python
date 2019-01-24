@@ -698,7 +698,7 @@ def test_getitem_epochsTFR():
     assert_array_equal(power[3:6].data, power.data[3:6])
     assert_array_equal(power[3:6].events, power.events[3:6])
 
-    indx_check = (power.metadata['Trial'] == 'face').nonzero()
+    indx_check = (power.metadata['Trial'] == 'face').to_numpy().nonzero()
     assert_array_equal(power['Trial == "face"'].events,
                        power.events[indx_check])
     assert_array_equal(power['Trial == "face"'].data,

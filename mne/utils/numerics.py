@@ -6,11 +6,13 @@
 
 
 import hashlib
+from io import BytesIO, StringIO
 import operator
 from math import ceil
+import sys
 
 import numpy as np
-from scipy import linalg
+from scipy import linalg, sparse
 
 from .logging import logger, warn
 from .check import check_random_state, _ensure_int, _validate_type
@@ -619,3 +621,164 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     # change comment field
     grand_average.comment = "Grand average (n = %d)" % grand_average.nave
     return grand_average
+
+
+def object_hash(x, h=None):
+    """Hash a reasonable python object.
+
+    Parameters
+    ----------
+    x : object
+        Object to hash. Can be anything comprised of nested versions of:
+        {dict, list, tuple, ndarray, str, bytes, float, int, None}.
+    h : hashlib HASH object | None
+        Optional, object to add the hash to. None creates an MD5 hash.
+
+    Returns
+    -------
+    digest : int
+        The digest resulting from the hash.
+    """
+    if h is None:
+        h = hashlib.md5()
+    if hasattr(x, 'keys'):
+        # dict-like types
+        keys = _sort_keys(x)
+        for key in keys:
+            object_hash(key, h)
+            object_hash(x[key], h)
+    elif isinstance(x, bytes):
+        # must come before "str" below
+        h.update(x)
+    elif isinstance(x, (str, float, int, type(None))):
+        h.update(str(type(x)).encode('utf-8'))
+        h.update(str(x).encode('utf-8'))
+    elif isinstance(x, (np.ndarray, np.number, np.bool_)):
+        x = np.asarray(x)
+        h.update(str(x.shape).encode('utf-8'))
+        h.update(str(x.dtype).encode('utf-8'))
+        h.update(x.tostring())
+    elif hasattr(x, '__len__'):
+        # all other list-like types
+        h.update(str(type(x)).encode('utf-8'))
+        for xx in x:
+            object_hash(xx, h)
+    else:
+        raise RuntimeError('unsupported type: %s (%s)' % (type(x), x))
+    return int(h.hexdigest(), 16)
+
+
+def object_size(x):
+    """Estimate the size of a reasonable python object.
+
+    Parameters
+    ----------
+    x : object
+        Object to approximate the size of.
+        Can be anything comprised of nested versions of:
+        {dict, list, tuple, ndarray, str, bytes, float, int, None}.
+
+    Returns
+    -------
+    size : int
+        The estimated size in bytes of the object.
+    """
+    # Note: this will not process object arrays properly (since those only)
+    # hold references
+    if isinstance(x, (bytes, str, int, float, type(None))):
+        size = sys.getsizeof(x)
+    elif isinstance(x, np.ndarray):
+        # On newer versions of NumPy, just doing sys.getsizeof(x) works,
+        # but on older ones you always get something small :(
+        size = sys.getsizeof(np.array([])) + x.nbytes
+    elif isinstance(x, np.generic):
+        size = x.nbytes
+    elif isinstance(x, dict):
+        size = sys.getsizeof(x)
+        for key, value in x.items():
+            size += object_size(key)
+            size += object_size(value)
+    elif isinstance(x, (list, tuple)):
+        size = sys.getsizeof(x) + sum(object_size(xx) for xx in x)
+    elif sparse.isspmatrix_csc(x) or sparse.isspmatrix_csr(x):
+        size = sum(sys.getsizeof(xx)
+                   for xx in [x, x.data, x.indices, x.indptr])
+    else:
+        raise RuntimeError('unsupported type: %s (%s)' % (type(x), x))
+    return size
+
+
+def _sort_keys(x):
+    """Sort and return keys of dict."""
+    keys = list(x.keys())  # note: not thread-safe
+    idx = np.argsort([str(k) for k in keys])
+    keys = [keys[ii] for ii in idx]
+    return keys
+
+
+def object_diff(a, b, pre=''):
+    """Compute all differences between two python variables.
+
+    Parameters
+    ----------
+    a : object
+        Currently supported: dict, list, tuple, ndarray, int, str, bytes,
+        float, StringIO, BytesIO.
+    b : object
+        Must be same type as x1.
+    pre : str
+        String to prepend to each line.
+
+    Returns
+    -------
+    diffs : str
+        A string representation of the differences.
+    """
+    out = ''
+    if type(a) != type(b):
+        out += pre + ' type mismatch (%s, %s)\n' % (type(a), type(b))
+    elif isinstance(a, dict):
+        k1s = _sort_keys(a)
+        k2s = _sort_keys(b)
+        m1 = set(k2s) - set(k1s)
+        if len(m1):
+            out += pre + ' left missing keys %s\n' % (m1)
+        for key in k1s:
+            if key not in k2s:
+                out += pre + ' right missing key %s\n' % key
+            else:
+                out += object_diff(a[key], b[key], pre + '[%s]' % repr(key))
+    elif isinstance(a, (list, tuple)):
+        if len(a) != len(b):
+            out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
+        else:
+            for ii, (xx1, xx2) in enumerate(zip(a, b)):
+                out += object_diff(xx1, xx2, pre + '[%s]' % ii)
+    elif isinstance(a, (str, int, float, bytes)):
+        if a != b:
+            out += pre + ' value mismatch (%s, %s)\n' % (a, b)
+    elif a is None:
+        if b is not None:
+            out += pre + ' left is None, right is not (%s)\n' % (b)
+    elif isinstance(a, np.ndarray):
+        if not np.array_equal(a, b):
+            out += pre + ' array mismatch\n'
+    elif isinstance(a, (StringIO, BytesIO)):
+        if a.getvalue() != b.getvalue():
+            out += pre + ' StringIO mismatch\n'
+    elif sparse.isspmatrix(a):
+        # sparsity and sparse type of b vs a already checked above by type()
+        if b.shape != a.shape:
+            out += pre + (' sparse matrix a and b shape mismatch'
+                          '(%s vs %s)' % (a.shape, b.shape))
+        else:
+            c = a - b
+            c.eliminate_zeros()
+            if c.nnz > 0:
+                out += pre + (' sparse matrix a and b differ on %s '
+                              'elements' % c.nnz)
+    elif hasattr(a, '__getstate__'):
+        out += object_diff(a.__getstate__(), b.__getstate__(), pre)
+    else:
+        raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
+    return out
