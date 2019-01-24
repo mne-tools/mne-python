@@ -43,9 +43,9 @@ import re
 import numpy as np
 from scipy import linalg, sparse
 
-from .externals.decorator import decorator
+from ..externals.decorator import decorator
 
-from .fixes import _get_args
+from ..fixes import _get_args
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
@@ -729,8 +729,8 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
 
 def _reject_data_segments(data, reject, flat, decim, info, tstep):
     """Reject data segments using peak-to-peak amplitude."""
-    from .epochs import _is_good
-    from .io.pick import channel_indices_by_type
+    from ..epochs import _is_good
+    from ..io.pick import channel_indices_by_type
 
     data_clean = np.empty_like(data)
     idx_by_type = channel_indices_by_type(info)
@@ -763,10 +763,10 @@ def _reject_data_segments(data, reject, flat, decim, info, tstep):
 
 def _get_inst_data(inst):
     """Get data view from MNE object instance like Raw, Epochs or Evoked."""
-    from .io.base import BaseRaw
-    from .epochs import BaseEpochs
-    from . import Evoked
-    from .time_frequency.tfr import _BaseTFR
+    from ..io.base import BaseRaw
+    from ..epochs import BaseEpochs
+    from .. import Evoked
+    from ..time_frequency.tfr import _BaseTFR
 
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked, _BaseTFR), "Instance")
     if not inst.preload:
@@ -2358,9 +2358,9 @@ class SizeMixin(object):
         hash : int
             The hash
         """
-        from .evoked import Evoked
-        from .epochs import BaseEpochs
-        from .io.base import BaseRaw
+        from ..evoked import Evoked
+        from ..epochs import BaseEpochs
+        from ..io.base import BaseRaw
         if isinstance(self, Evoked):
             return object_hash(dict(info=self.info, data=self.data))
         elif isinstance(self, (BaseEpochs, BaseRaw)):
@@ -2423,7 +2423,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     if 'STI 014' in info['ch_names']:  # for older systems
         return ['STI 014']
 
-    from .io.pick import pick_types
+    from ..io.pick import pick_types
     stim_channel = pick_types(info, meg=False, ref_meg=False, stim=True)
     if len(stim_channel) > 0:
         stim_channel = [info['ch_names'][ch_] for ch_ in stim_channel]
@@ -2464,9 +2464,9 @@ def _check_subject(class_subject, input_subject, raise_error=True):
 
 def _check_preload(inst, msg):
     """Ensure data are preloaded."""
-    from .epochs import BaseEpochs
-    from .evoked import Evoked
-    from .time_frequency import _BaseTFR
+    from ..epochs import BaseEpochs
+    from ..evoked import Evoked
+    from ..time_frequency import _BaseTFR
 
     if isinstance(inst, (_BaseTFR, Evoked)):
         pass
@@ -2482,8 +2482,8 @@ def _check_preload(inst, msg):
 
 def _check_compensation_grade(inst, inst2, name, name2, ch_names=None):
     """Ensure that objects have same compensation_grade."""
-    from .io.pick import pick_channels, pick_info
-    from .io.compensator import get_current_comp
+    from ..io.pick import pick_channels, pick_info
+    from ..io.compensator import get_current_comp
 
     if None in [inst.info, inst2.info]:
         return
@@ -2891,9 +2891,9 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     .. versionadded:: 0.11.0
     """
     # check if all elements in the given list are evoked data
-    from .evoked import Evoked
-    from .time_frequency import AverageTFR
-    from .channels.channels import equalize_channels
+    from ..evoked import Evoked
+    from ..time_frequency import AverageTFR
+    from ..channels.channels import equalize_channels
     assert len(all_inst) > 1
     inst_type = type(all_inst[0])
     _validate_type(all_inst[0], (Evoked, AverageTFR), 'All elements')
@@ -2909,9 +2909,9 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
             all_inst = [inst.interpolate_bads() if len(inst.info['bads']) > 0
                         else inst for inst in all_inst]
         equalize_channels(all_inst)  # apply equalize_channels
-        from .evoked import combine_evoked as combine
+        from ..evoked import combine_evoked as combine
     else:  # isinstance(all_inst[0], AverageTFR):
-        from .time_frequency.tfr import combine_tfr as combine
+        from ..time_frequency.tfr import combine_tfr as combine
 
     if drop_bads:
         bads = list(set((b for inst in all_inst for b in inst.info['bads'])))
@@ -3432,7 +3432,7 @@ class GetEpochsMixin(object):
             43
 
         """
-        from .epochs import BaseEpochs
+        from ..epochs import BaseEpochs
         if isinstance(self, BaseEpochs) and not self._bad_dropped:
             raise RuntimeError('Since bad epochs have not been dropped, the '
                                'length of the Epochs is not known. Load the '
