@@ -11,8 +11,7 @@ import os.path as op
 
 import numpy as np
 
-# from ._logging import warn, logger
-# from .misc import warn, logger
+from ._logging import warn
 
 
 def _ensure_int(x, name='unknown', must_be='an int'):
@@ -40,7 +39,6 @@ def check_fname(fname, filetype, endings, endings_err=()):
     endings_err : tuple
         Obligatory possible endings for the filename.
     """
-    from mne.utils import warn
     if len(endings_err) > 0 and not fname.endswith(endings_err):
         print_endings = ' or '.join([', '.join(endings_err[:-1]),
                                      endings_err[-1]])
