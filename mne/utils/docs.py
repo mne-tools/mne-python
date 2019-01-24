@@ -307,7 +307,7 @@ class deprecated(object):
 
         >>> from mne.utils import deprecated
         >>> deprecated() # doctest: +ELLIPSIS
-        <mne.utils.deprecated object at ...>
+        <mne.utils.docs.deprecated object at ...>
 
         >>> @deprecated()
         ... def some_function(): pass

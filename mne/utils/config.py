@@ -393,7 +393,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
 
 def _get_root_dir():
     """Get as close to the repo root as possible."""
-    root_dir = op.abspath(op.dirname(__file__))
+    root_dir = op.abspath(op.join(op.dirname(__file__), '..'))
     up_dir = op.join(root_dir, '..')
     if op.isfile(op.join(up_dir, 'setup.py')) and all(
             op.isdir(op.join(up_dir, x)) for x in ('mne', 'examples', 'doc')):

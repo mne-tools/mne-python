@@ -236,7 +236,8 @@ def warn(message, category=RuntimeWarning, module='mne'):
     module : str
         The name of the module emitting the warning.
     """
-    root_dir = op.dirname(__file__)
+    import mne
+    root_dir = op.dirname(mne.__file__)
     frame = None
     if logger.level <= logging.WARN:
         last_fname = ''
@@ -245,10 +246,12 @@ def warn(message, category=RuntimeWarning, module='mne'):
             fname = frame.f_code.co_filename
             lineno = frame.f_lineno
             # in verbose dec
-            if fname == '<string>' and last_fname == 'utils.py':
+            if fname == '<string>' and last_fname == 'logging.py':
                 last_fname = fname
                 frame = frame.f_back
                 continue
+            if fname == '<string>':
+                raise RuntimeError
             # treat tests as scripts
             # and don't capture unittest/case.py (assert_raises)
             if not (fname.startswith(root_dir) or
