@@ -115,8 +115,7 @@ def test_bdf_stim_channel():
               [3537, 0, 1],
               [4162, 0, 1],
               [4790, 0, 1]]
-    with pytest.deprecated_call(match='stim_channel'):
-        raw = read_raw_edf(bdf_stim_channel_path, preload=True)
+    raw = read_raw_edf(bdf_stim_channel_path, preload=True)
     bdf_events = find_events(raw)
     assert_array_equal(events, bdf_events)
     raw = read_raw_edf(bdf_stim_channel_path, preload=False,

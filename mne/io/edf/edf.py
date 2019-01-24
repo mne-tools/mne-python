@@ -425,8 +425,6 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     # we allow/prefer False for consistency with BV/EEGLAB
     stim_channel = None if stim_channel is False else stim_channel
     if stim_channel == '':
-        warn('stim_channel will default to "auto" in 0.17 but change to False '
-             'in 0.18, and will be removed in 0.19', DeprecationWarning)
         stim_channel = 'auto'
     if eog is None:
         eog = []
