@@ -116,10 +116,10 @@ class RawEDF(BaseRaw):
         the header contains ``'EDF Annotations'`` or GDF events (otherwise stim
         channel will not be added). None is accepted as an alias for False.
 
-        .. warning:: This defaults to 'auto' in 0.17 but will default to False
-                     in 0.18 (when no stim channel synthesis will be allowed)
-                     and will be removed in 0.19; migrate code to use
-                     :func:`mne.events_from_annotations` instead.
+        .. warning:: This defaults to 'auto' in 0.17. When using TAL channels
+                     ('EDF Annotations', 'BDF Annotations') set stim_channel to
+                     False and migrate the code to use
+                     :func:`mne.events_from_annotations`.
 
     annot : str | None
         Path to annotation file.
@@ -1244,10 +1244,10 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         the header contains ``'EDF Annotations'`` or GDF events (otherwise stim
         channel will not be added). None is accepted as an alias for False.
 
-        .. warning:: This defaults to 'auto' in 0.17 but will default to False
-                     in 0.18 (when no stim channel synthesis will be allowed)
-                     and will be removed in 0.19; migrate code to use
-                     :func:`mne.events_from_annotations` instead.
+        .. warning:: This defaults to 'auto' in 0.17. When using TAL channels
+                     ('EDF Annotations', 'BDF Annotations') set stim_channel to
+                     False and migrate the code to use
+                     :func:`mne.events_from_annotations`.
 
     annot : str | None
         Path to annotation file.
