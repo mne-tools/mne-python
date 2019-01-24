@@ -10,7 +10,8 @@ import numpy as np
 
 from ..io.pick import pick_channels_cov, pick_info
 from ..forward import apply_forward
-from ..utils import logger, verbose, check_random_state, _check_preload
+from ..utils import (logger, verbose, check_random_state, _check_preload,
+                     deprecated)
 
 
 @verbose
@@ -75,12 +76,14 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
     """
     evoked = apply_forward(fwd, stc, info, use_cps=use_cps)
     if nave < np.inf:
-        noise = simulate_noise_evoked(evoked, cov, iir_filter, random_state)
+        noise = _simulate_noise_evoked(evoked, cov, iir_filter, random_state)
         evoked.data += noise.data / math.sqrt(nave)
         evoked.nave = np.int(nave)
     return evoked
 
 
+@deprecated('simulate_noise_evoked is deprecated in 0.18 and will be removed '
+            'in 0.19, use add_noise instead')
 def simulate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
     """Create noise as a multivariate Gaussian.
 
@@ -106,9 +109,14 @@ def simulate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
     -----
     .. versionadded:: 0.10.0
     """
+    return _simulate_noise_evoked(evoked, cov, iir_filter, random_state)
+
+
+def _simulate_noise_evoked(evoked, cov, iir_filter, random_state):
     noise = evoked.copy()
     noise.data[:] = 0
-    return _add_noise(noise, cov, iir_filter, random_state)
+    return _add_noise(noise, cov, iir_filter, random_state,
+                      allow_subselection=False)
 
 
 @verbose
@@ -128,25 +136,29 @@ def add_noise(inst, cov, iir_filter=None, random_state=None,
         IIR filter coefficients (denominator).
     random_state : None | int | np.random.RandomState
         To specify the random generator state.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
-    noise : evoked object
-        an instance of evoked
+    inst : instance of Evoked, Epochs, or Raw
+        The instance, modified to have additional noise.
 
     Notes
     -----
     Only channels in both ``inst.info['ch_names']`` and
     ``cov['names']`` will have noise added to them.
 
+    This function operates inplace on ``inst``.
+
     .. versionadded:: 0.18.0
     """
     # We always allow subselection here
-    return _add_noise(
-        inst, cov, iir_filter, random_state, allow_subselection=True)
+    return _add_noise(inst, cov, iir_filter, random_state)
 
 
-def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=False):
+def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=True):
     """Add noise, possibly with channel subselection."""
     _check_preload(inst, 'Adding noise')
     data = inst._data

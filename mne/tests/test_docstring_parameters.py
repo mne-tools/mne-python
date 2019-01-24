@@ -242,7 +242,6 @@ read_fiducials
 read_tag
 requires_sample_data
 rescale
-simulate_noise_evoked
 source_estimate_quantification
 whiten_evoked
 write_fiducials
