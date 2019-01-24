@@ -22,10 +22,12 @@ from ..base import BaseRaw, _check_update_montage
 from ..meas_info import _empty_info, _unique_channel_names, DATE_NONE
 from ..constants import FIFF
 from ...filter import resample
-from ...utils import copy_function_doc_to_method_doc
-from ...annotations import Annotations
+from ...utils import copy_function_doc_to_method_doc, deprecated
+from ...annotations import Annotations, events_from_annotations
 
 
+@deprecated('find_edf_events is deprecated in 0.18, and will be removed'
+            ' in 0.19. Please use `mne.events_from_annotations` instead')
 def find_edf_events(raw):
     """Get original EDF events as read from the header.
 
@@ -65,7 +67,7 @@ def find_edf_events(raw):
     events : ndarray
         The events as they are in the file header.
     """
-    return raw.find_edf_events()
+    return events_from_annotations(raw)
 
 
 class RawEDF(BaseRaw):
@@ -314,8 +316,10 @@ class RawEDF(BaseRaw):
         return tal_data
 
     @copy_function_doc_to_method_doc(find_edf_events)
+    @deprecated('find_edf_events is deprecated in 0.18, and will be removed'
+                ' in 0.19. Please use `mne.events_from_annotations` instead')
     def find_edf_events(self):
-        return self._raw_extras[0]['events']
+        return events_from_annotations(self)
 
 
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
