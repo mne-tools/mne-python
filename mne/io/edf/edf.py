@@ -1221,7 +1221,6 @@ def _get_annotations_gdf(edf_info, sfreq):
     if events is not None and events[1].shape[0] > 0:
         onset = events[1] / sfreq
         duration = events[4] / sfreq
-        # XXX: maybe the names are stored somewhere in edf_info
         desc = [str(e) for e in events[2]]
 
     return onset, duration, desc
