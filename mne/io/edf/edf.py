@@ -176,34 +176,20 @@ class RawEDF(BaseRaw):
             verbose=verbose)
 
         # Read annotations from file and set it
-        annot = None
+        onset, duration, desc = list(), list(), list()
         ext = os.path.splitext(input_fname)[1][1:].lower()
         if ext in ('gdf'):
-            events = edf_info.get('events', None)
-            # Annotations in GDF: events are stored as the following
-            # list: `events = [n_events, pos, typ, chn, dur]` where pos is the
-            # latency, dur is the duration in samples. They both are
-            # numpy.ndarray
-            if events is not None and events[1].shape[0] > 0:
-                # For whatever reason, typ has the same content as pos
-                # therefore we set an arbitrary description
-                desc = 'GDF event'
-                annot = Annotations(onset=events[1] / self.info['sfreq'],
-                                    duration=events[4] / self.info['sfreq'],
-                                    description=desc,
-                                    orig_time=None)
+            onset, duration, desc = _get_annotations_gdf(edf_info,
+                                                         self.info['sfreq'])
         elif len(edf_info['tal_idx']) > 0:
             # Read TAL data exploiting the header info (no regexp)
             tal_data = self._read_segment_file([], [], 0, 0, int(self.n_times),
                                                None, None)
             onset, duration, desc = _read_annotations_edf(tal_data[0])
 
-            # in EDF, annotations are relative to first_samp
-            annot = Annotations(onset=onset, duration=duration,
-                                description=desc, orig_time=None)
+        self.set_annotations(Annotations(onset=onset, duration=duration,
+                                         description=desc, orig_time=None))
 
-        if annot is not None:
-            self.set_annotations(annot)
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -1223,3 +1209,20 @@ def _get_edf_default_event_id(descriptions):
     mapping = dict((a, n) for n, a in
                    enumerate(sorted(set(descriptions)), start=1))
     return mapping
+
+
+def _get_annotations_gdf(edf_info, sfreq):
+    onset, duration, desc = list(), list(), list()
+    events = edf_info.get('events', None)
+    # Annotations in GDF: events are stored as the following
+    # list: `events = [n_events, pos, typ, chn, dur]` where pos is the
+    # latency, dur is the duration in samples. They both are
+    # numpy.ndarray
+    if events is not None and events[1].shape[0] > 0:
+        onset = events[1] / sfreq
+        duration = events[4] / sfreq
+        # XXX: maybe the names are stored somewhere in edf_info
+        desc = [str(e) for e in events[2]]
+
+    return onset, duration, desc
+
