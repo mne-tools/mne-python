@@ -35,7 +35,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        hashfunc)
 
 
-base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 fname_evoked = op.join(base_dir, 'test-ave.fif')
 fname_raw = op.join(base_dir, 'test_raw.fif')
 fname_log = op.join(base_dir, 'test-ave.log')

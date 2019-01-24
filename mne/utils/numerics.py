@@ -312,10 +312,10 @@ def _reject_data_segments(data, reject, flat, decim, info, tstep):
 
 def _get_inst_data(inst):
     """Get data view from MNE object instance like Raw, Epochs or Evoked."""
-    from .io.base import BaseRaw
-    from .epochs import BaseEpochs
-    from . import Evoked
-    from .time_frequency.tfr import _BaseTFR
+    from ..io.base import BaseRaw
+    from ..epochs import BaseEpochs
+    from .. import Evoked
+    from ..time_frequency.tfr import _BaseTFR
 
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked, _BaseTFR), "Instance")
     if not inst.preload:

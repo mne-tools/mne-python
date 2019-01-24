@@ -6,6 +6,10 @@ _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
                         '__neg__', '__hash__')
 
 from .testing import object_diff
+from .testing import object_hash
+from .testing import object_size
+from .testing import ArgvSetter
+from .testing import _memory_usage
 from .testing import run_tests_if_main
 from .testing import requires_sklearn
 from .testing import requires_version
@@ -28,6 +32,7 @@ from .testing import _import_mlab
 from .deprecation import deprecated
 
 from ._logging import warn
+from ._logging import filter_out_warnings
 
 from .misc import verbose, logger, run_subprocess
 from .misc import set_log_level
@@ -54,6 +59,8 @@ from .misc import _explain_exception
 from .misc import _get_argvalues
 from .misc import _get_extra_data_path
 from .misc import copy_function_doc_to_method_doc
+from .misc import copy_doc
+from .misc import linkcode_resolve
 
 from .progressbar import ProgressBar
 
@@ -94,6 +101,7 @@ from .numerics import _gen_events
 from .numerics import create_slices
 from .numerics import _time_mask
 from .numerics import grand_average
+from .numerics import buggy_mkl_svd
 
 from .mixin import sizeof_fmt
 from .mixin import SizeMixin
