@@ -15,7 +15,7 @@ from mne.io import read_raw_edf
 from mne.io.meas_info import DATE_NONE
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main
-from mne import pick_types, find_events
+from mne import pick_types, find_events, events_from_annotations
 
 data_path = testing.data_path(download=False)
 gdf1_path = op.join(data_path, 'GDF', 'test_gdf_1.25')
@@ -31,7 +31,7 @@ def test_gdf_data():
 
     # Test Status is added as event
     EXPECTED_EVS_ONSETS = raw._raw_extras[0]['events'][1][::2]
-    evs = raw.find_edf_events()
+    evs = events_from_annotations(raw)
     assert_array_equal(evs[1][::2], EXPECTED_EVS_ONSETS)
 
     # this .npy was generated using the official biosig python package
