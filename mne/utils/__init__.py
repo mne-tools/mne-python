@@ -40,4 +40,4 @@ from .numerics import (hashfunc, md5sum, estimate_rank, _compute_row_norms,
                        _time_mask, grand_average, object_diff, object_hash,
                        object_size)
 from .mixin import (SizeMixin, GetEpochsMixin, _prepare_read_metadata,
-                    _prepare_write_metadata)
+                    _prepare_write_metadata, _FakeNoPandas)

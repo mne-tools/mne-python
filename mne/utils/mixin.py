@@ -434,3 +434,23 @@ def _hid_match(event_id, keys):
         raise KeyError('Event "%s" is not in Epochs.' % key)
     use_keys = list(set(use_keys))  # deduplicate if necessary
     return use_keys
+
+
+class _FakeNoPandas(object):  # noqa: D101
+    def __enter__(self):  # noqa: D105
+
+        def _check(strict=True):
+            if strict:
+                raise RuntimeError('Pandas not installed')
+            else:
+                return False
+
+        import mne
+        self._old_check = _check_pandas_installed
+        mne.epochs._check_pandas_installed = _check
+        mne.utils.mixin._check_pandas_installed = _check
+
+    def __exit__(self, *args):  # noqa: D105
+        import mne
+        mne.epochs._check_pandas_installed = self._old_check
+        mne.utils.mixin._check_pandas_installed = self._old_check
