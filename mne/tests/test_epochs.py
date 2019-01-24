@@ -27,8 +27,7 @@ from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements)
 from mne.utils import (requires_pandas, run_tests_if_main,
-                       requires_version, _check_pandas_installed,
-                       catch_logging)
+                       requires_version, catch_logging, _FakeNoPandas)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
 from mne.io import RawArray, read_raw_fif
@@ -2244,22 +2243,6 @@ def test_default_values():
     assert_equal(hash(epoch_1), hash(epoch_2))
 
 
-class FakeNoPandas(object):  # noqa: D101
-    def __enter__(self):  # noqa: D105
-
-        def _check(strict=True):
-            if strict:
-                raise RuntimeError('Pandas not installed')
-            else:
-                return False
-        mne.epochs._check_pandas_installed = _check
-        mne.utils._check_pandas_installed = _check
-
-    def __exit__(self, *args):  # noqa: D105
-        mne.epochs._check_pandas_installed = _check_pandas_installed
-        mne.utils._check_pandas_installed = _check_pandas_installed
-
-
 @requires_pandas
 def test_metadata(tmpdir):
     """Test metadata support with pandas."""
@@ -2352,7 +2335,7 @@ def test_metadata(tmpdir):
     epochs_one_read = read_epochs(temp_one_fname)
     assert_metadata_equal(epochs_one.metadata, epochs_one_read.metadata)
 
-    with FakeNoPandas():
+    with _FakeNoPandas():
         epochs_read = read_epochs(temp_fname)
         assert isinstance(epochs_read.metadata, list)
         assert isinstance(epochs_read.metadata[0], dict)
