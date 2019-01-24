@@ -23,6 +23,9 @@ from .check import _validate_type
 from .logging import warn, logger
 
 
+_temp_home_dir = None
+
+
 def set_cache_dir(cache_dir):
     """Set the directory to be used for temporary file storage.
 

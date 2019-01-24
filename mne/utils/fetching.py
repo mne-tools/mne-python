@@ -8,7 +8,7 @@ import os
 import shutil
 import sys
 import time
-import urllib
+from urllib import parse, request
 
 from .progressbar import ProgressBar
 from .numerics import hashfunc
@@ -16,18 +16,15 @@ from .misc import sizeof_fmt
 from .logging import warn, logger, verbose
 
 
-_temp_home_dir = None
-
-
 def _get_http(url, temp_file_name, initial_size, file_size, timeout,
               verbose_bool):
     """Safely (resume a) download to a file from http(s)."""
     # Actually do the reading
-    req = urllib.request.Request(url)
+    req = request.Request(url)
     if initial_size > 0:
         req.headers['Range'] = 'bytes=%s-' % (initial_size,)
     try:
-        response = urllib.request.urlopen(req, timeout=timeout)
+        response = request.urlopen(req, timeout=timeout)
     except Exception:
         # There is a problem that may be due to resuming, some
         # servers may not support the "Range" header. Switch
@@ -36,7 +33,7 @@ def _get_http(url, temp_file_name, initial_size, file_size, timeout,
                     'rejected the request). Attempting to '
                     'restart downloading the entire file.')
         del req.headers['Range']
-        response = urllib.request.urlopen(req, timeout=timeout)
+        response = request.urlopen(req, timeout=timeout)
     total_size = int(response.headers.get('Content-Length', '1').strip())
     if initial_size > 0 and file_size == total_size:
         logger.info('Resuming download failed (resume file size '
@@ -117,7 +114,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         # Check file size and displaying it alongside the download url
         # this loop is necessary to follow any redirects
         for _ in range(10):  # 10 really should be sufficient...
-            u = urllib.request.urlopen(url, timeout=timeout)
+            u = request.urlopen(url, timeout=timeout)
             try:
                 last_url, url = url, u.geturl()
                 if url == last_url:
@@ -154,7 +151,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
                  'initial_size == %s)' % (file_size,))
         else:
             # Need to resume or start over
-            scheme = urllib.parse.urlparse(url).scheme
+            scheme = parse.urlparse(url).scheme
             if scheme not in ('http', 'https'):
                 raise NotImplementedError('Cannot use %s' % (scheme,))
             _get_http(url, temp_file_name, initial_size, file_size, timeout,
@@ -179,10 +176,9 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
 
 def _url_to_local_path(url, path):
     """Mirror a url path in a local destination (keeping folder structure)."""
-    destination = urllib.parse.urlparse(url).path
+    destination = parse.urlparse(url).path
     # First char should be '/', and it needs to be discarded
     if len(destination) < 2 or destination[0] != '/':
         raise ValueError('Invalid URL')
-    destination = os.path.join(path,
-                               urllib.request.url2pathname(destination)[1:])
+    destination = os.path.join(path, request.url2pathname(destination)[1:])
     return destination
