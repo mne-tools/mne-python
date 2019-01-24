@@ -29,6 +29,8 @@ Bug
 API
 ~~~
 
+- ``stim_channel`` parameters in :func:`~mne.io.read_raw_edf`, :func:`~mne.io.read_raw_brainvision`, and :func:`~mne.io.read_raw_eeglab` is no longer deprecated by `Joan Massich`_
+
 .. _changes_0_17:
 
 Version 0.17
