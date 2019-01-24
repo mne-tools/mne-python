@@ -68,6 +68,8 @@ Bug
 
 - Fixed a bug where :meth:`mne.time_frequency.AverageTFR.plot_joint` would mishandle bad channels, by `David Haslacher`_ and `Jona Sassenhagen`_
 
+- Fix issue with bad channels ignored in :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` by `Alex Gramfort`_
+
 API
 ~~~
 
