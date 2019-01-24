@@ -8,6 +8,7 @@ import webbrowser
 
 @deprecated('message')
 def deprecated_func():
+    """Do something."""
     pass
 
 
