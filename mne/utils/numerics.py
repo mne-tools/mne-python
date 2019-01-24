@@ -8,17 +8,13 @@
 import hashlib
 import operator
 from math import ceil
-from functools import wraps
-from unittest import SkipTest
 
 import numpy as np
 from scipy import linalg
 
-from ._logging import warn
-from .check import check_random_state
-from .check import _ensure_int, _validate_type
-from .misc import logger
-from .deprecation import deprecated
+from .logging import logger, warn
+from .check import check_random_state, _ensure_int, _validate_type
+from .docs import deprecated
 
 
 def split_list(l, n, idx=False):
@@ -254,21 +250,6 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
         return x_inv, loading_factor, rank
 
 
-def buggy_mkl_svd(function):
-    """Decorate tests that make calls to SVD and intermittently fail."""
-    @wraps(function)
-    def dec(*args, **kwargs):
-        try:
-            return function(*args, **kwargs)
-        except np.linalg.LinAlgError as exp:
-            if 'SVD did not converge' in str(exp):
-                msg = 'Intel MKL SVD convergence error detected, skipping test'
-                warn(msg)
-                raise SkipTest(msg)
-            raise
-    return dec
-
-
 def _gen_events(n_epochs):
     """Generate event structure from number of epochs."""
     events = np.c_[np.arange(n_epochs), np.zeros(n_epochs, int),
@@ -278,8 +259,8 @@ def _gen_events(n_epochs):
 
 def _reject_data_segments(data, reject, flat, decim, info, tstep):
     """Reject data segments using peak-to-peak amplitude."""
-    from .epochs import _is_good
-    from .io.pick import channel_indices_by_type
+    from ..epochs import _is_good
+    from ..io.pick import channel_indices_by_type
 
     data_clean = np.empty_like(data)
     idx_by_type = channel_indices_by_type(info)
@@ -603,9 +584,9 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     .. versionadded:: 0.11.0
     """
     # check if all elements in the given list are evoked data
-    from .evoked import Evoked
-    from .time_frequency import AverageTFR
-    from .channels.channels import equalize_channels
+    from ..evoked import Evoked
+    from ..time_frequency import AverageTFR
+    from ..channels.channels import equalize_channels
     assert len(all_inst) > 1
     inst_type = type(all_inst[0])
     _validate_type(all_inst[0], (Evoked, AverageTFR), 'All elements')
@@ -621,9 +602,9 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
             all_inst = [inst.interpolate_bads() if len(inst.info['bads']) > 0
                         else inst for inst in all_inst]
         equalize_channels(all_inst)  # apply equalize_channels
-        from .evoked import combine_evoked as combine
+        from ..evoked import combine_evoked as combine
     else:  # isinstance(all_inst[0], AverageTFR):
-        from .time_frequency.tfr import combine_tfr as combine
+        from ..time_frequency.tfr import combine_tfr as combine
 
     if drop_bads:
         bads = list(set((b for inst in all_inst for b in inst.info['bads'])))

@@ -15,8 +15,8 @@ import shutil
 
 import numpy as np
 
-from ._logging import logger
-from .mixin import sizeof_fmt
+from .logging import logger
+from .misc import sizeof_fmt
 
 
 class ProgressBar(object):

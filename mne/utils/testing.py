@@ -4,22 +4,25 @@
 #
 # License: BSD (3-clause)
 
-import inspect
-import sys
-import hashlib
-import traceback
-import tempfile
-import warnings
-import time
-import os
-from shutil import rmtree
-from functools import partial, wraps
 from contextlib import contextmanager
-from io import BytesIO, StringIO
 from distutils.version import LooseVersion
+from functools import partial, wraps
+import hashlib
+import os
+import inspect
+from io import BytesIO, StringIO
+from shutil import rmtree
+import sys
+import tempfile
+import time
+import traceback
+from unittest import SkipTest
+import warnings
 
 import numpy as np
 from scipy import sparse
+
+from .logging import warn
 
 
 def _memory_usage(*args, **kwargs):
@@ -422,7 +425,7 @@ def check_version(library, min_version):
         ok = False
     else:
         if min_version:
-            this_version = LooseVersion(library.__version__)
+            this_version = LooseVersion(library.__version__.lstrip('v'))
             if this_version < min_version:
                 ok = False
     return ok
@@ -618,3 +621,18 @@ def has_mne_c():
 def has_freesurfer():
     """Check for Freesurfer."""
     return 'FREESURFER_HOME' in os.environ
+
+
+def buggy_mkl_svd(function):
+    """Decorate tests that make calls to SVD and intermittently fail."""
+    @wraps(function)
+    def dec(*args, **kwargs):
+        try:
+            return function(*args, **kwargs)
+        except np.linalg.LinAlgError as exp:
+            if 'SVD did not converge' in str(exp):
+                msg = 'Intel MKL SVD convergence error detected, skipping test'
+                warn(msg)
+                raise SkipTest(msg)
+            raise
+    return dec

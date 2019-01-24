@@ -290,7 +290,8 @@ def test_documented():
                 from_mod = inspect.getmodule(cf).__name__
                 if (from_mod.startswith('mne') and
                         not from_mod.startswith('mne.externals') and
-                        from_mod not in documented_ignored_mods and
+                        not any(from_mod.startswith(x)
+                                for x in documented_ignored_mods) and
                         name not in documented_ignored_names):
                     missing.append('%s (%s.%s)' % (name, from_mod, name))
     if len(missing) > 0:

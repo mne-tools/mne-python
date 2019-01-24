@@ -5,106 +5,38 @@ _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
                         '__add__', '__sub__', '__mul__', '__div__',
                         '__neg__', '__hash__')
 
-from .testing import object_diff
-from .testing import object_hash
-from .testing import object_size
-from .testing import ArgvSetter
-from .testing import _memory_usage
-from .testing import run_tests_if_main
-from .testing import requires_sklearn
-from .testing import requires_version
-from .testing import requires_nibabel
-from .testing import requires_mayavi
-from .testing import requires_good_network
-from .testing import requires_mne
-from .testing import requires_pandas
-from .testing import requires_h5py
-from .testing import traits_test
-from .testing import requires_pysurfer
-from .testing import _get_call_line
-from .testing import SilenceStdout
-from .testing import has_freesurfer
-from .testing import has_mne_c
-from .testing import _TempDir
-from .testing import has_nibabel
-from .testing import _import_mlab
-
-from .deprecation import deprecated
-
-from ._logging import warn
-from ._logging import filter_out_warnings
-
-from .misc import verbose, logger, run_subprocess
-from .misc import set_log_level
-from .misc import set_log_file
-from .misc import use_log_level
-from .misc import catch_logging
-
-from .misc import set_config
-from .misc import get_config
-from .misc import get_config_path
-from .misc import set_cache_dir
-from .misc import set_memmap_min_size
-from .misc import run_subprocess
-
-from .misc import _pl
-from .misc import sys_info
-from .misc import open_docs
-from .misc import get_subjects_dir
-from .misc import _clean_names
-from .misc import _get_stim_channel
-from .misc import _Counter
-from .misc import pformat
-from .misc import _explain_exception
-from .misc import _get_argvalues
-from .misc import _get_extra_data_path
-from .misc import copy_function_doc_to_method_doc
-from .misc import copy_doc
-from .misc import linkcode_resolve
-
+from .check import (check_fname, check_version, check_random_state,
+                    _check_fname, _check_subject, _check_pandas_installed,
+                    _check_pandas_index_arguments, _check_mayavi_version,
+                    _check_event_id, _check_ch_locs, _check_compensation_grade,
+                    _check_if_nan, _check_type_picks, _is_numeric, _ensure_int,
+                    _check_preload, _validate_type)
+from .config import (set_config, get_config, get_config_path, set_cache_dir,
+                     set_memmap_min_size, get_subjects_dir, _get_stim_channel,
+                     sys_info, _get_extra_data_path, _get_root_dir)
+from .docs import (copy_function_doc_to_method_doc, copy_doc, linkcode_resolve,
+                   open_docs, deprecated)
+from .logging import (verbose, logger, set_log_level, set_log_file,
+                      use_log_level, catch_logging, warn, filter_out_warnings,
+                      ETSContext)
+from .misc import (run_subprocess, _pl, _clean_names, _Counter, pformat,
+                   _explain_exception, _get_argvalues, sizeof_fmt)
 from .progressbar import ProgressBar
-
-from .check import check_fname
-from .check import check_version
-from .check import check_random_state
-from .check import _check_fname
-from .check import _check_subject
-from .check import _check_pandas_installed
-from .check import _check_pandas_index_arguments
-from .check import _check_mayavi_version
-from .check import _check_event_id
-from .check import _check_ch_locs
-from .check import _check_compensation_grade
-from .check import _check_if_nan
-from .check import _check_type_picks
-from .check import _is_numeric
-from .check import _ensure_int
-from .check import _check_preload
-from .check import _validate_type
-
-from .fetching import _fetch_file
-from .fetching import _url_to_local_path
-
-from .numerics import hashfunc
-from .numerics import md5sum
-from .numerics import estimate_rank
-from .numerics import _compute_row_norms
-from .numerics import _reg_pinv
-from .numerics import random_permutation
-from .numerics import _reject_data_segments
-from .numerics import compute_corr
-from .numerics import _get_inst_data
-from .numerics import array_split_idx
-from .numerics import sum_squared
-from .numerics import split_list
-from .numerics import _gen_events
-from .numerics import create_slices
-from .numerics import _time_mask
-from .numerics import grand_average
-from .numerics import buggy_mkl_svd
-
-from .mixin import sizeof_fmt
-from .mixin import SizeMixin
-from .mixin import GetEpochsMixin
-from .mixin import _prepare_read_metadata
-from .mixin import _prepare_write_metadata
+from .testing import (object_diff, object_hash, object_size, ArgvSetter,
+                      _memory_usage, run_tests_if_main, requires_sklearn,
+                      requires_version, requires_nibabel, requires_mayavi,
+                      requires_good_network, requires_mne, requires_pandas,
+                      requires_h5py, traits_test, requires_pysurfer,
+                      _get_call_line, SilenceStdout, has_freesurfer, has_mne_c,
+                      _TempDir, has_nibabel, _import_mlab, buggy_mkl_svd,
+                      requires_numpydoc, requires_tvtk, requires_freesurfer,
+                      requires_nitime, requires_fs_or_nibabel, requires_dipy,
+                      requires_neuromag2ft)
+from .fetching import _fetch_file, _url_to_local_path
+from .numerics import (hashfunc, md5sum, estimate_rank, _compute_row_norms,
+                       _reg_pinv, random_permutation, _reject_data_segments,
+                       compute_corr, _get_inst_data, array_split_idx,
+                       sum_squared, split_list, _gen_events, create_slices,
+                       _time_mask, grand_average)
+from .mixin import (SizeMixin, GetEpochsMixin, _prepare_read_metadata,
+                    _prepare_write_metadata)

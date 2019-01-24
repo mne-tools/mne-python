@@ -11,7 +11,7 @@ import os.path as op
 
 import numpy as np
 
-from ._logging import warn
+from .logging import warn
 
 
 def _ensure_int(x, name='unknown', must_be='an int'):
@@ -204,8 +204,8 @@ def _check_preload(inst, msg):
 
 def _check_compensation_grade(inst, inst2, name, name2, ch_names=None):
     """Ensure that objects have same compensation_grade."""
-    from .io.pick import pick_channels, pick_info
-    from .io.compensator import get_current_comp
+    from ..io.pick import pick_channels, pick_info
+    from ..io.compensator import get_current_comp
 
     if None in [inst.info, inst2.info]:
         return

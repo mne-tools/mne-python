@@ -1,25 +1,19 @@
 # -*- coding: utf-8 -*-
-"""Some utility functions."""
+"""File downloading functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 
 import os
-import os.path as op
-import tempfile
-import atexit
 import shutil
 import sys
 import time
 import urllib
-from functools import partial
 
 from .progressbar import ProgressBar
-from .mixin import sizeof_fmt
 from .numerics import hashfunc
-from .misc import logger
-from ._logging import warn
-from .misc import verbose
+from .misc import sizeof_fmt
+from .logging import warn, logger, verbose
 
 
 _temp_home_dir = None

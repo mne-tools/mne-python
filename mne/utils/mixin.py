@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 
 
-from math import log
 from copy import deepcopy
 import logging
 import json
@@ -13,43 +12,13 @@ from collections import OrderedDict
 
 import numpy as np
 
-from .testing import _hid_match
-from .testing import object_size, object_hash
+from .testing import _hid_match, object_size, object_hash
 from .check import _check_pandas_installed, _check_preload, _validate_type
-from ._logging import warn
-from .misc import verbose
+from .logging import warn, verbose
 
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
-
-
-def sizeof_fmt(num):
-    """Turn number of bytes into human-readable str.
-
-    Parameters
-    ----------
-    num : int
-        The number of bytes.
-
-    Returns
-    -------
-    size : str
-        The size in human-readable format.
-    """
-    units = ['bytes', 'kB', 'MB', 'GB', 'TB', 'PB']
-    decimals = [0, 0, 1, 2, 2, 2]
-    if num > 1:
-        exponent = min(int(log(num, 1024)), len(units) - 1)
-        quotient = float(num) / 1024 ** exponent
-        unit = units[exponent]
-        num_decimals = decimals[exponent]
-        format_string = '{0:.%sf} {1}' % (num_decimals)
-        return format_string.format(quotient, unit)
-    if num == 0:
-        return '0 bytes'
-    if num == 1:
-        return '1 byte'
 
 
 class SizeMixin(object):
@@ -282,7 +251,7 @@ class GetEpochsMixin(object):
             43
 
         """
-        from .epochs import BaseEpochs
+        from ..epochs import BaseEpochs
         if isinstance(self, BaseEpochs) and not self._bad_dropped:
             raise RuntimeError('Since bad epochs have not been dropped, the '
                                'length of the Epochs is not known. Load the '
