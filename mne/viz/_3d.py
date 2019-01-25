@@ -37,7 +37,7 @@ from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
-                     _import_mlab, SilenceStdout, has_nibabel, check_version,
+                     SilenceStdout, has_nibabel, check_version,
                      _ensure_int, _validate_type)
 from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
@@ -611,12 +611,12 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         .. versionadded:: 0.16
     fig : mayavi figure object | None
         Mayavi Scene (instance of mlab.Figure) in which to plot the alignment.
-        If ``None``, creates a new 600x600 pixel figure with black background.
+        If ``None``, creates a new 800x800 pixel figure with black background.
 
         .. versionadded:: 0.18
     renderer : backends.Renderer object | None
         Rendering Scene in which to plot the alignment.
-        If ``None``, creates a new 600x600 pixel figure with black background.
+        If ``None``, creates a new 800x800 pixel figure with black background.
 
         .. versionadded:: 0.18
     return_mayavi_figure : bool
@@ -2551,7 +2551,8 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     return fig
 
 
-def snapshot_brain_montage(fig, montage, hide_sensors=True):
+def snapshot_brain_montage(montage, renderer=None, fig=None,
+                           hide_sensors=True):
     """Take a snapshot of a Mayavi Scene and project channels onto 2d coords.
 
     Note that this will take the raw values for 3d coordinates of each channel,
@@ -2560,12 +2561,17 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
 
     Parameters
     ----------
-    fig : instance of Mayavi Scene
-        The figure on which you've plotted electrodes using
-        :func:`mne.viz.plot_alignment`.
     montage : instance of `DigMontage` or `Info` | dict of ch: xyz mappings.
         The digital montage for the electrodes plotted in the scene. If `Info`,
         channel positions will be pulled from the `loc` field of `chs`.
+
+        .. versionadded:: 0.18
+    renderer : backends.Renderer object | None
+        Rendering Scene in which to plot the alignment.
+
+    fig : instance of Mayavi Scene | None
+        The figure on which you've plotted electrodes using
+        :func:`mne.viz.plot_alignment`.
     hide_sensors : bool
         Whether to remove the spheres in the scene before taking a snapshot.
 
@@ -2576,7 +2582,6 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     im : array, shape (m, n, 3)
         The screenshot of the current scene view
     """
-    mlab = _import_mlab()
     from ..channels import Montage, DigMontage
     from .. import Info
     if isinstance(montage, (Montage, DigMontage)):
@@ -2593,88 +2598,25 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         raise TypeError('montage must be an instance of `DigMontage`, `Info`,'
                         ' or `dict`')
 
+    # initialize figure
+    if renderer is None and fig is None:
+        raise ValueError('Either fig or renderer must be different from'
+                         '`None`')
+    if renderer is None:
+        renderer = Renderer(bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
+    if fig is not None:
+        warn('fig is deprecated and will be replaced by renderer in 0.20',
+             DeprecationWarning)
+        renderer.fig = fig
     xyz = np.vstack(xyz)
-    xy = _3d_to_2d(fig, xyz)
-    xy = dict(zip(ch_names, xy))
-    pts = fig.children[-1]
-
+    proj = renderer.project(xyz=xyz, ch_names=ch_names)
     if hide_sensors is True:
-        pts.visible = False
+        proj.visible(False)
+
     with warnings.catch_warnings(record=True):
-        im = mlab.screenshot(fig)
-    pts.visible = True
-    return xy, im
-
-
-def _3d_to_2d(fig, xyz):
-    """Convert 3d points to a 2d perspective using a Mayavi Scene."""
-    from mayavi.core.scene import Scene
-
-    _validate_type(fig, Scene, "fig", "Scene")
-    xyz = np.column_stack([xyz, np.ones(xyz.shape[0])])
-
-    # Transform points into 'unnormalized' view coordinates
-    comb_trans_mat = _get_world_to_view_matrix(fig.scene)
-    view_coords = np.dot(comb_trans_mat, xyz.T).T
-
-    # Divide through by the fourth element for normalized view coords
-    norm_view_coords = view_coords / (view_coords[:, 3].reshape(-1, 1))
-
-    # Transform from normalized view coordinates to display coordinates.
-    view_to_disp_mat = _get_view_to_display_matrix(fig.scene)
-    xy = np.dot(view_to_disp_mat, norm_view_coords.T).T
-
-    # Pull the first two columns since they're meaningful for 2d plotting
-    xy = xy[:, :2]
-    return xy
-
-
-def _get_world_to_view_matrix(scene):
-    """Return the 4x4 matrix to transform xyz space to the current view.
-
-    This is a concatenation of the model view and perspective transforms.
-    """
-    from mayavi.core.ui.mayavi_scene import MayaviScene
-    from tvtk.pyface.tvtk_scene import TVTKScene
-
-    _validate_type(scene, (MayaviScene, TVTKScene), "scene",
-                   "TVTKScene/MayaviScene")
-    cam = scene.camera
-
-    # The VTK method needs the aspect ratio and near and far
-    # clipping planes in order to return the proper transform.
-    scene_size = tuple(scene.get_size())
-    clip_range = cam.clipping_range
-    aspect_ratio = float(scene_size[0]) / scene_size[1]
-
-    # Get the vtk matrix object using the aspect ratio we defined
-    vtk_comb_trans_mat = cam.get_composite_projection_transform_matrix(
-        aspect_ratio, clip_range[0], clip_range[1])
-    vtk_comb_trans_mat = vtk_comb_trans_mat.to_array()
-    return vtk_comb_trans_mat
-
-
-def _get_view_to_display_matrix(scene):
-    """Return the 4x4 matrix to convert view coordinates to display coordinates.
-
-    It's assumed that the view should take up the entire window and that the
-    origin of the window is in the upper left corner.
-    """  # noqa: E501
-    from mayavi.core.ui.mayavi_scene import MayaviScene
-    from tvtk.pyface.tvtk_scene import TVTKScene
-
-    _validate_type(scene, (MayaviScene, TVTKScene), "scene",
-                   "TVTKScene/MayaviScene")
-
-    # normalized view coordinates have the origin in the middle of the space
-    # so we need to scale by width and height of the display window and shift
-    # by half width and half height. The matrix accomplishes that.
-    x, y = tuple(scene.get_size())
-    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],
-                                 [0.,      -y / 2.0,   0.,   y / 2.0],
-                                 [0.,            0.,   1.,        0.],
-                                 [0.,            0.,   0.,        1.]])
-    return view_to_disp_mat
+        im = renderer.screenshot()
+    proj.visible(True)
+    return proj.xy, im
 
 
 def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
