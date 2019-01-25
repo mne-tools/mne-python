@@ -326,7 +326,6 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         How to print info about the time instant visualized.
     n_jobs : int
         Number of jobs to run in parallel.
-
         .. versionadded:: 0.18
     return_mayavi_figure : bool
         If True (default), return mayavi figure.

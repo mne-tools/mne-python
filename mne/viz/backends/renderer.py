@@ -13,7 +13,7 @@ except NameError:
     MNE_3D_BACKEND = os.environ.get('MNE_3D_BACKEND', default_3D_backend)
 
 if MNE_3D_BACKEND == 'mayavi':
-    from ._pysurfer_mayavi import *
+    from ._pysurfer_mayavi import Renderer, Projection  # noqa: F401
 else:
     import warnings
     warnings.warn('MNE_3D_BACKEND should be "mayavi" : '
