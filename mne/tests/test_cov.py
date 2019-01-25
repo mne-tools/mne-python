@@ -12,23 +12,20 @@ import pytest
 import numpy as np
 from scipy import linalg
 
-from mne.cov import (regularize, whiten_evoked, _estimate_rank_meeg_cov,
-                     _auto_low_rank_model, _apply_scaling_cov,
-                     _undo_scaling_cov, prepare_noise_cov, compute_whitener,
-                     _apply_scaling_array, _undo_scaling_array,
+from mne.cov import (regularize, whiten_evoked,
+                     _auto_low_rank_model,
+                     prepare_noise_cov, compute_whitener,
                      _regularized_covariance)
 
 from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_covariance,
                  compute_covariance, read_evokeds, compute_proj_raw,
-                 pick_channels_cov, pick_types, pick_info, make_ad_hoc_cov,
+                 pick_channels_cov, pick_types, make_ad_hoc_cov,
                  make_fixed_length_events)
 from mne.datasets import testing
 from mne.fixes import _get_args
 from mne.io import read_raw_fif, RawArray, read_raw_ctf
-from mne.io.pick import channel_type, _picks_by_type, _DATA_CH_TYPES_SPLIT
-from mne.io.proc_history import _get_sss_rank
-from mne.io.proj import _has_eeg_average_ref_proj
+from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.preprocessing import maxwell_filter
 from mne.tests.common import assert_snr
 from mne.utils import (_TempDir, requires_version, run_tests_if_main,
@@ -392,35 +389,11 @@ def test_whiten_evoked():
     pytest.raises(RuntimeError, whiten_evoked, evoked, cov_bad, picks)
 
 
-def test_cov_scaling():
-    """Test rescaling covs."""
+def test_regularized_covariance():
+    """Test unchanged data with regularized_covariance."""
     evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
                           proj=True)
-    cov = read_cov(cov_fname)['data']
-    cov2 = read_cov(cov_fname)['data']
-
-    assert_array_equal(cov, cov2)
-    evoked.pick_channels([evoked.ch_names[k] for k in pick_types(
-        evoked.info, meg=True, eeg=True
-    )])
-    picks_list = _picks_by_type(evoked.info)
-    scalings = dict(mag=1e15, grad=1e13, eeg=1e6)
-
-    _apply_scaling_cov(cov2, picks_list, scalings=scalings)
-    _apply_scaling_cov(cov, picks_list, scalings=scalings)
-    assert_array_equal(cov, cov2)
-    assert cov.max() > 1
-
-    _undo_scaling_cov(cov2, picks_list, scalings=scalings)
-    _undo_scaling_cov(cov, picks_list, scalings=scalings)
-    assert_array_equal(cov, cov2)
-    assert cov.max() < 1
-
     data = evoked.data.copy()
-    _apply_scaling_array(data, picks_list, scalings=scalings)
-    _undo_scaling_array(data, picks_list, scalings=scalings)
-    assert_allclose(data, evoked.data, atol=1e-20)
-
     # check that input data remain unchanged. gh-5698
     _regularized_covariance(data)
     assert_allclose(data, evoked.data, atol=1e-20)

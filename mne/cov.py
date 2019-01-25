@@ -35,8 +35,10 @@ from .defaults import _handle_default
 from .epochs import Epochs
 from .event import make_fixed_length_events
 from .utils import (check_fname, logger, verbose,
-                    _compute_row_norms, check_version, _time_mask, warn,
-                    copy_function_doc_to_method_doc, _pl)
+                    check_version, _time_mask, warn,
+                    copy_function_doc_to_method_doc, _pl,
+                    _undo_scaling_cov, _undo_scaling_array,
+                    _apply_scaling_array)
 from . import viz
 from .rank import _estimate_rank_meeg_cov
 
@@ -1992,82 +1994,3 @@ def _write_cov(fid, cov):
 
     #   Done!
     end_block(fid, FIFF.FIFFB_MNE_COV)
-
-
-def _apply_scaling_array(data, picks_list, scalings):
-    """Scale data type-dependently for estimation."""
-    scalings = _check_scaling_inputs(data, picks_list, scalings)
-    if isinstance(scalings, dict):
-        picks_dict = dict(picks_list)
-        scalings = [(picks_dict[k], v) for k, v in scalings.items()
-                    if k in picks_dict]
-        for idx, scaling in scalings:
-            data[idx, :] *= scaling  # F - order
-    else:
-        data *= scalings[:, np.newaxis]  # F - order
-
-
-def _invert_scalings(scalings):
-    if isinstance(scalings, dict):
-        scalings = dict((k, 1. / v) for k, v in scalings.items())
-    elif isinstance(scalings, np.ndarray):
-        scalings = 1. / scalings
-    return scalings
-
-
-def _undo_scaling_array(data, picks_list, scalings):
-    scalings = _invert_scalings(_check_scaling_inputs(data, picks_list,
-                                                      scalings))
-    return _apply_scaling_array(data, picks_list, scalings)
-
-
-def _apply_scaling_cov(data, picks_list, scalings):
-    """Scale resulting data after estimation."""
-    scalings = _check_scaling_inputs(data, picks_list, scalings)
-    scales = None
-    if isinstance(scalings, dict):
-        n_channels = len(data)
-        covinds = list(zip(*picks_list))[1]
-        assert len(data) == sum(len(k) for k in covinds)
-        assert list(sorted(np.concatenate(covinds))) == list(range(len(data)))
-        scales = np.zeros(n_channels)
-        for ch_t, idx in picks_list:
-            scales[idx] = scalings[ch_t]
-    elif isinstance(scalings, np.ndarray):
-        if len(scalings) != len(data):
-            raise ValueError('Scaling factors and data are of incompatible '
-                             'shape')
-        scales = scalings
-    elif scalings is None:
-        pass
-    else:
-        raise RuntimeError('Arff...')
-    if scales is not None:
-        assert np.sum(scales == 0.) == 0
-        data *= (scales[None, :] * scales[:, None])
-
-
-def _undo_scaling_cov(data, picks_list, scalings):
-    scalings = _invert_scalings(_check_scaling_inputs(data, picks_list,
-                                                      scalings))
-    return _apply_scaling_cov(data, picks_list, scalings)
-
-
-def _check_scaling_inputs(data, picks_list, scalings):
-    """Aux function."""
-    rescale_dict_ = dict(mag=1e15, grad=1e13, eeg=1e6)
-
-    scalings_ = None
-    if isinstance(scalings, str) and scalings == 'norm':
-        scalings_ = 1. / _compute_row_norms(data)
-    elif isinstance(scalings, dict):
-        rescale_dict_.update(scalings)
-        scalings_ = rescale_dict_
-    elif isinstance(scalings, np.ndarray):
-        scalings_ = scalings
-    elif scalings is None:
-        pass
-    else:
-        raise NotImplementedError("No way! That's not a rescaling "
-                                  'option: %s' % scalings)
-    return scalings_

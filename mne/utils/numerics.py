@@ -125,6 +125,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
         else the estimated rank of the matrix, before regularization, is
         returned.
     """
+    from ..rank import _estimate_rank_from_s
     if rank is not None and rank != 'full':
         rank = int(operator.index(rank))
     if x.ndim != 2 or x.shape[0] != x.shape[1]:

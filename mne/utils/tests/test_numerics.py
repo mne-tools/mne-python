@@ -7,16 +7,23 @@ from numpy.testing import assert_array_equal, assert_allclose
 import pytest
 from scipy import sparse
 
+from mne import read_evokeds, read_cov, pick_types
+from mne.io.pick import _picks_by_type
 from mne.epochs import _segment_raw
 from mne.io import read_raw_fif
 from mne.time_frequency import tfr_morlet
 from mne.utils import (_get_inst_data, md5sum, hashfunc,
                        sum_squared, compute_corr, create_slices, _time_mask,
                        random_permutation, _reg_pinv, object_size,
-                       object_hash, object_diff)
+                       object_hash, object_diff, _apply_scaling_cov,
+                       _undo_scaling_cov, _apply_scaling_array,
+                       _undo_scaling_array)
+
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 fname_raw = op.join(base_dir, 'test_raw.fif')
+ave_fname = op.join(base_dir, 'test-ave.fif')
+cov_fname = op.join(base_dir, 'test-cov.fif')
 
 
 def test_get_inst_data():
@@ -177,6 +184,36 @@ def test_random_permutation():
     matlab_randperm = np.array([7, 6, 5, 1, 4, 9, 10, 3, 8, 2])
 
     assert_array_equal(python_randperm, matlab_randperm - 1)
+
+
+def test_cov_scaling():
+    """Test rescaling covs."""
+    evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
+                          proj=True)
+    cov = read_cov(cov_fname)['data']
+    cov2 = read_cov(cov_fname)['data']
+
+    assert_array_equal(cov, cov2)
+    evoked.pick_channels([evoked.ch_names[k] for k in pick_types(
+        evoked.info, meg=True, eeg=True
+    )])
+    picks_list = _picks_by_type(evoked.info)
+    scalings = dict(mag=1e15, grad=1e13, eeg=1e6)
+
+    _apply_scaling_cov(cov2, picks_list, scalings=scalings)
+    _apply_scaling_cov(cov, picks_list, scalings=scalings)
+    assert_array_equal(cov, cov2)
+    assert cov.max() > 1
+
+    _undo_scaling_cov(cov2, picks_list, scalings=scalings)
+    _undo_scaling_cov(cov, picks_list, scalings=scalings)
+    assert_array_equal(cov, cov2)
+    assert cov.max() < 1
+
+    data = evoked.data.copy()
+    _apply_scaling_array(data, picks_list, scalings=scalings)
+    _undo_scaling_array(data, picks_list, scalings=scalings)
+    assert_allclose(data, evoked.data, atol=1e-20)
 
 
 def test_reg_pinv():
