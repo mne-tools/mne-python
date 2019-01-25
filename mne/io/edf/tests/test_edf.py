@@ -317,5 +317,4 @@ def test_edf_stim_ch_pick_up(test_input, EXPECTED):
     assert ch_types == EXPECTED
 
 
-
 run_tests_if_main()

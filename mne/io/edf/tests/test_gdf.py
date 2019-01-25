@@ -22,6 +22,7 @@ data_path = testing.data_path(download=False)
 gdf1_path = op.join(data_path, 'GDF', 'test_gdf_1.25')
 gdf2_path = op.join(data_path, 'GDF', 'test_gdf_2.20')
 
+
 @testing.requires_testing_data
 def test_gdf_data():
     """Test reading raw GDF 1.x files."""
@@ -81,5 +82,6 @@ def test_gdf2_data():
 def test_gdf_events_lut():
     """Test something about GDF_EVENTS_LUT to make sure it has not change."""
     assert len(GDF_EVENTS_LUT) == 200
+
 
 run_tests_if_main()

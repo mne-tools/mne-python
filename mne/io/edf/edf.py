@@ -17,33 +17,16 @@ import re
 import numpy as np
 import os.path as op
 
-from collections import OrderedDict
-
 from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims
 from ..base import BaseRaw, _check_update_montage
 from ..meas_info import _empty_info, _unique_channel_names, DATE_NONE
 from ..constants import FIFF
 from ...filter import resample
-from ...utils import copy_function_doc_to_method_doc, deprecated, hashfunc
+from ...utils import copy_function_doc_to_method_doc, deprecated
 from ...annotations import Annotations, events_from_annotations
+from ._utils import _load_gdf_events_lut
 
-def _load_gdf_events_lut(fname, md5):
-    assert hashfunc(fname, hash_type='md5') == md5
-
-    # load the stuff
-    with open(fname,'r') as fh:
-        elements = [line for line in fh if not line.startswith("#")]
-
-    event_id, event_name = list(), list()
-    for elem in elements:
-        event_id_i, *event_name_i = elem.split('\t')
-        event_id.append(int(event_id_i, 0))
-        clean_name = re.sub('[ \t]+', ' ', ' '.join(event_name_i))
-        clean_name = re.sub('\n', '', clean_name)
-        event_name.append(clean_name)
-
-    return dict(zip(event_id, event_name))
 
 GDF_EVENT_ENCODES_FILE = op.join(op.dirname(__file__), 'gdf_encodes.txt')
 GDF_EVENTS_LUT = _load_gdf_events_lut(fname=GDF_EVENT_ENCODES_FILE,
@@ -215,7 +198,6 @@ class RawEDF(BaseRaw):
 
         self.set_annotations(Annotations(onset=onset, duration=duration,
                                          description=desc, orig_time=None))
-
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -1252,6 +1234,7 @@ def _get_annotations_gdf(edf_info, sfreq):
         desc = [_get_gdf_event_label(event_id) for event_id in events[2]]
 
     return onset, duration, desc
+
 
 def _get_gdf_event_label(key):
     try:
