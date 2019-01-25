@@ -30,7 +30,7 @@ def test_gdf_data():
     data, _ = raw[picks]
 
     # Test Status is added as event
-    EXPECTED_EVS_ONSETS = raw._raw_extras[0]['events'][1][::2]
+    EXPECTED_EVS_ONSETS = raw._raw_extras[0]['events'][1]
     evs, evs_id = events_from_annotations(raw)
     assert_array_equal(evs[:, 0], EXPECTED_EVS_ONSETS)
     assert evs_id == {'Unknown': 1}
