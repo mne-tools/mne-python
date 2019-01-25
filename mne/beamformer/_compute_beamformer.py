@@ -13,9 +13,10 @@ import numpy as np
 from scipy import linalg
 
 from ..cov import Covariance
+from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.proj import make_projector, Projection
-from ..io.pick import (pick_channels_forward, pick_info)
+from ..io.pick import (pick_channels_forward, pick_info, pick_types)
 from ..minimum_norm.inverse import _get_vertno
 from ..source_space import label_src_vertno_sel
 from ..utils import logger, warn, verbose, check_fname, _reg_pinv
@@ -52,6 +53,11 @@ def _setup_picks(info, forward, data_cov=None, noise_cov=None):
 
     # handle channels from forward model and info:
     ch_names = _compare_ch_names(info['ch_names'], fwd_ch_names, info['bads'])
+
+    # make sure that no reference channels are left:
+    ref_chs = pick_types(info, meg=False, ref_meg=True)
+    ref_chs = [info['ch_names'][ch] for ch in ref_chs]
+    ch_names = [ch for ch in ch_names if ch not in ref_chs]
 
     # inform about excluding channels:
     if (data_cov is not None and set(info['bads']) != set(data_cov['bads']) and
@@ -166,6 +172,11 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
         raise ValueError('Normal orientation can only be picked when a '
                          'forward operator with a surface-based source space '
                          'is used.')
+    # Check whether data and forward model have same compensation applied
+    if not get_current_comp(info) == get_current_comp(forward['info']):
+        raise ValueError('Data and forward model do not have same '
+                         'compensation applied.')
+
     # Restrict forward solution to selected channels
     info_ch_names = [ch['ch_name'] for ch in info['chs']]
     ch_names = [info_ch_names[k] for k in picks]
