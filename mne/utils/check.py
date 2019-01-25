@@ -388,3 +388,50 @@ def _check_channels_spatial_filter(ch_names, filters):
     sel = [ii for ii, ch_name in enumerate(ch_names)
            if ch_name in filters['ch_names']]
     return sel
+
+
+def _check_rank(rank):
+    """Check rank parameter and deal with deprecation."""
+    if isinstance(rank, str):
+        # XXX we can use rank='' to deprecate to get to None eventually:
+        # if rank == '':
+        #     warn('The rank parameter default in 0.18 of "full" will change '
+        #          'to None in 0.19, set it explicitly to avoid this warning',
+        #          DeprecationWarning)
+        #     rank = 'full'
+        if rank not in ['full', 'auto']:
+            raise ValueError('rank, if str, must be "full" or "auto", '
+                             'got %s' % (rank,))
+    elif rank is not None and not isinstance(rank, dict):
+        try:
+            rank = int(operator.index(rank))
+        except TypeError:
+            raise TypeError('rank must be None, dict, "full", or int-like, '
+                            'got %s (type %s)' % (rank, type(rank)))
+    return rank
+
+
+def _check_rank_cov(rank, methods, was_auto=False):
+    """Check validity of rank input argument."""
+    if isinstance(rank, str) and rank != 'full':
+        raise ValueError('rank, if str, must be "full", got %s' % (rank,))
+    if not (isinstance(rank, str) and rank == 'full'):
+        if was_auto:
+            methods.pop(methods.index('factor_analysis'))
+        for method in methods:
+            if method in ('pca', 'factor_analysis'):
+                raise ValueError('%s can so far only be used with rank="full",'
+                                 ' got rank=%r' % (method, rank))
+        rank = dict() if rank is None else rank
+        orig_rank = rank
+        try:
+            rank = int(operator.index(rank))
+        except Exception:
+            pass
+        else:
+            rank = dict(meg=rank)
+        if not isinstance(rank, dict) or orig_rank is False:
+            raise ValueError('rank must be an int, dict, None, or "full", '
+                             'got %s (type %s)' % (rank, type(rank)))
+    return rank, methods
+

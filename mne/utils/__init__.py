@@ -11,7 +11,8 @@ from .check import (check_fname, check_version, check_random_state,
                     _check_event_id, _check_ch_locs, _check_compensation_grade,
                     _check_if_nan, _is_numeric, _ensure_int,  _check_preload,
                     _validate_type, _check_pyface_backend, _check_info_inv,
-                    _check_channels_spatial_filter)
+                    _check_channels_spatial_filter, _check_rank,
+                    _check_rank_cov)
 from .config import (set_config, get_config, get_config_path, set_cache_dir,
                      set_memmap_min_size, get_subjects_dir, _get_stim_channel,
                      sys_info, _get_extra_data_path, _get_root_dir,

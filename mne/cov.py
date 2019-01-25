@@ -38,7 +38,7 @@ from .utils import (check_fname, logger, verbose,
                     check_version, _time_mask, warn,
                     copy_function_doc_to_method_doc, _pl,
                     _undo_scaling_cov, _undo_scaling_array,
-                    _apply_scaling_array)
+                    _apply_scaling_array, _check_rank_cov)
 from . import viz
 from .rank import _estimate_rank_meeg_cov
 
@@ -542,7 +542,7 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
             'Invalid {name} ({method}). Accepted values (individually or '
             'in a list) are any of "{accepted_methods}" or None.'.format(
                 name=name, method=method, accepted_methods=accepted_methods))
-    rank, method = _check_rank(rank, method, was_auto)
+    rank, method = _check_rank_cov(rank, method, was_auto)
     if not keep_sample_mean:
         if len(method) != 1 or 'empirical' not in method:
             raise ValueError('`keep_sample_mean=False` is only supported'
@@ -552,31 +552,6 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
                 raise ValueError('`assume_centered` must be True'
                                  ' if `keep_sample_mean` is False')
     return method, _method_params, rank
-
-
-def _check_rank(rank, methods, was_auto=False):
-    """Check validity of rank input argument."""
-    if isinstance(rank, str) and rank != 'full':
-        raise ValueError('rank, if str, must be "full", got %s' % (rank,))
-    if not (isinstance(rank, str) and rank == 'full'):
-        if was_auto:
-            methods.pop(methods.index('factor_analysis'))
-        for method in methods:
-            if method in ('pca', 'factor_analysis'):
-                raise ValueError('%s can so far only be used with rank="full",'
-                                 ' got rank=%r' % (method, rank))
-        rank = dict() if rank is None else rank
-        orig_rank = rank
-        try:
-            rank = int(operator.index(rank))
-        except Exception:
-            pass
-        else:
-            rank = dict(meg=rank)
-        if not isinstance(rank, dict) or orig_rank is False:
-            raise ValueError('rank must be an int, dict, None, or "full", '
-                             'got %s (type %s)' % (rank, type(rank)))
-    return rank, methods
 
 
 @verbose
@@ -1356,7 +1331,8 @@ def _get_whitener(noise_cov, info=None, ch_names=None, rank=None,
     #   Handle noise cov
     #
     if not prepared:
-        noise_cov = prepare_noise_cov(noise_cov, info, ch_names, rank)
+        noise_cov = prepare_noise_cov(noise_cov, info,
+                                      ch_names, rank, scalings)
     n_chan = len(noise_cov['eig'])
 
     #   Omit the zeroes due to projection
@@ -1421,7 +1397,7 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
     else:
         C = np.diag(noise_cov.data[noise_cov_idx])
     projs = info['projs'] + noise_cov['projs']
-
+    scalings = _handle_default('scalings_cov_rank', scalings)
     eig, eigvec, _ = _smart_eigh(C, info, rank, scalings, projs, ch_names)
 
     noise_cov = Covariance(
@@ -1441,7 +1417,6 @@ def _smart_eigh(C, info, rank, scalings, projs=None, ch_names=None,
     ch_names = info['ch_names'] if ch_names is None else ch_names
     pick_info(info, [info['ch_names'].index(c) for c in ch_names], copy=False)
     assert info['ch_names'] == ch_names
-    scalings = _handle_default('scalings_cov_rank', scalings)
     n_chan = len(ch_names)
 
     # Create the projection operator
@@ -1566,7 +1541,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     if exclude is None:
         raise ValueError('exclude must be a list of strings or "bads"')
 
-    rank, _ = _check_rank(rank, ('',), False)
+    rank, _ = _check_rank_cov(rank, ('',), False)
     if exclude == 'bads':
         exclude = info['bads'] + cov['bads']
 
@@ -1698,6 +1673,7 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None,
     return cov
 
 
+# XXX pca parameter from _get_whitener should be exposed here.
 @verbose
 def compute_whitener(noise_cov, info, picks=None, rank=None,
                      scalings=None, return_rank=False,
@@ -1799,8 +1775,8 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
     if diag:
         noise_cov = noise_cov.as_diag()
 
-    W, rank = compute_whitener(noise_cov, evoked.info, picks=picks,
-                               rank=rank, scalings=scalings)
+    W, _ = compute_whitener(noise_cov, evoked.info, picks=picks,
+                            rank=rank, scalings=scalings)
 
     evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
     return evoked

@@ -10,13 +10,14 @@ import numpy as np
 
 from ..utils import (logger, verbose, warn, _reg_pinv, _check_info_inv,
                      _check_channels_spatial_filter)
+from ..utils import _check_one_ch_type, _check_rank
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc, _get_src_type
 from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
 from ._compute_beamformer import (_check_proj_match, _prepare_beamformer_input,
-                                  _compute_beamformer, _check_one_ch_type,
-                                  _check_src_type, Beamformer, _check_rank)
+                                  _compute_beamformer,
+                                  _check_src_type, Beamformer)
 
 
 @verbose

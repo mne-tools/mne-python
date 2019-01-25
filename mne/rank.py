@@ -6,18 +6,44 @@
 
 # import operator
 
+from numbers import Integral
+
 import numpy as np
 from scipy import linalg
 
-# from .io.pick import pick_info, _picks_by_type, _pick_data_channels
-from .io.pick import _picks_by_type
+from .io.pick import _picks_by_type, _pick_data_channels
 from .defaults import _handle_default
-# from .io.proj import make_projector
 from .utils import logger
 from .utils import _compute_row_norms
-# from .proj import setup_proj
-from mne.utils import _apply_scaling_cov, _undo_scaling_cov
-from mne.utils import _apply_scaling_array, _undo_scaling_array
+from .utils import _apply_scaling_cov, _undo_scaling_cov
+from .utils import _apply_scaling_array, _undo_scaling_array
+from .utils import warn, _check_rank
+
+
+# XXX : Add tests
+def estimate_rank_by_ratio(X, ratio=1.0e4):
+    X = np.asarray(X)
+    assert X.ndim == 2
+    # Compute the singular values
+    sing = linalg.svd(X, compute_uv=False)
+    # If the largest singular value is zero, the rank is zero
+    if sing[0] < np.finfo(X.dtype).eps:
+        return 0
+    # Scale and check for zero singular values within the numerical
+    # precision and remove them
+    sing_scaled = sing / sing[0]
+    n_nonzero = np.count_nonzero(sing_scaled > np.finfo(X.dtype).eps)
+    sing = sing[:n_nonzero]
+    # Search for abrupt changes in the singular value spectra by
+    # computing the ratios of consecutive singular values
+    sing_shifted = np.hstack([sing[0], sing[:-1]])
+    sing_ratio = sing_shifted / sing
+    # Check if any/some of the ratios exceed the threshold
+    ex = np.where(sing_ratio > ratio)[0]
+    if len(ex) == 0:
+        return n_nonzero
+    else:
+        return ex[0]
 
 
 def estimate_rank(data, tol='auto', return_singular=False, norm=True):
@@ -232,3 +258,111 @@ def _get_rank_sss(inst):
     else:
         raise ValueError('There is no `max_info` here. Sorry.')
     return _get_sss_rank(max_info)
+
+
+def _get_data_channels_picks(info):
+    with_ref_meg = False  # XXX To test
+    picks = _pick_data_channels(info, exclude='bads',
+                                with_ref_meg=with_ref_meg)
+    return picks
+
+
+def _get_n_data_channels(info):
+    """Returns the number of good data channels."""
+    n_data_channels = len(_get_data_channels_picks(info))
+    return n_data_channels
+
+
+def _get_rank_info(info):
+    try:
+        rank = _get_rank_sss(info)
+    except ValueError:
+        rank = _get_n_data_channels(info)
+    rank -= len(info['bads']) + len(info['projs'])
+    return rank
+
+
+# compute whitener says rank can be a dict to specify
+# per channel type...
+def compute_rank(inst, scalings=None, rank='auto', info=None):
+    """Compute the rank of data or noise covariance.
+
+    This function will normalize the rows of the data (typically
+    channels or vertices) such that non-zero singular values
+    should be close to one.
+
+    Parameters
+    ----------
+    inst : instance of Raw, Epochs or Covariance
+        Raw measurements to compute the rank from or the covariance.
+    scalings : dict | None (default None)
+        Defaults to ``dict(mag=1e15, grad=1e13, eeg=1e6)``.
+        These defaults will scale different channel types
+        to comparable values.
+    rank : int | None | 'full' | 'auto'
+        This controls the rank computation that can be read from the
+        measurement info or estimated from the data:
+
+            If int, then this value is returned as is. Nothing
+            is estimated or read from the info.
+
+            If ``None``, the rank will be automatically estimated
+            from the data after proper scaling of the different
+            channel types.
+
+            If ``auto``, the rank is inferred from the info if available
+            otherwise it's estimated. It is typically estimated from the
+            Maxwell Filter header if present, and using the available
+            'projs'.
+
+            If 'full', the rank is assumed to be full, i.e. equal to the
+            number of good channels. If a Covariance
+            is passed this can make sense if it has been regularized.
+
+        The defaults is 'auto'.
+    info : instance of Info | None
+        The measurement info used to compute the covariance. It is
+        only necessary if inst is a Covariance object.
+
+    Returns
+    -------
+    rank : int
+        Estimated rank of the data.
+    """
+    from .io.base import BaseRaw
+    from .epochs import BaseEpochs
+    from . import Covariance
+
+    rank = _check_rank(rank)
+
+    if not isinstance(inst, Covariance):
+        info = inst.info
+
+    if info is None:
+        raise ValueError('info cannot be None if inst is a Covariance.')
+
+    if rank is 'auto':
+        rank = _get_rank_info(info)
+    elif rank is None:
+        picks = _get_data_channels_picks(info)
+        if isinstance(inst, BaseRaw):
+            reject_by_annotation = 'omit'
+            data = inst.get_data(picks, None, None, reject_by_annotation)
+        elif isinstance(inst, BaseEpochs):
+            data = inst.get_data()[:, picks, :]
+            data = np.concatenate(data, axis=1)
+        info_rank = _get_rank_info(info)
+        rank = estimate_rank(data)
+        if rank > info_rank:
+            warn('Something went wrong in the data-driven estimation of the'
+                 ' data rank as it exceeds the theoretical rank from the '
+                 'info (%d > %d). Consider setting rank to "auto" or '
+                 'setting it explicitely as an integer.' %
+                 (rank, info_rank))
+    elif rank == 'full':
+        rank = _get_n_data_channels(info)
+    elif not isinstance(rank, Integral):
+        raise ValueError("'rank' should be 'auto', 'full', None or int. "
+                         "Got %s." % rank)
+
+    return rank

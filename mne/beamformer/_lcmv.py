@@ -8,6 +8,7 @@
 import numpy as np
 from scipy import linalg
 
+from ..rank import compute_rank
 from ..io.pick import (pick_types, pick_channels_cov, pick_info)
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
@@ -15,15 +16,17 @@ from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate, _get_src_type
 from ..utils import (logger, verbose, warn, _validate_type, _reg_pinv,
                      _check_info_inv, _check_channels_spatial_filter)
+from ..utils import _check_one_ch_type
+from ..utils import _check_rank
 from .. import Epochs
 from ._compute_beamformer import (
-    _check_proj_match, _prepare_beamformer_input, _check_one_ch_type,
-    _compute_beamformer, _check_src_type, Beamformer, _check_rank)
+    _check_proj_match, _prepare_beamformer_input,
+    _compute_beamformer, _check_src_type, Beamformer)
 
 
 @verbose
 def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
-              pick_ori=None, rank='full', weight_norm='unit-noise-gain',
+              pick_ori=None, rank='auto', weight_norm='unit-noise-gain',
               reduce_rank=False, verbose=None):
     """Compute LCMV spatial filter.
 
@@ -126,7 +129,12 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
            brain imaging (2008) Springer Science & Business Media
     """
     picks = _check_info_inv(info, forward, data_cov, noise_cov)
-    rank = _check_rank(rank)
+
+    data_rank = compute_rank(data_cov, rank=rank, info=info)
+    if noise_cov is not None:
+        noise_rank = compute_rank(noise_cov, rank=rank, info=info)
+        assert data_rank == noise_rank
+    rank = data_rank
 
     is_free_ori, ch_names, proj, vertno, G, nn = \
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
