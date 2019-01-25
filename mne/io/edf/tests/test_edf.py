@@ -317,16 +317,5 @@ def test_edf_stim_ch_pick_up(test_input, EXPECTED):
     assert ch_types == EXPECTED
 
 
-from mne.io.edf.edf import gdf_events_lut
-from mne.io.edf.edf import _get_gdf_descriptions
-def test_foo():
-    global gdf_events_lut
-    assert gdf_events_lut is None
-    xx = _get_gdf_descriptions([0])
-    assert xx[0] == 'f'
-    xx = _get_gdf_descriptions([0])
-    # assert gdf_events_lut is not None
-
-
 
 run_tests_if_main()
