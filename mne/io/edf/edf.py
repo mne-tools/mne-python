@@ -15,6 +15,7 @@ import os
 import re
 
 import numpy as np
+import os.path as op
 
 from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims
@@ -24,6 +25,52 @@ from ..constants import FIFF
 from ...filter import resample
 from ...utils import copy_function_doc_to_method_doc, deprecated
 from ...annotations import Annotations, events_from_annotations
+
+# GDF_EVENT_ENCODES_FILE = op.join(op.dirname(__file__), 'gdf_encodes.txt')
+gdf_events_lut = None
+xxx = None
+
+def _get_annotations_gdf(edf_info, sfreq):
+    onset, duration, desc = list(), list(), list()
+    events = edf_info.get('events', None)
+    # Annotations in GDF: events are stored as the following
+    # list: `events = [n_events, pos, typ, chn, dur]` where pos is the
+    # latency, dur is the duration in samples. They both are
+    # numpy.ndarray
+    if events is not None and events[1].shape[0] > 0:
+        onset = events[1] / sfreq
+        duration = events[4] / sfreq
+        desc = _get_gdf_descriptions(events[2])
+        # [str(e) for e in events[2]]
+
+    # import pdb; pdb.set_trace()
+    # print(GDF_EVENT_ENCODES_FILE)
+    # stop
+    return onset, duration, desc
+
+def _get_gdf_descriptions(ids):
+    global xxx
+    global gdf_events_lut
+    print('gdf_events' in globals())
+    print('gdf_events' in locals())
+    # print(globals())
+    # print(locals())
+
+    # print(GDF_EVENT_ENCODES_FILE)
+    print(xxx)
+    print(gdf_events_lut)
+    xxx = 'toto'
+    if gdf_events_lut is None:
+        print('gdf_events_lut was None')
+        gdf_events_lut = _load_gdf_events()
+    else:
+        print('gdf_events_lut was loaded')
+
+    return ([gdf_events_lut[ii] for ii in ids])
+
+def _load_gdf_events():
+    # load the stuff
+    return 'foo'
 
 
 @deprecated('find_edf_events is deprecated in 0.18, and will be removed'
@@ -1214,18 +1261,4 @@ def _get_edf_default_event_id(descriptions):
                    enumerate(sorted(set(descriptions)), start=1))
     return mapping
 
-
-def _get_annotations_gdf(edf_info, sfreq):
-    onset, duration, desc = list(), list(), list()
-    events = edf_info.get('events', None)
-    # Annotations in GDF: events are stored as the following
-    # list: `events = [n_events, pos, typ, chn, dur]` where pos is the
-    # latency, dur is the duration in samples. They both are
-    # numpy.ndarray
-    if events is not None and events[1].shape[0] > 0:
-        onset = events[1] / sfreq
-        duration = events[4] / sfreq
-        desc = [str(e) for e in events[2]]
-
-    return onset, duration, desc
 
