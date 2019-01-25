@@ -633,7 +633,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
              ['shrunk', 'diagonal_fixed', 'empirical', 'factor_analysis']
 
-        ``'factor_analysis'`` is removed when `rank` is not 'full'.
+        ``'factor_analysis'`` is removed when ``rank`` is not 'full'.
         The ``'auto'`` mode is not recommended if there are many
         segments of data, since computation can take a long time.
 
