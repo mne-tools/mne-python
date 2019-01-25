@@ -24,10 +24,10 @@ coding is done saves everyone time and effort!
 Installing developer version
 ----------------------------
 
-The standard installation procedure can be found on the
-[MNE website](https://martinos.org/mne/stable/install_mne_python.html)
-but if you want to install a developer version directly from the source
-code in order to contribute, you can follow those steps:
+The standard installation procedure can be found on
+:ref:`install_python_and_mne_python` but if you want to install a
+developer version directly from the source code in order to contribute,
+you can follow those steps:
 
   .. code-block:: console
 
@@ -36,6 +36,13 @@ code in order to contribute, you can follow those steps:
      $ conda env create -f environment.yml
      $ conda activate mne
      $ pip install -e .
+
+As optional steps, you can also add:
+
+  .. code-block:: console
+
+     $ conda install ipython sphinx
+     $ pip install sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master"
 
 To check the installation, you can enter the following commands:
 
