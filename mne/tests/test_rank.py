@@ -8,16 +8,17 @@ import pytest
 
 from mne.datasets import testing
 # from mne.rank import _estimate_rank_meeg_cov
-# from mne import read_evokeds, read_cov #, prepare_noise_cov
+from mne import read_evokeds, read_cov
+from mne.cov import prepare_noise_cov
+from mne import compute_raw_covariance, pick_types, pick_info
 # from mne import compute_raw_covariance
 # from mne import pick_types, pick_info
-# from mne.io.proj import _has_eeg_average_ref_proj
+from mne.io.proj import _has_eeg_average_ref_proj
 from mne.io.pick import channel_type, _picks_by_type
 from mne.io import read_raw_fif
 from mne.proj import compute_proj_raw
-# from mne.io.proc_history import _get_sss_rank, _get_rank_sss
-from mne.rank import estimate_rank
-from mne.io.proc_history import _get_rank_sss
+from mne.io.proc_history import _get_sss_rank, _get_rank_sss
+from mne.rank import estimate_rank, _estimate_rank_meeg_cov
 
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -70,3 +71,93 @@ def test_rank_estimation():
         assert_array_equal(raw.estimate_rank(tstart=0, tstop=3.,
                                              scalings=scalings),
                            expected_rank - (0 if 'sss' in fname else n_proj))
+
+
+@pytest.mark.slowtest
+def test_rank():
+    """Test cov rank estimation."""
+    # Test that our rank estimation works properly on a simple case
+    evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
+                          proj=False)
+    cov = read_cov(cov_fname)
+    ch_names = [ch for ch in evoked.info['ch_names'] if '053' not in ch and
+                ch.startswith('EEG')]
+    cov = prepare_noise_cov(cov, evoked.info, ch_names, None)
+    assert_equal(cov['eig'][0], 0.)  # avg projector should set this to zero
+    assert (cov['eig'][1:] > 0).all()  # all else should be > 0
+
+    # Now do some more comprehensive tests
+    raw_sample = read_raw_fif(raw_fname)
+    assert not _has_eeg_average_ref_proj(raw_sample.info['projs'])
+
+    raw_sss = read_raw_fif(hp_fif_fname)
+    assert not _has_eeg_average_ref_proj(raw_sss.info['projs'])
+    raw_sss.add_proj(compute_proj_raw(raw_sss))
+
+    cov_sample = compute_raw_covariance(raw_sample)
+    cov_sample_proj = compute_raw_covariance(
+        raw_sample.copy().apply_proj())
+
+    cov_sss = compute_raw_covariance(raw_sss)
+    cov_sss_proj = compute_raw_covariance(
+        raw_sss.copy().apply_proj())
+
+    picks_all_sample = pick_types(raw_sample.info, meg=True, eeg=True)
+    picks_all_sss = pick_types(raw_sss.info, meg=True, eeg=True)
+
+    info_sample = pick_info(raw_sample.info, picks_all_sample)
+    picks_stack_sample = [('eeg', pick_types(info_sample, meg=False,
+                                             eeg=True))]
+    picks_stack_sample += [('meg', pick_types(info_sample, meg=True))]
+    picks_stack_sample += [('all',
+                            pick_types(info_sample, meg=True, eeg=True))]
+
+    info_sss = pick_info(raw_sss.info, picks_all_sss)
+    picks_stack_somato = [('eeg', pick_types(info_sss, meg=False, eeg=True))]
+    picks_stack_somato += [('meg', pick_types(info_sss, meg=True))]
+    picks_stack_somato += [('all',
+                            pick_types(info_sss, meg=True, eeg=True))]
+
+    iter_tests = list(itt.product(
+        [(cov_sample, picks_stack_sample, info_sample),
+         (cov_sample_proj, picks_stack_sample, info_sample),
+         (cov_sss, picks_stack_somato, info_sss),
+         (cov_sss_proj, picks_stack_somato, info_sss)],  # sss
+        [dict(mag=1e15, grad=1e13, eeg=1e6)]
+    ))
+
+    for (cov, picks_list, this_info), scalings in iter_tests:
+        for ch_type, picks in picks_list:
+
+            this_very_info = pick_info(this_info, picks)
+
+            # compute subset of projs
+            this_projs = [c['active'] and
+                          len(set(c['data']['col_names'])
+                              .intersection(set(this_very_info['ch_names']))) >
+                          0 for c in cov['projs']]
+            n_projs = sum(this_projs)
+
+            # count channel types
+            ch_types = [channel_type(this_very_info, idx)
+                        for idx in range(len(picks))]
+            n_eeg, n_mag, n_grad = [ch_types.count(k) for k in
+                                    ['eeg', 'mag', 'grad']]
+            n_meg = n_mag + n_grad
+
+            # check sss
+            if len(this_very_info['proc_history']) > 0:
+                mf = this_very_info['proc_history'][0]['max_info']
+                n_free = _get_sss_rank(mf)
+                if 'mag' not in ch_types and 'grad' not in ch_types:
+                    n_free = 0
+                # - n_projs XXX clarify
+                expected_rank = n_free + n_eeg
+            else:
+                expected_rank = n_meg + n_eeg - n_projs
+
+            C = cov['data'][np.ix_(picks, picks)]
+            est_rank = _estimate_rank_meeg_cov(C, this_very_info,
+                                               scalings=scalings)
+
+            assert_equal(expected_rank, est_rank)

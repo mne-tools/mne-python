@@ -14,9 +14,10 @@ import os
 import numpy as np
 from scipy import linalg, sparse
 
+from .io.meas_info import _simplify_info
 from .io.write import start_file, end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
-                      _needs_eeg_average_ref_proj, _check_projs,
+                      _check_projs, _needs_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
 from .io import fiff_open
 from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
@@ -24,7 +25,7 @@ from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
                       _DATA_CH_TYPES_SPLIT)
 
 from .io.constants import FIFF
-from .io.meas_info import read_bad_channels, _simplify_info, create_info
+from .io.meas_info import read_bad_channels, create_info
 from .io.proj import _read_proj, _write_proj
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
@@ -37,7 +38,7 @@ from .utils import (check_fname, logger, verbose,
                     _compute_row_norms, check_version, _time_mask, warn,
                     copy_function_doc_to_method_doc, _pl)
 from . import viz
-from .rank import estimate_rank
+from .rank import _estimate_rank_meeg_cov
 
 from .fixes import BaseEstimator, EmpiricalCovariance, _logdet
 
@@ -2070,96 +2071,3 @@ def _check_scaling_inputs(data, picks_list, scalings):
         raise NotImplementedError("No way! That's not a rescaling "
                                   'option: %s' % scalings)
     return scalings_
-
-
-def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
-                                return_singular=False):
-    """Estimate rank for M/EEG data.
-
-    Parameters
-    ----------
-    data : np.ndarray of float, shape(n_channels, n_samples)
-        The M/EEG signals.
-    info : Info
-        The measurement info.
-    scalings : dict | 'norm' | np.ndarray | None
-        The rescaling method to be applied. If dict, it will override the
-        following default dict:
-
-            dict(mag=1e15, grad=1e13, eeg=1e6)
-
-        If 'norm' data will be scaled by channel-wise norms. If array,
-        pre-specified norms will be used. If None, no scaling will be applied.
-    tol : float | str
-        Tolerance. See ``estimate_rank``.
-    return_singular : bool
-        If True, also return the singular values that were used
-        to determine the rank.
-
-    Returns
-    -------
-    rank : int
-        Estimated rank of the data.
-    s : array
-        If return_singular is True, the singular values that were
-        thresholded to determine the rank are also returned.
-    """
-    picks_list = _picks_by_type(info)
-    _apply_scaling_array(data, picks_list, scalings)
-    if data.shape[1] < data.shape[0]:
-        ValueError("You've got fewer samples than channels, your "
-                   "rank estimate might be inaccurate.")
-    out = estimate_rank(data, tol=tol, norm=False,
-                        return_singular=return_singular)
-    rank = out[0] if isinstance(out, tuple) else out
-    ch_type = ' + '.join(list(zip(*picks_list))[0])
-    logger.info('estimated rank (%s): %d' % (ch_type, rank))
-    _undo_scaling_array(data, picks_list, scalings)
-    return out
-
-
-def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
-                            return_singular=False):
-    """Estimate rank of M/EEG covariance data, given the covariance.
-
-    Parameters
-    ----------
-    data : np.ndarray of float, shape (n_channels, n_channels)
-        The M/EEG covariance.
-    info : Info
-        The measurement info.
-    scalings : dict | 'norm' | np.ndarray | None
-        The rescaling method to be applied. If dict, it will override the
-        following default dict:
-
-            dict(mag=1e12, grad=1e11, eeg=1e5)
-
-        If 'norm' data will be scaled by channel-wise norms. If array,
-        pre-specified norms will be used. If None, no scaling will be applied.
-    tol : float | str
-        Tolerance. See ``estimate_rank``.
-    return_singular : bool
-        If True, also return the singular values that were used
-        to determine the rank.
-
-    Returns
-    -------
-    rank : int
-        Estimated rank of the data.
-    s : array
-        If return_singular is True, the singular values that were
-        thresholded to determine the rank are also returned.
-    """
-    picks_list = _picks_by_type(info)
-    scalings = _handle_default('scalings_cov_rank', scalings)
-    _apply_scaling_cov(data, picks_list, scalings)
-    if data.shape[1] < data.shape[0]:
-        ValueError("You've got fewer samples than channels, your "
-                   "rank estimate might be inaccurate.")
-    out = estimate_rank(data, tol=tol, norm=False,
-                        return_singular=return_singular)
-    rank = out[0] if isinstance(out, tuple) else out
-    ch_type = ' + '.join(list(zip(*picks_list))[0])
-    logger.info('estimated rank (%s): %d' % (ch_type, rank))
-    _undo_scaling_cov(data, picks_list, scalings)
-    return out
