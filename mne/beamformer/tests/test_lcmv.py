@@ -73,7 +73,6 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     assert not any(pick in picks for pick in bad_picks)
     picks = np.concatenate([picks, bad_picks])
     raw.pick_channels([raw.ch_names[ii] for ii in picks])
-    del picks
 
     raw.info['bads'] = bads  # add more bads
     raw.info.normalize_proj()  # avoid projection warnings
@@ -520,7 +519,6 @@ def test_tf_lcmv():
     picks = picks[::2]  # decimate for speed
     raw.pick_channels([raw.ch_names[ii] for ii in picks])
     raw.info.normalize_proj()  # avoid projection warnings
-    del picks
 
     # Read epochs
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
