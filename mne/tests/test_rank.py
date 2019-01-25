@@ -162,7 +162,7 @@ def test_rank():
 
 def test_maxfilter_get_rank():
     """Test maxfilter rank lookup."""
-    raw = read_raw_fif(raw_fname)
+    raw = read_raw_fif(hp_fif_fname)
     mf = raw.info['proc_history'][0]['max_info']
     rank1 = mf['sss_info']['nfree']
     rank2 = _get_rank_sss(raw)

@@ -211,7 +211,7 @@ def _get_rank_sss(inst):
         The numerical rank as predicted by the number of SSS
         components.
     """
-    from .meas_info import Info
+    from .io.meas_info import Info
     info = inst if isinstance(inst, Info) else inst.info
     del inst
 
