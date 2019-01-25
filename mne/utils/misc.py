@@ -18,7 +18,7 @@ import traceback
 import numpy as np
 
 from ..fixes import _get_args
-from .logging import logger, verbose, warn
+from ._logging import logger, verbose, warn
 
 
 def _pl(x, non_pl=''):

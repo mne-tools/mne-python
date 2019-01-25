@@ -15,7 +15,7 @@ import shutil
 
 import numpy as np
 
-from .logging import logger
+from ._logging import logger
 from .misc import sizeof_fmt
 
 

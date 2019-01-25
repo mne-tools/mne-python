@@ -11,7 +11,7 @@ import os.path as op
 
 import numpy as np
 
-from .logging import warn
+from ._logging import warn
 
 
 def _ensure_int(x, name='unknown', must_be='an int'):

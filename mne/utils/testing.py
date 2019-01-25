@@ -20,7 +20,7 @@ import warnings
 
 import numpy as np
 
-from .logging import warn
+from ._logging import warn
 
 
 def _memory_usage(*args, **kwargs):
