@@ -1959,7 +1959,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Bad channels will be excluded from calculations.
         """
-        from ..cov import _estimate_rank_meeg_signals
+        from ..rank import _estimate_rank_meeg_signals
 
         start = max(0, self.time_as_index(tstart)[0])
         if tstop is None:

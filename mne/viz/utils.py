@@ -28,7 +28,7 @@ from ..io import show_fiff, Info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT,
                        pick_info, _picks_by_type)
-from ..io.proc_history import _get_rank_sss
+from ..rank import _get_rank_sss
 from ..io.proj import setup_proj
 from ..utils import logger, verbose, set_config, warn, _check_ch_locs
 
