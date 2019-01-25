@@ -1059,7 +1059,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         fun : function
             A function to be applied to the channels. The first argument of
             fun has to be a timeseries (numpy.ndarray). The function must
-            return an numpy.ndarray with the same size as the input.
+            operate on an array of shape `(n_times,)` if `channel_wise=True`
+            and `(len(picks), n_times)` if `channel_wise=False`. The function
+            must return an numpy.ndarray with the same size as the input.
         picks : array-like of int (default: None)
             Indices of channels to apply the function to. If None, all data
             channels are used.
@@ -1070,8 +1072,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Whether to apply the function to each channel individually. If
             False, the function will be applied to all channels at once.
         n_jobs: int (default: 1)
-            Number of jobs to run in parallel. Only applicable if
-            `channel_wise` is True.
+            Number of jobs to run in parallel. Ignored if `channel_wise` is
+            False.
         *args :
             Additional positional arguments to pass to fun (first pos. argument
             of fun is the timeseries of a channel).
