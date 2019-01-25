@@ -116,10 +116,10 @@ class RawEDF(BaseRaw):
         the header contains ``'EDF Annotations'`` or GDF events (otherwise stim
         channel will not be added). None is accepted as an alias for False.
 
-        .. warning:: This defaults to 'auto' in 0.17 but will default to False
-                     in 0.18 (when no stim channel synthesis will be allowed)
-                     and will be removed in 0.19; migrate code to use
-                     :func:`mne.events_from_annotations` instead.
+        .. warning:: This defaults to 'auto' in 0.17. When using TAL channels
+                     ('EDF Annotations', 'BDF Annotations') set stim_channel to
+                     False and migrate the code to use
+                     :func:`mne.events_from_annotations`.
 
     annot : str | None
         Path to annotation file.
@@ -425,8 +425,6 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     # we allow/prefer False for consistency with BV/EEGLAB
     stim_channel = None if stim_channel is False else stim_channel
     if stim_channel == '':
-        warn('stim_channel will default to "auto" in 0.17 but change to False '
-             'in 0.18, and will be removed in 0.19', DeprecationWarning)
         stim_channel = 'auto'
     if eog is None:
         eog = []
@@ -1244,10 +1242,10 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         the header contains ``'EDF Annotations'`` or GDF events (otherwise stim
         channel will not be added). None is accepted as an alias for False.
 
-        .. warning:: This defaults to 'auto' in 0.17 but will default to False
-                     in 0.18 (when no stim channel synthesis will be allowed)
-                     and will be removed in 0.19; migrate code to use
-                     :func:`mne.events_from_annotations` instead.
+        .. warning:: This defaults to 'auto' in 0.17. When using TAL channels
+                     ('EDF Annotations', 'BDF Annotations') set stim_channel to
+                     False and migrate the code to use
+                     :func:`mne.events_from_annotations`.
 
     annot : str | None
         Path to annotation file.

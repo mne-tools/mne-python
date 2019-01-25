@@ -31,6 +31,7 @@ from mne.io.edf.edf import _get_edf_default_event_id
 from mne.io.edf.edf import _read_edf_header
 from mne.event import find_events
 from mne.annotations import events_from_annotations, read_annotations
+from mne.io.meas_info import _kind_dict as _KIND_DICT
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -114,8 +115,7 @@ def test_bdf_stim_channel():
               [3537, 0, 1],
               [4162, 0, 1],
               [4790, 0, 1]]
-    with pytest.deprecated_call(match='stim_channel'):
-        raw = read_raw_edf(bdf_stim_channel_path, preload=True)
+    raw = read_raw_edf(bdf_stim_channel_path, preload=True)
     bdf_events = find_events(raw)
     assert_array_equal(events, bdf_events)
     raw = read_raw_edf(bdf_stim_channel_path, preload=False,
@@ -429,6 +429,27 @@ def test_find_events_and_events_from_annot_are_the_same():
                                                  use_rounding=False)
 
     assert_array_equal(events_from_EFA, events_from_find_events)
+
+
+@pytest.mark.parametrize('EXPECTED, test_input', [
+    pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'eeg',
+                  'STI 014': 'stim'}, 'auto', id='auto'),
+    # pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'eeg'},
+    #              None, id='None'),
+    # pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'},
+    #              'sine 1 Hz', id='single string'),
+    # pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'},
+    #              2, id='single int'),
+    pytest.param({'STI 014': 'stim', 'sine 1 Hz': 'eeg', 'stAtUs': 'eeg',
+                  'tRigGer': 'eeg'}, -1, id='single int (revers indexing)')])
+def test_edf_stim_ch_pick_up(test_input, EXPECTED):
+    """Test stim_channel."""
+    TYPE_LUT = {v[0]: k for k, v in _KIND_DICT.items()}
+    fname = op.join(data_dir, 'test_stim_channel.edf')
+
+    raw = read_raw_edf(fname, stim_channel=test_input, preload=True)
+    ch_types = {ch['ch_name']: TYPE_LUT[ch['kind']] for ch in raw.info['chs']}
+    assert ch_types == EXPECTED
 
 
 run_tests_if_main()
