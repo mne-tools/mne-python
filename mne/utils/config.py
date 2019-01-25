@@ -20,7 +20,7 @@ import tempfile
 import numpy as np
 
 from .check import _validate_type
-from .logging import warn, logger
+from ._logging import warn, logger
 
 
 _temp_home_dir = None

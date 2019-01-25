@@ -18,9 +18,9 @@ from .config import (set_config, get_config, get_config_path, set_cache_dir,
 from .docs import (copy_function_doc_to_method_doc, copy_doc, linkcode_resolve,
                    open_docs, deprecated)
 from .fetching import _fetch_file, _url_to_local_path
-from .logging import (verbose, logger, set_log_level, set_log_file,
-                      use_log_level, catch_logging, warn, filter_out_warnings,
-                      ETSContext)
+from ._logging import (verbose, logger, set_log_level, set_log_file,
+                       use_log_level, catch_logging, warn, filter_out_warnings,
+                       ETSContext)
 from .misc import (run_subprocess, _pl, _clean_names, _Counter, pformat,
                    _explain_exception, _get_argvalues, sizeof_fmt)
 from .progressbar import ProgressBar

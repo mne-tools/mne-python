@@ -14,7 +14,7 @@ import sys
 import numpy as np
 from scipy import linalg, sparse
 
-from .logging import logger, warn
+from ._logging import logger, warn
 from .check import check_random_state, _ensure_int, _validate_type
 from .docs import deprecated
 
