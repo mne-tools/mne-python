@@ -1033,7 +1033,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return data
 
     @verbose
-    def apply_function(self, fun, picks=None, dtype=None,
+    def apply_function(self, fun, picks=None, dtype=None, channel_wise=True,
                        n_jobs=1, *args, **kwargs):
         """Apply a function to a subset of channels.
 
@@ -1066,8 +1066,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         dtype : numpy.dtype (default: None)
             Data type to use for raw data after applying the function. If None
             the data type is not modified.
+        channel_wise: bool (default: True)
+            Whether to apply the function to each channel individually. If
+            False, the function will be applied to all channels at once.
         n_jobs: int (default: 1)
-            Number of jobs to run in parallel.
+            Number of jobs to run in parallel. Only applicable if
+            `channel_wise` is True.
         *args :
             Additional positional arguments to pass to fun (first pos. argument
             of fun is the timeseries of a channel).
@@ -1094,18 +1098,23 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if dtype is not None and dtype != self._data.dtype:
             self._data = self._data.astype(dtype)
 
-        if n_jobs == 1:
-            # modify data inplace to save memory
-            for idx in picks:
-                self._data[idx, :] = _check_fun(fun, data_in[idx, :],
-                                                *args, **kwargs)
+        if channel_wise:
+            if n_jobs == 1:
+                # modify data inplace to save memory
+                for idx in picks:
+                    self._data[idx, :] = _check_fun(fun, data_in[idx, :],
+                                                    *args, **kwargs)
+            else:
+                # use parallel function
+                parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
+                data_picks_new = parallel(
+                    p_fun(fun, data_in[p], *args, **kwargs) for p in picks)
+                for pp, p in enumerate(picks):
+                    self._data[p, :] = data_picks_new[pp]
         else:
-            # use parallel function
-            parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
-            data_picks_new = parallel(p_fun(fun, data_in[p], *args, **kwargs)
-                                      for p in picks)
-            for pp, p in enumerate(picks):
-                self._data[p, :] = data_picks_new[pp]
+            self._data[picks, :] = _check_fun(
+                fun, data_in[picks, :], *args, **kwargs)
+
         return self
 
     @verbose
