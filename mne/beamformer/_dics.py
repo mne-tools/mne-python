@@ -8,13 +8,12 @@
 # License: BSD (3-clause)
 import numpy as np
 
-from ..utils import logger, verbose, warn, _reg_pinv
+from ..utils import logger, verbose, warn, _reg_pinv, _check_info_inv
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc, _get_src_type
 from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
-from ._compute_beamformer import (_setup_picks,
-                                  _pick_channels_spatial_filter,
+from ._compute_beamformer import (_pick_channels_spatial_filter,
                                   _check_proj_match, _prepare_beamformer_input,
                                   _compute_beamformer, _check_one_ch_type,
                                   _check_src_type, Beamformer, _check_rank)
@@ -216,7 +215,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     else:
         fwd_norm = None  # No normalization
 
-    picks = _setup_picks(info=info, forward=forward)
+    picks = _check_info_inv(info=info, forward=forward)
     _, ch_names, proj, vertices, G, nn = _prepare_beamformer_input(
         info, forward, label, picks=picks, pick_ori=pick_ori,
         fwd_norm=fwd_norm,

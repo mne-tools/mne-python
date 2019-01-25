@@ -16,10 +16,10 @@ from ..cov import Covariance
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.proj import make_projector, Projection
-from ..io.pick import (pick_channels_forward, pick_info, pick_types)
+from ..io.pick import (pick_channels_forward, pick_info)
 from ..minimum_norm.inverse import _get_vertno
 from ..source_space import label_src_vertno_sel
-from ..utils import logger, warn, verbose, check_fname, _reg_pinv
+from ..utils import warn, verbose, check_fname, _reg_pinv
 from ..channels.channels import _contains_ch_type
 from ..time_frequency.csd import CrossSpectralDensity
 
@@ -44,52 +44,6 @@ def _check_rank(rank):
             raise TypeError('rank must be None, dict, "full", or int-like, '
                             'got %s (type %s)' % (rank, type(rank)))
     return rank
-
-
-def _setup_picks(info, forward, data_cov=None, noise_cov=None):
-    """Return good channels common to forward model and covariance matrices."""
-    # get a list of all channel names:
-    fwd_ch_names = forward['info']['ch_names']
-
-    # handle channels from forward model and info:
-    ch_names = _compare_ch_names(info['ch_names'], fwd_ch_names, info['bads'])
-
-    # make sure that no reference channels are left:
-    ref_chs = pick_types(info, meg=False, ref_meg=True)
-    ref_chs = [info['ch_names'][ch] for ch in ref_chs]
-    ch_names = [ch for ch in ch_names if ch not in ref_chs]
-
-    # inform about excluding channels:
-    if (data_cov is not None and set(info['bads']) != set(data_cov['bads']) and
-            (len(set(ch_names).intersection(data_cov['bads'])) > 0)):
-        logger.info('info["bads"] and data_cov["bads"] do not match, '
-                    'excluding bad channels from both.')
-    if (noise_cov is not None and
-            set(info['bads']) != set(noise_cov['bads']) and
-            (len(set(ch_names).intersection(noise_cov['bads'])) > 0)):
-        logger.info('info["bads"] and noise_cov["bads"] do not match, '
-                    'excluding bad channels from both.')
-
-    # handle channels from data cov if data cov is not None
-    # Note: data cov is supposed to be None in tf_lcmv
-    if data_cov is not None:
-        ch_names = _compare_ch_names(ch_names, data_cov.ch_names,
-                                     data_cov['bads'])
-
-    # handle channels from noise cov if noise cov available:
-    if noise_cov is not None:
-        ch_names = _compare_ch_names(ch_names, noise_cov.ch_names,
-                                     noise_cov['bads'])
-
-    picks = [info['ch_names'].index(k) for k in ch_names if k in
-             info['ch_names']]
-    return picks
-
-
-def _compare_ch_names(names1, names2, bads):
-    """Return channel names of common and good channels."""
-    ch_names = [ch for ch in names1 if ch not in bads and ch in names2]
-    return ch_names
 
 
 def _check_one_ch_type(info, picks, noise_cov, method):
