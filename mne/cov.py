@@ -33,10 +33,11 @@ from .io.write import (start_block, end_block, write_int, write_name_list,
 from .defaults import _handle_default
 from .epochs import Epochs
 from .event import make_fixed_length_events
-from .utils import (check_fname, logger, verbose, estimate_rank,
+from .utils import (check_fname, logger, verbose,
                     _compute_row_norms, check_version, _time_mask, warn,
                     copy_function_doc_to_method_doc, _pl)
 from . import viz
+from .rank import estimate_rank
 
 from .fixes import BaseEstimator, EmpiricalCovariance, _logdet
 

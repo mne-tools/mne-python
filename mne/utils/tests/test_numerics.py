@@ -10,7 +10,7 @@ from scipy import sparse
 from mne.epochs import _segment_raw
 from mne.io import read_raw_fif
 from mne.time_frequency import tfr_morlet
-from mne.utils import (_get_inst_data, md5sum, hashfunc, estimate_rank,
+from mne.utils import (_get_inst_data, md5sum, hashfunc,
                        sum_squared, compute_corr, create_slices, _time_mask,
                        random_permutation, _reg_pinv, object_size,
                        object_hash, object_diff)
@@ -78,16 +78,6 @@ def test_hashfunc(tmpdir):
         assert hash1 == hash1_
         assert hash2 == hash2_
         assert hash1 != hash2
-
-
-def test_estimate_rank():
-    """Test rank estimation."""
-    data = np.eye(10)
-    assert_array_equal(estimate_rank(data, return_singular=True)[1],
-                       np.ones(10))
-    data[0, 0] = 0
-    assert estimate_rank(data) == 9
-    pytest.raises(ValueError, estimate_rank, data, 'foo')
 
 
 def test_sum_squared():
