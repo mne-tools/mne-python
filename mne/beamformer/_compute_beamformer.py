@@ -60,25 +60,6 @@ def _check_one_ch_type(info, picks, noise_cov, method):
              'not heavily tested yet.')
 
 
-def _pick_channels_spatial_filter(ch_names, filters):
-    """Return data channel indices to be used with spatial filter.
-
-    Unlike ``pick_channels``, this respects the order of ch_names.
-    """
-    sel = []
-    # first check for channel discrepancies between filter and data:
-    for ch_name in filters['ch_names']:
-        if ch_name not in ch_names:
-            raise ValueError('The spatial filter was computed with channel %s '
-                             'which is not present in the data. You should '
-                             'compute a new spatial filter restricted to the '
-                             'good data channels.' % ch_name)
-    # then compare list of channels and get selection based on data:
-    sel = [ii for ii, ch_name in enumerate(ch_names)
-           if ch_name in filters['ch_names']]
-    return sel
-
-
 def _check_proj_match(info, filters):
     """Check whether SSP projections in data and spatial filter match."""
     proj_data, _, _ = make_projector(info['projs'],

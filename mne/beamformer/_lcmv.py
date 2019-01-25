@@ -14,7 +14,7 @@ from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate, _get_src_type
 from ..utils import (logger, verbose, warn, _validate_type, _reg_pinv,
-                     _check_info_inv)
+                     _check_info_inv, _check_channels_spatial_filter)
 from .. import Epochs
 from ._compute_beamformer import (
     _check_proj_match, _prepare_beamformer_input, _check_one_ch_type,
@@ -290,7 +290,7 @@ def apply_lcmv(evoked, filters, max_ori_out='signed', verbose=None):
     data = evoked.data
     tmin = evoked.times[0]
 
-    sel = _pick_channels_spatial_filter(evoked.ch_names, filters)
+    sel = _check_channels_spatial_filter(evoked.ch_names, filters)
     data = data[sel]
 
     stc = _apply_lcmv(data=data, filters=filters, info=info,
@@ -336,7 +336,7 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='signed',
     info = epochs.info
     tmin = epochs.times[0]
 
-    sel = _pick_channels_spatial_filter(epochs.ch_names, filters)
+    sel = _check_channels_spatial_filter(epochs.ch_names, filters)
     data = epochs.get_data()[:, sel, :]
     stcs = _apply_lcmv(data=data, filters=filters, info=info,
                        tmin=tmin, max_ori_out=max_ori_out)
@@ -386,7 +386,7 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
 
     info = raw.info
 
-    sel = _pick_channels_spatial_filter(raw.ch_names, filters)
+    sel = _check_channels_spatial_filter(raw.ch_names, filters)
     data, times = raw[sel, start:stop]
     tmin = times[0]
 

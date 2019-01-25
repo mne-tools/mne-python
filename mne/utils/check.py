@@ -327,6 +327,7 @@ def _check_if_nan(data, msg=" to be plotted"):
 
 def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
     """Return good channels common to forward model and covariance matrices."""
+    from .. import pick_types
     # get a list of all channel names:
     fwd_ch_names = forward['info']['ch_names']
 
@@ -369,3 +370,22 @@ def _compare_ch_names(names1, names2, bads):
     """Return channel names of common and good channels."""
     ch_names = [ch for ch in names1 if ch not in bads and ch in names2]
     return ch_names
+
+
+def _check_channels_spatial_filter(ch_names, filters):
+    """Return data channel indices to be used with spatial filter.
+
+    Unlike ``pick_channels``, this respects the order of ch_names.
+    """
+    sel = []
+    # first check for channel discrepancies between filter and data:
+    for ch_name in filters['ch_names']:
+        if ch_name not in ch_names:
+            raise ValueError('The spatial filter was computed with channel %s '
+                             'which is not present in the data. You should '
+                             'compute a new spatial filter restricted to the '
+                             'good data channels.' % ch_name)
+    # then compare list of channels and get selection based on data:
+    sel = [ii for ii, ch_name in enumerate(ch_names)
+           if ch_name in filters['ch_names']]
+    return sel

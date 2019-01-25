@@ -242,7 +242,7 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
     data = evoked.data
     times = evoked.times
 
-    picks = check_info_inv(info, forward, data_cov=None, noise_cov=noise_cov)
+    picks = _check_info_inv(info, forward, data_cov=None, noise_cov=noise_cov)
 
     data = data[picks]
 
