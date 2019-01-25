@@ -1231,10 +1231,8 @@ def _get_annotations_gdf(edf_info, sfreq):
     if events is not None and events[1].shape[0] > 0:
         onset = events[1] / sfreq
         duration = events[4] / sfreq
-        for event_id in events[2]:
-            try:
-                desc.append(GDF_EVENTS_LUT[event_id])
-            except KeyError:
-                desc.append('Unknown')
+        desc = [GDF_EVENTS_LUT[key]
+                if key in GDF_EVENTS_LUT.keys() else 'Unknown'
+                for key in events[2]]
 
     return onset, duration, desc
