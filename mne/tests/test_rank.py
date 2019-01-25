@@ -7,18 +7,15 @@ import numpy as np
 import pytest
 
 from mne.datasets import testing
-# from mne.rank import _estimate_rank_meeg_cov
 from mne import read_evokeds, read_cov
 from mne.cov import prepare_noise_cov
 from mne import compute_raw_covariance, pick_types, pick_info
-# from mne import compute_raw_covariance
-# from mne import pick_types, pick_info
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.io.pick import channel_type, _picks_by_type
 from mne.io import read_raw_fif
 from mne.proj import compute_proj_raw
-from mne.io.proc_history import _get_sss_rank, _get_rank_sss
 from mne.rank import estimate_rank, _estimate_rank_meeg_cov
+from mne.rank import _get_rank_sss, _get_sss_rank
 
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -161,3 +158,12 @@ def test_rank():
                                                scalings=scalings)
 
             assert_equal(expected_rank, est_rank)
+
+
+def test_maxfilter_get_rank():
+    """Test maxfilter rank lookup."""
+    raw = read_raw_fif(raw_fname)
+    mf = raw.info['proc_history'][0]['max_info']
+    rank1 = mf['sss_info']['nfree']
+    rank2 = _get_rank_sss(raw)
+    assert rank1 == rank2

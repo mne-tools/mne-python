@@ -527,6 +527,7 @@ def test_compute_covariance_auto_reg(rank):
 
 
 def _cov_rank(cov, info):
+    # XXX : this should use the to appear compute_rank function
     return compute_whitener(cov, info, return_rank=True, verbose='error')[2]
 
 

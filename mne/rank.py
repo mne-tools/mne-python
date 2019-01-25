@@ -183,3 +183,52 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
     logger.info('estimated rank (%s): %d' % (ch_type, rank))
     _undo_scaling_cov(data, picks_list, scalings)
     return out
+
+
+def _get_sss_rank(sss):
+    """Get SSS rank."""
+    inside = sss['sss_info']['in_order']
+    nfree = (inside + 1) ** 2 - 1
+    nfree -= (len(sss['sss_info']['components'][:nfree]) -
+              sss['sss_info']['components'][:nfree].sum())
+    return nfree
+
+
+def _get_rank_sss(inst):
+    """Look up rank from SSS data.
+
+    .. note::
+        Throws an error if SSS has not been applied.
+
+    Parameters
+    ----------
+    inst : instance of Raw, Epochs or Evoked, or Info
+        Any MNE object with an .info attribute
+
+    Returns
+    -------
+    rank : int
+        The numerical rank as predicted by the number of SSS
+        components.
+    """
+    from .meas_info import Info
+    info = inst if isinstance(inst, Info) else inst.info
+    del inst
+
+    max_infos = list()
+    for proc_info in info.get('proc_history', list()):
+        max_info = proc_info.get('max_info')
+        if max_info is not None:
+            if len(max_info) > 0:
+                max_infos.append(max_info)
+            elif len(max_info) > 1:
+                logger.info('found multiple SSS records. Using the first.')
+            elif len(max_info) == 0:
+                raise ValueError(
+                    'Did not find any SSS record. You should use data-based '
+                    'rank estimate instead')
+    if len(max_infos) > 0:
+        max_info = max_infos[0]
+    else:
+        raise ValueError('There is no `max_info` here. Sorry.')
+    return _get_sss_rank(max_info)
