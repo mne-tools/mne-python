@@ -1033,8 +1033,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return data
 
     @verbose
-    def apply_function(self, fun, picks=None, dtype=None,
-                       n_jobs=1, *args, **kwargs):
+    def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
+                       channel_wise=True, *args, **kwargs):
         """Apply a function to a subset of channels.
 
         The function "fun" is applied to the channels defined in "picks". The
@@ -1059,7 +1059,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         fun : function
             A function to be applied to the channels. The first argument of
             fun has to be a timeseries (numpy.ndarray). The function must
-            return an numpy.ndarray with the same size as the input.
+            operate on an array of shape ``(n_times,)`` if
+            ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise.
+            The function must return an ndarray shaped like its input.
         picks : array-like of int (default: None)
             Indices of channels to apply the function to. If None, all data
             channels are used.
@@ -1067,7 +1069,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Data type to use for raw data after applying the function. If None
             the data type is not modified.
         n_jobs: int (default: 1)
-            Number of jobs to run in parallel.
+            Number of jobs to run in parallel. Ignored if `channel_wise` is
+            False.
+        channel_wise: bool (default: True)
+            Whether to apply the function to each channel individually. If
+            False, the function will be applied to all channels at once.
+
+            .. versionadded:: 0.18
         *args :
             Additional positional arguments to pass to fun (first pos. argument
             of fun is the timeseries of a channel).
@@ -1094,18 +1102,23 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if dtype is not None and dtype != self._data.dtype:
             self._data = self._data.astype(dtype)
 
-        if n_jobs == 1:
-            # modify data inplace to save memory
-            for idx in picks:
-                self._data[idx, :] = _check_fun(fun, data_in[idx, :],
-                                                *args, **kwargs)
+        if channel_wise:
+            if n_jobs == 1:
+                # modify data inplace to save memory
+                for idx in picks:
+                    self._data[idx, :] = _check_fun(fun, data_in[idx, :],
+                                                    *args, **kwargs)
+            else:
+                # use parallel function
+                parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
+                data_picks_new = parallel(
+                    p_fun(fun, data_in[p], *args, **kwargs) for p in picks)
+                for pp, p in enumerate(picks):
+                    self._data[p, :] = data_picks_new[pp]
         else:
-            # use parallel function
-            parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
-            data_picks_new = parallel(p_fun(fun, data_in[p], *args, **kwargs)
-                                      for p in picks)
-            for pp, p in enumerate(picks):
-                self._data[p, :] = data_picks_new[pp]
+            self._data[picks, :] = _check_fun(
+                fun, data_in[picks, :], *args, **kwargs)
+
         return self
 
     @verbose
