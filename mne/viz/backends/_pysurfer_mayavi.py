@@ -27,7 +27,7 @@ class Projection:
         self.pts = pts
 
     def visible(self, state):
-        """Modify visibility atribute of the source."""
+        """Modify visibility attribute of the source."""
         self.pts.visible = state
 
 
@@ -142,7 +142,7 @@ class Renderer:
         Parameters
         ----------
         surface: surface object
-            The informations describing the surface.
+            The information describing the surface.
         color: (red, green, blue)
             The color of the surface.
         opacity: float
