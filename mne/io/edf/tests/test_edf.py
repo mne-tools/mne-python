@@ -198,7 +198,7 @@ def test_to_data_frame():
         assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
 
 
-def test_find_edf_events_depracation():
+def test_find_edf_events_deprecation():
     """Test find_edf_events deprecation."""
     raw = read_raw_edf(edf_path)
     with pytest.deprecated_call(match="find_edf_events"):

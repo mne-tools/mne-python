@@ -80,7 +80,7 @@ def test_gdf2_data():
 
 
 def test_gdf_events_lut():
-    """Test something about GDF_EVENTS_LUT to make sure it has not change."""
+    """Test something about GDF_EVENTS_LUT to make sure it has not changed."""
     assert len(GDF_EVENTS_LUT) == 200
 
 
