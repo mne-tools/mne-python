@@ -30,7 +30,7 @@ from ._utils import _load_gdf_events_lut
 
 GDF_EVENT_ENCODES_FILE = op.join(op.dirname(__file__), 'gdf_encodes.txt')
 GDF_EVENTS_LUT = _load_gdf_events_lut(fname=GDF_EVENT_ENCODES_FILE,
-                                      md5='ce731826bb209ea44deffd78a553cee8')
+                                      md5='12134a9be7e0bfa5941e95f8bfd330f7')
 
 
 @deprecated('find_edf_events is deprecated in 0.18, and will be removed'
