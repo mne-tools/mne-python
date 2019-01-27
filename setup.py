@@ -85,6 +85,7 @@ if __name__ == "__main__":
                                 op.join('gui', 'help', '*.json'),
                                 op.join('html', '*.js'),
                                 op.join('html', '*.css'),
-                                op.join('io', 'artemis123', 'resources', '*.csv')
+                                op.join('io', 'artemis123', 'resources', '*.csv'),
+                                op.join('io', 'edf', 'gdf_encodes.txt')
                                 ]},
           scripts=['bin/mne'])

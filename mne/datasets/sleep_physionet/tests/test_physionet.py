@@ -124,6 +124,7 @@ def test_sleep_physionet_age(physionet_tmpdir, mocker):
 @requires_good_network
 @requires_pandas
 @requires_version('xlrd', '0.9')
+@pytest.mark.skip(reason="Broken with new pandas 0.24 and xlrd")
 def test_run_update_temazepam_records(tmpdir):
     """Test Sleep Physionet URL handling."""
     import pandas as pd

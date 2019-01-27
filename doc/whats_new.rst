@@ -58,6 +58,8 @@ Changelog
 Bug
 ~~~
 
+- Fix :func:`mne.io.read_raw_edf` returning all the annotations with the same name in GDF files by `Joan Massich`_
+
 - Fix :meth:`mne.io.Raw.append` annotations miss-alignment  by `Joan Massich`_
 
 - Fix :func:`mne.io.read_raw_edf` reading duplicate channel names by `Larry Eisenman`_
@@ -78,6 +80,8 @@ API
 ~~~
 
 - Python 2 is no longer supported; MNE-Python now requires Python 3.5+, by `Eric Larson`_
+
+- Deprecate :func:`mne.io.find_edf_events` by `Joan Massich`_
 
 .. _changes_0_17:
 

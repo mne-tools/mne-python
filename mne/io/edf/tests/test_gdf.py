@@ -15,7 +15,8 @@ from mne.io import read_raw_edf
 from mne.io.meas_info import DATE_NONE
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main
-from mne import pick_types, find_events
+from mne import pick_types, find_events, events_from_annotations
+from mne.io.edf.edf import GDF_EVENTS_LUT
 
 data_path = testing.data_path(download=False)
 gdf1_path = op.join(data_path, 'GDF', 'test_gdf_1.25')
@@ -30,9 +31,10 @@ def test_gdf_data():
     data, _ = raw[picks]
 
     # Test Status is added as event
-    EXPECTED_EVS_ONSETS = raw._raw_extras[0]['events'][1][::2]
-    evs = raw.find_edf_events()
-    assert_array_equal(evs[1][::2], EXPECTED_EVS_ONSETS)
+    EXPECTED_EVS_ONSETS = raw._raw_extras[0]['events'][1]
+    evs, evs_id = events_from_annotations(raw)
+    assert_array_equal(evs[:, 0], EXPECTED_EVS_ONSETS)
+    assert evs_id == {'Unknown': 1}
 
     # this .npy was generated using the official biosig python package
     raw_biosig = np.load(gdf1_path + '_biosig.npy')
@@ -75,6 +77,11 @@ def test_gdf2_data():
     assert raw.info['meas_date'] == DATE_NONE
     _test_raw_reader(read_raw_edf, input_fname=gdf2_path + '.gdf',
                      eog=None, misc=None)
+
+
+def test_gdf_events_lut():
+    """Test something about GDF_EVENTS_LUT to make sure it has not changed."""
+    assert len(GDF_EVENTS_LUT) == 200
 
 
 run_tests_if_main()
