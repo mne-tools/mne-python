@@ -172,7 +172,7 @@
 0x0507	ecg:U-wave-onset
 #0x8507	ecg:U-wave-end
 #
-# related but non-concordant defintions can be found in   
+# related but non-concordant definitions can be found in
 # - WFDB/MIT-BIH http://www.physionet.org/physiotools/wfdb/lib/ecgcodes.h
 # - SCP-ECG http://www.centc251.org/TCmeet/doclist/TCdoc02/N02-015-prEN1064.pdf
 # - FEF/Vital/11073 p.83

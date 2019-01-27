@@ -14,7 +14,9 @@ from ...utils import hashfunc
 
 
 def _load_gdf_events_lut(fname, md5):
-    assert hashfunc(fname, hash_type='md5') == md5
+    if hashfunc(fname, hash_type='md5') != md5:
+        raise ValueError("File %s is corrupted. mdf5 hashes don't match." %
+                         fname)
 
     # load the stuff
     with open(fname, 'r') as fh:
