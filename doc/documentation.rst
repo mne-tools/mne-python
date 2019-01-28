@@ -41,7 +41,7 @@ Documentation
 .. toctree::
     :maxdepth: 1
 
-    manual/workflows.rst
+    workflows.rst
     tutorials.rst
     auto_examples/index.rst
     faq.rst
