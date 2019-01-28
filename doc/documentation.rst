@@ -60,3 +60,15 @@ The **code examples** provides you elaborate snippet codes that go through impor
 You can also find a gallery of these examples in the :ref:`examples gallery <sphx_glr_auto_examples>`.
 
 The **reference documentation** provides an overview of the code-level functinoality and documents.
+
+
+XXXX Stuff to sort
+==================
+
+.. toctree::
+    :maxdepth: 1
+
+    tutorials/philosophy.rst
+    manual/cookbook.rst
+    workflows.rst
+    documentation.rst
