@@ -87,7 +87,7 @@ from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           rotation_angles, Transform, _ensure_trans,
                           rot_to_quat, _angle_between_quats)
 from ..coreg import fit_matched_points, scale_mri, _find_fiducials_files
-from ..viz._3d import _toggle_mlab_render
+from ..viz.backends._pysurfer_mayavi import _toggle_mlab_render
 from ..utils import logger, set_config, _pl
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import trans_wildcard, DigSource, SubjectSelectorPanel
