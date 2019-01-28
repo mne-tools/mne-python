@@ -66,10 +66,6 @@ The documentation in mne-python provides information in the form of:
 - Workflows
 - Tutorials
 - Example codes
-- MNE-study template 
+- Pipeline for an mne-study template 
 
-The workflows will help you get you started on defining which type of pipeline you should aim for in your data analysis. 
-Each step in the workflows will link to specific tutorials and example codes.
-
-The tutorials provide in-depth review of particular analysis steps (e.g. preprocessing, epoching, decoding). 
-The example codes provides you elaborate snippet codes that help you go through raw data to the endpoint.
+The workflows will get you started on defining which type of pipeline you should aim for in your data analysis: evoked data analysis in sensor space and in source space, time-frequency analysis in sensor space and in sensor space. Each step in a given workflow will link to the relevant tutorials and example codes. The tutorials provide in-depth reviews of specific analyses (e.g. preprocessing, epoching, decoding). The example codes provides you elaborate snippet codes that go through importing your raw data to the outcome of a planned analysis. The mne-study template drives you through the full pipeline of analysis on sample data.
