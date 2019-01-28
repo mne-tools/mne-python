@@ -71,4 +71,3 @@ XXXX Stuff to sort
     tutorials/philosophy.rst
     manual/cookbook.rst
     workflows.rst
-    documentation.rst
