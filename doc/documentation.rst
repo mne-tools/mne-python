@@ -54,16 +54,14 @@ Documentation
 
 The **workflows** will get you started on defining which type of pipeline you should aim for in your data analysis: evoked data analysis in sensor space and in source space, time-frequency analysis in sensor space and in sensor space. Each step in a given workflow will link to the relevant tutorials and example codes.
 
-The **tutorials** provide in-depth reviews of specific analyses (e.g. preprocessing, epoching, decoding) with narrative documentation and comments detailed ordered by topicx`.
+The **tutorials** provide in-depth reviews of specific analyses (e.g. preprocessing, epoching, decoding) with narrative documentation and comments detailed.  
 
-The **code examples** provides you elaborate snippet codes that go through importing your raw data to the outcome of a planned analysis. The mne-study template drives you through the full pipeline of analysis on sample data.
-You can also find a gallery of these examples in the :ref:`examples gallery <sphx_glr_auto_examples>`.
+The **code examples** :ref:`examples gallery <sphx_glr_auto_examples>` provides you elaborate snippet codes that go through importing your raw data to the outcome of a planned analysis. 
 
-The **reference documentation** provides an overview of the code-level functinoality and documents.
+The **mne-study template** drives you through the full pipeline of analysis on sample data.
 
-
-XXXX Stuff to sort
-==================
+XXXX Stuff to sort (this cannot be yet removed or it breaks the compilation)
+============================================================================
 
 .. toctree::
     :maxdepth: 1
