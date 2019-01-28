@@ -1,7 +1,7 @@
 .. _general_examples:
 
-Examples Gallery
-================
+Code Examples
+=============
 
 .. contents:: Contents
    :local:
