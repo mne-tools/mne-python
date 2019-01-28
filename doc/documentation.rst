@@ -56,3 +56,19 @@ This is where you can learn about all the things you can do with MNE. It contain
 
 There are also **examples**, which contain a short use-case to highlight MNE-functionality and provide inspiration for the many things you can do with this package. You can also find a gallery of these examples in the :ref:`examples gallery <sphx_glr_auto_examples>`.
 
+
+Workflows
+==========================
+
+
+The documentation in mne-python provides information in the form of: 
+•	Workflows
+•	Tutorials
+•	Example codes
+•	MNE-study template 
+
+The workflows will help you get you started on defining which type of pipeline you should aim for in your data analysis. 
+Each step in the workflows will link to specific tutorials and example codes.
+
+The tutorials provide in-depth review of particular analysis steps (e.g. preprocessing, epoching, decoding). 
+The example codes provides you elaborate snippet codes that help you go through raw data to the endpoint.
