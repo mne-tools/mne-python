@@ -168,6 +168,7 @@ html_theme_options = {
     'bootstrap_version': "3",  # default
     'navbar_links': [
         ("Install", "getting_started"),
+        ("Getting started", "workflows"),
         ("Documentation", "documentation"),
         ("API", "python_reference"),
         ("Glossary", "glossary"),
