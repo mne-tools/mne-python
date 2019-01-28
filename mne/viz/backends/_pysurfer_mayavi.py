@@ -94,8 +94,8 @@ class Renderer:
         kwargs: args
             The arguments to pass to triangular_mesh
         """
-        surface = self.mlab.triangular_mesh(x, y, z, color=color,
-                                            triangles=triangles,
+        surface = self.mlab.triangular_mesh(x, y, z, triangles,
+                                            color=color,
                                             opacity=opacity,
                                             figure=self.fig,
                                             **kwargs)
