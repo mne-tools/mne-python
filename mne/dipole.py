@@ -259,7 +259,7 @@ class Dipole(object):
 
         Returns
         -------
-        fig : instance of mlab.Figure or matplotlib Figure
+        fig : instance of mayavi.mlab.Figure or matplotlib.figure.Figure
             The mayavi figure or matplotlib Figure.
 
         Notes

@@ -53,7 +53,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         Raw, Epochs, and Evoked files.
     subject : None | str
         Name of the mri subject.
-    subjects_dir : None | path
+    subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
     guess_mri_subject : bool

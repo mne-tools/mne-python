@@ -11,15 +11,15 @@ class TransformerMixin(object):
 
         Parameters
         ----------
-        X : numpy array of shape [n_samples, n_features]
+        X : array, shape (n_samples, n_features)
             Training set.
 
-        y : numpy array of shape [n_samples]
+        y : array, shape (n_samples,)
             Target values.
 
         Returns
         -------
-        X_new : numpy array of shape [n_samples, n_features_new]
+        X_new : array, shape (n_samples, n_features_new)
             Transformed array.
         """
         # non-optimized default implementation; override when a better

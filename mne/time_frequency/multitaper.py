@@ -24,12 +24,12 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     ----------
     N : int
         Sequence length
-    half_nbw : float, unitless
+    half_nbw : float
         Standardized half bandwidth corresponding to 2 * half_bw = BW*f0
-        = BW*N/dt but with dt taken as 1
+        = BW*N/dt but with dt taken as 1.
     Kmax : int
         Number of DPSS windows to return is Kmax (orders 0 through Kmax-1)
-    low_bias : Bool
+    low_bias : bool
         Keep only tapers with eigenvalues > 0.9
     interp_from : int (optional)
         The dpss can be calculated using interpolation from a set of dpss
@@ -474,7 +474,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         The epochs.
     sfreq : float | int
         Sampling frequency of the data.
-    freqs : array-like of floats, shape (n_freqs)
+    freqs : array-like of float, shape (n_freqs,)
         The frequencies.
     n_cycles : float | array of float
         Number of cycles  in the Morlet wavelet. Fixed number or one per
@@ -497,7 +497,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
             Decimation may create aliasing artifacts, yet decimation
             is done after the convolutions.
 
-    output : str, defaults to 'complex'
+    output : str, default 'complex'
 
         * 'complex' : single trial complex.
         * 'power' : single trial power.
@@ -510,7 +510,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
     n_jobs : int
         The number of epochs to process at the same time. The parallelization
         is implemented across channels. Defaults to 1.
-    verbose : bool, str, int, or None, defaults to None
+    verbose : bool, str, int, or None, default None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 

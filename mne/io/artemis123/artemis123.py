@@ -46,7 +46,7 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
 
     Returns
     -------
-    raw : Instance of Raw
+    raw : instance of Raw
         A Raw object containing the data.
 
     See Also

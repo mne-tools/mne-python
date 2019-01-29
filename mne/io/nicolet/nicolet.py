@@ -29,7 +29,7 @@ def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
     ch_type : str
         Channel type to designate to the data channels. Supported data types
         include 'eeg', 'seeg'.
-    montage : str | None | instance of montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
@@ -60,7 +60,7 @@ def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
 
     Returns
     -------
-    raw : Instance of Raw
+    raw : instance of Raw
         A Raw object containing the data.
 
     See Also

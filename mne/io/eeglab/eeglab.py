@@ -143,7 +143,7 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
     input_fname : str
         Path to the .set file. If the data is stored in a separate .fdt file,
         it is expected to be in the same folder as the .set file.
-    montage : str | None | instance of montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
@@ -176,7 +176,7 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
 
     Returns
     -------
-    raw : Instance of RawEEGLAB
+    raw : instance of RawEEGLAB
         A Raw object containing EEGLAB .set data.
 
     Notes
@@ -218,7 +218,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
         the id as string. If a list, all events with the IDs specified
         in the list are used. If None, the event_id is constructed from the
         EEGLAB (.set) file with each descriptions copied from `eventtype`.
-    montage : str | None | instance of montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
@@ -264,7 +264,7 @@ class RawEEGLAB(BaseRaw):
     input_fname : str
         Path to the .set file. If the data is stored in a separate .fdt file,
         it is expected to be in the same folder as the .set file.
-    montage : str | None | instance of montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions. If None,
         sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
@@ -292,11 +292,6 @@ class RawEEGLAB(BaseRaw):
     verbose : bool | str | int | None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-
-    Returns
-    -------
-    raw : Instance of RawEEGLAB
-        A Raw object containing EEGLAB .set data.
 
     Notes
     -----
@@ -418,7 +413,7 @@ class EpochsEEGLAB(BaseEpochs):
     reject_tmax : scalar | None
         End of the time window used to reject epochs (with the default None,
         the window will end with tmax).
-    montage : str | None | instance of montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.

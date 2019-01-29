@@ -374,7 +374,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         See :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.12
-    cv : int | sklearn model_selection object (default 3)
+    cv : int | sklearn.model_selection object (default 3)
         The cross validation method. Defaults to 3, which will
         internally trigger by default :class:`sklearn.model_selection.KFold`
         with 3 splits.
@@ -605,7 +605,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     Parameters
     ----------
-    epochs : instance of Epochs, or a list of Epochs objects
+    epochs : instance of Epochs, or list of Epochs
         The epochs.
     keep_sample_mean : bool (default True)
         If False, the average response over epochs is computed for
@@ -651,7 +651,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
              'pca': {'iter_n_components': None},
              'factor_analysis': {'iter_n_components': None}}
 
-    cv : int | sklearn model_selection object (default 3)
+    cv : int | sklearn.model_selection object (default 3)
         The cross validation method. Defaults to 3, which will
         internally trigger by default :class:`sklearn.model_selection.KFold`
         with 3 splits.
@@ -1532,7 +1532,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     exclude : list | 'bads' (default 'bads')
         List of channels to mark as bad. If 'bads', bads channels
         are extracted from both info['bads'] and cov['bads'].
-    proj : bool (default true)
+    proj : bool (default True)
         Apply projections to keep rank of data.
     seeg : float (default 0.1)
         Regularization factor for sEEG signals.

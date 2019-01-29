@@ -55,7 +55,7 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
 
     Returns
     -------
-    raw : Instance of Raw
+    raw : instance of Raw
         A preloaded Raw object.
     """
     tempdir = _TempDir()

@@ -45,9 +45,9 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         The sampling Frequency.
     freqs : array
         frequency range of interest (1 x Frequencies)
-    n_cycles: float | array of float, defaults to 7.0
+    n_cycles: float | array of float, default 7.0
         Number of cycles. Fixed number or one per frequency.
-    sigma : float, defaults to None
+    sigma : float, default None
         It controls the width of the wavelet ie its temporal
         resolution. If sigma is None the temporal resolution
         is adapted with the frequency like for all wavelet transform.
@@ -55,7 +55,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         If sigma is fixed the temporal resolution is fixed
         like for the short time Fourier transform and the number
         of oscillations increases with the frequency.
-    zero_mean : bool, defaults to False
+    zero_mean : bool, default False
         Make sure the wavelet has a mean of zero.
 
     Returns
@@ -103,14 +103,14 @@ def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
         The sampling frequency.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
-    n_cycles : float | ndarray, shape (n_freqs,), defaults to 7.
+    n_cycles : float | ndarray, shape (n_freqs,), default 7.
         The number of cycles globally or for each frequency.
-    time_bandwidth : float, defaults to 4.0
+    time_bandwidth : float, default 4.0
         Time x Bandwidth product.
         The number of good tapers (low-bias) is chosen automatically based on
         this to equal floor(time_bandwidth - 1).
         Default is 4.0, giving 3 good tapers.
-    zero_mean : bool | None, , defaults to False
+    zero_mean : bool | None, , default False
         Make sure the wavelet has a mean of zero.
 
 
@@ -172,7 +172,7 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
         Wavelets time series.
     mode : {'full', 'valid', 'same'}
         See numpy.convolve.
-    decim : int | slice, defaults to 1
+    decim : int | slice, default 1
         To reduce memory usage, decimation factor after time-frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
@@ -180,7 +180,7 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
 
         .. note:: Decimation may create aliasing artifacts.
 
-    use_fft : bool, defaults to True
+    use_fft : bool, default True
         Use the FFT for convolutions or not.
 
     Returns
@@ -270,26 +270,26 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
         The epochs.
     freqs : array-like of floats, shape (n_freqs)
         The frequencies.
-    sfreq : float | int, defaults to 1.0
+    sfreq : float | int, default 1.0
         Sampling frequency of the data.
-    method : 'multitaper' | 'morlet', defaults to 'morlet'
+    method : 'multitaper' | 'morlet', default 'morlet'
         The time-frequency method. 'morlet' convolves a Morlet wavelet.
         'multitaper' uses Morlet wavelets windowed with multiple DPSS
         multitapers.
-    n_cycles : float | array of float, defaults to 7.0
+    n_cycles : float | array of float, default 7.0
         Number of cycles  in the Morlet wavelet. Fixed number
         or one per frequency.
-    zero_mean : bool | None, defaults to None
+    zero_mean : bool | None, default None
         None means True for method='multitaper' and False for method='morlet'.
         If True, make sure the wavelets have a mean of zero.
-    time_bandwidth : float, defaults to None
+    time_bandwidth : float, default None
         If None and method=multitaper, will be set to 4.0 (3 tapers).
         Time x (Full) Bandwidth product. Only applies if
         method == 'multitaper'. The number of good tapers (low-bias) is
         chosen automatically based on this to equal floor(time_bandwidth - 1).
-    use_fft : bool, defaults to True
+    use_fft : bool, default True
         Use the FFT for convolutions or not.
-    decim : int | slice, defaults to 1
+    decim : int | slice, default 1
         To reduce memory usage, decimation factor after time-frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
@@ -299,7 +299,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
             Decimation may create aliasing artifacts, yet decimation
             is done after the convolutions.
 
-    output : str, defaults to 'complex'
+    output : str, default 'complex'
 
         * 'complex' : single trial complex.
         * 'power' : single trial power.
@@ -309,10 +309,10 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
         * 'avg_power_itc' : average of single trial power and inter-trial
           coherence across trials.
 
-    n_jobs : int, defaults to 1
+    n_jobs : int, default 1
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
-    verbose : bool, str, int, or None, defaults to None
+    verbose : bool, str, int, or None, default None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
@@ -660,12 +660,12 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         The frequencies in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
         The number of cycles globally or for each frequency.
-    use_fft : bool, defaults to False
+    use_fft : bool, default False
         The fft based convolution or not.
-    return_itc : bool, defaults to True
+    return_itc : bool, default True
         Return inter-trial coherence (ITC) as well as averaged power.
         Must be ``False`` for evoked data.
-    decim : int | slice, defaults to 1
+    decim : int | slice, default 1
         To reduce memory usage, decimation factor after time-frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
@@ -673,16 +673,16 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 
         .. note:: Decimation may create aliasing artifacts.
 
-    n_jobs : int, defaults to 1
+    n_jobs : int, default 1
         The number of jobs to run in parallel.
-    picks : array-like of int | None, defaults to None
+    picks : array-like of int | None, default None
         The indices of the channels to decompose. If None, all available
         good data channels are decomposed.
-    zero_mean : bool, defaults to True
+    zero_mean : bool, default True
         Make sure the wavelet has a mean of zero.
 
         .. versionadded:: 0.13.0
-    average : bool, defaults to True
+    average : bool, default True
         If True average across Epochs.
 
         .. versionadded:: 0.13.0
@@ -691,7 +691,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         average must be False.
 
         .. versionadded:: 0.15.0
-    verbose : bool, str, int, or None, defaults to None
+    verbose : bool, str, int, or None, default None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
@@ -731,18 +731,18 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
         The epochs.
     sfreq : float | int
         Sampling frequency of the data.
-    freqs : array-like of floats, shape (n_freqs)
+    freqs : array-like of float, shape (n_freqs,)
         The frequencies.
-    n_cycles : float | array of float, defaults to 7.0
+    n_cycles : float | array of float, default 7.0
         Number of cycles in the Morlet wavelet. Fixed number or one per
         frequency.
     zero_mean : bool | False
-        If True, make sure the wavelets have a mean of zero. Defaults to False.
+        If True, make sure the wavelets have a mean of zero. default False.
     use_fft : bool
-        Use the FFT for convolutions or not. Defaults to True.
+        Use the FFT for convolutions or not. default True.
     decim : int | slice
         To reduce memory usage, decimation factor after time-frequency
-        decomposition. Defaults to 1
+        decomposition. default 1
         If `int`, returns tfr[..., ::decim].
         If `slice`, returns tfr[..., decim].
 
@@ -750,7 +750,7 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
             Decimation may create aliasing artifacts, yet decimation
             is done after the convolutions.
 
-    output : str, defaults to 'complex'
+    output : str, default 'complex'
 
         * 'complex' : single trial complex.
         * 'power' : single trial power.
@@ -762,8 +762,8 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
 
     n_jobs : int
         The number of epochs to process at the same time. The parallelization
-        is implemented across channels. Defaults to 1
-    verbose : bool, str, int, or None, defaults to None
+        is implemented across channels. default 1
+    verbose : bool, str, int, or None, default None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
@@ -810,19 +810,19 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     n_cycles : float | ndarray, shape (n_freqs,)
         The number of cycles globally or for each frequency.
         The time-window length is thus T = n_cycles / freq.
-    time_bandwidth : float, (optional), defaults to 4.0 (3 good tapers).
+    time_bandwidth : float, (optional), default 4.0 (n_tapers=3).
         Time x (Full) Bandwidth product. Should be >= 2.0.
         Choose this along with n_cycles to get desired frequency resolution.
         The number of good tapers (least leakage from far away frequencies)
         is chosen automatically based on this to floor(time_bandwidth - 1).
         E.g., With freq = 20 Hz and n_cycles = 10, we get time = 0.5 s.
         If time_bandwidth = 4., then frequency smoothing is (4 / time) = 8 Hz.
-    use_fft : bool, defaults to True
+    use_fft : bool, default True
         The fft based convolution or not.
-    return_itc : bool, defaults to True
+    return_itc : bool, default True
         Return inter-trial coherence (ITC) as well as averaged (or
         single-trial) power.
-    decim : int | slice, defaults to 1
+    decim : int | slice, default 1
         To reduce memory usage, decimation factor after time-frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
@@ -830,16 +830,16 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
         .. note:: Decimation may create aliasing artifacts.
 
-    n_jobs : int,  defaults to 1
+    n_jobs : int,  default 1
         The number of jobs to run in parallel.
-    picks : array-like of int | None, defaults to None
+    picks : array-like of int | None, default None
         The indices of the channels to decompose. If None, all available
         good data channels are decomposed.
-    average : bool, defaults to True
+    average : bool, default True
         If True average across Epochs.
 
         .. versionadded:: 0.13.0
-    verbose : bool, str, int, or None, defaults to None
+    verbose : bool, str, int, or None, default None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
@@ -917,7 +917,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
 
         Parameters
         ----------
-        baseline : tuple or list of length 2
+        baseline : array-like, shape (2,)
             The time interval to apply rescaling / baseline correction.
             If None do not apply it. If baseline is (a, b)
             the interval is between "a (s)" and "b (s)".
@@ -960,7 +960,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         fname : str
             The file name, which should end with -tfr.h5 .
         overwrite : bool
-            If True, overwrite file (if it exists). Defaults to false
+            If True, overwrite file (if it exists). Defaults to False
         """
         write_tfrs(fname, self, overwrite=overwrite)
 
@@ -983,9 +983,9 @@ class AverageTFR(_BaseTFR):
         The frequencies in Hz.
     nave : int
         The number of averaged TFRs.
-    comment : str | None, defaults to None
+    comment : str | None, default None
         Comment on the data, e.g., the experimental condition.
-    method : str | None, defaults to None
+    method : str | None, default None
         Comment on the method used to compute the data, e.g., morlet wavelet.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
@@ -995,26 +995,19 @@ class AverageTFR(_BaseTFR):
     ----------
     info : instance of Info
         Measurement info.
-
     ch_names : list
         The names of the channels.
-
     nave : int
         Number of averaged epochs.
-
     data : ndarray, shape (n_channels, n_freqs, n_times)
         The data array.
-
     times : ndarray, shape (n_times,)
         The time values in seconds.
-
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
-
-    comment : string
+    comment : str
         Comment on dataset. Can be the condition.
-
-    method : str | None, defaults to None
+    method : str | None, default None
         Comment on the method used to compute the data, e.g., morlet wavelet.
 
     """
@@ -1057,7 +1050,7 @@ class AverageTFR(_BaseTFR):
         picks : None | array-like of int
             The indices of the channels to plot, one figure per channel. If
             None, plot the across-channel average.
-        baseline : None (default) or tuple of length 2
+        baseline : None (default) or tuple, shape (2,)
             The time interval to apply baseline correction.
             If None do not apply it. If baseline is (a, b)
             the interval is between "a (s)" and "b (s)".
@@ -1278,7 +1271,7 @@ class AverageTFR(_BaseTFR):
 
         Parameters
         ----------
-        timefreqs : None | list of tuples | dict of tuples
+        timefreqs : None | list of tuple | dict of tuple
             The time-frequency point(s) for which topomaps will be plotted.
             See Notes.
         picks : None | array-like of int
@@ -1721,12 +1714,12 @@ class AverageTFR(_BaseTFR):
             Call pyplot.show() at the end.
         border : str
             matplotlib borders style to be used for each sensor plot.
-        fig_facecolor : str | obj
+        fig_facecolor : color
             The figure face color. Defaults to black.
         fig_background : None | array
             A background image for the figure. This must be a valid input to
             `matplotlib.pyplot.imshow`. Defaults to None.
-        font_color: str | obj
+        font_color: color
             The color of tick labels in the colorbar. Defaults to white.
         yscale : 'auto' (default) | 'linear' | 'log'
             The scale of y (frequency) axis. 'linear' gives linear y axis,
@@ -1971,9 +1964,9 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         The time values in seconds.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
-    comment : str | None, defaults to None
+    comment : str | None, default None
         Comment on the data, e.g., the experimental condition.
-    method : str | None, defaults to None
+    method : str | None, default None
         Comment on the method used to compute the data, e.g., morlet wavelet.
     events : ndarray, shape (n_events, 3) | None
         The events as stored in the Epochs class. If None (default), all event
@@ -2004,13 +1997,13 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         The frequencies in Hz.
     comment : string
         Comment on dataset. Can be the condition.
-    method : str | None, defaults to None
+    method : str | None, default None
         Comment on the method used to compute the data, e.g., morlet wavelet.
     events : ndarray, shape (n_events, 3) | None
         Array containing sample information as event_id
     event_id : dict | None
         Names of conditions correspond to event_ids
-    metadata : DataFrame, shape (n_events, n_cols) | None
+    metadata : pandas.DataFrame, shape (n_events, n_cols) | None
         DataFrame containing pertinent information for each trial
     Notes
     -----

@@ -76,7 +76,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         The scalings of the channel types to be applied for plotting.
         If None, defaults to `scalings=dict(eeg=1e6, grad=1e13, mag=1e15,
         eog=1e6)`.
-    cmap : None | matplotlib colormap | (colormap, bool) | 'interactive'
+    cmap : None | colormap | (colormap, bool) | 'interactive'
         Colormap. If tuple, the first value indicates the colormap to use and
         the second value is a boolean defining interactivity. In interactive
         mode the colors are adjustable by clicking and dragging the colorbar
@@ -86,11 +86,11 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         colormap. If 'interactive', translates to ('RdBu_r', True).
         If None, "RdBu_r" is used, unless the data is all positive, in which
         case "Reds" is used.
-    fig : matplotlib figure | None
+    fig : Figure | None
         Figure instance to draw the image to. Figure must contain two axes for
         drawing the single trials and evoked responses. If None a new figure is
         created. Defaults to None.
-    axes : list of matplotlib axes | dict of lists of matplotlib Axes | None
+    axes : list of Axes | dict of list of Axes | None
         List of axes instances to draw the image, erp and colorbar to.
         Must be of length three if colorbar is True (with the last list element
         being the colorbar axes) or two if colorbar is False. If both fig and
@@ -132,7 +132,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         If not None, combine must not be None. Defaults to `None` if picks are
         provided, otherwise 'type'.
 
-    evoked : Bool
+    evoked : bool
         Draw the ER[P/F] below the image or not.
     ts_args : dict
         Arguments passed to a call to `mne.viz.plot_compare_evoked` to style
@@ -146,7 +146,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     Returns
     -------
-    figs : lists of matplotlib figures
+    figs : list of Figure
         One figure per channel displayed.
     """
     units = _handle_default('units', units)
@@ -552,7 +552,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
 
     Parameters
     ----------
-    drop_log : list of lists
+    drop_log : list of list
         Epoch drop log from Epochs.drop_log.
     threshold : float
         The percentage threshold to use to decide whether or not to
@@ -572,7 +572,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
 
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figure
+    fig : instance of matplotlib.figure.Figure
         The figure.
     """
     import matplotlib.pyplot as plt
@@ -781,7 +781,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figure
+    fig : instance of matplotlib.figure.Figure
         The figure.
 
     Notes
@@ -865,7 +865,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         the signal (as in nitime).
     picks : array-like of int | None
         List of channels to use.
-    ax : instance of matplotlib Axes | None
+    ax : instance of Axes | None
         Axes to plot into. If None, axes will be created.
     color : str | tuple
         A matplotlib-compatible color to use.
@@ -888,7 +888,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
     Returns
     -------
-    fig : instance of matplotlib figure
+    fig : instance of Figure
         Figure distributing one image per channel across sensor topography.
     """
     from .raw import _set_psd_plot_params, _convert_psds

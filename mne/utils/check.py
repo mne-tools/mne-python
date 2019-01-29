@@ -297,7 +297,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
 
     Parameters
     ----------
-    item : obj
+    item : object
         The thing to be checked.
     types : type | tuple of types | str
          The types to be checked against. If str, must be one of 'str', 'int',

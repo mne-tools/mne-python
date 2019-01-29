@@ -32,12 +32,12 @@ def verbose(function, *args, **kwargs):
 
     Parameters
     ----------
-    function : function
+    function : callable
         Function to be decorated by setting the verbosity level.
 
     Returns
     -------
-    dec : function
+    dec : callable
         The decorated function
 
     Examples

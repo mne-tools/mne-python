@@ -71,7 +71,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     ----------
     epochs : instance of Epochs
         The epochs.
-    inverse_operator : instance of inverse operator
+    inverse_operator : instance of InverseOperator
         The inverse operator.
     bands : dict
         Example : bands = dict(alpha=[8, 9]).
@@ -91,7 +91,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         Do convolutions in time or frequency domain with FFT.
     decim : int
         Temporal decimation factor.
-    baseline : None (default) or tuple of length 2
+    baseline : None (default) or tuple, shape (2,)
         The time interval to apply baseline correction. If None do not apply
         it. If baseline is (a, b) the interval is between "a (s)" and "b (s)".
         If a is None the beginning of the data is used and if b is None then b
@@ -130,7 +130,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
 
     Returns
     -------
-    stcs : dict with a SourceEstimate (or VolSourceEstimate) for each band
+    stcs : dict of SourceEstimate (or VolSourceEstimate)
         The estimated source space induced power estimates.
     """  # noqa: E501
     _check_method(method)

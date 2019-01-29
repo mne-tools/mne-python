@@ -101,7 +101,7 @@ class Layout(object):
 
         Returns
         -------
-        fig : instance of matplotlib figure
+        fig : instance of matplotlib.figure.Figure
             Figure containing the sensor topography.
 
         Notes
@@ -913,7 +913,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
 
     Parameters
     ----------
-    xy : ndarray (N x 2)
+    xy : ndarray, shape (N, 2)
         The xy coordinates of sensor locations.
     w : float
         The width of each sensor's axis (between 0 and 1)
@@ -928,7 +928,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
     ch_indices : list
         Index of each channel - must be a collection of unique integers,
         one index per channel.
-    name : string
+    name : str
         The name of this layout type.
     bg_image : str | ndarray
         The image over which sensor axes will be plotted. Either a path to an

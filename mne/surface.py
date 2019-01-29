@@ -915,7 +915,7 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
 
     Returns
     -------
-    left_map, right_map : sparse matrix
+    left_map, right_map : ~scipy.sparse.csr_matrix
         The morph maps for the 2 hemispheres.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)

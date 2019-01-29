@@ -150,11 +150,11 @@ class Label(object):
 
     Parameters
     ----------
-    vertices : array (length N)
+    vertices : array, shape (N,)
         vertex indices (0 based).
-    pos : array (N by 3) | None
+    pos : array, shape (N, 3) | None
         locations in meters. If None, then zeros are used.
-    values : array (length N) | None
+    values : array, shape (N,) | None
         values at the vertices. If None, then ones are used.
     hemi : 'lh' | 'rh'
         Hemisphere to which the label applies.
@@ -183,16 +183,16 @@ class Label(object):
         Hemisphere.
     name : None | str
         A name for the label. It is OK to change that attribute manually.
-    pos : array, shape = (n_pos, 3)
+    pos : array, shape (N, 3)
         Locations in meters.
     subject : str | None
         Subject name. It is best practice to set this to the proper
         value on initialization, but it can also be set manually.
-    values : array, len = n_pos
+    values : array, shape (N,)
         Values at the vertices.
     verbose : bool, str, int, or None
         See above.
-    vertices : array, len = n_pos
+    vertices : array, shape (N,)
         Vertex indices (0 based)
     """
 
@@ -474,7 +474,7 @@ class Label(object):
             Cannot be None here since not all vertices are used. For a
             grade of 5 (e.g., fsaverage), a smoothing of 2 will fill a
             label.
-        grade : int, list (of two arrays), array, or None
+        grade : int, list of shape (2,), array, or None
             Resolution of the icosahedral mesh (typically 5). If None, all
             vertices will be used (potentially filling the surface). If a list,
             values will be morphed to the set of vertices specified in grade[0]
@@ -485,7 +485,7 @@ class Label(object):
             computing vertex locations. If one array is used, it is assumed
             that all vertices belong to the hemisphere of the label. To create
             a label filling the surface, use None.
-        subjects_dir : string, or None
+        subjects_dir : str, or None
             Path to SUBJECTS_DIR if it is not set in the environment.
         n_jobs : int
             Number of jobs to run in parallel
@@ -527,7 +527,7 @@ class Label(object):
         smooth : int
             Number of iterations for the smoothing of the surface data.
             Cannot be None here since not all vertices are used.
-        grade : int, list (of two arrays), array, or None
+        grade : int, list of shape (2,), array, or None
             Resolution of the icosahedral mesh (typically 5). If None, all
             vertices will be used (potentially filling the surface). If a list,
             values will be morphed to the set of vertices specified in grade[0]
@@ -538,7 +538,7 @@ class Label(object):
             computing vertex locations. If one array is used, it is assumed
             that all vertices belong to the hemisphere of the label. To create
             a label filling the surface, use None.
-        subjects_dir : string, or None
+        subjects_dir : str, or None
             Path to SUBJECTS_DIR if it is not set in the environment.
         n_jobs : int
             Number of jobs to run in parallel.
@@ -622,7 +622,7 @@ class Label(object):
 
         Returns
         -------
-        labels : list of Label (len = n_parts)
+        labels : list of Label, shape (n_parts,)
             The labels, starting from the lowest to the highest end of the
             projection axis.
 
@@ -774,7 +774,7 @@ class BiHemiLabel(object):
         Label for the right hemisphere.
     name : None | str
         name for the label
-    color : None | matplotlib color
+    color : None | color
         Label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
         Note that due to file specification limitations, the color isn't saved
         to or loaded from files written to disk.
@@ -1109,7 +1109,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
 
     Returns
     -------
-    labels : list of Label (len = n_parts)
+    labels : list of Label, shape (n_parts,)
         The labels, starting from the lowest to the highest end of the
         projection axis.
 
@@ -1293,7 +1293,7 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
 
     Returns
     -------
-    labels : list of Labels | list of list of Labels
+    labels : list of Label | list of list of Label
         The generated labels. If connected is False, it returns
         a list of Labels (one per hemisphere). If no Label is available
         in a hemisphere, None is returned. If connected is True,
@@ -2126,7 +2126,7 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, verbose=None):
     ----------
     labels : list of Label
         The labels. Must not overlap.
-    values : ndarray, shape (len(labels), ...)
+    values : ndarray, shape (n_labels, ...)
         The values in each label. Can be 1D or 2D.
     tmin : float
         The tmin to use for the STC.

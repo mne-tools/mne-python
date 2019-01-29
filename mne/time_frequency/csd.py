@@ -158,7 +158,7 @@ class CrossSpectralDensity(object):
 
         Returns
         -------
-        csd : Instance of CrossSpectralDensity
+        csd : instance of CrossSpectralDensity
             The CSD matrix, summed across the given frequency range(s).
         """
         if self._is_sum:
@@ -224,7 +224,7 @@ class CrossSpectralDensity(object):
 
         Returns
         -------
-        csd : Instance of CrossSpectralDensity
+        csd : instance of CrossSpectralDensity
             The CSD matrix, averaged across the given frequency range(s).
         """
         csd = self.sum(fmin, fmax)

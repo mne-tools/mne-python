@@ -89,7 +89,7 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
         Can be 'traces' (default) to show position and quaternion traces,
         or 'field' to show the position as a vector field over time.
         The 'field' mode requires matplotlib 1.4+.
-    cmap : matplotlib Colormap
+    cmap : colormap
         Colormap to use for the trace plot, default is "viridis".
     direction : str
         Can be any combination of "x", "y", or "z" (default: "z") to show
@@ -120,7 +120,7 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
 
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figure
+    fig : instance of matplotlib.figure.Figure
         The figure.
     """
     from ..chpi import head_pos_to_trans_rot_t
@@ -327,7 +327,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
     Returns
     -------
-    fig : instance of mlab.Figure
+    fig : instance of mayavi.mlab.Figure
         The mayavi figure.
     """
     types = [t for t in ['eeg', 'grad', 'mag'] if t in evoked]
@@ -463,7 +463,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figure | list
+    fig : instance of matplotlib.figure.Figure | list
         The figure. Will instead be a list of png images if
         img_output is a tuple.
     """
@@ -615,7 +615,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         Plot MRI fiducials (default False). If ``True``, look for a file with
         the canonical name (``bem/{subject}-fiducials.fif``). If ``str`` it
         should provide the full path to the fiducials file.
-    bem : list of dict | Instance of ConductorModel | None
+    bem : list of dict | instance of ConductorModel | None
         Can be either the BEM surfaces (list of dict), a BEM solution or a
         sphere model. If None, we first try loading
         `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and then look for
@@ -632,8 +632,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         * MEG in blue (if MEG sensors are present)
 
         .. versionadded:: 0.16
-    fig : mayavi figure object | None
-        Mayavi Scene (instance of mlab.Figure) in which to plot the alignment.
+    fig : mayavi.mlab.Figure | None
+        Mayavi Scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
 
         .. versionadded:: 0.16
@@ -648,7 +648,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
 
     Returns
     -------
-    fig : instance of mlab.Figure
+    fig : instance of mayavi.mlab.Figure
         The mayavi figure.
 
     See Also
@@ -1591,7 +1591,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           foreground="white", initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
                           title=None, verbose=None):
-    """Plot SourceEstimates with PySurfer.
+    """Plot SourceEstimate with PySurfer.
 
     By default this function uses :mod:`mayavi.mlab` to plot the source
     estimates. If Mayavi is not installed, the plotting is done with
@@ -1599,7 +1599,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     Parameters
     ----------
-    stc : SourceEstimates
+    stc : SourceEstimate
         The source estimates to plot.
     subject : str | None
         The subject name corresponding to FreeSurfer environment
@@ -1630,14 +1630,14 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
-    figure : instance of mayavi.core.scene.Scene | instance of matplotlib.figure.Figure | list | int | None
+    figure : instance of mayavi.core.api.Scene | instance of matplotlib.figure.Figure | list | int | None
         If None, a new figure will be created. If multiple views or a
         split view is requested, this must be a list of the appropriate
         length. If int is provided it will be used to identify the Mayavi
         figure by it's id or create a new figure with the given id. If an
         instance of matplotlib figure, mpl backend is used for plotting.
     views : str | list
-        View to use. See surfer.Brain(). Supported views: ['lat', 'med', 'ros',
+        View to use. See `surfer.Brain`. Supported views: ['lat', 'med', 'ros',
         'cau', 'dor' 'ven', 'fro', 'par']. Using multiple views is not
         supported for mpl backend.
     colorbar : bool
@@ -1663,7 +1663,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         'classic', 'bone', 'low_contrast', or 'high_contrast'), or the name of
         mayavi colormap, or a tuple with values (colormap, min, max, reverse)
         to fully specify the curvature colors. Has no effect with mpl backend.
-    size : float or pair of floats
+    size : float or tuple of float
         The size of the window, in pixels. can be one number to specify
         a square window, or the (width, height) of a rectangular window.
         Has no effect with mpl backend.
@@ -1702,7 +1702,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     Returns
     -------
-    figure : surfer.viz.Brain | matplotlib.figure.Figure
+    figure : instance of surfer.Brain | matplotlib.figure.Figure
         An instance of :class:`surfer.Brain` from PySurfer or
         matplotlib figure.
     """  # noqa: E501
@@ -2141,7 +2141,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  size=800, background='black',
                                  foreground='white', initial_time=None,
                                  time_unit='s'):
-    """Plot VectorSourceEstimates with PySurfer.
+    """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
     are shown using arrows, depicting the direction and magnitude of the
@@ -2185,13 +2185,13 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
-    figure : instance of mayavi.core.scene.Scene | list | int | None
+    figure : instance of mayavi.core.api.Scene | list | int | None
         If None, a new figure will be created. If multiple views or a
         split view is requested, this must be a list of the appropriate
         length. If int is provided it will be used to identify the Mayavi
         figure by it's id or create a new figure with the given id.
     views : str | list
-        View to use. See surfer.Brain().
+        View to use. See `surfer.Brain`.
     colorbar : bool
         If True, display colorbar on scene.
     clim : str | dict
@@ -2211,7 +2211,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         'classic', 'bone', 'low_contrast', or 'high_contrast'), or the
         name of mayavi colormap, or a tuple with values (colormap, min,
         max, reverse) to fully specify the curvature colors.
-    size : float or pair of floats
+    size : float or tuple of float
         The size of the window, in pixels. can be one number to specify
         a square window, or the (width, height) of a rectangular window.
     background : matplotlib color
@@ -2227,7 +2227,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
 
     Returns
     -------
-    brain : Brain
+    brain : surfer.Brain
         A instance of :class:`surfer.Brain` from PySurfer.
 
     Notes
@@ -2338,11 +2338,11 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         Show figures if True.
     high_resolution : bool
         If True, plot on the original (non-downsampled) cortical mesh.
-    fig_name :
+    fig_name : str
         Mayavi figure name.
-    fig_number :
+    fig_number : int
         Matplotlib figure number.
-    labels : ndarray or list of ndarrays
+    labels : ndarray or list of ndarray
         Labels to show sources in clusters. Sources with the same
         label and the waveforms within each cluster are presented in
         the same color. labels should be a list of ndarrays when
@@ -2360,7 +2360,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     Returns
     -------
-    surface : instance of mlab Surface
+    surface : instance of mayavi.mlab.pipeline.surface
         The triangular mesh surface.
     """
     mlab = _import_mlab()
@@ -2561,7 +2561,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
 
     Returns
     -------
-    fig : instance of mlab.Figure or matplotlib Figure
+    fig : instance of mayavi.mlab.Figure or matplotlib.figure.Figure
         The mayavi figure or matplotlib Figure.
 
     Notes
@@ -2588,12 +2588,13 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
 
     Parameters
     ----------
-    fig : instance of Mayavi Scene
+    fig : instance of ~mayavi.core.api.Scene
         The figure on which you've plotted electrodes using
         :func:`mne.viz.plot_alignment`.
-    montage : instance of `DigMontage` or `Info` | dict of ch: xyz mappings.
+    montage : instance of DigMontage or Info | dict
         The digital montage for the electrodes plotted in the scene. If `Info`,
         channel positions will be pulled from the `loc` field of `chs`.
+        dict should have ch:xyz mappings.
     hide_sensors : bool
         Whether to remove the spheres in the scene before taking a snapshot.
 

@@ -440,12 +440,12 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
     Parameters
     ----------
-    data : array of shape (n_dipoles, n_times) | 2-tuple (kernel, sens_data)
+    data : array, shape (n_dipoles, n_times) | tuple, shape (2,)
         The data in source space. The data can either be a single array or
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
         space data corresponds to "numpy.dot(kernel, sens_data)".
-    vertices : array | list of two arrays
+    vertices : array | list of array
         Vertex numbers corresponding to the data.
     tmin : float
         Time point of the first sample in data.
@@ -462,9 +462,9 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
     ----------
     subject : str | None
         The subject name.
-    times : array of shape (n_times,)
+    times : array, shape (n_times,)
         The time vector.
-    vertices : array or list of arrays of shape (n_dipoles,)
+    vertices : array | list of array of shape (n_dipoles,)
         The indices of the dipoles in the different source spaces. Can
         be an array if there is only one source space (e.g., for volumes).
     data : array of shape (n_dipoles, n_times)
@@ -1074,7 +1074,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
     ----------
     data : array
         The data in source space.
-    vertices : list of two arrays
+    vertices : list, shape (2,)
         Vertex numbers corresponding to the data.
     tmin : scalar
         Time point of the first sample in data.
@@ -1093,7 +1093,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertices : list of two arrays of shape (n_dipoles,)
+    vertices : list of array, shape (2,)
         The indices of the dipoles in the left and right source space.
     data : array
         The data in source space.
@@ -1302,12 +1302,12 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
     Parameters
     ----------
-    data : array of shape (n_dipoles, n_times) | 2-tuple (kernel, sens_data)
+    data : array of shape (n_dipoles, n_times) | tuple, shape (2,)
         The data in source space. The data can either be a single array or
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
         space data corresponds to "numpy.dot(kernel, sens_data)".
-    vertices : list of two arrays
+    vertices : list of shape (2,)
         Vertex numbers corresponding to the data.
     tmin : scalar
         Time point of the first sample in data.
@@ -1326,7 +1326,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertices : list of two arrays of shape (n_dipoles,)
+    vertices : list of shape (2,)
         The indices of the dipoles in the left and right source space.
     data : array of shape (n_dipoles, n_times)
         The data in source space.
@@ -1439,7 +1439,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Returns
         -------
-        label_tc : array, shape=(len(labels), n_times)
+        label_tc : array, shape=(n_labels, n_times)
             Extracted time course for each label.
 
         See Also
@@ -1614,7 +1614,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
     Parameters
     ----------
-    data : array of shape (n_dipoles, n_times) | 2-tuple (kernel, sens_data)
+    data : array of shape (n_dipoles, n_times) | tuple, shape (2,)
         The data in source space. The data can either be a single array or
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
@@ -1853,7 +1853,7 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
     data : array of shape (n_dipoles, 3, n_times)
         The data in source space. Each dipole contains three vectors that
         denote the dipole strength in X, Y and Z directions over time.
-    vertices : array | list of two arrays
+    vertices : array | list of shape (2,)
         Vertex numbers corresponding to the data.
     tmin : float
         Time point of the first sample in data.
@@ -1986,12 +1986,12 @@ class MixedSourceEstimate(_BaseSourceEstimate):
 
     Parameters
     ----------
-    data : array of shape (n_dipoles, n_times) | 2-tuple (kernel, sens_data)
+    data : array of shape (n_dipoles, n_times) | tuple, shape (2,)
         The data in source space. The data can either be a single array or
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
         space data corresponds to "numpy.dot(kernel, sens_data)".
-    vertices : list of arrays
+    vertices : list of array
         Vertex numbers corresponding to the data.
     tmin : scalar
         Time point of the first sample in data.
@@ -2010,7 +2010,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertices : list of arrays of shape (n_dipoles,)
+    vertices : list of array
         The indices of the dipoles in each source space.
     data : array of shape (n_dipoles, n_times)
         The data in source space.
@@ -2087,11 +2087,11 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         subjects_dir : str
             The path to the FreeSurfer subjects reconstructions.
             It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
-        figure : instance of mayavi.core.scene.Scene | None
+        figure : instance of mayavi.mlab.Figure | None
             If None, the last figure will be cleaned and a new figure will
             be created.
         views : str | list
-            View to use. See surfer.Brain().
+            View to use. See `surfer.Brain`.
         colorbar : bool
             If True, display colorbar on scene.
         clim : str | dict
@@ -2099,8 +2099,8 @@ class MixedSourceEstimate(_BaseSourceEstimate):
 
         Returns
         -------
-        brain : Brain
-            A instance of surfer.viz.Brain from PySurfer.
+        brain : instance of surfer.Brain
+            A instance of `surfer.Brain` from PySurfer.
         """
         # extract surface source spaces
         surf = _ensure_src(src, kind='surf')
@@ -2233,7 +2233,7 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
 
     Returns
     -------
-    connectivity : sparse COO matrix
+    connectivity : ~scipy.sparse.coo_matrix
         The connectivity matrix describing the spatio-temporal
         graph structure. If N is the number of vertices in the
         source space, the N first nodes in the graph are the
@@ -2299,7 +2299,7 @@ def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
 
     Returns
     -------
-    connectivity : sparse COO matrix
+    connectivity : ~scipy.sparse.coo_matrix
         The connectivity matrix describing the spatio-temporal
         graph structure. If N is the number of vertices in the
         source space, the N first nodes in the graph are the
@@ -2335,7 +2335,7 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
 
     Returns
     -------
-    connectivity : sparse COO matrix
+    connectivity : ~scipy.sparse.coo_matrix
         The connectivity matrix describing the spatio-temporal
         graph structure. If N is the number of vertices in the
         source space, the N first nodes in the graph are the
@@ -2374,7 +2374,7 @@ def spatial_src_connectivity(src, dist=None, verbose=None):
 
     Returns
     -------
-    connectivity : sparse COO matrix
+    connectivity : ~scipy.sparse.coo_matrix
         The connectivity matrix describing the spatial graph structure.
     """
     return spatio_temporal_src_connectivity(src, 1, dist)
@@ -2397,7 +2397,7 @@ def spatial_tris_connectivity(tris, remap_vertices=False, verbose=None):
 
     Returns
     -------
-    connectivity : sparse COO matrix
+    connectivity : ~scipy.sparse.coo_matrix
         The connectivity matrix describing the spatial graph structure.
     """
     return spatio_temporal_tris_connectivity(tris, 1, remap_vertices)
@@ -2421,7 +2421,7 @@ def spatial_dist_connectivity(src, dist, verbose=None):
 
     Returns
     -------
-    connectivity : sparse COO matrix
+    connectivity : ~scipy.sparse.coo_matrix
         The connectivity matrix describing the spatial graph structure.
     """
     return spatio_temporal_dist_connectivity(src, 1, dist)
@@ -2443,7 +2443,7 @@ def spatial_inter_hemi_connectivity(src, dist, verbose=None):
 
     Returns
     -------
-    connectivity : sparse COO matrix
+    connectivity : ~scipy.sparse.coo_matrix
         The connectivity matrix describing the spatial graph structure.
         Typically this should be combined (addititively) with another
         existing intra-hemispheric connectivity matrix, e.g. computed
@@ -2688,9 +2688,9 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
 
     Returns
     -------
-    label_tc : array | list (or generator) of array, shape=(len(labels), n_times)
+    label_tc : array | list (or generator) of array, shape (n_labels, n_times)
         Extracted time course for each label and source estimate.
-    """  # noqa: E501
+    """
     # convert inputs to lists
     if isinstance(stcs, SourceEstimate):
         stcs = [stcs]

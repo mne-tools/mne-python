@@ -39,7 +39,7 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
     ----------
     input_fname : str
         Path to the data file.
-    montage : str | None | instance of montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions. If None,
         xy sensor locations are read from the header (``x_coord`` and
         ``y_coord`` in ``ELECTLOC``) and fit to a sphere. See the documentation
@@ -311,7 +311,7 @@ class RawCNT(BaseRaw):
     ----------
     input_fname : str
         Path to the CNT file.
-    montage : str | None | instance of montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions. If None,
         xy sensor locations are read from the header (``x_coord`` and
         ``y_coord`` in ``ELECTLOC``) and fit to a sphere. See the documentation

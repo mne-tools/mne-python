@@ -232,7 +232,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figure
+    fig : instance of matplotlib.figure.Figure
         Raw traces.
 
     Notes
@@ -670,7 +670,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
 
     Parameters
     ----------
-    raw : instance of io.Raw
+    raw : instance of Raw
         The raw instance to use.
     tmin : float
         Start time for calculations.
@@ -746,7 +746,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
 
     Returns
     -------
-    fig : instance of matplotlib figure
+    fig : instance of Figure
         Figure with frequency spectra of the data channels.
     """
     from matplotlib.ticker import ScalarFormatter
@@ -1157,7 +1157,7 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
 
     Returns
     -------
-    fig : instance of matplotlib figure
+    fig : instance of matplotlib.figure.Figure
         Figure distributing one image per channel across sensor topography.
     """
     if layout is None:

@@ -162,7 +162,7 @@ class ICA(ContainsMixin):
         `n_pca_components`. This attribute allows to balance noise reduction
         against potential loss of features due to dimensionality reduction,
         independently of the number of ICA components.
-    noise_cov : None | instance of mne.cov.Covariance
+    noise_cov : None | instance of Covariance
         Noise covariance used for pre-whitening. If None (default), channels
         are scaled to unit variance ("z-standardized") prior to the whitening
         by PCA.
@@ -925,13 +925,13 @@ class ICA(ContainsMixin):
         ----------
         inst : instance of Raw, Epochs or Evoked
             The object to reconstruct the sources from.
-        target : array-like | ch_name | None
+        target : array-like | str | None
             Signal to which the sources shall be compared. It has to be of
-            the same shape as the sources. If some string is supplied, a
-            routine will try to find a matching channel. If None, a score
+            the same shape as the sources. If str, a routine will try to find
+            a matching channel name. If None, a score
             function expecting only one input-array argument must be used,
             for instance, scipy.stats.skew (default).
-        score_func : callable | str label
+        score_func : callable | str
             Callable taking as arguments either two input arrays
             (e.g. Pearson correlation) or one input
             array (e. g. skewness) and returns a float. For convenience the
@@ -1618,8 +1618,9 @@ class ICA(ContainsMixin):
             sorted in descending order will be indexed accordingly.
             E.g. range(2) would return the two sources with the highest score.
             If None, this step will be skipped.
-        add_nodes : list of ica_nodes
-            Additional list if tuples carrying the following parameters:
+        add_nodes : list of tuple
+            Additional list if tuples carrying the following parameters
+            of ica nodes:
             (name : str, target : str | array, score_func : callable,
             criterion : float | int | list-like | slice). This parameter is a
             generalization of the artifact specific parameters above and has
@@ -2178,7 +2179,7 @@ def run_ica(raw, n_components, max_pca_components=100,
         ``'n_components_'`` PCA components will be added before restoring the
         sensor space data. The attribute gets updated each time the according
         parameter for in .pick_sources_raw or .pick_sources_epochs is changed.
-    noise_cov : None | instance of mne.cov.Covariance
+    noise_cov : None | instance of Covariance
         Noise covariance used for whitening. If None, channels are just
         z-scored.
     random_state : None | int | instance of np.random.RandomState
@@ -2249,7 +2250,7 @@ def run_ica(raw, n_components, max_pca_components=100,
         sorted in descending order will be indexed accordingly.
         E.g. range(2) would return the two sources with the highest score.
         If None, this step will be skipped.
-    add_nodes : list of ica_nodes
+    add_nodes : list of tuple
         Additional list if tuples carrying the following parameters:
         (name : str, target : str | array, score_func : callable,
         criterion : float | int | list-like | slice). This parameter is a
@@ -2441,9 +2442,9 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
 
     Returns
     -------
-    template_fig : fig
+    template_fig : Figure
         Figure showing the template.
-    labelled_ics : fig
+    labelled_ics : Figure
         Figure showing the labelled ICs in all ICA decompositions.
     """
     if not isinstance(plot, bool):

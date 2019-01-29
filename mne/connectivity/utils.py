@@ -28,7 +28,7 @@ def seed_target_indices(seeds, targets):
 
     Returns
     -------
-    indices : tuple of arrays
+    indices : tuple of array
         The indices parameter used for connectivity computation.
     """
     # make them arrays

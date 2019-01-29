@@ -34,7 +34,7 @@ class ReceptiveField(BaseEstimator):
     feature_names : array, shape (n_features,) | None
         Names for input features to the model. If None, feature names will
         be auto-generated from the shape of input data after running `fit`.
-    estimator : instance of sklearn estimator | float | None
+    estimator : instance of sklearn.base.BaseEstimator | float | None
         The model used in fitting inputs and outputs. This can be any
         scikit-learn-style model that contains a fit and predict method. If a
         float is passed, it will be interpreted as the `alpha` parameter

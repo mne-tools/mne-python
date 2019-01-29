@@ -32,7 +32,7 @@ def linear_regression(inst, design_matrix, names=None):
         The regressors to be used. Must be a 2d array with as many rows as
         the first dimension of the data. The first column of this matrix will
         typically consist of ones (intercept column).
-    names : list-like | None
+    names : array-like | None
         Optional parameter to name the regressors. If provided, the length must
         correspond to the number of columns present in regressors
         (including the intercept, if present).
@@ -221,7 +221,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     picks : None | list
         List of indices of channels to be included. If None, defaults to all
         MEG and EEG channels.
-    solver : str | function
+    solver : str | callable
         Either a function which takes as its inputs the sparse predictor
         matrix X and the observation matrix Y, and returns the coefficient
         matrix b; or a string.
