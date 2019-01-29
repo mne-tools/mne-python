@@ -139,7 +139,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         orientations. Only used when surf_ori and/or force_fixed are True.
     forward : instance of Forward | None
         The forward operator to use. If None (default) it will be computed
-        using `bem`, `trans`, and `src`.
+        using ``bem``, ``trans``, and ``src``.
 
         .. versionadded:: 0.17
     duration : float | None
