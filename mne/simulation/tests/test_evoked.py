@@ -83,6 +83,7 @@ def test_simulate_evoked():
 @testing.requires_testing_data
 def test_add_noise():
     """Test noise addition."""
+    rng = np.random.RandomState(0)
     data_path = testing.data_path()
     raw = read_raw_fif(data_path + '/MEG/sample/sample_audvis_trunc_raw.fif')
     raw.del_proj()
@@ -110,7 +111,7 @@ def test_add_noise():
     evoked = epochs.average(picks=np.arange(len(raw.ch_names)))
     for inst in (raw, epochs, evoked):
         with catch_logging() as log:
-            add_noise(inst, cov, verbose=True)
+            add_noise(inst, cov, random_state=rng, verbose=True)
         log = log.getvalue()
         want = ('to {0}/{1} channels ({0}'
                 .format(len(cov['names']), len(raw.ch_names)))
