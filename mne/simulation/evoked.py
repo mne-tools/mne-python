@@ -11,7 +11,7 @@ import numpy as np
 from ..io.pick import pick_channels_cov, pick_info
 from ..forward import apply_forward
 from ..utils import (logger, verbose, check_random_state, _check_preload,
-                     deprecated)
+                     deprecated, _validate_type)
 
 
 @verbose
@@ -160,6 +160,13 @@ def add_noise(inst, cov, iir_filter=None, random_state=None,
 
 def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=True):
     """Add noise, possibly with channel subselection."""
+    from ..cov import Covariance
+    from ..io import BaseRaw
+    from ..epochs import BaseEpochs
+    from ..evoked import Evoked
+    _validate_type(cov, Covariance, 'cov')
+    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked),
+                   'inst', 'Raw, Epochs, or Evoked')
     _check_preload(inst, 'Adding noise')
     data = inst._data
     assert data.ndim in (2, 3)
@@ -175,8 +182,8 @@ def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=True):
                     % (len(picks), len(info['chs']), len(cov['names'])))
         info = pick_info(inst.info, picks)
     for epoch in data:
-        epoch[picks] = _generate_noise(info, cov, iir_filter, random_state,
-                                       epoch.shape[1])[0]
+        epoch[picks] += _generate_noise(info, cov, iir_filter, random_state,
+                                        epoch.shape[1])[0]
     return inst
 
 

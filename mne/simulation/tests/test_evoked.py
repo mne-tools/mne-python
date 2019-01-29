@@ -6,7 +6,7 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose)
 import pytest
 
 from mne import (read_cov, read_forward_solution, convert_forward_solution,
@@ -91,22 +91,37 @@ def test_add_noise():
     with pytest.raises(RuntimeError, match='to be loaded'):
         add_noise(raw, cov)
     raw.crop(0, 1).load_data()
+    with pytest.raises(TypeError, match='Raw, Epochs, or Evoked'):
+        add_noise(0., cov)
+    with pytest.raises(TypeError, match='Covariance'):
+        add_noise(raw, 0.)
+    # test a no-op (data preserved)
+    orig_data = raw[:][0]
+    zero_cov = cov.copy()
+    zero_cov['data'].fill(0)
+    add_noise(raw, zero_cov)
+    new_data = raw[:][0]
+    assert_allclose(orig_data, new_data, atol=1e-30)
+    # set to zero to make comparisons easier
     raw._data[:] = 0.
     epochs = EpochsArray(np.zeros((1, len(raw.ch_names), 100)),
                          raw.info.copy())
     epochs.info['bads'] = []
-    for inst in (raw, epochs):
+    evoked = epochs.average(picks=np.arange(len(raw.ch_names)))
+    for inst in (raw, epochs, evoked):
         with catch_logging() as log:
             add_noise(inst, cov, verbose=True)
         log = log.getvalue()
         want = ('to {0}/{1} channels ({0}'
                 .format(len(cov['names']), len(raw.ch_names)))
         assert want in log
+        if inst is evoked:
+            inst = EpochsArray(inst.data[np.newaxis], inst.info)
         if inst is raw:
-            cov_new = compute_raw_covariance(raw, picks=picks,
+            cov_new = compute_raw_covariance(inst, picks=picks,
                                              verbose='error')  # samples
         else:
-            cov_new = compute_covariance(epochs, verbose='error')  # avg ref
+            cov_new = compute_covariance(inst, verbose='error')  # avg ref
         assert cov['names'] == cov_new['names']
         r = np.corrcoef(cov['data'].ravel(), cov_new['data'].ravel())[0, 1]
         assert r > 0.99
