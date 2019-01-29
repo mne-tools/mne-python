@@ -184,8 +184,15 @@ class Renderer:
         backface_culling: bool
             If True, enable backface culling on the sphere(s).
         """
-        surface = self.mlab.points3d(center[:, 0], center[:, 1],
-                                     center[:, 2], color=color,
+        if center.ndim == 1:
+            x = center[0]
+            y = center[1]
+            z = center[2]
+        elif center.ndim == 2:
+            x = center[:, 0]
+            y = center[:, 1]
+            z = center[:, 2]
+        surface = self.mlab.points3d(x, y, z, color=color,
                                      scale_factor=scale, opacity=opacity,
                                      figure=self.fig)
         surface.actor.property.backface_culling = backface_culling
