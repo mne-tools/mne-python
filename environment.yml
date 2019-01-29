@@ -2,7 +2,7 @@ name: mne
 channels:
 - defaults
 dependencies:
-- python>=3.6
+- python>=3.7
 - pip
 - mkl
 - numpy
@@ -10,7 +10,6 @@ dependencies:
 - matplotlib
 - cython
 - pyqt>=5.9
-- vtk>=8
 - pandas
 - xlrd
 - scikit-learn
@@ -34,6 +33,7 @@ dependencies:
 - testpath<0.4
 - pip:
   - mne
+  - vtk
   - https://api.github.com/repos/enthought/mayavi/zipball/b3fc35218dda9776d8f1a407663bfb49783dca12
   - PySurfer[save_movie]
   - dipy --only-binary dipy
