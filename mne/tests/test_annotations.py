@@ -872,4 +872,14 @@ def test_annotations_slices():
             annot[bad_ii]
 
 
+def test_sorting():
+    """Test annotation sorting."""
+    annot = Annotations([10, 20, 30], [1, 2, 3], 'BAD')
+    # assert_array_equal(annot.onset, [0, 5, 10])
+    annot.append([5, 15, 35], 0.5, 'BAD')
+    assert len(annot.onset) == 6
+    assert len(annot.duration) == 6
+    assert len(annot.description) == 6
+
+
 run_tests_if_main()
