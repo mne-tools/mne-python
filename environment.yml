@@ -2,7 +2,7 @@ name: mne
 channels:
 - defaults
 dependencies:
-- python>=3.6
+- python>=3.7
 - pip
 - mkl
 - numpy
