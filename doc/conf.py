@@ -19,7 +19,7 @@ import sys
 import warnings
 
 import sphinx_gallery
-from sphinx_gallery.sorting import FileNameSortKey
+from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 import sphinx_bootstrap_theme
 from numpydoc import numpydoc, docscrape  # noqa
 import sphinx_fontawesome
@@ -372,6 +372,19 @@ sphinx_gallery_conf = {
     'doc_module': ('mne',),
     'reference_url': dict(mne=None),
     'examples_dirs': examples_dirs,
+    'subsection_order': ExplicitOrder(['../examples/io/',
+                                       '../examples/simulation/',
+                                       '../examples/preprocessing/',
+                                       '../examples/visualization/',
+                                       '../examples/time_frequency/',
+                                       '../examples/stats/',
+                                       '../examples/decoding/',
+                                       '../examples/connectivity/',
+                                       '../examples/forward/',
+                                       '../examples/inverse/',
+                                       '../examples/realtime/',
+                                       '../examples/datasets/',
+                                       '../tutorials/']),
     'gallery_dirs': gallery_dirs,
     'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),
     'backreferences_dir': 'generated',
