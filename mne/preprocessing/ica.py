@@ -1039,53 +1039,9 @@ class ICA(ContainsMixin):
     def _find_bads_ch(self, inst, chs, threshold=3.0, start=None,
                       stop=None, l_freq=None, h_freq=None,
                       reject_by_annotation=True, verbose=None, prefix="chs"):
-        """Help function for eog_find_bads_eog/ecg/ref.
+        """Compute ExG/ref components.
 
-        Detection is based on Pearson correlation between the MEG data
-        components and MEG reference components.
-        Thresholding is based on adaptive z-scoring. The above threshold
-        components will be masked and the z-score will be recomputed
-        until no supra-threshold component remains.
-
-        Parameters
-        ----------
-        inst : instance of Raw, Epochs or Evoked
-            Object to compute sources from. Should contain at least one channel
-            i.e. component derived from MEG reference channels.
-        chs: list of array-like | list of ch_names
-            Which data/channels to use as targets
-        threshold : int | float
-            The value above which a feature is classified as outlier.
-        start : int | float | None
-            First sample to include. If float, data will be interpreted as
-            time in seconds. If None, data will be used from the first sample.
-        stop : int | float | None
-            Last sample to not include. If float, data will be interpreted as
-            time in seconds. If None, data will be used to the last sample.
-        l_freq : float
-            Low pass frequency.
-        h_freq : float
-            High pass frequency.
-        reject_by_annotation : bool
-            If True, data annotated as bad will be omitted. Defaults to True.
-
-            .. versionadded:: 0.14.0
-
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
-
-        Returns
-        -------
-        ref_idx : list of int
-            The indices of channel related ICA components, sorted by score.
-        scores : np.ndarray of float, shape (``n_components_``) | list of array
-            The correlation scores.
-
-        See Also
-        --------
-        find_bads_ecg, find_bads_eog, _find_bads_ch
+        See find_bads_ecg, find_bads, eog, and find_bads_ref for details.
         """
         scores, idx = [], []
         labels = {}
@@ -1192,7 +1148,7 @@ class ICA(ContainsMixin):
 
         See Also
         --------
-        find_bads_eog
+        find_bads_eog, find_bads_ref
 
         References
         ----------
@@ -1262,12 +1218,6 @@ class ICA(ContainsMixin):
                       reject_by_annotation=True, verbose=None):
         """Detect MEG reference related components using correlation.
 
-        Detection is based on Pearson correlation between the MEG data
-        components and MEG reference components.
-        Thresholding is based on adaptive z-scoring. The above threshold
-        components will be masked and the z-score will be recomputed
-        until no supra-threshold component remains.
-
         Parameters
         ----------
         inst : instance of Raw, Epochs or Evoked
@@ -1290,9 +1240,6 @@ class ICA(ContainsMixin):
             High pass frequency.
         reject_by_annotation : bool
             If True, data annotated as bad will be omitted. Defaults to True.
-
-            .. versionadded:: 0.14.0
-
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1305,9 +1252,24 @@ class ICA(ContainsMixin):
         scores : np.ndarray of float, shape (``n_components_``) | list of array
             The correlation scores.
 
+        Notes
+        -----
+        Detection is based on Pearson correlation between the MEG data
+        components and MEG reference components.
+        Thresholding is based on adaptive z-scoring. The above threshold
+        components will be masked and the z-score will be recomputed
+        until no supra-threshold component remains.
+
+        Recommended procedure is to perform ICA separately on reference
+        channels, extract them using .get_sources(), and then append them to
+        the inst using .add_channels(), preferably with the prefix REF_ICA so
+        that they can be automatically detected.
+
+        .. versionadded:: 0.18
+
         See Also
         --------
-        find_bads_ecg, find_bads_eog, _find_bads_ch
+        find_bads_ecg, find_bads_eog
         """
         if verbose is None:
             verbose = self.verbose
@@ -1377,7 +1339,7 @@ class ICA(ContainsMixin):
 
         See Also
         --------
-        find_bads_ecg, find_bads_ref, _find_bads_ch
+        find_bads_ecg, find_bads_ref
         """
         if verbose is None:
             verbose = self.verbose
