@@ -24,7 +24,6 @@ When you are done, you should see a similar output if you type the following com
 If you get an error message, consult the Anaconda documentation and search for Anaconda install
 tips (`Stack Overflow <https://stackoverflow.com/>`_ results are often helpful).
 
-.. note::
 
 2. Get MNE and its dependencies
 ###############################
