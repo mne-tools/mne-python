@@ -1313,7 +1313,7 @@ class ICA(ContainsMixin):
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
-        stop : int |eog_chs = [inst.ch_names[k] for k in eog_inds] float | None
+        stop : int | float | None
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
         l_freq : float
