@@ -283,7 +283,7 @@ def test_simulate_calculate_chpi_positions():
 
     info['hpi_subsystem'] = hpi_subsystem
     for l, freq in enumerate(coil_freq):
-            info['hpi_meas'][0]['hpi_coils'][l]['coil_freq'] = freq
+        info['hpi_meas'][0]['hpi_coils'][l]['coil_freq'] = freq
     picks = pick_types(info, meg=True, stim=True, eeg=False, exclude=[])
     info['sfreq'] = 100.  # this will speed it up a lot
     info = pick_info(info, picks)

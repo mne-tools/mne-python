@@ -2573,7 +2573,7 @@ def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
             combine = combine[0].upper() + combine[1:]
             title = "{} of {} {}".format(
                 combine, len(ch_names), ch_type)
-        elif len(ch_names) > max_chans and combine is not "gfp":
+        elif len(ch_names) > max_chans and combine != "gfp":
             warn("More than {} channels, truncating title ...".format(
                 max_chans))
             title += ", ...\n({} of {} {})".format(
@@ -2659,7 +2659,7 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
         warn("With matplotlib version 2.1.0, lines may not show up in "
              "`AverageTFR.plot_joint`. Upgrade to a more recent version.")
 
-    if yscale is "log":  # pcolormesh for log scale
+    if yscale == "log":  # pcolormesh for log scale
         # compute bounds between time samples
         time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]
         time_lims = np.concatenate([[times[0] - time_diff[0]], times[:-1] +
@@ -2709,10 +2709,10 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
             im = ax.imshow(data, cmap=cmap, **im_args)
 
         if draw_contour and np.unique(mask).size == 2:
-                big_mask = np.kron(mask, np.ones((10, 10)))
-                ax.contour(big_mask, colors=["k"], extent=extent,
-                           linewidths=[.75], corner_mask=False,
-                           antialiased=False, levels=[.5])
+            big_mask = np.kron(mask, np.ones((10, 10)))
+            ax.contour(big_mask, colors=["k"], extent=extent,
+                       linewidths=[.75], corner_mask=False,
+                       antialiased=False, levels=[.5])
         time_lims = times[[0, -1]]
         ylim = yvals[0], yvals[-1] + 1
 

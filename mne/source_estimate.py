@@ -269,12 +269,12 @@ def read_source_estimate(fname, subject=None):
         else:
             raise RuntimeError('Unknown extension for file %s' % fname_arg)
 
-    if ftype is not 'volume':
+    if ftype != 'volume':
         stc_exist = [op.exists(f)
                      for f in [fname + '-rh.stc', fname + '-lh.stc']]
         w_exist = [op.exists(f)
                    for f in [fname + '-rh.w', fname + '-lh.w']]
-        if all(stc_exist) and (ftype is not 'w'):
+        if all(stc_exist) and ftype != 'w':
             ftype = 'surface'
         elif all(w_exist):
             ftype = 'w'
