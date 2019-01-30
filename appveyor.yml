@@ -5,7 +5,7 @@ environment:
       PYTHON: "C:\\conda"
       CONDA_ENVIRONMENT: "environment.yml"
       PIP_DEPENDENCIES: "codecov pytest-sugar pytest-timeout"
-      MINICONDA_VERSION: "4.5.4"
+      MINICONDA_VERSION: "4.3.25"  # last one working, see https://github.com/conda/conda/issues/8187#issuecomment-459053136 
   matrix:
       - PYTHON_VERSION: "3.7"
         PYTHON_ARCH: "64"
