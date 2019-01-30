@@ -246,7 +246,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         for im in ims:
             im.set_clim(min, max)
         figs = [ax.get_figure() for ax in axes.values()]
-        if len(set(figs)) is 1:
+        if len(set(figs)) == 1:
             return figs[0]
         else:
             return figs

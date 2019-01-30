@@ -1050,7 +1050,7 @@ def _prepare_csd_array(X, sfreq, t0, tmin, tmax, fmin=None, fmax=None):
     if tmin is None:
         tmin = times.min()
     if tmax <= tmin:
-            raise ValueError('tmax must be larger than tmin')
+        raise ValueError('tmax must be larger than tmin')
     if tmin < times[0] - tstep:
         raise ValueError('tmin should be larger than the smallest data time '
                          'point')

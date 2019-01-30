@@ -1961,8 +1961,8 @@ def _plot_histogram(params):
         color = colors[types[idx]]
         rej = None
         if epochs.reject is not None and types[idx] in epochs.reject.keys():
-                rej = epochs.reject[types[idx]] * scalings[types[idx]]
-                rng = [0., rej * 1.1]
+            rej = epochs.reject[types[idx]] * scalings[types[idx]]
+            rng = [0., rej * 1.1]
         else:
             rng = None
         plt.hist(data[idx] * scalings[types[idx]], bins=100, color=color,

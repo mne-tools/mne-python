@@ -358,8 +358,8 @@ class ReceptiveField(BaseEstimator):
                 raise ValueError('X any y do not have the same n_epochs\n'
                                  '%s != %s' % (X.shape[1], y.shape[1]))
             if predict and y.shape[-1] != len(self.estimator_.coef_):
-                    raise ValueError('Number of outputs does not match'
-                                     ' estimator coefficients dimensions')
+                raise ValueError('Number of outputs does not match'
+                                 ' estimator coefficients dimensions')
         return X, y, X_dim, y_dim
 
 

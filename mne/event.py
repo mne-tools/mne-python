@@ -1006,7 +1006,7 @@ class AcqParserFIF(object):
         if 'ERFversion' in self.acq_dict:
             self.compat = False  # DACQ ver >= 3.4
         elif 'ERFncateg' in self.acq_dict:  # probably DACQ < 3.4
-                self.compat = True
+            self.compat = True
         else:
             raise ValueError('Cannot parse acquisition parameters')
         dacq_vars = self._dacq_vars_compat if self.compat else self._dacq_vars
