@@ -73,6 +73,10 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
                  '`mayavi.core.api.Scene` figure instances'
                  ' will throw an error.' % (e,))
         if fig.scene is not None:
+            try:
+                mlab.process_ui_events()
+            except AttributeError:
+                pass
             img = mlab.screenshot(figure=fig)
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
@@ -147,6 +151,10 @@ def _iterate_trans_views(function, **kwargs):
     for view, ax in zip(views, axes):
         mlab.view(view[0], view[1])
         if fig.scene is not None:
+            try:
+                mlab.process_ui_events()
+            except AttributeError:
+                pass
             im = mlab.screenshot(figure=fig)
         else:  # Testing mode
             im = np.zeros((2, 2, 3))
