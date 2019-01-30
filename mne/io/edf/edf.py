@@ -1160,6 +1160,9 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
                   verbose=verbose)
 
 
+read_raw_gdf = read_raw_edf  # alias to make GDF reader more visible to users
+
+
 def _read_annotations_edf(annotations):
     """Annotation File Reader.
 
