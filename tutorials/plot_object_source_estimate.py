@@ -19,7 +19,7 @@ An STC object contains the amplitudes of the sources over time.
 It only stores the amplitudes of activations but
 not the locations of the sources. To get access to the locations
 you need to have the :class:`source space <mne.SourceSpaces>`
-(often abbreviated `src`) used to compute the
+(often abbreviated ``src``) used to compute the
 :class:`forward operator <mne.Forward>` (often abbreviated `fwd`).
 
 See :ref:`tut_forward` for more details on forward modeling, and

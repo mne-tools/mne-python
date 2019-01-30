@@ -291,3 +291,7 @@ span.classifier a span.xref {
 span.classifier a code.docutils.literal.notranslate {
     color: #2c3e50;
 }
+/* Allow easier copy-paste in code blocks */
+div.highlight-console div.highlight span.gp {
+    user-select: none;
+}
