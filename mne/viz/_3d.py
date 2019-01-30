@@ -612,7 +612,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     fig : mayavi.mlab.Figure | None
         Mayavi Scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
-        
+
         .. versionadded:: 0.18
     renderer : backends.Renderer | None
         Rendering Scene in which to plot the alignment.
@@ -2569,7 +2569,7 @@ def snapshot_brain_montage(montage, renderer=None, fig=None,
         .. versionadded:: 0.18
     renderer : backends.Renderer object | None
         Rendering Scene in which to plot the alignment.
-        
+
     fig : instance of ~mayavi.core.api.Scene
         The figure on which you've plotted electrodes using
         :func:`mne.viz.plot_alignment`.
