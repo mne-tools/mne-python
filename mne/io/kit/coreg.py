@@ -26,7 +26,7 @@ def read_mrk(fname):
 
     Returns
     -------
-    mrk_points : numpy.array, shape = (n_points, 3)
+    mrk_points : ndarray, shape (n_points, 3)
         Marker points in MEG space [m].
     """
     ext = op.splitext(fname)[-1]

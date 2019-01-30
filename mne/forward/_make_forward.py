@@ -785,7 +785,7 @@ def use_coil_def(fname):
 
     Returns
     -------
-    context : context manager
+    context : contextmanager
         The context for using the coil definition.
 
     Notes

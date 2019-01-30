@@ -22,7 +22,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
     ----------
     base_estimator : object
         The base estimator to iteratively fit on a subset of the dataset.
-    scoring : callable, string, defaults to None
+    scoring : callable, string, default None
         Score function (or loss function) with signature
         ``score_func(y, y_pred, **kwargs)``.
         Note that the predict_method is automatically identified if scoring is

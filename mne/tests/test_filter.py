@@ -146,7 +146,7 @@ def test_1d_filter():
 @requires_version('scipy', '0.16')
 def test_iir_stability():
     """Test IIR filter stability check."""
-    sig = np.empty(1000)
+    sig = np.random.RandomState(0).rand(1000)
     sfreq = 1000
     # This will make an unstable filter, should throw RuntimeError
     pytest.raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,

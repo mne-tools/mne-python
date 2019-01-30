@@ -44,10 +44,10 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
         The ICA solution.
     inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
         The object to plot the sources from.
-    picks : int | array_like of int | None.
+    picks : int | array-like of int | None
         The components to be displayed. If None, plot will show the
         sources in the order as fitted.
-    exclude : array_like of int
+    exclude : array-like of int
         The components marked for exclusion. If None (default), ICA.exclude
         will be used.
     start : int
@@ -68,7 +68,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
 
     Returns
     -------
-    fig : instance of pyplot.Figure
+    fig : instance of Figure
         The figure.
 
     Notes
@@ -272,7 +272,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     psd_args : dict | None
         Dictionary of arguments to ``psd_multitaper``. If None, doesn't pass
         any additional arguments. Defaults to None.
-    figsize : array-like of size (2,) | None
+    figsize : array-like, shape (2,) | None
         Allows to control size of the figure. If None, the figure size
         defaults to [7., 6.].
     show : bool
@@ -393,10 +393,10 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
     ----------
     evoked : instance of mne.Evoked
         The Evoked to be used.
-    picks : int | array_like of int | None.
+    picks : int | array-like of int | None.
         The components to be displayed. If None, plot will show the
         sources in the order as fitted.
-    exclude : array_like of int
+    exclude : array-like of int
         The components marked for exclusion. If None (default), ICA.exclude
         will be used.
     title : str
@@ -508,9 +508,9 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
     ----------
     ica : instance of mne.preprocessing.ICA
         The ICA object.
-    scores : array_like of float, shape (n ica components) | list of arrays
+    scores : array-like of float, shape (n_ica_components,) | list of array
         Scores based on arbitrary metric to characterize ICA components.
-    exclude : array_like of int
+    exclude : array-like of int
         The components marked for exclusion. If None (default), ICA.exclude
         will be used.
     labels : str | list | 'ecg' | 'eog' | None
@@ -530,7 +530,7 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
 
     Returns
     -------
-    fig : instance of matplotlib.pyplot.Figure
+    fig : instance of Figure
         The figure object
     """
     import matplotlib.pyplot as plt
@@ -611,7 +611,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         sources will be canceled out this display is sensitive to
         artifacts. If evoked input, butterfly plots for clean and raw
         signals will be superimposed.
-    exclude : array_like of int | None (default)
+    exclude : array-like of int | None (default)
         The components marked for exclusion. If None (default), ICA.exclude
         will be used.
     picks : array-like of int | None (default)
@@ -628,7 +628,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
 
     Returns
     -------
-    fig : instance of pyplot.Figure
+    fig : instance of Figure
         The figure.
     """
     # avoid circular imports
@@ -687,7 +687,7 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
 
     Returns
     -------
-    fig : instance of pyplot.Figure
+    fig : instance of Figure
     """
     import matplotlib.pyplot as plt
     # Restore sensor space data and keep all PCA components
@@ -730,7 +730,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
     Returns
     -------
-    fig : instance of pyplot.Figure
+    fig : instance of Figure
     """
     import matplotlib.pyplot as plt
     ch_types_used = [c for c in ['mag', 'grad', 'eeg'] if c in evoked]

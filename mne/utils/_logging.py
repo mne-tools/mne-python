@@ -32,12 +32,12 @@ def verbose(function, *args, **kwargs):
 
     Parameters
     ----------
-    function : function
+    function : callable
         Function to be decorated by setting the verbosity level.
 
     Returns
     -------
-    dec : function
+    dec : callable
         The decorated function
 
     Examples
@@ -246,12 +246,10 @@ def warn(message, category=RuntimeWarning, module='mne'):
             fname = frame.f_code.co_filename
             lineno = frame.f_lineno
             # in verbose dec
-            if fname == '<string>' and last_fname == 'logging.py':
+            if fname == '<string>' and last_fname == op.basename(__file__):
                 last_fname = fname
                 frame = frame.f_back
                 continue
-            if fname == '<string>':
-                raise RuntimeError
             # treat tests as scripts
             # and don't capture unittest/case.py (assert_raises)
             if not (fname.startswith(root_dir) or

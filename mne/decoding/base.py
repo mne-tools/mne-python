@@ -373,8 +373,9 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
 
     Parameters
     ----------
-    estimator : estimator object implementing 'fit'
+    estimator : instance of sklearn.base.BaseEstimator
         The object to use to fit the data.
+        Must implement the 'fit' method.
     X : array-like, shape (n_samples, n_dimensional_features,)
         The data to fit. Can be, for example a list, or an array at least 2d.
     y : array-like, shape (n_samples, n_targets,)
@@ -400,10 +401,10 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
         either binary or multiclass,
         :class:`sklearn.model_selection.StratifiedKFold` is used. In all
         other cases, :class:`sklearn.model_selection.KFold` is used.
-    n_jobs : integer, optional
+    n_jobs : int, optional
         The number of CPUs to use to do the computation. -1 means
         'all CPUs'.
-    verbose : integer, optional
+    verbose : int, optional
         The verbosity level.
     fit_params : dict, optional
         Parameters to pass to the fit method of the estimator.

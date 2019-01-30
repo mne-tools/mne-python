@@ -131,7 +131,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
     n_jobs : int
         Number of jobs to use.
-    random_state : None | int | np.random.RandomState
+    random_state : None | int | ~numpy.random.RandomState
         The random generator state used for blink, ECG, and sensor
         noise randomization.
     use_cps : None | bool (default True)
@@ -139,7 +139,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         orientations. Only used when surf_ori and/or force_fixed are True.
     forward : instance of Forward | None
         The forward operator to use. If None (default) it will be computed
-        using `bem`, `trans`, and `src`.
+        using ``bem``, ``trans``, and ``src``.
 
         .. versionadded:: 0.17
     duration : float | None

@@ -13,7 +13,7 @@ from urllib import parse, request
 from .progressbar import ProgressBar
 from .numerics import hashfunc
 from .misc import sizeof_fmt
-from .logging import warn, logger, verbose
+from ._logging import warn, logger, verbose
 
 
 def _get_http(url, temp_file_name, initial_size, file_size, timeout,

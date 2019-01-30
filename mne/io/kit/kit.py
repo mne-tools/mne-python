@@ -841,7 +841,7 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
 
     Returns
     -------
-    raw : Instance of RawKIT
+    raw : instance of RawKIT
         A Raw object containing KIT data.
 
     See Also

@@ -13,7 +13,7 @@ from collections import OrderedDict
 import numpy as np
 
 from .check import _check_pandas_installed, _check_preload, _validate_type
-from .logging import warn, verbose
+from ._logging import warn, verbose
 from .numerics import object_size, object_hash
 
 

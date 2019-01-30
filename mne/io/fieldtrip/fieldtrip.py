@@ -40,7 +40,7 @@ def read_raw_fieldtrip(fname, info, data_name='data'):
 
     Returns
     -------
-    raw: Instance of RawArray
+    raw: instance of RawArray
         A Raw Object containing the loaded data.
 
     """
@@ -103,7 +103,7 @@ def read_epochs_fieldtrip(fname, info, data_name='data',
 
     Returns
     -------
-    epochs: Instance of EpochsArray
+    epochs: instance of EpochsArray
         An EpochsArray containing the loaded data.
 
 
@@ -157,7 +157,7 @@ def read_evoked_fieldtrip(fname, info, comment=None,
 
     Returns
     -------
-    evoked: Instance of EvokedArray
+    evoked: instance of EvokedArray
         An EvokedArray containing the loaded data.
 
     """

@@ -18,12 +18,12 @@ from mne.forward import _prep_meg_channels
 from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
 from mne.forward import use_coil_def
-from mne.io import (read_raw_fif, proc_history, read_info, read_raw_bti,
-                    read_raw_kit, BaseRaw)
+from mne.io import read_raw_fif, read_info, read_raw_bti, read_raw_kit, BaseRaw
 from mne.preprocessing.maxwell import (
     maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
     _bases_real_to_complex, _prep_mf_coils)
+from mne.rank import _get_sss_rank
 from mne.tests.common import assert_meg_snr
 from mne.utils import (_TempDir, run_tests_if_main, catch_logging,
                        requires_version, object_diff, buggy_mkl_svd)
@@ -439,8 +439,7 @@ def test_basic():
 
     # Check against SSS functions from proc_history
     sss_info = raw_sss.info['proc_history'][0]['max_info']
-    assert_equal(_get_n_moments(int_order),
-                 proc_history._get_sss_rank(sss_info))
+    assert_equal(_get_n_moments(int_order), _get_sss_rank(sss_info))
 
     # Degenerate cases
     pytest.raises(ValueError, maxwell_filter, raw, coord_frame='foo')

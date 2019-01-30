@@ -6,16 +6,17 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose)
 import pytest
 
 from mne import (read_cov, read_forward_solution, convert_forward_solution,
-                 pick_types_forward, read_evokeds)
+                 pick_types_forward, read_evokeds, pick_types, EpochsArray,
+                 compute_covariance, compute_raw_covariance)
 from mne.datasets import testing
-from mne.simulation import simulate_sparse_stc, simulate_evoked
+from mne.simulation import simulate_sparse_stc, simulate_evoked, add_noise
 from mne.io import read_raw_fif
 from mne.cov import regularize
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, catch_logging
 
 data_path = testing.data_path(download=False)
 fwd_fname = op.join(data_path, 'MEG', 'sample',
@@ -77,6 +78,54 @@ def test_simulate_evoked():
     cov['names'] = cov.ch_names[:-2]  # Error channels are different.
     pytest.raises(ValueError, simulate_evoked, fwd, stc, evoked_template.info,
                   cov, nave=nave, iir_filter=None)
+
+
+@testing.requires_testing_data
+def test_add_noise():
+    """Test noise addition."""
+    rng = np.random.RandomState(0)
+    data_path = testing.data_path()
+    raw = read_raw_fif(data_path + '/MEG/sample/sample_audvis_trunc_raw.fif')
+    raw.del_proj()
+    picks = pick_types(raw.info, eeg=True, exclude=())
+    cov = compute_raw_covariance(raw, picks=picks)
+    with pytest.raises(RuntimeError, match='to be loaded'):
+        add_noise(raw, cov)
+    raw.crop(0, 1).load_data()
+    with pytest.raises(TypeError, match='Raw, Epochs, or Evoked'):
+        add_noise(0., cov)
+    with pytest.raises(TypeError, match='Covariance'):
+        add_noise(raw, 0.)
+    # test a no-op (data preserved)
+    orig_data = raw[:][0]
+    zero_cov = cov.copy()
+    zero_cov['data'].fill(0)
+    add_noise(raw, zero_cov)
+    new_data = raw[:][0]
+    assert_allclose(orig_data, new_data, atol=1e-30)
+    # set to zero to make comparisons easier
+    raw._data[:] = 0.
+    epochs = EpochsArray(np.zeros((1, len(raw.ch_names), 100)),
+                         raw.info.copy())
+    epochs.info['bads'] = []
+    evoked = epochs.average(picks=np.arange(len(raw.ch_names)))
+    for inst in (raw, epochs, evoked):
+        with catch_logging() as log:
+            add_noise(inst, cov, random_state=rng, verbose=True)
+        log = log.getvalue()
+        want = ('to {0}/{1} channels ({0}'
+                .format(len(cov['names']), len(raw.ch_names)))
+        assert want in log
+        if inst is evoked:
+            inst = EpochsArray(inst.data[np.newaxis], inst.info)
+        if inst is raw:
+            cov_new = compute_raw_covariance(inst, picks=picks,
+                                             verbose='error')  # samples
+        else:
+            cov_new = compute_covariance(inst, verbose='error')  # avg ref
+        assert cov['names'] == cov_new['names']
+        r = np.corrcoef(cov['data'].ravel(), cov_new['data'].ravel())[0, 1]
+        assert r > 0.99
 
 
 run_tests_if_main()

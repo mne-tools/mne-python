@@ -899,7 +899,7 @@ def concatenate_events(events, first_samps, last_samps):
 
     Parameters
     ----------
-    events : list of arrays
+    events : list of array
         List of event arrays, typically each extracted from a
         corresponding raw file that is being concatenated.
     first_samps : list or array of int
@@ -1062,12 +1062,14 @@ class AcqParserFIF(object):
 
         Parameters
         ----------
-        item : str or list of str
+        item : str | list of str
             Name of the category (comment field in DACQ).
 
         Returns
         -------
-        conds : dict or list of dict, each with following keys:
+        conds : dict | list of dict
+            Each dict should have the following keys:
+
             comment: str
                 The comment field in DACQ.
             state : bool
@@ -1338,7 +1340,9 @@ class AcqParserFIF(object):
 
         Returns
         -------
-        conds_data : dict or list of dict, each with following keys:
+        conds_data : dict or list of dict
+            Each dict has the following keys:
+
             events : array, shape (n_epochs_out, 3)
                 List of zero time points (t0) for the epochs matching the
                 condition. Use as the ``events`` parameter to Epochs. Note

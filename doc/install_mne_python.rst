@@ -10,6 +10,7 @@ There are many ways to install a Python interpreter and MNE. Here we show a simp
 1. Get Python
 #############
 
+MNE-Python 0.18 only supports Python 3.5+.
 We recommend the `Anaconda distribution <https://www.anaconda.com/distribution/>`_.
 Follow the `installation instructions <http://docs.continuum.io/anaconda/install>`_.
 When you are done, you should see a similar output if you type the following command in a terminal:
@@ -17,13 +18,12 @@ When you are done, you should see a similar output if you type the following com
 .. code-block:: console
 
     $ conda --version && python --version
-    conda 4.5.4
-    Python 3.6.5 :: Anaconda, Inc.
+    conda 4.6.1
+    Python 3.7.2
 
 If you get an error message, consult the Anaconda documentation and search for Anaconda install
 tips (`Stack Overflow <https://stackoverflow.com/>`_ results are often helpful).
 
-.. note:: MNE-Python 0.18 only supports Python 3.5+.
 
 2. Get MNE and its dependencies
 ###############################
@@ -32,7 +32,7 @@ From the command line, install the MNE dependencies to a dedicated ``mne`` Anaco
 
 .. code-block:: console
 
-    $ curl -O https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
     $ conda env create -f environment.yml
     $ conda activate mne
 
@@ -79,22 +79,23 @@ The ``$ conda env create ...`` step sometimes emits warnings, but you can ensure
 all default dependencies are installed by listing their versions with::
 
     >>> mne.sys_info()  # doctest:+SKIP
-    Platform:      Linux-4.4.0-112-generic-x86_64-with-debian-jessie-sid
-    Python:        3.6.6 |Anaconda, Inc.| (default, Jun 28 2018, 17:14:51)  [GCC 7.2.0]
+    Platform:      Linux-4.18.0-13-generic-x86_64-with-debian-buster-sid
+    Python:        3.7.2 (default, Dec 29 2018, 06:19:36)  [GCC 7.3.0]
     Executable:    /home/travis/miniconda/envs/test/bin/python
     CPU:           x86_64: 48 cores
     Memory:        62.7 GB
 
-    mne:           0.16.2
-    numpy:         1.15.0 {blas=mkl_rt, lapack=mkl_rt}
-    scipy:         1.1.0
-    matplotlib:    2.2.2 {backend=Qt5Agg}
+    mne:           0.17.0
+    numpy:         1.15.4 {blas=mkl_rt, lapack=mkl_rt}
+    scipy:         1.2.0
+    matplotlib:    3.0.2 {backend=Qt5Agg}
 
-    sklearn:       0.19.1
-    nibabel:       2.3.0
-    mayavi:        4.6.1 {qt_api=pyqt5, PyQt5=5.10.1}
+    sklearn:       0.20.2
+    nibabel:       2.3.3
+    mayavi:        4.7.0.dev0 {qt_api=pyqt5, PyQt5=5.10.1}
     cupy:          Not found
-    pandas:        0.23.4
+    pandas:        0.24.0
+    dipy:          0.15.0
 
 
 For advanced topics like how to get :ref:`CUDA` support or if you are experiencing other issues, check out :ref:`advanced_setup`.

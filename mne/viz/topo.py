@@ -49,11 +49,11 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
     fig : matplotlib.figure.Figure | None
         The figure object to be considered. If None, a new
         figure will be created.
-    fig_facecolor : str | obj
+    fig_facecolor : color
         The figure face color. Defaults to black.
-    axis_facecolor : str | obj
+    axis_facecolor : color
         The axis face color. Defaults to black.
-    axis_spinecolor : str | obj
+    axis_spinecolor : color
         The axis spine color. Defaults to black. In other words,
         the color of the axis' edge lines.
     layout_scale: float | None
@@ -583,14 +583,14 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         The values at which to show a vertical line.
     hline : list of floats | None
         The values at which to show a horizontal line.
-    fig_facecolor : str | obj
+    fig_facecolor : color
         The figure face color. Defaults to black.
     fig_background : None | array
         A background image for the figure. This must be a valid input to
         `matplotlib.pyplot.imshow`. Defaults to None.
-    axis_facecolor : str | obj
+    axis_facecolor : color
         The face color to be used for each sensor plot. Defaults to black.
-    font_color : str | obj
+    font_color : color
         The color of text in the colorbar and title. Defaults to white.
     merge_grads : bool
         Whether to use RMS value of gradiometer pairs. Only works for Neuromag
@@ -616,7 +616,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figure
+    fig : instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
     import matplotlib.pyplot as plt
@@ -826,7 +826,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         the number of good epochs. If it's a callable the arguments
         passed are the times vector and the data as 2d array
         (data.shape[1] == len(times)).
-    cmap : instance of matplotlib.pyplot.colormap
+    cmap : colormap
         Colors to be mapped to the values.
     layout_scale: float
         scaling factor for adjusting the relative size of the layout
@@ -838,19 +838,19 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
     border : str
         matplotlib borders style to be used for each sensor plot.
-    fig_facecolor : str | obj
+    fig_facecolor : color
         The figure face color. Defaults to black.
     fig_background : None | array
         A background image for the figure. This must be a valid input to
         `matplotlib.pyplot.imshow`. Defaults to None.
-    font_color : str | obj
+    font_color : color
         The color of tick labels in the colorbar. Defaults to white.
     show : bool
         Show figure if True.
 
     Returns
     -------
-    fig : instance of matplotlib figure
+    fig : instance of matplotlib.figure.Figure
         Figure distributing one image per channel across sensor topography.
     """
     scalings = _handle_default('scalings', scalings)

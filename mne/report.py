@@ -70,7 +70,7 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         # on some systems importing Mayavi raises SystemExit (!)
         except Exception as e:
             warn('Could not import mayavi (%r). Trying to render'
-                 '`mayavi.core.scene.Scene` figure instances'
+                 '`mayavi.core.api.Scene` figure instances'
                  ' will throw an error.' % (e,))
         if fig.scene is not None:
             img = mlab.screenshot(figure=fig)
@@ -327,7 +327,7 @@ def open_report(fname, **params):
         The file containing the report, stored in the HDF5 format. If the file
         does not exist yet, a new report is created that will be saved to the
         specified file.
-    **params : list of parameters
+    **params : kwargs
         When creating a new report, any named parameters other than ``fname``
         are passed to the ``__init__`` function of the `Report` object. When
         reading an existing report, the parameters are checked with the
@@ -1041,7 +1041,7 @@ class Report(object):
 
         Parameters
         ----------
-        figs : figure | list of figures
+        figs : matplotlib.figure.Figure | mlab.Figure | array | list
             A figure or a list of figures to add to the report. Each figure in
             the list can be an instance of :class:`matplotlib.figure.Figure`,
             :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.

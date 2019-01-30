@@ -284,3 +284,14 @@ h4.list-group-item-heading {
 .skinnytable thead {
     border-bottom: 1px solid black;
 }
+/* Unify color of refs and classes in parameter lists */
+span.classifier a span.xref {
+    color: #2c3e50;
+}
+span.classifier a code.docutils.literal.notranslate {
+    color: #2c3e50;
+}
+/* Allow easier copy-paste in code blocks */
+div.highlight-console div.highlight span.gp {
+    user-select: none;
+}

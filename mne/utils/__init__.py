@@ -18,9 +18,9 @@ from .config import (set_config, get_config, get_config_path, set_cache_dir,
 from .docs import (copy_function_doc_to_method_doc, copy_doc, linkcode_resolve,
                    open_docs, deprecated)
 from .fetching import _fetch_file, _url_to_local_path
-from .logging import (verbose, logger, set_log_level, set_log_file,
-                      use_log_level, catch_logging, warn, filter_out_warnings,
-                      ETSContext)
+from ._logging import (verbose, logger, set_log_level, set_log_file,
+                       use_log_level, catch_logging, warn, filter_out_warnings,
+                       ETSContext)
 from .misc import (run_subprocess, _pl, _clean_names, _Counter, pformat,
                    _explain_exception, _get_argvalues, sizeof_fmt)
 from .progressbar import ProgressBar
@@ -33,11 +33,12 @@ from .testing import (_memory_usage, run_tests_if_main, requires_sklearn,
                       requires_numpydoc, requires_tvtk, requires_freesurfer,
                       requires_nitime, requires_fs_or_nibabel, requires_dipy,
                       requires_neuromag2ft)
-from .numerics import (hashfunc, md5sum, estimate_rank, _compute_row_norms,
+from .numerics import (hashfunc, md5sum, _compute_row_norms,
                        _reg_pinv, random_permutation, _reject_data_segments,
                        compute_corr, _get_inst_data, array_split_idx,
                        sum_squared, split_list, _gen_events, create_slices,
                        _time_mask, grand_average, object_diff, object_hash,
-                       object_size)
+                       object_size, _apply_scaling_cov, _undo_scaling_cov,
+                       _apply_scaling_array, _undo_scaling_array)
 from .mixin import (SizeMixin, GetEpochsMixin, _prepare_read_metadata,
                     _prepare_write_metadata, _FakeNoPandas)

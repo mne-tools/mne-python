@@ -62,7 +62,8 @@ class EMS(TransformerMixin, EstimatorMixin):
 
         Returns
         -------
-        self : returns and instance of self.
+        self : instance of EMS
+            Returns self.
         """
         classes = np.unique(y)
         if len(classes) != 2:
@@ -116,18 +117,18 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
     ----------
     epochs : instance of mne.Epochs
         The epochs.
-    conditions : list of str | None, defaults to None
+    conditions : list of str | None, default None
         If a list of strings, strings must match the epochs.event_id's key as
         well as the number of conditions supported by the objective_function.
         If None keys in epochs.event_id are used.
-    picks : array-like of int | None, defaults to None
+    picks : array-like of int | None, default None
         Channels to be included. If None only good data channels are used.
-    n_jobs : int, defaults to 1
+    n_jobs : int, default 1
         Number of jobs to run in parallel.
-    verbose : bool, str, int, or None, defaults to self.verbose
+    verbose : bool, str, int, or None, default self.verbose
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-    cv : cross-validation object | str | None, defaults to LeaveOneOut
+    cv : cross-validation object | str | None, default LeaveOneOut
         The cross-validation scheme.
 
     Returns

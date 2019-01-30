@@ -236,10 +236,11 @@ class SourceMorph(object):
     ----------
     subject_from : str | None
         Name of the subject from which to morph as named in the SUBJECTS_DIR.
-    subject_to : str | array | list of two arrays
+    subject_to : str | array | list of array
         Name of the subject on which to morph as named in the SUBJECTS_DIR.
         The default is 'fsaverage'. If morphing a volume source space,
-        subject_to can be the path to a MRI volume.
+        subject_to can be the path to a MRI volume. Can also be a list of
+        two arrays if morphing to hemisphere surfaces.
     kind : str | None
         Kind of source estimate. E.g. 'volume' or 'surface'.
     zooms : float | tuple
@@ -783,7 +784,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         Name of the original subject as named in the SUBJECTS_DIR.
     subject_to : str
         Name of the subject on which to morph as named in the SUBJECTS_DIR.
-    vertices_from : list of arrays of int
+    vertices_from : list of array of int
         Vertices for each hemisphere (LH, RH) for subject_from.
     vertices_to : list of arrays of int
         Vertices for each hemisphere (LH, RH) for subject_to.
@@ -921,7 +922,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
 
     Returns
     -------
-    vertices : list of arrays of int
+    vertices : list of array of int
         Vertex numbers for LH and RH
     """
     # add special case for fsaverage for speed

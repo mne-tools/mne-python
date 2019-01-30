@@ -831,7 +831,7 @@ def norm_epsilon(Y, l1_ratio, phi):
     l1_ratio : float between 0 and 1
         Tradeoff between L2 and L1 regularization. When it is 0, no temporal
         regularization is applied.
-    phi : Instance of _Phi
+    phi : instance of _Phi
         The TF operator.
 
     Returns

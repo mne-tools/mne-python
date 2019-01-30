@@ -100,7 +100,7 @@ class Projection(dict):
 
         Returns
         -------
-        fig : instance of matplotlib figure
+        fig : instance of Figure
             Figure distributing one image per channel across sensor topography.
 
         Notes
@@ -287,12 +287,12 @@ class ProjMixin(object):
 
         Parameters
         ----------
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None | List
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None | list
             The channel type to plot. For 'grad', the gradiometers are collec-
             ted in pairs and the RMS for each pair is plotted. If None
             (default), it will return all channel types present. If a list of
             ch_types is provided, it will return multiple figures.
-        layout : None | Layout | List of Layouts
+        layout : None | Layout | list of Layout
             Layout instance specifying sensor positions (does not need to
             be specified for Neuromag data). If possible, the correct
             layout file is inferred from the data; if no appropriate layout
@@ -306,7 +306,7 @@ class ProjMixin(object):
 
         Returns
         -------
-        fig : instance of matplotlib figure
+        fig : instance of Figure
             Figure distributing one image per channel across sensor topography.
         """
         if self.info['projs'] is not None or len(self.info['projs']) != 0:

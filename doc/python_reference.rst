@@ -876,6 +876,7 @@ Simulation
 .. autosummary::
    :toctree: generated/
 
+   add_noise
    simulate_evoked
    simulate_raw
    simulate_stc

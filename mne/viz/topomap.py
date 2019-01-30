@@ -241,7 +241,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
 
     Returns
     -------
-    fig : instance of matplotlib figure
+    fig : instance of matplotlib.figure.Figure
         Figure distributing one image per channel across sensor topography.
 
     Notes
@@ -1093,7 +1093,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
 
     Returns
     -------
-    fig : instance of matplotlib.pyplot.Figure or list
+    fig : instance of matplotlib.figure.Figure or list
         The figure object(s).
 
     Notes
@@ -1308,7 +1308,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         significant sensors will be shown.
     title : str | None
         Plot title. If None (default), no title is displayed.
-    axes : instance of Axis | None
+    axes : instance of Axes | None
         The axes to plot to. If None the axes is defined automatically.
     show : bool
         Show figure if True.
@@ -1442,7 +1442,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     ----------
     evoked : Evoked
         The Evoked object.
-    times : float | array of floats | "auto" | "peaks" | "interactive"
+    times : float | array of float | "auto" | "peaks" | "interactive"
         The time point(s) to plot. If "auto", the number of ``axes`` determines
         the amount of time point(s). If ``axes`` is also None, at most 10
         topographies will be shown with a regular time spacing between the
@@ -1941,7 +1941,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         masking options, either directly or as a function that returns patches
         (required for multi-axis plots). If None, nothing will be drawn.
         Defaults to 'head'.
-    axes : list of axes | None
+    axes : list of Axes | None
         List of axes to plot consecutive topographies to. If None the axes
         will be created automatically. Defaults to None.
     show : bool
@@ -1952,7 +1952,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
 
     Returns
     -------
-    fig : instance of matplotlib figure
+    fig : instance of Figure
         Figure distributing one image per channel across sensor topography.
     """
     from ..channels import _get_ch_type
@@ -2048,7 +2048,7 @@ def plot_psds_topomap(
 
     Returns
     -------
-    fig : instance of matplotlib figure
+    fig : instance of matplotlib.figure.Figure
         Figure distributing one image per channel across sensor topography.
     """
     import matplotlib.pyplot as plt
@@ -2109,7 +2109,7 @@ def plot_layout(layout, picks=None, show=True):
 
     Returns
     -------
-    fig : instance of matplotlib figure
+    fig : instance of Figure
         Figure containing the sensor topography.
 
     Notes
@@ -2392,7 +2392,7 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
         Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
         If None, first available channel type from ('mag', 'grad', 'eeg') is
         used. Defaults to None.
-    times : array of floats | None
+    times : array of float | None
         The time points to plot. If None, 10 evenly spaced samples are
         calculated over the evoked time series. Defaults to None.
     frame_rate : int | None

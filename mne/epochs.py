@@ -1098,7 +1098,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        indices : array of ints or bools
+        indices : array of int or bool
             Set epochs to remove by specifying indices to remove or a boolean
             mask to apply (where True values get removed). Events are
             correspondingly modified.
@@ -1596,7 +1596,7 @@ def _drop_log_stats(drop_log, ignore=('IGNORED',)):
 
     Parameters
     ----------
-    drop_log : list of lists
+    drop_log : list of list
         Epoch drop log from Epochs.drop_log.
     ignore : list
         The drop reasons to ignore.
@@ -1737,7 +1737,7 @@ class Epochs(BaseEpochs):
         has been dropped, this attribute would be np.array([0, 2, 3]).
     preload : bool
         Indicates whether epochs are in memory.
-    drop_log : list of lists
+    drop_log : list of list
         A list of the same length as the event array used to initialize the
         Epochs object. If the i-th original event is still part of the
         selection, drop_log[i] will be an empty list; otherwise it will be
