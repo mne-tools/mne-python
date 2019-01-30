@@ -354,7 +354,7 @@ BioSemi amplifiers do not perform "common mode noise rejection" automatically.
 The signals in the EEG file are the voltages between each electrode and CMS
 active electrode, which still contain some CM noise (50 Hz, ADC reference noise,
 etc., see `here <https://www.biosemi.com/faq/cms&drl.htm>`_ for further detail).
-Thus, it is advisable to chose a reference (e.g., a single channel like Cz,
+Thus, it is advisable to choose a reference (e.g., a single channel like Cz,
 average of linked mastoids, average of all electrodes, etc.) on import of BioSemi
 data to avoid losing signal information. The data can be re-referenced later after
 cleaning if desired.
