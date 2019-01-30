@@ -168,6 +168,8 @@ script:
     - echo pytest -m "${CONDITION}" ${USE_DIRS} --cov=mne;
     - pytest -m "${CONDITION}" ${USE_DIRS} --cov=mne;
 
+    - conda install mayavi --yes
+
     - ipython examples/visualization/make_report.py 
 
     - if [ "${DEPS}" == "nodata" ]; then
