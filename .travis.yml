@@ -18,7 +18,7 @@ matrix:
         # No data + style testing
         - os: linux
           env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
-               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest pytest-cov mock pytest-mock"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest pytest-cov mock pytest-mock ipython"
                PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest pytest-faulthandler pytest-sugar pytest-timeout"
 
         # Linux
@@ -39,12 +39,12 @@ matrix:
         # Old dependencies
         - os: linux
           env: PYTHON_VERSION=3.5
-               CONDA_DEPENDENCIES="numpy=1.11 scipy=0.17 matplotlib=1.5 pandas=0.18 scikit-learn=0.18 pytest pytest-cov pytest-mock"
+               CONDA_DEPENDENCIES="numpy=1.11 scipy=0.17 matplotlib=1.5 pandas=0.18 scikit-learn=0.18 pytest pytest-cov pytest-mock ipython"
 
         # Minimal
         - os: linux
           env: DEPS=minimial
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pytest pytest-cov pytest-faulthandler pytest-timeout pytest-mock"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib pytest pytest-cov pytest-faulthandler pytest-timeout pytest-mock ipython"
 
 # Setup anaconda
 before_install:
@@ -167,6 +167,9 @@ script:
       fi;
     - echo pytest -m "${CONDITION}" ${USE_DIRS} --cov=mne;
     - pytest -m "${CONDITION}" ${USE_DIRS} --cov=mne;
+
+    - ipython examples/visualization/make_report.py 
+
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
       fi;

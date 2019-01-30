@@ -5,7 +5,7 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
-
+import faulthandler; faulthandler.enable()
 import base64
 from io import BytesIO
 import os
