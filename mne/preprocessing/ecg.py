@@ -7,6 +7,7 @@
 import numpy as np
 
 from .. import pick_types, pick_channels
+from ..annotations import _annotations_starts_stops
 from ..utils import logger, verbose, sum_squared, warn
 from ..filter import filter_data
 from ..epochs import Epochs, BaseEpochs
@@ -189,24 +190,47 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                  'in 0.18 but will change to True in 0.19, set it explicitly '
                  'to avoid this warning', DeprecationWarning)
         reject_by_annotation = False
-    reject_by_annotation = 'omit' if reject_by_annotation else None
+    skip_by_annotation = ('edge', 'bad') if reject_by_annotation else ()
+    del reject_by_annotation
     idx_ecg = _get_ecg_channel_index(ch_name, raw)
     if idx_ecg is not None:
         logger.info('Using channel %s to identify heart beats.'
                     % raw.ch_names[idx_ecg])
-        ecg, times = raw.get_data(picks=idx_ecg,
-                                  reject_by_annotation=reject_by_annotation,
-                                  return_times=True)
+        ecg = raw.get_data(picks=idx_ecg)
     else:
-        ecg, times = _make_ecg(raw, None, None, reject_by_annotation)
+        ecg = _make_ecg(raw, None, None)[0]
+    assert ecg.ndim == 2 and ecg.shape[0] == 1
+    ecg = ecg[0]
+    # Deal with filtering the same way we do in raw, i.e. filter each good
+    # segment
+    onsets, ends = _annotations_starts_stops(
+        raw, skip_by_annotation, 'reject_by_annotation', invert=True)
+    ecg = np.concatenate([
+        filter_data(ecg[start:stop], raw.info['sfreq'], l_freq, h_freq, [0],
+                    filter_length, 0.5, 0.5, 1, 'fir', None, copy=False,
+                    phase='zero-double', fir_window='hann',
+                    fir_design='firwin2', verbose='error')
+        for start, stop in zip(onsets, ends)])
 
     # detecting QRS and generating event file
-    ecg_events = qrs_detector(raw.info['sfreq'], ecg.ravel(), tstart=tstart,
-                              thresh_value=qrs_threshold, l_freq=l_freq,
-                              h_freq=h_freq, filter_length=filter_length)
+    ecg_events = qrs_detector(raw.info['sfreq'], ecg, tstart=tstart,
+                              thresh_value=qrs_threshold, l_freq=None,
+                              h_freq=None)
+
+    # map ECG events back to original times
+    remap = np.empty(len(ecg), int)
+    offset = 0
+    for start, stop in zip(onsets, ends):
+        this_len = stop - start
+        assert this_len >= 0
+        remap[offset:offset + this_len] = np.arange(start, stop)
+        offset += this_len
+    assert offset == len(ecg)
+    ecg_events = remap[ecg_events]
 
     n_events = len(ecg_events)
-    average_pulse = n_events * 60.0 / (times[-1] - times[0])
+    minutes = len(ecg) / (raw.info['sfreq'] * 60.)
+    average_pulse = n_events / minutes
     logger.info("Number of ECG events detected : %d (average pulse %d / "
                 "min.)" % (n_events, average_pulse))
 
@@ -214,6 +238,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                            np.zeros(n_events, int),
                            event_id * np.ones(n_events, int)]).T
     out = (ecg_events, idx_ecg, average_pulse)
+    ecg = ecg[np.newaxis]  # backward compat output 2D
     if return_ecg:
         out += (ecg,)
     return out
@@ -389,4 +414,4 @@ def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
     elif isinstance(inst, Evoked):
         ecg = inst.data
         times = inst.times
-    return ecg.mean(0), times
+    return ecg.mean(0, keepdims=True), times

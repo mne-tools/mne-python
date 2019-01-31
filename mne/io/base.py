@@ -37,7 +37,7 @@ from ..filter import (filter_data, notch_filter, resample, next_fast_len,
                       _filt_update_info)
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
-                     _check_pandas_index_arguments,
+                     _check_pandas_index_arguments, _pl,
                      check_fname, _get_stim_channel,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc,
@@ -1363,12 +1363,19 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # Deal with annotations
         onsets, ends = _annotations_starts_stops(
             self, skip_by_annotation, 'skip_by_annotation', invert=True)
-        for start, stop in zip(onsets, ends):
+        logger.info('Filtering raw data in %d contiguous segment%s'
+                    % (len(onsets), _pl(onsets)))
+        for si, (start, stop) in enumerate(zip(onsets, ends)):
+            if si == 0:
+                verbose = verbose
+            else:
+                verbose = 'warning' if verbose != 'error' else verbose
             filter_data(
                 self._data[:, start:stop], self.info['sfreq'], l_freq, h_freq,
                 picks, filter_length, l_trans_bandwidth, h_trans_bandwidth,
                 n_jobs, method, iir_params, copy=False, phase=phase,
-                fir_window=fir_window, fir_design=fir_design, pad=pad)
+                fir_window=fir_window, fir_design=fir_design, pad=pad,
+                verbose=verbose)
         # update info if filter is applied to all data channels,
         # and it's not a band-stop filter
         _filt_update_info(self.info, update_info, l_freq, h_freq)

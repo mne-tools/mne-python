@@ -80,7 +80,7 @@ Bug
 
 - Fix issue with bad channels ignored in :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` by `Alex Gramfort`_
 
-- Fix ``reject_by_annotation`` not being passed internally by :func:`mne.preprocessing.create_ecg_epochs` to :func:`mne.preprocessing.find_ecg_events` by `Eric Larson`_
+- Fix ``reject_by_annotation`` not being passed internally by :func:`mne.preprocessing.create_ecg_epochs` and :ref:`mne clean_eog_ecg <gen_mne_clean_eog_ecg>` to :func:`mne.preprocessing.find_ecg_events` by `Eric Larson`_
 
 API
 ~~~
