@@ -1366,9 +1366,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         logger.info('Filtering raw data in %d contiguous segment%s'
                     % (len(onsets), _pl(onsets)))
         for si, (start, stop) in enumerate(zip(onsets, ends)):
-            if si == 0:
-                verbose = verbose
-            else:
+            if si > 0:
                 verbose = 'warning' if verbose != 'error' else verbose
             filter_data(
                 self._data[:, start:stop], self.info['sfreq'], l_freq, h_freq,

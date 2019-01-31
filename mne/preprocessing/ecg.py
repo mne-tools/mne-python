@@ -375,9 +375,8 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     if keep_ecg:
         # We know we have created a synthetic channel and epochs are preloaded
         ecg_raw = RawArray(
-            ecg[None],
-            create_info(ch_names=['ECG-SYN'],
-                        sfreq=raw.info['sfreq'], ch_types=['ecg']),
+            ecg, create_info(ch_names=['ECG-SYN'],
+                             sfreq=raw.info['sfreq'], ch_types=['ecg']),
             first_samp=raw.first_samp)
         ignore = ['ch_names', 'chs', 'nchan', 'bads']
         for k, v in raw.info.items():
