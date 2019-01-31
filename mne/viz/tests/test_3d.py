@@ -406,14 +406,15 @@ def test_snapshot_brain_montage():
     xyz_dict = dict(zip(ch_names, xyz))
     xyz_dict[info['chs'][0]['ch_name']] = [1, 2]  # Set one ch to only 2 vals
 
-    # Make sure wrong types are checked
-    pytest.raises(TypeError, snapshot_brain_montage, xyz, fig=fig)
+    with pytest.deprecated_call():
+        # Make sure wrong types are checked
+        pytest.raises(TypeError, snapshot_brain_montage, xyz, fig=fig)
 
-    # All chs must have 3 position values
-    pytest.raises(ValueError, snapshot_brain_montage, xyz_dict, fig=fig)
+        # All chs must have 3 position values
+        pytest.raises(ValueError, snapshot_brain_montage, xyz_dict, fig=fig)
 
-    # Make sure we raise error if the figure has no scene
-    pytest.raises(DeprecationWarning, snapshot_brain_montage, info, fig=fig)
+        # Make sure we raise error if the figure has no scene
+        pytest.raises(TypeError, snapshot_brain_montage, info, fig=fig)
 
 
 @testing.requires_testing_data
