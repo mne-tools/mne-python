@@ -35,7 +35,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
     """Prepare topo plot."""
     info = copy.deepcopy(inst if isinstance(inst, Info) else inst.info)
 
-    if layout is None and ch_type is not 'eeg':
+    if layout is None and ch_type != 'eeg':
         from ..channels import find_layout
         layout = find_layout(info)  # XXX : why not passing ch_type???
     elif layout == 'auto':

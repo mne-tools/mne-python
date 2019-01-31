@@ -125,9 +125,9 @@ def _check_proj_match(info, filters):
                                      filters['ch_names'])
     if not np.allclose(proj_data, filters['proj'],
                        atol=np.finfo(float).eps, rtol=1e-13):
-            raise ValueError('The SSP projections present in the data '
-                             'do not match the projections used when '
-                             'calculating the spatial filter.')
+        raise ValueError('The SSP projections present in the data '
+                         'do not match the projections used when '
+                         'calculating the spatial filter.')
 
 
 def _check_src_type(filters):

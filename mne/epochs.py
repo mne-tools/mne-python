@@ -852,10 +852,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             data = fun(self._data)
             assert len(self.events) == len(self._data)
             if data.shape != self._data.shape[1:]:
-                    raise RuntimeError("You passed a function that resulted "
-                                       "in data of shape {}, but it should be "
-                                       "{}.".format(data.shape,
-                                                    self._data.shape[1:]))
+                raise RuntimeError(
+                    'You passed a function that resulted n data of shape {}, '
+                    'but it should be {}.'.format(
+                        data.shape, self._data.shape[1:]))
         else:
             if mode not in {"mean", "std"}:
                 raise ValueError("If data are not preloaded, can only compute "
@@ -1499,8 +1499,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # 2a. for tags, find all the event_ids matched by the tags
             # 2b. for non-tag ids, just pass them directly
             # 3. do this for every input
-            event_ids = [[k for k in ids if all((tag in k.split("/")
-                         for tag in id_))]  # find ids matching all tags
+            event_ids = [[k for k in ids
+                          if all((tag in k.split("/")
+                                  for tag in id_))]  # ids matching all tags
                          if all(id__ not in ids for id__ in id_)
                          else id_  # straight pass for non-tag inputs
                          for id_ in event_ids]
@@ -2426,8 +2427,8 @@ class EpochsFIF(BaseEpochs):
         for i1, i2 in zip(offsets[:-1], offsets[1:]):
             other_log = drop_log[i1:i2]
             for k, (a, b) in enumerate(zip(drop_log, other_log)):
-                    if a == ['IGNORED'] and b != ['IGNORED']:
-                        drop_log[k] = b
+                if a == ['IGNORED'] and b != ['IGNORED']:
+                    drop_log[k] = b
         drop_log = drop_log[:step]
 
         # call BaseEpochs constructor

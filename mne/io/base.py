@@ -869,7 +869,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if start is None:
             start = 0
-        if (step is not None) and (step is not 1):
+        if step is not None and step != 1:
             raise ValueError('step needs to be 1 : %d given' % step)
 
         if isinstance(sel, (int, np.integer)):

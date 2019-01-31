@@ -2548,7 +2548,7 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
         raise ValueError('No vol src space in src')
 
     if any(np.any(s['type'] != 'vol') for s in src[2:]):
-            raise ValueError('source spaces have to be of vol type')
+        raise ValueError('source spaces have to be of vol type')
 
     labels_aseg = list()
     for nr in range(2, len(src)):

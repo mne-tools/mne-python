@@ -420,7 +420,7 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
     plt.connect('axes_leave_event', _rm_cursor)
 
     _setup_ax_spines(ax, vline, tmin, tmax)
-    ax.figure.set_facecolor('k' if hvline_color is 'w' else 'w')
+    ax.figure.set_facecolor('k' if hvline_color == 'w' else 'w')
     ax.spines['bottom'].set_color(hvline_color)
     ax.spines['left'].set_color(hvline_color)
     ax.tick_params(axis='x', colors=hvline_color, which='both')
@@ -719,7 +719,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     if ylim is None:
         # find maxima over all evoked data for each channel pick
         ymaxes = np.array([max(np.abs(e.data[t]).max() for e in evoked)
-                          for t in picks])
+                           for t in picks])
         ylim_ = (-ymaxes, ymaxes)
     elif isinstance(ylim, dict):
         ylim_ = _handle_default('ylim', ylim)

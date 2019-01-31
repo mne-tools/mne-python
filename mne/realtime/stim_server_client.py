@@ -302,8 +302,8 @@ class StimClient(object):
 
                 # Raise timeout error
                 if current_time > (start_time + timeout):
-                        logger.info("received nothing")
-                        return None
+                    logger.info("received nothing")
+                    return None
 
                 self._sock.send("get trigger".encode('utf-8'))
                 trigger = self._sock.recv(1024)
