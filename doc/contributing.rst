@@ -88,6 +88,12 @@ Code guidelines
 
      $ pytest mne/tests/test_evoked.py:test_io_evoked -x --verbose
 
+  Or alternatively:
+  
+  .. code-block:: console
+
+     $ pytest mne/tests/test_evoked.py -k test_io_evoked -x --verbose
+
   Make sure you have the testing dataset, which you can get by doing::
 
      >>> mne.datasets.testing.data_path(verbose=True)  # doctest: +SKIP
