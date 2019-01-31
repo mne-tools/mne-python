@@ -130,7 +130,8 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
 @verbose
 def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                     l_freq=5, h_freq=35, qrs_threshold='auto',
-                    filter_length='10s', return_ecg=False, verbose=None):
+                    filter_length='10s', return_ecg=False,
+                    reject_by_annotation=None, verbose=None):
     """Find ECG peaks.
 
     Parameters
@@ -160,6 +161,10 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     return_ecg : bool
         Return ecg channel if synthesized. Defaults to False. If True and
         and ecg exists this will yield None.
+    reject_by_annotation : bool
+        Whether to omit data that is annotated as bad.
+
+        .. versionadded:: 0.18
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -178,13 +183,22 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     create_ecg_epochs
     compute_proj_ecg
     """
+    if reject_by_annotation is None:
+        if len(raw.annotations) > 0:
+            warn('reject_by_annotation in find_ecg_events defaults to False '
+                 'in 0.18 but will change to True in 0.19, set it explicitly '
+                 'to avoid this warning', DeprecationWarning)
+        reject_by_annotation = False
+    reject_by_annotation = 'omit' if reject_by_annotation else None
     idx_ecg = _get_ecg_channel_index(ch_name, raw)
     if idx_ecg is not None:
         logger.info('Using channel %s to identify heart beats.'
                     % raw.ch_names[idx_ecg])
-        ecg, times = raw[idx_ecg, :]
+        ecg, times = raw.get_data(picks=idx_ecg,
+                                  reject_by_annotation=reject_by_annotation,
+                                  return_times=True)
     else:
-        ecg, times = _make_ecg(raw, None, None, verbose=verbose)
+        ecg, times = _make_ecg(raw, None, None, reject_by_annotation)
 
     # detecting QRS and generating event file
     ecg_events = qrs_detector(raw.info['sfreq'], ecg.ravel(), tstart=tstart,
@@ -295,7 +309,6 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         rejected. If False, no rejection based on annotations is performed.
 
         .. versionadded:: 0.14.0
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -323,7 +336,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
 
     events, _, _, ecg = find_ecg_events(
         raw, ch_name=ch_name, event_id=event_id, l_freq=l_freq, h_freq=h_freq,
-        return_ecg=True, verbose=verbose)
+        return_ecg=True, reject_by_annotation=reject_by_annotation)
 
     picks = np.arange(len(raw.ch_names)) if picks is None else picks
 
@@ -332,7 +345,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
                         tmin=tmin, tmax=tmax, proj=False, flat=flat,
                         picks=picks, reject=reject, baseline=baseline,
                         reject_by_annotation=reject_by_annotation,
-                        verbose=verbose, preload=preload)
+                        preload=preload)
 
     if keep_ecg:
         # We know we have created a synthetic channel and epochs are preloaded
@@ -348,7 +361,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         syn_epochs = Epochs(ecg_raw, events=ecg_epochs.events,
                             event_id=event_id, tmin=tmin, tmax=tmax,
                             proj=False, picks=[0], baseline=baseline,
-                            verbose=verbose, preload=True)
+                            preload=True)
         ecg_epochs = ecg_epochs.add_channels([syn_epochs])
 
     return ecg_epochs
