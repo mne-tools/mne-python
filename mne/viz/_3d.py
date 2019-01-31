@@ -44,8 +44,6 @@ from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_list,
 from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
                    read_bem_surfaces)
 
-from .backends.renderer import Renderer
-
 
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
                   FIFF.FIFFV_POINT_RPA)
@@ -336,6 +334,8 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     fig : instance of mayavi.mlab.Figure
         The mayavi figure.
     """
+    # Update the backend
+    from .backends.renderer import Renderer
     types = [t for t in ['eeg', 'grad', 'mag'] if t in evoked]
 
     time_idx = None
@@ -654,6 +654,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     .. versionadded:: 0.15
     """
     from ..forward import _create_meg_coils
+    # Update the backend
+    from .backends.renderer import Renderer
 
     if eeg is False:
         eeg = list()
@@ -2352,6 +2354,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     """
     import matplotlib.pyplot as plt
     from matplotlib.colors import ColorConverter
+    # Update the backend
+    from .backends.renderer import Renderer
 
     known_modes = ['cone', 'sphere']
     if not isinstance(modes, (list, tuple)) or \
@@ -2585,6 +2589,8 @@ def snapshot_brain_montage(montage, renderer=None, fig=None,
     """
     from ..channels import Montage, DigMontage
     from .. import Info
+    # Update the backend
+    from .backends.renderer import Renderer
     if isinstance(montage, (Montage, DigMontage)):
         chs = montage.dig_ch_pos
         ch_names, xyz = zip(*[(ich, ixyz) for ich, ixyz in chs.items()])
