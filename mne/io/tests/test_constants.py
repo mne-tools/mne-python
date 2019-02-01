@@ -23,6 +23,9 @@ _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'has_key', 'iteritems', 'iterkeys', 'itervalues',  # Py2
                      'viewitems', 'viewkeys', 'viewvalues',  # Py2
                      )
+_tag_ignore_names = (  # for fiff-constants pending updates
+    'FIFF_MNE_EPOCHS_REJECT_FLAT',
+)
 _ignore_incomplete_enums = (  # XXX eventually we could complete these
     'bem_surf_id', 'cardinal_point_cardiac', 'cond_model', 'coord',
     'dacq_system', 'diffusion_param', 'gantry_type', 'map_surf',
@@ -259,7 +262,7 @@ def test_constants(tmpdir):
             check = 'tags'
         else:
             unknowns.append((name, val))
-        if check is not None:
+        if check is not None and name not in _tag_ignore_names:
             assert val in fif[check], '%s: %s, %s' % (check, val, name)
             if val in con[check]:
                 msg = "%s='%s'  ?" % (name, con[check][val])

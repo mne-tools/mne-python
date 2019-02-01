@@ -53,6 +53,15 @@ from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _check_event_id, _gen_events)
 
 
+def _pack_reject_params(epochs):
+    reject_params = dict()
+    for key in ('reject', 'flat', 'reject_tmin', 'reject_tmax'):
+        val = getattr(epochs, key, None)
+        if val is not None:
+            reject_params[key] = val
+    return reject_params
+
+
 def _save_split(epochs, fname, part_idx, n_parts, fmt):
     """Split epochs."""
     # insert index in filename
@@ -146,6 +155,11 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
 
     write_string(fid, FIFF.FIFF_MNE_EPOCHS_DROP_LOG,
                  json.dumps(epochs.drop_log))
+
+    reject_params = _pack_reject_params(epochs)
+    if reject_params:
+        write_string(fid, FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT,
+                     json.dumps(reject_params))
 
     write_int(fid, FIFF.FIFF_MNE_EPOCHS_SELECTION,
               epochs.selection)
@@ -2207,6 +2221,7 @@ def _read_one_epoch_file(f, tree, preload):
         baseline = None
         selection = None
         drop_log = None
+        reject_params = {}
         for k in range(my_epochs['nent']):
             kind = my_epochs['directory'][k].kind
             pos = my_epochs['directory'][k].pos
@@ -2236,6 +2251,9 @@ def _read_one_epoch_file(f, tree, preload):
             elif kind == FIFF.FIFF_MNE_EPOCHS_DROP_LOG:
                 tag = read_tag(fid, pos)
                 drop_log = json.loads(tag.data)
+            elif kind == FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT:
+                tag = read_tag(fid, pos)
+                reject_params = json.loads(tag.data)
 
         if bmin is not None or bmax is not None:
             baseline = (bmin, bmax)
@@ -2295,7 +2313,7 @@ def _read_one_epoch_file(f, tree, preload):
             drop_log = [[] for _ in range(len(events))]
 
     return (info, data, data_tag, events, event_id, metadata, tmin, tmax,
-            baseline, selection, drop_log, epoch_shape, cals)
+            baseline, selection, drop_log, epoch_shape, cals, reject_params)
 
 
 @verbose
@@ -2394,7 +2412,8 @@ class EpochsFIF(BaseEpochs):
             fid, tree, _ = fiff_open(fname)
             next_fname = _get_next_fname(fid, fname, tree)
             (info, data, data_tag, events, event_id, metadata, tmin, tmax,
-             baseline, selection, drop_log, epoch_shape, cals) = \
+             baseline, selection, drop_log, epoch_shape, cals,
+             reject_params) = \
                 _read_one_epoch_file(fid, tree, preload)
 
             # here we ignore missing events, since users should already be
@@ -2437,7 +2456,7 @@ class EpochsFIF(BaseEpochs):
             info, data, events, event_id, tmin, tmax, baseline, raw=raw,
             proj=proj, preload_at_end=False, on_missing='ignore',
             selection=selection, drop_log=drop_log, filename=fname,
-            metadata=metadata, verbose=verbose)
+            metadata=metadata, verbose=verbose, **reject_params)
         # use the private property instead of drop_bad so that epochs
         # are not all read from disk for preload=False
         self._bad_dropped = True
