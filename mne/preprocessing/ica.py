@@ -2244,7 +2244,7 @@ def run_ica(raw, n_components, max_pca_components=100,
             ecg_score_func='pearsonr', ecg_criterion=0.1, eog_ch=None,
             eog_score_func='pearsonr', eog_criterion=0.1, skew_criterion=-1,
             kurt_criterion=-1, var_criterion=0, add_nodes=None,
-            allow_ref_meg=False, method='fastica', verbose=None):
+            method='fastica', allow_ref_meg=False, verbose=None):
     """Run ICA decomposition on raw data and identify artifact sources.
 
     This function implements an automated artifact removal work flow.
