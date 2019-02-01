@@ -44,18 +44,6 @@ To check the installation, you can enter the following commands:
      $ python -c "import mne; mne.sys_info()"
      $ python -c "import mne; mne.datasets.testing.data_path(force_update=True)"
 
-Building documentation
-----------------------
-
-Assuming MNE is already installed in an `mne` environment, in order
-to build the documentation you need to install the following dependencies:
-
-  .. code-block:: console
-
-     $ conda activate mne
-     $ conda install sphinx
-     $ pip install sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master"
-
 Code guidelines
 ---------------
 
