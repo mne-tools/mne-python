@@ -3,11 +3,10 @@ image: Visual Studio 2013
 environment:
   global:
       PYTHON: "C:\\conda"
-      # CONDA_ENVIRONMENT: "environment.yml"
-      CONDA_DEPENDENCIES: "python>=3.7 pip mkl numpy scipy matplotlib cython pyqt>=5.9 pandas xlrd scikit-learn h5py pillow statsmodels jupyter pytest pytest-cov joblib psutil numpydoc flake8 spyder numexpr traits>=4.6.0 pyface>=6 traitsui>=6 testpath<0.4"
-      PIP_DEPENDENCIES: "codecov pytest-sugar pytest-timeout vtk https://api.github.com/repos/enthought/mayavi/zipball/b3fc35218dda9776d8f1a407663bfb49783dca12 PySurfer[save_movie] dipy --only-binary dipy nibabel nilearn neo pytest-faulthandler pytest-mock pydocstyle codespell python-picard"
+      CONDA_ENVIRONMENT: "environment.yml"
+      PIP_DEPENDENCIES: "codecov pytest-sugar pytest-timeout"
   matrix:
-      - PYTHON_VERSION: "3.7"
+      - PYTHON_VERSION: "3.6"
         PYTHON_ARCH: "64"
 
 install:
@@ -15,7 +14,7 @@ install:
   - "powershell ci-helpers/appveyor/install-miniconda.ps1"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "activate test"
-  # "pip uninstall -yq mne"
+  - "pip uninstall -yq mne"
   - "python setup.py develop"
   - "python -c \"import mne; print(mne.sys_info())\""
   - "SET MNE_FORCE_SERIAL=true"  # otherwise joblib will bomb
