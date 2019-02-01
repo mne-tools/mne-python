@@ -35,6 +35,8 @@ Changelog
 
 - Add ``drop_refs=True`` parameter to :func:`set_bipolar_reference` to drop/keep anode and cathode channels after applying the reference by `Cristóbal Moënne-Loccoz`_.
 
+- Add processing of reference MEG channels to :class:`mne.preprocessing.ICA` by `Jeff Hanna`_
+
 - Add use of :func:`scipy.signal.windows.dpss` for faster multitaper window computations in PSD functions by `Eric Larson`_
 
 - Add :func:`mne.morph_labels` to facilitate morphing label sets obtained from parcellations, by `Eric Larson`_
@@ -3157,3 +3159,5 @@ of commits):
 .. _Larry Eisenman:  https://github.com/lneisenman
 
 .. _Stanislas Chambon: https://github.com/Slasnista
+
+.. _Jeff Hanna: https://github.com/jshanna100

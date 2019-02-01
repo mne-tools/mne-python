@@ -714,7 +714,8 @@ def test_fit_params(method):
 
 @requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
-def test_bad_channels(method):
+@pytest.mark.parametrize("allow_ref_meg", [True, False])
+def test_bad_channels(method, allow_ref_meg):
     """Test exception when unsupported channels are used."""
     _skip_check_picard(method)
     chs = [i for i in _kind_dict]
@@ -726,35 +727,34 @@ def test_bad_channels(method):
     epochs = EpochsArray(data, info)
 
     n_components = 0.9
-    for allow_ref_meg in [False, True]:
-        data_chs = _DATA_CH_TYPES_SPLIT + ['eog']
-        if allow_ref_meg:
-            data_chs.append('ref_meg')
-        chs_bad = list(set(chs) - set(data_chs))
-        ica = ICA(n_components=n_components, method=method,
-                  allow_ref_meg=allow_ref_meg)
-        for inst in [raw, epochs]:
-            for ch in chs_bad:
-                if allow_ref_meg:
-                    # Test case for only bad channels
-                    picks_bad1 = pick_types(inst.info, meg=False,
-                                            ref_meg=False,
-                                            **{str(ch): True})
-                    # Test case for good and bad channels
-                    picks_bad2 = pick_types(inst.info, meg=True,
-                                            ref_meg=True,
-                                            **{str(ch): True})
-                else:
-                    # Test case for only bad channels
-                    picks_bad1 = pick_types(inst.info, meg=False,
-                                            **{str(ch): True})
-                    # Test case for good and bad channels
-                    picks_bad2 = pick_types(inst.info, meg=True,
-                                            **{str(ch): True})
+    data_chs = _DATA_CH_TYPES_SPLIT + ['eog']
+    if allow_ref_meg:
+        data_chs.append('ref_meg')
+    chs_bad = list(set(chs) - set(data_chs))
+    ica = ICA(n_components=n_components, method=method,
+              allow_ref_meg=allow_ref_meg)
+    for inst in [raw, epochs]:
+        for ch in chs_bad:
+            if allow_ref_meg:
+                # Test case for only bad channels
+                picks_bad1 = pick_types(inst.info, meg=False,
+                                        ref_meg=False,
+                                        **{str(ch): True})
+                # Test case for good and bad channels
+                picks_bad2 = pick_types(inst.info, meg=True,
+                                        ref_meg=True,
+                                        **{str(ch): True})
+            else:
+                # Test case for only bad channels
+                picks_bad1 = pick_types(inst.info, meg=False,
+                                        **{str(ch): True})
+                # Test case for good and bad channels
+                picks_bad2 = pick_types(inst.info, meg=True,
+                                        **{str(ch): True})
 
-                pytest.raises(ValueError, ica.fit, inst, picks=picks_bad1)
-                pytest.raises(ValueError, ica.fit, inst, picks=picks_bad2)
-            pytest.raises(ValueError, ica.fit, inst, picks=[])
+            pytest.raises(ValueError, ica.fit, inst, picks=picks_bad1)
+            pytest.raises(ValueError, ica.fit, inst, picks=picks_bad2)
+        pytest.raises(ValueError, ica.fit, inst, picks=[])
 
 
 @requires_sklearn
