@@ -205,12 +205,16 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     # segment
     onsets, ends = _annotations_starts_stops(
         raw, skip_by_annotation, 'reject_by_annotation', invert=True)
-    ecg = np.concatenate([
-        filter_data(ecg[start:stop], raw.info['sfreq'], l_freq, h_freq, [0],
-                    filter_length, 0.5, 0.5, 1, 'fir', None, copy=False,
-                    phase='zero-double', fir_window='hann',
-                    fir_design='firwin2', verbose='error')
-        for start, stop in zip(onsets, ends)])
+    ecgs = list()
+    max_idx = (ends - onsets).argmax()
+    for si, (start, stop) in enumerate(zip(onsets, ends)):
+        use_verbose = verbose if si == max_idx else 'error'
+        ecgs.append(filter_data(
+            ecg[start:stop], raw.info['sfreq'], l_freq, h_freq, [0],
+            filter_length, 0.5, 0.5, 1, 'fir', None, copy=False,
+            phase='zero-double', fir_window='hann', fir_design='firwin2',
+            verbose=use_verbose))
+    ecg = np.concatenate(ecgs)
 
     # detecting QRS and generating event file
     ecg_events = qrs_detector(raw.info['sfreq'], ecg, tstart=tstart,

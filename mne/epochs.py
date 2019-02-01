@@ -264,7 +264,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  'type %s' % (events.dtype))
             events = events.astype(int)
             if events.ndim != 2 or events.shape[1] != 3:
-                raise ValueError('events must be 2D with 3 columns')
+                raise ValueError('events must be of shape (N, 3), got %s'
+                                 % (events.shape,))
             for key, val in self.event_id.items():
                 if val not in events[:, 2]:
                     msg = ('No matching events found for %s '
