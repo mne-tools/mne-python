@@ -41,7 +41,7 @@ As optional steps, you can also add:
 
   .. code-block:: console
 
-     $ conda install ipython sphinx
+     $ conda install sphinx
      $ pip install sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master"
 
 To check the installation, you can enter the following commands:
