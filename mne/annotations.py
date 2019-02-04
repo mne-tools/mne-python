@@ -456,7 +456,7 @@ def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
         order = np.argsort(onsets)
         onsets = raw.time_as_index(onsets[order], use_rounding=True)
         ends = raw.time_as_index(ends[order], use_rounding=True)
-    assert (onsets <= ends).all()  # all durations > 0
+    assert (onsets <= ends).all()  # all durations >= 0
     if invert:
         # We need to eliminate overlaps here, otherwise wacky things happen,
         # so we carefully invert the relationship
@@ -478,7 +478,7 @@ def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
 
 
 def _mask_to_onsets_offsets(mask):
-    """Group boolean mask into contiguous segments."""
+    """Group boolean mask into contiguous onset:offset pairs."""
     assert mask.dtype == bool and mask.ndim == 1
     mask = mask.astype(int)
     diff = np.diff(mask)

@@ -1365,15 +1365,17 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self, skip_by_annotation, 'skip_by_annotation', invert=True)
         logger.info('Filtering raw data in %d contiguous segment%s'
                     % (len(onsets), _pl(onsets)))
+        max_idx = (ends - onsets).argmax()
         for si, (start, stop) in enumerate(zip(onsets, ends)):
-            if si > 0:
-                verbose = 'warning' if verbose != 'error' else verbose
+            # Only output filter params once (for info level), and only warn
+            # once about the length criterion (longest segment is too short)
+            use_verbose = verbose if si == max_idx else 'error'
             filter_data(
                 self._data[:, start:stop], self.info['sfreq'], l_freq, h_freq,
                 picks, filter_length, l_trans_bandwidth, h_trans_bandwidth,
                 n_jobs, method, iir_params, copy=False, phase=phase,
                 fir_window=fir_window, fir_design=fir_design, pad=pad,
-                verbose=verbose)
+                verbose=use_verbose)
         # update info if filter is applied to all data channels,
         # and it's not a band-stop filter
         _filt_update_info(self.info, update_info, l_freq, h_freq)

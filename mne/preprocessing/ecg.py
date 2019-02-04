@@ -208,6 +208,8 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     ecgs = list()
     max_idx = (ends - onsets).argmax()
     for si, (start, stop) in enumerate(zip(onsets, ends)):
+        # Only output filter params once (for info level), and only warn
+        # once about the length criterion (longest segment is too short)
         use_verbose = verbose if si == max_idx else 'error'
         ecgs.append(filter_data(
             ecg[start:stop], raw.info['sfreq'], l_freq, h_freq, [0],
