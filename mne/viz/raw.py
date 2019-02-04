@@ -1079,7 +1079,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                 continue
             start = max(segment[0], times[0] + params['first_time'])
             end = min(times[-1] + params['first_time'], segment[1])
-            dscr = params['annot_description'][idx]
+            dscr = params['raw'].annotations.description[idx]
             segment_color = params['segment_colors'][dscr]
             params['ax'].fill_betweenx(ylim, start, end, color=segment_color,
                                        alpha=0.3)

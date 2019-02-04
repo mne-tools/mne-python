@@ -87,6 +87,8 @@ API
 
 - Python 2 is no longer supported; MNE-Python now requires Python 3.5+, by `Eric Larson`_
 
+- :class:`Annotations` are now kept sorted (by onset time) during instantiation and :meth:`~Annotations.append` operations, by `Eric Larson`_
+
 - Deprecate :func:`mne.io.find_edf_events` by `Joan Massich`_
 
 .. _changes_0_17:

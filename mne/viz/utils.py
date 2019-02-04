@@ -1908,23 +1908,17 @@ def _plot_annotations(raw, params):
     while len(params['ax_hscroll'].collections) > 0:
         params['ax_hscroll'].collections.pop()
     segments = list()
-    # sort the segments by start time
-    ann_order = raw.annotations.onset.argsort(axis=0)
-    descriptions = raw.annotations.description[ann_order]
-
     _setup_annotation_colors(params)
-    for idx, onset in enumerate(raw.annotations.onset[ann_order]):
-        annot_start = _sync_onset(raw, onset) + params['first_time']
-        annot_end = annot_start + raw.annotations.duration[ann_order][idx]
+    for idx, annot in enumerate(raw.annotations):
+        annot_start = _sync_onset(raw, annot['onset']) + params['first_time']
+        annot_end = annot_start + annot['duration']
         segments.append([annot_start, annot_end])
-        dscr = descriptions[idx]
         params['ax_hscroll'].fill_betweenx(
             (0., 1.), annot_start, annot_end, alpha=0.3,
-            color=params['segment_colors'][dscr])
+            color=params['segment_colors'][annot['description']])
     # Do not adjust half a sample backward (even though this would make it
     # clearer what is included) because this breaks click-drag functionality
     params['segments'] = np.array(segments)
-    params['annot_description'] = descriptions
 
 
 def _get_color_list(annotations=False):

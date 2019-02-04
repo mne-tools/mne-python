@@ -25,6 +25,7 @@ from mne import (concatenate_events, find_events, equalize_channels,
                  pick_info)
 from mne.utils import (_TempDir, requires_pandas, object_diff,
                        requires_mne, run_subprocess, run_tests_if_main)
+from mne.utils.testing import assert_and_remove_boundary_annot
 from mne.annotations import Annotations
 
 testing_path = testing.data_path(download=False)
@@ -1235,6 +1236,7 @@ def test_annotation_crop():
     r2 = raw.copy().crop(12.5, 17.5)
     r3 = raw.copy().crop(10., 12.)
     raw = concatenate_raws([r1, r2, r3])  # segments reordered
+    assert_and_remove_boundary_annot(raw, 2)
     onsets = raw.annotations.onset
     durations = raw.annotations.duration
     # 2*5s clips combined with annotations at 2.5s + 2s clip, annotation at 1s
