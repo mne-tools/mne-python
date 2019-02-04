@@ -42,8 +42,13 @@ class Renderer:
         Mayavi scene handle.
     """
 
-    def __init__(self, size=(600, 600), bgcolor=(0., 0., 0.), name=None):
-        """Initialize the scene.
+    def __init__(self):
+        """Create an empty renderer."""
+        self.mlab = _import_mlab()
+        self.fig = None
+
+    def setup(self, size=(600, 600), bgcolor=(0., 0., 0.), name=None):
+        """Setup the scene.
 
         Parameters
         ----------

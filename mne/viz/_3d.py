@@ -356,7 +356,8 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                                      np.tile([0., 0., 0., 255.], (2, 1)),
                                      np.tile([255., 0., 0., 255.], (127, 1))])
 
-    renderer = Renderer(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+    renderer = Renderer()
+    renderer.setup(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
     for ii, this_map in enumerate(surf_maps):
         surf = this_map['surf']
@@ -1047,12 +1048,14 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                              for pick in seeg_picks])
 
     # initialize figure
-    if renderer is None:
-        renderer = Renderer(bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
     if fig is not None:
         warn('fig is deprecated and will be replaced by renderer in 0.20',
              DeprecationWarning)
+        renderer = Renderer()
         renderer.fig = fig
+    if renderer is None:
+        renderer = Renderer()
+        renderer.setup(bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
     if interaction == 'terrain':
         renderer.set_interactive()
 
@@ -2401,7 +2404,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     if fig_name is not None:
         warn('fig_name is deprecated and will be removed in 0.20.',
              DeprecationWarning)
-    renderer = Renderer(bgcolor=bgcolor, size=(600, 600), name=fig_name)
+    renderer = Renderer()
+    renderer.setup(bgcolor=bgcolor, size=(600, 600), name=fig_name)
     with warnings.catch_warnings(record=True):  # traits warnings
         surface = renderer.mesh(x=points[:, 0], y=points[:, 1],
                                 z=points[:, 2], triangles=use_faces,
@@ -2555,7 +2559,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     return fig
 
 
-def snapshot_brain_montage(montage, renderer=None, fig=None,
+def snapshot_brain_montage(fig=None, montage=None, renderer=None,
                            hide_sensors=True):
     """Take a snapshot of a Mayavi Scene and project channels onto 2d coords.
 
@@ -2565,6 +2569,9 @@ def snapshot_brain_montage(montage, renderer=None, fig=None,
 
     Parameters
     ----------
+    fig : instance of ~mayavi.core.api.Scene
+        The figure on which you've plotted electrodes using
+        :func:`mne.viz.plot_alignment`.
     montage : instance of DigMontage or Info | dict
         The digital montage for the electrodes plotted in the scene. If `Info`,
         channel positions will be pulled from the `loc` field of `chs`.
@@ -2574,9 +2581,6 @@ def snapshot_brain_montage(montage, renderer=None, fig=None,
     renderer : backends.Renderer object | None
         Rendering Scene in which to plot the alignment.
 
-    fig : instance of ~mayavi.core.api.Scene
-        The figure on which you've plotted electrodes using
-        :func:`mne.viz.plot_alignment`.
     hide_sensors : bool
         Whether to remove the spheres in the scene before taking a snapshot.
 
@@ -2591,6 +2595,9 @@ def snapshot_brain_montage(montage, renderer=None, fig=None,
     from .. import Info
     # Update the backend
     from .backends.renderer import Renderer
+    if montage is None:
+        raise ValueError('montage must be different from `None`')
+
     if isinstance(montage, (Montage, DigMontage)):
         chs = montage.dig_ch_pos
         ch_names, xyz = zip(*[(ich, ixyz) for ich, ixyz in chs.items()])
@@ -2607,13 +2614,12 @@ def snapshot_brain_montage(montage, renderer=None, fig=None,
 
     # initialize figure
     if renderer is None and fig is None:
-        raise ValueError('Either fig or renderer must be different from'
+        raise ValueError('Either fig or renderer must be different from '
                          '`None`')
-    if renderer is None:
-        renderer = Renderer(bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
     if fig is not None:
         warn('fig is deprecated and will be replaced by renderer in 0.20',
              DeprecationWarning)
+        renderer = Renderer()
         renderer.fig = fig
     xyz = np.vstack(xyz)
     proj = renderer.project(xyz=xyz, ch_names=ch_names)
