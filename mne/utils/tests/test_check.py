@@ -13,7 +13,7 @@ base_dir = op.join(data_path, 'MEG', 'sample')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_event = op.join(base_dir, 'sample_audvis_trunc_raw-eve.fif')
 fname_fwd = op.join(base_dir, 'sample_audvis_trunc-meg-vol-7-fwd.fif')
-fname_cov = op.join(base_dir, 'sample_audivis_trunc_cov.fif')
+fname_cov = op.join(base_dir, 'sample_audvis_trunc-cov.fif')
 reject = dict(grad=4000e-13, mag=4e-12)
 
 
@@ -58,16 +58,6 @@ def _get_data():
     noise_cov = mne.read_cov(fname_cov)
     noise_cov['projs'] = []
 
-    data_cov = mne.compute_covariance(epochs, tin=0.01, tmax=0.15)
+    data_cov = mne.compute_covariance(epochs, tmin=0.01, tmax=0.15)
 
     return epochs, data_cov, noise_cov, forward
-
-
-@testing.requires_testing_data
-def test_check_info_inv():
-    """Test checks for common channels acros fwd model and cov matrices."""
-    epochs, data_cov, noise_cov, forward = _get_data()
-
-    # test whether reference channels get deleted
-    info_ref = deepcopy(epochs.info)
-    info_ref['chs']
