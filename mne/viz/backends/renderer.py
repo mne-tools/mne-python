@@ -2,15 +2,15 @@ import sys
 import os
 import importlib
 
-default_3D_backend = 'mayavi'
+default_3d_backend = 'mayavi'
 
 
 try:
     if MNE_3D_BACKEND is None:
         MNE_3D_BACKEND = os.environ.get('MNE_3D_BACKEND',
-                                        default_3D_backend)
+                                        default_3d_backend)
 except NameError:
-    MNE_3D_BACKEND = os.environ.get('MNE_3D_BACKEND', default_3D_backend)
+    MNE_3D_BACKEND = os.environ.get('MNE_3D_BACKEND', default_3d_backend)
 
 if MNE_3D_BACKEND == 'mayavi':
     from ._pysurfer_mayavi import Renderer, Projection  # noqa: F401
@@ -22,7 +22,7 @@ else:
 sys.stderr.write('Using {} backend.\n'.format(MNE_3D_BACKEND))
 
 
-def set_3D_backend(backend_name):
+def set_3d_backend(backend_name):
     """Set the backend for MNE.
 
     The backend will be set as specified and operations will use
@@ -38,7 +38,7 @@ def set_3D_backend(backend_name):
     importlib.reload(renderer)
 
 
-def get_3D_backend():
+def get_3d_backend():
     """Return the backend currently used.
 
     Returns

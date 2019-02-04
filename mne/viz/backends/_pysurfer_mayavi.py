@@ -10,7 +10,7 @@ from ...surface import _normalize_vectors
 from ...utils import _import_mlab, _validate_type
 
 
-class Projection:
+class Projection(object):
     """Class storing projection information.
 
     Attributes
@@ -31,7 +31,7 @@ class Projection:
         self.pts.visible = state
 
 
-class Renderer:
+class Renderer(object):
     """Class managing rendering scene.
 
     Attributes
