@@ -48,7 +48,7 @@ class Renderer:
         self.fig = None
 
     def setup(self, size=(600, 600), bgcolor=(0., 0., 0.), name=None):
-        """Setup the scene.
+        """Set up the scene.
 
         Parameters
         ----------
