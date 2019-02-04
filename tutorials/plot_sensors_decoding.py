@@ -406,7 +406,8 @@ plt.colorbar(im, ax=ax)
 # ==========
 # .. [1] Jean-Rémi King et al. (2018) "Encoding and Decoding Neuronal Dynamics:
 #        Methodological Framework to Uncover the Algorithms of Cognition",
-#        in press. https://hal.archives-ouvertes.fr/hal-01848442/
+#        2018. The Cognitive Neurosciences VI.
+#        https://hal.archives-ouvertes.fr/hal-01848442/
 # .. [2] Zoltan J. Koles. The quantitative extraction and topographic mapping
 #        of the abnormal components in the clinical EEG. Electroencephalography
 #        and Clinical Neurophysiology, 79(6):440--447, December 1991.
