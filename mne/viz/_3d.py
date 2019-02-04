@@ -325,9 +325,10 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     n_jobs : int
         Number of jobs to run in parallel.
 
-        .. versionadded:: 0.18
     return_mayavi_figure : bool
         If True (default), return mayavi figure.
+
+        .. versionadded:: 0.18
 
     Returns
     -------
@@ -614,7 +615,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         Mayavi Scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
 
-        .. versionadded:: 0.18
+        .. versionadded:: 0.16
     renderer : backends.Renderer | None
         Rendering Scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
@@ -623,7 +624,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     return_mayavi_figure : bool
         If True (default), return mayavi figure.
 
-        .. versionadded:: 0.16
+        .. versionadded:: 0.18
     interaction : str
         Can be "trackball" (default) or "terrain", i.e. a turntable-style
         camera.
@@ -2343,9 +2344,10 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
-        .. versionadded:: 0.18
     return_mayavi_surface : bool
         If True (default), return mayavi triangular surface.
+
+        .. versionadded:: 0.18
 
     **kwargs : kwargs
         Keyword arguments to pass to mlab.triangular_mesh.
@@ -2577,9 +2579,10 @@ def snapshot_brain_montage(fig=None, montage=None, renderer=None,
         channel positions will be pulled from the `loc` field of `chs`.
         dict should have ch:xyz mappings.
 
-        .. versionadded:: 0.18
     renderer : backends.Renderer object | None
         Rendering Scene in which to plot the alignment.
+
+        .. versionadded:: 0.18
 
     hide_sensors : bool
         Whether to remove the spheres in the scene before taking a snapshot.
