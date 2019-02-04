@@ -64,7 +64,7 @@ def _get_data():
 
 @testing.requires_testing_data
 def test_check_info_inv():
-    """Test checks for common channels acros fwd model and cov matrices."""
+    """Test checks for common channels across fwd model and cov matrices."""
     epochs, data_cov, noise_cov, forward = _get_data()
 
     # make sure same channel lists exist in data to make testing life easier
