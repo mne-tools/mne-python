@@ -963,7 +963,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                       vmin=None, vmax=None, cmap='RdBu_r', colorbar=False,
                       title=None, show=True, outlines='head', contours=6,
                       image_interp='bilinear', head_pos=None, axes=None,
-                      sensors=True):
+                      sensors=True, allow_ref_meg=False):
     """Plot single ica map to axes."""
     import matplotlib as mpl
     from ..channels import _get_ch_type
@@ -974,7 +974,10 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
     if not isinstance(axes, mpl.axes.Axes):
         raise ValueError('axis has to be an instance of matplotlib Axes, '
                          'got %s instead.' % type(axes))
-    ch_type = _get_ch_type(ica, ch_type)
+    ch_type = _get_ch_type(ica, ch_type, allow_ref_meg=ica.allow_ref_meg)
+    if ch_type == "ref_meg":
+        logger.info("Cannot produce topographies for MEG reference channels.")
+        return
 
     data = ica.get_components()[:, idx]
     data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
