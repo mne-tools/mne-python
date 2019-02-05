@@ -168,9 +168,8 @@ class RawEDF(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
-                 stim_channel='auto', exclude=(), preload=False,
-                 verbose=None):  # noqa: D102
-        logger.info('Extracting EDF parameters from %s...' % input_fname)
+                 stim_channel='auto', exclude=(), preload=False, verbose=None):
+        logger.info('Extracting EDF parameters from {}...'.format(input_fname))
         input_fname = os.path.abspath(input_fname)
         info, edf_info, orig_units = _get_info(input_fname,
                                                stim_channel, eog, misc,
@@ -180,18 +179,18 @@ class RawEDF(BaseRaw):
 
         # Raw attributes
         last_samps = [edf_info['nsamples'] - 1]
-        super(RawEDF, self).__init__(
-            info, preload, filenames=[input_fname], raw_extras=[edf_info],
-            last_samps=last_samps, orig_format='int', orig_units=orig_units,
-            verbose=verbose)
+        super().__init__(info, preload, filenames=[input_fname],
+                         raw_extras=[edf_info], last_samps=last_samps,
+                         orig_format='int', orig_units=orig_units,
+                         verbose=verbose)
 
         # Read annotations from file and set it
         onset, duration, desc = list(), list(), list()
         ext = os.path.splitext(input_fname)[1][1:].lower()
-        if ext in ('gdf'):
-            onset, duration, desc = _get_annotations_gdf(edf_info,
-                                                         self.info['sfreq'])
-        elif len(edf_info['tal_idx']) > 0:
+        # if ext in ('gdf'):
+        #     onset, duration, desc = _get_annotations_gdf(edf_info,
+        #                                                  self.info['sfreq'])
+        if len(edf_info['tal_idx']) > 0:
             # Read TAL data exploiting the header info (no regexp)
             tal_data = self._read_segment_file([], [], 0, 0, int(self.n_times),
                                                None, None)
@@ -203,124 +202,7 @@ class RawEDF(BaseRaw):
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        from scipy.interpolate import interp1d
-
-        if mult is not None:
-            # XXX "cals" here does not function the same way as in RawFIF,
-            # and for efficiency we want to be able to combine mult and cals
-            # so proj support will have to wait until this is resolved
-            raise NotImplementedError('mult is not supported yet')
-        n_samps = self._raw_extras[fi]['n_samps']
-        buf_len = int(self._raw_extras[fi]['max_samp'])
-        dtype = self._raw_extras[fi]['dtype_np']
-        dtype_byte = self._raw_extras[fi]['dtype_byte']
-        data_offset = self._raw_extras[fi]['data_offset']
-        stim_channel = self._raw_extras[fi]['stim_channel']
-        orig_sel = self._raw_extras[fi]['sel']
-        tal_idx = self._raw_extras[fi].get('tal_idx', [])
-        subtype = self._raw_extras[fi]['subtype']
-
-        if np.size(dtype_byte) > 1:
-            if len(np.unique(dtype_byte)) > 1:
-                warn("Multiple data type not supported")
-            dtype = dtype[0]
-            dtype_byte = dtype_byte[0]
-
-        # gain constructor
-        physical_range = np.array([ch['range'] for ch in self.info['chs']])
-        cal = np.array([ch['cal'] for ch in self.info['chs']])
-        assert cal.shape == (len(self.info['chs']),)
-        cal = np.atleast_2d(physical_range / cal)  # physical / digital
-        gains = np.atleast_2d(self._raw_extras[fi]['units'])
-
-        # physical dimension in uV
-        physical_min = self._raw_extras[fi]['physical_min']
-        digital_min = self._raw_extras[fi]['digital_min']
-
-        offsets = np.atleast_2d(physical_min - (digital_min * cal)).T
-        this_sel = orig_sel[idx]
-        if len(tal_idx):
-            this_sel = np.concatenate([this_sel, tal_idx])
-        tal_data = []
-
-        # We could read this one EDF block at a time, which would be this:
-        ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
-        block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
-        # But to speed it up, we really need to read multiple blocks at once,
-        # Otherwise we can end up with e.g. 18,181 chunks for a 20 MB file!
-        # Let's do ~10 MB chunks:
-        n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * dtype_byte), 1)
-        with open(self._filenames[fi], 'rb', buffering=0) as fid:
-
-            # Extract data
-            start_offset = (data_offset +
-                            block_start_idx * ch_offsets[-1] * dtype_byte)
-            for ai in range(0, len(r_lims), n_per):
-                block_offset = ai * ch_offsets[-1] * dtype_byte
-                n_read = min(len(r_lims) - ai, n_per)
-                fid.seek(start_offset + block_offset, 0)
-                # Read and reshape to (n_chunks_read, ch0_ch1_ch2_ch3...)
-                many_chunk = _read_ch(fid, subtype, ch_offsets[-1] * n_read,
-                                      dtype_byte, dtype).reshape(n_read, -1)
-                for ii, ci in enumerate(this_sel):
-                    # This now has size (n_chunks_read, n_samp[ci])
-                    ch_data = many_chunk[:, ch_offsets[ci]:ch_offsets[ci + 1]]
-
-                    if len(tal_idx) and ci == tal_idx[0]:
-                        tal_data.append(ch_data)
-                        continue
-
-                    r_sidx = r_lims[ai][0]
-                    r_eidx = (buf_len * (n_read - 1) +
-                              r_lims[ai + n_read - 1][1])
-                    d_sidx = d_lims[ai][0]
-                    d_eidx = d_lims[ai + n_read - 1][1]
-                    if n_samps[ci] != buf_len:
-                        if stim_channel is not None and ci in stim_channel:
-                            # Stim channel will be interpolated
-                            old = np.linspace(0, 1, n_samps[ci] + 1, True)
-                            new = np.linspace(0, 1, buf_len, False)
-                            ch_data = np.append(
-                                ch_data, np.zeros((len(ch_data), 1)), -1)
-                            ch_data = interp1d(old, ch_data,
-                                               kind='zero', axis=-1)(new)
-                        else:
-                            # XXX resampling each chunk isn't great,
-                            # it forces edge artifacts to appear at
-                            # each buffer boundary :(
-                            # it can also be very slow...
-                            ch_data = resample(ch_data, buf_len, n_samps[ci],
-                                               npad=0, axis=-1)
-                    assert ch_data.shape == (len(ch_data), buf_len)
-                    data[ii, d_sidx:d_eidx] = ch_data.ravel()[r_sidx:r_eidx]
-
-        # only try to read the stim channel if it's not None and it's
-        # actually one of the requested channels
-        if stim_channel is None:  # avoid NumPy comparison to None
-            stim_channel_idx = np.array([], int)
-        else:
-            _idx = np.arange(self.info['nchan'])[idx]  # slice -> ints
-            stim_channel_idx = list()
-            for stim_ch in stim_channel:
-                stim_ch_idx = np.where(_idx == stim_ch)[0].tolist()
-                if len(stim_ch_idx):
-                    stim_channel_idx.append(stim_ch_idx)
-            stim_channel_idx = np.array(stim_channel_idx).ravel()
-
-        if subtype == 'bdf':
-            cal[0, stim_channel_idx] = 1
-            offsets[stim_channel_idx, 0] = 0
-            gains[0, stim_channel_idx] = 1
-        data *= cal.T[idx]
-        data += offsets[idx]
-        data *= gains.T[idx]
-
-        if stim_channel is not None and len(stim_channel_idx) > 0:
-            stim = np.bitwise_and(data[stim_channel_idx].astype(int),
-                                  2**17 - 1)
-            data[stim_channel_idx, :] = stim
-
-        return tal_data
+        return _read_segment_file(data, idx, fi, start, stop, cals, mult)
 
     @copy_function_doc_to_method_doc(find_edf_events)
     @deprecated('find_edf_events is deprecated in 0.18, and will be removed'
@@ -346,6 +228,128 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
         ch_data = np.fromfile(fid, dtype=dtype, count=samp)
 
     return ch_data
+
+
+def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+    """Read a chunk of raw data."""
+    from scipy.interpolate import interp1d
+
+    if mult is not None:
+        # XXX "cals" here does not function the same way as in RawFIF,
+        # and for efficiency we want to be able to combine mult and cals
+        # so proj support will have to wait until this is resolved
+        raise NotImplementedError('mult is not supported yet')
+    n_samps = self._raw_extras[fi]['n_samps']
+    buf_len = int(self._raw_extras[fi]['max_samp'])
+    dtype = self._raw_extras[fi]['dtype_np']
+    dtype_byte = self._raw_extras[fi]['dtype_byte']
+    data_offset = self._raw_extras[fi]['data_offset']
+    stim_channel = self._raw_extras[fi]['stim_channel']
+    orig_sel = self._raw_extras[fi]['sel']
+    tal_idx = self._raw_extras[fi].get('tal_idx', [])
+    subtype = self._raw_extras[fi]['subtype']
+
+    if np.size(dtype_byte) > 1:
+        if len(np.unique(dtype_byte)) > 1:
+            warn("Multiple data type not supported")
+        dtype = dtype[0]
+        dtype_byte = dtype_byte[0]
+
+    # gain constructor
+    physical_range = np.array([ch['range'] for ch in self.info['chs']])
+    cal = np.array([ch['cal'] for ch in self.info['chs']])
+    assert cal.shape == (len(self.info['chs']),)
+    cal = np.atleast_2d(physical_range / cal)  # physical / digital
+    gains = np.atleast_2d(self._raw_extras[fi]['units'])
+
+    # physical dimension in uV
+    physical_min = self._raw_extras[fi]['physical_min']
+    digital_min = self._raw_extras[fi]['digital_min']
+
+    offsets = np.atleast_2d(physical_min - (digital_min * cal)).T
+    this_sel = orig_sel[idx]
+    if len(tal_idx):
+        this_sel = np.concatenate([this_sel, tal_idx])
+    tal_data = []
+
+    # We could read this one EDF block at a time, which would be this:
+    ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
+    block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
+    # But to speed it up, we really need to read multiple blocks at once,
+    # Otherwise we can end up with e.g. 18,181 chunks for a 20 MB file!
+    # Let's do ~10 MB chunks:
+    n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * dtype_byte), 1)
+    with open(self._filenames[fi], 'rb', buffering=0) as fid:
+
+        # Extract data
+        start_offset = (data_offset +
+                        block_start_idx * ch_offsets[-1] * dtype_byte)
+        for ai in range(0, len(r_lims), n_per):
+            block_offset = ai * ch_offsets[-1] * dtype_byte
+            n_read = min(len(r_lims) - ai, n_per)
+            fid.seek(start_offset + block_offset, 0)
+            # Read and reshape to (n_chunks_read, ch0_ch1_ch2_ch3...)
+            many_chunk = _read_ch(fid, subtype, ch_offsets[-1] * n_read,
+                                  dtype_byte, dtype).reshape(n_read, -1)
+            for ii, ci in enumerate(this_sel):
+                # This now has size (n_chunks_read, n_samp[ci])
+                ch_data = many_chunk[:, ch_offsets[ci]:ch_offsets[ci + 1]]
+
+                if len(tal_idx) and ci == tal_idx[0]:
+                    tal_data.append(ch_data)
+                    continue
+
+                r_sidx = r_lims[ai][0]
+                r_eidx = (buf_len * (n_read - 1) +
+                          r_lims[ai + n_read - 1][1])
+                d_sidx = d_lims[ai][0]
+                d_eidx = d_lims[ai + n_read - 1][1]
+                if n_samps[ci] != buf_len:
+                    if stim_channel is not None and ci in stim_channel:
+                        # Stim channel will be interpolated
+                        old = np.linspace(0, 1, n_samps[ci] + 1, True)
+                        new = np.linspace(0, 1, buf_len, False)
+                        ch_data = np.append(
+                            ch_data, np.zeros((len(ch_data), 1)), -1)
+                        ch_data = interp1d(old, ch_data,
+                                           kind='zero', axis=-1)(new)
+                    else:
+                        # XXX resampling each chunk isn't great,
+                        # it forces edge artifacts to appear at
+                        # each buffer boundary :(
+                        # it can also be very slow...
+                        ch_data = resample(ch_data, buf_len, n_samps[ci],
+                                           npad=0, axis=-1)
+                assert ch_data.shape == (len(ch_data), buf_len)
+                data[ii, d_sidx:d_eidx] = ch_data.ravel()[r_sidx:r_eidx]
+
+    # only try to read the stim channel if it's not None and it's
+    # actually one of the requested channels
+    if stim_channel is None:  # avoid NumPy comparison to None
+        stim_channel_idx = np.array([], int)
+    else:
+        _idx = np.arange(self.info['nchan'])[idx]  # slice -> ints
+        stim_channel_idx = list()
+        for stim_ch in stim_channel:
+            stim_ch_idx = np.where(_idx == stim_ch)[0].tolist()
+            if len(stim_ch_idx):
+                stim_channel_idx.append(stim_ch_idx)
+        stim_channel_idx = np.array(stim_channel_idx).ravel()
+
+    if subtype == 'bdf':
+        cal[0, stim_channel_idx] = 1
+        offsets[stim_channel_idx, 0] = 0
+        gains[0, stim_channel_idx] = 1
+    data *= cal.T[idx]
+    data += offsets[idx]
+    data *= gains.T[idx]
+
+    if stim_channel is not None and len(stim_channel_idx) > 0:
+        stim = np.bitwise_and(data[stim_channel_idx].astype(int),
+                              2**17 - 1)
+        data[stim_channel_idx, :] = stim
+
+    return tal_data
 
 
 def _read_header(fname, exclude):
