@@ -61,6 +61,8 @@ Changelog
 
 - Add ``reject_by_annotation`` argument to :func:`mne.preprocessing.find_ecg_events` by `Eric Larson`_
 
+- Add ``pca`` argument to return the rank-reduced whitener in :func:`mne.cov.compute_whitener` by `Eric Larson`_
+
 - Add ``extrapolate`` argument to :func:`mne.viz.plot_topomap` for better control of extrapolation points placement by `Mikołaj Magnuski`_
 
 - Add ``channel_wise`` argument to :func:`mne.io.Raw.apply_function` to allow applying a function on multiple channels at once by `Hubert Banville`_

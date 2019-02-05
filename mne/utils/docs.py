@@ -15,14 +15,19 @@ from .config import get_config
 from ..externals.doccer import filldoc, unindent_dict
 
 
-docdict = dict(
-    verbose="""
+##############################################################################
+# Define our standard documentation entries
+
+docdict = dict()
+
+# Verbose
+docdict['verbose'] = """
 verbose : bool, str, int, or None
     If not None, override default verbose level (see :func:`mne.verbose`
     and :ref:`Logging documentation <tut_logging>` for more)."""
-)
 docdict['verbose_meth'] = (docdict['verbose'] + ' Defaults to self.verbose.')
 
+# Picks
 docdict['picks_header'] = 'picks : str | list | slice | None'
 docdict['picks_base'] = docdict['picks_header'] + """
     Channels to include. Slices and lists of integers will be
@@ -45,9 +50,22 @@ picks : list | slice | None
     interpreted as channel indices. None (default) will pick all channels.
 """
 
+# Rank
+docdict['rank'] = """
+rank : None | dict | 'info' | 'full'
+        This controls the rank computation that can be read from the
+        measurement info or estimated from the data. See ``Notes``
+        of :func:`mne.compute_rank` for details."""
+docdict['rank_None'] = docdict['rank'] + 'The default is None.'
+docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
+# Finalize
+
 docdict = unindent_dict(docdict)
 fill_doc = filldoc(docdict, unindent_params=False)
 
+
+##############################################################################
+# Utilities for docstring manipulation.
 
 def copy_doc(source):
     """Copy the docstring from another function (decorator).

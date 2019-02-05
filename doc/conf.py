@@ -500,7 +500,7 @@ numpydoc_xref_ignore = {
     'n_parts', 'n_features_new', 'n_components', 'n_labels', 'n_events_in',
     'n_splits', 'n_scores', 'n_outputs', 'n_trials', 'n_estimators', 'n_tasks',
     'nd_features', 'n_classes', 'n_targets', 'n_slices', 'n_hpi', 'n_fids',
-    'n_elp', 'n_pts', 'n_tris', 'n_nodes',
+    'n_elp', 'n_pts', 'n_tris', 'n_nodes', 'n_nonzero',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
     'RawBrainVision',

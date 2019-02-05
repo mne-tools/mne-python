@@ -392,6 +392,8 @@ def _check_channels_spatial_filter(ch_names, filters):
 
 def _check_rank(rank):
     """Check rank parameter and deal with deprecation."""
+    err_msg = ('rank must be None, dict, "full", or int, '
+               'got %s (type %s)' % (rank, type(rank)))
     if isinstance(rank, str):
         # XXX we can use rank='' to deprecate to get to None eventually:
         # if rank == '':
@@ -399,39 +401,19 @@ def _check_rank(rank):
         #          'to None in 0.19, set it explicitly to avoid this warning',
         #          DeprecationWarning)
         #     rank = 'full'
-        if rank not in ['full', 'auto']:
-            raise ValueError('rank, if str, must be "full" or "auto", '
+        if rank not in ['full', 'info']:
+            raise ValueError('rank, if str, must be "full" or "info", '
                              'got %s' % (rank,))
+    elif isinstance(rank, bool):
+        raise TypeError(err_msg)
     elif rank is not None and not isinstance(rank, dict):
         try:
             rank = int(operator.index(rank))
         except TypeError:
-            raise TypeError('rank must be None, dict, "full", or int-like, '
-                            'got %s (type %s)' % (rank, type(rank)))
-    return rank
-
-
-def _check_rank_cov(rank, methods, was_auto=False):
-    """Check validity of rank input argument."""
-    if isinstance(rank, str) and rank != 'full':
-        raise ValueError('rank, if str, must be "full", got %s' % (rank,))
-    if not (isinstance(rank, str) and rank == 'full'):
-        if was_auto:
-            methods.pop(methods.index('factor_analysis'))
-        for method in methods:
-            if method in ('pca', 'factor_analysis'):
-                raise ValueError('%s can so far only be used with rank="full",'
-                                 ' got rank=%r' % (method, rank))
-        rank = dict() if rank is None else rank
-        orig_rank = rank
-        try:
-            rank = int(operator.index(rank))
-        except Exception:
-            pass
+            raise TypeError(err_msg)
         else:
+            warn('rank as int is deprecated and will be removed in 0.19. '
+                 'use rank=dict(meg=...) instead.', DeprecationWarning)
             rank = dict(meg=rank)
-        if not isinstance(rank, dict) or orig_rank is False:
-            raise ValueError('rank must be an int, dict, None, or "full", '
-                             'got %s (type %s)' % (rank, type(rank)))
-    return rank, methods
+    return rank
 

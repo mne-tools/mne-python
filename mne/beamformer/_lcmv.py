@@ -26,7 +26,7 @@ from ._compute_beamformer import (
 
 @verbose
 def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
-              pick_ori=None, rank='auto', weight_norm='unit-noise-gain',
+              pick_ori=None, rank='info', weight_norm='unit-noise-gain',
               reduce_rank=False, verbose=None):
     """Compute LCMV spatial filter.
 
@@ -62,15 +62,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
             'vector'
                 Keeps the currents for each direction separate
 
-    rank : int | None | 'full'
-        This controls the effective rank of the covariance matrix when
-        computing the inverse. The rank can be set explicitly by specifying an
-        integer value. If ``None``, the rank will be automatically estimated.
-        Since applying regularization will always make the covariance matrix
-        full rank, the rank is estimated before regularization in this case. If
-        'full', the rank will be estimated after regularization and hence
-        will mean using the full rank, unless ``reg=0`` is used.
-        The default in ``'full'``.
+    %(rank_info)s
     weight_norm : 'unit-noise-gain' | 'nai' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
@@ -133,8 +125,15 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     data_rank = compute_rank(data_cov, rank=rank, info=info)
     if noise_cov is not None:
         noise_rank = compute_rank(noise_cov, rank=rank, info=info)
-        assert data_rank == noise_rank
+        for key in data_rank:
+            if key not in noise_rank or data_rank[key] != noise_rank[key]:
+                raise ValueError('%s data rank (%s) did not match the noise '
+                                 'rank (%s)'
+                                 % (key, data_rank[key],
+                                    noise_rank.get(key, None)))
+        del noise_rank
     rank = data_rank
+    del data_rank
 
     is_free_ori, ch_names, proj, vertno, G, nn = \
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
@@ -155,9 +154,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     if noise_cov is not None:
         # Handle whitening + data covariance
-        whitener_rank = None if rank == 'full' else rank
-        whitener, _, rank = compute_whitener(
-            noise_cov, info, picks, rank=whitener_rank, return_rank=True)
+        whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)
         # whiten the leadfield
         G = np.dot(whitener, G)
         # whiten data covariance
@@ -165,9 +162,11 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         noise_cov = noise_cov.copy()
         if 'estimator' in noise_cov:
             del noise_cov['estimator']
+        rank_int = sum(rank.values())
     else:
         whitener = None
-        rank = G.shape[0]
+        rank_int = G.shape[0]
+    del rank
 
     # leadfield rank and optional rank reduction
     if reduce_rank:
@@ -181,7 +180,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     # compute spatial filter
     n_orient = 3 if is_free_ori else 1
     W = _compute_beamformer(G, Cm, reg, n_orient, weight_norm,
-                            pick_ori, reduce_rank, rank,
+                            pick_ori, reduce_rank, rank_int,
                             inversion='matrix', nn=nn)
 
     # get src type to store with filters for _make_stc
@@ -198,7 +197,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         whitener=whitener, weight_norm=weight_norm, pick_ori=pick_ori,
         ch_names=ch_names, proj=proj, is_ssp=is_ssp, vertices=vertno,
         is_free_ori=is_free_ori, nsource=forward['nsource'], src_type=src_type,
-        source_nn=forward['source_nn'].copy(), subject=subject_from, rank=rank)
+        source_nn=forward['source_nn'].copy(), subject=subject_from,
+        rank=rank_int)
 
     return filters
 
@@ -432,8 +432,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
     # _reg_pinv(..., rank=rank) later
     if noise_cov is not None:
         whitener_rank = None if rank == 'full' else rank
-        whitener, _ = compute_whitener(
-            noise_cov, info, rank=whitener_rank)
+        whitener, _ = compute_whitener(noise_cov, info, rank=whitener_rank)
 
         # whiten the leadfield
         G = np.dot(whitener, G)

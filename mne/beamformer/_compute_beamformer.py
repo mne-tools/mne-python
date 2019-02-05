@@ -7,7 +7,6 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
-import operator
 
 import numpy as np
 from scipy import linalg
@@ -19,7 +18,7 @@ from ..io.proj import make_projector, Projection
 from ..io.pick import pick_channels_forward
 from ..minimum_norm.inverse import _get_vertno
 from ..source_space import label_src_vertno_sel
-from ..utils import warn, verbose, check_fname, _reg_pinv
+from ..utils import logger, verbose, check_fname, _reg_pinv
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
@@ -236,14 +235,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         The source orientation to compute the beamformer in.
     reduce_rank : bool
         Whether to reduce the rank by one during computation of the filter.
-    rank : int | None | 'full'
-        This controls the effective rank of the covariance matrix when
-        computing the inverse. The rank can be set explicitly by specifying an
-        integer value. If ``None``, the rank will be automatically estimated.
-        Since applying regularization will always make the covariance matrix
-        full rank, the rank is estimated before regularization in this case. If
-        'full', the rank will be estimated after regularization and hence
-        will mean using the full rank, unless ``reg=0`` is used.
+    rank : dict | None | 'full' | 'info'
+        See compute_rank.
     inversion : 'matrix' | 'single'
         The inversion scheme to compute the weights.
     nn : ndarray, shape (n_dipoles, 3)

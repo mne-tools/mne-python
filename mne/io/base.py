@@ -1850,9 +1850,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                  show=show, block=block, n_jobs=n_jobs,
                                  axes=axes, verbose=verbose)
 
-    @fill_doc
+    @verbose
     def estimate_rank(self, tstart=0.0, tstop=30.0, tol=1e-4,
-                      return_singular=False, picks=None, scalings='norm'):
+                      return_singular=False, picks=None, scalings='norm',
+                      verbose=None):
         """Estimate rank of the raw data.
 
         This function is meant to provide a reasonable estimate of the rank.
@@ -1875,7 +1876,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             If True, also return the singular values that were used
             to determine the rank.
         %(picks_good_data)s
-        scalings : dict | 'norm'
+        scalings : dict | 'norm' | None
             To achieve reliable rank estimation on multiple sensors,
             sensors have to be rescaled. This parameter controls the
             rescaling. If dict, it will update the
@@ -1884,8 +1885,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 dict(mag=1e11, grad=1e9, eeg=1e5)
 
             If 'norm' data will be scaled by internally computed
-            channel-wise norms.
+            channel-wise norms. None will perform no scaling.
             Defaults to 'norm'.
+        %(verbose)s
 
         Returns
         -------

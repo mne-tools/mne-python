@@ -227,16 +227,22 @@ def test_make_inverse_operator():
     inverse_operator = read_inverse_operator(fname_inv)
     fwd_op = convert_forward_solution(read_forward_solution_meg(fname_fwd),
                                       surf_ori=True, copy=False)
-    my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
-                                      loose=0.2, depth=0.8,
-                                      limit_depth_chs=False)
+    with catch_logging() as log:
+        my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
+                                          loose=0.2, depth=0.8,
+                                          limit_depth_chs=False, verbose=True)
+    log = log.getvalue()
+    assert 'rank 302 (3 small eigenvalues omitted)' in log
     _compare_io(my_inv_op)
     assert_equal(inverse_operator['units'], 'Am')
     _compare_inverses_approx(my_inv_op, inverse_operator, evoked,
                              rtol=1e-2, atol=1e-5, depth_atol=1e-3)
     # Test MNE inverse computation starting from forward operator
-    my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
-                                      loose=0.2, depth=0.8)
+    with catch_logging() as log:
+        my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
+                                          loose=0.2, depth=0.8, verbose=True)
+    log = log.getvalue()
+    assert 'rank 302 (3 small eigenvalues omitted)' in log
     _compare_io(my_inv_op)
     _compare_inverses_approx(my_inv_op, inverse_operator, evoked,
                              rtol=1e-3, atol=1e-5)
@@ -547,8 +553,12 @@ def test_make_inverse_operator_fixed():
     # now compare to C solution
     # note that the forward solution must not be surface-oriented
     # to get equivalency (surf_ori=True changes the normals)
-    inv_op = make_inverse_operator(evoked.info, fwd, noise_cov, depth=None,
-                                   fixed=True, use_cps=False)
+    with catch_logging() as log:
+        inv_op = make_inverse_operator(
+            evoked.info, fwd, noise_cov, depth=None, fixed=True,
+            use_cps=False, verbose=True)
+    log = log.getvalue()
+    assert 'rank 302 (3 small eigenvalues omitted)' in log
     assert 'EEG channels: 0' in repr(inv_op)
     assert 'MEG channels: 305' in repr(inv_op)
     del fwd_fixed
@@ -671,7 +681,11 @@ def test_inverse_operator_noise_cov_rank():
     fwd_op = read_forward_solution_meg(fname_fwd, surf_ori=True)
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
-    inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=64)
+    with pytest.deprecated_call():  # rank int
+        inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=64)
+    assert (compute_rank_inverse(inv) == 64)
+    inv = make_inverse_operator(evoked.info, fwd_op, noise_cov,
+                                rank=dict(meg=64))
     assert (compute_rank_inverse(inv) == 64)
 
     fwd_op = read_forward_solution_eeg(fname_fwd, surf_ori=True)

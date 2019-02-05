@@ -27,6 +27,7 @@ event_id = dict(cond2=2, cond3=3)
 def _get_data():
     """Get data."""
     raw = read_raw_fif(raw_fname, verbose=False, preload=True)
+    raw.set_eeg_reference(projection=True)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=False, eeg=True, stim=False,
                        ecg=False, eog=False,
@@ -48,7 +49,8 @@ def test_xdawn_picks():
     info = create_info(2, 1000., ('eeg', 'misc'))
     epochs = EpochsArray(data, info)
     xd = Xdawn(correct_overlap=False)
-    xd.fit(epochs)
+    with pytest.warns(RuntimeWarning, match='No average EEG'):
+        xd.fit(epochs)
     epochs_out = xd.apply(epochs)['1']
     assert epochs_out.info['ch_names'] == epochs.ch_names
     assert not (epochs_out.get_data()[:, 0] != data[:, 0]).any()
@@ -198,6 +200,7 @@ def test_XdawnTransformer():
     """Test _XdawnTransformer."""
     # Get data
     raw, events, picks = _get_data()
+    raw.del_proj()
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     preload=True, baseline=None, verbose=False)
     X = epochs._data
@@ -231,7 +234,8 @@ def test_XdawnTransformer():
 
     # Compare xdawn and _XdawnTransformer
     xd = Xdawn(correct_overlap=False)
-    xd.fit(epochs)
+    with pytest.warns(RuntimeWarning, match='No average EEG'):
+        xd.fit(epochs)
 
     xdt = _XdawnTransformer()
     xdt.fit(X, y)
