@@ -4,13 +4,24 @@ Core visualization operations based on Mayavi.
 Actual implementation of Renderer and Projection classes.
 """
 
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Denis Engemann <denis.engemann@gmail.com>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Eric Larson <larson.eric.d@gmail.com>
+#          Mainak Jas <mainak@neuro.hut.fi>
+#          Mark Wronkiewicz <wronk.mark@gmail.com>
+#          Joan Massich <mailsik@gmail.com>
+#          Guillaume Favelier <guillaume.favelier@gmail.com>
+#
+# License: Simplified BSD
+
 import warnings
 import numpy as np
 from ...surface import _normalize_vectors
 from ...utils import _import_mlab, _validate_type
 
 
-class Projection(object):
+class _Projection(object):
     """Class storing projection information.
 
     Attributes
@@ -307,7 +318,7 @@ class Renderer(object):
         xy = dict(zip(ch_names, xy))
         pts = self.fig.children[-1]
 
-        return Projection(xy=xy, pts=pts)
+        return _Projection(xy=xy, pts=pts)
 
 
 def _mlab_figure(**kwargs):

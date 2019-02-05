@@ -1,3 +1,12 @@
+"""Core visualization operations."""
+
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Eric Larson <larson.eric.d@gmail.com>
+#          Joan Massich <mailsik@gmail.com>
+#          Guillaume Favelier <guillaume.favelier@gmail.com>
+#
+# License: Simplified BSD
+
 import sys
 import os
 import importlib
@@ -13,7 +22,7 @@ except NameError:
     MNE_3D_BACKEND = os.environ.get('MNE_3D_BACKEND', default_3d_backend)
 
 if MNE_3D_BACKEND == 'mayavi':
-    from ._pysurfer_mayavi import Renderer, Projection  # noqa: F401
+    from ._pysurfer_mayavi import Renderer, _Projection  # noqa: F401
 else:
     import warnings
     warnings.warn('MNE_3D_BACKEND should be "mayavi" : '
