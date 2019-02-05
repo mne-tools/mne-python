@@ -7,9 +7,9 @@
 #
 # License: Simplified BSD
 
-import sys
 import os
 import importlib
+from ..utils import logger
 
 default_3d_backend = 'mayavi'
 
@@ -28,7 +28,7 @@ else:
     warnings.warn('MNE_3D_BACKEND should be "mayavi" : '
                   '{} was given.'.format(MNE_3D_BACKEND))
 
-sys.stderr.write('Using {} backend.\n'.format(MNE_3D_BACKEND))
+logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
 
 def set_3d_backend(backend_name):
