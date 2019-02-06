@@ -42,3 +42,37 @@ def seed_target_indices(seeds, targets):
                np.tile(targets, n_seeds))
 
     return indices
+
+
+def degree(connectivity, threshold=1.):
+    """Compute the undirected degree of a connectivity matrix.
+
+    Parameters
+    ----------
+    connectivity : ndarray, shape (n_nodes, n_nodes)
+        The connectivity matrix.
+    threshold : float
+        The proportion of activations to keep before computing
+        the degree.
+
+    Returns
+    -------
+    degree : ndarray, shape (n_nodes,)
+        The computed degree.
+    """
+    connectivity = np.array(connectivity)
+    threshold = float(threshold)
+    if not 0 < threshold <= 1:
+        raise ValueError('threshold must be 0 <= threshold < 1, got %s'
+                         % (threshold,))
+    if connectivity.ndim != 2 or \
+            connectivity.shape[0] != connectivity.shape[1]:
+        raise ValueError('connectivity must be have shape (n_nodes, n_nodes), '
+                         'got %s' % (connectivity.shape,))
+    degree = connectivity.ravel()  # no need to copy because np.array does
+    degree[::connectivity.shape[0] + 1] = 0
+    n_keep = int(round((degree.size - len(connectivity)) * threshold))
+    degree[np.argsort(degree)[:-n_keep]] = 0
+    degree.shape = connectivity.shape
+    degree = np.sum(degree > 0, axis=0)
+    return degree

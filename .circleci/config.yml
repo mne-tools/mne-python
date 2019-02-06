@@ -143,6 +143,9 @@ jobs:
                     if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_auditory.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.brainstorm.bst_auditory.data_path(update_path=True))" --accept-brainstorm-license;
                     fi;
+                    if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_resting.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.brainstorm.bst_resting.data_path(update_path=True))" --accept-brainstorm-license;
+                    fi;
                     if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_raw.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.brainstorm.bst_raw.data_path(update_path=True))" --accept-brainstorm-license;
                     fi;

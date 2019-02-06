@@ -793,9 +793,11 @@ Connectivity Estimation
 .. autosummary::
    :toctree: generated/
 
+   degree
+   envelope_correlation
+   phase_slope_index
    seed_target_indices
    spectral_connectivity
-   phase_slope_index
 
 
 .. _api_reference_statistics:

@@ -2647,25 +2647,7 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
 
     This function will extract one time course for each label and source
     estimate. The way the time courses are extracted depends on the mode
-    parameter.
-
-    Valid values for mode are:
-
-        - 'mean': Average within each label.
-        - 'mean_flip': Average within each label with sign flip depending
-          on source orientation.
-        - 'pca_flip': Apply an SVD to the time courses within each label
-          and use the scaled and sign-flipped first right-singular vector
-          as the label time course. The scaling is performed such that the
-          power of the label time course is the same as the average
-          per-vertex time course power within the label. The sign of the
-          resulting time course is adjusted by multiplying it with
-          "sign(dot(u, flip))" where u is the first left-singular vector,
-          and flip is a sing-flip vector based on the vertex normals. This
-          procedure assures that the phase does not randomly change by 180
-          degrees from one stc to the next.
-        - 'max': Max value within each label.
-
+    parameter (see Notes).
 
     Parameters
     ----------
@@ -2690,6 +2672,30 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     -------
     label_tc : array | list (or generator) of array, shape (n_labels, n_times)
         Extracted time course for each label and source estimate.
+
+    Notes
+    -----
+    Valid values for mode are:
+
+    ``'mean'``
+        Average within each label.
+    ``'mean_flip'``
+        Average within each label with sign flip depending
+        on source orientation.
+    ``'pca_flip'``
+        Apply an SVD to the time courses within each label
+        and use the scaled and sign-flipped first right-singular vector
+        as the label time course. The scaling is performed such that the
+        power of the label time course is the same as the average
+        per-vertex time course power within the label. The sign of the
+        resulting time course is adjusted by multiplying it with
+        "sign(dot(u, flip))" where u is the first left-singular vector,
+        and flip is a sing-flip vector based on the vertex normals. This
+        procedure assures that the phase does not randomly change by 180
+        degrees from one stc to the next.
+    ``'max'``
+        Max value within each label.
+
     """
     # convert inputs to lists
     if isinstance(stcs, SourceEstimate):
