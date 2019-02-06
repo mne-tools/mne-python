@@ -328,6 +328,7 @@ def _check_if_nan(data, msg=" to be plotted"):
 def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
     """Return good channels common to forward model and covariance matrices."""
     from .. import pick_types
+    from mne.utils import logger
     # get a list of all channel names:
     fwd_ch_names = forward['info']['ch_names']
 
