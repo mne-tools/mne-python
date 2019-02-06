@@ -47,7 +47,7 @@ def find_edf_events(raw):
     name      description                          type
     ========  ===================================  =======
     n_events  The number of all events             integer
-    pos       Beginnning of the events in samples  array
+    pos       Beginning of the events in samples   array
     typ       The event identifiers                array
     chn       The associated channels (0 for all)  array
     dur       The durations of the events          array
@@ -202,7 +202,9 @@ class RawEDF(BaseRaw):
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        return _read_segment_file(data, idx, fi, start, stop, cals, mult)
+        return _read_segment_file(data, idx, fi, start, stop,
+                                  self._raw_extras[fi], self.info['chs'],
+                                  self._filenames[fi])
 
     @copy_function_doc_to_method_doc(find_edf_events)
     @deprecated('find_edf_events is deprecated in 0.18, and will be removed'
@@ -230,24 +232,19 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     return ch_data
 
 
-def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+def _read_segment_file(data, idx, fi, start, stop, raw_extras, chs, filenames):
     """Read a chunk of raw data."""
     from scipy.interpolate import interp1d
 
-    if mult is not None:
-        # XXX "cals" here does not function the same way as in RawFIF,
-        # and for efficiency we want to be able to combine mult and cals
-        # so proj support will have to wait until this is resolved
-        raise NotImplementedError('mult is not supported yet')
-    n_samps = self._raw_extras[fi]['n_samps']
-    buf_len = int(self._raw_extras[fi]['max_samp'])
-    dtype = self._raw_extras[fi]['dtype_np']
-    dtype_byte = self._raw_extras[fi]['dtype_byte']
-    data_offset = self._raw_extras[fi]['data_offset']
-    stim_channel = self._raw_extras[fi]['stim_channel']
-    orig_sel = self._raw_extras[fi]['sel']
-    tal_idx = self._raw_extras[fi].get('tal_idx', [])
-    subtype = self._raw_extras[fi]['subtype']
+    n_samps = raw_extras['n_samps']
+    buf_len = int(raw_extras['max_samp'])
+    dtype = raw_extras['dtype_np']
+    dtype_byte = raw_extras['dtype_byte']
+    data_offset = raw_extras['data_offset']
+    stim_channel = raw_extras['stim_channel']
+    orig_sel = raw_extras['sel']
+    tal_idx = raw_extras.get('tal_idx', [])
+    subtype = raw_extras['subtype']
 
     if np.size(dtype_byte) > 1:
         if len(np.unique(dtype_byte)) > 1:
@@ -256,15 +253,14 @@ def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         dtype_byte = dtype_byte[0]
 
     # gain constructor
-    physical_range = np.array([ch['range'] for ch in self.info['chs']])
-    cal = np.array([ch['cal'] for ch in self.info['chs']])
-    assert cal.shape == (len(self.info['chs']),)
+    physical_range = np.array([ch['range'] for ch in chs])
+    cal = np.array([ch['cal'] for ch in chs])
     cal = np.atleast_2d(physical_range / cal)  # physical / digital
-    gains = np.atleast_2d(self._raw_extras[fi]['units'])
+    gains = np.atleast_2d(raw_extras['units'])
 
     # physical dimension in uV
-    physical_min = self._raw_extras[fi]['physical_min']
-    digital_min = self._raw_extras[fi]['digital_min']
+    physical_min = raw_extras['physical_min']
+    digital_min = raw_extras['digital_min']
 
     offsets = np.atleast_2d(physical_min - (digital_min * cal)).T
     this_sel = orig_sel[idx]
@@ -279,7 +275,7 @@ def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
     # Otherwise we can end up with e.g. 18,181 chunks for a 20 MB file!
     # Let's do ~10 MB chunks:
     n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * dtype_byte), 1)
-    with open(self._filenames[fi], 'rb', buffering=0) as fid:
+    with open(filenames, 'rb', buffering=0) as fid:
 
         # Extract data
         start_offset = (data_offset +
@@ -328,7 +324,7 @@ def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
     if stim_channel is None:  # avoid NumPy comparison to None
         stim_channel_idx = np.array([], int)
     else:
-        _idx = np.arange(self.info['nchan'])[idx]  # slice -> ints
+        _idx = np.arange(len(chs))[idx]  # slice -> ints
         stim_channel_idx = list()
         for stim_ch in stim_channel:
             stim_ch_idx = np.where(_idx == stim_ch)[0].tolist()
