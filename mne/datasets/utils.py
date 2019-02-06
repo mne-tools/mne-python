@@ -190,8 +190,9 @@ def _get_path(path, key, name):
 def _do_path_update(path, update_path, key, name):
     """Update path."""
     path = op.abspath(path)
-    if update_path is None:
-        if get_config(key, '') != path:
+    identical = get_config(key, '', use_env=False) == path
+    if not identical:
+        if update_path is None:
             update_path = True
             if '--update-dataset-path' in sys.argv:
                 answer = 'y'
@@ -202,11 +203,9 @@ def _do_path_update(path, update_path, key, name):
                 answer = input(msg)
             if answer.lower() == 'n':
                 update_path = False
-        else:
-            update_path = False
 
-    if update_path is True:
-        set_config(key, path, set_env=False)
+        if update_path:
+            set_config(key, path, set_env=False)
     return path
 
 
