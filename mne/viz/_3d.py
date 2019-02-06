@@ -308,7 +308,7 @@ def _pivot_kwargs():
 
 
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
-                      n_jobs=1, return_mayavi_figure=True):
+                      n_jobs=1):
     """Plot MEG/EEG fields on head surface and helmet in 3D.
 
     Parameters
@@ -325,15 +325,10 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     n_jobs : int
         Number of jobs to run in parallel.
 
-    return_mayavi_figure : bool
-        If True (default), return mayavi figure.
-
-        .. versionadded:: 0.18
-
     Returns
     -------
-    fig : instance of mayavi.mlab.Figure
-        The mayavi figure.
+    scene : instance of renderer.scene()
+        The scene.
     """
     # Update the backend
     from .backends.renderer import Renderer
@@ -412,8 +407,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         with SilenceStdout():  # setting roll
             renderer.set_camera(azimuth=10, elevation=60)
     renderer.show()
-    if return_mayavi_figure:
-        return renderer.scene()
+    return renderer.scene()
 
 
 def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
@@ -540,8 +534,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                    meg=None, eeg='original',
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, show_axes=False, fig=None,
-                   renderer=None, return_mayavi_figure=True,
-                   interaction='trackball', verbose=None):
+                   renderer=None, interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -621,10 +614,6 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         If ``None``, creates a new 600x600 pixel figure with black background.
 
         .. versionadded:: 0.18
-    return_mayavi_figure : bool
-        If True (default), return mayavi figure.
-
-        .. versionadded:: 0.18
     interaction : str
         Can be "trackball" (default) or "terrain", i.e. a turntable-style
         camera.
@@ -636,8 +625,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
 
     Returns
     -------
-    fig : instance of mayavi.mlab.Figure
-        The mayavi figure.
+    scene : instance of renderer.scene()
+        The scene.
 
     See Also
     --------
@@ -1155,8 +1144,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         renderer.set_camera(azimuth=90, elevation=90,
                             focalpoint=(0., 0., 0.), distance=0.6)
     renderer.show()
-    if return_mayavi_figure:
-        return renderer.scene()
+    return renderer.scene()
 
 
 def _make_tris_fan(n_vert):
@@ -2296,8 +2284,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
                                  fig_name=None, fig_number=None, labels=None,
                                  modes=('cone', 'sphere'),
                                  scale_factors=(1, 0.6),
-                                 verbose=None, return_mayavi_surface=True,
-                                 **kwargs):
+                                 verbose=None, **kwargs):
     """Plot source estimates obtained with sparse solver.
 
     Active dipoles are represented in a "Glass" brain.
@@ -2344,17 +2331,12 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
-    return_mayavi_surface : bool
-        If True (default), return mayavi triangular surface.
-
-        .. versionadded:: 0.18
-
     **kwargs : kwargs
         Keyword arguments to pass to mlab.triangular_mesh.
 
     Returns
     -------
-    surface : instance of mayavi.mlab.pipeline.surface
+    surface : instance of renderer.mesh()
         The triangular mesh surface.
     """
     import matplotlib.pyplot as plt
@@ -2469,8 +2451,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     plt_show(show)
 
     renderer.show()
-    if return_mayavi_surface:
-        return surface
+    return surface
 
 
 def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
