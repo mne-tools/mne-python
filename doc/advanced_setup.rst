@@ -1,37 +1,79 @@
-:orphan:
-
 .. include:: links.inc
 
 .. _advanced_setup:
 
-Advanced setup and troubleshooting
-----------------------------------
+Advanced setup of MNE-python
+============================
 
-.. contents:: Steps
+.. contents::
    :local:
    :depth: 1
 
+IPython / Jupyter notebooks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In Jupyter, we strongly recommend using the Qt matplotlib backend for
+fast and correct rendering:
+
+.. code-block:: console
+
+    $ ipython --matplotlib=qt
+
+On Linux, for example, QT is the only matplotlib backend for which 3D rendering
+will work correctly. On macOS, certain matplotlib functions might not work as
+expected on backends other than QT.
+
+To take full advantage of MNE-python's visualization capacities in combination
+with IPython notebooks and inline displaying, please explicitly add the
+following magic method invocation to your notebook or configure your notebook
+runtime accordingly:
+
+.. code-block:: ipython
+
+    In [1]: %matplotlib inline
+
+
+.. admonition:: |windows| Windows
+  :class: note
+
+  If you are using MNE-python on Windows through IPython or Jupyter,
+  you might have to use the IPython magic command ``%gui qt`` after importing
+  MNE-python, Mayavi or PySurfer (see `here
+  <https://github.com/ipython/ipython/issues/10384>`_). For example:
+
+  .. code-block:: ipython
+
+     In [1]: from mayavi import mlab
+     In [2]: %gui qt
+
+If you use another Python setup and you encounter some difficulties please
+report them on the `MNE mailing list`_ or on the `GitHub issues page`_ to get
+assistance.
+
 .. _installing_master:
 
-Using the development version of MNE (latest master)
-####################################################
+Using the development version of MNE-python (latest master)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It is possible to update your version of MNE between releases for
-bugfixes or new features.
+If you want access to the latest features and bugfixes, you can easily switch
+from the stable version of MNE-python to the current development version.
 
 .. warning:: In between releases, function and class APIs can change without
              warning.
 
-You can use ``pip`` for a one-time update:
+For a one-time update to latest master, make sure you're in the ``mne`` conda
+environment (``conda activate mne``), and use ``pip``:
 
 .. code-block:: console
 
    $ pip install --upgrade --no-deps git+https://github.com/mne-tools/mne-python.git
 
-Or, if you prefer to be set up for frequent updates, you can use ``git`` directly:
+If you plan to contribute to MNE-python, or if you prefer to update frequently,
+you can use ``git`` directly (again, within the ``mne`` conda environment):
 
 .. code-block:: console
 
+   $ cd <path_to_where_you_want_mne-python_source_code_installed>
    $ git clone git://github.com/mne-tools/mne-python.git
    $ cd mne-python
    $ python setup.py develop
@@ -45,22 +87,21 @@ the latest version of the ``master`` development branch, you can do:
 
    $ git pull origin master
 
-and MNE will be updated to have the latest changes.
+from within the mne-python source folder, and MNE will be automatically updated
+to have the latest changes.
 
-
-If you plan to contribute to MNE, please continue reading how to
-:ref:`contribute_to_mne`.
+If you plan to contribute to MNE-python, please continue reading how to
+:doc:`contribute to MNE-python <contributing>`.
 
 .. _CUDA:
 
-CUDA (NVIDIA GPU acceleration)
-##############################
+Using MNE-python with CUDA (NVIDIA GPU acceleration)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Some routines can utilize
-`NVIDIA CUDA GPU processing <https://developer.nvidia.com/cuda-zone>`_
-to speed up some operations (e.g. FIR filtering) by roughly an order of magnitude.
-To use CUDA, first  ensure that you are running the NVIDIA proprietary drivers
-on your operating system, and then do:
+Some operations in MNE-python can utilize `NVIDIA CUDA GPU processing`_ to
+speed up some operations (e.g. FIR filtering) by roughly an order of magnitude.
+To use CUDA, first  ensure that you are running the `NVIDIA proprietary
+drivers`_ on your operating system, and then do:
 
 .. code-block:: console
 
@@ -69,9 +110,9 @@ on your operating system, and then do:
     Enabling CUDA with 1.55 GB available memory
 
 If you receive a message reporting the GPU's available memory, CuPy_
-is woriking properly. To permanently enable CUDA in MNE, you can do::
+is working properly. To permanently enable CUDA in MNE, you can do::
 
-    >>> mne.utils.set_config('MNE_USE_CUDA', 'true') # doctest: +SKIP
+    >>> mne.utils.set_config('MNE_USE_CUDA', 'true')  # doctest: +SKIP
 
 You can then test MNE CUDA support by running the associated test:
 
@@ -85,53 +126,12 @@ that state that they allow passing ``n_jobs='cuda'``, such as
 and they should run faster than the CPU-based multithreading such as
 ``n_jobs=8``.
 
-IPython / Jupyter notebooks
-###########################
-
-In Jupyter, we strongly recommend using the Qt matplotlib backend for
-fast and correct rendering:
-
-.. code-block:: console
-
-    $ ipython --matplotlib=qt
-
-On Linux, for example, QT is the only matplotlib backend for which 3D rendering
-will work correctly. On Mac OS X for other backends certain matplotlib
-functions might not work as expected.
-
-To take full advantage of MNE-Python's visualization capacities in combination
-with IPython notebooks and inline displaying, please explicitly add the
-following magic method invocation to your notebook or configure your notebook
-runtime accordingly:
-
-.. code-block:: ipython
-
-    In [1]: %matplotlib inline
-
-If you use another Python setup and you encounter some difficulties please
-report them on the MNE mailing list or on github to get assistance.
-
-Troubleshooting
-###############
-
-If you run into trouble when visualizing source estimates (or anything else
-using mayavi), you can try setting the ``ETS_TOOLKIT`` environment variable::
-
-    >>> import os
-    >>> os.environ['ETS_TOOLKIT'] = 'qt4'
-    >>> os.environ['QT_API'] = 'pyqt5'
-
-This will tell Traits that we will use Qt with PyQt bindings.
-
-For more information, see
-http://docs.enthought.com/mayavi/mayavi/building_applications.html.
-
 Off-screen rendering on Linux with MESA
-#######################################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 On remote systems, it might be possible to use MESA software rendering
-(such as ``llvmpipe`` or ``swr``) for 3D visualization with some tweaks.
-For example, on CentOS 7.5 you might be able to use the environment variable
+(such as ``llvmpipe`` or ``swr``) for 3D visualization (with some tweaks).
+For example, on CentOS 7.5 you might be able to use an environment variable
 to force MESA to use modern OpenGL by using this before executing
 ``spyder`` or ``python``:
 
@@ -141,3 +141,18 @@ to force MESA to use modern OpenGL by using this before executing
 
 Also, it's possible that different software rending backends might perform
 better than others, such as using the ``llvmpipe`` backend rather than ``swr``.
+
+Troubleshooting 3D plots
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you run into trouble when visualizing source estimates (or anything else
+using mayavi), you can try setting a couple of environment variables at the
+beginning of your script, session, or notebook::
+
+    >>> import os
+    >>> os.environ['ETS_TOOLKIT'] = 'qt4'
+    >>> os.environ['QT_API'] = 'pyqt5'
+
+This will tell mayavi to use Qt backend with PyQt bindings, instead of the
+default PySide. For more information, see
+http://docs.enthought.com/mayavi/mayavi/building_applications.html#integrating-in-a-qt-application.
