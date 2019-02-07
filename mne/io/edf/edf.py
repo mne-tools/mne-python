@@ -265,7 +265,6 @@ class RawGDF(BaseRaw):
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
         logger.info('Extracting EDF parameters from {}...'.format(input_fname))
         input_fname = os.path.abspath(input_fname)
-        ext = os.path.splitext(input_fname)[1][1:].lower()
         info, edf_info, orig_units = _get_info(input_fname,
                                                stim_channel, eog, misc,
                                                exclude, preload)
