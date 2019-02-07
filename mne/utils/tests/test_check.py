@@ -1,4 +1,3 @@
-from copy import deepcopy
 import os.path as op
 import pytest
 
@@ -73,23 +72,23 @@ def test_check_info_inv():
 
     # check whether bad channels get excluded from the channel selection
     # info
-    info_bads = deepcopy(epochs.info)
+    info_bads = epochs.info.copy()
     info_bads['bads'] = info_bads['ch_names'][1:3]  # include two bad channels
     picks = _check_info_inv(info_bads, forward, noise_cov=noise_cov)
     assert [1, 2] not in picks
     # covariance matrix
-    data_cov_bads = deepcopy(data_cov)
+    data_cov_bads = data_cov.copy()
     data_cov_bads['bads'] = data_cov_bads.ch_names[0]
     picks = _check_info_inv(epochs.info, forward, data_cov=data_cov_bads)
     assert 0 not in picks
     # noise covariance matrix
-    noise_cov_bads = deepcopy(noise_cov)
+    noise_cov_bads = noise_cov.copy()
     noise_cov_bads['bads'] = noise_cov_bads.ch_names[1]
     picks = _check_info_inv(epochs.info, forward, noise_cov=noise_cov_bads)
     assert 1 not in picks
 
     # test whether reference channels get deleted
-    info_ref = deepcopy(epochs.info)
+    info_ref = epochs.info.copy()
     info_ref['chs'][0]['kind'] = 301  # pretend to have a ref channel
     picks = _check_info_inv(info_ref, forward, noise_cov=noise_cov)
     assert 0 not in picks
