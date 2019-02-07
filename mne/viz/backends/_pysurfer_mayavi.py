@@ -42,7 +42,7 @@ class _Projection(object):
         self.pts.visible = state
 
 
-class Renderer(object):
+class _Renderer(object):
     """Class managing rendering scene.
 
     Attributes
@@ -53,16 +53,14 @@ class Renderer(object):
         Mayavi scene handle.
     """
 
-    def __init__(self):
-        """Create an empty renderer."""
-        self.mlab = _import_mlab()
-        self.fig = None
-
-    def setup(self, size=(600, 600), bgcolor=(0., 0., 0.), name=None):
+    def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
+                 name=None):
         """Set up the scene.
 
         Parameters
         ----------
+        fig: instance of mayavi.mlab.figure
+            Scene handle.
         size : (width, height)
             The dimensions of the context window: width x height
         bgcolor: (red, green, blue)
@@ -71,7 +69,10 @@ class Renderer(object):
             The name of the scene.
         """
         self.mlab = _import_mlab()
-        self.fig = _mlab_figure(figure=name, bgcolor=bgcolor, size=size)
+        if fig is None:
+            self.fig = _mlab_figure(figure=name, bgcolor=bgcolor, size=size)
+        else:
+            self.fig = fig
         _toggle_mlab_render(self.fig, False)
 
     def scene(self):

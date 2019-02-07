@@ -331,7 +331,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         The scene.
     """
     # Update the backend
-    from .backends.renderer import Renderer
+    from .backends.renderer import _Renderer
     types = [t for t in ['eeg', 'grad', 'mag'] if t in evoked]
 
     time_idx = None
@@ -352,8 +352,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                                      np.tile([0., 0., 0., 255.], (2, 1)),
                                      np.tile([255., 0., 0., 255.], (127, 1))])
 
-    renderer = Renderer()
-    renderer.setup(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+    renderer = _Renderer(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
     for ii, this_map in enumerate(surf_maps):
         surf = this_map['surf']
@@ -534,7 +533,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                    meg=None, eeg='original',
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, show_axes=False, fig=None,
-                   renderer=None, interaction='trackball', verbose=None):
+                   interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -609,11 +608,6 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         If ``None``, creates a new 600x600 pixel figure with black background.
 
         .. versionadded:: 0.16
-    renderer : backends.Renderer | None
-        Rendering Scene in which to plot the alignment.
-        If ``None``, creates a new 600x600 pixel figure with black background.
-
-        .. versionadded:: 0.18
     interaction : str
         Can be "trackball" (default) or "terrain", i.e. a turntable-style
         camera.
@@ -646,7 +640,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     """
     from ..forward import _create_meg_coils
     # Update the backend
-    from .backends.renderer import Renderer
+    from .backends.renderer import _Renderer
 
     if eeg is False:
         eeg = list()
@@ -1038,14 +1032,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                              for pick in seeg_picks])
 
     # initialize figure
-    if fig is not None:
-        warn('fig is deprecated and will be replaced by renderer in 0.20',
-             DeprecationWarning)
-        renderer = Renderer()
-        renderer.fig = fig
-    if renderer is None:
-        renderer = Renderer()
-        renderer.setup(bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
+    renderer = _Renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
     if interaction == 'terrain':
         renderer.set_interactive()
 
@@ -2342,7 +2329,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     import matplotlib.pyplot as plt
     from matplotlib.colors import ColorConverter
     # Update the backend
-    from .backends.renderer import Renderer
+    from .backends.renderer import _Renderer
 
     known_modes = ['cone', 'sphere']
     if not isinstance(modes, (list, tuple)) or \
@@ -2385,11 +2372,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     color_converter = ColorConverter()
 
-    if fig_name is not None:
-        warn('fig_name is deprecated and will be removed in 0.20.',
-             DeprecationWarning)
-    renderer = Renderer()
-    renderer.setup(bgcolor=bgcolor, size=(600, 600), name=fig_name)
+    renderer = _Renderer(bgcolor=bgcolor, size=(600, 600), name=fig_name)
     with warnings.catch_warnings(record=True):  # traits warnings
         surface = renderer.mesh(x=points[:, 0], y=points[:, 1],
                                 z=points[:, 2], triangles=use_faces,
@@ -2542,8 +2525,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     return fig
 
 
-def snapshot_brain_montage(fig=None, montage=None, renderer=None,
-                           hide_sensors=True):
+def snapshot_brain_montage(fig=None, montage=None, hide_sensors=True):
     """Take a snapshot of a Mayavi Scene and project channels onto 2d coords.
 
     Note that this will take the raw values for 3d coordinates of each channel,
@@ -2559,12 +2541,6 @@ def snapshot_brain_montage(fig=None, montage=None, renderer=None,
         The digital montage for the electrodes plotted in the scene. If `Info`,
         channel positions will be pulled from the `loc` field of `chs`.
         dict should have ch:xyz mappings.
-
-    renderer : backends.Renderer object | None
-        Rendering Scene in which to plot the alignment.
-
-        .. versionadded:: 0.18
-
     hide_sensors : bool
         Whether to remove the spheres in the scene before taking a snapshot.
 
@@ -2578,7 +2554,7 @@ def snapshot_brain_montage(fig=None, montage=None, renderer=None,
     from ..channels import Montage, DigMontage
     from .. import Info
     # Update the backend
-    from .backends.renderer import Renderer
+    from .backends.renderer import _Renderer
     if montage is None:
         raise ValueError('montage must be different from `None`')
 
@@ -2597,14 +2573,8 @@ def snapshot_brain_montage(fig=None, montage=None, renderer=None,
                         ' or `dict`')
 
     # initialize figure
-    if renderer is None and fig is None:
-        raise ValueError('Either fig or renderer must be different from '
-                         '`None`')
-    if fig is not None:
-        warn('fig is deprecated and will be replaced by renderer in 0.20',
-             DeprecationWarning)
-        renderer = Renderer()
-        renderer.fig = fig
+    renderer = _Renderer(fig)
+
     xyz = np.vstack(xyz)
     proj = renderer.project(xyz=xyz, ch_names=ch_names)
     if hide_sensors is True:
