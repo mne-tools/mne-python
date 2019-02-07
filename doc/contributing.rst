@@ -4,8 +4,8 @@
 
 .. _contribute_to_mne:
 
-How to contribute to MNE
-========================
+How to contribute to MNE-python
+===============================
 
 .. contents:: Contents
    :local:
