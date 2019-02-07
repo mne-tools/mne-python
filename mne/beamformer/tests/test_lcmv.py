@@ -652,6 +652,8 @@ def test_lcmv_ctf_comp():
     # test whether different compensations throw error
     info_comp = evoked.info.copy()
     set_current_comp(info_comp, 1)
-    pytest.raises(ValueError, make_lcmv, info_comp, fwd, data_cov)
+    with pytest.raises(ValueError,
+                       match='do not have same compensation applied'):
+        make_lcmv(info_comp, fwd, data_cov)
 
 run_tests_if_main()

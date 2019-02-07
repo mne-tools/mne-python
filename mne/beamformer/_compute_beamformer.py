@@ -108,9 +108,11 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
                          'forward operator with a surface-based source space '
                          'is used.')
     # Check whether data and forward model have same compensation applied
-    if not get_current_comp(info) == get_current_comp(forward['info']):
-        raise ValueError('Data and forward model do not have same '
-                         'compensation applied.')
+    data_comp = get_current_comp(info)
+    fwd_comp = get_current_comp(forward['info'])
+    if data_comp != fwd_comp:
+        raise ValueError('Data (%s) and forward model (%s) do not have same '
+                         'compensation applied.' % (data_comp, fwd_comp))
 
     # Restrict forward solution to selected channels
     info_ch_names = [ch['ch_name'] for ch in info['chs']]

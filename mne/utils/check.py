@@ -11,7 +11,7 @@ import os.path as op
 
 import numpy as np
 
-from ._logging import warn
+from ._logging import warn, logger
 
 
 def _ensure_int(x, name='unknown', must_be='an int'):
@@ -157,7 +157,6 @@ def _check_event_id(event_id, events):
 def _check_fname(fname, overwrite=False, must_exist=False):
     """Check for file existence."""
     _validate_type(fname, 'str', 'fname')
-    from mne.utils import logger
     if must_exist and not op.isfile(fname):
         raise IOError('File "%s" does not exist' % fname)
     if op.isfile(fname):
@@ -328,7 +327,6 @@ def _check_if_nan(data, msg=" to be plotted"):
 def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
     """Return good channels common to forward model and covariance matrices."""
     from .. import pick_types
-    from mne.utils import logger
     # get a list of all channel names:
     fwd_ch_names = forward['info']['ch_names']
 
