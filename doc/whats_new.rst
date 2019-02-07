@@ -95,6 +95,8 @@ API
 
 - Deprecate :func:`mne.io.find_edf_events` by `Joan Massich`_
 
+- Reading BDF and GDF files with :func:`mne.io.read_raw_edf` is deprecated is replaced by :func:`mne.io.read_raw_bdf` and :func:`mne.io.read_raw_gdf`, by `Clemens Brunner`_
+
 .. _changes_0_17:
 
 Version 0.17
