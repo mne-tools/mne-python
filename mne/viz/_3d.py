@@ -2525,7 +2525,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     return fig
 
 
-def snapshot_brain_montage(fig=None, montage=None, hide_sensors=True):
+def snapshot_brain_montage(fig, montage, hide_sensors=True):
     """Take a snapshot of a Mayavi Scene and project channels onto 2d coords.
 
     Note that this will take the raw values for 3d coordinates of each channel,
@@ -2555,8 +2555,6 @@ def snapshot_brain_montage(fig=None, montage=None, hide_sensors=True):
     from .. import Info
     # Update the backend
     from .backends.renderer import _Renderer
-    if montage is None:
-        raise ValueError('montage must be different from `None`')
 
     if isinstance(montage, (Montage, DigMontage)):
         chs = montage.dig_ch_pos
@@ -2573,7 +2571,7 @@ def snapshot_brain_montage(fig=None, montage=None, hide_sensors=True):
                         ' or `dict`')
 
     # initialize figure
-    renderer = _Renderer(fig)
+    renderer = _Renderer(fig, show=True)
 
     xyz = np.vstack(xyz)
     proj = renderer.project(xyz=xyz, ch_names=ch_names)

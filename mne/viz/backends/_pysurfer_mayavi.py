@@ -54,7 +54,7 @@ class _Renderer(object):
     """
 
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name=None):
+                 name=None, show=False):
         """Set up the scene.
 
         Parameters
@@ -73,7 +73,8 @@ class _Renderer(object):
             self.fig = _mlab_figure(figure=name, bgcolor=bgcolor, size=size)
         else:
             self.fig = fig
-        _toggle_mlab_render(self.fig, False)
+        if show is False:
+            _toggle_mlab_render(self.fig, False)
 
     def scene(self):
         """Return scene handle."""
