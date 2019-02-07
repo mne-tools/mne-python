@@ -265,6 +265,7 @@ class _Renderer(object):
                                opacity=opacity, figure=self.fig)
         elif mode == 'cylinder':
             quiv = self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
+                                      color=color, scale_factor=scale,
                                       opacity=opacity, figure=self.fig)
             quiv.glyph.glyph_source.glyph_source.height = glyph_height
             quiv.glyph.glyph_source.glyph_source.center = glyph_center
