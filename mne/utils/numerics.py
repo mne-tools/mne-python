@@ -683,7 +683,7 @@ def object_diff(a, b, pre=''):
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
                 out += object_diff(xx1, xx2, pre + '[%s]' % ii)
-    elif isinstance(a, (str, int, float, bytes)):
+    elif isinstance(a, (str, int, float, bytes, np.generic)):
         if a != b:
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
     elif a is None:
