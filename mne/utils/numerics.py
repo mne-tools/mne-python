@@ -10,6 +10,7 @@ from io import BytesIO, StringIO
 import operator
 from math import ceil
 import sys
+from numbers import Integral
 
 import numpy as np
 from scipy import linalg, sparse
@@ -683,7 +684,7 @@ def object_diff(a, b, pre=''):
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
                 out += object_diff(xx1, xx2, pre + '[%s]' % ii)
-    elif isinstance(a, (str, int, float, bytes)):
+    elif isinstance(a, (str, int, float, bytes, Integral)):
         if a != b:
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
     elif a is None:
