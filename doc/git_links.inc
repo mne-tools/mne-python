@@ -86,8 +86,6 @@
 .. installation links
 .. _FreeSurfer: https://surfer.nmr.mgh.harvard.edu/fswiki/
 .. _FreeSurfer download page: https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall
-.. _libxp6-ubuntu: https://packages.ubuntu.com/search?keywords=libxp6
-.. _libxp6-debian: https://packages.debian.org/search?keywords=libxp6
 .. _netpbm: http://netpbm.sourceforge.net/
 .. _MacPorts: https://www.macports.org/
 .. _XCode developer tools: http://appstore.com/mac/apple/xcode

@@ -138,9 +138,10 @@ effect or you need a faster graphics adapter.
 Troubleshooting MNE-C installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If MNE-C can't find ``libxp.so.6``, download libxp6 from `ubuntu
-<libxp6-ubuntu>`_ or `debian <libxp6-debian>`_ and install with ``dpkg`` or
-similar:
+If MNE-C can't find ``libxp.so.6``, download libxp6 from
+`ubuntu <https://packages.ubuntu.com/search?keywords=libxp6>`_ or
+`debian <https://packages.debian.org/search?keywords=libxp6>`_ and install with
+``dpkg`` or similar:
 
 .. code-block:: console
 
