@@ -47,7 +47,7 @@ To check the installation, you can enter the following commands:
 Code guidelines
 ---------------
 
-* Standard python style guidelines set by pep8_ and pyflakes_ are followed
+* Standard Python style guidelines set by pep8_ and pyflakes_ are followed
   with very few exceptions. We recommend using an editor that calls out
   style violations automatcally, such as Spyder_. From the MNE code root, you
   can check for violations using flake8_ with:
@@ -209,7 +209,7 @@ You can use something like this::
 
 Profiling
 ---------
-To learn more about profiling python codes please see `the scikit learn profiling site <https://scikit-learn.org/stable/developers/performance.html#performance-howto>`_.
+To learn more about profiling Python codes please see `the scikit learn profiling site <https://scikit-learn.org/stable/developers/performance.html#performance-howto>`_.
 
 .. _troubleshooting:
 

@@ -12,9 +12,9 @@ Installing MNE-python
 Installing Python
 ^^^^^^^^^^^^^^^^^
 
-MNE-python runs within python, and depends on several other python packages.
+MNE-python runs within Python, and depends on several other Python packages.
 MNE-python 0.18 only supports Python version 3.5 or higher. We strongly
-recommend the `Anaconda`_ distribution of python, which comes with more than
+recommend the `Anaconda`_ distribution of Python, which comes with more than
 250 scientific packages pre-bundled, and includes the ``conda`` command line
 tool for
 installing new packages and managing different package sets ("environments")

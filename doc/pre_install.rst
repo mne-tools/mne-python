@@ -29,7 +29,7 @@ Overview of the MNE tools suite
 - :doc:`MNE-CPP <mne_cpp>` provides core MNE functionality implemented in C++
   and is primarily intended for embedded and real-time applications.
 
-There are also python tools for easily importing MEG data from the Human
+There are also Python tools for easily importing MEG data from the Human
 Connectome Project for use with MNE-python (`MNE-HCP`_), and tools for
 managing MNE projects so that they comply with the Brain Imaging Data Structure
 specification (`MNE-BIDS`_).
@@ -39,7 +39,7 @@ What should I install?
 
 If you intend only to perform ERP, ERF, or other sensor-level analyses,
 :doc:`MNE-python <install_mne_python>` is all you need. If you
-prefer MATLAB over python, probably all you need is :doc:`MNE-C
+prefer MATLAB over Python, probably all you need is :doc:`MNE-C
 <install_mne_c>` — the MNE MATLAB toolbox is distributed with it.
 
 If you want to transform sensor recordings into estimates of localized brain
