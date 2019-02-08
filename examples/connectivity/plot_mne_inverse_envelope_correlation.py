@@ -33,7 +33,7 @@ raw_fname = op.join(data_path, 'MEG', 'bst_resting',
 # hurt SNR) and downsample. Then we compute SSP projectors and apply them.
 
 raw = mne.io.read_raw_ctf(raw_fname, verbose='error')
-raw.crop(0, 120).load_data().pick_types(meg=True, eeg=False).resample(80)
+raw.crop(0, 60).load_data().pick_types(meg=True, eeg=False).resample(80)
 raw.apply_gradient_compensation(3)
 projs_ecg, _ = compute_proj_ecg(raw, n_grad=1, n_mag=2)
 projs_eog, _ = compute_proj_eog(raw, n_grad=1, n_mag=2, ch_name='MLT31-4407')

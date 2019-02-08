@@ -60,14 +60,14 @@ def envelope_correlation(data):
         data_mag -= np.mean(data_mag, axis=-1, keepdims=True)
         data_orth -= np.mean(data_orth, axis=-1, keepdims=True)
         # compute variances using dot products
-        data_mag_var = np.sum(data_mag * data_mag, axis=-1, keepdims=True)
-        data_orth_var = np.einsum('ijt,ijt->ij', data_orth, data_orth)
+        data_mag_var = np.linalg.norm(data_mag, axis=-1)[:, np.newaxis]
+        data_orth_var = np.linalg.norm(data_orth, axis=-1)
         # correlation is dot product divided by variances
         corr = np.einsum('it,ijt->ij', data_mag, data_orth)
         corr /= np.sqrt(data_mag_var)
         corr /= np.sqrt(data_orth_var)
         # we always make the matrix symmetric
-        corr = np.abs(corr)
+        np.abs(corr, out=corr)
         corrs.append((corr.T + corr) / 2.)
     corr = np.median(corrs, axis=0)
     return corr
