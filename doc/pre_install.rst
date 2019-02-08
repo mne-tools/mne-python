@@ -12,22 +12,22 @@ Before you install
 Overview of the MNE tools suite
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The project started with what is now called :doc:`MNE-C <manual/c_reference>` —
-a set of interrelated command-line and GUI programs focused on computing
-cortically constrained Minimum Norm Estimates from MEG and EEG data. These
-tools were written in C by Matti Hämäläinen.
+- :doc:`MNE-C <manual/c_reference>` was the initial stage of this project,
+  providing a set of interrelated command-line and GUI programs focused on
+  computing cortically constrained Minimum Norm Estimates from MEG and EEG
+  data. These tools were written in C by Matti Hämäläinen.
 
-:ref:`MNE-python <api_reference>` reimplements the functionality of MNE-C,
-and extends considerably the analysis and visualization capabilities.
-MNE-python is collaboratively developed and has more than 150 contributors.
+- :doc:`MNE-python <python_reference>` reimplements the functionality of MNE-C,
+  and extends considerably the analysis and visualization capabilities.
+  MNE-python is collaboratively developed and has more than 150 contributors.
 
-The :ref:`ch_matlab` provides a MATLAB interface to the .fif file format and
-other MNE data structures, and provides example MATLAB implementations of
-some of the core analysis functionality of MNE-C. It is distributed alongside
-MNE-C, and can also be downloaded from the `MNE-MATLAB git repository`_.
+- The :doc:`manual/matlab` provides a MATLAB interface to the .fif file format
+  and other MNE data structures, and provides example MATLAB implementations of
+  some of the core analysis functionality of MNE-C. It is distributed alongside
+  MNE-C, and can also be downloaded from the `MNE-MATLAB git repository`_.
 
-:ref:`mne_cpp` provides core MNE functionality implemented in C++ and is
-primarily intended for embedded and real-time applications.
+- :doc:`MNE-CPP <mne_cpp>` provides core MNE functionality implemented in C++
+  and is primarily intended for embedded and real-time applications.
 
 There are also python tools for easily importing MEG data from the Human
 Connectome Project for use with MNE-python (`MNE-HCP`_), and tools for
