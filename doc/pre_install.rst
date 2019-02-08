@@ -45,14 +45,14 @@ prefer MATLAB over Python, probably all you need is :doc:`MNE-C
 If you want to transform sensor recordings into estimates of localized brain
 activity, you will most likely need:
 
-- :doc:`FreeSurfer <install_freesurfer>` (to convert structural MRI scans into
-  models of the scalp, inner/outer skull, and cortical surfaces)
+- :doc:`FreeSurfer <install_freesurfer>` to convert structural MRI scans into
+  models of the scalp, inner/outer skull, and cortical surfaces
 
-- :doc:`MNE-C <install_mne_c>` (for constructing and solving a boundary-element
+- :doc:`MNE-C <install_mne_c>` for constructing and solving a boundary-element
   model of tissue conductance, and for aligning coordinate frames between the
-  structural MRI and the digitizations of M/EEG sensor locations)
+  structural MRI and the digitizations of M/EEG sensor locations
 
-- :doc:`MNE-python <install_mne_python>` (for everything else)
+- :doc:`MNE-python <install_mne_python>` can be used for everything else
 
 Getting help
 ^^^^^^^^^^^^
