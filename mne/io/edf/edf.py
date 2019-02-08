@@ -98,11 +98,10 @@ class RawEDF(BaseRaw):
         channels. Values should correspond to the electrodes in the file.
         Default is None.
     stim_channel : 'auto' | str | list of str | int | list of int
-        Defaults to 'auto', which means that the type of channels named
-        'status' or 'trigger' (case insensitive) is set to STIM. If str (or
-        list of str), the type of channels matching the name(s) is set to STIM.
-        If int (or list of ints), the type of channels corresponding to the
-        indices is set to STIM.
+        Defaults to 'auto', which means that channels named 'status' or
+        'trigger' (case insensitive) are set to STIM. If str (or list of str),
+        all channels matching the name(s) are set to STIM. If int (or list of
+        ints), the channels corresponding to the indices are set to STIM.
 
         .. warning:: 0.18 does not allow for stim channel synthesis from TAL
                      channels called 'EDF Annotations' or 'BDF Annotations'
@@ -230,11 +229,10 @@ class RawGDF(BaseRaw):
         channels. Values should correspond to the electrodes in the file.
         Default is None.
     stim_channel : 'auto' | str | list of str | int | list of int
-        Defaults to 'auto', which means that the type of channels named
-        'status' or 'trigger' (case insensitive) is set to STIM. If str (or
-        list of str), the type of channels matching the name(s) is set to STIM.
-        If int (or list of ints), the type of channels corresponding to the
-        indices is set to STIM.
+        Defaults to 'auto', which means that channels named 'status' or
+        'trigger' (case insensitive) are set to STIM. If str (or list of str),
+        all channels matching the name(s) are set to STIM. If int (or list of
+        ints), channels corresponding to the indices are set to STIM.
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
@@ -1185,11 +1183,10 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         channels. Values should correspond to the electrodes in the file.
         Default is None.
     stim_channel : 'auto' | str | list of str | int | list of int
-        Defaults to 'auto', which means that the type of channels named
-        'status' or 'trigger' (case insensitive) is set to STIM. If str (or
-        list of str), the type of channels matching the name(s) is set to STIM.
-        If int (or list of ints), the type of channels corresponding to the
-        indices is set to STIM.
+        Defaults to 'auto', which means that channels named 'status' or
+        'trigger' (case insensitive) are set to STIM. If str (or list of str),
+        all channels matching the name(s) are set to STIM. If int (or list of
+        ints), channels corresponding to the indices are set to STIM.
 
         .. warning:: 0.18 does not allow for stim channel synthesis from TAL
                      channels called 'EDF Annotations' anymore. Instead, TAL
@@ -1273,11 +1270,10 @@ def read_raw_bdf(input_fname, montage=None, eog=None, misc=None,
         channels. Values should correspond to the electrodes in the file.
         Default is None.
     stim_channel : 'auto' | str | list of str | int | list of int
-        Defaults to 'auto', which means that the type of channels named
-        'status' or 'trigger' (case insensitive) is set to STIM. If str (or
-        list of str), the type of channels matching the name(s) is set to STIM.
-        If int (or list of ints), the type of channels corresponding to the
-        indices is set to STIM.
+        Defaults to 'auto', which means that channels named 'status' or
+        'trigger' (case insensitive) are set to STIM. If str (or list of str),
+        all channels matching the name(s) are set to STIM. If int (or list of
+        ints), channels corresponding to the indices are set to STIM.
 
         .. warning:: 0.18 does not allow for stim channel synthesis from TAL
                      channels called 'BDF Annotations' anymore. Instead, TAL
@@ -1371,11 +1367,10 @@ def read_raw_gdf(input_fname, montage=None, eog=None, misc=None,
         channels. Values should correspond to the electrodes in the file.
         Default is None.
     stim_channel : 'auto' | str | list of str | int | list of int
-        Defaults to 'auto', which means that the type of channels named
-        'status' or 'trigger' (case insensitive) is set to STIM. If str (or
-        list of str), the type of channels matching the name(s) is set to STIM.
-        If int (or list of ints), the type of channels corresponding to the
-        indices is set to STIM.
+        Defaults to 'auto', which means that channels named 'status' or
+        'trigger' (case insensitive) are set to STIM. If str (or list of str),
+        all channels matching the name(s) are set to STIM. If int (or list of
+        ints), channels corresponding to the indices are set to STIM.
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
