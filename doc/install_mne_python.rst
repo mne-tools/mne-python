@@ -56,7 +56,7 @@ you do not have ``curl``.) These commands will create a new environment called
     changed on the command line with the ``-n`` flag; see ``conda env create
     --help`` for more info.
 
-Make sure you activate the environment (`conda activate mne`) each
+Make sure you activate the environment (``conda activate mne``) each
 time you open a terminal, or put the activation command in your ``.bashrc``
 or ``.profile`` so that it happens automatically.
 
@@ -81,7 +81,9 @@ terminal:
     $ python -c 'import mne; mne.sys_info()'
 
 This should display some system information along with the versions of
-MNE-python and its dependencies. Typical output looks like this::
+MNE-python and its dependencies. Typical output looks like this:
+
+.. code-block:: console
 
     Platform:      Linux-4.15.0-44-generic-x86_64-with-debian-buster-sid
     Python:        3.6.7 |Anaconda, Inc.| (default, Oct 23 2018, 19:16:44)  [GCC 7.3.0]
