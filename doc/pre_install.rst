@@ -17,9 +17,9 @@ Overview of the MNE tools suite
   computing cortically constrained Minimum Norm Estimates from MEG and EEG
   data. These tools were written in C by Matti Hämäläinen.
 
-- :doc:`MNE-python <python_reference>` reimplements the functionality of MNE-C,
+- :doc:`MNE-Python <python_reference>` reimplements the functionality of MNE-C,
   and extends considerably the analysis and visualization capabilities.
-  MNE-python is collaboratively developed and has more than 150 contributors.
+  MNE-Python is collaboratively developed and has more than 150 contributors.
 
 - The :doc:`manual/matlab` provides a MATLAB interface to the .fif file format
   and other MNE data structures, and provides example MATLAB implementations of
@@ -30,7 +30,7 @@ Overview of the MNE tools suite
   and is primarily intended for embedded and real-time applications.
 
 There are also Python tools for easily importing MEG data from the Human
-Connectome Project for use with MNE-python (`MNE-HCP`_), and tools for
+Connectome Project for use with MNE-Python (`MNE-HCP`_), and tools for
 managing MNE projects so that they comply with the Brain Imaging Data Structure
 specification (`MNE-BIDS`_).
 
@@ -38,10 +38,10 @@ What should I install?
 ^^^^^^^^^^^^^^^^^^^^^^
 
 If you intend only to perform ERP, ERF, or other sensor-level analyses,
-:doc:`MNE-python <install_mne_python>` is all you need. If you prefer MATLAB
+:doc:`MNE-Python <install_mne_python>` is all you need. If you prefer MATLAB
 over Python, probably all you need is :doc:`MNE-C <install_mne_c>` — the MNE
 MATLAB toolbox is distributed with it — although note that the MATLAB toolbox
-is less actively developed than the MNE-python module, and hence the MATLAB
+is less actively developed than the MNE-Python module, and hence the MATLAB
 code is considerably less feature-complete.
 
 If you want to transform sensor recordings into estimates of localized brain
@@ -54,7 +54,7 @@ activity, you will most likely need:
   model of tissue conductance, and for aligning coordinate frames between the
   structural MRI and the digitizations of M/EEG sensor locations
 
-- :doc:`MNE-python <install_mne_python>` can be used for everything else
+- :doc:`MNE-Python <install_mne_python>` can be used for everything else
 
 Getting help
 ^^^^^^^^^^^^
@@ -65,7 +65,7 @@ The `MNE mailing list`_ and `MNE gitter channel`_ are a good place to start for
 both troubleshooting and general questions.  If you want to request new
 features or if you're confident that you have found a bug, please create a new
 issue on the `GitHub issues page`_. When reporting bugs, please try to
-replicate the bug with the MNE-python sample data, and make every effort to
+replicate the bug with the MNE-Python sample data, and make every effort to
 simplify your example script to only the elements necessary to replicate the
 bug.
 

@@ -2,7 +2,7 @@
 
 .. _advanced_setup:
 
-Advanced setup of MNE-python
+Advanced setup of MNE-Python
 ============================
 
 .. contents::
@@ -12,7 +12,7 @@ Advanced setup of MNE-python
 IPython / Jupyter notebooks
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When using MNE-python within IPython or a Jupyter notebook, we strongly
+When using MNE-Python within IPython or a Jupyter notebook, we strongly
 recommend using the Qt matplotlib backend for fast and correct rendering. On
 Linux, for example, Qt is the only matplotlib backend for which 3D rendering
 will work correctly. On macOS, certain matplotlib functions might not work as
@@ -34,7 +34,7 @@ that the 3D plots will retain rich interactivity (so, for example, you can
 click-and-drag to rotate cortical surface activation maps).
 
 If you are creating a static notebook or simply prefer Jupyter's inline plot
-display, MNE-python will work with the standard "inline" magic:
+display, MNE-Python will work with the standard "inline" magic:
 
 .. code-block:: ipython
 
@@ -47,9 +47,9 @@ interactivity within the scene is limited in non-blocking plot calls.
 .. admonition:: |windows| Windows
   :class: note
 
-  If you are using MNE-python on Windows through IPython or Jupyter, you might
+  If you are using MNE-Python on Windows through IPython or Jupyter, you might
   also have to use the IPython magic command ``%gui qt`` after importing
-  MNE-python, Mayavi or PySurfer (see `here
+  MNE-Python, Mayavi or PySurfer (see `here
   <https://github.com/ipython/ipython/issues/10384>`_). For example:
 
   .. code-block:: ipython
@@ -63,11 +63,11 @@ assistance.
 
 .. _installing_master:
 
-Using the development version of MNE-python (latest master)
+Using the development version of MNE-Python (latest master)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you want access to the latest features and bugfixes, you can easily switch
-from the stable version of MNE-python to the current development version.
+from the stable version of MNE-Python to the current development version.
 
 .. warning:: In between releases, function and class APIs can change without
              warning.
@@ -79,7 +79,7 @@ environment (``conda activate mne``), and use ``pip``:
 
    $ pip install --upgrade --no-deps git+https://github.com/mne-tools/mne-python.git
 
-If you plan to contribute to MNE-python, or if you prefer to update frequently,
+If you plan to contribute to MNE-Python, or if you prefer to update frequently,
 you can use ``git`` directly (again, within the ``mne`` conda environment):
 
 .. code-block:: console
@@ -107,18 +107,18 @@ updated to have the latest changes.
     the name of the environment (``mne``) is built into the environment file
     itself, but can be changed on the command line with the ``-n`` flag. This
     can be helpful when maintaining separate environments for stable and
-    development versions of MNE-python, or when using the environment file as a
+    development versions of MNE-Python, or when using the environment file as a
     starting point for new projects.  See ``conda env create --help`` for more
     info.
 
-If you plan to contribute to MNE-python, please continue reading how to
-:doc:`contribute to MNE-python <contributing>`.
+If you plan to contribute to MNE-Python, please continue reading how to
+:doc:`contribute to MNE-Python <contributing>`.
 
 Using other Python distributions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 While the `Anaconda`_ Python distribution provides many conveniences, other
-distributions of Python should also work with MNE-python.  In particular,
+distributions of Python should also work with MNE-Python.  In particular,
 `Miniconda`_ is a lightweight alternative to Anaconda that is fully compatible;
 like Anaconda, Miniconda includes the ``conda`` command line tool for
 installing new packages and managing environments; unlike Anaconda, Miniconda
@@ -126,7 +126,7 @@ starts off with a minimal set of around 30 packages instead of Anaconda's
 hundreds. See the `Miniconda install page <miniconda-install>`__ for more info.
 
 It is also possible to use a system-level installation of Python (version 3.5
-or higher) and use ``pip`` to install MNE-python and its dependencies, using
+or higher) and use ``pip`` to install MNE-Python and its dependencies, using
 the provided `requirements file`_:
 
 .. code-block:: console
@@ -140,10 +140,10 @@ installation choices.
 
 .. _CUDA:
 
-Using MNE-python with CUDA (NVIDIA GPU acceleration)
+Using MNE-Python with CUDA (NVIDIA GPU acceleration)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Some operations in MNE-python can utilize `NVIDIA CUDA GPU processing`_ to
+Some operations in MNE-Python can utilize `NVIDIA CUDA GPU processing`_ to
 speed up some operations (e.g. FIR filtering) by roughly an order of magnitude.
 To use CUDA, first  ensure that you are running the `NVIDIA proprietary
 drivers`_ on your operating system, and then do:

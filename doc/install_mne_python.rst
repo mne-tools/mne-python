@@ -2,7 +2,7 @@
 
 .. _install_python_and_mne_python:
 
-Installing MNE-python
+Installing MNE-Python
 =====================
 
 .. contents::
@@ -12,8 +12,8 @@ Installing MNE-python
 Installing Python
 ^^^^^^^^^^^^^^^^^
 
-MNE-python runs within Python, and depends on several other Python packages.
-MNE-python 0.18 only supports Python version 3.5 or higher. We strongly
+MNE-Python runs within Python, and depends on several other Python packages.
+MNE-Python 0.18 only supports Python version 3.5 or higher. We strongly
 recommend the `Anaconda`_ distribution of Python, which comes with more than
 250 scientific packages pre-bundled, and includes the ``conda`` command line
 tool for installing new packages and managing different package sets
@@ -30,11 +30,11 @@ similar output if you type the following command in a terminal:
 If you get an error message, consult the Anaconda documentation and search for
 Anaconda install tips (`Stack Overflow`_ results are often helpful).
 
-Installing MNE-python and its dependencies
+Installing MNE-Python and its dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Once you have Anaconda installed, the easiest way to install
-MNE-python is to use the provided `environment file`_ to install MNE-python
+MNE-Python is to use the provided `environment file`_ to install MNE-Python
 and its dependencies into a new conda environment:
 
 .. code-block:: console
@@ -64,7 +64,7 @@ open a terminal, or put the activation command in your ``.bashrc`` or
 Testing your installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To make sure MNE-python installed correctly, type the following command in a
+To make sure MNE-Python installed correctly, type the following command in a
 terminal:
 
 .. code-block:: console
@@ -72,7 +72,7 @@ terminal:
     $ python -c 'import mne; mne.sys_info()'
 
 This should display some system information along with the versions of
-MNE-python and its dependencies. Typical output looks like this:
+MNE-Python and its dependencies. Typical output looks like this:
 
 .. code-block:: console
 
@@ -94,7 +94,7 @@ MNE-python and its dependencies. Typical output looks like this:
     pandas:        0.24.0
     dipy:          0.15.0
 
-Troubleshooting MNE-python installation
+Troubleshooting MNE-Python installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If something went wrong during installation and you can't figure it out
