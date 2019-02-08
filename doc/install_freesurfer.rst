@@ -10,7 +10,7 @@ MNE ecosystem, freesurfer is used to convert structural MRI scans into models
 of the scalp, inner/outer skull, and cortical surfaces, which are used to
 
 1. model how changes in the electrical and magnetic field caused by neural
-   activity propogate to the sensor locations (part of computing the "forward
+   activity propagate to the sensor locations (part of computing the "forward
    solution"), and
 
 2. constrain the estimates of where brain activity may have occurred (in the
