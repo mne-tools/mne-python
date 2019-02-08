@@ -32,10 +32,6 @@ terminal:
 If you get an error message, consult the Anaconda documentation and search for
 Anaconda install tips (`Stack Overflow`_ results are often helpful).
 
-.. note::
-
-    MNE-python 0.18 only works with Python version 3.5 or higher.
-
 Installing MNE-python and its dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -45,7 +41,7 @@ and its dependencies into a new conda environment:
 
 .. code-block:: console
 
-    $ curl -O https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
     $ conda env create -f environment.yml
     $ conda activate mne
 
