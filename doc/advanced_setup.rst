@@ -106,6 +106,30 @@ If you plan to contribute to MNE-python, please continue reading how to
 
 .. _CUDA:
 
+Using other Python distributions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+While the `Anaconda`_ Python distribution provides many conveniences, other
+distributions of Python should also work with MNE-python.  In particular,
+`Miniconda`_ is a lightweight alternative to Anaconda that is fully compatible;
+like Anaconda, Miniconda includes the ``conda`` command line tool for
+installing new packages and managing environments; unlike Anaconda, Miniconda
+starts off with a minimal set of around 30 packages instead of Anaconda's
+hundreds. See the `Miniconda install page <miniconda-install>`__ for more info.
+
+It is also possible to use a system-level installation of Python (version 3.5
+or higher) and use ``pip`` to install MNE-python and its dependencies, using
+the provided `requirements file`_:
+
+.. code-block:: console
+
+    curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/requirements.txt
+    pip install --user requirements.txt
+
+Other configurations will probably also work, but we may be unable to offer
+support if you encounter difficulties related to your particular Python
+installation choices.
+
 Using MNE-python with CUDA (NVIDIA GPU acceleration)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

@@ -14,13 +14,12 @@ Installing Python
 
 MNE-python runs within python, and depends on several other python packages.
 MNE-python 0.18 only supports Python version 3.5 or higher. We strongly
-recommend the `Anaconda`_ or `Miniconda`_ distributions of python. The main
-difference is that Anaconda comes with more than 250 scientific packages
-pre-bundled, whereas Miniconda starts off with a minimal set of around 30
-packages. Both distributions include the ``conda`` command line tool for
+recommend the `Anaconda`_ distribution of python, which comes with more than
+250 scientific packages pre-bundled, and includes the ``conda`` command line
+tool for
 installing new packages and managing different package sets ("environments")
 for different projects. Follow the installation instructions for `Anaconda
-<anaconda-install>`__ or `Miniconda <miniconda-install>`__; when you are done,
+<anaconda-install>`__; when you are done,
 you should see a similar output if you type the following command in a
 terminal:
 
@@ -36,7 +35,7 @@ Anaconda install tips (`Stack Overflow`_ results are often helpful).
 Installing MNE-python and its dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Once you have Anaconda or Miniconda installed, the easiest way to install
+Once you have Anaconda installed, the easiest way to install
 MNE-python is to use the provided `environment file`_ to install MNE-python
 and its dependencies into a new conda environment:
 
