@@ -104,8 +104,6 @@ to have the latest changes.
 If you plan to contribute to MNE-python, please continue reading how to
 :doc:`contribute to MNE-python <contributing>`.
 
-.. _CUDA:
-
 Using other Python distributions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -129,6 +127,8 @@ the provided `requirements file`_:
 Other configurations will probably also work, but we may be unable to offer
 support if you encounter difficulties related to your particular Python
 installation choices.
+
+.. _CUDA:
 
 Using MNE-python with CUDA (NVIDIA GPU acceleration)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
