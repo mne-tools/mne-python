@@ -160,4 +160,4 @@ a typical 64-bit Ubuntu-like system this would be accomplished by:
 If you encounter other errors installing MNE-C, please send a message to the
 `MNE mailing list`_.
 
-**Next:** :doc:`install_mne_python`
+**Next:** :doc:`advanced_setup`

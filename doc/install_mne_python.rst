@@ -107,7 +107,8 @@ Troubleshooting MNE-python installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If something went wrong during installation and you can't figure it out
-yourself, the `MNE mailing list`_ and `MNE gitter channel`_ are good resources
-for troubleshooting installation problems.
+yourself, check out the :doc:`advanced_setup` page to see if your problem is
+discussed there. If not, the `MNE mailing list`_ and `MNE gitter channel`_ are
+good resources for troubleshooting installation problems.
 
-**Next:** :doc:`advanced_setup`
+**Next:** :doc:`install_freesurfer`

@@ -13,7 +13,7 @@ fNIRS). Pages describing the installation procedure are listed below.
     :maxdepth: 2
 
     pre_install
+    install_mne_python
     install_freesurfer
     install_mne_c
-    install_mne_python
     advanced_setup

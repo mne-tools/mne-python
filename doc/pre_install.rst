@@ -67,4 +67,4 @@ please try to replicate the bug with the MNE-python sample data, and make every
 effort to simplify your example script to only the elements necessary to
 replicate the bug.
 
-**Next:** :doc:`install_freesurfer`
+**Next:** :doc:`install_mne_python`
