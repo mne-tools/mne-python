@@ -9,7 +9,7 @@ import os.path as op
 
 import numpy as np
 
-from ...utils import verbose, logger, _clean_names
+from ...utils import verbose, logger, _clean_names, fill_doc
 
 from ..base import BaseRaw
 from ..utils import _mult_cal_one, _blk_read_lims
@@ -22,6 +22,7 @@ from .info import _compose_meas_info, _read_bad_chans, _annotate_bad_segments
 from .constants import CTF
 
 
+@fill_doc
 def read_raw_ctf(directory, system_clock='truncate', preload=False,
                  clean_names=False, verbose=None):
     """Raw object from CTF directory.
@@ -44,9 +45,7 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
     clean_names : bool, optional
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -65,6 +64,7 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
                   clean_names=clean_names, verbose=verbose)
 
 
+@fill_doc
 class RawCTF(BaseRaw):
     """Raw object from CTF directory.
 
@@ -86,9 +86,7 @@ class RawCTF(BaseRaw):
     clean_names : bool, optional
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------

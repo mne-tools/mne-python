@@ -13,7 +13,7 @@ from ..io import _empty_info
 from ..io.pick import pick_info
 from ..io.constants import FIFF
 from ..epochs import EpochsArray
-from ..utils import logger, warn
+from ..utils import logger, warn, fill_doc
 from ..externals.FieldTrip import Client as FtClient
 
 
@@ -28,6 +28,7 @@ def _buffer_recv_worker(ft_client):
         logger.error('Buffer receive thread stopped: %s' % err)
 
 
+@fill_doc
 class FieldTripClient(object):
     """Realtime FieldTrip client.
 
@@ -49,9 +50,7 @@ class FieldTripClient(object):
         Time instant to stop receiving buffers.
     buffer_size : int
         Size of each buffer in terms of number of samples.
-    verbose : bool, str, int, or None
-        Log verbosity (see :func:`mne.verbose` and
-        :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
 
     def __init__(self, info=None, host='localhost', port=1972, wait_max=30,

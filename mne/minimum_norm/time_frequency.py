@@ -124,9 +124,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -376,9 +374,7 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
         If True, do not call :func:`prepare_inverse_operator`.
     method_params : dict | None
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """  # noqa: E501
     _check_method(method)
     _check_ori(pick_ori, inverse_operator['source_ori'])
@@ -481,9 +477,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         If True (default False), return output it decibels.
 
         .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -745,9 +739,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         If True, also return the sensor PSD for each epoch as an EvokedArray.
 
         .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

@@ -24,7 +24,7 @@ from ..base import BaseRaw, _check_update_montage
 from ..meas_info import _empty_info, _unique_channel_names, DATE_NONE
 from ..constants import FIFF
 from ...filter import resample
-from ...utils import copy_function_doc_to_method_doc, deprecated
+from ...utils import copy_function_doc_to_method_doc, deprecated, fill_doc
 from ...annotations import Annotations, events_from_annotations
 from ._utils import _load_gdf_events_lut
 
@@ -78,6 +78,7 @@ def find_edf_events(raw):
     return events_from_annotations(raw)
 
 
+@fill_doc
 class RawEDF(BaseRaw):
     """Raw object from EDF, EDF+ or BDF file.
 
@@ -119,9 +120,7 @@ class RawEDF(BaseRaw):
         amount of memory). If preload is a string, preload is the file name of
         a memory-mapped file which is used to store the data on the hard drive
         (slower, but requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -210,6 +209,7 @@ class RawEDF(BaseRaw):
         return events_from_annotations(self)
 
 
+@fill_doc
 class RawGDF(BaseRaw):
     """Raw object from GDF file.
 
@@ -243,9 +243,7 @@ class RawGDF(BaseRaw):
         amount of memory). If preload is a string, preload is the file name of
         a memory-mapped file which is used to store the data on the hard drive
         (slower, but requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -1163,6 +1161,7 @@ def _find_tal_idx(ch_names):
     return tal_channel_idx
 
 
+@fill_doc
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
     """Reader function for EDF or EDF+ files.
@@ -1205,9 +1204,7 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         amount of memory). If preload is a string, preload is the file name of
         a memory-mapped file which is used to store the data on the hard drive
         (slower, but requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -1250,6 +1247,7 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
                   verbose=verbose)
 
 
+@fill_doc
 def read_raw_bdf(input_fname, montage=None, eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
     """Reader function for BDF files.
@@ -1292,9 +1290,7 @@ def read_raw_bdf(input_fname, montage=None, eog=None, misc=None,
         amount of memory). If preload is a string, preload is the file name of
         a memory-mapped file which is used to store the data on the hard drive
         (slower, but requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -1347,6 +1343,7 @@ def read_raw_bdf(input_fname, montage=None, eog=None, misc=None,
                   verbose=verbose)
 
 
+@fill_doc
 def read_raw_gdf(input_fname, montage=None, eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
     """Reader function for GDF files.
@@ -1381,9 +1378,7 @@ def read_raw_gdf(input_fname, montage=None, eog=None, misc=None,
         amount of memory). If preload is a string, preload is the file name of
         a memory-mapped file which is used to store the data on the hard drive
         (slower, but requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----

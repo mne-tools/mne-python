@@ -48,7 +48,7 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
                      compute_corr, _get_inst_data, _ensure_int,
                      copy_function_doc_to_method_doc, _pl, warn,
-                     _check_preload, _check_compensation_grade)
+                     _check_preload, _check_compensation_grade, fill_doc)
 
 from ..fixes import _get_args
 from ..filter import filter_data
@@ -116,6 +116,7 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
                          .format(types, chs))
 
 
+@fill_doc
 class ICA(ContainsMixin):
     u"""M/EEG signal decomposition using Independent Component Analysis (ICA).
 
@@ -181,9 +182,7 @@ class ICA(ContainsMixin):
         Allow ICA on MEG reference channels. Defaults to False.
 
         .. versionadded:: 0.18
-    verbose : bool | str | int | None
-        If not None, override default verbosity level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>`).
+    %(verbose)s
 
     Attributes
     ----------
@@ -445,10 +444,7 @@ class ICA(ContainsMixin):
 
             .. versionadded:: 0.14.0
 
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -964,10 +960,7 @@ class ICA(ContainsMixin):
 
             .. versionadded:: 0.14.0
 
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1134,10 +1127,7 @@ class ICA(ContainsMixin):
 
             .. versionadded:: 0.14.0
 
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1231,10 +1221,7 @@ class ICA(ContainsMixin):
             High pass frequency.
         reject_by_annotation : bool
             If True, data annotated as bad will be omitted. Defaults to True.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1311,10 +1298,7 @@ class ICA(ContainsMixin):
 
             .. versionadded:: 0.14.0
 
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1795,9 +1779,7 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
         Between 0 and 1. qrs detection threshold. Can also be "auto" to
         automatically choose the threshold that generates a reasonable
         number of heartbeats (40-160 beats / min).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1840,9 +1822,7 @@ def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
         Low cut-off frequency in Hz.
     h_freq : float
         High cut-off frequency in Hz.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2063,9 +2043,7 @@ def read_ica(fname, verbose=None):
     fname : str
         Absolute path to fif file containing ICA matrices.
         The file name should end with -ica.fif or -ica.fif.gz.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2358,9 +2336,7 @@ def run_ica(raw, n_components, max_pca_components=100,
         Allow ICA on MEG reference channels. Defaults to False.
 
         .. versionadded:: 0.18
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2508,9 +2484,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         to True.
     show : bool
         Show figures if True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', a head scheme will be drawn. If
         dict, each key refers to a tuple of x and y positions. The values in

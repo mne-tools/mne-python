@@ -7,9 +7,10 @@
 import numpy as np
 
 from ..base import BaseRaw
-from ...utils import verbose, logger, _validate_type
+from ...utils import verbose, logger, _validate_type, fill_doc
 
 
+@fill_doc
 class RawArray(BaseRaw):
     """Raw object from numpy array.
 
@@ -25,9 +26,7 @@ class RawArray(BaseRaw):
 
         .. versionadded:: 0.12
 
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----

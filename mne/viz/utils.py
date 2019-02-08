@@ -547,9 +547,7 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
     max_str : int
         Max number of characters of string representation to print for
         each tag's data.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

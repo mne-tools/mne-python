@@ -43,9 +43,7 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
         jobs. This should only be used when directly iterating, not when
         using ``split_list`` or :func:`np.array_split`.
         If None (default), do not add a progress bar.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). INFO or DEBUG
+    %(verbose)s INFO or DEBUG
         will print parallel status, others will not.
 
     Returns

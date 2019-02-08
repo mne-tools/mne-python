@@ -713,9 +713,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1030,9 +1028,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
         The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1047,7 +1043,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
     -----
     If baseline signals match the assumption of Gaussian white noise,
     values should be centered at 0, and be within 2 standard deviations
-    (±1.96) for 95% of the time points. For the global field power (GFP),
+    (±1.96) for 95%% of the time points. For the global field power (GFP),
     we expect it to fluctuate around a value of 1.
 
     If one single covariance object is passed, the GFP panel (bottom)
@@ -1233,9 +1229,7 @@ def plot_snr_estimate(evoked, inv, show=True, verbose=None):
         The minimum-norm inverse operator.
     show : bool
         Show figure if True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

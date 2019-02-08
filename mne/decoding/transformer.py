@@ -13,7 +13,7 @@ from .base import BaseEstimator
 from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import psd_array_multitaper
-from ..utils import _check_type_picks, check_version
+from ..utils import _check_type_picks, check_version, fill_doc
 from ..io.pick import pick_info, _pick_data_channels, _picks_by_type
 from ..cov import _check_scalings_user
 
@@ -321,6 +321,7 @@ class Vectorizer(TransformerMixin):
         return X.reshape((len(X),) + self.features_shape_)
 
 
+@fill_doc
 class PSDEstimator(TransformerMixin):
     """Compute power spectrum density (PSD) using a multi-taper method.
 
@@ -346,9 +347,7 @@ class PSDEstimator(TransformerMixin):
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------
@@ -413,6 +412,7 @@ class PSDEstimator(TransformerMixin):
         return psd
 
 
+@fill_doc
 class FilterEstimator(TransformerMixin):
     """Estimator to filter RtEpochs.
 
@@ -471,9 +471,7 @@ class FilterEstimator(TransformerMixin):
         attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+    %(verbose)s Defaults to
         self.verbose.
 
     See Also
@@ -700,6 +698,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         return X
 
 
+@fill_doc
 class TemporalFilter(TransformerMixin):
     """Estimator to filter data array along the last dimension.
 
@@ -774,10 +773,7 @@ class TemporalFilter(TransformerMixin):
         attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
-    verbose : bool, str, int, or None, default None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        self.verbose.
+    %(verbose)s
 
     See Also
     --------

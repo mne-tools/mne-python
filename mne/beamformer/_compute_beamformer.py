@@ -503,10 +503,7 @@ class Beamformer(dict):
             Should end in ``'-lcmv.h5'`` or ``'-dics.h5'``.
         overwrite : bool
             If True, overwrite the file (if it exists).
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
         """
         ending = '-%s.h5' % (self['kind'].lower(),)
         check_fname(fname, self['kind'], (ending,))

@@ -402,9 +402,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         The number of iterations.
     tol : float
         Tolerance on dual gap for convergence checking.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     active_set_size : int
         Size of active set increase at each iteration.
     debias : bool
@@ -589,9 +587,7 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
         The number of iterations.
     tol : float
         Tolerance on dual gap for convergence checking.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     active_set_size : int
         Size of active set increase at each iteration.
     debias : bool
@@ -1239,9 +1235,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
         Return final duality gap.
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

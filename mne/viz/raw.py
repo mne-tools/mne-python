@@ -740,9 +740,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Evoked object. Defaults to True.
 
         .. versionadded:: 0.15.0
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1102,6 +1100,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
         params['fig_proj'].canvas.draw()
 
 
+@verbose
 def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
                       n_fft=2048, n_overlap=0, layout=None, color='w',
                       fig_facecolor='k', axis_facecolor='k', dB=True,
@@ -1151,9 +1150,7 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
         Number of jobs to run in parallel. Defaults to 1.
     axes : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

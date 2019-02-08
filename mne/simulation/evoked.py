@@ -48,9 +48,7 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
         orientations when converting to fixed orientation (if necessary).
 
         .. versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -136,9 +134,7 @@ def add_noise(inst, cov, iir_filter=None, random_state=None,
         IIR filter coefficients (denominator).
     random_state : None | int | np.random.RandomState
         To specify the random generator state.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

@@ -166,9 +166,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         Whether to omit data that is annotated as bad.
 
         .. versionadded:: 0.18
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -340,9 +338,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         rejected. If False, no rejection based on annotations is performed.
 
         .. versionadded:: 0.14.0
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

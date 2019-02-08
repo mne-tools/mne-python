@@ -50,9 +50,7 @@ def init_cuda(ignore_config=False, verbose=None):
     ----------
     ignore_config : bool
         If True, ignore the config value MNE_USE_CUDA and force init.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+    %(verbose)s Defaults to
         self.verbose.
     """
     global _cuda_capable

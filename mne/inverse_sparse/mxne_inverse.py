@@ -234,9 +234,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
         The dipoles to convert.
     src : instance of SourceSpaces
         The source space used to generate the forward operator.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -343,9 +341,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations. Ignored if
         solver is 'cd'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -584,9 +580,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         * l1_ratio. 0 means no time regularization aka MxNE.
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
 
     Returns

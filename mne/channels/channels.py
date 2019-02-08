@@ -121,9 +121,7 @@ def equalize_channels(candidates, verbose=None):
     ----------
     candidates : list
         list Raw | Epochs | Evoked | AverageTFR
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -306,10 +304,7 @@ class SetChannelsMixin(object):
             ``projection=False``, the average reference is directly applied to
             the data. If ``ref_channels`` is not ``'average'``, ``projection``
             must be set to ``False`` (the default in this case).
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -486,10 +481,7 @@ class SetChannelsMixin(object):
             in addition to the channel positions (``info['chs'][idx]['loc']``).
 
             .. versionadded: 0.15
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Notes
         -----
@@ -664,10 +656,7 @@ class UpdateChannelsMixin(object):
             in ``info['bads']``.
         selection : list of string
             Restrict sensor channels (MEG, EEG) to this list of channel names.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -935,10 +924,7 @@ class InterpolationMixin(object):
             fit. Default is ``(0., 0., 0.04)``.
 
             .. versionadded:: 0.17
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------

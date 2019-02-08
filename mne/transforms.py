@@ -1003,10 +1003,7 @@ class _SphericalSurfaceWarp(object):
             The uniformly-spaced points to match on the two surfaces.
             Can be "ico#" or "oct#" where "#" is an integer.
             The default is "oct5".
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
 
         Returns
         -------
@@ -1081,10 +1078,7 @@ class _SphericalSurfaceWarp(object):
             points that were used to generate the model, although ideally
             they will be inside the convex hull formed by the original
             source points.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
 
         Returns
         -------

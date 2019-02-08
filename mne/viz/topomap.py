@@ -1894,7 +1894,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     normalization : str
         Either "full" or "length" (default). If "full", the PSD will
@@ -1934,7 +1934,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         If True, each band will be divided by the total power. Defaults to
         False.
     cbar_fmt : str
-        The colorbar format. Defaults to '%0.3f'.
+        The colorbar format. Defaults to '%%0.3f'.
     outlines : 'head' | 'skirt' | dict | None
         The outlines to be drawn. If 'head', the default head scheme will be
         drawn. If 'skirt' the head scheme will be drawn, but sensors are
@@ -1951,9 +1951,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         will be created automatically. Defaults to None.
     show : bool
         Show figure if True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

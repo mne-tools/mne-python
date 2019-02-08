@@ -56,9 +56,7 @@ def read_selection(name, fname=None, info=None, verbose=None):
         Measurement info file, which will be used to determine the spacing
         of channel names to return, e.g. ``'MEG 0111'`` for old Neuromag
         systems and ``'MEG0111'`` for new ones.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

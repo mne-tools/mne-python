@@ -98,9 +98,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         The URL open timeout.
     hash_type : str
         The type of hashing to use such as "md5" or "sha1"
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py

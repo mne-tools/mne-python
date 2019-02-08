@@ -6,9 +6,12 @@
 
 import copy
 import numpy as np
+
 from ..event import find_events
+from ..utils import fill_doc
 
 
+@fill_doc
 class MockRtClient(object):
     """Mock Realtime Client.
 
@@ -16,9 +19,7 @@ class MockRtClient(object):
     ----------
     raw : instance of Raw object
         The raw object which simulates the RtClient
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
 
     def __init__(self, raw, verbose=None):  # noqa: D102

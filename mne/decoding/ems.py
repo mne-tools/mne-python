@@ -92,8 +92,8 @@ class EMS(TransformerMixin, EstimatorMixin):
 
 
 @verbose
-def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
-                cv=None):
+def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
+                verbose=None):
     """Compute event-matched spatial filter on epochs.
 
     This version of EMS [1]_ operates on the entire time course. No time
@@ -125,11 +125,9 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
         Channels to be included. If None only good data channels are used.
     n_jobs : int, default 1
         Number of jobs to run in parallel.
-    verbose : bool, str, int, or None, default self.verbose
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
     cv : cross-validation object | str | None, default LeaveOneOut
         The cross-validation scheme.
+    %(verbose)s
 
     Returns
     -------

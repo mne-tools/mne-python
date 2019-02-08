@@ -390,9 +390,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
         the signal (as in nitime).
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -510,9 +508,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
     n_jobs : int
         The number of epochs to process at the same time. The parallelization
         is implemented across channels. Defaults to 1.
-    verbose : bool, str, int, or None, default None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

@@ -1041,9 +1041,7 @@ def permutation_cluster_test(
         processes is enabled (see set_cache_dir()), as X will be shared
         between processes and each process only needs to allocate space
         for a small block of variables.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1112,9 +1110,7 @@ def permutation_cluster_1samp_test(
         Use square n_vertices matrix for datasets with a large temporal
         extent to save on memory and computation time. Can also be False
         to assume no connectivity. Can also be False to assume no connectivity.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int | instance of RandomState | None
@@ -1291,9 +1287,7 @@ def spatio_temporal_cluster_1samp_test(
         processes is enabled (see set_cache_dir()), as X will be shared
         between processes and each process only needs to allocate space
         for a small block of variables.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1365,9 +1359,7 @@ def spatio_temporal_cluster_test(
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         Default is None, i.e, a regular lattice connectivity.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int | instance of RandomState | None

@@ -88,9 +88,7 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     ----------
     command : list of str | str
         Command to run as subprocess (see subprocess.Popen documentation).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+    %(verbose)s Defaults to
         self.verbose.
     *args, **kwargs : arguments
         Additional arguments to pass to subprocess.Popen.

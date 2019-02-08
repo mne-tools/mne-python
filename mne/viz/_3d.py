@@ -612,9 +612,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         camera.
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1578,7 +1576,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     time_label : str | callable | None
         Format of the time label (a format string, a function that maps
         floating point time values to strings, or None for no label). The
-        default is ``time=%0.2f ms``.
+        default is ``time=%%0.2f ms``.
     smoothing_steps : int
         The amount of smoothing
     transparent : bool
@@ -1657,9 +1655,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         Title for the figure. If None, the subject name will be used.
 
         .. versionadded:: 0.17.0
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1829,9 +1825,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         None will choose automatically based on colormap type.
     show : bool
         Show figures if True. Defaults to True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -2261,6 +2255,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     return brain
 
 
+@verbose
 def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
                                  fontsize=18, bgcolor=(.05, 0, .1),
                                  opacity=0.2, brain_color=(0.7,) * 3,
@@ -2311,10 +2306,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         to specify how the dipoles should be shown.
     scale_factors : list
         List of floating point scale factors for the markers.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-
+    %(verbose)s
     **kwargs : kwargs
         Keyword arguments to pass to mlab.triangular_mesh.
 
@@ -2434,6 +2426,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     return surface
 
 
+@verbose
 def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
                           mode='orthoview', coord_frame='mri', idx='gof',
                           show_all=True, ax=None, block=False,
@@ -2498,9 +2491,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
         Only used if mode equals 'orthoview'.
 
         .. versionadded:: 0.14.0
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

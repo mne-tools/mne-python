@@ -120,10 +120,7 @@ class SourceSpaces(list):
             produced during coregistration. If trans is None, an identity
             matrix is assumed. This is only needed when the source space is in
             head coordinates.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -270,10 +267,7 @@ class SourceSpaces(list):
         use_lut : bool
             If True, assigns a numeric value to each source space that
             corresponds to a color on the freesurfer lookup table.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Notes
         -----
@@ -556,9 +550,7 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False,
         The FIF tree structure if source is a file id.
     patch_stats : bool, optional (default False)
         Calculate and add cortical patch statistics to the surfaces.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -595,9 +587,7 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
         -src.fif.gz.
     patch_stats : bool, optional (default False)
         Calculate and add cortical patch statistics to the surfaces.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -968,9 +958,7 @@ def _write_source_spaces_to_fid(fid, src, verbose=None):
         An open file descriptor.
     src : list
         The list of source spaces.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
     for s in src:
         logger.info('    Write a source space...')
@@ -995,9 +983,7 @@ def write_source_spaces(fname, src, overwrite=False, verbose=None):
     overwrite : bool
         If True, the destination file (if it exists) will be overwritten.
         If False (default), an error will be raised if the file exists.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------
@@ -1144,9 +1130,7 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None,
         MRI<->Head coordinate transformation
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1198,9 +1182,7 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
         obtain the transforms. If None, 'nibabel' is tried first, falling
         back to 'freesurfer' if it fails. Results should be equivalent with
         either option, but nibabel may be quicker (and more pythonic).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1257,9 +1239,7 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
         MRI<->Head coordinate transformation
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1417,9 +1397,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     n_jobs : int
         Number of jobs to run in parallel. Will use at most 2 jobs
         (one for each hemisphere).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1552,9 +1530,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     add_interpolator : bool
         If True and ``mri`` is not None, then an interpolation matrix
         will be produced.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2346,9 +2322,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     n_jobs : int
         Number of jobs to run in parallel. Will only use (up to) as many
         cores as there are source spaces.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2654,9 +2628,7 @@ def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
         to be provided, since it is stored in the source space itself.
     subjects_dir : str | None
         Path to SUBJECTS_DIR if it is not set in the environment.
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2725,9 +2697,7 @@ def _get_morph_src_reordering(vertices, src_from, subject_from, subject_to,
         The destination subject.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
