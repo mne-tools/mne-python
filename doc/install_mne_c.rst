@@ -30,10 +30,15 @@ including the environment variables ``FREESURFER_HOME``, ``SUBJECTS_DIR``, and
 .. admonition:: |apple| macOS
   :class: note
 
-  For installation on macOS, you also need the `XCode developer tools`_, an X
-  Window System such as XQuartz_, and the netpbm_ library. The recommended way
-  to get netpbm is to install MacPorts_, and then run ``sudo port install
-  netpbm`` in the Terminal app.
+  For installation on macOS, you also need:
+
+  - the `XCode developer tools`_.
+  - an X Window System such as XQuartz_. Specifically, you need version 2.7.9
+    of XQuartz; the most current version (2.7.11, as of Feb. 2019) will not
+    work.
+  - the netpbm_ library. The recommended way to get netpbm is to install
+    MacPorts_, and then run ``sudo port install netpbm`` in the Terminal app.
+
 
 Download and Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -53,7 +58,10 @@ install location, and unpack the software using ``tar``:
 
 To install from the macOS disk image, double-click the downloaded .dmg file. In
 the window that opens, double-click the installer package file (.pkg) to launch
-the installer, and follow its instructions.
+the installer, and follow its instructions. In newer versions of macOS, if you
+see an error that the app is from an untrusted developer, you can override this
+warning by opening it anyway from the Security & Privacy pane within the
+computer's System Preferences.
 
 .. _user_environment:
 
