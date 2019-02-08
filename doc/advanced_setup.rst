@@ -12,32 +12,43 @@ Advanced setup of MNE-python
 IPython / Jupyter notebooks
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In Jupyter, we strongly recommend using the Qt matplotlib backend for
-fast and correct rendering:
+When using MNE-python within IPython or a Jupyter notebook, we strongly
+recommend using the Qt matplotlib backend for fast and correct rendering. On
+Linux, for example, Qt is the only matplotlib backend for which 3D rendering
+will work correctly. On macOS, certain matplotlib functions might not work as
+expected on backends other than Qt. Enabling Qt can be accomplished when
+starting IPython from a terminal:
 
 .. code-block:: console
 
     $ ipython --matplotlib=qt
 
-On Linux, for example, QT is the only matplotlib backend for which 3D rendering
-will work correctly. On macOS, certain matplotlib functions might not work as
-expected on backends other than QT.
+or in a Jupyter Notebook, you can use the "magic" command:
 
-To take full advantage of MNE-python's visualization capacities in combination
-with IPython notebooks and inline displaying, please explicitly add the
-following magic method invocation to your notebook or configure your notebook
-runtime accordingly:
+.. code-block:: ipython
+
+    In [1]: %matplotlib qt
+
+This will create separate pop-up windows for each figure, and has the advantage
+that the 3D plots will retain rich interactivity (so, for example, you can
+click-and-drag to rotate cortical surface activation maps).
+
+If you are creating a static notebook or simply prefer Jupyter's inline plot
+display, MNE-python will work with the standard "inline" magic:
 
 .. code-block:: ipython
 
     In [1]: %matplotlib inline
 
+but some functionality will be lost. For example, mayavi scenes will still
+pop-up a separate window, but only one window at a time is possible, and
+interactivity within the scene is limited in non-blocking plot calls.
 
 .. admonition:: |windows| Windows
   :class: note
 
-  If you are using MNE-python on Windows through IPython or Jupyter,
-  you might have to use the IPython magic command ``%gui qt`` after importing
+  If you are using MNE-python on Windows through IPython or Jupyter, you might
+  also have to use the IPython magic command ``%gui qt`` after importing
   MNE-python, Mayavi or PySurfer (see `here
   <https://github.com/ipython/ipython/issues/10384>`_). For example:
 
