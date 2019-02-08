@@ -78,22 +78,22 @@ MNE-python and its dependencies. Typical output looks like this:
 
 .. code-block:: console
 
-    Platform:      Linux-4.15.0-44-generic-x86_64-with-debian-buster-sid
-    Python:        3.6.7 |Anaconda, Inc.| (default, Oct 23 2018, 19:16:44)  [GCC 7.3.0]
-    Executable:    /opt/miniconda3/envs/mne/bin/python
-    CPU:           x86_64: 8 cores
-    Memory:        7.6 GB
+    Platform:      Linux-4.18.0-13-generic-x86_64-with-debian-buster-sid
+    Python:        3.6.8 |Anaconda, Inc.| (default, Dec 30 2018, 01:22:34)  [GCC 7.3.0]
+    Executable:    /home/travis/miniconda/envs/test/bin/python
+    CPU:           x86_64: 48 cores
+    Memory:        62.7 GB
 
-    mne:           0.18.dev0
+    mne:           0.17.0
     numpy:         1.15.4 {blas=mkl_rt, lapack=mkl_rt}
-    scipy:         1.1.0
+    scipy:         1.2.0
     matplotlib:    3.0.2 {backend=Qt5Agg}
 
     sklearn:       0.20.2
-    nibabel:       2.3.1
-    mayavi:        4.7.0.dev0 {qt_api=pyqt5, PyQt5=5.9.2}
+    nibabel:       2.3.3
+    mayavi:        4.7.0.dev0 {qt_api=pyqt5, PyQt5=5.10.1}
     cupy:          Not found
-    pandas:        0.23.4
+    pandas:        0.24.0
     dipy:          0.15.0
 
 Troubleshooting MNE-python installation
