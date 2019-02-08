@@ -17,9 +17,9 @@ MNE-Python 0.18 only supports Python version 3.5 or higher. We strongly
 recommend the `Anaconda`_ distribution of Python, which comes with more than
 250 scientific packages pre-bundled, and includes the ``conda`` command line
 tool for installing new packages and managing different package sets
-("environments") for different projects. Follow the installation instructions
-for `Anaconda <anaconda-install>`__; when you are done, you should see a
-similar output if you type the following command in a terminal:
+("environments") for different projects. Follow the `installation instructions
+for Anaconda`_; when you are done, you should see a similar output if you type
+the following command in a terminal:
 
 .. code-block:: console
 

@@ -78,8 +78,8 @@
 .. _Spyder: https://www.spyder-ide.org/
 .. _anaconda: https://www.anaconda.com/distribution/
 .. _miniconda: https://conda.io/en/latest/miniconda.html
-.. _anaconda-install: http://docs.continuum.io/anaconda/install
-.. _miniconda-install: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
+.. _installation instructions for Anaconda: http://docs.continuum.io/anaconda/install
+.. _installation instructions for Miniconda: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
 .. _EPD: https://www.enthought.com/products/epd/
 .. _sublime text: http://www.sublimetext.com/
 

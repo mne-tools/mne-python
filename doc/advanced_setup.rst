@@ -123,7 +123,7 @@ distributions of Python should also work with MNE-Python.  In particular,
 like Anaconda, Miniconda includes the ``conda`` command line tool for
 installing new packages and managing environments; unlike Anaconda, Miniconda
 starts off with a minimal set of around 30 packages instead of Anaconda's
-hundreds. See the `Miniconda install page <miniconda-install>`__ for more info.
+hundreds. See the `installation instructions for Miniconda`_ for more info.
 
 It is also possible to use a system-level installation of Python (version 3.5
 or higher) and use ``pip`` to install MNE-Python and its dependencies, using

@@ -23,8 +23,8 @@ sufficient. If MATLAB is not present, the utilities ``mne_convert_mne_data``,
 For boundary-element model (BEM) mesh generation (see :doc:`Creating the BEM
 meshes <manual/appendix/bem_model>`), and for accessing the ``tkmedit`` program
 from ``mne_analyze`` (see :ref:`CACCHCBF`), MNE-C needs access to a working
-installation of :doc:`install_freesurfer`, including the environment variables
-``FREESURFER_HOME``, ``SUBJECTS_DIR``, and ``SUBJECT``.
+installation of :doc:`FreeSurfer <install_freesurfer>`, including the
+environment variables ``FREESURFER_HOME``, ``SUBJECTS_DIR``, and ``SUBJECT``.
 
 .. admonition:: |apple| macOS
   :class: note
