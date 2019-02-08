@@ -24,8 +24,7 @@ MNE-python is collaboratively developed and has more than 150 contributors.
 The :ref:`ch_matlab` provides a MATLAB interface to the .fif file format and
 other MNE data structures, and provides example MATLAB implementations of
 some of the core analysis functionality of MNE-C. It is distributed alongside
-MNE-C, and can also be downloaded from its
-`git repository <mne-matlab-git>`_.
+MNE-C, and can also be downloaded from the `MNE-MATLAB git repository`_.
 
 :ref:`mne_cpp` provides core MNE functionality implemented in C++ and is
 primarily intended for embedded and real-time applications.

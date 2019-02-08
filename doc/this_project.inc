@@ -9,4 +9,4 @@
 .. _`MNE gitter channel`: https://gitter.im/mne-tools/mne-python
 .. _`MNE-BIDS`: https://mne-tools.github.io/mne-bids/
 .. _`MNE-HCP`: http://mne-tools.github.io/mne-hcp/
-.. _`mne-matlab-git`: https://github.com/mne-tools/mne-matlab
+.. _`MNE-MATLAB git repository`: https://github.com/mne-tools/mne-matlab
