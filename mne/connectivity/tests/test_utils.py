@@ -39,9 +39,12 @@ def test_degree():
                      [0.2, 0.8, 0.9]])
     deg = degree(corr, 1)
     assert_array_equal(deg, [2, 2, 2])
-    # wanted values obtained with:
-    # import bct
-    # want = bct.degrees_und(bct.utils.threshold_proportional(corr, 0.25) > 0)
+
+    # The values for assert_array_equal below were obtained with:
+    #
+    # >>> import bct
+    # >>> bct.degrees_und(bct.utils.threshold_proportional(corr, 0.25) > 0)
+    #
     # But they can also be figured out just from the structure.
 
     # Asymmetric (6 usable nodes)

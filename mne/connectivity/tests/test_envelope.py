@@ -1,3 +1,9 @@
+# Authors: Eric Larson <larson.eric.d@gmail.com>
+#          Sheraz Khan <sheraz@khansheraz.com>
+#          Denis Engemann <denis.engemann@gmail.com>
+#
+# License: BSD (3-clause)
+
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
