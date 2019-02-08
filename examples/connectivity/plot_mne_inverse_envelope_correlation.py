@@ -3,7 +3,7 @@
 Compute envelope correlations in source space
 =============================================
 
-Compute orthogonal envelope correlations of activity in source space
+Compute envelope correlations of orthogonalized activity [1]_ in source space
 using resting state CTF data.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
@@ -91,3 +91,10 @@ brain = stc.plot(
     clim=dict(kind='percent', lims=[75, 85, 95]), colormap='gnuplot',
     subjects_dir=subjects_dir, views='dorsal', hemi='both',
     smoothing_steps=25, time_label='Beta band')
+
+##############################################################################
+# References
+# ----------
+# .. [1] Hipp JF, Hawellek DJ, Corbetta M, Siegel M, Engel AK (2012)
+#        Large-scale cortical correlation structure of spontaneous
+#        oscillatory activity. Nature Neuroscience 15:884–890

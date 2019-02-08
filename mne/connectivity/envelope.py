@@ -29,8 +29,14 @@ def envelope_correlation(data):
 
     Notes
     -----
-    This function computes the orthogonal envelope correlation between
-    time series.
+    This function computes the power envelope correlation between
+    orthogonalized signals [1]_.
+
+    References
+    ----------
+    .. [1] Hipp JF, Hawellek DJ, Corbetta M, Siegel M, Engel AK (2012)
+           Large-scale cortical correlation structure of spontaneous
+           oscillatory activity. Nature Neuroscience 15:884–890
     """
     from scipy.signal import hilbert
     corrs = list()
