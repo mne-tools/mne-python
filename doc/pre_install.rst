@@ -12,10 +12,10 @@ Before you install
 Overview of the MNE tools suite
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The project started with what is now called :ref:`MNE-C <c_reference>` — a set
-of interrelated command-line and GUI programs focused on computing cortically
-constrained Minimum Norm Estimates from MEG and EEG data. These tools were
-written in C by Matti Hämäläinen.
+The project started with what is now called :doc:`MNE-C <manual/c_reference>` —
+a set of interrelated command-line and GUI programs focused on computing
+cortically constrained Minimum Norm Estimates from MEG and EEG data. These
+tools were written in C by Matti Hämäläinen.
 
 :ref:`MNE-python <api_reference>` reimplements the functionality of MNE-C,
 and extends considerably the analysis and visualization capabilities.
@@ -46,14 +46,14 @@ prefer MATLAB over python, probably all you need is :doc:`MNE-C
 If you want to transform sensor recordings into estimates of localized brain
 activity, you will most likely need:
 
-- :ref:`FreeSurfer <install_freesurfer>` (to convert structural MRI scans into
+- :doc:`FreeSurfer <install_freesurfer>` (to convert structural MRI scans into
   models of the scalp, inner/outer skull, and cortical surfaces)
 
-- :ref:`MNE-C <install_mne_c>` (for constructing and solving a boundary-element
+- :doc:`MNE-C <install_mne_c>` (for constructing and solving a boundary-element
   model of tissue conductance, and for aligning coordinate frames between the
   structural MRI and the digitizations of M/EEG sensor locations)
 
-- :ref:`MNE-python <install_python_and_mne_python>` (for everything else)
+- :doc:`MNE-python <install_mne_python>` (for everything else)
 
 Getting help
 ^^^^^^^^^^^^
