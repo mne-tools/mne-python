@@ -47,13 +47,7 @@ and its dependencies into a new conda environment:
 
 (You can also use a web browser to download the required `environment file`_ if
 you do not have ``curl``.) These commands will create a new environment called
-`mne` and then activate it.
-
-.. note::
-
-    The name of the environment is built into the environment file, but can be
-    changed on the command line with the ``-n`` flag; see ``conda env create
-    --help`` for more info.
+``mne`` and then activate it.
 
 Make sure you activate the environment (``conda activate mne``) each
 time you open a terminal, or put the activation command in your ``.bashrc``

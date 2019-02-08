@@ -98,8 +98,18 @@ the latest version of the ``master`` development branch, you can do:
 
    $ git pull origin master
 
-from within the mne-python source folder, and MNE will be automatically updated
-to have the latest changes.
+from within the ``mne-python`` source folder, and MNE will be automatically
+updated to have the latest changes.
+
+.. note::
+
+    When using the `environment file`_ to install with Anaconda or Miniconda,
+    the name of the environment (``mne``) is built into the environment file
+    itself, but can be changed on the command line with the ``-n`` flag. This
+    can be helpful when maintaining separate environments for stable and
+    development versions of MNE-python, or when using the environment file as a
+    starting point for new projects.  See ``conda env create --help`` for more
+    info.
 
 If you plan to contribute to MNE-python, please continue reading how to
 :doc:`contribute to MNE-python <contributing>`.
