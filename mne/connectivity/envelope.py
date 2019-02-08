@@ -25,6 +25,7 @@ def envelope_correlation(data):
     -------
     corr : ndarray, shape (n_nodes, n_nodes)
         The pairwise orthogonal envelope correlations.
+        This matrix is symmetric.
 
     Notes
     -----
@@ -65,6 +66,7 @@ def envelope_correlation(data):
         corr = np.einsum('it,ijt->ij', data_mag, data_orth)
         corr /= np.sqrt(data_mag_var)
         corr /= np.sqrt(data_orth_var)
+        # we always make the matrix symmetric
         corr = np.abs(corr)
         corrs.append((corr.T + corr) / 2.)
     corr = np.median(corrs, axis=0)
