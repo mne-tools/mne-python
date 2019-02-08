@@ -88,24 +88,30 @@ using, you can run the following command to find out:
     $ echo $SHELL
 
 To configure MNE-C automatically for ``bash`` or ``sh`` shells, add this to
-your ``.bashrc``::
+your ``.bashrc``:
+
+.. code-block:: sh
 
     export MNE_ROOT=<path_to_MNE>
     export MATLAB_ROOT=<path_to_MATLAB>
-    . $MNE_ROOT/bin/mne_setup_sh
+    source $MNE_ROOT/bin/mne_setup_sh
 
 where ``<path_to_MNE>`` and ``<path_to_MATLAB>`` are replaced by the absolute
 paths to MNE-C and MATLAB, respectively.
 
 To configure MNE-C automatically for ``zsh``, use the built-in ``emulate``
-command in your ``.zshrc`` file::
+command in your ``.zshrc`` file:
+
+.. code-block:: sh
 
     export MNE_ROOT=<path_to_MNE>
     export MATLAB_ROOT=<path_to_MATLAB>
     emulate sh -c 'source $MNE_ROOT/bin/mne_setup_sh'
 
 To configure MNE-C automatically for ``csh`` or ``tcsh`` shells, the
-corresponding commands in the ``.cshrc`` / ``.tcshrc`` file are::
+corresponding commands in the ``.cshrc`` / ``.tcshrc`` file are:
+
+.. code-block:: sh
 
     setenv MNE_ROOT <path_to_MNE>
     setenv MATLAB_ROOT <path_to_MATLAB>
