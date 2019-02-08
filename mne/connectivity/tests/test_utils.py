@@ -38,7 +38,7 @@ def test_degree():
                      [0.1, 0.3, 0.6],
                      [0.2, 0.8, 0.9]])
     deg = degree(corr, 1)
-    assert_array_equal(deg, np.full(3, 2))
+    assert_array_equal(deg, [2, 2, 2])
     # wanted values obtained with:
     # import bct
     # want = bct.degrees_und(bct.utils.threshold_proportional(corr, 0.25) > 0)
