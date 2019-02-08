@@ -40,7 +40,9 @@ What should I install?
 If you intend only to perform ERP, ERF, or other sensor-level analyses,
 :doc:`MNE-python <install_mne_python>` is all you need. If you
 prefer MATLAB over Python, probably all you need is :doc:`MNE-C
-<install_mne_c>` — the MNE MATLAB toolbox is distributed with it.
+<install_mne_c>` — the MNE MATLAB toolbox is distributed with it — although
+note that the MATLAB toolbox is less actively developed than the
+MNE-python module, and hence the MATLAB code is considerably less feature-complete.
 
 If you want to transform sensor recordings into estimates of localized brain
 activity, you will most likely need:
