@@ -16,12 +16,10 @@ MNE-python runs within Python, and depends on several other Python packages.
 MNE-python 0.18 only supports Python version 3.5 or higher. We strongly
 recommend the `Anaconda`_ distribution of Python, which comes with more than
 250 scientific packages pre-bundled, and includes the ``conda`` command line
-tool for
-installing new packages and managing different package sets ("environments")
-for different projects. Follow the installation instructions for `Anaconda
-<anaconda-install>`__; when you are done,
-you should see a similar output if you type the following command in a
-terminal:
+tool for installing new packages and managing different package sets
+("environments") for different projects. Follow the installation instructions
+for `Anaconda <anaconda-install>`__; when you are done, you should see a
+similar output if you type the following command in a terminal:
 
 .. code-block:: console
 
@@ -49,9 +47,9 @@ and its dependencies into a new conda environment:
 you do not have ``curl``.) These commands will create a new environment called
 ``mne`` and then activate it.
 
-Make sure you activate the environment (``conda activate mne``) each
-time you open a terminal, or put the activation command in your ``.bashrc``
-or ``.profile`` so that it happens automatically.
+Make sure you activate the environment (``conda activate mne``) each time you
+open a terminal, or put the activation command in your ``.bashrc`` or
+``.profile`` so that it happens automatically.
 
 .. admonition:: |apple| macOS
   :class: note

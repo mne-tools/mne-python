@@ -20,12 +20,11 @@ disk space. MATLAB is an optional dependency; the free `MATLAB runtime`_ is
 sufficient. If MATLAB is not present, the utilities ``mne_convert_mne_data``,
 ``mne_epochs2mat``, ``mne_raw2mat``, and ``mne_simu`` will not work.
 
-For boundary-element model (BEM) mesh generation (see
-:doc:`Creating the BEM meshes <manual/appendix/bem_model>`),
-and for accessing the ``tkmedit`` program from ``mne_analyze`` (see
-:ref:`CACCHCBF`), MNE-C needs access to a working installation of :doc:`install_freesurfer`,
-including the environment variables ``FREESURFER_HOME``, ``SUBJECTS_DIR``, and
-``SUBJECT``.
+For boundary-element model (BEM) mesh generation (see :doc:`Creating the BEM
+meshes <manual/appendix/bem_model>`), and for accessing the ``tkmedit`` program
+from ``mne_analyze`` (see :ref:`CACCHCBF`), MNE-C needs access to a working
+installation of :doc:`install_freesurfer`, including the environment variables
+``FREESURFER_HOME``, ``SUBJECTS_DIR``, and ``SUBJECT``.
 
 .. admonition:: |apple| macOS
   :class: note

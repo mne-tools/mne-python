@@ -38,11 +38,11 @@ What should I install?
 ^^^^^^^^^^^^^^^^^^^^^^
 
 If you intend only to perform ERP, ERF, or other sensor-level analyses,
-:doc:`MNE-python <install_mne_python>` is all you need. If you
-prefer MATLAB over Python, probably all you need is :doc:`MNE-C
-<install_mne_c>` — the MNE MATLAB toolbox is distributed with it — although
-note that the MATLAB toolbox is less actively developed than the
-MNE-python module, and hence the MATLAB code is considerably less feature-complete.
+:doc:`MNE-python <install_mne_python>` is all you need. If you prefer MATLAB
+over Python, probably all you need is :doc:`MNE-C <install_mne_c>` — the MNE
+MATLAB toolbox is distributed with it — although note that the MATLAB toolbox
+is less actively developed than the MNE-python module, and hence the MATLAB
+code is considerably less feature-complete.
 
 If you want to transform sensor recordings into estimates of localized brain
 activity, you will most likely need:
@@ -61,12 +61,12 @@ Getting help
 
 There are three main channels for obtaining help with MNE software tools.
 
-The `MNE mailing list`_ and `MNE gitter channel`_ are a good
-place to start for both troubleshooting and general questions.  If you want to
-request new features or if you're confident that you have found a bug, please
-create a new issue on the `GitHub issues page`_. When reporting bugs,
-please try to replicate the bug with the MNE-python sample data, and make every
-effort to simplify your example script to only the elements necessary to
-replicate the bug.
+The `MNE mailing list`_ and `MNE gitter channel`_ are a good place to start for
+both troubleshooting and general questions.  If you want to request new
+features or if you're confident that you have found a bug, please create a new
+issue on the `GitHub issues page`_. When reporting bugs, please try to
+replicate the bug with the MNE-python sample data, and make every effort to
+simplify your example script to only the elements necessary to replicate the
+bug.
 
 **Next:** :doc:`install_mne_python`
