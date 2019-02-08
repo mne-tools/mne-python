@@ -14,6 +14,9 @@ using resting state CTF data.
 
 import os.path as op
 
+import numpy as np
+import matplotlib.pyplot as plt
+
 import mne
 from mne.connectivity import envelope_correlation
 from mne.minimum_norm import make_inverse_operator, apply_inverse_epochs
@@ -58,6 +61,7 @@ del raw
 src = mne.read_source_spaces(src)
 fwd = mne.make_forward_solution(epochs.info, trans, src, bem)
 inv = make_inverse_operator(epochs.info, fwd, cov)
+del fwd, src
 
 ##############################################################################
 # Compute label time series and do envelope correlation
@@ -70,15 +74,20 @@ label_ts = mne.extract_label_time_course(
     stcs, labels, inv['src'], return_generator=True)
 corr = envelope_correlation(label_ts)
 
+# let's plot this matrix
+fig, ax = plt.subplots(figsize=(4, 4))
+ax.imshow(corr, cmap='viridis', clim=np.percentile(corr, [5, 95]))
+fig.tight_layout()
+
 ##############################################################################
 # Compute the degree and plot it
 # ------------------------------
 
 degree = mne.connectivity.degree(corr, 0.15)
 stc = mne.labels_to_stc(labels, degree)
-stc = stc.in_label(mne.Label(src[0]['vertno'], hemi='lh') +
-                   mne.Label(src[1]['vertno'], hemi='rh'))
+stc = stc.in_label(mne.Label(inv['src'][0]['vertno'], hemi='lh') +
+                   mne.Label(inv['src'][1]['vertno'], hemi='rh'))
 brain = stc.plot(
-    clim=dict(kind='percent', lims=[75, 85, 95]),
+    clim=dict(kind='percent', lims=[75, 85, 95]), colormap='gnuplot',
     subjects_dir=subjects_dir, views='dorsal', hemi='both',
     smoothing_steps=25, time_label='Beta band')

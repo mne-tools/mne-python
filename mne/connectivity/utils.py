@@ -59,20 +59,33 @@ def degree(connectivity, threshold=1.):
     -------
     degree : ndarray, shape (n_nodes,)
         The computed degree.
+
+    Notes
+    -----
+    During thresholding, the symmetry of the connectivity matrix is
+    auto-detected based on :func:`numpy.allclose` of it with its transpose.
     """
     connectivity = np.array(connectivity)
-    threshold = float(threshold)
-    if not 0 < threshold <= 1:
-        raise ValueError('threshold must be 0 <= threshold < 1, got %s'
-                         % (threshold,))
     if connectivity.ndim != 2 or \
             connectivity.shape[0] != connectivity.shape[1]:
         raise ValueError('connectivity must be have shape (n_nodes, n_nodes), '
                          'got %s' % (connectivity.shape,))
+    n_nodes = len(connectivity)
+    if np.allclose(connectivity, connectivity.T):
+        split = 2.
+        connectivity[np.tril_indices(n_nodes)] = 0
+    else:
+        split = 1.
+    threshold = float(threshold)
+    if not 0 < threshold <= 1:
+        raise ValueError('threshold must be 0 <= threshold < 1, got %s'
+                         % (threshold,))
     degree = connectivity.ravel()  # no need to copy because np.array does
-    degree[::connectivity.shape[0] + 1] = 0
-    n_keep = int(round((degree.size - len(connectivity)) * threshold))
+    degree[::n_nodes + 1] = 0.
+    n_keep = int(round((degree.size - len(connectivity)) * threshold / split))
     degree[np.argsort(degree)[:-n_keep]] = 0
     degree.shape = connectivity.shape
+    if split == 2:
+        degree += degree.T  # normally unsafe, but we know where our zeros are
     degree = np.sum(degree > 0, axis=0)
     return degree

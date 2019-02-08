@@ -35,11 +35,11 @@ def envelope_correlation(data):
     from scipy.signal import hilbert
     corrs = list()
     n_nodes = None
-    for data_ in data:
-        if data_.ndim != 2:
+    for epoch_data in data:
+        if epoch_data.ndim != 2:
             raise ValueError('Each entry in data must be 2D, got shape %s'
-                             % (data_.shape,))
-        this_n_nodes, n_times = data_.shape
+                             % (epoch_data.shape,))
+        this_n_nodes, n_times = epoch_data.shape
         if n_nodes is None:
             n_nodes = this_n_nodes
         if this_n_nodes != n_nodes:
@@ -47,27 +47,32 @@ def envelope_correlation(data):
                              % (n_nodes, this_n_nodes))
         # Get the complex envelope (allowing complex inputs allows people
         # to do raw.apply_hilbert if they want)
-        if data_.dtype in (np.float32, np.float64):
+        if epoch_data.dtype in (np.float32, np.float64):
             n_fft = next_fast_len(n_times)
-            data_ = hilbert(data_, N=n_fft, axis=-1)[..., :n_times]
-        if data_.dtype not in (np.complex64, np.complex128):
+            epoch_data = hilbert(epoch_data, N=n_fft, axis=-1)[..., :n_times]
+        if epoch_data.dtype not in (np.complex64, np.complex128):
             raise ValueError('data.dtype must be float or complex, got %s'
-                             % (data_.dtype,))
-        data_mag = np.abs(data_)
-        data_orth = np.einsum('it,jt->ijt', data_,
-                              data_.conj() / data_mag).imag
+                             % (epoch_data.dtype,))
+        data_mag = np.abs(epoch_data)
+        data_conj_scaled = epoch_data.conj()
+        data_conj_scaled /= data_mag
         # subtract means
-        data_mag -= np.mean(data_mag, axis=-1, keepdims=True)
-        data_orth -= np.mean(data_orth, axis=-1, keepdims=True)
-        # compute variances using dot products
-        data_mag_var = np.linalg.norm(data_mag, axis=-1)[:, np.newaxis]
-        data_orth_var = np.linalg.norm(data_orth, axis=-1)
-        # correlation is dot product divided by variances
-        corr = np.einsum('it,ijt->ij', data_mag, data_orth)
-        corr /= np.sqrt(data_mag_var)
-        corr /= np.sqrt(data_orth_var)
-        # we always make the matrix symmetric
-        np.abs(corr, out=corr)
+        data_mag_nomean = data_mag - np.mean(data_mag, axis=-1, keepdims=True)
+        # compute variances using linalg.norm (square, sum, sqrt) since mean=0
+        data_mag_std = np.linalg.norm(data_mag_nomean, axis=-1)
+        data_mag_std[data_mag_std == 0] = 1
+        corr = np.empty((n_nodes, n_nodes))
+        for li, label_data in enumerate(epoch_data):
+            label_data_orth = (label_data * data_conj_scaled).imag
+            label_data_orth -= np.mean(label_data_orth, axis=-1, keepdims=True)
+            label_data_orth_std = np.linalg.norm(label_data_orth, axis=-1)
+            label_data_orth_std[label_data_orth_std == 0] = 1
+            # correlation is dot product divided by variances
+            corr[li] = np.dot(label_data_orth, data_mag_nomean[li])
+            corr[li] /= data_mag_std[li]
+            corr[li] /= label_data_orth_std
+        # Make it symmetric (it isn't at this point)
+        corr = np.abs(corr)
         corrs.append((corr.T + corr) / 2.)
     corr = np.median(corrs, axis=0)
     return corr
