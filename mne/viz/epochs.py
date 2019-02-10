@@ -1272,7 +1272,7 @@ def _plot_traces(params):
                     ylabels[line_idx].set_color(this_color)
                 this_color = np.tile((params['bad_color']), (num_epochs, 1))
                 for bad_idx in params['bads']:
-                    if bad_idx < start_idx or bad_idx > end_idx:
+                    if bad_idx < start_idx or bad_idx >= end_idx:
                         continue
                     this_color[bad_idx - start_idx] = (1., 0., 0.)
                 lines[line_idx].set_zorder(2)
