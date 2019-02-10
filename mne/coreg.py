@@ -17,7 +17,6 @@ import shutil
 from functools import reduce
 
 import numpy as np
-from numpy import dot
 
 from .io import read_fiducials, write_fiducials, read_info
 from .io.constants import FIFF
@@ -288,7 +287,7 @@ def _trans_from_params(param_info, params):
         x, y, z = params[i:i + 3]
         trans.append(scaling(x, y, z))
 
-    trans = reduce(dot, trans)
+    trans = reduce(np.dot, trans)
     return trans
 
 
@@ -362,7 +361,7 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
         def error(x):
             rx, ry, rz = x
             trans = rotation3d(rx, ry, rz)
-            est = dot(src_pts, trans.T)
+            est = np.dot(src_pts, trans.T)
             d = tgt_pts - est
             if weights is not None:
                 d *= weights
@@ -372,8 +371,8 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     elif param_info == (True, True, 0):
         def error(x):
             rx, ry, rz, tx, ty, tz = x
-            trans = dot(translation(tx, ty, tz), rotation(rx, ry, rz))
-            est = dot(src_pts, trans.T)[:, :3]
+            trans = np.dot(translation(tx, ty, tz), rotation(rx, ry, rz))
+            est = np.dot(src_pts, trans.T)[:, :3]
             d = tgt_pts - est
             if weights is not None:
                 d *= weights
@@ -383,9 +382,10 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     elif param_info == (True, True, 1):
         def error(x):
             rx, ry, rz, tx, ty, tz, s = x
-            trans = reduce(dot, (translation(tx, ty, tz), rotation(rx, ry, rz),
-                                 scaling(s, s, s)))
-            est = dot(src_pts, trans.T)[:, :3]
+            trans = reduce(np.dot, (translation(tx, ty, tz),
+                                    rotation(rx, ry, rz),
+                                    scaling(s, s, s)))
+            est = np.dot(src_pts, trans.T)[:, :3]
             d = tgt_pts - est
             if weights is not None:
                 d *= weights
@@ -395,9 +395,10 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     elif param_info == (True, True, 3):
         def error(x):
             rx, ry, rz, tx, ty, tz, sx, sy, sz = x
-            trans = reduce(dot, (translation(tx, ty, tz), rotation(rx, ry, rz),
-                                 scaling(sx, sy, sz)))
-            est = dot(src_pts, trans.T)[:, :3]
+            trans = reduce(np.dot, (translation(tx, ty, tz),
+                                    rotation(rx, ry, rz),
+                                    scaling(sx, sy, sz)))
+            est = np.dot(src_pts, trans.T)[:, :3]
             d = tgt_pts - est
             if weights is not None:
                 d *= weights
@@ -419,7 +420,7 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     if tol is not None:
         if not translate:
             src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
-        est_pts = dot(src_pts, trans.T)[:, :3]
+        est_pts = np.dot(src_pts, trans.T)[:, :3]
         err = np.sqrt(np.sum((est_pts - tgt_pts) ** 2, axis=1))
         if np.any(err > tol):
             raise RuntimeError("Error exceeds tolerance. Error = %r" % err)

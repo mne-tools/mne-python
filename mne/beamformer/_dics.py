@@ -853,8 +853,6 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                     'window %d to %d ms, in frequency range %d to %d Hz' %
                     (win_tmin * 1e3, win_tmax * 1e3, fmin, fmax)
                 )
-                win_tmin = win_tmin
-                win_tmax = win_tmax
 
                 # Calculating data CSD in current time window
                 if mode == 'fourier':

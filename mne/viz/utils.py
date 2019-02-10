@@ -2585,7 +2585,7 @@ def _check_time_unit(time_unit, times):
     if not isinstance(time_unit, str):
         raise TypeError('time_unit must be str, got %s' % (type(time_unit),))
     if time_unit == 's':
-        times = times
+        pass
     elif time_unit == 'ms':
         times = 1e3 * times
     else:

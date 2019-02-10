@@ -8,7 +8,6 @@ import os.path as op
 import re
 from copy import deepcopy
 from itertools import takewhile
-from collections import OrderedDict
 import collections
 
 import numpy as np
@@ -223,7 +222,7 @@ class Annotations(object):
             out_keys = ('onset', 'duration', 'description', 'orig_time')
             out_vals = (self.onset[key], self.duration[key],
                         self.description[key], self.orig_time)
-            return OrderedDict(zip(out_keys, out_vals))
+            return collections.OrderedDict(zip(out_keys, out_vals))
         else:
             key = list(key) if isinstance(key, tuple) else key
             return Annotations(onset=self.onset[key],

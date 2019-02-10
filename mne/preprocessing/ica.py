@@ -1270,13 +1270,10 @@ class ICA(ContainsMixin):
         --------
         find_bads_ecg, find_bads_eog
         """
-        if verbose is None:
-            verbose = self.verbose
-
         if not ch_name:
             inds = pick_channels_regexp(inst.ch_names, "REF_ICA*")
         else:
-            inds = pick_channels(ch_name)
+            inds = pick_channels(inst.ch_names, ch_name)
         ref_chs = [inst.ch_names[k] for k in inds]
 
         self.labels_, scores = self._find_bads_ch(

@@ -35,7 +35,7 @@ class TransformerMixin(object):
 class EstimatorMixin(object):
     """Mixin class for estimators."""
 
-    def get_params(self):
+    def get_params(self, deep=True):
         """Get the estimator params."""
         pass
 

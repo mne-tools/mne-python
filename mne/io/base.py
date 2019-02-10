@@ -2278,7 +2278,7 @@ def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
     return times / sfreq
 
 
-class _RawShell():
+class _RawShell(object):
     """Create a temporary raw object."""
 
     def __init__(self):  # noqa: D102
