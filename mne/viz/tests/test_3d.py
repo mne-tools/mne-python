@@ -11,7 +11,6 @@ import os.path as op
 
 import numpy as np
 import pytest
-import mayavi
 import matplotlib.pyplot as plt
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
@@ -99,6 +98,7 @@ def test_plot_head_positions():
 @traits_test
 def test_plot_sparse_source_estimates():
     """Test plotting of (sparse) source estimates."""
+    import mayavi  # noqa: F401 analysis:ignore
     sample_src = read_source_spaces(src_fname)
 
     # dense version
@@ -139,6 +139,7 @@ def test_plot_sparse_source_estimates():
 @traits_test
 def test_plot_evoked_field():
     """Test plotting evoked field."""
+    import mayavi  # noqa: F401 analysis:ignore
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
@@ -156,6 +157,7 @@ def test_plot_evoked_field():
 @traits_test
 def test_plot_alignment(tmpdir):
     """Test plotting of -trans.fif files and MEG sensor layouts."""
+    import mayavi  # noqa: F401 analysis:ignore
     # generate fiducials file for testing
     tempdir = str(tmpdir)
     fiducials_path = op.join(tempdir, 'fiducials.fif')
