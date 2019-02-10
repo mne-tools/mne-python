@@ -7,26 +7,23 @@
 #
 # License: Simplified BSD
 
-import os
 import importlib
-from ..utils import logger
+from ...utils import logger, get_config, _validate_type
 
 default_3d_backend = 'mayavi'
 
 
 try:
     if MNE_3D_BACKEND is None:
-        MNE_3D_BACKEND = os.environ.get('MNE_3D_BACKEND',
-                                        default_3d_backend)
+        MNE_3D_BACKEND = get_config('MNE_3D_BACKEND', default_3d_backend)
 except NameError:
-    MNE_3D_BACKEND = os.environ.get('MNE_3D_BACKEND', default_3d_backend)
+    MNE_3D_BACKEND = get_config('MNE_3D_BACKEND', default_3d_backend)
 
 if MNE_3D_BACKEND == 'mayavi':
     from ._pysurfer_mayavi import _Renderer, _Projection  # noqa: F401
 else:
-    import warnings
-    warnings.warn('MNE_3D_BACKEND should be "mayavi" : '
-                  '{} was given.'.format(MNE_3D_BACKEND))
+    raise ValueError('MNE_3D_BACKEND should be "mayavi" : '
+                     '{} was given.'.format(MNE_3D_BACKEND))
 
 logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
@@ -41,6 +38,8 @@ def set_3d_backend(backend_name):
     ----------
     backend_name : {'mlab'}, default is 'mlab'
     """
+    _validate_type(backend_name, "str")
+
     global MNE_3D_BACKEND
     MNE_3D_BACKEND = backend_name
     from . import renderer
@@ -56,5 +55,4 @@ def get_3d_backend():
         the backend currently in use
     """
     global MNE_3D_BACKEND
-    backend_used = MNE_3D_BACKEND
-    return backend_used
+    return MNE_3D_BACKEND
