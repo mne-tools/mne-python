@@ -11,6 +11,7 @@ import os.path as op
 
 import numpy as np
 import pytest
+import mayavi
 import matplotlib.pyplot as plt
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
@@ -128,8 +129,9 @@ def test_plot_sparse_source_estimates():
     stc_data[1, 4] = 2.
     vertices = [vertices[inds], np.empty(0, dtype=np.int)]
     stc = SourceEstimate(stc_data, vertices, 1, 1)
-    plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
-                                 opacity=0.5, high_resolution=False)
+    surf = plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
+                                        opacity=0.5, high_resolution=False)
+    assert isinstance(surf, mayavi.modules.surface.Surface)
 
 
 @testing.requires_testing_data
@@ -145,7 +147,8 @@ def test_plot_evoked_field():
             maps = make_field_map(evoked, trans_fname, subject='sample',
                                   subjects_dir=subjects_dir, n_jobs=1,
                                   ch_type=t)
-        evoked.plot_field(maps, time=0.1)
+        fig = evoked.plot_field(maps, time=0.1)
+        assert isinstance(fig, mayavi.core.scene.Scene)
 
 
 @testing.requires_testing_data
@@ -248,9 +251,10 @@ def test_plot_alignment(tmpdir):
                    src=src, dig=True, surfaces=['brain', 'inner_skull',
                                                 'outer_skull', 'outer_skin'])
     sphere = make_sphere_model('auto', None, evoked.info)  # one layer
-    plot_alignment(info, trans_fname, subject='sample', meg=False,
-                   coord_frame='mri', subjects_dir=subjects_dir,
-                   surfaces=['brain'], bem=sphere, show_axes=True)
+    fig = plot_alignment(info, trans_fname, subject='sample', meg=False,
+                         coord_frame='mri', subjects_dir=subjects_dir,
+                         surfaces=['brain'], bem=sphere, show_axes=True)
+    assert isinstance(fig, mayavi.core.scene.Scene)
 
     # 3D coil with no defined draw (ConvexHull)
     info_cube = pick_info(info, [0])
