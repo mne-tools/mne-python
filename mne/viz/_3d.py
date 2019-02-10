@@ -327,8 +327,8 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
     Returns
     -------
-    scene : instance of renderer.scene()
-        The scene.
+    fig : instance of mayavi.mlab.Figure
+        The mayavi figure.
     """
     # Update the backend
     from .backends.renderer import _Renderer
@@ -619,8 +619,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
 
     Returns
     -------
-    scene : instance of renderer.scene()
-        The scene.
+    fig : instance of mayavi.mlab.Figure
+        The mayavi figure.
 
     See Also
     --------
@@ -2323,7 +2323,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     Returns
     -------
-    surface : instance of renderer.mesh()
+    surface : instance of mayavi.mlab.pipeline.surface
         The triangular mesh surface.
     """
     import matplotlib.pyplot as plt
