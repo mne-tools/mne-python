@@ -620,8 +620,8 @@ def channel_indices_by_type(info, picks=None):
         The dictionary that maps each channel type to the list of
         channel indidces.
     """
-    idx_by_type = dict((key, list()) for key in _PICK_TYPES_KEYS if
-                       key not in ('meg', 'fnirs'))
+    idx_by_type = {key: list() for key in _PICK_TYPES_KEYS if
+                   key not in ('meg', 'fnirs')}
     idx_by_type.update(mag=list(), grad=list(), hbo=list(), hbr=list())
     if picks is None:
         picks = range(len(info["chs"]))
@@ -752,7 +752,7 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
         else:
             raise ValueError(
                 'include/exclude must be list, tuple, ndarray, or "bads". ' +
-                'You provided type {0}'.format(type(chs)))
+                'You provided type {}'.format(type(chs)))
     return chs
 
 

@@ -444,11 +444,11 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
 
     if labels is not None:
         # compute colors only based on label categories
-        unique_labels = set([k.split(' - ')[1] for k in exclude_labels if k])
+        unique_labels = {k.split(' - ')[1] for k in exclude_labels if k}
         label_colors = plt.cm.rainbow(np.linspace(0, 1, len(unique_labels)))
         label_colors = dict(zip(unique_labels, label_colors))
     else:
-        label_colors = dict((k, 'red') for k in exclude_labels)
+        label_colors = {k: 'red' for k in exclude_labels}
 
     for exc_label, ii in zip(exclude_labels, picks):
         if exc_label is not None:
@@ -704,7 +704,7 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
                  'grad': 'Gradiometers',
                  'eeg': 'EEG'}
     ch_types = ', '.join([_ch_types[k] for k in ch_types_used])
-    ax2.set_title('Average across channels ({0})'.format(ch_types))
+    ax2.set_title('Average across channels ({})'.format(ch_types))
     ax2.plot(times, data.mean(0), color='r')
     ax2.plot(times, data_cln.mean(0), color='k')
     ax2.set(xlabel='Time (s)', xlim=times[[0, -1]])

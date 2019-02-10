@@ -809,7 +809,7 @@ _dig_kind_dict = {
     'eeg': FIFF.FIFFV_POINT_EEG,
     'extra': FIFF.FIFFV_POINT_EXTRA,
 }
-_dig_kind_rev = dict((val, key) for key, val in _dig_kind_dict.items())
+_dig_kind_rev = {val: key for key, val in _dig_kind_dict.items()}
 _dig_kind_ints = tuple(_dig_kind_dict.values())
 
 
@@ -1454,7 +1454,7 @@ def _bem_find_surface(bem, id_):
 
 def _bem_explain_surface(id_):
     """Return a string corresponding to the given surface ID."""
-    _rev_dict = dict((val, key) for key, val in _surf_dict.items())
+    _rev_dict = {val: key for key, val in _surf_dict.items()}
     return _rev_dict[id_]
 
 

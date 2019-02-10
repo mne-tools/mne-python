@@ -553,7 +553,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'hbo',
                      'hbr', 'None')
         data_picks = _pick_data_channels(self.info, with_ref_meg=False)
-        types_used = set([channel_type(self.info, idx) for idx in data_picks])
+        types_used = {channel_type(self.info, idx) for idx in data_picks}
 
         if str(ch_type) not in supported:
             raise ValueError('Channel type must be `{supported}`. You gave me '
@@ -1268,10 +1268,10 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
 
     if tmin < times.min():
         raise ValueError('The tmin value is out of bounds. It must be '
-                         'within {0} and {1}'.format(times.min(), times.max()))
+                         'within {} and {}'.format(times.min(), times.max()))
     if tmax > times.max():
         raise ValueError('The tmax value is out of bounds. It must be '
-                         'within {0} and {1}'.format(times.min(), times.max()))
+                         'within {} and {}'.format(times.min(), times.max()))
     if tmin > tmax:
         raise ValueError('The tmin must be smaller or equal to tmax')
 

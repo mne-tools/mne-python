@@ -153,13 +153,13 @@ def _map_effects(n_factors, effects):
         elif '*' in effects:
             pass  # handle later
         else:
-            raise ValueError('"{0}" is not a valid option for "effects"'
+            raise ValueError('"{}" is not a valid option for "effects"'
                              .format(effects))
     if isinstance(effects, list):
         bad_names = [e for e in effects if e not in factor_names]
         if len(bad_names) > 1:
-            raise ValueError('Effect names: {0} are not valid. They should '
-                             'the first `n_factors` ({1}) characters from the'
+            raise ValueError('Effect names: {} are not valid. They should '
+                             'the first `n_factors` ({}) characters from the'
                              'alphabet'.format(bad_names, n_factors))
 
     indices = list(np.arange(2 ** n_factors - 1))

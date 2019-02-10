@@ -479,8 +479,7 @@ class EpochsEEGLAB(BaseEpochs):
                     unique_ev.append(event_type)
 
                 # invent event dict but use id > 0 so you know its a trigger
-                event_id = dict((ev, idx + 1) for idx, ev
-                                in enumerate(unique_ev))
+                event_id = {ev: idx + 1 for idx, ev in enumerate(unique_ev)}
 
             # warn about multiple events in epoch if necessary
             if warn_multiple_events:
@@ -617,5 +616,5 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
 
 def _dol_to_lod(dol):
     """Convert a dict of lists to a list of dicts."""
-    return [dict((key, dol[key][ii]) for key in dol.keys())
+    return [{key: dol[key][ii] for key in dol.keys()}
             for ii in range(len(dol[list(dol.keys())[0]]))]

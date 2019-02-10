@@ -408,7 +408,7 @@ class EpochsKIT(BaseEpochs):
                             'average. Wrong reader.')
 
         if event_id is None:  # convert to int to make typing-checks happy
-            event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
+            event_id = {str(e): int(e) for e in np.unique(events[:, 2])}
 
         for key, val in event_id.items():
             if val not in events[:, 2]:

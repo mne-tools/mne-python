@@ -1127,7 +1127,7 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
     if len(ch_names) != len(neighbors):
         raise ValueError('`ch_names` and `neighbors` must '
                          'have the same length')
-    set_neighbors = set([c for d in neighbors for c in d])
+    set_neighbors = {c for d in neighbors for c in d}
     rest = set_neighbors - set(ch_names)
     if len(rest) > 0:
         raise ValueError('Some of your neighbors are not present in the '
@@ -1338,8 +1338,8 @@ def _get_ch_info(info):
     """Get channel info for inferring acquisition device."""
     chs = info['chs']
     # Only take first 16 bits, as higher bits store CTF comp order
-    coil_types = set([ch['coil_type'] & 0xFFFF for ch in chs])
-    channel_types = set([ch['kind'] for ch in chs])
+    coil_types = {ch['coil_type'] & 0xFFFF for ch in chs}
+    channel_types = {ch['kind'] for ch in chs}
 
     has_vv_mag = any(k in coil_types for k in
                      [FIFF.FIFFV_COIL_VV_MAG_T1, FIFF.FIFFV_COIL_VV_MAG_T2,

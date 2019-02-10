@@ -1619,7 +1619,7 @@ class AverageTFR(_BaseTFR):
                 return  # Don't draw a figure for nothing.
 
         fig = figure_nobar()
-        fig.suptitle('{0:.2f} s - {1:.2f} s, {2:.2f} Hz - {3:.2f} Hz'.format(
+        fig.suptitle('{:.2f} s - {:.2f} s, {:.2f} Hz - {:.2f} Hz'.format(
             tmin, tmax, fmin, fmax), y=0.04)
 
         if source_plot_joint:
@@ -2307,8 +2307,8 @@ def read_tfrs(fname, condition=None):
         tfr_dict = dict(tfr_data)
         if condition not in tfr_dict:
             keys = ['%s' % k for k in tfr_dict]
-            raise ValueError('Cannot find condition ("{0}") in this file. '
-                             'The file contains "{1}""'
+            raise ValueError('Cannot find condition ("{}") in this file. '
+                             'The file contains "{}""'
                              .format(condition, " or ".join(keys)))
         out = AverageTFR(**tfr_dict[condition])
     else:

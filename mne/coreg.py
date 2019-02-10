@@ -343,7 +343,7 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     tgt_pts = np.atleast_2d(tgt_pts)
     if src_pts.shape != tgt_pts.shape:
         raise ValueError("src_pts and tgt_pts must have same shape (got "
-                         "{0}, {1})".format(src_pts.shape, tgt_pts.shape))
+                         "{}, {})".format(src_pts.shape, tgt_pts.shape))
     if weights is not None:
         weights = np.array(weights, float)
         if weights.ndim != 1 or weights.size not in (src_pts.shape[0], 1):

@@ -205,7 +205,7 @@ class SourceSpaces(list):
     @property
     def kind(self):
         """The kind of source space (surface, volume, discrete, mixed)."""
-        ss_types = list(set([ss['type'] for ss in self]))
+        ss_types = list({ss['type'] for ss in self})
         if len(ss_types) != 1:
             return 'mixed'
         return _src_kind_dict[ss_types[0]]

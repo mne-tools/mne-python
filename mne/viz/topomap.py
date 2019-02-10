@@ -338,7 +338,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                 break
             if len(idx) == 0:
                 if ch_names[0].startswith('EEG'):
-                    msg = ('Cannot find a proper layout for projection {0}.'
+                    msg = ('Cannot find a proper layout for projection {}.'
                            ' The proper layout of an EEG topomap cannot be'
                            ' inferred from the data. '.format(proj['desc']))
                     if is_layout_parameter_none and is_info_parameter_none:
@@ -462,8 +462,8 @@ def _check_outlines(pos, outlines, head_pos=None):
 
 def _draw_outlines(ax, outlines):
     """Draw the outlines for a topomap."""
-    outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
-                      ['patch', 'autoshrink']])
+    outlines_ = {k: v for k, v in outlines.items()
+                 if k not in ['patch', 'autoshrink']}
     for key, (x_coord, y_coord) in outlines_.items():
         if 'mask' in key:
             continue
@@ -749,8 +749,8 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         pos = pick_info(pos, picks)
 
         # check if there is only 1 channel type, and n_chans matches the data
-        ch_type = set(channel_type(pos, idx)
-                      for idx, _ in enumerate(pos["chs"]))
+        ch_type = {channel_type(pos, idx)
+                   for idx, _ in enumerate(pos["chs"])}
         info_help = ("Pick Info with e.g. mne.pick_info and "
                      "mne.io.pick.channel_indices_by_type.")
         if len(ch_type) > 1:
@@ -1639,8 +1639,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     space = 1 / (2. * evoked.info['sfreq'])
     if (max(times) > max(evoked.times) + space or
             min(times) < min(evoked.times) - space):
-        raise ValueError('Times should be between {0:0.3f} and '
-                         '{1:0.3f}.'.format(evoked.times[0], evoked.times[-1]))
+        raise ValueError('Times should be between {:0.3f} and '
+                         '{:0.3f}.'.format(evoked.times[0], evoked.times[-1]))
     n_times = len(times)
     nax = n_times + bool(colorbar)
     width = size * nax
@@ -2538,7 +2538,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
         from ..channels.layout import _merge_grad_data
     for ii, data_, ax, subject, idx in zip(picks, data, axes, subjs, indices):
         if template:
-            ttl = 'Subj. {0}, {1}'.format(subject, ica._ica_names[idx])
+            ttl = 'Subj. {}, {}'.format(subject, ica._ica_names[idx])
             ax.set_title(ttl, fontsize=12)
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)

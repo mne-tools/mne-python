@@ -84,12 +84,12 @@ def get_score_funcs():
                          if isfunction(f) and not n.startswith('_')]
     xy_arg_stats_funcs = [(n, f) for n, f in vars(stats).items()
                           if isfunction(f) and not n.startswith('_')]
-    score_funcs.update(dict((n, _make_xy_sfunc(f))
-                            for n, f in xy_arg_dist_funcs
-                            if _get_args(f) == ['u', 'v']))
-    score_funcs.update(dict((n, _make_xy_sfunc(f, ndim_output=True))
-                            for n, f in xy_arg_stats_funcs
-                            if _get_args(f) == ['x', 'y']))
+    score_funcs.update({n: _make_xy_sfunc(f)
+                        for n, f in xy_arg_dist_funcs
+                        if _get_args(f) == ['u', 'v']})
+    score_funcs.update({n: _make_xy_sfunc(f, ndim_output=True)
+                        for n, f in xy_arg_stats_funcs
+                        if _get_args(f) == ['x', 'y']})
     return score_funcs
 
 
@@ -107,12 +107,12 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
         raise ValueError('No channels provided to ICA')
     types = _DATA_CH_TYPES_SPLIT + ['eog']
     types += ['ref_meg'] if allow_ref_meg else []
-    chs = list(set([channel_type(info, j) for j in picks]))
+    chs = list({channel_type(info, j) for j in picks})
     check = all([ch in types for ch in chs])
     if not check:
         raise ValueError('Invalid channel type(s) passed for ICA.\n'
-                         'Only the following channels are supported {0}\n'
-                         'Following types were passed {1}\n'
+                         'Only the following channels are supported {}\n'
+                         'Following types were passed {}\n'
                          .format(types, chs))
 
 
@@ -344,16 +344,16 @@ class ICA(ContainsMixin):
         if method == 'fastica':
             update = {'algorithm': 'parallel', 'fun': 'logcosh',
                       'fun_args': None}
-            fit_params.update(dict((k, v) for k, v in update.items() if k
-                                   not in fit_params))
+            fit_params.update({k: v for k, v in update.items() if k
+                               not in fit_params})
         elif method == 'infomax':
             fit_params.update({'extended': False})
         elif method == 'extended-infomax':
             fit_params.update({'extended': True})
         elif method == 'picard':
             update = {'ortho': True, 'fun': 'tanh', 'tol': 1e-5}
-            fit_params.update(dict((k, v) for k, v in update.items() if k
-                                   not in fit_params))
+            fit_params.update({k: v for k, v in update.items() if k
+                               not in fit_params})
         if 'max_iter' not in fit_params:
             fit_params['max_iter'] = max_iter
         self.max_iter = max_iter
@@ -381,7 +381,7 @@ class ICA(ContainsMixin):
               'no dimension reduction')
         if self.info is not None:
             ch_fit = ['"%s"' % c for c in _DATA_CH_TYPES_SPLIT if c in self]
-            s += ', channels used: {0}'.format('; '.join(ch_fit))
+            s += ', channels used: {}'.format('; '.join(ch_fit))
         if self.exclude:
             s += ', %i sources marked for exclusion' % len(self.exclude)
 
@@ -598,7 +598,7 @@ class ICA(ContainsMixin):
                         this_picks = pick_types(info, meg=False, ref_meg=True)
                     else:
                         raise RuntimeError('Should not be reached.'
-                                           'Unsupported channel {0}'
+                                           'Unsupported channel {}'
                                            .format(ch_type))
                     pre_whitener[this_picks] = np.std(data[this_picks])
             data /= pre_whitener
@@ -2153,8 +2153,8 @@ def read_ica(fname, verbose=None):
     def f(x):
         return x.astype(np.float64)
 
-    ica_init = dict((k, v) for k, v in ica_init.items()
-                    if k in _get_args(ICA.__init__))
+    ica_init = {k: v for k, v in ica_init.items()
+                if k in _get_args(ICA.__init__)}
     ica = ICA(**ica_init)
     ica.current_fit = current_fit
     ica.ch_names = ch_names.split(':')
@@ -2581,7 +2581,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     template_fig, labelled_ics = None, None
     if plot is True:
         if is_subject:  # plotting from an ICA object
-            ttl = 'Template from subj. {0}'.format(str(template[0]))
+            ttl = 'Template from subj. {}'.format(str(template[0]))
             template_fig = icas[template[0]].plot_components(
                 picks=template[1], ch_type=ch_type, title=ttl,
                 outlines=outlines, cmap=cmap, contours=contours, layout=layout,
