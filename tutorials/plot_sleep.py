@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Sleep stage classification from polysomnography (PSG) data
 ==========================================================
@@ -232,6 +233,7 @@ def eeg_power_band(epochs):
         X.append(psds_band.reshape(len(psds), -1))
 
     return np.concatenate(X, axis=1)
+
 
 ##############################################################################
 # Multiclass classification workflow using scikit-learn

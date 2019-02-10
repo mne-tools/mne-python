@@ -97,9 +97,10 @@ def test_hash_evoked():
     """Test evoked hashing."""
     ave = read_evokeds(fname, 0)
     ave_2 = read_evokeds(fname, 0)
-    assert_equal(hash(ave), hash(ave_2))
+    assert hash(ave) == hash(ave_2)
+    assert ave == ave_2
     # do NOT use assert_equal here, failing output is terrible
-    assert (pickle.dumps(ave) == pickle.dumps(ave_2))
+    assert pickle.dumps(ave) == pickle.dumps(ave_2)
 
     ave_2.data[0, 0] -= 1
     assert hash(ave) != hash(ave_2)

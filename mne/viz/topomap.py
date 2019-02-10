@@ -965,13 +965,13 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                       image_interp='bilinear', head_pos=None, axes=None,
                       sensors=True, allow_ref_meg=False):
     """Plot single ica map to axes."""
-    import matplotlib as mpl
+    from matplotlib.axes import Axes
     from ..channels import _get_ch_type
 
     if ica.info is None:
         raise RuntimeError('The ICA\'s measurement info is missing. Please '
                            'fit the ICA or add the corresponding info object.')
-    if not isinstance(axes, mpl.axes.Axes):
+    if not isinstance(axes, Axes):
         raise ValueError('axis has to be an instance of matplotlib Axes, '
                          'got %s instead.' % type(axes))
     ch_type = _get_ch_type(ica, ch_type, allow_ref_meg=ica.allow_ref_meg)

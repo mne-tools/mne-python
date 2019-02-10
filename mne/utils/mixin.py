@@ -24,6 +24,9 @@ logger.propagate = False  # don't propagate (in case of multiple imports)
 class SizeMixin(object):
     """Estimate MNE object sizes."""
 
+    def __eq__(self, other):
+        return isinstance(other, type(self)) and hash(self) == hash(other)
+
     @property
     def _size(self):
         """Estimate the object size."""
@@ -321,8 +324,6 @@ class GetEpochsMixin(object):
             return epoch
         else:
             return epoch, self.events[self._current - 1][-1]
-
-        return epoch if not return_event_id else epoch, self.event_id
 
     def __next__(self, *args, **kwargs):
         """Provide a wrapper for Py3k."""

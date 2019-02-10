@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Joan Massich <mailsik@gmail.com>
 #
