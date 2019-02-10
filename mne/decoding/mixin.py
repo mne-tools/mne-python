@@ -36,8 +36,14 @@ class EstimatorMixin(object):
     """Mixin class for estimators."""
 
     def get_params(self, deep=True):
-        """Get the estimator params."""
-        pass
+        """Get the estimator params.
+
+        Parameters
+        ----------
+        deep : bool
+            Deep.
+        """
+        return
 
     def set_params(self, **params):
         """Set parameters (mimics sklearn API)."""

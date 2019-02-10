@@ -301,9 +301,9 @@ def _pivot_kwargs():
     if check_version('matplotlib', '1.5'):
         kwargs['pivot'] = 'tail'
     else:
-        import matplotlib
+        from matplotlib import __version__
         warn('pivot cannot be set in matplotlib %s (need version 1.5+), '
-             'locations are approximate' % (matplotlib.__version__,))
+             'locations are approximate' % (__version__,))
     return kwargs
 
 
@@ -2039,7 +2039,6 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     img = stc.as_volume(src, mri_resolution=False)
 
-    vmax = np.abs(stc.data).max()
     loc_idx, idx = np.unravel_index(np.abs(stc.data).argmax(),
                                     stc.data.shape)
     img_idx = index_img(img, idx)
