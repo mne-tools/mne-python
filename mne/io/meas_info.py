@@ -131,7 +131,7 @@ def _unique_channel_names(ch_names):
     unique_ids = np.unique(ch_names, return_index=True)[1]
     if len(unique_ids) != len(ch_names):
         dups = {ch_names[x]
-                   for x in np.setdiff1d(range(len(ch_names)), unique_ids)}
+                for x in np.setdiff1d(range(len(ch_names)), unique_ids)}
         warn('Channel names are not unique, found duplicates for: '
              '%s. Applying running numbers for duplicates.' % dups)
         for ch_stem in dups:
@@ -1730,7 +1730,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         info['chs'].extend(this_info['chs'])
     info._update_redundant()
     duplicates = {ch for ch in info['ch_names']
-                      if info['ch_names'].count(ch) > 1}
+                  if info['ch_names'].count(ch) > 1}
     if len(duplicates) > 0:
         msg = ("The following channels are present in more than one input "
                "measurement info objects: %s" % list(duplicates))

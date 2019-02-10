@@ -278,7 +278,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
         masked_len = event_list.shape[0]
         if masked_len < unmasked_len:
             warn('{} of {} events masked'.format(unmasked_len - masked_len,
-                                                   unmasked_len))
+                                                 unmasked_len))
     return event_list
 
 

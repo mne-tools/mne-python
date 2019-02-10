@@ -143,7 +143,7 @@ def _check_event_id(event_id, events):
         for key in event_id.keys():
             _validate_type(key, str, 'Event names')
         event_id = {key: _ensure_int(val, 'event_id[%s]' % key)
-                        for key, val in event_id.items()}
+                    for key, val in event_id.items()}
     elif isinstance(event_id, list):
         event_id = [_ensure_int(v, 'event_id[%s]' % vi)
                     for vi, v in enumerate(event_id)]

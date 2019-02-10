@@ -684,7 +684,7 @@ def _prep_mf_coils(info, ignore_ref=True):
     bins = np.repeat(np.arange(len(n_int)), n_int)
     bd = np.concatenate(([0], np.cumsum(n_int)))
     slice_map = {ii: slice(start, stop)
-                     for ii, (start, stop) in enumerate(zip(bd[:-1], bd[1:]))}
+                 for ii, (start, stop) in enumerate(zip(bd[:-1], bd[1:]))}
     return rmags, cosmags, bins, n_coils, mag_mask, slice_map
 
 

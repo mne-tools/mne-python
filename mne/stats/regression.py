@@ -324,13 +324,13 @@ def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
         tmin_s = {cond: int(round(tmin * sfreq)) for cond in conds}
     else:
         tmin_s = {cond: int(round(tmin.get(cond, -.1) * sfreq))
-                      for cond in conds}
+                  for cond in conds}
     if isinstance(tmax, (float, int)):
         tmax_s = {
             cond: int(round((tmax * sfreq)) + 1) for cond in conds}
     else:
         tmax_s = {cond: int(round(tmax.get(cond, 1.) * sfreq)) + 1
-                      for cond in conds}
+                  for cond in conds}
 
     # Construct predictor matrix
     # We do this by creating one array per event type, shape (lags, samples)

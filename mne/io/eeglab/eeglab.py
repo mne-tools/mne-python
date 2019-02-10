@@ -479,8 +479,7 @@ class EpochsEEGLAB(BaseEpochs):
                     unique_ev.append(event_type)
 
                 # invent event dict but use id > 0 so you know its a trigger
-                event_id = {ev: idx + 1 for idx, ev
-                                in enumerate(unique_ev)}
+                event_id = {ev: idx + 1 for idx, ev in enumerate(unique_ev)}
 
             # warn about multiple events in epoch if necessary
             if warn_multiple_events:

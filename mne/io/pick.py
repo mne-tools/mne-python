@@ -621,7 +621,7 @@ def channel_indices_by_type(info, picks=None):
         channel indidces.
     """
     idx_by_type = {key: list() for key in _PICK_TYPES_KEYS if
-                       key not in ('meg', 'fnirs')}
+                   key not in ('meg', 'fnirs')}
     idx_by_type.update(mag=list(), grad=list(), hbo=list(), hbr=list())
     if picks is None:
         picks = range(len(info["chs"]))

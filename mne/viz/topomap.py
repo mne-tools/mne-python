@@ -462,8 +462,8 @@ def _check_outlines(pos, outlines, head_pos=None):
 
 def _draw_outlines(ax, outlines):
     """Draw the outlines for a topomap."""
-    outlines_ = {k: v for k, v in outlines.items() if k not in
-                      ['patch', 'autoshrink']}
+    outlines_ = {k: v for k, v in outlines.items()
+                 if k not in ['patch', 'autoshrink']}
     for key, (x_coord, y_coord) in outlines_.items():
         if 'mask' in key:
             continue
@@ -750,7 +750,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
         # check if there is only 1 channel type, and n_chans matches the data
         ch_type = {channel_type(pos, idx)
-                      for idx, _ in enumerate(pos["chs"])}
+                   for idx, _ in enumerate(pos["chs"])}
         info_help = ("Pick Info with e.g. mne.pick_info and "
                      "mne.io.pick.channel_indices_by_type.")
         if len(ch_type) > 1:

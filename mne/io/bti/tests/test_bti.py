@@ -250,8 +250,7 @@ def test_no_conversion():
             if ii > 10:
                 break
 
-        ch_map = {ch['chan_label']:
-                       ch['loc'] for ch in bti_info['chs']}
+        ch_map = {ch['chan_label']: ch['loc'] for ch in bti_info['chs']}
 
         for ii, ch_label in enumerate(raw_info['ch_names']):
             if not ch_label.startswith('A'):

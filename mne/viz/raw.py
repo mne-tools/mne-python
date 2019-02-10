@@ -369,7 +369,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if not isinstance(event_color, dict):
         event_color = {-1: event_color}
     event_color = {_ensure_int(key, 'event_color key'): event_color[key]
-                       for key in event_color}
+                   for key in event_color}
     for key in event_color:
         if key <= 0 and key != -1:
             raise KeyError('only key <= 0 allowed is -1 (cannot use %s)'

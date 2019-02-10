@@ -1612,7 +1612,7 @@ def _compute_scalings(scalings, inst):
 
     ch_types = channel_indices_by_type(inst.info)
     ch_types = {i_type: i_ixs
-                     for i_type, i_ixs in ch_types.items() if len(i_ixs) != 0}
+                for i_type, i_ixs in ch_types.items() if len(i_ixs) != 0}
     if scalings == 'auto':
         # If we want to auto-compute everything
         scalings = {i_type: 'auto' for i_type in ch_types.keys()}

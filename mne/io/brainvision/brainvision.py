@@ -461,7 +461,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                                       'vectorized order (i.e. channels in rows'
                                       ') are not supported yet.')
         fmt = {key: cfg.get('ASCII Infos', key)
-                   for key in cfg.options('ASCII Infos')}
+               for key in cfg.options('ASCII Infos')}
 
     # locate EEG binary file and marker file for the stim channel
     path = op.dirname(vhdr_fname)

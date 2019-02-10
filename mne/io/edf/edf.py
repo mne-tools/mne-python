@@ -1216,8 +1216,7 @@ def _read_annotations_edf(annotations):
 
 
 def _get_edf_default_event_id(descriptions):
-    mapping = {a: n for n, a in
-                   enumerate(sorted(set(descriptions)), start=1)}
+    mapping = {a: n for n, a in enumerate(sorted(set(descriptions)), start=1)}
     return mapping
 
 

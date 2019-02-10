@@ -1704,8 +1704,7 @@ def _prepare_butterfly(params):
     from matplotlib.collections import LineCollection
     butterfly = not params['butterfly']
     if butterfly:
-        types = {'grad', 'mag', 'eeg', 'eog',
-                     'ecg'} & set(params['types'])
+        types = {'grad', 'mag', 'eeg', 'eog', 'ecg'} & set(params['types'])
         if len(types) < 1:
             return
         params['ax_vscroll'].set_visible(False)

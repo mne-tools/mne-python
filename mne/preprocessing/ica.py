@@ -85,11 +85,11 @@ def get_score_funcs():
     xy_arg_stats_funcs = [(n, f) for n, f in vars(stats).items()
                           if isfunction(f) and not n.startswith('_')]
     score_funcs.update({n: _make_xy_sfunc(f)
-                            for n, f in xy_arg_dist_funcs
-                            if _get_args(f) == ['u', 'v']})
+                        for n, f in xy_arg_dist_funcs
+                        if _get_args(f) == ['u', 'v']})
     score_funcs.update({n: _make_xy_sfunc(f, ndim_output=True)
-                            for n, f in xy_arg_stats_funcs
-                            if _get_args(f) == ['x', 'y']})
+                        for n, f in xy_arg_stats_funcs
+                        if _get_args(f) == ['x', 'y']})
     return score_funcs
 
 
@@ -345,7 +345,7 @@ class ICA(ContainsMixin):
             update = {'algorithm': 'parallel', 'fun': 'logcosh',
                       'fun_args': None}
             fit_params.update({k: v for k, v in update.items() if k
-                                   not in fit_params})
+                               not in fit_params})
         elif method == 'infomax':
             fit_params.update({'extended': False})
         elif method == 'extended-infomax':
@@ -353,7 +353,7 @@ class ICA(ContainsMixin):
         elif method == 'picard':
             update = {'ortho': True, 'fun': 'tanh', 'tol': 1e-5}
             fit_params.update({k: v for k, v in update.items() if k
-                                   not in fit_params})
+                               not in fit_params})
         if 'max_iter' not in fit_params:
             fit_params['max_iter'] = max_iter
         self.max_iter = max_iter
@@ -2154,7 +2154,7 @@ def read_ica(fname, verbose=None):
         return x.astype(np.float64)
 
     ica_init = {k: v for k, v in ica_init.items()
-                    if k in _get_args(ICA.__init__)}
+                if k in _get_args(ICA.__init__)}
     ica = ICA(**ica_init)
     ica.current_fit = current_fit
     ica.ch_names = ch_names.split(':')

@@ -472,7 +472,7 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
     # Adjust length of sample weights
     fit_params = fit_params if fit_params is not None else {}
     fit_params = {k: _index_param_value(X, v, train)
-                      for k, v in fit_params.items()}
+                  for k, v in fit_params.items()}
 
     if parameters is not None:
         estimator.set_params(**parameters)

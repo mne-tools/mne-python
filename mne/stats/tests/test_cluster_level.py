@@ -296,7 +296,7 @@ def test_cluster_permutation_with_connectivity():
         # Make sure that we got the old ones back
         data_1 = {np.sum(out[0][b[:n_pts]]) for b in out[1]}
         data_2 = {np.sum(out_connectivity_2[0][a]) for a in
-                     out_connectivity_2[1][:]}
+                  out_connectivity_2[1][:]}
         assert len(data_1.intersection(data_2)) == len(data_1)
 
         # now use the other algorithm
@@ -320,7 +320,7 @@ def test_cluster_permutation_with_connectivity():
         # Make sure that we got the old ones back
         data_1 = {np.sum(out[0][b[:n_pts]]) for b in out[1]}
         data_2 = {np.sum(out_connectivity_3[0][a[0], a[1]]) for a in
-                     out_connectivity_3[1]}
+                  out_connectivity_3[1]}
         assert len(data_1.intersection(data_2)) == len(data_1)
 
         # test new versus old method
