@@ -39,14 +39,14 @@ def _get_epochs(stop=5):
     picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
     with pytest.warns(RuntimeWarning, match='projection'):
         epochs = Epochs(raw, events[:stop], event_id, tmin, tmax, picks=picks,
-                        proj=False, preload=True)
+                        proj=False)
     epochs.info.normalize_proj()  # avoid warnings
     return epochs
 
 
 def test_plot_epochs(capsys):
     """Test epoch plotting."""
-    epochs = _get_epochs()
+    epochs = _get_epochs().load_data()
     assert len(epochs.events) == 1
     epochs.info['lowpass'] = 10.  # allow heavy decim during plotting
     epochs.plot(scalings=None, title='Epochs')
@@ -122,7 +122,7 @@ def test_plot_epochs(capsys):
     epochs.plot_sensors()  # Test plot_sensors
     plt.close('all')
     # gh-5906
-    epochs = _get_epochs(None)
+    epochs = _get_epochs(None).load_data()
     epochs.load_data()
     assert len(epochs) == 7
     epochs.info['bads'] = [epochs.ch_names[0]]
