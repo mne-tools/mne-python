@@ -672,7 +672,6 @@ def _read_brainstorm_annotations(fname, orig_time=None):
 
 
 def _is_iso8601(candidate_str):
-    import re
     ISO8601 = r'^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}\.\d{6}$'
     return re.compile(ISO8601).match(candidate_str) is not None
 

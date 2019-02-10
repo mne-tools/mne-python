@@ -1,4 +1,8 @@
 extraction:
+  python:
+    index:
+      filters:
+        - exclude: "mne/externals/**.py"
   javascript:
     index:
       filters:

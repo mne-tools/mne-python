@@ -2707,7 +2707,6 @@ def _check_maxshield(allow_maxshield):
         if not (isinstance(allow_maxshield, str) and
                 allow_maxshield == 'yes'):
             warn(msg)
-        allow_maxshield = 'yes'
     else:
         msg += (' Use allow_maxshield=True if you are sure you'
                 ' want to load the data despite this warning.')

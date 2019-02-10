@@ -6,8 +6,7 @@
 #
 # License: BSD (3-clause)
 
-import os
-from os import path as op
+from os import path as op, environ
 import glob
 
 import numpy as np
@@ -185,13 +184,12 @@ def _print_coord_trans(t, prefix='Coordinate transformation: '):
 
 def _find_trans(subject, subjects_dir=None):
     if subject is None:
-        if 'SUBJECT' in os.environ:
-            subject = os.environ['SUBJECT']
+        if 'SUBJECT' in environ:
+            subject = environ['SUBJECT']
         else:
             raise ValueError('SUBJECT environment variable not set')
 
-    trans_fnames = glob.glob(os.path.join(subjects_dir, subject,
-                                          '*-trans.fif'))
+    trans_fnames = glob.glob(op.join(subjects_dir, subject, '*-trans.fif'))
     if len(trans_fnames) < 1:
         raise RuntimeError('Could not find the transformation for '
                            '{subject}'.format(subject=subject))

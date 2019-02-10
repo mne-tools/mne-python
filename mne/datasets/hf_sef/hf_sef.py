@@ -95,5 +95,5 @@ def data_path(dataset='evoked', path=None, force_update=False,
 
         os.remove(archive)
 
-    path = _do_path_update(path, update_path, key, name)
+    _do_path_update(path, update_path, key, name)
     return destdir

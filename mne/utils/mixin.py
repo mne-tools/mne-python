@@ -25,6 +25,18 @@ class SizeMixin(object):
     """Estimate MNE object sizes."""
 
     def __eq__(self, other):
+        """Compare self to other.
+
+        Parameters
+        ----------
+        other : object
+            The object to compare to.
+
+        Returns
+        -------
+        eq : bool
+            True if the two objects are equal.
+        """
         return isinstance(other, type(self)) and hash(self) == hash(other)
 
     @property

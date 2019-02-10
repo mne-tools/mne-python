@@ -4,8 +4,7 @@
 #
 # License: BSD (3-clause)
 
-import os
-from os import path as op
+from os import path as op, SEEK_END
 
 import numpy as np
 
@@ -204,7 +203,7 @@ def _get_sample_info(fname, res4, system_clock):
             clock_ch = k
             break
     with open(fname, 'rb') as fid:
-        fid.seek(0, os.SEEK_END)
+        fid.seek(0, SEEK_END)
         st_size = fid.tell()
         fid.seek(0, 0)
         if (st_size - CTF.HEADER_SIZE) % (4 * res4['nsamp'] *

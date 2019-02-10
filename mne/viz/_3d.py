@@ -335,12 +335,11 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     time_idx = None
     if time is None:
         time = np.mean([evoked.get_peak(ch_type=t)[1] for t in types])
+    del types
 
     if not evoked.times[0] <= time <= evoked.times[-1]:
         raise ValueError('`time` (%0.3f) must be inside `evoked.times`' % time)
     time_idx = np.argmin(np.abs(evoked.times - time))
-
-    types = [sm['kind'] for sm in surf_maps]
 
     # Plot them
     mlab = _import_mlab()
@@ -2013,7 +2012,6 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             elif mode == 'glass_brain':
                 cut_coords = _get_cut_coords_glass_brain(event, params)
 
-            x, y, z = cut_coords
             ax_x.clear()
             ax_y.clear()
             ax_z.clear()

@@ -96,7 +96,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
         z.close()
         destinations = [op.join(decomp_dir, f) for f in files]
 
-    path = _do_path_update(path, update_path, key, name)
+    _do_path_update(path, update_path, key, name)
     return destinations
 
 

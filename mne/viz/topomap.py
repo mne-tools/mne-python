@@ -815,7 +815,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
     if _use_default_outlines:
         # prepare masking
-        pos = _autoshrink(outlines, pos, res)
+        _autoshrink(outlines, pos, res)
 
     mask_params = _handle_default('mask_params', mask_params)
 
@@ -927,7 +927,10 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
 
 def _autoshrink(outlines, pos, res):
-    """Shrink channel positions until all are within the mask contour."""
+    """Shrink channel positions until all are within the mask contour.
+
+    Operates on `pos` inplace.
+    """
     if outlines.get('autoshrink', False):
         mask_ = np.c_[outlines['mask_pos']]
         inside = _inside_contour(pos, mask_)
@@ -938,7 +941,6 @@ def _autoshrink(outlines, pos, res):
             inside = _inside_contour(pos, mask_)
             outside = np.invert(inside)
             outlier_points = pos[outside]
-    return pos
 
 
 def _inside_contour(pos, contour):
@@ -985,7 +987,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
     pos, outlines = _check_outlines(pos, outlines, head_pos)
     assert outlines is not None
     if outlines != 'head':
-        pos = _autoshrink(outlines, pos, res)
+        _autoshrink(outlines, pos, res)
 
     data = data[data_picks]
 
@@ -1145,7 +1147,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                                                                 layout)
     pos, outlines = _check_outlines(pos, outlines, head_pos)
     if outlines == 'head':
-        pos = _autoshrink(outlines, pos, res)
+        _autoshrink(outlines, pos, res)
 
     data = np.atleast_2d(data)
     data = data[:, data_picks]
@@ -1726,7 +1728,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
 
     pos, outlines = _check_outlines(pos, outlines, head_pos)
     assert outlines is not None
-    pos = _autoshrink(outlines, pos, res)
+    _autoshrink(outlines, pos, res)
 
     vlims = [_setup_vmin_vmax(data[:, i], vmin, vmax, norm=merge_grads)
              for i in range(len(times))]
@@ -2279,7 +2281,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads):
     zi_min = np.nanmin(params['Zis'])
     zi_max = np.nanmax(params['Zis'])
     cont_lims = np.linspace(zi_min, zi_max, 7, endpoint=False)[1:]
-    pos = _autoshrink(outlines, pos, res)
+    _autoshrink(outlines, pos, res)
     params.update({'vmin': vmin, 'vmax': vmax, 'Xi': Xi, 'Yi': Yi, 'Zi': Zi,
                    'extent': (xmin, xmax, ymin, ymax), 'cmap': cmap,
                    'cont_lims': cont_lims})

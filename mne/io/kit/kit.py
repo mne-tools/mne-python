@@ -652,7 +652,8 @@ def get_kit_info(rawfile, allow_unknown_format):
                 })
             elif channel_type in KIT.CHANNELS_MISC:
                 channel_no, = unpack('i', fid.read(KIT.INT))
-                name, = unpack('64s', fid.read(64))
+                # name, = unpack('64s', fid.read(64))
+                fid.seek(64, 1)
                 channels.append({
                     'type': channel_type,
                     'no': channel_no,
@@ -710,7 +711,8 @@ def get_kit_info(rawfile, allow_unknown_format):
         sqd['acq_type'], = acq_type, = unpack('i', fid.read(KIT.INT))
         sqd['sfreq'], = unpack('d', fid.read(KIT.DOUBLE))
         if acq_type == KIT.CONTINUOUS:
-            samples_count, = unpack('i', fid.read(KIT.INT))
+            # samples_count, = unpack('i', fid.read(KIT.INT))
+            fid.seek(KIT.INT, 1)
             sqd['n_samples'], = unpack('i', fid.read(KIT.INT))
         elif acq_type == KIT.EVOKED or acq_type == KIT.EPOCHS:
             sqd['frame_length'], = unpack('i', fid.read(KIT.INT))

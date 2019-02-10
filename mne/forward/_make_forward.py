@@ -7,8 +7,7 @@
 
 from copy import deepcopy
 import contextlib
-import os
-from os import path as op
+from os import path as op, getcwd
 
 import numpy as np
 
@@ -449,7 +448,7 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
 
     info = Info(chs=info['chs'], comps=info['comps'],
                 dev_head_t=info['dev_head_t'], mri_file=trans, mri_id=mri_id,
-                meas_file=info_extra, meas_id=None, working_dir=os.getcwd(),
+                meas_file=info_extra, meas_id=None, working_dir=getcwd(),
                 command_line=cmd, bads=info['bads'], mri_head_t=mri_head_t)
     info._update_redundant()
     info._check_consistency()

@@ -1095,9 +1095,6 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             name = method_.__name__ if callable(method_) else method_
             out[name] = dict(loglik=loglik, data=cov, estimator=estimator)
             out[name].update(runtime_info)
-        # undo scaling
-        if eigvec is not None:
-            data = np.dot(data, eigvec)
 
     return out
 

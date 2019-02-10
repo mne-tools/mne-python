@@ -1324,7 +1324,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         raise TypeError('ts_args must be dict or None, got type %s'
                         % (type(ts_args),))
     ts_args = dict() if ts_args is None else ts_args.copy()
-    ts_args['time_unit'], evoked_times = _check_time_unit(
+    ts_args['time_unit'], _ = _check_time_unit(
         ts_args.get('time_unit', 's'), evoked.times)
     if topomap_args is None:
         topomap_args = dict()

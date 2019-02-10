@@ -2530,9 +2530,6 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
         List of Label of segmented volumes included in src space.
 
     """
-    import os.path as op
-    import numpy as np
-
     from . import Label
     from . import get_volume_labels_from_aseg
 

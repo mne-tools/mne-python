@@ -4,8 +4,7 @@
 #
 # License: BSD (3-clause)
 
-import os
-from os import path as op
+from os import path as op, makedirs
 
 import numpy as np
 from numpy.polynomial import legendre
@@ -21,12 +20,11 @@ from ..utils import logger, verbose, _get_extra_data_path
 def _next_legen_der(n, x, p0, p01, p0d, p0dd):
     """Compute the next Legendre polynomial and its derivatives."""
     # only good for n > 1 !
-    help_ = p0
-    helpd = p0d
-    p0 = ((2 * n - 1) * x * help_ - (n - 1) * p01) / n
-    p0d = n * help_ + x * helpd
-    p0dd = (n + 1) * helpd + x * p0dd
-    p01 = help_
+    old_p0 = p0
+    old_p0d = p0d
+    p0 = ((2 * n - 1) * x * old_p0 - (n - 1) * p01) / n
+    p0d = n * old_p0 + x * old_p0d
+    p0dd = (n + 1) * old_p0d + x * p0dd
     return p0, p0d, p0dd
 
 
@@ -58,7 +56,7 @@ def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
     fname = op.join(_get_extra_data_path(), 'tables')
     if not op.isdir(fname):
         # Updated due to API chang (GH 1167)
-        os.makedirs(fname)
+        makedirs(fname)
     if ch_type == 'meg':
         fname = op.join(fname, 'legder_%s_%s.bin' % (n_coeff, n_interp))
         leg_fun = _get_legen_der
