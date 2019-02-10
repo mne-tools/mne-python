@@ -1,7 +1,7 @@
 """
 Core visualization operations based on Mayavi.
 
-Actual implementation of Renderer and Projection classes.
+Actual implementation of _Renderer and _Projection classes.
 """
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
