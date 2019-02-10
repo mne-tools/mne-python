@@ -41,7 +41,11 @@ def set_3d_backend(backend_name):
     _validate_type(backend_name, "str")
 
     global MNE_3D_BACKEND
-    MNE_3D_BACKEND = backend_name
+    if backend_name == 'mayavi':
+        MNE_3D_BACKEND = backend_name
+    else:
+        raise ValueError('backend_name should be "mayavi" : '
+                         '{} was given.'.format(MNE_3D_BACKEND))
     from . import renderer
     importlib.reload(renderer)
 
