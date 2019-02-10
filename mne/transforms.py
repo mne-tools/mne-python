@@ -39,7 +39,7 @@ _str_to_frame = dict(meg=FIFF.FIFFV_COORD_DEVICE,
                      ctf_head=FIFF.FIFFV_MNE_COORD_CTF_HEAD,
                      ctf_meg=FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
                      unknown=FIFF.FIFFV_COORD_UNKNOWN)
-_frame_to_str = dict((val, key) for key, val in _str_to_frame.items())
+_frame_to_str = {val: key for key, val in _str_to_frame.items()}
 
 _verbose_frames = {FIFF.FIFFV_COORD_UNKNOWN: 'unknown',
                    FIFF.FIFFV_COORD_DEVICE: 'MEG device',
@@ -417,8 +417,8 @@ def _ensure_trans(trans, fro='mri', to='head'):
     for ti, this_trans in enumerate(trans):
         if not isinstance(this_trans, Transform):
             raise ValueError('%s None' % err_str)
-        if set([this_trans['from'],
-                this_trans['to']]) == set([from_const, to_const]):
+        if {this_trans['from'],
+                this_trans['to']} == {from_const, to_const}:
             idx.append(ti)
         else:
             misses = '%s->%s' % (_frame_to_str[this_trans['from']],

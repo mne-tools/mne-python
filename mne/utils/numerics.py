@@ -301,7 +301,7 @@ def _apply_scaling_array(data, picks_list, scalings):
 
 def _invert_scalings(scalings):
     if isinstance(scalings, dict):
-        scalings = dict((k, 1. / v) for k, v in scalings.items())
+        scalings = {k: 1. / v for k, v in scalings.items()}
     elif isinstance(scalings, np.ndarray):
         scalings = 1. / scalings
     return scalings
@@ -538,7 +538,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
         from ..time_frequency.tfr import combine_tfr as combine
 
     if drop_bads:
-        bads = list(set((b for inst in all_inst for b in inst.info['bads'])))
+        bads = list({b for inst in all_inst for b in inst.info['bads']})
         if bads:
             for inst in all_inst:
                 inst.drop_channels(bads)

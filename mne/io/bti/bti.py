@@ -42,7 +42,7 @@ BTI_WH2500_REF_MAG = ('MxA', 'MyA', 'MzA', 'MxaA', 'MyaA', 'MzaA')
 BTI_WH2500_REF_GRAD = ('GxxA', 'GyyA', 'GyxA', 'GzaA', 'GzyA')
 
 dtypes = zip(list(range(1, 5)), ('>i2', '>i4', '>f4', '>f8'))
-DTYPES = dict((i, np.dtype(t)) for i, t in dtypes)
+DTYPES = {i: np.dtype(t) for i, t in dtypes}
 
 
 class _bytes_io_mock_context():

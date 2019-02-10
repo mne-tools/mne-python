@@ -140,8 +140,8 @@ def test_pick_chpi():
     """Test picking cHPI."""
     # Make sure we don't mis-classify cHPI channels
     info = read_info(op.join(io_dir, 'tests', 'data', 'test_chpi_raw_sss.fif'))
-    channel_types = set([channel_type(info, idx)
-                         for idx in range(info['nchan'])])
+    channel_types = {channel_type(info, idx)
+                         for idx in range(info['nchan'])}
     assert 'chpi' in channel_types
     assert 'seeg' not in channel_types
     assert 'ecog' not in channel_types

@@ -1611,11 +1611,11 @@ def _compute_scalings(scalings, inst):
         return scalings
 
     ch_types = channel_indices_by_type(inst.info)
-    ch_types = dict([(i_type, i_ixs)
-                     for i_type, i_ixs in ch_types.items() if len(i_ixs) != 0])
+    ch_types = {i_type: i_ixs
+                     for i_type, i_ixs in ch_types.items() if len(i_ixs) != 0}
     if scalings == 'auto':
         # If we want to auto-compute everything
-        scalings = dict((i_type, 'auto') for i_type in ch_types.keys())
+        scalings = {i_type: 'auto' for i_type in ch_types.keys()}
     if not isinstance(scalings, dict):
         raise ValueError('scalings must be a dictionary of ch_type: val pairs,'
                          ' not type %s ' % type(scalings))
@@ -1646,7 +1646,7 @@ def _compute_scalings(scalings, inst):
         if value != 'auto':
             continue
         if key not in ch_types.keys():
-            raise ValueError("Sensor {0} doesn't exist in data".format(key))
+            raise ValueError("Sensor {} doesn't exist in data".format(key))
         this_data = data[ch_types[key]]
         scale_factor = np.percentile(this_data.ravel(), [0.5, 99.5])
         scale_factor = np.max(np.abs(scale_factor))
@@ -2384,7 +2384,7 @@ def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True,
         # any channels in noise_cov['bads'] but not in info['bads'] get
         # set to nan, which means that they are not plotted.
         data_picks = _pick_data_channels(info, with_ref_meg=False, exclude=())
-        data_names = set(info['ch_names'][pick] for pick in data_picks)
+        data_names = {info['ch_names'][pick] for pick in data_picks}
         # these can be toggled by the user
         bad_names = set(info['bads'])
         # these can't in standard pipelines be enabled (we always take the

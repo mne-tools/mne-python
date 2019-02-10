@@ -842,7 +842,7 @@ def test_read_write_epochs(tmpdir):
         assert_allclose(epochs.get_data(), epochs_read.get_data(), **tols)
         assert_array_equal(epochs.events, epochs_read.events)
         assert_equal(set(epochs.event_id.keys()),
-                     set(str(x) for x in epochs_read.event_id.keys()))
+                     {str(x) for x in epochs_read.event_id.keys()})
 
         # test saving split epoch files
         epochs.save(temp_fname, split_size='7MB')

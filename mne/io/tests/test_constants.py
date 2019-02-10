@@ -271,7 +271,7 @@ def test_constants(tmpdir):
 
     # Assert that all the FIF defs are in our constants
     assert set(fif.keys()) == set(con.keys())
-    for key in sorted(set(fif.keys()) - set(['defines'])):
+    for key in sorted(set(fif.keys()) - {'defines'}):
         this_fif, this_con = fif[key], con[key]
         assert len(set(this_fif.keys())) == len(this_fif)
         assert len(set(this_con.keys())) == len(this_con)

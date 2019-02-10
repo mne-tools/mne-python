@@ -88,7 +88,7 @@ def read_selection(name, fname=None, info=None, verbose=None):
         raise ValueError('The file %s does not exist.' % fname)
 
     # use this to make sure we find at least one match for each name
-    name_found = dict((n, False) for n in name)
+    name_found = {n: False for n in name}
     with open(fname, 'r') as fid:
         sel = []
         for line in fid:

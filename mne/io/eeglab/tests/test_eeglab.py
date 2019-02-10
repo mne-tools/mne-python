@@ -273,7 +273,7 @@ def test_eeglab_annotations(fname):
     _check_h5(fname)
     annotations = read_annotations(fname)
     assert len(annotations) == 154
-    assert set(annotations.description) == set(['rt', 'square'])
+    assert set(annotations.description) == {'rt', 'square'}
     assert np.all(annotations.duration == 0.)
 
 

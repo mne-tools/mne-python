@@ -602,7 +602,7 @@ def _get_coil_scale(meg_picks, mag_picks, grad_picks, mag_scale, info):
             # ("base line")
             coils = _create_meg_coils([info['chs'][pick]
                                        for pick in meg_picks], 'accurate')
-            grad_base = set(coils[pick]['base'] for pick in grad_picks)
+            grad_base = {coils[pick]['base'] for pick in grad_picks}
             if len(grad_base) != 1 or list(grad_base)[0] <= 0:
                 raise RuntimeError('Could not automatically determine '
                                    'mag_scale, could not find one '
@@ -683,8 +683,8 @@ def _prep_mf_coils(info, ignore_ref=True):
     n_int = np.array([len(coil['rmag']) for coil in coils])
     bins = np.repeat(np.arange(len(n_int)), n_int)
     bd = np.concatenate(([0], np.cumsum(n_int)))
-    slice_map = dict((ii, slice(start, stop))
-                     for ii, (start, stop) in enumerate(zip(bd[:-1], bd[1:])))
+    slice_map = {ii: slice(start, stop)
+                     for ii, (start, stop) in enumerate(zip(bd[:-1], bd[1:]))}
     return rmags, cosmags, bins, n_coils, mag_mask, slice_map
 
 
@@ -1571,7 +1571,7 @@ def _update_sensor_geometry(info, fine_cal, ignore_ref):
     if len(info_to_cal) != len(meg_picks):
         raise RuntimeError(
             'Not all MEG channels found in fine calibration file, missing:\n%s'
-            % sorted(list(set(ch_names[pick] for pick in meg_picks) -
+            % sorted(list({ch_names[pick] for pick in meg_picks} -
                           set(fine_cal['ch_names']))))
     if len(missing):
         warn('Found cal channel%s not in data: %s' % (_pl(missing), missing))

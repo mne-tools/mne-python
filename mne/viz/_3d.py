@@ -54,8 +54,8 @@ def _fiducial_coords(points, coord_frame=None):
     points = points or []  # None -> list
     if coord_frame is not None:
         points = [p for p in points if p['coord_frame'] == coord_frame]
-    points_ = dict((p['ident'], p) for p in points if
-                   p['kind'] == FIFF.FIFFV_POINT_CARDINAL)
+    points_ = {p['ident']: p for p in points if
+                   p['kind'] == FIFF.FIFFV_POINT_CARDINAL}
     if points_:
         return np.array([points_[i]['r'] for i in FIDUCIAL_ORDER])
     else:

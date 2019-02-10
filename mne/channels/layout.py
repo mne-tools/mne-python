@@ -957,7 +957,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
     if ch_indices is None:
         ch_indices = np.arange(xy.shape[0])
     if ch_names is None:
-        ch_names = ['{0}'.format(i) for i in ch_indices]
+        ch_names = ['{}'.format(i) for i in ch_indices]
 
     if len(ch_names) != len(ch_indices):
         raise ValueError('# channel names and indices must be equal')
