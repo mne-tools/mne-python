@@ -93,13 +93,13 @@ class _Renderer(object):
 
         Parameters
         ----------
-        x: array
+        x: array, shape (n_vertices,)
            The array containing the X component of the vertices.
-        y: array
+        y: array, shape (n_vertices,)
            The array containing the Y component of the vertices.
-        z: array
+        z: array, shape (n_vertices,)
            The array containing the Z component of the vertices.
-        triangles: array
+        triangles: array, shape (n_polygons, 3)
            The array containing the indices of the polygons.
         color: (red, green, blue)
             The color of the mesh.
@@ -129,7 +129,7 @@ class _Renderer(object):
         ----------
         surface: surface object
             The mesh to use as support for contour.
-        scalars: ndarray
+        scalars: ndarray, shape (n_vertices,)
             The scalar valued associated to the vertices.
         contours: int | list
              Specifying a list of values will only give the requested contours.
@@ -223,17 +223,17 @@ class _Renderer(object):
 
         Parameters
         ----------
-        x: array
+        x: array, shape (n_quivers,)
             The X component of the position of the quiver.
-        y: array
+        y: array, shape (n_quivers,)
             The Y component of the position of the quiver.
-        z: array
+        z: array, shape (n_quivers,)
             The Z component of the position of the quiver.
-        u:
+        u: array, shape (n_quivers,)
             The last X component of the quiver.
-        v:
+        v: array, shape (n_quivers,)
             The last Y component of the quiver.
-        w:
+        w: array, shape (n_quivers,)
             The last Z component of the quiver.
         color: (red, green, blue)
             The color of the quiver.
@@ -253,7 +253,7 @@ class _Renderer(object):
             The opacity of the quiver.
         scale_mode: 'vector', 'scalar' or 'none'
             The scaling mode for the glyph.
-        scalars: array | None
+        scalars: array, shape (n_quivers,) | None
             The optional scalar data to use.
         backface_culling: bool
             If True, enable backface culling on the quiver.
@@ -278,9 +278,9 @@ class _Renderer(object):
 
         Parameters
         ----------
-        x: array
+        x: float
             The X component to use as position of the text.
-        y: array
+        y: float
             The Y component to use as position of the text.
         text: str
             The content of the text.
