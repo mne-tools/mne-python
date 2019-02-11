@@ -71,6 +71,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     # Include endpoints in potential peaks and valleys
     x = np.concatenate((x0[:1], x0[ind], x0[-1:]))
     ind = np.concatenate(([0], ind, [s - 1]))
+    del x0
 
     #  x only has the peaks, valleys, and endpoints
     length = x.size
@@ -163,7 +164,6 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     # Change sign of data if was finding minima
     if extrema < 0:
         peak_mags *= -1.0
-        x0 = -x0
 
     # ensure output type array
     if not isinstance(peak_inds, np.ndarray):

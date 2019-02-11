@@ -416,6 +416,7 @@ def test_snapshot_brain_montage():
     pytest.raises(TypeError, snapshot_brain_montage, fig, info)
 
 
+@pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @requires_nibabel()
 @requires_version('nilearn', '0.4')

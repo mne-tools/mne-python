@@ -359,7 +359,6 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     orig_origin, orig_coord_frame = origin, coord_frame
     del origin, coord_frame
     origin_head.setflags(write=False)
-    n_in, n_out = _get_n_moments([int_order, ext_order])
 
     #
     # Cross-talk processing

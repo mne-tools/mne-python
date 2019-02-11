@@ -389,7 +389,7 @@ class FiducialsPanel(HasPrivateTraits):
             elif i in idxs:
                 line += " (<- also MRI mesh)"
             msg.append(line)
-        logger.debug(os.linesep.join(msg))
+        logger.debug('\n'.join(msg))
 
         if self.set == 'Nasion':
             self.nasion = pt

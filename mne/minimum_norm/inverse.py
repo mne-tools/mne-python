@@ -449,8 +449,6 @@ def combine_xyz(vec, square=False):
         raise ValueError('Input must be 2D')
     if (vec.shape[0] % 3) != 0:
         raise ValueError('Input must have 3N rows')
-
-    n, p = vec.shape
     if np.iscomplexobj(vec):
         vec = np.abs(vec)
     comb = vec[0::3] ** 2

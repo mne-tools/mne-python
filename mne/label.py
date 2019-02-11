@@ -6,8 +6,8 @@
 
 from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
-from os import path as op
 import os
+import os.path as op
 import copy as cp
 import re
 
@@ -1867,8 +1867,7 @@ def _read_annot(fname):
         n_entries = np.fromfile(fid, '>i4', 1)[0]
         if n_entries > 0:
             length = np.fromfile(fid, '>i4', 1)[0]
-            orig_tab = np.fromfile(fid, '>c', length)
-            orig_tab = orig_tab[:-1]
+            np.fromfile(fid, '>c', length)  # discard orig_tab
 
             names = list()
             ctab = np.zeros((n_entries, 5), np.int)
@@ -2434,18 +2433,18 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
         msg = ("Some labels have the same color values (all labels in one "
                "hemisphere must have a unique color):")
         duplicate_colors.insert(0, msg)
-        issues.append(os.linesep.join(duplicate_colors))
+        issues.append('\n'.join(duplicate_colors))
     if invalid_colors:
         msg = ("Some labels have invalid color values (all colors should be "
                "RGBA tuples with values between 0 and 1)")
         invalid_colors.insert(0, msg)
-        issues.append(os.linesep.join(invalid_colors))
+        issues.append('\n'.join(invalid_colors))
     if overlap:
         msg = ("Some labels occupy vertices that are also occupied by one or "
                "more other labels. Each vertex can only be occupied by a "
                "single label in *.annot files.")
         overlap.insert(0, msg)
-        issues.append(os.linesep.join(overlap))
+        issues.append('\n'.join(overlap))
 
     if issues:
         raise ValueError('\n\n'.join(issues))

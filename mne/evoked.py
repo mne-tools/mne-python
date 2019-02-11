@@ -42,9 +42,9 @@ _aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
                str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
 
 
-class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
-             SetChannelsMixin, InterpolationMixin, FilterMixin,
-             ToDataFrameMixin, TimeMixin, SizeMixin):
+class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
+             InterpolationMixin, FilterMixin, ToDataFrameMixin, TimeMixin,
+             SizeMixin):
     """Evoked data.
 
     Parameters

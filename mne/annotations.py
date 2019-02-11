@@ -8,7 +8,6 @@ import os.path as op
 import re
 from copy import deepcopy
 from itertools import takewhile
-from collections import OrderedDict
 import collections
 
 import numpy as np
@@ -223,7 +222,7 @@ class Annotations(object):
             out_keys = ('onset', 'duration', 'description', 'orig_time')
             out_vals = (self.onset[key], self.duration[key],
                         self.description[key], self.orig_time)
-            return OrderedDict(zip(out_keys, out_vals))
+            return collections.OrderedDict(zip(out_keys, out_vals))
         else:
             key = list(key) if isinstance(key, tuple) else key
             return Annotations(onset=self.onset[key],
@@ -673,7 +672,6 @@ def _read_brainstorm_annotations(fname, orig_time=None):
 
 
 def _is_iso8601(candidate_str):
-    import re
     ISO8601 = r'^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}\.\d{6}$'
     return re.compile(ISO8601).match(candidate_str) is not None
 

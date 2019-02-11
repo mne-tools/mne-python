@@ -2214,8 +2214,8 @@ def _check_decim(decim):
     if isinstance(decim, int):
         decim = slice(None, None, decim)
     elif not isinstance(decim, slice):
-        raise(TypeError, '`decim` must be int or slice, got %s instead'
-                         % type(decim))
+        raise TypeError('`decim` must be int or slice, got %s instead'
+                        % type(decim))
     return decim
 
 

@@ -621,7 +621,8 @@ def _read_edf_header(fname, exclude):
             warn('Number of records from the header does not match the file '
                  'size (perhaps the recording was not stopped before exiting).'
                  ' Inferring from the file size.')
-            edf_info['n_records'] = n_records = read_records
+            edf_info['n_records'] = read_records
+        del n_records
 
         if subtype == 'bdf':
             edf_info['dtype_byte'] = 3  # 24-bit (3 byte) integers

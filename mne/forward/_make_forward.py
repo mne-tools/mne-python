@@ -8,7 +8,7 @@
 from copy import deepcopy
 import contextlib
 import os
-from os import path as op
+import os.path as op
 
 import numpy as np
 

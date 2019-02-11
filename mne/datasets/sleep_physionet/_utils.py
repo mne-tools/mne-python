@@ -1,10 +1,11 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD Style.
 
 import os
-from os import path as op
+import os.path as op
 import numpy as np
 
 from ...utils import _fetch_file, verbose, _TempDir, _check_pandas_installed
@@ -108,7 +109,7 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     data.columns.names = [None, None]
     data = (data.set_index([('Subject - age - sex', 'Age'),
                             ('Subject - age - sex', 'M1/F2')], append=True)
-                .stack(level=0).reset_index())
+            .stack(level=0).reset_index())
 
     data = data.rename(columns={('Subject - age - sex', 'Age'): 'age',
                                 ('Subject - age - sex', 'M1/F2'): 'sex',

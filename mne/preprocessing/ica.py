@@ -999,11 +999,9 @@ class ICA(ContainsMixin):
                 raise ValueError('Sources and target do not have the same'
                                  'number of time slices.')
             # auto target selection
-            if verbose is None:
-                verbose = self.verbose
             if isinstance(inst, BaseRaw):
                 sources, target = _band_pass_filter(self, sources, target,
-                                                    l_freq, h_freq, verbose)
+                                                    l_freq, h_freq)
 
         scores = _find_sources(sources, target, score_func)
 
@@ -1160,17 +1158,11 @@ class ICA(ContainsMixin):
             components of neuromagnetic recordings. Biomedical
             Engineering, IEEE Transactions on 55 (10), 2353-2362.
         """
-        if verbose is None:
-            verbose = self.verbose
-
         idx_ecg = _get_ecg_channel_index(ch_name, inst)
 
         if idx_ecg is None:
-            if verbose is not None:
-                verbose = self.verbose
             ecg, times = _make_ecg(inst, start, stop,
-                                   reject_by_annotation=reject_by_annotation,
-                                   verbose=verbose)
+                                   reject_by_annotation=reject_by_annotation)
         else:
             ecg = inst.ch_names[idx_ecg]
 
@@ -1270,13 +1262,10 @@ class ICA(ContainsMixin):
         --------
         find_bads_ecg, find_bads_eog
         """
-        if verbose is None:
-            verbose = self.verbose
-
         if not ch_name:
             inds = pick_channels_regexp(inst.ch_names, "REF_ICA*")
         else:
-            inds = pick_channels(ch_name)
+            inds = pick_channels(inst.ch_names, ch_name)
         ref_chs = [inst.ch_names[k] for k in inds]
 
         self.labels_, scores = self._find_bads_ch(
@@ -1338,9 +1327,6 @@ class ICA(ContainsMixin):
         --------
         find_bads_ecg, find_bads_ref
         """
-        if verbose is None:
-            verbose = self.verbose
-
         eog_inds = _get_eog_channel_index(ch_name, inst)
         if len(eog_inds) > 2:
             eog_inds = eog_inds[:1]

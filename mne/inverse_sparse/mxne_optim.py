@@ -296,8 +296,7 @@ def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
     """Solve L21 inverse problem with coordinate descent."""
     from sklearn.linear_model.coordinate_descent import MultiTaskLasso
 
-    n_sensors, n_times = M.shape
-    n_sensors, n_sources = G.shape
+    assert M.ndim == G.ndim and M.shape[0] == G.shape[0]
 
     clf = MultiTaskLasso(alpha=alpha / len(M), tol=tol / sum_squared(M),
                          normalize=False, fit_intercept=False, max_iter=maxit,

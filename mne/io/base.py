@@ -249,9 +249,8 @@ def _check_fun(fun, d, *args, **kwargs):
     return d
 
 
-class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
-              SetChannelsMixin, InterpolationMixin, ToDataFrameMixin,
-              TimeMixin, SizeMixin):
+class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
+              InterpolationMixin, ToDataFrameMixin, TimeMixin, SizeMixin):
     """Base class for Raw data.
 
     Parameters
@@ -691,7 +690,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def _last_time(self):
         return self.last_samp / float(self.info['sfreq'])
 
-    def time_as_index(self, times, use_rounding=False, origin=None):
+    # "Overridden method signature does not match call..." in LGTM
+    def time_as_index(self, times, use_rounding=False, origin=None):  # lgtm
         """Convert time to indices.
 
         Parameters
@@ -2278,7 +2278,7 @@ def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
     return times / sfreq
 
 
-class _RawShell():
+class _RawShell(object):
     """Create a temporary raw object."""
 
     def __init__(self):  # noqa: D102
@@ -2707,7 +2707,6 @@ def _check_maxshield(allow_maxshield):
         if not (isinstance(allow_maxshield, str) and
                 allow_maxshield == 'yes'):
             warn(msg)
-        allow_maxshield = 'yes'
     else:
         msg += (' Use allow_maxshield=True if you are sure you'
                 ' want to load the data despite this warning.')

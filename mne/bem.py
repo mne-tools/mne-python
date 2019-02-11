@@ -475,7 +475,6 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
                                         len(sigmas)):
         raise ValueError('surfs, ids, and sigmas must all have the same '
                          'number of elements (1 or 3)')
-    surf = list(surfs)
     for si, surf in enumerate(surfs):
         if isinstance(surf, str):
             surfs[si] = read_surface(surf, return_dict=True)[-1]

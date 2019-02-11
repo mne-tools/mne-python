@@ -7,12 +7,11 @@
 # License: BSD (3-clause)
 
 import os
-from os import path as op
+import os.path as op
 import glob
 
 import numpy as np
 from copy import deepcopy
-from numpy import sin, cos
 from scipy import linalg
 
 from .fixes import einsum
@@ -191,8 +190,7 @@ def _find_trans(subject, subjects_dir=None):
         else:
             raise ValueError('SUBJECT environment variable not set')
 
-    trans_fnames = glob.glob(os.path.join(subjects_dir, subject,
-                                          '*-trans.fif'))
+    trans_fnames = glob.glob(op.join(subjects_dir, subject, '*-trans.fif'))
     if len(trans_fnames) < 1:
         raise RuntimeError('Could not find the transformation for '
                            '{subject}'.format(subject=subject))
@@ -247,12 +245,12 @@ def rotation(x=0, y=0, z=0):
     r : array, shape = (4, 4)
         The rotation matrix.
     """
-    cos_x = cos(x)
-    cos_y = cos(y)
-    cos_z = cos(z)
-    sin_x = sin(x)
-    sin_y = sin(y)
-    sin_z = sin(z)
+    cos_x = np.cos(x)
+    cos_y = np.cos(y)
+    cos_z = np.cos(z)
+    sin_x = np.sin(x)
+    sin_y = np.sin(y)
+    sin_z = np.sin(z)
     r = np.array([[cos_y * cos_z, -cos_x * sin_z + sin_x * sin_y * cos_z,
                    sin_x * sin_z + cos_x * sin_y * cos_z, 0],
                   [cos_y * sin_z, cos_x * cos_z + sin_x * sin_y * sin_z,
@@ -275,12 +273,12 @@ def rotation3d(x=0, y=0, z=0):
     r : array, shape = (3, 3)
         The rotation matrix.
     """
-    cos_x = cos(x)
-    cos_y = cos(y)
-    cos_z = cos(z)
-    sin_x = sin(x)
-    sin_y = sin(y)
-    sin_z = sin(z)
+    cos_x = np.cos(x)
+    cos_y = np.cos(y)
+    cos_z = np.cos(z)
+    sin_x = np.sin(x)
+    sin_y = np.sin(y)
+    sin_z = np.sin(z)
     r = np.array([[cos_y * cos_z, -cos_x * sin_z + sin_x * sin_y * cos_z,
                    sin_x * sin_z + cos_x * sin_y * cos_z],
                   [cos_y * sin_z, cos_x * cos_z + sin_x * sin_y * sin_z,

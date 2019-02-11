@@ -50,11 +50,12 @@ print(info['chs'][0])
 
 ###############################################################################
 # Get channel indices by name
-channel_indices = mne.pick_channels(info['ch_names'], ['MEG 0312', 'EEG 005'])
+channel_indices_two = mne.pick_channels(
+    info['ch_names'], ['MEG 0312', 'EEG 005'])
 
 ###############################################################################
 # Get channel indices by regular expression
-channel_indices = mne.pick_channels_regexp(info['ch_names'], 'MEG *')
+channel_indices_meg_re = mne.pick_channels_regexp(info['ch_names'], 'MEG *')
 
 ###############################################################################
 # Channel types
@@ -80,12 +81,12 @@ channel_indices = mne.pick_channels_regexp(info['ch_names'], 'MEG *')
 # - syst : System status channel information (on Triux systems only).
 #
 # Get channel indices by type
-channel_indices = mne.pick_types(info, meg=True)  # MEG only
-channel_indices = mne.pick_types(info, meg=False, eeg=True)  # EEG only
+channel_indices_meg = mne.pick_types(info, meg=True)  # MEG only
+channel_indices_eeg = mne.pick_types(info, meg=False, eeg=True)  # EEG only
 
 ###############################################################################
 # MEG gradiometers and EEG channels
-channel_indices = mne.pick_types(info, meg='grad', eeg=True)
+channel_indices_grad_eeg = mne.pick_types(info, meg='grad', eeg=True)
 
 ###############################################################################
 # Get a dictionary of channel indices, grouped by channel type

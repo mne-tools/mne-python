@@ -311,7 +311,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
     # now sort them
     sort_idx = np.argsort(con_abs)
-    con_abs = con_abs[sort_idx]
+    del con_abs
     con = con[sort_idx]
     indices = [ind[sort_idx] for ind in indices]
 

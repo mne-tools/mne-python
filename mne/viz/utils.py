@@ -96,9 +96,9 @@ def plt_show(show=True, fig=None, **kwargs):
     **kwargs : dict
         Extra arguments for :func:`matplotlib.pyplot.show`.
     """
-    import matplotlib
+    from matplotlib import get_backend
     import matplotlib.pyplot as plt
-    if show and matplotlib.get_backend() != 'agg':
+    if show and get_backend() != 'agg':
         (fig or plt).show(**kwargs)
 
 
@@ -155,7 +155,7 @@ def _check_delayed_ssp(container):
 
 def _validate_if_list_of_axes(axes, obligatory_len=None):
     """Validate whether input is a list/array of axes."""
-    import matplotlib as mpl
+    from matplotlib.axes import Axes
     if obligatory_len is not None and not isinstance(obligatory_len, int):
         raise ValueError('obligatory_len must be None or int, got %d',
                          'instead' % type(obligatory_len))
@@ -167,7 +167,7 @@ def _validate_if_list_of_axes(axes, obligatory_len=None):
                          'one-dimensional. The received numpy array has %d '
                          'dimensions however. Try using ravel or flatten '
                          'method of the array.' % axes.ndim)
-    is_correct_type = np.array([isinstance(x, mpl.axes.Axes)
+    is_correct_type = np.array([isinstance(x, Axes)
                                 for x in axes])
     if not np.all(is_correct_type):
         first_bad = np.where(np.logical_not(is_correct_type))[0][0]
@@ -833,7 +833,7 @@ def _plot_raw_onkey(event, params):
 
 def _setup_annotation_fig(params):
     """Initialize the annotation figure."""
-    import matplotlib as mpl
+    from matplotlib import __version__
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RadioButtons, SpanSelector, Button
     if params['fig_annotation'] is not None:
@@ -893,7 +893,7 @@ def _setup_annotation_fig(params):
     if len(labels) == 0:
         selector.active = False
     params['ax'].selector = selector
-    if LooseVersion(mpl.__version__) < LooseVersion('1.5'):
+    if LooseVersion(__version__) < LooseVersion('1.5'):
         # XXX: Hover event messes up callback ids in old mpl.
         warn('Modifying existing annotations is not possible for '
              'matplotlib versions < 1.4. Upgrade matplotlib.')
@@ -1131,10 +1131,10 @@ class ClickableImage(object):
 
     def __init__(self, imdata, **kwargs):
         """Display the image for clicking."""
-        from matplotlib.pyplot import figure
+        import matplotlib.pyplot as plt
         self.coords = []
         self.imdata = imdata
-        self.fig = figure()
+        self.fig = plt.figure()
         self.ax = self.fig.add_subplot(111)
         self.ymax = self.imdata.shape[0]
         self.xmax = self.imdata.shape[1]
@@ -1164,11 +1164,11 @@ class ClickableImage(object):
         **kwargs : dict
             Arguments are passed to imshow in displaying the bg image.
         """
-        from matplotlib.pyplot import subplots
+        import matplotlib.pyplot as plt
         if len(self.coords) == 0:
             raise ValueError('No coordinates found, make sure you click '
                              'on the image that is first shown.')
-        f, ax = subplots()
+        f, ax = plt.subplots()
         ax.imshow(self.imdata, extent=(0, self.xmax, 0, self.ymax), **kwargs)
         xlim, ylim = [ax.get_xlim(), ax.get_ylim()]
         xcoords, ycoords = zip(*self.coords)
@@ -1819,8 +1819,8 @@ class SelectFromCollection(object):
 
     def __init__(self, ax, collection, ch_names,
                  alpha_other=0.3):
-        import matplotlib as mpl
-        if LooseVersion(mpl.__version__) < LooseVersion('1.2.1'):
+        from matplotlib import __version__
+        if LooseVersion(__version__) < LooseVersion('1.2.1'):
             raise ImportError('Interactive selection not possible for '
                               'matplotlib versions < 1.2.1. Upgrade '
                               'matplotlib.')
@@ -1983,7 +1983,7 @@ def _setup_annotation_colors(params):
 
 def _annotations_closed(event, params):
     """Clean up on annotation dialog close."""
-    import matplotlib as mpl
+    from matplotlib import __version__
     import matplotlib.pyplot as plt
     plt.close(params['fig_annotation'])
     if params['ax'].selector is not None:
@@ -1993,7 +1993,7 @@ def _annotations_closed(event, params):
     if params['segment_line'] is not None:
         params['segment_line'].remove()
         params['segment_line'] = None
-    if LooseVersion(mpl.__version__) >= LooseVersion('1.5'):
+    if LooseVersion(__version__) >= LooseVersion('1.5'):
         params['fig'].canvas.mpl_disconnect(params['hover_callback'])
     params['fig_annotation'] = None
     params['fig'].canvas.draw()
@@ -2585,7 +2585,7 @@ def _check_time_unit(time_unit, times):
     if not isinstance(time_unit, str):
         raise TypeError('time_unit must be str, got %s' % (type(time_unit),))
     if time_unit == 's':
-        times = times
+        pass
     elif time_unit == 'ms':
         times = 1e3 * times
     else:

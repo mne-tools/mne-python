@@ -19,7 +19,6 @@ from matplotlib.path import Path
 from matplotlib.text import TextPath
 from matplotlib.patches import PathPatch
 from matplotlib.colors import LinearSegmentedColormap
-from matplotlib.transforms import Bbox
 
 # manually set values
 dpi = 72.

@@ -689,9 +689,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._current = 0
 
         while True:
-            out = self.next(True)
-            if out is None:
-                return  # properly signal the end of iteration
+            try:
+                out = self.__next__(True)
+            except StopIteration:
+                break
             data, event_id = out
             tmin = self.times[0]
             info = deepcopy(self.info)
