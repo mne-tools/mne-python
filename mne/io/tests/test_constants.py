@@ -14,6 +14,8 @@ from mne.forward._make_forward import _read_coil_defs
 from mne.utils import _fetch_file, requires_good_network
 
 
+commit = '4da59a8ed8b84e9941e739c9994a7348c13d3a48'  # mne-tools/fiff-constants
+
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
 tag_dups = (3501, 3507)  # in both MEGIN and MNE files
@@ -24,7 +26,6 @@ _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'viewitems', 'viewkeys', 'viewvalues',  # Py2
                      )
 _tag_ignore_names = (  # for fiff-constants pending updates
-    'FIFF_MNE_EPOCHS_REJECT_FLAT',
 )
 _ignore_incomplete_enums = (  # XXX eventually we could complete these
     'bem_surf_id', 'cardinal_point_cardiac', 'cond_model', 'coord',
@@ -70,8 +71,8 @@ def test_constants(tmpdir):
     """Test compensation."""
     tmpdir = str(tmpdir)  # old pytest...
     dest = op.join(tmpdir, 'fiff.zip')
-    _fetch_file('https://codeload.github.com/mne-tools/fiff-constants/zip/'
-                '066541057377b694a7d65fc18838fd80d8ffc284', dest)
+    _fetch_file('https://codeload.github.com/mne-tools/fiff-constants/zip/' +
+                commit, dest)
     names = list()
     with zipfile.ZipFile(dest, 'r') as ff:
         for name in ff.namelist():
