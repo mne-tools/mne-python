@@ -7,11 +7,12 @@
 
 import mne
 import pytest
-from mne.datasets import sample
+from mne.datasets import sample, testing
 from mne.viz.backends.renderer import (set_3d_backend,
                                        get_3d_backend)
 
 
+@testing.requires_testing_data
 def test_3d_backend():
     pytest.raises(ValueError, set_3d_backend, "unknown_backend")
     pytest.raises(TypeError, set_3d_backend, 1)
@@ -23,7 +24,7 @@ def test_3d_backend():
     set_3d_backend('mayavi')
 
     # example plot
-    data_path = sample.data_path()
+    data_path = sample.data_path(download=False)
     raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
     subjects_dir = data_path + '/subjects'
     subject = 'sample'
@@ -31,5 +32,6 @@ def test_3d_backend():
     info = mne.io.read_info(raw_fname)
 
     mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
-                           meg=['helmet', 'sensors'], subjects_dir=subjects_dir,
+                           meg=['helmet', 'sensors'],
+                           subjects_dir=subjects_dir,
                            surfaces='head-dense')
