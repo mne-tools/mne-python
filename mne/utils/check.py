@@ -316,12 +316,22 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
         from mne.io import Info as types
         type_name = "Info" if type_name is None else type_name
         item_name = "Info" if item_name is None else item_name
+    if not isinstance(types, (list, tuple)):
+        types = [types]
 
-    if type_name is None:
-        iter_types = ([types] if not isinstance(types, (list, tuple))
-                      else types)
-        type_name = ', '.join(cls.__name__ for cls in iter_types)
-    if not isinstance(item, types):
+    check_types = tuple(type(None) if type_ is None else type_
+                        for type_ in types)
+    if not isinstance(item, check_types):
+        if type_name is None:
+            type_name = ['None' if cls_ is None else cls_.__name__
+                         for cls_ in types]
+            if len(type_name) == 1:
+                type_name = type_name[0]
+            elif len(type_name) == 2:
+                type_name = ' or '.join(type_name)
+            else:
+                type_name[-1] = 'or ' + type_name[-1]
+                type_name = ', '.join(type_name)
         raise TypeError('%s must be an instance of %s, got %s instead'
                         % (item_name, type_name, type(item),))
 

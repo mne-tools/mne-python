@@ -7,9 +7,10 @@
 import numpy as np
 
 from ..filter import next_fast_len
+from ..utils import _validate_type
 
 
-def envelope_correlation(data):
+def envelope_correlation(data, combine='median'):
     """Compute the envelope correlation.
 
     Parameters
@@ -20,12 +21,16 @@ def envelope_correlation(data):
         each with shape (n_signals, n_times). If it's float data,
         the Hilbert transform will be applied; if it's complex data,
         it's assumed the Hilbert has already been applied.
+    combine : 'median' | None
+        How to combine correlation estimates across epochs.
+        Default is 'median'. Can be None to return without combining.
 
     Returns
     -------
-    corr : ndarray, shape (n_nodes, n_nodes)
+    corr : ndarray, shape ([n_epochs, ]n_nodes, n_nodes)
         The pairwise orthogonal envelope correlations.
-        This matrix is symmetric.
+        This matrix is symmetric. If combine is None, the array
+        with have three dimensions, the first of which is ``n_epochs``.
 
     Notes
     -----
@@ -44,6 +49,7 @@ def envelope_correlation(data):
     from scipy.signal import hilbert
     corrs = list()
     n_nodes = None
+    _validate_type(combine, (str, None), 'combine')
     for epoch_data in data:
         if epoch_data.ndim != 2:
             raise ValueError('Each entry in data must be 2D, got shape %s'
@@ -83,5 +89,12 @@ def envelope_correlation(data):
         # Make it symmetric (it isn't at this point)
         corr = np.abs(corr)
         corrs.append((corr.T + corr) / 2.)
-    corr = np.median(corrs, axis=0)
+        del corr
+    if combine is not None:
+        if combine == 'median':
+            corr = np.median(corrs, axis=0)
+        else:
+            raise ValueError('Unknown combine option %r' % (combine,))
+    else:
+        corr = np.array(corrs)
     return corr

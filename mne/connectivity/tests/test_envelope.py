@@ -42,8 +42,10 @@ def test_envelope_correlation():
     # using complex data
     corr = envelope_correlation(data_hilbert)
     assert_allclose(corr, corr_orig)
-    # do Hilbert internally
-    corr = envelope_correlation(data)
+    # do Hilbert internally, and don't combine
+    corr = envelope_correlation(data, combine=None)
+    assert corr.shape == (data.shape[0],) + corr_orig.shape
+    corr = np.median(corr, axis=0)
     assert_allclose(corr, corr_orig)
     # degenerate
     with pytest.raises(ValueError, match='float'):
@@ -52,3 +54,7 @@ def test_envelope_correlation():
         envelope_correlation(data[np.newaxis])
     with pytest.raises(ValueError, match='n_nodes mismatch'):
         envelope_correlation([rng.randn(2, 8), rng.randn(3, 8)])
+    with pytest.raises(TypeError, match='instance of str or None'):
+        envelope_correlation(data, 1.)
+    with pytest.raises(ValueError, match='Unknown combine option'):
+        envelope_correlation(data, 'foo')
