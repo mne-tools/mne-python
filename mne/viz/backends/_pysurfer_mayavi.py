@@ -61,10 +61,10 @@ class _Renderer(object):
         ----------
         fig: instance of mayavi.mlab.figure
             Scene handle.
-        size : (width, height)
-            The dimensions of the context window: width x height
-        bgcolor: (red, green, blue)
-            The color definition of the background.
+        size : tuple
+            The dimensions of the context window: (width, height).
+        bgcolor: tuple
+            The color definition of the background: (red, green, blue).
         name: str | None
             The name of the scene.
         """
@@ -101,8 +101,8 @@ class _Renderer(object):
            The array containing the Z component of the vertices.
         triangles: array, shape (n_polygons, 3)
            The array containing the indices of the polygons.
-        color: (red, green, blue)
-            The color of the mesh.
+        color: tuple
+            The color of the mesh: (red, green, blue).
         opacity: float
             The opacity of the mesh.
         shading: bool
@@ -161,8 +161,8 @@ class _Renderer(object):
         ----------
         surface: surface object
             The information describing the surface.
-        color: (red, green, blue)
-            The color of the surface.
+        color: tuple
+            The color of the surface: (red, green, blue).
         opacity: float
             The opacity of the surface.
         vmin: float | None
@@ -193,8 +193,8 @@ class _Renderer(object):
         ----------
         center: ndarray, shape(n_center, 3)
             The list of centers to use for the sphere(s).
-        color: (red, green, blue)
-            The color of the sphere(s).
+        color: tuple
+            The color of the sphere(s): (red, green, blue).
         scale: float
             The scale of the sphere(s).
         opacity: float
@@ -235,8 +235,8 @@ class _Renderer(object):
             The last Y component of the quiver.
         w: array, shape (n_quivers,)
             The last Z component of the quiver.
-        color: (red, green, blue)
-            The color of the quiver.
+        color: tuple
+            The color of the quiver: (red, green, blue).
         scale: float
             The scale of the quiver.
         mode: 'arrow' or 'cylinder'
@@ -245,8 +245,8 @@ class _Renderer(object):
             The resolution of the arrow.
         glyph_height: float
             The height of the glyph used with the quiver.
-        glyph_center:
-            The center of the glyph used with the quiver.
+        glyph_center: tuple
+            The center of the glyph used with the quiver: (x, y, z).
         glyph_resolution: float
             The resolution of the glyph used with the quiver.
         opacity: float
@@ -305,8 +305,8 @@ class _Renderer(object):
             The zenith angle of the camera.
         distance: float
             The distance to the focal point.
-        focalpoint: (x, y, z)
-            The focal point of the camera.
+        focalpoint: tuple
+            The focal point of the camera: (x, y, z).
         """
         self.mlab.view(azimuth, elevation, distance,
                        focalpoint=focalpoint, figure=self.fig)
@@ -316,7 +316,15 @@ class _Renderer(object):
         return self.mlab.screenshot(self.fig)
 
     def project(self, xyz, ch_names):
-        """Convert 3d points to a 2d perspective."""
+        """Convert 3d points to a 2d perspective.
+
+        Parameters
+        ----------
+        xyz: array, shape(n_points, 3)
+            The points to project.
+        ch_names: array, shape(_n_points,)
+            Names of the channels.
+        """
         xy = _3d_to_2d(self.fig, xyz)
         xy = dict(zip(ch_names, xy))
         pts = self.fig.children[-1]
