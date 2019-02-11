@@ -9,8 +9,8 @@ Advanced setup of MNE-Python
    :local:
    :depth: 1
 
-IPython / Jupyter notebooks
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using MNE-Python with IPython / Jupyter notebooks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When using MNE-Python within IPython or a Jupyter notebook, we strongly
 recommend using the Qt matplotlib backend for fast and correct rendering. On
@@ -114,8 +114,8 @@ updated to have the latest changes.
 If you plan to contribute to MNE-Python, please continue reading how to
 :doc:`contribute to MNE-Python <contributing>`.
 
-Using other Python distributions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using MNE-Python with other Python distributions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 While the `Anaconda`_ Python distribution provides many conveniences, other
 distributions of Python should also work with MNE-Python.  In particular,
@@ -171,8 +171,8 @@ that state that they allow passing ``n_jobs='cuda'``, such as
 and they should run faster than the CPU-based multithreading such as
 ``n_jobs=8``.
 
-Off-screen rendering on Linux with MESA
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Off-screen rendering in MNE-Python on Linux with MESA
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 On remote systems, it might be possible to use MESA software rendering
 (such as ``llvmpipe`` or ``swr``) for 3D visualization (with some tweaks).
@@ -187,8 +187,8 @@ to force MESA to use modern OpenGL by using this before executing
 Also, it's possible that different software rending backends might perform
 better than others, such as using the ``llvmpipe`` backend rather than ``swr``.
 
-Troubleshooting 3D plots
-^^^^^^^^^^^^^^^^^^^^^^^^
+Troubleshooting 3D plots in MNE-Python
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you run into trouble when visualizing source estimates (or anything else
 using mayavi), you can try setting a couple of environment variables at the

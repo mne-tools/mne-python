@@ -61,8 +61,8 @@ open a terminal, or put the activation command in your ``.bashrc`` or
 
     $ pip install --upgrade "pyqt5>=5.10"
 
-Testing your installation
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Testing MNE-Python installation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To make sure MNE-Python installed correctly, type the following command in a
 terminal:

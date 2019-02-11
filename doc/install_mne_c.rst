@@ -41,8 +41,8 @@ environment variables ``FREESURFER_HOME``, ``SUBJECTS_DIR``, and ``SUBJECT``.
     ``sudo port install netpbm`` in the Terminal app.
 
 
-Download and Installation
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Downloading and Installing MNE-C
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 MNE-C is distributed as either a compressed tar archive (.tar.gz) or a macOS
 disk image (.dmg). The `MNE-C download page`_ requires registration with a
@@ -66,8 +66,8 @@ computer's System Preferences.
 
 .. _user_environment:
 
-Configuration
-^^^^^^^^^^^^^
+Configuring MNE-C
+^^^^^^^^^^^^^^^^^
 
 MNE-C requires two environment variables to be defined manually:
 
@@ -123,8 +123,8 @@ corresponding commands in the ``.cshrc`` / ``.tcshrc`` file are:
 If you have done this correctly, the command ``ls $MNE_ROOT/bin/mne_setup_sh``
 should succeed when run in a new terminal.
 
-Testing your installation
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Testing MNE-C installation
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 An easy way to verify whether your installation of MNE-C is working is to test
 the OpenGL graphics performance:

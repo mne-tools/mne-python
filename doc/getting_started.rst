@@ -2,8 +2,8 @@
 
 .. include:: links.inc
 
-Getting started
-===============
+Installation — overview
+=========================
 
 The MNE software products are open-source tools for processing, analysis, and
 visualization of functional neuroimaging data (EEG, MEG, sEEG, ECoG, and
