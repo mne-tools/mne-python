@@ -24,7 +24,7 @@ from .io.tree import dir_tree_find
 from .io.tag import read_tag
 
 
-def _check_ods(onset, duration, description):
+def _check_o_d_s(onset, duration, description):
     onset = np.atleast_1d(np.array(onset, dtype=float))
     if onset.ndim != 1:
         raise ValueError('Onset must be a one dimensional array, got %s '
@@ -183,7 +183,7 @@ class Annotations(object):
         if orig_time is not None:
             orig_time = _handle_meas_date(orig_time)
         self.orig_time = orig_time
-        self.onset, self.duration, self.description = _check_ods(
+        self.onset, self.duration, self.description = _check_o_d_s(
             onset, duration, description)
         self._sort()  # ensure we're sorted
 
@@ -268,7 +268,8 @@ class Annotations(object):
         to not only ``list.append``, but also
         `list.extend <https://docs.python.org/3/library/stdtypes.html#mutable-sequence-types>`__.
         """  # noqa: E501
-        onset, duration, description = _check_ods(onset, duration, description)
+        onset, duration, description = _check_o_d_s(
+            onset, duration, description)
         self.onset = np.append(self.onset, onset)
         self.duration = np.append(self.duration, duration)
         self.description = np.append(self.description, description)
@@ -320,10 +321,8 @@ class Annotations(object):
         """Sort in place."""
         # instead of argsort here we use sorted so that it gives us
         # the onset-then-duration hierarchy
-        sorter = [(o, d, i) for o, d, i in zip(self.onset,
-                                               self.duration,
-                                               range(len(self)))]
-        order = [x[2] for x in sorted(sorter)]
+        vals = sorted(zip(self.onset, self.duration, range(len(self))))
+        order = list(list(zip(*vals))[-1]) if len(vals) else []
         self.onset = self.onset[order]
         self.duration = self.duration[order]
         self.description = self.description[order]
