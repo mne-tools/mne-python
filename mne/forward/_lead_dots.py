@@ -4,7 +4,8 @@
 #
 # License: BSD (3-clause)
 
-from os import path as op, makedirs
+import os
+import os.path as op
 
 import numpy as np
 from numpy.polynomial import legendre
@@ -56,7 +57,7 @@ def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
     fname = op.join(_get_extra_data_path(), 'tables')
     if not op.isdir(fname):
         # Updated due to API chang (GH 1167)
-        makedirs(fname)
+        os.makedirs(fname)
     if ch_type == 'meg':
         fname = op.join(fname, 'legder_%s_%s.bin' % (n_coeff, n_interp))
         leg_fun = _get_legen_der

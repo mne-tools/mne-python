@@ -6,7 +6,8 @@
 
 from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
-from os import path as op, linesep, listdir
+import os
+import os.path as op
 import copy as cp
 import re
 
@@ -1848,7 +1849,7 @@ def _read_annot(fname):
         if not op.isdir(dir_name):
             raise IOError('Directory for annotation does not exist: %s',
                           fname)
-        cands = listdir(dir_name)
+        cands = os.listdir(dir_name)
         cands = [c for c in cands if '.annot' in c]
         if len(cands) == 0:
             raise IOError('No such file %s, no candidate parcellations '
@@ -2432,18 +2433,18 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
         msg = ("Some labels have the same color values (all labels in one "
                "hemisphere must have a unique color):")
         duplicate_colors.insert(0, msg)
-        issues.append(linesep.join(duplicate_colors))
+        issues.append('\n'.join(duplicate_colors))
     if invalid_colors:
         msg = ("Some labels have invalid color values (all colors should be "
                "RGBA tuples with values between 0 and 1)")
         invalid_colors.insert(0, msg)
-        issues.append(linesep.join(invalid_colors))
+        issues.append('\n'.join(invalid_colors))
     if overlap:
         msg = ("Some labels occupy vertices that are also occupied by one or "
                "more other labels. Each vertex can only be occupied by a "
                "single label in *.annot files.")
         overlap.insert(0, msg)
-        issues.append(linesep.join(overlap))
+        issues.append('\n'.join(overlap))
 
     if issues:
         raise ValueError('\n\n'.join(issues))

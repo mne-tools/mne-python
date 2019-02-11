@@ -3,7 +3,8 @@
 # Copyright (C) 2011-2017 Alexandre Gramfort
 # <alexandre.gramfort@telecom-paristech.fr>
 
-from os import path as op, remove, walk
+import os
+import os.path as op
 
 from setuptools import setup
 
@@ -35,14 +36,14 @@ def package_tree(pkgroot):
     # Adapted from VisPy
     path = op.dirname(__file__)
     subdirs = [op.relpath(i[0], path).replace(op.sep, '.')
-               for i in walk(op.join(path, pkgroot))
+               for i in os.walk(op.join(path, pkgroot))
                if '__init__.py' in i[2]]
     return sorted(subdirs)
 
 
 if __name__ == "__main__":
     if op.exists('MANIFEST'):
-        remove('MANIFEST')
+        os.remove('MANIFEST')
 
     setup(name=DISTNAME,
           maintainer=MAINTAINER,

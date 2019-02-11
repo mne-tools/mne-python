@@ -6,7 +6,8 @@
 #
 # License: BSD (3-clause)
 
-from os import path as op, environ
+import os
+import os.path as op
 import glob
 
 import numpy as np
@@ -184,8 +185,8 @@ def _print_coord_trans(t, prefix='Coordinate transformation: '):
 
 def _find_trans(subject, subjects_dir=None):
     if subject is None:
-        if 'SUBJECT' in environ:
-            subject = environ['SUBJECT']
+        if 'SUBJECT' in os.environ:
+            subject = os.environ['SUBJECT']
         else:
             raise ValueError('SUBJECT environment variable not set')
 

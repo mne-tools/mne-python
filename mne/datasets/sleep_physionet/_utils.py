@@ -4,7 +4,8 @@
 #
 # License: BSD Style.
 
-from os import path as op, remove, makedirs
+import os
+import os.path as op
 import numpy as np
 
 from ...utils import _fetch_file, verbose, _TempDir, _check_pandas_installed
@@ -22,9 +23,9 @@ def _fetch_one(fname, hashsum, path, force_update):
     destination = op.join(path, fname)
     if not op.isfile(destination) or force_update:
         if op.isfile(destination):
-            remove(destination)
+            os.remove(destination)
         if not op.isdir(op.dirname(destination)):
-            makedirs(op.dirname(destination))
+            os.makedirs(op.dirname(destination))
         _fetch_file(url, destination, print_destination=False,
                     hash_=hashsum, hash_type='sha1')
     return destination
