@@ -88,6 +88,7 @@
 .. _FreeSurfer download page: https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall
 .. _netpbm: http://netpbm.sourceforge.net/
 .. _MacPorts: https://www.macports.org/
+.. _Homebrew: https://brew.sh/
 .. _XCode developer tools: http://appstore.com/mac/apple/xcode
 .. _xquartz: https://www.xquartz.org/
 .. _MATLAB runtime: https://www.mathworks.com/products/compiler/matlab-runtime.html
