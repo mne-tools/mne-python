@@ -302,9 +302,9 @@ def test_5839():
     #    latency  .         0    0    1    1    2    2    3
     #             .              5    0    5    0    5    0
     #
-    EXPECTED_ONSET = [1.5, 2.5, 2., 2.]
-    EXPECTED_DURATION = [0.2, 0.2, 0., 0.]
-    EXPECTED_DESCRIPTION = ['dummy', 'dummy', 'BAD boundary', 'EDGE boundary']
+    EXPECTED_ONSET = [1.5, 2., 2., 2.5]
+    EXPECTED_DURATION = [0.2, 0., 0., 0.2]
+    EXPECTED_DESCRIPTION = ['dummy', 'BAD boundary', 'EDGE boundary', 'dummy']
 
     def raw_factory(meas_date):
         raw = RawArray(data=np.empty((10, 10)),

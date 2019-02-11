@@ -23,6 +23,35 @@ from .io.tree import dir_tree_find
 from .io.tag import read_tag
 
 
+def _check_o_d_s(onset, duration, description):
+    onset = np.atleast_1d(np.array(onset, dtype=float))
+    if onset.ndim != 1:
+        raise ValueError('Onset must be a one dimensional array, got %s '
+                         '(shape %s).'
+                         % (onset.ndim, onset.shape))
+    duration = np.array(duration, dtype=float)
+    if duration.ndim == 0 or duration.shape == (1,):
+        duration = np.repeat(duration, len(onset))
+    if duration.ndim != 1:
+        raise ValueError('Duration must be a one dimensional array, '
+                         'got %d.' % (duration.ndim,))
+
+    description = np.array(description, dtype=str)
+    if description.ndim == 0 or description.shape == (1,):
+        description = np.repeat(description, len(onset))
+    if description.ndim != 1:
+        raise ValueError('Description must be a one dimensional array, '
+                         'got %d.' % (description.ndim,))
+    if any([';' in desc for desc in description]):
+        raise ValueError('Semicolons in descriptions not supported.')
+
+    if not (len(onset) == len(duration) == len(description)):
+        raise ValueError('Onset, duration and description must be '
+                         'equal in sizes, got %s, %s, and %s.'
+                         % (len(onset), len(duration), len(description)))
+    return onset, duration, description
+
+
 class Annotations(object):
     """Annotation object for annotating segments of raw data.
 
@@ -153,26 +182,9 @@ class Annotations(object):
         if orig_time is not None:
             orig_time = _handle_meas_date(orig_time)
         self.orig_time = orig_time
-
-        onset = np.array(onset, dtype=float)
-        if onset.ndim != 1:
-            raise ValueError('Onset must be a one dimensional array, got %s '
-                             '(shape %s).'
-                             % (onset.ndim, onset.shape))
-        duration = np.array(duration, dtype=float)
-        if isinstance(description, str):
-            description = np.repeat(description, len(onset))
-        if duration.ndim != 1:
-            raise ValueError('Duration must be a one dimensional array.')
-        if not (len(onset) == len(duration) == len(description)):
-            raise ValueError('Onset, duration and description must be '
-                             'equal in sizes.')
-        if any([';' in desc for desc in description]):
-            raise ValueError('Semicolons in descriptions not supported.')
-
-        self.onset = onset
-        self.duration = duration
-        self.description = np.array(description, dtype=str)
+        self.onset, self.duration, self.description = _check_o_d_s(
+            onset, duration, description)
+        self._sort()  # ensure we're sorted
 
     def __repr__(self):
         """Show the representation."""
@@ -235,12 +247,12 @@ class Annotations(object):
 
         Parameters
         ----------
-        onset : float
+        onset : float | array-like
             Annotation time onset from the beginning of the recording in
             seconds.
-        duration : float
+        duration : float | array-like
             Duration of the annotation in seconds.
-        description : str
+        description : str | array-like
             Description for the annotation. To reject epochs, use description
             starting with keyword 'bad'
 
@@ -248,10 +260,19 @@ class Annotations(object):
         -------
         self : mne.Annotations
             The modified Annotations object.
-        """
+
+        Notes
+        -----
+        The array-like support for arguments allows this to be used similarly
+        to not only ``list.append``, but also
+        `list.extend <https://docs.python.org/3/library/stdtypes.html#mutable-sequence-types>`__.
+        """  # noqa: E501
+        onset, duration, description = _check_o_d_s(
+            onset, duration, description)
         self.onset = np.append(self.onset, onset)
         self.duration = np.append(self.duration, duration)
         self.description = np.append(self.description, description)
+        self._sort()
         return self
 
     def copy(self):
@@ -263,8 +284,9 @@ class Annotations(object):
 
         Parameters
         ----------
-        idx : int | list of int
-            Index of the annotation to remove.
+        idx : int | array-like of int
+            Index of the annotation to remove. Can be array-like to
+            remove multiple indices.
         """
         self.onset = np.delete(self.onset, idx)
         self.duration = np.delete(self.duration, idx)
@@ -293,6 +315,16 @@ class Annotations(object):
         else:
             with start_file(fname) as fid:
                 _write_annotations(fid, self)
+
+    def _sort(self):
+        """Sort in place."""
+        # instead of argsort here we use sorted so that it gives us
+        # the onset-then-duration hierarchy
+        vals = sorted(zip(self.onset, self.duration, range(len(self))))
+        order = list(list(zip(*vals))[-1]) if len(vals) else []
+        self.onset = self.onset[order]
+        self.duration = self.duration[order]
+        self.description = self.description[order]
 
     def crop(self, tmin=None, tmax=None, emit_warning=False):
         """Remove all annotation that are outside of [tmin, tmax].
@@ -449,12 +481,12 @@ def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
         idxs = [idx for idx, desc in enumerate(raw.annotations.description)
                 if any(desc.upper().startswith(kind.upper())
                        for kind in kinds)]
+        # onsets are already sorted
         onsets = raw.annotations.onset[idxs]
         onsets = _sync_onset(raw, onsets)
         ends = onsets + raw.annotations.duration[idxs]
-        order = np.argsort(onsets)
-        onsets = raw.time_as_index(onsets[order], use_rounding=True)
-        ends = raw.time_as_index(ends[order], use_rounding=True)
+        onsets = raw.time_as_index(onsets, use_rounding=True)
+        ends = raw.time_as_index(ends, use_rounding=True)
     assert (onsets <= ends).all()  # all durations >= 0
     if invert:
         # We need to eliminate overlaps here, otherwise wacky things happen,
