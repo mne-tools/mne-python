@@ -486,8 +486,6 @@ def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
         axes_dict["image"] = axes[0]
         if evoked:
             axes_dict["evoked"] = axes[1]
-        # if axes were passed - we ignore fig param and get figure from axes
-        fig = axes_dict["image"].get_figure()
         if colorbar:
             axes_dict["colorbar"] = axes[-1]
     return axes_dict

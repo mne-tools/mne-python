@@ -487,7 +487,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
                              'channel using the ch_name parameter.' % ch)
 
     if ch_info is None:
-        ch_info = [{} for an in anode]
+        ch_info = [{} for _ in anode]
     elif not isinstance(ch_info, list):
         ch_info = [ch_info]
     if len(ch_info) != len(anode):
