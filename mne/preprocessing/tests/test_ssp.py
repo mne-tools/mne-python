@@ -95,6 +95,7 @@ def test_compute_proj_eog():
         assert projs is None
 
 
+@pytest.mark.slowtest  # can be slow on OSX
 def test_compute_proj_parallel():
     """Test computation of ExG projectors using parallelization."""
     raw_0 = read_raw_fif(raw_fname).crop(0, 10)
@@ -130,7 +131,7 @@ def _check_projs_for_expected_channels(projs, n_mags, n_grads, n_eegs):
             assert len(p['data']['col_names']) == n_eegs
 
 
-@pytest.mark.slowtest  # can be slow on OSX travis
+@pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 def test_compute_proj_ctf():
     """Test to show that projector code completes on CTF data."""

@@ -4,8 +4,7 @@
 #
 # License: BSD Style.
 
-import os
-from os import path as op
+from os import path as op, remove, makedirs
 import numpy as np
 
 from ...utils import _fetch_file, verbose, _TempDir, _check_pandas_installed
@@ -23,9 +22,9 @@ def _fetch_one(fname, hashsum, path, force_update):
     destination = op.join(path, fname)
     if not op.isfile(destination) or force_update:
         if op.isfile(destination):
-            os.remove(destination)
+            remove(destination)
         if not op.isdir(op.dirname(destination)):
-            os.makedirs(op.dirname(destination))
+            makedirs(op.dirname(destination))
         _fetch_file(url, destination, print_destination=False,
                     hash_=hashsum, hash_type='sha1')
     return destination
@@ -109,7 +108,7 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     data.columns.names = [None, None]
     data = (data.set_index([('Subject - age - sex', 'Age'),
                             ('Subject - age - sex', 'M1/F2')], append=True)
-                .stack(level=0).reset_index())
+            .stack(level=0).reset_index())
 
     data = data.rename(columns={('Subject - age - sex', 'Age'): 'age',
                                 ('Subject - age - sex', 'M1/F2'): 'sex',
