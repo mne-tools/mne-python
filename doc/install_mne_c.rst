@@ -36,7 +36,9 @@ environment variables ``FREESURFER_HOME``, ``SUBJECTS_DIR``, and ``SUBJECT``.
     of XQuartz; the most current version (2.7.11, as of Feb. 2019) will not
     work.
   - the netpbm_ library. The recommended way to get netpbm is to install
-    Homebrew_, and then run ``brew install netpbm`` in the Terminal app.
+    Homebrew_, and run ``brew install netpbm`` in the Terminal app.
+    Alternatively, if you prefer to use MacPorts_, you can run
+    ``sudo port install netpbm`` in the Terminal app.
 
 
 Download and Installation
@@ -96,7 +98,9 @@ your ``.bashrc``:
     source $MNE_ROOT/bin/mne_setup_sh
 
 where ``<path_to_MNE>`` and ``<path_to_MATLAB>`` are replaced by the absolute
-paths to MNE-C and MATLAB, respectively.
+paths to MNE-C and MATLAB, respectively. If you don't have MATLAB, you should
+still include the ``export MATLAB_ROOT=`` statement, but leave
+``<path_to_MATLAB>`` blank.
 
 To configure MNE-C automatically for ``zsh``, use the built-in ``emulate``
 command in your ``.zshrc`` file:
