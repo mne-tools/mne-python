@@ -5,15 +5,25 @@
 #
 # License: Simplified BSD
 
-import mne
 import pytest
 import os.path as op
-from mne.datasets import sample, testing
+import numpy as np
+
+from mne import SourceEstimate
+from mne.datasets import testing
+from mne.source_space import read_source_spaces
+from mne.utils import requires_mayavi
+from mne.viz import plot_sparse_source_estimates
 from mne.viz.backends.renderer import (set_3d_backend,
                                        get_3d_backend)
 
+data_dir = testing.data_path(download=False)
+src_fname = op.join(data_dir, 'subjects', 'sample', 'bem',
+                    'sample-oct-6-src.fif')
+
 
 @testing.requires_testing_data
+@requires_mayavi
 def test_3d_backend():
     """Test 3d backend degenerate scenarios and default plot."""
     pytest.raises(ValueError, set_3d_backend, "unknown_backend")
@@ -26,14 +36,14 @@ def test_3d_backend():
     set_3d_backend('mayavi')
 
     # example plot
-    data_path = sample.data_path(download=False)
-    raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
-    subjects_dir = op.join(data_path, 'subjects')
-    subject = 'sample'
-    trans = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
-    info = mne.io.read_info(raw_fname)
-
-    mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
-                           meg=['helmet', 'sensors'],
-                           subjects_dir=subjects_dir,
-                           surfaces='head-dense')
+    n_time = 5
+    sample_src = read_source_spaces(src_fname)
+    vertices = sample_src[0]['vertno']
+    inds = [111, 333]
+    stc_data = np.zeros((len(inds), n_time))
+    stc_data[0, 1] = 1.
+    stc_data[1, 4] = 2.
+    vertices = [vertices[inds], np.empty(0, dtype=np.int)]
+    stc = SourceEstimate(stc_data, vertices, 1, 1)
+    plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
+                                 opacity=0.5, high_resolution=False)
