@@ -677,7 +677,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         while True:
             try:
-                out = self.next(True)
+                out = self.__next__(True)
             except StopIteration:
                 break
             data, event_id = out
@@ -1775,7 +1775,7 @@ class Epochs(BaseEpochs):
     :meth:`mne.Epochs.__getitem__`.
 
     All methods for iteration over objects (using :meth:`mne.Epochs.__iter__`,
-    :meth:`mne.Epochs.iter_evoked` or :meth:`mne.Epochs.next`) use the same
+    :meth:`mne.Epochs.iter_evoked` or :meth:`mne.Epochs.__next__`) use the same
     internal state.
     """
 

@@ -312,7 +312,7 @@ class RtEpochs(BaseEpochs):
             self._client.stop_receive_thread(stop_measurement=stop_measurement)
 
     @verbose
-    def next(self, return_event_id=False, verbose=None):
+    def __next__(self, return_event_id=False, verbose=None):
         """Make iteration over epochs easy.
 
         Parameters
@@ -342,7 +342,7 @@ class RtEpochs(BaseEpochs):
                 return (epoch, event_id) if return_event_id else epoch
             if current_time > (self._last_time + self.isi_max):
                 logger.info('Time of %s seconds exceeded.' % self.isi_max)
-                return  # signal the end properly
+                raise StopIteration  # signal the end properly
             if self._started:
                 if first:
                     logger.info('Waiting for epoch %d' % (self._current + 1))
@@ -351,6 +351,8 @@ class RtEpochs(BaseEpochs):
             else:
                 raise RuntimeError('Not enough epochs in queue and currently '
                                    'not receiving epochs, cannot get epochs!')
+
+    next = __next__
 
     @verbose
     def _get_data(self, out=True, verbose=None):
