@@ -391,11 +391,11 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_processed_high_res_mri_points(self):
-        self._get_processed_mri_points(self, 'high')
+        return self._get_processed_mri_points('high')
 
     @cached_property
     def _get_processed_low_res_mri_points(self):
-        self._get_processed_mri_points(self, 'low')
+        return self._get_processed_mri_points('low')
 
     def _get_processed_mri_points(self, res):
         bem = self.mri.bem_low_res if res == 'low' else self.mri.bem_high_res

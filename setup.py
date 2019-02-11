@@ -1,17 +1,15 @@
 #! /usr/bin/env python
-#
 
 # Copyright (C) 2011-2017 Alexandre Gramfort
 # <alexandre.gramfort@telecom-paristech.fr>
 
-import os
-from os import path as op
+from os import path as op, remove, walk
 
 from setuptools import setup
 
 # get the version (don't import mne here, so dependencies are not needed)
 version = None
-with open(os.path.join('mne', '__init__.py'), 'r') as fid:
+with open(op.join('mne', '__init__.py'), 'r') as fid:
     for line in (line.strip() for line in fid):
         if line.startswith('__version__'):
             version = line.split('=')[1].strip().strip('\'')
@@ -35,15 +33,16 @@ VERSION = version
 def package_tree(pkgroot):
     """Get the submodule list."""
     # Adapted from VisPy
-    path = os.path.dirname(__file__)
-    subdirs = [os.path.relpath(i[0], path).replace(os.path.sep, '.')
-               for i in os.walk(os.path.join(path, pkgroot))
+    path = op.dirname(__file__)
+    subdirs = [op.relpath(i[0], path).replace(op.sep, '.')
+               for i in walk(op.join(path, pkgroot))
                if '__init__.py' in i[2]]
     return sorted(subdirs)
 
+
 if __name__ == "__main__":
-    if os.path.exists('MANIFEST'):
-        os.remove('MANIFEST')
+    if op.exists('MANIFEST'):
+        remove('MANIFEST')
 
     setup(name=DISTNAME,
           maintainer=MAINTAINER,
@@ -70,24 +69,25 @@ if __name__ == "__main__":
                        ],
           platforms='any',
           packages=package_tree('mne'),
-          package_data={'mne': [op.join('data', '*.sel'),
-                                op.join('data', 'icos.fif.gz'),
-                                op.join('data', 'coil_def*.dat'),
-                                op.join('data', 'helmets', '*.fif.gz'),
-                                op.join('data', 'FreeSurferColorLUT.txt'),
-                                op.join('data', 'image', '*gif'),
-                                op.join('data', 'image', '*lout'),
-                                op.join('data', 'fsaverage', '*.fif'),
-                                op.join('channels', 'data', 'layouts', '*.lout'),
-                                op.join('channels', 'data', 'layouts', '*.lay'),
-                                op.join('channels', 'data', 'montages', '*.sfp'),
-                                op.join('channels', 'data', 'montages', '*.txt'),
-                                op.join('channels', 'data', 'montages', '*.elc'),
-                                op.join('channels', 'data', 'neighbors', '*.mat'),
-                                op.join('gui', 'help', '*.json'),
-                                op.join('html', '*.js'),
-                                op.join('html', '*.css'),
-                                op.join('io', 'artemis123', 'resources', '*.csv'),
-                                op.join('io', 'edf', 'gdf_encodes.txt')
-                                ]},
+          package_data={'mne': [
+              op.join('data', '*.sel'),
+              op.join('data', 'icos.fif.gz'),
+              op.join('data', 'coil_def*.dat'),
+              op.join('data', 'helmets', '*.fif.gz'),
+              op.join('data', 'FreeSurferColorLUT.txt'),
+              op.join('data', 'image', '*gif'),
+              op.join('data', 'image', '*lout'),
+              op.join('data', 'fsaverage', '*.fif'),
+              op.join('channels', 'data', 'layouts', '*.lout'),
+              op.join('channels', 'data', 'layouts', '*.lay'),
+              op.join('channels', 'data', 'montages', '*.sfp'),
+              op.join('channels', 'data', 'montages', '*.txt'),
+              op.join('channels', 'data', 'montages', '*.elc'),
+              op.join('channels', 'data', 'neighbors', '*.mat'),
+              op.join('gui', 'help', '*.json'),
+              op.join('html', '*.js'),
+              op.join('html', '*.css'),
+              op.join('io', 'artemis123', 'resources', '*.csv'),
+              op.join('io', 'edf', 'gdf_encodes.txt')
+              ]},
           scripts=['bin/mne'])

@@ -691,7 +691,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def _last_time(self):
         return self.last_samp / float(self.info['sfreq'])
 
-    def time_as_index(self, times, use_rounding=False, origin=None):
+    # "Overridden method signature does not match call..." in LGTM
+    def time_as_index(self, times, use_rounding=False, origin=None):  # lgtm
         """Convert time to indices.
 
         Parameters
