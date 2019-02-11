@@ -52,7 +52,7 @@ install location, and unpack the software using ``tar``:
 
 .. code-block:: console
 
-    $ cd /path/to/install/location
+    $ cd <path_to_desired_install_location>
     $ tar zxvf <path_to_archive_file>
 
 To install from the macOS disk image, double-click the downloaded .dmg file. In
