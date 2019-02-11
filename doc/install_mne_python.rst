@@ -34,7 +34,7 @@ From the command line, install the MNE dependencies to a dedicated ``mne`` Anaco
 
     $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
     $ conda env create -f environment.yml
-    $ conda activate mne
+    $ source activate mne
 
 You can also use a web browser to `download the required environment file <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml>`_
 if you do not have ``curl``.
