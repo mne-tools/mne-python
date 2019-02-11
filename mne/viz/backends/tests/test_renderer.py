@@ -7,6 +7,7 @@
 
 import mne
 import pytest
+import os.path as op
 from mne.datasets import sample, testing
 from mne.viz.backends.renderer import (set_3d_backend,
                                        get_3d_backend)
@@ -14,6 +15,7 @@ from mne.viz.backends.renderer import (set_3d_backend,
 
 @testing.requires_testing_data
 def test_3d_backend():
+    """Test 3d backend degenerate scenarios and default plot."""
     pytest.raises(ValueError, set_3d_backend, "unknown_backend")
     pytest.raises(TypeError, set_3d_backend, 1)
 
@@ -25,10 +27,10 @@ def test_3d_backend():
 
     # example plot
     data_path = sample.data_path(download=False)
-    raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-    subjects_dir = data_path + '/subjects'
+    raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
+    subjects_dir = op.join(data_path, 'subjects')
     subject = 'sample'
-    trans = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
+    trans = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
     info = mne.io.read_info(raw_fname)
 
     mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
