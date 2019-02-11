@@ -130,8 +130,8 @@ def _unique_channel_names(ch_names):
     FIFF_CH_NAME_MAX_LENGTH = 15
     unique_ids = np.unique(ch_names, return_index=True)[1]
     if len(unique_ids) != len(ch_names):
-        dups = set(ch_names[x]
-                   for x in np.setdiff1d(range(len(ch_names)), unique_ids))
+        dups = {ch_names[x]
+                for x in np.setdiff1d(range(len(ch_names)), unique_ids)}
         warn('Channel names are not unique, found duplicates for: '
              '%s. Applying running numbers for duplicates.' % dups)
         for ch_stem in dups:
@@ -677,8 +677,8 @@ def write_dig(fname, pts, coord_frame=None):
     """
     if coord_frame is not None:
         coord_frame = _to_const(coord_frame)
-        pts_frames = set((pt.get('coord_frame', coord_frame) for pt in pts))
-        bad_frames = pts_frames - set((coord_frame,))
+        pts_frames = {pt.get('coord_frame', coord_frame) for pt in pts}
+        bad_frames = pts_frames - {coord_frame}
         if len(bad_frames) > 0:
             raise ValueError(
                 'Points have coord_frame entries that are incompatible with '
@@ -1729,8 +1729,8 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
     for this_info in infos:
         info['chs'].extend(this_info['chs'])
     info._update_redundant()
-    duplicates = set([ch for ch in info['ch_names']
-                      if info['ch_names'].count(ch) > 1])
+    duplicates = {ch for ch in info['ch_names']
+                  if info['ch_names'].count(ch) > 1}
     if len(duplicates) > 0:
         msg = ("The following channels are present in more than one input "
                "measurement info objects: %s" % list(duplicates))

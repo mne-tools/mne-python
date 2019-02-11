@@ -187,8 +187,8 @@ class GetEpochsMixin(object):
             inst._data = np.require(inst._data[select], requirements=['O'])
         if drop_event_id:
             # update event id to reflect new content of inst
-            inst.event_id = dict((k, v) for k, v in inst.event_id.items()
-                                 if v in inst.events[:, 2])
+            inst.event_id = {k: v for k, v in inst.event_id.items()
+                             if v in inst.events[:, 2]}
 
         if return_indices:
             return inst, select

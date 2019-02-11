@@ -902,7 +902,7 @@ def test_filter_picks():
 
     # -- Filter data channels
     for ch_type in ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr'):
-        picks = dict((ch, ch == ch_type) for ch in ch_types)
+        picks = {ch: ch == ch_type for ch in ch_types}
         picks['meg'] = ch_type if ch_type in ('mag', 'grad') else False
         picks['fnirs'] = ch_type if ch_type in ('hbo', 'hbr') else False
         raw_ = raw.copy().pick_types(**picks)
@@ -910,7 +910,7 @@ def test_filter_picks():
 
     # -- Error if no data channel
     for ch_type in ('misc', 'stim'):
-        picks = dict((ch, ch == ch_type) for ch in ch_types)
+        picks = {ch: ch == ch_type for ch in ch_types}
         raw_ = raw.copy().pick_types(**picks)
         pytest.raises(RuntimeError, raw_.filter, 10, 30)
 

@@ -54,7 +54,7 @@ class RawArray(BaseRaw):
 
         if data.ndim != 2:
             raise ValueError('Data must be a 2D array of shape (n_channels, '
-                             'n_samples')
+                             'n_samples), got shape %s' % (data.shape,))
 
         logger.info('Creating RawArray with %s data, n_channels=%s, n_times=%s'
                     % (dtype.__name__, data.shape[0], data.shape[1]))

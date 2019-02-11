@@ -18,7 +18,8 @@ import numpy as np
 import mne
 from mne import create_info, read_annotations, events_from_annotations
 from mne import Epochs, Annotations
-from mne.utils import run_tests_if_main, _TempDir, requires_version
+from mne.utils import (run_tests_if_main, _TempDir, requires_version,
+                       catch_logging)
 from mne.io import read_raw_fif, RawArray, concatenate_raws
 from mne.io.tests.test_raw import _raw_annot
 from mne.annotations import _sync_onset, _handle_meas_date
@@ -334,8 +335,17 @@ def test_annotation_filtering():
     # here the 1-3 second window should be skipped
     raw = raws_concat.copy()
     raw.annotations.append(1., 2., 'foo')
-    raw.filter(l_freq=50., h_freq=None, fir_design='firwin',
-               skip_by_annotation='foo')
+    with catch_logging() as log:
+        raw.filter(l_freq=50., h_freq=None, fir_design='firwin',
+                   skip_by_annotation='foo', verbose='info')
+    log = log.getvalue()
+    assert '2 contiguous segments' in log
+    raw.annotations.append(2., 1., 'foo')  # shouldn't change anything
+    with catch_logging() as log:
+        raw.filter(l_freq=50., h_freq=None, fir_design='firwin',
+                   skip_by_annotation='foo', verbose='info')
+    log = log.getvalue()
+    assert '2 contiguous segments' in log
     # our filter will zero out anything not skipped:
     mask = np.concatenate((np.zeros(1000), np.ones(2000), np.zeros(1000)))
     expected_data = raws_concat[0][0][0] * mask

@@ -912,7 +912,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             out = covs
         else:
             out = covs[0]
-            logger.info('selecting best estimator: {0}'.format(out['method']))
+            logger.info('selecting best estimator: {}'.format(out['method']))
     else:
         out = covs[0]
     logger.info('[done]')

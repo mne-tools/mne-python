@@ -1464,7 +1464,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 def _aux_setup_styles(conditions, style_dict, style, default):
     """Set linestyles and colors for plot_compare_evokeds."""
     # check user-supplied style to condition matching
-    tags = set([tag for cond in conditions for tag in cond.split("/")])
+    tags = {tag for cond in conditions for tag in cond.split("/")}
     msg = ("Can't map between conditions and the provided {0}. Make sure "
            "you have provided keys in the format of '/'-separated tags, "
            "and that these correspond to '/'-separated tags for the condition "
@@ -1477,7 +1477,7 @@ def _aux_setup_styles(conditions, style_dict, style, default):
 
     # check condition to style matching, and fill in defaults
     condition_warning = "Condition {0} could not be mapped to a " + style
-    style_warning = ". Using the default of {0}.".format(default)
+    style_warning = ". Using the default of {}.".format(default)
     for condition in conditions:
         if condition not in style_dict:
             if "/" not in condition:
@@ -1573,9 +1573,8 @@ def _format_evokeds_colors(evokeds, cmap, colors):
         evokeds = dict(Evoked=evokeds)  # title becomes 'Evoked'
     elif not isinstance(evokeds, dict):  # it's assumed to be a list
         if (cmap is not None) and (colors is None):
-            colors = dict((str(ii + 1), ii) for ii, _ in enumerate(evokeds))
-        evokeds = dict((str(ii + 1), evoked)
-                       for ii, evoked in enumerate(evokeds))
+            colors = {str(ii + 1): ii for ii, _ in enumerate(evokeds)}
+        evokeds = {str(ii + 1): evoked for ii, evoked in enumerate(evokeds)}
     else:
         assert isinstance(evokeds, dict)
         if (colors is None) and cmap is not None:
@@ -1657,15 +1656,15 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
             msg = ("Trying to plot more than {0} conditions. We provide"
                    "only {0} default colors. Please supply colors manually.")
             raise ValueError(msg.format(len(colors_)))
-        colors = dict((condition, color) for condition, color
-                      in zip(conditions, colors_))
+        colors = {condition: color for condition, color
+                  in zip(conditions, colors_)}
     else:
         colors = _aux_setup_styles(conditions, colors, "color", "grey")
 
     # linestyles
     if not isinstance(linestyles, dict):
-        linestyles = dict((condition, linestyle) for condition, linestyle in
-                          zip(conditions, ['-'] * len(conditions)))
+        linestyles = {condition: linestyle for condition, linestyle in
+                      zip(conditions, ['-'] * len(conditions))}
     else:
         linestyles = _aux_setup_styles(conditions, linestyles,
                                        "linestyle", "-")
@@ -2020,8 +2019,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     # check: is color a list?
     if (colors is not None and not isinstance(colors, str) and
             not isinstance(colors, dict) and len(colors) > 1):
-        colors = dict((condition, color) for condition, color
-                      in zip(conditions, colors))
+        colors = {condition: color for condition, color
+                  in zip(conditions, colors)}
 
     if cmap is not None:
         if not isinstance(cmap, str) and len(cmap) == 2:

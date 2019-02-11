@@ -54,7 +54,7 @@ from ..fixes import _get_args
 from ..filter import filter_data
 from .bads import find_outliers
 from .ctps_ import ctps
-from ..io.pick import channel_type
+from ..io.pick import channel_type, pick_channels_regexp
 
 
 __all__ = ('ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
@@ -84,20 +84,20 @@ def get_score_funcs():
                          if isfunction(f) and not n.startswith('_')]
     xy_arg_stats_funcs = [(n, f) for n, f in vars(stats).items()
                           if isfunction(f) and not n.startswith('_')]
-    score_funcs.update(dict((n, _make_xy_sfunc(f))
-                            for n, f in xy_arg_dist_funcs
-                            if _get_args(f) == ['u', 'v']))
-    score_funcs.update(dict((n, _make_xy_sfunc(f, ndim_output=True))
-                            for n, f in xy_arg_stats_funcs
-                            if _get_args(f) == ['x', 'y']))
+    score_funcs.update({n: _make_xy_sfunc(f)
+                        for n, f in xy_arg_dist_funcs
+                        if _get_args(f) == ['u', 'v']})
+    score_funcs.update({n: _make_xy_sfunc(f, ndim_output=True)
+                        for n, f in xy_arg_stats_funcs
+                        if _get_args(f) == ['x', 'y']})
     return score_funcs
 
 
-def _check_for_unsupported_ica_channels(picks, info):
+def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     """Check for channels in picks that are not considered valid channels.
 
     Accepted channels are the data channels
-    ('seeg','ecog','eeg', 'hbo', 'hbr', 'mag', and 'grad') and 'eog'.
+    ('seeg','ecog','eeg', 'hbo', 'hbr', 'mag', and 'grad'), 'eog' and 'ref_meg'
     This prevents the program from crashing without
     feedback when a bad channel is provided to ICA whitening.
     """
@@ -106,12 +106,13 @@ def _check_for_unsupported_ica_channels(picks, info):
     elif len(picks) == 0:
         raise ValueError('No channels provided to ICA')
     types = _DATA_CH_TYPES_SPLIT + ['eog']
-    chs = list(set([channel_type(info, j) for j in picks]))
+    types += ['ref_meg'] if allow_ref_meg else []
+    chs = list({channel_type(info, j) for j in picks})
     check = all([ch in types for ch in chs])
     if not check:
         raise ValueError('Invalid channel type(s) passed for ICA.\n'
-                         'Only the following channels are supported {0}\n'
-                         'Following types were passed {1}\n'
+                         'Only the following channels are supported {}\n'
+                         'Following types were passed {}\n'
                          .format(types, chs))
 
 
@@ -176,6 +177,10 @@ class ICA(ContainsMixin):
         `method`.
     max_iter : int
         Maximum number of iterations during fit. Defaults to 200.
+    allow_ref_meg : bool
+        Allow ICA on MEG reference channels. Defaults to False.
+
+        .. versionadded:: 0.18
     verbose : bool | str | int | None
         If not None, override default verbosity level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>`).
@@ -300,7 +305,7 @@ class ICA(ContainsMixin):
     def __init__(self, n_components=None, max_pca_components=None,
                  n_pca_components=None, noise_cov=None, random_state=None,
                  method='fastica', fit_params=None, max_iter=200,
-                 verbose=None):  # noqa: D102
+                 allow_ref_meg=False, verbose=None):  # noqa: D102
         methods = ('fastica', 'infomax', 'extended-infomax', 'picard')
         if method not in methods:
             raise ValueError('`method` must be "%s". You passed: "%s"' %
@@ -339,16 +344,16 @@ class ICA(ContainsMixin):
         if method == 'fastica':
             update = {'algorithm': 'parallel', 'fun': 'logcosh',
                       'fun_args': None}
-            fit_params.update(dict((k, v) for k, v in update.items() if k
-                                   not in fit_params))
+            fit_params.update({k: v for k, v in update.items() if k
+                               not in fit_params})
         elif method == 'infomax':
             fit_params.update({'extended': False})
         elif method == 'extended-infomax':
             fit_params.update({'extended': True})
         elif method == 'picard':
             update = {'ortho': True, 'fun': 'tanh', 'tol': 1e-5}
-            fit_params.update(dict((k, v) for k, v in update.items() if k
-                                   not in fit_params))
+            fit_params.update({k: v for k, v in update.items() if k
+                               not in fit_params})
         if 'max_iter' not in fit_params:
             fit_params['max_iter'] = max_iter
         self.max_iter = max_iter
@@ -358,6 +363,7 @@ class ICA(ContainsMixin):
         self.info = None
         self.method = method
         self.labels_ = dict()
+        self.allow_ref_meg = allow_ref_meg
 
     def __repr__(self):
         """ICA fit information."""
@@ -375,7 +381,7 @@ class ICA(ContainsMixin):
               'no dimension reduction')
         if self.info is not None:
             ch_fit = ['"%s"' % c for c in _DATA_CH_TYPES_SPLIT if c in self]
-            s += ', channels used: {0}'.format('; '.join(ch_fit))
+            s += ', channels used: {}'.format('; '.join(ch_fit))
         if self.exclude:
             s += ', %i sources marked for exclusion' % len(self.exclude)
 
@@ -450,7 +456,8 @@ class ICA(ContainsMixin):
             Returns the modified instance.
         """
         if isinstance(inst, (BaseRaw, BaseEpochs)):
-            _check_for_unsupported_ica_channels(picks, inst.info)
+            _check_for_unsupported_ica_channels(picks, inst.info,
+                                                allow_ref_meg=self.allow_ref_meg)  # NOQA
             t_start = time()
             if isinstance(inst, BaseRaw):
                 self._fit_raw(inst, picks, start, stop, decim, reject, flat,
@@ -573,7 +580,7 @@ class ICA(ContainsMixin):
             # Scale (z-score) the data by channel type
             info = pick_info(info, picks)
             pre_whitener = np.empty([len(data), 1])
-            for ch_type in _DATA_CH_TYPES_SPLIT + ['eog']:
+            for ch_type in _DATA_CH_TYPES_SPLIT + ['eog', "ref_meg"]:
                 if _contains_ch_type(info, ch_type):
                     if ch_type == 'seeg':
                         this_picks = pick_types(info, meg=False, seeg=True)
@@ -587,9 +594,11 @@ class ICA(ContainsMixin):
                         this_picks = pick_types(info, meg=False, eog=True)
                     elif ch_type in ('hbo', 'hbr'):
                         this_picks = pick_types(info, meg=False, fnirs=ch_type)
+                    elif ch_type == 'ref_meg':
+                        this_picks = pick_types(info, meg=False, ref_meg=True)
                     else:
                         raise RuntimeError('Should not be reached.'
-                                           'Unsupported channel {0}'
+                                           'Unsupported channel {}'
                                            .format(ch_type))
                     pre_whitener[this_picks] = np.std(data[this_picks])
             data /= pre_whitener
@@ -1029,6 +1038,58 @@ class ICA(ContainsMixin):
 
         return target
 
+    def _find_bads_ch(self, inst, chs, threshold=3.0, start=None,
+                      stop=None, l_freq=None, h_freq=None,
+                      reject_by_annotation=True, prefix="chs"):
+        """Compute ExG/ref components.
+
+        See find_bads_ecg, find_bads, eog, and find_bads_ref for details.
+        """
+        scores, idx = [], []
+        labels = {}
+        # some magic we need inevitably ...
+        # get targets before equalizing
+        targets = [self._check_target(
+            ch, inst, start, stop, reject_by_annotation) for ch in chs]
+        # assign names, if targets are arrays instead of strings
+        target_names = []
+        for ch in chs:
+            if not isinstance(ch, str):
+                if prefix == "ecg":
+                    target_names.append('ECG-MAG')
+                else:
+                    target_names.append(prefix)
+            else:
+                target_names.append(ch)
+
+        for ii, (ch, target) in enumerate(zip(target_names, targets)):
+            scores += [self.score_sources(
+                inst, target=target, score_func='pearsonr', start=start,
+                stop=stop, l_freq=l_freq, h_freq=h_freq,
+                reject_by_annotation=reject_by_annotation)]
+            # pick last scores
+            this_idx = find_outliers(scores[-1], threshold=threshold)
+            idx += [this_idx]
+            labels['%s/%i/' % (prefix, ii) + ch] = list(this_idx)
+
+        # remove duplicates but keep order by score, even across multiple
+        # ref channels
+        scores_ = np.concatenate([scores[ii][inds]
+                                  for ii, inds in enumerate(idx)])
+        idx_ = np.concatenate(idx)[np.abs(scores_).argsort()[::-1]]
+
+        idx_unique = list(np.unique(idx_))
+        idx = []
+        for i in idx_:
+            if i in idx_unique:
+                idx.append(i)
+                idx_unique.remove(i)
+        if len(scores) == 1:
+            scores = scores[0]
+        labels[prefix] = list(idx)
+
+        return labels, scores
+
     @verbose
     def find_bads_ecg(self, inst, ch_name=None, threshold=None, start=None,
                       stop=None, l_freq=8, h_freq=16, method='ctps',
@@ -1089,7 +1150,7 @@ class ICA(ContainsMixin):
 
         See Also
         --------
-        find_bads_eog
+        find_bads_eog, find_bads_ref
 
         References
         ----------
@@ -1132,24 +1193,97 @@ class ICA(ContainsMixin):
             _, p_vals, _ = ctps(sources)
             scores = p_vals.max(-1)
             ecg_idx = np.where(scores >= threshold)[0]
+            # sort indices by scores
+            ecg_idx = ecg_idx[np.abs(scores[ecg_idx]).argsort()[::-1]]
+
+            self.labels_['ecg'] = list(ecg_idx)
+            if ch_name is None:
+                ch_name = 'ECG-MAG'
+            self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         elif method == 'correlation':
             if threshold is None:
                 threshold = 3.0
-            scores = self.score_sources(
-                inst, target=ecg, score_func='pearsonr', start=start,
-                stop=stop, l_freq=l_freq, h_freq=h_freq,
-                reject_by_annotation=reject_by_annotation, verbose=verbose)
-            ecg_idx = find_outliers(scores, threshold=threshold)
+            self.labels_, scores = self._find_bads_ch(
+                inst, [ecg], threshold=threshold, start=start, stop=stop,
+                l_freq=l_freq, h_freq=h_freq, prefix="ecg",
+                reject_by_annotation=reject_by_annotation)
         else:
             raise ValueError('Method "%s" not supported.' % method)
-        # sort indices by scores
-        ecg_idx = ecg_idx[np.abs(scores[ecg_idx]).argsort()[::-1]]
-
-        self.labels_['ecg'] = list(ecg_idx)
-        if ch_name is None:
-            ch_name = 'ECG-MAG'
-        self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         return self.labels_['ecg'], scores
+
+    @verbose
+    def find_bads_ref(self, inst, ch_name=None, threshold=3.0, start=None,
+                      stop=None, l_freq=None, h_freq=None,
+                      reject_by_annotation=True, verbose=None):
+        """Detect MEG reference related components using correlation.
+
+        Parameters
+        ----------
+        inst : instance of Raw, Epochs or Evoked
+            Object to compute sources from. Should contain at least one channel
+            i.e. component derived from MEG reference channels.
+        ch_name: list of int
+            Which MEG reference components to use. If None, then all channels
+            that begin with REF_ICA
+        threshold : int | float
+            The value above which a feature is classified as outlier.
+        start : int | float | None
+            First sample to include. If float, data will be interpreted as
+            time in seconds. If None, data will be used from the first sample.
+        stop : int | float | None
+            Last sample to not include. If float, data will be interpreted as
+            time in seconds. If None, data will be used to the last sample.
+        l_freq : float
+            Low pass frequency.
+        h_freq : float
+            High pass frequency.
+        reject_by_annotation : bool
+            If True, data annotated as bad will be omitted. Defaults to True.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
+
+        Returns
+        -------
+        ref_idx : list of int
+            The indices of MEG reference related components, sorted by score.
+        scores : np.ndarray of float, shape (``n_components_``) | list of array
+            The correlation scores.
+
+        Notes
+        -----
+        Detection is based on Pearson correlation between the MEG data
+        components and MEG reference components.
+        Thresholding is based on adaptive z-scoring. The above threshold
+        components will be masked and the z-score will be recomputed
+        until no supra-threshold component remains.
+
+        Recommended procedure is to perform ICA separately on reference
+        channels, extract them using .get_sources(), and then append them to
+        the inst using .add_channels(), preferably with the prefix REF_ICA so
+        that they can be automatically detected.
+
+        .. versionadded:: 0.18
+
+        See Also
+        --------
+        find_bads_ecg, find_bads_eog
+        """
+        if verbose is None:
+            verbose = self.verbose
+
+        if not ch_name:
+            inds = pick_channels_regexp(inst.ch_names, "REF_ICA*")
+        else:
+            inds = pick_channels(ch_name)
+        ref_chs = [inst.ch_names[k] for k in inds]
+
+        self.labels_, scores = self._find_bads_ch(
+            inst, ref_chs, threshold=threshold, start=start, stop=stop,
+            l_freq=l_freq, h_freq=h_freq, prefix="ref_meg",
+            reject_by_annotation=reject_by_annotation)
+        return self.labels_['ref_meg'], scores
 
     @verbose
     def find_bads_eog(self, inst, ch_name=None, threshold=3.0, start=None,
@@ -1202,7 +1336,7 @@ class ICA(ContainsMixin):
 
         See Also
         --------
-        find_bads_ecg
+        find_bads_ecg, find_bads_ref
         """
         if verbose is None:
             verbose = self.verbose
@@ -1211,40 +1345,12 @@ class ICA(ContainsMixin):
         if len(eog_inds) > 2:
             eog_inds = eog_inds[:1]
             logger.info('Using EOG channel %s' % inst.ch_names[eog_inds[0]])
-        scores, eog_idx = [], []
         eog_chs = [inst.ch_names[k] for k in eog_inds]
 
-        # some magic we need inevitably ...
-        # get targets before equalizing
-        targets = [self._check_target(k, inst, start, stop,
-                                      reject_by_annotation) for k in eog_chs]
-
-        for ii, (eog_ch, target) in enumerate(zip(eog_chs, targets)):
-            scores += [self.score_sources(
-                inst, target=target, score_func='pearsonr', start=start,
-                stop=stop, l_freq=l_freq, h_freq=h_freq, verbose=verbose,
-                reject_by_annotation=reject_by_annotation)]
-            # pick last scores
-            this_idx = find_outliers(scores[-1], threshold=threshold)
-            eog_idx += [this_idx]
-            self.labels_[('eog/%i/' % ii) + eog_ch] = list(this_idx)
-
-        # remove duplicates but keep order by score, even across multiple
-        # EOG channels
-        scores_ = np.concatenate([scores[ii][inds]
-                                  for ii, inds in enumerate(eog_idx)])
-        eog_idx_ = np.concatenate(eog_idx)[np.abs(scores_).argsort()[::-1]]
-
-        eog_idx_unique = list(np.unique(eog_idx_))
-        eog_idx = []
-        for i in eog_idx_:
-            if i in eog_idx_unique:
-                eog_idx.append(i)
-                eog_idx_unique.remove(i)
-        if len(scores) == 1:
-            scores = scores[0]
-        self.labels_['eog'] = list(eog_idx)
-
+        self.labels_, scores = self._find_bads_ch(
+            inst, eog_chs, threshold=threshold, start=start, stop=stop,
+            l_freq=l_freq, h_freq=h_freq, prefix="eog",
+            reject_by_annotation=reject_by_annotation)
         return self.labels_['eog'], scores
 
     def apply(self, inst, include=None, exclude=None, n_pca_components=None,
@@ -1901,7 +2007,8 @@ def _write_ica(fid, ica):
                     n_components=ica.n_components,
                     n_pca_components=ica.n_pca_components,
                     max_pca_components=ica.max_pca_components,
-                    current_fit=ica.current_fit)
+                    current_fit=ica.current_fit,
+                    allow_ref_meg=ica.allow_ref_meg)
 
     if ica.info is not None:
         start_block(fid, FIFF.FIFFB_MEAS)
@@ -2046,8 +2153,8 @@ def read_ica(fname, verbose=None):
     def f(x):
         return x.astype(np.float64)
 
-    ica_init = dict((k, v) for k, v in ica_init.items()
-                    if k in _get_args(ICA.__init__))
+    ica_init = {k: v for k, v in ica_init.items()
+                if k in _get_args(ICA.__init__)}
     ica = ICA(**ica_init)
     ica.current_fit = current_fit
     ica.ch_names = ch_names.split(':')
@@ -2136,8 +2243,8 @@ def run_ica(raw, n_components, max_pca_components=100,
             start_find=None, stop_find=None, ecg_ch=None,
             ecg_score_func='pearsonr', ecg_criterion=0.1, eog_ch=None,
             eog_score_func='pearsonr', eog_criterion=0.1, skew_criterion=-1,
-            kurt_criterion=-1, var_criterion=0, add_nodes=None, verbose=None,
-            method='fastica'):
+            kurt_criterion=-1, var_criterion=0, add_nodes=None,
+            method='fastica', allow_ref_meg=False, verbose=None):
     """Run ICA decomposition on raw data and identify artifact sources.
 
     This function implements an automated artifact removal work flow.
@@ -2259,11 +2366,15 @@ def run_ica(raw, n_components, max_pca_components=100,
 
             add_nodes=('ECG phase lock', ECG 01', my_phase_lock_function, 0.5)
 
+    method : {'fastica', 'infomax', 'extended-infomax', 'picard'}
+        The ICA method to use in the fit() method. Defaults to 'fastica'.
+    allow_ref_meg : bool
+        Allow ICA on MEG reference channels. Defaults to False.
+
+        .. versionadded:: 0.18
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-    method : {'fastica', 'picard'}
-        The ICA method to use. Defaults to 'fastica'.
 
     Returns
     -------
@@ -2272,7 +2383,8 @@ def run_ica(raw, n_components, max_pca_components=100,
     """
     ica = ICA(n_components=n_components, max_pca_components=max_pca_components,
               n_pca_components=n_pca_components, method=method,
-              noise_cov=noise_cov, random_state=random_state, verbose=verbose)
+              noise_cov=noise_cov, random_state=random_state, verbose=verbose,
+              allow_ref_meg=allow_ref_meg)
 
     ica.fit(raw, start=start, stop=stop, picks=picks)
     logger.info('%s' % ica)
@@ -2469,7 +2581,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     template_fig, labelled_ics = None, None
     if plot is True:
         if is_subject:  # plotting from an ICA object
-            ttl = 'Template from subj. {0}'.format(str(template[0]))
+            ttl = 'Template from subj. {}'.format(str(template[0]))
             template_fig = icas[template[0]].plot_components(
                 picks=template[1], ch_type=ch_type, title=ttl,
                 outlines=outlines, cmap=cmap, contours=contours, layout=layout,

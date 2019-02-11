@@ -134,14 +134,14 @@ def _triage_write(key, value, root, comp_kw, where,
             if not isinstance(key, string_types):
                 raise TypeError('All dict keys must be strings')
             _triage_write(
-                'key_{0}'.format(key), sub_value, sub_root, comp_kw,
+                'key_{}'.format(key), sub_value, sub_root, comp_kw,
                 where + '["%s"]' % key, cleanup_data=cleanup_data, slash=slash)
     elif isinstance(value, (list, tuple)):
         title = 'list' if isinstance(value, list) else 'tuple'
         sub_root = _create_titled_group(root, key, title)
         for vi, sub_value in enumerate(value):
             _triage_write(
-                'idx_{0}'.format(vi), sub_value, sub_root, comp_kw,
+                'idx_{}'.format(vi), sub_value, sub_root, comp_kw,
                 where + '[%s]' % vi, cleanup_data=cleanup_data, slash=slash)
     elif isinstance(value, type(None)):
         _create_titled_dataset(root, key, 'None', [False])
@@ -152,7 +152,7 @@ def _triage_write(key, value, root, comp_kw, where,
             title = 'float'
         _create_titled_dataset(root, key, title, np.atleast_1d(value))
     elif isinstance(value, (np.integer, np.floating, np.bool_)):
-        title = 'np_{0}'.format(value.__class__.__name__)
+        title = 'np_{}'.format(value.__class__.__name__)
         _create_titled_dataset(root, key, title, np.atleast_1d(value))
     elif isinstance(value, string_types):
         if isinstance(value, text_type):  # unicode
@@ -265,7 +265,7 @@ def _triage_read(node, slash='ignore'):
             data = list()
             ii = 0
             while True:
-                subnode = node.get('idx_{0}'.format(ii), None)
+                subnode = node.get('idx_{}'.format(ii), None)
                 if subnode is None:
                     break
                 data.append(_triage_read(subnode, slash=slash))
@@ -297,7 +297,7 @@ def _triage_read(node, slash='ignore'):
             with HDFStore(filename, 'r') as tmpf:
                 data = read_hdf(tmpf, rootname)
         else:
-            raise NotImplementedError('Unknown group type: {0}'
+            raise NotImplementedError('Unknown group type: {}'
                                       ''.format(type_str))
     elif type_str == 'ndarray':
         data = np.array(node)
@@ -315,7 +315,7 @@ def _triage_read(node, slash='ignore'):
     elif type_str == 'None':
         data = None
     else:
-        raise TypeError('Unknown node type: {0}'.format(type_str))
+        raise TypeError('Unknown node type: {}'.format(type_str))
     return data
 
 

@@ -299,7 +299,7 @@ def test_coreg_model_with_fsaverage():
     assert_equal(sfrom, 'fsaverage')
     assert_equal(sto, 'scaled')
     assert_allclose(scale, model.parameters[6:9])
-    assert_equal(set(bemsol), set(('inner_skull-bem',)))
+    assert_equal(set(bemsol), {'inner_skull-bem'})
     model.prepare_bem_model = False
     sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
         model.get_scaling_job('scaled', False)

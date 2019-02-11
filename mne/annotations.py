@@ -456,16 +456,40 @@ def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
         order = np.argsort(onsets)
         onsets = raw.time_as_index(onsets[order], use_rounding=True)
         ends = raw.time_as_index(ends[order], use_rounding=True)
+    assert (onsets <= ends).all()  # all durations >= 0
     if invert:
-        # We invert the relationship (i.e., get segments that do not satisfy)
-        if len(onsets) == 0 or onsets[0] != 0:
-            onsets = np.concatenate([[0], onsets])
-            ends = np.concatenate([[0], ends])
-        if len(ends) == 1 or ends[-1] != len(raw.times):
-            onsets = np.concatenate([onsets, [len(raw.times)]])
-            ends = np.concatenate([ends, [len(raw.times)]])
-        onsets, ends = ends[:-1], onsets[1:]
+        # We need to eliminate overlaps here, otherwise wacky things happen,
+        # so we carefully invert the relationship
+        mask = np.zeros(len(raw.times), bool)
+        for onset, end in zip(onsets, ends):
+            mask[onset:end] = True
+        mask = ~mask
+        extras = (onsets == ends)
+        extra_onsets, extra_ends = onsets[extras], ends[extras]
+        onsets, ends = _mask_to_onsets_offsets(mask)
+        # Keep ones where things were exactly equal
+        del extras
+        # we could do this with a np.insert+np.searchsorted, but our
+        # ordered-ness should get us it for free
+        onsets = np.sort(np.concatenate([onsets, extra_onsets]))
+        ends = np.sort(np.concatenate([ends, extra_ends]))
+        assert (onsets <= ends).all()
     return onsets, ends
+
+
+def _mask_to_onsets_offsets(mask):
+    """Group boolean mask into contiguous onset:offset pairs."""
+    assert mask.dtype == bool and mask.ndim == 1
+    mask = mask.astype(int)
+    diff = np.diff(mask)
+    onsets = np.where(diff > 0)[0] + 1
+    if mask[0]:
+        onsets = np.concatenate([[0], onsets])
+    offsets = np.where(diff < 0)[0] + 1
+    if mask[-1]:
+        offsets = np.concatenate([offsets, [len(mask)]])
+    assert len(onsets) == len(offsets)
+    return onsets, offsets
 
 
 def _write_annotations(fid, annotations):

@@ -35,6 +35,8 @@ Changelog
 
 - Add ``drop_refs=True`` parameter to :func:`set_bipolar_reference` to drop/keep anode and cathode channels after applying the reference by `Cristóbal Moënne-Loccoz`_.
 
+- Add processing of reference MEG channels to :class:`mne.preprocessing.ICA` by `Jeff Hanna`_
+
 - Add use of :func:`scipy.signal.windows.dpss` for faster multitaper window computations in PSD functions by `Eric Larson`_
 
 - Add :func:`mne.morph_labels` to facilitate morphing label sets obtained from parcellations, by `Eric Larson`_
@@ -52,6 +54,8 @@ Changelog
 - Add keyboard shortcuts to nativate volume source estimates in time using (shift+)left/right arrow keys by `Mainak Jas`_
 
 - Add Epoch selection and metadata functionality to :class:`mne.time_frequency.EpochsTFR` using new mixin class by `Keith Doelling`_
+
+- Add ``reject_by_annotation`` argument to :func:`mne.preprocessing.find_ecg_events` by `Eric Larson`_
 
 - Add ``extrapolate`` argument to :func:`mne.viz.plot_topomap` for better control of extrapolation points placement by `Mikołaj Magnuski`_
 
@@ -77,6 +81,8 @@ Bug
 - Fixed a bug where :meth:`mne.time_frequency.AverageTFR.plot_joint` would mishandle bad channels, by `David Haslacher`_ and `Jona Sassenhagen`_
 
 - Fix issue with bad channels ignored in :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` by `Alex Gramfort`_
+
+- Fix ``reject_by_annotation`` not being passed internally by :func:`mne.preprocessing.create_ecg_epochs` and :ref:`mne clean_eog_ecg <gen_mne_clean_eog_ecg>` to :func:`mne.preprocessing.find_ecg_events` by `Eric Larson`_
 
 API
 ~~~
@@ -3157,3 +3163,5 @@ of commits):
 .. _Larry Eisenman:  https://github.com/lneisenman
 
 .. _Stanislas Chambon: https://github.com/Slasnista
+
+.. _Jeff Hanna: https://github.com/jshanna100

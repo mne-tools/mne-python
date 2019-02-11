@@ -502,7 +502,7 @@ def test_compute_covariance_auto_reg(rank):
     method_names = [cov['method'] for cov in cov3]
     best_bounds = [-45, -35]
     bounds = [-55, -45] if rank == 'full' else best_bounds
-    for method in set(methods) - set(['empirical', 'shrunk']):
+    for method in set(methods) - {'empirical', 'shrunk'}:
         this_lik = cov3[method_names.index(method)]['loglik']
         assert bounds[0] < this_lik < bounds[1]
     this_lik = cov3[method_names.index('shrunk')]['loglik']
@@ -511,7 +511,7 @@ def test_compute_covariance_auto_reg(rank):
     bounds = [-110, -100] if rank == 'full' else best_bounds
     assert bounds[0] < this_lik < bounds[1]
 
-    assert_equal(set([c['method'] for c in cov3]), set(methods))
+    assert_equal({c['method'] for c in cov3}, set(methods))
 
     cov4 = compute_covariance(epochs, method=methods,
                               method_params=method_params, projs=None,

@@ -245,7 +245,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     """
     if isinstance(solver, str):
         if solver not in {"cholesky"}:
-            raise ValueError("No such solver: {0}".format(solver))
+            raise ValueError("No such solver: {}".format(solver))
         if solver == 'cholesky':
             def solver(X, y):
                 a = (X.T * X).toarray()  # dot product of sparse matrices
@@ -261,7 +261,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                                             decim=decim)
 
     if event_id is None:
-        event_id = dict((str(v), v) for v in set(events[:, 2]))
+        event_id = {str(v): v for v in set(events[:, 2])}
 
     # build predictors
     X, conds, cond_length, tmin_s, tmax_s = _prepare_rerp_preds(
@@ -321,16 +321,16 @@ def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
     # time windows (per event type) are converted to sample points from times
     # int(round()) to be safe and match Epochs constructor behavior
     if isinstance(tmin, (float, int)):
-        tmin_s = dict((cond, int(round(tmin * sfreq))) for cond in conds)
+        tmin_s = {cond: int(round(tmin * sfreq)) for cond in conds}
     else:
-        tmin_s = dict((cond, int(round(tmin.get(cond, -.1) * sfreq)))
-                      for cond in conds)
+        tmin_s = {cond: int(round(tmin.get(cond, -.1) * sfreq))
+                  for cond in conds}
     if isinstance(tmax, (float, int)):
-        tmax_s = dict(
-            (cond, int(round((tmax * sfreq)) + 1)) for cond in conds)
+        tmax_s = {
+            cond: int(round((tmax * sfreq)) + 1) for cond in conds}
     else:
-        tmax_s = dict((cond, int(round(tmax.get(cond, 1.) * sfreq)) + 1)
-                      for cond in conds)
+        tmax_s = {cond: int(round(tmax.get(cond, 1.) * sfreq)) + 1
+                  for cond in conds}
 
     # Construct predictor matrix
     # We do this by creating one array per event type, shape (lags, samples)

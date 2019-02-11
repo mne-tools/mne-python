@@ -1839,7 +1839,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
         len_x = x.shape[-1]
         if method != 'fir':
             filter_length = len_x
-        if filter_length > len_x:
+        if filter_length > len_x and not (l_freq is None and h_freq is None):
             warn('filter_length (%s) is longer than the signal (%s), '
                  'distortion is likely. Reduce filter length or filter a '
                  'longer signal.' % (filter_length, len_x))

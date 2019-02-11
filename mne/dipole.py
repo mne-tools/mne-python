@@ -569,7 +569,7 @@ def _read_dipole_text(fname):
     assert len(handled_fields) == len(required_fields) + len(optional_fields)
     ignored_fields = sorted(set(fields) -
                             set(handled_fields) -
-                            set(['end/ms']))
+                            {'end/ms'})
     if len(ignored_fields) > 0:
         warn('Ignoring extra fields in dipole file: %s' % (ignored_fields,))
     if len(fields) != data.shape[1]:

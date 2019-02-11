@@ -69,7 +69,7 @@ def test_make_info():
     info = create_info(n_ch, 1000., 'eeg')
     assert set(info.keys()) == set(RAW_INFO_FIELDS)
 
-    coil_types = set([ch['coil_type'] for ch in info['chs']])
+    coil_types = {ch['coil_type'] for ch in info['chs']}
     assert FIFF.FIFFV_COIL_EEG in coil_types
 
     pytest.raises(TypeError, create_info, ch_names='Test Ch', sfreq=1000)

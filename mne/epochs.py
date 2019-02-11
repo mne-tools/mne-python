@@ -264,7 +264,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  'type %s' % (events.dtype))
             events = events.astype(int)
             if events.ndim != 2 or events.shape[1] != 3:
-                raise ValueError('events must be 2D with 3 columns')
+                raise ValueError('events must be of shape (N, 3), got %s'
+                                 % (events.shape,))
             for key, val in self.event_id.items():
                 if val not in events[:, 2]:
                     msg = ('No matching events found for %s '
@@ -1509,7 +1510,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 if len(id_) == 0:
                     raise KeyError(orig_ids[ii] + "not found in the "
                                    "epoch object's event_id.")
-                elif len(set([sub_id in ids for sub_id in id_])) != 1:
+                elif len({sub_id in ids for sub_id in id_}) != 1:
                     err = ("Don't mix hierarchical and regular event_ids"
                            " like in \'%s\'." % ", ".join(id_))
                     raise ValueError(err)
@@ -1945,7 +1946,7 @@ class EpochsArray(BaseEpochs):
         info = info.copy()  # do not modify original info
         tmax = (data.shape[2] - 1) / info['sfreq'] + tmin
         if event_id is None:  # convert to int to make typing-checks happy
-            event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
+            event_id = {str(e): int(e) for e in np.unique(events[:, 2])}
         super(EpochsArray, self).__init__(
             info, data, events, event_id, tmin, tmax, baseline, reject=reject,
             flat=flat, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
@@ -2284,7 +2285,7 @@ def _read_one_epoch_file(f, tree, preload):
         # Put it all together
         tmin = first / info['sfreq']
         tmax = last / info['sfreq']
-        event_id = (dict((str(e), e) for e in np.unique(events[:, 2]))
+        event_id = ({str(e): e for e in np.unique(events[:, 2])}
                     if mappings is None else mappings)
         # In case epochs didn't have a FIFF.FIFF_MNE_EPOCHS_SELECTION tag
         # (version < 0.8):
@@ -2503,13 +2504,13 @@ def bootstrap(epochs, random_state=None):
 
 def _check_merge_epochs(epochs_list):
     """Aux function."""
-    if len(set(tuple(epochs.event_id.items()) for epochs in epochs_list)) != 1:
+    if len({tuple(epochs.event_id.items()) for epochs in epochs_list}) != 1:
         raise NotImplementedError("Epochs with unequal values for event_id")
-    if len(set(epochs.tmin for epochs in epochs_list)) != 1:
+    if len({epochs.tmin for epochs in epochs_list}) != 1:
         raise NotImplementedError("Epochs with unequal values for tmin")
-    if len(set(epochs.tmax for epochs in epochs_list)) != 1:
+    if len({epochs.tmax for epochs in epochs_list}) != 1:
         raise NotImplementedError("Epochs with unequal values for tmax")
-    if len(set(epochs.baseline for epochs in epochs_list)) != 1:
+    if len({epochs.baseline for epochs in epochs_list}) != 1:
         raise NotImplementedError("Epochs with unequal values for baseline")
 
 

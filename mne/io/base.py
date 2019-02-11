@@ -37,7 +37,7 @@ from ..filter import (filter_data, notch_filter, resample, next_fast_len,
                       _filt_update_info)
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
-                     _check_pandas_index_arguments,
+                     _check_pandas_index_arguments, _pl,
                      check_fname, _get_stim_channel,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc,
@@ -125,13 +125,13 @@ class ToDataFrameMixin(object):
             if isinstance(self.vertices, list):
                 # surface source estimates
                 col_names = [i for e in [
-                    ['{0} {1}'.format('LH' if ii < 1 else 'RH', vert)
+                    ['{} {}'.format('LH' if ii < 1 else 'RH', vert)
                      for vert in vertno]
                     for ii, vertno in enumerate(self.vertices)]
                     for i in e]
             else:
                 # volume source estimates
-                col_names = ['VOL {0}'.format(vert) for vert in self.vertices]
+                col_names = ['VOL {}'.format(vert) for vert in self.vertices]
         elif isinstance(self, (BaseEpochs, BaseRaw, Evoked)):
             picks = self._get_check_picks(picks, self.ch_names)
             if isinstance(self, BaseEpochs):
@@ -143,7 +143,7 @@ class ToDataFrameMixin(object):
 
                 # Multi-index creation
                 times = np.tile(times, n_epochs)
-                id_swapped = dict((v, k) for k, v in self.event_id.items())
+                id_swapped = {v: k for k, v in self.event_id.items()}
                 names = [id_swapped[k] for k in self.events[:, 2]]
                 mindex.append(('condition', np.repeat(names, n_times)))
                 mindex.append(('epoch',
@@ -178,7 +178,7 @@ class ToDataFrameMixin(object):
         else:
             # In case some other object gets this mixin w/o an explicit check
             raise NameError('Object must be one of Raw, Epochs, Evoked,  or ' +
-                            'SourceEstimate. This is {0}'.format(type(self)))
+                            'SourceEstimate. This is {}'.format(type(self)))
 
         # Make sure that the time index is scaled correctly
         times = np.round(times * scaling_time)
@@ -355,7 +355,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         bad = np.where(cals == 0)[0]
         if len(bad) > 0:
             raise ValueError('Bad cals for channels %s'
-                             % dict((ii, self.ch_names[ii]) for ii in bad))
+                             % {ii: self.ch_names[ii] for ii in bad})
         self.verbose = verbose
         self._cals = cals
         self._raw_extras = list(raw_extras)
@@ -390,7 +390,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             ch_correspond = [ch in orig_units_trunc for ch in ch_names]
             if not all(ch_correspond):
                 ch_without_orig_unit = ch_names[ch_correspond.index(False)]
-                raise ValueError('Channel {0} has no associated original '
+                raise ValueError('Channel {} has no associated original '
                                  'unit.'.format(ch_without_orig_unit))
 
             # Final check of orig_units, editing a unit if it is not a valid
@@ -973,6 +973,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         if picks is None:
             picks = np.arange(self.info['nchan'])
+        # convert to ints
+        picks = np.atleast_1d(np.arange(self.info['nchan'])[picks])
         start = 0 if start is None else start
         stop = min(self.n_times if stop is None else stop, self.n_times)
         if len(self.annotations) == 0 or reject_by_annotation is None:
@@ -1361,12 +1363,19 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # Deal with annotations
         onsets, ends = _annotations_starts_stops(
             self, skip_by_annotation, 'skip_by_annotation', invert=True)
-        for start, stop in zip(onsets, ends):
+        logger.info('Filtering raw data in %d contiguous segment%s'
+                    % (len(onsets), _pl(onsets)))
+        max_idx = (ends - onsets).argmax()
+        for si, (start, stop) in enumerate(zip(onsets, ends)):
+            # Only output filter params once (for info level), and only warn
+            # once about the length criterion (longest segment is too short)
+            use_verbose = verbose if si == max_idx else 'error'
             filter_data(
                 self._data[:, start:stop], self.info['sfreq'], l_freq, h_freq,
                 picks, filter_length, l_trans_bandwidth, h_trans_bandwidth,
                 n_jobs, method, iir_params, copy=False, phase=phase,
-                fir_window=fir_window, fir_design=fir_design, pad=pad)
+                fir_window=fir_window, fir_design=fir_design, pad=pad,
+                verbose=use_verbose)
         # update info if filter is applied to all data channels,
         # and it's not a band-stop filter
         _filt_update_info(self.info, update_info, l_freq, h_freq)

@@ -113,7 +113,7 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     data = data.rename(columns={('Subject - age - sex', 'Age'): 'age',
                                 ('Subject - age - sex', 'M1/F2'): 'sex',
                                 'level_3': 'drug'})
-    data['id'] = ['ST7{0:02d}{1:1d}'.format(s, n)
+    data['id'] = ['ST7{:02d}{:1d}'.format(s, n)
                   for s, n in zip(data.subject, data['night nr'])]
 
     data = pd.merge(sha1_df, data, how='outer', on='id')
@@ -172,7 +172,7 @@ def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
     data['sex'] = (data.sex.astype('category')
                        .cat.rename_categories({1: 'female', 2: 'male'}))
 
-    data['id'] = ['SC4{0:02d}{1:1d}'.format(s, n)
+    data['id'] = ['SC4{:02d}{:1d}'.format(s, n)
                   for s, n in zip(data.subject, data.night)]
 
     data = data.set_index('id').join(sha1_df.set_index('id')).dropna()

@@ -401,8 +401,7 @@ class SourceMorph(object):
         if not fname.endswith('.h5'):
             fname = '%s-morph.h5' % fname
 
-        out_dict = dict((key, getattr(self, key))
-                        for key in _SOURCE_MORPH_ATTRIBUTES)
+        out_dict = {k: getattr(self, k) for k in _SOURCE_MORPH_ATTRIBUTES}
         for key in ('pre_affine', 'sdr_morph'):  # classes
             if out_dict[key] is not None:
                 out_dict[key] = out_dict[key].__dict__

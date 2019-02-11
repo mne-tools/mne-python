@@ -80,7 +80,7 @@ all default dependencies are installed by listing their versions with::
 
     >>> mne.sys_info()  # doctest:+SKIP
     Platform:      Linux-4.18.0-13-generic-x86_64-with-debian-buster-sid
-    Python:        3.7.2 (default, Dec 29 2018, 06:19:36)  [GCC 7.3.0]
+    Python:        3.6.8 |Anaconda, Inc.| (default, Dec 30 2018, 01:22:34)  [GCC 7.3.0]
     Executable:    /home/travis/miniconda/envs/test/bin/python
     CPU:           x86_64: 48 cores
     Memory:        62.7 GB

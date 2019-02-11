@@ -350,6 +350,16 @@ The `BDF format <http://www.biosemi.com/faq/file_format.htm>`_ is a 24-bit
 variant of the EDF format used by the EEG systems manufactured by a company
 called BioSemi. It can also be read in using :func:`mne.io.read_raw_edf`.
 
+BioSemi amplifiers do not perform "common mode noise rejection" automatically.
+The signals in the EEG file are the voltages between each electrode and CMS
+active electrode, which still contain some CM noise (50 Hz, ADC reference noise,
+etc., see `the BioSemi FAQ <https://www.biosemi.com/faq/cms&drl.htm>`__
+for further detail).
+Thus, it is advisable to choose a reference (e.g., a single channel like Cz,
+average of linked mastoids, average of all electrodes, etc.) on import of BioSemi
+data to avoid losing signal information. The data can be re-referenced later after
+cleaning if desired.
+
 .. warning:: The data samples in a BDF file are represented in a 3-byte (24-bit) format. Since 3-byte raw data buffers are not presently supported in the fif format these data will be changed to 4-byte integers in the conversion.
 
 General data format (.gdf)

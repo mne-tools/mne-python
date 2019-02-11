@@ -244,7 +244,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     # plot
     figs, axes_list = list(), list()
-    ylims = dict((ch_type, (1., -1.)) for ch_type in all_ch_types)
+    ylims = {ch_type: (1., -1.) for ch_type in all_ch_types}
     for (epochs_, ch_type, ax_name, name, data, overlay_times, vmin, vmax,
          ts_args) in groups:
         vmin, vmax = vmins.get(ch_type, vmin), vmaxs.get(ch_type, vmax)
@@ -316,7 +316,7 @@ def _get_picks_and_types(picks, ch_types, group_by, combine):
                      "sensor{}.".format(_pl(n_picks)))))
         all_ch_types = list()
         for picks_, name in zip(all_picks, names):
-            this_ch_type = list(set((ch_types[pick] for pick in picks_)))
+            this_ch_type = list({ch_types[pick] for pick in picks_})
             n_types = len(this_ch_type)
             if n_types > 1:  # we can only scale properly with 1 type
                 raise ValueError(
@@ -1272,7 +1272,7 @@ def _plot_traces(params):
                     ylabels[line_idx].set_color(this_color)
                 this_color = np.tile((params['bad_color']), (num_epochs, 1))
                 for bad_idx in params['bads']:
-                    if bad_idx < start_idx or bad_idx > end_idx:
+                    if bad_idx < start_idx or bad_idx >= end_idx:
                         continue
                     this_color[bad_idx - start_idx] = (1., 0., 0.)
                 lines[line_idx].set_zorder(2)
@@ -1704,8 +1704,7 @@ def _prepare_butterfly(params):
     from matplotlib.collections import LineCollection
     butterfly = not params['butterfly']
     if butterfly:
-        types = set(['grad', 'mag', 'eeg', 'eog',
-                     'ecg']) & set(params['types'])
+        types = {'grad', 'mag', 'eeg', 'eog', 'ecg'} & set(params['types'])
         if len(types) < 1:
             return
         params['ax_vscroll'].set_visible(False)

@@ -338,7 +338,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                 break
             if len(idx) == 0:
                 if ch_names[0].startswith('EEG'):
-                    msg = ('Cannot find a proper layout for projection {0}.'
+                    msg = ('Cannot find a proper layout for projection {}.'
                            ' The proper layout of an EEG topomap cannot be'
                            ' inferred from the data. '.format(proj['desc']))
                     if is_layout_parameter_none and is_info_parameter_none:
@@ -462,8 +462,8 @@ def _check_outlines(pos, outlines, head_pos=None):
 
 def _draw_outlines(ax, outlines):
     """Draw the outlines for a topomap."""
-    outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
-                      ['patch', 'autoshrink']])
+    outlines_ = {k: v for k, v in outlines.items()
+                 if k not in ['patch', 'autoshrink']}
     for key, (x_coord, y_coord) in outlines_.items():
         if 'mask' in key:
             continue
@@ -749,8 +749,8 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         pos = pick_info(pos, picks)
 
         # check if there is only 1 channel type, and n_chans matches the data
-        ch_type = set(channel_type(pos, idx)
-                      for idx, _ in enumerate(pos["chs"]))
+        ch_type = {channel_type(pos, idx)
+                   for idx, _ in enumerate(pos["chs"])}
         info_help = ("Pick Info with e.g. mne.pick_info and "
                      "mne.io.pick.channel_indices_by_type.")
         if len(ch_type) > 1:
@@ -963,7 +963,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                       vmin=None, vmax=None, cmap='RdBu_r', colorbar=False,
                       title=None, show=True, outlines='head', contours=6,
                       image_interp='bilinear', head_pos=None, axes=None,
-                      sensors=True):
+                      sensors=True, allow_ref_meg=False):
     """Plot single ica map to axes."""
     import matplotlib as mpl
     from ..channels import _get_ch_type
@@ -974,7 +974,10 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
     if not isinstance(axes, mpl.axes.Axes):
         raise ValueError('axis has to be an instance of matplotlib Axes, '
                          'got %s instead.' % type(axes))
-    ch_type = _get_ch_type(ica, ch_type)
+    ch_type = _get_ch_type(ica, ch_type, allow_ref_meg=ica.allow_ref_meg)
+    if ch_type == "ref_meg":
+        logger.info("Cannot produce topographies for MEG reference channels.")
+        return
 
     data = ica.get_components()[:, idx]
     data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
@@ -1636,8 +1639,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     space = 1 / (2. * evoked.info['sfreq'])
     if (max(times) > max(evoked.times) + space or
             min(times) < min(evoked.times) - space):
-        raise ValueError('Times should be between {0:0.3f} and '
-                         '{1:0.3f}.'.format(evoked.times[0], evoked.times[-1]))
+        raise ValueError('Times should be between {:0.3f} and '
+                         '{:0.3f}.'.format(evoked.times[0], evoked.times[-1]))
     n_times = len(times)
     nax = n_times + bool(colorbar)
     width = size * nax
@@ -2535,7 +2538,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
         from ..channels.layout import _merge_grad_data
     for ii, data_, ax, subject, idx in zip(picks, data, axes, subjs, indices):
         if template:
-            ttl = 'Subj. {0}, {1}'.format(subject, ica._ica_names[idx])
+            ttl = 'Subj. {}, {}'.format(subject, ica._ica_names[idx])
             ax.set_title(ttl, fontsize=12)
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
