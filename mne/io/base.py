@@ -250,8 +250,7 @@ def _check_fun(fun, d, *args, **kwargs):
 
 
 class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
-              InterpolationMixin, ToDataFrameMixin, TimeMixin,
-              SizeMixin):  # lgtm [py/missing-equals]
+              InterpolationMixin, ToDataFrameMixin, TimeMixin, SizeMixin):
     """Base class for Raw data.
 
     Parameters

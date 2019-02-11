@@ -871,8 +871,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
 # TFR(s) class
 
-class _BaseTFR(ContainsMixin, UpdateChannelsMixin,
-               SizeMixin):  # lgtm [py/missing-equals]
+class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
     """Base TFR class."""
 
     @property

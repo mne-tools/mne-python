@@ -44,7 +44,7 @@ _aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
 
 class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              InterpolationMixin, FilterMixin, ToDataFrameMixin, TimeMixin,
-             SizeMixin):  # lgtm [py/missing-equals]
+             SizeMixin):
     """Evoked data.
 
     Parameters
