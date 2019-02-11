@@ -292,13 +292,9 @@ class GetEpochsMixin(object):
         :func:`mne.Epochs.next`.
         """
         self._current = 0
-        while True:
-            x = self.next()
-            if x is None:
-                return
-            yield x
+        return self
 
-    def next(self, return_event_id=False):
+    def __next__(self, return_event_id=False):
         """Iterate over epoch data.
 
         Parameters
@@ -315,14 +311,14 @@ class GetEpochsMixin(object):
         """
         if self.preload:
             if self._current >= len(self._data):
-                return  # signal the end
+                raise StopIteration  # signal the end
             epoch = self._data[self._current]
             self._current += 1
         else:
             is_good = False
             while not is_good:
                 if self._current >= len(self.events):
-                    return  # signal the end properly
+                    raise StopIteration  # signal the end properly
                 epoch_noproj = self._get_epoch_from_raw(self._current)
                 epoch_noproj = self._detrend_offset_decim(epoch_noproj)
                 epoch = self._project_epoch(epoch_noproj)
@@ -337,9 +333,7 @@ class GetEpochsMixin(object):
         else:
             return epoch, self.events[self._current - 1][-1]
 
-    def __next__(self, *args, **kwargs):
-        """Provide a wrapper for Py3k."""
-        return self.next(*args, **kwargs)
+    next = __next__  # originally for Python2, now b/c public
 
     def _check_metadata(self, metadata=None, reset_index=False):
         """Check metadata consistency."""

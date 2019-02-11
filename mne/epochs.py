@@ -168,7 +168,8 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
 
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
-                 ToDataFrameMixin, TimeMixin, SizeMixin, GetEpochsMixin):
+                 ToDataFrameMixin, TimeMixin, SizeMixin,
+                 GetEpochsMixin):  # lgtm[py/missing-equals]
     """Abstract base class for Epochs-type classes.
 
     This class provides basic functionality and should never be instantiated
@@ -675,9 +676,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._current = 0
 
         while True:
-            out = self.next(True)
-            if out is None:
-                return  # properly signal the end of iteration
+            try:
+                out = self.next(True)
+            except StopIteration:
+                break
             data, event_id = out
             tmin = self.times[0]
             info = deepcopy(self.info)

@@ -144,7 +144,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         _check_dep(nibabel='2.1.0', dipy=False)
 
         logger.info('volume source space inferred...')
-        import nibabel as nib
+        from nibabel import load
 
         # load moving MRI
         mri_subpath = op.join('mri', 'brain.mgz')
@@ -152,7 +152,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
 
         logger.info('loading %s as "from" volume' % mri_path_from)
         with warnings.catch_warnings():
-            mri_from = nib.load(mri_path_from)
+            mri_from = load(mri_path_from)
 
         # eventually we could let this be some other volume, but for now
         # let's KISS and use `brain.mgz`, too
@@ -161,7 +161,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
             raise IOError('cannot read file: %s' % mri_path_to)
         logger.info('loading %s as "to" volume' % mri_path_to)
         with warnings.catch_warnings():
-            mri_to = nib.load(mri_path_to)
+            mri_to = load(mri_path_to)
 
         # pre-compute non-linear morph
         shape, zooms, affine, pre_affine, sdr_morph = _compute_morph_sdr(
@@ -694,7 +694,7 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine=(100, 100, 10),
                        niter_sdr=(5, 5, 3), zooms=(5., 5., 5.)):
     """Get a matrix that morphs data from one subject to another."""
     _check_dep(nibabel='2.1.0', dipy='0.10.1')
-    import nibabel as nib
+    from nibabel import Nifti1Image
     with np.testing.suppress_warnings():
         from dipy.align import imaffine, imwarp, metrics, transforms
     from dipy.align.reslice import reslice
@@ -717,7 +717,7 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine=(100, 100, 10),
         zooms)
 
     with warnings.catch_warnings():  # nibabel<->numpy warning
-        mri_from = nib.Nifti1Image(mri_from_res, mri_from_res_affine)
+        mri_from = Nifti1Image(mri_from_res, mri_from_res_affine)
 
     # reslice mri_to
     mri_to_res, mri_to_res_affine = reslice(
@@ -725,7 +725,7 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine=(100, 100, 10),
         zooms)
 
     with warnings.catch_warnings():  # nibabel<->numpy warning
-        mri_to = nib.Nifti1Image(mri_to_res, mri_to_res_affine)
+        mri_to = Nifti1Image(mri_to_res, mri_to_res_affine)
 
     affine = mri_to.affine
     mri_to = np.array(mri_to.dataobj, float)  # to ndarray

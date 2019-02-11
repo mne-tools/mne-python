@@ -130,6 +130,7 @@ def _check_projs_for_expected_channels(projs, n_mags, n_grads, n_eegs):
             assert len(p['data']['col_names']) == n_eegs
 
 
+@pytest.mark.slowtest  # can be slow on OSX travis
 @testing.requires_testing_data
 def test_compute_proj_ctf():
     """Test to show that projector code completes on CTF data."""
