@@ -110,7 +110,7 @@ command in your ``.zshrc`` file:
 To configure MNE-C automatically for ``csh`` or ``tcsh`` shells, the
 corresponding commands in the ``.cshrc`` / ``.tcshrc`` file are:
 
-.. code-block:: sh
+.. code-block:: tcsh
 
     setenv MNE_ROOT <path_to_MNE>
     setenv MATLAB_ROOT <path_to_MATLAB>
