@@ -64,8 +64,8 @@ Changelog
 Bug
 ~~~
 
-- Fix bug where loading epochs with ``preload=True`` and subsequently using :meth:`mne.Epochs.drop_bad` leads to improper data (and ``epochs.selection``) since v0.16.0 by `Eric Larson`_.
-  If your code uses ``Epochs(..., preload=True).drop_bad(...)``, we recommend regenerating these data.
+- Fix bug where loading epochs with ``preload=True`` and subsequently using :meth:`mne.Epochs.drop_bad` with new ``reject`` or ``flat`` entries leads to improper data (and ``epochs.selection``) since v0.16.0 by `Eric Larson`_.
+  If your code uses ``Epochs(..., preload=True).drop_bad(reject=..., flat=...)``, we recommend regenerating these data.
 
 - Fix :func:`mne.io.read_raw_edf` returning all the annotations with the same name in GDF files by `Joan Massich`_
 
