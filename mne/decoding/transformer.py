@@ -471,8 +471,7 @@ class FilterEstimator(TransformerMixin):
         attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
-    %(verbose)s Defaults to
-        self.verbose.
+    %(verbose)s
 
     See Also
     --------

@@ -110,8 +110,7 @@ class RtEpochs(BaseEpochs):
                                verbose='ERROR')
 
         See :func:`mne.find_events` for detailed explanation of these options.
-    %(verbose)s Defaults to
-        client.verbose.
+    %(verbose)s Defaults to client.verbose.
 
     Attributes
     ----------

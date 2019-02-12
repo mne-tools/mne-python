@@ -50,8 +50,7 @@ def init_cuda(ignore_config=False, verbose=None):
     ----------
     ignore_config : bool
         If True, ignore the config value MNE_USE_CUDA and force init.
-    %(verbose)s Defaults to
-        self.verbose.
+    %(verbose)s
     """
     global _cuda_capable
     if _cuda_capable:

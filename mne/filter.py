@@ -822,8 +822,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
         Only used for ``method='fir'``.
 
         .. versionadded:: 0.15
-    %(verbose)s Defaults to
-        self.verbose.
+    %(verbose)s
 
     Returns
     -------
@@ -946,8 +945,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
         attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
-    %(verbose)s Defaults to
-        self.verbose.
+    %(verbose)s
 
     Returns
     -------
@@ -2116,8 +2114,7 @@ def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
         Low transition bandwidthin Hz. Can be None (default) to use 3 samples.
     h_trans_bandwidth : float
         High transition bandwidth in Hz.
-    %(verbose)s Defaults to
-        self.verbose.
+    %(verbose)s
 
     Returns
     -------

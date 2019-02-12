@@ -88,8 +88,7 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     ----------
     command : list of str | str
         Command to run as subprocess (see subprocess.Popen documentation).
-    %(verbose)s Defaults to
-        self.verbose.
+    %(verbose)s
     *args, **kwargs : arguments
         Additional arguments to pass to subprocess.Popen.
 
