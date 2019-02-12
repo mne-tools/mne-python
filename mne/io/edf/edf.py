@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Conversion tool from EDF, EDF+, BDF to FIF."""
+"""Reading tools from EDF, EDF+, BDF, and GDF."""
 
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Martin Billinger <martin.billinger@tugraz.at>
 #          Nicolas Barascud <nicolas.barascud@ens.fr>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #          Joan Massich <mailsik@gmail.com>
+#          Clemens Brunner <clemens.brunner@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -46,7 +47,7 @@ def find_edf_events(raw):
     name      description                          type
     ========  ===================================  =======
     n_events  The number of all events             integer
-    pos       Beginnning of the events in samples  array
+    pos       Beginning of the events in samples   array
     typ       The event identifiers                array
     chn       The associated channels (0 for all)  array
     dur       The durations of the events          array
@@ -78,47 +79,46 @@ def find_edf_events(raw):
 
 
 class RawEDF(BaseRaw):
-    """Raw object from EDF, EDF+, BDF file.
+    """Raw object from EDF, EDF+ or BDF file.
 
     Parameters
     ----------
     input_fname : str
-        Path to the EDF+,BDF file.
+        Path to the EDF, EDF+ or BDF file.
     montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
+        Path or instance of montage containing electrode positions. If None,
+        sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
     eog : list or tuple
-        Names of channels or list of indices that should be designated
-        EOG channels. Values should correspond to the electrodes in the
-        edf file. Default is None.
+        Names of channels or list of indices that should be designated EOG
+        channels. Values should correspond to the electrodes in the file.
+        Default is None.
     misc : list or tuple
-        Names of channels or list of indices that should be designated
-        MISC channels. Values should correspond to the electrodes in the
-        edf file. Default is None.
+        Names of channels or list of indices that should be designated MISC
+        channels. Values should correspond to the electrodes in the file.
+        Default is None.
     stim_channel : 'auto' | str | list of str | int | list of int
-        It defaults to 'auto' where channels named 'status' or 'trigger'
-        are set as 'stim'. When str (or list of str) channels matching this
-        string are set as 'sitm'. The matching is not case sensitive, same for
-        the default behavior. When int (or list of ints) the channel
-        corresponding to this position is set as channels of type 'stim'.
+        Defaults to 'auto', which means that channels named 'status' or
+        'trigger' (case insensitive) are set to STIM. If str (or list of str),
+        all channels matching the name(s) are set to STIM. If int (or list of
+        ints), the channels corresponding to the indices are set to STIM.
 
-        .. warning:: 0.18 does not allow for stim channel synthesis from
-                     the TAL channels called 'EDF Annotations' or
-                     'BDF Annotations'. The TAL channel is parsed
-                     and put in the raw.annotations attribute.
-                     Use :func:`mne.events_from_annotations` to obtain
-                     events for the annotations instead.
+        .. warning:: 0.18 does not allow for stim channel synthesis from TAL
+                     channels called 'EDF Annotations' or 'BDF Annotations'
+                     anymore. Instead, TAL channels are parsed and extracted
+                     annotations are stored in raw.annotations. Use
+                     :func:`mne.events_from_annotations` to obtain events from
+                     these annotations.
 
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
     preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+        Preload data into memory for data manipulation and faster indexing. If
+        True, data will be preloaded into memory (fast, but requires large
+        amount of memory). If preload is a string, preload is the file name of
+        a memory-mapped file which is used to store the data on the hard drive
+        (slower, but requires less memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -134,8 +134,8 @@ class RawEDF(BaseRaw):
         >>> events[:, 2] &= (2**16 - 1)  # doctest:+SKIP
 
     The above operation can be carried out directly in :func:`mne.find_events`
-    using the ``mask`` and ``mask_type`` parameters
-    (see :func:`mne.find_events` for more details).
+    using the ``mask`` and ``mask_type`` parameters (see
+    :func:`mne.find_events` for more details).
 
     It is also possible to retrieve system codes, but no particular effort has
     been made to decode these in MNE. In case it is necessary, for instance to
@@ -144,32 +144,33 @@ class RawEDF(BaseRaw):
         >>> cms_bit = 20  # doctest:+SKIP
         >>> cms_high = (events[:, 2] & (1 << cms_bit)) != 0  # doctest:+SKIP
 
-    It is worth noting that in some special cases, it may be necessary to
-    shift the event values in order to retrieve correct event triggers. This
-    depends on the triggering device used to perform the synchronization.
-    For instance, some GDF files need a 8 bits shift:
+    It is worth noting that in some special cases, it may be necessary to shift
+    event values in order to retrieve correct event triggers. This depends on
+    the triggering device used to perform the synchronization. For instance, in
+    some files events need to be shifted by 8 bits:
 
         >>> events[:, 2] >>= 8  # doctest:+SKIP
 
-    The TAL channel called 'EDF Annotations' or 'BDF Annotations' is parsed and
-    put in the raw.annotations attribute.
-    Use :func:`mne.events_from_annotations` to obtain events from the
+    TAL channels called 'EDF Annotations' or 'BDF Annotations' are parsed and
+    extracted annotations are stored in raw.annotations. Use
+    :func:`mne.events_from_annotations` to obtain events from these
     annotations.
 
-    If channels named 'Status' or 'STATUS' will be considered analog stim
-    channels, use method ``find_events`` to recover the events encoded in this
-    channel.
+    If channels named 'status' or 'trigger' are present, they are considered as
+    STIM channels by default. Use func:`mne.find_events` to parse events
+    encoded in such analog stim channels.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
+    mne.io.read_raw_edf : Recommended way to read EDF/EDF+ files.
+    mne.io.read_raw_bdf : Recommended way to read BDF files.
     """
 
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
-                 stim_channel='auto', exclude=(), preload=False,
-                 verbose=None):  # noqa: D102
-        logger.info('Extracting EDF parameters from %s...' % input_fname)
+                 stim_channel='auto', exclude=(), preload=False, verbose=None):
+        logger.info('Extracting EDF parameters from {}...'.format(input_fname))
         input_fname = os.path.abspath(input_fname)
         info, edf_info, orig_units = _get_info(input_fname,
                                                stim_channel, eog, misc,
@@ -179,18 +180,14 @@ class RawEDF(BaseRaw):
 
         # Raw attributes
         last_samps = [edf_info['nsamples'] - 1]
-        super(RawEDF, self).__init__(
-            info, preload, filenames=[input_fname], raw_extras=[edf_info],
-            last_samps=last_samps, orig_format='int', orig_units=orig_units,
-            verbose=verbose)
+        super().__init__(info, preload, filenames=[input_fname],
+                         raw_extras=[edf_info], last_samps=last_samps,
+                         orig_format='int', orig_units=orig_units,
+                         verbose=verbose)
 
         # Read annotations from file and set it
         onset, duration, desc = list(), list(), list()
-        ext = os.path.splitext(input_fname)[1][1:].lower()
-        if ext in ('gdf'):
-            onset, duration, desc = _get_annotations_gdf(edf_info,
-                                                         self.info['sfreq'])
-        elif len(edf_info['tal_idx']) > 0:
+        if len(edf_info['tal_idx']) > 0:
             # Read TAL data exploiting the header info (no regexp)
             tal_data = self._read_segment_file([], [], 0, 0, int(self.n_times),
                                                None, None)
@@ -202,124 +199,97 @@ class RawEDF(BaseRaw):
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        from scipy.interpolate import interp1d
+        return _read_segment_file(data, idx, fi, start, stop,
+                                  self._raw_extras[fi], self.info['chs'],
+                                  self._filenames[fi])
 
-        if mult is not None:
-            # XXX "cals" here does not function the same way as in RawFIF,
-            # and for efficiency we want to be able to combine mult and cals
-            # so proj support will have to wait until this is resolved
-            raise NotImplementedError('mult is not supported yet')
-        n_samps = self._raw_extras[fi]['n_samps']
-        buf_len = int(self._raw_extras[fi]['max_samp'])
-        dtype = self._raw_extras[fi]['dtype_np']
-        dtype_byte = self._raw_extras[fi]['dtype_byte']
-        data_offset = self._raw_extras[fi]['data_offset']
-        stim_channel = self._raw_extras[fi]['stim_channel']
-        orig_sel = self._raw_extras[fi]['sel']
-        tal_idx = self._raw_extras[fi].get('tal_idx', [])
-        subtype = self._raw_extras[fi]['subtype']
+    @copy_function_doc_to_method_doc(find_edf_events)
+    @deprecated('find_edf_events is deprecated in 0.18, and will be removed'
+                ' in 0.19. Please use `mne.events_from_annotations` instead')
+    def find_edf_events(self):
+        return events_from_annotations(self)
 
-        if np.size(dtype_byte) > 1:
-            if len(np.unique(dtype_byte)) > 1:
-                warn("Multiple data type not supported")
-            dtype = dtype[0]
-            dtype_byte = dtype_byte[0]
 
-        # gain constructor
-        physical_range = np.array([ch['range'] for ch in self.info['chs']])
-        cal = np.array([ch['cal'] for ch in self.info['chs']])
-        assert cal.shape == (len(self.info['chs']),)
-        cal = np.atleast_2d(physical_range / cal)  # physical / digital
-        gains = np.atleast_2d(self._raw_extras[fi]['units'])
+class RawGDF(BaseRaw):
+    """Raw object from GDF file.
 
-        # physical dimension in uV
-        physical_min = self._raw_extras[fi]['physical_min']
-        digital_min = self._raw_extras[fi]['digital_min']
+    Parameters
+    ----------
+    input_fname : str
+        Path to the GDF file.
+    montage : str | None | instance of Montage
+        Path or instance of montage containing electrode positions. If None,
+        sensor locations are (0,0,0). See the documentation of
+        :func:`mne.channels.read_montage` for more information.
+    eog : list or tuple
+        Names of channels or list of indices that should be designated EOG
+        channels. Values should correspond to the electrodes in the file.
+        Default is None.
+    misc : list or tuple
+        Names of channels or list of indices that should be designated MISC
+        channels. Values should correspond to the electrodes in the file.
+        Default is None.
+    stim_channel : 'auto' | str | list of str | int | list of int
+        Defaults to 'auto', which means that channels named 'status' or
+        'trigger' (case insensitive) are set to STIM. If str (or list of str),
+        all channels matching the name(s) are set to STIM. If int (or list of
+        ints), channels corresponding to the indices are set to STIM.
+    exclude : list of str
+        Channel names to exclude. This can help when reading data with
+        different sampling rates to avoid unnecessary resampling.
+    preload : bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing. If
+        True, data will be preloaded into memory (fast, but requires large
+        amount of memory). If preload is a string, preload is the file name of
+        a memory-mapped file which is used to store the data on the hard drive
+        (slower, but requires less memory).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
-        offsets = np.atleast_2d(physical_min - (digital_min * cal)).T
-        this_sel = orig_sel[idx]
-        if len(tal_idx):
-            this_sel = np.concatenate([this_sel, tal_idx])
-        tal_data = []
+    Notes
+    -----
+    If channels named 'status' or 'trigger' are present, they are considered as
+    STIM channels by default. Use func:`mne.find_events` to parse events
+    encoded in such analog stim channels.
 
-        # We could read this one EDF block at a time, which would be this:
-        ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
-        block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
-        # But to speed it up, we really need to read multiple blocks at once,
-        # Otherwise we can end up with e.g. 18,181 chunks for a 20 MB file!
-        # Let's do ~10 MB chunks:
-        n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * dtype_byte), 1)
-        with open(self._filenames[fi], 'rb', buffering=0) as fid:
+    See Also
+    --------
+    mne.io.Raw : Documentation of attributes and methods.
+    mne.io.read_raw_gdf : Recommended way to read GDF files.
+    """
 
-            # Extract data
-            start_offset = (data_offset +
-                            block_start_idx * ch_offsets[-1] * dtype_byte)
-            for ai in range(0, len(r_lims), n_per):
-                block_offset = ai * ch_offsets[-1] * dtype_byte
-                n_read = min(len(r_lims) - ai, n_per)
-                fid.seek(start_offset + block_offset, 0)
-                # Read and reshape to (n_chunks_read, ch0_ch1_ch2_ch3...)
-                many_chunk = _read_ch(fid, subtype, ch_offsets[-1] * n_read,
-                                      dtype_byte, dtype).reshape(n_read, -1)
-                for ii, ci in enumerate(this_sel):
-                    # This now has size (n_chunks_read, n_samp[ci])
-                    ch_data = many_chunk[:, ch_offsets[ci]:ch_offsets[ci + 1]]
+    @verbose
+    def __init__(self, input_fname, montage, eog=None, misc=None,
+                 stim_channel='auto', exclude=(), preload=False, verbose=None):
+        logger.info('Extracting EDF parameters from {}...'.format(input_fname))
+        input_fname = os.path.abspath(input_fname)
+        info, edf_info, orig_units = _get_info(input_fname,
+                                               stim_channel, eog, misc,
+                                               exclude, preload)
+        logger.info('Creating raw.info structure...')
+        _check_update_montage(info, montage)
 
-                    if len(tal_idx) and ci == tal_idx[0]:
-                        tal_data.append(ch_data)
-                        continue
+        # Raw attributes
+        last_samps = [edf_info['nsamples'] - 1]
+        super().__init__(info, preload, filenames=[input_fname],
+                         raw_extras=[edf_info], last_samps=last_samps,
+                         orig_format='int', orig_units=orig_units,
+                         verbose=verbose)
 
-                    r_sidx = r_lims[ai][0]
-                    r_eidx = (buf_len * (n_read - 1) +
-                              r_lims[ai + n_read - 1][1])
-                    d_sidx = d_lims[ai][0]
-                    d_eidx = d_lims[ai + n_read - 1][1]
-                    if n_samps[ci] != buf_len:
-                        if stim_channel is not None and ci in stim_channel:
-                            # Stim channel will be interpolated
-                            old = np.linspace(0, 1, n_samps[ci] + 1, True)
-                            new = np.linspace(0, 1, buf_len, False)
-                            ch_data = np.append(
-                                ch_data, np.zeros((len(ch_data), 1)), -1)
-                            ch_data = interp1d(old, ch_data,
-                                               kind='zero', axis=-1)(new)
-                        else:
-                            # XXX resampling each chunk isn't great,
-                            # it forces edge artifacts to appear at
-                            # each buffer boundary :(
-                            # it can also be very slow...
-                            ch_data = resample(ch_data, buf_len, n_samps[ci],
-                                               npad=0, axis=-1)
-                    assert ch_data.shape == (len(ch_data), buf_len)
-                    data[ii, d_sidx:d_eidx] = ch_data.ravel()[r_sidx:r_eidx]
+        # Read annotations from file and set it
+        onset, duration, desc = _get_annotations_gdf(edf_info,
+                                                     self.info['sfreq'])
 
-        # only try to read the stim channel if it's not None and it's
-        # actually one of the requested channels
-        if stim_channel is None:  # avoid NumPy comparison to None
-            stim_channel_idx = np.array([], int)
-        else:
-            _idx = np.arange(self.info['nchan'])[idx]  # slice -> ints
-            stim_channel_idx = list()
-            for stim_ch in stim_channel:
-                stim_ch_idx = np.where(_idx == stim_ch)[0].tolist()
-                if len(stim_ch_idx):
-                    stim_channel_idx.append(stim_ch_idx)
-            stim_channel_idx = np.array(stim_channel_idx).ravel()
+        self.set_annotations(Annotations(onset=onset, duration=duration,
+                                         description=desc, orig_time=None))
 
-        if subtype == 'bdf':
-            cal[0, stim_channel_idx] = 1
-            offsets[stim_channel_idx, 0] = 0
-            gains[0, stim_channel_idx] = 1
-        data *= cal.T[idx]
-        data += offsets[idx]
-        data *= gains.T[idx]
-
-        if stim_channel is not None and len(stim_channel_idx) > 0:
-            stim = np.bitwise_and(data[stim_channel_idx].astype(int),
-                                  2**17 - 1)
-            data[stim_channel_idx, :] = stim
-
-        return tal_data
+    @verbose
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+        """Read a chunk of raw data."""
+        return _read_segment_file(data, idx, fi, start, stop,
+                                  self._raw_extras[fi], self.info['chs'],
+                                  self._filenames[fi])
 
     @copy_function_doc_to_method_doc(find_edf_events)
     @deprecated('find_edf_events is deprecated in 0.18, and will be removed'
@@ -345,6 +315,122 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
         ch_data = np.fromfile(fid, dtype=dtype, count=samp)
 
     return ch_data
+
+
+def _read_segment_file(data, idx, fi, start, stop, raw_extras, chs, filenames):
+    """Read a chunk of raw data."""
+    from scipy.interpolate import interp1d
+
+    n_samps = raw_extras['n_samps']
+    buf_len = int(raw_extras['max_samp'])
+    dtype = raw_extras['dtype_np']
+    dtype_byte = raw_extras['dtype_byte']
+    data_offset = raw_extras['data_offset']
+    stim_channel = raw_extras['stim_channel']
+    orig_sel = raw_extras['sel']
+    tal_idx = raw_extras.get('tal_idx', [])
+    subtype = raw_extras['subtype']
+
+    if np.size(dtype_byte) > 1:
+        if len(np.unique(dtype_byte)) > 1:
+            warn("Multiple data type not supported")
+        dtype = dtype[0]
+        dtype_byte = dtype_byte[0]
+
+    # gain constructor
+    physical_range = np.array([ch['range'] for ch in chs])
+    cal = np.array([ch['cal'] for ch in chs])
+    cal = np.atleast_2d(physical_range / cal)  # physical / digital
+    gains = np.atleast_2d(raw_extras['units'])
+
+    # physical dimension in uV
+    physical_min = raw_extras['physical_min']
+    digital_min = raw_extras['digital_min']
+
+    offsets = np.atleast_2d(physical_min - (digital_min * cal)).T
+    this_sel = orig_sel[idx]
+    if len(tal_idx):
+        this_sel = np.concatenate([this_sel, tal_idx])
+    tal_data = []
+
+    # We could read this one EDF block at a time, which would be this:
+    ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
+    block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
+    # But to speed it up, we really need to read multiple blocks at once,
+    # Otherwise we can end up with e.g. 18,181 chunks for a 20 MB file!
+    # Let's do ~10 MB chunks:
+    n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * dtype_byte), 1)
+    with open(filenames, 'rb', buffering=0) as fid:
+
+        # Extract data
+        start_offset = (data_offset +
+                        block_start_idx * ch_offsets[-1] * dtype_byte)
+        for ai in range(0, len(r_lims), n_per):
+            block_offset = ai * ch_offsets[-1] * dtype_byte
+            n_read = min(len(r_lims) - ai, n_per)
+            fid.seek(start_offset + block_offset, 0)
+            # Read and reshape to (n_chunks_read, ch0_ch1_ch2_ch3...)
+            many_chunk = _read_ch(fid, subtype, ch_offsets[-1] * n_read,
+                                  dtype_byte, dtype).reshape(n_read, -1)
+            for ii, ci in enumerate(this_sel):
+                # This now has size (n_chunks_read, n_samp[ci])
+                ch_data = many_chunk[:, ch_offsets[ci]:ch_offsets[ci + 1]]
+
+                if len(tal_idx) and ci == tal_idx[0]:
+                    tal_data.append(ch_data)
+                    continue
+
+                r_sidx = r_lims[ai][0]
+                r_eidx = (buf_len * (n_read - 1) +
+                          r_lims[ai + n_read - 1][1])
+                d_sidx = d_lims[ai][0]
+                d_eidx = d_lims[ai + n_read - 1][1]
+                if n_samps[ci] != buf_len:
+                    if stim_channel is not None and ci in stim_channel:
+                        # Stim channel will be interpolated
+                        old = np.linspace(0, 1, n_samps[ci] + 1, True)
+                        new = np.linspace(0, 1, buf_len, False)
+                        ch_data = np.append(
+                            ch_data, np.zeros((len(ch_data), 1)), -1)
+                        ch_data = interp1d(old, ch_data,
+                                           kind='zero', axis=-1)(new)
+                    else:
+                        # XXX resampling each chunk isn't great,
+                        # it forces edge artifacts to appear at
+                        # each buffer boundary :(
+                        # it can also be very slow...
+                        ch_data = resample(ch_data, buf_len, n_samps[ci],
+                                           npad=0, axis=-1)
+                assert ch_data.shape == (len(ch_data), buf_len)
+                data[ii, d_sidx:d_eidx] = ch_data.ravel()[r_sidx:r_eidx]
+
+    # only try to read the stim channel if it's not None and it's
+    # actually one of the requested channels
+    if stim_channel is None:  # avoid NumPy comparison to None
+        stim_channel_idx = np.array([], int)
+    else:
+        _idx = np.arange(len(chs))[idx]  # slice -> ints
+        stim_channel_idx = list()
+        for stim_ch in stim_channel:
+            stim_ch_idx = np.where(_idx == stim_ch)[0].tolist()
+            if len(stim_ch_idx):
+                stim_channel_idx.append(stim_ch_idx)
+        stim_channel_idx = np.array(stim_channel_idx).ravel()
+
+    if subtype == 'bdf':
+        cal[0, stim_channel_idx] = 1
+        offsets[stim_channel_idx, 0] = 0
+        gains[0, stim_channel_idx] = 1
+    data *= cal.T[idx]
+    data += offsets[idx]
+    data *= gains.T[idx]
+
+    if stim_channel is not None and len(stim_channel_idx) > 0:
+        stim = np.bitwise_and(data[stim_channel_idx].astype(int),
+                              2**17 - 1)
+        data[stim_channel_idx, :] = stim
+
+    return tal_data
 
 
 def _read_header(fname, exclude):
@@ -1079,83 +1165,243 @@ def _find_tal_idx(ch_names):
 
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
-    """Reader function for EDF+, BDF, GDF conversion to FIF.
+    """Reader function for EDF or EDF+ files.
 
     Parameters
     ----------
     input_fname : str
-        Path to the EDF+, BDF, or GDF file.
+        Path to the EDF or EDF+ file.
     montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
+        Path or instance of montage containing electrode positions. If None,
+        sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
     eog : list or tuple
-        Names of channels or list of indices that should be designated
-        EOG channels. Values should correspond to the electrodes in the
-        edf file. Default is None.
+        Names of channels or list of indices that should be designated EOG
+        channels. Values should correspond to the electrodes in the file.
+        Default is None.
     misc : list or tuple
-        Names of channels or list of indices that should be designated
-        MISC channels. Values should correspond to the electrodes in the
-        edf file. Default is None.
+        Names of channels or list of indices that should be designated MISC
+        channels. Values should correspond to the electrodes in the file.
+        Default is None.
     stim_channel : 'auto' | str | list of str | int | list of int
-        It defaults to 'auto' where channels named 'status' or 'trigger'
-        are set as 'stim'. When str (or list of str) channels matching this
-        string are set as 'sitm'. The matching is not case sensitive, same for
-        the default behavior. When int (or list of ints) the channel
-        corresponding to this position is set as channels of type 'stim'.
+        Defaults to 'auto', which means that channels named 'status' or
+        'trigger' (case insensitive) are set to STIM. If str (or list of str),
+        all channels matching the name(s) are set to STIM. If int (or list of
+        ints), channels corresponding to the indices are set to STIM.
 
-        .. warning:: 0.18 does not allow for stim channel synthesis from
-                     the TAL channels called 'EDF Annotations' or
-                     'BDF Annotations'. The TAL channel is parsed
-                     and put in the raw.annotations attribute.
-                     Use :func:`mne.events_from_annotations` to obtain
-                     events for the annotations instead.
+        .. warning:: 0.18 does not allow for stim channel synthesis from TAL
+                     channels called 'EDF Annotations' anymore. Instead, TAL
+                     channels are parsed and extracted annotations are stored
+                     in raw.annotations. Use
+                     :func:`mne.events_from_annotations` to obtain events from
+                     these annotations.
 
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
     preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+        Preload data into memory for data manipulation and faster indexing. If
+        True, data will be preloaded into memory (fast, but requires large
+        amount of memory). If preload is a string, preload is the file name of
+        a memory-mapped file which is used to store the data on the hard drive
+        (slower, but requires less memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
-    Returns
-    -------
-    raw : instance of RawEDF
-        A Raw object containing EDF data.
-
     Notes
     -----
-    Biosemi devices trigger codes are encoded in bits 1-16 of the status
-    channel, whereas system codes (CMS in/out-of range, battery low, etc.) are
-    coded in bits 16-23 (see http://www.biosemi.com/faq/trigger_signals.htm).
-    To retrieve correct event values (bits 1-16), one could do:
+    It is worth noting that in some special cases, it may be necessary to shift
+    event values in order to retrieve correct event triggers. This depends on
+    the triggering device used to perform the synchronization. For instance, in
+    some files events need to be shifted by 8 bits:
 
-        >>> events = mne.find_events(...)  # doctest:+SKIP
         >>> events[:, 2] >>= 8  # doctest:+SKIP
 
-    It is also possible to retrieve system codes, but no particular effort has
-    been made to decode these in MNE.
+    TAL channels called 'EDF Annotations' are parsed and extracted annotations
+    are stored in raw.annotations. Use :func:`mne.events_from_annotations` to
+    obtain events from these annotations.
 
-    The TAL channel called 'EDF Annotations' or 'BDF Annotations' is parsed and
-    put in the raw.annotations attribute.
-    Use :func:`mne.events_from_annotations` to obtain events from the
-    annotations.
-
-    Channels that are named 'Status' or 'STATUS' will be considered analog stim
-    channels. Use method ``raw.find_edf_events`` to recover the events encoded
-    in this channel.
+    If channels named 'status' or 'trigger' are present, they are considered as
+    STIM channels by default. Use func:`mne.find_events` to parse events
+    encoded in such analog stim channels.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.read_raw_bdf : Reader function for BDF files.
+    mne.io.read_raw_gdf : Reader function for GDF files.
     """
+    input_fname = os.path.abspath(input_fname)
+    ext = os.path.splitext(input_fname)[1][1:].lower()
+    if ext == 'gdf':
+        warn('The use of read_raw_edf for GDF files is deprecated. Please use '
+             'read_raw_gdf instead.', DeprecationWarning)
+        return RawGDF(input_fname=input_fname, montage=montage, eog=eog,
+                      misc=misc, stim_channel=stim_channel, exclude=exclude,
+                      preload=preload, verbose=verbose)
+    elif ext == 'bdf':
+        warn('The use of read_raw_edf for BDF files is deprecated. Please use '
+             'read_raw_bdf instead.', DeprecationWarning)
+    elif ext not in ('edf', 'bdf'):
+        raise NotImplementedError('Only EDF and BDF files are supported, got '
+                                  '{}.'.format(ext))
     return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
+                  stim_channel=stim_channel, exclude=exclude, preload=preload,
+                  verbose=verbose)
+
+
+def read_raw_bdf(input_fname, montage=None, eog=None, misc=None,
+                 stim_channel='auto', exclude=(), preload=False, verbose=None):
+    """Reader function for BDF files.
+
+    Parameters
+    ----------
+    input_fname : str
+        Path to the BDF file.
+    montage : str | None | instance of Montage
+        Path or instance of montage containing electrode positions. If None,
+        sensor locations are (0,0,0). See the documentation of
+        :func:`mne.channels.read_montage` for more information.
+    eog : list or tuple
+        Names of channels or list of indices that should be designated EOG
+        channels. Values should correspond to the electrodes in the file.
+        Default is None.
+    misc : list or tuple
+        Names of channels or list of indices that should be designated MISC
+        channels. Values should correspond to the electrodes in the file.
+        Default is None.
+    stim_channel : 'auto' | str | list of str | int | list of int
+        Defaults to 'auto', which means that channels named 'status' or
+        'trigger' (case insensitive) are set to STIM. If str (or list of str),
+        all channels matching the name(s) are set to STIM. If int (or list of
+        ints), channels corresponding to the indices are set to STIM.
+
+        .. warning:: 0.18 does not allow for stim channel synthesis from TAL
+                     channels called 'BDF Annotations' anymore. Instead, TAL
+                     channels are parsed and extracted annotations are stored
+                     in raw.annotations. Use
+                     :func:`mne.events_from_annotations` to obtain events from
+                     these annotations.
+
+    exclude : list of str
+        Channel names to exclude. This can help when reading data with
+        different sampling rates to avoid unnecessary resampling.
+    preload : bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing. If
+        True, data will be preloaded into memory (fast, but requires large
+        amount of memory). If preload is a string, preload is the file name of
+        a memory-mapped file which is used to store the data on the hard drive
+        (slower, but requires less memory).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Notes
+    -----
+    Biosemi devices trigger codes are encoded in 16-bit format, whereas system
+    codes (CMS in/out-of range, battery low, etc.) are coded in bits 16-23 of
+    the status channel (see http://www.biosemi.com/faq/trigger_signals.htm).
+    To retrieve correct event values (bits 1-16), one could do:
+
+        >>> events = mne.find_events(...)  # doctest:+SKIP
+        >>> events[:, 2] &= (2**16 - 1)  # doctest:+SKIP
+
+    The above operation can be carried out directly in :func:`mne.find_events`
+    using the ``mask`` and ``mask_type`` parameters (see
+    :func:`mne.find_events` for more details).
+
+    It is also possible to retrieve system codes, but no particular effort has
+    been made to decode these in MNE. In case it is necessary, for instance to
+    check the CMS bit, the following operation can be carried out:
+
+        >>> cms_bit = 20  # doctest:+SKIP
+        >>> cms_high = (events[:, 2] & (1 << cms_bit)) != 0  # doctest:+SKIP
+
+    It is worth noting that in some special cases, it may be necessary to shift
+    event values in order to retrieve correct event triggers. This depends on
+    the triggering device used to perform the synchronization. For instance, in
+    some files events need to be shifted by 8 bits:
+
+        >>> events[:, 2] >>= 8  # doctest:+SKIP
+
+    TAL channels called 'BDF Annotations' are parsed and extracted annotations
+    are stored in raw.annotations. Use :func:`mne.events_from_annotations` to
+    obtain events from these annotations.
+
+    If channels named 'status' or 'trigger' are present, they are considered as
+    STIM channels by default. Use func:`mne.find_events` to parse events
+    encoded in such analog stim channels.
+
+    See Also
+    --------
+    mne.io.read_raw_edf : Reader function for EDF and EDF+ files.
+    mne.io.read_raw_gdf : Reader function for GDF files.
+    """
+    input_fname = os.path.abspath(input_fname)
+    ext = os.path.splitext(input_fname)[1][1:].lower()
+    if ext != 'bdf':
+        raise NotImplementedError('Only BDF files are supported, got '
+                                  '{}.'.format(ext))
+    return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
+                  stim_channel=stim_channel, exclude=exclude, preload=preload,
+                  verbose=verbose)
+
+
+def read_raw_gdf(input_fname, montage=None, eog=None, misc=None,
+                 stim_channel='auto', exclude=(), preload=False, verbose=None):
+    """Reader function for GDF files.
+
+    Parameters
+    ----------
+    input_fname : str
+        Path to the GDF file.
+    montage : str | None | instance of Montage
+        Path or instance of montage containing electrode positions. If None,
+        sensor locations are (0,0,0). See the documentation of
+        :func:`mne.channels.read_montage` for more information.
+    eog : list or tuple
+        Names of channels or list of indices that should be designated EOG
+        channels. Values should correspond to the electrodes in the file.
+        Default is None.
+    misc : list or tuple
+        Names of channels or list of indices that should be designated MISC
+        channels. Values should correspond to the electrodes in the file.
+        Default is None.
+    stim_channel : 'auto' | str | list of str | int | list of int
+        Defaults to 'auto', which means that channels named 'status' or
+        'trigger' (case insensitive) are set to STIM. If str (or list of str),
+        all channels matching the name(s) are set to STIM. If int (or list of
+        ints), channels corresponding to the indices are set to STIM.
+    exclude : list of str
+        Channel names to exclude. This can help when reading data with
+        different sampling rates to avoid unnecessary resampling.
+    preload : bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing. If
+        True, data will be preloaded into memory (fast, but requires large
+        amount of memory). If preload is a string, preload is the file name of
+        a memory-mapped file which is used to store the data on the hard drive
+        (slower, but requires less memory).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Notes
+    -----
+    If channels named 'status' or 'trigger' are present, they are considered as
+    STIM channels by default. Use func:`mne.find_events` to parse events
+    encoded in such analog stim channels.
+
+    See Also
+    --------
+    mne.io.read_raw_edf : Reader function for EDF and EDF+ files.
+    mne.io.read_raw_bdf : Reader function for BDF files.
+    """
+    input_fname = os.path.abspath(input_fname)
+    ext = os.path.splitext(input_fname)[1][1:].lower()
+    if ext != 'gdf':
+        raise NotImplementedError('Only GDF files are supported, got '
+                                  '{}.'.format(ext))
+    return RawGDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
                   stim_channel=stim_channel, exclude=exclude, preload=preload,
                   verbose=verbose)
 
