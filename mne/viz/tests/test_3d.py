@@ -98,6 +98,7 @@ def test_plot_head_positions():
 @traits_test
 def test_plot_sparse_source_estimates():
     """Test plotting of (sparse) source estimates."""
+    import mayavi  # noqa: F401 analysis:ignore
     sample_src = read_source_spaces(src_fname)
 
     # dense version
@@ -128,8 +129,9 @@ def test_plot_sparse_source_estimates():
     stc_data[1, 4] = 2.
     vertices = [vertices[inds], np.empty(0, dtype=np.int)]
     stc = SourceEstimate(stc_data, vertices, 1, 1)
-    plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
-                                 opacity=0.5, high_resolution=False)
+    surf = plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
+                                        opacity=0.5, high_resolution=False)
+    assert isinstance(surf, mayavi.modules.surface.Surface)
 
 
 @testing.requires_testing_data
@@ -137,6 +139,7 @@ def test_plot_sparse_source_estimates():
 @traits_test
 def test_plot_evoked_field():
     """Test plotting evoked field."""
+    import mayavi  # noqa: F401 analysis:ignore
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
@@ -145,7 +148,8 @@ def test_plot_evoked_field():
             maps = make_field_map(evoked, trans_fname, subject='sample',
                                   subjects_dir=subjects_dir, n_jobs=1,
                                   ch_type=t)
-        evoked.plot_field(maps, time=0.1)
+        fig = evoked.plot_field(maps, time=0.1)
+        assert isinstance(fig, mayavi.core.scene.Scene)
 
 
 @testing.requires_testing_data
@@ -153,6 +157,7 @@ def test_plot_evoked_field():
 @traits_test
 def test_plot_alignment(tmpdir):
     """Test plotting of -trans.fif files and MEG sensor layouts."""
+    import mayavi  # noqa: F401 analysis:ignore
     # generate fiducials file for testing
     tempdir = str(tmpdir)
     fiducials_path = op.join(tempdir, 'fiducials.fif')
@@ -248,9 +253,10 @@ def test_plot_alignment(tmpdir):
                    src=src, dig=True, surfaces=['brain', 'inner_skull',
                                                 'outer_skull', 'outer_skin'])
     sphere = make_sphere_model('auto', None, evoked.info)  # one layer
-    plot_alignment(info, trans_fname, subject='sample', meg=False,
-                   coord_frame='mri', subjects_dir=subjects_dir,
-                   surfaces=['brain'], bem=sphere, show_axes=True)
+    fig = plot_alignment(info, trans_fname, subject='sample', meg=False,
+                         coord_frame='mri', subjects_dir=subjects_dir,
+                         surfaces=['brain'], bem=sphere, show_axes=True)
+    assert isinstance(fig, mayavi.core.scene.Scene)
 
     # 3D coil with no defined draw (ConvexHull)
     info_cube = pick_info(info, [0])
