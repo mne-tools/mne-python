@@ -22,6 +22,9 @@ Changelog
 Bug
 ~~~
 
+- Fix bug where loading epochs with ``preload=True`` and subsequently using :meth:`mne.Epochs.drop_bad` with new ``reject`` or ``flat`` entries leads to improper data (and ``epochs.selection``) since v0.16.0 by `Eric Larson`_.
+  If your code uses ``Epochs(..., preload=True).drop_bad(reject=..., flat=...)``, we recommend regenerating these data.
+
 - Fix :func:`mne.io.read_raw_edf` reading duplicate channel names by `Larry Eisenman`_
 
 - Fix CTF helmet plotting in :func:`mne.viz.plot_evoked_field` by `Eric Larson`_
