@@ -538,7 +538,8 @@ def test_extract_label_time_course():
     for mode in modes:
         label_tc = extract_label_time_course(stcs, labels, src, mode=mode)
         label_tc_method = [stc.extract_label_time_course(labels, src,
-                           mode=mode) for stc in stcs]
+                                                         mode=mode)
+                           for stc in stcs]
         assert (len(label_tc) == n_stcs)
         assert (len(label_tc_method) == n_stcs)
         for tc1, tc2 in zip(label_tc, label_tc_method):
