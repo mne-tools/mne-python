@@ -21,9 +21,11 @@ except NameError:
 
 if MNE_3D_BACKEND == 'mayavi':
     from ._pysurfer_mayavi import _Renderer, _Projection  # noqa: F401
+elif MNE_3D_BACKEND == 'vispy':
+    from ._vispy import _Renderer  # noqa: F401
 else:
-    raise ValueError('MNE_3D_BACKEND should be "mayavi" : '
-                     '{} was given.'.format(MNE_3D_BACKEND))
+    raise ValueError('MNE_3D_BACKEND should be either "mayavi" or'
+                     '"vispy" : {} was given.'.format(MNE_3D_BACKEND))
 
 logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
@@ -41,11 +43,11 @@ def set_3d_backend(backend_name):
     _validate_type(backend_name, "str")
 
     global MNE_3D_BACKEND
-    if backend_name == 'mayavi':
+    if backend_name in {'mayavi', 'vispy'}:
         MNE_3D_BACKEND = backend_name
     else:
-        raise ValueError('backend_name should be "mayavi" : '
-                         '{} was given.'.format(MNE_3D_BACKEND))
+        raise ValueError('backend_name should be either "mayavi" or'
+                         '"vispy" : {} was given.'.format(MNE_3D_BACKEND))
     from . import renderer
     importlib.reload(renderer)
 
