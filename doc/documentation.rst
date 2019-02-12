@@ -38,9 +38,16 @@ Documentation
     });
     </script>
 
-This is where you can learn about all the things you can do with MNE. It contains **background information** and **tutorials** for taking a deep-dive into the techniques that MNE-python covers. You'll find practical information on how to use these methods with your data, and in many cases some high-level concepts underlying these methods.
+This is where you can learn about all the things you can do with MNE. It
+contains **background information** and **tutorials** for taking a deep-dive
+into the techniques that MNE-python covers. You'll find practical information
+on how to use these methods with your data, and in many cases some high-level
+concepts underlying these methods.
 
-There are also **examples**, which contain a short use-case to highlight MNE-functionality and provide inspiration for the many things you can do with this package. You can also find a gallery of these examples in the :ref:`examples gallery <sphx_glr_auto_examples>`.
+There are also **examples**, which contain a short use-case to highlight
+MNE-functionality and provide inspiration for the many things you can do with
+this package. You can also find a gallery of these examples in the
+:ref:`examples gallery <sphx_glr_auto_examples>`.
 
 **See the links below for an introduction to MNE-python, or click one of the sections on this page to see more.**
 
@@ -62,9 +69,9 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    getting_started.rst
-    advanced_setup.rst
-    auto_tutorials/plot_python_intro.rst
+    getting_started
+    advanced_setup
+    auto_tutorials/plot_python_intro
 
 **MNE basics**
 

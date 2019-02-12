@@ -76,15 +76,32 @@
 .. python editors
 .. _atom: https://atom.io/
 .. _Spyder: https://www.spyder-ide.org/
-.. _anaconda: http://www.continuum.io/downloads
+.. _anaconda: https://www.anaconda.com/distribution/
+.. _miniconda: https://conda.io/en/latest/miniconda.html
+.. _installation instructions for Anaconda: http://docs.continuum.io/anaconda/install
+.. _installation instructions for Miniconda: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
 .. _EPD: https://www.enthought.com/products/epd/
 .. _sublime text: http://www.sublimetext.com/
 
-.. _FreeSurfer: http://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall/
+.. installation links
+.. _FreeSurfer: https://surfer.nmr.mgh.harvard.edu/fswiki/
+.. _FreeSurfer download page: https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall
+.. _netpbm: http://netpbm.sourceforge.net/
+.. _MacPorts: https://www.macports.org/
+.. _Homebrew: https://brew.sh/
+.. _XCode developer tools: http://appstore.com/mac/apple/xcode
+.. _xquartz: https://www.xquartz.org/
+.. _MATLAB runtime: https://www.mathworks.com/products/compiler/matlab-runtime.html
+.. _MNE-C download page: http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/index.php
+.. _environment file:  https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+.. _requirements file:  https://raw.githubusercontent.com/mne-tools/mne-python/master/requirements.txt
+.. _NVIDIA CUDA GPU processing: https://developer.nvidia.com/cuda-zone
+.. _NVIDIA proprietary drivers: https://www.nvidia.com/Download/index.aspx
 
 .. _Sphinx documentation: http://sphinx-doc.org/rest.html
 .. _sphinx gallery documentation: https://sphinx-gallery.readthedocs.io/en/latest/configuration.html
 .. _NumPy docstring standard: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
+.. _Stack Overflow: https://stackoverflow.com/
 
 .. vim: ft=rst
 
