@@ -163,7 +163,8 @@ class RawEDF(BaseRaw):
     See Also
     --------
     mne.io.Raw : Documentation of attributes and methods.
-    mne.io.RawGDF : Raw object for GDF files.
+    mne.io.read_raw_edf : Recommended way to read EDF/EDF+ files.
+    mne.io.read_raw_bdf : Recommended way to read BDF files.
     """
 
     @verbose
@@ -255,7 +256,7 @@ class RawGDF(BaseRaw):
     See Also
     --------
     mne.io.Raw : Documentation of attributes and methods.
-    mne.io.RawEDF : Raw object for EDF, EDF+, and BDF files.
+    mne.io.read_raw_gdf : Recommended way to read GDF files.
     """
 
     @verbose
