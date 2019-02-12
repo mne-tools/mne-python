@@ -85,7 +85,7 @@ def write_hdf5(fname, data, overwrite=False, compression=4,
         keys in data. This does not apply to the top level name (title).
         If 'error', '/' is not allowed in any lower-level keys.
     use_json : bool
-        To accelerate the read and write perfromance of small dictionaries and
+        To accelerate the read and write performance of small dictionaries and
         lists they can be combined to JSON objects and stored as strings.
     """
     h5py = _check_h5py()
