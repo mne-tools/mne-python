@@ -33,7 +33,7 @@ dependencies:
   - vtk
   - https://api.github.com/repos/enthought/mayavi/zipball/226189a6ad3dc3c01d031ef21d0d0cde554ac851
   - PySurfer[save_movie]
-  - dipy --only-binary dipy
+  - dipy
   - nitime
   - nibabel
   - nilearn
