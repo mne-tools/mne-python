@@ -8,22 +8,30 @@
 import pytest
 import numpy as np
 from mne.utils import requires_mayavi
-from mne.viz.backends.renderer import (_Renderer,
-                                       set_3d_backend,
+from mne.viz.backends.renderer import (set_3d_backend,
                                        get_3d_backend)
 
 
 @requires_mayavi
-def test_3d_backend():
-    """Test 3d backend degenerate scenarios and default plot."""
+def test_backend_setup():
+    """Test 3d backend degenerate scenarios."""
     pytest.raises(ValueError, set_3d_backend, "unknown_backend")
     pytest.raises(TypeError, set_3d_backend, 1)
-
-    assert get_3d_backend() == "mayavi"
 
     # smoke test
     set_3d_backend('mayavi')
     set_3d_backend('mayavi')
+
+    assert get_3d_backend() == "mayavi"
+
+
+@requires_mayavi
+@pytest.mark.parametrize("backend_name",
+                         ["mayavi", "vispy"])
+def test_3d_backend(backend_name):
+    """Test default plot."""
+    set_3d_backend(backend_name)
+    from mne.viz.backends.renderer import _Renderer
 
     # set data
     win_size = (600, 600)
