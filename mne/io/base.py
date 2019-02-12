@@ -210,7 +210,8 @@ class ToDataFrameMixin(object):
 class TimeMixin(object):
     """Class to add sfreq and time_as_index capabilities to certain classes."""
 
-    def time_as_index(self, times, use_rounding=False):
+    # Overridden method signature does not match call...
+    def time_as_index(self, times, use_rounding=False):  # lgtm
         """Convert time to indices.
 
         Parameters
