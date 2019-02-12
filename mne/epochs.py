@@ -1247,9 +1247,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._bad_dropped = True
             logger.info("%d bad epochs dropped" % (n_events - len(good_idx)))
 
-            # Now update our properties
-            self._getitem(good_idx, None, copy=False, drop_event_id=False)
-
             # adjust the data size if there is a reason to (output or update)
             if out or self.preload:
                 if data.flags['OWNDATA'] and data.flags['C_CONTIGUOUS']:
@@ -1258,6 +1255,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     data = data[:n_out]
                     if self.preload:
                         self._data = data
+
+            # Now update our properties (excepd data, which is already fixed)
+            self._getitem(good_idx, None, copy=False, drop_event_id=False,
+                          select_data=False)
 
         return data if out else None
 
@@ -1839,6 +1840,7 @@ class Epochs(BaseEpochs):
         start = int(round(event_samp + self._raw_times[0] * sfreq))
         start -= first_samp
         stop = start + len(self._raw_times)
+        logger.debug('    Getting epoch for %d-%d' % (start, stop))
         data = self._raw._check_bad_segment(start, stop, self.picks,
                                             self.reject_by_annotation)
         return data

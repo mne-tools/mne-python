@@ -148,9 +148,9 @@ class GetEpochsMixin(object):
         select_data: bool
             apply selection to data
             (use `select_data=False` if subclasses do not have a
-             valid `_data` field)
+             valid `_data` field, or data has already been subselected)
         return_indices: bool
-            return the indices of selected epochs from the original object)
+            return the indices of selected epochs from the original object
             in addition to the new `Epochs` objects
         Returns
         -------
