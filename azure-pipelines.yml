@@ -23,7 +23,7 @@ jobs:
       # to get it to download 32-bit Anaconda properly, and VTK does not ship
       # 32-bit Windows binaries via pip.
       Python36-64bit-full-conda:
-        PYTHON_VERSION: '3.6'
+        PYTHON_VERSION: '3.7'
         PLATFORM: 'x86-64'
         TEST_MODE: 'conda'
         CONDA_ENVIRONMENT: 'environment.yml'
