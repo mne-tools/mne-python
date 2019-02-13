@@ -44,3 +44,4 @@ dependencies:
   - pydocstyle
   - codespell
   - python-picard
+  - vispy
