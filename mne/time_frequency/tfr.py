@@ -1034,9 +1034,7 @@ class AverageTFR(_BaseTFR):
 
         Parameters
         ----------
-        picks : None | array-like of int
-            The indices of the channels to plot.
-            XXX good data channels
+        %(picks_good_data)s
         baseline : None (default) or tuple, shape (2,)
             The time interval to apply baseline correction.
             If None do not apply it. If baseline is (a, b)
