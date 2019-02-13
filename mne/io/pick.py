@@ -822,7 +822,7 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
     # -> ndarray of int (and make a copy)
     #
     picks = np.atleast_1d(picks)  # this works even for picks == 'something'
-    picks = np.array([], int) if picks.size == 0 else picks
+    picks = np.array([], dtype=int) if len(picks) == 0 else picks
     if picks.ndim != 1:
         raise ValueError('picks must be 1D, got %sD' % (picks.ndim,))
     if picks.dtype.char in ('S', 'U'):
@@ -841,7 +841,7 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
         raise ValueError('All picks must be >= %d, got %r'
                          % (-n_chan, orig_picks))
     if (picks >= n_chan).any():
-        raise ValueError('All picks must be < %d, got %r'
+        raise ValueError('All picks must be < n_channels (%d), got %r'
                          % (n_chan, orig_picks))
     picks %= n_chan  # ensure positive
     return picks
