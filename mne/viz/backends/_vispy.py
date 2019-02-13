@@ -8,7 +8,7 @@ import numpy as np
 from vispy import app, scene
 from vispy.visuals.filters import Alpha
 from vispy.visuals.transforms import STTransform
-from vispy.geometry.generation import create_arrow
+from vispy.geometry.generation import create_arrow, create_cylinder
 from vispy.visuals.transforms import MatrixTransform
 
 default_sphere_radius = 0.5
@@ -235,25 +235,16 @@ class _Renderer(object):
         destination = source + np.column_stack((u, v, w))
         arr_pos = np.array(list(zip(source, destination)))
         arr_pos.reshape(-1, 3)
-        arr_dir = np.column_stack((x, y, z,
-                                   destination[:, 0], destination[:, 1],
-                                   destination[:, 2])).astype(np.float32)
-        if mode == 'arrow':
-            arrow = scene.visuals.Arrow(pos=arr_pos, arrows=arr_dir,
-                                        color=color, connect='segments',
-                                        parent=self.view.scene)
-            arrow.attach(Alpha(opacity))
-            if backface_culling:
-                arrow.set_gl_state(cull_face=True)
-        elif mode == "cylinder":
-            for i in range(len(source)):
-                _create_cylinder_quiver(source=source[i, :],
-                                        destination=destination[i, :],
-                                        view=self.view,
-                                        color=color,
-                                        opacity=opacity,
-                                        resolution=glyph_resolution,
-                                        backface_culling=backface_culling)
+        for i in range(len(source)):
+            _create_quiver(mode=mode,
+                           source=source[i, :],
+                           destination=destination[i, :],
+                           scale=scale,
+                           scale_mode=scale_mode,
+                           view=self.view,
+                           color=color,
+                           opacity=opacity,
+                           backface_culling=backface_culling)
         return 0
 
     def text(self, x, y, text, width):
@@ -302,8 +293,10 @@ class _Renderer(object):
         return self.canvas.render()
 
 
-def _create_cylinder_quiver(source, destination, view, color, opacity=1.0,
-                            resolution=8, backface_culling=False):
+def _create_quiver(mode, source, destination, view, color,
+                   scale, scale_mode='none',
+                   resolution=8, opacity=1.0,
+                   backface_culling=False):
     v1 = destination - source
     vn = np.linalg.norm(v1)
     v1 = v1 / vn
@@ -313,7 +306,21 @@ def _create_cylinder_quiver(source, destination, view, color, opacity=1.0,
     cosangle = np.dot(v1, v2)
     axis = np.cross(v2, v1)
 
-    md = create_arrow(rows=resolution, cols=resolution, length=vn)
+    length = vn
+    if scale_mode == 'none':
+        length = scale
+    radius = length / 20.0
+
+    if mode == 'arrow':
+        cone_radius = radius * 3.0
+        cone_length = length / 4.0
+        md = create_arrow(rows=resolution, cols=resolution, length=length,
+                          radius=radius, cone_radius=cone_radius,
+                          cone_length=cone_length)
+    elif mode == 'cylinder':
+        md = create_cylinder(rows=resolution, cols=resolution, length=length,
+                             radius=[radius, radius])
+
     arr = scene.visuals.Mesh(meshdata=md, color=color,
                              shading='flat', parent=view.scene)
     arr.attach(Alpha(opacity))
