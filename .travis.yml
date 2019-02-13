@@ -35,7 +35,10 @@ matrix:
                PYTHON_VERSION=3.7
           language: python
           python: "3.7"
-
+          addons:
+            apt:
+              packages:
+                - qt5-default  # Qt 5.12 release needs this to avoid a missing library bug
         # Old dependencies
         - os: linux
           env: PYTHON_VERSION=3.5
