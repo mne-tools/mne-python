@@ -1,5 +1,3 @@
-import numpy as np
-from numpy.testing import assert_array_equal
 import pytest
 
 from mne.utils import (check_random_state, _check_fname, check_fname,

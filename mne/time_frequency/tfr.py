@@ -17,23 +17,23 @@ import numpy as np
 from scipy import linalg
 from scipy.fftpack import fft, ifft
 
+from .multitaper import dpss_windows
+
 from ..baseline import rescale
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, check_fname, sizeof_fmt,
                      GetEpochsMixin, _prepare_read_metadata, fill_doc,
-                     _prepare_write_metadata, _check_event_id, _gen_events)
+                     _prepare_write_metadata, _check_event_id, _gen_events,
+                     SizeMixin, _is_numeric)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
                        _get_channel_types)
 from ..io.meas_info import Info
-from ..utils import SizeMixin, _is_numeric, fill_doc
-from .multitaper import dpss_windows
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap, warn,
                          _connection_line, _prepare_joint_axes,
                          _setup_vmin_vmax, _set_title_multiple_electrodes)
 from ..externals.h5io import write_hdf5, read_hdf5
-# Make wavelet
 
 
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
