@@ -146,7 +146,7 @@ def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
     tmp = _TempDir()
 
     # Download subjects info.
-    subjects_url = BASE_URL + 'SC-subjects.xls'
+    # subjects_url = BASE_URL + 'SC-subjects.xls'  # XXX not used
     subjects_fname = op.join(tmp, 'SC-subjects.xls')
     _fetch_file(url=AGE_RECORDS_URL,
                 file_name=subjects_fname,

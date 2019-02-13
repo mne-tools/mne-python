@@ -14,6 +14,7 @@ data_path = _data_path  # expose _data_path(..) as data_path(..)
 
 BASE_URL = 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette/'  # noqa: E501
 
+
 @verbose
 def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
                update_path=None, base_url=BASE_URL,
