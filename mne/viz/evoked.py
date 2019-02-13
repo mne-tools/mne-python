@@ -1080,7 +1080,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True,
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
 
-        Note. Theses values were tested on different datests across various
+        Note. These values were tested on different datests across various
         conditions. You should not need to update them.
 
     """
