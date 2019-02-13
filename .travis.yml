@@ -38,17 +38,7 @@ matrix:
           addons:
             apt:
               packages:
-                - libgl1-mesa-glx
-                - libegl1-mesa
-                - libxrandr2
-                - libxrandr2
-                - libxss1
-                - libxcursor1
-                - libxcomposite1
-                - libasound2
-                - libxi6
-                - libxtst6
-                - qt5-default
+                - qt5-default  # Qt 5.12 release needs this to avoid a missing library bug
         # Old dependencies
         - os: linux
           env: PYTHON_VERSION=3.5
