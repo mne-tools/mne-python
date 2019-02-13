@@ -292,9 +292,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         MEG channels.
     event_id : int
         The index to assign to found events
-    picks : XXX
-        Indices of channels to include.
-        XXX all channels
+    %(picks_all)s
     tmin : float
         Start time before event.
     tmax : float

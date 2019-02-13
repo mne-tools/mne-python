@@ -456,6 +456,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         from .forward import _as_meg_type_evoked
         return _as_meg_type_evoked(self, ch_type=ch_type, mode=mode)
 
+    @fill_doc
     def detrend(self, order=1, picks=None):
         """Detrend data.
 
@@ -466,8 +467,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         order : int
             Either 0 or 1, the order of the detrending. 0 is a constant
             (DC) detrend, 1 is a linear detrend.
-        picks : XXX
-            XXX good data channels
+        %(picks_good_data)s
 
         Returns
         -------

@@ -397,10 +397,8 @@ class ICA(ContainsMixin):
         ----------
         inst : instance of Raw, Epochs or Evoked
             Raw measurements to be decomposed.
-        picks : XXX
-            Channels to be included. This selection remains throughout the
-            initialized ICA solution.
-            XXX good data channels without reference MEG channels
+        %(picks_good_data_noref)s
+            This selection remains throughout the initialized ICA solution.
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
@@ -2241,10 +2239,8 @@ def run_ica(raw, n_components, max_pca_components=100,
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
         fix the seed to have reproducible results.
-    picks : XXX
-        Channels to be included. This selection remains throughout the
-        initialized ICA solution.
-        XXX good data channels without reference MEG channels
+    %(picks_good_data_noref)s
+        This selection remains throughout the initialized ICA solution.
     start : int | float | None
         First sample to include for decomposition. If float, data will be
         interpreted as time in seconds. If None, data will be used from the

@@ -20,7 +20,7 @@ from scipy.fftpack import fft, ifft
 from ..baseline import rescale
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, check_fname, sizeof_fmt,
-                     GetEpochsMixin, _prepare_read_metadata,
+                     GetEpochsMixin, _prepare_read_metadata, fill_doc,
                      _prepare_write_metadata, _check_event_id, _gen_events)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
@@ -826,9 +826,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
     n_jobs : int,  default 1
         The number of jobs to run in parallel.
-    picks : XXX
-        The channels to decompose.
-        XXX all good data channels
+    %(picks_good_data)s
     average : bool, default True
         If True average across Epochs.
 
@@ -1265,9 +1263,7 @@ class AverageTFR(_BaseTFR):
         timefreqs : None | list of tuple | dict of tuple
             The time-frequency point(s) for which topomaps will be plotted.
             See Notes.
-        picks : XXX
-            The channels to plot.
-            XXX good data channels
+        %(picks_good_data)s
         baseline : None (default) or tuple of length 2
             The time interval to apply baseline correction.
             If None do not apply it. If baseline is (a, b)
@@ -1630,6 +1626,7 @@ class AverageTFR(_BaseTFR):
                                  baseline=baseline, mode=mode, cmap=None,
                                  title=ch_type, vmin=None, vmax=None, axes=ax)
 
+    @fill_doc
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
                   layout=None, cmap='RdBu_r', title=None, dB=False,
@@ -1640,9 +1637,7 @@ class AverageTFR(_BaseTFR):
 
         Parameters
         ----------
-        picks : XXX
-            The channels to plot.
-            XXX all good data channels
+        %(picks_good_data)s
         baseline : None (default) or tuple of length 2
             The time interval to apply baseline correction.
             If None do not apply it. If baseline is (a, b)

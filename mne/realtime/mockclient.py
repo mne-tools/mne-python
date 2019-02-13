@@ -41,6 +41,7 @@ class MockRtClient(object):
         """
         return self.info
 
+    @fill_doc
     def send_data(self, epochs, picks, tmin, tmax, buffer_size):
         """Read from raw object and send them to RtEpochs for processing.
 
@@ -48,8 +49,7 @@ class MockRtClient(object):
         ----------
         epochs : instance of RtEpochs
             The epochs object.
-        picks : XXX
-            XXX all channels
+        %(picks_all)s
         tmin : float
             Time instant to start receiving buffers.
         tmax : float
@@ -90,6 +90,7 @@ class MockRtClient(object):
     # but they need to be present for the emulation to work because
     # RtEpochs expects them to be there.
 
+    @fill_doc
     def get_event_data(self, event_id, tmin, tmax, picks=None,
                        stim_channel=None, min_duration=0):
         """Simulate the data for a particular event-id.
@@ -107,9 +108,7 @@ class MockRtClient(object):
             Start time before event.
         tmax : float
             End time after event.
-        picks : XXX
-            Indices of channels.
-            XXX all channels
+        %(picks_all)s
         stim_channel : None | string | list of string
             Name of the stim channel or all the stim channels
             affected by the trigger. If None, the config variables

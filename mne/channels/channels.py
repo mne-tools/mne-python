@@ -13,8 +13,8 @@ import sys
 import numpy as np
 from scipy import sparse
 
-from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
-from ..utils import _check_preload, _validate_type
+from ..utils import (verbose, logger, warn, copy_function_doc_to_method_doc,
+                     _check_preload, _validate_type, fill_doc)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info
@@ -343,8 +343,8 @@ class SetChannelsMixin(object):
 
         Parameters
         ----------
-        picks : XXX
-            XXX good data
+        picks : str | list | slice | None
+            None gets good data indices.
 
         Notes
         -----
@@ -707,13 +707,13 @@ class UpdateChannelsMixin(object):
         return self._pick_drop_channels(
             pick_channels(self.info['ch_names'], ch_names))
 
+    @fill_doc
     def pick(self, picks, exclude=()):
         """Pick a subset of channels.
 
         Parameters
         ----------
-        picks : XXX
-            XXX all channels
+        %(picks_all)s
         exclude : list | str
             Set of channels to exclude, only used when picking based on
             types (e.g., exclude="bads" when picks="meg").
@@ -1041,6 +1041,7 @@ def _recursive_flatten(cell, dtype):
     return cell
 
 
+@fill_doc
 def read_ch_connectivity(fname, picks=None):
     """Parse FieldTrip neighbors .mat file.
 
@@ -1053,9 +1054,8 @@ def read_ch_connectivity(fname, picks=None):
     fname : str
         The file name. Example: 'neuromag306mag', 'neuromag306planar',
         'ctf275', 'biosemi64', etc.
-    picks : XXX
-        XXX all channels
-        The indices of the channels to include. Must match the template.
+    %(picks_all)s
+        Picks Must match the template.
 
     Returns
     -------

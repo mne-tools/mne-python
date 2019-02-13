@@ -358,8 +358,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
         are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
-    picks : XXX
-        XXX good data
+    %(picks_good_data_noref)s
     method : str | list | None (default 'empirical')
         The method used for covariance estimation.
         See :func:`mne.compute_covariance`.
@@ -1709,8 +1708,7 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         The noise covariance.
     info : dict
         The measurement info.
-    picks : XXX
-        XXX good data (without reference MEG)
+    %(picks_good_data_noref)s
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
@@ -1769,8 +1767,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
         The evoked data
     noise_cov : instance of Covariance
         The noise covariance
-    picks : XXX
-        XXX good data
+    %(picks_good_data)s
     diag : bool (default False)
         If True, whiten using only the diagonal of the covariance.
     rank : None | int | dict (default None)

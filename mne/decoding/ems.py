@@ -122,8 +122,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
         If a list of strings, strings must match the epochs.event_id's key as
         well as the number of conditions supported by the objective_function.
         If None keys in epochs.event_id are used.
-    picks : XXX
-        XXX good data
+    %(picks_good_data)s
     n_jobs : int, default 1
         Number of jobs to run in parallel.
     cv : cross-validation object | str | None, default LeaveOneOut

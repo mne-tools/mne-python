@@ -11,7 +11,7 @@ import re
 import numpy as np
 
 from .constants import FIFF
-from ..utils import logger, verbose, _validate_type
+from ..utils import logger, verbose, _validate_type, fill_doc
 
 
 def get_channel_types():
@@ -601,6 +601,7 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
     return pick_channels_forward(orig, include_ch_names)
 
 
+@fill_doc
 def channel_indices_by_type(info, picks=None):
     """Get indices of channels by type.
 
@@ -608,8 +609,7 @@ def channel_indices_by_type(info, picks=None):
     ----------
     info : instance of mne.measuerment_info.Info
         The info.
-    picks : XXX
-        XXX all channels
+    %(picks_all)s
 
     Returns
     -------

@@ -242,6 +242,7 @@ class FieldTripClient(object):
         """
         return self.info
 
+    @fill_doc
     def get_data_as_epoch(self, n_samples=1024, picks=None):
         """Return last n_samples from current time.
 
@@ -249,9 +250,7 @@ class FieldTripClient(object):
         ----------
         n_samples : int
             Number of samples to fetch.
-        picks : XXX
-            Channels to keep.
-            XXX all channels
+        %(picks_all)s
 
         Returns
         -------

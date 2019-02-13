@@ -39,9 +39,7 @@ def oversampled_temporal_projection(raw, duration=10., picks=None,
     duration : float | str
         The window duration (in seconds; default 10.) to use. Can also
         be "min" to use as short a window as possible.
-    picks : XXX
-        The channels to process.
-        XXX all data channels will be processed together
+    %(picks_all_data)s
     %(verbose)s
 
     Returns

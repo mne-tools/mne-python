@@ -18,13 +18,14 @@ from .topomap import (_prepare_topo_plot, plot_topomap, _hide_frame,
 from .raw import _prepare_mne_browse_raw, _plot_raw_traces, _convert_psds
 from .epochs import _prepare_mne_browse_epochs, plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
-from ..utils import warn, _validate_type
+from ..utils import warn, _validate_type, fill_doc
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types, _picks_to_idx
 from ..time_frequency.psd import psd_multitaper
 
 
+@fill_doc
 def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False):
@@ -43,9 +44,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
         The ICA solution.
     inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
         The object to plot the sources from.
-    picks : XXX
-        The components to be displayed.
-        XXX all sources in the order as fitted
+    %(picks_base)s all sources in the order as fitted.
     exclude : array-like of int
         The components marked for exclusion. If None (default), ICA.exclude
         will be used.
@@ -235,6 +234,7 @@ def _get_psd_label_and_std(this_psd, dB, ica, num_std):
     return psd_ylabel, psds_mean, spectrum_std
 
 
+@fill_doc
 def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
                         plot_std=True, topomap_args=None, image_args=None,
                         psd_args=None, figsize=None, show=True):
@@ -249,9 +249,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         The ICA solution.
     inst: instance of Epochs or Raw
         The data to use in plotting properties.
-    picks : XXXX
-        The components to be displayed.
-        XXX the first five sources.
+    %(picks_base)s the first five sources.
         If more than one components were chosen in the picks,
         each one will be plotted in a separate figure.
     axes: list of matplotlib axes | None
@@ -395,9 +393,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
     ----------
     evoked : instance of mne.Evoked
         The Evoked to be used.
-    picks : XXX
-        The components to be displayed.
-        XXX all sources in the order as fitted.
+    %(picks_base)s all sources in the order as fitted.
     exclude : array-like of int
         The components marked for exclusion. If None (default), ICA.exclude
         will be used.
@@ -595,6 +591,7 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
     return fig
 
 
+@fill_doc
 def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
                      stop=None, title=None, show=True):
     """Overlay of raw and cleaned signals given the unmixing matrix.
@@ -615,9 +612,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     exclude : array-like of int | None (default)
         The components marked for exclusion. If None (default), ICA.exclude
         will be used.
-    picks : XXX
-        Indices of channels to include.
-        XXX all channels that were included during fitting.
+    %(picks_base)s all channels that were included during fitting.
     start : int
         X-axis start index. If None from the beginning.
     stop : int

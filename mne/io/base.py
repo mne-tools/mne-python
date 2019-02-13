@@ -52,6 +52,7 @@ from ..annotations import _ensure_annotation_object
 class ToDataFrameMixin(object):
     """Class to add to_data_frame capabilities to certain classes."""
 
+    @fill_doc
     def to_data_frame(self, picks=None, index=None, scaling_time=1e3,
                       scalings=None, copy=True, start=None, stop=None):
         """Export data in tabular structure as a pandas DataFrame.
@@ -64,8 +65,7 @@ class ToDataFrameMixin(object):
 
         Parameters
         ----------
-        picks : XXX
-            XXX all channels
+        %(picks_all)s
         index : tuple of str | None
             Column to be used as index for the data. Valid string options
             are 'epoch', 'time' and 'condition'. If None, all three info
@@ -904,8 +904,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        picks : XXX
-            XXX all channels
+        %(picks_all)s
         start : int
             The first sample to include. Defaults to 0.
         stop : int | None
@@ -1023,9 +1022,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             operate on an array of shape ``(n_times,)`` if
             ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise.
             The function must return an ndarray shaped like its input.
-        picks : XXX
-            Indices of channels to apply the function to.
-            XXX all data channels except reference MEG channels
+        %(picks_all_data_noref)s
         dtype : numpy.dtype (default: None)
             Data type to use for raw data after applying the function. If None
             the data type is not modified.
@@ -1109,9 +1106,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        picks : XXX
-            Indices of channels to apply the Hilbert transform to.
-            XXX all data channels except reference MEG channels
+        %(picks_all_data_noref)s
         envelope : bool (default: False)
             Compute the envelope signal of each channel.
         n_jobs: int
@@ -1202,9 +1197,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         h_freq : float | None
             High cut-off frequency in Hz. If None the data are only
             high-passed.
-        picks : XXX
-            Indices of channels to filter.
-            XXX all data channels
+        %(picks_all_data)s
         filter_length : str | int
             Length of the FIR filter to use (if applicable):
 
@@ -1357,9 +1350,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             np.arange(60, 241, 60) in the US or np.arange(50, 251, 50) in
             Europe. None can only be used with the mode 'spectrum_fit',
             where an F test is used to find sinusoidal components.
-        picks : XXX
-            Indices of channels to filter.
-            XXX all data channels
+        %(picks_all_data)s
         filter_length : str | int
             Length of the FIR filter to use (if applicable):
 
@@ -1684,9 +1675,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             unless data have been preloaded. Filenames should end with
             raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif
             or raw_tsss.fif.gz.
-        picks : XXX
-            Indices of channels to include.
-            XXX all channels
+        %(picks_all)s
         tmin : float | None
             Time in seconds of first sample to save. If None first sample
             is used.
@@ -1861,6 +1850,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                  show=show, block=block, n_jobs=n_jobs,
                                  axes=axes, verbose=verbose)
 
+    @fill_doc
     def estimate_rank(self, tstart=0.0, tstop=30.0, tol=1e-4,
                       return_singular=False, picks=None, scalings='norm'):
         """Estimate rank of the raw data.
@@ -1884,9 +1874,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return_singular : bool
             If True, also return the singular values that were used
             to determine the rank.
-        picks : list of int
-            The channels to be considered for rank estimation.
-            XXX good data channels
+        %(picks_good_data)s
         scalings : dict | 'norm'
             To achieve reliable rank estimation on multiple sensors,
             sensors have to be rescaled. This parameter controls the

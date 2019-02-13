@@ -20,7 +20,7 @@ from ..baseline import rescale
 from ..fixes import _remove_duplicate_rows
 from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
                        _pick_data_channels, pick_channels, _picks_to_idx)
-from ..utils import _clean_names, _time_mask, verbose, logger, warn
+from ..utils import _clean_names, _time_mask, verbose, logger, warn, fill_doc
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
@@ -1008,6 +1008,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
     _hide_frame(axes)
 
 
+@fill_doc
 def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         layout=None, vmin=None, vmax=None, cmap='RdBu_r',
                         sensors=True, colorbar=False, title=None,
@@ -1020,9 +1021,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     ----------
     ica : instance of mne.preprocessing.ICA
         The ICA solution.
-    picks : XXX
-        The indices of the sources to be plotted.
-        XXX If None all are plotted in batches of 20.
+    %(picks_all)s
+        If None all are plotted in batches of 20.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are
         collected in pairs and the RMS for each pair is plotted.
@@ -2097,6 +2097,7 @@ def plot_psds_topomap(
     return fig
 
 
+@fill_doc
 def plot_layout(layout, picks=None, show=True):
     """Plot the sensor positions.
 
@@ -2104,8 +2105,7 @@ def plot_layout(layout, picks=None, show=True):
     ----------
     layout : None | Layout
         Layout instance specifying sensor positions.
-    picks : XXX
-        XXX no info, all channels
+    %(picks_all)s
     show : bool
         Show figure if True. Defaults to True.
 

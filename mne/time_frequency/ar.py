@@ -48,9 +48,7 @@ def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None,
         an instance of Raw.
     order : int
         order of the FIR filter.
-    picks : XXX
-        Indices of selected channels.
-        XXX good data channels
+    %(picks_good_data)s
     tmin : float
         The beginning of time interval in seconds.
     tmax : float

@@ -33,8 +33,8 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         The noise covariance.
     n_dipoles : int
         The number of dipoles to estimate. The default value is 2.
-    picks : XXX
-        XXX good data
+    picks : list of int
+        Caller ensures this is a list of int.
 
     Returns
     -------

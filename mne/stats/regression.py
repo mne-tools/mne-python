@@ -15,7 +15,7 @@ from scipy import linalg, sparse
 from ..source_estimate import SourceEstimate
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
-from ..utils import logger, _reject_data_segments, warn
+from ..utils import logger, _reject_data_segments, warn, fill_doc
 from ..io.pick import pick_types, pick_info, _picks_to_idx
 
 
@@ -148,6 +148,7 @@ def _fit_lm(data, design_matrix, names):
     return beta, stderr, t_val, p_val, mlog10_p_val
 
 
+@fill_doc
 def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                           covariates=None, reject=None, flat=None, tstep=1.,
                           decim=1, picks=None, solver='cholesky'):
@@ -218,9 +219,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         Decimate by choosing only a subsample of data points. Highly
         recommended for data recorded at high sampling frequencies, as
         otherwise huge intermediate matrices have to be created and inverted.
-    picks : XXX
-        List of indices of channels to be included.
-        XXX all good data channels
+    %(picks_good_data)s
     solver : str | callable
         Either a function which takes as its inputs the sparse predictor
         matrix X and the observation matrix Y, and returns the coefficient

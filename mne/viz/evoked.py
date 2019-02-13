@@ -30,7 +30,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _set_title_multiple_electrodes, _check_time_unit,
                     _plot_masked_image)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
-                     _check_if_nan, _check_ch_locs)
+                     _check_if_nan, _check_ch_locs, fill_doc)
 
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
@@ -629,8 +629,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     ----------
     evoked : instance of Evoked
         The evoked data
-    picks : XXX
-        The indices of channels to plot. If None show all.
+    %(picks_all)s
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
         bad channels are excluded.
@@ -843,6 +842,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              noise_cov=noise_cov)
 
 
+@fill_doc
 def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
                       show=True, clim=None, xlim='tight', proj=False,
                       units=None, scalings=None, titles=None, axes=None,
@@ -855,8 +855,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
     ----------
     evoked : instance of Evoked
         The evoked data
-    picks : XXX
-        The indices of channels to plot. If None show all.
+    %(picks_all)s
         This parameter can also be used to set the order the channels
         are shown in, as the channel image is sorted by the order of picks.
     exclude : list of str | 'bads'
@@ -1260,6 +1259,7 @@ def plot_snr_estimate(evoked, inv, show=True, verbose=None):
     return fig
 
 
+@fill_doc
 def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                       exclude=None, show=True, ts_args=None,
                       topomap_args=None):
@@ -1277,8 +1277,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     title : str | None
         The title. If `None`, suppress printing channel type. If an empty
         string, a default title is created. Defaults to ''.
-    picks : XXX
-        The indices of channels to plot. If None show all. Defaults to None.
+    %(picks_all)s
     exclude : None | list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
         bad channels are excluded. Defaults to None.
@@ -1674,6 +1673,7 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
     return styles, the_colors, color_conds, color_order, colors_are_float
 
 
+@fill_doc
 def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                          linestyles=['-'], styles=None, cmap=None,
                          vlines="auto", ci=0.95, truncate_yaxis="max_ticks",
@@ -1694,14 +1694,15 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         area. All instances must have the same shape - channel numbers, time
         points etc.
         If dict, keys must be of type str.
-    picks : XXX
-        If int or list of int, the indices of the sensors to average and plot.
-        If multiple channel types are selected, one figure will be returned for
-        each channel type.
-        If the selected channels are gradiometers, the signal from
-        corresponding (gradiometer) pairs will be combined.
-        If None, it defaults to all data channels, in which case the global
-        field power will be plotted for all channel type available.
+    %(picks_all_data)s
+
+        * If picks is None, the global field power will be plotted
+          for all data channels. Otherwise, picks will be averaged.
+        * If multiple channel types are selected, one
+          figure will be returned for each channel type.
+        * If the selected channels are gradiometers, the signal from
+          corresponding (gradiometer) pairs will be combined.
+
     gfp : bool
         If True, the channel type wise GFP is plotted.
         If `picks` is an empty list (default), this is set to True.
@@ -1770,11 +1771,11 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         confidence interval is drawn around the individual time series. If
         float, a percentile bootstrap method is used to estimate the confidence
         interval and this value determines the CI width. E.g., if this value is
-        .95 (the default), the 95% confidence interval is drawn. If a callable,
-        it must take as its single argument an array (observations x times) and
-        return the upper and lower confidence bands.
+        .95 (the default), the 95%% confidence interval is drawn. If a
+        callable, it must take as its single argument an array
+        (observations x times) and return the upper and lower confidence bands.
         If None or False, no confidence band is plotted.
-        If True, a 95% bootstrapped confidence interval is drawn.
+        If True, a 95%% bootstrapped confidence interval is drawn.
     truncate_yaxis : bool | str
         If not False, the left y axis spine is truncated to reduce visual
         clutter. If 'max_ticks', the spine is truncated at the minimum and

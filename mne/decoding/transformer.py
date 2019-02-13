@@ -440,8 +440,7 @@ class FilterEstimator(TransformerMixin):
     h_freq : float | None
         High cut-off frequency in Hz. If None the data are only
         high-passed.
-    picks : XXX
-        XXX good data
+    %(picks_good_data)s
     filter_length : str (Default: '10s') | int | None
         Length of the filter to use. If None or "len(x) < filter_length",
         the filter length used is len(x). Otherwise, if int, overlap-add

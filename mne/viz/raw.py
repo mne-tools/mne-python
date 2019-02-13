@@ -687,8 +687,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Number of points to use in Welch FFT calculations.
         Default is None, which uses the minimum of 2048 and the
         number of time points.
-    picks : XXX
-        List of channels to use. Cannot be None if `ax` is supplied. If both
+    %(picks_good_data)s
+        Cannot be None if `ax` is supplied. If both
         `picks` and `ax` are None, separate subplots will be created for
         each standard channel type (`mag`, `grad`, and `eeg`).
     ax : instance of matplotlib Axes | None

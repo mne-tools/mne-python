@@ -20,7 +20,7 @@ from ..bem import fit_sphere_to_headshape
 from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import Info
-from ..utils import _clean_names, warn, _check_ch_locs
+from ..utils import _clean_names, warn, _check_ch_locs, fill_doc
 from .channels import _get_ch_info
 
 
@@ -89,14 +89,13 @@ class Layout(object):
         return '<Layout | %s - Channels: %s ...>' % (self.kind,
                                                      ', '.join(self.names[:3]))
 
+    @fill_doc
     def plot(self, picks=None, show=True):
         """Plot the sensor positions.
 
         Parameters
         ----------
-        picks : XXX
-            XXX no info, all channels
-            Indices of the channels to show.
+        %(picks_all)s
         show : bool
             Show figure if True. Defaults to True.
 
@@ -289,6 +288,7 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
     return layout
 
 
+@fill_doc
 def make_grid_layout(info, picks=None, n_col=None):
     """Generate .lout file for custom data, i.e., ICA sources.
 
@@ -297,8 +297,7 @@ def make_grid_layout(info, picks=None, n_col=None):
     info : instance of Info | None
         Measurement info (e.g., raw.info). If None, default names will be
         employed.
-    picks : XXX
-        XXX all good misc channels
+    %(picks_base)s all good misc channels.
     n_col : int | None
         Number of columns to generate. If None, a square grid will be produced.
 
@@ -596,8 +595,8 @@ def _find_topomap_coords(info, picks, layout=None):
     ----------
     info : instance of Info
         Measurement info.
-    picks : XXX
-        XXX all channels
+    picks : str | list | slice | None
+        None will choose all channels.
     layout : None | instance of Layout
         Enforce using a specific layout. With None, a new map is generated
         and a layout is chosen based on the channels in the picks
@@ -631,8 +630,8 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
     ----------
     info : instance of Info
         The measurement info.
-    picks : XXX
-        XXX all channels
+    picks : list | str | slice | None
+        None will pick all channels.
     ignore_overlap : bool
         Whether to ignore overlapping positions in the layout. If False and
         positions overlap, an error is thrown.

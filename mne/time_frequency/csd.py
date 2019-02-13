@@ -556,9 +556,7 @@ def csd_fourier(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
     tmax : float | None
         Maximum time instant to consider, in seconds. If ``None`` end at last
         sample.
-    picks : XXX
-        The names of the channels to use during CSD computation.
-        XXX all good data channels without reference MEG channels
+    %(picks_good_data_noref)s
     n_fft : int | None
         Length of the FFT. If ``None``, the exact number of samples between
         ``tmin`` and ``tmax`` will be used.
@@ -693,9 +691,7 @@ def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     tmax : float | None
         Maximum time instant to consider, in seconds. If ``None`` end at last
         sample.
-    picks : XXX
-        The channels to use during CSD computation.
-        XXX all good data channels without reference MEG channels
+    %(picks_good_data_noref)s
     n_fft : int | None
         Length of the FFT. If ``None``, the exact number of samples between
         ``tmin`` and ``tmax`` will be used.
@@ -704,7 +700,7 @@ def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD.
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
@@ -845,9 +841,7 @@ def csd_morlet(epochs, frequencies, tmin=None, tmax=None, picks=None,
     tmax : float | None
         Maximum time instant to consider, in seconds. If ``None`` end at last
         sample.
-    picks : XXX
-        The channels to use during CSD computation.
-        XXX all good data channels without reference MEG channels
+    %(picks_good_data_noref)s
     n_cycles: float | list of float | None
         Number of cycles to use when constructing Morlet wavelets. Fixed number
         or one per frequency. Defaults to 7.

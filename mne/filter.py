@@ -739,8 +739,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     h_freq : float | None
         High cut-off frequency in Hz. If None the data are only
         high-passed.
-    picks : XXX
-        XXX nostr, all channels
+    %(picks_nostr)s
         Currently this is only supported for 2D (n_channels, n_times) and
         3D (n_epochs, n_channels, n_times) arrays.
     filter_length : str | int
@@ -1207,8 +1206,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
         sinusoidal components to remove when method='spectrum_fit' and
         freqs=None. Note that this will be Bonferroni corrected for the
         number of frequencies, so large p-values may be justified.
-    picks : XXX
-        XXX nostr, all channels
+    %(picks_nostr)s
         Only supported for 2D (n_channels, n_times) and 3D
         (n_epochs, n_channels, n_times) data.
     n_jobs : int | str
@@ -1936,8 +1934,7 @@ class FilterMixin(object):
         h_freq : float | None
             High cut-off frequency in Hz. If None the data are only
             high-passed.
-        picks : XXX
-            XXX good data
+        %(picks_good_data)s
         filter_length : str | int
             Length of the FIR filter to use (if applicable):
 

@@ -210,7 +210,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         See `Epochs` docstring.
     raw : Raw object
         An instance of Raw.
-    picks : XXX
+    %(picks_header)s
         See `Epochs` docstring.
     reject : dict | None
         See `Epochs` docstring.
@@ -760,13 +760,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         return self
 
+    @fill_doc
     def average(self, picks=None, method="mean"):
         """Compute an average over epochs.
 
         Parameters
         ----------
-        picks : XXX
-            XXX data channels
+        %(picks_all_data)s
         method : str | callable
             How to combine the data. If "mean"/"median", the mean/median
             are returned.
@@ -804,19 +804,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         return self._compute_aggregate(picks=picks, mode=method)
 
+    @fill_doc
     def standard_error(self, picks=None):
         """Compute standard error over epochs.
 
         Parameters
         ----------
-        picks : str | list | slice | None
-            Channels to include. Slices and lists of integers will be
-            interpreted as channel indices. In lists, channel *type* strings
-            (e.g., ``['meg', 'eeg']``) will pick channels of those
-            types, channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
-            will pick the given channels. Can also be the string values
-            "all" to pick all channels, or "data" to pick data channels.
-            If None (default), all data channels will be used.
+        %(picks_all_data)s
 
         Returns
         -------
@@ -1643,8 +1637,7 @@ class Epochs(BaseEpochs):
         of the baseline period and subtracting it from the data. The baseline
         (a, b) includes both endpoints, i.e. all timepoints t such that
         a <= t <= b.
-    picks : XXX
-        XXX all channels
+    %(picks_all)s
     preload : boolean
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
@@ -2728,8 +2721,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         The original sample frequency of the data (that matches the
         event sample numbers in ``epochs.events``). Can be ``None``
         if data have not been decimated or resampled.
-    picks : XXX
-        XXX all data channels
+    %(picks_all_data)s
     origin : array-like, shape (3,) | str
         Origin of internal and external multipolar moment space in head
         coords and in meters. The default is ``'auto'``, which means
