@@ -360,7 +360,7 @@ def reset_warnings(gallery_conf, fname):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
     warnings.filterwarnings(  # deal with other modules having bad imports
-        'ignore', message=".*ufuncu size changed.*", category=RuntimeWarning)
+        'ignore', message=".*ufunc size changed.*", category=RuntimeWarning)
     # allow this ImportWarning, but don't show it
     warnings.filterwarnings(
         'ignore', message="can't resolve package from", category=ImportWarning)
