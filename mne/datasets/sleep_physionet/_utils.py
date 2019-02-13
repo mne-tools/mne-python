@@ -77,7 +77,7 @@ def _data_path(path=None, force_update=False, update_path=None, verbose=None):
     return op.join(path, 'physionet-sleep-data')
 
 
-TEMAZEPAM_RECORDS_URL = 'https://physionet.org/physiobank/database/sleep-edfx/ST-subjects.xls'
+TEMAZEPAM_RECORDS_URL = 'https://physionet.org/physiobank/database/sleep-edfx/ST-subjects.xls'  # noqa: E501
 TEMAZEPAM_RECORDS_URL_SHA1 = 'f52fffe5c18826a2bd4c5d5cb375bb4a9008c885'
 sha1sums_fname = op.join(op.dirname(__file__), 'SHA1SUMS')
 

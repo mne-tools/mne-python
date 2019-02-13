@@ -7,12 +7,13 @@
 import numpy as np
 
 from ...utils import verbose
-from ._utils import _fetch_one, _data_path, BASE_URL, TEMAZEPAM_SLEEP_RECORDS
+from ._utils import _fetch_one, _data_path, TEMAZEPAM_SLEEP_RECORDS
 from ._utils import _check_subjects
 
 data_path = _data_path  # expose _data_path(..) as data_path(..)
 
-BASE_URL='https://physionet.org/physiobank/database/sleep-edfx/sleep-telemetry/'
+# XXX this BASE_URL does not match the one in _utils.py
+BASE_URL = 'https://physionet.org/physiobank/database/sleep-edfx/sleep-telemetry/'  # noqa: E501
 
 
 @verbose
@@ -26,8 +27,8 @@ def fetch_data(subjects, recording=[b'Placebo', 'temazepam'],
     a set of 22 subjects. Subjects had mild difficulty falling asleep
     but were otherwise healthy.
 
-    See more details in
-    `physionet website <https://physionet.org/physiobank/database/sleep-edfx/>`_.
+    See more details in the `physionet website
+    <https://physionet.org/physiobank/database/sleep-edfx/>`_.
 
     Parameters
     ----------
@@ -36,8 +37,8 @@ def fetch_data(subjects, recording=[b'Placebo', 'temazepam'],
     path : None | str
         Location of where to look for the PhysioNet data storing location.
         If None, the environment variable or config parameter
-        ``MNE_DATASETS_PHYSIONET_SLEEP_PATH`` is used. If it doesn't exist, the
-        "~/mne_data" directory is used. If the Polysomnography dataset
+        ``MNE_DATASETS_PHYSIONET_SLEEP_PATH`` is used. If it doesn't exist,
+        the "~/mne_data" directory is used. If the Polysomnography dataset
         is not found under the given path, the data
         will be automatically downloaded to the specified folder.
     force_update : bool
