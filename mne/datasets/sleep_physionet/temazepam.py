@@ -12,9 +12,12 @@ from ._utils import _check_subjects
 
 data_path = _data_path  # expose _data_path(..) as data_path(..)
 
+BASE_URL='https://physionet.org/physiobank/database/sleep-edfx/sleep-telemetry/'
+
 
 @verbose
-def fetch_data(subjects, path=None, force_update=False,
+def fetch_data(subjects, recording=[b'Placebo', 'temazepam'],
+               path=None, force_update=False,
                update_path=None, base_url=BASE_URL, verbose=None):
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
 
@@ -23,11 +26,8 @@ def fetch_data(subjects, path=None, force_update=False,
     a set of 22 subjects. Subjects had mild difficulty falling asleep
     but were otherwise healthy.
 
-    Only the data with Placebo injection are available. The data with
-    Temazepam have so far not been made public.
-
     See more details in
-    `physionet website <https://physionet.org/pn4/sleep-edfx/>`_.
+    `physionet website <https://physionet.org/physiobank/database/sleep-edfx/>`_.
 
     Parameters
     ----------
@@ -89,7 +89,7 @@ def fetch_data(subjects, path=None, force_update=False,
     _check_subjects(subjects, 22)
 
     path = data_path(path=path, update_path=update_path)
-    params = [path, force_update]
+    params = [path, force_update, base_url]
 
     fnames = []
     for subject in subjects:  # all the subjects are present at this point

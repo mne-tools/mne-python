@@ -17,9 +17,9 @@ TEMAZEPAM_SLEEP_RECORDS = op.join(op.dirname(__file__),
                                   'temazepam_records.csv')
 
 
-def _fetch_one(fname, hashsum, path, force_update):
+def _fetch_one(fname, hashsum, path, force_update, base_url=BASE_URL):
     # Fetch the file
-    url = BASE_URL + '/' + fname
+    url = base_url + '/' + fname
     destination = op.join(path, fname)
     if not op.isfile(destination) or force_update:
         if op.isfile(destination):
@@ -77,21 +77,21 @@ def _data_path(path=None, force_update=False, update_path=None, verbose=None):
     return op.join(path, 'physionet-sleep-data')
 
 
+TEMAZEPAM_RECORDS_URL = 'https://physionet.org/physiobank/database/sleep-edfx/ST-subjects.xls'
+TEMAZEPAM_RECORDS_URL_SHA1 = 'f52fffe5c18826a2bd4c5d5cb375bb4a9008c885'
+sha1sums_fname = op.join(op.dirname(__file__), 'SHA1SUMS')
+
+
 def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     """Help function to download Physionet's temazepam dataset records."""
     pd = _check_pandas_installed()
     tmp = _TempDir()
 
-    # Download files checksum.
-    sha1sums_url = BASE_URL + "SHA1SUMS"
-    sha1sums_fname = op.join(tmp, 'sha1sums')
-    _fetch_file(sha1sums_url, sha1sums_fname)
-
     # Download subjects info.
-    subjects_url = BASE_URL + 'ST-subjects.xls'
     subjects_fname = op.join(tmp, 'ST-subjects.xls')
-    _fetch_file(url=subjects_url, file_name=subjects_fname,
-                hash_='f52fffe5c18826a2bd4c5d5cb375bb4a9008c885',
+    _fetch_file(url=TEMAZEPAM_RECORDS_URL,
+                file_name=subjects_fname,
+                hash_=TEMAZEPAM_RECORDS_URL_SHA1,
                 hash_type='sha1')
 
     # Load and Massage the checksums.
@@ -123,7 +123,6 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
 
     data = data.set_index(['id', 'subject', 'age', 'sex', 'drug',
                            'lights off', 'night nr', 'record type']).unstack()
-    data = data.drop(columns=[('sha', np.nan), ('fname', np.nan)])
     data.columns = [l1 + '_' + l2 for l1, l2 in data.columns]
     data = data.reset_index().drop(columns=['id'])
 
@@ -133,8 +132,6 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     data['drug'] = data['drug'].str.split(expand=True)[0]
     data['subject_orig'] = data['subject']
     data['subject'] = data.index // 2  # to make sure index is from 0 to 21
-
-    data.dropna(inplace=True)
 
     # Save the data.
     data.to_csv(fname, index=False)

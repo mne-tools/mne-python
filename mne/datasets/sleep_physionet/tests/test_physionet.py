@@ -35,7 +35,8 @@ def _keep_basename_only(path_structure):
 
 
 def _get_expected_url(name):
-    return BASE_URL + '/' + name
+    base = BASE_URL if name.startswith('SC') else 'https://physionet.org/physiobank/database/sleep-edfx/sleep-telemetry/'
+    return base + '/' + name
 
 
 def _get_expected_path(base, name):
