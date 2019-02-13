@@ -35,7 +35,20 @@ matrix:
                PYTHON_VERSION=3.7
           language: python
           python: "3.7"
-
+          addons:
+            apt:
+              packages:
+                - libgl1-mesa-glx
+                - libegl1-mesa
+                - libxrandr2
+                - libxrandr2
+                - libxss1
+                - libxcursor1
+                - libxcomposite1
+                - libasound2
+                - libxi6
+                - libxtst6
+                - qt5-default
         # Old dependencies
         - os: linux
           env: PYTHON_VERSION=3.5

@@ -4,8 +4,7 @@ version: 2
 jobs:
     build_docs:
       docker:
-        # 3.6-jessie is too new for conda
-        - image: circleci/python:3.6-jessie
+        - image: circleci/python:3.7-stretch
       steps:
         - checkout
         - run:
@@ -15,7 +14,7 @@ jobs:
               echo "export SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects" >> $BASH_ENV;
               echo "export DISPLAY=:99" >> $BASH_ENV;
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV;
-              echo "export PATH=~/miniconda/bin:$PATH" >> $BASH_ENV;
+              echo "export PATH=~/.local/bin:$PATH" >> $BASH_ENV;
         - run:
             name: Merge with upstream
             command: |
@@ -52,23 +51,15 @@ jobs:
         - run:
             name: Fix libgcc_s.so.1 pthread_cancel bug
             command: |
-              sudo apt-get install libgl1-mesa-glx libegl1-mesa libxrandr2 libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6 qt5-default
+              sudo apt-get install libgl1-mesa-glx libegl1-mesa libxrandr2 libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6
 
         - run:
-            name: Get Anaconda running
+            name: Get Python running
             # pip install --user --upgrade --progress-bar off https://api.github.com/repos/larsoner/numpydoc/zipball/xref-param-type
             command: |
-              wget -q http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh;
-              chmod +x ~/miniconda.sh;
-              ~/miniconda.sh -b -p ~/miniconda;
-              export export PATH=~/miniconda/bin:$PATH;
-              conda update --yes --quiet conda;
-              conda env create --quiet -f environment.yml;
-              source activate mne;
-              conda install sphinx;
-              pip install --progress-bar off sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler
-              pip uninstall --yes mne;
-              echo "source activate mne" >> $BASH_ENV;
+              pip install --user -q --upgrade pip numpy
+              pip install --user --progress-bar off -r requirements.txt
+              pip install --user --progress-bar off sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler "https://api.github.com/repos/nipy/PySurfer/zipball/master"
 
         - save_cache:
             key: pip-cache
@@ -89,7 +80,7 @@ jobs:
         - run:
             name: Get data
             command: |
-              python setup.py develop
+              python setup.py develop --user
               if ! git remote -v | grep upstream ; then git remote add upstream git://github.com/mne-tools/mne-python.git; fi
               git fetch upstream
               git branch -a
