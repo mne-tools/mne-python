@@ -17,23 +17,23 @@ import numpy as np
 from scipy import linalg
 from scipy.fftpack import fft, ifft
 
+from .multitaper import dpss_windows
+
 from ..baseline import rescale
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, check_fname, sizeof_fmt,
-                     GetEpochsMixin, _prepare_read_metadata,
-                     _prepare_write_metadata, _check_event_id, _gen_events)
+                     GetEpochsMixin, _prepare_read_metadata, fill_doc,
+                     _prepare_write_metadata, _check_event_id, _gen_events,
+                     SizeMixin, _is_numeric)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
-from ..io.pick import (pick_info, _pick_data_channels,
-                       channel_type, _pick_inst, _get_channel_types)
+from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
+                       _get_channel_types)
 from ..io.meas_info import Info
-from ..utils import SizeMixin, _is_numeric, fill_doc
-from .multitaper import dpss_windows
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap, warn,
                          _connection_line, _prepare_joint_axes,
                          _setup_vmin_vmax, _set_title_multiple_electrodes)
 from ..externals.h5io import write_hdf5, read_hdf5
-# Make wavelet
 
 
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
@@ -597,8 +597,8 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     data = _get_data(inst, return_itc)
     info = inst.info
 
-    info, data, picks = _prepare_picks(info, data, picks)
-    data = data[:, picks, :]
+    info, data = _prepare_picks(info, data, picks, axis=1)
+    del picks
 
     if average:
         if output == 'complex':
@@ -826,9 +826,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
     n_jobs : int,  default 1
         The number of jobs to run in parallel.
-    picks : array-like of int | None, default None
-        The indices of the channels to decompose. If None, all available
-        good data channels are decomposed.
+    %(picks_good_data)s
     average : bool, default True
         If True average across Epochs.
 
@@ -1036,9 +1034,7 @@ class AverageTFR(_BaseTFR):
 
         Parameters
         ----------
-        picks : None | array-like of int
-            The indices of the channels to plot, one figure per channel. If
-            None, plot the across-channel average.
+        %(picks_good_data)s
         baseline : None (default) or tuple, shape (2,)
             The time interval to apply baseline correction.
             If None do not apply it. If baseline is (a, b)
@@ -1191,6 +1187,7 @@ class AverageTFR(_BaseTFR):
         tfr = _preproc_tfr_instance(
             self, picks, tmin, tmax, fmin, fmax, vmin, vmax, dB, mode,
             baseline, exclude, copy)
+        del picks
 
         data = tfr.data
         n_picks = len(tfr.ch_names) if combine is None else 1
@@ -1245,6 +1242,9 @@ class AverageTFR(_BaseTFR):
                 fig.suptitle(title)
 
             plt_show(show)
+            # XXX This is inside the loop, guaranteeing a single iter!
+            # Also there is no None-contingent behavior here so the docstring
+            # was wrong (saying it would be collapsed)
             return fig
 
     @verbose
@@ -1261,9 +1261,7 @@ class AverageTFR(_BaseTFR):
         timefreqs : None | list of tuple | dict of tuple
             The time-frequency point(s) for which topomaps will be plotted.
             See Notes.
-        picks : None | array-like of int
-            The indices of the channels to plot, one figure per channel. If
-            None, plot the across-channel aggregation (defaults to "mean").
+        %(picks_good_data)s
         baseline : None (default) or tuple of length 2
             The time interval to apply baseline correction.
             If None do not apply it. If baseline is (a, b)
@@ -1372,7 +1370,7 @@ class AverageTFR(_BaseTFR):
         .. versionadded:: 0.16.0
 
         """  # noqa: E501
-        from ..viz.topomap import _set_contour_locator
+        from ..viz.topomap import _set_contour_locator, plot_topomap
         from ..channels.layout import (find_layout, _merge_grad_data,
                                        _pair_grad_sensors)
         import matplotlib.pyplot as plt
@@ -1468,7 +1466,6 @@ class AverageTFR(_BaseTFR):
         # Topomaps #
         ############
 
-        from ..viz import plot_topomap
         titles, all_data, all_pos, vlims = [], [], [], []
 
         # the structure here is a bit complicated to allow aggregating vlims
@@ -1513,12 +1510,12 @@ class AverageTFR(_BaseTFR):
 
             # merging grads here before rescaling makes ERDs visible
             if ch_type == 'grad':
-                picks, new_pos = _pair_grad_sensors(tfr.info,
-                                                    find_layout(tfr.info))
+                pair_picks, new_pos = _pair_grad_sensors(tfr.info,
+                                                         find_layout(tfr.info))
                 if layout is None:
                     pos = new_pos
                 method = combine or 'rms'
-                data = _merge_grad_data(data[picks], method=method)
+                data = _merge_grad_data(data[pair_picks], method=method)
 
             all_pos.append(pos)
 
@@ -1627,6 +1624,7 @@ class AverageTFR(_BaseTFR):
                                  baseline=baseline, mode=mode, cmap=None,
                                  title=ch_type, vmin=None, vmax=None, axes=ax)
 
+    @fill_doc
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
                   layout=None, cmap='RdBu_r', title=None, dB=False,
@@ -1637,9 +1635,7 @@ class AverageTFR(_BaseTFR):
 
         Parameters
         ----------
-        picks : array-like of int | None
-            The indices of the channels to plot. If None, all available
-            channels are displayed.
+        %(picks_good_data)s
         baseline : None (default) or tuple of length 2
             The time interval to apply baseline correction.
             If None do not apply it. If baseline is (a, b)
@@ -1723,8 +1719,8 @@ class AverageTFR(_BaseTFR):
         data = self.data
         info = self.info
 
-        info, data, picks = _prepare_picks(info, data, picks)
-        data = data[picks]
+        info, data = _prepare_picks(info, data, picks, axis=0)
+        del picks
 
         data, times, freqs, vmin, vmax = \
             _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax,
@@ -2133,16 +2129,14 @@ def _get_data(inst, return_itc):
     return data
 
 
-def _prepare_picks(info, data, picks):
+def _prepare_picks(info, data, picks, axis):
     """Prepare the picks."""
-    if picks is None:
-        picks = _pick_data_channels(info, with_ref_meg=True, exclude='bads')
-    if np.array_equal(picks, np.arange(len(data))):
-        picks = slice(None)
-    else:
-        info = pick_info(info, picks)
-
-    return info, data, picks
+    picks = _picks_to_idx(info, picks, exclude='bads')
+    info = pick_info(info, picks)
+    sl = [slice(None)] * data.ndim
+    sl[axis] = picks
+    data = data[tuple(sl)]
+    return info, data
 
 
 def _centered(arr, newsize):
@@ -2355,9 +2349,8 @@ def _preproc_tfr_instance(tfr, picks, tmin, tmax, fmin, fmax, vmin, vmax, dB,
     """Baseline and truncate (times and freqs) a TFR instance."""
     tfr = tfr.copy() if copy else tfr
 
-    if picks is None:
-        picks = _pick_data_channels(tfr.info, exclude='bads')
-        exclude = None
+    exclude = None if picks is None else exclude
+    picks = _picks_to_idx(tfr.info, picks, exclude='bads')
     pick_names = [tfr.info['ch_names'][pick] for pick in picks]
     tfr.pick_channels(pick_names)
 

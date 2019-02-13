@@ -88,8 +88,6 @@ raw.plot(events=events, n_channels=10, order=order)
 tmin, tmax = -0.2, 0.5
 event_id = {'Auditory/Left': 1, 'Auditory/Right': 2,
             'Visual/Left': 3, 'Visual/Right': 4}
-# Only pick MEG and EOG channels.
-picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True)
 
 ###############################################################################
 # Now we have everything we need to construct the epochs. To get some
@@ -112,7 +110,8 @@ picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True)
 baseline = (None, 0.0)
 reject = {'mag': 4e-12, 'eog': 200e-6}
 epochs = mne.Epochs(raw, events=events, event_id=event_id, tmin=tmin,
-                    tmax=tmax, baseline=baseline, reject=reject, picks=picks)
+                    tmax=tmax, baseline=baseline, reject=reject,
+                    picks=('meg', 'eog'))  # only include MEG and EOG
 
 ###############################################################################
 # Let's plot the epochs to see the results. The number at the top refers to the

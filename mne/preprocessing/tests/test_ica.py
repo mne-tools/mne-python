@@ -303,8 +303,8 @@ def test_ica_core(method):
 
     offender = 1, 2, 3,
     pytest.raises(ValueError, ica.get_sources, offender)
-    pytest.raises(ValueError, ica.fit, offender)
-    pytest.raises(ValueError, ica.apply, offender)
+    pytest.raises(TypeError, ica.fit, offender)
+    pytest.raises(TypeError, ica.apply, offender)
 
 
 @requires_sklearn

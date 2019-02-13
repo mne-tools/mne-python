@@ -13,14 +13,14 @@ import sys
 import numpy as np
 from scipy import sparse
 
-from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
-from ..utils import _check_preload, _validate_type
+from ..utils import (verbose, logger, warn, copy_function_doc_to_method_doc,
+                     _check_preload, _validate_type, fill_doc)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _PICK_TYPES_KEYS,
-                       channel_indices_by_type, pick_channels)
+                       channel_indices_by_type, pick_channels, _picks_to_idx)
 
 
 def _get_meg_system(info):
@@ -343,16 +343,14 @@ class SetChannelsMixin(object):
 
         Parameters
         ----------
-        picks : array-like of int | None
-            Indices of channels to include. If None (default), all meg and eeg
-            channels that are available are returned (bad channels excluded).
+        picks : str | list | slice | None
+            None gets good data indices.
 
         Notes
         -----
         .. versionadded:: 0.9.0
         """
-        if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True)
+        picks = _picks_to_idx(self.info, picks)
         chs = self.info['chs']
         pos = np.array([chs[k]['loc'][:3] for k in picks])
         n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)
@@ -709,6 +707,26 @@ class UpdateChannelsMixin(object):
         return self._pick_drop_channels(
             pick_channels(self.info['ch_names'], ch_names))
 
+    @fill_doc
+    def pick(self, picks, exclude=()):
+        """Pick a subset of channels.
+
+        Parameters
+        ----------
+        %(picks_all)s
+        exclude : list | str
+            Set of channels to exclude, only used when picking based on
+            types (e.g., exclude="bads" when picks="meg").
+
+        Returns
+        -------
+        inst : instance of Raw, Epochs, or Evoked
+            The modified instance.
+        """
+        picks = _picks_to_idx(self.info, picks, 'all', exclude,
+                              allow_empty=False)
+        return self._pick_drop_channels(picks)
+
     def reorder_channels(self, ch_names):
         """Reorder channels.
 
@@ -1023,6 +1041,7 @@ def _recursive_flatten(cell, dtype):
     return cell
 
 
+@fill_doc
 def read_ch_connectivity(fname, picks=None):
     """Parse FieldTrip neighbors .mat file.
 
@@ -1035,9 +1054,8 @@ def read_ch_connectivity(fname, picks=None):
     fname : str
         The file name. Example: 'neuromag306mag', 'neuromag306planar',
         'ctf275', 'biosemi64', etc.
-    picks : array-like of int, shape (n_channels,)
-        The indices of the channels to include. Must match the template.
-        Defaults to None.
+    %(picks_all)s
+        Picks Must match the template.
 
     Returns
     -------
@@ -1076,20 +1094,14 @@ def read_ch_connectivity(fname, picks=None):
 
     nb = loadmat(fname)['neighbours']
     ch_names = _recursive_flatten(nb['label'], str)
+    picks = _picks_to_idx(len(ch_names), picks)
     neighbors = [_recursive_flatten(c, str) for c in
                  nb['neighblabel'].flatten()]
     assert len(ch_names) == len(neighbors)
-    if picks is not None:
-        if max(picks) >= len(ch_names):
-            raise ValueError('The picks must be compatible with '
-                             'channels. Found a pick ({}) which exceeds '
-                             'the channel range ({})'
-                             .format(max(picks), len(ch_names)))
     connectivity = _ch_neighbor_connectivity(ch_names, neighbors)
-    if picks is not None:
-        # picking before constructing matrix is buggy
-        connectivity = connectivity[picks][:, picks]
-        ch_names = [ch_names[p] for p in picks]
+    # picking before constructing matrix is buggy
+    connectivity = connectivity[picks][:, picks]
+    ch_names = [ch_names[p] for p in picks]
     return connectivity, ch_names
 
 

@@ -100,8 +100,8 @@ def test_plot_ica_components():
     assert (lbl == title)
 
     ica.info = None
-    pytest.raises(ValueError, ica.plot_components, 1)
-    pytest.raises(RuntimeError, ica.plot_components, 1, ch_type='mag')
+    with pytest.raises(RuntimeError, match='fit the ICA'):
+        ica.plot_components(1, ch_type='mag')
     plt.close('all')
 
 

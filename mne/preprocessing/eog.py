@@ -170,9 +170,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
         The argument is mandatory if the dataset contains no EOG channels.
     event_id : int
         The index to assign to found events
-    picks : array-like of int | None (default)
-        Indices of channels to include (if None, all channels
-        are used).
+    %(picks_all)s
     tmin : float
         Start time before event.
     tmax : float

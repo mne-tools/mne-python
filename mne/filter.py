@@ -6,6 +6,7 @@ from functools import partial
 import numpy as np
 from scipy.fftpack import ifftshift, fftfreq
 
+from .io.pick import _picks_to_idx
 from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
                    _setup_cuda_fft_resample, _fft_resample, _smart_pad)
 from .fixes import get_sosfiltfilt, minimum_phase
@@ -140,10 +141,8 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
         uncompensated. If 'zero-double', the filter is applied in the
         forward and reverse directions. If 'minimum', a minimum-phase
         filter will be used.
-    picks : array-like of int | None
-        Indices of channels to filter. If None all channels will be
-        filtered. Only supported for 2D (n_channels, n_times) and 3D
-        (n_epochs, n_channels, n_times) data.
+    picks : list | None
+        See calling functions.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
         is installed properly.
@@ -202,7 +201,7 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
         n_jobs, h, n_fft)
 
     # Process each row separately
-    picks = np.arange(len(x)) if picks is None else picks
+    picks = _picks_to_idx(len(x), picks)
     if n_jobs == 1:
         for p in picks:
             x[p] = _1d_overlap_filter(x[p], len(h), n_edge, phase,
@@ -271,10 +270,9 @@ def _prep_for_filtering(x, copy, picks=None):
         x = x.copy()
     orig_shape = x.shape
     x = np.atleast_2d(x)
+    picks = _picks_to_idx(x.shape[-2], picks)
     x.shape = (np.prod(x.shape[:-1]), x.shape[-1])
-    if picks is None:
-        picks = np.arange(x.shape[0])
-    elif len(orig_shape) == 3:
+    if len(orig_shape) == 3:
         n_epochs, n_channels, n_times = orig_shape
         offset = np.repeat(np.arange(0, n_channels * n_epochs, n_channels),
                            len(picks))
@@ -282,10 +280,7 @@ def _prep_for_filtering(x, copy, picks=None):
     elif len(orig_shape) > 3:
         raise ValueError('picks argument is not supported for data with more'
                          ' than three dimensions')
-    picks = np.array(picks, int).ravel()
-    if not all(0 <= pick < x.shape[0] for pick in picks) or \
-            len(set(picks)) != len(picks):
-        raise ValueError('bad argument for "picks": %s' % (picks,))
+    assert all(0 <= pick < x.shape[0] for pick in picks)  # guaranteed by above
 
     return x, orig_shape, picks
 
@@ -744,11 +739,9 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     h_freq : float | None
         High cut-off frequency in Hz. If None the data are only
         high-passed.
-    picks : array-like of int | None
-        Indices of channels to filter. If None all channels will be
-        filtered. Currently this is only supported for
-        2D (n_channels, n_times) and 3D (n_epochs, n_channels, n_times)
-        arrays.
+    %(picks_nostr)s
+        Currently this is only supported for 2D (n_channels, n_times) and
+        3D (n_epochs, n_channels, n_times) arrays.
     filter_length : str | int
         Length of the FIR filter to use (if applicable):
 
@@ -1213,9 +1206,8 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
         sinusoidal components to remove when method='spectrum_fit' and
         freqs=None. Note that this will be Bonferroni corrected for the
         number of frequencies, so large p-values may be justified.
-    picks : array-like of int | None
-        Indices of channels to filter. If None all channels will be
-        filtered. Only supported for 2D (n_channels, n_times) and 3D
+    %(picks_nostr)s
+        Only supported for 2D (n_channels, n_times) and 3D
         (n_epochs, n_channels, n_times) data.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
@@ -1942,9 +1934,7 @@ class FilterMixin(object):
         h_freq : float | None
             High cut-off frequency in Hz. If None the data are only
             high-passed.
-        picks : array-like of int | None
-            Indices of channels to filter. If None only the data (MEG/EEG)
-            channels will be filtered.
+        %(picks_good_data)s
         filter_length : str | int
             Length of the FIR filter to use (if applicable):
 
@@ -2171,18 +2161,11 @@ def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
 
 
 def _filt_check_picks(info, picks, h_freq, l_freq):
-    from .io.pick import _pick_data_or_ica
-    data_picks = _pick_data_or_ica(info)
+    from .io.pick import _picks_to_idx
     update_info = False
-    if picks is None:
-        picks = data_picks
-        update_info = True
-        # let's be safe.
-        if len(picks) == 0:
-            raise RuntimeError('Could not find any valid channels for '
-                               'your Raw object. Please contact the '
-                               'MNE-Python developers.')
-    elif h_freq is not None or l_freq is not None:
+    picks = _picks_to_idx(info, picks, 'data_or_ica', exclude=())
+    if h_freq is not None or l_freq is not None:
+        data_picks = _picks_to_idx(info, None, 'data_or_ica', exclude=())
         if np.in1d(data_picks, picks).all():
             update_info = True
         else:

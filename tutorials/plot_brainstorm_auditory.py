@@ -96,8 +96,7 @@ raw_erm = read_raw_ctf(erm_fname, preload=preload)
 raw.set_channel_types({'HEOG': 'eog', 'VEOG': 'eog', 'ECG': 'ecg'})
 if not use_precomputed:
     # Leave out the two EEG channels for easier computation of forward.
-    raw.pick_types(meg=True, eeg=False, stim=True, misc=True, eog=True,
-                   ecg=True)
+    raw.pick(['meg', 'stim', 'misc', 'eog', 'ecg'])
 
 ###############################################################################
 # For noise reduction, a set of bad segments have been identified and stored
@@ -167,11 +166,10 @@ raw.plot(block=True)
 # saving mode we do the filtering at evoked stage, which is not something you
 # usually would do.
 if not use_precomputed:
-    meg_picks = mne.pick_types(raw.info, meg=True, eeg=False)
-    raw.plot_psd(tmax=np.inf, picks=meg_picks)
+    raw.plot_psd(tmax=np.inf, picks='meg')
     notches = np.arange(60, 181, 60)
     raw.notch_filter(notches, phase='zero-double', fir_design='firwin2')
-    raw.plot_psd(tmax=np.inf, picks=meg_picks)
+    raw.plot_psd(tmax=np.inf, picks='meg')
 
 ###############################################################################
 # We also lowpass filter the data at 100 Hz to remove the hf components.
@@ -219,10 +217,7 @@ raw.info['bads'] = ['MLO52-4408', 'MRT51-4408', 'MLO42-4408', 'MLO43-4408']
 # The epochs overlapping with annotated bad segments are also rejected by
 # default. To turn off rejection by bad segments (as was done earlier with
 # saccades) you can use keyword ``reject_by_annotation=False``.
-picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
-                       exclude='bads')
-
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=['meg', 'eog'],
                     baseline=(None, 0), reject=reject, preload=False,
                     proj=True)
 
@@ -238,7 +233,7 @@ epochs_standard.load_data()  # Resampling to save memory.
 epochs_standard.resample(600, npad='auto')
 epochs_deviant = epochs['deviant'].load_data()
 epochs_deviant.resample(600, npad='auto')
-del epochs, picks
+del epochs
 
 ###############################################################################
 # The averages for each conditions are computed.

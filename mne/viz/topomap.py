@@ -19,8 +19,8 @@ import numpy as np
 from ..baseline import rescale
 from ..fixes import _remove_duplicate_rows
 from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
-                       _pick_data_channels, pick_channels)
-from ..utils import _clean_names, _time_mask, verbose, logger, warn
+                       _pick_data_channels, pick_channels, _picks_to_idx)
+from ..utils import _clean_names, _time_mask, verbose, logger, warn, fill_doc
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
@@ -1008,6 +1008,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
     _hide_frame(axes)
 
 
+@fill_doc
 def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         layout=None, vmin=None, vmax=None, cmap='RdBu_r',
                         sensors=True, colorbar=False, title=None,
@@ -1020,8 +1021,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     ----------
     ica : instance of mne.preprocessing.ICA
         The ICA solution.
-    picks : int | array-like | None
-        The indices of the sources to be plotted.
+    %(picks_all)s
         If None all are plotted in batches of 20.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are
@@ -1114,6 +1114,10 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     from ..epochs import BaseEpochs
     from ..channels import _get_ch_type
 
+    if ica.info is None:
+        raise RuntimeError('The ICA\'s measurement info is missing. Please '
+                           'fit the ICA or add the corresponding info object.')
+
     if picks is None:  # plot components by sets of 20
         ch_type = _get_ch_type(ica, ch_type)
         n_components = ica.mixing_matrix_.shape[1]
@@ -1131,20 +1135,16 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                                       head_pos=head_pos, inst=inst)
             figs.append(fig)
         return figs
-    elif np.isscalar(picks):
-        picks = [picks]
+    else:
+        picks = _picks_to_idx(ica.info, picks)
     ch_type = _get_ch_type(ica, ch_type)
 
     cmap = _setup_cmap(cmap, n_axes=len(picks))
     data = np.dot(ica.mixing_matrix_[:, picks].T,
                   ica.pca_components_[:ica.n_components_])
 
-    if ica.info is None:
-        raise RuntimeError('The ICA\'s measurement info is missing. Please '
-                           'fit the ICA or add the corresponding info object.')
-
-    data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(ica, ch_type,
-                                                                layout)
+    data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
+        ica, ch_type, layout)
     pos, outlines = _check_outlines(pos, outlines, head_pos)
     if outlines == 'head':
         _autoshrink(outlines, pos, res)
@@ -2097,6 +2097,7 @@ def plot_psds_topomap(
     return fig
 
 
+@fill_doc
 def plot_layout(layout, picks=None, show=True):
     """Plot the sensor positions.
 
@@ -2104,9 +2105,7 @@ def plot_layout(layout, picks=None, show=True):
     ----------
     layout : None | Layout
         Layout instance specifying sensor positions.
-    picks : array-like
-        Indices of the channels to show. If None (default), all the channels
-        are shown.
+    %(picks_all)s
     show : bool
         Show figure if True. Defaults to True.
 
@@ -2128,11 +2127,9 @@ def plot_layout(layout, picks=None, show=True):
     pos = [(p[0] + p[2] / 2., p[1] + p[3] / 2.) for p in layout.pos]
     pos, outlines = _check_outlines(pos, 'head')
     _draw_outlines(ax, outlines)
-    if picks is None:
-        names = layout.names
-    else:
-        pos = pos[picks]
-        names = np.array(layout.names)[picks]
+    picks = _picks_to_idx(len(layout.names), picks)
+    pos = pos[picks]
+    names = np.array(layout.names)[picks]
     for ii, (this_pos, ch_id) in enumerate(zip(pos, names)):
         ax.annotate(ch_id, xy=this_pos[:2], horizontalalignment='center',
                     verticalalignment='center', size='x-small')

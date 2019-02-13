@@ -271,23 +271,6 @@ def _check_ch_locs(chs):
                 np.allclose(locs3d, 0.))
 
 
-def _check_type_picks(picks):
-    """Guarantee type integrity of picks."""
-    err_msg = 'picks must be None, a list or an array of integers'
-    if picks is None:
-        pass
-    elif isinstance(picks, list):
-        for pick in picks:
-            _validate_type(pick, 'int', 'Each pick')
-        picks = np.array(picks)
-    elif isinstance(picks, np.ndarray):
-        if not picks.dtype.kind == 'i':
-            raise TypeError(err_msg)
-    else:
-        raise TypeError(err_msg)
-    return picks
-
-
 def _is_numeric(n):
     return isinstance(n, (np.integer, np.floating, int, float))
 

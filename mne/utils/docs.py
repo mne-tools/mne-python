@@ -22,6 +22,29 @@ verbose : bool, str, int, or None
     and :ref:`Logging documentation <tut_logging>` for more)."""
 )
 docdict['verbose_meth'] = (docdict['verbose'] + ' Defaults to self.verbose.')
+
+docdict['picks_header'] = 'picks : str | list | slice | None'
+docdict['picks_base'] = docdict['picks_header'] + """
+    Channels to include. Slices and lists of integers will be
+    interpreted as channel indices. In lists, channel *type* strings
+    (e.g., ``['meg', 'eeg']``) will pick channels of those
+    types, channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
+    will pick the given channels. Can also be the string values
+    "all" to pick all channels, or "data" to pick data channels.
+    None (default) will pick """
+docdict['picks_all'] = docdict['picks_base'] + 'all channels.\n'
+docdict['picks_all_data'] = docdict['picks_base'] + 'all data channels.\n'
+docdict['picks_all_data_noref'] = (docdict['picks_all_data'][:-2] +
+                                   '(excluding reference MEG channels).\n')
+docdict['picks_good_data'] = docdict['picks_base'] + 'good data channels.\n'
+docdict['picks_good_data_noref'] = (docdict['picks_good_data'][:-2] +
+                                    '(excluding reference MEG channels).\n')
+docdict['picks_nostr'] = """
+picks : list | slice | None
+    Channels to include. Slices and lists of integers will be
+    interpreted as channel indices. None (default) will pick all channels.
+"""
+
 docdict = unindent_dict(docdict)
 fill_doc = filldoc(docdict, unindent_params=False)
 

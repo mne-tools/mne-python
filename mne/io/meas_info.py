@@ -1846,9 +1846,11 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         ch_types = ['misc'] * nchan
     if isinstance(ch_types, str):
         ch_types = [ch_types] * nchan
-    if len(ch_types) != nchan:
+    ch_types = np.atleast_1d(np.array(ch_types, np.str))
+    if ch_types.ndim != 1 or len(ch_types) != nchan:
         raise ValueError('ch_types and ch_names must be the same length '
-                         '(%s != %s)' % (len(ch_types), nchan))
+                         '(%s != %s) for ch_types=%s'
+                         % (len(ch_types), nchan, ch_types))
     info = _empty_info(sfreq)
     for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
         _validate_type(name, 'str', "each entry in ch_names")

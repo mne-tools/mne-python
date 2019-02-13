@@ -60,8 +60,7 @@ class RtEpochs(BaseEpochs):
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
-    picks : array-like of int | None (default)
-        Indices of channels to include (if None, all channels are used).
+    %(picks_all)s
     reject : dict | None
         Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.

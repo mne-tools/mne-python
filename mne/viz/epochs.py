@@ -15,8 +15,10 @@ import copy
 
 import numpy as np
 
-from ..utils import verbose, get_config, set_config, logger, warn, _pl
-from ..io.pick import pick_types, channel_type, _get_channel_types
+from ..utils import (verbose, get_config, set_config, logger, warn, _pl,
+                     fill_doc)
+from ..io.pick import (pick_types, channel_type, _get_channel_types,
+                       _picks_to_idx)
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
@@ -28,6 +30,7 @@ from .misc import _handle_event_colors
 from ..defaults import _handle_default
 
 
+@fill_doc
 def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap=None, fig=None,
@@ -39,9 +42,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     ----------
     epochs : instance of Epochs
         The epochs.
-    picks : int | array-like of int | None
-        The indices of the channels to consider. If None and ``combine`` is
-        also None, the first five good channels are plotted.
+    %(picks_good_data)s
+        If None and ``group_by`` is also None, only the first five good
+        channels are plotted.
     sigma : float
         The standard deviation of the Gaussian smoothing to apply along
         the epoch axis to apply in the image. If 0., no smoothing is applied.
@@ -164,14 +167,13 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         ts_args["show_sensors"] = False
 
     if picks is None:
-        picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
+        picks = _picks_to_idx(epochs.info, picks)
         if group_by is None:
             logger.info("No picks and no groupby, showing the first five "
                         "channels ...")
             picks = picks[:5]  # take 5 picks to prevent spawning many figs
     else:
-        picks = np.atleast_1d(picks)
+        picks = _picks_to_idx(epochs.info, picks)
 
     if "invert_y" in ts_args:
         raise NotImplementedError("'invert_y' found in 'ts_args'. "
@@ -696,6 +698,7 @@ def _epochs_axes_onclick(event, params):
     ax.get_figure().canvas.draw()
 
 
+@fill_doc
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_colors=None, show=True,
                 block=False, decim='auto', noise_cov=None):
@@ -710,9 +713,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     ----------
     epochs : instance of Epochs
         The epochs object
-    picks : array-like of int | None
-        Channels to be included. If None only good data channels are used.
-        Defaults to None
+    %(picks_good_data)s
     scalings : dict | 'auto' | None
         Scaling factors for the traces. If any fields in scalings are 'auto',
         the scaling factor is set to match the 99.5th percentile of a subset of
@@ -861,8 +862,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
-    picks : array-like of int | None
-        List of channels to use.
+    %(picks_good_data)s
     ax : instance of Axes | None
         Axes to plot into. If None, axes will be created.
     color : str | tuple
@@ -941,11 +941,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     from matplotlib.colors import colorConverter
     epochs = params['epochs']
 
-    if picks is None:
-        picks = _handle_picks(epochs)
-    if len(picks) < 1:
-        raise RuntimeError('No appropriate channels found. Please'
-                           ' check your picks')
+    picks = _picks_to_idx(epochs.info, picks)
     picks = sorted(picks)
     # Reorganize channels
     inds = list()

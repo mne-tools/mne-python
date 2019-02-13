@@ -12,7 +12,8 @@ import numpy as np
 
 from ..annotations import _annotations_starts_stops
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
-                       _PICK_TYPES_KEYS, pick_channels, channel_type)
+                       _PICK_TYPES_KEYS, pick_channels, channel_type,
+                       _picks_to_idx)
 from ..io.meas_info import create_info
 from ..utils import verbose, get_config, _ensure_int, _validate_type
 from ..time_frequency import psd_welch
@@ -548,6 +549,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     import matplotlib.pyplot as plt
     if area_mode not in [None, 'std', 'range']:
         raise ValueError('"area_mode" must be "std", "range", or None')
+    picks = _picks_to_idx(info, picks)
 
     # XXX this could be refactored more with e.g., plot_evoked
     # XXX when it's refactored, Report._render_raw will need to be updated
@@ -566,8 +568,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
                                           _data_types):
         these_picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
                                  ref_meg=False)
-        if picks is not None:
-            these_picks = np.intersect1d(these_picks, picks)
+        these_picks = np.intersect1d(these_picks, picks)
         if len(these_picks) > 0:
             picks_list.append(these_picks)
             titles_list.append(titles[name])
@@ -686,8 +687,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Number of points to use in Welch FFT calculations.
         Default is None, which uses the minimum of 2048 and the
         number of time points.
-    picks : array-like of int | None
-        List of channels to use. Cannot be None if `ax` is supplied. If both
+    %(picks_good_data)s
+        Cannot be None if `ax` is supplied. If both
         `picks` and `ax` are None, separate subplots will be created for
         each standard channel type (`mag`, `grad`, and `eeg`).
     ax : instance of matplotlib Axes | None

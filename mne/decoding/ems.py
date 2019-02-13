@@ -10,8 +10,9 @@ import numpy as np
 
 from .mixin import TransformerMixin, EstimatorMixin
 from .base import _set_cv
-from ..utils import logger, verbose
+from ..io.pick import _picks_to_idx
 from ..parallel import parallel_func
+from ..utils import logger, verbose
 from .. import pick_types, pick_info
 
 
@@ -121,8 +122,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
         If a list of strings, strings must match the epochs.event_id's key as
         well as the number of conditions supported by the objective_function.
         If None keys in epochs.event_id are used.
-    picks : array-like of int | None, default None
-        Channels to be included. If None only good data channels are used.
+    %(picks_good_data)s
     n_jobs : int, default 1
         Number of jobs to run in parallel.
     cv : cross-validation object | str | None, default LeaveOneOut
@@ -148,9 +148,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
 
     # Default to leave-one-out cv
     cv = 'LeaveOneOut' if cv is None else cv
-
-    if picks is None:
-        picks = pick_types(epochs.info, meg=True, eeg=True)
+    picks = _picks_to_idx(epochs.info, picks)
 
     if not len(set(Counter(epochs.events[:, 2]).values())) == 1:
         raise ValueError('The same number of epochs is required by '

@@ -32,7 +32,8 @@ from .io.tag import read_tag, read_tag_info
 from .io.constants import FIFF
 from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
-                      _pick_aux_channels, _DATA_CH_TYPES_SPLIT)
+                      _pick_aux_channels, _DATA_CH_TYPES_SPLIT,
+                      _picks_to_idx)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import BaseRaw, ToDataFrameMixin, TimeMixin
 from .bem import _check_origin
@@ -45,7 +46,7 @@ from .event import _read_events_fif, make_fixed_length_events
 from .fixes import _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
-from .utils import (check_fname, logger, verbose, _check_type_picks,
+from .utils import (check_fname, logger, verbose,
                     _time_mask, check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed, _check_preload, GetEpochsMixin,
@@ -209,7 +210,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         See `Epochs` docstring.
     raw : Raw object
         An instance of Raw.
-    picks : array-like of int | None (default)
+    %(picks_header)s
         See `Epochs` docstring.
     reject : dict | None
         See `Epochs` docstring.
@@ -349,18 +350,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self.detrend = detrend
         self._raw = raw
         info._check_consistency()
-        self.info = info
+        self.picks = _picks_to_idx(info, picks, none='all', exclude=(),
+                                   allow_empty=False)
+        self.info = pick_info(info, self.picks)
         del info
         self.metadata = metadata
         self._current = 0
-
-        if picks is None:
-            picks = list(range(len(self.info['ch_names'])))
-        else:
-            self.info = pick_info(self.info, picks)
-        self.picks = _check_type_picks(picks)
-        if len(picks) == 0:
-            raise ValueError("Picks cannot be empty.")
 
         if data is None:
             self.preload = False
@@ -765,14 +760,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         return self
 
+    @fill_doc
     def average(self, picks=None, method="mean"):
         """Compute an average over epochs.
 
         Parameters
         ----------
-        picks : array-like of int | None
-            If None only MEG, EEG, SEEG, ECoG, and fNIRS channels are kept
-            otherwise the channels indices in picks are kept.
+        %(picks_all_data)s
         method : str | callable
             How to combine the data. If "mean"/"median", the mean/median
             are returned.
@@ -810,14 +804,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         return self._compute_aggregate(picks=picks, mode=method)
 
+    @fill_doc
     def standard_error(self, picks=None):
         """Compute standard error over epochs.
 
         Parameters
         ----------
-        picks : array-like of int | None
-            If None only MEG, EEG, SEEG, ECoG, and fNIRS channels are kept
-            otherwise the channels indices in picks are kept.
+        %(picks_all_data)s
 
         Returns
         -------
@@ -923,9 +916,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         evoked.times = self.times.copy()
 
         # pick channels
-        if picks is None:
-            picks = _pick_data_channels(evoked.info, exclude=[])
-
+        picks = _picks_to_idx(self.info, picks, 'data_or_ica', ())
         ch_names = [evoked.ch_names[p] for p in picks]
         evoked.pick_channels(ch_names)
 
@@ -1646,8 +1637,7 @@ class Epochs(BaseEpochs):
         of the baseline period and subtracting it from the data. The baseline
         (a, b) includes both endpoints, i.e. all timepoints t such that
         a <= t <= b.
-    picks : array-like of int | None (default)
-        Indices of channels to include (if None, all channels are used).
+    %(picks_all)s
     preload : boolean
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
@@ -2731,9 +2721,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         The original sample frequency of the data (that matches the
         event sample numbers in ``epochs.events``). Can be ``None``
         if data have not been decimated or resampled.
-    picks : array-like of int | None
-        If None only MEG, EEG, SEEG, ECoG, and fNIRS channels are kept
-        otherwise the channels indices in picks are kept.
+    %(picks_all_data)s
     origin : array-like, shape (3,) | str
         Origin of internal and external multipolar moment space in head
         coords and in meters. The default is ``'auto'``, which means

@@ -10,7 +10,7 @@ import numbers
 
 import numpy as np
 from .tfr import cwt, morlet
-from ..io.pick import pick_channels
+from ..io.pick import pick_channels, _picks_to_idx
 from ..utils import logger, verbose, warn, copy_function_doc_to_method_doc
 from ..viz.misc import plot_csd
 from ..time_frequency.multitaper import (_compute_mt_params, _mt_spectra,
@@ -556,9 +556,7 @@ def csd_fourier(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
     tmax : float | None
         Maximum time instant to consider, in seconds. If ``None`` end at last
         sample.
-    picks : list of str | None
-        The names of the channels to use during CSD computation. Defaults to
-        all good MEG/EEG channels.
+    %(picks_good_data_noref)s
     n_fft : int | None
         Length of the FFT. If ``None``, the exact number of samples between
         ``tmin`` and ``tmax`` will be used.
@@ -693,9 +691,7 @@ def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     tmax : float | None
         Maximum time instant to consider, in seconds. If ``None`` end at last
         sample.
-    picks : list of str | None
-        The ch_names of the channels to use during CSD computation. Defaults to
-        all good MEG/EEG channels.
+    %(picks_good_data_noref)s
     n_fft : int | None
         Length of the FFT. If ``None``, the exact number of samples between
         ``tmin`` and ``tmax`` will be used.
@@ -704,7 +700,7 @@ def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD.
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
@@ -845,9 +841,7 @@ def csd_morlet(epochs, frequencies, tmin=None, tmax=None, picks=None,
     tmax : float | None
         Maximum time instant to consider, in seconds. If ``None`` end at last
         sample.
-    picks : list of str | None
-        The ch_names of the channels to use during CSD computation. Defaults to
-        all good MEG/EEG channels.
+    %(picks_good_data_noref)s
     n_cycles: float | list of float | None
         Number of cycles to use when constructing Morlet wavelets. Fixed number
         or one per frequency. Defaults to 7.
@@ -1001,11 +995,8 @@ def _prepare_csd(epochs, tmin=None, tmax=None, picks=None, projs=None):
         warn('Epochs are not baseline corrected or enough highpass filtered. '
              'Cross-spectral density may be inaccurate.')
 
-    if picks is None:
-        epochs = epochs.copy().pick_types(
-            meg=True, eeg=True, eog=False, ref_meg=False, exclude='bads')
-    else:
-        epochs = epochs.copy().pick_channels(picks)
+    picks = _picks_to_idx(epochs.info, picks, 'data', with_ref_meg=False)
+    epochs = epochs.copy().pick(picks)
 
     if projs is None:
         projs = epochs.info['projs']

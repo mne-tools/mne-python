@@ -101,7 +101,7 @@ def test_plot_epochs(capsys):
     fig.canvas.resize_event()
     fig.canvas.close_event()  # closing and epoch dropping
     plt.close('all')
-    pytest.raises(RuntimeError, epochs.plot, picks=[])
+    pytest.raises(ValueError, epochs.plot, picks=[])
     plt.close('all')
     fig = epochs.plot(events=epochs.events)
     # test mouse clicks
