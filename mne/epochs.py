@@ -51,6 +51,7 @@ from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _check_pandas_installed, _check_preload, GetEpochsMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events)
+from .utils.docs import fill_doc
 
 
 def _pack_reject_params(epochs):
@@ -180,6 +181,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
     end_file(fid)
 
 
+@fill_doc
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
                  ToDataFrameMixin, TimeMixin, SizeMixin, GetEpochsMixin):
@@ -241,10 +243,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         See :class:`mne.Epochs` docstring.
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        raw.verbose.
+    %(verbose)s
 
     Notes
     -----
@@ -253,6 +252,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     used as a constructor for Epochs objects (use instead :class:`mne.Epochs`).
     """
 
+    @verbose
     def __init__(self, info, data, events, event_id=None, tmin=-0.2, tmax=0.5,
                  baseline=(None, 0), raw=None, picks=None, reject=None,
                  flat=None, decim=1, reject_tmin=None, reject_tmax=None,
@@ -467,10 +467,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             .. versionadded:: 0.12
 
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -527,10 +524,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             applied by computing mean of the baseline period and subtracting it
             from the data. The baseline (a, b) includes both endpoints, i.e.
             all timepoints t such that a <= t <= b.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1023,10 +1017,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             are floats that set the minimum acceptable peak-to-peak amplitude.
             If flat is None then no rejection is done. If 'existing',
             then the flat parameters set at instantiation are used.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1121,10 +1112,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         reason : str
             Reason for dropping the epochs ('ECG', 'timeout', 'blink' etc).
             Default: 'USER'.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1174,10 +1162,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         out : bool
             Return the data. Setting this to False is used to reject bad
             epochs without caching all the data, which saves memory.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
         """
         n_events = len(self.events)
         # in case there are no good events
@@ -1401,10 +1386,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             will slightly differ due to the reduction in precision.
 
             .. versionadded:: 0.17
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Notes
         -----
@@ -1631,6 +1613,7 @@ def _drop_log_stats(drop_log, ignore=('IGNORED',)):
     return perc
 
 
+@fill_doc
 class Epochs(BaseEpochs):
     """Epochs extracted from a Raw instance.
 
@@ -1736,10 +1719,7 @@ class Epochs(BaseEpochs):
         MNE will modify the row indices to match ``epochs.selection``.
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        raw.verbose.
+    %(verbose)s
 
     Attributes
     ----------
@@ -1772,8 +1752,7 @@ class Epochs(BaseEpochs):
         Time vector in seconds. Goes from `tmin` to `tmax`. Time interval
         between consecutive time samples is equal to the inverse of the
         sampling frequency.
-    verbose : bool, str, int, or None
-        See above.
+    %(verbose)s
 
     See Also
     --------
@@ -1846,6 +1825,7 @@ class Epochs(BaseEpochs):
         return data
 
 
+@fill_doc
 class EpochsArray(BaseEpochs):
     """Epochs object from numpy array.
 
@@ -1917,9 +1897,7 @@ class EpochsArray(BaseEpochs):
         Can be None to use ``np.arange(len(events))``.
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -2341,9 +2319,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
         be read on demand.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2369,6 +2345,7 @@ class _RawContainer(object):
         self.fid.close()
 
 
+@fill_doc
 class EpochsFIF(BaseEpochs):
     """Epochs read from disk.
 
@@ -2390,10 +2367,7 @@ class EpochsFIF(BaseEpochs):
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
         be read on demand.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        raw.verbose.
+    %(verbose)s
 
     See Also
     --------
@@ -2544,10 +2518,7 @@ def add_channels_epochs(epochs_list, verbose=None):
     ----------
     epochs_list : list of Epochs
         Epochs object to concatenate.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        True if any of the input epochs have verbose=True.
+    %(verbose)s Defaults to True if any of the input epochs have verbose=True.
 
     Returns
     -------
@@ -2806,9 +2777,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
 
         .. versionadded:: 0.13
 
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

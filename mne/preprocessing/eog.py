@@ -39,9 +39,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         Whether to omit data that is annotated as bad.
     thresh : float
         Threshold to trigger EOG event.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -218,9 +216,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
         .. versionadded:: 0.14.0
     thresh : float
         Threshold to trigger EOG event.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

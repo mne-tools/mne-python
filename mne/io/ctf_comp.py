@@ -67,9 +67,7 @@ def read_ctf_comp(fid, node, chs, verbose=None):
     chs : list
         The list of channels from info['chs'] to match with
         compensators that are read.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

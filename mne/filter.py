@@ -822,10 +822,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
         Only used for ``method='fir'``.
 
         .. versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        self.verbose.
+    %(verbose)s
 
     Returns
     -------
@@ -948,10 +945,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
         attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        self.verbose.
+    %(verbose)s
 
     Returns
     -------
@@ -1258,9 +1252,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
         Only used for ``method='fir'``.
 
         .. versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1499,9 +1491,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
         values of the vector, followed by zeros.
 
         .. versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1864,10 +1854,7 @@ class FilterMixin(object):
             done using polynomial fits instead of FIR/IIR filtering.
             This parameter is thus used to determine the length of the
             window over which a 5th-order polynomial smoothing is used.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -2021,10 +2008,7 @@ class FilterMixin(object):
             values of the vector, followed by zeros. The default is "edge",
             which pads with the edge values of each vector.
             Only used for ``method='fir'``.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -2074,10 +2058,7 @@ class FilterMixin(object):
             which pads with the edge values of each vector.
 
             .. versionadded:: 0.15
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` :ref:`Logging documentation <tut_logging>` for
-            more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -2133,10 +2114,7 @@ def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
         Low transition bandwidthin Hz. Can be None (default) to use 3 samples.
     h_trans_bandwidth : float
         High transition bandwidth in Hz.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        self.verbose.
+    %(verbose)s
 
     Returns
     -------

@@ -392,9 +392,7 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
     exclude : list, optional
         List of names of channels to exclude. If empty include all
         channels.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -581,9 +579,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     use_cps : bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations. Only used when surf_ori and/or force_fixed are True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -725,9 +721,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         Forward solution.
     overwrite : bool
         If True, overwrite destination file (if it exists).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------
@@ -952,9 +946,7 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
         Forward operator.
     loose : float in [0, 1]
         The loose orientation parameter.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1180,9 +1172,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
         orientations when converting to fixed orientation (if necessary).
 
         .. versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1243,9 +1233,7 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
         Index of first time sample (index not time is seconds).
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1513,9 +1501,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         If False (default), an error will be raised if the file exists.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------

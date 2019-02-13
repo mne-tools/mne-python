@@ -42,8 +42,7 @@ def oversampled_temporal_projection(raw, duration=10., picks=None,
     picks : list of int | None
         The channels to process. If None, all data channels will be
         processed together.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose)
+    %(verbose)s
 
     Returns
     -------

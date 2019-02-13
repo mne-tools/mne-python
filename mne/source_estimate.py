@@ -18,7 +18,8 @@ from .surface import read_surface, _get_ico_surface, mesh_edges
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
-                    _time_mask, warn as warn_, copy_function_doc_to_method_doc)
+                    _time_mask, warn as warn_, copy_function_doc_to_method_doc,
+                    fill_doc)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import ToDataFrameMixin, TimeMixin
@@ -454,9 +455,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
     subject : str | None
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Attributes
     ----------
@@ -567,10 +566,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             Window to use in resampling. See scipy.signal.resample.
         n_jobs : int
             Number of jobs to run in parallel.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Notes
         -----
@@ -1067,6 +1063,7 @@ def _center_of_mass(vertices, values, hemi, surf, subject, subjects_dir,
     return vertex
 
 
+@fill_doc
 class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
     """Abstract base class for surface source estimates.
 
@@ -1083,9 +1080,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
     subject : str | None
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Attributes
     ----------
@@ -1269,10 +1264,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             to be provided, since it is stored in the source space itself.
         subjects_dir : string, or None
             Path to SUBJECTS_DIR if it is not set in the environment.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1297,6 +1289,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
                               self.tmin, self.tstep, subject_orig)
 
 
+@fill_doc
 class SourceEstimate(_BaseSurfaceSourceEstimate):
     """Container for surface source estimates.
 
@@ -1316,9 +1309,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
     subject : str | None
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Attributes
     ----------
@@ -1355,10 +1346,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         ftype : string
             File format to use. Allowed values are "stc" (default), "w",
             and "h5". The "w" format only supports a single time point.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
         """
         if ftype not in ('stc', 'w', 'h5'):
             raise ValueError('ftype must be "stc", "w", or "h5", not "%s"'
@@ -1432,10 +1420,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         allow_empty : bool
             Instead of emitting an error, return all-zero time course for
             labels that do not have any vertices in the source estimate.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1609,6 +1594,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         return vertex, hemi, t
 
 
+@fill_doc
 class VolSourceEstimate(_BaseSourceEstimate):
     """Container for volume source estimates.
 
@@ -1628,9 +1614,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
     subject : str | None
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Attributes
     ----------
@@ -1690,10 +1674,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
         ftype : string
             File format to use. Allowed values are "stc" (default), "w",
             and "h5". The "w" format only supports a single time point.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
         """
         if ftype not in ['stc', 'w', 'h5']:
             raise ValueError('ftype must be "stc", "w" or "h5", not "%s"' %
@@ -1842,6 +1823,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
                 time_idx if time_as_index else self.times[time_idx])
 
 
+@fill_doc
 class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
     """Container for vector surface source estimates.
 
@@ -1862,8 +1844,7 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
     subject : str | None
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(verbose)s
 
     Attributes
     ----------
@@ -1897,9 +1878,7 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
             '-stc.h5'.
         ftype : string
             File format to use. Currently, the only allowed values is "h5".
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+        %(verbose_meth)s
         """
         if ftype != 'h5':
             raise ValueError('VectorSourceEstimate objects can only be '
@@ -1981,6 +1960,7 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
         return super(VectorSourceEstimate, self).__abs__()
 
 
+@fill_doc
 class MixedSourceEstimate(_BaseSourceEstimate):
     """Container for mixed surface and volume source estimates.
 
@@ -2000,9 +1980,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
     subject : str | None
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Attributes
     ----------
@@ -2135,10 +2113,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         ftype : string
             File format to use. Allowed values are "stc" (default), "w",
             and "h5". The "w" format only supports a single time point.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
         """
         if ftype != 'h5':
             raise ValueError('MixedSourceEstimate objects can only be '
@@ -2227,9 +2202,7 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors. If None, immediate neighbors
         are extracted from an ico surface.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2264,9 +2237,7 @@ def grade_to_tris(grade, verbose=None):
     ----------
     grade : int
         Grade of an icosahedral mesh.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2293,9 +2264,7 @@ def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
     remap_vertices : bool
         Reassign vertex indices based on unique values. Useful
         to process a subset of triangles. Defaults to False.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2329,9 +2298,7 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
     dist : float
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2368,9 +2335,7 @@ def spatial_src_connectivity(src, dist=None, verbose=None):
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors. If None, immediate neighbors
         are extracted from an ico surface.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2391,9 +2356,7 @@ def spatial_tris_connectivity(tris, remap_vertices=False, verbose=None):
     remap_vertices : bool
         Reassign vertex indices based on unique values. Useful
         to process a subset of triangles. Defaults to False.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2403,6 +2366,7 @@ def spatial_tris_connectivity(tris, remap_vertices=False, verbose=None):
     return spatio_temporal_tris_connectivity(tris, 1, remap_vertices)
 
 
+@verbose
 def spatial_dist_connectivity(src, dist, verbose=None):
     """Compute connectivity from distances in a source space.
 
@@ -2415,9 +2379,7 @@ def spatial_dist_connectivity(src, dist, verbose=None):
     dist : float
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2427,6 +2389,7 @@ def spatial_dist_connectivity(src, dist, verbose=None):
     return spatio_temporal_dist_connectivity(src, 1, dist)
 
 
+@verbose
 def spatial_inter_hemi_connectivity(src, dist, verbose=None):
     """Get vertices on each hemisphere that are close to the other hemisphere.
 
@@ -2437,9 +2400,7 @@ def spatial_inter_hemi_connectivity(src, dist, verbose=None):
     dist : float
         Maximal Euclidean distance (in m) between vertices in one hemisphere
         compared to the other to consider neighbors.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2664,9 +2625,7 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
         that do not have any vertices in the source estimate.
     return_generator : bool
         If True, a generator instead of a list is returned.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

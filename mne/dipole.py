@@ -32,9 +32,10 @@ from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
-                    check_fname, _pl)
+                    check_fname, _pl, fill_doc)
 
 
+@fill_doc
 class Dipole(object):
     u"""Dipole class for sequential dipole fits.
 
@@ -76,6 +77,7 @@ class Dipole(object):
         The number of free parameters for each fit.
 
         .. versionadded:: 0.15
+    %(verbose)s
 
     See Also
     --------
@@ -90,8 +92,10 @@ class Dipole(object):
     position is fixed as a function of time, use :class:`mne.DipoleFixed`.
     """
 
+    @verbose
     def __init__(self, times, pos, amplitude, ori, gof,
-                 name=None, conf=None, khi2=None, nfree=None):  # noqa: D102
+                 name=None, conf=None, khi2=None, nfree=None,
+                 verbose=None):  # noqa: D102
         self.times = np.array(times)
         self.pos = np.array(pos)
         self.amplitude = np.array(amplitude)
@@ -101,6 +105,7 @@ class Dipole(object):
         self.conf = deepcopy(conf) if conf is not None else dict()
         self.khi2 = np.array(khi2) if khi2 is not None else None
         self.nfree = np.array(nfree) if nfree is not None else None
+        self.verbose = verbose
 
     def __repr__(self):  # noqa: D105
         s = "n_times : %s" % len(self.times)
@@ -252,10 +257,7 @@ class Dipole(object):
             Only used if mode equals 'orthoview'.
 
             .. versionadded:: 0.14.0
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -358,6 +360,7 @@ def _read_dipole_fixed(fname):
                        comment)
 
 
+@fill_doc
 class DipoleFixed(object):
     """Dipole class for fixed-position dipole fits.
 
@@ -382,9 +385,7 @@ class DipoleFixed(object):
         Last sample.
     comment : str
         The dipole comment.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------
@@ -450,10 +451,7 @@ class DipoleFixed(object):
             The name of the .fif file. Must end with ``'.fif'`` or
             ``'.fif.gz'`` to make it explicit that the file contains
             dipole information in FIF format.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
         """
         check_fname(fname, 'DipoleFixed', ('-dip.fif', '-dip.fif.gz',
                                            '_dip.fif', '_dip.fif.gz',),
@@ -495,9 +493,7 @@ def read_dipole(fname, verbose=None):
     ----------
     fname : str
         The name of the .dip or .fif file.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1036,9 +1032,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
 
         .. versionadded:: 0.12
 
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

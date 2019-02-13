@@ -245,9 +245,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         Origin of the sphere in the head coordinate frame and in meters.
         The default is ``'auto'``, which means a head-digitization-based
         origin fit.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -373,9 +371,7 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         .. versionadded:: 0.11
     n_jobs : int
         The number of jobs to run in parallel.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

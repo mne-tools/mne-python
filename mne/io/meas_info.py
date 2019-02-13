@@ -603,9 +603,7 @@ def read_fiducials(fname, verbose=None):
     ----------
     fname : str
         The filename to read.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -653,9 +651,7 @@ def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
     coord_frame : int
         The coordinate frame of the points (one of
         mne.io.constants.FIFF.FIFFV_COORD_...).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
     write_dig(fname, pts, coord_frame)
 
@@ -892,9 +888,7 @@ def read_info(fname, verbose=None):
     ----------
     fname : str
         File name.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -948,9 +942,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         If True, clean info['bads'] before running consistency check.
         Should only be needed for old files where we did not check bads
         before saving.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1710,9 +1702,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         If True, force the fields for objects in `info` will be updated
         to match those in the first item. Use at your own risk, as this
         may overwrite important metadata.
-    verbose : bool, str, int, or NonIe
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1815,9 +1805,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         digitizer information will be updated. A list of unique montages,
         can be specified and applied to the info. See also the documentation of
         :func:`mne.channels.read_montage` for more information.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

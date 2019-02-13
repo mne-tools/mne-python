@@ -34,8 +34,7 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(verbose)s
     pos_fname : str or None (default None)
         If not None, load digitized head points from this file
     add_head_trans : bool (default True)
@@ -306,8 +305,7 @@ class RawArtemis123(BaseRaw):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(verbose)s
 
     See Also
     --------

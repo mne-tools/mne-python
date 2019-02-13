@@ -27,7 +27,7 @@ from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, _pick_data_channels,
                        channel_type, _pick_inst, _get_channel_types)
 from ..io.meas_info import Info
-from ..utils import SizeMixin, _is_numeric
+from ..utils import SizeMixin, _is_numeric, fill_doc
 from .multitaper import dpss_windows
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap, warn,
                          _connection_line, _prepare_joint_axes,
@@ -312,9 +312,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     n_jobs : int, default 1
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
-    verbose : bool, str, int, or None, default None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -691,9 +689,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         average must be False.
 
         .. versionadded:: 0.15.0
-    verbose : bool, str, int, or None, default None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -763,9 +759,7 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
     n_jobs : int
         The number of epochs to process at the same time. The parallelization
         is implemented across channels. default 1
-    verbose : bool, str, int, or None, default None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -839,9 +833,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         If True average across Epochs.
 
         .. versionadded:: 0.13.0
-    verbose : bool, str, int, or None, default None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -940,9 +932,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
               dividing by the standard deviation of log baseline values
               ('zlogratio')
 
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose`).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -965,6 +955,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         write_tfrs(fname, self, overwrite=overwrite)
 
 
+@fill_doc
 class AverageTFR(_BaseTFR):
     """Container for Time-Frequency data.
 
@@ -987,9 +978,7 @@ class AverageTFR(_BaseTFR):
         Comment on the data, e.g., the experimental condition.
     method : str | None, default None
         Comment on the method used to compute the data, e.g., morlet wavelet.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Attributes
     ----------
@@ -1165,9 +1154,7 @@ class AverageTFR(_BaseTFR):
         exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
             bad channels are excluded. Defaults to an empty list.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose`).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1354,9 +1341,7 @@ class AverageTFR(_BaseTFR):
             to style the image. `axes` and `show` are ignored. Beyond that,
             if ``None``, no customizable arguments will be passed.
             Defaults to ``None``.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose`).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1949,6 +1934,7 @@ class AverageTFR(_BaseTFR):
         return "<AverageTFR  |  %s>" % s
 
 
+@fill_doc
 class EpochsTFR(_BaseTFR, GetEpochsMixin):
     """Container for Time-Frequency data on epochs.
 
@@ -1979,9 +1965,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
     metadata : instance of pandas.DataFrame | None
         A :class:`pandas.DataFrame` containing pertinent information for each
         trial. See :class:`mne.Epochs` for further details
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Attributes
     ----------

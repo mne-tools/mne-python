@@ -379,9 +379,7 @@ def pick_info(info, sel=(), copy=True, verbose=None):
         are included.
     copy : bool
         If copy is False, info is modified inplace.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -501,9 +499,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     exclude : list of string | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to [].
         If 'bads', then exclude bad channels in orig.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

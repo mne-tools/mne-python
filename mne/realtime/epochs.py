@@ -11,11 +11,12 @@ import copy
 import numpy as np
 
 from .. import pick_channels
-from ..utils import logger, verbose
+from ..utils import logger, verbose, fill_doc
 from ..epochs import BaseEpochs
 from ..event import _find_events
 
 
+@fill_doc
 class RtEpochs(BaseEpochs):
     """Realtime Epochs.
 
@@ -109,10 +110,7 @@ class RtEpochs(BaseEpochs):
                                verbose='ERROR')
 
         See :func:`mne.find_events` for detailed explanation of these options.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        client.verbose.
+    %(verbose)s Defaults to client.verbose.
 
     Attributes
     ----------
@@ -124,8 +122,7 @@ class RtEpochs(BaseEpochs):
         List of channels' names.
     events : array, shape (n_events, 3)
         The events associated with the epochs currently in the queue.
-    verbose : bool, str, int, or None
-        See above.
+    %(verbose)s
 
     Notes
     -----
@@ -546,10 +543,7 @@ class RtEpochs(BaseEpochs):
 
             .. versionadded:: 0.12
 
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------

@@ -12,6 +12,18 @@ import warnings
 import webbrowser
 
 from .config import get_config
+from ..externals.doccer import filldoc, unindent_dict
+
+
+docdict = dict(
+    verbose="""
+verbose : bool, str, int, or None
+    If not None, override default verbose level (see :func:`mne.verbose`
+    and :ref:`Logging documentation <tut_logging>` for more)."""
+)
+docdict['verbose_meth'] = (docdict['verbose'] + ' Defaults to self.verbose.')
+docdict = unindent_dict(docdict)
+fill_doc = filldoc(docdict, unindent_params=False)
 
 
 def copy_doc(source):
@@ -223,6 +235,9 @@ def linkcode_resolve(domain, info):
             obj = getattr(obj, part)
         except Exception:
             return None
+    # deal with our decorators properly
+    while hasattr(obj, '__wrapped__'):
+        obj = obj.__wrapped__
 
     try:
         fn = inspect.getsourcefile(obj)
@@ -235,8 +250,6 @@ def linkcode_resolve(domain, info):
             fn = None
     if not fn:
         return None
-    if fn == '<string>':  # verbose decorator
-        fn = inspect.getmodule(obj).__file__
     fn = op.relpath(fn, start=op.dirname(mne.__file__))
     fn = '/'.join(op.normpath(fn).split(os.sep))  # in case on Windows
 
