@@ -356,10 +356,11 @@ def reset_warnings(gallery_conf, fname):
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage
                 "'U' mode is deprecated",  # sphinx io
-                'ufunc size changed',  # NumPy imports (sometimes)
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
+    warnings.filterwarnings(  # deal with other modules having bad imports
+        'ignore', message=".*ufuncu size changed.*", category=RuntimeWarning)
     # allow this ImportWarning, but don't show it
     warnings.filterwarnings(
         'ignore', message="can't resolve package from", category=ImportWarning)

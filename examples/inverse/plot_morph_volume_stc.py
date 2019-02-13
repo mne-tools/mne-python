@@ -24,8 +24,7 @@ References
        Evaluating Automated Labeling of Elderly and Neurodegenerative
        Brain, 12(1), 26-41.
 
-.. note:: For a tutorial about morphing see:
-          :ref:`ch_morph`.
+.. note:: For a tutorial about morphing see :ref:`ch_morph`.
 """
 # Author: Tommy Clausner <tommy.clausner@gmail.com>
 #
