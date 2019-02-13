@@ -57,6 +57,18 @@ jobs:
               pip install sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler
               pip uninstall --yes mne;
               echo "source activate mne" >> $BASH_ENV;
+
+        # The conda-provided PyQt5 does not work on CircleCI for some reason,
+        # possibly because the libGL expects a sufficiently modern libgcc
+        # and conda rolls their own (libgcc-ng package).
+        - run:
+            name: Patch Qt
+            command: |
+              conda remove --yes qt pyqt matplotlib sip libxcb icu
+              pip install "PyQt5<5.12" PyQt5-sip sip matplotlib
+              echo "export LD_PRELOAD=~/miniconda/envs/mne/lib/libgobject-2.0.so.0" >> $BASH_ENV
+              pip install --upgrade "https://api.github.com/repos/nipy/PySurfer/zipball/master"
+
         - save_cache:
             key: pip-cache
             paths:
