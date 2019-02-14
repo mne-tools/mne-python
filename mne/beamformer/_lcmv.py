@@ -77,9 +77,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         If True, the rank of the leadfield will be reduced by 1 for each
         spatial location. Setting reduce_rank to True is typically necessary
         if you use a single sphere model for MEG.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -275,9 +273,7 @@ def apply_lcmv(evoked, filters, max_ori_out='signed', verbose=None):
         Filter weights returned from :func:`make_lcmv`.
     max_ori_out: 'signed'
         Specify in case of pick_ori='max-power'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -323,9 +319,7 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='signed',
     return_generator : bool
          Return a generator object instead of a list. This allows iterating
          over the stcs without having to keep them all in memory.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
 
     Returns
@@ -377,9 +371,7 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
         Index of first time sample not to include (index not time is seconds).
     max_ori_out: 'signed'
         Specify in case of pick_ori='max-power'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -567,9 +559,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         The raw instance used to construct the epochs.
         Must be provided unless epochs are constructed with
         ``preload=False``.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

@@ -10,10 +10,10 @@ import time
 import numpy as np
 
 from ..io import _empty_info
-from ..io.pick import pick_info
+from ..io.pick import _picks_to_idx, pick_info
 from ..io.constants import FIFF
 from ..epochs import EpochsArray
-from ..utils import logger, warn
+from ..utils import logger, warn, fill_doc
 from ..externals.FieldTrip import Client as FtClient
 
 
@@ -28,6 +28,7 @@ def _buffer_recv_worker(ft_client):
         logger.error('Buffer receive thread stopped: %s' % err)
 
 
+@fill_doc
 class FieldTripClient(object):
     """Realtime FieldTrip client.
 
@@ -49,9 +50,7 @@ class FieldTripClient(object):
         Time instant to stop receiving buffers.
     buffer_size : int
         Size of each buffer in terms of number of samples.
-    verbose : bool, str, int, or None
-        Log verbosity (see :func:`mne.verbose` and
-        :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
 
     def __init__(self, info=None, host='localhost', port=1972, wait_max=30,
@@ -243,6 +242,7 @@ class FieldTripClient(object):
         """
         return self.info
 
+    @fill_doc
     def get_data_as_epoch(self, n_samples=1024, picks=None):
         """Return last n_samples from current time.
 
@@ -250,9 +250,7 @@ class FieldTripClient(object):
         ----------
         n_samples : int
             Number of samples to fetch.
-        picks : array-like of int | None
-            If None all channels are kept
-            otherwise the channels indices in picks are kept.
+        %(picks_all)s
 
         Returns
         -------
@@ -273,14 +271,9 @@ class FieldTripClient(object):
         data = self.ft_client.getData([start, stop]).transpose()
 
         # create epoch from data
-        info = self.info
-        if picks is not None:
-            info = pick_info(info, picks)
-        else:
-            picks = range(info['nchan'])
-        epoch = EpochsArray(data[picks][np.newaxis], info, events)
-
-        return epoch
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
+        info = pick_info(self.info, picks)
+        return EpochsArray(data[picks][np.newaxis], info, events)
 
     def register_receive_callback(self, callback):
         """Register a raw buffer receive callback.

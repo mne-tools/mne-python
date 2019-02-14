@@ -91,9 +91,7 @@ def read_inverse_operator(fname, verbose=None):
     ----------
     fname : string
         The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -316,9 +314,7 @@ def write_inverse_operator(fname, inv, verbose=None):
         The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
     inv : dict
         The inverse operator.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------
@@ -449,8 +445,6 @@ def combine_xyz(vec, square=False):
         raise ValueError('Input must be 2D')
     if (vec.shape[0] % 3) != 0:
         raise ValueError('Input must have 3N rows')
-
-    n, p = vec.shape
     if np.iscomplexobj(vec):
         vec = np.abs(vec)
     comb = vec[0::3] ** 2
@@ -509,9 +503,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -853,9 +845,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
         Cannot be used with ``method=='eLORETA'``.
 
         .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1040,9 +1030,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1234,9 +1222,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1393,8 +1379,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         Whether to use cortical patch statistics to define normal
         orientations. Only used when converting to surface orientation
         (i.e., for surface source spaces and ``loose < 1``).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`).
+    %(verbose)s
 
     Returns
     -------
@@ -1686,8 +1671,7 @@ def estimate_snr(evoked, inv, verbose=None):
         Evoked instance.
     inv : instance of InverseOperator
         The inverse operator.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`).
+    %(verbose)s
 
     Returns
     -------

@@ -7,12 +7,14 @@
 import numpy as np
 
 from .. import pick_types, pick_channels
+from ..annotations import _annotations_starts_stops
 from ..utils import logger, verbose, sum_squared, warn
 from ..filter import filter_data
 from ..epochs import Epochs, BaseEpochs
 from ..io.base import BaseRaw
 from ..evoked import Evoked
 from ..io import RawArray
+from ..io.pick import _picks_to_idx
 from .. import create_info
 
 
@@ -130,7 +132,8 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
 @verbose
 def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                     l_freq=5, h_freq=35, qrs_threshold='auto',
-                    filter_length='10s', return_ecg=False, verbose=None):
+                    filter_length='10s', return_ecg=False,
+                    reject_by_annotation=None, verbose=None):
     """Find ECG peaks.
 
     Parameters
@@ -160,9 +163,11 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     return_ecg : bool
         Return ecg channel if synthesized. Defaults to False. If True and
         and ecg exists this will yield None.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    reject_by_annotation : bool
+        Whether to omit data that is annotated as bad.
+
+        .. versionadded:: 0.18
+    %(verbose)s
 
     Returns
     -------
@@ -178,21 +183,59 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     create_ecg_epochs
     compute_proj_ecg
     """
+    if reject_by_annotation is None:
+        if len(raw.annotations) > 0:
+            warn('reject_by_annotation in find_ecg_events defaults to False '
+                 'in 0.18 but will change to True in 0.19, set it explicitly '
+                 'to avoid this warning', DeprecationWarning)
+        reject_by_annotation = False
+    skip_by_annotation = ('edge', 'bad') if reject_by_annotation else ()
+    del reject_by_annotation
     idx_ecg = _get_ecg_channel_index(ch_name, raw)
     if idx_ecg is not None:
         logger.info('Using channel %s to identify heart beats.'
                     % raw.ch_names[idx_ecg])
-        ecg, times = raw[idx_ecg, :]
+        ecg = raw.get_data(picks=idx_ecg)
     else:
-        ecg, times = _make_ecg(raw, None, None, verbose=verbose)
+        ecg = _make_ecg(raw, None, None)[0]
+    assert ecg.ndim == 2 and ecg.shape[0] == 1
+    ecg = ecg[0]
+    # Deal with filtering the same way we do in raw, i.e. filter each good
+    # segment
+    onsets, ends = _annotations_starts_stops(
+        raw, skip_by_annotation, 'reject_by_annotation', invert=True)
+    ecgs = list()
+    max_idx = (ends - onsets).argmax()
+    for si, (start, stop) in enumerate(zip(onsets, ends)):
+        # Only output filter params once (for info level), and only warn
+        # once about the length criterion (longest segment is too short)
+        use_verbose = verbose if si == max_idx else 'error'
+        ecgs.append(filter_data(
+            ecg[start:stop], raw.info['sfreq'], l_freq, h_freq, [0],
+            filter_length, 0.5, 0.5, 1, 'fir', None, copy=False,
+            phase='zero-double', fir_window='hann', fir_design='firwin2',
+            verbose=use_verbose))
+    ecg = np.concatenate(ecgs)
 
     # detecting QRS and generating event file
-    ecg_events = qrs_detector(raw.info['sfreq'], ecg.ravel(), tstart=tstart,
-                              thresh_value=qrs_threshold, l_freq=l_freq,
-                              h_freq=h_freq, filter_length=filter_length)
+    ecg_events = qrs_detector(raw.info['sfreq'], ecg, tstart=tstart,
+                              thresh_value=qrs_threshold, l_freq=None,
+                              h_freq=None)
+
+    # map ECG events back to original times
+    remap = np.empty(len(ecg), int)
+    offset = 0
+    for start, stop in zip(onsets, ends):
+        this_len = stop - start
+        assert this_len >= 0
+        remap[offset:offset + this_len] = np.arange(start, stop)
+        offset += this_len
+    assert offset == len(ecg)
+    ecg_events = remap[ecg_events]
 
     n_events = len(ecg_events)
-    average_pulse = n_events * 60.0 / (times[-1] - times[0])
+    minutes = len(ecg) / (raw.info['sfreq'] * 60.)
+    average_pulse = n_events / minutes
     logger.info("Number of ECG events detected : %d (average pulse %d / "
                 "min.)" % (n_events, average_pulse))
 
@@ -200,6 +243,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                            np.zeros(n_events, int),
                            event_id * np.ones(n_events, int)]).T
     out = (ecg_events, idx_ecg, average_pulse)
+    ecg = ecg[np.newaxis]  # backward compat output 2D
     if return_ecg:
         out += (ecg,)
     return out
@@ -248,8 +292,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         MEG channels.
     event_id : int
         The index to assign to found events
-    picks : array-like of int | None (default)
-        Indices of channels to include. If None, all channels are used.
+    %(picks_all)s
     tmin : float
         Start time before event.
     tmax : float
@@ -295,10 +338,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         rejected. If False, no rejection based on annotations is performed.
 
         .. versionadded:: 0.14.0
-
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -323,23 +363,22 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
 
     events, _, _, ecg = find_ecg_events(
         raw, ch_name=ch_name, event_id=event_id, l_freq=l_freq, h_freq=h_freq,
-        return_ecg=True, verbose=verbose)
+        return_ecg=True, reject_by_annotation=reject_by_annotation)
 
-    picks = np.arange(len(raw.ch_names)) if picks is None else picks
+    picks = _picks_to_idx(raw.info, picks, 'all', exclude=())
 
     # create epochs around ECG events and baseline (important)
     ecg_epochs = Epochs(raw, events=events, event_id=event_id,
                         tmin=tmin, tmax=tmax, proj=False, flat=flat,
                         picks=picks, reject=reject, baseline=baseline,
                         reject_by_annotation=reject_by_annotation,
-                        verbose=verbose, preload=preload)
+                        preload=preload)
 
     if keep_ecg:
         # We know we have created a synthetic channel and epochs are preloaded
         ecg_raw = RawArray(
-            ecg[None],
-            create_info(ch_names=['ECG-SYN'],
-                        sfreq=raw.info['sfreq'], ch_types=['ecg']),
+            ecg, create_info(ch_names=['ECG-SYN'],
+                             sfreq=raw.info['sfreq'], ch_types=['ecg']),
             first_samp=raw.first_samp)
         ignore = ['ch_names', 'chs', 'nchan', 'bads']
         for k, v in raw.info.items():
@@ -348,7 +387,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         syn_epochs = Epochs(ecg_raw, events=ecg_epochs.events,
                             event_id=event_id, tmin=tmin, tmax=tmax,
                             proj=False, picks=[0], baseline=baseline,
-                            verbose=verbose, preload=True)
+                            preload=True)
         ecg_epochs = ecg_epochs.add_channels([syn_epochs])
 
     return ecg_epochs
@@ -362,7 +401,7 @@ def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
     for ch in ['mag', 'grad']:
         if ch in inst:
             break
-    logger.info('Reconstructing ECG signal from {0}'
+    logger.info('Reconstructing ECG signal from {}'
                 .format({'mag': 'Magnetometers',
                          'grad': 'Gradiometers'}[ch]))
     picks = pick_types(inst.info, meg=ch, eeg=False, ref_meg=False)
@@ -376,4 +415,4 @@ def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
     elif isinstance(inst, Evoked):
         ecg = inst.data
         times = inst.times
-    return ecg.mean(0), times
+    return ecg.mean(0, keepdims=True), times

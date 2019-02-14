@@ -116,7 +116,7 @@ def _write_proc_history(fid, info):
                     writer(fid, id_, record[key])
             _write_maxfilter_record(fid, record['max_info'])
             if 'smartshield' in record:
-                for ss in record['smartshield']:
+                for _ in record['smartshield']:
                     start_block(fid, FIFF.FIFFB_SMARTSHIELD)
                     # XXX should eventually populate this
                     end_block(fid, FIFF.FIFFB_SMARTSHIELD)

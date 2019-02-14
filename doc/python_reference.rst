@@ -59,6 +59,8 @@ Reading raw data
    read_raw_cnt
    read_raw_ctf
    read_raw_edf
+   read_raw_bdf
+   read_raw_gdf
    read_raw_kit
    read_raw_nicolet
    read_raw_eeglab
@@ -793,9 +795,11 @@ Connectivity Estimation
 .. autosummary::
    :toctree: generated/
 
+   degree
+   envelope_correlation
+   phase_slope_index
    seed_target_indices
    spectral_connectivity
-   phase_slope_index
 
 
 .. _api_reference_statistics:

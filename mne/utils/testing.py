@@ -402,3 +402,14 @@ def buggy_mkl_svd(function):
                 raise SkipTest(msg)
             raise
     return dec
+
+
+def assert_and_remove_boundary_annot(annotations, n=1):
+    """Assert that there are boundary annotations and remove them."""
+    from ..io.base import BaseRaw
+    if isinstance(annotations, BaseRaw):  # allow either input
+        annotations = annotations.annotations
+    for key in ('EDGE', 'BAD'):
+        idx = np.where(annotations.description == '%s boundary' % key)[0]
+        assert len(idx) == n
+        annotations.delete(idx)

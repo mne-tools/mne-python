@@ -688,9 +688,7 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
         sensor information for later forward calculations
     n_jobs : int
         Number of jobs to run in parallel
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
     bem_rr = mults = mri_Q = head_mri_t = None
     if not bem['is_sphere']:
@@ -773,9 +771,7 @@ def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
         Dict containing forward data after update in _prep_field_computation
     n_jobs : int
         Number of jobs to run in parallel
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

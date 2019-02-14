@@ -427,7 +427,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             # Estimate noise level based on covariance matrix, taking the
             # first eigenvalue that falls outside the signal subspace or the
             # loading factor used during regularization, whichever is largest.
-            if rank >= len(Cm):
+            if rank > len(Cm):
                 # Covariance matrix is full rank, no noise subspace!
                 # Use the loading factor as noise ceiling.
                 if loading_factor == 0:
@@ -503,10 +503,7 @@ class Beamformer(dict):
             Should end in ``'-lcmv.h5'`` or ``'-dics.h5'``.
         overwrite : bool
             If True, overwrite the file (if it exists).
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
         """
         ending = '-%s.h5' % (self['kind'].lower(),)
         check_fname(fname, self['kind'], (ending,))

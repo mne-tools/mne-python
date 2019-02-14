@@ -100,9 +100,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         each spatial location, prior to inversion. This may be necessary when
         you use a single sphere model for MEG and ``mode='vertex'``.
         Defaults to ``False``.
-    verbose : bool, str, int, None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -332,9 +330,7 @@ def apply_dics(evoked, filters, verbose=None):
     filters : instance of Beamformer
         DICS spatial filter (beamformer weights)
         Filter weights returned from :func:`make_dics`.
-    verbose : bool, str, int, None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -389,9 +385,7 @@ def apply_dics_epochs(epochs, filters, return_generator=False, verbose=None):
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
-    verbose : bool, str, int, None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -444,9 +438,7 @@ def apply_dics_csd(csd, filters, verbose=None):
     filters : instance of Beamformer
         DICS spatial filter (beamformer weights)
         Filter weights returned from `make_dics`.
-    verbose : bool, str, int, None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -733,9 +725,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         each spatial location, prior to inversion. This may be necessary when
         you use a single sphere model for MEG and ``mode='vertex'``.
         Defaults to ``False``.
-    verbose : bool, str, int, None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -853,8 +843,6 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                     'window %d to %d ms, in frequency range %d to %d Hz' %
                     (win_tmin * 1e3, win_tmax * 1e3, fmin, fmax)
                 )
-                win_tmin = win_tmin
-                win_tmax = win_tmax
 
                 # Calculating data CSD in current time window
                 if mode == 'fourier':

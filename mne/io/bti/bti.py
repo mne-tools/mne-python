@@ -42,7 +42,7 @@ BTI_WH2500_REF_MAG = ('MxA', 'MyA', 'MzA', 'MxaA', 'MyaA', 'MzaA')
 BTI_WH2500_REF_GRAD = ('GxxA', 'GyyA', 'GyxA', 'GzaA', 'GzyA')
 
 dtypes = zip(list(range(1, 5)), ('>i2', '>i4', '>f4', '>f8'))
-DTYPES = dict((i, np.dtype(t)) for i, t in dtypes)
+DTYPES = {i: np.dtype(t) for i, t in dtypes}
 
 
 class _bytes_io_mock_context():
@@ -923,7 +923,7 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
                                ' found are not described in config.')
     else:
         chans_cfg = cfg['chs']
-        chans = [dict() for d in chans_cfg]
+        chans = [dict() for _ in chans_cfg]
 
     # transfer channel info from config to channel info
     for ch, ch_cfg in zip(chans, chans_cfg):
@@ -1020,9 +1020,7 @@ class RawBTi(BaseRaw):
 
         ..versionadded:: 0.11
 
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
 
     @verbose
@@ -1386,9 +1384,7 @@ def read_raw_bti(pdf_fname, config_fname='config',
 
         ..versionadded:: 0.11
 
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

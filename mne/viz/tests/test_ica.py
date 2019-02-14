@@ -5,6 +5,7 @@
 
 import os.path as op
 
+import numpy as np
 from numpy.testing import assert_equal, assert_array_equal
 import pytest
 import matplotlib.pyplot as plt
@@ -100,8 +101,8 @@ def test_plot_ica_components():
     assert (lbl == title)
 
     ica.info = None
-    pytest.raises(ValueError, ica.plot_components, 1)
-    pytest.raises(RuntimeError, ica.plot_components, 1, ch_type='mag')
+    with pytest.raises(RuntimeError, match='fit the ICA'):
+        ica.plot_components(1, ch_type='mag')
     plt.close('all')
 
 
@@ -180,9 +181,12 @@ def test_plot_ica_sources():
     fig.canvas.key_press_event('escape')
     # Sadly close_event isn't called on Agg backend and the test always passes.
     assert_array_equal(ica.exclude, [1])
+    plt.close('all')
 
+    # dtype can change int->np.int after load, test it explicitly
+    ica.n_components_ = np.int64(ica.n_components_)
     fig = ica.plot_sources(raw, [1])
-    # test mouse clicks
+    # also test mouse clicks
     data_ax = fig.axes[0]
     _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
 

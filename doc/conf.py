@@ -19,7 +19,7 @@ import sys
 import warnings
 
 import sphinx_gallery
-from sphinx_gallery.sorting import FileNameSortKey
+from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 import mne
 from mne.utils import linkcode_resolve  # noqa, analysis:ignore
@@ -67,6 +67,7 @@ linkcheck_ignore = [
     'https://sccn.ucsd.edu/wiki/.*',  # HTTPSConnectionPool(host='sccn.ucsd.edu', port=443): Max retries exceeded with url: /wiki/Firfilt_FAQ (Caused by SSLError(SSLError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:847)'),))
     'https://docs.python.org/dev/howto/logging.html',  # ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
     'https://docs.python.org/3/library/.*',  # ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+    'https://hal.archives-ouvertes.fr/hal-01848442/',  # Sometimes: 503 Server Error: Service Unavailable for url: https://hal.archives-ouvertes.fr/hal-01848442/
 ]
 linkcheck_anchors = False  # saves a bit of time
 
@@ -358,6 +359,8 @@ def reset_warnings(gallery_conf, fname):
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
+    warnings.filterwarnings(  # deal with other modules having bad imports
+        'ignore', message=".*ufunc size changed.*", category=RuntimeWarning)
     # allow this ImportWarning, but don't show it
     warnings.filterwarnings(
         'ignore', message="can't resolve package from", category=ImportWarning)
@@ -368,6 +371,19 @@ sphinx_gallery_conf = {
     'doc_module': ('mne',),
     'reference_url': dict(mne=None),
     'examples_dirs': examples_dirs,
+    'subsection_order': ExplicitOrder(['../examples/io/',
+                                       '../examples/simulation/',
+                                       '../examples/preprocessing/',
+                                       '../examples/visualization/',
+                                       '../examples/time_frequency/',
+                                       '../examples/stats/',
+                                       '../examples/decoding/',
+                                       '../examples/connectivity/',
+                                       '../examples/forward/',
+                                       '../examples/inverse/',
+                                       '../examples/realtime/',
+                                       '../examples/datasets/',
+                                       '../tutorials/']),
     'gallery_dirs': gallery_dirs,
     'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),
     'backreferences_dir': 'generated',
@@ -484,7 +500,7 @@ numpydoc_xref_ignore = {
     'n_parts', 'n_features_new', 'n_components', 'n_labels', 'n_events_in',
     'n_splits', 'n_scores', 'n_outputs', 'n_trials', 'n_estimators', 'n_tasks',
     'nd_features', 'n_classes', 'n_targets', 'n_slices', 'n_hpi', 'n_fids',
-    'n_elp', 'n_pts', 'n_tris',
+    'n_elp', 'n_pts', 'n_tris', 'n_nodes',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
     'RawBrainVision',

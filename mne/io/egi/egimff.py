@@ -82,7 +82,8 @@ def _read_mff_header(filepath):
         pns_types = []
         pns_units = []
         for sensor in sensors:
-            sn = sensor.getElementsByTagName('number')[0].firstChild.data
+            # sensor number:
+            # sensor.getElementsByTagName('number')[0].firstChild.data
             name = sensor.getElementsByTagName('name')[0].firstChild.data
             unit_elem = sensor.getElementsByTagName('unit')[0].firstChild
             unit = ''
@@ -253,8 +254,7 @@ def _read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
         Channel naming convention for the data channels. Defaults to 'E%d'
         (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
         prior to 0.14.0 was 'EEG %03d'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(verbose)s
 
     Returns
     -------
@@ -578,7 +578,7 @@ class RawMff(BaseRaw):
                     if samples_to_read == 1 and fid.tell() == file_size:
                         # We are in the presence of the EEG bug
                         # fill with zeros and break the loop
-                        data_view = data[n_data1_channels:, -1] = 0
+                        data[n_data1_channels:, -1] = 0
                         warn('This file has the EGI PSG sample bug')
                         an_start = current_data_sample
                         # XXX : use of _sync_onset should live in annotations
@@ -615,5 +615,6 @@ class RawMff(BaseRaw):
                     _mult_cal_one(data_view, block_data[:n_pns_channels],
                                   pns_idx,
                                   cals[n_data1_channels:], mult)
+                    del data_view
                     samples_to_read = samples_to_read - samples_read
                     current_data_sample = current_data_sample + samples_read

@@ -37,12 +37,10 @@ raw.info['bads'] = ['MEG 2443', 'EEG 053']  # bads + 2 more
 fmin, fmax = 2, 300  # look at frequencies between 2 and 300Hz
 n_fft = 2048  # the FFT size (n_fft). Ideally a power of 2
 
-# Pick a subset of channels (here for speed reason)
+# Pick a subset of channels (here for speed reasons)
 selection = mne.read_selection('Left-temporal')
 picks = mne.pick_types(raw.info, meg='mag', eeg=False, eog=False,
                        stim=False, exclude='bads', selection=selection)
-
-# Let's first check out all channel types
 raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=False)
 
 ###############################################################################
@@ -52,8 +50,7 @@ raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=False)
 # Removing power-line noise can be done with a Notch filter, directly on the
 # Raw object, specifying an array of frequency to be cut off:
 
-raw.notch_filter(np.arange(60, 241, 60), picks=picks, filter_length='auto',
-                 phase='zero')
+raw.notch_filter(np.arange(60, 241, 60), picks=picks, fir_design='firwin')
 raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=False)
 
 ###############################################################################
@@ -113,7 +110,7 @@ raw.filter(1, 50., fir_design='firwin')
 # Data resampling can be done with *resample* methods.
 
 raw.resample(100, npad="auto")  # set sampling frequency to 100Hz
-raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
+raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=True)
 
 ###############################################################################
 # To avoid this reduction in precision, the suggested pipeline for

@@ -19,9 +19,13 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add support for picking channels using channel name and type strings to functions with ``picks`` arguments, along with a convenience :meth:`mne.io.Raw.pick`, :meth:`mne.Epochs.pick`, and :meth:`mne.Evoked.pick` method, by `Eric Larson`_
+
 - Add new tutorial on :ref:`sphx_glr_auto_tutorials_plot_sleep.py` by `Alex Gramfort`_, `Stanislas Chambon`_ and `Joan Massich`_
 
 - Add data fetchers for polysomnography (PSG) recordings from Physionet (:func:`mne.datasets.sleep_physionet.age.fetch_data` and :func:`mne.datasets.sleep_physionet.temazepam.fetch_data`) by `Alex Gramfort`_ and `Joan Massich`_
+
+- Add envelope correlation code in :func:`mne.connectivity.envelope_correlation` by `Denis Engemann`_, `Sheraz Khan`_, and `Eric Larson`_
 
 - Add support for indexing, slicing, and iterating :class:`mne.Annotations` by `Joan Massich`_
 
@@ -55,12 +59,17 @@ Changelog
 
 - Add Epoch selection and metadata functionality to :class:`mne.time_frequency.EpochsTFR` using new mixin class by `Keith Doelling`_
 
+- Add ``reject_by_annotation`` argument to :func:`mne.preprocessing.find_ecg_events` by `Eric Larson`_
+
 - Add ``extrapolate`` argument to :func:`mne.viz.plot_topomap` for better control of extrapolation points placement by `Mikołaj Magnuski`_
 
 - Add ``channel_wise`` argument to :func:`mne.io.Raw.apply_function` to allow applying a function on multiple channels at once by `Hubert Banville`_
 
 Bug
 ~~~
+
+- Fix bug where loading epochs with ``preload=True`` and subsequently using :meth:`mne.Epochs.drop_bad` with new ``reject`` or ``flat`` entries leads to improper data (and ``epochs.selection``) since v0.16.0 by `Eric Larson`_.
+  If your code uses ``Epochs(..., preload=True).drop_bad(reject=..., flat=...)``, we recommend regenerating these data.
 
 - Fix :func:`mne.io.read_raw_edf` returning all the annotations with the same name in GDF files by `Joan Massich`_
 
@@ -74,18 +83,28 @@ Bug
 
 - Fix CTF helmet plotting in :func:`mne.viz.plot_evoked_field` by `Eric Larson`_
 
+- Fix saving of rejection parameters in :meth:`mne.Epochs.save` by `Eric Larson`_
+
 - Fix path bugs in :func:`mne.bem.make_flash_bem` and :ref:`gen_mne_flash_bem` by `Eric Larson`_
 
-- Fixed a bug where :meth:`mne.time_frequency.AverageTFR.plot_joint` would mishandle bad channels, by `David Haslacher`_ and `Jona Sassenhagen`_
+- Fix :meth:`mne.time_frequency.AverageTFR.plot_joint` mishandling bad channels, by `David Haslacher`_ and `Jona Sassenhagen`_
+
+- Fix :func:`mne.beamformer.make_lcmv` failing when full rank data is used (i.e., when no projection is done) with ``reg=0.``, by `Eric Larson`_
 
 - Fix issue with bad channels ignored in :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` by `Alex Gramfort`_
+
+- Fix ``reject_by_annotation`` not being passed internally by :func:`mne.preprocessing.create_ecg_epochs` and :ref:`mne clean_eog_ecg <gen_mne_clean_eog_ecg>` to :func:`mne.preprocessing.find_ecg_events` by `Eric Larson`_
 
 API
 ~~~
 
 - Python 2 is no longer supported; MNE-Python now requires Python 3.5+, by `Eric Larson`_
 
+- :class:`Annotations` are now kept sorted (by onset time) during instantiation and :meth:`~Annotations.append` operations, by `Eric Larson`_
+
 - Deprecate :func:`mne.io.find_edf_events` by `Joan Massich`_
+
+- Reading BDF and GDF files with :func:`mne.io.read_raw_edf` is deprecated and replaced by :func:`mne.io.read_raw_bdf` and :func:`mne.io.read_raw_gdf`, by `Clemens Brunner`_
 
 .. _changes_0_17:
 

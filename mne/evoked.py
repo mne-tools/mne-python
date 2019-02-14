@@ -18,7 +18,8 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
 from .channels.layout import _merge_grad_data, _pair_grad_sensors
 from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
-                    SizeMixin, copy_function_doc_to_method_doc, _validate_type)
+                    SizeMixin, copy_function_doc_to_method_doc, _validate_type,
+                    fill_doc)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -28,7 +29,8 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.tree import dir_tree_find
-from .io.pick import channel_type, pick_types, _pick_data_channels
+from .io.pick import (channel_type, pick_types, _pick_data_channels,
+                      _picks_to_idx)
 from .io.meas_info import read_meas_info, write_meas_info
 from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
@@ -42,9 +44,10 @@ _aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
                str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
 
 
-class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
-             SetChannelsMixin, InterpolationMixin, FilterMixin,
-             ToDataFrameMixin, TimeMixin, SizeMixin):
+@fill_doc
+class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
+             InterpolationMixin, FilterMixin, ToDataFrameMixin, TimeMixin,
+             SizeMixin):
     """Evoked data.
 
     Parameters
@@ -66,9 +69,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         generally not be loaded directly, but should first be processed using
         SSS/tSSS to remove the compensation signals that may also affect brain
         activity. Can also be "yes" to load without eliciting a warning.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Attributes
     ----------
@@ -94,8 +95,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Time vector in seconds. Goes from `tmin` to `tmax`. Time interval
         between consecutive time samples is equal to the inverse of the
         sampling frequency.
-    verbose : bool, str, int, or None.
-        See above.
+    %(verbose)s
 
     Notes
     -----
@@ -143,10 +143,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             applied by computing mean of the baseline period and subtracting it
             from the data. The baseline (a, b) includes both endpoints, i.e.
             all timepoints t such that a <= t <= b.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -459,6 +456,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         from .forward import _as_meg_type_evoked
         return _as_meg_type_evoked(self, ch_type=ch_type, mode=mode)
 
+    @fill_doc
     def detrend(self, order=1, picks=None):
         """Detrend data.
 
@@ -469,16 +467,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         order : int
             Either 0 or 1, the order of the detrending. 0 is a constant
             (DC) detrend, 1 is a linear detrend.
-        picks : array-like of int | None
-            If None only MEG, EEG, SEEG, ECoG and fNIRS channels are detrended.
+        %(picks_good_data)s
 
         Returns
         -------
         evoked : instance of Evoked
             The detrended evoked object.
         """
-        if picks is None:
-            picks = _pick_data_channels(self.info)
+        picks = _picks_to_idx(self.info, picks)
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
         return self
 
@@ -553,7 +549,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'hbo',
                      'hbr', 'None')
         data_picks = _pick_data_channels(self.info, with_ref_meg=False)
-        types_used = set([channel_type(self.info, idx) for idx in data_picks])
+        types_used = {channel_type(self.info, idx) for idx in data_picks}
 
         if str(ch_type) not in supported:
             raise ValueError('Channel type must be `{supported}`. You gave me '
@@ -646,6 +642,7 @@ def _check_decim(info, decim, offset):
     return decim, offset, new_sfreq
 
 
+@fill_doc
 class EvokedArray(Evoked):
     """Evoked object from numpy array.
 
@@ -664,9 +661,7 @@ class EvokedArray(Evoked):
         Number of averaged epochs. Defaults to 1.
     kind : str
         Type of data, either average or standard_error. Defaults to 'average'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -942,9 +937,7 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         generally not be loaded directly, but should first be processed using
         SSS/tSSS to remove the compensation signals that may also affect brain
         activity. Can also be "yes" to load without eliciting a warning.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1268,10 +1261,10 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
 
     if tmin < times.min():
         raise ValueError('The tmin value is out of bounds. It must be '
-                         'within {0} and {1}'.format(times.min(), times.max()))
+                         'within {} and {}'.format(times.min(), times.max()))
     if tmax > times.max():
         raise ValueError('The tmax value is out of bounds. It must be '
-                         'within {0} and {1}'.format(times.min(), times.max()))
+                         'within {} and {}'.format(times.min(), times.max()))
     if tmin > tmax:
         raise ValueError('The tmin must be smaller or equal to tmax')
 

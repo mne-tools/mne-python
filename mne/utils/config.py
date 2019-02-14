@@ -163,7 +163,8 @@ def get_config_path(home_dir=None):
     return val
 
 
-def get_config(key=None, default=None, raise_error=False, home_dir=None):
+def get_config(key=None, default=None, raise_error=False, home_dir=None,
+               use_env=True):
     """Read MNE-Python preferences from environment or config file.
 
     Parameters
@@ -181,6 +182,11 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     home_dir : str | None
         The folder that contains the .mne config folder.
         If None, it is found automatically.
+    use_env : bool
+        If True, consider env vars, if available.
+        If False, only use MNE-Python configuration file values.
+
+        .. versionadded:: 0.18
 
     Returns
     -------
@@ -194,7 +200,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     _validate_type(key, (str, type(None)), "key", 'string or None')
 
     # first, check to see if key is in env
-    if key is not None and key in os.environ:
+    if use_env and key is not None and key in os.environ:
         return os.environ[key]
 
     # second, look for it in mne-python config file
@@ -206,21 +212,24 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
 
     if key is None:
         # update config with environment variables
-        env_keys = (set(config).union(known_config_types).
-                    intersection(os.environ))
-        config.update({key: os.environ[key] for key in env_keys})
+        if use_env:
+            env_keys = (set(config).union(known_config_types).
+                        intersection(os.environ))
+            config.update({key: os.environ[key] for key in env_keys})
         return config
     elif raise_error is True and key not in config:
-        meth_1 = 'os.environ["%s"] = VALUE' % key
-        meth_2 = 'mne.utils.set_config("%s", VALUE, set_env=True)' % key
-        raise KeyError('Key "%s" not found in environment or in the '
-                       'mne-python config file: %s '
-                       'Try either:'
-                       ' %s for a temporary solution, or:'
-                       ' %s for a permanent one. You can also '
-                       'set the environment variable before '
-                       'running python.'
-                       % (key, config_path, meth_1, meth_2))
+        loc_env = 'the environment or in the ' if use_env else ''
+        meth_env = ('either os.environ["%s"] = VALUE for a temporary '
+                    'solution, or ' % key) if use_env else ''
+        extra_env = (' You can also set the environment variable before '
+                     'running python.' if use_env else '')
+        meth_file = ('mne.utils.set_config("%s", VALUE, set_env=True) '
+                     'for a permanent one' % key)
+        raise KeyError('Key "%s" not found in %s'
+                       'the mne-python config file (%s). '
+                       'Try %s%s.%s'
+                       % (key, loc_env, config_path, meth_env, meth_file,
+                          extra_env))
     else:
         return config.get(key, default)
 

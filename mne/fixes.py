@@ -577,14 +577,14 @@ def _serialize_volume_info(volume_info):
             strings.append(np.array(volume_info[key], dtype='>i4').tostring())
         elif key in ('valid', 'filename'):
             val = volume_info[key]
-            strings.append('{0} = {1}\n'.format(key, val).encode('utf-8'))
+            strings.append('{} = {}\n'.format(key, val).encode('utf-8'))
         elif key == 'volume':
             val = volume_info[key]
-            strings.append('{0} = {1} {2} {3}\n'.format(
+            strings.append('{} = {} {} {}\n'.format(
                 key, val[0], val[1], val[2]).encode('utf-8'))
         else:
             val = volume_info[key]
-            strings.append('{0} = {1:0.10g} {2:0.10g} {3:0.10g}\n'.format(
+            strings.append('{} = {:0.10g} {:0.10g} {:0.10g}\n'.format(
                 key.ljust(6), val[0], val[1], val[2]).encode('utf-8'))
     return b''.join(strings)
 
@@ -638,10 +638,6 @@ class BaseEstimator(object):
     @classmethod
     def _get_param_names(cls):
         """Get parameter names for the estimator"""
-        try:
-            from inspect import signature
-        except ImportError:
-            from .externals.funcsigs import signature
         # fetch the constructor or the original constructor before
         # deprecation wrapping if any
         init = getattr(cls.__init__, 'deprecated_original', cls.__init__)
@@ -651,7 +647,7 @@ class BaseEstimator(object):
 
         # introspect the constructor arguments to find the model parameters
         # to represent
-        init_signature = signature(init)
+        init_signature = inspect.signature(init)
         # Consider the constructor parameters excluding 'self'
         parameters = [p for p in init_signature.parameters.values()
                       if p.name != 'self' and p.kind != p.VAR_KEYWORD]

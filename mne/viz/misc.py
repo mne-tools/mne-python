@@ -55,9 +55,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
         type. We show square roots ie. standard deviations.
     show : bool
         Show figure if True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -491,7 +489,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     if event_id is not None:
         # get labels and unique event ids from event_id dict,
         # sorted by value
-        event_id_rev = dict((v, k) for k, v in event_id.items())
+        event_id_rev = {v: k for k, v in event_id.items()}
         conditions, unique_events_id = zip(*sorted(event_id.items(),
                                                    key=lambda x: x[1]))
 
@@ -523,8 +521,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         ev_mask = events[:, 2] == ev
         kwargs = {}
         if event_id is not None:
-            event_label = '{0} ({1})'.format(event_id_rev[ev],
-                                             np.sum(ev_mask))
+            event_label = '{} ({})'.format(event_id_rev[ev], np.sum(ev_mask))
             kwargs['label'] = event_label
         if ev in color:
             kwargs['color'] = color[ev]

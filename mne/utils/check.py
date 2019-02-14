@@ -142,8 +142,8 @@ def _check_event_id(event_id, events):
     if isinstance(event_id, dict):
         for key in event_id.keys():
             _validate_type(key, str, 'Event names')
-        event_id = dict((key, _ensure_int(val, 'event_id[%s]' % key))
-                        for key, val in event_id.items())
+        event_id = {key: _ensure_int(val, 'event_id[%s]' % key)
+                    for key, val in event_id.items()}
     elif isinstance(event_id, list):
         event_id = [_ensure_int(v, 'event_id[%s]' % vi)
                     for vi, v in enumerate(event_id)]
@@ -271,23 +271,6 @@ def _check_ch_locs(chs):
                 np.allclose(locs3d, 0.))
 
 
-def _check_type_picks(picks):
-    """Guarantee type integrity of picks."""
-    err_msg = 'picks must be None, a list or an array of integers'
-    if picks is None:
-        pass
-    elif isinstance(picks, list):
-        for pick in picks:
-            _validate_type(pick, 'int', 'Each pick')
-        picks = np.array(picks)
-    elif isinstance(picks, np.ndarray):
-        if not picks.dtype.kind == 'i':
-            raise TypeError(err_msg)
-    else:
-        raise TypeError(err_msg)
-    return picks
-
-
 def _is_numeric(n):
     return isinstance(n, (np.integer, np.floating, int, float))
 
@@ -316,12 +299,22 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
         from mne.io import Info as types
         type_name = "Info" if type_name is None else type_name
         item_name = "Info" if item_name is None else item_name
+    if not isinstance(types, (list, tuple)):
+        types = [types]
 
-    if type_name is None:
-        iter_types = ([types] if not isinstance(types, (list, tuple))
-                      else types)
-        type_name = ', '.join(cls.__name__ for cls in iter_types)
-    if not isinstance(item, types):
+    check_types = tuple(type(None) if type_ is None else type_
+                        for type_ in types)
+    if not isinstance(item, check_types):
+        if type_name is None:
+            type_name = ['None' if cls_ is None else cls_.__name__
+                         for cls_ in types]
+            if len(type_name) == 1:
+                type_name = type_name[0]
+            elif len(type_name) == 2:
+                type_name = ' or '.join(type_name)
+            else:
+                type_name[-1] = 'or ' + type_name[-1]
+                type_name = ', '.join(type_name)
         raise TypeError('%s must be an instance of %s, got %s instead'
                         % (item_name, type_name, type(item),))
 

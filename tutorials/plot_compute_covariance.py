@@ -160,15 +160,13 @@ evoked.plot_white(noise_covs, time_unit='s')
 
 ##############################################################################
 # Finally, let's have a look at the difference between empty room and
-# event related covariance.
+# event related covariance, hacking the "method" option so that their types
+# are shown in the legend of the plot.
 
-evoked_meg = evoked.copy().pick_types(meg=True, eeg=False)
-noise_cov_meg = mne.pick_channels_cov(noise_cov_baseline, evoked_meg.ch_names)
+evoked_meg = evoked.copy().pick('meg')
 noise_cov['method'] = 'empty_room'
-noise_cov_meg['method'] = 'baseline'
-
-evoked_meg.plot_white([noise_cov_meg, noise_cov], time_unit='s')
-
+noise_cov_baseline['method'] = 'baseline'
+evoked_meg.plot_white([noise_cov_baseline, noise_cov], time_unit='s')
 
 ##############################################################################
 # Based on the negative log-likelihood, the baseline covariance

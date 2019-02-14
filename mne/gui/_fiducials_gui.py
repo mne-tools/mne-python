@@ -24,7 +24,7 @@ from ..io import write_fiducials
 from ..io.constants import FIFF
 from ..surface import complete_surface_info, decimate_surface
 from ..utils import get_subjects_dir, logger, warn
-from ..viz._3d import _toggle_mlab_render
+from ..viz.backends._pysurfer_mayavi import _toggle_mlab_render
 from ._file_traits import (SurfaceSource, fid_wildcard, FiducialsSource,
                            MRISubjectSource, SubjectSelectorPanel,
                            Surf)
@@ -389,7 +389,7 @@ class FiducialsPanel(HasPrivateTraits):
             elif i in idxs:
                 line += " (<- also MRI mesh)"
             msg.append(line)
-        logger.debug(os.linesep.join(msg))
+        logger.debug('\n'.join(msg))
 
         if self.set == 'Nasion':
             self.nasion = pt

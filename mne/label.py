@@ -6,8 +6,8 @@
 
 from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
-from os import path as op
 import os
+import os.path as op
 import copy as cp
 import re
 
@@ -23,7 +23,7 @@ from .stats.cluster_level import _find_clusters, _get_components
 from .surface import (read_surface, fast_cross_3d, mesh_edges, mesh_dist,
                       read_morph_map)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
-                    check_random_state, _validate_type)
+                    check_random_state, _validate_type, fill_doc)
 
 
 def _blend_colors(color_1, color_2):
@@ -137,6 +137,7 @@ def _n_colors(n, bytes_=False, cmap='hsv'):
     return colors
 
 
+@fill_doc
 class Label(object):
     """A FreeSurfer/MNE label with vertices restricted to one hemisphere.
 
@@ -168,9 +169,7 @@ class Label(object):
         Name of the subject the label is from.
     color : None | matplotlib color
         Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Attributes
     ----------
@@ -190,8 +189,7 @@ class Label(object):
         value on initialization, but it can also be set manually.
     values : array, shape (N,)
         Values at the vertices.
-    verbose : bool, str, int, or None
-        See above.
+    %(verbose)s
     vertices : array, shape (N,)
         Vertex indices (0 based)
     """
@@ -489,10 +487,7 @@ class Label(object):
             Path to SUBJECTS_DIR if it is not set in the environment.
         n_jobs : int
             Number of jobs to run in parallel
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -542,10 +537,7 @@ class Label(object):
             Path to SUBJECTS_DIR if it is not set in the environment.
         n_jobs : int
             Number of jobs to run in parallel.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -943,9 +935,7 @@ def write_label(filename, label, verbose=None):
         Path to label file to produce.
     label : Label
         The label object to save.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -1287,9 +1277,7 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
         of the maximum value in the stc.
     subjects_dir : str | None
         Path to SUBJECTS_DIR if it is not set in the environment.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1867,8 +1855,7 @@ def _read_annot(fname):
         n_entries = np.fromfile(fid, '>i4', 1)[0]
         if n_entries > 0:
             length = np.fromfile(fid, '>i4', 1)[0]
-            orig_tab = np.fromfile(fid, '>c', length)
-            orig_tab = orig_tab[:-1]
+            np.fromfile(fid, '>c', length)  # discard orig_tab
 
             names = list()
             ctab = np.zeros((n_entries, 5), np.int)
@@ -1972,9 +1959,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
         substring is contained.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2074,9 +2059,7 @@ def morph_labels(labels, subject_to, subject_from=None, subjects_dir=None,
         Path to SUBJECTS_DIR if it is not set in the environment.
     surf_name : str
         Surface used to obtain vertex locations, e.g., 'white', 'pial'
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2134,9 +2117,7 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, verbose=None):
         The tstep to use for the STC.
     subject : str | None
         The subject for which to create the STC.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2261,9 +2242,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
     hemi : 'both' | 'lh' | 'rh'
         The hemisphere(s) for which to write \*.annot files (only applies if
         annot_fname is not specified; default is 'both').
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -2434,18 +2413,18 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
         msg = ("Some labels have the same color values (all labels in one "
                "hemisphere must have a unique color):")
         duplicate_colors.insert(0, msg)
-        issues.append(os.linesep.join(duplicate_colors))
+        issues.append('\n'.join(duplicate_colors))
     if invalid_colors:
         msg = ("Some labels have invalid color values (all colors should be "
                "RGBA tuples with values between 0 and 1)")
         invalid_colors.insert(0, msg)
-        issues.append(os.linesep.join(invalid_colors))
+        issues.append('\n'.join(invalid_colors))
     if overlap:
         msg = ("Some labels occupy vertices that are also occupied by one or "
                "more other labels. Each vertex can only be occupied by a "
                "single label in *.annot files.")
         overlap.insert(0, msg)
-        issues.append(os.linesep.join(overlap))
+        issues.append('\n'.join(overlap))
 
     if issues:
         raise ValueError('\n\n'.join(issues))

@@ -26,14 +26,12 @@ def _safe_del_key(dict_, key):
         del dict_[key]
 
 
-@verbose
 def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       n_grad, n_mag, n_eeg, l_freq, h_freq,
                       average, filter_length, n_jobs, ch_name,
                       reject, flat, bads, avg_ref, no_proj, event_id,
                       exg_l_freq, exg_h_freq, tstart, qrs_threshold,
-                      filter_method, iir_params, return_drop_log, copy,
-                      verbose):
+                      filter_method, iir_params, return_drop_log, copy):
     """Compute SSP/PCA projections for ECG or EOG artifacts."""
     raw = raw.copy() if copy else raw
     del copy
@@ -216,9 +214,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         If True, return the drop log.
 
         .. versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -245,8 +241,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         'ECG', raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg,
         l_freq, h_freq, average, filter_length, n_jobs, ch_name, reject, flat,
         bads, avg_ref, no_proj, event_id, ecg_l_freq, ecg_h_freq, tstart,
-        qrs_threshold, filter_method, iir_params, return_drop_log, copy,
-        verbose)
+        qrs_threshold, filter_method, iir_params, return_drop_log, copy)
 
 
 @verbose
@@ -321,9 +316,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         If True, return the drop log.
 
         .. versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -350,4 +343,4 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         'EOG', raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg,
         l_freq, h_freq, average, filter_length, n_jobs, ch_name, reject, flat,
         bads, avg_ref, no_proj, event_id, eog_l_freq, eog_h_freq, tstart,
-        'auto', filter_method, iir_params, return_drop_log, copy, verbose)
+        'auto', filter_method, iir_params, return_drop_log, copy)
