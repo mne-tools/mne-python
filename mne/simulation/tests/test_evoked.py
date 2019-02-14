@@ -15,7 +15,7 @@ from mne import (read_cov, read_forward_solution, convert_forward_solution,
 from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, simulate_evoked, add_noise
 from mne.io import read_raw_fif
-from mne.cov import regularize
+from mne.cov import regularize, whiten_evoked
 from mne.utils import run_tests_if_main, catch_logging
 
 data_path = testing.data_path(download=False)
@@ -61,6 +61,9 @@ def test_simulate_evoked():
     assert_array_almost_equal(evoked.times, stc.times)
     assert len(evoked.data) == len(fwd['sol']['data'])
     assert_equal(evoked.nave, nave)
+    assert len(evoked.info['projs']) == len(cov['projs'])
+    evoked_white = whiten_evoked(evoked, cov)
+    assert abs(evoked_white.data[:, 0].std() - 1.) < 0.1
 
     # make a vertex that doesn't exist in fwd, should throw error
     stc_bad = stc.copy()

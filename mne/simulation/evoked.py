@@ -77,6 +77,8 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
         noise = _simulate_noise_evoked(evoked, cov, iir_filter, random_state)
         evoked.data += noise.data / math.sqrt(nave)
         evoked.nave = np.int(nave)
+    if cov['projs']:
+        evoked.add_proj(cov['projs']).apply_proj()
     return evoked
 
 
@@ -196,9 +198,14 @@ def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
     rng = check_random_state(random_state)
     c = np.diag(noise_cov.data) if noise_cov['diag'] else noise_cov.data
     mu_channels = np.zeros(len(c))
+    stds = np.sqrt(np.diag(c))
+    stds_inv = np.zeros_like(stds)
+    stds_inv[stds != 0.] = 1. / stds[stds != 0.]
+    c = np.diag(stds_inv).dot(c).dot(np.diag(stds_inv))
     # we almost always get a positive semidefinite warning here, so squash it
     with warnings.catch_warnings(record=True):
         noise = rng.multivariate_normal(mu_channels, c, n_samples).T
+        noise *= stds[:, None]
     if iir_filter is not None:
         if zi is None:
             zi = np.zeros((len(c), len(iir_filter) - 1))
