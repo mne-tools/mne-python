@@ -427,7 +427,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             # Estimate noise level based on covariance matrix, taking the
             # first eigenvalue that falls outside the signal subspace or the
             # loading factor used during regularization, whichever is largest.
-            if rank >= len(Cm):
+            if rank > len(Cm):
                 # Covariance matrix is full rank, no noise subspace!
                 # Use the loading factor as noise ceiling.
                 if loading_factor == 0:

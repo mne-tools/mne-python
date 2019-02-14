@@ -87,7 +87,9 @@ Bug
 
 - Fix path bugs in :func:`mne.bem.make_flash_bem` and :ref:`gen_mne_flash_bem` by `Eric Larson`_
 
-- Fixed a bug where :meth:`mne.time_frequency.AverageTFR.plot_joint` would mishandle bad channels, by `David Haslacher`_ and `Jona Sassenhagen`_
+- Fix :meth:`mne.time_frequency.AverageTFR.plot_joint` mishandling bad channels, by `David Haslacher`_ and `Jona Sassenhagen`_
+
+- Fix :func:`mne.beamformer.make_lcmv` failing when full rank data is used (i.e., when no projection is done) with ``reg=0.``, by `Eric Larson`_
 
 - Fix issue with bad channels ignored in :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` by `Alex Gramfort`_
 
