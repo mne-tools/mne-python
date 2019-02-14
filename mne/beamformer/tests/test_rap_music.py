@@ -38,7 +38,7 @@ def _get_data(ch_decim=1):
 
     noise_cov = mne.read_cov(fname_cov)
     noise_cov['projs'] = []
-    noise_cov = regularize(noise_cov, evoked.info)
+    noise_cov = regularize(noise_cov, evoked.info, rank='full', proj=False)
     return evoked, noise_cov
 
 
