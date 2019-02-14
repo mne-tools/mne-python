@@ -57,6 +57,7 @@ jobs:
               pip install sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler
               pip uninstall --yes mne;
               echo "source activate mne" >> $BASH_ENV;
+
         - save_cache:
             key: pip-cache
             paths:
@@ -66,7 +67,7 @@ jobs:
         # and conda rolls their own (libgcc-ng package).
         - run: conda remove --yes qt pyqt matplotlib sip libxcb icu vtk
         - run: pip uninstall --yes mayavi vtk
-        - run: pip install vtk mayavi PyQt5 PyQt5-sip sip matplotlib
+        - run: pip install "PyQt5<5.12" PyQt5-sip sip matplotlib vtk mayavi
         - run: echo "export LD_PRELOAD=~/miniconda/envs/mne/lib/libgobject-2.0.so.0" >> $BASH_ENV
         - run: pip install --upgrade "https://api.github.com/repos/nipy/PySurfer/zipball/master"
         # Look at what we have and fail early if there is some library conflict

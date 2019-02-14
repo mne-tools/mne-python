@@ -42,6 +42,8 @@ from mne.tests.common import assert_meg_snr
 matplotlib.use('Agg')  # for testing don't use X server
 
 data_path = testing.data_path(download=False)
+fname_raw_testing = op.join(data_path, 'MEG', 'sample',
+                            'sample_audvis_trunc_raw.fif')
 fname_raw_move = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
 fname_raw_movecomp_sss = op.join(
     data_path, 'SSS', 'test_move_anon_movecomp_raw_sss.fif')
@@ -2514,6 +2516,71 @@ def test_shift_time_raises_when_not_loaded(preload):
         pytest.raises(RuntimeError, epochs.shift_time, timeshift)
     else:
         epochs.shift_time(timeshift)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('preload', (True, False))
+@pytest.mark.parametrize('fname', (fname_raw_testing, raw_fname))
+def test_epochs_drop_selection(fname, preload):
+    """Test epochs drop and selection."""
+    raw = read_raw_fif(fname, preload=True)
+    raw.info['bads'] = ['MEG 2443']
+    events = mne.make_fixed_length_events(raw, id=1, start=0.5, duration=1.0)
+    assert len(events) > 10
+    kwargs = dict(tmin=-0.2, tmax=0.5, proj=False, baseline=(None, 0))
+    reject = dict(mag=4e-12, grad=4000e-13)
+
+    # Hack the first channel data to store the desired selection in epoch data
+    raw._data[0] = 0.
+    scale = 1e-13
+    vals = scale * np.arange(1, len(events) + 1)
+    raw._data[0, events[:, 0] - raw.first_samp + 1] = vals
+
+    def _get_selection(epochs):
+        """Get the desired selection from our modified epochs."""
+        selection = np.round(epochs.get_data()[:, 0].max(axis=-1) / scale)
+        return selection.astype(int) - 1
+
+    # No rejection
+    epochs = mne.Epochs(raw, events, preload=preload, **kwargs)
+    if not preload:
+        epochs.drop_bad()
+    assert len(epochs) == len(events)  # none dropped
+    selection = _get_selection(epochs)
+    assert_array_equal(np.arange(len(events)), selection)  # kept all
+    assert_array_equal(epochs.selection, selection)
+
+    # Dropping during construction
+    epochs = mne.Epochs(raw, events, preload=preload, reject=reject, **kwargs)
+    if not preload:
+        epochs.drop_bad()
+    assert 4 < len(epochs) < len(events)  # some dropped
+    selection = _get_selection(epochs)
+    assert_array_equal(selection, epochs.selection)
+    good_selection = selection
+
+    # Dropping after construction
+    epochs = mne.Epochs(raw, events, preload=preload, **kwargs)
+    if not preload:
+        epochs.drop_bad()
+    assert len(epochs) == len(events)
+    epochs.drop_bad(reject=reject, verbose=True)
+    assert_array_equal(epochs.selection, good_selection)  # same as before
+    selection = _get_selection(epochs)
+    assert_array_equal(selection, epochs.selection)
+
+    # Dropping after construction manually
+    epochs = mne.Epochs(raw, events, preload=preload, **kwargs)
+    if not preload:
+        epochs.drop_bad()
+    assert_array_equal(epochs.selection, np.arange(len(events)))  # no drops
+    drop_idx = [1, 3]
+    want_selection = np.setdiff1d(np.arange(len(events)), drop_idx)
+    epochs.drop(drop_idx)
+    assert_array_equal(epochs.selection, want_selection)
+    selection = np.round(epochs.get_data()[:, 0].max(axis=-1) / scale)
+    selection = selection.astype(int) - 1
+    assert_array_equal(selection, epochs.selection)
 
 
 run_tests_if_main()
