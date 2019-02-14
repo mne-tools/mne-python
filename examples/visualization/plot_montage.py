@@ -38,6 +38,11 @@ fig = plot_alignment(raw.info, trans, subject='sample', dig=False,
                      coord_frame='head', subjects_dir=subjects_dir)
 mlab.view(135, 80)
 
+fig = plot_alignment(raw.info, trans, subject='fsaverage', dig=False,
+                     eeg=['original', 'projected'], meg=[],
+                     coord_frame='head', subjects_dir=subjects_dir)
+mlab.view(135, 80)
+
 # With montage
 montage = mne.channels.read_montage('standard_1020')
 # raw.set_montage(montage, set_dig=True)
