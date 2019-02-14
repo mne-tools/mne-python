@@ -16,7 +16,6 @@ import os
 import re
 
 import numpy as np
-import os.path as op
 
 from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims
@@ -29,9 +28,7 @@ from ...annotations import Annotations, events_from_annotations
 from ._utils import _load_gdf_events_lut
 
 
-GDF_EVENT_ENCODES_FILE = op.join(op.dirname(__file__), 'gdf_encodes.txt')
-GDF_EVENTS_LUT = _load_gdf_events_lut(fname=GDF_EVENT_ENCODES_FILE,
-                                      md5='12134a9be7e0bfa5941e95f8bfd330f7')
+GDF_EVENTS_LUT = _load_gdf_events_lut()
 
 
 @deprecated('find_edf_events is deprecated in 0.18, and will be removed'
