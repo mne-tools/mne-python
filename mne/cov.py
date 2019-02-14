@@ -1380,7 +1380,7 @@ def _get_whitener(noise_cov, info=None, ch_names=None, rank=None,
 
 
 @verbose
-def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
+def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
                       scalings=None, verbose=None):
     """Prepare noise covariance matrix.
 
@@ -1390,8 +1390,9 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         The noise covariance to process.
     info : dict
         The measurement info (used to get channel types and bad channels).
-    ch_names : list
-        The channel names to be considered.
+    ch_names : list | None
+        The channel names to be considered. Can be None to use
+        ``info['ch_names']``.
     rank : None | int | dict (default None)
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
@@ -1413,6 +1414,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         and parameters updated.
     """
     # reorder C and info to match ch_names order
+    ch_names = info['ch_names'] if ch_names is None else ch_names
     noise_cov_idx = [noise_cov.ch_names.index(c) for c in ch_names]
     if not noise_cov['diag']:
         C = noise_cov.data[np.ix_(noise_cov_idx, noise_cov_idx)]
