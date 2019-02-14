@@ -139,8 +139,8 @@ def test_dipole_fitting():
     # Sanity check: do our residuals have less power than orig data?
     data_rms = np.sqrt(np.sum(evoked.data ** 2, axis=0))
     resi_rms = np.sqrt(np.sum(residual.data ** 2, axis=0))
-    assert (data_rms > resi_rms * 0.95).all(), \
-        '%s (factor: %s)' % ((data_rms / resi_rms).min(), 0.95)
+    assert (data_rms > resi_rms * 0.90).all(), \
+        '%s (factor: %s)' % ((data_rms / resi_rms).min(), 0.90)
 
     # Compare to original points
     transform_surface_to(fwd['src'][0], 'head', fwd['mri_head_t'])
