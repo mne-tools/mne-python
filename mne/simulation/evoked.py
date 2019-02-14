@@ -204,6 +204,7 @@ def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
     c = np.diag(stds_inv).dot(c).dot(np.diag(stds_inv))
     # we almost always get a positive semidefinite warning here, so squash it
     with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
         noise = rng.multivariate_normal(mu_channels, c, n_samples).T
         noise *= stds[:, None]
     if iir_filter is not None:
