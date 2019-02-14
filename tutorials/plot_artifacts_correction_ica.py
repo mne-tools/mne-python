@@ -298,6 +298,6 @@ eog_component = reference_ica.get_components()[:, eog_inds[0]]
 ###############################################################################
 # References
 # ----------
-# .. [1] Ablin, P., Cardoso, J.F., Gramfort, A., 2017. Faster Independent
-#        Component Analysis by preconditioning with Hessian approximations.
-#        arXiv:1706.08171
+# .. [1] Ablin P, Cardoso J, Gramfort A (2018). Faster Independent Component
+#        Analysis by Preconditioning With Hessian Approximations.
+#        IEEE Transactions on Signal Processing 66:4040–4049

@@ -286,9 +286,9 @@ class ICA(ContainsMixin):
            subgaussian and supergaussian sources. Neural computation, 11(2),
            pp.417-441.
 
-    .. [4] Ablin, P., Cardoso, J.F., Gramfort, A., 2017. Faster Independent
-           Component Analysis by preconditioning with Hessian approximations.
-           arXiv:1706.08171
+    .. [4] Ablin P, Cardoso J, Gramfort A (2018). Faster Independent Component
+           Analysis by Preconditioning With Hessian Approximations.
+           IEEE Transactions on Signal Processing 66:4040–4049
 
     .. [5] Artoni, F., Delorme, A., und Makeig, S, 2018. Applying Dimension
            Reduction to EEG Data by Principal Component Analysis Reduces the

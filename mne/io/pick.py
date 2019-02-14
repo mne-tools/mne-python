@@ -11,7 +11,7 @@ import re
 import numpy as np
 
 from .constants import FIFF
-from ..utils import logger, verbose, _validate_type, fill_doc
+from ..utils import logger, verbose, _validate_type, fill_doc, _ensure_int
 
 
 def get_channel_types():
@@ -796,14 +796,16 @@ def _pick_data_or_ica(info, exclude=()):
 def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
                   with_ref_meg=True):
     """Convert and check pick validity."""
+    from .meas_info import Info
     #
     # None -> all, data, or data_or_ica (ndarray of int)
     #
     orig_picks = picks
-    if isinstance(info, int):
-        n_chan = info
-    else:
+    if isinstance(info, Info):
         n_chan = info['nchan']
+    else:
+        info = _ensure_int(info, 'info', 'an int or Info')
+        n_chan = info
     assert n_chan >= 0
 
     if picks is None:
