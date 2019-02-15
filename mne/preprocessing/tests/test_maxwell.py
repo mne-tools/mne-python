@@ -545,7 +545,7 @@ def test_spatiotemporal():
         # as mentioned above.
         raw_tsss = maxwell_filter(
             raw, st_duration=st_duration, **kwargs)
-        assert_equal(raw_tsss.estimate_rank(), 140)
+        assert_equal(_compute_rank_int(raw_tsss), 140)
         assert_meg_snr(raw_tsss, tsss_bench, *tol)
         py_st = raw_tsss.info['proc_history'][0]['max_info']['max_st']
         assert (len(py_st) > 0)
@@ -572,18 +572,18 @@ def test_spatiotemporal_only():
     # basics
     raw_tsss = maxwell_filter(raw, st_duration=tmax / 2., st_only=True)
     assert_equal(len(raw.info['projs']), len(raw_tsss.info['projs']))
-    assert_equal(raw_tsss.estimate_rank(), len(picks))
+    assert_equal(_compute_rank_int(raw_tsss), len(picks))
     _assert_shielding(raw_tsss, power, 9)
     # with movement
     head_pos = read_head_pos(pos_fname)
     raw_tsss = maxwell_filter(raw, st_duration=tmax / 2., st_only=True,
                               head_pos=head_pos)
-    assert_equal(raw_tsss.estimate_rank(), len(picks))
+    assert_equal(_compute_rank_int(raw_tsss), len(picks))
     _assert_shielding(raw_tsss, power, 9)
     with pytest.warns(RuntimeWarning, match='st_fixed'):
         raw_tsss = maxwell_filter(raw, st_duration=tmax / 2., st_only=True,
                                   head_pos=head_pos, st_fixed=False)
-    assert_equal(raw_tsss.estimate_rank(), len(picks))
+    assert_equal(_compute_rank_int(raw_tsss), len(picks))
     _assert_shielding(raw_tsss, power, 9)
     # should do nothing
     raw_tsss = maxwell_filter(raw, st_duration=tmax, st_correlation=1.,

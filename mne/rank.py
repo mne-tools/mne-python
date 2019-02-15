@@ -11,38 +11,13 @@ from scipy import linalg
 
 from .defaults import _handle_default
 from .io.meas_info import _simplify_info
-from .io.pick import _picks_by_type, pick_info, pick_channels_cov
+from .io.pick import (_picks_by_type, pick_info, pick_channels_cov,
+                      _picks_to_idx)
 from .io.proj import make_projector
 from .utils import (logger, _compute_row_norms,
                     _apply_scaling_cov, _undo_scaling_cov,
                     _scaled_array,
                     warn, _check_rank, verbose)
-
-
-# XXX : incorporate, add tests showing utility
-def _estimate_rank_by_ratio(X, ratio=1.0e4):
-    X = np.asarray(X)
-    assert X.ndim == 2
-    # Compute the singular values
-    sing = linalg.svd(X, compute_uv=False)
-    # If the largest singular value is zero, the rank is zero
-    if sing[0] < np.finfo(X.dtype).eps:
-        return 0
-    # Scale and check for zero singular values within the numerical
-    # precision and remove them
-    sing_scaled = sing / sing[0]
-    n_nonzero = np.count_nonzero(sing_scaled > np.finfo(X.dtype).eps)
-    sing = sing[:n_nonzero]
-    # Search for abrupt changes in the singular value spectra by
-    # computing the ratios of consecutive singular values
-    sing_shifted = np.hstack([sing[0], sing[:-1]])
-    sing_ratio = sing_shifted / sing
-    # Check if any/some of the ratios exceed the threshold
-    ex = np.where(sing_ratio > ratio)[0]
-    if len(ex) == 0:
-        return n_nonzero
-    else:
-        return ex[0]
 
 
 @verbose
@@ -132,6 +107,14 @@ def _estimate_rank_from_s(s, tol='auto'):
     tol = float(tol)
     rank = np.sum(s > tol)
     return rank
+
+
+def _estimate_rank_raw(raw, picks=None, tol=1e-4, scalings='norm'):
+    """Aid the deprecation of raw.estimate_rank."""
+    picks = _picks_to_idx(raw.info, picks, with_ref_meg=False)
+    # conveniency wrapper to expose the expert "tol" option + scalings options
+    return _estimate_rank_meeg_signals(
+        raw[picks][0], pick_info(raw.info, picks), scalings, tol)
 
 
 def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',

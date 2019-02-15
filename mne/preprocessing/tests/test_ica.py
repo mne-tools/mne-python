@@ -25,6 +25,7 @@ from mne.preprocessing.ica import (get_score_funcs, corrmap, _sort_components,
 from mne.io import read_raw_fif, Info, RawArray, read_raw_ctf, read_raw_eeglab
 from mne.io.meas_info import _kind_dict
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
+from mne.rank import _compute_rank_int
 from mne.utils import (catch_logging, _TempDir, requires_sklearn,
                        run_tests_if_main)
 from mne.datasets import testing
@@ -158,10 +159,10 @@ def test_ica_rank_reduction(method):
                       n_pca_components=n_pca_components,
                       method=method, max_iter=1).fit(raw, picks=picks)
 
-        rank_before = raw.estimate_rank(picks=picks)
+        rank_before = _compute_rank_int(raw.copy().pick(picks))
         assert_equal(rank_before, len(picks))
         raw_clean = ica.apply(raw.copy())
-        rank_after = raw_clean.estimate_rank(picks=picks)
+        rank_after = _compute_rank_int(raw_clean.copy().pick(picks))
         # interaction between ICA rejection and PCA components difficult
         # to preduct. Rank_after often seems to be 1 higher then
         # n_pca_components

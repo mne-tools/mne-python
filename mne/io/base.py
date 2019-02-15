@@ -38,7 +38,7 @@ from ..filter import (filter_data, notch_filter, resample, next_fast_len,
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments, _pl, fill_doc,
-                     check_fname, _get_stim_channel,
+                     check_fname, _get_stim_channel, deprecated,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc,
                      _check_preload, _get_argvalues)
@@ -1850,6 +1850,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                  show=show, block=block, n_jobs=n_jobs,
                                  axes=axes, verbose=verbose)
 
+    @deprecated('raw.estimate_rank is deprecated and will be removed in 0.19, '
+                'use mne.compute_rank instead.')
     @verbose
     def estimate_rank(self, tstart=0.0, tstop=30.0, tol=1e-4,
                       return_singular=False, picks=None, scalings='norm',

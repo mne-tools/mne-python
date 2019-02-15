@@ -15,7 +15,7 @@ from mne.io.pick import channel_type, _picks_by_type
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.proj import compute_proj_raw
 from mne.rank import (estimate_rank, compute_rank, _get_rank_sss,
-                      _compute_rank_int)
+                      _compute_rank_int, _estimate_rank_raw)
 
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -59,16 +59,16 @@ def test_rank_estimation():
             expected_rank = n_meg + n_eeg
         else:
             expected_rank = _get_rank_sss(raw.info) + n_eeg
-        assert_array_equal(raw.estimate_rank(scalings=scalings), expected_rank)
-        assert_array_equal(raw.estimate_rank(picks=picks_eeg,
-                                             scalings=scalings), n_eeg)
+        assert _estimate_rank_raw(raw, scalings=scalings) == expected_rank
+        with pytest.deprecated_call():
+            assert raw.estimate_rank(picks=picks_eeg,
+                                     scalings=scalings) == n_eeg
         if 'sss' in fname:
             raw.add_proj(compute_proj_raw(raw))
         raw.apply_proj()
         n_proj = len(raw.info['projs'])
-        assert_array_equal(raw.estimate_rank(tstart=0, tstop=3.,
-                                             scalings=scalings),
-                           expected_rank - (0 if 'sss' in fname else n_proj))
+        want_rank = expected_rank - (0 if 'sss' in fname else n_proj)
+        assert _estimate_rank_raw(raw, scalings=scalings) == want_rank
 
 
 @pytest.mark.slowtest
@@ -183,11 +183,9 @@ def test_maxfilter_get_rank(n_proj, fname, rank_orig):
 
     # degenerate cases
     with pytest.raises(ValueError, match='tol must be'):
-        raw.estimate_rank(tol='foo')
+        _estimate_rank_raw(raw, tol='foo')
     with pytest.raises(TypeError, match='must be a string or a number'):
-        raw.estimate_rank(tol=None)
-    # multiple ways of hopefully getting the same thing
-    rank_new = raw.estimate_rank(tol=1e-4)  # default tol=1e-4, scalings='norm'
+        _estimate_rank_raw(raw, tol=None)
 
     # XXX this should be "rank" not "rank_orig", see gh-5146
     allowed_rank = [rank_orig]
@@ -196,10 +194,16 @@ def test_maxfilter_get_rank(n_proj, fname, rank_orig):
         # probably acceptable. If we use the entire duration instead of 5 sec
         # this problem goes away, but the test is much slower.
         allowed_rank.append(allowed_rank[0] - 1)
-    tol = 'float32'  # temporary option until we can fix things
-    rank_new = raw.estimate_rank(tol=tol)
+
+    # multiple ways of hopefully getting the same thing
+    # default tol=1e-4, scalings='norm'
+    rank_new = _estimate_rank_raw(raw)
     assert rank_new in allowed_rank
-    rank_new = raw.estimate_rank(scalings=dict(), tol=tol)
+
+    tol = 'float32'  # temporary option until we can fix things
+    rank_new = _estimate_rank_raw(raw, tol=tol)
+    assert rank_new in allowed_rank
+    rank_new = _estimate_rank_raw(raw, scalings=dict(), tol=tol)
     assert rank_new in allowed_rank
     scalings = dict(grad=1e13, mag=1e15)
     rank_new = _compute_rank_int(raw, None, scalings=scalings, tol=tol,

@@ -417,3 +417,18 @@ def _check_rank(rank):
             rank = dict(meg=rank)
     return rank
 
+
+def _check_one_ch_type(info, picks, noise_cov, method):
+    """Check number of sensor types and presence of noise covariance matrix."""
+    from ..io.pick import pick_info
+    from ..channels.channels import _contains_ch_type
+    info_pick = pick_info(info, sel=picks)
+    ch_types =\
+        [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
+    if method == 'lcmv' and sum(ch_types) > 1 and noise_cov is None:
+        raise ValueError('Source reconstruction with several sensor types '
+                         'requires a noise covariance matrix to be '
+                         'able to apply whitening.')
+    elif method == 'dics' and sum(ch_types) > 1:
+        warn('The use of several sensor types with the DICS beamformer is '
+             'not heavily tested yet.')

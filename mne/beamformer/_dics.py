@@ -9,8 +9,8 @@
 import numpy as np
 
 from ..utils import (logger, verbose, warn, _reg_pinv, _check_info_inv,
-                     _check_channels_spatial_filter)
-from ..utils import _check_one_ch_type, _check_rank
+                     _check_channels_spatial_filter, _check_one_ch_type,
+                     _check_rank)
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc, _get_src_type
