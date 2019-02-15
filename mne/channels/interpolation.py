@@ -175,9 +175,9 @@ def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
     %(verbose)s
     """
     picks_meg = pick_types(inst.info, meg=True, eeg=False,
-                           ref_meg=True, exclude=[])
+                           ref_meg=False, exclude=[])
     picks_good = pick_types(inst.info, meg=True, eeg=False,
-                            ref_meg=True, exclude='bads')
+                            ref_meg=False, exclude='bads')
     meg_ch_names = [inst.info['ch_names'][p] for p in picks_meg]
     bads_meg = [ch for ch in inst.info['bads'] if ch in meg_ch_names]
 
