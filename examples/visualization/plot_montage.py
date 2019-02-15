@@ -84,7 +84,12 @@ for current_montage in (_ for _ in get_builtin_montages() if _.startswith('stand
 # 1 - What happens with `_set_montage` and therefore `create_info` when
 #     len(info.ch_names) != len(montage.ch_names)
 #
-# 2 - 
+# 2 - Why some montages have feducials and some does not? why they don't get
+# nicely ploted with the blue red green stuff
+#
+# 3 - Can I read_montage(bla.fif) ?
+#
+# 4 -
 
 
 ###############################################################################
