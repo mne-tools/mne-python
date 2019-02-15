@@ -51,7 +51,7 @@ for current_montage in get_builtin_montages():
                            montage=montage)
     #
     fig = plot_alignment(info, trans=None, subject='fsaverage', dig=False,
-                         eeg=['projected'], meg=[],
+                         eeg=['original', 'projected'], meg=[],
                          coord_frame='head', subjects_dir=subjects_dir,
                          fig=fig)
     mlab.view(135, 80)
@@ -95,9 +95,14 @@ for current_montage in (_ for _ in get_builtin_montages() if _.startswith('stand
 ###############################################################################
 # TODO
 
-# trans = mne.read_trans(data_path + '/MEG/sample/sample_audvis_raw-trans.fif')
-# raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
-# raw.load_data()
+trans = mne.read_trans(data_path + '/MEG/sample/sample_audvis_raw-trans.fif')
+raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
+raw.load_data()
+
+
+xx = set([_['kind'] for _ in raw.info['dig']])
+print(xx)
+
 # raw.pick_types(meg=False, eeg=True, eog=True)
 # print(raw.info['chs'][0]['loc'])
 
