@@ -1,0 +1,117 @@
+graph TB
+
+%% structural
+subgraph MRI structural information
+    tone(T1)
+    surf(FreeSurfer surfaces)
+    fslab("Cortical Labels<br/>(*.annot, *.label)")
+    src(Source space)
+    head(Scalp surface)
+    bem(Conductor Model)
+    flash(Flash5/30)
+    tone --> surf
+    surf --> fslab
+    surf --> src
+    surf --> head
+    surf --> bem
+    flash --> bem
+end
+
+%% importing
+info(Measurement information)
+acq(Raw data from system)
+raw(Preprocessed data)
+acq --> raw
+raw --> info
+
+%% events
+eve("Events")
+raw --> eve
+
+%% forward
+trans("MRI fa:fa-arrows-h head transformation")
+fwd(Forward)
+src --> fwd
+bem --> fwd
+trans --> fwd
+head --> trans
+info --> trans
+info --> fwd
+
+%% epoching
+epo(Epochs)
+eve --> epo
+%%raw --> epo
+
+%% covariance
+cov(Covariance)
+epo --> cov
+
+%% evoked
+evk(Evoked)
+epo --> evk
+
+%% make inverse
+inv(Inverse)
+fwd --> inv
+info --> inv
+cov --> inv
+
+%% apply inverse
+stc("Estimated cortical activity<br/>(SourceEstimate)")
+inv --> stc
+evk --> stc
+epo --> stc
+raw --> stc
+
+%% label time course
+ltc("Label time courses")
+fslab --> ltc
+stc --> ltc
+
+subgraph Sensor-space analysis outcomes
+  sensor_conn(Connectivity)
+  sensor_stat(Statistics)
+  sensor_ml("Decoding (ML)")
+  sensor_tfr(Time-frequency)
+end
+
+subgraph Source-space analysis outcomes
+  conn(Connectivity)
+  stat(Statistics)
+  ml("Decoding (ML)")
+  tfr(Time-frequency)
+end
+
+%% connectivity
+ltc --> conn
+epo --> sensor_conn
+
+%% stats
+ltc --> stat
+stc --> stat
+epo --> sensor_stat
+
+%% ML
+stc --> ml
+epo --> sensor_ml
+
+%% time-frequency
+stc --> tfr
+epo --> sensor_tfr
+
+%% class: freesurfer objects (red)
+classDef mri fill:#fcc,stroke:#633,stroke-width:4px,font-weight:bold;
+class bem,tone,flash,src,surf,head,fslab mri;
+
+%% class: python objects (blue)
+classDef mne fill:#bce,stroke:#225,stroke-width:4px,font-weight:bold;
+class acq,raw,eve,info,trans,epo,evk,cov,inv,fwd,stc,ltc,ml,stat,conn,tfr mne;
+
+%% class: sensor-space outcomes
+classDef sensor fill:#eeb,stroke:#663,stroke-width:4px,font-weight:bold;
+class sensor_conn,sensor_stat,sensor_ml,sensor_tfr sensor;
+
+%% class: source-space outcomes
+classDef source fill:#cda,stroke:#252,stroke-width:4px,font-weight:bold;
+class conn,stat,ml,tfr source;

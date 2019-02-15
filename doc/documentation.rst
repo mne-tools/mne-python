@@ -1,6 +1,6 @@
 :orphan:
 
-.. include:: known_projects.inc
+.. include:: git_links.inc
 
 Documentation
 =============
@@ -38,11 +38,16 @@ The documentation for MNE-Python is divided into four main sections:
    :doc:`installation instructions <../getting_started>`.
 
 
-The rest of this page provides links to resources for :ref:`learning basic
-Python programming <learn_python>` (a necessary prerequisite to using any
-Python module, and MNE-Python is no exception), as well as some notes on the
-:ref:`design philosophy of MNE-Python <design_philosophy>` that may help orient
-new users to what MNE-Python does and does not do.
+The rest of this page provides:
+
+- links to resources for :ref:`learning basic Python programming
+  <learn_python>` (a necessary prerequisite to using any Python module, and
+  MNE-Python is no exception)
+
+- some notes on the :ref:`design philosophy of MNE-Python <design_philosophy>`
+  that may help orient new users to what MNE-Python does and does not do
+
+- a :ref:`flowchart` of the conceptual flow of data through MNE-Python
 
 
 .. _learn_python:
@@ -148,42 +153,9 @@ possibilities:
   may render the ``.fif`` files unreadable in software packages other than
   MNE-Python.
 
+.. _flowchart:
 
+Conceptual flowchart of MNE-Python
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Things that need to be placed somewhere
-=======================================
-
-.. _scikit-learn: https://scikit-learn.org/
-.. _Python: https://www.python.org/
-
-.. toctree::
-    :maxdepth: 1
-
-    generated/commands.rst
-    manual/appendix/bem_model.rst
-    manual/appendix/c_EULA.rst
-    manual/appendix/c_misc.rst
-    manual/appendix/c_release_notes.rst
-    manual/appendix/martinos.rst
-    manual/c_reference.rst
-    manual/channel_interpolation.rst
-    manual/cookbook.rst
-    manual/datasets_index.rst
-    manual/gui/analyze.rst
-    manual/gui/browse.rst
-    manual/io.rst
-    manual/matlab.rst
-    manual/memory.rst
-    manual/migrating.rst
-    manual/preprocessing/ica.rst
-    manual/preprocessing/maxwell.rst
-    manual/preprocessing/ssp.rst
-    manual/source_localization/c_forward.rst
-    manual/source_localization/c_inverse.rst
-    manual/source_localization/forward.rst
-    manual/source_localization/inverse.rst
-    manual/source_localization/morph_stc.rst
-    manual/time_frequency.rst
-    tutorials/command_line.rst
-    tutorials/philosophy.rst
-    tutorials/report.rst
+.. mermaid:: conceptual-flowchart.mmd
