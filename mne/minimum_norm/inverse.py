@@ -26,7 +26,8 @@ from ..io.write import (write_int, write_float_matrix, start_file,
                         write_coord_trans, write_string)
 
 from ..io.pick import channel_type, pick_info, pick_types
-from ..cov import _get_whitener, _read_cov, _write_cov, Covariance
+from ..cov import (_get_whitener, _read_cov, _write_cov, Covariance,
+                   prepare_noise_cov)
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,
                        compute_orient_prior, convert_forward_solution)
@@ -558,8 +559,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
     #   Create the whitener
     #
 
-    inv['whitener'], inv['colorer'], _, _ = _get_whitener(
-        inv['noise_cov'], pca=False, prepared=True)
+    inv['whitener'], inv['colorer'], _, _ = _get_whitener(inv['noise_cov'])
 
     #
     #   Finally, compute the noise-normalization factors
@@ -1297,16 +1297,18 @@ def _xyz2lf(Lf_xyz, normals):
 # Assemble the inverse operator
 
 @verbose
-def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
-                     verbose=None):
+def _prepare_forward(forward, info, noise_cov, verbose=None):
     """Prepare forward solution for inverse solvers."""
     # fwd['sol']['row_names'] may be different order from fwd['info']['chs']
     fwd_sol_ch_names = forward['sol']['row_names']
+    all_ch_names = set(fwd_sol_ch_names)
+    all_bads = set(info['bads'])
+    if noise_cov is not None:
+        all_ch_names &= set(noise_cov['names'])
+        all_bads |= set(noise_cov['bads'])
     ch_names = [c['ch_name'] for c in info['chs']
-                if ((c['ch_name'] not in info['bads'] and
-                     c['ch_name'] not in noise_cov['bads']) and
-                    (c['ch_name'] in fwd_sol_ch_names and
-                     c['ch_name'] in noise_cov.ch_names))]
+                if c['ch_name'] not in all_bads and
+                c['ch_name'] in all_ch_names]
 
     if not len(info['bads']) == len(noise_cov['bads']) or \
             not all(b in noise_cov['bads'] for b in info['bads']):
@@ -1319,9 +1321,6 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
     n_chan = len(ch_names)
     logger.info("Computing inverse operator with %d channels." % n_chan)
 
-    whitener, _, noise_cov, n_nzero = _get_whitener(
-        noise_cov, info, ch_names, rank, pca)
-
     gain = forward['sol']['data']
 
     # This actually reorders the gain matrix to conform to the info ch order
@@ -1332,8 +1331,10 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
 
     info_idx = [info['ch_names'].index(name) for name in ch_names]
     fwd_info = pick_info(info, info_idx)
+    forward['info']._check_consistency()
+    fwd_info._check_consistency()
 
-    return fwd_info, gain, noise_cov, whitener, n_nzero
+    return fwd_info, gain
 
 
 @verbose
@@ -1417,6 +1418,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     weighting. Thus slightly different results are to be expected with
     and without this information.
     """  # noqa: E501
+
     is_fixed_ori = is_fixed_orient(forward)
 
     # These gymnastics are necessary due to the redundancy between
@@ -1475,14 +1477,18 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     # 1. Read the bad channels
     # 2. Read the necessary data from the forward solution matrix file
     # 3. Load the projection data
+    #
+    gain_info, gain = _prepare_forward(forward, info, noise_cov)
+
+    #
     # 4. Load the sensor noise covariance matrix and attach it to the forward
     #
 
     # For now we always have pca=False. It does not seem to affect calculations
     # and is also backward-compatible with MNE-C
-    gain_info, gain, noise_cov, whitener, n_nzero = \
-        _prepare_forward(forward, info, noise_cov, pca=False, rank=rank)
-    forward['info']._check_consistency()
+    noise_cov = prepare_noise_cov(noise_cov, info, gain_info['ch_names'], rank)
+    whitener, _, noise_cov, n_nzero = _get_whitener(
+        noise_cov, info, gain_info['ch_names'], rank, pca=False)
 
     #
     # 5. Compose the depth-weighting matrix
@@ -1509,9 +1515,8 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
                 forward, surf_ori=forward['surf_ori'], force_fixed=True,
                 use_cps=use_cps)
             is_fixed_ori = is_fixed_orient(forward)
-            gain_info, gain, noise_cov, whitener, n_nzero = \
-                _prepare_forward(forward, info, noise_cov, pca=False,
-                                 verbose=False)
+            gain_info, gain = _prepare_forward(
+                forward, info, noise_cov, verbose=False)
 
     logger.info("Computing inverse operator with %d channels."
                 % len(gain_info['ch_names']))
@@ -1593,10 +1598,8 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     # Handle methods
     has_meg = False
     has_eeg = False
-    ch_idx = [k for k, c in enumerate(info['chs'])
-              if c['ch_name'] in gain_info['ch_names']]
-    for idx in ch_idx:
-        ch_type = channel_type(info, idx)
+    for idx in range(gain_info['nchan']):
+        ch_type = channel_type(gain_info, idx)
         if ch_type == 'eeg':
             has_eeg = True
         if (ch_type == 'mag') or (ch_type == 'grad'):
@@ -1614,7 +1617,8 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     inv_op = dict(eigen_fields=eigen_fields, eigen_leads=eigen_leads,
                   sing=sing, nave=nave, depth_prior=depth_prior,
                   source_cov=source_cov, noise_cov=noise_cov,
-                  orient_prior=orient_prior, projs=deepcopy(info['projs']),
+                  orient_prior=orient_prior,
+                  projs=deepcopy(gain_info['projs']),
                   eigen_leads_weighted=False, source_ori=forward['source_ori'],
                   mri_head_t=deepcopy(forward['mri_head_t']),
                   methods=methods, nsource=forward['nsource'],
@@ -1623,7 +1627,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
                   src=deepcopy(forward['src']), fmri_prior=None)
     inv_info = deepcopy(forward['info'])
     inv_info['bads'] = [bad for bad in info['bads']
-                        if bad in inv_info['ch_names']]
+                        if bad in forward['info']['ch_names']]
     inv_info._check_consistency()
     inv_op['units'] = 'Am'
     inv_op['info'] = inv_info

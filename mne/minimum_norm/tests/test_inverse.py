@@ -903,16 +903,18 @@ def test_make_inverse_operator_bads():
     fwd_op = read_forward_solution_meg(fname_fwd, surf_ori=True)
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
+    assert evoked.info['bads'] == noise_cov['bads']
+    assert evoked.info['bads'] == fwd_op['info']['bads'] + ['EEG 053']
 
-    # test bads
+    # one fewer bad in evoked than cov
     bad = evoked.info['bads'].pop()
     inv_ = make_inverse_operator(evoked.info, fwd_op, noise_cov, loose=1.)
     union_good = set(noise_cov['names']) & set(evoked.ch_names)
     union_bads = set(noise_cov['bads']) & set(evoked.info['bads'])
     evoked.info['bads'].append(bad)
 
-    assert (len(set(inv_['info']['ch_names']) - union_good) == 0)
-    assert (len(set(inv_['info']['bads']) - union_bads) == 0)
+    assert len(set(inv_['info']['ch_names']) - union_good) == 0
+    assert len(set(inv_['info']['bads']) - union_bads) == 0
 
 
 @testing.requires_testing_data

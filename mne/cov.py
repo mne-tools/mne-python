@@ -1304,13 +1304,10 @@ def _get_ch_whitener(A, pca, ch_type, rank):
 
 
 def _get_whitener(noise_cov, info=None, ch_names=None, rank=None,
-                  pca=False, scalings=None, prepared=False):
+                  pca=False):
     #
     #   Handle noise cov
     #
-    if not prepared:
-        noise_cov = prepare_noise_cov(noise_cov, info, ch_names, rank,
-                                      scalings)
     n_chan = len(noise_cov['eig'])
 
     #   Omit the zeroes due to projection
@@ -1366,8 +1363,16 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
         and parameters updated.
     """
     # reorder C and info to match ch_names order
-    ch_names = info['ch_names'] if ch_names is None else ch_names
-    noise_cov_idx = [noise_cov.ch_names.index(c) for c in ch_names]
+    noise_cov_idx = list()
+    missing = list()
+    for c in ch_names:
+        try:
+            noise_cov_idx.append(noise_cov.ch_names.index(c))
+        except ValueError:
+            missing.append(c)
+    if len(missing):
+        raise RuntimeError('Not all channels present in noise covariance:\n%s'
+                           % missing)
     if not noise_cov['diag']:
         C = noise_cov.data[np.ix_(noise_cov_idx, noise_cov_idx)]
     else:
@@ -1686,19 +1691,12 @@ def compute_whitener(noise_cov, info, picks=None, rank=None, scalings=None,
         Rank reduction of the whitener. Returned only if return_rank is True.
     """
     picks = _picks_to_idx(info, picks, with_ref_meg=False)
-
     ch_names = [info['ch_names'][k] for k in picks]
-
-    # XXX this relies on pick_channels, which does not respect order,
-    # so this could create problems if users have reordered their data
-    noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
-    if len(noise_cov['data']) != len(ch_names):
-        missing = list(set(ch_names) - set(noise_cov['names']))
-        raise RuntimeError('Not all channels present in noise covariance:\n%s'
-                           % missing)
+    noise_cov = prepare_noise_cov(noise_cov, info, ch_names, rank, scalings)
+    scalings = _handle_default('scalings_cov_rank', scalings)
 
     W, _, noise_cov, n_nzero = _get_whitener(
-        noise_cov, info, ch_names, rank, pca=pca, scalings=scalings)
+        noise_cov, info, ch_names, rank, pca=pca)
 
     # Do the back projection
     if not pca:
