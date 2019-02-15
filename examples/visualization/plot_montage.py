@@ -93,15 +93,42 @@ for current_montage in (_ for _ in get_builtin_montages() if _.startswith('stand
 
 
 ###############################################################################
-# TODO
+# Try to play with a dig (from sample) and fsaverage
+#
+#
+# Things I don't understand here.
+# A- `eeg=['original'], trans=trans, subject='sample'`  this should work.
+# B- `eeg=['original'], trans=None, subject='sample'`  this should work and the points should be off.
+# C- `eeg=['original'], trans=None, subject='fsaverage'`  this should work and the points should be off.
+# D- `eeg='projected'` crasses whatever the rest
+#
+# Given that A works, I should be able to generate a trans file (by reading
+# https://www.martinos.org/mne/stable/manual/cookbook.html#aligning-coordinate-frames and follow links there),
+# add the trans into C and it should work. But I've no idea how to tackle it just from the doc
+#
+
 
 trans = mne.read_trans(data_path + '/MEG/sample/sample_audvis_raw-trans.fif')
 raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
+my_ch_names = raw.load_data().pick_types(eeg=True, meg=False).info['ch_names']
+
+raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
 raw.load_data()
 
+my_info = mne.create_info(ch_names=my_ch_names,
+                          sfreq=1,
+                          ch_types='eeg',
+                          # montage=montage  # no montage 'cos I'll use dig
+                          )
+my_info['dig'] = raw.info['dig'].copy()
+fig = plot_alignment(my_info, trans=trans, subject='sample', dig=False,
+                     eeg=['original'], meg=[],
+                     coord_frame='head', subjects_dir=subjects_dir,
+                     fig=None)
 
-xx = set([_['kind'] for _ in raw.info['dig']])
-print(xx)
+###############################################################################
+# TODO
+
 
 # raw.pick_types(meg=False, eeg=True, eog=True)
 # print(raw.info['chs'][0]['loc'])
