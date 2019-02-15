@@ -19,7 +19,7 @@ from mne.channels.montage import _set_montage, get_builtin_montages
 from mne.viz import plot_alignment
 from mayavi import mlab
 
-print(__doc__)
+# print(__doc__)
 
 data_path = mne.datasets.sample.data_path()
 subjects_dir = data_path + '/subjects'
@@ -27,16 +27,27 @@ subjects_dir = data_path + '/subjects'
 ###############################################################################
 # check all montages
 #
-for current_montage in get_builtin_montages():
-    montage = mne.channels.read_montage(current_montage)
-    info = mne.create_info(ch_names=montage.ch_names,
-                           sfreq=1,
-                           ch_types='eeg',
-                           montage=montage)
 
-    plot_alignment(info, trans=None, subject='fsaverage', dig=False,
-                   eeg=['projected'], meg=[],
-                   coord_frame='head', subjects_dir=subjects_dir)
+current_montage = get_builtin_montages()[0]
+# for current_montage in get_builtin_montages():
+montage = mne.channels.read_montage(current_montage)
+info = mne.create_info(ch_names=montage.ch_names,
+                       sfreq=1,
+                       ch_types='eeg',
+                       montage=montage)
+
+plot_alignment(info, trans=None, subject='fsaverage', dig=False,
+               eeg=['projected'], meg=[],
+               coord_frame='head', subjects_dir=subjects_dir)
+
+###############################################################################
+# Questions I've
+#
+# 1 - What happens with `_set_montage` and therefore `create_info` when
+#     len(info.ch_names) != len(montage.ch_names)
+#
+# 2 - 
+
 
 ###############################################################################
 # TODO
