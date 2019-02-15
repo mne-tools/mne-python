@@ -73,6 +73,8 @@ Bug
 
 - Fix :func:`mne.io.read_raw_edf` returning all the annotations with the same name in GDF files by `Joan Massich`_
 
+- Fix :func:`mne.simulation.simulate_evoked` that was failing to simulate the noise with heterogeneous sensor types due to poor conditioning of the noise covariance and make sure the projections from the noise covariance are taken into account `Alex Gramfort`_
+
 - Fix :meth:`mne.io.Raw.append` annotations miss-alignment  by `Joan Massich`_
 
 - Fix hash bug in the ``mne.io.edf`` module when installing on Windows by `Eric Larson`_

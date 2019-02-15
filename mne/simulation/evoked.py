@@ -3,12 +3,12 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
-import warnings
 import math
 
 import numpy as np
 
-from ..io.pick import pick_channels_cov, pick_info
+from ..cov import _get_whitener
+from ..io.pick import pick_info
 from ..forward import apply_forward
 from ..utils import (logger, verbose, check_random_state, _check_preload,
                      deprecated, _validate_type)
@@ -77,6 +77,8 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
         noise = _simulate_noise_evoked(evoked, cov, iir_filter, random_state)
         evoked.data += noise.data / math.sqrt(nave)
         evoked.nave = np.int(nave)
+    if cov is not None and cov.get('projs', None):
+        evoked.add_proj(cov['projs']).apply_proj()
     return evoked
 
 
@@ -186,22 +188,12 @@ def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=True):
 def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
     """Create spatially colored and temporally IIR-filtered noise."""
     from scipy.signal import lfilter
-    noise_cov = pick_channels_cov(cov, include=info['ch_names'], exclude=[])
-    if set(info['ch_names']) != set(noise_cov.ch_names):
-        raise ValueError('Evoked and covariance channel names are not '
-                         'identical. Cannot generate the noise matrix. '
-                         'Channels missing in covariance %s.' %
-                         np.setdiff1d(info['ch_names'], noise_cov.ch_names))
-
     rng = check_random_state(random_state)
-    c = np.diag(noise_cov.data) if noise_cov['diag'] else noise_cov.data
-    mu_channels = np.zeros(len(c))
-    # we almost always get a positive semidefinite warning here, so squash it
-    with warnings.catch_warnings(record=True):
-        noise = rng.multivariate_normal(mu_channels, c, n_samples).T
+    _, colorer, _, _ = _get_whitener(cov, info)
+    noise = np.dot(colorer, rng.randn(len(colorer), n_samples))
     if iir_filter is not None:
         if zi is None:
-            zi = np.zeros((len(c), len(iir_filter) - 1))
+            zi = np.zeros((len(colorer), len(iir_filter) - 1))
         noise, zf = lfilter([1], iir_filter, noise, axis=-1, zi=zi)
     else:
         zf = None

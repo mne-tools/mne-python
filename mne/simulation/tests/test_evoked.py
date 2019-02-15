@@ -15,7 +15,8 @@ from mne import (read_cov, read_forward_solution, convert_forward_solution,
 from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, simulate_evoked, add_noise
 from mne.io import read_raw_fif
-from mne.cov import regularize
+from mne.io.pick import pick_channels_cov
+from mne.cov import regularize, whiten_evoked
 from mne.utils import run_tests_if_main, catch_logging
 
 data_path = testing.data_path(download=False)
@@ -61,6 +62,9 @@ def test_simulate_evoked():
     assert_array_almost_equal(evoked.times, stc.times)
     assert len(evoked.data) == len(fwd['sol']['data'])
     assert_equal(evoked.nave, nave)
+    assert len(evoked.info['projs']) == len(cov['projs'])
+    evoked_white = whiten_evoked(evoked, cov)
+    assert abs(evoked_white.data[:, 0].std() - 1.) < 0.1
 
     # make a vertex that doesn't exist in fwd, should throw error
     stc_bad = stc.copy()
@@ -80,12 +84,15 @@ def test_simulate_evoked():
                   cov, nave=nave, iir_filter=None)
 
 
-@testing.requires_testing_data
+# We don't use an avg ref here, but let's ignore it. Also we know we have
+# few samples, and that our epochs are not baseline corrected.
+@pytest.mark.filterwarnings('ignore:No average EEG reference present')
+@pytest.mark.filterwarnings('ignore:Too few samples')
+@pytest.mark.filterwarnings('ignore:Epochs are not baseline corrected')
 def test_add_noise():
     """Test noise addition."""
     rng = np.random.RandomState(0)
-    data_path = testing.data_path()
-    raw = read_raw_fif(data_path + '/MEG/sample/sample_audvis_trunc_raw.fif')
+    raw = read_raw_fif(raw_fname)
     raw.del_proj()
     picks = pick_types(raw.info, eeg=True, exclude=())
     cov = compute_raw_covariance(raw, picks=picks)
@@ -119,13 +126,35 @@ def test_add_noise():
         if inst is evoked:
             inst = EpochsArray(inst.data[np.newaxis], inst.info)
         if inst is raw:
-            cov_new = compute_raw_covariance(inst, picks=picks,
-                                             verbose='error')  # samples
+            cov_new = compute_raw_covariance(inst, picks=picks)
         else:
-            cov_new = compute_covariance(inst, verbose='error')  # avg ref
+            cov_new = compute_covariance(inst)
         assert cov['names'] == cov_new['names']
         r = np.corrcoef(cov['data'].ravel(), cov_new['data'].ravel())[0, 1]
         assert r > 0.99
+
+
+def test_rank_deficiency():
+    """Test adding noise from M/EEG float32 (I/O) cov with projectors."""
+    # See gh-5940
+    evoked = read_evokeds(ave_fname, 0, baseline=(None, 0))
+    evoked.info['bads'] = ['MEG 2443']
+    evoked.info['lowpass'] = 20  # fake for decim
+    picks = pick_types(evoked.info, meg=True, eeg=False)
+    picks = picks[::16]
+    evoked.pick_channels([evoked.ch_names[pick] for pick in picks])
+    evoked.info.normalize_proj()
+    cov = read_cov(cov_fname)
+    cov['projs'] = []
+    cov = regularize(cov, evoked.info, rank=None)
+    cov = pick_channels_cov(cov, evoked.ch_names)
+    evoked.data[:] = 0
+    add_noise(evoked, cov)
+    cov_new = compute_covariance(
+        EpochsArray(evoked.data[np.newaxis], evoked.info), verbose='error')
+    assert cov['names'] == cov_new['names']
+    r = np.corrcoef(cov['data'].ravel(), cov_new['data'].ravel())[0, 1]
+    assert r > 0.98
 
 
 run_tests_if_main()

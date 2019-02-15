@@ -97,12 +97,16 @@ def test_simulate_raw_sphere():
     #
     # Test raw simulation with basic parameters
     #
-    raw_sim = simulate_raw(raw, stc, trans, src, sphere, read_cov(cov_fname),
+    raw.info.normalize_proj()
+    cov = read_cov(cov_fname)
+    cov['projs'] = raw.info['projs']
+    raw_sim = simulate_raw(raw, stc, trans, src, sphere, cov,
                            head_pos=head_pos_sim,
                            blink=True, ecg=True, random_state=seed)
-    raw_sim_2 = simulate_raw(raw, stc, trans_fname, src_fname, sphere,
-                             cov_fname, head_pos=head_pos_sim,
-                             blink=True, ecg=True, random_state=seed)
+    with pytest.warns(RuntimeWarning, match='applying projector with'):
+        raw_sim_2 = simulate_raw(raw, stc, trans_fname, src_fname, sphere,
+                                 cov_fname, head_pos=head_pos_sim,
+                                 blink=True, ecg=True, random_state=seed)
     assert_array_equal(raw_sim_2[:][0], raw_sim[:][0])
     std = dict(grad=2e-13, mag=10e-15, eeg=0.1e-6)
     raw_sim = simulate_raw(raw, stc, trans, src, sphere,
