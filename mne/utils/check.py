@@ -11,7 +11,7 @@ import os.path as op
 
 import numpy as np
 
-from ._logging import warn
+from ._logging import warn, logger
 
 
 def _ensure_int(x, name='unknown', must_be='an int'):
@@ -157,7 +157,6 @@ def _check_event_id(event_id, events):
 def _check_fname(fname, overwrite=False, must_exist=False):
     """Check for file existence."""
     _validate_type(fname, 'str', 'fname')
-    from mne.utils import logger
     if must_exist and not op.isfile(fname):
         raise IOError('File "%s" does not exist' % fname)
     if op.isfile(fname):
@@ -323,3 +322,69 @@ def _check_if_nan(data, msg=" to be plotted"):
     """Raise if any of the values are NaN."""
     if not np.isfinite(data).all():
         raise ValueError("Some of the values {} are NaN.".format(msg))
+
+
+def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
+    """Return good channels common to forward model and covariance matrices."""
+    from .. import pick_types
+    # get a list of all channel names:
+    fwd_ch_names = forward['info']['ch_names']
+
+    # handle channels from forward model and info:
+    ch_names = _compare_ch_names(info['ch_names'], fwd_ch_names, info['bads'])
+
+    # make sure that no reference channels are left:
+    ref_chs = pick_types(info, meg=False, ref_meg=True)
+    ref_chs = [info['ch_names'][ch] for ch in ref_chs]
+    ch_names = [ch for ch in ch_names if ch not in ref_chs]
+
+    # inform about excluding channels:
+    if (data_cov is not None and set(info['bads']) != set(data_cov['bads']) and
+            (len(set(ch_names).intersection(data_cov['bads'])) > 0)):
+        logger.info('info["bads"] and data_cov["bads"] do not match, '
+                    'excluding bad channels from both.')
+    if (noise_cov is not None and
+            set(info['bads']) != set(noise_cov['bads']) and
+            (len(set(ch_names).intersection(noise_cov['bads'])) > 0)):
+        logger.info('info["bads"] and noise_cov["bads"] do not match, '
+                    'excluding bad channels from both.')
+
+    # handle channels from data cov if data cov is not None
+    # Note: data cov is supposed to be None in tf_lcmv
+    if data_cov is not None:
+        ch_names = _compare_ch_names(ch_names, data_cov.ch_names,
+                                     data_cov['bads'])
+
+    # handle channels from noise cov if noise cov available:
+    if noise_cov is not None:
+        ch_names = _compare_ch_names(ch_names, noise_cov.ch_names,
+                                     noise_cov['bads'])
+
+    picks = [info['ch_names'].index(k) for k in ch_names if k in
+             info['ch_names']]
+    return picks
+
+
+def _compare_ch_names(names1, names2, bads):
+    """Return channel names of common and good channels."""
+    ch_names = [ch for ch in names1 if ch not in bads and ch in names2]
+    return ch_names
+
+
+def _check_channels_spatial_filter(ch_names, filters):
+    """Return data channel indices to be used with spatial filter.
+
+    Unlike ``pick_channels``, this respects the order of ch_names.
+    """
+    sel = []
+    # first check for channel discrepancies between filter and data:
+    for ch_name in filters['ch_names']:
+        if ch_name not in ch_names:
+            raise ValueError('The spatial filter was computed with channel %s '
+                             'which is not present in the data. You should '
+                             'compute a new spatial filter restricted to the '
+                             'good data channels.' % ch_name)
+    # then compare list of channels and get selection based on data:
+    sel = [ii for ii, ch_name in enumerate(ch_names)
+           if ch_name in filters['ch_names']]
+    return sel

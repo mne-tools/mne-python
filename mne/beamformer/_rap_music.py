@@ -10,9 +10,9 @@ from scipy import linalg
 
 from ..io.pick import pick_channels_evoked, _picks_to_idx
 from ..cov import compute_whitener
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _check_info_inv
 from ..dipole import Dipole
-from ._compute_beamformer import _prepare_beamformer_input, _setup_picks
+from ._compute_beamformer import _prepare_beamformer_input
 
 
 def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
@@ -242,7 +242,7 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
     data = evoked.data
     times = evoked.times
 
-    picks = _setup_picks(info, forward, data_cov=None, noise_cov=noise_cov)
+    picks = _check_info_inv(info, forward, data_cov=None, noise_cov=noise_cov)
 
     data = data[picks]
 

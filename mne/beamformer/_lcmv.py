@@ -13,10 +13,10 @@ from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate, _get_src_type
-from ..utils import logger, verbose, warn, _validate_type, _reg_pinv
+from ..utils import (logger, verbose, warn, _validate_type, _reg_pinv,
+                     _check_info_inv, _check_channels_spatial_filter)
 from .. import Epochs
 from ._compute_beamformer import (
-    _setup_picks, _pick_channels_spatial_filter,
     _check_proj_match, _prepare_beamformer_input, _check_one_ch_type,
     _compute_beamformer, _check_src_type, Beamformer, _check_rank)
 
@@ -125,7 +125,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
-    picks = _setup_picks(info, forward, data_cov, noise_cov)
+    picks = _check_info_inv(info, forward, data_cov, noise_cov)
     rank = _check_rank(rank)
 
     is_free_ori, ch_names, proj, vertno, G, nn = \
@@ -290,7 +290,7 @@ def apply_lcmv(evoked, filters, max_ori_out='signed', verbose=None):
     data = evoked.data
     tmin = evoked.times[0]
 
-    sel = _pick_channels_spatial_filter(evoked.ch_names, filters)
+    sel = _check_channels_spatial_filter(evoked.ch_names, filters)
     data = data[sel]
 
     stc = _apply_lcmv(data=data, filters=filters, info=info,
@@ -336,7 +336,7 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='signed',
     info = epochs.info
     tmin = epochs.times[0]
 
-    sel = _pick_channels_spatial_filter(epochs.ch_names, filters)
+    sel = _check_channels_spatial_filter(epochs.ch_names, filters)
     data = epochs.get_data()[:, sel, :]
     stcs = _apply_lcmv(data=data, filters=filters, info=info,
                        tmin=tmin, max_ori_out=max_ori_out)
@@ -386,7 +386,7 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
 
     info = raw.info
 
-    sel = _pick_channels_spatial_filter(raw.ch_names, filters)
+    sel = _check_channels_spatial_filter(raw.ch_names, filters)
     data, times = raw[sel, start:stop]
     tmin = times[0]
 
@@ -599,10 +599,10 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                          'underlying raw instance to this function')
 
     if noise_covs is None:
-        picks = _setup_picks(epochs.info, forward, data_cov=None)
+        picks = _check_info_inv(epochs.info, forward, data_cov=None)
     else:
-        picks = _setup_picks(epochs.info, forward, data_cov=None,
-                             noise_cov=noise_covs[0])
+        picks = _check_info_inv(epochs.info, forward, data_cov=None,
+                                noise_cov=noise_covs[0])
     ch_names = [epochs.ch_names[k] for k in picks]
 
     # check number of sensor types present in the data

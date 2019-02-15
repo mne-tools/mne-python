@@ -15,6 +15,7 @@ from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
                             apply_lcmv_raw, tf_lcmv, Beamformer,
                             read_beamformer)
 from mne.beamformer._lcmv import _lcmv_source_power
+from mne.io.compensator import set_current_comp
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.simulation import simulate_evoked
 from mne.utils import run_tests_if_main, object_diff, requires_h5py
@@ -662,5 +663,11 @@ def test_lcmv_ctf_comp():
     filters = make_lcmv(evoked.info, fwd, data_cov)
     assert 'weights' in filters
 
+    # test whether different compensations throw error
+    info_comp = evoked.info.copy()
+    set_current_comp(info_comp, 1)
+    with pytest.raises(ValueError,
+                       match='do not have same compensation applied'):
+        make_lcmv(info_comp, fwd, data_cov)
 
 run_tests_if_main()
